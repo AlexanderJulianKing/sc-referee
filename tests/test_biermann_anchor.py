@@ -21,9 +21,10 @@ def test_biermann_reproduces_the_frozen_collapse():
     result, eu = _capsule_or_skip()
     assert eu is not None, "experimental_unit finding must be present"
     m = eu.metrics
-    assert m["valid_reported_sig"] == EXPECTED["valid_reported_sig"]      # 16,289
-    # One gene lies on a platform-sensitive DESeq2/BLAS boundary: Linux reports 769 and
-    # macOS 770. Both reproduce the same 95.3% scientific conclusion.
+    # One gene lies on a platform-sensitive DESeq2/BLAS testability boundary.
+    assert abs(m["valid_reported_sig"] - EXPECTED["valid_reported_sig"]) <= 1
+    # Linux and macOS can likewise differ by one survivor. Both reproduce the same
+    # 95.3% scientific conclusion.
     assert abs(m["survivors"] - EXPECTED["survivors"]) <= 1
     assert round(1 - m["survival_rate"], 3) == 0.953
     assert m["powered"] is EXPECTED["powered"]                           # underpowered
