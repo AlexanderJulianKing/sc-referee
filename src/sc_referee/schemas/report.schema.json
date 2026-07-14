@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "sc-referee report",
+  "type": "object",
+  "required": ["findings"],
+  "properties": {
+    "analysis_type": { "type": ["string", "null"] },
+    "worst_status": { "$ref": "#/definitions/status" },
+    "ci_fails": { "type": "boolean" },
+    "ci_conclusion": { "enum": ["fail", "neutral", "pass"] },
+    "fully_audited": { "type": "boolean" },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["check_id", "status", "verdict"],
+        "properties": {
+          "check_id": { "type": "string" },
+          "status": { "$ref": "#/definitions/status" },
+          "verdict": { "type": "string" },
+          "metrics": { "type": "object" },
+          "citations": { "type": "array", "items": { "type": "string" } },
+          "fix": { "type": ["string", "null"] }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "status": {
+      "enum": ["blocker", "major", "needs_evidence", "informational", "not_audited", "pass"]
+    }
+  }
+}

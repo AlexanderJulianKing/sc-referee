@@ -1,0 +1,48 @@
+capsule_schema: sc-referee/compiled-analysis@v1
+capsule_kind: gbp07_ambient_contamination/v1
+title: CXCL10 eQTL analysis
+analysis: eqtl
+reconstruction: I read this as a donor-level eQTL analysis estimating the association
+  between genotype and CXCL10 expression. Is that right?
+presentation:
+  claim_title: CXCL10 expression ~ genotype
+  recognition: Genotype association with CXCL10 expression, evaluated per donor.
+  facts:
+  - label: Biological replicate
+    value: donor
+  - label: Analysis level
+    value: donor
+artifacts_dir: raw_compile_input
+provenance:
+  source: GeneBench-Pro GB-P07 (external benchmark; released bytes are not redistributed)
+  materialized_by: sc-referee capsule preparation
+  artifacts:
+    cells.csv.gz: sha256:3ce9bdfda2020e875f9cdc6a896b820ffc3c53f2cbf663d5cb8f022255e67575
+    donors.csv.gz: sha256:6dc5e09f863bc3c326e67aee6abe452b8089765ff3adafb3e627c4521d5a6f3f
+    empty_drops.csv.gz: sha256:8a344bd63779ec0e2d21146f5bac6a260345e272b529b8870a4ac032d0c0124c
+    method.txt: sha256:6ad9c2983d00dfe6d06f6c981d70ce13bd7df86fff07454267f2841600efb26f
+    submission.csv: sha256:c6fb41670ee6c501b7817ff33161b9dae7afda9c64e181ab09eef0dbbf56a029
+questions:
+- group: Measurement
+  prompt: Is the HBB column a genuine measurement of ambient-RNA contamination in
+    these cells?
+  why: Referee would treat this column as the contamination signal; if it is not a
+    real ambient measurement, a confounding check on it would be meaningless.
+  default: 'yes'
+- group: Timing
+  prompt: Was that contamination present before genotype — that is, it is not a downstream
+    consequence of genotype?
+  why: Contamination caused by genotype would be a mediator, not a confounder, and
+    must not be adjusted for.
+  default: 'yes'
+- group: Estimand
+  prompt: For the effect this analysis targets, is adjusting for ambient-RNA contamination
+    a required part of the design?
+  why: Whether the contamination basis must appear in the fitted design depends on
+    the estimand you are after.
+  default: 'yes'
+- group: Authority
+  prompt: Do you have the scientific authority to confirm this measurement and its
+    causal scope?
+  why: Referee will only ratify a confounding premise a qualified person stands behind.
+  default: 'yes'

@@ -1,0 +1,43 @@
+{
+  "single_table_auto_detect_legacy": {
+    "reported_results": {
+      "feature_id": ["g0", "g1", "g2"],
+      "pvalue": [0.01, 0.2, 0.3],
+      "padj": [0.02, 0.3, 0.4],
+      "effect": [null, null, null]
+    },
+    "reported_columns": ["gene", "p_value", "padj", "log2FoldChange"],
+    "reported_provenance": {
+      "path": "results.csv",
+      "reason": "header matched reported-DE synonyms"
+    }
+  },
+  "two_tables_confirmed_declared_claim": {
+    "reported_results": {
+      "feature_id": ["g0", "g1", "g2"],
+      "pvalue": [0.01, 0.2, 0.3],
+      "padj": [0.02, 0.3, 0.4],
+      "effect": [null, null, null]
+    },
+    "reported_columns": ["gene", "p_value", "padj", "log2FoldChange"],
+    "reported_provenance": {
+      "path": "de_claim.csv",
+      "reason": "confirmed sc-referee.yaml declared this reported claim"
+    }
+  },
+  "enumerated_intended_changes": [
+    {
+      "fixture": "two_tables_confirmed_declared_claim",
+      "old": "reported_results=None (ambiguous auto-detection; report-bound checks abstained)",
+      "new": "reported_results=de_claim.csv (the confirmed declaration is audited)",
+      "reason": "A human-confirmed claim path is authoritative over filename discovery ambiguity."
+    },
+    {
+      "fixture": "claude_medium_role_confidence",
+      "old": "sc-referee init aborted during final schema validation",
+      "new": "confidence role is low and confirmed_by_human remains false",
+      "reason": "Unknown confidence values fail closed instead of crashing init."
+    }
+  ],
+  "existing_fixture_verdict_changes": []
+}

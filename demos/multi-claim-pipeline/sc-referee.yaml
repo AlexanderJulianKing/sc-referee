@@ -1,0 +1,91 @@
+analysis_type: condition_contrast_DE
+type_confidence: high
+type_evidence:
+- human ratified the setup form
+plain_summary: The experimental design was reviewed and confirmed by a person.
+design:
+  replicate_unit:
+  - donor_id
+  condition: treatment
+  batch: []
+contrasts:
+- name: treated_vs_control
+  reference: control
+  test: treated
+  replicate_unit:
+  - donor_id
+  sample_unit:
+  - donor_id
+  - treatment
+  pairing_unit:
+  - donor_id
+  model: ~ donor_id + treatment
+  analyst_adjusted_for:
+  - donor_id
+  target_coefficient: treatment[T.treated]
+  estimand_id: condition-effect/v1
+  fitted_design:
+    rows_exact: true
+    operator_kind: random_intercept_only
+    intercept: true
+    column_kinds:
+      donor_id: categorical
+      treatment: categorical
+      cell_state: categorical
+    categorical_levels:
+      donor_id:
+      - D01
+      - D02
+      - D03
+      - D04
+      - D05
+      - D06
+      - D07
+      - D08
+      treatment:
+      - control
+      - treated
+      cell_state:
+      - resting
+      - activated
+    transforms:
+      donor_id: identity
+      treatment: identity
+      cell_state: identity
+    batch_modeling: {}
+reported_results:
+  path: results/gene_expression.csv
+  gene_col: gene
+  padj_col: padj
+  unit_of_test: cell
+confidence:
+  condition: high
+  replicate_unit: high
+  reference: high
+  unit_of_test: high
+  analyst_adjusted_for: high
+  aggregation_key: low
+  fitted_design: low
+unresolved: []
+batch_modeling: []
+csp_proposals: []
+confirmed_by_human: true
+claims:
+- name: gene_expression
+  path: results/gene_expression.csv
+  contrast: treated_vs_control
+  analysis_type: condition_contrast_DE
+  unit_of_test: cell
+  value_kind: raw_counts
+- name: alternative_splicing
+  path: results/alternative_splicing.csv
+  contrast: treated_vs_control
+  analysis_type: condition_contrast_DE
+  unit_of_test: cell
+  value_kind: derived_ratio
+- name: cluster_abundance
+  path: results/cluster_abundance.csv
+  contrast: treated_vs_control
+  analysis_type: differential_abundance
+  unit_of_test: cell
+  value_kind: statistic

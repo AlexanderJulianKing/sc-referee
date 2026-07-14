@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EIP reported results (stat_tests/<Gene>_*.csv)",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["exon"],
+    "properties": {
+      "exon": {},
+      "p_value": { "type": ["number", "null"] },
+      "delta_incl": { "type": ["number", "null"] },
+      "n_A": { "type": ["integer", "number", "null"] },
+      "n_B": { "type": ["integer", "number", "null"] }
+    }
+  }
+}

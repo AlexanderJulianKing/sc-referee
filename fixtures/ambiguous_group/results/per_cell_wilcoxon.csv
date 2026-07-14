@@ -1,0 +1,9 @@
+gene,pvalue,adj_p_value,logfoldchange
+GENE0,1e-05,0.0001,2.1
+GENE1,1e-05,0.0001,-1.8
+GENE2,1e-05,0.0001,1.6
+GENE3,0.4,0.6,0.05
+GENE4,0.4,0.6,0.05
+GENE5,0.4,0.6,0.05
+GENE6,0.4,0.6,0.05
+GENE7,0.4,0.6,0.05

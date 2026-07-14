@@ -1,0 +1,572 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "sc-referee confirmed config (sc-referee.yaml)",
+  "type": "object",
+  "definitions": {
+    "rowLedgerScalar": {
+      "oneOf": [
+        { "type": ["string", "number", "boolean", "null"] },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["tag", "value"],
+          "properties": {
+            "tag": { "enum": ["null", "bool", "int", "float64", "str", "bytes"] },
+            "value": {}
+          }
+        }
+      ]
+    },
+    "rowLedgerOperation": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "operation_id", "column_id", "allowed_values", "confidence"],
+          "properties": {
+            "kind": { "const": "declared_subset" }, "operation_id": { "type": "string", "minLength": 1 },
+            "column_id": { "type": "string", "minLength": 1 },
+            "allowed_values": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/rowLedgerScalar" } },
+            "confidence": { "enum": ["high", "low"] }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "operation_id", "column_id", "comparison", "threshold", "missing_policy", "confidence"],
+          "properties": {
+            "kind": { "const": "declared_qc_threshold" }, "operation_id": { "type": "string", "minLength": 1 },
+            "column_id": { "type": "string", "minLength": 1 },
+            "comparison": { "enum": ["ge", "gt", "le", "lt", "eq"] },
+            "threshold": { "$ref": "#/definitions/rowLedgerScalar" },
+            "missing_policy": { "enum": ["drop", "keep"] }, "confidence": { "enum": ["high", "low"] }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "operation_id", "column_ids", "confidence"],
+          "properties": {
+            "kind": { "const": "complete_case" }, "operation_id": { "type": "string", "minLength": 1 },
+            "column_ids": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+            "confidence": { "enum": ["high", "low"] }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "operation_id", "key_columns", "order", "confidence"],
+          "properties": {
+            "kind": { "const": "aggregation" }, "operation_id": { "type": "string", "minLength": 1 },
+            "key_columns": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+            "order": { "const": "stable_first_occurrence" }, "confidence": { "enum": ["high", "low"] }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "operation_id", "policy", "count_layer_identity", "confidence"],
+          "properties": {
+            "kind": { "const": "zero_count_row" }, "operation_id": { "type": "string", "minLength": 1 },
+            "policy": { "const": "total_library_equals_zero" }, "count_layer_identity": { "type": "string", "minLength": 1 },
+            "confidence": { "enum": ["high", "low"] }
+          }
+        }
+      ]
+    },
+    "cspTargetFieldRecord": {
+      "type": "object", "additionalProperties": false,
+      "required": ["field_id", "value", "state", "confidence", "scope_fingerprint", "evidence_ids", "evidence_basis", "selected_teach_back_id", "consequence_acknowledged", "presentation_event_id", "answer_event_id", "confirmation_event_id", "actor", "confirmed_at"],
+      "properties": {
+        "field_id": { "type": "string" },
+        "value": {},
+        "state": { "enum": ["absent", "proposed_unconfirmed", "presented", "confirmed_high", "unresolved", "declined_for_consumer", "invalidated"] },
+        "confidence": { "enum": ["high", "low"] },
+        "scope_fingerprint": { "type": "string", "pattern": "^csp-scope:v2:[0-9a-f]{64}$" },
+        "evidence_ids": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "evidence_basis": { "type": ["string", "null"] },
+        "selected_teach_back_id": { "type": ["string", "null"] },
+        "consequence_acknowledged": { "type": "boolean" },
+        "confirmation_event_id": { "type": ["string", "null"] },
+        "presentation_event_id": { "type": ["string", "null"] },
+        "answer_event_id": { "type": ["string", "null"] },
+        "actor": { "type": ["string", "null"] },
+        "confirmed_at": { "type": ["string", "null"] }
+      }
+    }
+  },
+  "required": ["analysis_type", "design", "contrasts"],
+  "properties": {
+    "analysis_type": {
+      "type": "string",
+      "enum": ["condition_contrast_DE", "marker_detection", "differential_abundance", "trajectory", "eqtl", "hic_loop_strength", "other"]
+    },
+    "confirmed_by_human": { "type": "boolean" },
+    "confirmation_digest": { "type": "string", "pattern": "^config:v1:[0-9a-f]{64}$" },
+    "type_confidence": { "type": ["string", "number"] },
+    "type_evidence": { "type": "array" },
+    "plain_summary": { "type": "string" },
+    "design": {
+      "type": "object",
+      "properties": {
+        "condition": { "type": "string" },
+        "replicate_unit": { "type": "array", "items": { "type": "string" } },
+        "batch": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "contrasts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "sample_unit"],
+        "properties": {
+          "name": { "type": "string" },
+          "reference": {},
+          "test": {
+            "oneOf": [
+              { "type": ["string", "number", "boolean"] },
+              { "type": "object", "minProperties": 1, "maxProperties": 1 }
+            ]
+          },
+          "subset": { "type": ["object", "null"] },
+          "replicate_unit": { "type": "array", "items": { "type": "string" } },
+          "sample_unit": { "type": "array", "items": { "type": "string" } },
+          "pairing_unit": { "type": "array", "items": { "type": "string" } },
+          "aggregation_key": { "type": "array", "items": { "type": "string" } },
+          "row_ledger": {
+            "type": "object", "additionalProperties": false,
+            "required": ["schema_version", "source_snapshot_identity", "count_layer_identity", "source_occurrence_id_columns", "fitted_source_occurrence_ids", "operations", "evaluation_relation", "evaluation_relation_confidence", "fitted_result_id", "target_coefficient", "field_confidence"],
+            "properties": {
+              "schema_version": { "const": "row-ledger-schema-v1" },
+              "source_snapshot_identity": { "type": "string", "minLength": 1 },
+              "count_layer_identity": { "type": "string", "minLength": 1 },
+              "source_occurrence_id_columns": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+              "fitted_source_occurrence_ids": { "type": "array", "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/rowLedgerScalar" } } },
+              "operations": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/rowLedgerOperation" } },
+              "evaluation_relation": { "enum": ["verified_same_as_fitted", "separate", "not_applicable"] },
+              "evaluation_relation_confidence": { "enum": ["high", "low"] },
+              "fitted_result_id": { "type": "string", "minLength": 1 },
+              "target_coefficient": { "type": "string", "minLength": 1 },
+              "field_confidence": {
+                "type": "object", "additionalProperties": false,
+                "required": ["source_snapshot_identity", "count_layer_identity", "source_occurrence_id_columns", "fitted_source_occurrence_ids", "evaluation_relation", "fitted_result_id", "target_coefficient"],
+                "properties": {
+                  "source_snapshot_identity": { "enum": ["high", "low"] }, "count_layer_identity": { "enum": ["high", "low"] },
+                  "source_occurrence_id_columns": { "enum": ["high", "low"] }, "fitted_source_occurrence_ids": { "enum": ["high", "low"] },
+                  "evaluation_relation": { "enum": ["high", "low"] }, "fitted_result_id": { "enum": ["high", "low"] },
+                  "target_coefficient": { "enum": ["high", "low"] }
+                }
+              }
+            }
+          },
+          "pairing_estimand": { "type": ["string", "null"], "enum": ["within_pair", "unpaired", null] },
+          "pairing_mechanics": { "type": ["string", "null"], "enum": ["one_to_one", "repeated_measures", null] },
+          "effect_relevance_contract": {
+            "type": "object", "additionalProperties": false,
+            "required": ["claim_type", "threshold", "threshold_scale", "reported_effect_scale"],
+            "properties": {
+              "claim_type": { "const": "biologically_relevant_discovery" },
+              "threshold": { "type": "number", "exclusiveMinimum": 0 },
+              "threshold_scale": { "enum": ["log2_fold_change", "natural_log_fold_change"] },
+              "reported_effect_scale": { "enum": ["log2_fold_change", "natural_log_fold_change"] }
+            }
+          },
+          "multiplicity_contract": {
+            "type": "object", "additionalProperties": false,
+            "required": ["claim_type", "error_criterion", "adjustment_method", "family_complete"],
+            "properties": {
+              "claim_type": { "enum": ["error_controlled_discovery", "nominal_discovery"] },
+              "error_criterion": { "enum": ["fdr", "fwer", "nominal"] },
+              "adjustment_method": { "enum": ["benjamini_hochberg", "storey", "bonferroni", "none", "other"] },
+              "family_complete": { "type": "boolean" }
+            }
+          },
+          "report_inference_contract": {
+            "type": "object", "additionalProperties": false,
+            "required": ["producer_binding", "response_scale", "method_family", "dependence_semantics"],
+            "properties": {
+              "producer_binding": { "const": "exact" },
+              "response_scale": { "enum": ["raw_counts", "transformed_continuous", "normalized_continuous", "unknown"] },
+              "method_family": { "enum": ["negative_binomial", "gaussian", "rank_based", "mixed_model", "gee", "other"] },
+              "dependence_semantics": { "enum": ["iid_rows", "mixed_model", "gee", "cluster_robust", "paired", "unknown"] }
+            }
+          },
+          "model": { "type": "string" },
+          "analyst_model": { "type": ["string", "null"] },
+          "analyst_adjusted_for": {
+            "type": ["array", "null"],
+            "items": { "type": "string" }
+          },
+          "estimand_id": { "type": "string", "minLength": 1 },
+          "csp_contracts": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+              {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["contract_id", "contract_type", "scope", "fields", "authorized_consumers", "authority_attested", "authority_attestation", "validator_version", "validator_result", "active", "created_at"],
+              "properties": {
+                "contract_id": { "type": "string", "minLength": 1 },
+                "contract_type": { "const": "between_group_adjustment_obligation/v1" },
+                "scope": {
+                  "type": "object", "additionalProperties": false,
+                  "required": ["fitted_result_id", "contrast_name", "target_coefficient", "exposure_column", "row_ledger_identity", "estimand_id", "group_source_column", "assignment_identity", "scope_fingerprint"],
+                  "properties": {
+                    "fitted_result_id": { "type": "string", "minLength": 1 },
+                    "contrast_name": { "type": "string", "minLength": 1 },
+                    "target_coefficient": { "type": "string", "minLength": 1 },
+                    "exposure_column": { "type": "string", "minLength": 1 },
+                    "row_ledger_identity": { "type": "string", "minLength": 1 },
+                    "estimand_id": { "type": "string", "minLength": 1 },
+                    "group_source_column": { "type": "string", "minLength": 1 },
+                    "assignment_identity": { "type": "string", "pattern": "^csp-assign:v1:[0-9a-f]{64}$" },
+                    "scope_fingerprint": { "type": "string", "pattern": "^csp-scope:v2:[0-9a-f]{64}$" }
+                  }
+                },
+                "fields": {
+                  "type": "object", "additionalProperties": false,
+                  "required": ["between_group_policy", "may_rely_on_re_exogeneity"],
+                  "properties": {
+                    "between_group_policy": {
+                      "type": "object", "additionalProperties": false,
+                      "required": ["field_id", "value", "state", "confidence", "scope_fingerprint", "evidence_ids", "evidence_basis", "selected_teach_back_id", "consequence_acknowledged", "presentation_event_id", "answer_event_id", "confirmation_event_id", "actor", "confirmed_at"],
+                      "properties": {
+                        "field_id": { "const": "between_group_policy" },
+                        "value": { "type": ["string", "null"], "enum": ["remove_arbitrary", null] },
+                        "state": { "enum": ["absent", "proposed_unconfirmed", "presented", "confirmed_high", "unresolved", "declined_for_consumer", "invalidated"] },
+                        "confidence": { "enum": ["high", "low"] },
+                        "scope_fingerprint": { "type": "string" },
+                        "evidence_ids": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+                        "evidence_basis": { "type": ["string", "null"] },
+                        "selected_teach_back_id": { "type": ["string", "null"], "enum": ["remove_arbitrary", null] },
+                        "consequence_acknowledged": { "type": "boolean" },
+                        "confirmation_event_id": { "type": ["string", "null"] },
+                        "presentation_event_id": { "type": ["string", "null"] },
+                        "answer_event_id": { "type": ["string", "null"] },
+                        "actor": { "type": ["string", "null"] },
+                        "confirmed_at": { "type": ["string", "null"] }
+                      }
+                    },
+                    "may_rely_on_re_exogeneity": {
+                      "type": "object", "additionalProperties": false,
+                      "required": ["field_id", "value", "state", "confidence", "scope_fingerprint", "evidence_ids", "evidence_basis", "selected_teach_back_id", "consequence_acknowledged", "presentation_event_id", "answer_event_id", "confirmation_event_id", "actor", "confirmed_at"],
+                      "properties": {
+                        "field_id": { "const": "may_rely_on_re_exogeneity" },
+                        "value": { "type": ["boolean", "null"] },
+                        "state": { "enum": ["absent", "proposed_unconfirmed", "presented", "confirmed_high", "unresolved", "declined_for_consumer", "invalidated"] },
+                        "confidence": { "enum": ["high", "low"] },
+                        "scope_fingerprint": { "type": "string" },
+                        "evidence_ids": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+                        "evidence_basis": { "type": ["string", "null"] },
+                        "selected_teach_back_id": { "type": ["string", "null"], "enum": ["must_not_rely", "may_rely", "sensitivity_at_tolerance_is_sufficient", null] },
+                        "consequence_acknowledged": { "type": "boolean" },
+                        "confirmation_event_id": { "type": ["string", "null"] },
+                        "presentation_event_id": { "type": ["string", "null"] },
+                        "answer_event_id": { "type": ["string", "null"] },
+                        "actor": { "type": ["string", "null"] },
+                        "confirmed_at": { "type": ["string", "null"] }
+                      }
+                    }
+                  }
+                },
+                "authorized_consumers": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "const": "confounding_random_intercept_conditional" } },
+                "authority_attested": { "type": "boolean" },
+                "authority_attestation": { "type": ["string", "null"] },
+                "validator_version": { "const": "between-group-obligation-v1" },
+                "validator_result": { "type": "array", "items": { "type": "string" } },
+                "active": { "type": "boolean" },
+                "created_at": { "type": "string", "minLength": 1 }
+              }
+            },
+            {
+              "type": "object", "additionalProperties": false,
+              "required": ["contract_id", "contract_type", "scope", "fields", "authorized_consumers", "authority_attested", "authority_attestation", "validator_version", "validator_result", "active", "created_at"],
+              "properties": {
+                "contract_id": { "type": "string", "minLength": 1 },
+                "contract_type": { "const": "target_population_estimand/v1" },
+                "scope": {
+                  "type": "object", "additionalProperties": false,
+                  "required": ["fitted_result_id", "contrast_name", "target_coefficient", "exposure_column", "row_ledger_identity", "estimand_id", "group_source_column", "assignment_identity", "contract_scope", "scope_fingerprint"],
+                  "properties": {
+                    "fitted_result_id": { "type": "string", "minLength": 1 },
+                    "contrast_name": { "type": "string", "minLength": 1 },
+                    "target_coefficient": { "type": "string", "minLength": 1 },
+                    "exposure_column": { "type": "string", "minLength": 1 },
+                    "row_ledger_identity": { "type": "string", "minLength": 1 },
+                    "estimand_id": { "type": "string", "minLength": 1 },
+                    "group_source_column": { "const": "__not_applicable__" },
+                    "assignment_identity": { "type": "string", "pattern": "^csp-assign:v1:[0-9a-f]{64}$" },
+                    "contract_scope": {
+                      "type": "object", "additionalProperties": false,
+                      "required": ["reported_scalar_id", "target_population_id", "census_artifact_identity", "census_count_ledger_identity", "stratum_ledger_identity", "weight_vector_identity"],
+                      "properties": {
+                        "reported_scalar_id": { "type": "string", "pattern": "^(?=.+[:#]).+$" },
+                        "target_population_id": { "type": "string", "pattern": "^(?!across the population$).+:.+$" },
+                        "census_artifact_identity": { "type": "string", "pattern": "^(?=.+[:#]).+$" },
+                        "census_count_ledger_identity": { "type": "string", "pattern": "^(?=.+[:#]).+$" },
+                        "stratum_ledger_identity": { "type": "string", "pattern": "^(?=.+[:#]).+$" },
+                        "weight_vector_identity": { "type": "string", "pattern": "^(?=.+[:#]).+$" }
+                      }
+                    },
+                    "scope_fingerprint": { "type": "string", "pattern": "^csp-scope:v2:[0-9a-f]{64}$" }
+                  }
+                },
+                "fields": {
+                  "type": "object", "additionalProperties": false,
+                  "required": ["functional", "reported_scalar_id", "target_population_id", "census_stratum_columns", "evaluation_stratum_columns", "stratum_levels", "stratum_ledger_identity", "census_artifact_identity", "census_count_ledger_identity", "census_total_n", "census_stratum_counts", "weight_vector_identity", "weight_vector", "support_policy"],
+                  "properties": {
+                    "functional": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "functional" }, "value": { "enum": ["population_average", null] }, "selected_teach_back_id": { "enum": ["population_average_exact_census", null] } } }] },
+                    "reported_scalar_id": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "reported_scalar_id" }, "value": { "anyOf": [{ "type": "null" }, { "type": "string", "pattern": "^(?=.+[:#]).+$" }] }, "selected_teach_back_id": { "enum": ["confirm_reported_scalar_id", null] } } }] },
+                    "target_population_id": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "target_population_id" }, "value": { "anyOf": [{ "type": "null" }, { "type": "string", "pattern": "^(?!across the population$).+:.+$" }] }, "selected_teach_back_id": { "enum": ["confirm_target_population_id", null] } } }] },
+                    "census_stratum_columns": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "census_stratum_columns" }, "value": { "anyOf": [{ "type": "null" }, { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }] }, "selected_teach_back_id": { "enum": ["confirm_census_stratum_columns", null] } } }] },
+                    "evaluation_stratum_columns": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "evaluation_stratum_columns" }, "value": { "anyOf": [{ "type": "null" }, { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }] }, "selected_teach_back_id": { "enum": ["confirm_evaluation_stratum_columns", null] } } }] },
+                    "stratum_levels": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "stratum_levels" }, "value": { "anyOf": [{ "type": "null" }, { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "array", "minItems": 1, "items": { "type": ["string", "number", "boolean", "null"] } } }] }, "selected_teach_back_id": { "enum": ["confirm_stratum_levels", null] } } }] },
+                    "stratum_ledger_identity": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "stratum_ledger_identity" }, "value": { "anyOf": [{ "type": "null" }, { "type": "string", "pattern": "^(?=.+[:#]).+$" }] }, "selected_teach_back_id": { "enum": ["confirm_stratum_ledger_identity", null] } } }] },
+                    "census_artifact_identity": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "census_artifact_identity" }, "value": { "anyOf": [{ "type": "null" }, { "type": "string", "pattern": "^(?=.+[:#]).+$" }] }, "selected_teach_back_id": { "enum": ["confirm_census_artifact_identity", null] } } }] },
+                    "census_count_ledger_identity": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "census_count_ledger_identity" }, "value": { "anyOf": [{ "type": "null" }, { "type": "string", "pattern": "^(?=.+[:#]).+$" }] }, "selected_teach_back_id": { "enum": ["confirm_census_count_ledger_identity", null] } } }] },
+                    "census_total_n": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "census_total_n" }, "value": { "type": ["integer", "null"], "minimum": 1 }, "selected_teach_back_id": { "enum": ["confirm_census_total_n", null] } } }] },
+                    "census_stratum_counts": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "census_stratum_counts" }, "value": { "anyOf": [{ "type": "null" }, { "type": "array", "items": { "type": "integer", "minimum": 0 } }] }, "selected_teach_back_id": { "enum": ["confirm_census_stratum_counts", null] } } }] },
+                    "weight_vector_identity": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "weight_vector_identity" }, "value": { "anyOf": [{ "type": "null" }, { "type": "string", "pattern": "^(?=.+[:#]).+$" }] }, "selected_teach_back_id": { "enum": ["confirm_weight_vector_identity", null] } } }] },
+                    "weight_vector": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "weight_vector" }, "value": { "anyOf": [{ "type": "null" }, { "type": "array", "items": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "integer" } } }] }, "selected_teach_back_id": { "enum": ["confirm_weight_vector", null] } } }] },
+                    "support_policy": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "support_policy" }, "value": { "enum": ["require_observed_evaluation_support", null] }, "selected_teach_back_id": { "enum": ["require_observed_evaluation_support", null] } } }] }
+                  }
+                },
+                "authorized_consumers": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "const": "target_population" } },
+                "authority_attested": { "type": "boolean" },
+                "authority_attestation": { "type": ["string", "null"] },
+                "validator_version": { "const": "target-population-estimand-v1" },
+                "validator_result": { "type": "array", "items": { "type": "string" } },
+                "active": { "type": "boolean" },
+                "created_at": { "type": "string", "minLength": 1 }
+              }
+            },
+            {
+              "type": "object", "additionalProperties": false,
+              "required": ["contract_id", "contract_type", "scope", "fields", "component_identities", "authorized_consumers", "authority_attested", "authority_attestation", "validator_version", "validator_result", "active", "created_at"],
+              "properties": {
+                "contract_id": { "type": "string", "minLength": 1 },
+                "contract_type": { "const": "contamination_basis_obligation/v1" },
+                "scope": {
+                  "type": "object", "additionalProperties": false,
+                  "required": ["fitted_result_id", "contrast_name", "target_coefficient", "exposure_column", "row_ledger_identity", "estimand_id", "group_source_column", "assignment_identity", "contract_scope", "scope_fingerprint"],
+                  "properties": {
+                    "fitted_result_id": { "type": "string", "minLength": 1 },
+                    "contrast_name": { "type": "string", "minLength": 1 },
+                    "target_coefficient": { "type": "string", "minLength": 1 },
+                    "exposure_column": { "type": "string", "minLength": 1 },
+                    "row_ledger_identity": { "type": "string", "minLength": 1 },
+                    "estimand_id": { "type": "string", "minLength": 1 },
+                    "group_source_column": { "type": "string", "minLength": 1 },
+                    "assignment_identity": { "type": "string", "minLength": 1 },
+                    "contract_scope": {
+                      "type": "object", "additionalProperties": false,
+                      "required": ["measurement_artifact_identity", "measurement_run_identity", "raw_source_ledger_identity", "measurement_vector_ledger_identity", "transformed_basis_ledger_identity", "basis_output_digest", "fitted_design_identity"],
+                      "properties": {
+                        "measurement_artifact_identity": { "type": "string", "minLength": 1 },
+                        "measurement_run_identity": { "type": "string", "minLength": 1 },
+                        "raw_source_ledger_identity": { "type": "string", "minLength": 1 },
+                        "measurement_vector_ledger_identity": { "type": "string", "minLength": 1 },
+                        "transformed_basis_ledger_identity": { "type": "string", "minLength": 1 },
+                        "basis_output_digest": { "type": "string", "minLength": 1 },
+                        "fitted_design_identity": { "type": "string", "minLength": 1 }
+                      }
+                    },
+                    "scope_fingerprint": { "type": "string", "pattern": "^csp-scope:v2:[0-9a-f]{64}$" }
+                  }
+                },
+                "fields": {
+                  "type": "object", "additionalProperties": false,
+                  "required": ["measurement_kind","axis_identity","rows_and_aggregation","transform_kind","transform_detail","basis_identity","positive_evidence","population_state_evidence","source_stratum_applicability","blindness_attestation","measurement_scope_authority","pre_exposure","non_descendancy","outside_estimand_pathway","required_adjustment","assignment_context","exact_basis_adequacy","causal_scope_authority"],
+                  "properties": {
+                    "measurement_kind": { "$ref": "#/definitions/cspTargetFieldRecord" },
+                    "axis_identity": { "$ref": "#/definitions/cspTargetFieldRecord" },
+                    "rows_and_aggregation": { "$ref": "#/definitions/cspTargetFieldRecord" },
+                    "transform_kind": { "$ref": "#/definitions/cspTargetFieldRecord" },
+                    "transform_detail": { "$ref": "#/definitions/cspTargetFieldRecord" },
+                    "basis_identity": { "$ref": "#/definitions/cspTargetFieldRecord" },
+                    "positive_evidence": { "$ref": "#/definitions/cspTargetFieldRecord" },
+                    "population_state_evidence": { "$ref": "#/definitions/cspTargetFieldRecord" },
+                    "source_stratum_applicability": { "$ref": "#/definitions/cspTargetFieldRecord" },
+                    "blindness_attestation": { "$ref": "#/definitions/cspTargetFieldRecord" },
+                    "measurement_scope_authority": { "$ref": "#/definitions/cspTargetFieldRecord" },
+                    "pre_exposure": { "$ref": "#/definitions/cspTargetFieldRecord" },
+                    "non_descendancy": { "$ref": "#/definitions/cspTargetFieldRecord" },
+                    "outside_estimand_pathway": { "$ref": "#/definitions/cspTargetFieldRecord" },
+                    "required_adjustment": { "$ref": "#/definitions/cspTargetFieldRecord" },
+                    "assignment_context": { "$ref": "#/definitions/cspTargetFieldRecord" },
+                    "exact_basis_adequacy": { "$ref": "#/definitions/cspTargetFieldRecord" },
+                    "causal_scope_authority": { "$ref": "#/definitions/cspTargetFieldRecord" }
+                  }
+                },
+                "component_identities": {
+                  "type": "object", "additionalProperties": false,
+                  "properties": {
+                    "measurement_contract_identity": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+                    "causal_contract_identity": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+                  }
+                },
+                "authorized_consumers": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "const": "contamination_confound" } },
+                "authority_attested": { "type": "boolean" },
+                "authority_attestation": { "type": ["string", "null"] },
+                "validator_version": { "const": "contamination-basis-obligation-v1" },
+                "validator_result": { "type": "array", "items": { "type": "string" } },
+                "active": { "type": "boolean" },
+                "created_at": { "type": "string", "minLength": 1 }
+              }
+            }
+            ]}
+          },
+          "fitted_design": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["rows_exact", "operator_kind", "intercept", "column_kinds", "categorical_levels", "transforms"],
+            "properties": {
+              "rows_exact": { "type": "boolean" },
+              "operator_kind": {
+                "enum": ["ordinary_fixed_effects", "random_intercept_only", "unsupported"],
+                "description": "ordinary_fixed_effects means exactly an intercept plus additive identity-coded declared sources; interactions, products, transforms, weights, and offsets are unsupported"
+              },
+              "intercept": { "type": "boolean" },
+              "column_kinds": { "type": "object", "additionalProperties": { "enum": ["continuous", "categorical"] } },
+              "categorical_levels": { "type": "object", "additionalProperties": { "type": "array", "minItems": 1, "uniqueItems": true } },
+              "transforms": { "type": "object", "additionalProperties": { "const": "identity" } },
+              "weight_role": { "type": ["string", "null"] },
+              "offset_role": { "type": ["string", "null"] },
+              "unsupported_reason": { "type": ["string", "null"] }
+              ,"batch_modeling": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["source_column", "modeled_as", "random_group_column", "fixed_source_columns", "rows_exact", "row_ledger_identity", "component_scope", "unsupported_components", "field_confidence", "evidence_locations"],
+                  "properties": {
+                    "source_column": { "type": "string", "minLength": 1 },
+                    "modeled_as": { "enum": ["fixed", "random_intercept", "fixed_and_random_intercept", "absent", "upstream_handled", "unsupported"] },
+                    "random_group_column": { "type": ["string", "null"] },
+                    "fixed_source_columns": { "type": ["array", "null"], "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+                    "rows_exact": { "type": "boolean" },
+                    "row_ledger_identity": { "type": ["string", "null"] },
+                    "component_scope": {
+                      "type": "object", "additionalProperties": false,
+                      "required": ["contrast_name", "target_coefficient", "fitted_result_id"],
+                      "properties": {
+                        "contrast_name": { "type": "string", "minLength": 1 },
+                        "target_coefficient": { "type": "string", "minLength": 1 },
+                        "fitted_result_id": { "type": "string", "minLength": 1 }
+                      }
+                    },
+                    "unsupported_components": {
+                      "type": "array", "uniqueItems": true,
+                      "items": { "enum": ["random_slope", "correlated_random_effects", "crossed_random_effects", "nested_random_effects", "glmm_integration", "penalty", "weight", "offset", "transform", "upstream_operator", "other"] }
+                    },
+                    "field_confidence": {
+                      "type": "object", "additionalProperties": false,
+                      "required": ["source_column", "modeled_as", "random_group_column", "fixed_source_columns", "rows_exact", "row_ledger_identity", "component_scope", "unsupported_components"],
+                      "properties": {
+                        "source_column": { "enum": ["high", "low"] }, "modeled_as": { "enum": ["high", "low"] },
+                        "random_group_column": { "enum": ["high", "low"] }, "fixed_source_columns": { "enum": ["high", "low"] },
+                        "rows_exact": { "enum": ["high", "low"] }, "row_ledger_identity": { "enum": ["high", "low"] },
+                        "component_scope": { "enum": ["high", "low"] }, "unsupported_components": { "enum": ["high", "low"] }
+                      }
+                    },
+                    "evidence_locations": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string", "minLength": 1 } } }
+                  }
+                }
+              }
+            }
+          },
+          "target_coefficient": { "type": "string" },
+          "variant_id": { "type": "string" },
+          "genotype_column": { "type": "string" },
+          "target_feature": { "type": "string" },
+          "effect_allele": { "type": "string" },
+          "dosage_counts_allele": { "type": "string" },
+          "variant_alleles": {
+            "type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true,
+            "items": { "type": "string" }
+          },
+          "dosage_ploidy": { "type": "integer" },
+          "effect_allele_frequency_interval": {
+            "type": "array", "minItems": 2, "maxItems": 2,
+            "items": { "type": "number", "minimum": 0, "maximum": 1 }
+          },
+          "effect_allele_frequency_scope": { "type": "string" },
+          "eqtl_estimator": { "type": "string" },
+          "eqtl_outcome_scale": { "type": "string" },
+          "hic_genome_assembly": { "type": "string" },
+          "hic_resolution_bp": { "type": "integer", "minimum": 1 },
+          "hic_target_bin_i": { "type": "string" },
+          "hic_target_bin_j": { "type": "string" },
+          "hic_background_view_start": { "type": "integer", "minimum": 0 },
+          "hic_background_view_end": { "type": "integer", "minimum": 1 },
+          "hic_contact_scale": { "type": "string" },
+          "hic_expected_model": { "type": "string" },
+          "hic_mask_policy": { "type": "string" },
+          "hic_zero_policy": { "type": "string" },
+          "hic_pseudocount": { "type": "number", "minimum": 0 },
+          "hic_target_statistic": { "type": "string" },
+          "hic_replicate_functional": { "type": "string" },
+          "hic_report_delta_tolerance": { "type": "number", "minimum": 0 },
+          "hic_report_delta_tolerance_authority": {
+            "const": "rounding_absolute_log2_ratio_delta"
+          }
+        }
+      }
+    },
+    "reported_results": {
+      "type": ["object", "null"],
+      "properties": {
+        "path": { "type": "string" },
+        "gene_col": { "type": "string" },
+        "padj_col": { "type": "string" },
+        "unit_of_test": { "type": ["string", "null"], "enum": ["cell", "sample", null] }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": ["path"],
+        "properties": {
+          "name": { "type": "string" },
+          "path": { "type": "string", "minLength": 1 },
+          "contrast": { "type": "string" },
+          "analysis_type": {
+            "type": "string",
+            "enum": ["condition_contrast_DE", "marker_detection", "differential_abundance", "trajectory", "eqtl", "hic_loop_strength", "other"]
+          },
+          "unit_of_test": { "type": ["string", "null"], "enum": ["cell", "sample", null] },
+          "value_kind": {
+            "type": "string",
+            "enum": ["raw_counts", "continuous", "derived_ratio", "statistic"]
+          }
+        }
+      }
+    },
+    "confidence": {
+      "type": "object",
+      "properties": {
+        "replicate_unit": { "enum": ["high", "low"] },
+        "condition": { "enum": ["high", "low"] },
+        "analyst_adjusted_for": { "enum": ["high", "low"] },
+        "aggregation_key": { "enum": ["high", "low"] },
+        "fitted_design": { "enum": ["high", "low"] },
+        "allele_orientation": { "enum": ["high", "low"] },
+        "hic_loop_strength": { "enum": ["high", "low"] }
+      }
+    },
+    "unresolved": { "type": "array" }
+  },
+  "allOf": [{
+    "if": {
+      "properties": { "analysis_type": { "const": "eqtl" } },
+      "required": ["analysis_type"]
+    },
+    "else": {
+      "properties": {
+        "design": { "required": ["condition"] },
+        "contrasts": {
+          "items": { "required": ["name", "reference", "test", "sample_unit"] }
+        }
+      }
+    }
+  }]
+}

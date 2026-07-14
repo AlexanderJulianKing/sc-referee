@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sc-referee — Conceptual Overview</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121821; --panel2:#0f141b; --border:#26303c;
+    --ink:#e6edf3; --mut:#8b98a9; --dim:#5b6675;
+    --teal:#2dd4bf; --blue:#58a6ff;
+    --blocker:#f85149; --major:#e3a53c; --needs:#4fd1e0; --pass:#3fb950;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#152233 0%,var(--bg) 55%);
+    color:var(--ink);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:940px;margin:0 auto;padding:0 22px}
+  code,.mono{font-family:var(--mono)}
+  h1,h2,h3{line-height:1.15;margin:0}
+  .muted{color:var(--mut)}
+  .dim{color:var(--dim)}
+  a{color:var(--blue)}
+
+  /* header */
+  header{padding:64px 0 30px}
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--teal)}
+  h1{font-size:clamp(30px,5vw,50px);font-weight:750;margin:14px 0 8px;letter-spacing:-.02em}
+  .lede{font-size:19px;color:var(--mut);max-width:640px}
+  .thesis{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-family:var(--mono);font-size:15px}
+  .thesis .chip{background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:8px 15px;
+    opacity:0;transform:translateY(8px);animation:rise .6s forwards}
+  .thesis .chip:nth-child(1){animation-delay:.15s}
+  .thesis .chip:nth-child(3){animation-delay:.5s}
+  .thesis .chip:nth-child(5){animation-delay:.85s}
+  .thesis .arr{color:var(--dim)}
+  .thesis .c1{color:var(--blue)} .thesis .c2{color:var(--teal)} .thesis .c3{color:var(--pass)}
+  @keyframes rise{to{opacity:1;transform:none}}
+
+  section{padding:44px 0;border-top:1px solid var(--border)}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);margin-bottom:10px}
+  h2{font-size:27px;font-weight:700;letter-spacing:-.01em}
+  .sub{color:var(--mut);margin-top:8px;max-width:680px}
+
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px}
+  .reveal{opacity:0;transform:translateY(16px);transition:.7s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+
+  /* moat toggle */
+  .moat{margin-top:22px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:640px){.moat{grid-template-columns:1fr}}
+  .moat .card{padding:20px;cursor:pointer;transition:.25s;position:relative;overflow:hidden}
+  .moat .card h3{font-size:15px;font-family:var(--mono);display:flex;align-items:center;gap:8px}
+  .moat .card .who{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.14em}
+  .moat .out{margin-top:14px;font-size:15px;min-height:74px}
+  .moat .ask.active{border-color:#3b3050;box-shadow:0 0 0 1px #3b3050}
+  .moat .ref.active{border-color:#134b40;box-shadow:0 0 0 1px #134b40}
+  .hedge{color:#c9b6f0}
+  .num{font-family:var(--mono);font-size:30px;font-weight:750;color:var(--teal)}
+  .num .strike{color:var(--blocker);text-decoration:line-through;opacity:.7;font-size:22px}
+  .tags{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+  .tag{font-size:11px;font-family:var(--mono);padding:3px 8px;border-radius:6px;border:1px solid var(--border);color:var(--mut)}
+  .tag.ok{color:var(--pass);border-color:#1b3a26}
+
+  /* pipeline */
+  .pipe{margin-top:22px;display:flex;gap:0;align-items:stretch;flex-wrap:wrap}
+  .stage{flex:1 1 0;min-width:150px;padding:16px;border:1px solid var(--border);background:var(--panel2);
+    cursor:pointer;transition:.25s;position:relative}
+  .stage:first-child{border-radius:12px 0 0 12px}
+  .stage:last-child{border-radius:0 12px 12px 0}
+  .stage+.stage{border-left:none}
+  @media(max-width:720px){.stage{flex-basis:100%;border-radius:10px!important;border-left:1px solid var(--border)!important;margin-bottom:-1px}}
+  .stage.active{background:linear-gradient(180deg,#16212e,#111823);border-color:var(--teal);z-index:2}
+  .stage .n{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .stage .t{font-family:var(--mono);font-weight:600;margin-top:4px;font-size:15px}
+  .stage .llm{display:inline-block;margin-top:8px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    padding:2px 7px;border-radius:5px;border:1px solid}
+  .stage .llm.claude{color:var(--blue);border-color:#1d3a5c}
+  .stage .llm.human{color:var(--major);border-color:#4a3a1c}
+  .stage .llm.det{color:var(--teal);border-color:#124b41}
+  .stageDetail{margin-top:14px;padding:18px;min-height:96px;font-size:15px}
+  .stageDetail .fn{font-family:var(--mono);font-size:12.5px;color:var(--teal)}
+  .ctrls{margin-top:14px;display:flex;gap:10px;align-items:center}
+  .btn{font-family:var(--mono);font-size:13px;background:var(--panel);border:1px solid var(--border);color:var(--ink);
+    padding:8px 14px;border-radius:8px;cursor:pointer;transition:.2s}
+  .btn:hover{border-color:var(--teal)}
+  .btn.play{color:var(--teal)}
+
+  /* confounding grid */
+  .cf{margin-top:22px;padding:20px}
+  .cf .toprow{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+  .switch{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;font-family:var(--mono);font-size:13px}
+  .switch button{background:transparent;border:none;color:var(--mut);padding:9px 16px;cursor:pointer;transition:.2s}
+  .switch button.on{background:#16212e;color:var(--ink)}
+  .grid{margin-top:20px;display:grid;grid-template-columns:repeat(8,1fr);gap:9px}
+  @media(max-width:640px){.grid{grid-template-columns:repeat(4,1fr)}}
+  .donor{border:1px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center;background:var(--panel2);
+    transition:.4s;position:relative}
+  .donor .id{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .donor .cond{font-family:var(--mono);font-size:12px;font-weight:700;margin-top:6px}
+  .donor .run{font-size:10px;color:var(--mut);margin-top:4px;font-family:var(--mono)}
+  .donor.ctrl .cond{color:var(--blue)} .donor.stim .cond{color:var(--major)}
+  .donor.r1{box-shadow:inset 0 -3px 0 #2b4a6e} .donor.r2{box-shadow:inset 0 -3px 0 #6e4a2b}
+  .verdict{margin-top:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .badge{font-family:var(--mono);font-weight:700;padding:8px 14px;border-radius:8px;letter-spacing:.04em}
+  .badge.blocker{background:#3a1512;color:var(--blocker);border:1px solid #5c1f1a}
+  .badge.pass{background:#0f2a1a;color:var(--pass);border:1px solid #1b4a2c}
+  .badge.major{background:#33260c;color:var(--major);border:1px solid #5c451a}
+  .vtext{font-size:14.5px;color:var(--mut)}
+  .strata{margin-top:14px;font-family:var(--mono);font-size:12.5px;color:var(--dim)}
+  .stats{margin-top:12px;display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:12.5px}
+  .stats b{color:var(--ink);font-weight:600}
+  .stats .lab{color:var(--dim)}
+
+  /* pseudoreplication */
+  .pr{margin-top:22px;padding:22px}
+  .cells{position:relative;height:150px;border-radius:12px;background:var(--panel2);border:1px solid var(--border);overflow:hidden}
+  .cell{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--blue);opacity:.7;transition:all 1.1s cubic-bezier(.5,0,.2,1)}
+  .prfoot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:18px;gap:16px;flex-wrap:wrap}
+  .counter{font-family:var(--mono)}
+  .counter .big{font-size:38px;font-weight:750}
+  .counter.before .big{color:var(--blocker)}
+  .counter.after .big{color:var(--pass)}
+  .counter .lbl{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em}
+
+  /* verdict ladder */
+  .ladder{margin-top:22px;display:flex;flex-direction:column;gap:8px}
+  .rung{display:grid;grid-template-columns:130px 1fr;gap:14px;align-items:center;padding:13px 16px;border:1px solid var(--border);
+    border-radius:11px;background:var(--panel2);cursor:default;transition:.2s}
+  .rung:hover{border-color:var(--teal);transform:translateX(4px)}
+  .rung .st{font-family:var(--mono);font-weight:700;font-size:13px}
+  .rung .when{font-size:13.5px;color:var(--mut)}
+  .st.blocker{color:var(--blocker)} .st.major{color:var(--major)} .st.needs{color:var(--needs)} .st.pass{color:var(--pass)}
+  .st.info{color:var(--blue)}
+
+  /* pillars */
+  .pillars{margin-top:22px;display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  @media(max-width:640px){.pillars{grid-template-columns:1fr}}
+  .pillar{padding:18px}
+  .pillar h3{font-size:15px;font-family:var(--mono);color:var(--teal)}
+  .pillar p{margin:8px 0 0;font-size:14px;color:var(--mut)}
+
+  footer{padding:40px 0 70px;color:var(--dim);font-size:13px;font-family:var(--mono)}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;margin-top:12px}
+  .legend span{display:inline-flex;align-items:center;gap:6px;color:var(--mut)}
+  .dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="kicker">sc-referee · conceptual overview</div>
+    <h1>The referee you can leave&nbsp;behind</h1>
+    <p class="lede">An independent, deterministic checker for single-cell analyses. It doesn't give an opinion on your pipeline — it <em>re-runs the statistically correct procedure itself</em> and shows exactly where a reported result doesn't hold up.</p>
+    <div class="thesis">
+      <span class="chip"><span class="c1">Claude proposes</span></span>
+      <span class="arr">→</span>
+      <span class="chip"><span class="c2">a human confirms once</span></span>
+      <span class="arr">→</span>
+      <span class="chip"><span class="c3">arithmetic decides</span></span>
+    </div>
+  </header>
+
+  <section>
+    <div class="eyebrow">the whole idea in one contrast</div>
+    <h2>Recompute, don't opine</h2>
+    <p class="sub">Ask a language model "is there a problem here?" and you get a <em>hedge</em>. sc-referee returns a <em>number</em> — the same one every run, reproducible enough to gate CI. Click each card.</p>
+    <div class="moat">
+      <div class="card panel ask" id="askCard" onclick="pickMoat('ask')">
+        <div class="who">the hedge</div>
+        <h3>💬 "just ask Claude"</h3>
+        <div class="out" id="askOut">
+          <span class="hedge">"This looks like it treats cells as replicates, which <em>may</em> inflate significance…"</span>
+        </div>
+        <div class="tags">
+          <span class="tag">stochastic</span><span class="tag">an opinion</span><span class="tag">different each run</span>
+        </div>
+      </div>
+      <div class="card panel ref" id="refCard" onclick="pickMoat('ref')">
+        <div class="who">the number</div>
+        <h3>⚖️ sc-referee</h3>
+        <div class="out" id="refOut">
+          <span class="num"><span class="strike">2,041</span> → <span id="refNum">43</span></span>
+          <div class="dim" style="font-size:13px;margin-top:4px">significant genes, recomputed at the donor level</div>
+        </div>
+        <div class="tags">
+          <span class="tag ok">deterministic</span><span class="tag ok">reproducible</span><span class="tag ok">fails your CI</span>
+        </div>
+      </div>
+    </div>
+    <p class="dim" style="font-size:12.5px;margin-top:12px">The 2,041 → 43 figure is the demo target (a Kang-style pseudoreplication collapse), shown here to illustrate the shape of the answer.</p>
+  </section>
+
+  <section>
+    <div class="eyebrow">how a run flows</div>
+    <h2>Ingest → propose · confirm → check → report</h2>
+    <p class="sub">Classification is a <em>proposal a human ratifies</em> — not an autonomous gate. Everything after the human confirm is deterministic and re-runs identically in CI. Click a stage, or press play.</p>
+    <div class="pipe" id="pipe"></div>
+    <div class="stageDetail panel" id="stageDetail"></div>
+    <div class="ctrls">
+      <button class="btn play" onclick="playPipe()">▶ play the flow</button>
+      <span class="dim" id="pipeHint" style="font-size:12.5px">auto-advances through the five stages</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">check #1 · power-independent</div>
+    <h2>Confounding — is the effect even estimable?</h2>
+    <p class="sub">Pure design-matrix algebra, no statistics of power involved — and it is <em>graded</em>. Complete aliasing is rare; partial confounding is the norm. The tool regresses the condition indicator on the nuisance design matrix and returns two numbers: <strong>R²/VIF</strong> (can it be separated, and what does adjusting cost) and <strong>λ</strong> (how much of the run effect leaks in if you <em>don't</em> adjust). Toggle the design:</p>
+    <div class="cf panel">
+      <div class="toprow">
+        <div class="switch">
+          <button id="swAlias" class="on" onclick="setCf('alias')">aliased 4/0 · 0/4</button>
+          <button id="swPartial" onclick="setCf('partial')">partial 3c1s · 1c3s</button>
+          <button id="swCross" onclick="setCf('cross')">balanced 2/2 · 2/2</button>
+        </div>
+        <div class="legend">
+          <span><span class="dot" style="background:#2b4a6e"></span>run R1</span>
+          <span><span class="dot" style="background:#6e4a2b"></span>run R2</span>
+        </div>
+      </div>
+      <div class="grid" id="cfGrid"></div>
+      <div class="strata" id="cfStrata"></div>
+      <div class="stats" id="cfStats"></div>
+      <div class="verdict">
+        <span class="badge" id="cfBadge">BLOCKER</span>
+        <span class="vtext" id="cfText"></span>
+      </div>
+    </div>
+    <p class="dim" style="font-size:12.5px;margin-top:12px">The aliased case is exactly the <code>confounding_alias</code> fixture — real, and it produces a real BLOCKER. R², VIF and λ below are computed live, and match the Python.</p>
+  </section>
+
+  <section>
+    <div class="eyebrow">check #2 · earned by recompute</div>
+    <h2>Pseudoreplication — cells aren't replicates</h2>
+    <p class="sub">A per-cell test treats thousands of cells as independent samples, so tiny effects look wildly significant. The biological replicate is the <em>donor</em>. sc-referee aggregates each donor to one pseudobulk sample and re-runs the test. Press collapse.</p>
+    <div class="pr panel">
+      <div class="cells" id="cells"></div>
+      <div class="prfoot">
+        <div class="counter before" id="prCounter">
+          <div class="big" id="prBig">2,041</div>
+          <div class="lbl" id="prLbl">"significant" per-cell (n≈20,000 cells)</div>
+        </div>
+        <button class="btn play" onclick="collapse()" id="prBtn">⟲ collapse cells → donors</button>
+      </div>
+    </div>
+    <p class="dim" style="font-size:12.5px;margin-top:12px">The verdict is <em>earned</em>: a BLOCKER only fires when the recompute is adequately <strong>powered</strong>. At low n the same check honestly returns <code style="color:var(--needs)">needs_evidence</code> — it blocks when powered, abstains when not.</p>
+  </section>
+
+  <section>
+    <div class="eyebrow">the graded output</div>
+    <h2>Six statuses, conservative by construction</h2>
+    <p class="sub">A <code>blocker</code> fires only when the math unambiguously earns it. Everything uncertain stays advisory — a referee that false-accuses a valid analysis is worse than none. Hover a rung.</p>
+    <div class="ladder" id="ladder"></div>
+  </section>
+
+  <section>
+    <div class="eyebrow">why not "just ask the AI"</div>
+    <h2>Four things a prompt structurally can't be</h2>
+    <div class="pillars">
+      <div class="pillar panel"><h3>Deterministic</h3><p>Ask Claude twice, get two answers. sc-referee returns the same verdict every run — so you can gate CI on it.</p></div>
+      <div class="pillar panel"><h3>Independent</h3><p>The analysis was generated with an AI. Asking that same AI to grade it shares its blind spots. The verdict here comes from arithmetic, not the generator.</p></div>
+      <div class="pillar panel"><h3>Encoded</h3><p>It applies the expert checklist without the user knowing to ask. The rushed grad student never types "check for pseudoreplication." These are silent errors.</p></div>
+      <div class="pillar panel"><h3>Unattended</h3><p>It runs on every analysis, forever — as a CLI and a GitHub Action — including long after the resident bioinformatician has left.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    sc-referee · Claude proposes → a person confirms → arithmetic decides · companion: 02-function-by-function.html
+  </footer>
+</div>
+
+<script>
+/* ---------- moat ---------- */
+function pickMoat(which){
+  document.getElementById('askCard').classList.toggle('active', which==='ask');
+  document.getElementById('refCard').classList.toggle('active', which==='ref');
+  if(which==='ref'){ // count-up flourish
+    const el=document.getElementById('refNum'); let v=2041;
+    const iv=setInterval(()=>{ v=Math.max(43, Math.round(v*0.72-3)); el.textContent=v.toLocaleString();
+      if(v<=43){el.textContent='43';clearInterval(iv);} },55);
+  }
+}
+pickMoat('ref');
+
+/* ---------- pipeline ---------- */
+const STAGES=[
+  {n:'01',t:'INGEST',llm:['det','deterministic'],fn:'ingest(folder) → Bundle',
+   d:'Walk the folder, resolve three roles by pattern — data matrix (.h5ad), reported results (.csv), and code — and record every pickup in <code>provenance</code>. Adapters emit one canonical <code>Bundle</code>.'},
+  {n:'02',t:'PROPOSE',llm:['claude','Claude'],fn:'init → sc-referee.yaml (draft)',
+   d:'Claude reads the messy analysis — columns, dtypes, cardinalities, parsed code — and proposes, in plain language, what kind of analysis it is and which checks apply. This is the one load-bearing use of the model.'},
+  {n:'03',t:'CONFIRM',llm:['human','human · once'],fn:'confirmed_by_human: true',
+   d:'A person ratifies (or corrects) the proposal in one click. Nothing can be blocked while this is false. The human confirm is the safety valve — the proposal only has to be <em>clear enough to ratify</em>.'},
+  {n:'04',t:'CHECK',llm:['det','deterministic'],fn:'checks_for(design, bundle) · run()',
+   d:'Every applicable check runs on the confirmed design. <code>confounding</code> does exact algebra; <code>experimental_unit</code> re-runs the replicate-aware test and applies the earned-verdict rule. No LLM in the verdict.'},
+  {n:'05',t:'REPORT',llm:['det','deterministic'],fn:'render_tty / --json / --md',
+   d:'A plain-language verdict with technical detail underneath, plus a CI conclusion: <em>fail</em> on a blocker, neutral annotation on needs_evidence / not_audited, pass otherwise.'},
+];
+const pipe=document.getElementById('pipe');
+STAGES.forEach((s,i)=>{
+  const el=document.createElement('div'); el.className='stage'+(i===0?' active':''); el.dataset.i=i;
+  el.innerHTML=`<div class="n">${s.n}</div><div class="t">${s.t}</div><div class="llm ${s.llm[0]}">${s.llm[1]}</div>`;
+  el.onclick=()=>showStage(i); pipe.appendChild(el);
+});
+function showStage(i){
+  document.querySelectorAll('.stage').forEach(s=>s.classList.toggle('active',+s.dataset.i===i));
+  const s=STAGES[i];
+  document.getElementById('stageDetail').innerHTML=`<div class="fn">${s.fn}</div><div style="margin-top:8px">${s.d}</div>`;
+}
+showStage(0);
+let pipeTimer=null;
+function playPipe(){
+  if(pipeTimer){clearInterval(pipeTimer);pipeTimer=null;}
+  let i=0; showStage(0);
+  pipeTimer=setInterval(()=>{ i++; if(i>=STAGES.length){clearInterval(pipeTimer);pipeTimer=null;return;} showStage(i); },1400);
+}
+
+/* ---------- confounding grid (graded: R² / VIF / leakage λ) ---------- */
+const DESIGNS={
+  alias:   [['ctrl','R1'],['ctrl','R1'],['ctrl','R1'],['ctrl','R1'],['stim','R2'],['stim','R2'],['stim','R2'],['stim','R2']],
+  partial: [['ctrl','R1'],['ctrl','R1'],['ctrl','R1'],['stim','R1'],['ctrl','R2'],['stim','R2'],['stim','R2'],['stim','R2']],
+  cross:   [['ctrl','R1'],['ctrl','R1'],['stim','R1'],['stim','R1'],['ctrl','R2'],['ctrl','R2'],['stim','R2'],['stim','R2']],
+};
+/* exactly what the Python computes: t = 1[stim], z = 1[R2] */
+function cfStats(rows){
+  const n=rows.length;
+  const t=rows.map(r=>r[0]==='stim'?1:0), z=rows.map(r=>r[1]==='R2'?1:0);
+  const mt=t.reduce((a,b)=>a+b,0)/n, mz=z.reduce((a,b)=>a+b,0)/n;
+  let cov=0,vt=0,vz=0;
+  for(let i=0;i<n;i++){ cov+=(t[i]-mt)*(z[i]-mz); vt+=(t[i]-mt)**2; vz+=(z[i]-mz)**2; }
+  cov/=n; vt/=n; vz/=n;
+  const lam = vt>0 ? cov/vt : 0;                       // OVB multiplier
+  const r   = (vt>0&&vz>0) ? cov/Math.sqrt(vt*vz) : 0;
+  const r2  = r*r;
+  return {lam, r2, vif: r2>=1-1e-9 ? Infinity : 1/(1-r2)};
+}
+function setCf(mode){
+  ['Alias','Partial','Cross'].forEach(k=>
+    document.getElementById('sw'+k).classList.toggle('on', mode===k.toLowerCase()));
+  const rows=DESIGNS[mode];
+  const g=document.getElementById('cfGrid'); g.innerHTML='';
+  rows.forEach(([cond,run],i)=>{
+    const el=document.createElement('div');
+    el.className=`donor ${cond} ${run.toLowerCase()}`;
+    el.innerHTML=`<div class="id">D${i+1}</div><div class="cond">${cond}</div><div class="run">${run}</div>`;
+    g.appendChild(el);
+  });
+  const strata={};
+  rows.forEach(([c,r])=>{ (strata[r]=strata[r]||new Set()).add(c); });
+  document.getElementById('cfStrata').textContent='strata by run:  '+
+    Object.entries(strata).map(([r,s])=>`${r}={${[...s].join(',')}}`).join('   ');
+
+  const {lam,r2,vif}=cfStats(rows);
+  const vifTxt = isFinite(vif) ? vif.toFixed(2) : '∞';
+  const seTxt  = isFinite(vif) ? '×'+Math.sqrt(vif).toFixed(2) : '—';
+  document.getElementById('cfStats').innerHTML=
+    `<span><span class="lab">R²</span> <b>${r2.toFixed(2)}</b></span>
+     <span><span class="lab">VIF</span> <b>${vifTxt}</b></span>
+     <span><span class="lab">leakage λ</span> <b>${Math.abs(lam).toFixed(2)}</b></span>
+     <span><span class="lab">SE cost if you adjust</span> <b>${seTxt}</b></span>`;
+
+  const badge=document.getElementById('cfBadge'), text=document.getElementById('cfText');
+  if(r2>=1-1e-9){
+    badge.className='badge blocker'; badge.textContent='BLOCKER';
+    text.innerHTML='R² = 1 → condition is <strong>not estimable</strong>. No model — not a better one, not an LLM\'s — can separate it from the run. The experiment must be re-run.';
+  }else if(Math.abs(lam)>=0.10){
+    badge.className='badge major'; badge.textContent='MAJOR';
+    text.innerHTML=`Estimable, but your model <em>omits</em> <code>run</code>: about <strong>${Math.round(Math.abs(lam)*100)}%</strong> of any run effect is absorbed into the condition estimate. Fix it — add <code>run</code> to the model; it costs only ${seTxt} on the standard error.`;
+  }else{
+    badge.className='badge pass'; badge.textContent='PASS';
+    text.innerHTML='condition is orthogonal to the run structure (λ = 0) → estimable, unbiased, and adjusting costs nothing.';
+  }
+}
+setCf('alias');
+
+/* ---------- pseudoreplication ---------- */
+const cellsBox=document.getElementById('cells'); const CELLN=180; let cellEls=[];
+function scatterCells(){
+  cellsBox.innerHTML=''; cellEls=[];
+  const w=cellsBox.clientWidth||820, h=150;
+  for(let i=0;i<CELLN;i++){
+    const c=document.createElement('div'); c.className='cell';
+    c.style.left=(Math.random()*(w-8))+'px'; c.style.top=(Math.random()*(h-8))+'px';
+    c.dataset.donor=i%8; cellsBox.appendChild(c); cellEls.push(c);
+  }
+}
+let collapsed=false;
+function collapse(){
+  const w=cellsBox.clientWidth||820, h=150;
+  if(!collapsed){
+    // move each cell to its donor column, cluster tight
+    for(let d=0;d<8;d++){
+      const cx=(w/8)*(d+0.5), cy=h/2;
+      cellEls.filter(c=>+c.dataset.donor===d).forEach(c=>{
+        c.style.left=(cx-3+(Math.random()*16-8))+'px';
+        c.style.top=(cy-3+(Math.random()*16-8))+'px';
+        c.style.background='var(--pass)';
+      });
+    }
+    animateCount(document.getElementById('prBig'),2041,43,'#3fb950');
+    document.getElementById('prCounter').className='counter after';
+    document.getElementById('prLbl').textContent='survive donor-level test (n=8 donors)';
+    document.getElementById('prBtn').textContent='↺ reset';
+    collapsed=true;
+  }else{
+    scatterCells();
+    document.getElementById('prBig').textContent='2,041';
+    document.getElementById('prCounter').className='counter before';
+    document.getElementById('prLbl').textContent='"significant" per-cell (n≈20,000 cells)';
+    document.getElementById('prBtn').textContent='⟲ collapse cells → donors';
+    collapsed=false;
+  }
+}
+function animateCount(el,from,to,color){
+  let v=from; el.style.color=color;
+  const iv=setInterval(()=>{ v=Math.max(to,Math.round(v*0.7-2)); el.textContent=v.toLocaleString();
+    if(v<=to){el.textContent=to;clearInterval(iv);} },55);
+}
+scatterCells(); window.addEventListener('resize',()=>{if(!collapsed)scatterCells();});
+
+/* ---------- verdict ladder ---------- */
+const LADDER=[
+  ['blocker','BLOCKER','powered recompute of the claimed discoveries collapses (survival ≤ 10%), or the effect is provably not estimable (R² = 1)'],
+  ['major','MAJOR','claims only partly survive (survival &lt; 60%), or an omitted nuisance leaks into the estimate (|λ| ≥ 0.10)'],
+  ['needs','NEEDS_EVIDENCE','can\'t compare fairly, too few replicates, underpowered, or the setup isn\'t human-confirmed — the tool abstains'],
+  ['info','INFORMATIONAL','a measured fact that is not a defect — e.g. estimable but near-collinear (VIF ≥ 10): an efficiency cost, never fails CI'],
+  ['needs','NOT_AUDITED','a recognised analysis type with no check available yet — never a silent green'],
+  ['pass','PASS','the claims survive the replicate-aware recompute / the design is estimable'],
+];
+const ladder=document.getElementById('ladder');
+LADDER.forEach(([cls,st,when])=>{
+  const r=document.createElement('div'); r.className='rung';
+  r.innerHTML=`<div class="st ${cls}">${st}</div><div class="when">${when}</div>`;
+  ladder.appendChild(r);
+});
+
+/* ---------- scroll reveal ---------- */
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in')}),{threshold:.12});
+document.querySelectorAll('section').forEach(s=>{s.classList.add('reveal');io.observe(s);});
+</script>
+</body>
+</html>

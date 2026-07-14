@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc-referee/compiler-binding-proposal/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "proposal_id", "revision", "confirmed_organizational_bindings", "inventory_identity", "source_artifacts", "recovered_authorities", "requested_bindings", "conflicts", "unresolved", "proposer"],
+  "properties": {
+    "schema_id": {"const": "sc-referee/compiler-binding-proposal/v1"},
+    "proposal_id": {"$ref": "#/$defs/digest"},
+    "revision": {"type": "integer", "minimum": 1},
+    "confirmed_organizational_bindings": {"type": "boolean", "default": false},
+    "inventory_identity": {"$ref": "#/$defs/digest"},
+    "source_artifacts": {"type": "array", "items": {"$ref": "#/$defs/source_artifact"}},
+    "recovered_authorities": {"type": "array", "items": {"$ref": "#/$defs/authority"}, "uniqueItems": true},
+    "requested_bindings": {"type": "array", "items": {"$ref": "#/$defs/binding"}},
+    "conflicts": {"type": "array", "items": {"$ref": "#/$defs/conflict"}},
+    "unresolved": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "proposer": {"$ref": "#/$defs/proposer"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "authority": {"enum": ["design", "row_ledger", "fitted_design", "reported_claim", "empty_droplet", "csp_proposal", "detector_input"]},
+    "source_artifact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["artifact_identity", "path", "kind"],
+      "properties": {"artifact_identity": {"$ref": "#/$defs/digest"}, "path": {"type": "string", "minLength": 1}, "kind": {"type": "string", "minLength": 1}}
+    },
+    "destination": {
+      "type": "object", "additionalProperties": false, "required": ["authority", "field"],
+      "properties": {"authority": {"$ref": "#/$defs/authority"}, "field": {"type": "string", "minLength": 1}}
+    },
+    "locator": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "value"],
+      "properties": {"kind": {"enum": ["header", "table_cell", "code_span", "notebook_cell", "documentation_span"]}, "value": {"type": "string", "minLength": 1}}
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["artifact_identity", "path", "locator", "evidence_digest"],
+      "properties": {"artifact_identity": {"$ref": "#/$defs/digest"}, "path": {"type": "string", "minLength": 1}, "locator": {"$ref": "#/$defs/locator"}, "evidence_digest": {"$ref": "#/$defs/digest"}}
+    },
+    "binding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["binding_id", "destination", "candidate_value", "confidence", "evidence", "state"],
+      "properties": {"binding_id": {"type": "string", "minLength": 1}, "destination": {"$ref": "#/$defs/destination"}, "candidate_value": {}, "confidence": {"enum": ["high", "low"]}, "evidence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/evidence"}}, "state": {"enum": ["proposed", "unresolved", "conflicting"]}}
+    },
+    "conflict_candidate": {
+      "type": "object", "additionalProperties": false, "required": ["candidate_value", "evidence"],
+      "properties": {"candidate_value": {}, "evidence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/evidence"}}}
+    },
+    "conflict": {
+      "type": "object", "additionalProperties": false, "required": ["destination", "candidates", "resolution", "load_bearing"],
+      "properties": {"destination": {"$ref": "#/$defs/destination"}, "candidates": {"type": "array", "minItems": 2, "items": {"$ref": "#/$defs/conflict_candidate"}}, "resolution": {"const": "unresolved"}, "load_bearing": {"type": "boolean"}}
+    },
+    "proposer": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "model", "tool_schema_id"],
+      "properties": {"kind": {"enum": ["deterministic", "claude"]}, "model": {"type": ["string", "null"]}, "tool_schema_id": {"type": "string", "minLength": 1}}
+    }
+  }
+}

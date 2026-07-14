@@ -1,0 +1,29 @@
+analysis_type: condition_contrast_DE
+confirmed_by_human: true
+design:
+  replicate_unit:
+  - donor_id
+  condition: culture_condition
+  batch:
+  - processing_run
+contrasts:
+- name: stim_vs_ctrl
+  reference: ctrl
+  test: stim
+  replicate_unit:
+  - donor_id
+  sample_unit:
+  - donor_id
+  pairing_unit:
+  - donor_id
+  model: ~ culture_condition
+  target_coefficient: culture_condition[T.stim]
+reported_results:
+  path: results/de.csv
+  gene_col: gene
+  padj_col: padj
+  unit_of_test: sample
+confidence:
+  replicate_unit: high
+  condition: high
+unresolved: []

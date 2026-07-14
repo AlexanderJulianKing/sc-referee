@@ -1,0 +1,33 @@
+{
+  "pbmc_dex_guardrail": {
+    "old_status": "needs_evidence",
+    "previous_engine_status": "blocker",
+    "new_status": "needs_evidence",
+    "reason": "The engine preserves the exact computed GMM-to-grouping-to-wilcoxon-to-report witness but is structurally capped at needs_evidence. Static dataflow cannot establish every scientific premise required for a never-false-accuse blocker; blocking is deferred to future witness-specific human ratification."
+  },
+  "eqtl_missing_joint_contract": {
+    "old": [["allele_orientation", "pass"]],
+    "new": [["allele_orientation", "pass"]],
+    "reason": "A bare single-source eQTL is not a multi-source harmonization context; the joint policy no longer routes and the shipped orientation pass is preserved."
+  },
+  "trajectory_missing_contract": {
+    "old": [["coverage", "not_audited"]],
+    "new": [["inference.trajectory_circularity", "not_audited"]],
+    "reason": "The generic unaudited marker is replaced by a policy-specific unaudited result; trajectory remains needs-evidence-capped when evidence exists."
+  },
+  "enrichment_missing_contract": {
+    "old": [["coverage", "not_audited"]],
+    "new": [["inference.enrichment_universe", "not_audited"]],
+    "reason": "The generic unaudited marker is replaced by the exact joint-ORA policy's explicit missing-contract abstention."
+  },
+  "coordinate_missing_contract": {
+    "old": [["coverage", "not_audited"]],
+    "new": [["inference.coordinate_consumption", "not_audited"]],
+    "reason": "The generic unaudited marker is replaced by the consumer-contract policy's explicit missing-contract abstention."
+  },
+  "coordinate_fully_ratified_contract": {
+    "old": [["coverage", "not_audited"]],
+    "new": [["inference.coordinate_consumption", "not_audited"]],
+    "reason": "Folder assertions no longer supply scientific relations, accusation authority, ratification, or observations; coordinate fact integration is not live and honestly abstains."
+  }
+}

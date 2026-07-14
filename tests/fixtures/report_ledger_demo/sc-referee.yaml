@@ -1,0 +1,35 @@
+analysis_type: condition_contrast_DE
+confirmed_by_human: true
+design:
+  condition: cell_type
+  replicate_unit:
+  - donor_id
+  batch: []
+contrasts:
+- name: cell_type_1_vs_0
+  reference: '0'
+  test: '1'
+  replicate_unit:
+  - donor_id
+  sample_unit:
+  - donor_id
+  - cell_type
+  pairing_unit: []
+  model: ~ cell_type
+  target_coefficient: cell_type[T.1]
+reported_results:
+  path: results/de.csv
+  unit_of_test: cell
+claims:
+- name: differential_expression
+  path: results/de.csv
+  contrast: cell_type_1_vs_0
+  unit_of_test: cell
+- name: alternative_splicing
+  path: results/splicing.csv
+  contrast: cell_type_1_vs_0
+  unit_of_test: cell
+  value_kind: derived_ratio
+confidence:
+  replicate_unit: high
+  condition: high

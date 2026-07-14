@@ -1,0 +1,105 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: pytest (py${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+
+      - name: Install (with the recompute engine — the engine that can block)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[engine,dev]"
+
+      - name: Test
+        run: pytest -q
+
+  # The thesis, asserted in CI. Not "the tests pass" — the GATE behaves as claimed.
+  #
+  #   Claude proposes -> a human confirms once -> arithmetic decides.
+  #
+  # `fixtures/confounding_alias` is an unarguable blocker: processing_run is perfectly
+  # aliased with culture_condition, so the condition effect is NOT ESTIMABLE (R² = 1,
+  # rank-deficient design matrix). No model can separate it. That must exit 1 — but only
+  # AFTER a human ratifies the design. Before ratification it must exit 0.
+  gate:
+    name: the gate does what the README says
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[engine]"
+
+      - name: Nothing blocks before a human confirms  (expect exit 0)
+        run: |
+          cp -r fixtures/confounding_alias "$RUNNER_TEMP/unconfirmed"
+          python - "$RUNNER_TEMP/unconfirmed/sc-referee.yaml" <<'PY'
+          import sys, yaml, pathlib
+          p = pathlib.Path(sys.argv[1])
+          cfg = yaml.safe_load(p.read_text())
+          cfg["confirmed_by_human"] = False
+          p.write_text(yaml.safe_dump(cfg, sort_keys=False))
+          PY
+          set +e
+          python -m sc_referee.cli audit "$RUNNER_TEMP/unconfirmed" \
+            --design "$RUNNER_TEMP/unconfirmed/sc-referee.yaml"
+          code=$?
+          set -e
+          test $code -eq 0 || { echo "::error::unconfirmed design exited $code, expected 0 — a blocker escaped before human ratification"; exit 1; }
+
+      - name: A ratified, non-estimable design blocks  (expect exit 1)
+        run: |
+          set +e
+          python -m sc_referee.cli audit fixtures/confounding_alias \
+            --design fixtures/confounding_alias/sc-referee.yaml \
+            --json "$RUNNER_TEMP/report.json" --md "$RUNNER_TEMP/report.md"
+          code=$?
+          set -e
+          test $code -eq 1 || { echo "::error::confounded fixture exited $code, expected 1 (blocker)"; exit 1; }
+
+      - name: A typo in the YAML is a config error, never a scientific verdict  (expect exit 2)
+        run: |
+          cp -r fixtures/confounding_alias "$RUNNER_TEMP/typo"
+          python - "$RUNNER_TEMP/typo/sc-referee.yaml" <<'PY'
+          import sys, yaml, pathlib
+          p = pathlib.Path(sys.argv[1])
+          cfg = yaml.safe_load(p.read_text())
+          cfg["contrasts"][0]["reference"] = "control"   # the level is spelled `ctrl`
+          p.write_text(yaml.safe_dump(cfg, sort_keys=False))
+          PY
+          set +e
+          python -m sc_referee.cli audit "$RUNNER_TEMP/typo" --design "$RUNNER_TEMP/typo/sc-referee.yaml"
+          code=$?
+          set -e
+          test $code -eq 2 || { echo "::error::YAML typo exited $code, expected 2 — a config error was reported as science"; exit 1; }
+
+      - name: The report is strict JSON (no bare Infinity)
+        run: python -c "import json,os,sys; json.loads(open(os.environ['RUNNER_TEMP']+'/report.json').read()); print('strict JSON ok')"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sc-referee-report
+          path: ${{ runner.temp }}/report.*

@@ -1,0 +1,11 @@
+{
+  "checks": {
+    "confounding": {
+      "status": "blocker"
+    }
+  },
+  "provenance_must_include": [
+    "data",
+    "reported"
+  ]
+}

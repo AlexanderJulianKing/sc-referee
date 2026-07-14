@@ -1,0 +1,83 @@
+CONFIRMED  condition_contrast_DE (human-ratified)
+
+▸ Analysis 1 — results/de.csv
+  Analysis — condition_contrast_DE  (results/de.csv): 1 vs 0, per cell.
+
+ CLEAR  (pass)  confounding   [deterministic · power-independent]
+  the condition you're comparing (cell_type) is cleanly estimable against the technical variables (R²=0.00; correcting 
+for them costs only ×1.00 on the error bars)
+  ref: Leek et al. 2010, Nat Rev Genet 11:733
+
+ NOT CHECKED  (needs_evidence)  experimental_unit   [recompute · earned-verdict]
+  none of your significant genes could be matched and re-tested in the recomputation, so I couldn't check them
+  ref: Squair et al. 2021, Nat Commun 12:5692
+  ref: Zimmerman et al. 2021, Nat Commun 12:738
+
+ NOT CHECKED  (needs_evidence)  multiple_testing
+  the reported calls survive a descriptive BH comparison, but the adjusted column is not bound to and exactly reproduced
+by a declared complete-family BH/FDR method, so I did not certify the correction.
+  ref: Benjamini & Hochberg 1995, J R Stat Soc B 57:289
+
+ CLEAR  (pass)  effect_size_threshold
+  the reported effect magnitudes are above the display magnitude line: only 0 of 2 (0%) are below |log2FC| 0.25. This 
+comparison does not establish that the effects are biologically real.
+  ref: McCarthy & Smyth 2009, Bioinformatics 25:765
+
+ FLAGGED  (needs_evidence)  pairing
+  your model treats the samples as unpaired, but 4 subject(s) (values of donor_id) actually appear in BOTH groups — so 
+the data is really paired. Ignoring that within-subject link can lose power or make the test too liberal; consider a 
+paired (or mixed-model) sensitivity check.
+  ref: Zimmerman et al. 2021, Nat Commun 12:738
+  ref: Squair et al. 2021, Nat Commun 12:5692
+
+ FLAGGED  (needs_evidence)  double_dipping
+  the cell groups here appear to be discovered by clustering the SAME expression data you then used to test which genes 
+mark them, with no safeguard against the circularity — this is the 'double-dipping' pattern. Choosing the groups to 
+separate the cells and then testing those same cells makes the p-values look more significant than they really are, so 
+they can't be trusted as marker significance (this says nothing about whether any individual marker is real — only that 
+the numbers are miscalibrated). The evidence is suggestive, not conclusive, so I'm flagging it for review rather than 
+blocking. Re-run the marker test on data independent of the clustering (count-splitting, a held-out set, or ClusterDE).
+  ref: Kriegeskorte et al. 2009, Nat Neurosci 12:535
+
+▸ Analysis 2 — results/splicing.csv
+  Analysis — condition_contrast_DE  (results/splicing.csv): 1 vs 0, per cell.
+
+ CLEAR  (pass)  confounding   [deterministic · power-independent]
+  the condition you're comparing (cell_type) is cleanly estimable against the technical variables (R²=0.00; correcting 
+for them costs only ×1.00 on the error bars)
+  ref: Leek et al. 2010, Nat Rev Genet 11:733
+
+ NOT CHECKED  (needs_evidence)  experimental_unit   [recompute · earned-verdict]
+  I couldn't fairly compare your results to a recomputation: reported table has significant rows only (can't rebuild the
+FDR family); reported p-values are uncorrected — not the same FDR family (see multiple_testing)
+  ref: Squair et al. 2021, Nat Commun 12:5692
+  ref: Zimmerman et al. 2021, Nat Commun 12:738
+
+ NOT CHECKED  (needs_evidence)  multiple_testing
+  every gene in your results table is marked significant — which usually means the table holds only the hits, not the 
+full set of genes that were tested. Multiple-testing correction needs the complete tested set to work, so I couldn't 
+recompute it. Provide the full results (every gene tested, not just the significant ones).
+  ref: Benjamini & Hochberg 1995, J R Stat Soc B 57:289
+
+ N/A  (pass)  count_model
+  this result comes from a rank test on a value you declared as a computed ratio, not from a model of raw counts — so 
+the 'was a proper count model used?' check simply doesn't apply here.
+
+ CLEAR  (pass)  effect_size_threshold
+  the reported effect magnitudes are above the display magnitude line: only 0 of 1 (0%) are below |log2FC| 0.25. This 
+comparison does not establish that the effects are biologically real.
+  ref: McCarthy & Smyth 2009, Bioinformatics 25:765
+
+ FLAGGED  (needs_evidence)  pairing
+  your model treats the samples as unpaired, but 4 subject(s) (values of donor_id) actually appear in BOTH groups — so 
+the data is really paired. Ignoring that within-subject link can lose power or make the test too liberal; consider a 
+paired (or mixed-model) sensitivity check.
+  ref: Zimmerman et al. 2021, Nat Commun 12:738
+  ref: Squair et al. 2021, Nat Commun 12:5692
+
+ NOT CHECKED  (not_audited)  double_dipping
+  double_dipping did not evaluate results/splicing.csv: the claim's own producing test is mannwhitneyu, outside this 
+detector's covered marker-test family; coverage is NOT_RUN.
+
+worst status: needs_evidence   CI: neutral — NOT FULLY AUDITED
+coverage: 13 findings · 4 clear · 3 flagged · 5 not checked · 1 n/a

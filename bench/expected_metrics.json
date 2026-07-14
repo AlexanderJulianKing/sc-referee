@@ -1,0 +1,59 @@
+{
+  "_note": [
+    "REGRESSION FLOORS, ratcheted to a measured 20-seed run (see bench/metrics.json).",
+    "A guard so the suite fails if a change degrades the tool. NOT an externally validated",
+    "claim. Regenerate the artifact with:",
+    "    PYTHONPATH=src:. python bench/run_benchmark.py --seeds 20 --out bench/metrics.json",
+    "Ground truth is muscat's planted simulation (Crowell 2020) + Squair 2021's published",
+    "finding; the recompute is scored against the known-true genes, not against sc-referee.",
+    "",
+    "SPECIFICITY IS A MEASUREMENT, NOT A TAUTOLOGY -- but only since 2026-07-08. Before that",
+    "the correct-unit arm was `reported_from_recompute`: the recompute handed back as if it",
+    "were the analyst's own results. survival_rate was then 1.0 BY IDENTITY, so specificity",
+    "could not be anything but 1.0. The arm is now `reported_pseudobulk_ttest`, an INDEPENDENT",
+    "replicate-aware estimator (pseudobulk -> log2CPM -> Welch t -> BH) that genuinely",
+    "disagrees with the NB recompute. Two facts show the arm can now fail:",
+    "    good_survival_is_degenerate == false   survival is not pinned at 1.0 across seeds",
+    "    good_pass_rate varies with n           0.00 @ n=3 -> 0.25 -> 0.70 -> 1.00 @ n>=6",
+    "It still never false-accuses. THAT is the result."
+  ],
+  "measured_2026_07_08": {
+    "n_runs": 120,
+    "never_pass_rate": 1.0,
+    "specificity": 1.0,
+    "false_accusation_rate": 0.0,
+    "blocker_rate": 0.833,
+    "abstain_rate": 0.167,
+    "good_pass_rate": 0.658,
+    "mean_good_survival": 0.999,
+    "good_survival_is_degenerate": false,
+    "percell_precision": 0.068,
+    "pseudobulk_precision": 0.883,
+    "pseudobulk_recall": 0.734
+  },
+  "floors": {
+    "never_pass_rate": 1.0,
+    "specificity": 1.0,
+    "pseudobulk_precision": 0.80,
+    "pseudobulk_recall": 0.60,
+    "blocker_rate": 0.75,
+    "mean_good_survival": 0.90
+  },
+  "ceilings": {
+    "false_accusation_rate": 0.0,
+    "percell_precision": 0.20
+  },
+  "invariants": {
+    "_note": "Structural facts about the HARNESS, not performance numbers. A regression here means the benchmark stopped measuring what it claims to measure -- a worse failure than a low score.",
+    "good_survival_is_degenerate": false
+  },
+  "calibration": {
+    "_note": "The abstention boundary IS a result: the tool blocks when powered, abstains when not. And the correct arm earns its pass only once there is power to earn it -- evidence the specificity arm is not the recompute echoed back.",
+    "must_abstain_at_or_below_n": 3,
+    "must_block_at_or_above_n": 4,
+    "abstain_rate_min_at_n3": 0.80,
+    "blocker_rate_min_at_n4_plus": 0.90,
+    "good_pass_rate_max_at_n3": 0.10,
+    "good_pass_rate_min_at_n6_plus": 0.90
+  }
+}

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sc-referee — Function-by-Function Trace</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121821; --panel2:#0f141b; --border:#26303c; --border2:#1c242e;
+    --ink:#e6edf3; --mut:#8b98a9; --dim:#5b6675;
+    --teal:#2dd4bf; --blue:#58a6ff; --purple:#b392f0; --amber:#e3a53c;
+    --blocker:#f85149; --major:#e3a53c; --needs:#4fd1e0; --pass:#3fb950;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1100px 560px at 78% -8%,#14202f 0%,var(--bg) 55%);
+    color:var(--ink);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+  code,.mono{font-family:var(--mono)}
+  a{color:var(--blue)}
+  .muted{color:var(--mut)} .dim{color:var(--dim)}
+
+  header{padding:52px 0 22px}
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--teal)}
+  h1{font-size:clamp(26px,4.4vw,42px);font-weight:750;margin:12px 0 8px;letter-spacing:-.02em}
+  .lede{font-size:17px;color:var(--mut);max-width:720px}
+
+  /* tabs */
+  .tabs{display:flex;gap:8px;margin:26px 0 6px;flex-wrap:wrap}
+  .tab{font-family:var(--mono);font-size:13.5px;background:var(--panel);border:1px solid var(--border);
+    color:var(--mut);padding:10px 16px;border-radius:10px;cursor:pointer;transition:.2s;display:flex;gap:9px;align-items:center}
+  .tab .k{font-size:11px;color:var(--dim)}
+  .tab.on{color:var(--ink);border-color:var(--teal);background:#13202b}
+  .tab.on.eu{border-color:var(--purple);background:#171528}
+  .note{font-size:12.5px;color:var(--dim);font-family:var(--mono);margin:4px 0 0}
+
+  /* layout */
+  .board{display:grid;grid-template-columns:280px 1fr;gap:18px;margin-top:18px;align-items:start}
+  @media(max-width:820px){.board{grid-template-columns:1fr}}
+
+  /* call stack */
+  .stack{position:sticky;top:16px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:10px}
+  @media(max-width:820px){.stack{position:static}}
+  .stack h4{margin:6px 8px 10px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);font-family:var(--mono)}
+  .step{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border-radius:9px;cursor:pointer;transition:.15s;border:1px solid transparent}
+  .step:hover{background:var(--panel2)}
+  .step.on{background:#13202b;border-color:var(--border)}
+  .step .idx{font-family:var(--mono);font-size:11px;color:var(--dim);width:20px;flex:none;text-align:right;padding-top:1px}
+  .step .nm{font-family:var(--mono);font-size:12.5px;line-height:1.35}
+  .step .nm b{font-weight:600}
+  .step .file{display:block;font-size:10.5px;color:var(--dim);margin-top:2px}
+  .step.on .nm b{color:var(--teal)}
+  .step.eu.on .nm b{color:var(--purple)}
+  .step.sub{margin-left:14px}
+  .step.sub .idx{visibility:hidden;width:8px}
+  .step.sub .nm{font-size:11.5px}
+  .step .depth{width:2px;align-self:stretch;background:var(--border2);border-radius:2px;margin:2px 2px 2px 0}
+
+  /* detail card */
+  .detail{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px;min-height:420px}
+  .fnhead{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .pill{font-family:var(--mono);font-size:11px;padding:4px 9px;border-radius:7px;border:1px solid var(--border);color:var(--mut)}
+  .pill.file{color:var(--blue);border-color:#1d3a5c}
+  .pill.det{color:var(--teal);border-color:#124b41}
+  .pill.llm{color:var(--blue);border-color:#1d3a5c}
+  .pill.pure{color:var(--purple);border-color:#3a2f52}
+  .sig{font-family:var(--mono);font-size:14px;margin:14px 0 2px;color:var(--ink);background:var(--panel2);
+    border:1px solid var(--border2);border-radius:9px;padding:12px 14px;overflow-x:auto;white-space:pre}
+  .sig .kw{color:#ff7b72} .sig .fn{color:var(--teal)} .sig .ar{color:var(--dim)} .sig .ty{color:var(--blue)}
+  .does{margin-top:14px;font-size:15px;color:var(--ink)}
+  .does em{color:var(--teal);font-style:normal}
+  .does .bad{color:var(--blocker)} .does .good{color:var(--pass)}
+  .bad{color:var(--blocker)} .good{color:var(--pass)}
+
+  .io{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:560px){.io{grid-template-columns:1fr}}
+  .io .box{background:var(--panel2);border:1px solid var(--border2);border-radius:10px;padding:12px 13px}
+  .io .box h5{margin:0 0 8px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-family:var(--mono)}
+  .io .box .v{font-family:var(--mono);font-size:12px;color:var(--mut);line-height:1.6}
+  .io .box .v b{color:var(--ink);font-weight:600}
+  .kvs{font-family:var(--mono);font-size:12px;line-height:1.7}
+  .kvs .k{color:var(--dim)} .kvs .val{color:var(--teal)}
+
+  /* data viz mini */
+  .data{margin-top:16px;background:var(--panel2);border:1px solid var(--border2);border-radius:10px;padding:14px}
+  .data h5{margin:0 0 10px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-family:var(--mono)}
+  .fgrid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+  @media(max-width:560px){.fgrid{grid-template-columns:repeat(4,1fr)}}
+  .fcell{border:1px solid var(--border);border-radius:7px;padding:7px 4px;text-align:center;font-family:var(--mono)}
+  .fcell .i{font-size:10px;color:var(--dim)} .fcell .c{font-size:11px;font-weight:700;margin-top:3px}
+  .fcell.ctrl .c{color:var(--blue)} .fcell.stim .c{color:var(--amber)}
+  .fcell .r{font-size:9px;color:var(--mut);margin-top:2px}
+  .fcell.r1{box-shadow:inset 0 -3px 0 #2b4a6e} .fcell.r2{box-shadow:inset 0 -3px 0 #6e4a2b}
+  table.tt{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11.5px}
+  table.tt th,table.tt td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--border2)}
+  table.tt th{color:var(--dim);font-weight:500;text-transform:uppercase;font-size:10px;letter-spacing:.08em}
+  table.tt td.n{color:var(--teal)} table.tt td.bad{color:var(--blocker)} table.tt td.good{color:var(--pass)}
+  .verdict{margin-top:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .badge{font-family:var(--mono);font-weight:700;padding:8px 14px;border-radius:8px}
+  .badge.blocker{background:#3a1512;color:var(--blocker);border:1px solid #5c1f1a}
+  .badge.pass{background:#0f2a1a;color:var(--pass);border:1px solid #1b4a2c}
+  .badge.needs{background:#0e2a2e;color:var(--needs);border:1px solid #164047}
+
+  .ctrls{display:flex;gap:10px;margin-top:20px;align-items:center;flex-wrap:wrap}
+  .btn{font-family:var(--mono);font-size:13px;background:var(--panel2);border:1px solid var(--border);color:var(--ink);
+    padding:9px 15px;border-radius:9px;cursor:pointer;transition:.2s}
+  .btn:hover{border-color:var(--teal)} .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.play{color:var(--teal)}
+  .prog{font-family:var(--mono);font-size:12px;color:var(--dim)}
+
+  /* data dictionary */
+  section.dict{margin:44px 0;border-top:1px solid var(--border);padding-top:30px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);margin-bottom:8px}
+  h2{font-size:24px;margin:0 0 4px}
+  .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:18px}
+  @media(max-width:720px){.cards{grid-template-columns:1fr}}
+  .dcard{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px}
+  .dcard h3{font-family:var(--mono);font-size:14px;color:var(--teal);margin:0 0 4px}
+  .dcard .src{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .dcard ul{margin:10px 0 0;padding-left:0;list-style:none;font-family:var(--mono);font-size:12px;line-height:1.75}
+  .dcard li b{color:var(--ink)} .dcard li span{color:var(--dim)}
+  footer{padding:34px 0 70px;color:var(--dim);font-size:13px;font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">sc-referee · function-by-function trace</div>
+    <h1>What happens where, and how</h1>
+    <p class="lede">Follow a single analysis folder through the actual call stack. Two independent checks share the same ingest → confirm front-end and diverge at the verdict. Pick a path, then step through.</p>
+    <div class="tabs">
+      <button class="tab on" id="tabCf" onclick="setPath('cf')"><span class="k">check #1</span> confounding · <span class="dim">exact algebra</span></button>
+      <button class="tab" id="tabEu" onclick="setPath('eu')"><span class="k">check #2</span> experimental_unit · <span class="dim">recompute</span></button>
+    </div>
+    <p class="note" id="pathNote"></p>
+  </header>
+
+  <div class="board">
+    <aside class="stack"><h4 id="stackTitle">call stack</h4><div id="stackList"></div></aside>
+    <main class="detail" id="detail"></main>
+  </div>
+
+  <div class="ctrls">
+    <button class="btn" id="prev" onclick="step(-1)">← prev</button>
+    <button class="btn" id="next" onclick="step(1)">next →</button>
+    <button class="btn play" onclick="playTrace()">▶ play trace</button>
+    <span class="prog" id="prog"></span>
+  </div>
+
+  <section class="dict">
+    <div class="eyebrow">reference</div>
+    <h2>The data structures that flow through</h2>
+    <div class="cards" id="dict"></div>
+  </section>
+
+  <footer>sc-referee · every verdict is arithmetic on a human-confirmed setup · companion: 01-conceptual-overview.html</footer>
+</div>
+
+<script>
+/* ============ helpers to build data previews ============ */
+function factorTable(mode){ // confounding_alias fixture
+  const rows=[...Array(8)].map((_,i)=>({id:'D'+(i+1),cond:i<4?'ctrl':'stim',run:i<4?'R1':'R2'}));
+  let h='<div class="fgrid">';
+  rows.forEach(r=>{h+=`<div class="fcell ${r.cond} ${r.run.toLowerCase()}"><div class="i">${r.id}</div><div class="c">${r.cond}</div><div class="r">${r.run}</div></div>`;});
+  h+='</div>';
+  return h;
+}
+function pseudobulkTable(){
+  return `<table class="tt"><tr><th>sample</th><th>donor</th><th>condition</th><th>G_up</th><th>G_null</th></tr>
+  <tr><td>s0</td><td>D1</td><td>ctrl</td><td class="n">118</td><td>241</td></tr>
+  <tr><td>s1</td><td>D1</td><td>stim</td><td class="n">470</td><td>239</td></tr>
+  <tr><td>s2</td><td>D2</td><td>ctrl</td><td class="n">121</td><td>238</td></tr>
+  <tr><td class="dim" colspan="5">… 16 pseudobulk samples (8 donors × 2 conditions) …</td></tr></table>`;
+}
+function panelTable(){
+  return `<div class="kvs">
+  <span class="k">valid_reported_sig</span> = <span class="val">2041</span>  <span class="dim">(the claimed discoveries, testable)</span><br>
+  <span class="k">survivors</span>          = <span class="val">43</span><br>
+  <span class="k">survival_rate</span>      = <span class="val">0.021</span>  <span class="dim">≤ 0.10 → collapse</span><br>
+  <span class="k">powered</span>            = <span class="val">True</span>  <span class="dim">(powered_fraction 0.83 ≥ 0.80)</span><br>
+  <span class="k">n_replicates/arm</span>   = <span class="val">8</span>  ·  <span class="k">comparable</span> = <span class="val">True</span><br>
+  <span class="k">effect_corr</span>        = <span class="val">0.21</span>  ·  <span class="k">sign_flips</span> = <span class="val">4</span>  <span class="dim">(evidence, not gates)</span>
+  </div>`;
+}
+
+/* ============ trace definitions ============ */
+const CF=[
+ {fn:'cli.audit',file:'cli.py',kind:'det',sig:['@app.command()\n','def ','audit','(folder, --design, --json, --md):'],
+  does:'Entry point for <code>sc-referee audit ./analysis</code>. Calls <code>run_audit</code>, renders the report, writes optional JSON/MD, and <em>raises Exit(1)</em> if any finding is a blocker.',
+  ins:'folder: <b>Path</b>', outs:'exit code (1 on blocker)'},
+ {fn:'run_audit',file:'audit.py',kind:'det',sig:['def ','run_audit','(folder, design_path=None) ','-> ','AuditResult',':'],
+  does:'The deterministic half of the loop: <code>ingest</code> the folder, <code>load_designs</code> from the confirmed YAML, then run every applicable check and collect <code>Finding</code>s into an <code>AuditResult</code>.',
+  ins:'folder', outs:'AuditResult{findings, analysis_type}'},
+ {fn:'ingest',file:'ingest.py',kind:'det',sig:['def ','ingest','(folder) ','-> ','Bundle',':'],
+  does:'Walk the folder (top level, then one level down). Resolve <em>data</em> (first <code>*.h5ad</code>), <em>reported</em> (a CSV whose header matches the DE synonym set), and <em>code</em> — recording each pickup + reason in <code>provenance</code>. Never silently guesses which file is the data.',
+  ins:'folder', outs:'Bundle (+ provenance{data,reported})',
+  data:{title:'provenance resolved',html:`<div class="kvs"><span class="k">data</span>   → <span class="val">confounding_alias.h5ad</span>  <span class="dim">(first *.h5ad)</span><br><span class="k">reported</span> → <span class="val">results/de.csv</span>  <span class="dim">(header matched DE synonyms)</span></div>`}},
+ {fn:'read_anndata',file:'adapters/anndata_adapter.py',kind:'det',sig:['def ','read_anndata','(path) ','-> ','Bundle',':'],
+  does:'Load the <code>.h5ad</code>. <code>observations</code> = all of <code>.obs</code>; counts = first present of <code>layers["counts"] → raw.X → X</code>, <span class="bad">refusing</span> a non-integer (normalized) matrix. Gene id-type by regex; <code>replicate_var</code> detected from column-name tokens (donor/subject/…).',
+  ins:'path: .h5ad', outs:'Bundle{observations, measure, feature_metadata, replicate_var}',
+  data:{title:'Bundle.observations (cell-level)',html:factorTable('alias')+`<div class="dim mono" style="font-size:11px;margin-top:8px">replicate_var = "donor_id"  ·  measure.kind = "counts"</div>`}},
+ {fn:'load_designs',file:'config.py',kind:'llm',sig:['def ','load_designs','(path) ','-> ','list[Design]',':'],
+  does:'Parse the human-confirmed <code>sc-referee.yaml</code>, <em>validate it against</em> <code>sc_referee.schema.json</code>, and flatten one <code>Design</code> per contrast (contrast-level fields win over the top-level design seed).',
+  ins:'sc-referee.yaml', outs:'[Design]  (analysis_type, condition, batch, reference/test, model, sample_unit, …)',
+  data:{title:'Design (the confirmed setup)',html:`<div class="kvs"><span class="k">confirmed_by_human</span> = <span class="val">True</span><br><span class="k">condition</span> = culture_condition · <span class="k">batch</span> = [processing_run]<br><span class="k">reference/test</span> = ctrl / stim · <span class="k">model</span> = "~ culture_condition"<br><span class="k">sample_unit</span> = [donor_id] · <span class="k">confidence.replicate_unit</span> = high</div>`}},
+ {fn:'checks_for',file:'registry.py',kind:'det',sig:['def ','checks_for','(design, bundle) ','-> ','list',':'],
+  does:'Return the checks whose <code>applies_to</code> is true. <code>ConfoundingCheck.applies_to</code> fires for any <code>condition_contrast_DE</code>.',
+  ins:'design, bundle', outs:'[ConfoundingCheck()]'},
+ {fn:'evaluate_confounding',file:'checks/confounding.py',kind:'pure',sig:['def ','evaluate_confounding','(observations, design) ','-> ','Finding',':'],
+  does:'The check. <code>blocking_allowed = confirmed_by_human ∧ confidence_high</code>. Guards on covariate-constancy, builds the sample-level factor table, computes the nuisance set, then asks the estimability question. Exact algebra — no power, no LLM.',
+  ins:'observations, design', outs:'Finding'},
+ {fn:'build_sample_factor_table',file:'checks/confounding.py',kind:'pure',sub:true,sig:['def ','build_sample_factor_table','(observations, design):'],
+  does:'Collapse cells to <em>one row per <code>sample_unit</code></em> (here: per donor), carrying the contrast + nuisance columns — <em>before</em> aggregating any nuisance away. Categoricals are cast to object so downstream set logic sees no phantom levels.',
+  ins:'cell-level observations', outs:'8-row factor table',
+  data:{title:'sample-level factor table',html:factorTable('alias')}},
+ {fn:'nuisance_columns',file:'checks/confounding.py',kind:'pure',sub:true,sig:['def ','nuisance_columns','(design) ','-> ','list',':'],
+  does:'<code>nuisance = (model terms except target) ∪ declared batch</code>. <span class="good">Donor is deliberately NOT unioned in unconditionally</span> — that would false-flag every valid unpaired design. Here: model "~ culture_condition" has no extra terms, so nuisance = the declared batch.',
+  ins:'design', outs:'["processing_run"]',
+  data:{title:'nuisance set',html:`<div class="kvs"><span class="k">model_terms</span>("~ culture_condition") − <span class="k">target</span>(culture_condition) = <span class="val">{}</span><br>∪ <span class="k">batch</span> = <span class="val">["processing_run"]</span></div>`}},
+ {fn:'_dummy_block · _r2',file:'checks/confounding.py',kind:'pure',sub:true,sig:['R² = R²( t ~ [1, additive dummies(nuisance)] )      VIF = 1/(1 − R²)'],
+  does:'<b>The estimability test.</b> Build the nuisance design matrix using the <em>same additive, treatment-coded dummies the model uses</em>, and regress the target indicator on it. <code>R² == 1</code> ⟺ the target is rank-deficient against the nuisance ⟺ <span class="bad">not estimable</span>. Here <code>culture_condition</code> is exactly predicted by <code>processing_run</code>.',
+  ins:'t = 1[condition==stim] ,  Z = [1, run_R2]', outs:'R² = 1.00 → VIF = ∞ → aliased',
+  data:{title:'rank / R²',html:`<div class="kvs"><span class="k">rank([1, processing_run])</span>            = 2<br><span class="k">rank([1, processing_run, condition])</span> = 2   <span class="bad">← the target adds no dimension</span><br><br><span class="k">R²</span> = <span class="bad">1.00</span>   ·   <span class="k">VIF</span> = <span class="bad">∞</span>   →  <b>not estimable</b></div>`}},
+ {fn:'_leakage',file:'checks/confounding.py',kind:'pure',sub:true,sig:['λ_j = coef_on_t( regress( z_j ~ [1, included_covariates, t] ) )'],
+  does:'For a <em>partially</em> confounded design (0 &lt; R² &lt; 1) whose batch is <em>omitted</em> from the model, λ is the omitted-variable-bias multiplier: <code>E[β̂_unadj] = β + Σ γ_j·λ_j</code>. So <code>max|λ| ≥ 0.10 → major</code>, reported with the fix (add the term) and its exact cost (×√VIF on the SE). Under complete aliasing λ = 1 — 100% of the run effect leaks.',
+  ins:'omitted = [processing_run]', outs:'λ = 1.00  (fully aliased)',
+  data:{title:'the graded ladder',html:`<div class="kvs"><span class="k">R² == 1</span>                          → <span class="bad">blocker</span>   not estimable; no model fixes it — re-run the experiment<br><span class="k">0&lt;R²&lt;1, batch omitted, |λ|≥0.10</span>  → <span style="color:var(--major)">major</span>     OVB bias; add the term (cost ×√VIF)<br><span class="k">adjusted, or R² ≈ 0</span>            → <span class="good">pass</span>      estimable; VIF reported</div>`}},
+ {fn:'shares_common_support',file:'checks/confounding.py',kind:'pure',sub:true,sig:['def ','shares_common_support','(samples, contrast_col, ref, test, nuisance) ','-> ','bool',':'],
+  does:'<b>Diagnostic only — NOT the blocker.</b> It stratifies by the <em>saturated (interaction)</em> combination of nuisance columns, while real models are <em>additive</em>. Its failure means the target is aliased with the nuisance <em>interaction</em>, which an additive model may still identify. Using it as the blocker was a real false-blocker bug: <code>condition = XOR(run, sex)</code> makes every joint stratum pure, yet R² = 0 and condition is fully estimable.',
+  ins:'factor table, nuisance', outs:'False → verdict note, never a block',
+  data:{title:'why this cannot be the blocker',html:`<div class="kvs"><span class="dim">condition = XOR(run, sex) — every joint (run,sex) stratum is pure:</span><br><span class="k">shares_common_support</span> = <span class="bad">False</span>   <span class="dim">← the old rule BLOCKED here</span><br><span class="k">R²(condition ~ run + sex)</span> = <span class="good">0.00</span>   <span class="dim">→ orthogonal, fully estimable</span></div>`}},
+ {fn:'Finding → report',file:'report.py',kind:'det',sig:['Finding','(','"confounding", "blocker", metrics{r2, vif, leakage, omitted}',')'],
+  does:'<code>blocking_allowed</code> is true and R² = 1, so the check returns a <span class="bad">BLOCKER</span> naming the culprit, with the Leek 2010 citation and the numbers behind it. <code>render_tty</code> prints it; the CLI exits 1. (Non-finite floats like <code>vif=∞</code> are serialized as strings so the JSON stays strictly valid.)',
+  ins:'Finding', outs:'exit 1',
+  verdict:{cls:'blocker',txt:'BLOCKER',reason:'culture_condition is completely aliased with [processing_run] (R²=1.00) — the effect is not estimable; no model can separate them. The experiment must be re-run.'}},
+];
+
+const EU=[
+ {fn:'run_audit → evaluate_experimental_unit',file:'checks/experimental_unit.py',kind:'pure',sig:['def ','evaluate_experimental_unit','(design, bundle, reported, engine="pydeseq2") ','-> ','Finding',':'],
+  does:'Same ingest / confirm front-end as the confounding path (ingest → read_anndata → load_designs). This check then <em>recomputes</em>. Guards: covariate-constancy, and <code>reported is None</code> → needs_evidence (nothing to check against).',
+  ins:'design, bundle, reported (per-cell DE)', outs:'Finding'},
+ {fn:'aggregate_to_pseudobulk',file:'engine.py',kind:'pure',sub:true,sig:['def ','aggregate_to_pseudobulk','(bundle, design) ','-> ','(pb, meta)',':'],
+  does:'Sum <em>raw</em> counts within each <code>sample_unit</code> (donor × condition) — before normalization, because count models need integer sums. Returns the pseudobulk matrix + one metadata row per sample carrying the contrast/pairing/batch factors.',
+  ins:'~20,000 cells × genes', outs:'16 samples × genes  (+ meta)',
+  data:{title:'pseudobulk (pb)',html:pseudobulkTable()}},
+ {fn:'pydeseq2_recompute',file:'engines/pydeseq2_engine.py',kind:'det',sub:true,sig:['def ','pydeseq2_recompute','(pb, meta, design) ','-> ','RecomputeResult',':'],
+  does:'The engine that can <em>block</em>: pseudobulk NB Wald (DESeq2). Returns per-feature <code>log2FoldChange</code> + <code>lfcSE</code>, so the powered gate uses the z-based Wald MDE. (The dependency-light <code>simple</code> engine does a donor-aware paired t-test and is capped to <em>major</em>.)',
+  ins:'pb, meta', outs:'RecomputeResult{table[pvalue,padj,effect,se], mde_kind="wald", n=8}',
+  data:{title:'res.table (recomputed at donor level)',html:`<table class="tt"><tr><th>gene</th><th>log2FC</th><th>lfcSE</th><th>padj</th><th>testable</th></tr>
+  <tr><td>IFI6</td><td>2.9</td><td>0.34</td><td class="good">3e-6</td><td>✓ survives</td></tr>
+  <tr><td>ISG15</td><td>0.4</td><td>0.51</td><td class="bad">0.62</td><td>✓ collapses</td></tr>
+  <tr><td class="dim" colspan="5">… 2,041 claimed-sig genes → 43 survive …</td></tr></table>`}},
+ {fn:'build_panel',file:'engine.py',kind:'pure',sub:true,sig:['def ','build_panel','(reported, res, design, bundle, alpha=0.05) ','-> ','Panel',':'],
+  does:'Fold the reported claims + the recompute into one <code>Panel</code>. <em>The denominator is <code>valid_reported_sig</code></em> — reported-significant genes that were actually testable. <code>survival_rate = survivors / that</code>. Also computes comparability, effect-correlation & sign-flips (evidence), and the per-feature MDE + powered fraction.',
+  ins:'reported (per-cell DE), res (recompute)', outs:'Panel',
+  data:{title:'Panel',html:panelTable()}},
+ {fn:'mde_wald · powered_fraction',file:'engine.py',kind:'pure',sub:true,sig:['def ','mde_wald','(lfc_se, alpha=.05, power=.8):  (z','₁','₋','ₐ','/','₂',' + z','_power','·lfcSE'],
+  does:'The <em>powered</em> gate — the restraint that makes a blocker deserved. Per claimed-sig gene, the minimum effect the recompute could detect. <code>powered = fraction with MDE ≤ ref(|log2FC|≥1) ≥ 0.80</code>. If not powered, a collapse is ambiguous and the rule abstains.',
+  ins:'per-gene lfcSE, ref=1.0 log2FC', outs:'powered = True (0.83 ≥ 0.80)',
+  data:{title:'why the collapse is trusted',html:`<div class="kvs"><span class="k">ref</span> = |log2FC| ≥ 1  <span class="dim">(selection-free, not the winner's-cursed reported effects)</span><br><span class="k">powered_fraction</span> = 0.83 of claimed-sig genes have MDE ≤ ref<br>→ <span class="val">powered = True</span>  <span class="dim">→ a collapse is informative, not underpower</span></div>`}},
+ {fn:'earned_verdict',file:'engine.py',kind:'pure',sub:true,sig:['def ','earned_verdict','(panel) ','-> ','(status, reason)',':'],
+  does:'The pinned rule, checked <em>in order</em>: comparable? valid_reported_sig&gt;0? covariates constant? replicate recorded? n≥3? <b>powered?</b> — every needs_evidence gate precedes survival, so an underpowered analysis can never masquerade as a blocker. Then: survival ≤ 0.10 → blocker; &lt; 0.60 → major; else pass.',
+  ins:'Panel', outs:'("blocker", "the claimed discoveries do not survive…")'},
+ {fn:'caps → Finding',file:'checks/experimental_unit.py',kind:'det',sig:['if',' engine=="simple" and status=="blocker": status="major"'],
+  does:'Two safety caps applied to the earned status: the <code>simple</code> engine <em>never</em> blocks (→ major), and a blocker on an unconfirmed / low-confidence setup is downgraded to needs_evidence. With <code>pydeseq2</code> on a confirmed, powered collapse → the BLOCKER stands.',
+  ins:'earned status', outs:'Finding',
+  verdict:{cls:'blocker',txt:'BLOCKER',reason:'2,041 claimed-significant → 43 survive at the donor level (survival 2%); powered → the claimed discoveries do not survive replicate-aware inference.'}},
+];
+
+/* ============ render ============ */
+const PATHS={cf:CF,eu:EU};
+let path='cf', idx=0;
+
+function sigHTML(parts){
+  // simple colorizer: def/keywords red, fn name teal, -> dim
+  return parts.map(p=>{
+    if(p==='def '||p==='if'||p==='@app.command()\n') return `<span class="kw">${p}</span>`;
+    if(p==='-> '||p===': '||p===':') return `<span class="ar">${p}</span>`;
+    if(/^[a-z_]+\.?[a-z_]*$/i.test(p) && parts.indexOf(p)<=1) return `<span class="fn">${p}</span>`;
+    return p;
+  }).join('');
+}
+function setPath(p){
+  path=p; idx=0;
+  document.getElementById('tabCf').classList.toggle('on',p==='cf');
+  document.getElementById('tabEu').classList.toggle('on',p==='eu');
+  document.getElementById('tabEu').classList.toggle('eu',p==='eu');
+  document.getElementById('stackTitle').textContent = p==='cf' ? 'call stack · confounding' : 'call stack · experimental_unit';
+  document.getElementById('pathNote').innerHTML = p==='cf'
+    ? 'Concrete example: the <code>confounding_alias</code> fixture — real, and it produces a real BLOCKER. Every step is exact design-matrix algebra: the verdict is <em>graded</em> by R²/VIF and the OVB leakage λ, not by stratum co-occurrence.'
+    : 'Illustrative example: a Kang-style pseudoreplication collapse (2041→43). The engine + panel + earned-verdict are built & tested; registry wiring into <code>audit</code> is the next step.';
+  buildStack(); show(0);
+}
+function buildStack(){
+  const list=document.getElementById('stackList'); list.innerHTML='';
+  PATHS[path].forEach((s,i)=>{
+    const el=document.createElement('div');
+    el.className='step'+(s.sub?' sub':'')+(path==='eu'?' eu':'');
+    el.innerHTML=(s.sub?'<span class="depth"></span>':'')+
+      `<span class="idx">${i+1}</span><span class="nm"><b>${s.fn.split(' ').pop().split('.').pop()}()</b><span class="file">${s.file}</span></span>`;
+    el.onclick=()=>show(i); list.appendChild(el);
+  });
+}
+function show(i){
+  idx=i; const s=PATHS[path][i];
+  document.querySelectorAll('.stack .step').forEach((el,j)=>el.classList.toggle('on',j===i));
+  const kindPill={det:'<span class="pill det">deterministic</span>',llm:'<span class="pill llm">Claude / human</span>',pure:'<span class="pill pure">pure · no I/O</span>'}[s.kind]||'';
+  let h=`<div class="fnhead"><span class="pill file">${s.file}</span>${kindPill}</div>`;
+  h+=`<div class="sig">${sigHTML(s.sig)}</div>`;
+  h+=`<div class="does">${s.does}</div>`;
+  if(s.ins||s.outs){
+    h+=`<div class="io"><div class="box"><h5>in</h5><div class="v">${s.ins||'—'}</div></div>
+        <div class="box"><h5>out</h5><div class="v">${s.outs||'—'}</div></div></div>`;
+  }
+  if(s.data){ h+=`<div class="data"><h5>${s.data.title}</h5>${s.data.html}</div>`; }
+  if(s.verdict){
+    h+=`<div class="verdict"><span class="badge ${s.verdict.cls}">${s.verdict.txt}</span></div>
+        <div class="does" style="margin-top:12px;color:var(--mut)">${s.verdict.reason}</div>`;
+  }
+  document.getElementById('detail').innerHTML=h;
+  document.getElementById('prog').textContent=`${i+1} / ${PATHS[path].length}`;
+  document.getElementById('prev').disabled=(i===0);
+  document.getElementById('next').disabled=(i===PATHS[path].length-1);
+}
+function step(d){ const n=idx+d; if(n>=0&&n<PATHS[path].length) show(n); }
+let traceTimer=null;
+function playTrace(){
+  if(traceTimer){clearInterval(traceTimer);traceTimer=null;}
+  show(0); traceTimer=setInterval(()=>{ if(idx>=PATHS[path].length-1){clearInterval(traceTimer);traceTimer=null;return;} show(idx+1); },1900);
+}
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')step(1);if(e.key==='ArrowLeft')step(-1);});
+
+/* ============ data dictionary ============ */
+const DICT=[
+ {n:'Bundle',src:'bundle.py',items:[['observations','one row per cell · all grouping cols'],['measure','Measure (counts | proportions)'],['feature_metadata','gene id → id_type'],['replicate_var','detected replicate col, else None'],['reported_results','long: feature_id, pvalue, padj, effect'],['provenance','{role: {path, reason}}']]},
+ {n:'Design',src:'design.py',items:[['analysis_type','e.g. condition_contrast_DE'],['confirmed_by_human','gates whether a blocker may fire'],['condition / batch','top-level factors'],['reference / test','the two contrasted levels'],['model','patsy formula, e.g. "~ condition"'],['sample_unit / pairing_unit','pseudobulk & pairing keys'],['confidence','{replicate_unit: high|low}']]},
+ {n:'RecomputeResult',src:'engine.py',items:[['table','feature_id → pvalue, padj, effect, se, s_diff, testable'],['mde_kind','"paired" (t) | "wald" (z)'],['n_replicates_per_arm','biological n used in the recompute']]},
+ {n:'Panel',src:'engine.py',items:[['valid_reported_sig','THE DENOMINATOR — claimed discoveries, testable'],['survival_rate','survivors / valid_reported_sig'],['powered','fraction with MDE ≤ ref ≥ 0.80'],['comparable','id match ≥ 0.70 ∧ full FDR family'],['n_biological_replicates_per_arm','power gate input'],['effect_corr / sign_flips','evidence, never gates']]},
+ {n:'Finding',src:'checks/base.py',items:[['check_id','"confounding" | "experimental_unit"'],['status','blocker | major | needs_evidence | not_audited | pass'],['verdict','plain-language, derived FROM metrics'],['metrics','the numbers behind the verdict'],['citations','hard-mapped, never LLM-generated'],['fix','optional corrected-reanalysis template']]},
+ {n:'earned_verdict rule',src:'engine.py',items:[['not comparable','→ needs_evidence'],['valid_reported_sig==0 / n<3','→ needs_evidence'],['not powered','→ needs_evidence (abstain)'],['survival ≤ 0.10','→ BLOCKER'],['survival < 0.60','→ major'],['else','→ pass']]},
+ {n:'confounding metrics',src:'checks/confounding.py',items:[['r2','R²(target ~ additive nuisance dummies)'],['vif','1/(1−R²) — SE cost of adjusting; ∞ ⇒ aliased'],['leakage','OVB multiplier λ per OMITTED nuisance dummy'],['max_leakage','max|λ| ; ≥ 0.10 ⇒ major'],['included / omitted','what the model does & does not adjust for'],['interaction_aliased','target aliased with the nuisance interaction (reported, never blocked)']]},
+ {n:'confounding rule',src:'checks/confounding.py',items:[['R² == 1','→ BLOCKER — the only cut that is MATHS (rank-deficient)'],['batch omitted ∧ max|λ| ≥ 0.10','→ major (OVB; add the term, cost ×√VIF)'],['else VIF ≥ 10','→ informational (near-collinear; efficiency cost, never fails CI)'],['else','→ pass (R², VIF and any sub-threshold λ still reported)'],['unconfirmed / low confidence','→ needs_evidence, never pass'],['0.10 &amp; 10 are POLICY','the numbers are always reported, whatever the cut decides']]},
+];
+const dict=document.getElementById('dict');
+DICT.forEach(d=>{
+  const el=document.createElement('div'); el.className='dcard';
+  el.innerHTML=`<h3>${d.n}</h3><div class="src">${d.src}</div><ul>`+
+    d.items.map(([k,v])=>`<li><b>${k}</b> <span>· ${v}</span></li>`).join('')+`</ul>`;
+  dict.appendChild(el);
+});
+
+setPath('cf');
+</script>
+</body>
+</html>

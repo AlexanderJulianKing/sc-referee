@@ -1,0 +1,81 @@
+{
+  "_note": "RECORDED real Claude layout proposal for the WT/KO fixture \u2014 replayed by tests/test_layout_cassette.py. Do not hand-edit; re-capture with scripts/capture_layout_cassette.py.",
+  "model": "claude-opus-4-8",
+  "stop_reason": "tool_use",
+  "tool_name": "propose_layout",
+  "input": {
+    "shards": [
+      {
+        "path": "KO_1.h5ad",
+        "constants": {
+          "condition": "KO",
+          "replicate": "1"
+        }
+      },
+      {
+        "path": "KO_2.h5ad",
+        "constants": {
+          "condition": "KO",
+          "replicate": "2"
+        }
+      },
+      {
+        "path": "WT_1.h5ad",
+        "constants": {
+          "condition": "WT",
+          "replicate": "1"
+        }
+      },
+      {
+        "path": "WT_2.h5ad",
+        "constants": {
+          "condition": "WT",
+          "replicate": "2"
+        }
+      }
+    ],
+    "confidence": {
+      "condition": "high",
+      "replicate": "medium"
+    },
+    "plain_summary": "All four files share the same naming scheme `<CONDITION>_<N>.h5ad` and have no obs columns of their own, so every semantic label must come from a proposed constant. The leading token (WT / KO) reads as the experimental condition: two wild-type shards and two knockout shards. The trailing number reads as a biological replicate index within each condition (WT_1, WT_2, KO_1, KO_2). I've marked condition as high confidence (clear, consistent filename token) and replicate as medium (the trailing integer plausibly indexes a replicate, but it could instead denote a batch, lane, or re-sequencing run \u2014 a human should confirm which unit it represents). I did not propose `batch` because nothing in the metadata distinguishes a batch from the replicate index. `sample_id` is handled deterministically and is not proposed here.",
+    "unresolved": [
+      "batch: no metadata token or shared obs column distinguishes a batch grouping from the replicate index",
+      "whether the trailing number is a biological replicate vs. a technical batch/lane/run \u2014 human should confirm the unit"
+    ]
+  },
+  "meta": [
+    {
+      "path": "KO_1.h5ad",
+      "sample_id": "KO_1",
+      "n_cells": 5,
+      "n_genes": 4,
+      "obs_columns": [],
+      "obs_preview": {}
+    },
+    {
+      "path": "KO_2.h5ad",
+      "sample_id": "KO_2",
+      "n_cells": 5,
+      "n_genes": 4,
+      "obs_columns": [],
+      "obs_preview": {}
+    },
+    {
+      "path": "WT_1.h5ad",
+      "sample_id": "WT_1",
+      "n_cells": 5,
+      "n_genes": 4,
+      "obs_columns": [],
+      "obs_preview": {}
+    },
+    {
+      "path": "WT_2.h5ad",
+      "sample_id": "WT_2",
+      "n_cells": 5,
+      "n_genes": 4,
+      "obs_columns": [],
+      "obs_preview": {}
+    }
+  ]
+}

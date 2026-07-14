@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sc-referee — Decision Tree</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121821; --panel2:#0f141b; --border:#26303c;
+    --ink:#e6edf3; --mut:#8b98a9; --dim:#5b6675;
+    --teal:#2dd4bf; --blue:#58a6ff;
+    --blocker:#f85149; --major:#e3a53c; --needs:#4fd1e0; --info:#a371f7; --pass:#3fb950; --na:#8b98a9;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#152233 0%,var(--bg) 55%);
+    color:var(--ink);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto;padding:0 22px}
+  code,.mono{font-family:var(--mono)}
+  code{background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:.9em}
+  h1,h2,h3{line-height:1.15;margin:0}
+  .muted{color:var(--mut)} .dim{color:var(--dim)}
+  a{color:var(--blue);text-decoration:none} a:hover{text-decoration:underline}
+
+  header{padding:60px 0 24px}
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--teal)}
+  h1{font-size:clamp(30px,5vw,48px);font-weight:750;margin:14px 0 10px;letter-spacing:-.02em}
+  .lede{font-size:18px;color:var(--mut);max-width:680px}
+  .thesis{margin-top:24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-family:var(--mono);font-size:14px}
+  .thesis .chip{background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:7px 14px}
+  .thesis .arr{color:var(--dim)}
+  .c1{color:var(--blue)} .c2{color:var(--teal)} .c3{color:var(--pass)}
+
+  section{padding:30px 0;border-top:1px solid var(--border)}
+  h2{font-size:26px;font-weight:700;letter-spacing:-.01em}
+  h2 .n{font-family:var(--mono);color:var(--teal);font-size:16px;margin-right:10px}
+  .sub{color:var(--mut);margin:8px 0 22px;max-width:720px}
+
+  /* pipeline */
+  .pipe{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin:8px 0 4px}
+  .stage{flex:1 1 200px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px}
+  .stage .t{font-weight:650;font-size:15px} .stage .d{color:var(--mut);font-size:13.5px;margin-top:6px}
+  .stage.s1{border-color:#274b6d} .stage.gate{border-color:var(--major)} .stage.s2{border-color:#1f5c52}
+  .flowarrow{align-self:center;color:var(--dim);font-size:22px;padding:0 2px}
+  .tag{font-family:var(--mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--teal)}
+
+  /* legend */
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 4px}
+  .badge{font-family:var(--mono);font-size:12px;font-weight:600;border-radius:999px;padding:4px 11px;border:1px solid;background:transparent}
+  .b-blocker{color:var(--blocker);border-color:var(--blocker)}
+  .b-major{color:var(--major);border-color:var(--major)}
+  .b-needs{color:var(--needs);border-color:var(--needs)}
+  .b-info{color:var(--info);border-color:var(--info)}
+  .b-na{color:var(--na);border-color:var(--na)}
+  .b-pass{color:var(--pass);border-color:var(--pass)}
+  .legend .lbl{color:var(--mut);font-size:13px;align-self:center;margin-right:2px}
+
+  /* check cards (click to expand) */
+  details.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;margin:12px 0;overflow:hidden}
+  details.card[open]{border-color:#33414f}
+  summary{list-style:none;cursor:pointer;padding:16px 18px;display:flex;align-items:center;gap:14px}
+  summary::-webkit-details-marker{display:none}
+  summary:hover{background:var(--panel2)}
+  .chev{color:var(--dim);transition:transform .18s;font-size:13px}
+  details[open] .chev{transform:rotate(90deg)}
+  .cid{font-family:var(--mono);font-weight:650;font-size:15.5px}
+  .cwhat{color:var(--mut);font-size:13.5px;flex:1;min-width:120px}
+  .cbody{padding:2px 18px 20px;border-top:1px solid var(--border)}
+  .meta{display:flex;flex-wrap:wrap;gap:16px;margin:14px 0;font-size:13px;color:var(--mut)}
+  .meta b{color:var(--ink);font-weight:600}
+
+  /* if-then ladder */
+  .ladder{list-style:none;padding:0;margin:10px 0 0;counter-reset:step}
+  .ladder li{position:relative;padding:9px 0 9px 30px;border-top:1px dashed #1e2732;font-size:14.5px}
+  .ladder li:first-child{border-top:none}
+  .ladder li::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:9px;
+    font-family:var(--mono);font-size:11px;color:var(--dim);border:1px solid var(--border);border-radius:50%;
+    width:19px;height:19px;display:grid;place-items:center}
+  .ladder .if{color:var(--mut)} .arrow{color:var(--dim);padding:0 5px}
+  .v{font-family:var(--mono);font-size:12px;font-weight:600;padding:2px 8px;border-radius:6px;white-space:nowrap}
+  .v-blocker{color:var(--blocker);background:rgba(248,81,73,.12)}
+  .v-major{color:var(--major);background:rgba(227,165,60,.13)}
+  .v-needs{color:var(--needs);background:rgba(79,209,224,.12)}
+  .v-info{color:var(--info);background:rgba(163,113,247,.14)}
+  .v-na{color:var(--na);background:rgba(139,152,169,.12)}
+  .v-pass{color:var(--pass);background:rgba(63,185,80,.13)}
+  .note{background:var(--panel2);border:1px solid var(--border);border-left:3px solid var(--teal);
+    border-radius:8px;padding:12px 14px;margin:14px 0 0;font-size:13.5px;color:var(--mut)}
+  .note b{color:var(--ink)}
+  .controls{display:flex;gap:10px;margin:2px 0 14px}
+  .controls button{font-family:var(--mono);font-size:12px;color:var(--mut);background:var(--panel);
+    border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer}
+  .controls button:hover{color:var(--ink);border-color:#3a4653}
+  footer{padding:40px 0 70px;color:var(--dim);font-size:13px;border-top:1px solid var(--border)}
+  .k{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">sc-referee · decision logic</div>
+  <h1>The if-then machine</h1>
+  <p class="lede">sc-referee is two stages. First it <b class="c1">identifies</b> what the analysis
+  is and what every column means. Then it <b class="c2">applies</b> the specific statistical checks
+  that fit — and each one recomputes the correct arithmetic to decide whether a rule was broken.</p>
+  <div class="thesis">
+    <span class="chip c1">Claude proposes</span><span class="arr">→</span>
+    <span class="chip c2">a human confirms once</span><span class="arr">→</span>
+    <span class="chip c3">arithmetic decides</span>
+  </div>
+</header>
+
+<!-- OVERVIEW PIPELINE -->
+<section>
+  <h2><span class="n">◆</span>The pipeline at a glance</h2>
+  <p class="sub">Data comes in on the left; a verdict comes out on the right. Nothing can fail CI
+  until a human ratifies the design (the amber gate). Everything after the gate is deterministic and
+  re-runs identically forever.</p>
+  <div class="pipe">
+    <div class="stage s1"><span class="tag">Stage 1 · identify</span>
+      <div class="t">Ingest &amp; classify</div>
+      <div class="d">Read the raw counts (<code>.h5ad</code> or CSV) — one file, or many stitched by a
+      human-confirmed manifest (§ Multi-file). Propose the analysis type and the role of each column —
+      Claude only where a deterministic rule can't.</div></div>
+    <div class="flowarrow">→</div>
+    <div class="stage gate"><span class="tag" style="color:var(--major)">confirm gate</span>
+      <div class="t">A human ratifies</div>
+      <div class="d">Until <code>confirmed_by_human</code> is true, every earned blocker is downgraded
+      to <span class="v v-needs">needs_evidence</span>. Nothing blocks a setup nobody approved.</div></div>
+    <div class="flowarrow">→</div>
+    <div class="stage s2"><span class="tag">Stage 2 · apply</span>
+      <div class="t">Route → recompute → verdict</div>
+      <div class="d">Send the design to the checks that fit its type. Each recomputes the correct
+      procedure and returns a graded finding. Aggregate to the worst.</div></div>
+    <div class="flowarrow">→</div>
+    <div class="stage s2"><span class="tag">Stage 3 · fix</span>
+      <div class="t">Hand back the correction</div>
+      <div class="d">For each flagged check, emit the fix — a <b>runnable</b> pseudobulk script for
+      pseudoreplication, the exact edit for the rest. Generated from the design, never an LLM.</div></div>
+  </div>
+</section>
+
+<!-- LEGEND -->
+<section>
+  <h2><span class="n">▤</span>The six verdicts</h2>
+  <p class="sub">Only <b style="color:var(--blocker)">blocker</b> fails CI. Everything else is
+  posted as an annotation — never a silent green, never a false accusation.</p>
+  <div class="legend">
+    <span class="badge b-blocker">blocker</span><span class="lbl">your science is wrong — CI fails</span>
+  </div>
+  <div class="legend">
+    <span class="badge b-major">major</span><span class="lbl">likely wrong; posted, not gated</span>
+    <span class="badge b-needs">needs_evidence</span><span class="lbl">we couldn't be sure — abstain</span>
+  </div>
+  <div class="legend">
+    <span class="badge b-info">informational</span><span class="lbl">measured fact, not a defect</span>
+    <span class="badge b-na">not_audited</span><span class="lbl">we didn't look (not "clean")</span>
+    <span class="badge b-pass">pass</span><span class="lbl">recomputed and it holds up</span>
+  </div>
+</section>
+
+<!-- MULTI-FILE -->
+<section>
+  <h2><span class="n">⧉</span>Multi-file — one analysis, many files</h2>
+  <p class="sub">Real analyses are often sharded: 8 mice in 8 <code>.h5ad</code> files, or two treatments
+  in two CSVs. sc-referee audits the <b>assembled</b> analysis — and refuses to silently audit one shard
+  as if it were the whole study.</p>
+
+  <div class="pipe">
+    <div class="stage s1"><span class="tag">scan · propose</span>
+      <div class="t">Claude drafts a manifest</div>
+      <div class="d">Reads directory <b>metadata only</b> (filenames, obs columns, shapes — never the
+      matrices) and proposes which file is which sample / condition. No API key → a deterministic draft
+      you fill in.</div></div>
+    <div class="flowarrow">→</div>
+    <div class="stage gate"><span class="tag" style="color:var(--major)">confirm · re-derive</span>
+      <div class="t">A human ratifies, once</div>
+      <div class="d">Re-assembles from the (possibly hand-edited) manifest, re-validates the design
+      against it, and records a content <b>digest</b> + every shard/obs file <b>hash</b>. Then both flags flip.</div></div>
+    <div class="flowarrow">→</div>
+    <div class="stage s2"><span class="tag">assemble</span>
+      <div class="t">Stitch → one Bundle</div>
+      <div class="d">The declared <code>constants</code> become real obs columns — "one file per mouse"
+      turns into a <code>mouse_id</code> column, so <b>pseudoreplication becomes visible</b>.</div></div>
+    <div class="flowarrow">→</div>
+    <div class="stage s2"><span class="tag">audit</span>
+      <div class="t">The ordinary checks</div>
+      <div class="d">The assembler emits the <i>same</i> canonical Bundle every check already consumes —
+      so all of Stage 2 runs unchanged. Multi-file is purely an ingest concern.</div></div>
+  </div>
+
+  <details class="card"><summary><span class="chev">▶</span>
+    <span class="cid">verified, not trusted</span><span class="cwhat">re-derive what it can; refuse the rest — the assembler fails closed</span>
+    <span class="badge b-blocker">fails closed</span></summary>
+    <div class="cbody">
+      <p class="muted">A manifest is a <b>proposal</b>. It declares only the semantically-undecidable
+      part (which file means what); everything checkable the assembler recomputes, and on anything that
+      would silently corrupt or narrow the scope it <b>refuses</b> rather than proceed.</p>
+      <ul class="ladder">
+        <li><span class="if">a shard is normalized / mixed / has duplicate genes or cell-ids</span><span class="arrow">→</span><span class="v v-blocker">refuse</span></li>
+        <li><span class="if">the assembled sample set ≠ the declared <code>expected</code>, or a matrix on disk is unlisted</span><span class="arrow">→</span><span class="v v-blocker">refuse</span> <span class="dim">— never a partial scope</span></li>
+        <li><span class="if">a constant would overwrite real metadata; a shard is a non-RNA modality; a matrix is transposed</span><span class="arrow">→</span><span class="v v-blocker">refuse</span></li>
+        <li><span class="if">the manifest content or any shard/obs file changed after confirmation</span><span class="arrow">→</span><span class="v v-blocker">refuse</span> <span class="dim">— digest + per-file hashes</span></li>
+        <li><span class="if">the manifest is <b>unconfirmed</b></span><span class="arrow">→</span> every earned blocker is <b>downgraded</b>, and a clean run is <span class="v v-needs">neutral</span> — never a green pass on an unratified layout</li>
+      </ul>
+      <div class="note"><b>The one thing it can't verify is the one thing you confirm.</b> Arithmetic
+      re-derives counts-ness, gene alignment, and cell-id uniqueness — but it cannot know that
+      <code>M1.h5ad</code> is really the WT mouse. That file→label map is exactly what the human
+      ratifies; a <span class="v v-pass">pass</span> means "<i>given your confirmed map</i>, the
+      statistics hold," never "your labels are right." The confirm screen shows the whole scope
+      (included shards + excluded files) so that judgment is reviewable.</div>
+    </div>
+  </details>
+</section>
+
+<!-- STAGE 1 -->
+<section>
+  <h2><span class="n">1</span>Identify — get the ducks in a row</h2>
+  <p class="sub">Click any step for the exact rule.</p>
+
+  <details class="card"><summary><span class="chev">▶</span>
+    <span class="cid">ingest</span><span class="cwhat">read the matrix, label what it is</span></summary>
+    <div class="cbody"><ul class="ladder">
+      <li><span class="if">an <code>.h5ad</code> under the folder</span><span class="arrow">→</span> read it (AnnData adapter)</li>
+      <li><span class="if">no <code>.h5ad</code>, but <code>counts.csv</code>/<code>.tsv</code> + an obs table</span><span class="arrow">→</span>
+        read those (CSV adapter) — you don't need the scanpy stack to be audited</li>
+      <li><span class="if">a <code>sc-referee.manifest.yaml</code> is present</span><span class="arrow">→</span>
+        <b>assemble</b> the declared shards into one matrix (§ Multi-file)</li>
+      <li><span class="if">&gt;1 candidate matrix and <b>no</b> manifest</span><span class="arrow">→</span>
+        <span class="v v-blocker">refuse</span> — never guess which is the analysis (an <code>atlas.h5ad</code> decoy, one arm of a split, one mouse of eight)</li>
+      <li><span class="if">neither is present</span><span class="arrow">→</span> error (nothing to read)</li>
+      <li><span class="if">matrix read</span><span class="arrow">→</span> <b>label the measure</b>: integer-valued ⇒
+        <code>counts</code>; otherwise <code>normalized</code> — recorded, <b>not</b> a hard refusal</li>
+      <li><span class="if">either way</span><span class="arrow">→</span> build the bundle: detect a replicate
+        column by name, bind a reported-results table if its header looks like DE output, and <b>parse</b>
+        (never execute) the analysis code into signals</li>
+    </ul>
+    <div class="note"><b>Normalized data no longer fails at the door.</b> An earlier build refused the whole
+    run on non-integer values — too blunt: some checks (confounding, double-dipping) never touch the matrix.
+    Now the measure is <i>labeled</i>, and only the checks that need raw counts abstain
+    (<span class="v v-na">not_audited</span>: "the recompute needs raw counts; this matrix is normalized — NOT checked").
+    The structural checks still run.</div>
+    </div>
+  </details>
+
+  <details class="card"><summary><span class="chev">▶</span>
+    <span class="cid">classify</span><span class="cwhat">what is this, and what does each column mean?</span></summary>
+    <div class="cbody"><ul class="ladder">
+      <li><span class="if"><b>deterministic first</b>: exactly one replicate-named column (cardinality 2–50)
+        AND one condition-named column (2–6)</span><span class="arrow">→</span> propose it, <b>Claude is never called</b></li>
+      <li><span class="if">a role is ambiguous (0 or &gt;1 candidate) AND an API key is present</span><span class="arrow">→</span>
+        <b>Claude</b> fills <i>roles only</i> via a forced tool call (it cannot author a formula — the schema won't let it)</li>
+      <li><span class="if">ambiguous and no model available</span><span class="arrow">→</span> a heuristic draft, everything stamped low-confidence</li>
+    </ul>
+    <div class="note"><b>The model proposes roles; arithmetic writes the formula.</b> Claude assigns
+    meaning — "<code>group</code> is the condition, <code>donor</code> is the replicate." Deterministic
+    code then synthesizes the model formula, the contrasts, and the coefficient from those roles and
+    the data. A language model never authors executable statistics.</div>
+    </div>
+  </details>
+
+  <details class="card"><summary><span class="chev">▶</span>
+    <span class="cid">confirm</span><span class="cwhat">the one human gate</span></summary>
+    <div class="cbody"><ul class="ladder">
+      <li><span class="if">proposal written</span><span class="arrow">→</span> always <code>confirmed_by_human: false</code></li>
+      <li><span class="if">a person runs <code>sc-referee confirm</code></span><span class="arrow">→</span> the flag flips to true</li>
+      <li><span class="if">still unconfirmed at audit time</span><span class="arrow">→</span> every earned blocker is downgraded to <span class="v v-needs">needs_evidence</span></li>
+    </ul></div>
+  </details>
+</section>
+
+<!-- STAGE 2 -->
+<section>
+  <h2><span class="n">2</span>Apply — did the analysis break a rule?</h2>
+  <p class="sub">Each check declares which analysis types it applies to and the worst verdict it may
+  emit (its <b>block entitlement</b>). Click a check for its full if-then ladder and real thresholds.</p>
+
+  <div class="controls">
+    <button onclick="document.querySelectorAll('#checks details').forEach(d=>d.open=true)">expand all</button>
+    <button onclick="document.querySelectorAll('#checks details').forEach(d=>d.open=false)">collapse all</button>
+  </div>
+
+  <div id="checks">
+
+  <!-- confounding -->
+  <details class="card"><summary><span class="chev">▶</span>
+    <span class="cid">confounding</span><span class="cwhat">is the condition effect even estimable?</span>
+    <span class="badge b-blocker">can block</span></summary>
+    <div class="cbody">
+      <div class="meta"><span>applies to <b>condition_contrast_DE</b></span><span>reads only <b>.obs</b></span>
+        <span>power-<b>independent</b> — the guaranteed blocker</span></div>
+      <p class="muted">Exact design-matrix algebra. The one place the tool draws a hard mathematical
+      line: if the condition is perfectly aliased with a batch, <i>no</i> model can separate them.</p>
+      <ul class="ladder">
+        <li><span class="if">a covariate varies within a sample, or a declared level is missing</span><span class="arrow">→</span><span class="v v-needs">needs_evidence</span> <span class="dim">(config, not science)</span></li>
+        <li><span class="if"><code>R²(condition ~ nuisance) == 1</code> (aliased; the <b>only</b> pure-math threshold)</span><span class="arrow">→</span><span class="v v-blocker">blocker</span> <span class="dim">— re-run the experiment</span></li>
+        <li><span class="if">a declared batch is <b>omitted</b> and its partial R² ≥ <code>0.01</code></span><span class="arrow">→</span><span class="v v-major">major</span> <span class="dim">— add the term</span></li>
+        <li><span class="if">estimable but near-collinear, <code>VIF ≥ 10</code></span><span class="arrow">→</span><span class="v v-info">informational</span> <span class="dim">— efficiency cost, not a confound</span></li>
+        <li><span class="if">otherwise</span><span class="arrow">→</span><span class="v v-pass">pass</span></li>
+      </ul>
+      <div class="note">The blocker is <b>doubly gated</b>: it fires only when the design is
+      <b>confirmed</b> AND the <code>condition</code> role is high-confidence. If Claude was unsure which
+      column is the condition, an aliasing result is capped at <span class="v v-needs">needs_evidence</span> —
+      the tool never blocks on a role it isn't sure it read correctly.</div>
+      <div class="note">The decision statistic is <b>partial R²</b>, not per-term leakage λ: λ shrinks
+      mechanically as a batch gains levels, so a 40-run batch 97% aliased with condition scored a
+      deceptively-tiny λ and slipped the old cut. Partial R² is cardinality-invariant — it was
+      measuring the confound, not the batch's number of levels. <span class="dim">Caught in adversarial review.</span></div>
+    </div>
+  </details>
+
+  <!-- experimental_unit -->
+  <details class="card"><summary><span class="chev">▶</span>
+    <span class="cid">experimental_unit</span><span class="cwhat">were cells treated as replicates? (pseudoreplication)</span>
+    <span class="badge b-blocker">can block</span></summary>
+    <div class="cbody">
+      <div class="meta"><span>applies to <b>condition_contrast_DE</b> + a recorded replicate + <b>unit_of_test = cell</b></span>
+        <span>blocker on <b>pydeseq2</b>, capped at major on <b>simple</b></span></div>
+      <p class="muted">Recompute the differential expression at the <b>replicate</b> (donor) level —
+      pseudobulk NB — and see how many of the claimed genes survive. Every abstain-gate is checked
+      <i>before</i> survival, so an underpowered recompute can never masquerade as a blocker.</p>
+      <ul class="ladder">
+        <li><span class="if">matrix normalized, unit unresolved, or no replicate recorded — the recompute can't run</span><span class="arrow">→</span><span class="v v-na">not_audited</span> <span class="dim">— "NOT checked", never a silent pass</span></li>
+        <li><span class="if">ran, but not comparable, 0 claimed genes testable, or covariates vary</span><span class="arrow">→</span><span class="v v-needs">needs_evidence</span></li>
+        <li><span class="if">fewer than <b>3</b> biological replicates per arm</span><span class="arrow">→</span><span class="v v-needs">needs_evidence</span></li>
+        <li><span class="if"><b>not powered</b> — &lt;80% of claimed genes individually detectable (MDE ≤ |log2FC| 1)</span><span class="arrow">→</span><span class="v v-needs">needs_evidence</span> <span class="dim">— exploratory, collapse is ambiguous</span></li>
+        <li><span class="if">powered AND <b>survival ≤ 0.10</b></span><span class="arrow">→</span><span class="v v-blocker">blocker</span> <span class="dim">— claims collapse at the right unit</span></li>
+        <li><span class="if">survival <b>&lt; 0.60</b></span><span class="arrow">→</span><span class="v v-major">major</span> <span class="dim">— only partly survive</span></li>
+        <li><span class="if">survival ≥ 0.60</span><span class="arrow">→</span><span class="v v-pass">pass</span> <span class="dim">— holds up at the replicate level</span></li>
+      </ul>
+      <div class="note"><b>Blocks when powered, abstains when not.</b> On 8 well-powered donors a
+      pseudoreplicated analysis earns an honest blocker; on 4 it correctly returns needs_evidence.
+      Validated against muscat's planted truth + Squair 2021 across 120 simulated datasets.
+      <span class="dim">A replicate counts as <i>recorded</i> whenever your confirmed design names a
+      column that exists in the data — the design is authoritative, so a donor column named
+      <code>replicate</code> can't slip past a token list.</span></div>
+    </div>
+  </details>
+
+  <!-- multiple_testing -->
+  <details class="card"><summary><span class="chev">▶</span>
+    <span class="cid">multiple_testing</span><span class="cwhat">was the p-value list actually corrected?</span>
+    <span class="badge b-blocker">can block</span></summary>
+    <div class="cbody">
+      <div class="meta"><span>applies to <b>condition_contrast_DE</b> with a reported table</span>
+        <span>reads only the table — no data, no code, no model</span></div>
+      <p class="muted">Recompute Benjamini–Hochberg over the analyst's <i>own</i> p-values. The cheapest
+      exact check, and the most common error class in the expert rubrics.</p>
+      <ul class="ladder">
+        <li><span class="if">nothing claimed significant</span><span class="arrow">→</span><span class="v v-pass">pass</span></li>
+        <li><span class="if">a legitimate correction was applied and ≥60% survive</span><span class="arrow">→</span><span class="v v-pass">pass</span></li>
+        <li><span class="if">a valid less-conservative method (Storey q ≤ BH)</span><span class="arrow">→</span><span class="v v-info">informational</span> <span class="dim">— never accused</span></li>
+        <li><span class="if">uncorrected but the omission changed nothing (≥60% survive)</span><span class="arrow">→</span><span class="v v-info">informational</span> <span class="dim">— apply BH anyway</span></li>
+        <li><span class="if"><b>uncorrected</b> / impossible adjustment, confirmed, and <b>≤10% survive BH</b></span><span class="arrow">→</span><span class="v v-blocker">blocker</span> <span class="dim">— overwhelmingly false positives</span></li>
+        <li><span class="if">uncorrected, 10–60% survive</span><span class="arrow">→</span><span class="v v-major">major</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <!-- count_model -->
+  <details class="card"><summary><span class="chev">▶</span>
+    <span class="cid">count_model</span><span class="cwhat">right unit, wrong model (a t-test on counts)</span>
+    <span class="badge b-major">max: major</span></summary>
+    <div class="cbody">
+      <div class="meta"><span>applies to <b>condition_contrast_DE</b> + <b>unit_of_test = sample</b> + counts</span>
+        <span>never a blocker — a wrong model is "suboptimal but acceptable"</span></div>
+      <p class="muted">The measured frontier failure: a strong model uses the right unit (pseudobulk)
+      but then runs a t-test / OLS on log-CPM instead of a count model. Recompute with NB and report
+      what it missed.</p>
+      <ul class="ladder">
+        <li><span class="if">the matrix is normalized (no raw counts to re-fit an NB against)</span><span class="arrow">→</span><span class="v v-na">not_audited</span> <span class="dim">— "model NOT checked"</span></li>
+        <li><span class="if">no code to read (NB vs t-test is invisible from the table alone)</span><span class="arrow">→</span><span class="v v-needs">needs_evidence</span></li>
+        <li><span class="if">both a count method and a non-count test appear</span><span class="arrow">→</span><span class="v v-needs">needs_evidence</span> <span class="dim">— can't tell which made the table</span></li>
+        <li><span class="if">a count model (DESeq2/edgeR/voom…) was used</span><span class="arrow">→</span><span class="v v-pass">pass</span></li>
+        <li><span class="if">a non-count test on counts (t-test, Mann–Whitney, OLS)</span><span class="arrow">→</span><span class="v v-major">major</span> <span class="dim">— counts aren't Gaussian; here's what NB finds</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <!-- double_dipping -->
+  <details class="card"><summary><span class="chev">▶</span>
+    <span class="cid">double_dipping</span><span class="cwhat">clustered, then tested the same cells (circular analysis)</span>
+    <span class="badge b-needs">flags for review</span></summary>
+    <div class="cbody">
+      <div class="meta"><span>applies to <b>marker_detection</b> + <b>unit_of_test = cell</b> + a marker test whose grouping is <b>data-derived</b> (by provenance, not method name)</span>
+        <span>structural — power-independent, like confounding</span></div>
+      <p class="muted">Cluster cells from the expression matrix, then test for markers <i>between those
+      clusters on the same cells</i>: the groups were chosen to separate the cells, so the test is
+      anti-conservative — it "finds" markers even in pure noise.</p>
+      <ul class="ladder">
+        <li><span class="if">only descriptive rankings, no calibrated p-values claimed</span><span class="arrow">→</span><span class="v v-info">informational</span></li>
+        <li><span class="if">a selection-aware safeguard <i>keyword</i> is in the code (count-splitting / held-out set / ClusterDE)</span><span class="arrow">→</span><span class="v v-needs">needs_evidence</span> <span class="dim">— a keyword isn't proof it's applied correctly; verify the contract</span></li>
+        <li><span class="if">de-novo clustering feeding a marker test, p-values claimed, no safeguard</span><span class="arrow">→</span><span class="v v-needs">needs_evidence</span> <span class="dim">— the double-dipping structure</span></li>
+      </ul>
+      <div class="note">The claim is about <b>calibration, not truth</b>: "the reported p-values are not
+      valid for post-clustering inference" — never "the markers are false." <b>Method-agnostic:</b> a
+      grouping counts as de-novo when its values trace back to the expression matrix through the code
+      (a bespoke <code>GaussianMixture(...).fit_predict(X_pca)</code> is caught exactly like
+      <code>leiden</code>), and a provably-predefined grouping vetoes an incidental clustering call (a
+      <code>leiden</code> for a UMAP + a marker test on <code>genotype</code> is not flagged).
+      <span class="dim">Phase A's provenance is <b>may-level</b>, so the check <b>escalates rather than
+      accuses</b> — the strongest verdict is <code>needs_evidence</code>; a hard <code>blocker</code>
+      awaits the deferred must/overlap analysis, so a syntactic-but-not-semantic read of X can never
+      false-accuse.</span></div>
+    </div>
+  </details>
+
+  <!-- effect_size_threshold -->
+  <details class="card"><summary><span class="chev">▶</span>
+    <span class="cid">effect_size_threshold</span><span class="cwhat">significant — but is the effect big enough to mean anything?</span>
+    <span class="badge b-major">max: major</span></summary>
+    <div class="cbody">
+      <div class="meta"><span>applies to <b>condition_contrast_DE</b> + a reported table with <b>log2FC</b> + significance</span>
+        <span>never a blocker — a small-but-real effect is still real</span></div>
+      <p class="muted">With thousands of cells the p-value collapses to zero on effects too tiny to
+      matter: a gene at <code>|log2FC| &lt; 0.25</code> (under a ~19% change) can be "significant" and
+      biologically meaningless. When the significant list is <i>dominated</i> by such genes, significance
+      is being driven by <b>n</b>, not effect.</p>
+      <ul class="ladder">
+        <li><span class="if">no <code>log2FC</code> column, or no p/padj column to find the claimed discoveries</span><span class="arrow">→</span><span class="v v-needs">needs_evidence</span></li>
+        <li><span class="if">nothing was claimed significant</span><span class="arrow">→</span><span class="v v-pass">pass</span> <span class="dim">— no over-claim to make</span></li>
+        <li><span class="if"><b>≥ 50%</b> of significant genes are negligible (<code>|log2FC| &lt; 0.25</code>)</span><span class="arrow">→</span><span class="v v-major">major</span> <span class="dim">— significance ≠ discovery here</span></li>
+        <li><span class="if"><b>≥ 10%</b> negligible</span><span class="arrow">→</span><span class="v v-info">informational</span> <span class="dim">— worth noting, not a defect</span></li>
+        <li><span class="if">otherwise</span><span class="arrow">→</span><span class="v v-pass">pass</span></li>
+      </ul>
+      <div class="note">Thresholds quoted from the code: <code>NEGLIGIBLE = 0.25</code>,
+      <code>MAJOR_FRACTION = 0.50</code>, <code>INFO_FRACTION = 0.10</code>. This flags the
+      <i>interpretation</i>, not the arithmetic — the p-values may be perfectly correct; the claim that
+      a 15% change is a "finding" is what breaks. That's an analyst's call, so it caps at
+      <span class="v v-major">major</span>.</div>
+    </div>
+  </details>
+
+  </div>
+</section>
+
+<!-- AGGREGATION -->
+<section>
+  <h2><span class="n">3</span>Decide — one verdict for the run</h2>
+  <p class="sub">The findings collapse to a single conclusion, with two hard rules protecting specificity.</p>
+  <ul class="ladder">
+    <li><span class="if"><b>worst status wins</b></span><span class="arrow">→</span> the report's headline is the most severe finding</li>
+    <li><span class="if"><b>only <span class="v v-blocker">blocker</span> fails CI</b></span><span class="arrow">→</span> major / needs_evidence / not_audited are posted as neutral annotations</li>
+    <li><span class="if">nothing ran for a recognized type</span><span class="arrow">→</span><span class="v v-na">not_audited</span> <span class="dim">— a green run then means "we didn't look," not "clean"</span></li>
+    <li><span class="if">a check tries to exceed its entitlement</span><span class="arrow">→</span> the spine <b>clamps it down</b> — a verifier can't manufacture a blocker</li>
+  </ul>
+  <div class="note"><b>Config is not science.</b> A level or column that doesn't exist in the data raises
+  a configuration error and exits separately — it is <i>never</i> dressed up as a <span class="v v-blocker">blocker</span>.
+  "Blocker" always means your science is wrong, never your YAML is wrong.</div>
+</section>
+
+<!-- FIX -->
+<section>
+  <h2><span class="n">4</span>Fix — the actionable other half</h2>
+  <p class="sub">A linter that only flags is half a tool. For every flagged check, <code class="k">sc-referee fix</code>
+  emits the correction — generated from the confirmed design, never from an LLM.</p>
+  <ul class="ladder">
+    <li><span class="if"><b>pseudoreplication</b> (experimental_unit)</span><span class="arrow">→</span> a <b>runnable</b>
+      pseudobulk script: sum raw counts to one sample per (donor × condition), fit DESeq2 at the replicate
+      level, write the corrected gene list</li>
+    <li><span class="if"><b>confounding</b></span><span class="arrow">→</span> aliased (R²=1) → "re-run the experiment,
+      cross the batch with condition"; an omitted batch → the exact term to add to the model</li>
+    <li><span class="if"><b>uncorrected testing</b></span><span class="arrow">→</span> the three lines of
+      Benjamini–Hochberg over the full tested family</li>
+    <li><span class="if"><b>wrong model</b> (t-test on counts)</span><span class="arrow">→</span> swap in a count
+      model (DESeq2 / edgeR) on the raw counts</li>
+    <li><span class="if"><b>negligible effects</b></span><span class="arrow">→</span> add a fold-change floor
+      (<code>abs(log2FC) ≥ 1.0</code>) or test against a threshold directly (edgeR <code>glmTreat</code>)</li>
+    <li><span class="if"><b>double-dipping</b></span><span class="arrow">→</span> a selection-aware recipe:
+      count-split, held-out clustering, or ClusterDE</li>
+  </ul>
+  <div class="note">Only <span class="v v-blocker">blocker</span> and <span class="v v-major">major</span>
+  findings get a fix — a pass, an abstention, or an advisory has nothing to correct. The pseudobulk script
+  is built from your <i>replicate</i> and <i>condition</i> roles (not the raw model string), so it always
+  runs against the columns it constructs. <span class="dim">The verdict tells you what broke; the fix hands
+  you the reanalysis.</span></div>
+</section>
+
+<section>
+  <h2><span class="n">⛓</span>Bundle — a whole multi-step analysis</h2>
+  <p class="muted">A real Claude-Science-style analysis isn't one clean result — it's a chain of numbered
+  scripts, data files, and a report full of confident claims. <code>sc-referee bundle &lt;folder|.zip&gt;</code>
+  <b>parses that pipeline, never runs it</b>, inventories the steps, and says honestly what it can audit.
+  It renders <b>no <span class="v v-pass">pass</span> and no <span class="v v-blocker">blocker</span></b>:
+  a bundle carries no human ratification in place, so its strongest verdict is
+  <span class="v v-needs">needs_evidence</span>.</p>
+
+  <details class="card" open><summary><span class="chev">▶</span>
+    <span class="cid">coverage verdict</span><span class="cwhat">what can this pipeline even be checked for?</span>
+    <span class="badge b-na">honest, not asserted</span></summary>
+    <div class="cbody">
+      <ul class="ladder">
+        <li><span class="if">≥1 step runs a differential-expression analysis a check knows</span><span class="arrow">→</span><span class="v v-na">auditable</span> <span class="dim">— confirm a design to audit them</span></li>
+        <li><span class="if">no step runs an analysis sc-referee checks (e.g. a splicing / PSI pipeline)</span><span class="arrow">→</span><span class="v v-na">not_audited</span> <span class="dim">— "green here would mean 'not looked at', not 'clean'"</span></li>
+      </ul>
+      <div class="note">The specificity rule applied to a whole pipeline: it never calls a bundle clean just
+      because it ran without error.</div>
+    </div>
+  </details>
+
+  <details class="card"><summary><span class="chev">▶</span>
+    <span class="cid">provenance</span><span class="cwhat">is a marker test's grouping derived from the data it tests?</span>
+    <span class="badge b-needs">flags for review</span></summary>
+    <div class="cbody">
+      <p class="muted">Double-dipping runs over the bundle by <b>data-flow, not method name</b>: it traces each
+      marker test's <code>groupby</code> column back through the code. If the column's values came from the
+      expression matrix — a cluster label, an annotated cluster, a bespoke
+      <code>GaussianMixture(...).fit_predict(X_pca)</code> — the test is circular; if they trace only to
+      predefined metadata (<code>genotype</code>), it isn't. <b>Taint follows the data, not the name</b>, so
+      an off-vocabulary clusterer is caught exactly like <code>leiden</code>, and a provably-predefined
+      grouping vetoes an incidental clustering call.</p>
+      <div class="note">Phase A's provenance is <b>may-level</b>, so it <b>escalates rather than accuses</b>:
+      the verdict caps at <span class="v v-needs">needs_evidence</span>; a hard
+      <span class="v v-blocker">blocker</span> still needs <code>init → confirm → audit</code> on the
+      offending step's data.</div>
+    </div>
+  </details>
+
+  <details class="card"><summary><span class="chev">▶</span>
+    <span class="cid">claim attribution</span><span class="cwhat">which reported sentence rests on the flawed test?</span>
+    <span class="badge b-needs">pins the verdict</span></summary>
+    <div class="cbody">
+      <p class="muted">Each numeric claim in the report is <b>backward-linked</b> to the test that produced it —
+      statically, no execution — and the verdict is pinned onto that sentence. <i>"Cluster 3 had 58 markers
+      at padj &lt; 0.05"</i> → <span class="v v-needs">needs_evidence</span>, tied to the de-novo-cluster
+      marker test. It certifies the claim's <b>method</b> — never that the reported number reproduces — and an
+      ambiguous claim abstains rather than mis-attribute.</p>
+    </div>
+  </details>
+</section>
+
+<footer>
+  <div class="wrap" style="padding:0">
+    The single source of truth is the code, not this page — every threshold here is quoted from it
+    (see <code class="k">docs/decision-tree.md</code> for the line-referenced version). Generated for
+    <span class="k">sc-referee</span>, the independent, deterministic referee for single-cell analyses.
+  </div>
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "fixtures": {
+    "marker_detection": {
+      "old_findings": [
+        "double_dipping:needs_evidence"
+      ],
+      "new_findings": {
+        "double_dipping": "{\"__type__\":\"sc_referee.checks.base.Finding\",\"fields\":{\"check_id\":\"double_dipping\",\"citations\":[\"Kriegeskorte et al. 2009, Nat Neurosci 12:535\"],\"fix\":null,\"metrics\":{\"clustering\":[],\"marker_test\":[\"rank_genes_groups\"]},\"status\":\"needs_evidence\",\"verdict\":\"the cell groups here appear to be discovered by clustering the SAME expression data you then used to test which genes mark them, with no safeguard against the circularity — this is the 'double-dipping' pattern. Choosing the groups to separate the cells and then testing those same cells makes the p-values look more significant than they really are, so they can't be trusted as marker significance (this says nothing about whether any individual marker is real — only that the numbers are miscalibrated). The evidence is suggestive, not conclusive, so I'm flagging it for review rather than blocking. Re-run the marker test on data independent of the clustering (count-splitting, a held-out set, or ClusterDE).\"}}",
+        "experimental_unit": "{\"__type__\":\"sc_referee.checks.base.Finding\",\"fields\":{\"check_id\":\"experimental_unit\",\"citations\":[\"Squair et al. 2021, Nat Commun 12:5692\",\"Zimmerman et al. 2021, Nat Commun 12:738\"],\"fix\":null,\"metrics\":{\"comparable\":false,\"effect_corr\":null,\"engine\":\"simple\",\"n_replicates_per_arm\":4,\"powered\":false,\"powered_fraction\":null,\"sign_flips\":0,\"survival_rate\":1.0,\"survivors\":0,\"valid_reported_sig\":0},\"status\":\"needs_evidence\",\"verdict\":\"I couldn't fairly compare your results to a recomputation: reported table has significant rows only (can't rebuild the FDR family)\"}}",
+        "pairing": "{\"__type__\":\"sc_referee.checks.base.Finding\",\"fields\":{\"check_id\":\"pairing\",\"citations\":[\"Zimmerman et al. 2021, Nat Commun 12:738\",\"Squair et al. 2021, Nat Commun 12:5692\"],\"fix\":null,\"metrics\":{\"complete_pairs\":4,\"pairing_key\":[\"donor_id\"],\"unmatched_levels\":0},\"status\":\"needs_evidence\",\"verdict\":\"your model treats the samples as unpaired, but 4 subject(s) (values of donor_id) actually appear in BOTH groups — so the data is really paired. Ignoring that within-subject link can lose power or make the test too liberal; consider a paired (or mixed-model) sensitivity check.\"}}"
+      },
+      "intended_changes": [
+        "experimental_unit: absent -> needs_evidence (confirmed per-cell test with exact donor-spanning contrast)",
+        "pairing: absent -> needs_evidence (four donor levels span both declared arms while the model is unpaired)",
+        "double_dipping: needs_evidence -> needs_evidence byte-identical"
+      ]
+    },
+    "condition_contrast_DE": {
+      "old_findings": [
+        "experimental_unit:needs_evidence",
+        "pairing:needs_evidence"
+      ],
+      "new_findings": {
+        "double_dipping": "{\"__type__\":\"sc_referee.checks.base.Finding\",\"fields\":{\"check_id\":\"double_dipping\",\"citations\":[\"Kriegeskorte et al. 2009, Nat Neurosci 12:535\"],\"fix\":null,\"metrics\":{\"clustering\":[],\"marker_test\":[\"rank_genes_groups\"]},\"status\":\"needs_evidence\",\"verdict\":\"the cell groups here appear to be discovered by clustering the SAME expression data you then used to test which genes mark them, with no safeguard against the circularity — this is the 'double-dipping' pattern. Choosing the groups to separate the cells and then testing those same cells makes the p-values look more significant than they really are, so they can't be trusted as marker significance (this says nothing about whether any individual marker is real — only that the numbers are miscalibrated). The evidence is suggestive, not conclusive, so I'm flagging it for review rather than blocking. Re-run the marker test on data independent of the clustering (count-splitting, a held-out set, or ClusterDE).\"}}",
+        "experimental_unit": "{\"__type__\":\"sc_referee.checks.base.Finding\",\"fields\":{\"check_id\":\"experimental_unit\",\"citations\":[\"Squair et al. 2021, Nat Commun 12:5692\",\"Zimmerman et al. 2021, Nat Commun 12:738\"],\"fix\":null,\"metrics\":{\"comparable\":false,\"effect_corr\":null,\"engine\":\"simple\",\"n_replicates_per_arm\":4,\"powered\":false,\"powered_fraction\":null,\"sign_flips\":0,\"survival_rate\":1.0,\"survivors\":0,\"valid_reported_sig\":0},\"status\":\"needs_evidence\",\"verdict\":\"I couldn't fairly compare your results to a recomputation: reported table has significant rows only (can't rebuild the FDR family)\"}}",
+        "pairing": "{\"__type__\":\"sc_referee.checks.base.Finding\",\"fields\":{\"check_id\":\"pairing\",\"citations\":[\"Zimmerman et al. 2021, Nat Commun 12:738\",\"Squair et al. 2021, Nat Commun 12:5692\"],\"fix\":null,\"metrics\":{\"complete_pairs\":4,\"pairing_key\":[\"donor_id\"],\"unmatched_levels\":0},\"status\":\"needs_evidence\",\"verdict\":\"your model treats the samples as unpaired, but 4 subject(s) (values of donor_id) actually appear in BOTH groups — so the data is really paired. Ignoring that within-subject link can lose power or make the test too liberal; consider a paired (or mixed-model) sensitivity check.\"}}"
+      },
+      "intended_changes": [
+        "double_dipping: absent -> needs_evidence (reported marker grouping is exactly data-derived)",
+        "experimental_unit: needs_evidence -> needs_evidence byte-identical",
+        "pairing: needs_evidence -> needs_evidence byte-identical"
+      ]
+    }
+  },
+  "existing_fixture_verdict_changes": []
+}

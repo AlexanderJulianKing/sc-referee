@@ -1,0 +1,139 @@
+# sc-referee — independent, deterministic review for single-cell analyses.
+#
+# Drop this into your own repo (.github/workflows/) to have every future analysis refereed
+# with nobody in the room. It re-runs the statistically correct procedure and fails the PR
+# on a `blocker` — never on an LLM's opinion.
+#
+# PREREQUISITE: a ratified design.
+#   sc-referee init  ./analysis            # Claude proposes, in plain words
+#   # ...read it. Correct anything wrong. Then:
+#   sc-referee confirm ./analysis/sc-referee.yaml
+#   git add analysis/sc-referee.yaml && git commit
+#
+# Until `confirmed_by_human: true` is committed, this workflow can only ever report
+# `needs_evidence`. That is deliberate: nothing blocks a human who never ratified the setup.
+#
+# Call it from another workflow:
+#   jobs:
+#     referee:
+#       uses: ./.github/workflows/sc-referee.yml
+#       with: { folder: analysis }
+
+name: sc-referee
+
+on:
+  workflow_dispatch:
+    inputs:
+      folder:
+        description: "Analysis folder (data + results, ideally code)"
+        required: true
+        default: fixtures/confounding_alias
+      engine:
+        description: "Recompute engine"
+        type: choice
+        options: [pydeseq2, simple]
+        default: pydeseq2
+  workflow_call:
+    inputs:
+      folder:
+        type: string
+        required: true
+      design:
+        description: "Path to the ratified sc-referee.yaml (defaults to <folder>/sc-referee.yaml)"
+        type: string
+        required: false
+      engine:
+        type: string
+        default: pydeseq2
+      fail-on-blocker:
+        description: "Exit nonzero when a check earns a `blocker`. Set false to report only."
+        type: boolean
+        default: true
+      sc-referee-ref:
+        description: >
+          Where to install sc-referee from, as a pip requirement. Defaults to this repo at the
+          calling commit, which is correct for a SAME-repo `uses: ./.github/workflows/...`.
+          For CROSS-repo reuse you MUST set this (e.g. "sc-referee[engine] @ git+https://github.com/OWNER/sc-referee@v0.1.0"),
+          because `github.repository` then names the CALLER's repo, not this one.
+        type: string
+        required: false
+
+jobs:
+  referee:
+    name: referee ${{ inputs.folder }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # `simple` is a paired-t advisory engine; `pydeseq2` is the NB engine that lets
+      # `experimental_unit` earn a blocker. `confounding` is exact design-matrix algebra and
+      # blocks under EITHER engine — a non-estimable effect is not a question of power.
+      - name: Install sc-referee
+        env:
+          # Same-repo default. Cross-repo callers must pass `sc-referee-ref` — see the input's
+          # description. `github.repository` is the CALLER's repo on a cross-repo workflow_call.
+          REQ: ${{ inputs.sc-referee-ref || format('sc-referee[engine] @ git+https://github.com/{0}@{1}', github.repository, github.sha) }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install "$REQ"
+
+      - name: Audit
+        id: audit
+        run: |
+          set +e
+          python -m sc_referee.cli audit "${{ inputs.folder }}" \
+            ${{ inputs.design && format('--design {0}', inputs.design) || '' }} \
+            --engine "${{ inputs.engine || 'pydeseq2' }}" \
+            --json sc-referee-report.json \
+            --md  sc-referee-report.md \
+            | tee audit.log
+          echo "code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          set -e
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sc-referee-report
+          path: |
+            sc-referee-report.json
+            sc-referee-report.md
+
+      - name: Comment the verdict on the PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (!fs.existsSync('sc-referee-report.md')) return;
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: fs.readFileSync('sc-referee-report.md', 'utf8'),
+            });
+
+      # 0 = no blocker · 1 = blocker · 2 = the design cannot be evaluated (config error).
+      # A config error is NOT a scientific finding. It fails loudly and separately, so nobody
+      # ever reads `blocker: confounding` and thinks their science is wrong when their YAML is.
+      - name: Verdict
+        run: |
+          code="${{ steps.audit.outputs.code }}"
+          cat sc-referee-report.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          case "$code" in
+            0) echo "no blocker" ;;
+            2) echo "::error::sc-referee could not evaluate the design (config error). Fix sc-referee.yaml."; exit 2 ;;
+            1) if [ "${{ inputs.fail-on-blocker }}" = "false" ]; then
+                 echo "::warning::blocker found; fail-on-blocker is false"
+               else
+                 echo "::error::sc-referee found a blocker. See the report artifact."; exit 1
+               fi ;;
+            *) echo "::error::sc-referee exited $code"; exit "$code" ;;
+          esac

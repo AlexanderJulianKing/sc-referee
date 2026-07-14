@@ -1,0 +1,38 @@
+{
+  "_note": "RECORDED real Claude response for the ambiguous_group fixture \u2014 replayed by tests/test_init_cassette.py (invariant I11). Do not hand-edit; re-capture with scripts/capture_cassette.py.",
+  "model": "claude-opus-4-8",
+  "stop_reason": "tool_use",
+  "tool_name": "propose_design",
+  "input": {
+    "analysis_type": "condition_contrast_DE",
+    "type_confidence": "high",
+    "type_evidence": [
+      "code_signals.de_calls include scanpy rank_genes_groups with wilcoxon",
+      "reported_columns are gene/pvalue/adj_p_value/logfoldchange, a per-gene DE result table",
+      "reported file is results/per_cell_wilcoxon.csv indicating cells used as replicates",
+      "'group' has 2 categories (A vs B), a natural two-level contrast",
+      "no aggregation/pseudobulk step or count model (DESeq2/edgeR/limma) present in code_signals"
+    ],
+    "plain_summary": "This analysis compares gene expression between the two groups A and B by testing individual cells with a Wilcoxon test, ignoring that cells come from only 6 donors.",
+    "reference": "A",
+    "unit_of_test": "cell",
+    "design": {
+      "condition": "group",
+      "replicate_unit": [
+        "donor_id"
+      ],
+      "batch": [
+        "processing_run"
+      ]
+    },
+    "confidence": {
+      "condition": "high",
+      "replicate_unit": "high",
+      "batch": "medium",
+      "reference": "low"
+    },
+    "unresolved": [
+      "reference"
+    ]
+  }
+}

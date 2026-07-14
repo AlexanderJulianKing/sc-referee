@@ -1,0 +1,27 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+.env
+*.h5ad
+!fixtures/**/*.h5ad
+build/
+dist/
+.DS_Store
+# large real-data downloads (Kang, Marson) never committed
+data/
+*.zip
+adgrl2_splicing_code_bundle.zip
+# internal build scratch — agent prompts, findings logs, temp capsules (never public)
+scratchpad/
+tmp/
+*.rds
+*.qs
+# committed demo capsule: a small derived aggregate of public GSE200218 (see ATTRIBUTION.md)
+!data/biermann/
+!data/biermann/**
+# GB-P07's public benchmark archive is supplied externally; the demo materializes
+# its input tables locally and must never make those generated copies release files.
+demos/genebench-gbp07/raw_compile_input/
