@@ -133,8 +133,11 @@ def test_cli_init_on_a_multifile_folder_writes_a_manifest_draft(tmp_path):
     result = CliRunner().invoke(app, ["init", str(tmp_path)])
     assert result.exit_code == 0
     assert (tmp_path / "sc-referee.manifest.yaml").exists()
-    assert "manifest" in result.stdout.lower()
-    assert "mouse1.h5ad" in result.stdout and "mouse2.h5ad" in result.stdout
+    # Rich wraps at different columns on macOS and the Linux CI runner; the words and
+    # generated file are the contract, not where the terminal inserted a newline.
+    compact_stdout = "".join(result.stdout.lower().split())
+    assert "manifest" in compact_stdout
+    assert "mouse1.h5ad" in compact_stdout and "mouse2.h5ad" in compact_stdout
 
 
 def test_cli_init_on_a_csv_multifile_folder(tmp_path):

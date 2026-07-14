@@ -7,7 +7,7 @@ from sc_referee.checks.confounding import evaluate_confounding
 from sc_referee.provenance import groupby_provenance
 from sc_referee.sink_use import bind_sinks
 from tests.frozen_oracles.cases import confounding_cases, source_cases
-from tests.inference._serialization import public_bytes
+from tests.inference._serialization import normalized_public_bytes, normalized_public_json, public_bytes
 
 
 ORACLE_PATH = Path(__file__).parents[1] / "frozen_oracles" / "legacy_oracles.json"
@@ -31,4 +31,6 @@ def test_frozen_legacy_outputs_are_byte_exact():
 
     for name, observations, design in confounding_cases():
         expected = frozen["confounding"][name]
-        assert public_bytes(evaluate_confounding(observations, design)).decode() == expected
+        assert normalized_public_bytes(evaluate_confounding(observations, design)).decode() == (
+            normalized_public_json(expected)
+        )

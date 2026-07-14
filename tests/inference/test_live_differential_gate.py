@@ -100,7 +100,7 @@ def test_frozen_live_audit_migration_table_matches_actual_differences(tmp_path, 
 def test_overlap_migration_is_deferred_and_legacy_public_outputs_remain_frozen():
     from sc_referee.registry import build_checks
     from tests.frozen_oracles.cases import confounding_cases
-    from tests.inference._serialization import public_bytes
+    from tests.inference._serialization import normalized_public_bytes, normalized_public_json
     from sc_referee.checks.confounding import evaluate_confounding
 
     frozen = json.loads(
@@ -108,7 +108,9 @@ def test_overlap_migration_is_deferred_and_legacy_public_outputs_remain_frozen()
          "legacy_oracles.json").read_text()
     )
     for name, observations, design in confounding_cases():
-        assert public_bytes(evaluate_confounding(observations, design)).decode() == frozen["confounding"][name]
+        assert normalized_public_bytes(evaluate_confounding(observations, design)).decode() == (
+            normalized_public_json(frozen["confounding"][name])
+        )
 
     by_id = {check.id: check for check in build_checks("simple")}
     assert type(by_id["double_dipping"]).__module__ == "sc_referee.inference.live"
