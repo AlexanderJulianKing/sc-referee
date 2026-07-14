@@ -77,24 +77,25 @@ the conclusion it reached.
 
 ## Install
 
-Requires Python >= 3.10.
+The reproducible install supports Python 3.11 and uses the committed `uv.lock` file. If Python 3.11
+is not already available, uv installs it automatically.
 
 ```bash
-# with uv (recommended)
-uv venv && uv pip install -e '.[engine]'
-
-# or with pip
-pip install -e '.[engine]'
+# From the repository root
+uv sync --locked --extra engine --extra llm
+uv run referee
 ```
 
 The `engine` extra (pydeseq2 + scanpy) enables the count-based reanalysis used by the pseudoreplication
 checks. Optional extras: `llm` (adds `anthropic` for the Claude reconstruction step; also honors
-`ANTHROPIC_API_KEY`), `dev` (test tooling).
+`ANTHROPIC_API_KEY`), `dev` (test tooling). Use `uv sync --locked --extra engine` if you do not need
+the Claude fallback. The lockfile is the supported installation path; it keeps the scientific Python
+stack identical across machines.
 
 ## Run the local review interface
 
 ```bash
-referee
+uv run referee
 ```
 
 This starts a temporary server on `127.0.0.1` and opens the review interface in your default browser.

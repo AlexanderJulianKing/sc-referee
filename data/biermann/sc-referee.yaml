@@ -1,0 +1,31 @@
+analysis_type: condition_contrast_DE
+confirmed_by_human: true
+design:
+  condition: organ
+  replicate_unit:
+  - patient
+  batch: []
+contrasts:
+- name: brain_vs_peripheral
+  reference: Peripheral
+  test: Brain
+  replicate_unit:
+  - patient
+  sample_unit:
+  - patient
+  pairing_unit: []
+  model: ~ organ
+  target_coefficient: organ[T.Brain]
+  unit_of_test: cell
+  report_inference_contract:
+    producer_binding: exact
+    response_scale: transformed_continuous
+    method_family: other
+    dependence_semantics: iid_rows
+reported_results:
+  path: results/original_table_s3_snrna.csv
+  unit_of_test: cell
+confidence:
+  condition: high
+  replicate_unit: high
+unresolved: []

@@ -11,7 +11,7 @@ build/
 dist/
 .DS_Store
 # large real-data downloads (Kang, Marson) never committed
-data/
+data/*
 *.zip
 adgrl2_splicing_code_bundle.zip
 # internal build scratch — agent prompts, findings logs, temp capsules (never public)
