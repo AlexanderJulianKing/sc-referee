@@ -1,42 +1,37 @@
-# GB-P07 — latent ambient-RNA contamination (CXCL10 eQTL)
+# GeneBench-Pro GB-P07 — latent ambient contamination
 
-A runnable demonstration of sc-referee reviewing a *compiled* analysis: a donor-level eQTL for
-`CXCL10 ~ genotype`, on the public **GeneBench-Pro GB-P07** benchmark. sc-referee independently flags that
-the ratified ambient-RNA contamination basis is absent from the submitted fitted design.
-
-## Data (not redistributed)
-
-The benchmark's released bytes are **not** committed to this repository (see `ATTRIBUTION.md`). Supply your
-own copy of `GB-P07-data.zip` and materialize the analysis inputs once, locally:
+**Status:** runnable end-to-end compiler and model-free replay demo.
 
 ```bash
-GBP07_ZIP="/path/to/GB-P07-data.zip" python -c \
-  "from sc_referee.derivations.gbp07_capsule import prepare_gbp07_capsule; prepare_gbp07_capsule('demos/genebench-gbp07')"
+GBP07_ZIP="$HOME/Desktop/genebench_phase1_inputs/GB-P07-data.zip" \
+  PYTHONPATH=src:. .venv/bin/python demos/genebench-gbp07/compile_demo.py
 ```
 
-This writes the compiler inputs into the gitignored `raw_compile_input/` and verifies them against the
-provenance digests recorded in `sc-referee-capsule.yaml`. If the bytes are missing or altered, sc-referee
-abstains honestly rather than auditing the wrong data.
+The script builds `raw_compile_input/` idempotently, uses live Claude structural binding proposals
+when `ANTHROPIC_API_KEY` is present (and a bundled canned proposal otherwise), runs the four-YES
+scientific ceremony, freezes the capsule, and verifies a model-free `MATCH` replay. If the public
+archive is unavailable, it prints a skip message and exits cleanly.
 
-## Review it
+The public bytes are expected by default at
+`~/Desktop/genebench_phase1_inputs/GB-P07-data.zip`; `GBP07_ZIP` overrides that location.
 
-Then review the folder like any other analysis — through the browser or the CLI:
+GB-P07 asks for the per-allele CXCL10 effect in activated monocytes. Claude Science submitted a
+positive estimate while the graded reference is negative. The repository's earliest anchor blamed
+allele orientation; the official walkthrough showed that diagnosis was wrong. The actual failure is
+a latent technical contamination axis derived from ambient RNA.
+
+The public benchmark zip is expected outside the repository:
 
 ```bash
-referee demos/genebench-gbp07
-# or:  referee  ->  Choose analysis folder  ->  demos/genebench-gbp07
+export GBP07_ZIP="$HOME/Desktop/genebench_phase1_inputs/GB-P07-data.zip"
+PYTHONPATH=src:. .venv/bin/python bench/gbp07_anchor.py
 ```
 
-sc-referee reconstructs the eQTL design, asks the scientific premises it needs to evaluate ambient-RNA
-confounding, and reports three findings:
+That anchor exercises an orientation gate and must **not** be presented as proof that Referee caught
+GB-P07's true failure. The empty-droplet adapter and contamination contracts are implemented and
+tested; the remaining gallery gate is a single, runnable folder whose ratified ambient basis reaches
+the final latent-confounding verdict on the real bytes.
 
-- **contamination confound — flagged:** the ratified contamination basis is absent from the fitted design;
-- **allele orientation — needs review:** genotype coding / effect-allele orientation is not established
-  from the supplied inputs;
-- **eQTL design support — clear.**
-
-## Scientific boundary
-
-This is a **structural-containment** result. It establishes only that the confirmed contamination basis is
-absent from the fitted design; it does **not** establish how that omission affected the reported
-coefficient, and it makes no causal claim.
+The compiler finding is deliberately narrow and conditional: it certifies exact basis containment
+under ratified premises. It does not claim that the omission caused the submitted effect or that an
+adjusted fit reproduces a benchmark answer.

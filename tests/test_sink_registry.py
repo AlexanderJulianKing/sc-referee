@@ -46,7 +46,7 @@ def test_version_outside_contract_spec_is_unknown_contract():
 
 def test_resolution_is_case_sensitive_on_symbol():
     # Python/R are case-sensitive: DESEQDATASET is not DeseqDataSet. Wrong case must NOT resolve, or a
-    # distinct uppercase callable could receive the wrong contract (adversarial re-review #7).
+    # distinct uppercase callable could receive the wrong contract (Codex re-review #7).
     from sc_referee.sinks import resolve_sink
     assert resolve_sink("DeseqDataSet") is not None and resolve_sink("FindMarkers") is not None
     assert resolve_sink("deseqdataset") is None and resolve_sink("DESEQDATASET") is None
@@ -54,7 +54,7 @@ def test_resolution_is_case_sensitive_on_symbol():
 
 def test_ports_use_structured_locators_with_positional_fallback():
     # scanpy/scipy are FREE FUNCTIONS, not methods — the response is an argument, never a `receiver`
-    # (adversarial design consult, Q3). rank_genes_groups(adata, 'leiden') binds groupby positionally.
+    # (Codex SinkUse-design consult, Q3). rank_genes_groups(adata, 'leiden') binds groupby positionally.
     from sc_referee.sinks import resolve_sink
     c = resolve_sink("rank_genes_groups", module="scanpy.tl")
     grouping = next(p for p in c.inputs if p.role == "grouping")
@@ -67,7 +67,7 @@ def test_ports_use_structured_locators_with_positional_fallback():
 
 def test_seurat_findmarkers_grouping_is_named_only_no_positional_guess():
     # R has no Python AST binder — a positional group convention (ident.1 vs group.by vs cells.1 differ
-    # in meaning) must not be guessed. Bind the named arg only. (adversarial review Q3.)
+    # in meaning) must not be guessed. Bind the named arg only. (Codex Q3.)
     from sc_referee.sinks import resolve_sink
     c = resolve_sink("FindMarkers", module="Seurat")
     grouping = next(p for p in c.inputs if p.role == "grouping")
@@ -77,7 +77,7 @@ def test_seurat_findmarkers_grouping_is_named_only_no_positional_guess():
 def test_resolve_sink_status_reports_the_reason():
     from sc_referee.sinks import resolve_sink_status
     # a PINNED contract with no version supplied is version_unknown, NOT exact — an unconfirmed version
-    # must never be laundered into blocker-eligibility (adversarial review #5).
+    # must never be laundered into blocker-eligibility (Codex review #5).
     contract, status = resolve_sink_status("rank_genes_groups", module="scanpy.tl")
     assert contract is not None and status == "version_unknown"
     # a contract with no version pin has nothing to confirm -> exact
@@ -88,7 +88,7 @@ def test_resolve_sink_status_reports_the_reason():
     assert c2 is None and s2 == "version_mismatch"        # symbol known, version outside spec
     c3, s3 = resolve_sink_status("ttest_ind", module="scipy.stats", version="1.11")
     assert c3 is not None and s3 == "exact"               # version supplied and compatible
-    # a supplied-but-UNPARSEABLE version cannot be confirmed -> version_unknown, never exact (adversarial review #7)
+    # a supplied-but-UNPARSEABLE version cannot be confirmed -> version_unknown, never exact (Codex #7)
     c4, s4 = resolve_sink_status("ttest_ind", module="scipy.stats", version="not-a-version")
     assert s4 == "version_unknown"
 

@@ -7,9 +7,10 @@ import numpy as np
 import pandas as pd
 import pytest
 from statsmodels.stats.multitest import multipletests
+from types import SimpleNamespace
 
 from sc_referee import statuses as S
-from sc_referee.checks.multiple_testing import evaluate_multiple_testing
+from sc_referee.checks.multiple_testing import MultipleTestingCheck, evaluate_multiple_testing
 from sc_referee.design import MultiplicityContract
 from tests.factories import make_design
 
@@ -119,10 +120,68 @@ def test_no_raw_p_values_means_we_cannot_recompute():
     assert S.human_state(f) == "not_checked"
 
 
+@pytest.mark.parametrize("invalid", [np.nan, np.inf, -np.inf, -0.01, 1.01])
+def test_invalid_raw_p_value_never_certifies_a_partial_family(invalid):
+    rep = pd.DataFrame({
+        "feature_id": ["bad", "null"],
+        "pvalue": [invalid, 0.5],
+        "padj": [0.001, 0.5],
+        "effect": [1.0, 0.0],
+    })
+
+    finding = evaluate_multiple_testing(
+        rep, make_design(multiplicity_contract=_bh_contract())
+    )
+
+    assert (finding.status, finding.coverage, S.human_state(finding)) == (
+        S.NEEDS_EVIDENCE, S.NOT_RUN, S.NOT_CHECKED,
+    )
+    assert finding.metrics["invalid_raw_p_values"] == 1
+    assert finding.status != S.PASS
+
+
+@pytest.mark.parametrize("invalid", [np.nan, np.inf, -0.01, 1.01])
+def test_invalid_adjusted_p_value_never_falls_back_to_raw_p(invalid):
+    rep = pd.DataFrame({
+        "feature_id": ["bad", "null"],
+        "pvalue": [0.001, 0.5],
+        "padj": [invalid, 0.5],
+        "effect": [1.0, 0.0],
+    })
+
+    finding = evaluate_multiple_testing(
+        rep, make_design(multiplicity_contract=_bh_contract())
+    )
+
+    assert finding.status == S.NEEDS_EVIDENCE
+    assert finding.coverage == S.NOT_RUN
+    assert finding.metrics["invalid_adjusted_p_values"] == 1
+
+
 def test_missing_report_is_not_checked_without_changing_shipped_status():
     finding = evaluate_multiple_testing(None, make_design())
     assert (finding.status, finding.coverage, S.human_state(finding)) == (
         S.NEEDS_EVIDENCE, S.NOT_RUN, "not_checked")
+
+
+def test_missing_report_is_an_explicit_coverage_gap_not_inapplicable():
+    check = MultipleTestingCheck()
+    design = make_design(multiplicity_contract=_bh_contract())
+    bundle = SimpleNamespace(reported_results=None)
+
+    assert check.applies_to(design, bundle) is True
+    reason = check.cannot_evaluate(design, bundle)
+    assert "no reported results table" in reason
+    assert "not a clean result" in reason
+
+
+def test_non_multiplicity_analysis_remains_inapplicable_without_a_report():
+    check = MultipleTestingCheck()
+    design = make_design(analysis_type="marker_detection")
+    bundle = SimpleNamespace(reported_results=None)
+
+    assert check.applies_to(design, bundle) is False
+    assert check.cannot_evaluate(design, bundle) is None
 
 
 def test_adjusted_values_below_raw_p_are_not_universally_impossible():

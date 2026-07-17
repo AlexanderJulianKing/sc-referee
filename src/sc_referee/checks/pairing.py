@@ -1,6 +1,6 @@
 """pairing — is the pairing structure of a condition contrast sound?
 
-Increment 1 (diagnostic; never blocks). A adversarial boundary consult established that none of the arithmetic
+Increment 1 (diagnostic; never blocks). A Codex boundary consult established that none of the arithmetic
 patterns available now is a sound BLOCKER: a few unmatched pairs do not invalidate the matched ones;
 duplicated aggregate keys need the actual report-bound one-to-one pairing (not yet bound); zero complete
 pairs in a PAIRED model is a rank deficiency the `confounding` check already owns. So this check does the
@@ -51,7 +51,7 @@ class _PairSpanResult:
 def _duplicated_pairing(design: Design, bundle):
     """Proof that complete (pairing level, arm) groups map to at most one aggregated sample, or None
     when it cannot be assessed. Sound only under the ratified aggregation_key + pairing_unit
-    contract (adversarial review pairing consult): the pairing must be at the sample level (pairing_unit ⊆
+    contract (Codex pairing consult): the pairing must be at the sample level (pairing_unit ⊆
     aggregation_key) and the contrast must be IN the key (so arms aren't merged — the pseudobulk merge
     blocker's job). If a level that is present in BOTH arms has an arm with >1 distinct aggregated sample,
     its one-to-one matching is ambiguous (which of donor D1's two control samples pairs with its stim?).
@@ -246,16 +246,19 @@ def evaluate_pairing(design: Design, bundle, reported=None) -> Finding:
 
 class PairingCheck:
     """Assesses the pairing structure of a condition contrast: omitted pairing (paired-capable data, an
-    unpaired model) and partial matching. Never blocks in increment 1 (adversarial boundary consult)."""
+    unpaired model) and partial matching. Never blocks in increment 1 (Codex boundary consult)."""
 
     id = CHECK_ID
-    analysis_types = ("condition_contrast_DE",)
+    # Pair membership is a property of the sample design, not the measured outcome.  This applies
+    # equally to a within-donor differential-abundance contrast; it makes no claim that the analyst's
+    # abundance model itself is adequate.
+    analysis_types = ("condition_contrast_DE", "differential_abundance")
     audit_dimensions = ("unit_of_independence", "estimand")
     proof_basis = "independent recompute"
     contract_fields = ("condition", "reference", "test", "replicate_unit", "pairing_unit",
                        "pairing_estimand", "pairing_mechanics", "aggregation_key", "subset")
     # BLOCKER-entitled: a ratified aggregation_key that makes the confirmed 1:1 pairing ambiguous earns it
-    # (adversarial review pairing consult, case 2). Omitted/partial pairing stay diagnostic.
+    # (Codex pairing consult, case 2). Omitted/partial pairing stay diagnostic.
     max_status = S.BLOCKER
 
     def applies_to(self, design: Design, bundle) -> bool:

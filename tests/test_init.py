@@ -239,7 +239,7 @@ def test_nothing_blocks_before_a_human_confirms(tmp_path):
 
     before = run_audit(tmp_path, cfg)
     assert before.worst_status() == "needs_evidence"
-    assert before.ci_fails() is False
+    assert before.ci_fails() is True  # no scientific blocker, but unconfirmed cannot certify
 
     confirm_config(cfg)
     after = run_audit(tmp_path, cfg)

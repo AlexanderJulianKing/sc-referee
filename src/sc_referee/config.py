@@ -177,6 +177,12 @@ def load_designs(path) -> list:
     for c in raw.get("contrasts", []):
         is_eqtl = raw["analysis_type"] == "eqtl"
         replicate_unit = _as_list(c.get("replicate_unit")) or top_replicate
+        if (raw.get("confirmed_by_human") is True
+                and raw["analysis_type"] != "other" and not replicate_unit):
+            raise DesignError(
+                f"{path}: confirmed {raw['analysis_type']} contrast {c.get('name')!r} "
+                "must declare a non-empty replicate_unit in the design or contrast"
+            )
         test = c.get("test")
         frequency_interval = c.get("effect_allele_frequency_interval")
         if frequency_interval is not None:

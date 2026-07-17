@@ -155,7 +155,7 @@ def test_plain_external_value_write_to_obsm_stays_predefined():
     assert groupby_provenance([src])[0].origin == "predefined_within_program"
 
 
-# --- opacity must be a FULL symmetric taint (adversarial review of #47): a monotonic may-set so branch
+# --- opacity must be a FULL symmetric taint (Codex review of #47): a monotonic may-set so branch
 # order can't silently clear, and propagation through obs relabels and local variables like data does.
 
 def test_opaque_in_one_branch_is_unresolved_regardless_of_order():
@@ -208,7 +208,7 @@ def test_opacity_propagates_through_local_variable():
 
 
 def test_annotated_assignment_taints():
-    """adversarial-review finding 7: `labels: np.ndarray = discover(X)` (AnnAssign) must not lose taint."""
+    """Codex finding 7: `labels: np.ndarray = discover(X)` (AnnAssign) must not lose taint."""
     from sc_referee.provenance import groupby_provenance
     src = ("import scanpy as sc\n"
            "labels: 'np.ndarray' = discover_subpops(adata.obsm['X_pca'])\n"
@@ -218,7 +218,7 @@ def test_annotated_assignment_taints():
 
 
 def test_tuple_unpacking_taints():
-    """adversarial-review finding 7: `labels, centers = kmeans(X)` must taint labels."""
+    """Codex finding 7: `labels, centers = kmeans(X)` must taint labels."""
     from sc_referee.provenance import groupby_provenance
     src = ("import scanpy as sc\n"
            "labels, centers = kmeans_with_centers(adata.X)\n"
@@ -228,7 +228,7 @@ def test_tuple_unpacking_taints():
 
 
 def test_notebook_magic_is_stripped_before_parse():
-    """adversarial-review finding 3: a notebook magic (%matplotlib) must not make the whole cell unparseable and
+    """Codex finding 3: a notebook magic (%matplotlib) must not make the whole cell unparseable and
     silently drop the marker test."""
     import json
     from sc_referee.provenance import groupby_provenance
@@ -241,7 +241,7 @@ def test_notebook_magic_is_stripped_before_parse():
 
 
 def test_unparseable_source_with_marker_token_surfaces_unresolved():
-    """adversarial-review finding 3: if a source containing a marker call cannot be parsed at all, do not let it
+    """Codex finding 3: if a source containing a marker call cannot be parsed at all, do not let it
     vanish — surface an unresolved marker test so the gate escalates."""
     from sc_referee.provenance import groupby_provenance
     src = "this is not (valid python at all;;; sc.tl.rank_genes_groups(adata, groupby='x')\n"
@@ -250,7 +250,7 @@ def test_unparseable_source_with_marker_token_surfaces_unresolved():
 
 
 def test_clustering_on_spatial_coords_is_not_data_derived():
-    """the adversarial review's false-accuse case: clustering on EXTERNAL spatial coordinates (obsm['spatial'], not an
+    """Codex's false-accuse case: clustering on EXTERNAL spatial coordinates (obsm['spatial'], not an
     expression embedding) then testing genes is not circular w.r.t. the genes — the regions are
     predefined relative to the tested features. Only X_-prefixed embeddings (X_pca/X_umap/...) and
     .X/.layers/.raw count as expression. (spec §4.1/§4.3)"""
@@ -263,7 +263,7 @@ def test_clustering_on_spatial_coords_is_not_data_derived():
 
 
 def test_later_overwrite_does_not_taint_an_earlier_read():
-    """adversarial-review finding 6: flow-sensitivity. `B = A` copies A's value AT THAT POINT (predefined); a LATER
+    """Codex finding 6: flow-sensitivity. `B = A` copies A's value AT THAT POINT (predefined); a LATER
     overwrite `A = cluster(X)` must not retroactively taint B."""
     from sc_referee.provenance import groupby_provenance
     src = ("import scanpy as sc\n"
@@ -274,7 +274,7 @@ def test_later_overwrite_does_not_taint_an_earlier_read():
 
 
 def test_obsm_written_from_expression_is_tracked():
-    """adversarial-review finding 4a: an obsm key VISIBLY written from expression is data-derived even without an
+    """Codex finding 4a: an obsm key VISIBLY written from expression is data-derived even without an
     X_ name — track obsm writes, don't judge by the key name alone."""
     from sc_referee.provenance import groupby_provenance
     src = ("import scanpy as sc\n"
@@ -286,7 +286,7 @@ def test_obsm_written_from_expression_is_tracked():
 
 
 def test_implicit_clustering_on_external_adjacency_is_not_data_derived():
-    """adversarial-review finding 4b: leiden on an EXTERNAL adjacency graph is not derived from the expression, so
+    """Codex finding 4b: leiden on an EXTERNAL adjacency graph is not derived from the expression, so
     its output is not data-derived. Implicit clustering must be gated on its operative input."""
     from sc_referee.provenance import groupby_provenance
     src = ("import scanpy as sc\n"
@@ -297,7 +297,7 @@ def test_implicit_clustering_on_external_adjacency_is_not_data_derived():
 
 
 def test_dot_x_on_non_anndata_receiver_is_not_expression():
-    """adversarial-review finding 9: `metadata.X` where metadata is a DataFrame is not the expression matrix. Only
+    """Codex finding 9: `metadata.X` where metadata is a DataFrame is not the expression matrix. Only
     a known AnnData receiver's .X/.obsm/.layers count."""
     from sc_referee.provenance import groupby_provenance
     src = ("import scanpy as sc\nimport pandas as pd\n"
@@ -309,7 +309,7 @@ def test_dot_x_on_non_anndata_receiver_is_not_expression():
 
 
 def test_conditional_data_derived_branch_is_not_silently_clean():
-    """adversarial re-review #1: a column assigned data-derived in ONE branch must not read as predefined
+    """Codex re-review #1: a column assigned data-derived in ONE branch must not read as predefined
     just because the other (predefined) branch is written last. Escalate (unresolved/data), don't clear."""
     from sc_referee.provenance import groupby_provenance
     src = ("import scanpy as sc\n"
@@ -322,7 +322,7 @@ def test_conditional_data_derived_branch_is_not_silently_clean():
 
 
 def test_sc_read_result_is_recognized_as_anndata():
-    """adversarial re-review #2: `obj = sc.read(...)` binds an AnnData, so obj.X is the expression matrix."""
+    """Codex re-review #2: `obj = sc.read(...)` binds an AnnData, so obj.X is the expression matrix."""
     from sc_referee.provenance import groupby_provenance
     src = ("import scanpy as sc\n"
            "obj = sc.read('input.h5ad')\n"
@@ -332,7 +332,7 @@ def test_sc_read_result_is_recognized_as_anndata():
 
 
 def test_obsm_key_overwritten_by_external_is_no_longer_data():
-    """adversarial re-review #6: a data-derived obsm key overwritten by an external value must lose taint."""
+    """Codex re-review #6: a data-derived obsm key overwritten by an external value must lose taint."""
     from sc_referee.provenance import groupby_provenance
     src = ("import scanpy as sc\n"
            "adata.obsm['emb'] = pca(adata.X)\n"

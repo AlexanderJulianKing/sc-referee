@@ -28,7 +28,7 @@ def test_block_entitlement_depends_on_the_verifier_and_the_engine():
         INDEPENDENTLY — neither uses the DE recompute engine;
       - experimental_unit blocks only on the pydeseq2 recompute, never on `simple`;
       - count_model never blocks (a wrong test model is `major`).
-    (multiple_testing=BLOCKER corrects a mislabel adversarial review caught: it DOES earn a blocker for a
+    (multiple_testing=BLOCKER corrects a mislabel Codex caught: it DOES earn a blocker for a
     confirmed uncorrected analysis whose claims don't survive BH.)"""
     from sc_referee.registry import build_checks
 
@@ -46,7 +46,7 @@ def test_block_entitlement_depends_on_the_verifier_and_the_engine():
 
 
 def test_multiple_testing_blocker_is_not_clamped_away(tmp_path):
-    """adversarial Phase-2 review. multiple_testing earns a blocker (confirmed, uncorrected p-values, ≤10%
+    """Codex Phase-2 review. multiple_testing earns a blocker (confirmed, uncorrected p-values, ≤10%
     survive BH). Labelling it max_status=major would have CLAMPED that real blocker to major — a
     SILENCED true positive, the false-negative direction. Pin that the entitlement is `blocker` and
     the spine does not clamp it."""

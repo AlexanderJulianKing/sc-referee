@@ -282,6 +282,41 @@ def test_read_anndata_honors_declared_layer(tmp_path):
     assert read_anndata(tmp_path / "x.h5ad", layer="layers/raw_counts").measure.kind == "counts"  # honored
 
 
+def test_read_anndata_preserves_sparse_raw_counts(tmp_path):
+    from scipy import sparse
+    from sc_referee.adapters.anndata_adapter import read_anndata
+
+    a = ad.AnnData(
+        X=sparse.csr_matrix(np.array([[1, 0, 2], [0, 3, 0]], dtype=np.int32)),
+        obs=pd.DataFrame(index=["a", "b"]),
+        var=pd.DataFrame(index=["g0", "g1", "g2"]),
+    )
+    a.write_h5ad(tmp_path / "sparse.h5ad")
+
+    bundle = read_anndata(tmp_path / "sparse.h5ad")
+    assert sparse.isspmatrix_csr(bundle.measure.counts)
+    np.testing.assert_array_equal(bundle.measure.counts.toarray(), a.X.toarray())
+
+
+def test_assemble_slices_and_stacks_sparse_shards_without_densifying(tmp_path):
+    from scipy import sparse
+
+    for name, cells, genes in [
+        ("M1", ["a", "b"], ["g2", "g0", "g1"]),
+        ("M2", ["a"], ["g1", "g2", "g0"]),
+    ]:
+        matrix = sparse.csr_matrix(np.arange(1, len(cells) * 3 + 1).reshape(len(cells), 3))
+        ad.AnnData(X=matrix, obs=pd.DataFrame(index=cells),
+                   var=pd.DataFrame(index=genes)).write_h5ad(tmp_path / f"{name}.h5ad")
+    bundle = assemble(_man(), tmp_path)
+    assert sparse.isspmatrix_csr(bundle.measure.counts)
+    assert bundle.measure.feature_index == ["g2", "g0", "g1"]
+    np.testing.assert_array_equal(
+        bundle.measure.counts.toarray(),
+        np.array([[1, 2, 3], [4, 5, 6], [2, 3, 1]]),
+    )
+
+
 def test_csv_shard_obs_joins_on_the_declared_key(tmp_path):
     df = pd.DataFrame(np.arange(4).reshape(2, 2) + 1, index=["a", "b"], columns=["g0", "g1"])
     df.index.name = "cell_id"

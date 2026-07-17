@@ -16,9 +16,9 @@
     "reason": "The generic unaudited marker is replaced by a policy-specific unaudited result; trajectory remains needs-evidence-capped when evidence exists."
   },
   "enrichment_missing_contract": {
-    "old": [["coverage", "not_audited"]],
-    "new": [["inference.enrichment_universe", "not_audited"]],
-    "reason": "The generic unaudited marker is replaced by the exact joint-ORA policy's explicit missing-contract abstention."
+    "old": [["confounding", "blocker"], ["multiple_testing", "needs_evidence"], ["pairing", "needs_evidence"]],
+    "new": [["confounding", "blocker"], ["multiple_testing", "needs_evidence"], ["pairing", "needs_evidence"], ["inference.enrichment_universe", "not_audited"]],
+    "reason": "Differential abundance now receives the outcome-independent contrast checks (estimability, multiplicity, and pairing), while the exact joint-ORA policy still abstains without its ratified contract."
   },
   "coordinate_missing_contract": {
     "old": [["coverage", "not_audited"]],

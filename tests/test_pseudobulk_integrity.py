@@ -1,7 +1,7 @@
 """pseudobulk_integrity (spine step 2, increment 1): structural invariants over the pseudobulk the DE
 count-model sink consumes. Increment 1 is needs_evidence-only — the blocker-capable invariants each need
 machinery SinkUse v1 defers (reaching-scale for the assay contract; a ratified actual_aggregation_key for
-the merge), per the adversarial design consult. It does the two SOUND things it can: use SinkUse's structural
+the merge), per the Codex design consult. It does the two SOUND things it can: use SinkUse's structural
 binding to flag a count model that reads a normalized `.X`, and flag a missing value in the aggregation
 key. It must NOT flag a count model reading a RAW LAYER while `.X` is normalized (the false-accuse guard).
 """
@@ -158,7 +158,7 @@ def test_merge_is_capped_to_needs_evidence_when_not_confirmed():
 
 
 def test_missing_ratified_key_column_does_not_block(monkeypatch=None):
-    # FALSE-ACCUSE guard (adversarial keystone review #1): a correct donor x arm aggregation whose derived
+    # FALSE-ACCUSE guard (Codex keystone review #1): a correct donor x arm aggregation whose derived
     # `arm_alias` column is not in .obs must NOT be reduced to donor-only and blocked.
     from sc_referee.checks.pseudobulk_integrity import PseudobulkIntegrityCheck
     d = make_design(unit_of_test="sample", sample_unit=["donor_id"],
@@ -170,7 +170,7 @@ def test_missing_ratified_key_column_does_not_block(monkeypatch=None):
 
 
 def test_distinct_levels_under_string_coercion_are_not_conflated():
-    # FALSE-ACCUSE guard (adversarial keystone review #2): int 1 and str "1" are DISTINCT levels; a
+    # FALSE-ACCUSE guard (Codex keystone review #2): int 1 and str "1" are DISTINCT levels; a
     # between-subject design (D1 in level 1, D2 in level "1") must not be read as arm-merging.
     from sc_referee.checks.pseudobulk_integrity import PseudobulkIntegrityCheck
     obs = pd.DataFrame({"donor_id": ["D1", "D1", "D2", "D2"], "condition": [1, 1, "1", "1"]},

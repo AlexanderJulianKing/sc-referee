@@ -199,7 +199,7 @@ class Design:
     # recompute key). When confirmed high-confidence it lets a check BLOCK — pseudobulk_integrity when the
     # key merges the arms, pairing when it makes a one-to-one match ambiguous. None = unconfirmed (the
     # checks stay diagnostic). Defining it as the FINAL key is what keeps a valid two-stage collapse from
-    # a false blocker (adversarial pairing review); catalog §3.3.
+    # a false blocker (Codex pairing review); catalog §3.3.
     aggregation_key: Optional[list] = None
     # The pairing estimand says which contrast is targeted; it does NOT specify one-to-one mechanics.
     # A repeated-measures model may also target a within-pair estimand.
@@ -355,7 +355,7 @@ def replicate_recorded(design: Design, observations) -> bool:
 
 # patsy / R wrappers around a bare column name. `~ C(run) + condition` adjusts for `run`;
 # failing to unwrap it makes the confounding check report `run` as OMITTED and emit a false
-# `major` on a correctly-adjusted model. (adversarial review 2026-07-08.)
+# `major` on a correctly-adjusted model. (Codex review 2026-07-08.)
 _WRAPPER = re.compile(
     r"^(?:C|factor|as\.factor|as_factor|categorical|scale|center|standardize)"
     r"\s*\(\s*([A-Za-z_]\w*)\s*(?:,[^)]*)?\)$"

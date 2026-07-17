@@ -41,7 +41,6 @@ CITATIONS = {
         "Winkler et al. 2014, Nat Protoc 9:1192",
         "Shabalin 2012, Bioinformatics 28:1353",
     ],
-    "eqtl_design_support": ["Shabalin 2012, Bioinformatics 28:1353"],
     "hic_loop_strength": [
         "Venev et al. 2024, PLoS Comput Biol 20:e1012067",
         "Imakaev et al. 2012, Nat Methods 9:999",

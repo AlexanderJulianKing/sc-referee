@@ -11,7 +11,7 @@ from rich.console import Console
 
 from sc_referee import statuses as S
 from sc_referee.audit import AuditResult
-from sc_referee.report import _needs_input, render_tty, to_html, to_json, to_md
+from sc_referee.report import render_tty, to_html, to_json, to_md
 from tests.finding_cases import LITERAL_EMITTER_CLASSIFICATION, finding_cases
 
 
@@ -38,34 +38,20 @@ def test_real_emitter_tuple_and_semantic_projection(case):
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda case: case.emitter_id)
-def test_every_channel_represents_the_state_in_its_own_vocabulary(case):
-    # Every channel must project the SAME underlying human_state, but each speaks its own
-    # contract's vocabulary — the raw token for machines, canonical engine words for the
-    # terminal/Markdown, and reviewer-facing language for the browser. The HTML label is
-    # deliberately NOT the uppercased state token.
+def test_every_renderer_uses_the_same_human_state(case):
     finding = case.scenario()
     result = AuditResult(findings=[finding])
     state = case.expected_human_state
+    label = {S.N_A: "N/A"}.get(state, state.replace("_", " ").upper())
 
-    # JSON: the raw machine state, verbatim — the stable programmatic contract.
     payload = json.loads(to_json(result))
     assert payload["findings"][0]["human_state"] == state
 
-    # Terminal + Markdown: the canonical engine vocabulary (their existing contracts, unchanged).
-    engine_label = {S.N_A: "N/A"}.get(state, state.replace("_", " ").upper())
     console = Console(record=True, width=120, color_system=None)
     render_tty(result, console)
-    assert engine_label in console.export_text()
+    assert label in console.export_text()
     assert f"`{state}`" in to_md(result)
-
-    # HTML: the exact reviewer-facing label derived from the finding — an actionable not-checked
-    # finding reads NEEDS REVIEW, a benign one reads NOT EVALUATED (never the raw "NOT CHECKED").
-    if state == S.NOT_CHECKED:
-        html_label = "NEEDS REVIEW" if _needs_input(finding) else "NOT EVALUATED"
-    else:
-        html_label = {S.CLEAR: "CLEAR", S.FLAGGED: "FLAGGED", S.N_A: "N/A"}.get(
-            state, state.replace("_", " ").upper())
-    assert html_label in to_html(result)
+    assert label in to_html(result)
 
 
 def test_refuted_good_explicit_abstentions_remain_not_checked():

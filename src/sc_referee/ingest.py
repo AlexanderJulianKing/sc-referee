@@ -61,7 +61,11 @@ def _load_reported(path: Path, *, error_type=IngestError, label=None):
         return None
     out = pd.DataFrame({"feature_id": df[binding["gene"]].astype(str)})
     out["pvalue"] = df[binding["pval"]] if binding["pval"] else pd.NA
-    out["padj"] = df[binding["padj"]] if binding["padj"] else pd.NA
+    # Preserve absence as absence.  An all-NA synthetic padj column is indistinguishable from a
+    # declared but corrupt adjustment and prevents multiple_testing from safely deciding whether
+    # raw p-values are the analyst's actual calls.
+    if binding["padj"]:
+        out["padj"] = df[binding["padj"]]
     out["effect"] = df[binding["effect"]] if binding["effect"] else pd.NA
     return out
 

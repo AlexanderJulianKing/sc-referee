@@ -8,7 +8,7 @@ InputPorts onto the actual arguments and records HOW each was bound. Checks then
 Callee identity is a PROVED fact, not a name match. A call resolves to a library sink only through the
 per-source import table (`import scanpy as sx` still resolves; a user's own `def ttest_ind` does NOT bind
 to scipy). This is what keeps a false sink match from ever driving a false accusation, and stops an
-aliased real sink from silently disappearing. (adversarial review #1/#2.)
+aliased real sink from silently disappearing. (Codex review #1/#2.)
 
 v1 is deliberately STRUCTURAL. It does NOT infer assay scale, raw-count status, or experimental unit
 from a bare call — `DeseqDataSet(counts=x)` is not proof `x` is raw counts. Those facets are computed
@@ -17,7 +17,7 @@ port's ORIGIN, reused from the already-approved provenance taint (via the shared
 
 Safety over coverage: a `**kwargs`/`*args` splat that could hide an argument makes a port `unsupported`,
 never a false `missing` (absence unproven). A step that fails to parse is surfaced as a DIAGNOSTIC, not
-silently dropped, so a downstream check can force review instead of a false clean. (adversarial review #3/#6.)
+silently dropped, so a downstream check can force review instead of a false clean. (Codex review #3/#6.)
 
 Known gaps, all fail-safe (they under-cover or over-abstain; they never bind a wrong contract):
  - Only Python-parseable sources are bound. A Seurat `FindMarkers` in an `.R` file yields no SinkUse
@@ -28,7 +28,7 @@ Known gaps, all fail-safe (they under-cover or over-abstain; they never bind a w
    channels — `exec`/`eval` of a string, aliased `globals()`, `sys.modules` swaps, `importlib` — is not
    AST-resolvable. Such obfuscation does not occur in single-cell analysis code and is outside the
    product's threat model; the resolver stays sound (abstains) rather than chasing it (frozen after
-   adversarial re-review rounds 1-5).
+   Codex re-review rounds 1-5).
 """
 from __future__ import annotations
 
@@ -46,7 +46,7 @@ from sc_referee.source_ast import (
     terminal_symbol,
 )
 
-# provenance origin -> the ValueType.origins vocabulary (adversarial review Q2: reuse the approved taint fact only).
+# provenance origin -> the ValueType.origins vocabulary (Codex Q2: reuse the approved taint fact only).
 _ORIGIN_MAP = {"data_derived": "primary_data", "predefined_within_program": "metadata",
                "unresolved": "unknown"}
 
@@ -125,7 +125,7 @@ def _referenced_sink_symbol(site, env, known):
     """The registered sink symbol a non-binding call references, or None. Its terminal name may BE a sink
     symbol, or its bare name may be a from-import alias whose ORIGINAL symbol is a sink — including an
     ambiguous or RELATIVE import (`welch` <- `ttest_ind`; `test` <- a relative `ttest_ind`). Reporting
-    the underlying sink symbol keeps an abstained alias from silently vanishing (adversarial re-review #1/#6)."""
+    the underlying sink symbol keeps an abstained alias from silently vanishing (Codex re-review #1/#6)."""
     if site.symbol in known:
         return site.symbol
     f = site.call.func
@@ -142,7 +142,7 @@ def _referenced_sink_symbol(site, env, known):
 def _indirect_candidates(parsed, known) -> list:
     """Sink references that never appear as a direct resolvable call: a sink function taken as a VALUE
     (`test = sc.tl.rank_genes_groups`) or fetched via `getattr(x, "ttest_ind")`. Abstain + diagnose so
-    the reference does not silently vanish (adversarial re-review #5). Emitting a review candidate — never a
+    the reference does not silently vanish (Codex re-review #5). Emitting a review candidate — never a
     binding — for these keeps the never-false-accuse guarantee."""
     out = []
     for ps in parsed:
@@ -202,7 +202,7 @@ def bind_sinks(sources) -> SinkBindResult:
             contract, status = resolve_sink_status(canon[1], canon[0])
         if contract is None:
             # a sink-shaped call that produced no SinkUse (unresolved / unknown module / version_mismatch
-            # / ambiguous / monkey-patched) must be surfaced, not dropped (adversarial re-review #1/#6).
+            # / ambiguous / monkey-patched) must be surfaced, not dropped (Codex re-review #1/#6).
             ref = _referenced_sink_symbol(site, env, known)
             if ref is not None:
                 diagnostics.append(_candidate(site.source_index, ref, site.lineno,
@@ -212,7 +212,7 @@ def bind_sinks(sources) -> SinkBindResult:
         for port in contract.inputs:
             pstatus, expr, locator, literal = _bind_port(port, site.call)
             vt = ValueType()
-            if port.role == "grouping":               # reuse the approved taint origin (adversarial review Q2)
+            if port.role == "grouping":               # reuse the approved taint origin (Codex Q2)
                 origin = _ORIGIN_MAP.get(origin_by_cid.get(site.id, "unresolved"), "unknown")
                 vt = ValueType(kind="labels", unit="cell", origins=frozenset({origin}))
             bound[port.role] = BoundPort(

@@ -297,7 +297,7 @@ def _names_column(claim: str, col: str) -> bool:
 def attribute_claims(inv: "BundleInventory") -> list:
     """Backward-attribute each numeric report claim to the marker test that produced it, and attach
     that test's provenance verdict to the sentence — without executing anything. Attribution is
-    deliberately conservative (adversarial review: ambiguous producers must abstain, not be force-attributed):
+    deliberately conservative (Codex: ambiguous producers must abstain, not be force-attributed):
     a claim is flagged `needs_evidence` only when it uniquely resolves to a single data-derived marker
     test — either it names that test's grouping column (whole-word), or the bundle has EXACTLY ONE
     marker test (counting unresolved ones) and it is data-derived. Any other marker inference is

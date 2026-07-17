@@ -15,7 +15,7 @@ from rich.console import Console
 from sc_referee.audit import run_audit, run_audit_with_inputs
 from sc_referee.report import render_tty, to_json, to_md
 
-app = typer.Typer(add_completion=False, help="The independent, deterministic referee for single-cell analyses.")
+app = typer.Typer(add_completion=False, help="The bioinformatics reviewer you can leave behind.")
 console = Console()
 
 
@@ -100,12 +100,21 @@ def compile_folder(
         [], "--answer", help="Scientific ceremony decision, e.g. measurement=yes (repeat four times)."
     ),
     yes: bool = typer.Option(False, "--yes", help="Answer yes to all four scientific confirmations."),
+    confirm_bindings: Optional[str] = typer.Option(
+        None,
+        "--confirm-bindings",
+        help="Confirm the exact proposal ID printed by a prior review-only compile run.",
+    ),
 ):
     """Compile a raw folder through Claude bindings, human ceremony, and model-free replay."""
     import os
     import sys
 
-    from sc_referee.compiler.pipeline import run_compile_audit
+    from sc_referee.compiler.pipeline import (
+        record_organizational_confirmation,
+        render_organizational_review,
+        run_compile_audit,
+    )
     from sc_referee.csp_contracts.contamination_condensed_ceremony import (
         CondensedAnswer,
         CondensedGroup,
@@ -153,8 +162,34 @@ def compile_folder(
                 console.print(f"[bold red]invalid answer[/] {raw!r}; use yes, no, or not_sure")
                 raise typer.Exit(code=2)
 
+    def organizational_reviewer(proposal):
+        console.print(render_organizational_review(proposal), markup=False)
+        accepted = False
+        if confirm_bindings is not None:
+            if confirm_bindings != proposal.proposal_id:
+                raise ValueError(
+                    "--confirm-bindings does not match the current proposal ID; evidence or "
+                    "inventory may have changed"
+                )
+            accepted = True
+        elif sys.stdin.isatty():
+            accepted = typer.confirm(
+                "Accept these exact structural bindings as the organizational mapping?",
+                default=False,
+            )
+        if not accepted:
+            return None
+        return record_organizational_confirmation(
+            proposal,
+            actor=os.environ.get("USER", "interactive human"),
+        )
+
     try:
-        result = run_compile_audit(folder, answers=decisions)
+        result = run_compile_audit(
+            folder,
+            answers=decisions,
+            organizational_reviewer=organizational_reviewer,
+        )
     except ValueError as exc:
         if not decisions and not os.environ.get("ANTHROPIC_API_KEY") and "four ceremony answers" in str(exc):
             console.print(

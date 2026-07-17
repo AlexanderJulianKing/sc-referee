@@ -95,3 +95,20 @@ def test_analyze_inventories_and_slices_structured_claims_but_remains_abstain():
         snapshot.claim_slices["claim:1"].possible_producers
     )
     assert snapshot.outcome == "ABSTAIN"
+
+
+def test_public_claim_manifest_alias_is_inventoried_and_unsupported_objects_are_rejected():
+    from sc_referee.inference.api import AnalysisRequest, ClaimManifest, analyze
+    from sc_referee.inference.claims.inventory import StructuredClaimManifest, StructuredClaimRoot
+
+    root = StructuredClaimRoot(
+        "claim:public", "sha256:report", "table.pvalue", "reported", "sha256:producer",
+        "pvalue", "fact:claim:public",
+    )
+    manifest = ClaimManifest((root,))
+    assert isinstance(manifest, StructuredClaimManifest)
+    snapshot = analyze(AnalysisRequest(("reported = source\n",), claims=manifest))
+    assert [claim.claim_id for claim in snapshot.claims] == ["claim:public"]
+
+    with __import__("pytest").raises(TypeError, match="claims must be"):
+        analyze(AnalysisRequest(("x = 1\n",), claims=object()))

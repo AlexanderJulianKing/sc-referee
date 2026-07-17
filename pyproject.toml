@@ -7,31 +7,30 @@ name = "sc-referee"
 version = "0.0.1"
 description = "An independent, deterministic referee for single-cell analyses — recomputes the statistically correct result instead of opining."
 readme = "README.md"
-requires-python = ">=3.11,<3.12"
-license = { text = "MIT" }
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
 authors = [{ name = "Alexander King" }]
 dependencies = [
-    "anndata==0.12.19",
-    "numpy==2.4.6",
-    "scipy==1.17.1",
-    "pandas==2.3.3",
-    "pyyaml==6.0.3",
-    "typer==0.26.8",
-    "rich==15.0.0",
-    "jsonschema==4.26.0",
-    "statsmodels==0.14.6",
-    "patsy==1.0.2",
-    "h5py==3.16.0",
-    "zarr==3.1.6",
+    "anndata>=0.10",
+    "numpy>=1.24",
+    "scipy>=1.9",
+    "pandas>=2.0",
+    "pyyaml>=6.0",
+    "typer>=0.12",
+    "rich>=13.0",
+    "jsonschema>=4.0",
+    "statsmodels>=0.14",
+    "patsy>=0.5",
 ]
 
 [project.optional-dependencies]
 # The count-path recompute engine (the engine that can BLOCK). Deferred to D2.
-engine = ["pydeseq2==0.5.4", "scanpy==1.11.5"]
+engine = ["pydeseq2>=0.4", "scanpy>=1.10"]
 # Claude proposal step (init). Optional by design: init degrades to a deterministic
 # heuristic when this or ANTHROPIC_API_KEY is absent.
-llm = ["anthropic==0.116.0"]
-dev = ["pytest==9.1.1", "anthropic==0.116.0"]
+llm = ["anthropic>=0.40"]
+data = ["synapseclient>=4.4"]
+dev = ["pytest>=8.0", "anthropic>=0.40"]
 
 [project.scripts]
 sc-referee = "sc_referee.cli:app"

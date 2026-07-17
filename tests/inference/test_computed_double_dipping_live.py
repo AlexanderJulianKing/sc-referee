@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+from pathlib import Path
 from types import SimpleNamespace
 
 import pandas as pd
@@ -8,7 +10,9 @@ import pytest
 from sc_referee import statuses as S
 from sc_referee.inference.double_dipping import (
     DOUBLE_DIPPING_PREMISES,
+    DependencySummaryReceipt,
     compute_double_dipping_evidence,
+    dependency_binding_requirements,
 )
 from sc_referee.inference.live import build_engine_verifiers
 
@@ -33,10 +37,35 @@ def _reported():
     })
 
 
+def _dependency_bindings():
+    root = Path(__file__).parents[1] / "fixtures" / "dependency_receipts"
+    lock_path = root / "lock.json"
+    lock_digest = "sha256:" + hashlib.sha256(lock_path.read_bytes()).hexdigest()
+    versions = {"scanpy": "1.11.0", "sklearn": "1.6.1", "pandas": "2.3.3"}
+    return tuple(
+        DependencySummaryReceipt(
+            module=binding.module,
+            symbol=binding.symbol,
+            version=versions[binding.module.split('.', 1)[0]],
+            package_or_source_digest=lock_digest,
+            summary_digest=binding.summary_digest,
+            resolved_import_origin=(
+                str(root / binding.module.split('.', 1)[0] / "__init__.py")
+            ),
+            source_kind="locked_source_tree",
+            source_root=str(root),
+            evidence_path=str(lock_path),
+            evidence_digest=lock_digest,
+        )
+        for binding in dependency_binding_requirements()
+    )
+
+
 def _compute(source):
     return compute_double_dipping_evidence(
         (source,), _reported(), report_relative_path="results/de.csv",
         data_relative_path="confounding_alias.h5ad",
+        dependency_bindings=_dependency_bindings(),
     )
 
 
@@ -55,6 +84,7 @@ def _run_sources(sources, *, confirmed: bool, reported=None):
         code_signals={"sources": list(sources)},
         reported_results=reported,
         _inference_live_contracts={},
+        _inference_dependency_bindings=_dependency_bindings(),
         _inference_verifier_observation=SimpleNamespace(
             report_artifact_digest="sha256:measured-report",
             report_locator_digest="sha256:measured-locator",
@@ -91,6 +121,53 @@ def test_pbmc_dex_six_premises_are_computed_from_code_and_whole_dag_slices():
         "SelectionReuseDependentUnderNull": "selection_reuse:exact_shared_expression_contract",
         "PinnedReachable": "cfg:unconditional_top_level_call",
     }
+
+
+def test_missing_mismatched_or_shadowed_dependency_receipts_cannot_prove_summaries():
+    missing = compute_double_dipping_evidence(
+        (PBMC_DEX_SOURCE,), _reported(), report_relative_path="results/de.csv",
+        data_relative_path="confounding_alias.h5ad",
+    )
+    assert all(value != "PROVED" for value in missing.relations.values())
+    assert "scientific_dependency_binding_missing_or_mismatched" in missing.unknown_reasons
+
+    bindings = list(_dependency_bindings())
+    scanpy_index = next(i for i, item in enumerate(bindings) if item.module == "scanpy")
+    bindings[scanpy_index] = __import__("dataclasses").replace(
+        bindings[scanpy_index],
+        package_or_source_digest="sha256:" + "0" * 64,
+    )
+    mismatch = compute_double_dipping_evidence(
+        (PBMC_DEX_SOURCE,), _reported(), report_relative_path="results/de.csv",
+        data_relative_path="confounding_alias.h5ad", dependency_bindings=tuple(bindings),
+    )
+    assert mismatch.relations["ClaimMustProducedByTest"] == "UNKNOWN"
+
+    bindings = list(_dependency_bindings())
+    scanpy_index = next(i for i, item in enumerate(bindings) if item.module == "scanpy")
+    bindings[scanpy_index] = __import__("dataclasses").replace(
+        bindings[scanpy_index], resolved_import_origin="/analysis/scanpy.py",
+    )
+    shadowed = compute_double_dipping_evidence(
+        (PBMC_DEX_SOURCE,), _reported(), report_relative_path="results/de.csv",
+        data_relative_path="confounding_alias.h5ad", dependency_bindings=tuple(bindings),
+    )
+    assert shadowed.relations["ClaimMustProducedByTest"] == "UNKNOWN"
+
+
+@pytest.mark.parametrize("intervening,reason", [
+    ("adata = sc.read_h5ad('confounding_alias.h5ad')", "analysis_object_rebound"),
+    ("labels[:] = externally_modified", "possible_selection_label_mutation"),
+    ("opaque_mutator(adata)", "opaque_call_may_mutate_analysis_object"),
+    ("ignored = opaque_mutator(adata)", "opaque_call_may_mutate_analysis_object"),
+])
+def test_intervening_mutation_invalidates_stale_double_dipping_facts(intervening, reason):
+    source = PBMC_DEX_SOURCE.replace(
+        "sc.tl.rank_genes_groups", f"{intervening}\nsc.tl.rank_genes_groups"
+    )
+    evidence = _compute(source)
+    assert reason in evidence.unknown_reasons
+    assert evidence.relations != {premise: "PROVED" for premise in DOUBLE_DIPPING_PREMISES}
 
 
 def test_a_variable_named_adata_does_not_bind_itself_to_the_measured_artifact():
@@ -162,6 +239,7 @@ def test_empty_or_nan_pvalue_columns_do_not_create_an_inferential_claim():
     evidence = compute_double_dipping_evidence(
         (PBMC_DEX_SOURCE,), reported, report_relative_path="results/de.csv",
         data_relative_path="confounding_alias.h5ad",
+        dependency_bindings=_dependency_bindings(),
     )
     finding = _run(PBMC_DEX_SOURCE, confirmed=True, reported=reported)
 
@@ -176,6 +254,7 @@ def test_report_without_exact_feature_ids_cannot_prove_claim_overlap():
     evidence = compute_double_dipping_evidence(
         (PBMC_DEX_SOURCE,), reported, report_relative_path="results/de.csv",
         data_relative_path="confounding_alias.h5ad",
+        dependency_bindings=_dependency_bindings(),
     )
     finding = _run(PBMC_DEX_SOURCE, confirmed=True, reported=reported)
 
@@ -516,7 +595,8 @@ sc.tl.rank_genes_groups(adata, groupby='g')
 """
 
     evidence = compute_double_dipping_evidence(
-        (source,), _reported(), report_relative_path="results/de.csv"
+        (source,), _reported(), report_relative_path="results/de.csv",
+        dependency_bindings=_dependency_bindings(),
     )
 
     assert evidence.relations["GroupingMustProducedBySelection"] == "UNKNOWN"
@@ -543,7 +623,7 @@ def test_pbmc_dex_routes_through_the_shipped_audit_with_measured_report_digests(
                                if item.check_id == "double_dipping")
     assert unconfirmed_finding.status == "needs_evidence"
     assert unconfirmed_finding.metrics["engine_outcome"] == "VIOLATION_WITNESS"
-    assert unconfirmed_finding.metrics["closed_world_complete"] is True
+    assert unconfirmed_finding.metrics["dependency_binding_errors"] == []
 
     config["confirmed_by_human"] = True
     config_path.write_text(yaml.safe_dump(config, sort_keys=False))
@@ -551,5 +631,4 @@ def test_pbmc_dex_routes_through_the_shipped_audit_with_measured_report_digests(
     confirmed_finding = next(item for item in confirmed.findings
                              if item.check_id == "double_dipping")
     assert confirmed_finding.status == "needs_evidence"
-    assert confirmed_finding.metrics["evidence_origin"] == \
-        "parsed_source_and_measured_report"
+    assert confirmed_finding.metrics["engine_outcome"] == "VIOLATION_WITNESS"

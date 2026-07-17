@@ -11,7 +11,7 @@ build/
 dist/
 .DS_Store
 # large real-data downloads (Kang, Marson) never committed
-data/*
+data/
 *.zip
 adgrl2_splicing_code_bundle.zip
 # internal build scratch — agent prompts, findings logs, temp capsules (never public)
@@ -19,9 +19,24 @@ scratchpad/
 tmp/
 *.rds
 *.qs
-# committed demo capsule: a small derived aggregate of public GSE200218 (see ATTRIBUTION.md)
-!data/biermann/
-!data/biermann/**
-# GB-P07's public benchmark archive is supplied externally; the demo materializes
-# its input tables locally and must never make those generated copies release files.
-demos/genebench-gbp07/raw_compile_input/
+# committed demo capsules: small derived/synthetic matrices with explicit provenance
+!demos/biermann-pseudoreplication/
+!demos/biermann-pseudoreplication/**
+# The full Biermann proof downloads ~1.2 GB and materializes a large sparse H5AD locally.
+demos/biermann-pseudoreplication-full/source/
+demos/biermann-pseudoreplication-full/biermann_tumor_cells_full.h5ad
+demos/biermann-pseudoreplication-full/results/
+demos/biermann-pseudoreplication-full/sc-referee.yaml
+demos/biermann-pseudoreplication-full/original_analysis.R
+demos/biermann-pseudoreplication-full/provenance.json
+demos/biermann-pseudoreplication-full/full-audit.json
+!demos/multi-claim-pipeline/
+!demos/multi-claim-pipeline/**
+# Broad demo whitelists above must not re-include machine history, credentials, or generated caches.
+demos/**/.DS_Store
+demos/**/.Rhistory
+demos/**/__pycache__/
+demos/**/*.py[cod]
+demos/**/.env
+demos/**/.env.*
+!demos/**/.env.example

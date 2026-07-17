@@ -5,22 +5,15 @@ The tkinter dialog and the browser open are injected so the orchestration is tes
 """
 from __future__ import annotations
 
-import threading
-import time
-import urllib.request
-from json import loads
 from pathlib import Path
 from types import SimpleNamespace
-
-import pytest
 
 from sc_referee.audit import AuditResult
 from sc_referee.checks.base import Finding
 from sc_referee.ingest import IngestError
 from sc_referee import statuses as S
 from sc_referee.friendly import (
-    PickerError, _ask_directory, _welcome_page, _workload, open_in_browser, pick_folder,
-    run_friendly, serve_friendly_app,
+    _tk_ask_directory, _welcome_page, _workload, open_in_browser, pick_folder, run_friendly,
 )
 from sc_referee.wizard import _confirm_page
 
@@ -47,11 +40,10 @@ def test_folder_argument_skips_the_picker_and_shows_a_report():
 def test_browser_first_welcome_explains_the_complete_local_flow():
     html = _welcome_page()
 
-    assert "Catch the mistakes review misses" in html
-    assert "STATISTICAL REVIEW FOR SINGLE-CELL ANALYSIS" in html
+    assert "Review the analysis, not the story" in html
     assert "Choose analysis folder" in html
     assert "runs locally" in html
-    assert all(step in html for step in ("Reconstruct", "Confirm", "Verify"))
+    assert all(step in html for step in ("Read", "Confirm", "Recompute"))
     assert "http://" not in html and "https://" not in html
 
 
@@ -137,148 +129,20 @@ def test_pick_folder_maps_a_cancelled_dialog_to_none():
     assert pick_folder(ask=lambda: "/chosen/dir") == Path("/chosen/dir")
 
 
-def _completed(stdout="", returncode=0, stderr=""):
-    # Real subprocess.run(capture_output=True) returns BYTES; mirror that so decoding is exercised.
-    enc = lambda s: s.encode() if isinstance(s, str) else s
-    return SimpleNamespace(stdout=enc(stdout), stderr=enc(stderr), returncode=returncode)
+def test_native_folder_chooser_is_standalone_not_attached_to_a_hidden_parent(monkeypatch):
+    from tkinter import filedialog
 
+    received = {}
+    monkeypatch.setattr(
+        filedialog, "askdirectory",
+        lambda **options: received.update(options) or "/chosen/dir",
+    )
 
-def test_ask_directory_runs_the_chooser_in_a_subprocess_never_in_this_process():
-    import os
-    import sys
-
-    calls = {}
-
-    def fake_run(argv, **kw):
-        calls["argv"] = argv
-        return _completed(stdout='{"ok": true, "path": "/chosen/dir"}\n')
-
-    assert _ask_directory(run=fake_run) == "/chosen/dir"
-    # Isolation is the whole fix: the chooser runs as a separate process, so this server never
-    # initializes Tk / the macOS NSApplication and is never left as a beach-balling foreground app.
-    assert calls["argv"][0] == sys.executable
-    # Launched by ABSOLUTE PATH, not `-m sc_referee._folder_picker`: `-m` puts the launch directory
-    # first on the child's path, so a stray ./sc_referee could shadow the real helper.
-    assert len(calls["argv"]) == 2
-    assert os.path.isabs(calls["argv"][1]) and calls["argv"][1].endswith("_folder_picker.py")
-
-
-def test_ask_directory_maps_cancel_to_empty_string():
-    assert _ask_directory(run=lambda *a, **k: _completed(stdout='{"ok": true, "path": null}')) == ""
-
-
-def test_ask_directory_never_imports_tkinter_into_the_calling_process():
-    import os
-    import subprocess
-    import sys
-
-    # The whole point of the fix: the server that calls _ask_directory must never initialize Tk in its
-    # own process (that macOS NSApplication is what beach-balls). Run it in a fresh interpreter with a
-    # fake chooser subprocess and assert Tk stays unloaded here.
-    code = ("import sys; from types import SimpleNamespace;"
-            "from sc_referee.friendly import _ask_directory;"
-            "_ask_directory(run=lambda *a, **k: SimpleNamespace("
-            "stdout='{\"ok\": true, \"path\": \"/x\"}', stderr='', returncode=0));"
-            "print('TK-LOADED' if ('tkinter' in sys.modules or '_tkinter' in sys.modules) else 'TK-FREE')")
-    env = {**os.environ, "PYTHONPATH": os.pathsep.join(p for p in sys.path if p)}
-    proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=env)
-    assert proc.returncode == 0, proc.stderr
-    assert proc.stdout.strip().endswith("TK-FREE")
-
-
-def test_ask_directory_preserves_unicode_and_spaces():
-    weird = "/data/z/Führung analysis/données"
-    run = lambda *a, **k: _completed(stdout='{"ok": true, "path": %s}' % __import__("json").dumps(weird))
-    assert _ask_directory(run=run) == weird
-
-
-def test_ask_directory_tolerates_stdout_noise_before_the_json():
-    run = lambda *a, **k: _completed(stdout='DEPRECATION WARNING: Tk\n{"ok": true, "path": "/p"}\n')
-    assert _ask_directory(run=run) == "/p"
-
-
-def test_ask_directory_raises_pickererror_on_every_failure_mode():
-    with pytest.raises(PickerError):                                   # non-zero exit
-        _ask_directory(run=lambda *a, **k: _completed(returncode=1, stderr="boom"))
-    with pytest.raises(PickerError):                                   # helper reported failure
-        _ask_directory(run=lambda *a, **k: _completed(stdout='{"ok": false, "error": "no display"}'))
-    with pytest.raises(PickerError):                                   # unreadable output
-        _ask_directory(run=lambda *a, **k: _completed(stdout="not json at all"))
-
-    def cannot_launch(*a, **k):
-        raise OSError("exec failed")
-
-    with pytest.raises(PickerError):                                   # subprocess could not start
-        _ask_directory(run=cannot_launch)
-
-
-def test_ask_directory_keeps_the_helpers_rich_error_even_on_nonzero_exit():
-    # The helper writes {"ok": false, "error": ...} to stdout AND exits non-zero; we keep that message
-    # rather than degrading to a bare exit status.
-    run = lambda *a, **k: _completed(returncode=3, stdout='{"ok": false, "error": "TclError: no display"}')
-    with pytest.raises(PickerError, match="no display"):
-        _ask_directory(run=run)
-
-
-def test_ask_directory_rejects_malformed_result_shapes():
-    # A non-bool "ok" or a non-string "path" must NOT be mistaken for a selection or a cancellation —
-    # a corrupt result degrades to PickerError (command-line hint), never a wrong/blank folder.
-    for bad in ('{"ok": "false", "path": "/wrong"}', '{"ok": true, "path": 0}', '{"missing": 1}'):
-        with pytest.raises(PickerError):
-            _ask_directory(run=lambda *a, **k: _completed(stdout=bad))
-
-
-# --- serve_friendly_app orchestration (folder chooser -> setup -> report) ------------------------
-
-def _serve(*, choose, browser_open=None):
-    """Start the friendly HTTP app on an ephemeral port in a daemon thread; return its base URL."""
-    opens = []
-
-    def _open(url):
-        opens.append(url)
-        if browser_open is not None:
-            browser_open(url)
-
-    threading.Thread(
-        target=lambda: serve_friendly_app(None, browser_open=_open, choose=choose, port=0),
-        daemon=True,
-    ).start()
-    for _ in range(300):
-        if opens:
-            break
-        time.sleep(0.01)
-    assert opens, "server never opened the browser / never bound a port"
-    return opens[0].rstrip("/"), opens
-
-
-def _post(base, path):
-    req = urllib.request.Request(base + path, data=b"", method="POST")
-    return urllib.request.urlopen(req, timeout=5).read().decode()
-
-
-def test_serve_app_choose_cancel_returns_to_the_welcome_page():
-    base, _ = _serve(choose=lambda: "")                     # reviewer cancelled the panel
-    page = _post(base, "/choose")
-    assert "No folder selected" in page
-    assert "Choose analysis folder" in page                # back on the welcome page, server alive
-
-
-def test_serve_app_choose_picker_failure_shows_a_command_line_hint_and_stays_up():
-    def boom():
-        raise PickerError("helper crashed / no display")
-
-    base, _ = _serve(choose=boom)
-    page = _post(base, "/choose")
-    assert "referee /path/to/folder" in page               # tells them how to proceed
-    # server survived the failure: the welcome page still serves
-    assert "Choose analysis folder" in urllib.request.urlopen(base + "/", timeout=5).read().decode()
-
-
-def test_serve_app_opens_the_browser_exactly_once_no_duplicate_tab():
-    base, opens = _serve(choose=lambda: "")
-    _post(base, "/choose")                                 # choosing must not spawn a second tab
-    urllib.request.urlopen(base + "/", timeout=5).read()
-    assert len(opens) == 1
+    assert _tk_ask_directory() == "/chosen/dir"
+    assert received == {
+        "title": "Choose an analysis folder for sc-referee",
+        "mustexist": True,
+    }
 
 
 def test_run_friendly_runs_the_wizard_before_the_audit():

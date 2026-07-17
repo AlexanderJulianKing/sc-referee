@@ -1,7 +1,7 @@
 """Tier 2 — static claim attribution. Backward-link each numeric report claim to the test that
 produced it (no execution) and attach that test's provenance verdict to the sentence. The point is
 resolution: pin `needs_evidence` onto the exact marker sentence, leave the legit condition-DE sentence
-alone, and ABSTAIN when a claim can't be uniquely attributed (adversarial review: ambiguous producers must not be
+alone, and ABSTAIN when a claim can't be uniquely attributed (Codex: ambiguous producers must not be
 force-attributed). We certify METHOD validity of the claim, never that the number reproduces.
 """
 from pathlib import Path
@@ -47,7 +47,7 @@ def test_ambiguous_attribution_abstains(tmp_path):
 
 
 def test_unresolved_competing_test_blocks_the_sole_producer_fallback(tmp_path):
-    """adversarial-review finding 8: the 'exactly one marker test' fallback must count ALL marker tests (incl.
+    """Codex finding 8: the 'exactly one marker test' fallback must count ALL marker tests (incl.
     unresolved), or a claim from an unresolved-but-legit test is mis-attributed to the data-derived one."""
     from sc_referee.science_bundle import attribute_claims, inventory_bundle
     _write(tmp_path, "scripts/03.py",
@@ -60,7 +60,7 @@ def test_unresolved_competing_test_blocks_the_sole_producer_fallback(tmp_path):
 
 
 def test_column_name_matches_whole_word_only(tmp_path):
-    """adversarial-review finding 8: a grouping named 'g' must not substring-match every sentence with a 'g'."""
+    """Codex finding 8: a grouping named 'g' must not substring-match every sentence with a 'g'."""
     from sc_referee.science_bundle import attribute_claims, inventory_bundle
     _write(tmp_path, "scripts/03.py",
            "adata.obs['g'] = discover(adata.X)\nsc.tl.rank_genes_groups(adata, groupby='g')\n"
@@ -72,7 +72,7 @@ def test_column_name_matches_whole_word_only(tmp_path):
 
 
 def test_repeated_grouping_name_with_mixed_origins_abstains(tmp_path):
-    """adversarial re-review #5: the same obs column tested by a data-derived AND a predefined invocation is
+    """Codex re-review #5: the same obs column tested by a data-derived AND a predefined invocation is
     ambiguous — a claim naming it must abstain (unresolved), not escalate to needs_evidence."""
     from sc_referee.science_bundle import attribute_claims, inventory_bundle
     _write(tmp_path, "scripts/03.py",

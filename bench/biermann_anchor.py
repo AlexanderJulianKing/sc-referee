@@ -36,7 +36,8 @@ EXPECTED = {
 
 def capsule_dir() -> Path:
     """The committed capsule if present, else the local build capsule."""
-    for candidate in (os.environ.get("BIERMANN_DIR"), "data/biermann", "/tmp/biermann_referee"):
+    for candidate in (os.environ.get("BIERMANN_DIR"), "demos/biermann-pseudoreplication",
+                      "/tmp/biermann_referee"):
         if candidate and Path(candidate).joinpath("sc-referee.yaml").exists():
             return Path(candidate)
     raise FileNotFoundError(

@@ -4,6 +4,38 @@ from dataclasses import FrozenInstanceError
 import pytest
 
 
+def _minimal_proof_report(ci_conclusion):
+    from sc_referee.proof_report import ProofReport
+
+    return ProofReport(
+        analysis_type="condition_contrast_DE", overall_status="pass",
+        ci_conclusion=ci_conclusion, replay_command="sc-referee audit .",
+        input_digests=(), coverage=(), findings=(),
+    )
+
+
+@pytest.mark.parametrize("conclusion, phrase", [
+    ("fail", "did not pass CI"),
+    ("neutral", "not certified by CI"),
+    ("pass", "passes CI"),
+])
+def test_proof_report_ci_phrase_is_exhaustive(conclusion, phrase):
+    from sc_referee.proof_report import render_proof_report_html
+
+    rendered = render_proof_report_html(_minimal_proof_report(conclusion))
+
+    assert phrase in rendered
+    if conclusion == "fail":
+        assert "passes CI" not in rendered
+
+
+def test_proof_report_rejects_an_unknown_ci_conclusion():
+    from sc_referee.proof_report import render_proof_report_html
+
+    with pytest.raises(ValueError, match="unknown proof-report CI conclusion"):
+        render_proof_report_html(_minimal_proof_report("blocker"))
+
+
 def test_status_to_proof_state_mapping_is_closed_and_pinned():
     from sc_referee.proof_report import PROOF_STATE_BY_STATUS
 

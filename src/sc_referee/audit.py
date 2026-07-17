@@ -276,8 +276,7 @@ class AuditResult:
     engine: str = "pydeseq2"
     folder: str = None
     design_path: str = None
-    review_title: str = None
-    review_recognition: str = None
+    diagnostics: list = field(default_factory=list)  # EVIDENCE, never gates (§ confounder-candidate)
 
     def worst_status(self) -> str:
         if not self.findings:
@@ -285,22 +284,29 @@ class AuditResult:
         return max((f.status for f in self.findings), key=lambda s: S.SEVERITY.get(s, 0))
 
     def ci_fails(self, fail_on=S.FAIL_ON_DEFAULT) -> bool:
-        """Only a blocker fails the build (configurable). Everything else is posted, not gated."""
-        return any(f.status in fail_on for f in self.findings)
+        """Fail closed unless a ratified analysis earned at least one applicable proved PASS.
+
+        Scientific status and certification remain separate: missing evidence stays
+        ``needs_evidence`` rather than becoming a blocker, but it cannot authorize CI success.
+        """
+        proved_pass = any(
+            finding.status == S.PASS
+            and finding.applicability == S.APPLIES
+            and finding.coverage == S.COMPLETE
+            and finding.judgment in (None, S.CONFORMANT)
+            for finding in self.findings
+        )
+        return (
+            not self.confirmed_by_human
+            or not self.findings
+            or not proved_pass
+            or any(f.status in fail_on for f in self.findings)
+        )
 
     def ci_conclusion(self, fail_on=S.FAIL_ON_DEFAULT) -> str:
-        """fail | neutral | pass. (spec §[5])
-
-        `neutral` covers advisory and unaudited findings: they are POSTED, never rendered as a
-        clean bill of health.
-        """
+        """Return the two-valued, fail-closed certification conclusion: ``fail`` or ``pass``."""
         if self.ci_fails(fail_on):
             return "fail"
-        advisory = (S.MAJOR, S.NEEDS_EVIDENCE, S.NOT_AUDITED)
-        if not self.findings or any(f.status in advisory for f in self.findings):
-            return "neutral"
-        if not self.confirmed_by_human:
-            return "neutral"     # nothing was ratified — a clean `pass` would overclaim
         return "pass"
 
     def fully_audited(self) -> bool:
@@ -466,6 +472,19 @@ def _run_audit_with_inputs(folder, design_path=None, engine: str = "pydeseq2"):
     # `designs` already reflects the manifest gate (downgraded above), so the checks could not have
     # blocked on an unratified layout.
     confirmed = bool(designs and getattr(designs[0], "confirmed_by_human", False))
+
+    # Confounder-candidate diagnostic: EVIDENCE, never a gate. Wrapped so a diagnostic failure can
+    # never cost the user the audit, and always records why it abstained rather than skipping.
+    diagnostics = []
+    if designs:
+        try:
+            from sc_referee.inference.audit_hook import run_confounder_diagnostic
+            diagnostics.append(run_confounder_diagnostic(bundle, designs[0]))
+        except Exception as exc:
+            diagnostics.append({"diagnostic": "confounder_candidate", "ran": False,
+                                "abstained": f"hook raised and was contained: "
+                                             f"{type(exc).__name__}: {exc}"})
+
     result = AuditResult(
         findings=findings,
         analysis_type=analysis_type,
@@ -473,6 +492,7 @@ def _run_audit_with_inputs(folder, design_path=None, engine: str = "pydeseq2"):
         engine=engine,
         folder=str(folder.resolve()),
         design_path=str(design_path.resolve()),
+        diagnostics=diagnostics,
     )
     return result, tuple(designs), bundle
 

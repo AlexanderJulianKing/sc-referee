@@ -10,9 +10,11 @@ from dataclasses import replace
 import hashlib
 import json
 import os
+from pathlib import Path
 from typing import Any, Mapping
 
 import jsonschema
+import pandas as pd
 
 from sc_referee.compiler.binding_proposal import (
     BindingConflict,
@@ -53,7 +55,11 @@ SYSTEM_PROMPT = """You organize structural compiler bindings from a bounded file
 Call the required tool and emit no prose. Bind only facts grounded in the supplied inventory.
 Every candidate needs evidence whose artifact_identity and path exactly match one inventory
 artifact. Header locators must name a listed header; documentation spans must be verbatim spans in
-the supplied documentation text. Never guess an ungroundable value: put its authority.field in
+the supplied documentation text. A table_cell locator value is canonical compact JSON with exactly
+column and zero-based row keys (for example {"column":"g","row":0}); a code_span locator value is
+canonical compact JSON with exactly start_line and end_line one-based inclusive keys. The compiler
+resolves those locators and mints evidence digests; do not supply a digest. Never guess an
+ungroundable value: put its authority.field in
 unresolved instead. Retain differing candidates for one destination as a conflict.
 
 For a GB-P07-shaped workflow, represent every table candidate identically as an object containing
@@ -96,6 +102,11 @@ def binding_proposal_tool_schema() -> dict[str, Any]:
         for destination in REQUIRED_DESTINATIONS
     ]
     definitions["destination"] = {"oneOf": allowed_destinations}
+    # Evidence digests are compiler output, not something an LLM can calculate reliably.  The
+    # forced tool call supplies a locator; the compiler resolves that locator against inventoried
+    # bytes and mints the digest from the canonical excerpt.
+    definitions["evidence"]["required"].remove("evidence_digest")
+    definitions["evidence"]["properties"].pop("evidence_digest")
 
     table_values = {
         ("detector_input", "cell_table"): table_binding_value_schema("cell_table"),
@@ -177,35 +188,37 @@ def _destination_key(destination: Destination) -> str:
     return f"{destination.authority}.{destination.field}"
 
 
-def _evidence_from_payload(payload: Mapping[str, Any]) -> Evidence:
+def _evidence_from_payload(payload: Mapping[str, Any], inventory: Inventory) -> Evidence:
     locator = payload["locator"]
-    return Evidence(
+    evidence = Evidence(
         artifact_identity=payload["artifact_identity"],
         path=payload["path"],
         locator=Locator(kind=locator["kind"], value=locator["value"]),
-        evidence_digest=payload["evidence_digest"],
+        evidence_digest="sha256:" + "0" * 64,
     )
+    return replace(evidence, evidence_digest=_canonical_evidence_digest(evidence, inventory))
 
 
-def _binding_from_payload(payload: Mapping[str, Any]) -> RequestedBinding:
+def _binding_from_payload(payload: Mapping[str, Any], inventory: Inventory) -> RequestedBinding:
     destination = payload["destination"]
     return RequestedBinding(
         binding_id=payload["binding_id"],
         destination=Destination(destination["authority"], destination["field"]),
         candidate_value=payload["candidate_value"],
         confidence=payload["confidence"],
-        evidence=tuple(_evidence_from_payload(item) for item in payload["evidence"]),
+        evidence=tuple(_evidence_from_payload(item, inventory) for item in payload["evidence"]),
         state=payload["state"],
     )
 
 
-def _conflict_from_payload(payload: Mapping[str, Any]) -> BindingConflict:
+def _conflict_from_payload(payload: Mapping[str, Any], inventory: Inventory) -> BindingConflict:
     destination = payload["destination"]
     return BindingConflict(
         destination=Destination(destination["authority"], destination["field"]),
         candidates=tuple(ConflictCandidate(
             candidate_value=item["candidate_value"],
-            evidence=tuple(_evidence_from_payload(evidence) for evidence in item["evidence"]),
+            evidence=tuple(_evidence_from_payload(evidence, inventory)
+                           for evidence in item["evidence"]),
         ) for item in payload["candidates"]),
         resolution=payload["resolution"],
         load_bearing=payload["load_bearing"],
@@ -220,6 +233,111 @@ def _source_artifacts(inventory: Inventory) -> tuple[Mapping[str, str], ...]:
     } for artifact in inventory.artifacts)
 
 
+def _read_inventoried_path(inventory: Inventory, evidence: Evidence, artifact) -> Path:
+    if inventory.root_path is None:
+        raise ValueError("compiler proposer: inventory has no source root for evidence grounding")
+    root = Path(inventory.root_path).resolve(strict=True)
+    path = root.joinpath(*evidence.path.split("/")).resolve(strict=True)
+    try:
+        path.relative_to(root)
+    except ValueError as exc:
+        raise ValueError("compiler proposer: evidence path escapes the inventory root") from exc
+    digest = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+    if digest != artifact.artifact_identity:
+        raise ValueError(
+            f"compiler proposer: inventoried artifact changed after inventory: {evidence.path!r}"
+        )
+    return path
+
+
+def _structured_locator(locator: Locator, expected_keys: set[str]) -> dict[str, Any]:
+    try:
+        value = json.loads(locator.value)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"compiler proposer: {locator.kind} locator must be canonical JSON"
+        ) from exc
+    if not isinstance(value, dict) or set(value) != expected_keys:
+        raise ValueError(
+            f"compiler proposer: {locator.kind} locator requires exactly "
+            f"{sorted(expected_keys)}"
+        )
+    if locator.value != json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False):
+        raise ValueError(f"compiler proposer: {locator.kind} locator is not canonical JSON")
+    return value
+
+
+def _canonical_excerpt(evidence: Evidence, inventory: Inventory, artifact) -> str:
+    locator = evidence.locator
+    if locator.kind == "header":
+        if locator.value not in artifact.columns:
+            raise ValueError(
+                f"compiler proposer: header evidence {locator.value!r} is not in {evidence.path!r}"
+            )
+        return locator.value
+    if locator.kind == "documentation_span":
+        if not artifact.documentation_text or locator.value not in artifact.documentation_text:
+            raise ValueError(
+                f"compiler proposer: documentation span is not present in {evidence.path!r}"
+            )
+        return locator.value
+
+    path = _read_inventoried_path(inventory, evidence, artifact)
+    if locator.kind == "code_span":
+        if artifact.kind not in {"python", "r", "r_markdown"}:
+            raise ValueError(
+                f"compiler proposer: code-span evidence points to non-code {evidence.path!r}"
+            )
+        span = _structured_locator(locator, {"end_line", "start_line"})
+        start, end = span["start_line"], span["end_line"]
+        if (not isinstance(start, int) or isinstance(start, bool) or not isinstance(end, int)
+                or isinstance(end, bool) or start < 1 or end < start):
+            raise ValueError("compiler proposer: code-span line range is invalid")
+        lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+        if end > len(lines):
+            raise ValueError("compiler proposer: code-span line range is out of bounds")
+        return "".join(lines[start - 1:end])
+    if locator.kind == "table_cell":
+        if artifact.kind != "delimited_table":
+            raise ValueError(
+                f"compiler proposer: table-cell evidence points to non-table {evidence.path!r}"
+            )
+        cell = _structured_locator(locator, {"column", "row"})
+        column, row = cell["column"], cell["row"]
+        if (not isinstance(column, str) or column not in artifact.columns
+                or not isinstance(row, int) or isinstance(row, bool) or row < 0):
+            raise ValueError("compiler proposer: table-cell locator is invalid")
+        separator = "\t" if path.name.removesuffix(".gz").lower().endswith(".tsv") else ","
+        frame = pd.read_csv(
+            path, sep=separator, dtype=str, keep_default_na=False, nrows=row + 1,
+            encoding="utf-8-sig",
+        )
+        if row >= len(frame):
+            raise ValueError("compiler proposer: table-cell row is out of bounds")
+        return json.dumps(
+            {"column": column, "row": row, "value": str(frame.iloc[row][column])},
+            sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+        )
+    raise ValueError(f"compiler proposer: unsupported evidence locator {locator.kind!r}")
+
+
+def _canonical_evidence_digest(evidence: Evidence, inventory: Inventory) -> str:
+    by_path = {artifact.relative_path: artifact for artifact in inventory.artifacts}
+    artifact = by_path.get(evidence.path)
+    if artifact is None or artifact.artifact_identity != evidence.artifact_identity:
+        raise ValueError(
+            "compiler proposer: evidence does not identify an artifact in the supplied inventory: "
+            f"{evidence.path!r}"
+        )
+    excerpt = _canonical_excerpt(evidence, inventory, artifact)
+    payload = json.dumps({
+        "artifact_identity": artifact.artifact_identity,
+        "locator": {"kind": evidence.locator.kind, "value": evidence.locator.value},
+        "excerpt": excerpt,
+    }, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 def _validate_evidence_is_in_inventory(evidence: Evidence, inventory: Inventory) -> None:
     by_path = {artifact.relative_path: artifact for artifact in inventory.artifacts}
     artifact = by_path.get(evidence.path)
@@ -228,27 +346,17 @@ def _validate_evidence_is_in_inventory(evidence: Evidence, inventory: Inventory)
             "compiler proposer: evidence does not identify an artifact in the supplied inventory: "
             f"{evidence.path!r}"
         )
-    locator = evidence.locator
-    if locator.kind == "header" and locator.value not in artifact.columns:
+    expected_digest = _canonical_evidence_digest(evidence, inventory)
+    if evidence.evidence_digest != expected_digest:
         raise ValueError(
-            f"compiler proposer: header evidence {locator.value!r} is not in {evidence.path!r}"
+            f"compiler proposer: evidence digest does not match grounded excerpt in {evidence.path!r}"
         )
-    if locator.kind == "documentation_span":
-        if not artifact.documentation_text or locator.value not in artifact.documentation_text:
-            raise ValueError(
-                f"compiler proposer: documentation span is not present in {evidence.path!r}"
-            )
-    if locator.kind == "table_cell" and artifact.kind != "delimited_table":
-        raise ValueError(
-            f"compiler proposer: table-cell evidence points to non-table {evidence.path!r}"
-        )
-    if locator.kind == "code_span" and artifact.kind not in {
-        "python", "r", "r_markdown", "notebook",
-    }:
-        raise ValueError(f"compiler proposer: code-span evidence points to non-code {evidence.path!r}")
 
 
-def _validate_grounding(proposal: BindingProposal, inventory: Inventory) -> None:
+def validate_proposal_grounding(proposal: BindingProposal, inventory: Inventory) -> None:
+    """Verify every proposal locator and digest against the current inventoried bytes."""
+    if proposal.inventory_identity != inventory.inventory_identity:
+        raise ValueError("compiler proposer: proposal belongs to a different inventory")
     for binding in proposal.requested_bindings:
         for evidence in binding.evidence:
             _validate_evidence_is_in_inventory(evidence, inventory)
@@ -287,9 +395,11 @@ def _merge_proposal(
     model: str,
 ) -> BindingProposal:
     bindings = [*recovered.requested_bindings]
-    bindings.extend(_binding_from_payload(item) for item in tool_payload["requested_bindings"])
+    bindings.extend(_binding_from_payload(item, inventory)
+                    for item in tool_payload["requested_bindings"])
     conflicts = [*recovered.conflicts]
-    conflicts.extend(_conflict_from_payload(item) for item in tool_payload["conflicts"])
+    conflicts.extend(_conflict_from_payload(item, inventory)
+                     for item in tool_payload["conflicts"])
 
     candidates_by_destination: dict[Destination, list[ConflictCandidate]] = {}
     bindings_by_destination: dict[Destination, list[RequestedBinding]] = {}
@@ -370,7 +480,7 @@ def _merge_proposal(
         schema_id=recovered.schema_id,
         proposal_id=_proposal_id(seed),
         revision=recovered.revision + 1,
-        confirmed_organizational_bindings=fully_resolved,
+        confirmed_organizational_bindings=False,
         inventory_identity=inventory.inventory_identity,
         source_artifacts=_source_artifacts(inventory),
         recovered_authorities=recovered.recovered_authorities,
@@ -380,7 +490,7 @@ def _merge_proposal(
         proposer=Proposer(kind="claude", model=model, tool_schema_id=TOOL_SCHEMA_ID),
     )
     validate_binding_proposal(proposal)
-    _validate_grounding(proposal, inventory)
+    validate_proposal_grounding(proposal, inventory)
     return proposal
 
 
@@ -431,7 +541,7 @@ def propose_bindings(
     validate_binding_proposal(recovered)
     if recovered.inventory_identity != inventory.inventory_identity:
         raise ValueError("compiler proposer: recovered proposal belongs to a different inventory")
-    _validate_grounding(recovered, inventory)
+    validate_proposal_grounding(recovered, inventory)
     if not recovered.blocks_compilation or _resolves_required_destinations(recovered):
         return recovered
 

@@ -634,7 +634,10 @@ def test_two_analysis_demo_render_is_frozen(tmp_path):
     console = Console(record=True, width=120, color_system=None)
     render_tty(result, console)
     rendered = console.export_text()
-    assert rendered == FROZEN_TTY.read_text()
+    # Rich may retain a padding space at a soft wrap depending on its patch release. Freeze every
+    # visible character while treating terminal-only end-of-line padding as non-semantic.
+    visible = lambda text: [line.rstrip() for line in text.splitlines()]
+    assert visible(rendered) == visible(FROZEN_TTY.read_text())
 
 
 # --- fast-follow #52: string-target monkeypatch of an egress method must fail the scoper closed ------

@@ -200,7 +200,7 @@ def test_applies_to_requires_a_cell_level_reported_analysis():
 
 def test_contrast_varying_within_the_sample_unit_abstains():
     """sample_unit=[donor] on a PAIRED design merges ctrl+stim into one pseudobulk sample and
-    labels it arbitrarily. Abstain rather than recompute nonsense. (adversarial review 2026-07-08.)"""
+    labels it arbitrarily. Abstain rather than recompute nonsense. (Codex 2026-07-08.)"""
     bundle = paired_count_bundle(n_donors=4)          # each donor has BOTH conditions
     design = make_design(sample_unit=("donor_id",))   # ...but we aggregate by donor only
     genes = list(bundle.measure.feature_index)

@@ -74,7 +74,7 @@ def evaluate_count_model(design: Design, bundle, reported, engine: str = "pydese
         )
     if count_methods and non_count:
         # The code mentions both. We cannot tell which produced the reported table, and a
-        # stray `import pydeseq2` must not launder a t-test into a pass. (adversarial review.)
+        # stray `import pydeseq2` must not launder a t-test into a pass. (Codex review.)
         return _f(S.NEEDS_EVIDENCE,
                   f"your code uses both a proper count model ({', '.join(count_methods)}) and a "
                   f"method that isn't one ({', '.join(non_count)}), and I can't tell from the code "

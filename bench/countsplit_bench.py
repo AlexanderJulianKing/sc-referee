@@ -12,6 +12,8 @@ the independent TEST fold. The naive arm double-dips (clusters and tests on the 
 """
 from __future__ import annotations
 
+import math
+
 import numpy as np
 
 from sc_referee.countsplit import nb_thin
@@ -75,27 +77,72 @@ def countsplit_markers(X, dispersion, k=2, epsilon=0.5, seed=0):
     return sig, p
 
 
-def evaluate(seed=0):
-    n_genes = 400
+def evaluate(seed=0, *, n_cells=600, n_genes=400, n_de=40, effect=2.0):
     # (1) NULL: no true structure — false-positive rate = fraction of genes called "significant"
-    Xn, _, _, bn = simulate(n_genes=n_genes, planted=False, seed=seed)
-    naive_null = len(naive_markers(Xn, seed=seed)[0]) / n_genes
-    csplit_null = len(countsplit_markers(Xn, bn, seed=seed)[0]) / n_genes
+    Xn, _, _, bn = simulate(n_cells=n_cells, n_genes=n_genes, planted=False, seed=seed)
+    naive_null_calls = len(naive_markers(Xn, seed=seed)[0])
+    csplit_null_calls = len(countsplit_markers(Xn, bn, seed=seed)[0])
+    naive_null = naive_null_calls / n_genes
+    csplit_null = csplit_null_calls / n_genes
 
     # (2) TWO-GROUP: recall of the planted DE genes, and false positives among the rest
-    Xp, _, de, bp = simulate(n_genes=n_genes, planted=True, seed=seed)
+    Xp, _, de, bp = simulate(n_cells=n_cells, n_genes=n_genes, planted=True, n_de=n_de,
+                             effect=effect, seed=seed)
     cs_sig = countsplit_markers(Xp, bp, seed=seed)[0]
     recall = len(cs_sig & de) / max(len(de), 1)
     fp = len(cs_sig - de) / max(n_genes - len(de), 1)
     return dict(naive_null_fpr=naive_null, countsplit_null_fpr=csplit_null,
+                naive_null_any=bool(naive_null_calls), countsplit_null_any=bool(csplit_null_calls),
+                naive_null_calls=naive_null_calls, countsplit_null_calls=csplit_null_calls,
                 countsplit_recall=recall, countsplit_fp_rate=fp, n_de=len(de))
 
 
+def _wilson(successes: int, total: int, z: float = 1.96) -> tuple[float, float]:
+    if total <= 0:
+        raise ValueError("at least one independent seed is required")
+    p = successes / total
+    denom = 1 + z * z / total
+    center = (p + z * z / (2 * total)) / denom
+    radius = z * math.sqrt(p * (1 - p) / total + z * z / (4 * total * total)) / denom
+    return max(0.0, center - radius), min(1.0, center + radius)
+
+
+def evaluate_many(seeds=range(20), *, evaluator=evaluate, **kwargs):
+    """Estimate global-null family error over independent simulated datasets.
+
+    Under the global null, FDR equals the probability of at least one rejection. The previous
+    one-seed, per-gene fraction could not support a calibration claim.
+    """
+    seeds = tuple(int(seed) for seed in seeds)
+    if len(set(seeds)) != len(seeds):
+        raise ValueError("calibration seeds must be unique independent dataset identifiers")
+    rows = tuple(evaluator(seed=seed, **kwargs) for seed in seeds)
+    n = len(rows)
+    if n == 0:
+        raise ValueError("at least one calibration seed is required")
+    naive_events = sum(bool(row["naive_null_any"]) for row in rows)
+    countsplit_events = sum(bool(row["countsplit_null_any"]) for row in rows)
+    return {
+        "seeds": seeds,
+        "n_null_families": n,
+        "naive_null_family_error": naive_events / n,
+        "naive_null_family_error_ci95": _wilson(naive_events, n),
+        "countsplit_null_family_error": countsplit_events / n,
+        "countsplit_null_family_error_ci95": _wilson(countsplit_events, n),
+        "mean_countsplit_recall": float(np.mean([row["countsplit_recall"] for row in rows])),
+        "mean_countsplit_fp_rate": float(np.mean([row["countsplit_fp_rate"] for row in rows])),
+        "runs": rows,
+    }
+
+
 if __name__ == "__main__":
-    r = evaluate()
-    print("NULL (no real subpopulations) — false 'marker' rate:")
-    print(f"  naive cluster-then-test (double dip): {r['naive_null_fpr']:.2f}   <- anti-conservative")
-    print(f"  count-splitting:                      {r['countsplit_null_fpr']:.2f}   <- calibrated")
-    print(f"\nTWO REAL GROUPS ({r['n_de']} planted markers) — count-splitting:")
-    print(f"  recall of true markers: {r['countsplit_recall']:.2f}   (reduced power, but recovers them)")
-    print(f"  false positives:        {r['countsplit_fp_rate']:.2f}")
+    r = evaluate_many()
+    print(f"NULL calibration over {r['n_null_families']} independent simulated datasets:")
+    print(f"  naive family error:       {r['naive_null_family_error']:.2f} "
+          f"(95% CI {r['naive_null_family_error_ci95'][0]:.2f}–{r['naive_null_family_error_ci95'][1]:.2f})")
+    print(f"  count-split family error: {r['countsplit_null_family_error']:.2f} "
+          f"(95% CI {r['countsplit_null_family_error_ci95'][0]:.2f}–"
+          f"{r['countsplit_null_family_error_ci95'][1]:.2f})")
+    print("\nPLANTED alternatives — count-splitting:")
+    print(f"  mean recall:              {r['mean_countsplit_recall']:.2f}")
+    print(f"  mean false-positive rate: {r['mean_countsplit_fp_rate']:.2f}")

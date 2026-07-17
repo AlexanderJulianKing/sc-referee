@@ -11,7 +11,7 @@ coordinates like `obsm['spatial']`), a data-derived `obs` column (annotated clus
 construction: a bespoke `discover_subpops(X_pca)` is caught exactly like `leiden`, because taint
 follows the *data*, not the name.
 
-Scope (Phase A — see the design notes). This computes the MAY-level
+Scope (Phase A — see docs/planning/2026-07-09-provenance-and-proposer.md). This computes the MAY-level
 origin that drives the bundle verdict (`data_derived` → needs_evidence) and the audit-path applies-to
 gate. The finer machinery the spec requires for a *blocker* — must/definite dependence with reaching
 definitions and pinned-path feasibility, proven selection/test overlap, the calibration/claim/
@@ -36,7 +36,7 @@ import ast
 from dataclasses import dataclass, field
 
 # The shared front-end (parse / normalize / enumerate) lives in source_ast so this taint pass and
-# sink_use bind against the SAME calls and the SAME call-site ids (adversarial design consult, Q1).
+# sink_use bind against the SAME calls and the SAME call-site ids (Codex SinkUse-design consult, Q1).
 # Imported under the old private names to keep this hardened engine's body unchanged.
 from sc_referee.source_ast import (
     callsite_id,
@@ -53,7 +53,7 @@ _DATA_ATTRS = ("X", "raw")
 # `.layers[...]` is always the expression matrix. `.obsm[...]` is expression ONLY for an expression
 # embedding — scanpy writes those with an `X_` prefix (X_pca / X_umap / X_scvi / X_harmony / …).
 # `obsm['spatial']` and other externally-supplied coordinates are NOT expression-derived, so clustering
-# on them and testing genes is not circular w.r.t. the genes (adversarial review spatial-coords false-accuse, §4.1).
+# on them and testing genes is not circular w.r.t. the genes (Codex spatial-coords false-accuse, §4.1).
 _EXPRESSION_OBSM_PREFIX = "X_"
 _EXPRESSION_OBSM_EXTRA = frozenset({"X"})   # some pipelines store the reduction as obsm['X']
 # clustering routines that write an `obs` column from the data, and their default column names.

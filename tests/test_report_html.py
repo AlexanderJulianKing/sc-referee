@@ -1,7 +1,7 @@
-"""The HTML ledger renderer — a reviewer-facing view over the same AuditResult.
+"""The HTML ledger renderer — a pure view over the same AuditResult the TTY/MD renderers use.
 
-It preserves engine semantics while translating them into actionable browser language, remains
-self-contained apart from user-activated citation links, and escapes analysis-supplied text.
+It must show the identical human states (CLEAR / FLAGGED / NOT CHECKED / N/A), be self-contained
+(opens offline in a browser — no external fetches), and escape analysis-supplied text.
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from sc_referee.checks.base import Finding
 from sc_referee.report import to_html
 
 
-def test_to_html_translates_engine_states_for_a_reviewer():
+def test_to_html_shows_the_same_ledger_states_as_the_tty_render():
     result = AuditResult(
         analysis_type="marker_detection",
         findings=[
@@ -27,15 +27,14 @@ def test_to_html_translates_engine_states_for_a_reviewer():
     assert "<html" in html and "</html>" in html
     # recognition + the analysis type
     assert "marker_detection" in html
-    # Browser language distinguishes evidence needing review from a check that never evaluated.
-    assert "NEEDS REVIEW" in html
+    # the derived human states, verbatim with the TTY labels
+    assert "NOT CHECKED" in html
     assert "CLEAR" in html
     assert "FLAGGED" in html
     # the verdicts
     assert "verdict one" in html and "verdict two" in html and "verdict three" in html
     # the coverage footer
-    assert "3 checks" in html and "1 passed" in html and "1 flagged" in html
-    assert "1 need review" in html
+    assert "1 clear" in html and "1 flagged" in html and "1 not checked" in html
 
 
 def test_to_html_escapes_analysis_supplied_text():
@@ -52,12 +51,12 @@ def test_to_html_escapes_analysis_supplied_text():
     assert "&amp;" in html
 
 
-def test_to_html_is_self_contained_no_external_assets():
+def test_to_html_is_self_contained_no_external_fetch():
     result = AuditResult(analysis_type="marker_detection",
                          findings=[Finding("x", S.PASS, "ok")])
     html = to_html(result)
     # no external stylesheet/script/font/image — the page must open offline
-    for needle in ("src=", 'link rel="stylesheet"', "@import"):
+    for needle in ("http://", "https://", "src=", 'link rel="stylesheet"'):
         assert needle not in html
 
 
@@ -66,15 +65,15 @@ def test_hero_separates_unresolved_evidence_from_benign_not_checked():
     demand = AuditResult(analysis_type="eqtl", findings=[
         Finding("allele_orientation", S.NEEDS_EVIDENCE, "supply the effect allele", coverage=S.NOT_RUN)])
     dhtml = to_html(demand).lower()
-    assert "check needs review" in dhtml
-    assert "referee found relevant evidence" in dhtml
+    assert "check unresolved" in dhtml
+    assert "referee completed this review" in dhtml
     assert "nothing flagged" not in dhtml
 
     benign = AuditResult(analysis_type="eqtl", findings=[
         Finding("allele_orientation", S.NOT_AUDITED, "couldn't reproduce your estimator")])
     bhtml = to_html(benign).lower()
     assert "nothing flagged" in bhtml
-    assert "check needs review" not in bhtml
+    assert "check unresolved" not in bhtml
 
 
 def test_needs_input_channel_is_visually_tagged():
@@ -82,20 +81,6 @@ def test_needs_input_channel_is_visually_tagged():
     result = AuditResult(analysis_type="eqtl", findings=[
         Finding("allele_orientation", S.NEEDS_EVIDENCE, "supply the effect allele", coverage=S.NOT_RUN)])
     assert "needs-input" in to_html(result)
-
-
-def test_known_citations_link_to_the_publication():
-    result = AuditResult(analysis_type="condition_contrast_DE", findings=[
-        Finding("experimental_unit", S.NEEDS_EVIDENCE, "qualified evidence",
-                coverage=S.NOT_RUN,
-                citations=("Squair et al. 2021, Nat Commun 12:5692",)),
-    ])
-
-    rendered = to_html(result)
-
-    assert 'href="https://doi.org/10.1038/s41467-021-25960-2"' in rendered
-    assert 'target="_blank"' in rendered
-    assert 'rel="noopener noreferrer"' in rendered
 
 
 def test_conditional_premise_is_an_escaped_distinct_html_panel():

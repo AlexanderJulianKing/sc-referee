@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -41,9 +41,12 @@ class Inventory:
     inventory_identity: str
     artifacts: tuple[InventoryArtifact, ...]
     deterministic_facts: dict[str, Any]
+    root_path: str | None = field(default=None, repr=False, compare=False)
 
     def to_dict(self) -> dict[str, Any]:
-        return json.loads(json.dumps(asdict(self), ensure_ascii=False))
+        payload = asdict(self)
+        payload.pop("root_path", None)
+        return json.loads(json.dumps(payload, ensure_ascii=False))
 
 
 def confine_inventory_path(root: str | Path, relative_path: str | Path) -> Path:
@@ -196,4 +199,5 @@ def build_inventory(folder: str | Path) -> Inventory:
         inventory_identity=identity,
         artifacts=frozen_artifacts,
         deterministic_facts=facts,
+        root_path=str(canonical_root),
     )

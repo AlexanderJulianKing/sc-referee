@@ -20,6 +20,7 @@ from sc_referee.inference.api import ANALYZER_DIGEST
 from sc_referee.inference.double_dipping import (
     DOUBLE_DIPPING_PREMISES,
     compute_double_dipping_evidence,
+    resolve_installed_dependency_bindings,
 )
 from sc_referee.inference.policy.evaluate import PolicySnapshot, evaluate
 from sc_referee.inference.policy.schema import ValidityPolicy, canonical_policy_json
@@ -189,6 +190,9 @@ class EnginePolicyVerifier:
             evidence = compute_double_dipping_evidence(
                 sources,
                 getattr(bundle, "reported_results", None),
+                dependency_bindings=tuple(
+                    getattr(bundle, "_inference_dependency_bindings", ()) or ()
+                ),
                 report_relative_path=getattr(
                     getattr(bundle, "_inference_verifier_observation", None),
                     "report_relative_path",
@@ -226,6 +230,12 @@ class EnginePolicyVerifier:
                 and self._contract(bundle) is None:
             return None
         if self._contract(bundle) is None:
+            if self.policy_id == "enrichment_universe.v1":
+                return (
+                    "the analysis universe and the complete correction family were not bound to "
+                    "a ratified audit contract, so Referee did not test whether selecting that "
+                    "universe changed this claim"
+                )
             return (
                 f"{design.analysis_type}: {self.policy_id} has no complete ratified live inference "
                 "contract; this policy was NOT AUDITED and cannot produce a blocker"
@@ -238,6 +248,9 @@ class EnginePolicyVerifier:
             evidence = compute_double_dipping_evidence(
                 sources,
                 reported,
+                dependency_bindings=tuple(
+                    getattr(bundle, "_inference_dependency_bindings", ()) or ()
+                ),
                 report_relative_path=getattr(
                     getattr(bundle, "_inference_verifier_observation", None),
                     "report_relative_path",
@@ -250,6 +263,8 @@ class EnginePolicyVerifier:
                 ),
             )
             if evidence.test_producer and evidence.selection_producer:
+                return self._run_double_dipping(design, bundle, reported, evidence=evidence)
+            if "scientific_dependency_binding_missing_or_mismatched" in evidence.unknown_reasons:
                 return self._run_double_dipping(design, bundle, reported, evidence=evidence)
             # Exact engine integration is intentionally narrow.  Preserve the shipped detector for
             # every unsupported case rather than turning partial migration into a silent regression.
@@ -282,6 +297,9 @@ class EnginePolicyVerifier:
         evidence = evidence or compute_double_dipping_evidence(
             sources,
             reported,
+            dependency_bindings=tuple(
+                getattr(bundle, "_inference_dependency_bindings", ()) or ()
+            ),
             report_relative_path=getattr(
                 getattr(bundle, "_inference_verifier_observation", None),
                 "report_relative_path",
@@ -374,6 +392,9 @@ class EnginePolicyVerifier:
             "summary_bindings": [binding.__dict__ for binding in evidence.summary_bindings],
             "closed_world_complete": certificate_complete,
             "unknown_reasons": list(evidence.unknown_reasons),
+            "dependency_binding_errors": list(
+                getattr(bundle, "_inference_dependency_binding_errors", ()) or ()
+            ),
             "obligations": list(judgment.obligations),
         }
         if judgment.outcome == "VIOLATION_WITNESS":
@@ -451,6 +472,9 @@ def attach_live_contracts(bundle, folder) -> None:
     This makes an old or malicious contract powerless instead of allowing it to self-attest.
     """
     contracts = {}
+    dependency_bindings, dependency_errors = resolve_installed_dependency_bindings()
+    setattr(bundle, "_inference_dependency_bindings", dependency_bindings)
+    setattr(bundle, "_inference_dependency_binding_errors", dependency_errors)
     folder = Path(folder)
     report_info = (getattr(bundle, "provenance", {}) or {}).get("reported", {}) or {}
     report_rel = report_info.get("path")

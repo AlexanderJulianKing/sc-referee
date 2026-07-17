@@ -1,4 +1,4 @@
-"""Regression tests for the adversarial review findings (adversarial review, 2026-07-08).
+"""Regression tests for the adversarial review findings (Codex + Opus, 2026-07-08).
 
 Every one of these was a false verdict, a false claim, or a silent skip. They are pinned here so
 they cannot return. Each test names the failure it prevents.
@@ -109,7 +109,7 @@ def test_unrecorded_replicate_yields_not_audited_not_a_silent_pass():
 
     result = AuditResult(findings=[Finding("experimental_unit", S.NOT_AUDITED, reason)])
     assert result.fully_audited() is False
-    assert result.ci_conclusion() == "neutral"
+    assert result.ci_conclusion() == "fail"
     assert result.worst_status() != S.PASS
 
 

@@ -2,6 +2,7 @@ from dataclasses import replace
 
 import numpy as np
 import pytest
+from scipy import sparse
 
 from sc_referee.empty_droplet.bundle_identity import capture_filtered_bundle_identity
 from sc_referee.empty_droplet.csv_adapter import parse_empty_droplet_csv
@@ -21,6 +22,16 @@ def test_filtered_identity_maps_reordered_bundle_to_cells_csv_by_exact_keys(tmp_
     assert [m.empty_feature_column for m in witness.bundle_feature_mapping] == [4, 0, 3, 1, 2]
     assert witness.shared_count_coherent is True
     assert witness.total_count_coherence == "not_comparable"
+
+
+@pytest.mark.parametrize("matrix_type", [sparse.csr_matrix, sparse.csc_matrix])
+def test_filtered_identity_accepts_sparse_counts_without_changing_identity(tmp_path, matrix_type):
+    fixture = write_gbp07_fixture(tmp_path)
+    declaration = confirmed_declaration(tmp_path, fixture)
+    dense = capture_filtered_bundle_identity(tmp_path, declaration.filtered_link, fixture.bundle)
+    fixture.bundle.measure.counts = matrix_type(fixture.bundle.measure.counts)
+    observed = capture_filtered_bundle_identity(tmp_path, declaration.filtered_link, fixture.bundle)
+    assert observed.filtered_bundle_identity == dense.filtered_bundle_identity
 
 
 def test_shared_gene_count_mismatch_fails_exactly(tmp_path):

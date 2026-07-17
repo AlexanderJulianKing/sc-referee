@@ -27,9 +27,10 @@ SEVERITY = {
     PASS: 0,
 }
 
-# Statuses that fail CI by default. `not_audited`/`needs_evidence` are posted as
-# neutral annotations, never a silent green.
-FAIL_ON_DEFAULT = (BLOCKER,)
+# Scientific statuses remain three-valued, but certification is deliberately stricter: a proved
+# defect or unresolved/unaudited obligation all fail the default gate.  This does not relabel an
+# uncertainty as a blocker; it only refuses to certify it.
+FAIL_ON_DEFAULT = (BLOCKER, MAJOR, NEEDS_EVIDENCE, NOT_AUDITED)
 
 
 # Canonical report-ledger axes. These classify a Finding for presentation only; the shipped

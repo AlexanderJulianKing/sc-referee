@@ -69,7 +69,7 @@ def test_rankings_without_pvalues_are_informational(tmp_path):
 
 
 def test_unresolved_grouping_is_needs_evidence_not_silent(tmp_path):
-    """adversarial-review finding 3: a data-derived column tested via a DYNAMIC groupby is unresolved to the
+    """Codex finding 3: a data-derived column tested via a DYNAMIC groupby is unresolved to the
     analyzer — it must surface as needs_evidence, never vanish into no-finding (a false-clean)."""
     from sc_referee.science_bundle import bundle_findings, inventory_bundle
     _write(tmp_path, "scripts/03.py",
@@ -81,7 +81,7 @@ def test_unresolved_grouping_is_needs_evidence_not_silent(tmp_path):
 
 
 def test_predefined_pvalue_claim_does_not_make_descriptive_cluster_inferential(tmp_path):
-    """adversarial-review finding 5: a padj claim that belongs to a PREDEFINED test must not make a descriptive
+    """Codex finding 5: a padj claim that belongs to a PREDEFINED test must not make a descriptive
     (no-p-value) cluster test inferential. Attribution is per-claim, not a bundle-wide boolean."""
     from sc_referee.science_bundle import bundle_findings, inventory_bundle
     _write(tmp_path, "scripts/03.py",
@@ -108,7 +108,7 @@ def test_custom_named_clustering_into_markers_must_be_caught(tmp_path):
     data (no leiden/gmm/etc. token anywhere), then markers tested on its output with p-values, is
     STILL a double-dip. A vocabulary-only detector read it clean — the exact failure that must never
     survive. Provenance (taint from `X_pca` -> `discover_subpops(...)` -> obs['subpop'] -> the marker
-    test) closes it. See the design notes."""
+    test) closes it. See docs/planning/2026-07-09-provenance-and-proposer.md."""
     from sc_referee.science_bundle import bundle_findings, inventory_bundle
     _write(tmp_path, "scripts/03_group.py",
            '"""Group discovery. Inputs: [\'qc.h5ad\']"""\n'

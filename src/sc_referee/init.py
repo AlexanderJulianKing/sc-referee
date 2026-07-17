@@ -820,7 +820,7 @@ def write_config(proposal: dict, out) -> Path:
 
 
 def confirm_config(path) -> Path:
-    # NOTE (adversarial-review round-3 #3, deliberately NOT hard-refused): a design's `unresolved` roles are
+    # NOTE (Codex round-3 #3, deliberately NOT hard-refused): a design's `unresolved` roles are
     # surfaced to the human at `init` ("correct these before confirming"); confirming anyway RATIFIES
     # them, consistent with propose->confirm->decide. A blanket refuse also breaks the common, SAFE
     # case of `unresolved: [unit_of_test]` — the checks that need it simply abstain when it is unset.

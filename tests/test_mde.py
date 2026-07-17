@@ -58,7 +58,7 @@ def test_powered_gate_threshold():
 def test_non_finite_mde_counts_as_not_powered():
     """A feature with an infinite MDE is UNDETECTABLE, not absent. Dropping it from the
     denominator overstates power and lets an inadequate recompute earn a blocker.
-    (This test previously asserted the opposite. It was wrong. — adversarial review, 2026-07-08)"""
+    (This test previously asserted the opposite. It was wrong. — Codex review, 2026-07-08)"""
     assert powered_fraction(np.array([0.5, np.inf]), 1.0) == pytest.approx(0.5)
     assert powered_fraction(np.array([0.5, np.nan, np.inf, 0.6]), 1.0) == pytest.approx(0.5)
     assert powered_fraction(np.array([np.nan, np.inf]), 1.0) == 0.0

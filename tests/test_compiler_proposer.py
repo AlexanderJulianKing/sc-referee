@@ -19,6 +19,10 @@ from sc_referee.compiler.proposer import (
     binding_proposal_tool_schema,
     propose_bindings,
 )
+from sc_referee.compiler.pipeline import (
+    confirm_organizational_bindings,
+    record_organizational_confirmation,
+)
 from sc_referee.csp_contracts.contamination_condensed_ceremony import (
     CondensedAnswer,
     CondensedGroup,
@@ -83,7 +87,6 @@ def _ev(inventory, path, kind, value):
         "artifact_identity": artifact.artifact_identity,
         "path": path,
         "locator": {"kind": kind, "value": value},
-        "evidence_digest": artifact.artifact_identity,
     }
 
 
@@ -162,8 +165,8 @@ def test_complete_gbp07_tool_payload_returns_grounded_binding_proposal(inventory
     proposal = propose_bindings(inventory, client=client)
 
     validate_binding_proposal(proposal)
-    assert proposal.confirmed_organizational_bindings is True
-    assert proposal.blocks_compilation is False
+    assert proposal.confirmed_organizational_bindings is False
+    assert proposal.blocks_compilation is True
     assert {binding.destination for binding in proposal.requested_bindings} == set(
         REQUIRED_DESTINATIONS
     )
@@ -173,6 +176,54 @@ def test_complete_gbp07_tool_payload_returns_grounded_binding_proposal(inventory
     call = client.calls[0]
     assert call["tool_choice"] == {"type": "tool", "name": PROPOSAL_TOOL}
     assert call["tools"][0]["input_schema"] == binding_proposal_tool_schema()
+
+
+def test_compiler_mints_content_bound_evidence_digests(inventory):
+    proposal = propose_bindings(inventory, client=FakeClient(_complete_payload(inventory)))
+    artifact_identities = {item.artifact_identity for item in inventory.artifacts}
+
+    assert all(evidence.evidence_digest not in artifact_identities
+               for binding in proposal.requested_bindings for evidence in binding.evidence)
+
+
+def test_copied_model_evidence_digest_is_rejected_at_tool_boundary(inventory):
+    payload = _complete_payload(inventory)
+    payload["requested_bindings"][0]["evidence"][0]["evidence_digest"] = \
+        payload["requested_bindings"][0]["evidence"][0]["artifact_identity"]
+
+    with pytest.raises(ValueError, match="schema validation"):
+        propose_bindings(inventory, client=FakeClient(payload))
+
+
+def test_table_cell_locator_is_resolved_and_out_of_range_cells_are_rejected(inventory):
+    payload = _complete_payload(inventory)
+    evidence = payload["requested_bindings"][0]["evidence"][0]
+    donor = next(item for item in inventory.artifacts if item.relative_path == "donors.csv.gz")
+    evidence.update({
+        "artifact_identity": donor.artifact_identity,
+        "path": donor.relative_path,
+        "locator": {"kind": "table_cell", "value": '{"column":"g","row":0}'},
+    })
+    proposal = propose_bindings(inventory, client=FakeClient(payload))
+    assert proposal.requested_bindings[0].evidence[0].evidence_digest.startswith("sha256:")
+
+    evidence["locator"]["value"] = '{"column":"g","row":999}'
+    with pytest.raises(ValueError, match="row is out of bounds"):
+        propose_bindings(inventory, client=FakeClient(payload))
+
+
+def test_recovered_proposal_with_fabricated_evidence_digest_is_rejected(inventory):
+    proposal = propose_bindings(inventory, client=FakeClient(_complete_payload(inventory)))
+    first = proposal.requested_bindings[0]
+    forged_evidence = replace(first.evidence[0], evidence_digest=first.evidence[0].artifact_identity)
+    forged = replace(
+        proposal,
+        requested_bindings=(replace(first, evidence=(forged_evidence,)),
+                            *proposal.requested_bindings[1:]),
+    )
+
+    with pytest.raises(ValueError, match="evidence digest does not match"):
+        propose_bindings(inventory, forged, client=FakeClient(prose=True))
 
 
 def test_tool_schema_does_not_require_empty_gene_panel(inventory):
@@ -207,6 +258,10 @@ def test_proposer_schema_valid_payload_compiles_real_gbp07_to_conditional_major(
     payload = _complete_payload(real_inventory)
     jsonschema.validate(payload, binding_proposal_tool_schema())
     proposal = propose_bindings(real_inventory, client=FakeClient(payload))
+    proposal = confirm_organizational_bindings(
+        proposal,
+        record_organizational_confirmation(proposal, actor="test reviewer"),
+    )
 
     result = compile_from_proposal(
         proposal,

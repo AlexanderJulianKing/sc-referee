@@ -1,4 +1,4 @@
-# sc-referee — independent, deterministic review for single-cell analyses.
+# The referee you leave behind.
 #
 # Drop this into your own repo (.github/workflows/) to have every future analysis refereed
 # with nobody in the room. It re-runs the statistically correct procedure and fails the PR

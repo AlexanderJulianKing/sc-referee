@@ -7,6 +7,7 @@ a model.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Callable, Mapping
@@ -25,7 +26,7 @@ from sc_referee.compiler.capsule import (
     replay_capsule,
 )
 from sc_referee.compiler.inventory import Inventory
-from sc_referee.compiler.proposer import propose_bindings
+from sc_referee.compiler.proposer import propose_bindings, validate_proposal_grounding
 from sc_referee.compiler.resolve import CompileNeeded, NoCompileNeeded, resolve_for_compile
 from sc_referee.csp_contracts.contamination_condensed_ceremony import (
     CondensedAnswer,
@@ -39,6 +40,91 @@ from sc_referee.derivations.gbp07_compile import (
 
 
 InjectedProposer = Callable[[Inventory], BindingProposal]
+OrganizationalReviewer = Callable[[BindingProposal], "OrganizationalConfirmation | None"]
+
+
+@dataclass(frozen=True)
+class OrganizationalConfirmation:
+    """Receipt for one explicit human review of one exact structural proposal."""
+
+    proposal_id: str
+    inventory_identity: str
+    requested_bindings_digest: str
+    actor: str
+
+
+def _requested_bindings_digest(proposal: BindingProposal) -> str:
+    payload = [
+        {
+            "binding_id": binding.binding_id,
+            "destination": {
+                "authority": binding.destination.authority,
+                "field": binding.destination.field,
+            },
+            "candidate_value": binding.candidate_value,
+            "confidence": binding.confidence,
+            "evidence": [
+                {
+                    "artifact_identity": evidence.artifact_identity,
+                    "path": evidence.path,
+                    "locator": {
+                        "kind": evidence.locator.kind,
+                        "value": evidence.locator.value,
+                    },
+                    "evidence_digest": evidence.evidence_digest,
+                }
+                for evidence in binding.evidence
+            ],
+            "state": binding.state,
+        }
+        for binding in proposal.requested_bindings
+    ]
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def record_organizational_confirmation(
+    proposal: BindingProposal,
+    *,
+    actor: str,
+) -> OrganizationalConfirmation:
+    """Record an external review action after the exact proposal has been displayed."""
+    if not isinstance(actor, str) or not actor.strip():
+        raise ValueError("organizational confirmation requires a non-empty human actor")
+    return OrganizationalConfirmation(
+        proposal_id=proposal.proposal_id,
+        inventory_identity=proposal.inventory_identity,
+        requested_bindings_digest=_requested_bindings_digest(proposal),
+        actor=actor.strip(),
+    )
+
+
+def render_organizational_review(proposal: BindingProposal) -> str:
+    """Render the exact structural authority a reviewer is being asked to accept."""
+    lines = [
+        "STRUCTURAL BINDINGS — REVIEW REQUIRED",
+        f"proposal_id: {proposal.proposal_id}",
+        f"inventory_identity: {proposal.inventory_identity}",
+        f"requested_bindings_digest: {_requested_bindings_digest(proposal)}",
+    ]
+    for binding in proposal.requested_bindings:
+        destination = f"{binding.destination.authority}.{binding.destination.field}"
+        evidence = ", ".join(
+            f"{item.path}:{item.locator.kind}:{item.locator.value} [{item.evidence_digest}]"
+            for item in binding.evidence
+        )
+        lines.append(
+            f"  {destination} = {_binding_value(binding)}\n"
+            f"    confidence={binding.confidence}; evidence={evidence}"
+        )
+    for conflict in proposal.conflicts:
+        lines.append(
+            f"  CONFLICT {conflict.destination.authority}.{conflict.destination.field}: "
+            f"{len(conflict.candidates)} candidates ({conflict.resolution})"
+        )
+    for unresolved in proposal.unresolved:
+        lines.append(f"  UNRESOLVED {unresolved}")
+    return "\n".join(lines)
 
 
 @dataclass(frozen=True)
@@ -63,7 +149,7 @@ class CompileAuditResult:
 
 def confirm_organizational_bindings(
     proposal: BindingProposal,
-    organizational_bindings: tuple[RequestedBinding, ...],
+    confirmation: OrganizationalConfirmation,
 ) -> BindingProposal:
     """Confirm that a human accepts Claude's structural bindings without changing them.
 
@@ -72,9 +158,16 @@ def confirm_organizational_bindings(
     """
 
     validate_binding_proposal(proposal)
-    echoed = tuple(organizational_bindings)
-    if echoed != proposal.requested_bindings:
-        raise ValueError("organizational confirmation must echo the proposed bindings exactly")
+    if not isinstance(confirmation, OrganizationalConfirmation):
+        raise TypeError("organizational confirmation requires an explicit review receipt")
+    if confirmation.proposal_id != proposal.proposal_id:
+        raise ValueError("organizational confirmation belongs to a different proposal")
+    if confirmation.inventory_identity != proposal.inventory_identity:
+        raise ValueError("organizational confirmation belongs to a different inventory")
+    if confirmation.requested_bindings_digest != _requested_bindings_digest(proposal):
+        raise ValueError("organizational confirmation does not match the proposed bindings")
+    if not confirmation.actor.strip():
+        raise ValueError("organizational confirmation has no human actor")
     if proposal.unresolved or proposal.conflicts:
         raise ValueError("unresolved or conflicting organizational bindings cannot be confirmed")
     if any(binding.state != "proposed" for binding in proposal.requested_bindings):
@@ -176,6 +269,7 @@ def run_compile_audit(
     answers: Mapping[object, object],
     client: Any = "auto",
     proposer: InjectedProposer | Any | None = None,
+    organizational_reviewer: OrganizationalReviewer | None = None,
 ) -> CompileAuditResult:
     """Resolve, propose, confirm, compile, freeze, and model-free replay one raw folder."""
 
@@ -195,14 +289,44 @@ def run_compile_audit(
     if not isinstance(resolved, CompileNeeded):  # pragma: no cover - closed resolver result
         raise TypeError(f"unexpected compile resolver result: {type(resolved).__name__}")
 
-    decisions = _normalized_answers(answers)
+    # Validate ceremony completeness before any optional model call.  The decisions are consumed
+    # only after organizational review below, but a non-interactive caller that supplied none must
+    # receive the ordinary actionable error without spending model tokens.
+    _normalized_answers(answers)
+
     proposed = _run_proposer(
         resolved.inventory,
         resolved.proposal,
         client=client,
         proposer=proposer,
     )
-    proposal = confirm_organizational_bindings(proposed, proposed.requested_bindings)
+    validate_binding_proposal(proposed)
+    validate_proposal_grounding(proposed, resolved.inventory)
+    # A proposer is never an authority source, even if an injected implementation sets the bit.
+    proposed = replace(proposed, confirmed_organizational_bindings=False)
+    if organizational_reviewer is None:
+        return CompileAuditResult(
+            normal_audit_applies=False,
+            proposal=proposed,
+            finding=None,
+            capsule=None,
+            replay_status=None,
+            summary=render_organizational_review(proposed) +
+                    "\n\nNOT_CHECKED: explicit organizational confirmation required.",
+        )
+    confirmation = organizational_reviewer(proposed)
+    if confirmation is None:
+        return CompileAuditResult(
+            normal_audit_applies=False,
+            proposal=proposed,
+            finding=None,
+            capsule=None,
+            replay_status=None,
+            summary=render_organizational_review(proposed) +
+                    "\n\nNOT_CHECKED: organizational bindings were not accepted.",
+        )
+    proposal = confirm_organizational_bindings(proposed, confirmation)
+    decisions = _normalized_answers(answers)
     compilation = compile_from_proposal(proposal, folder, decisions)
     if isinstance(compilation, ProposalCompilationAbstention):
         reason = f"{compilation.reason_code.value}: {compilation.message}"
@@ -238,7 +362,10 @@ def run_compile_audit(
 
 __all__ = [
     "CompileAuditResult",
+    "OrganizationalConfirmation",
     "confirm_organizational_bindings",
+    "record_organizational_confirmation",
+    "render_organizational_review",
     "render_compile_summary",
     "run_compile_audit",
 ]

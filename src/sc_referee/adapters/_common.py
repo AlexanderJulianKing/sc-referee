@@ -34,7 +34,9 @@ def is_raw_counts(X) -> bool:
         return False                                  # NaN/inf -> not raw counts
     if np.any(data < 0):
         return False                                  # a negative "count" is a residual, never a UMI
-    if not np.all(np.mod(data, 1) == 0):
+    # Integer sparse matrices are the normal representation for full public atlases. Avoid a
+    # same-sized temporary remainder array for hundreds of millions of already-integer entries.
+    if not np.issubdtype(data.dtype, np.integer) and not np.all(np.mod(data, 1) == 0):
         return False                                  # non-integral -> normalized/log/CPM
     return bool(np.any(data > 0))                      # reject a degenerate all-zero matrix
 
@@ -65,6 +67,10 @@ def measure_from_matrix(X, feature_index) -> Measure:
     """`counts` when the matrix is valid raw counts; `normalized` (counts=None) otherwise. A
     normalized matrix is recorded, not refused — the count checks abstain per-check. (item 2)"""
     if is_raw_counts(X):
-        counts = X.toarray() if sp.issparse(X) else np.asarray(X)
+        # Keep real single-cell matrices sparse.  Densifying a 100k-cell atlas here can require
+        # tens of gigabytes before the pseudobulk reducer has a chance to collapse it to samples.
+        # CSR gives the reducer efficient row slicing while preserving the legacy ndarray path for
+        # small/dense fixtures and CSV inputs.
+        counts = X.tocsr(copy=False) if sp.issparse(X) else np.asarray(X)
         return Measure(kind="counts", counts=counts, long=None, feature_index=feature_index)
     return Measure(kind="normalized", counts=None, long=None, feature_index=feature_index)

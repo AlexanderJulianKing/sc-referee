@@ -223,7 +223,7 @@ def test_carries_real_citations():
 
 
 def test_code_mentioning_both_a_count_model_and_a_t_test_is_ambiguous():
-    """A stray `import pydeseq2` must not launder a t-test into a pass. (adversarial review 2026-07-08.)"""
+    """A stray `import pydeseq2` must not launder a t-test into a pass. (Codex 2026-07-08.)"""
     b = _bundle_with_code(["pydeseq2", "ttest_ind"])
     f = evaluate_count_model(DESIGN, b, _reported(b, {"G_up"}))
     assert f.status == S.NEEDS_EVIDENCE, f.verdict

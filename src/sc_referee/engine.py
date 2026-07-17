@@ -13,6 +13,7 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 from scipy import stats
 from statsmodels.stats.multitest import multipletests
 
@@ -124,7 +125,7 @@ def powered_fraction(mde_values, ref_effect: float) -> float:
 
     A non-finite MDE means the feature is UNDETECTABLE, not absent — it counts against power.
     Dropping such features from the denominator overstates power and would let an inadequate
-    recompute earn a blocker. (adversarial review 2026-07-08.)
+    recompute earn a blocker. (Codex review 2026-07-08.)
     """
     mde = np.asarray(mde_values, dtype=float)
     if mde.size == 0:
@@ -268,6 +269,10 @@ def apply_row_ledger_evidence(rows, ledger_result, design):
 
 
 def _aggregate_positions(counts, positions):
+    if sp.issparse(counts):
+        # Only the sample×feature result is materialized.  The cell×feature input remains sparse,
+        # which is what makes a full public atlas a practical Referee input.
+        return [np.asarray(counts[group].sum(axis=0)).ravel() for group in positions]
     return [counts[group].sum(axis=0) for group in positions]
 
 
@@ -280,7 +285,11 @@ def aggregate_to_pseudobulk(bundle, design):
     from sc_referee.design import subset_mask
 
     obs = bundle.observations
-    counts = np.asarray(bundle.measure.counts)
+    counts = bundle.measure.counts
+    if counts is None:
+        raise ValueError("pseudobulk recomputation requires a raw count matrix")
+    if not sp.issparse(counts):
+        counts = np.asarray(counts)
     mask = subset_mask(obs, design)          # the recompute MUST see the same cells the design does
     if not mask.all():
         obs, counts = obs[mask], counts[mask]
@@ -298,7 +307,7 @@ def _bh(pvalues, testable):
 
     They must NOT enter the family: BH's n is the number of hypotheses actually tested. Padding
     it with untested features inflates n and drives real discoveries to padj=1 — an
-    over-conservative recompute, which manufactures false blockers. (adversarial review 2026-07-08;
+    over-conservative recompute, which manufactures false blockers. (Codex review 2026-07-08;
     this corrects the spec, which said to enter them as p=1.)
     """
     padj = np.ones_like(np.asarray(pvalues, dtype=float))

@@ -1,7 +1,7 @@
 """pseudobulk_integrity — is the pseudobulk the count-model sink consumes structurally sound?
 
 Increment 1 (needs_evidence-only). The catalog frames this as a blocker-capable [R-S] check with five
-invariants, but the two that would BLOCK each require machinery SinkUse v1 defers (adversarial design consult):
+invariants, but the two that would BLOCK each require machinery SinkUse v1 defers (Codex design consult):
 
   - the ASSAY CONTRACT would need field-sensitive reaching SCALE — `bundle.measure.kind` is the FINAL
     `.X` state, not the scale at the sink, so `DeseqDataSet(counts=adata.X); normalize_total(adata)`
@@ -68,7 +68,7 @@ def _countmodel_uses(bundle) -> list:
 
 def _reads_expression_matrix(expr) -> bool:
     """An `.X`/`.raw.X` attribute read ANYWHERE in the response expression — so `.X.copy()`, a slice, or
-    a direct wrapper is caught too, not just a top-level `adata.X` (adversarial review sign-off). A raw layer
+    a direct wrapper is caught too, not just a top-level `adata.X` (Codex sign-off). A raw layer
     (`layers['counts']`) has no `.X` attribute, so it is correctly left alone. Matching incidentally is
     safe: it only ever yields needs_evidence (review), never a blocker."""
     return any(isinstance(n, ast.Attribute) and n.attr == "X" for n in ast.walk(expr))
@@ -107,7 +107,7 @@ def _merge_dependency_proof(sub, declared, contrast_col, ref, test):
 
 def _merge_finding(design: Design, bundle, cites):
     """The aggregation-MERGE check — the sound blocker this check earns once the analyst's ACTUAL
-    aggregation key is ratified (adversarial review pseudobulk-integrity consult). If the confirmed `aggregation_key`
+    aggregation key is ratified (Codex pseudobulk-integrity consult). If the confirmed `aggregation_key`
     EXCLUDES the contrast column and some aggregated group (within the subset, over the two confirmed
     arms) contains cells from BOTH arms, then that pseudobulk sample mixes the two conditions and the DE
     contrast is applied to mislabeled samples — structurally invalid regardless of biology, the analog of
@@ -121,7 +121,7 @@ def _merge_finding(design: Design, bundle, cites):
     missing = [k for k in declared if k not in obs.columns]
     if missing:
         # a ratified key column we cannot see means we cannot reconstruct the REAL grouping. Dropping it
-        # and grouping by the reduced key would false-accuse a correct donor x arm analysis (adversarial review
+        # and grouping by the reduced key would false-accuse a correct donor x arm analysis (Codex
         # keystone review #1) — abstain, never block on a reduced key.
         return Finding(CHECK_ID, S.NEEDS_EVIDENCE,
                        f"the sample-grouping key you confirmed ({_cols(declared)}) includes "
@@ -135,7 +135,7 @@ def _merge_finding(design: Design, bundle, cites):
         return None                               # key includes the contrast (pure outputs), or degenerate
     sub = apply_subset(obs, design)
     # VALUE equality, not str() coercion: distinct levels like int 1 vs str "1" must never collapse into
-    # one arm and fabricate a spurious "spans both" (adversarial keystone review #2).
+    # one arm and fabricate a spurious "spans both" (Codex keystone review #2).
     proof = _merge_dependency_proof(sub, declared, contrast_col, ref, test)
     if proof.state is ProofState.UNRESOLVED:
         return Finding(CHECK_ID, S.NEEDS_EVIDENCE,
@@ -177,7 +177,7 @@ def evaluate_pseudobulk_integrity(design: Design, bundle, reported=None) -> Find
         resp = u.bound_ports.get("response")
         if resp is None or resp.status != "bound":
             # the response could not be pinned to an expression (splat / ambiguous / invalid), so its
-            # input scale cannot be checked — abstain, never certify (adversarial review sign-off, unknown => review).
+            # input scale cannot be checked — abstain, never certify (Codex sign-off, unknown => review).
             abstentions.append(
                 f"your count model ({u.symbol}) needs raw counts, but I couldn't pin down exactly "
                 f"what was passed in as its counts (binding: "

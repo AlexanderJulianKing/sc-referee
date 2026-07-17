@@ -1,6 +1,6 @@
 """source_ast — the ONE shared parse + call-site enumeration that provenance (taint) and sink_use
 (contract binding) both consume, so the two never drift on which calls exist or what code they see
-(adversarial design consult, Q1 anti-drift). It normalizes notebooks/magics, yields statements in
+(Codex SinkUse-design consult, Q1 anti-drift). It normalizes notebooks/magics, yields statements in
 source order, and assigns every call a STABLE id (`source_index:lineno:col`) so a MarkerTest and its
 SinkUse can be joined by that id.
 """
@@ -67,7 +67,7 @@ def test_nested_calls_are_each_enumerated_once():
 def test_call_site_ids_are_unique_even_at_the_same_start_position():
     # `lineno:col` alone collides: in a chained call `x.a().b()` the outer and inner Call nodes share
     # the SAME (lineno, col_offset=0), so the id must include the full span or two calls join to the
-    # same taint origin (adversarial review #4).
+    # same taint origin (Codex review #4).
     from sc_referee.source_ast import parse_sources, iter_call_sites
     src = "pipeline.first_step().second_step()\n"
     sites = iter_call_sites(parse_sources([src]))
@@ -78,7 +78,7 @@ def test_call_site_ids_are_unique_even_at_the_same_start_position():
 
 
 def test_iter_call_sites_is_in_document_order():
-    # the docstring promises document order; ast.walk is breadth-first, so it must be sorted (adversarial review #7).
+    # the docstring promises document order; ast.walk is breadth-first, so it must be sorted (Codex #7).
     from sc_referee.source_ast import parse_sources, iter_call_sites
     src = "wrapper(\n    first_call(a)\n)\nsecond_call(b)\n"
     symbols = [s.symbol for s in iter_call_sites(parse_sources([src]))]
@@ -86,7 +86,7 @@ def test_iter_call_sites_is_in_document_order():
 
 
 def test_malformed_notebook_json_does_not_crash():
-    # a cell whose source is not a list-of-strings must be tolerated at the parser boundary (adversarial review #9).
+    # a cell whose source is not a list-of-strings must be tolerated at the parser boundary (Codex #9).
     from sc_referee.source_ast import parse_sources
     bad = '{"cells":[{"cell_type":"code","source":[1]}]}'
     parsed = parse_sources([bad])            # must not raise
@@ -110,7 +110,7 @@ def test_source_env_resolves_aliases_and_from_imports():
 
 def test_locally_defined_name_is_not_resolved_to_a_library_sink():
     # a user function named ttest_ind must NOT resolve to scipy — callee identity is a PROVED fact,
-    # and a bare name with no traced import is unresolved (adversarial review #1, the cardinal-rule fix).
+    # and a bare name with no traced import is unresolved (Codex review #1, the cardinal-rule fix).
     from sc_referee.source_ast import parse_sources, source_env, resolve_callee, iter_call_sites
     src = ("def ttest_ind(a, b):\n    return donor_blocked_permutation(a, b)\n"
            "result = ttest_ind(case, control)\n")
@@ -122,7 +122,7 @@ def test_locally_defined_name_is_not_resolved_to_a_library_sink():
 
 def test_from_submodule_import_resolves_to_the_submodule():
     # `from scipy import stats` then `stats.ttest_ind(...)` — the binding is module-or-symbol ambiguous;
-    # form the candidate `scipy.stats` and let the exact registry match accept it (adversarial re-review #5).
+    # form the candidate `scipy.stats` and let the exact registry match accept it (Codex re-review #5).
     from sc_referee.source_ast import parse_sources, source_env, resolve_callee, iter_call_sites
     parsed = parse_sources(["from scipy import stats\nstats.ttest_ind(a, b)\n"])
     env = source_env(parsed[0])
@@ -132,7 +132,7 @@ def test_from_submodule_import_resolves_to_the_submodule():
 
 def test_function_parameter_shadows_an_imported_name():
     # `def run(stats): stats.ttest_ind(...)` — `stats` is a param, not the imported module. Ambiguous
-    # binding -> unresolved, so it is never falsely bound as scipy (adversarial re-review #2 false match).
+    # binding -> unresolved, so it is never falsely bound as scipy (Codex re-review #2 false match).
     from sc_referee.source_ast import parse_sources, source_env, resolve_callee, iter_call_sites
     src = ("import scipy.stats as stats\n"
            "def run(stats):\n    return stats.ttest_ind(a, b)\n")

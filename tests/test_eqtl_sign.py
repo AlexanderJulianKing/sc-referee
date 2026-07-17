@@ -2,8 +2,22 @@
 from __future__ import annotations
 
 import pytest
+from scipy import sparse
 
 from tests.factories import eqtl_count_bundle, make_eqtl_design
+
+
+@pytest.mark.parametrize("matrix_type", [sparse.csr_matrix, sparse.csc_matrix])
+def test_sparse_counts_match_dense_orientation_result(matrix_type):
+    from sc_referee.engines.eqtl_sign import recompute_eqtl_sign
+
+    bundle = eqtl_count_bundle(effect_direction=1, effect_strength=0.9, seed=17)
+    dense = recompute_eqtl_sign(bundle, make_eqtl_design(), transform="identity")
+    bundle.measure.counts = matrix_type(bundle.measure.counts)
+    observed = recompute_eqtl_sign(bundle, make_eqtl_design(), transform="identity")
+    assert observed.identified == dense.identified
+    assert observed.sign == dense.sign
+    assert observed.slope == pytest.approx(dense.slope)
 
 
 @pytest.mark.parametrize("seed,strength", [(0, 0.7), (3, 1.0), (11, 0.85)])

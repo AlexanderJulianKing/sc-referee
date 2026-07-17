@@ -8,11 +8,18 @@ or unknown feature region leaves at least one policy premise ``UNKNOWN``.
 from __future__ import annotations
 
 import ast
+import base64
 import hashlib
+import importlib.metadata
+import importlib.util
+import json
 import math
 from dataclasses import dataclass
+from pathlib import Path
 from types import MappingProxyType
 from typing import Mapping
+
+from packaging.specifiers import InvalidSpecifier, SpecifierSet
 
 from sc_referee.inference.analysis.dependence import (
     Alternative,
@@ -64,6 +71,23 @@ class ScientificSummary:
     calibration: str | None = None
 
 
+@dataclass(frozen=True)
+class DependencySummaryReceipt:
+    """Evidence-owned binding between one reviewed summary and an imported implementation."""
+
+    module: str
+    symbol: str
+    version: str
+    package_or_source_digest: str
+    summary_digest: str
+    resolved_import_origin: str
+    source_kind: str
+    source_root: str
+    evidence_path: str
+    evidence_digest: str
+    distribution_name: str | None = None
+
+
 def _summary(module: str, symbol: str, version: str, kind: str,
              *, calibration: str | None = None) -> ScientificSummary:
     identity = f"{module}|{symbol}|{version}|double-dipping-summary-v2"
@@ -98,11 +122,184 @@ _BY_IDENTITY = {
 _SUMMARY_REGISTRY = SummaryRegistry(item.summary for item in _SCIENTIFIC_SUMMARIES)
 
 
-def _resolve_scientific(module: str, symbol: str) -> ScientificSummary | None:
+def dependency_binding_requirements() -> tuple[SummaryBinding, ...]:
+    """Return immutable reviewed identities that external dependency evidence must satisfy."""
+    return tuple(item.summary.binding for item in _SCIENTIFIC_SUMMARIES)
+
+
+_DISTRIBUTIONS = {
+    "scanpy": "scanpy",
+    "sklearn": "scikit-learn",
+    "pandas": "pandas",
+}
+
+
+def _file_digest(path: Path) -> str:
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _record_hash_matches(path: Path, declared_hash) -> bool:
+    if declared_hash is None or declared_hash.mode != "sha256":
+        return False
+    actual = base64.urlsafe_b64encode(hashlib.sha256(path.read_bytes()).digest()).decode().rstrip("=")
+    return actual == declared_hash.value
+
+
+def _distribution_record_is_intact(distribution) -> bool:
+    checked = 0
+    for package_path in distribution.files or ():
+        if package_path.hash is None:
+            continue
+        path = Path(distribution.locate_file(package_path))
+        if not path.is_file() or not _record_hash_matches(path, package_path.hash):
+            return False
+        checked += 1
+    return checked > 0
+
+
+def resolve_installed_dependency_bindings() -> tuple[
+    tuple[DependencySummaryReceipt, ...], tuple[str, ...]
+]:
+    """Measure installed, RECORD-verified distributions without importing analysis packages."""
+    receipts: list[DependencySummaryReceipt] = []
+    reasons: list[str] = []
+    measured: dict[str, tuple[str, str, str, str, str] | None] = {}
+    for required in _SCIENTIFIC_SUMMARIES:
+        binding = required.summary.binding
+        top_level = binding.module.split(".", 1)[0]
+        if top_level not in measured:
+            distribution_name = _DISTRIBUTIONS.get(top_level)
+            try:
+                if distribution_name is None:
+                    raise importlib.metadata.PackageNotFoundError(top_level)
+                distribution = importlib.metadata.distribution(distribution_name)
+                spec = importlib.util.find_spec(top_level)
+                if spec is None or spec.origin is None:
+                    raise ValueError("resolved import origin unavailable")
+                origin = Path(spec.origin).resolve(strict=True)
+                source_root = Path(distribution.locate_file("")).resolve(strict=True)
+                origin.relative_to(source_root)
+                if origin.name == f"{top_level}.py" or not _distribution_record_is_intact(distribution):
+                    raise ValueError("shadowed import or installed RECORD integrity mismatch")
+                record_path = Path(getattr(distribution, "_path", source_root)) / "RECORD"
+                if not record_path.is_file():
+                    raise ValueError("installed distribution has no RECORD identity")
+                measured[top_level] = (
+                    distribution.version,
+                    str(origin),
+                    str(source_root),
+                    str(record_path),
+                    _file_digest(record_path),
+                )
+            except (OSError, ValueError, importlib.metadata.PackageNotFoundError) as exc:
+                measured[top_level] = None
+                reasons.append(f"{top_level}: {exc}")
+        package = measured[top_level]
+        if package is None:
+            continue
+        version, origin, source_root, record_path, record_digest = package
+        try:
+            compatible = version in SpecifierSet(binding.version)
+        except InvalidSpecifier:
+            compatible = False
+        if not compatible:
+            reasons.append(
+                f"{top_level}: installed version {version!r} is outside {binding.version!r}"
+            )
+            continue
+        receipts.append(DependencySummaryReceipt(
+            module=binding.module,
+            symbol=binding.symbol,
+            version=version,
+            package_or_source_digest=record_digest,
+            summary_digest=binding.summary_digest,
+            resolved_import_origin=origin,
+            source_kind="installed_distribution",
+            source_root=source_root,
+            evidence_path=record_path,
+            evidence_digest=record_digest,
+            distribution_name=_DISTRIBUTIONS[top_level],
+        ))
+    return tuple(receipts), tuple(dict.fromkeys(reasons))
+
+
+def _receipt_is_external_and_exact(
+    receipt: DependencySummaryReceipt,
+    expected: SummaryBinding,
+) -> bool:
+    try:
+        compatible = receipt.version in SpecifierSet(expected.version)
+    except InvalidSpecifier:
+        return False
+    top_level = expected.module.split(".", 1)[0]
+    try:
+        origin = Path(receipt.resolved_import_origin).resolve(strict=True)
+        source_root = Path(receipt.source_root).resolve(strict=True)
+        evidence_path = Path(receipt.evidence_path).resolve(strict=True)
+        origin_relative = origin.relative_to(source_root).as_posix()
+        evidence_path.relative_to(source_root)
+    except (OSError, ValueError):
+        return False
+    normalized_origin = origin.as_posix()
+    # A project-local top-level shadow module (scanpy.py, pandas.py, etc.) is not a locked
+    # distribution origin.  Package origins must identify a file below the package directory.
+    if normalized_origin.endswith(f"/{top_level}.py"):
+        return False
+    if f"/{top_level}/" not in normalized_origin or not normalized_origin.endswith(".py"):
+        return False
+    if not all((
+        receipt.module == expected.module,
+        receipt.symbol == expected.symbol,
+        compatible,
+        receipt.summary_digest == expected.summary_digest,
+        receipt.evidence_digest == _file_digest(evidence_path),
+        receipt.package_or_source_digest == receipt.evidence_digest,
+    )):
+        return False
+    if receipt.source_kind == "locked_source_tree":
+        try:
+            lock = json.loads(evidence_path.read_text(encoding="utf-8"))
+            entry = lock[top_level]
+        except (OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError):
+            return False
+        return entry == {
+            "origin": origin_relative,
+            "source_digest": _file_digest(origin),
+            "version": receipt.version,
+        }
+    if receipt.source_kind == "installed_distribution":
+        try:
+            if receipt.distribution_name != _DISTRIBUTIONS.get(top_level):
+                return False
+            distribution = importlib.metadata.distribution(receipt.distribution_name)
+            actual_root = Path(distribution.locate_file("")).resolve(strict=True)
+            record_path = Path(getattr(distribution, "_path", actual_root)) / "RECORD"
+            return all((
+                distribution.version == receipt.version,
+                actual_root == source_root,
+                record_path.resolve(strict=True) == evidence_path,
+                _distribution_record_is_intact(distribution),
+            ))
+        except (OSError, importlib.metadata.PackageNotFoundError):
+            return False
+    return False
+
+
+def _resolve_scientific(
+    module: str,
+    symbol: str,
+    dependency_bindings: tuple[DependencySummaryReceipt, ...],
+) -> ScientificSummary | None:
     item = _BY_IDENTITY.get((module, symbol))
     if item is None:
         return None
     binding = item.summary.binding
+    matching = [
+        receipt for receipt in dependency_bindings
+        if receipt.module == module and receipt.symbol == symbol
+    ]
+    if len(matching) != 1 or not _receipt_is_external_and_exact(matching[0], binding):
+        return None
     resolution = resolve_summary(CalleeBinding(
         binding.module,
         binding.symbol,
@@ -326,7 +523,12 @@ def _reported_feature_ids(reported) -> frozenset[str] | None:
     return frozenset(values) if values else None
 
 
-def _fit_predict_summary(call: ast.Call, env, constructed: Mapping[str, tuple[str, str]]):
+def _fit_predict_summary(
+    call: ast.Call,
+    env,
+    constructed: Mapping[str, tuple[str, str]],
+    dependency_bindings: tuple[DependencySummaryReceipt, ...],
+):
     if not isinstance(call.func, ast.Attribute) or call.func.attr != "fit_predict":
         return None
     if "fit_predict" in env.patched_attrs:
@@ -343,7 +545,8 @@ def _fit_predict_summary(call: ast.Call, env, constructed: Mapping[str, tuple[st
         base = constructed.get(receiver.id)
         if base is not None:
             identity = (base[0], f"{base[1]}.fit_predict")
-    return _resolve_scientific(*identity) if identity is not None else None
+    return (_resolve_scientific(*identity, dependency_bindings)
+            if identity is not None else None)
 
 
 class SimpleCallSite:
@@ -404,6 +607,7 @@ def compute_double_dipping_evidence(
     *,
     report_relative_path: str | None = None,
     data_relative_path: str | None = None,
+    dependency_bindings: tuple[DependencySummaryReceipt, ...] = (),
 ) -> DoubleDippingEvidence:
     """Compute the six policy relations from real parsed code and a real report object."""
     parsed = parse_sources(sources)
@@ -424,6 +628,49 @@ def compute_double_dipping_evidence(
     unknown_csv_write = False
     summaries: list[SummaryBinding] = []
     unknown_reasons: list[str] = []
+    if (not dependency_bindings or any(
+        _resolve_scientific(
+            item.summary.binding.module,
+            item.summary.binding.symbol,
+            dependency_bindings,
+        ) is None
+        for item in _SCIENTIFIC_SUMMARIES
+    )):
+        unknown_reasons.append("scientific_dependency_binding_missing_or_mismatched")
+
+    def _invalidate_object(name: str, reason: str) -> None:
+        """Forget every must-fact tied to a possibly replaced or mutated analysis object."""
+        removed_tests = {item.producer for item in tests if item.object_id == name}
+        known_objects.discard(name)
+        selection_bases.pop(name, None)
+        invalid_fields.difference_update({item for item in invalid_fields if item[0] == name})
+        for key in [key for key in obs if key[0] == name]:
+            obs.pop(key, None)
+        stale_selections = {id(item) for item in selections if item.region.object_id == name}
+        selections[:] = [item for item in selections if item.region.object_id != name]
+        tests[:] = [item for item in tests if item.object_id != name]
+        for variable, selected in list(variables.items()):
+            if selected.region.object_id == name or id(selected) in stale_selections:
+                variables.pop(variable, None)
+        for variable, marker in list(marker_values.items()):
+            if marker.producer in removed_tests:
+                marker_values.pop(variable, None)
+        report_egresses[:] = [item for item in report_egresses
+                              if item.producer not in removed_tests]
+        unknown_reasons.append(reason)
+
+    def _invalidate_selection_variable(name: str) -> None:
+        selected = variables.pop(name, None)
+        if selected is None:
+            return
+        selections[:] = [item for item in selections if item is not selected]
+        for variable, value in list(variables.items()):
+            if value is selected:
+                variables.pop(variable, None)
+        for key, value in list(obs.items()):
+            if value is selected:
+                obs.pop(key, None)
+        unknown_reasons.append("possible_selection_label_mutation")
 
     for parsed_source in parsed:
         if parsed_source.tree is None:
@@ -454,10 +701,14 @@ def compute_double_dipping_evidence(
                     marker_values.pop(target_root, None)
                     unknown_reasons.append("possible_marker_result_mutation")
                 if isinstance(target, ast.Name):
+                    if target.id in known_objects:
+                        _invalidate_object(target.id, "analysis_object_rebound")
                     constructed.pop(target.id, None)
                     variables.pop(target.id, None)
                     marker_values.pop(target.id, None)
                     known_objects.discard(target.id)
+                elif target_root in variables:
+                    _invalidate_selection_variable(target_root)
                 elif (isinstance(target, ast.Subscript)
                       and isinstance(target.value, ast.Attribute)
                       and target.value.attr in {"obsp", "uns", "obsm", "layers"}
@@ -475,7 +726,7 @@ def compute_double_dipping_evidence(
                 site = sites_by_node.get(id(value))
                 resolved = resolve_callee(site, env) if site is not None else None
                 if resolved == ("scanpy", "read_h5ad"):
-                    summary = _resolve_scientific(*resolved)
+                    summary = _resolve_scientific(*resolved, dependency_bindings)
                     path_node = _arg(value, "filename", 0)
                     path = const_str(path_node) if path_node is not None else None
                     if summary is not None and path is not None and path == data_relative_path:
@@ -489,7 +740,7 @@ def compute_double_dipping_evidence(
 
             # Exact selection event returning labels.
             if isinstance(value, ast.Call):
-                summary = _fit_predict_summary(value, env, constructed)
+                summary = _fit_predict_summary(value, env, constructed, dependency_bindings)
                 if summary is not None and len(targets) == 1 and isinstance(targets[0], ast.Name):
                     input_node = value.args[0] if value.args else None
                     region = (_feature_region(input_node, known_objects, invalid_fields)
@@ -516,7 +767,7 @@ def compute_double_dipping_evidence(
                     and isinstance(targets[0], ast.Name)):
                 site = sites_by_node.get(id(value))
                 resolved = resolve_callee(site, env) if site is not None else None
-                summary = (_resolve_scientific(*resolved)
+                summary = (_resolve_scientific(*resolved, dependency_bindings)
                            if resolved == ("scanpy.get", "rank_genes_groups_df") else None)
                 response = _arg(value, "adata", 0)
                 response_region = (_feature_region(response, known_objects, invalid_fields)
@@ -541,6 +792,28 @@ def compute_double_dipping_evidence(
                             extracted_groups,
                         )
                         summaries.append(summary.summary.binding)
+
+            # A call used on an assignment RHS can mutate its object arguments just as an
+            # expression statement can.  Preserve only the exact read/extract/selection summaries
+            # above; all other object-passing calls are opaque to this must-analysis.
+            if isinstance(value, ast.Call):
+                site = sites_by_node.get(id(value))
+                resolved = resolve_callee(site, env) if site is not None else None
+                safe_assignment_calls = {
+                    ("scanpy", "read_h5ad"),
+                    ("scanpy.get", "rank_genes_groups_df"),
+                }
+                selection_summary = _fit_predict_summary(
+                    value, env, constructed, dependency_bindings
+                )
+                if resolved not in safe_assignment_calls and selection_summary is None:
+                    object_arguments = {
+                        root for argument in (*value.args,
+                                              *(item.value for item in value.keywords))
+                        for root in [_root_name(argument)] if root in known_objects
+                    }
+                    for object_name in object_arguments:
+                        _invalidate_object(object_name, "opaque_call_may_mutate_analysis_object")
 
             # Exact strong write labels -> literal obs field.  Anything else strongly replaces it.
             for target in targets:
@@ -569,7 +842,7 @@ def compute_double_dipping_evidence(
                         marker_values.pop(argument.id, None)
                         unknown_reasons.append("possible_marker_result_mutation")
                 if resolved == ("scanpy.pp", "neighbors"):
-                    summary = _resolve_scientific(*resolved)
+                    summary = _resolve_scientific(*resolved, dependency_bindings)
                     response = _arg(call, "adata", 0)
                     response_region = (_feature_region(response, known_objects, invalid_fields)
                                        if response is not None
@@ -603,7 +876,7 @@ def compute_double_dipping_evidence(
                         and site is not None):
                     path = csv_path
                     summary = _resolve_scientific(
-                        "pandas.core.generic", "DataFrame.to_csv"
+                        "pandas.core.generic", "DataFrame.to_csv", dependency_bindings
                     )
                     if path is not None and summary is not None:
                         marker = marker_values[call.func.value.id]
@@ -617,7 +890,7 @@ def compute_double_dipping_evidence(
                         ))
                         summaries.extend((marker.binding, summary.summary.binding))
                 if resolved in {("scanpy.tl", "leiden"), ("scanpy.tl", "louvain")}:
-                    summary = _resolve_scientific(*resolved)
+                    summary = _resolve_scientific(*resolved, dependency_bindings)
                     response = _arg(call, "adata", 0)
                     adjacency = _keyword(call, "adjacency")
                     response_region = (_feature_region(response, known_objects, invalid_fields)
@@ -644,7 +917,7 @@ def compute_double_dipping_evidence(
                             summaries.append(summary.summary.binding)
 
                 if resolved == ("scanpy.tl", "rank_genes_groups"):
-                    summary = _resolve_scientific(*resolved)
+                    summary = _resolve_scientific(*resolved, dependency_bindings)
                     grouping_node = _arg(call, "groupby", 1)
                     grouping = const_str(grouping_node) if grouping_node is not None else None
                     response = _arg(call, "adata", 0)
@@ -695,6 +968,23 @@ def compute_double_dipping_evidence(
                             site.id, method, calibration, result_key, groups,
                         ))
                         summaries.append(summary.summary.binding)
+
+                # Calls outside the exact scientific summaries above may mutate an object through
+                # an argument.  A must-analysis cannot carry labels, selections, or marker tests
+                # across that opaque boundary.
+                safe_object_calls = {
+                    ("scanpy.pp", "neighbors"),
+                    ("scanpy.tl", "leiden"),
+                    ("scanpy.tl", "louvain"),
+                    ("scanpy.tl", "rank_genes_groups"),
+                }
+                if resolved not in safe_object_calls and not is_csv_write:
+                    object_arguments = {
+                        root for argument in (*call.args, *(item.value for item in call.keywords))
+                        for root in [_root_name(argument)] if root in known_objects
+                    }
+                    for object_name in object_arguments:
+                        _invalidate_object(object_name, "opaque_call_may_mutate_analysis_object")
 
     exact_test = tests[0] if len(tests) == 1 else None
     pvalue_claim = bool(

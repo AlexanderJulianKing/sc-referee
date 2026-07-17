@@ -24,7 +24,7 @@ def _marker_bundle(de=("rank_genes_groups",), cluster=("leiden",), safeguards=()
 def test_cluster_then_marker_test_caps_at_needs_evidence_in_phase_a():
     """Phase A provenance is MAY-level, so it must ESCALATE, never accuse: a confirmed de-novo-cluster
     marker test is `needs_evidence`, not `blocker`. A blocker awaits the deferred must/overlap machinery
-    (adversarial code-review finding 1). The claim is still about calibration, never truth."""
+    (Codex code-review finding 1). The claim is still about calibration, never truth."""
     from sc_referee.checks.double_dipping import DoubleDippingCheck
 
     b = _marker_bundle()
@@ -39,7 +39,7 @@ def test_cluster_then_marker_test_caps_at_needs_evidence_in_phase_a():
 
 
 def test_may_level_dependence_never_reaches_blocker():
-    """adversarial-review finding 1: obs['G'] = np.where(X>0, genotype, genotype) reads X syntactically but G *is*
+    """Codex finding 1: obs['G'] = np.where(X>0, genotype, genotype) reads X syntactically but G *is*
     genotype. A may-level read must never produce a blocker even when confirmed."""
     from sc_referee.checks.double_dipping import DoubleDippingCheck
     b = _marker_bundle(cluster=())
@@ -52,7 +52,7 @@ def test_may_level_dependence_never_reaches_blocker():
 
 
 def test_incidental_clustering_with_predefined_grouping_is_vetoed():
-    """adversarial-review finding 1: clustering for a UMAP + a marker test on a PREDEFINED column is not
+    """Codex finding 1: clustering for a UMAP + a marker test on a PREDEFINED column is not
     double-dipping. A provably-predefined tested grouping vetoes the incidental clustering hit."""
     from sc_referee.checks.double_dipping import DoubleDippingCheck
     b = _marker_bundle(cluster=("leiden",))
@@ -64,7 +64,7 @@ def test_incidental_clustering_with_predefined_grouping_is_vetoed():
 
 
 def test_scanpy_pvalue_columns_count_as_calibrated_claims():
-    """adversarial-review finding 2: scanpy names its p-value columns pvals / pvals_adj — omitting them (and
+    """Codex finding 2: scanpy names its p-value columns pvals / pvals_adj — omitting them (and
     case-sensitivity) exonerates a real circular Scanpy analysis as 'descriptive'."""
     import pandas as pd
     from sc_referee.checks.double_dipping import _claims_calibrated_pvalues

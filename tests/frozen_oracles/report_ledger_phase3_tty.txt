@@ -54,9 +54,9 @@ FDR family); reported p-values are uncorrected — not the same FDR family (see 
   ref: Zimmerman et al. 2021, Nat Commun 12:738
 
  NOT CHECKED  (needs_evidence)  multiple_testing
-  every gene in your results table is marked significant — which usually means the table holds only the hits, not the 
-full set of genes that were tested. Multiple-testing correction needs the complete tested set to work, so I couldn't 
-recompute it. Provide the full results (every gene tested, not just the significant ones).
+  every feature in your results table is marked significant — which usually means the table holds only the hits, not the
+full set of features that were tested. Multiple-testing correction needs the complete tested set to work, so I couldn't
+recompute it. Provide the full results (every feature tested, not just the significant ones).
   ref: Benjamini & Hochberg 1995, J R Stat Soc B 57:289
 
  N/A  (pass)  count_model
@@ -79,5 +79,5 @@ paired (or mixed-model) sensitivity check.
   double_dipping did not evaluate results/splicing.csv: the claim's own producing test is mannwhitneyu, outside this 
 detector's covered marker-test family; coverage is NOT_RUN.
 
-worst status: needs_evidence   CI: neutral — NOT FULLY AUDITED
+worst status: needs_evidence   CI: FAIL
 coverage: 13 findings · 4 clear · 3 flagged · 5 not checked · 1 n/a

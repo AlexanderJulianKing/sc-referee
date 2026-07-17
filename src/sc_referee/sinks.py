@@ -11,7 +11,7 @@ The invariant that keeps the expansion honest: a check may only reach `blocker` 
 resolved to an EXACT symbol + compatible version (`resolve_sink_status` returns status `"exact"`). An
 unknown symbol, or a version outside the contract's spec, resolves to `None` -> the caller emits
 `needs_evidence` ("unknown means review"). No blocker is ever built on an unresolved contract.
-(error-catalog round-2 spec; the design notes §3.2; adversarial design consult.)
+(error-catalog round-2 spec; docs/planning/error-catalog.md §3.2; Codex SinkUse-design consult.)
 """
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ class PortLocator:
     """WHERE a port's argument sits in the call. `kind`: "kw" (a keyword arg `name`), "arg" (positional
     `index`), or "receiver" (a true method call's object — reserved for `obj.method(...)`, NOT free
     functions like scanpy/scipy). A port lists ALTERNATIVES; the binder tries keyword before positional,
-    and only uses positional when the version's positional slot is stable. (adversarial review Q3.)"""
+    and only uses positional when the version's positional slot is stable. (Codex Q3.)"""
     kind: str                      # "kw" | "arg" | "receiver"
     name: str | None = None
     index: int | None = None
@@ -121,7 +121,7 @@ class _ConditionalVariant:
 
 
 # --- initial registry (intentionally small; unknown calls abstain) -------------------------------
-# Locators verified against the actual signatures (adversarial review consult, web-checked):
+# Locators verified against the actual signatures (Codex consult, web-checked):
 #   scanpy.tl.rank_genes_groups(adata, groupby, *, ...)   scipy.stats.ttest_ind(a, b, *, ...)
 #   scipy.stats.mannwhitneyu(x, y, *, ...)   pydeseq2.dds.DeseqDataSet(*, counts, metadata, design, ...)
 #   Seurat::FindMarkers(object, ident.1, ...)  <- R, so grouping is bound by NAME only (no positional guess)
@@ -156,7 +156,7 @@ _FINDMARKERS = SinkContract(
                   accepted_kinds=frozenset(), accepted_scales=frozenset(),
                   accepted_units=frozenset({"cell"})),
         # R group semantics differ across ident.1 / group.by / cells.1 — bind the named arg, never guess
-        # a positional slot (adversarial review Q3). No R AST binder yet, so a positional-only call abstains.
+        # a positional slot (Codex Q3). No R AST binder yet, so a positional-only call abstains.
         InputPort(role="grouping", locators=(_kw("ident.1"),), accepted_kinds=frozenset({"labels"}),
                   accepted_units=frozenset({"cell"})),
     ),
@@ -307,14 +307,14 @@ _INFERRED_CONTRACT_IDS = frozenset({
 
 def _module_ok(contract_module: str, module) -> bool:
     # EXACT match (module is already canonicalized by resolve_callee). Suffix matching let
-    # `project.scipy.stats` masquerade as `scipy.stats` (adversarial re-review blocker #4). module=None is the
+    # `project.scipy.stats` masquerade as `scipy.stats` (Codex re-review blocker #4). module=None is the
     # symbol-only path used by direct callers/tests, not by import-resolved binding.
     return module is None or module == contract_module
 
 
 def _version_check(spec: str, version):
     """True = compatible, False = outside spec, None = cannot determine (no packaging / unparseable
-    version). A version we cannot confirm must NOT be treated as compatible (adversarial re-review #7)."""
+    version). A version we cannot confirm must NOT be treated as compatible (Codex re-review #7)."""
     try:
         from packaging.specifiers import InvalidSpecifier, SpecifierSet
         from packaging.version import InvalidVersion, Version
@@ -370,10 +370,10 @@ def resolve_sink_status(symbol, module=None, version=None, arguments=None):
       "argument_mismatch"— the literal argument is outside the verified conditional set;
       "needs_evidence"  — an inferred catalog candidate matched and cannot resolve exactly;
       "unknown_symbol"  — no contract for this symbol/module.
-    Only "exact" may underpin a blocker — an unconfirmed version must not be laundered as exact (adversarial review
+    Only "exact" may underpin a blocker — an unconfirmed version must not be laundered as exact (Codex
     review #5). The reason is returned explicitly rather than inferred from a bare `None`."""
     # case-SENSITIVE identity: Python/R are case-sensitive, so `DESEQDATASET` is not `DeseqDataSet`
-    # (adversarial re-review #7). Lowercasing is only for the candidate-detection net, never for binding.
+    # (Codex re-review #7). Lowercasing is only for the candidate-detection net, never for binding.
     for c in _REGISTRY:
         if c.symbol != str(symbol) or not _module_ok(c.module, module):
             continue

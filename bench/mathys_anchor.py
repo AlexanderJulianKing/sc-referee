@@ -51,14 +51,41 @@ def _pick(cols, cands, env):
 
 
 def _guess_ref_test(values):
-    ref = os.environ.get("MATHYS_REF")
-    test = os.environ.get("MATHYS_TEST")
-    if ref and test:
+    ref = os.environ.get("MATHYS_REF") or None
+    test = os.environ.get("MATHYS_TEST") or None
+    vals = sorted({str(v) for v in values})
+    if len(vals) < 2:
+        raise SystemExit(f"condition column must contain at least two levels; found {vals}")
+    for env, value in (("MATHYS_REF", ref), ("MATHYS_TEST", test)):
+        if value is not None and value not in vals:
+            raise SystemExit(f"{env}={value!r} is not an observed condition level; choose from {vals}")
+    if ref is not None and test is not None:
+        if ref == test:
+            raise SystemExit("MATHYS_REF and MATHYS_TEST must identify different condition levels")
         return ref, test
-    vals = [str(v) for v in values]
+
+    # With more than two levels, choosing the first non-reference value silently changes the disease
+    # estimand when row/category order changes. Require the analyst to name both sides explicitly.
+    if len(vals) != 2:
+        missing = "MATHYS_REF and MATHYS_TEST" if ref is None and test is None else (
+            "MATHYS_TEST" if test is None else "MATHYS_REF")
+        raise SystemExit(
+            f"condition column has {len(vals)} levels {vals}; set {missing} explicitly"
+        )
+    if ref is not None:
+        return ref, next(v for v in vals if v != ref)
+    if test is not None:
+        return next(v for v in vals if v != test), test
+
     ref_like = ("control", "ctrl", "normal", "no_", "nci", "healthy", "non", "false", "0")
-    ref = ref or next((v for v in vals if any(k in v.lower() for k in ref_like)), None)
-    test = test or next((v for v in vals if v != ref), None)
+    references = [v for v in vals if any(k in v.lower() for k in ref_like)]
+    if len(references) != 1:
+        raise SystemExit(
+            f"could not identify one unambiguous reference level from {vals}; "
+            "set MATHYS_REF and MATHYS_TEST explicitly"
+        )
+    ref = references[0]
+    test = next(v for v in vals if v != ref)
     return ref, test
 
 

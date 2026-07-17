@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-from scipy import stats
+from scipy import sparse, stats
 
 from sc_referee.design import subset_mask
 from sc_referee.engine import aggregate_to_pseudobulk
@@ -118,11 +118,13 @@ def recompute_eqtl_sign(bundle, design, *, transform: str) -> EqtlSignResult:
     if obs.columns.duplicated().any():
         return _failure("duplicate_observation_column_labels", transform=transform)
 
-    counts = np.asarray(bundle.measure.counts)
-    if counts.ndim != 2 or counts.shape[0] != len(obs):
+    raw_counts = bundle.measure.counts
+    counts = sparse.csr_matrix(raw_counts) if sparse.issparse(raw_counts) else np.asarray(raw_counts)
+    if getattr(counts, "ndim", 2) != 2 or counts.shape[0] != len(obs):
         return _failure("count_observation_alignment_invalid", transform=transform)
-    if (not np.issubdtype(counts.dtype, np.number) or not np.isfinite(counts).all()
-            or (counts < 0).any() or not np.equal(counts, np.floor(counts)).all()):
+    values = counts.data if sparse.issparse(counts) else counts
+    if (not np.issubdtype(counts.dtype, np.number) or not np.isfinite(values).all()
+            or (values < 0).any() or not np.equal(values, np.floor(values)).all()):
         return _failure("count_matrix_is_not_finite_nonnegative_integers", transform=transform)
     features = list(bundle.measure.feature_index)
     if counts.shape[1] != len(features):

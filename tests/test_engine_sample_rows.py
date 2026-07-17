@@ -3,6 +3,7 @@ import pickle
 
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 
 from sc_referee.engine import aggregate_to_pseudobulk, build_pseudobulk_sample_rows
 from sc_referee.row_ledger import RowsExactBasis
@@ -59,6 +60,24 @@ def test_recompute_and_fitted_audit_share_sample_rows_and_order():
         pb.to_numpy(),
         np.vstack([bundle.measure.counts[pos].sum(axis=0) for pos in rows.group_positions]),
     )
+
+
+def test_sparse_counts_stay_sparse_until_the_sample_level_aggregate():
+    bundle, design = _paired_bundle(), _design()
+    dense = bundle.measure.counts.copy()
+    bundle.measure.counts = sp.csr_matrix(dense)
+
+    pb, meta = aggregate_to_pseudobulk(bundle, design)
+
+    assert sp.isspmatrix_csr(bundle.measure.counts)
+    np.testing.assert_array_equal(
+        pb.to_numpy(),
+        np.vstack([dense[pos].sum(axis=0) for pos in
+                   build_pseudobulk_sample_rows(
+                       bundle.observations, design, recompute_legacy=True
+                   ).group_positions]),
+    )
+    assert len(meta) == len(pb)
 
 
 def test_varying_carried_column_is_inexact_not_first_row_wins():

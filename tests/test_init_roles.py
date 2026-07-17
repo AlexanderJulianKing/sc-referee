@@ -127,13 +127,13 @@ def test_an_unrecognized_reference_is_left_unresolved_not_guessed():
 
 
 # --------------------------------------------------------------------------- #
-# adversarial review Phase-1 review findings (2026-07-08)
+# Codex Phase-1 review findings (2026-07-08)
 # --------------------------------------------------------------------------- #
 def test_explicit_unpaired_pairing_unit_survives_config_load(tmp_path):
     """synthesize_config emits `pairing_unit: []` for an unpaired contrast. config.load_designs did
     `_as_list(c.get("pairing_unit")) or replicate_unit`, so [] (falsy) was clobbered back to the
     replicate — silently flipping an UNPAIRED design to paired, which the `simple` engine would then
-    group as pairs. `[]` must survive. (adversarial review Phase-1 review.)"""
+    group as pairs. `[]` must survive. (Codex Phase-1 review.)"""
     import yaml
     from sc_referee.config import load_designs
 
@@ -167,7 +167,7 @@ def test_absent_pairing_unit_defaults_to_unpaired_not_replicate(tmp_path):
 
 def test_a_hallucinated_column_demotes_to_unresolved(tmp_path):
     """§4.6 / Q1. A model can name a column that does not exist. It must be dropped, flagged
-    `unresolved`, and confidence lowered — never left as a `high`-confidence phantom. (adversarial review.)"""
+    `unresolved`, and confidence lowered — never left as a `high`-confidence phantom. (Codex.)"""
     from sc_referee.init import synthesize_config
 
     obs = _levels_obs({"D1": ["ctrl"], "D2": ["stim"]})       # the real column is `condition`

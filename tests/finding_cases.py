@@ -268,7 +268,7 @@ LITERAL_EMITTER_CLASSIFICATION = {
     **{f"contamination_confound.py:run:NEEDS_EVIDENCE:{i}": "abstention"
        for i in range(1, 6)},
     **{f"allele_orientation.py:evaluate_allele_orientation:NEEDS_EVIDENCE:{i}": "abstention" for i in range(1, 5)},
-    **{f"confounding.py:evaluate_confounding:NEEDS_EVIDENCE:{i}": "abstention" for i in range(1, 10)},
+    **{f"confounding.py:evaluate_confounding:NEEDS_EVIDENCE:{i}": "abstention" for i in range(1, 7)},
     "confounding_random_intercept.py:run:NEEDS_EVIDENCE:1": "abstention",
     **{f"count_model.py:evaluate_count_model:NEEDS_EVIDENCE:{i}": "abstention" for i in range(1, 8)},
     "double_dipping.py:evaluate_double_dipping:INFORMATIONAL:1": "non_defect",
@@ -279,7 +279,9 @@ LITERAL_EMITTER_CLASSIFICATION = {
     "effect_size.py:evaluate_effect_size:INFORMATIONAL:1": "non_defect",
     **{f"experimental_unit.py:evaluate_experimental_unit:NEEDS_EVIDENCE:{i}": "abstention" for i in range(1, 4)},
     **{f"hic_loop_strength.py:evaluate_hic_loop_strength:NEEDS_EVIDENCE:{i}": "abstention" for i in range(1, 6)},
-    **{f"multiple_testing.py:evaluate_multiple_testing:NEEDS_EVIDENCE:{i}": "abstention" for i in range(1, 8)},
+    # Includes the raw- and adjusted-p-value domain gates. Invalid evidence is an abstention that
+    # blocks certification, not a proved scientific violation.
+    **{f"multiple_testing.py:evaluate_multiple_testing:NEEDS_EVIDENCE:{i}": "abstention" for i in range(1, 10)},
     **{f"multiple_testing.py:evaluate_multiple_testing:INFORMATIONAL:{i}": "non_defect" for i in range(1, 3)},
     "pairing.py:evaluate_pairing:NEEDS_EVIDENCE:1": "abstention",
     "pairing.py:evaluate_pairing:NEEDS_EVIDENCE:2": "concern",

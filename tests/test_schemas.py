@@ -27,10 +27,83 @@ def test_config_missing_contrasts_is_rejected(tmp_path):
         validate(bad, "sc_referee.schema.json")
 
 
+@pytest.mark.parametrize(("where", "field"), [
+    ("top", "analysis_typo"),
+    ("design", "replicate_units"),
+    ("contrast", "sample_units"),
+])
+def test_config_rejects_unknown_authority_fields(tmp_path, where, field):
+    build(tmp_path)
+    raw = yaml.safe_load((tmp_path / "sc-referee.yaml").read_text())
+    target = (raw if where == "top" else raw["design"] if where == "design"
+              else raw["contrasts"][0])
+    target[field] = ["donor_id"] if where != "top" else "condition_contrast_DE"
+
+    with pytest.raises(jsonschema.ValidationError, match="Additional properties"):
+        validate(raw, "sc_referee.schema.json")
+
+
+def test_confirmed_design_cannot_load_without_a_nonempty_replicate_unit(tmp_path):
+    cfg = {
+        "analysis_type": "condition_contrast_DE",
+        "confirmed_by_human": True,
+        "design": {"condition": "condition"},
+        "contrasts": [{
+            "name": "stim_vs_ctrl", "reference": "ctrl", "test": "stim",
+            "sample_unit": ["donor_id", "condition"],
+        }],
+    }
+    path = tmp_path / "sc-referee.yaml"
+    path.write_text(yaml.safe_dump(cfg))
+
+    with pytest.raises(ValueError, match="must declare a non-empty replicate_unit"):
+        load_designs(path)
+
+
 def test_report_json_validates(tmp_path):
     build(tmp_path)
     report = json.loads(to_json(run_audit(tmp_path)))
     validate(report, "report.schema.json")
+
+
+@pytest.mark.parametrize("mutation", [
+    lambda report: report.clear(),
+    lambda report: report.update(worst_status="blocker", ci_fails=False, ci_conclusion="pass"),
+    lambda report: report.update(fully_audited=not report["fully_audited"]),
+    lambda report: report.update(unrecognized_authority=True),
+])
+def test_report_schema_rejects_empty_or_contradictory_authority(tmp_path, mutation):
+    build(tmp_path)
+    report = json.loads(to_json(run_audit(tmp_path)))
+    mutation(report)
+
+    with pytest.raises(jsonschema.ValidationError):
+        validate(report, "report.schema.json")
+
+
+def test_report_schema_recomputes_finding_projection_and_coverage(tmp_path):
+    build(tmp_path)
+    report = json.loads(to_json(run_audit(tmp_path)))
+    report["coverage"]["findings"] += 1
+
+    with pytest.raises(jsonschema.ValidationError, match="coverage"):
+        validate(report, "report.schema.json")
+
+
+def test_report_schema_rejects_pass_for_an_unconfirmed_design():
+    from sc_referee.audit import AuditResult
+    from sc_referee.checks.base import Finding
+    from sc_referee import statuses as S
+
+    report = json.loads(to_json(AuditResult(
+        findings=[Finding("proved", S.PASS, "verified")],
+        confirmed_by_human=True,
+    )))
+    validate(report, "report.schema.json")
+    report["confirmed_by_human"] = False
+
+    with pytest.raises(jsonschema.ValidationError, match="ci_fails"):
+        validate(report, "report.schema.json")
 
 
 def test_report_json_is_strict_valid(tmp_path):

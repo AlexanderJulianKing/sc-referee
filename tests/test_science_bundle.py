@@ -106,7 +106,7 @@ def test_claim_extraction_normalizes_unicode_operator(tmp_path):
 
 
 def test_claim_extraction_unicode_le_operator(tmp_path):
-    """adversarial re-review #3: 'q ≤ 0.05' normalizes to 'q <= 0.05' — the operator regex must accept <="""
+    """Codex re-review #3: 'q ≤ 0.05' normalizes to 'q <= 0.05' — the operator regex must accept <="""
     claims = _claims_of(tmp_path, "Cluster markers had q ≤ 0.05.\n")
     assert len(claims) == 1
 

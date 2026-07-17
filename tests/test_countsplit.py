@@ -1,7 +1,7 @@
 """Item 3 (Option A): the count-split / data-thinning primitive, numerically validated.
 
 Verified against the primary sources (Neufeld et al.; the data-thinning JMLR paper) — see
-the research notes. The live double_dipping check stays
+docs/research/countsplitting-implementation-spec.md. The live double_dipping check stays
 STRUCTURAL-only (GPT-5.5 Pro, 2026-07-08); this is the corrected-number ENGINE, proven here and in
 the benchmark, not wired into a per-run verdict.
 

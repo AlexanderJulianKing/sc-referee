@@ -1,5 +1,8 @@
 from dataclasses import replace
 
+import pytest
+from scipy import sparse
+
 # Load the existing check package before fitted_design, matching the application import spine.
 from sc_referee.checks.confounding_strong import ConfoundingStrongCheck  # noqa: F401
 from sc_referee.checks.confounding_random_intercept import ConfoundingRandomInterceptCheck  # noqa: F401
@@ -66,3 +69,12 @@ def test_row_ledger_result_has_no_finding_surface():
     result=reconstruct_row_ledger(source,counts,design,declaration)
     assert set(result.__dataclass_fields__) == {"state","reason","machine_reason","certified_stages","artifact","diagnostic"}
     assert not hasattr(result,"status") and not hasattr(result,"judgment") and not hasattr(result,"proof_grade")
+
+
+@pytest.mark.parametrize("matrix_type", [sparse.csr_matrix, sparse.csc_matrix])
+def test_sparse_counts_reconstruct_the_same_certified_ledger(matrix_type):
+    source,counts,design,declaration=clean_eight_cell_case()
+    dense=reconstruct_row_ledger(source,counts,design,declaration)
+    observed=reconstruct_row_ledger(source,matrix_type(counts),design,declaration)
+    assert observed.state is RowLedgerState.CERTIFIED_ROWS_RATIFIED
+    assert observed.artifact.row_ledger_identity == dense.artifact.row_ledger_identity

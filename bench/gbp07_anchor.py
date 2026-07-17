@@ -2,7 +2,7 @@
 
 CORRECTION (2026-07-11): the diagnosis below — that GB-P07's error is effect-allele orientation — is WRONG.
 The official GeneBench-Pro walkthrough shows GB-P07 has NO orientation step; `g` is used as given and the
-real error is a latent technical-batch confound (see the research notes). This
+real error is a latent technical-batch confound (see docs/research/2026-07-11-gbp07-repro-results.md). This
 anchor still exercises the orientation gate on real data and the gate does return `needs_evidence` here — but
 that firing is ORTHOGONAL to GB-P07's actual failure and NON-DISCRIMINATING (it fires identically on the
 correct -0.60 answer). Keep this only as an orientation-gate smoke test on real data; do NOT cite it as

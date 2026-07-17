@@ -18,6 +18,7 @@ import tempfile
 
 import numpy as np
 import pandas as pd
+from scipy import sparse
 
 from sc_referee.adapters._common import detect_replicate_var, id_type
 from sc_referee.adapters.anndata_adapter import read_anndata
@@ -233,7 +234,8 @@ def assemble(manifest, folder, *, confirming=False) -> Bundle:
     for s, b in read:
         feats = list(b.measure.feature_index)
         col = [feats.index(g) for g in canonical]                 # reorder columns by label
-        mats.append(np.asarray(b.measure.counts)[:, col])
+        counts = b.measure.counts
+        mats.append(counts[:, col] if sparse.issparse(counts) else np.asarray(counts)[:, col])
 
         obs = b.observations.copy()
         for key, value in s.constants.items():
@@ -266,7 +268,8 @@ def assemble(manifest, folder, *, confirming=False) -> Bundle:
                 f"assembled sample set {got} != expected {want} — a shard is missing, duplicated, or "
                 f"mislabeled. Refusing rather than audit a partial or wrong scope.")
 
-    counts = np.vstack(mats)
+    counts = (sparse.vstack(mats, format="csr") if any(sparse.issparse(m) for m in mats)
+              else np.vstack(mats))
     obs_all = pd.concat(obses, axis=0)
 
     # --- global cell-id uniqueness (after namespacing) --------------------------------------------

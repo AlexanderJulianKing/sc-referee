@@ -7,7 +7,7 @@ could disagree about what code exists or which calls are present — a marker ca
 might get no `SinkUse`, or vice versa. So both consume THIS module: the same notebook/magic
 normalization and the same call-site id scheme (`source_index:lineno:col`). A `MarkerTest` and the
 `SinkUse` for the same call carry the same `callsite_id`, which is how the selection-inference check
-later joins a naive p-value to its grouping's taint origin. (adversarial design consult, Q1.)
+later joins a naive p-value to its grouping's taint origin. (Codex SinkUse-design consult, Q1.)
 
 Parsing is AST-only — code is never executed.
 """
@@ -108,7 +108,7 @@ def _module_hint(call: ast.Call):
 def callsite_id(source_index: int, node: ast.AST) -> str:
     """The stable join key for a call. Includes the FULL span, not just the start: in a chained call
     `x.a().b()` the outer and inner Call share (lineno, col_offset), so start-only ids collide and a
-    taint origin could join to the wrong call (adversarial review #4). Both this module and provenance build
+    taint origin could join to the wrong call (Codex review #4). Both this module and provenance build
     ids through THIS function so the two never diverge."""
     return (f"{source_index}:{node.lineno}:{node.col_offset}:"
             f"{getattr(node, 'end_lineno', node.lineno)}:{getattr(node, 'end_col_offset', node.col_offset)}")
@@ -123,7 +123,7 @@ class ParsedSource:
 
 def terminal_symbol(call: ast.Call) -> str:
     """The called symbol in its ORIGINAL case (`DeseqDataSet`, not `deseqdataset`). Case matters for
-    contract identity — Python is case-sensitive, so `DESEQDATASET` is not `DeseqDataSet` (adversarial review #7)."""
+    contract identity — Python is case-sensitive, so `DESEQDATASET` is not `DeseqDataSet` (Codex #7)."""
     f = call.func
     if isinstance(f, ast.Attribute):
         return f.attr
@@ -160,7 +160,7 @@ def parse_sources(sources) -> list:
 def iter_call_sites(parsed) -> list:
     """Every `ast.Call` in every parsed source, each exactly once, with a stable full-span id, in
     (source_index, document) order — `ast.walk` is breadth-first, so we sort by start position to make
-    the documented order true (adversarial review #7)."""
+    the documented order true (Codex review #7)."""
     sites = []
     for ps in parsed:
         if ps.tree is None:
@@ -188,7 +188,7 @@ class SourceEnv:
     """Per-source name environment (imports/shadows are per source, NOT unioned across the bundle — a
     notebook's cells are already flattened into one source, while separate scripts have independent
     namespaces; unioning would let one file's `import ... as stats` bind another file's custom `stats`,
-    adversarial re-review blocker #1)."""
+    Codex re-review blocker #1)."""
     imports: dict                        # local name -> ImportBinding, THIS source only (unambiguous)
     bound: set                           # names bound by a NON-import construct or MULTIPLY imported
     patched: set                         # dotted attr-assignment paths on an imported root (monkey-patch)
@@ -230,7 +230,7 @@ def _collect_bound(tree) -> set:
     covers assignment / for / with-as / walrus / comprehension / aug targets uniformly (no per-statement
     enumeration to fall behind). Plus def/class/lambda names & params, match captures, and
     global/nonlocal declarations. A name both imported and bound here is AMBIGUOUS -> not resolved to a
-    library sink (sound over complete; adversarial re-review #2/#3)."""
+    library sink (sound over complete; Codex re-review #2/#3)."""
     names: set = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
@@ -269,7 +269,7 @@ def _mutation_targets(call, import_locals) -> set:
     target is an imported object or a namespace: `setattr(mod,"n",v)`, `patch.object(mod,attribute="n")`,
     `globals().update(n=v)`, `mod.__dict__.update({"n": v})`. Collects positional string args, keyword
     NAMES, keyword string VALUES, and dict-literal keys — closing the keyword/receiver/`.update()` forms
-    the positional rule alone misses (adversarial re-review round 4-5). Gated so it does not fire on ordinary
+    the positional rule alone misses (Codex re-review round 4-5). Gated so it does not fire on ordinary
     keyword calls."""
     fn = terminal_symbol(call)
     recv = call.func.value if isinstance(call.func, ast.Attribute) else None
@@ -299,7 +299,7 @@ def _mutation_targets(call, import_locals) -> set:
 
 def _collect_patched(tree, import_locals):
     """(patched_paths, patched_attrs, ambiguous_locals). Enumerating patch SYNTAX is unbounded, so use
-    GENERAL rules that collapse the class (adversarial re-review #4):
+    GENERAL rules that collapse the class (Codex re-review #4):
       - any `Attribute` in a Store context (`sc.tl.x = ..`, `for sc.tl.x in ..`, `with cm() as sc.tl.x:`)
         records .attr in patched_attrs and, if rooted at an import, the dotted path in patched_paths;
       - a namespace subscript store (`globals()["stats"]=..`, `sc.tl.__dict__["rgg"]=..`, `vars(m)[k]=..`)

@@ -1,4 +1,4 @@
-"""Trust-chain integrity (adversarial review, Tier 1). The confirm gate must bind the MANIFEST CONTENT
+"""Trust-chain integrity (Codex review, Tier 1). The confirm gate must bind the MANIFEST CONTENT
 and the per-shard FILES it was confirmed against — not just the counts bytes — or a post-confirm edit
 audits a different (possibly inverted) analysis than the human ratified.
 
@@ -125,8 +125,8 @@ def test_write_manifest_round_trips_all_shard_fields(tmp_path):
 
 def test_audit_gate_requires_the_manifest_to_be_confirmed_too(tmp_path):
     """An UNCONFIRMED manifest must not let a blocker FIRE, even if sc-referee.yaml is confirmed —
-    not merely flip the report header. Here condition is aliased with batch (a confounding blocker if
-    fully confirmed); with the manifest unconfirmed, no blocker may appear and CI must not fail."""
+    and must not earn certification. Here condition is aliased with batch (a confounding blocker if
+    fully confirmed); with the manifest unconfirmed, no blocker may appear but CI fails closed."""
     import yaml as y
 
     from sc_referee import statuses as S
@@ -144,7 +144,8 @@ def test_audit_gate_requires_the_manifest_to_be_confirmed_too(tmp_path):
 
     result = run_audit(tmp_path, engine="simple")
     assert result.confirmed_by_human is False
-    assert not result.ci_fails()                             # NO blocker on an unratified layout
+    assert result.ci_fails()                                 # unratified authority cannot certify
+    assert result.ci_conclusion() == "fail"
     assert all(f.status != S.BLOCKER for f in result.findings)
 
 

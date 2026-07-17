@@ -4,7 +4,7 @@ from sc_referee.code_signals import parse_code_signals
 
 
 def test_parse_code_signals_finds_deeply_nested_script(tmp_path):
-    """adversarial-review finding 11: the audit-path scanner only looked one directory deep, so a script under
+    """Codex finding 11: the audit-path scanner only looked one directory deep, so a script under
     scripts/steps/ was invisible -> a false-clean. It must recurse (with sane exclusions)."""
     nested = tmp_path / "scripts" / "steps"
     nested.mkdir(parents=True)

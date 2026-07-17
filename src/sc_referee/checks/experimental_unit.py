@@ -121,7 +121,7 @@ def evaluate_experimental_unit(design: Design, bundle, reported, engine: str = "
 
     # The CONTRAST must also be constant within a sample unit, else aggregation would sum ctrl and
     # stim cells into one pseudobulk sample and label it by whichever cell came first. Abstain
-    # rather than recompute nonsense. (adversarial review 2026-07-08.)
+    # rather than recompute nonsense. (Codex review 2026-07-08.)
     obs = bundle.observations
     contrast_col, _, _ = design.contrast_column_and_levels()
     keys = [c for c in design.sample_unit if c in obs.columns]

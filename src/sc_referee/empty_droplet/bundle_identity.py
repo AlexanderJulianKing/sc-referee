@@ -48,14 +48,18 @@ def _fail(reason: EmptyDropletUnavailableReason, message: str):
     raise EmptyDropletValidationError(reason, message)
 
 
-def _bundle_u64_matrix(bundle) -> np.ndarray:
+def _bundle_u64_matrix(bundle) -> np.ndarray | sparse.csr_matrix:
     if getattr(bundle, "measure", None) is None or bundle.measure.kind != "counts" or bundle.measure.counts is None:
         _fail(EmptyDropletUnavailableReason.FILTERED_LINK_MISMATCH, "Bundle lacks a raw count matrix")
-    array = np.asarray(bundle.measure.counts)
-    if array.ndim != 2 or array.dtype.kind == "b" or not np.issubdtype(array.dtype, np.integer):
+    raw = bundle.measure.counts
+    array = sparse.csr_matrix(raw) if sparse.issparse(raw) else np.asarray(raw)
+    if getattr(array, "ndim", 2) != 2 or array.dtype.kind == "b" or not np.issubdtype(array.dtype, np.integer):
         _fail(EmptyDropletUnavailableReason.NOT_RAW_INTEGER_COUNTS, "Bundle counts are not exact integers")
-    if np.issubdtype(array.dtype, np.signedinteger) and array.size and np.any(array < 0):
+    values = array.data if sparse.issparse(array) else array
+    if np.issubdtype(array.dtype, np.signedinteger) and values.size and np.any(values < 0):
         _fail(EmptyDropletUnavailableReason.NOT_RAW_INTEGER_COUNTS, "Bundle counts are negative")
+    if sparse.issparse(array):
+        return array.astype(np.uint64, copy=True)
     return np.array(array, dtype=np.uint64, order="C", copy=True)
 
 
@@ -132,7 +136,9 @@ def capture_filtered_bundle_identity(
     )
     cells_counts = np.array(source_counts, dtype=np.uint64)
     expected = cells_counts[cell_mapping.astype(np.intp)][:, [feature_positions[f] for f in native_features]]
-    if not np.array_equal(counts, expected):
+    coherent = ((counts != sparse.csr_matrix(expected)).nnz == 0
+                if sparse.issparse(counts) else np.array_equal(counts, expected))
+    if not coherent:
         _fail(EmptyDropletUnavailableReason.FILTERED_LINK_MISMATCH, "Bundle and cells.csv shared gene counts differ")
 
     total_coherence: bool | str = "not_comparable"

@@ -417,7 +417,15 @@ def render_proof_report_html(report: ProofReport, *, external_reference: dict | 
     digest_bits = " ".join(
         f'<span><b>{_e(d.role)}</b> {_e(d.sha256[:4] + "…" + d.sha256[-4:])}</span>'
         for d in report.input_digests if d.available and d.sha256)
-    ci = "did not pass CI" if report.ci_conclusion == S.BLOCKER else "passes CI"
+    ci_phrases = {
+        "fail": "did not pass CI",
+        "neutral": "not certified by CI",
+        "pass": "passes CI",
+    }
+    try:
+        ci = ci_phrases[report.ci_conclusion]
+    except KeyError as error:
+        raise ValueError(f"unknown proof-report CI conclusion {report.ci_conclusion!r}") from error
     cert_line = {
         "PROVED_VIOLATION": "The referee recomputed the correct procedure and the claim did not survive it.",
         "PROVED_DEFECT": "The referee recomputed the correct procedure and the claim did not survive it.",

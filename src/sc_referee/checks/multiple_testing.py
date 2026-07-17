@@ -5,7 +5,7 @@ p-values, apply Benjamini-Hochberg, and count how many of the claimed discoverie
 The verdict is arithmetic on numbers the analyst themselves published.
 
 BH is ALWAYS recomputed. An earlier version returned `pass` the moment `padj` differed from
-`pvalue`, which let a fabricated adjustment (`p=0.04`, `padj=0.001`) sail through. (adversarial review 2026-07-08.)
+`pvalue`, which let a fabricated adjustment (`p=0.04`, `padj=0.001`) sail through. (Codex 2026-07-08.)
 
 Adjusted values below raw p-values are not universally impossible: Storey q-values may legitimately
 be smaller. Adverse conclusions are therefore restricted to an exact confirmed BH/FDR contract over
@@ -75,24 +75,50 @@ def evaluate_multiple_testing(reported, design: Design, alpha: float = 0.05) -> 
         return _f(S.NEEDS_EVIDENCE, "no reported result found to check against", coverage=S.NOT_RUN)
 
     p, padj = _cols(reported)
-    if p.size == 0 or not np.isfinite(p).any():
+    if p.size == 0:
         return _f(S.NEEDS_EVIDENCE,
                   "your results table has no raw p-values, so I can't recompute the multiple-testing "
                   "correction that controls false discoveries. Include the raw (uncorrected) p-value "
-                  "for each gene.", coverage=S.NOT_RUN)
+                  "for every tested feature.", coverage=S.NOT_RUN)
 
-    finite = np.isfinite(p)
+    valid_p = np.isfinite(p) & (p >= 0.0) & (p <= 1.0)
+    if not valid_p.all():
+        invalid = np.flatnonzero(~valid_p)
+        return _f(
+            S.NEEDS_EVIDENCE,
+            f"{len(invalid)} raw p-value{'s are' if len(invalid) != 1 else ' is'} missing or "
+            "outside the valid [0, 1] interval. I did not drop invalid rows or certify a "
+            "multiple-testing correction over a partial family.",
+            coverage=S.NOT_RUN,
+            family_size=int(p.size), invalid_raw_p_values=int(len(invalid)),
+            invalid_raw_pvalue_rows=invalid.tolist(),
+        )
+
+    has_adjusted_column = "padj" in reported.columns
+    if has_adjusted_column:
+        valid_padj = np.isfinite(padj) & (padj >= 0.0) & (padj <= 1.0)
+        if not valid_padj.all():
+            invalid = np.flatnonzero(~valid_padj)
+            return _f(
+                S.NEEDS_EVIDENCE,
+                f"{len(invalid)} adjusted p-value{'s are' if len(invalid) != 1 else ' is'} missing "
+                "or outside the valid [0, 1] interval. I did not substitute raw p-values for "
+                "invalid adjusted decisions or certify a partial adjustment.",
+                coverage=S.NOT_RUN,
+                family_size=int(p.size), invalid_adjusted_p_values=int(len(invalid)),
+                invalid_adjusted_pvalue_rows=invalid.tolist(),
+            )
+
     # The analyst's OWN significance calls: whatever they put in `padj`, else the raw p.
-    called = np.where(np.isfinite(padj), padj, p)
-    claimed_mask = finite & (called <= alpha)
+    called = padj if has_adjusted_column else p
+    claimed_mask = called <= alpha
     n_claimed = int(claimed_mask.sum())
-    family = int(finite.sum())
+    family = int(p.size)
 
-    bh = np.ones_like(p)
-    bh[finite] = multipletests(p[finite], method="fdr_bh")[1]
-    both = np.isfinite(p) & np.isfinite(padj)
+    bh = multipletests(p, method="fdr_bh")[1]
+    both = np.ones(p.shape, dtype=bool) if has_adjusted_column else np.zeros(p.shape, dtype=bool)
     adjustment_reproduced = bool(
-        both.any() and np.allclose(padj[both], bh[both], rtol=_TOL, atol=1e-12)
+        has_adjusted_column and np.allclose(padj, bh, rtol=_TOL, atol=1e-12)
     )
     if n_claimed == 0:
         if both.any() and not (bh_fdr_contract and adjustment_reproduced):
@@ -110,10 +136,10 @@ def evaluate_multiple_testing(reported, design: Design, alpha: float = 0.05) -> 
                   adjustment_reproduced=adjustment_reproduced)
     if n_claimed == family:
         return _f(S.NEEDS_EVIDENCE,
-                  "every gene in your results table is marked significant — which usually means the "
-                  "table holds only the hits, not the full set of genes that were tested. Multiple-"
+                  "every feature in your results table is marked significant — which usually means the "
+                  "table holds only the hits, not the full set of features that were tested. Multiple-"
                   "testing correction needs the complete tested set to work, so I couldn't recompute "
-                  "it. Provide the full results (every gene tested, not just the significant ones).",
+                  "it. Provide the full results (every feature tested, not just the significant ones).",
                   coverage=S.NOT_RUN, claimed=n_claimed, family_size=family)
 
     survivors = int((claimed_mask & (bh <= alpha)).sum())
@@ -191,27 +217,33 @@ def evaluate_multiple_testing(reported, design: Design, alpha: float = 0.05) -> 
 
 
 class MultipleTestingCheck:
-    """Reads only `bundle.reported_results`. (Trivially generalizes to marker_detection /
-    differential_abundance; scoped to the confirmed contrast type for now.)"""
+    """Reads only `bundle.reported_results`; BH arithmetic is outcome-type independent."""
 
     id = CHECK_ID
-    analysis_types = ("condition_contrast_DE",)
+    analysis_types = ("condition_contrast_DE", "differential_abundance")
     audit_dimensions = ("inclusion_set", "calibration")
     proof_basis = "independent recompute"
     contract_fields = ("condition", "reference", "test", "name", "multiplicity_contract")
     # DOES earn a blocker: a confirmed analysis that reported UNCORRECTED p-values whose claims do
     # not survive a recomputed BH (≤10%) is overwhelmingly false positives. Engine-independent — BH
     # is recomputed here, not via the DE engine. (A less-conservative but valid correction, e.g.
-    # Storey q ≤ BH, is never accused; that path returns informational.) adversarial Phase-2 review caught
+    # Storey q ≤ BH, is never accused; that path returns informational.) Codex Phase-2 review caught
     # a mislabel here: max_status=major would have CLAMPED that legitimate blocker to major.
     max_status = S.BLOCKER
 
     def applies_to(self, design: Design, bundle) -> bool:
-        return (design.analysis_type in self.analysis_types
-                and bundle is not None and bundle.reported_results is not None)
+        # Evidence availability is not applicability.  A DE/DA analysis has a family-level
+        # multiplicity obligation even when its reported table is absent; routing that absence
+        # through cannot_evaluate prevents a silent coverage hole.
+        return design.analysis_type in self.analysis_types
 
     def cannot_evaluate(self, design: Design, bundle):
-        return None   # needs only the reported table; absence is handled by applies_to
+        if design.analysis_type not in self.analysis_types:
+            return None
+        if bundle is None or bundle.reported_results is None:
+            return ("multiple_testing could not evaluate the declared analysis because no reported "
+                    "results table was available; missing evidence is not a clean result.")
+        return None
 
     def run(self, design: Design, bundle, reported=None) -> Finding:
         return evaluate_multiple_testing(reported if reported is not None else bundle.reported_results, design)

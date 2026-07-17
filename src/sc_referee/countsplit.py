@@ -3,7 +3,7 @@
 Splits a raw count matrix into two independent folds so latent-variable estimation (e.g. clustering)
 can be done on one fold and inference on the other, without the circularity of double dipping.
 Verified against the primary sources (Neufeld et al.; the data-thinning JMLR paper) — see
-the research notes.
+docs/research/countsplitting-implementation-spec.md.
 
 This is the ENGINE only. Per GPT-5.5 Pro (2026-07-08) the live `double_dipping` check stays
 STRUCTURAL-only; a per-run survival number is a footgun (users over-trust it, and low survival ≠

@@ -358,17 +358,15 @@ class ContaminationConfoundCheck:
         if certificate.state is CertificationState.CERTIFIED:
             return _finding(
                 S.PASS,
-                "You confirmed that the specified basis measures pre-exposure contamination and "
-                "that this analysis should adjust for it. Referee verified that the fitted model "
-                "includes that basis.",
+                "Conditional on both identified ratified premises, the actual fitted nuisance "
+                "design contains the exact required contamination basis.",
                 metrics, applicability=S.APPLIES, coverage=S.COMPLETE,
                 judgment=S.CONFORMANT, conditional_on=marker,
             )
         return _finding(
             S.MAJOR,
-            "You confirmed that the specified basis measures pre-exposure contamination and that "
-            "this analysis should adjust for it. Referee verified that the fitted model does not "
-            "include that basis.",
+            "Conditional on both identified ratified premises, the fitted model does not contain "
+            "the exact contamination axis ratified as required.",
             metrics, applicability=S.APPLIES, coverage=S.COMPLETE,
             judgment=S.VIOLATION, conditional_on=marker,
         )

@@ -2,6 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "sc-referee confirmed config (sc-referee.yaml)",
   "type": "object",
+  "additionalProperties": false,
   "definitions": {
     "rowLedgerScalar": {
       "oneOf": [
@@ -102,10 +103,11 @@
     "plain_summary": { "type": "string" },
     "design": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "condition": { "type": "string" },
-        "replicate_unit": { "type": "array", "items": { "type": "string" } },
-        "batch": { "type": "array", "items": { "type": "string" } }
+        "replicate_unit": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "batch": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
       }
     },
     "contrasts": {
@@ -113,6 +115,7 @@
       "minItems": 1,
       "items": {
         "type": "object",
+        "additionalProperties": false,
         "required": ["name", "sample_unit"],
         "properties": {
           "name": { "type": "string" },
@@ -124,10 +127,10 @@
             ]
           },
           "subset": { "type": ["object", "null"] },
-          "replicate_unit": { "type": "array", "items": { "type": "string" } },
-          "sample_unit": { "type": "array", "items": { "type": "string" } },
-          "pairing_unit": { "type": "array", "items": { "type": "string" } },
-          "aggregation_key": { "type": "array", "items": { "type": "string" } },
+          "replicate_unit": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+          "sample_unit": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+          "pairing_unit": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+          "aggregation_key": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
           "row_ledger": {
             "type": "object", "additionalProperties": false,
             "required": ["schema_version", "source_snapshot_identity", "count_layer_identity", "source_occurrence_id_columns", "fitted_source_occurrence_ids", "operations", "evaluation_relation", "evaluation_relation_confidence", "fitted_result_id", "target_coefficient", "field_confidence"],
@@ -192,6 +195,7 @@
             "type": ["array", "null"],
             "items": { "type": "string" }
           },
+          "unit_of_test": { "type": ["string", "null"], "enum": ["cell", "sample", null] },
           "estimand_id": { "type": "string", "minLength": 1 },
           "csp_contracts": {
             "type": "array",
@@ -311,7 +315,7 @@
                   "type": "object", "additionalProperties": false,
                   "required": ["functional", "reported_scalar_id", "target_population_id", "census_stratum_columns", "evaluation_stratum_columns", "stratum_levels", "stratum_ledger_identity", "census_artifact_identity", "census_count_ledger_identity", "census_total_n", "census_stratum_counts", "weight_vector_identity", "weight_vector", "support_policy"],
                   "properties": {
-                    "functional": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "functional" }, "value": { "enum": ["population_average", null] }, "selected_teach_back_id": { "enum": ["population_average_exact_census", null] } } }] },
+                    "functional": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "functional" }, "value": { "enum": ["population_average", null] }, "selected_teach_back_id": { "enum": ["population_average_exact_census", "across_population", null] } } }] },
                     "reported_scalar_id": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "reported_scalar_id" }, "value": { "anyOf": [{ "type": "null" }, { "type": "string", "pattern": "^(?=.+[:#]).+$" }] }, "selected_teach_back_id": { "enum": ["confirm_reported_scalar_id", null] } } }] },
                     "target_population_id": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "target_population_id" }, "value": { "anyOf": [{ "type": "null" }, { "type": "string", "pattern": "^(?!across the population$).+:.+$" }] }, "selected_teach_back_id": { "enum": ["confirm_target_population_id", null] } } }] },
                     "census_stratum_columns": { "allOf": [{ "$ref": "#/definitions/cspTargetFieldRecord" }, { "properties": { "field_id": { "const": "census_stratum_columns" }, "value": { "anyOf": [{ "type": "null" }, { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }] }, "selected_teach_back_id": { "enum": ["confirm_census_stratum_columns", null] } } }] },
@@ -511,6 +515,7 @@
     },
     "reported_results": {
       "type": ["object", "null"],
+      "additionalProperties": false,
       "properties": {
         "path": { "type": "string" },
         "gene_col": { "type": "string" },
@@ -524,6 +529,7 @@
       "uniqueItems": true,
       "items": {
         "type": "object",
+        "additionalProperties": false,
         "required": ["path"],
         "properties": {
           "name": { "type": "string" },
@@ -541,8 +547,25 @@
         }
       }
     },
+    "batch_modeling": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "csp_proposals": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "external_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "label": { "type": "string" },
+        "body": { "type": "string" }
+      }
+    },
     "confidence": {
       "type": "object",
+      "additionalProperties": { "enum": ["high", "low"] },
       "properties": {
         "replicate_unit": { "enum": ["high", "low"] },
         "condition": { "enum": ["high", "low"] },

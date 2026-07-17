@@ -210,7 +210,7 @@ def test_complete_alias_is_still_an_unarguable_blocker():
 
 
 # --------------------------------------------------------------------------- #
-# patsy wrappers: `~ C(run) + condition` DOES adjust for run (adversarial review 2026-07-08)
+# patsy wrappers: `~ C(run) + condition` DOES adjust for run (Codex 2026-07-08)
 # --------------------------------------------------------------------------- #
 def test_patsy_wrapped_covariate_counts_as_adjusted():
     """A correctly-adjusted model must not be reported as omitting the batch."""

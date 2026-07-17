@@ -1,4 +1,5 @@
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 import yaml
@@ -108,3 +109,13 @@ def test_field_values_and_page_level_authority_are_closed(tmp_path):
         path.write_text(yaml.safe_dump(raw))
         with pytest.raises(ValueError, match="schema validation"):
             load_designs(path)
+
+
+def test_coverage_boundary_documents_trusted_csp_config():
+    text = Path("docs/coverage-boundary.md").read_text().lower()
+    assert "## trust boundary" in text
+    assert "trusted analyst assertion" in text
+    assert "wizard is the intended authoring" in text
+    assert "auditable" in text and "cryptographically prove" in text
+    assert "no provenance token" in text
+    assert "partial-r2-decision-v2" in text

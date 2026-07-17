@@ -36,26 +36,3 @@ def _public(value):
 def public_bytes(value) -> bytes:
     return json.dumps(_public(value), sort_keys=True, separators=(",", ":"),
                       ensure_ascii=False, allow_nan=False).encode("utf-8")
-
-
-def _normalize_sub_epsilon(value, atol=1e-12):
-    """Canonicalize BLAS-level float noise before cross-platform oracle comparison."""
-    if isinstance(value, dict):
-        return {key: _normalize_sub_epsilon(item, atol) for key, item in value.items()}
-    if isinstance(value, list):
-        return [_normalize_sub_epsilon(item, atol) for item in value]
-    if isinstance(value, float) and math.isfinite(value):
-        if abs(value) <= atol:
-            return 0.0
-        return round(value, 12)
-    return value
-
-
-def normalized_public_bytes(value) -> bytes:
-    return json.dumps(_normalize_sub_epsilon(_public(value)), sort_keys=True, separators=(",", ":"),
-                      ensure_ascii=False, allow_nan=False).encode("utf-8")
-
-
-def normalized_public_json(value: str) -> str:
-    return json.dumps(_normalize_sub_epsilon(json.loads(value)), sort_keys=True, separators=(",", ":"),
-                      ensure_ascii=False, allow_nan=False)

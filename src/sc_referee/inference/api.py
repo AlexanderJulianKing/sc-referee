@@ -25,9 +25,9 @@ class ArtifactManifest:
     artifacts: tuple[object, ...] = ()
 
 
-@dataclass(frozen=True)
-class ClaimManifest:
-    claims: tuple[object, ...] = ()
+# Backward-compatible public spelling.  There is one accepted manifest representation; keeping a
+# second lookalike dataclass caused non-empty caller input to be silently discarded.
+ClaimManifest = StructuredClaimManifest
 
 
 @dataclass(frozen=True)
@@ -44,7 +44,7 @@ class DependencyBindings:
 class AnalysisRequest:
     sources: tuple[str | SourceUnit, ...]
     artifacts: ArtifactManifest = field(default_factory=ArtifactManifest)
-    claims: ClaimManifest | None = None
+    claims: StructuredClaimManifest | None = None
     config: PinnedConfig = field(default_factory=PinnedConfig)
     dependency_bindings: DependencyBindings = field(default_factory=DependencyBindings)
     ratified_facts: tuple[object, ...] = ()
@@ -83,15 +83,17 @@ def analyze(request: AnalysisRequest | tuple[str, ...] | list[str]) -> AnalysisS
     """Build a static snapshot; Increment 9 policy routing evaluates this snapshot separately."""
     if not isinstance(request, AnalysisRequest):
         request = AnalysisRequest(tuple(request))
+    if request.claims is not None and not isinstance(request.claims, StructuredClaimManifest):
+        raise TypeError(
+            "AnalysisRequest.claims must be a StructuredClaimManifest (ClaimManifest is an alias)"
+        )
     sources = adapt_sources(request.sources)
     program = lower(tuple(lower_python(unit) if unit.language == "python" else lower_r(unit)
                           for unit in sources))
     validate_program(program)
     states = interpret(program)
     dependence = build_dependence(program)
-    claim_inventory = (inventory_claims(request.claims, (), egress_complete=False)
-                       if isinstance(request.claims, StructuredClaimManifest)
-                       else inventory_claims(None, (), egress_complete=False))
+    claim_inventory = inventory_claims(request.claims, (), egress_complete=False)
     claim_slices = {claim.claim_id: slice_claim(dependence, claim)
                     for claim in claim_inventory.claims}
     call_effects_complete = not any(effect.unknown_effects for state in states.values()

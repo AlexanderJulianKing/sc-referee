@@ -13,6 +13,7 @@ from typing import Mapping
 
 import numpy as np
 import pandas as pd
+from scipy import sparse
 
 from sc_referee.row_ledger_digest import ledger_digest
 
@@ -441,7 +442,8 @@ def _compare(value, threshold, comparison):
 
 def replay_source_operations(source, counts, design, declaration):
     if not isinstance(source, pd.DataFrame): raise _LedgerIssue("source_binding_unavailable")
-    if len(source) != len(counts): raise _LedgerIssue("source_count_length_mismatch")
+    count_rows = counts.shape[0] if sparse.issparse(counts) else len(counts)
+    if len(source) != count_rows: raise _LedgerIssue("source_count_length_mismatch")
     ids = _identity_rows(source, declaration)
     agg = next((op for op in declaration.operations if isinstance(op, AggregationOperation)), None)
     unit_columns = () if agg is None else agg.key_columns
@@ -491,8 +493,13 @@ def replay_source_operations(source, counts, design, declaration):
 
 
 def aggregate_positions(counts, group_positions):
-    matrix = np.asarray(counts)
-    return np.asarray([matrix[np.asarray(pos, dtype=int)].sum(axis=0) for pos in group_positions])
+    matrix = sparse.csr_matrix(counts) if sparse.issparse(counts) else np.asarray(counts)
+    if sparse.issparse(matrix):
+        rows = [sparse.csr_matrix(matrix[np.asarray(pos, dtype=int)].sum(axis=0))
+                for pos in group_positions]
+        return sparse.vstack(rows, format="csr") if rows else sparse.csr_matrix((0, matrix.shape[1]))
+    rows = [matrix[np.asarray(pos, dtype=int)].sum(axis=0) for pos in group_positions]
+    return np.asarray(rows)
 
 
 def _make_artifact(replay, grouped, aggregated, declaration, required_stages):
@@ -504,7 +511,7 @@ def _make_artifact(replay, grouped, aggregated, declaration, required_stages):
         ordinal = ordinals.get(key, 0); ordinals[key] = ordinal + 1
         derived_id = key + (TypedScalar.from_value(ordinal),)
         derived.append(derived_id)
-        if zero_op is not None and np.asarray(aggregated[group_pos]).sum() == 0:
+        if zero_op is not None and aggregated[group_pos].sum() == 0:
             exclusions.append(TerminalExclusion(Stage.FIT, zero_op.operation_id,
                 TerminalReason.ZERO_COUNT_ROW, derived_id,
                 (("policy", zero_op.policy), ("count_layer_identity", zero_op.count_layer_identity)), (agg_op.operation_id,)))
@@ -591,11 +598,12 @@ def reconstruct_row_ledger(source, counts, design, declaration=None, *, required
     try:
         if counts is None:
             return _not("zero_count_semantics_unavailable" if zero is not None else "source_binding_unavailable")
-        matrix=np.asarray(counts)
-        if matrix.ndim != 2 or len(matrix) != len(source):
+        matrix=sparse.csr_matrix(counts) if sparse.issparse(counts) else np.asarray(counts)
+        if getattr(matrix, "ndim", 2) != 2 or matrix.shape[0] != len(source):
             return _not("source_count_length_mismatch")
+        values = matrix.data if sparse.issparse(matrix) else matrix
         if zero is not None and (not np.issubdtype(matrix.dtype,np.number)
-                                 or not np.isfinite(matrix).all() or (matrix < 0).any()):
+                                 or not np.isfinite(values).all() or (values < 0).any()):
             return _not("zero_count_semantics_unavailable")
         replay=replay_source_operations(source,matrix,design,declaration)
         if replay.survivor_ids != declaration.fitted_source_occurrence_ids:

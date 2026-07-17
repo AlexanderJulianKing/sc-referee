@@ -1,0 +1,85 @@
+analysis_type: condition_contrast_DE
+type_confidence: high
+type_evidence:
+- human ratified the setup form
+plain_summary: The experimental design was reviewed and confirmed by a person.
+design:
+  replicate_unit:
+  - patient
+  condition: organ
+  batch: []
+contrasts:
+- name: Brain_vs_Peripheral
+  reference: Peripheral
+  test: Brain
+  replicate_unit:
+  - patient
+  sample_unit:
+  - patient
+  - organ
+  pairing_unit: []
+  model: ~ organ
+  analyst_adjusted_for: []
+  target_coefficient: organ[T.Brain]
+  estimand_id: condition-effect/v1
+  fitted_design:
+    rows_exact: true
+    operator_kind: random_intercept_only
+    intercept: true
+    column_kinds:
+      organ: categorical
+      patient: categorical
+    categorical_levels:
+      organ:
+      - Brain
+      - Peripheral
+      patient:
+      - MBM05_sn
+      - MBM06_sn
+      - MBM07_sn
+      - MBM08_sn
+      - MBM09_sn
+      - MBM10_sn
+      - MBM11_sn
+      - MBM12_sn
+      - MBM13_sn
+      - MBM14_sn
+      - MBM15_sn
+      - MBM16_sn
+      - MBM17_sn
+      - MBM18_sn
+      - MBM19_sn
+      - MBM20_sn
+      - MBM21_sn
+      - MPM01_sn
+      - MPM02_sn
+      - MPM04_sn
+      - MPM05_sn
+      - MPM06_sn
+      - MPM07_sn
+      - MPM08_sn
+      - MPM09_sn
+      - MPM10_sn
+      - MPM11_sn
+    transforms:
+      organ: identity
+      patient: identity
+    batch_modeling: {}
+reported_results:
+  path: results/original_table_s3_snrna.csv
+  gene_col: gene
+  padj_col: p_val_adj
+  unit_of_test: cell
+confidence:
+  condition: high
+  replicate_unit: high
+  reference: high
+  unit_of_test: high
+  batch: high
+  analyst_adjusted_for: high
+  aggregation_key: low
+  fitted_design: low
+unresolved: []
+batch_modeling: []
+csp_proposals: []
+confirmed_by_human: true

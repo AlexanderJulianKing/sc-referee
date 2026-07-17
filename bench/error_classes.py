@@ -5,7 +5,7 @@ clean analysis and a family of analyses each carrying exactly one named defect. 
 should pass the clean one and flag each defect — and where it cannot, we learn what to build.
 
 Error classes are drawn from what reasoning-era models actually do wrong
-(see the research notes), not from intuition.
+(see docs/research/llm-error-profile.md), not from intuition.
 """
 from __future__ import annotations
 

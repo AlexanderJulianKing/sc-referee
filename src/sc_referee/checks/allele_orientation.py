@@ -35,21 +35,6 @@ def _missing_contract_facts(design):
     return missing
 
 
-def _missing_contract_labels(missing):
-    labels = {
-        "variant_id": "variant ID",
-        "genotype_column": "genotype column",
-        "target_feature": "target feature",
-        "effect_allele": "effect allele",
-        "variant_alleles": "variant alleles",
-        "dosage_ploidy": "ploidy",
-        "eqtl_estimator": "estimator",
-        "eqtl_outcome_scale": "outcome scale",
-        "orientation_footprint": "allele-orientation metadata",
-    }
-    return ", ".join(labels.get(name, name.replace("_", " ")) for name in missing)
-
-
 def _supported_model_contract(design):
     """The MVP is an unadjusted OLS-with-intercept slope. None means that exact declared default;
     when a formula is supplied, accept only the literal one-predictor equivalent. Over-abstention is
@@ -117,9 +102,10 @@ def evaluate_allele_orientation(design, bundle, reported=None):
     if missing:
         return _f(
             S.NEEDS_EVIDENCE,
-            f"Referee cannot certify whether {_effect_phrase(design, reported, bundle)} points up or "
-            "down because the folder does not establish which allele the genotype dosage counts. "
-            f"Add the missing {_missing_contract_labels(missing)}, then run the review again.",
+            f"I can't certify the direction of {_effect_phrase(design, reported, bundle)}: whether it "
+            "goes up or down depends entirely on which allele the genotype dosage is counting, and that "
+            f"bookkeeping isn't pinned down yet (missing: {', '.join(missing)}). Tell me which allele "
+            "the dosage counts (and confirm the design), then re-run.",
             coverage=S.NOT_RUN, unresolved_contract=missing, **_orientation_diagnostics(bundle, design),
         )
 

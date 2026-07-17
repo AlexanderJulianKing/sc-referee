@@ -27,6 +27,18 @@ def test_scanpy_edger_deseq2_still_bind():
     assert synonyms.bind_columns(["gene", "pvalue", "padj", "log2FoldChange"])["padj"] == "padj"  # DESeq2
 
 
+def test_ingest_preserves_absent_adjusted_column_as_absent(tmp_path):
+    from sc_referee.ingest import _load_reported
+
+    path = tmp_path / "uncorrected.csv"
+    path.write_text("gene,pvalue,log2FoldChange\ng1,0.01,1.2\ng2,0.5,0.0\n")
+
+    reported = _load_reported(path)
+
+    assert "pvalue" in reported.columns
+    assert "padj" not in reported.columns
+
+
 def test_a_column_named_replicate_is_detected_as_the_replicate_var():
     """Dogfooding surfaced this: a column literally named `replicate` (the scverse Kang schema) was
     not a replicate token, so bundle.replicate_var came back None and experimental_unit could not run."""

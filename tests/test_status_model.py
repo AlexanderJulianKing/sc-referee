@@ -94,7 +94,7 @@ def test_human_axes_do_not_change_any_gating_result():
     assert classified.ci_fails() == legacy.ci_fails() is True
     assert classified.ci_conclusion() == legacy.ci_conclusion() == "fail"
     assert classified.fully_audited() == legacy.fully_audited() is False
-    assert S.FAIL_ON_DEFAULT == (S.BLOCKER,)
+    assert S.FAIL_ON_DEFAULT == (S.BLOCKER, S.MAJOR, S.NEEDS_EVIDENCE, S.NOT_AUDITED)
 
 
 def test_json_exposes_axes_human_state_and_legacy_status_while_coverage_counts_human_states():

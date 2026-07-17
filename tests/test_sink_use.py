@@ -6,7 +6,7 @@ via the import table — a user's own `def ttest_ind` never binds to scipy, and 
 still resolves. v1 is STRUCTURAL — it does NOT infer assay scale/unit; the one value fact it fills is
 the grouping port's ORIGIN, reused from the already-approved provenance taint. Unknown calls produce no
 SinkUse; a **kwargs splat makes a port `unsupported`, never a false `missing`; a parse failure becomes a
-diagnostic, never a silent drop. (adversarial review SinkUse-design + review.)
+diagnostic, never a silent drop. (Codex SinkUse-design + review.)
 """
 
 
@@ -90,7 +90,7 @@ def test_grouping_origin_reuses_provenance_taint():
 
 def test_same_param_positional_and_keyword_is_invalid_not_bound():
     # ttest_ind(x, y, a=z): `a` is given both positionally (arg0) and by keyword -> a TypeError call,
-    # never a correct analysis. Report invalid_call, don't silently pick one (adversarial review #8).
+    # never a correct analysis. Report invalid_call, don't silently pick one (Codex review #8).
     from sc_referee.sink_use import bind_sinks
     src = "import scipy.stats as st\nst.ttest_ind(x, y, a=z)\n"
     u = bind_sinks([src]).uses[0]
@@ -107,7 +107,7 @@ def test_dynamic_groupby_origin_is_unknown():
 
 def test_imports_are_per_source_not_unioned():
     # source 1 rebinding the name `sc` to a different package must NOT corrupt source 0's real sink,
-    # and must not let source 1's `sc` resolve to scanpy (adversarial re-review blocker #1).
+    # and must not let source 1's `sc` resolve to scanpy (Codex re-review blocker #1).
     from sc_referee.sink_use import bind_sinks
     s0 = "import scanpy as sc\nsc.tl.rank_genes_groups(adata, 'leiden')\n"
     s1 = "import my_pipeline as sc\nsc.run()\n"
@@ -117,14 +117,14 @@ def test_imports_are_per_source_not_unioned():
 
 
 def test_lookalike_module_does_not_masquerade_as_scipy():
-    # `project.scipy.stats` must not match the scipy.stats contract via suffix (adversarial re-review #4)
+    # `project.scipy.stats` must not match the scipy.stats contract via suffix (Codex re-review #4)
     from sc_referee.sink_use import bind_sinks
     src = "import project.scipy.stats as stats\nstats.ttest_ind(a, b)\n"
     assert not [u for u in bind_sinks([src]).uses if u.symbol.lower() == "ttest_ind"]
 
 
 def test_star_imported_sink_becomes_a_review_candidate():
-    # `from scipy.stats import *` then `ttest_ind(...)` must not silently vanish (adversarial re-review #6)
+    # `from scipy.stats import *` then `ttest_ind(...)` must not silently vanish (Codex re-review #6)
     from sc_referee.sink_use import bind_sinks
     res = bind_sinks(["from scipy.stats import *\nttest_ind(a, b)\n"])
     assert res.uses == []
@@ -134,7 +134,7 @@ def test_star_imported_sink_becomes_a_review_candidate():
 
 def test_multiple_imports_under_one_name_abstain_and_diagnose():
     # try/except-style re-import: `stats` bound to two different packages -> ambiguous -> never bound as
-    # scipy, but surfaced (adversarial re-review #2 wrong-contract).
+    # scipy, but surfaced (Codex re-review #2 wrong-contract).
     from sc_referee.sink_use import bind_sinks
     src = ("import project.custom_stats as stats\nstats.ttest_ind(a, b)\nimport scipy.stats as stats\n")
     res = bind_sinks([src])
@@ -194,7 +194,7 @@ def test_uppercase_sink_symbol_does_not_bind_but_is_flagged():
 
 
 def test_exotic_monkeypatch_forms_never_bind_the_naive_contract():
-    # adversarial-review round-4: for/with attribute targets, globals()[], setattr-alias, patch.object all patch the
+    # Codex round-4: for/with attribute targets, globals()[], setattr-alias, patch.object all patch the
     # sink but slipped past syntax-specific detection. The ctx=Store + (imported-obj,"str") rules close
     # the class. Every one must yield NO SinkUse (over-abstention is fine; a wrong contract is not).
     from sc_referee.sink_use import bind_sinks
@@ -229,7 +229,7 @@ def test_clean_analysis_still_resolves_no_over_abstain_regression():
 
 
 def test_call_based_namespace_mutations_never_bind_the_naive_contract():
-    # adversarial-review round-5: .update()/keyword/receiver mutation forms bypassed the positional patch rule.
+    # Codex round-5: .update()/keyword/receiver mutation forms bypassed the positional patch rule.
     from sc_referee.sink_use import bind_sinks
     cases = [
         "import scipy.stats as stats\nglobals().update(stats=custom)\nstats.ttest_ind(a, b)\n",

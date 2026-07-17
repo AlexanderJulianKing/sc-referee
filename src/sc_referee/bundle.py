@@ -10,6 +10,7 @@ from typing import Literal, Optional
 
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 
 
 @dataclass
@@ -17,7 +18,7 @@ class Measure:
     # "counts" = raw integer UMIs (recompute-able); "proportions" = EIP path;
     # "normalized" = a non-integer matrix (log/CPM/…) — recorded so count checks abstain, not refuse.
     kind: Literal["counts", "proportions", "normalized"]
-    counts: Optional[np.ndarray]  # cells × features RAW ints; None on the EIP + normalized paths
+    counts: Optional[np.ndarray | sp.spmatrix]  # cells × features RAW ints; sparse stays sparse
     long: Optional[pd.DataFrame]  # EIP: [cell_id, feature_id, inclusion_counts, exclusion_counts]
     feature_index: list  # feature ids; order == counts columns
 
