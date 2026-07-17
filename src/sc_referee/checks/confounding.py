@@ -346,7 +346,7 @@ def evaluate_confounding(observations: pd.DataFrame, design: Design) -> Finding:
                    r2=_canon(r2), vif=_canon(vif),
                    leakage={k: _canon(v) for k, v in leakage.items()},
                    max_leakage=_canon(max_leak),
-                   omitted_partial_r2=round(omitted_r2, 6),
+                   omitted_partial_r2=_canon(omitted_r2),
                    interaction_aliased=interaction_aliased)
     if not adjusted_ratified:
         metrics["analyst_model_captured"] = False
@@ -405,7 +405,10 @@ def evaluate_confounding(observations: pd.DataFrame, design: Design) -> Finding:
         )
 
     if omitted and partial_r2_decision is PartialR2Decision.MATERIAL:
-        worst = max(leakage, key=lambda k: abs(leakage[k])) if leakage else None
+        # Deterministic worst-term selection: with many equal-magnitude leakage terms the raw argmax
+        # ties are broken by float64 noise (a different term wins on macOS vs Linux). Round the
+        # magnitude so near-ties collapse, then break the tie by term name (platform-independent).
+        worst = max(leakage, key=lambda k: (round(abs(leakage[k]), METRIC_DECIMALS), k)) if leakage else None
         lam = f" (worst term λ={leakage[worst]:.2f} on {worst})" if worst else ""
         # Don't editorialise the price of the fix — ×1.15 is cheap, ×3.24 is not.
         pricey = (f" (though the design is also near-collinear, VIF={vif:.1f} — separable, "
