@@ -65,9 +65,13 @@ METRIC_DECIMALS = 6
 
 
 def _canon(x):
-    """Round a reported float to a platform-stable precision; pass through inf / non-floats."""
+    """Round a reported float to a platform-stable precision; pass through inf / non-floats.
+
+    The trailing ``+ 0.0`` normalizes signed zero: a tiny negative epsilon rounds to ``-0.0`` on one
+    BLAS build and ``0.0`` on another, and ``-0.0`` serializes to different JSON bytes than ``0.0``.
+    ``-0.0 + 0.0 == 0.0`` (real non-zero values are unaffected)."""
     if isinstance(x, float) and np.isfinite(x):
-        return round(x, METRIC_DECIMALS)
+        return round(x, METRIC_DECIMALS) + 0.0
     return x
 
 # VIF ≥ this ⇒ near-collinear. If the nuisance IS adjusted for, this is an EFFICIENCY cost
