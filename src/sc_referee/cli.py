@@ -82,7 +82,11 @@ def audit(
             result, proof_designs[0], proof_bundle, folder=Path(result.folder))
         html_out.write_text(render_proof_report_html(
             proof_report, external_reference=external_reference))
-    if result.ci_fails():
+    # Exit 1 means "a ratified analysis has an unresolved blocker". A draft that no human has
+    # confirmed never blocks the pipeline: the thesis is that nothing blocks before ratification.
+    # (The report still records ci_fails()=True — an unconfirmed analysis is not *certified*, it
+    # is only not *blocked*; certification and the pipeline gate are deliberately separate.)
+    if result.confirmed_by_human and result.ci_fails():
         raise typer.Exit(code=1)
 
 

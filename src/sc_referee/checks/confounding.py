@@ -57,6 +57,18 @@ PARTIAL_R2_LSTSQ_ERROR_ENVELOPE = 64 * np.finfo(np.float64).eps
 PARTIAL_R2_CUT_EPSILON = 64 * PARTIAL_R2_LSTSQ_ERROR_ENVELOPE
 # λ is still reported PER TERM as the interpretable bias multiplier (Codex: do not collapse it).
 LEAKAGE_MAJOR = 0.10  # retained only for the prose threshold quoted to the user
+# The public metric numbers are rounded to this many decimals before serialization. The measured
+# values carry float64 last-digit noise that differs across BLAS builds (e.g. 0.0 vs 9.4e-17, or
+# 1.0000000000000004 vs 1.0000000000000002 across macOS/Linux); rounding makes the public bytes
+# byte-identical across platforms. Decisions still use the RAW values (this only shapes the report).
+METRIC_DECIMALS = 6
+
+
+def _canon(x):
+    """Round a reported float to a platform-stable precision; pass through inf / non-floats."""
+    if isinstance(x, float) and np.isfinite(x):
+        return round(x, METRIC_DECIMALS)
+    return x
 
 # VIF ≥ this ⇒ near-collinear. If the nuisance IS adjusted for, this is an EFFICIENCY cost
 # (SE inflated ×sqrt(VIF)), not a confound — so it is `informational` and never fails CI.
@@ -324,8 +336,12 @@ def evaluate_confounding(observations: pd.DataFrame, design: Design) -> Finding:
     interaction_aliased = (not aliased) and not shares_common_support(
         sub, contrast_col, reference, test, nuis_present)
 
+    # Report the RAW measurements, canonicalized to a platform-stable precision (decisions above
+    # used the raw values). Byte-for-byte reproducibility across BLAS builds depends on this.
     metrics = dict(nuisance=nuis_present, included=included or [], omitted=omitted,
-                   r2=r2, vif=vif, leakage=leakage, max_leakage=max_leak,
+                   r2=_canon(r2), vif=_canon(vif),
+                   leakage={k: _canon(v) for k, v in leakage.items()},
+                   max_leakage=_canon(max_leak),
                    omitted_partial_r2=round(omitted_r2, 6),
                    interaction_aliased=interaction_aliased)
     if not adjusted_ratified:

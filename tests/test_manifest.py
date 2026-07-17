@@ -133,7 +133,10 @@ def test_cli_init_on_a_multifile_folder_writes_a_manifest_draft(tmp_path):
     result = CliRunner().invoke(app, ["init", str(tmp_path)])
     assert result.exit_code == 0
     assert (tmp_path / "sc-referee.manifest.yaml").exists()
-    assert "manifest" in result.stdout.lower()
+    # The manifest filename is printed inside a long absolute path that the console hard-wraps
+    # mid-token at narrow widths; the wrap point depends on the temp-path length (which differs by
+    # OS), so normalize whitespace before the substring check rather than depend on the wrap.
+    assert "manifest" in "".join(result.stdout.lower().split())
     assert "mouse1.h5ad" in result.stdout and "mouse2.h5ad" in result.stdout
 
 
