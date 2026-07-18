@@ -1,0 +1,124 @@
+analysis_type: condition_contrast_DE
+type_confidence: high
+type_evidence:
+- human ratified the setup form
+plain_summary: The experimental design was reviewed and confirmed by a person.
+design:
+  replicate_unit:
+  - replicate
+  condition: label
+  batch: []
+contrasts:
+- name: stim_vs_ctrl
+  reference: ctrl
+  test: stim
+  replicate_unit:
+  - replicate
+  sample_unit:
+  - replicate
+  - label
+  pairing_unit:
+  - replicate
+  model: ~ replicate + label
+  analyst_adjusted_for:
+  - replicate
+  target_coefficient: label[T.stim]
+  estimand_id: condition-effect/v1
+  fitted_design:
+    rows_exact: true
+    operator_kind: random_intercept_only
+    intercept: true
+    column_kinds:
+      nCount_RNA: continuous
+      nFeature_RNA: continuous
+      tsne1: continuous
+      tsne2: continuous
+      label: categorical
+      cluster: continuous
+      cell_type: categorical
+      replicate: categorical
+      nCount_SCT: continuous
+      nFeature_SCT: continuous
+      integrated_snn_res.0.4: categorical
+      seurat_clusters: categorical
+    categorical_levels:
+      label:
+      - ctrl
+      - stim
+      cell_type:
+      - CD14+ Monocytes
+      - CD4 T cells
+      - Dendritic cells
+      - NK cells
+      - CD8 T cells
+      - B cells
+      - FCGR3A+ Monocytes
+      - Megakaryocytes
+      replicate:
+      - patient_1016
+      - patient_1256
+      - patient_1488
+      - patient_1039
+      - patient_1015
+      - patient_107
+      - patient_1244
+      - patient_101
+      integrated_snn_res.0.4:
+      - '1'
+      - '6'
+      - '12'
+      - '2'
+      - '0'
+      - '4'
+      - '5'
+      - '3'
+      - '9'
+      - '7'
+      - '8'
+      - '10'
+      - '11'
+      seurat_clusters:
+      - '1'
+      - '6'
+      - '12'
+      - '2'
+      - '0'
+      - '4'
+      - '5'
+      - '3'
+      - '9'
+      - '7'
+      - '8'
+      - '10'
+      - '11'
+    transforms:
+      nCount_RNA: identity
+      nFeature_RNA: identity
+      tsne1: identity
+      tsne2: identity
+      label: identity
+      cluster: identity
+      cell_type: identity
+      replicate: identity
+      nCount_SCT: identity
+      nFeature_SCT: identity
+      integrated_snn_res.0.4: identity
+      seurat_clusters: identity
+    batch_modeling: {}
+reported_results:
+  path: results/per_cell_wilcoxon.csv
+  gene_col: gene
+  padj_col: padj
+  unit_of_test: cell
+confidence:
+  condition: high
+  replicate_unit: high
+  reference: high
+  unit_of_test: high
+  analyst_adjusted_for: high
+  aggregation_key: low
+  fitted_design: low
+unresolved: []
+batch_modeling: []
+csp_proposals: []
+confirmed_by_human: true

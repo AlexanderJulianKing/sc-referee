@@ -15,7 +15,7 @@ _ALLOWED_FIELDS = frozenset({
     "gene_count_columns", "namespace", "membership_method_id", "proposer_kind",
     "proposer_id", "evidence",
 })
-_FORMATS = frozenset({"dense_csv/v1", "gbp07_cells_csv/v1"})
+_FORMATS = frozenset({"dense_csv/v1", "filtered_cells_csv/v1"})
 _COMPRESSIONS = frozenset({"none", "gzip"})
 _METHODS = frozenset({"explicit_empty_table_rows/v1"})
 

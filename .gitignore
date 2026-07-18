@@ -40,3 +40,6 @@ demos/**/*.py[cod]
 demos/**/.env
 demos/**/.env.*
 !demos/**/.env.example
+
+# Stray paper PDFs dropped in the repo root (never part of the package)
+/*.pdf

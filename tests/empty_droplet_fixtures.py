@@ -49,7 +49,7 @@ def _bundle() -> Bundle:
     )
 
 
-def write_gbp07_fixture(root: Path) -> GBP07Fixture:
+def write_contamination_fixture(root: Path) -> GBP07Fixture:
     root = Path(root)
     cells = root / "cells.csv"
     donors = root / "donors.csv"
@@ -82,7 +82,7 @@ def proposed_declaration(
         },
         "membership": {"method_id": "explicit_empty_table_rows/v1"},
         "filtered_link": {
-            "path": filtered_path, "format": "gbp07_cells_csv/v1",
+            "path": filtered_path, "format": "filtered_cells_csv/v1",
             "compression": filtered_compression, "cell_key_column": "cell_id",
             "total_count_column": "total_umi",
             "gene_count_columns": ["HBB", "IFI6", "ISG15", "LST1", "CXCL10"],

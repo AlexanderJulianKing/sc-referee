@@ -24,7 +24,7 @@ Scope of v0: negative-binomial or Poisson likelihood with mean
     mu_i = ref_i + exposure_i * exp(linear_predictor_i)
 
 where ref_i is an optional additive reference (contamination) term and exposure_i an optional
-multiplicative offset. This is exactly the GB-P07 structure. Anything else raises Abstain.
+multiplicative offset. This is exactly the contamination-eQTL structure. Anything else raises Abstain.
 """
 from __future__ import annotations
 

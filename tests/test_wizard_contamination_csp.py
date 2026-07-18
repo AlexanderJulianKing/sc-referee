@@ -19,12 +19,12 @@ CAUSAL = {
 def _ceremony_proposal():
     proposal = contamination_proposal()
     proposal.update({
-        "artifact_identity": "artifact:gbp07-empty-drops:v1",
+        "artifact_identity": "artifact:contamination-empty-drops:v1",
         "source_mapping_fields": ["donor_id"],
-        "fitted_result_id": "fit:gbp07:v1",
+        "fitted_result_id": "fit:contamination:v1",
         "row_ledger_identity": "rows:donors:v1",
-        "fitted_design_identity": "design:gbp07:v1",
-        "estimand_id": "estimand:gbp07:v1",
+        "fitted_design_identity": "design:contamination:v1",
+        "estimand_id": "estimand:contamination:v1",
         "target_coefficient": "condition[T.stim]",
     })
     return proposal
@@ -58,7 +58,7 @@ def ceremony_record(answer_overrides=None):
     bundle = pseudobulk_confounding_bundle()
     observations = bundle.observations.assign(rho_external=[.1, .2, .3, .4, .6, .7, .8, .9])
     proposed = _proposal()
-    proposed["contrasts"][0]["estimand_id"] = "estimand:gbp07:v1"
+    proposed["contrasts"][0]["estimand_id"] = "estimand:contamination:v1"
     proposed["csp_proposals"] = [_ceremony_proposal()]
     answers = _answers() | complete_contamination_answers() | (answer_overrides or {})
     config = answers_to_config(answers, observations, proposed_config=proposed)
@@ -113,7 +113,7 @@ def test_complete_live_bound_ceremony_reaches_conditional_pass(tmp_path):
         rho_external=[.1, .2, .3, .4, .6, .7, .8, .9]
     )
     proposed = _proposal()
-    proposed["contrasts"][0]["estimand_id"] = "estimand:gbp07:v1"
+    proposed["contrasts"][0]["estimand_id"] = "estimand:contamination:v1"
     proposed["csp_proposals"] = [_ceremony_proposal()]
     base_answers = _answers() | {
         "analyst_adjusted_for": ["condition", "rho_external"],
@@ -121,7 +121,7 @@ def test_complete_live_bound_ceremony_reaches_conditional_pass(tmp_path):
         "batch_modeling.run.fixed_source_columns": ["run"],
     }
     base_proposed = _proposal()
-    base_proposed["contrasts"][0]["estimand_id"] = "estimand:gbp07:v1"
+    base_proposed["contrasts"][0]["estimand_id"] = "estimand:contamination:v1"
     base_config = answers_to_config(base_answers, observations, proposed_config=base_proposed)
     base_path = tmp_path / "base.yaml"
     base_path.write_text(yaml.safe_dump(base_config))
@@ -153,7 +153,7 @@ def test_complete_live_bound_ceremony_reaches_conditional_pass(tmp_path):
     }
     values["causal_scope_authority"] = {
         **values["causal_scope_authority"],
-        "fitted_result_id": "fit:gbp07:v1",
+        "fitted_result_id": "fit:contamination:v1",
         "target_coefficient": base_design.target_coefficient,
         "exposure_column": "condition",
         "row_ledger_identity": rows.row_ledger_identity,

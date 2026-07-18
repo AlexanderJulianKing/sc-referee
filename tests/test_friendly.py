@@ -40,10 +40,11 @@ def test_folder_argument_skips_the_picker_and_shows_a_report():
 def test_browser_first_welcome_explains_the_complete_local_flow():
     html = _welcome_page()
 
-    assert "Review the analysis, not the story" in html
+    assert "Check the analysis behind the claim" in html
+    assert "Independent scientific review" in html
     assert "Choose analysis folder" in html
     assert "runs locally" in html
-    assert all(step in html for step in ("Read", "Confirm", "Recompute"))
+    assert all(step in html for step in ("Inspect", "Confirm", "Check"))
     assert "http://" not in html and "https://" not in html
 
 

@@ -5,7 +5,7 @@ from unittest.mock import patch
 from sc_referee import statuses as S
 from sc_referee.checks.base import ConditionalPremise
 from sc_referee.checks.contamination_confound import ContaminationConfoundCheck
-from tests.contamination_factories import eqtl_contamination_case, gbp07_obligation_pair
+from tests.contamination_factories import eqtl_contamination_case, contamination_obligation_pair
 
 
 def test_eqtl_omitted_rho_is_conditional_major_and_not_contained():
@@ -50,8 +50,8 @@ def test_unratified_eqtl_is_not_checked_without_reaching_geometry():
     assert finding.conditional_on is None
 
 
-def test_condition_contrast_gbp07_behavior_is_unchanged():
-    without_rho, without_bundle, with_rho, with_bundle = gbp07_obligation_pair()
+def test_condition_contrast_contamination_behavior_is_unchanged():
+    without_rho, without_bundle, with_rho, with_bundle = contamination_obligation_pair()
     omitted = ContaminationConfoundCheck().run(without_rho, without_bundle)
     contained = ContaminationConfoundCheck().run(with_rho, with_bundle)
 

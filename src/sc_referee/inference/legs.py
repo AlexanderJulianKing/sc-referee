@@ -4,7 +4,7 @@ Leg 1 lives in `materialization.py`. Leg 2b lives in `replay.refit_with_term`. T
 middle leg: replay the analyst's model, take its residuals, and ask -- with the same permutation
 calibration leg 1 uses -- whether each candidate's unit summary predicts them.
 
-Finds UNUSED variables that predict the leftovers (on GB-P07: `sex` at 2.1 sd). Blind to a term
+Finds UNUSED variables that predict the leftovers (e.g. a donor covariate like `sex` at 2.1 sd). Blind to a term
 collinear-in-the-margin with something already fitted (`rho`, 0.4 sd), because the model already
 absorbed it -- which is exactly the case leg 2b exists to catch. So a null here is NOT a clean bill,
 and the record says so.

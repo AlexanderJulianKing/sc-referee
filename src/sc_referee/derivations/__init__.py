@@ -1,6 +1,6 @@
 """Closed, registered scientific derivations."""
 
-from .genebench_gbp07_public_estimator import (
+from .ambient_contamination_estimator import (
     Abstained,
     CellCountsView,
     ContaminationBasisArtifact,
@@ -9,7 +9,7 @@ from .genebench_gbp07_public_estimator import (
     Estimated,
     TypedCellId,
     TypedDonorId,
-    estimate_genebench_gbp07_public_contamination,
+    estimate_ambient_contamination,
 )
 
 __all__ = (
@@ -21,5 +21,5 @@ __all__ = (
     "Estimated",
     "TypedCellId",
     "TypedDonorId",
-    "estimate_genebench_gbp07_public_contamination",
+    "estimate_ambient_contamination",
 )

@@ -8,11 +8,11 @@ from sc_referee.empty_droplet.bundle_identity import capture_filtered_bundle_ide
 from sc_referee.empty_droplet.csv_adapter import parse_empty_droplet_csv
 from sc_referee.empty_droplet.link import build_filtered_link
 from sc_referee.empty_droplet.schema import EmptyDropletValidationError
-from tests.empty_droplet_fixtures import confirmed_declaration, write_gbp07_fixture
+from tests.empty_droplet_fixtures import confirmed_declaration, write_contamination_fixture
 
 
 def test_filtered_identity_maps_reordered_bundle_to_cells_csv_by_exact_keys(tmp_path):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     declaration = confirmed_declaration(tmp_path, fixture)
     witness = capture_filtered_bundle_identity(tmp_path, declaration.filtered_link, fixture.bundle)
     assert witness.bundle_cell_to_cells_table_row.tolist() == [1, 0]
@@ -26,7 +26,7 @@ def test_filtered_identity_maps_reordered_bundle_to_cells_csv_by_exact_keys(tmp_
 
 @pytest.mark.parametrize("matrix_type", [sparse.csr_matrix, sparse.csc_matrix])
 def test_filtered_identity_accepts_sparse_counts_without_changing_identity(tmp_path, matrix_type):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     declaration = confirmed_declaration(tmp_path, fixture)
     dense = capture_filtered_bundle_identity(tmp_path, declaration.filtered_link, fixture.bundle)
     fixture.bundle.measure.counts = matrix_type(fixture.bundle.measure.counts)
@@ -35,7 +35,7 @@ def test_filtered_identity_accepts_sparse_counts_without_changing_identity(tmp_p
 
 
 def test_shared_gene_count_mismatch_fails_exactly(tmp_path):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     fixture.bundle.measure.counts[0, 0] += 1
     declaration = confirmed_declaration(tmp_path, fixture)
     with pytest.raises(EmptyDropletValidationError) as error:
@@ -44,7 +44,7 @@ def test_shared_gene_count_mismatch_fails_exactly(tmp_path):
 
 
 def test_witness_is_defensive_against_later_bundle_mutation(tmp_path):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     declaration = confirmed_declaration(tmp_path, fixture)
     witness = capture_filtered_bundle_identity(tmp_path, declaration.filtered_link, fixture.bundle)
     identity = witness.filtered_bundle_identity
@@ -55,7 +55,7 @@ def test_witness_is_defensive_against_later_bundle_mutation(tmp_path):
 
 
 def test_empty_barcode_colliding_with_analyzed_cell_abstains_whole_link(tmp_path):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     fixture.empty_drops.write_text(fixture.empty_drops.read_text().replace("empty_1", "cell_A"))
     declaration = confirmed_declaration(tmp_path, fixture)
     parsed = parse_empty_droplet_csv(tmp_path, declaration.source)
@@ -66,7 +66,7 @@ def test_empty_barcode_colliding_with_analyzed_cell_abstains_whole_link(tmp_path
 
 
 def test_feature_mapping_is_exact_not_case_folded(tmp_path):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     fixture.empty_drops.write_text(fixture.empty_drops.read_text().replace("CXCL10", "Cxcl10"))
     declaration = confirmed_declaration(
         tmp_path, fixture, empty_genes=["HBB", "IFI6", "ISG15", "LST1", "Cxcl10"]
@@ -79,7 +79,7 @@ def test_feature_mapping_is_exact_not_case_folded(tmp_path):
 
 
 def test_link_asserts_disjointness_and_binds_both_vectors(tmp_path):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     declaration = confirmed_declaration(tmp_path, fixture)
     parsed = parse_empty_droplet_csv(tmp_path, declaration.source)
     witness = capture_filtered_bundle_identity(tmp_path, declaration.filtered_link, fixture.bundle)

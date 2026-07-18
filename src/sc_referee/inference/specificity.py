@@ -1,6 +1,6 @@
 """Hard-decoy specificity harness (§7).
 
-The decoys that shipped with GB-P07 -- sex, age, bmi -- are donor-level CONSTANTS. A cell-level gate
+Typical donor-level decoys -- sex, age, bmi -- are donor-level CONSTANTS. A cell-level gate
 cannot move a donor constant, so they are immune to the risky path by construction: they are a smoke
 test for schema handling, not a specificity measurement. A constant that cannot be fooled proves
 nothing about a diagnostic whose danger is cell-level evaluation -> gate -> aggregation -> correlate.

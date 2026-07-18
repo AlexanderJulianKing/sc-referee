@@ -1,0 +1,34 @@
+schema_version: 1
+demos:
+  - id: biermann-pseudoreplication
+    status: runnable
+    evidence: published_human_data
+    entrypoint: demos/biermann-pseudoreplication
+    headline: 95.3% lost significance after correcting the experimental unit
+  - id: biermann-pseudoreplication-full
+    status: reproducible_full_build
+    evidence: published_human_data_full_matrix
+    entrypoint: demos/biermann-pseudoreplication-full
+    source_data: GSE200218
+    headline: Rebuilds the same audit from the official 145,555-cell public count matrix
+  - id: multi-claim-pipeline
+    status: runnable
+    evidence: synthetic
+    entrypoint: demos/multi-claim-pipeline
+    claims:
+      - gene_expression
+      - alternative_splicing
+      - cluster_abundance
+  - id: kang-paired-ifnb
+    status: runnable_local_build
+    evidence: published_human_data
+    entrypoint: demos/kang-paired-ifnb
+    source_data: data/kang.h5ad
+    headline: Cell-level IFN-beta discoveries are calibrated against eight paired patients
+  - id: genebench-gbp07
+    status: gated
+    evidence: public_benchmark_external_bytes
+    entrypoint: bench/gbp07_anchor.py
+    gate: latent ambient-contamination chain is not yet an end-to-end referee verdict
+    build_plan: docs/planning/2026-07-12-gbp07-demo-integration.md
+    source_data: /Users/alexanderking/Desktop/genebench_phase1_inputs/GB-P07-data.zip

@@ -22,7 +22,7 @@ from sc_referee.csp_contracts.contamination_condensed_ceremony import (
     CondensedAnswer,
     CondensedGroup,
 )
-from sc_referee.derivations.gbp07_compile import Gbp07Compilation, compile_from_proposal
+from sc_referee.derivations.contamination_compile import CompiledDerivation, compile_from_proposal
 from tests.test_compile_from_proposal import _answers, _proposal, _write_synthetic
 
 
@@ -36,7 +36,7 @@ def _synthetic_capsule(folder: Path, answer=CondensedAnswer.YES):
     proposal = _proposal(cell_donor="subject", donor_id="subject", genotype="dose")
     answers = _answers(answer)
     compilation = compile_from_proposal(proposal, folder, answers)
-    assert isinstance(compilation, Gbp07Compilation)
+    assert isinstance(compilation, CompiledDerivation)
     return freeze_capsule(compilation, proposal, answers, folder)
 
 

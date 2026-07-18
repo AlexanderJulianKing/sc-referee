@@ -6,11 +6,11 @@ import pytest
 
 from sc_referee.empty_droplet.csv_adapter import parse_empty_droplet_csv
 from sc_referee.empty_droplet.schema import EmptyDropletValidationError
-from tests.empty_droplet_fixtures import confirmed_declaration, write_gbp07_fixture
+from tests.empty_droplet_fixtures import confirmed_declaration, write_contamination_fixture
 
 
-def test_parse_gbp07_empty_table_preserves_confirmed_row_and_gene_order(tmp_path):
-    fixture = write_gbp07_fixture(tmp_path)
+def test_parse_contamination_empty_table_preserves_confirmed_row_and_gene_order(tmp_path):
+    fixture = write_contamination_fixture(tmp_path)
     declaration = confirmed_declaration(tmp_path, fixture)
     parsed = parse_empty_droplet_csv(tmp_path, declaration.source)
     assert [(k.namespace, k.native_barcode) for k in parsed.barcode_ledger] == [
@@ -26,7 +26,7 @@ def test_parse_gbp07_empty_table_preserves_confirmed_row_and_gene_order(tmp_path
 
 @pytest.mark.parametrize("replacement", ["5.5", "-1", "NaN", "Inf", "1e2", str(2**64)])
 def test_invalid_count_lexemes_are_not_raw_integer_counts(tmp_path, replacement):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     fixture.empty_drops.write_text(
         fixture.empty_drops.read_text().replace("empty_1,12,5", f"empty_1,12,{replacement}")
     )
@@ -36,14 +36,14 @@ def test_invalid_count_lexemes_are_not_raw_integer_counts(tmp_path, replacement)
 
 
 def test_total_umi_is_its_own_vector_not_the_panel_sum_golden(tmp_path):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     parsed = parse_empty_droplet_csv(tmp_path, confirmed_declaration(tmp_path, fixture).source)
     assert parsed.total_counts.tolist() == [12, 9]
     assert parsed.counts.sum(axis=1).A1.tolist() == [8, 6]
 
 
 def test_uint64_parse_never_round_trips_through_float(tmp_path):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     exact = 2**53 + 1
     fixture.empty_drops.write_text(fixture.empty_drops.read_text().replace("empty_1,12,5", f"empty_1,12,{exact}"))
     parsed = parse_empty_droplet_csv(tmp_path, confirmed_declaration(tmp_path, fixture).source)
@@ -51,7 +51,7 @@ def test_uint64_parse_never_round_trips_through_float(tmp_path):
 
 
 def test_corrupt_truncated_and_concatenated_gzip_fail_closed(tmp_path):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     raw = fixture.empty_drops.read_bytes()
     gz = tmp_path / "empty_drops.csv.gz"
     gz.write_bytes(gzip.compress(raw, mtime=0)[:-5])

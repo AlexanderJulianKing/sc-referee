@@ -115,7 +115,7 @@ def test_clean_a_null_covariate_is_not_flagged():
     assert abs(l2b["shift"]) < 0.05
 
 
-def test_the_second_class_mirrors_gbp07_classification():
+def test_the_second_class_mirrors_contamination_classification():
     """The confounder pattern (leg 1 strong, leg 2a weak/absorbed, leg 2b big shift) reproduces
     GB-P07 in a different structure -- evidence the diagnostic is not GB-P07-specific."""
     _, l1, l2a, l2b, _, l2a_fw = _run("works", n=48)

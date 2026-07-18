@@ -282,7 +282,21 @@ jobs:
 
 Repository contributors can use `./scripts/dev-install.sh` for a local development installation.
 
-## Project status
+### Run the GB-P07 benchmark demo
+
+The GeneBench-Pro GB-P07 demo exercises the adaptive workflow compiler on externally supplied
+benchmark files, then freezes and replays a deterministic finding without a model:
+
+```bash
+GBP07_ZIP="$HOME/Desktop/genebench_phase1_inputs/GB-P07-data.zip" \
+  PYTHONPATH=src:. .venv/bin/python demos/genebench-gbp07/compile_demo.py
+```
+
+It reports a **conditional major finding** when the human-ratified ambient-contamination basis is
+absent from the submitted fitted design. The repository does not redistribute the benchmark bytes;
+see the [GB-P07 demo README](demos/genebench-gbp07/README.md) for the precise evidence boundary.
+
+## Status
 
 Early open-source build created for **Built with Claude: Life Sciences**, Builder Track. The
 flagship condition-DE pathway is runnable and backed by synthetic known-truth validation plus real
@@ -295,6 +309,36 @@ author has moved on.
 
 ## References
 
+| injected error | verdict | |
+|---|---|---|
+| pseudoreplication | `blocker` | detected + diagnosed |
+| count model (t-test on log2CPM) | `major` | detected + diagnosed |
+| no multiple-testing correction | `major` | detected + diagnosed |
+| no effect-size threshold | `major` | detected + diagnosed |
+| confounding (batch ⟂ condition) | `blocker` | detected + diagnosed |
+| normalized matrix, not raw counts | `not_audited` | detected at ingest — recompute abstains |
+| double dipping (cluster, then test) | `needs_evidence` | detected — flagged, never green-lit |
+
+Every injected error is caught. Two rows are deliberately *not* a `blocker`, and the table keeps
+that honest: `double_dipping` **abstains** (`needs_evidence`) — it flags a post-clustering marker
+test and refuses to green-light it, but the recompute that would *earn* a blocker is deferred; and
+`effect_size` tops out at `major` because an effect-size cutoff is policy, not mathematics, so it is
+reported, never blocked. (Earlier builds listed these last two as silent misses — a `not_audited`
+and, worse, a `pass`; both are now closed.)
+
+Still genuinely open: the `simple` engine handles paired designs only, and the double-dipping
+*blocking* recompute is deferred.
+
+### Beyond differential expression: eQTL review
+
+The first non-DE vertical. For a genotype→expression (`eqtl`) analysis, sc-referee forces the
+**effect-allele orientation** an analyst can leave implicit, and — when the reported estimator
+matches a supported OLS-on-log2CPM contract — independently recomputes the donor-level per-allele
+**sign** and blocks a flip. Honest by construction: with no ratified effect-allele footprint it
+returns `needs_evidence` — it will not certify a sign it cannot orient — and a non-OLS reported model
+returns `not_audited`, never a false blocker. Validated on synthetic sign-flip and specificity fixtures;
+[`docs/planning/2026-07-09-eqtl-orientation-vertical.md`](docs/planning/2026-07-09-eqtl-orientation-vertical.md)
+has the design and the honest boundary.
 - Biermann J, Melms JC, Amin AD, et al. **Dissecting the treatment-naïve ecosystem of human
   melanoma brain metastasis.** *Cell*. 2022;185(14):2591–2608.e30.
   [DOI](https://doi.org/10.1016/j.cell.2022.06.007) ·
@@ -304,6 +348,12 @@ author has moved on.
   [NCBI GEO record and processed files](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE200218)
 - Izar Lab. **Melanoma Brain Metastasis analysis code.**
   [GitHub repository](https://github.com/IzarLab/Melanoma_Brain_Metastasis)
+
+GB-P07 itself was **not** an allele-orientation failure. The official walkthrough showed a latent
+ambient-RNA technical axis aligned with genotype and omitted from the submitted fit. The runnable
+[GB-P07 compiler demo](demos/genebench-gbp07/) reconstructs that exposure-blind contamination basis
+and checks its containment under explicit human-ratified premises. It deliberately does not claim
+that this omission alone caused the submitted coefficient or reproduces the graded answer.
 
 ## License
 

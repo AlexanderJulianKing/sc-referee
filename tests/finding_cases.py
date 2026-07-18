@@ -268,7 +268,7 @@ LITERAL_EMITTER_CLASSIFICATION = {
     **{f"contamination_confound.py:run:NEEDS_EVIDENCE:{i}": "abstention"
        for i in range(1, 6)},
     **{f"allele_orientation.py:evaluate_allele_orientation:NEEDS_EVIDENCE:{i}": "abstention" for i in range(1, 5)},
-    **{f"confounding.py:evaluate_confounding:NEEDS_EVIDENCE:{i}": "abstention" for i in range(1, 7)},
+    **{f"confounding.py:evaluate_confounding:NEEDS_EVIDENCE:{i}": "abstention" for i in range(1, 10)},
     "confounding_random_intercept.py:run:NEEDS_EVIDENCE:1": "abstention",
     **{f"count_model.py:evaluate_count_model:NEEDS_EVIDENCE:{i}": "abstention" for i in range(1, 8)},
     "double_dipping.py:evaluate_double_dipping:INFORMATIONAL:1": "non_defect",

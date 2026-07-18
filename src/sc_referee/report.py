@@ -255,9 +255,11 @@ def _withheld_collapse(f):
         "collapse_rate": collapse,
         "headline": (f"Critical discrepancy: {collapse:.1%} of reported discoveries lost "
                      "significance when recomputed at the sample level."),
-        "counts": f"{reported:,} reported → {survived:,} survived.",
-        "qualification": ("Final blocker withheld: the corrected sample-level analysis was "
-                          "underpowered, so disappearance alone is not conclusive."),
+        "counts": (f"{reported:,} discoveries were reported as significant; "
+                   f"{survived:,} remained significant at the sample level."),
+        "qualification": ("Why this is not definitive: the sample-level analysis had limited "
+                          "statistical power, so loss of significance alone does not prove the "
+                          "original discoveries were false."),
     }
 
 
@@ -484,9 +486,32 @@ def to_md(result) -> str:
 _HTML_STATE = {
     S.CLEAR: ("CLEAR", "s-clear"),
     S.FLAGGED: ("FLAGGED", "s-flagged"),
-    S.NOT_CHECKED: ("NOT CHECKED", "s-not-checked"),
+    S.NOT_CHECKED: ("NOT EVALUATED", "s-not-checked"),
     S.N_A: ("N/A", "s-na"),
 }
+
+_CITATION_URLS = {
+    "Squair et al. 2021, Nat Commun 12:5692":
+        "https://doi.org/10.1038/s41467-021-25960-2",
+    "Zimmerman et al. 2021, Nat Commun 12:738":
+        "https://doi.org/10.1038/s41467-021-21038-1",
+    "McCarthy & Smyth 2009, Bioinformatics 25:765":
+        "https://doi.org/10.1093/bioinformatics/btp053",
+    "Benjamini & Hochberg 1995, J R Stat Soc B 57:289":
+        "https://doi.org/10.1111/j.2517-6161.1995.tb02031.x",
+    "Leek et al. 2010, Nat Rev Genet 11:733":
+        "https://doi.org/10.1038/nrg2825",
+}
+
+
+def _citation_html(citation) -> str:
+    text = str(citation)
+    url = _CITATION_URLS.get(text)
+    escaped = html.escape(text)
+    if not url:
+        return escaped
+    return (f'<a href="{html.escape(url, quote=True)}" target="_blank" '
+            f'rel="noopener noreferrer">{escaped}<span aria-hidden="true"> ↗</span></a>')
 
 # Precision-instrument aesthetic (see .impeccable.md): a light-first technical datasheet. Monospace for the
 # MEASURED tokens (statuses, counts, check ids) where mono means "exact/tabular"; sans for the human
@@ -494,13 +519,13 @@ _HTML_STATE = {
 # instrument-boot on load. Self-contained + OFFLINE — inline CSS, NO external fetch (opens with no network).
 _HTML_CSS = """
 :root{color-scheme:light dark;
- --paper:#f4f5f3;--ink:#191b1f;--mut:#5f6670;--dim:#9aa0a8;--rule:#dcdfd9;--rule2:#c3c7c0;
+ --paper:#f4f5f3;--ink:#191b1f;--mut:#5f6670;--dim:#626a74;--rule:#dcdfd9;--rule2:#c3c7c0;
  --clear:#157f3b;--flag:#c1272d;--nc:#9a6b00;--na:#4f5a68;
  --clear-w:#e9f0ea;--flag-w:#f8eae9;--nc-w:#f4edda;--na-w:#eceef1;
  --mono:"JetBrains Mono","SFMono-Regular","Cascadia Code",ui-monospace,Menlo,Consolas,monospace;
  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 @media(prefers-color-scheme:dark){:root{
- --paper:#111317;--ink:#e7e9ec;--mut:#9aa1ab;--dim:#616772;--rule:#2a2e35;--rule2:#3a3f47;
+ --paper:#111317;--ink:#e7e9ec;--mut:#aeb4bd;--dim:#a2a9b3;--rule:#2a2e35;--rule2:#3a3f47;
  --clear:#5bd07f;--flag:#f0817f;--nc:#e0b654;--na:#9fb0c2;
  --clear-w:#14241a;--flag-w:#2a1718;--nc-w:#292112;--na-w:#1a1e25}}
 *{box-sizing:border-box}
@@ -558,6 +583,9 @@ header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
  text-transform:uppercase;color:var(--flag);margin-bottom:4px}
 .premise-meta{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:5px}
 .ref{font-family:var(--mono);font-size:11px;color:var(--dim);padding-left:17px;margin-top:5px}
+.ref a{color:inherit;text-decoration-color:var(--rule2);text-underline-offset:3px}
+.ref a:hover{color:var(--ink);text-decoration-color:currentColor}.ref a:focus-visible{outline:2px solid var(--nc);
+ outline-offset:3px}
 .s-clear .led{background:var(--clear)}.s-clear .state{color:var(--clear)}
 .s-flagged .led{background:var(--flag)}.s-flagged .state{color:var(--flag)}
 .s-not-checked .led{background:var(--nc)}.s-not-checked .state{color:var(--nc)}
@@ -569,7 +597,7 @@ footer{margin-top:32px;border-top:2px solid var(--rule2);padding-top:15px;font-f
 .readout .worst{color:var(--ink);font-weight:600}
 .readout .fail{color:var(--flag)}.readout .pass{color:var(--clear)}.readout .neutral{color:var(--nc)}
 .coverage{margin-top:9px;color:var(--mut)}
-/* taxonomy legend — teaches the four states inline, so NOT CHECKED vs N/A never puzzles a first-timer */
+/* taxonomy legend — translates engine states into the distinctions a reviewer actually needs */
 .legend{margin-top:16px;display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--mono);font-size:10.5px;
  letter-spacing:.02em;color:var(--dim)}
 .legend .k{text-transform:uppercase;letter-spacing:.12em}
@@ -593,6 +621,7 @@ def _html_finding(f, i) -> str:
     # another form waiting behind it.
     label, cls = _HTML_STATE.get(S.human_state(f), (S.human_state(f).upper(), "s-na"))
     if _needs_input(f):
+        label = "NEEDS REVIEW"
         cls += " needs-input"
     disc = _withheld_collapse(f)
     if disc:
@@ -614,7 +643,6 @@ def _html_finding(f, i) -> str:
         '<span class="led"></span>',
         f'<span class="state">{label}</span>',
         f'<span class="check">{html.escape(check_label)}</span>',
-        ('<span class="tag">unresolved</span>' if _needs_input(f) else ''),
         '</div>',
         verdict_html,
     ]
@@ -642,7 +670,7 @@ def _html_finding(f, i) -> str:
             ])
         parts.append('</div>')
     for c in f.citations:
-        parts.append(f'<div class="ref">ref&nbsp;· {html.escape(str(c))}</div>')
+        parts.append(f'<div class="ref">ref&nbsp;· {_citation_html(c)}</div>')
     parts.append('</div>')
     return "".join(parts)
 
@@ -691,17 +719,16 @@ def _hero(result) -> str:
                 f'{withheld["counts"]} {withheld["qualification"]}')
     elif needs_input:
         state = "s-not-checked"
-        title = f"{needs_input} check{'' if needs_input == 1 else 's'} unresolved"
-        note = (f"Referee completed this review. {needs_input} check"
-                f"{'' if needs_input == 1 else 's'} could not reach a verdict from the evidence "
-                f"supplied. {'It remains' if needs_input == 1 else 'They remain'} not checked — "
-                "neither cleared nor flagged. Each result below "
-                "explains the limitation.")
+        title = (f"{needs_input} check{'' if needs_input == 1 else 's'} "
+                 f"{'needs' if needs_input == 1 else 'need'} review")
+        note = ("Referee found relevant evidence, but the available context does not support a "
+                "definitive clearance or flag. Each item below says what was established and what "
+                "remains unresolved.")
     elif benign_nc:
         state = "s-not-checked"
         title = "Nothing flagged"
-        note = (f"But {benign_nc} check{'' if benign_nc == 1 else 's'} couldn't run — a clean report "
-                "here means “we found no problem,” not “guaranteed correct.”")
+        note = (f"But {benign_nc} check{'' if benign_nc == 1 else 's'} could not be evaluated from "
+                "the supplied evidence. Nothing flagged does not mean guaranteed correct.")
     elif clear:
         state = "s-clear"
         title = "All clear"
@@ -710,9 +737,11 @@ def _hero(result) -> str:
         state = "s-na"
         title = "Nothing to report"
         note = "No applicable checks ran on this analysis."
-    order = [(flagged, "flagged"), (needs_input, "unresolved"), (clear, "clear"),
-             (benign_nc, "not checked"), (na, "n/a")]
-    seg = " · ".join(f"{n} {lab}" for n, lab in order if n)
+    order = [(flagged, "flagged"), (needs_input, "need review"), (clear, "passed"),
+             (benign_nc, "not evaluated"), (na, "not applicable")]
+    detail = " · ".join(f"{n} {lab}" for n, lab in order if n)
+    total = len(findings)
+    seg = f"{total} check{'' if total == 1 else 's'}: {detail}" if detail else ""
     parts = [f'<div class="hero {state}"><div class="hero-head"><span class="hero-led"></span>'
              f'<span class="hero-title">{html.escape(title)}</span></div>']
     if seg:
@@ -740,6 +769,25 @@ def _analysis_title(group, result) -> str:
         "trajectory": "Trajectory analysis",
         "eqtl": "Expression quantitative trait locus",
     }.get(str(analysis_type), str(analysis_type or "Analysis").replace("_", " ").capitalize())
+
+
+def _html_coverage_line(findings) -> str:
+    """Explain browser coverage in terms of checks and reviewer actions, not engine enums."""
+    findings = list(findings)
+    human = Counter(S.human_state(f) for f in findings)
+    needs_review = sum(1 for f in findings if _needs_input(f))
+    not_evaluated = human[S.NOT_CHECKED] - needs_review
+    parts = [f"{len(findings)} check{'' if len(findings) == 1 else 's'}"]
+    parts.extend(
+        f"{count} {label}" for count, label in (
+            (human[S.CLEAR], "passed"),
+            (human[S.FLAGGED], "flagged"),
+            (needs_review, "need review"),
+            (not_evaluated, "not evaluated"),
+            (human[S.N_A], "not applicable"),
+        ) if count
+    )
+    return " · ".join(parts)
 
 
 def to_html(result) -> str:
@@ -789,20 +837,27 @@ def to_html(result) -> str:
         i += 1
 
     conclusion = result.ci_conclusion()
-    ci_txt = {"fail": "CI FAIL",
-              "neutral": "CI NEUTRAL" + ("" if result.fully_audited() else " · NOT FULLY AUDITED"),
-              "pass": "CI PASS"}[conclusion]
-    coverage = _coverage_line(_coverage(result.findings)).removeprefix("coverage: ")
+    needs_review = any(_needs_input(f) for f in result.findings)
+    if conclusion == "fail":
+        overall, overall_cls = "FLAGGED", "fail"
+    elif needs_review:
+        overall, overall_cls = "NEEDS REVIEW", "neutral"
+    elif not result.fully_audited():
+        overall, overall_cls = "NOT FULLY EVALUATED", "neutral"
+    else:
+        overall, overall_cls = "CLEAR", "pass"
+    coverage = _html_coverage_line(result.findings)
     body.append(
         '<footer>'
-        f'<div class="readout"><span class="k">worst</span>'
-        f'<span class="worst">{html.escape(worst)}</span>'
-        f'<span class="{conclusion}">{html.escape(ci_txt)}</span></div>'
+        f'<div class="readout" title="engine worst status: {html.escape(worst)}">'
+        '<span class="k">overall review</span>'
+        f'<span class="{overall_cls}">{html.escape(overall)}</span></div>'
         f'<div class="coverage"><span class="k">coverage</span> &nbsp;{html.escape(coverage)}</div>'
         '<div class="legend"><span class="k">states</span>'
         '<span><b class="lc">clear</b> passed a recompute</span>'
-        '<span><b class="lf">flagged</b> needs your review</span>'
-        "<span><b class=\"ln\">not checked</b> couldn't verify</span>"
+        '<span><b class="lf">flagged</b> deterministic concern</span>'
+        '<span><b class="ln">needs review</b> evidence found; conclusion unresolved</span>'
+        '<span><b class="la">not evaluated</b> required evidence unavailable</span>'
         "<span><b class=\"la\">n/a</b> doesn't apply here</span></div>"
         '</footer>')
     body.append('</main>')

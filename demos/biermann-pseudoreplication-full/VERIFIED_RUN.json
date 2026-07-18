@@ -1,0 +1,37 @@
+{
+  "verified_at": "2026-07-12",
+  "scope": "public processed count matrix through full sparse Referee ingestion and PyDESeq2 recomputation",
+  "source": {
+    "accession": "GSE200218",
+    "count_matrix_sha256": "0fd38ec2f2523e88479d7d01dd879a21c398a57d1cfb03d2c0bec5f1f65d6f19",
+    "shape_genes_by_cells": [35652, 145555],
+    "nonzero_entries": 417902887
+  },
+  "selected_input": {
+    "filter": {
+      "sequencing": "Single nuclei",
+      "cell_type_main": "Tumor cells"
+    },
+    "shape_cells_by_unique_genes": [82783, 35650],
+    "h5ad_bytes": 589583824,
+    "h5ad_sha256": "46aebe27199a232a6d0c7d8ec8ba9e7e749df0230ee3253f6c7a158af49a1304"
+  },
+  "compact_capsule_exact_match": {
+    "genes": true,
+    "observations": true,
+    "counts": true
+  },
+  "audit": {
+    "engine": "pydeseq2",
+    "check_id": "experimental_unit",
+    "reported_significant": 16289,
+    "patient_level_survivors": 770,
+    "survival_rate": 0.0473,
+    "lost_significance_fraction": 0.9527,
+    "powered": false,
+    "powered_fraction": 0.3817,
+    "effect_correlation": 0.419,
+    "sign_flips": 2342,
+    "status": "needs_evidence"
+  }
+}

@@ -37,22 +37,23 @@ def test_helper_returns_the_three_separated_pieces():
     d = _withheld_collapse(_finding())
     assert d["headline"] == ("Critical discrepancy: 95.3% of reported discoveries lost "
                              "significance when recomputed at the sample level.")
-    assert d["counts"] == "16,289 reported → 770 survived."
-    assert "Final blocker withheld" in d["qualification"] and "underpowered" in d["qualification"]
+    assert d["counts"] == ("16,289 discoveries were reported as significant; "
+                            "770 remained significant at the sample level.")
+    assert "Why this is not definitive" in d["qualification"] and "limited" in d["qualification"]
 
 
 def test_markdown_leads_with_strength_before_qualification():
     md = to_md(_result(_finding()))
     assert "Critical discrepancy: 95.3%" in md
-    assert "16,289 reported → 770 survived." in md
-    assert md.index("Critical discrepancy") < md.index("Final blocker withheld")
+    assert "16,289 discoveries were reported as significant" in md
+    assert md.index("Critical discrepancy") < md.index("Why this is not definitive")
 
 
 def test_html_shows_strength_and_qualification_as_separate_elements():
     h = to_html(_result(_finding()))
     assert 'class="disc-headline"' in h and "Critical discrepancy: 95.3%" in h
-    assert 'class="disc-counts"' in h and "16,289 reported → 770 survived." in h
-    assert 'class="disc-qual"' in h and "Final blocker withheld" in h
+    assert 'class="disc-counts"' in h and "16,289 discoveries were reported as significant" in h
+    assert 'class="disc-qual"' in h and "Why this is not definitive" in h
     assert "95.3% lost significance after correcting the experimental unit" in h
     assert h.index("95.3% lost significance") < h.index("Critical discrepancy: 95.3%")
 
@@ -61,7 +62,7 @@ def test_tty_shows_the_headline():
     console = Console(file=StringIO(), width=120, force_terminal=False)
     render_tty(_result(_finding()), console=console)
     out = console.file.getvalue()
-    assert "Critical discrepancy: 95.3%" in out and "16,289 reported" in out
+    assert "Critical discrepancy: 95.3%" in out and "16,289 discoveries" in out
 
 
 def test_machine_status_and_metrics_are_unchanged():

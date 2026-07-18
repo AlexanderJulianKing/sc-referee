@@ -11,9 +11,9 @@ fires it is right; when it is unsure it says so and the human sets the spec by h
 
 Recognised patterns:
 
-1. Hand-rolled negative-binomial / Poisson NLL minimised with scipy (the GB-P07 shape -- all five
-   frontier runs hand-rolled their likelihood because a log link cannot express additive
-   contamination). Mean form:  mu = [reference +] offset * exp(linear_predictor). EXACT replay.
+1. Hand-rolled negative-binomial / Poisson NLL minimised with scipy (a common shape when a log
+   link cannot express additive contamination, so the likelihood is hand-rolled). Mean form:
+   mu = [reference +] offset * exp(linear_predictor). EXACT replay.
 
 2. statsmodels formula GLM:  smf.glm("y ~ a + b", family=..., offset=...). EXACT-ish replay.
 
@@ -265,10 +265,13 @@ def _recover_handrolled(tree, exposure) -> RecoveredModel | None:
         if not ok or not preds:
             continue
 
-        # family from the return loglik: gammaln with a dispersion -> nb; poisson form otherwise
+        # family from the return loglik: gammaln with a dispersion parameter -> nb; poisson form
+        # otherwise. NB is identified STRUCTURALLY -- a fitted parameter that is not part of the
+        # linear predictor is the dispersion -- not by the parameter's name (Poisson has no such
+        # extra parameter). This does not assume the analyst named their coefficients any particular way.
         family = None
         src = ast.unparse(func)
-        if "gammaln" in src and ("theta" in src or any(p for p in params if p not in ("alpha", "beta"))):
+        if "gammaln" in src and any(p not in preds for p in params):
             family = "nb"
         elif "np.log(mu)" in src or "log(mu) -" in src:
             family = "poisson"

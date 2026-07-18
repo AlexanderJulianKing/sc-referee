@@ -28,6 +28,7 @@ class Question:
     default: object = None
     required: bool = False
     proposal_source: str | None = None
+    more_options: tuple = ()       # extra choices offered behind an escape hatch (batch: every other column)
 
 
 def csp_questions(config, *, group_source_column: str | None = None,
@@ -178,6 +179,20 @@ def _required(role, config) -> bool:
     return (config.get("confidence") or {}).get(role) == "low"
 
 
+def _technical_column_candidates(columns, declared=()) -> tuple:
+    """Prefer metadata names that plausibly encode processing, while retaining declared batches."""
+    terms = (
+        "batch", "run", "lane", "plate", "library", "chemistry", "prep", "sequenc",
+        "capture", "flowcell", "chip", "well", "day", "site", "center", "centre",
+    )
+    ordered = []
+    for column in (*tuple(declared or ()), *tuple(columns)):
+        name = str(column).lower()
+        if column not in ordered and (column in tuple(declared or ()) or any(t in name for t in terms)):
+            ordered.append(column)
+    return tuple(ordered)
+
+
 def design_questions(config, columns, *, analysis_types) -> list:
     """Turn a proposed config (from init.propose) + the data's columns into the ordered question
     list, each prefilled with the tool's guess and flagged required when the guess is uncertain."""
@@ -201,6 +216,8 @@ def design_questions(config, columns, *, analysis_types) -> list:
     condition_required = _required("condition", config)
     reference_required = _required("reference", config)
     replicate_required = _required("replicate_unit", config)
+    declared_batches = tuple(design.get("batch") or ())
+    batch_options = _technical_column_candidates(columns, declared_batches)
     questions = [
         Question("analysis_type",
                  (f"I read this as {analysis_names.get(analysis_type, str(analysis_type))}. "
@@ -237,20 +254,27 @@ def design_questions(config, columns, *, analysis_types) -> list:
         Question("batch",
                  "Does the supplied metadata include technical processing batches — such as "
                  "sequencing runs, days, plates, or 10x lanes? Select every column that records one.",
-                 "A batch that lines up with the comparison can look like a biological effect. If "
-                 "processing was not recorded, leave this blank; Referee will not claim to have "
-                 "checked an unrecorded batch effect.",
-                 "columns", tuple(columns), tuple(design.get("batch") or ()),
-                 _required("batch", config)),
+                 "A batch that lines up with the comparison can look like a biological effect. "
+                 "Choose an explicit answer so Referee can distinguish no recorded batch from "
+                 "scientific uncertainty.",
+                 "columns", batch_options, declared_batches,
+                 _required("batch", config),
+                 # Escape hatch: every column NOT in the concise technical list stays reachable,
+                 # so a batch column with an unconventional name is never silently unselectable.
+                 more_options=tuple(c for c in columns if c not in batch_options)),
     ]
     if config.get("analysis_type") == "condition_contrast_DE":
         proposed = contrast.get("analyst_adjusted_for")
+        proposed_extra = tuple(value for value in (proposed or ()) if value != condition)
+        excluded = {condition, replicate}
+        adjustment_options = tuple(dict.fromkeys(
+            (*proposed_extra, *(column for column in columns if column not in excluded))
+        ))
         if proposed is not None and len(proposed) == 0:
             adjusted_prompt = ("I read your model as adjusting for nothing beyond the comparison "
-                               "itself. Confirm the extra variables it accounted for — leave this "
-                               "empty if that's right.")
-        elif proposed:
-            adjusted_prompt = ("I read your model as adjusting for: " + ", ".join(proposed) +
+                               "itself. Confirm whether it included any additional covariates.")
+        elif proposed_extra:
+            adjusted_prompt = ("I read your model as adjusting for: " + ", ".join(proposed_extra) +
                                ". Confirm or correct the full list of variables it accounted for, "
                                "besides the comparison itself.")
         else:
@@ -263,8 +287,8 @@ def design_questions(config, columns, *, analysis_types) -> list:
                 "I compare this against the technical variables to see if anything confounding was "
                 "left out of your model.",
                 "columns",
-                tuple(columns),
-                tuple(proposed) if proposed is not None else None,
+                adjustment_options,
+                proposed_extra if proposed is not None else None,
                 _required("analyst_adjusted_for", config),
             )
         )
@@ -354,6 +378,7 @@ def _roles_from_answers(answers):
 
     batch = answers.get("batch")
     batch = (batch,) if isinstance(batch, str) else tuple(batch or ())
+    batch_answered = "batch_answered" in answers
     rep = answers.get("replicate_unit")
     adjusted_answered = ("analyst_adjusted_for" in answers
                          or "analyst_adjusted_for_answered" in answers)
@@ -367,11 +392,13 @@ def _roles_from_answers(answers):
         "replicate_unit": "high" if rep else "low",
         "reference": "high" if reference is not None else "low",
         "unit_of_test": "high" if unit_of_test else "low",
+        "batch": "high" if batch_answered else "low",
         "analyst_adjusted_for": "high" if adjusted_answered else "low",
     }
     unresolved = [role for role, captured in (
         ("condition", bool(condition)), ("replicate_unit", bool(rep)),
         ("reference", reference is not None), ("unit_of_test", bool(unit_of_test)),
+        ("batch", batch_answered),
         ("analyst_adjusted_for", adjusted_answered),
     ) if not captured]
     return Roles(
@@ -390,6 +417,51 @@ def _roles_from_answers(answers):
     )
 
 
+def _normalize_form_answers(answers) -> dict:
+    """Translate explicit UI states into the existing exact-or-unresolved role contract."""
+    normalized = dict(answers)
+
+    invalid_bindings = [
+        role for role in _CORRECTABLE_BINDING_ROLES
+        if normalized.get(role) in _MAPPING_SENTINELS
+    ]
+    if invalid_bindings:
+        raise ValueError(
+            "Referee cannot run with an unresolved design mapping: "
+            + ", ".join(sorted(invalid_bindings))
+        )
+
+    batch_status = normalized.pop("batch_status", None)
+    if batch_status == "none_recorded":
+        normalized.pop("batch", None)
+        normalized["batch_answered"] = "1"
+    elif batch_status == "recorded":
+        if normalized.get("batch"):
+            normalized["batch_answered"] = "1"
+        else:
+            normalized.pop("batch_answered", None)
+    elif batch_status == "not_sure":
+        normalized.pop("batch", None)
+        normalized.pop("batch_answered", None)
+    elif "batch" in normalized:  # legacy callers/tests with an explicit batch answer
+        normalized["batch_answered"] = "1"
+
+    adjustment_status = normalized.pop("adjustment_status", None)
+    if adjustment_status == "none":
+        normalized.pop("analyst_adjusted_for", None)
+        normalized["analyst_adjusted_for_answered"] = "1"
+    elif adjustment_status == "selected":
+        if normalized.get("analyst_adjusted_for"):
+            normalized["analyst_adjusted_for_answered"] = "1"
+        else:
+            normalized.pop("analyst_adjusted_for_answered", None)
+    elif adjustment_status == "not_sure":
+        normalized.pop("analyst_adjusted_for", None)
+        normalized.pop("analyst_adjusted_for_answered", None)
+
+    return normalized
+
+
 def answers_to_config(answers, observations, code_signals=None, reported=None,
                       proposed_config=None) -> dict:
     """Turn the human's answers into a `confirmed_by_human: true` config, re-synthesized from the
@@ -397,138 +469,31 @@ def answers_to_config(answers, observations, code_signals=None, reported=None,
     the questions IS the ratification."""
     from sc_referee.init import synthesize_config
 
-    proposed_config = proposed_config or {}
-    known_top_level = {
-        "analysis_type", "confirmed_by_human", "confirmation_digest", "type_confidence",
-        "type_evidence", "plain_summary", "design", "contrasts", "reported_results", "claims",
-        "confidence", "unresolved", "batch_modeling", "csp_proposals", "external_reference",
-    }
-    unknown_top_level = sorted(set(proposed_config) - known_top_level)
-    unknown_design = sorted(set(proposed_config.get("design") or {}) - {
-        "condition", "replicate_unit", "batch",
-    })
-    if unknown_top_level or unknown_design:
-        unknown = [*(f"top-level.{field}" for field in unknown_top_level),
-                   *(f"design.{field}" for field in unknown_design)]
-        raise ValueError(
-            "the prior config contains fields the confirmation ceremony cannot safely preserve: "
-            + ", ".join(unknown))
-    if reported is None and proposed_config.get("reported_results") is not None:
-        from copy import deepcopy
-
-        reported = deepcopy(proposed_config["reported_results"])
-
+    answers = _normalize_form_answers(answers)
     config = synthesize_config(_roles_from_answers(answers), observations, code_signals or {}, reported)
     test = answers.get("test")
-    contrasts = config.get("contrasts") or []
-    if test is not None:
-        chosen = [c for c in contrasts if c.get("test") == test]
-        if len(chosen) != 1:
-            raise ValueError(
-                f"the selected comparison level {test!r} matched {len(chosen)} available "
-                "contrasts; confirmation requires exactly one exact match")
-        config["contrasts"] = chosen
-    elif len(contrasts) > 1:
-        raise ValueError("confirmation requires selecting exactly one comparison level")
+    if test and len(config.get("contrasts") or []) > 1:
+        chosen = [c for c in config["contrasts"] if c.get("test") == test]
+        if chosen:
+            config["contrasts"] = chosen
     config["confirmed_by_human"] = True
-
-    proposed_contrasts = list(proposed_config.get("contrasts") or [])
-    selected = (config.get("contrasts") or [None])[0]
-    matching_proposed = [] if selected is None else [
-        contrast for contrast in proposed_contrasts
-        if contrast.get("reference") == selected.get("reference")
-        and contrast.get("test") == selected.get("test")
-    ]
-    if len(matching_proposed) > 1:
-        raise ValueError("the prior config contains duplicate contracts for the selected comparison")
-    proposed_contrast = matching_proposed[0] if matching_proposed else {}
-
-    # These externally authored contracts are not reconstructed by the setup ceremony.  Preserve
-    # them only when the reviewer selected the exact same comparison; moving a hidden contract to a
-    # different estimand would manufacture authority.
-    preserved_contract_fields = (
-        "effect_relevance_contract", "multiplicity_contract", "report_inference_contract",
-        "row_ledger", "pairing_estimand", "pairing_mechanics", "subset", "unit_of_test",
-    )
-    if (not proposed_contrast and len(proposed_contrasts) == 1
-            and proposed_contrasts[0].get("reference") is None
-            and proposed_contrasts[0].get("test") is None
-            and not any(field in proposed_contrasts[0] for field in preserved_contract_fields)):
-        # A draft proposer may have named the claim root without having resolved its levels yet.
-        # It carries no hidden scientific contract, so the exact human-selected levels may safely
-        # complete that sole draft and retain its claim inventory.
-        proposed_contrast = proposed_contrasts[0]
-    ceremony_contrast_fields = {
-        "name", "reference", "test", "replicate_unit", "sample_unit", "pairing_unit", "model",
-        "analyst_model", "analyst_adjusted_for", "target_coefficient", "estimand_id",
-        "aggregation_key", "fitted_design", "csp_contracts", *preserved_contract_fields,
-    }
-    unknown_contrast_fields = sorted({
-        field for contrast in proposed_contrasts for field in contrast
-        if field not in ceremony_contrast_fields
-    })
-    if unknown_contrast_fields:
-        raise ValueError(
-            "the prior comparison contains fields the confirmation ceremony cannot safely preserve: "
-            + ", ".join(unknown_contrast_fields))
-    unmatched_proposed = [
-        contrast for contrast in proposed_contrasts if contrast is not proposed_contrast
-    ]
-    orphaned = sorted({
-        field for contrast in unmatched_proposed for field in preserved_contract_fields
-        if field in contrast
-    })
-    if orphaned:
-        raise ValueError(
-            "changing the comparison would detach previously confirmed contract fields "
-            f"({', '.join(orphaned)}); remove or explicitly re-author those contracts before "
-            "confirming the new comparison")
-
     if config.get("contrasts"):
+        proposed_contrast = ((proposed_config or {}).get("contrasts") or [{}])[0]
         config["contrasts"][0]["estimand_id"] = (
             proposed_contrast.get("estimand_id") or "condition-effect/v1"
         )
-        from copy import deepcopy
-
-        for field in preserved_contract_fields:
-            if field in proposed_contrast:
-                config["contrasts"][0][field] = deepcopy(proposed_contrast[field])
-    if proposed_config.get("claims"):
+    if (proposed_config or {}).get("claims"):
         from copy import deepcopy
 
         claims = deepcopy(proposed_config["claims"])
-        old_contrast = proposed_contrast.get("name")
+        old_contrast = (((proposed_config or {}).get("contrasts") or [{}])[0].get("name"))
         new_contrast = ((config.get("contrasts") or [{}])[0].get("name"))
-        unselected_names = {
-            contrast.get("name") for contrast in unmatched_proposed if contrast.get("name")
-        }
-        stranded_claims = [
-            claim.get("name") or claim.get("path") or "unnamed claim" for claim in claims
-            if claim.get("contrast") in unselected_names
-        ]
-        if stranded_claims:
-            raise ValueError(
-                "the selected comparison would strand existing claims bound to another contrast: "
-                + ", ".join(map(str, stranded_claims)))
         for claim in claims:
             if old_contrast and new_contrast and claim.get("contrast") == old_contrast:
                 claim["contrast"] = new_contrast
         config["claims"] = claims
     _ratify_batch_modeling(config, answers, observations, proposed_config=proposed_config)
     _ratify_csp(config, answers, observations, proposed_config=proposed_config)
-    if proposed_config.get("external_reference") is not None:
-        from copy import deepcopy
-
-        config["external_reference"] = deepcopy(proposed_config["external_reference"])
-    from sc_referee.config import semantic_digest
-
-    # The wizard is itself a human confirmation ceremony, so its output must carry the same
-    # tamper-evident receipt as `sc-referee confirm`.  Mint it last, over every verdict-bearing field.
-    config["confirmation_digest"] = semantic_digest(config)
-    from sc_referee.schema_validation import validate
-
-    # Never write a human-confirmed authority object that its own loader would reject.
-    validate(config, "sc_referee.schema.json")
     return config
 
 
@@ -957,17 +922,6 @@ def _ratify_target_population_csp(
                 "confirmed_at": now if confirmed else None,
             }
         released_values = {key: field["value"] for key, field in fields.items()}
-        validator_result = list(MANIFEST.validate_values(released_values))
-
-        def yaml_value(value):
-            # Contract validators use tuples to make ordering/type part of their closed domain;
-            # the public YAML/JSON schema represents the identical ordered values as arrays.
-            if isinstance(value, tuple):
-                return [yaml_value(item) for item in value]
-            return value
-
-        for field in fields.values():
-            field["value"] = yaml_value(field["value"])
         record_id = "csp-" + hashlib.sha256(
             (scope.fingerprint + MANIFEST.contract_type).encode("utf-8")
         ).hexdigest()[:20]
@@ -991,7 +945,7 @@ def _ratify_target_population_csp(
             "authority_attested": authority,
             "authority_attestation": MANIFEST.authority_attestation if authority else None,
             "validator_version": MANIFEST.validator_version,
-            "validator_result": validator_result,
+            "validator_result": list(MANIFEST.validate_values(released_values)),
             "active": True,
             "created_at": now,
         })
@@ -1116,17 +1070,17 @@ def _ratify_batch_modeling(config, answers, observations, *, proposed_config=Non
 # parameter row (mono key + human prompt + why + input). Self-contained + offline.
 _CSS = """
 :root{color-scheme:light dark;
- --paper:#f4f5f3;--ink:#191b1f;--mut:#5f6670;--dim:#9aa0a8;--rule:#dcdfd9;--rule2:#c3c7c0;--accent:#9a6b00;
+ --paper:#f4f5f3;--ink:#191b1f;--mut:#5f6670;--dim:#626a74;--rule:#dcdfd9;--rule2:#c3c7c0;--accent:#9a6b00;
  --field:#fbfbfa;
  --mono:"JetBrains Mono","SFMono-Regular","Cascadia Code",ui-monospace,Menlo,Consolas,monospace;
  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 @media(prefers-color-scheme:dark){:root{
- --paper:#111317;--ink:#e7e9ec;--mut:#9aa1ab;--dim:#616772;--rule:#2a2e35;--rule2:#3a3f47;--accent:#e0b654;
+ --paper:#111317;--ink:#e7e9ec;--mut:#aeb4bd;--dim:#a2a9b3;--rule:#2a2e35;--rule2:#3a3f47;--accent:#e0b654;
  --field:#191c22}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;
  line-height:1.55;-webkit-font-smoothing:antialiased}
-main{max-width:760px;margin:0 auto;padding:0 24px 72px}
+main{max-width:800px;margin:0 auto;padding:0 24px 72px}
 header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
  padding:22px 0 11px;border-bottom:1px solid var(--rule2)}
 .brand{font-family:var(--mono);font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--mut)}
@@ -1136,11 +1090,12 @@ header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
 .claim-summary{margin:38px 0 8px;padding:0 0 25px;border-bottom:1px solid var(--rule2)}
 .claim-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
  color:var(--dim);margin-bottom:9px}.claim-title{font-size:clamp(30px,5vw,43px);line-height:1.05;
- letter-spacing:-.035em;font-weight:650}.claim-title .versus{font-family:var(--mono);font-size:.34em;
- letter-spacing:.12em;text-transform:uppercase;color:var(--dim);vertical-align:middle;margin:0 .8em}
+ letter-spacing:-.035em;font-weight:650}
 .claim-facts{display:flex;flex-wrap:wrap;gap:9px 24px;margin-top:17px;font-family:var(--mono);
  font-size:11.5px;color:var(--mut)}.claim-facts b{font-weight:500;color:var(--ink)}
-.claim-facts .caution,.claim-facts .caution b{color:var(--accent)}
+.claim-fact{white-space:nowrap}.fact-label{color:var(--mut)}.claim-facts b.caution{color:var(--accent)}
+.claim-facts em{font-style:normal;color:var(--accent);font-size:10px;letter-spacing:.06em;
+ text-transform:uppercase;margin-left:5px}
 .section{margin-top:36px}
 .section+.section{margin-top:46px;padding-top:4px}
 .section-kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
@@ -1148,7 +1103,7 @@ header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
 .section h1{font-size:24px;line-height:1.2;letter-spacing:-.025em;margin:0 0 7px;font-weight:650}
 .section-note{color:var(--mut);font-size:13.5px;line-height:1.48;margin:0 0 18px;max-width:60ch}
 .param{padding:18px 0;border-top:1px solid var(--rule);display:grid;
- grid-template-columns:minmax(0,1fr) minmax(220px,270px);gap:28px;align-items:start}
+ grid-template-columns:minmax(0,1fr) minmax(250px,310px);gap:30px;align-items:start}
 .param:first-of-type{border-top:none}
 .p-head{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
 .p-key{font-family:var(--mono);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--dim)}
@@ -1168,16 +1123,44 @@ select:focus,input[type=text]:focus{outline:none;border-color:var(--ink);
  box-shadow:0 0 0 3px color-mix(in srgb,var(--ink) 14%,transparent)}
 select:user-invalid,input[type=text]:user-invalid{border-color:var(--accent);
  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 16%,transparent)}
+.mapping-recovery{margin-top:10px;padding:12px 14px;background:color-mix(in srgb,var(--accent) 9%,var(--paper));
+ border:1px solid color-mix(in srgb,var(--accent) 45%,var(--rule));font-size:12.5px;line-height:1.45}
+.mapping-recovery strong{display:block;color:var(--ink);margin-bottom:3px}.mapping-recovery span{color:var(--mut)}
+.mapping-recovery .not-listed-copy,.mapping-recovery .not-sure-copy{display:none}
+.mapping-recovery[data-state="__not_listed__"] .not-listed-copy,
+.mapping-recovery[data-state="__not_sure__"] .not-sure-copy{display:block}
 .checks{display:flex;flex-wrap:wrap;gap:9px 20px}
 .checks label,.radios label{font-family:var(--mono);font-size:13px;display:inline-flex;align-items:center;
  gap:7px;color:var(--ink);cursor:pointer}
 .radios{display:flex;gap:12px 22px;flex-wrap:wrap}
-input[type=checkbox],input[type=radio]{accent-color:var(--ink);width:14px;height:14px}
+input[type=checkbox],input[type=radio]{accent-color:var(--ink);width:15px;height:15px;flex:none}
+.choice-stack{display:flex;flex-direction:column;gap:9px}.choice{display:flex;align-items:flex-start;gap:8px;
+ font-family:var(--mono);font-size:12.5px;line-height:1.4;cursor:pointer}.choice input{margin-top:2px}
+.subchoices{margin:5px 0 0 23px;padding:11px 13px;background:var(--field);border:1px solid var(--rule)}
+.subchoices>span{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+ text-transform:uppercase;color:var(--dim);margin-bottom:8px}.empty-options{margin:4px 0 0 23px;
+ color:var(--mut);font-size:12.5px;line-height:1.4}
+.more-columns{margin:6px 0 0 23px}
+.more-columns summary{cursor:pointer;list-style:none;font-family:var(--mono);font-size:11.5px;
+ color:var(--mut);padding:5px 0}.more-columns summary::-webkit-details-marker{display:none}
+.more-columns summary::after{content:" +";color:var(--dim);letter-spacing:.04em}
+.more-columns[open] summary::after{content:" −"}.more-columns .checks{margin:7px 0 3px}
+.design-details{margin-top:18px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.design-details summary{cursor:pointer;list-style:none;padding:14px 0;font-family:var(--mono);font-size:12px;
+ color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:18px}
+.design-details summary::-webkit-details-marker{display:none}.design-details summary::after{content:"Review details  +";
+ color:var(--dim);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
+.design-details[open] summary::after{content:"Hide details  −"}.design-details .details-body{padding-bottom:4px}
 .run{margin-top:38px;font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;
- color:var(--paper);background:var(--ink);border:none;border-radius:2px;padding:14px 22px;cursor:pointer}
-.run:hover{opacity:.88}
+ color:var(--paper);background:var(--ink);border:none;border-radius:2px;padding:14px 22px;cursor:pointer;
+ transition:background-color 160ms ease-out,color 160ms ease-out,transform 120ms ease-out}
+.run:hover{background:var(--accent)}.run:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.run:active{transform:translateY(1px)}
+.run:disabled{background:var(--rule2);color:var(--mut);cursor:not-allowed;transform:none}
 @media(max-width:650px){main{padding-left:20px;padding-right:20px}.param{grid-template-columns:1fr;gap:12px}
- .claim-summary{margin-top:30px}.section{margin-top:31px}.param-control{padding-top:0}}
+ .claim-summary{margin-top:30px}.section{margin-top:31px}.param-control{padding-top:0}
+ .design-details summary::after{content:"+"}.design-details[open] summary::after{content:"−"}}
+@media(prefers-reduced-motion:reduce){.run{transition:none}}
 """
 
 
@@ -1185,6 +1168,9 @@ _READBACK_ROLES = frozenset({
     "analysis_type", "condition", "reference", "test", "replicate_unit",
     "analyst_adjusted_for", "unit_of_test",
 })
+
+_MAPPING_SENTINELS = frozenset({"__not_listed__", "__not_sure__"})
+_CORRECTABLE_BINDING_ROLES = frozenset({"analysis_type", "condition", "replicate_unit"})
 
 
 def _is_readback(q) -> bool:
@@ -1199,7 +1185,7 @@ def _is_readback(q) -> bool:
 
 def _option_label(value) -> str:
     labels = {
-        "condition_contrast_DE": "Differential expression between conditions",
+        "condition_contrast_DE": "Differential expression",
         "marker_detection": "Marker detection",
         "cell": "Individual cells",
         "sample": "Biological samples",
@@ -1207,7 +1193,7 @@ def _option_label(value) -> str:
     return labels.get(str(value), str(value))
 
 
-def _field(q, *, readback=False, readback_label="proposed") -> str:
+def _field(q, *, readback=False, readback_label="proposed", confirmed=False) -> str:
     """One design role as an instrument parameter row: mono key + human prompt + why + input."""
     # A required core role is unresolved or low-confidence. Show the guess in the prose if useful,
     # but require an active choice instead of silently laundering it through a preselected input.
@@ -1219,20 +1205,86 @@ def _field(q, *, readback=False, readback_label="proposed") -> str:
             f'{found}{req}</div>'
             f'<span class="p-prompt">{_html.escape(q.prompt)}</span>'
             f'<div class="p-why">{_html.escape(q.why)}</div>')
-    if q.kind in ("column", "choice"):
+    if q.role == "batch":
+        status = "recorded" if default else ("none_recorded" if confirmed else "not_sure")
+        status_options = (
+            ("none_recorded", "No technical batch column is recorded"),
+            ("recorded", "The metadata records technical batches"),
+            ("not_sure", "Not sure — leave batch confounding unevaluated"),
+        )
+        status_radios = "".join(
+            f'<label class="choice"><input type="radio" name="batch_status" value="{value}"'
+            f'{" checked" if value == status else ""}> <span>{label}</span></label>'
+            for value, label in status_options
+        )
+        boxes = "".join(
+            f'<label><input type="checkbox" name="batch" value="{_html.escape(str(o))}"'
+            f'{" checked" if o in (default or ()) else ""}> {_html.escape(str(o))}</label>'
+            for o in q.options
+        )
+        candidates = (f'<div class="subchoices"><span>Recorded batch columns</span>'
+                      f'<div class="checks">{boxes}</div></div>' if boxes else
+                      '<div class="empty-options">No likely technical batch columns were found.</div>')
+        # F1 escape hatch: reveal every remaining metadata column so an unconventionally-named
+        # technical batch column stays selectable. Native <details> — keyboard- and SR-accessible.
+        more_boxes = "".join(
+            f'<label><input type="checkbox" name="batch" value="{_html.escape(str(o))}"'
+            f'{" checked" if o in (default or ()) else ""}> {_html.escape(str(o))}</label>'
+            for o in q.more_options
+        )
+        more = (f'<details class="more-columns"'
+                f'{" open" if any(o in (default or ()) for o in q.more_options) else ""}>'
+                '<summary>A different column records batch…</summary>'
+                f'<div class="checks">{more_boxes}</div></details>' if more_boxes else "")
+        inp = f'<div class="choice-stack">{status_radios}{candidates}{more}</div>'
+    elif q.role == "analyst_adjusted_for":
+        status = "selected" if default else ("none" if default is not None else "not_sure")
+        status_options = (
+            ("none", "No additional covariates"),
+            ("selected", "The model included additional covariates"),
+            ("not_sure", "Not sure — leave this model detail unresolved"),
+        )
+        status_radios = "".join(
+            f'<label class="choice"><input type="radio" name="adjustment_status" value="{value}"'
+            f'{" checked" if value == status else ""}> <span>{label}</span></label>'
+            for value, label in status_options
+        )
+        boxes = "".join(
+            f'<label><input type="checkbox" name="analyst_adjusted_for" '
+            f'value="{_html.escape(str(o))}"'
+            f'{" checked" if o in (default or ()) else ""}> {_html.escape(str(o))}</label>'
+            for o in q.options
+        )
+        candidates = (f'<div class="subchoices"><span>Additional covariates</span>'
+                      f'<div class="checks">{boxes}</div></div>' if boxes else
+                      '<div class="empty-options">No additional candidate covariates were found.</div>')
+        inp = f'<div class="choice-stack">{status_radios}{candidates}</div>'
+    elif q.kind in ("column", "choice"):
         opts = "".join(
             f'<option value="{_html.escape(str(o))}"'
             f'{" selected" if o == default else ""}>{_html.escape(_option_label(o))}</option>'
             for o in q.options)
+        if q.role in _CORRECTABLE_BINDING_ROLES:
+            opts += ('<option value="__not_listed__">Correct value isn’t listed</option>'
+                     '<option value="__not_sure__">Not sure</option>')
         blank = "" if default else '<option value="" selected disabled>choose…</option>'
-        inp = f'<select name="{q.role}"{reqattr}>{blank}{opts}</select>'
+        recovery = (f'<div class="mapping-recovery" data-mapping-recovery="{q.role}" hidden>'
+                    '<strong>Referee cannot safely use this mapping.</strong>'
+                    '<span class="not-listed-copy">The correct value is not available in the loaded '
+                    'analysis table. Add it to the supplied metadata or choose a different analysis '
+                    'folder, then restart. Referee will not guess.</span>'
+                    '<span class="not-sure-copy">This role is required to bind the scientific design. '
+                    'The review will remain stopped until it can be established.</span></div>'
+                    if q.role in _CORRECTABLE_BINDING_ROLES else "")
+        inp = (f'<select name="{q.role}" data-binding-role="{q.role}"{reqattr}>'
+               f'{blank}{opts}</select>{recovery}')
     elif q.kind == "columns":
         boxes = "".join(
             f'<label><input type="checkbox" name="{q.role}" value="{_html.escape(str(o))}"'
             f'{" checked" if o in (default or ()) else ""}> {_html.escape(str(o))}</label>'
             for o in q.options)
         answered = (f'<input type="hidden" name="{q.role}_answered" value="1">'
-                    if q.role == "analyst_adjusted_for" or q.role.startswith("batch_modeling.")
+                    if q.role.startswith("batch_modeling.")
                     else "")
         inp = f'{answered}<div class="checks">{boxes}</div>'
     elif q.kind in ("radio", "csp_semantic", "csp_ceremony"):
@@ -1264,20 +1316,30 @@ def _claim_summary(questions) -> str:
     replicate = getattr(by_role.get("replicate_unit"), "default", None)
     condition = getattr(by_role.get("condition"), "default", None)
     unit = getattr(by_role.get("unit_of_test"), "default", None)
+    analysis_type = getattr(by_role.get("analysis_type"), "default", None)
     if reference is None or test is None:
         return ""
     facts = []
     if condition:
-        facts.append(f'<span>comparison column&nbsp; <b>{_html.escape(str(condition))}</b></span>')
+        facts.append('<span class="claim-fact"><span class="fact-label">Comparison column:</span> '
+                     f'<b data-summary-condition>{_html.escape(str(condition))}</b></span>')
     if replicate:
-        facts.append(f'<span>one replicate&nbsp; <b>{_html.escape(str(replicate))}</b></span>')
+        facts.append('<span class="claim-fact"><span class="fact-label">Biological replicate:</span> '
+                     f'<b data-summary-replicate>{_html.escape(str(replicate))}</b></span>')
     if unit:
         unit_text = "individual cells" if unit == "cell" else "biological samples"
         caution = " class='caution'" if unit == "cell" else ""
-        facts.append(f'<span{caution}>reported test unit&nbsp; <b>{unit_text}</b></span>')
-    return ("<section class='claim-summary'><div class='claim-label'>Scientific claim under review</div>"
-            f"<div class='claim-title'>{_html.escape(str(test))}<span class='versus'>versus</span>"
-            f"{_html.escape(str(reference))}</div><div class='claim-facts'>{''.join(facts)}</div></section>")
+        review = '<em>· review</em>' if unit == "cell" else ""
+        facts.append(f'<span class="claim-fact"><span class="fact-label">Reported test unit:</span> '
+                     f'<b{caution} data-summary-unit>{unit_text}</b>'
+                     f'<em data-summary-unit-review{"" if review else " hidden"}>· review</em></span>')
+    claim_label = ("Differential expression under review"
+                   if analysis_type == "condition_contrast_DE" else "Scientific claim under review")
+    return (f"<section class='claim-summary'><div class='claim-label' data-summary-analysis>"
+            f"{claim_label}</div><div class='claim-title'><span data-summary-test>"
+            f"{_html.escape(str(test))}</span> vs. "
+            f"<span data-summary-reference>{_html.escape(str(reference))}</span></div>"
+            f"<div class='claim-facts'>{''.join(facts)}</div></section>")
 
 
 def render_form(questions) -> str:
@@ -1285,6 +1347,7 @@ def render_form(questions) -> str:
     parameter row per Question, prefilled with the tool's guesses, required roles marked."""
     questions = list(questions)
     source = next((q.proposal_source for q in questions if q.proposal_source), None)
+    confirmed_mode = source == "confirmed_config"
     source_intro = {
         "claude": ("Claude inspected the supplied folder and prepared a scientific design for "
                    "your review."),
@@ -1293,42 +1356,91 @@ def render_form(questions) -> str:
         "heuristic_no_llm": ("Claude was not available for this run. Referee prepared a cautious "
                              "draft from the metadata and code; uncertain items remain below."),
         "confirmed_config": ("This folder already contains a human-confirmed design. Referee loaded "
-                             "it for review before rerunning the audit."),
+                             "it unchanged for this review."),
     }.get(source, "I inspected the analysis folder and prepared a design for review.")
-    readbacks = [q for q in questions if _is_readback(q)]
-    asks = [q for q in questions if not _is_readback(q)]
+    readbacks = [q for q in questions if _is_readback(q) or (
+        confirmed_mode and q.role == "batch" and q.default is not None and not q.required
+    )]
+    asks = [q for q in questions if q not in readbacks]
     sections = []
     if readbacks:
-        readback_label = "confirmed" if source == "confirmed_config" else "proposed"
-        sections.append(
-            "<section class='section readback'><div class='section-kicker'>What Referee found</div>"
-            "<h1>Review my read of your analysis</h1>"
-            "<p class='section-note'>These answers came from the supplied data, results, or code. "
-            "They are editable — correct anything I misunderstood.</p>" +
-            "".join(_field(q, readback=True, readback_label=readback_label)
-                    for q in readbacks) + "</section>"
-        )
+        if confirmed_mode:
+            detail_fields = "".join(
+                _field(q, readback=True, readback_label="previously confirmed", confirmed=True)
+                for q in readbacks
+            )
+            sections.append(
+                "<section class='section readback'><div class='section-kicker'>Confirmed design</div>"
+                "<h1>Ready to review again</h1>"
+                "<p class='section-note'>Run the audit with the design summarized above, or open the "
+                "details to review and change the previous confirmation.</p>"
+                "<details class='design-details'><summary>Previously confirmed design</summary>"
+                f"<div class='details-body'>{detail_fields}</div></details></section>"
+            )
+        else:
+            sections.append(
+                "<section class='section readback'><div class='section-kicker'>What Referee found</div>"
+                "<h1>Review my read of your analysis</h1>"
+                "<p class='section-note'>These answers came from the supplied data, results, or code. "
+                "They are editable — correct anything I misunderstood.</p>" +
+                "".join(_field(q, readback=True, readback_label="proposed")
+                        for q in readbacks) + "</section>"
+            )
     if asks:
         sections.append(
-            "<section class='section'><div class='section-kicker'>Missing scientific context</div>"
-            "<h1>What I still need from you</h1>"
-            "<p class='section-note'>Some facts cannot be recovered reliably from the folder. "
-            "Resolve required items before Referee makes firm claims. Where offered, “Not sure” "
-            "safely leaves that check unaudited.</p>" +
+            "<section class='section'><div class='section-kicker'>Scientific context</div>"
+            "<h1>What the folder cannot establish</h1>"
+            "<p class='section-note'>These details are not recoverable from the supplied files. "
+            "Answer what you know; “Not sure” leaves the affected check explicitly unevaluated.</p>" +
             "".join(_field(q) for q in asks) + "</section>"
         )
     fields = "".join(sections)
+    action = ("Run review with this design" if confirmed_mode else
+              "Confirm design and run review")
+    intro_suffix = (" Run it as confirmed, or review the design details before continuing."
+                    if confirmed_mode else
+                    " Confirm the interpretation below before Referee recomputes the result.")
+    default_action = action + "  →"
+    change_script = (
+        "<script>const form=document.querySelector('form');const run=document.querySelector('.run');"
+        f"const confirmed={str(confirmed_mode).lower()};const defaultAction={default_action!r};"
+        "let dirty=false;const selects=[...form.querySelectorAll('[data-binding-role]')];"
+        "const field=name=>form.querySelector('[name=\"'+name+'\"]');"
+        "const clean=value=>(value==='__not_listed__'||value==='__not_sure__')?'unresolved':value;"
+        "const put=(selector,value)=>{const node=document.querySelector(selector);if(node)node.textContent=value;};"
+        "const updateSummary=()=>{const analysis=field('analysis_type');if(analysis){const value=clean(analysis.value);"
+        "put('[data-summary-analysis]',value==='unresolved'?'Analysis mapping unresolved':"
+        "analysis.options[analysis.selectedIndex].text+' under review');}"
+        "const condition=field('condition');if(condition)put('[data-summary-condition]',clean(condition.value));"
+        "const replicate=field('replicate_unit');if(replicate)put('[data-summary-replicate]',clean(replicate.value));"
+        "const reference=field('reference');if(reference)put('[data-summary-reference]',reference.value||'unresolved');"
+        "const test=field('test');if(test)put('[data-summary-test]',test.value||'unresolved');"
+        "const unit=form.querySelector('[name=\"unit_of_test\"]:checked');const unitNode=document.querySelector("
+        "'[data-summary-unit]');const review=document.querySelector('[data-summary-unit-review]');if(unit&&unitNode){"
+        "const isCell=unit.value==='cell';unitNode.textContent=isCell?'individual cells':'biological samples';"
+        "unitNode.classList.toggle('caution',isCell);if(review)review.hidden=!isCell;}};"
+        "const sync=()=>{let blocked=false;selects.forEach(select=>{const panel=form.querySelector("
+        "'[data-mapping-recovery=\"'+select.dataset.bindingRole+'\"]');const value=select.value;"
+        "const unresolved=value==='__not_listed__'||value==='__not_sure__';"
+        # A non-correctable column/choice select (e.g. a batch_modeling.* ceremony field) carries
+        # data-binding-role but has NO mapping-recovery panel; guard the null so sync() never throws.
+        "if(panel){panel.hidden=!unresolved;panel.dataset.state=unresolved?value:'';}"
+        "blocked=blocked||unresolved;});run.disabled=blocked;"
+        "run.textContent=blocked?'Resolve mapping before review':"
+        "(confirmed&&dirty?'Save changes and run review  →':defaultAction);updateSummary();};"
+        "form.addEventListener('change',()=>{dirty=true;sync();});form.addEventListener('input',()=>{dirty=true;sync();});"
+        "sync();</script>"
+    )
     return ("<!doctype html>\n<html lang='en'><head><meta charset='utf-8'>"
             "<meta name='viewport' content='width=device-width, initial-scale=1'>"
             "<title>sc-referee — set up</title>"
             f"<style>{_CSS}</style></head><body><main>"
             "<header><span class='brand'>sc<b>·</b>referee</span>"
             "<span class='hlabel'>set up · design</span></header>"
-            f"<p class='intro'>{_html.escape(source_intro)} Confirm the interpretation below before "
-            f"Referee recomputes the result.</p>{_claim_summary(questions)}"
+            f"<p class='intro'>{_html.escape(source_intro + intro_suffix)}</p>{_claim_summary(questions)}"
             f"<form method='post' action='submit'>{fields}"
-            "<button class='run' type='submit'>Confirm design and run review&nbsp; →</button></form>"
-            "</main></body></html>\n")
+            f"<button class='run' type='submit'>{action}&nbsp; →</button></form>"
+            f"{change_script}</main></body></html>\n")
 
 
 def _confirm_page(*, workload: str | None = None, estimate: str | None = None,
@@ -1431,12 +1543,7 @@ def _existing_confirmed_config(folder) -> dict | None:
         config = yaml.safe_load(path.read_text())
     except (OSError, UnicodeError, yaml.YAMLError):
         return None
-    if not isinstance(config, dict) or config.get("confirmed_by_human") is not True:
-        return None
-    from sc_referee.config import _validate_confirmation_digest
-
-    _validate_confirmation_digest(config, path)
-    return config
+    return config if isinstance(config, dict) and config.get("confirmed_by_human") is True else None
 
 
 def _reported_for_folder(config, folder) -> dict | None:

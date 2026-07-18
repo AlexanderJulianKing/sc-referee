@@ -57,7 +57,7 @@ def test_forbidden_causal_reason_never_authorizes(reason):
     assert "design_based_adjustment_reason_missing" in validate_values(values)
 
 
-def test_gbp07_kind_empty_droplet_per_donor_axis_is_admissible():
+def test_contamination_kind_empty_droplet_per_donor_axis_is_admissible():
     values = complete_contamination_values()
     assert values["measurement_kind"] != "expression_proxy_with_positive_nonexpression"
     assert values["positive_evidence"]["kind"] == "empty_droplet_derived_external_fraction"
@@ -150,7 +150,7 @@ def test_reader_recomputes_both_identities_atomically():
     assert not hasattr(got, "values")
 
 
-def test_complete_gbp07_kind_axis_releases_ratified_fact_set():
+def test_complete_contamination_kind_axis_releases_ratified_fact_set():
     record = ratified_contamination_record(values=complete_contamination_values())
     got = read_ratified_contract((record,), contamination_read_request(record.scope))
     assert isinstance(got, RatifiedFactSet)

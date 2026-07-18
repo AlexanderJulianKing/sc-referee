@@ -31,6 +31,7 @@ from sc_referee import statuses as S
 from sc_referee.checks.base import Finding
 from sc_referee.citations import CITATIONS
 from sc_referee.design import Design, confidence_high, model_terms
+from sc_referee.design_matrix import DesignMatrixError, build_fixed_effect_matrix
 
 CHECK_ID = "confounding"
 
@@ -155,13 +156,109 @@ def covariates_constant_within_sample_unit(observations: pd.DataFrame, design: D
 # --------------------------------------------------------------------------- #
 # design-matrix algebra
 # --------------------------------------------------------------------------- #
-def _dummy_block(samples: pd.DataFrame, cols) -> np.ndarray:
-    """Additive, treatment-coded (drop-first) dummies — matching how the model is fit."""
+# Equilibrate the least-squares solve only when column L2 norms differ by more than this ratio.
+# Below it, scales are comparable and `lstsq` is already reliable, so we solve RAW — keeping results
+# byte-identical to the established (frozen) outputs. Categorical dummy/intercept norm ratios are
+# tiny (≈√n); the exact affine aliases equilibration recovers arise only at ratios ≥ ~1e9 (F1).
+_EQUILIBRATION_TRIGGER = 1e6
+
+# KNOWN NUMERICAL BOUNDARIES (documented; below any realistic single-cell covariate). A near-alias
+# hidden in a sub-2^-44 coefficient direction of a comparably-scaled column can be missed by the raw
+# solve (F1), and denormal covariate magnitudes (|x| < ~1e-308) are not conditioned (F2). Both need
+# covariate values no real dataset produces; genuine large-scale and small-scale (down to ~1e-20)
+# aliases DO block. Closing these fully requires always-equilibrated fits with an abstain-on-unresolved
+# -near-dependence policy — deferred as out of scope for the continuous-covariate false-blocker fix.
+
+
+def _column_l2_norms(A: np.ndarray) -> np.ndarray:
+    """Per-column Euclidean norms, overflow-safe for extreme magnitudes; a zero column -> 1.0 so
+    equilibration leaves it untouched."""
+    A = np.asarray(A, dtype=float)
+    scale = np.abs(A).max(axis=0)
+    scale = np.where(np.isfinite(scale) & (scale > 0), scale, 1.0)
+    norms = scale * np.sqrt(((A / scale) ** 2).sum(axis=0))
+    return np.where(np.isfinite(norms) & (norms > 0), norms, 1.0)
+
+
+def _equilibrated_lstsq(A: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Least-squares coefficients for A x ≈ b, solved on UNIT-NORM-EQUILIBRATED columns and returned
+    in ORIGINAL coordinates. Column equilibration is exact — it changes neither the fitted values nor
+    R² — but prevents predictors of wildly different scale from making `lstsq` discard a real
+    direction (F1). The response b is never scaled."""
+    A = np.asarray(A, dtype=float)
+    b = np.asarray(b, dtype=float)
+    if A.shape[1] == 0:
+        return np.zeros((0,) if b.ndim == 1 else (0, b.shape[1]))
+    norms = _column_l2_norms(A)
+    if norms.max() <= _EQUILIBRATION_TRIGGER * norms.min():
+        beta, *_ = np.linalg.lstsq(A, b, rcond=None)     # comparable scales: raw, byte-stable solve
+        return beta
+    beta_scaled, *_ = np.linalg.lstsq(A / norms, b, rcond=None)
+    return beta_scaled / norms[:, None] if beta_scaled.ndim == 2 else beta_scaled / norms
+
+
+def _design_block(samples: pd.DataFrame, cols, continuous=()) -> tuple[np.ndarray, tuple[str, ...]]:
+    """The additive design sub-matrix for `cols` (no intercept) + its canonical column ids, built by
+    the CANONICAL `build_fixed_effect_matrix`: a covariate the ratified `column_kinds` declares
+    CONTINUOUS enters as its numeric column (then mean-centered here for conditioning); every other
+    covariate is treatment-coded (drop-first) dummies dropping the SAME reference level pandas would
+    (sorted-first), preserving the established categorical encoding and reported leakage. Delegating
+    construction gives ONE validation boundary — boolean, missing, non-finite, or non-numeric
+    declared-continuous inputs raise DesignMatrixError (the caller abstains, F2/F4) — and
+    collision-proof unique column ids (F3). One-hot-coding a continuous covariate would manufacture a
+    spurious perfect alias, a false BLOCKER (F8)."""
     cols = list(cols)
+    n = len(samples)
     if not cols:
-        return np.empty((len(samples), 0))
-    D = pd.get_dummies(samples[cols].astype(str), columns=cols, drop_first=True)
-    return D.to_numpy(dtype=float) if D.shape[1] else np.empty((len(samples), 0))
+        return np.empty((n, 0)), ()
+    continuous = set(continuous)
+    frame, kinds, levels = {}, {}, {}
+    for col in cols:
+        key = str(col)
+        if col in continuous:
+            series = samples[col]
+            if pd.api.types.is_integer_dtype(series.dtype):
+                raw = series.to_numpy()
+                if not np.array_equal(raw, raw.astype("float64").astype(raw.dtype)):
+                    # >2^53 integers collapse on the float64 cast and can manufacture a false alias;
+                    # abstain rather than test estimability on corrupted values (F6).
+                    raise DesignMatrixError(
+                        f"integer continuous source {key!r} is not exactly representable in float64")
+            frame[key] = series                             # raw — the builder validates it
+            kinds[key] = "continuous"
+        else:
+            values = samples[col].astype(str)
+            frame[key] = values
+            kinds[key] = "categorical"
+            levels[key] = tuple(sorted(set(values)))        # drop-first reference = pandas' sorted-first
+    rows = pd.DataFrame(frame, index=samples.index)
+    built = build_fixed_effect_matrix(
+        rows, source_columns=tuple(str(c) for c in cols),
+        column_kinds=kinds, categorical_levels=levels, intercept=False,
+    )
+    matrix = np.array(built.matrix, dtype=float)            # writable copy
+    for cid, idxs in built.source_slices.items():
+        if kinds.get(cid) == "continuous":
+            for j in idxs:
+                matrix[:, j] = matrix[:, j] - matrix[:, j].mean()
+    if not np.isfinite(matrix).all():                       # e.g. ~1e308 values overflow on centering
+        raise DesignMatrixError("non-finite continuous design column after centering")
+    # Preserve the ESTABLISHED per-term ids (pandas `{col}_{level}` / `{col}`) so the reported leakage
+    # dict — a frozen public contract — is byte-identical to the previous encoder; the builder's own
+    # `{col}[level=..]` ids collide-check construction only.
+    legacy_ids: list[str] = []
+    for col in cols:
+        key = str(col)
+        if col in continuous:
+            legacy_ids.append(key)
+        else:
+            legacy_ids.extend(f"{key}_{level}" for level in levels[key][1:])
+    return matrix, tuple(legacy_ids)
+
+
+def _dummy_block(samples: pd.DataFrame, cols, continuous=()) -> np.ndarray:
+    """Back-compat accessor for the encoded design matrix alone (used by sibling-check tests)."""
+    return _design_block(samples, cols, continuous)[0]
 
 
 def _with_intercept(block: np.ndarray, n: int) -> np.ndarray:
@@ -173,15 +270,15 @@ def _r2(t: np.ndarray, Z: np.ndarray):
     tss = float(((t - t.mean()) ** 2).sum())
     if tss <= 0:
         return None
-    beta, *_ = np.linalg.lstsq(Z, t, rcond=None)
+    beta = _equilibrated_lstsq(Z, t)
     rss = float(((t - Z @ beta) ** 2).sum())
     return float(min(max(1.0 - rss / tss, 0.0), 1.0))
 
 
-def _leakage(samples: pd.DataFrame, t: np.ndarray, w_cols, o_cols) -> dict:
-    """The omitted-variable-bias multiplier per omitted nuisance dummy.
+def _leakage(samples: pd.DataFrame, t: np.ndarray, w_cols, o_cols, continuous=()) -> dict:
+    """The omitted-variable-bias multiplier per omitted encoded term (dummy or continuous).
 
-    λ_j = coefficient on the target when regressing omitted dummy z_j on [1, included W, t].
+    λ_j = coefficient on the target when regressing omitted term z_j on [1, included W, t].
     Then  E[β̂_target,unadjusted] = β_target + Σ_j γ_j · λ_j.
     Reported per term (Codex: do not collapse to a scalar as the primary output).
     """
@@ -189,38 +286,40 @@ def _leakage(samples: pd.DataFrame, t: np.ndarray, w_cols, o_cols) -> dict:
     if not o_cols:
         return {}
     n = len(samples)
-    X = np.column_stack([_with_intercept(_dummy_block(samples, w_cols), n), t])
-    Od = pd.get_dummies(samples[o_cols].astype(str), columns=o_cols, drop_first=True)
+    W, _ = _design_block(samples, w_cols, continuous)
+    X = np.column_stack([_with_intercept(W, n), t])
+    Od, ids = _design_block(samples, o_cols, continuous)
     out = {}
-    for name in Od.columns:
-        z = Od[name].to_numpy(dtype=float)
-        beta, *_ = np.linalg.lstsq(X, z, rcond=None)
-        out[str(name)] = float(beta[-1])  # coefficient on t
+    for j, name in enumerate(ids):                          # positional access — collision-proof (F3)
+        key = str(name)
+        while key in out:                                   # disambiguate a pathological id collision
+            key += "#"                                      # so no λ is silently dropped
+        out[key] = float(_equilibrated_lstsq(X, Od[:, j])[-1])   # coefficient on t, back-transformed
     return out
 
 
-def _partial_r2(samples: pd.DataFrame, t: np.ndarray, included, omitted) -> float:
+def _partial_r2(samples: pd.DataFrame, t: np.ndarray, included, omitted, continuous=()) -> float:
     """R² of the target on the OMITTED nuisance block, after residualizing both on the covariates
     the model DOES include. Cardinality-invariant, unlike max|λ|."""
     omitted = list(omitted)
     if not omitted:
         return 0.0
     n = len(samples)
-    W = _with_intercept(_dummy_block(samples, included), n)
+    Wblk, _ = _design_block(samples, included, continuous)
+    W = _with_intercept(Wblk, n)
 
     def resid(Y):
-        beta, *_ = np.linalg.lstsq(W, Y, rcond=None)
-        return Y - W @ beta
+        return Y - W @ _equilibrated_lstsq(W, Y)
 
     t_res = resid(t)
     tss = float((t_res ** 2).sum())
     if tss <= 1e-12:
         return 0.0
-    Z = _dummy_block(samples, omitted)
+    Z, _ = _design_block(samples, omitted, continuous)
     if Z.size == 0:
         return 0.0
     Z_res = resid(Z)
-    beta, *_ = np.linalg.lstsq(Z_res, t_res, rcond=None)
+    beta = _equilibrated_lstsq(Z_res, t_res)
     rss = float(((t_res - Z_res @ beta) ** 2).sum())
     return float(min(max(1.0 - rss / tss, 0.0), 1.0))
 
@@ -264,6 +363,14 @@ def _cols(names) -> str:
 
 def evaluate_confounding(observations: pd.DataFrame, design: Design) -> Finding:
     declaration = design.fitted_design
+    # Covariates the fitted design declares CONTINUOUS enter the design matrix as their numeric
+    # column, not n-1 dummies (F8). Trust `column_kinds` ONLY when the declaration is itself ratified
+    # (high confidence): an unratified type claim must not change a structural verdict — neither
+    # suppress nor manufacture a blocker (F3). Unratified/absent -> categorical encoding as before.
+    continuous = frozenset(
+        col for col, kind in (getattr(declaration, "column_kinds", None) or {}).items()
+        if kind == "continuous"
+    ) if confidence_high(design, "fitted_design") else frozenset()
     upstream = [] if declaration is None else [
         batch for batch in design.batch
         if batch in declaration.batch_modeling
@@ -312,9 +419,48 @@ def evaluate_confounding(observations: pd.DataFrame, design: Design) -> Finding:
                   coverage=S.NOT_RUN, nuisance=nuisance)
 
     nuis_present = [c for c in nuisance if c in sub.columns]
-    r2 = _r2(t, _with_intercept(_dummy_block(sub, nuis_present), len(sub)))
-    aliased = r2 is not None and r2 >= 1.0 - ALIAS_TOL
-    vif = float("inf") if aliased else 1.0 / (1.0 - r2)
+    # A ratified fitted design must declare the kind of every fitted-model nuisance term; if it is
+    # confirmed high-confidence yet omits one, the design matrix cannot be built soundly — abstain
+    # rather than default it to categorical and manufacture a false blocker (missing_column_kind).
+    if declaration is not None and confidence_high(design, "fitted_design"):
+        undeclared = [c for c in nuis_present
+                      if c in model_terms(design.model) and c not in declaration.column_kinds]
+        if undeclared:
+            return _f(S.NEEDS_EVIDENCE,
+                      f"your confirmed fitted design does not declare whether {_cols(undeclared)} "
+                      f"is continuous or categorical, so I can't build the design matrix to test "
+                      f"estimability — declare the missing column kind(s) and re-run.",
+                      coverage=S.NOT_RUN, nuisance=nuis_present)
+        # A ratified categorical level ledger is a contract. If the data show a level it does not list,
+        # or list a level the data never show (checked against the FULL sample table), that is a
+        # configuration inconsistency — abstain rather than silently re-derive the ledger from observed
+        # values and risk a false blocker (F4). The design-matrix ENCODING still uses sorted observed
+        # levels, so reported leakage stays byte-stable.
+        for col in nuis_present:
+            ledger = declaration.categorical_levels.get(col)
+            if ledger is None:
+                continue
+            try:
+                if len({str(level) for level in ledger}) != len(ledger):
+                    # Type-distinct ratified levels that collide under the sorted-string encoding
+                    # (e.g. 1 and "1") cannot be represented distinctly by the algebra below, which
+                    # would silently merge them and miss a real alias — abstain instead.
+                    raise DesignMatrixError("ratified categorical levels collide under string encoding")
+                # Typed canonical validation through the same builder: rejects a present-but-unlisted or
+                # globally-unused level, missing values, and type-distinct observations that string
+                # normalization would conflate (e.g. None→"None", int 1 vs level "1"). The matrix is
+                # discarded — the algebra below keeps the sorted-observed encoding for byte-stable metrics.
+                build_fixed_effect_matrix(
+                    pd.DataFrame({str(col): samples[col]}),
+                    source_columns=(str(col),), column_kinds={str(col): "categorical"},
+                    categorical_levels={str(col): tuple(ledger)}, intercept=False,
+                )
+            except DesignMatrixError:
+                return _f(S.NEEDS_EVIDENCE,
+                          f"the observed levels of {col} do not match your confirmed design's declared "
+                          f"levels for it (or contain missing values), so I can't build the design "
+                          f"matrix to test estimability — reconcile the levels and re-run.",
+                          coverage=S.NOT_RUN, nuisance=nuis_present)
 
     # Which nuisance did the ANALYST actually adjust for? This is their confirmed fitted-design
     # capture, not the referee's recompute formula. A missing or field-specifically unratified set
@@ -332,9 +478,22 @@ def evaluate_confounding(observations: pd.DataFrame, design: Design) -> Finding:
     else:
         included = None
         omitted = []
-    leakage = _leakage(sub, t, included, omitted)
+
+    try:
+        r2 = _r2(t, _with_intercept(_design_block(sub, nuis_present, continuous)[0], len(sub)))
+        leakage = _leakage(sub, t, included, omitted, continuous)
+        omitted_r2 = _partial_r2(sub, t, included, omitted, continuous)   # the DECISION statistic
+    except DesignMatrixError as exc:
+        # A declared-continuous covariate that is non-numeric / non-finite / boolean (or otherwise not
+        # a valid fitted-design source) cannot form a design matrix. Abstain as a configuration error —
+        # never a dummy-coded false blocker, never an SVD crash (F2/F4).
+        return _f(S.NEEDS_EVIDENCE,
+                  f"I can't build the design matrix to test estimability ({exc}); check that the "
+                  f"declared-continuous covariates are finite numeric values, then re-run.",
+                  coverage=S.NOT_RUN, nuisance=nuis_present)
+    aliased = r2 is not None and r2 >= 1.0 - ALIAS_TOL
+    vif = float("inf") if aliased else 1.0 / (1.0 - r2)
     max_leak = max((abs(v) for v in leakage.values()), default=0.0)
-    omitted_r2 = _partial_r2(sub, t, included, omitted)   # the DECISION statistic
 
     # target aliased with the nuisance INTERACTION, but additively identified -> report, never block
     interaction_aliased = (not aliased) and not shares_common_support(
@@ -478,7 +637,7 @@ class ConfoundingCheck:
     audit_dimensions = ("conditioning_set",)
     proof_basis = "design-matrix algebra"
     contract_fields = ("condition", "reference", "test", "batch", "model",
-                       "analyst_adjusted_for", "target_coefficient", "subset")
+                       "analyst_adjusted_for", "target_coefficient", "subset", "fitted_design")
     max_status = S.BLOCKER   # structural, power-independent: an aliased design is not estimable
 
     def applies_to(self, design: Design, bundle) -> bool:

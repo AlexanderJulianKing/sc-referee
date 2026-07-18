@@ -9,11 +9,11 @@ from sc_referee.empty_droplet.confirmation import (
 from sc_referee.empty_droplet.ingest import ingest_empty_droplet_counts, verify_artifact_integrity
 from sc_referee.empty_droplet.proposal import propose_empty_droplet_roles
 from sc_referee.empty_droplet.schema import EmptyDropletValidationError
-from tests.empty_droplet_fixtures import confirmed_declaration, proposed_declaration, write_gbp07_fixture
+from tests.empty_droplet_fixtures import confirmed_declaration, proposed_declaration, write_contamination_fixture
 
 
 def test_confirmation_records_both_source_hashes_and_semantic_digest(tmp_path):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     path = proposed_declaration(tmp_path, fixture)
     confirmed = confirm_declaration(
         path, confirmer_actor_id="analyst:alice", confirmation_event_id="confirm:001"
@@ -26,7 +26,7 @@ def test_confirmation_records_both_source_hashes_and_semantic_digest(tmp_path):
 
 
 def test_post_confirmation_byte_drift_is_integrity_drift(tmp_path):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     declaration = confirm_declaration(
         proposed_declaration(tmp_path, fixture),
         confirmer_actor_id="analyst:alice", confirmation_event_id="confirm:001",
@@ -41,14 +41,14 @@ def test_post_confirmation_byte_drift_is_integrity_drift(tmp_path):
 
 @pytest.mark.parametrize("unsafe", ["../empty_drops.csv", "/tmp/empty_drops.csv"])
 def test_confirmation_rejects_unsafe_paths(tmp_path, unsafe):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     path = proposed_declaration(tmp_path, fixture, source_path=unsafe)
     with pytest.raises(ValueError):
         confirm_declaration(path, confirmer_actor_id="analyst:a", confirmation_event_id="c:1")
 
 
 def test_donor_exposure_values_cannot_change_any_artifact_identity(tmp_path):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     declaration = confirm_declaration(
         proposed_declaration(tmp_path, fixture), confirmer_actor_id="analyst:a",
         confirmation_event_id="confirm:1", confirmed_at="2026-07-11T00:00:00Z",
@@ -61,7 +61,7 @@ def test_donor_exposure_values_cannot_change_any_artifact_identity(tmp_path):
 
 
 def test_proposer_and_ingest_never_open_donors_csv(tmp_path, monkeypatch):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     declaration = confirmed_declaration(tmp_path, fixture)
     original_open = Path.open
     touched = []
@@ -80,7 +80,7 @@ def test_proposer_and_ingest_never_open_donors_csv(tmp_path, monkeypatch):
 
 
 def test_artifact_is_defensive_read_only_and_forged_digest_is_detected(tmp_path):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     artifact = ingest_empty_droplet_counts(
         tmp_path, confirmed_declaration(tmp_path, fixture), fixture.bundle
     ).artifact
@@ -98,7 +98,7 @@ def test_artifact_is_defensive_read_only_and_forged_digest_is_detected(tmp_path)
 
 
 def test_human_confirmation_cannot_bless_malformed_arithmetic(tmp_path):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     fixture.empty_drops.write_text(fixture.empty_drops.read_text().replace("empty_1,12,5", "empty_1,12,5.5"))
     declaration = confirmed_declaration(tmp_path, fixture)
     result = ingest_empty_droplet_counts(tmp_path, declaration, fixture.bundle)

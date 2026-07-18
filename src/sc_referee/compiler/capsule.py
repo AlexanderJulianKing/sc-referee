@@ -28,8 +28,8 @@ from sc_referee.csp_contracts.contamination_condensed_ceremony import (
     CondensedAnswer,
     CondensedGroup,
 )
-from sc_referee.derivations import gbp07_compile
-from sc_referee.derivations import genebench_gbp07_public_estimator as gbp07_estimator
+from sc_referee.derivations import contamination_compile
+from sc_referee.derivations import ambient_contamination_estimator as ambient_estimator
 
 
 CAPSULE_SCHEMA_ID = "sc-referee/compiler-capsule/v1"
@@ -99,7 +99,7 @@ def derivation_registry_digest() -> str:
     """Bind the closed registry and the implementation source used by its entries."""
 
     entries = []
-    for derivation_id, function in sorted(gbp07_compile.DERIVATION_REGISTRY.items()):
+    for derivation_id, function in sorted(contamination_compile.DERIVATION_REGISTRY.items()):
         entries.append({
             "derivation_id": derivation_id,
             "registered_callable": f"{function.__module__}.{function.__qualname__}",
@@ -107,9 +107,9 @@ def derivation_registry_digest() -> str:
         })
     # The registered adapter delegates to this estimator; include its implementation rather
     # than pretending that the one-line registry wrapper is the whole numeric policy.
-    estimator = gbp07_compile.estimate_genebench_gbp07_public_contamination
-    float_digest = gbp07_estimator.canonical_float_digest
-    float_token = gbp07_estimator._canonical_float_token
+    estimator = contamination_compile.estimate_ambient_contamination
+    float_digest = ambient_estimator.canonical_float_digest
+    float_token = ambient_estimator._canonical_float_token
     return _identity({
         "entries": entries,
         "estimator_callable": f"{estimator.__module__}.{estimator.__qualname__}",
@@ -137,7 +137,7 @@ def _answers_payload(answers: Mapping[CondensedGroup, CondensedAnswer]) -> Mappi
     return MappingProxyType(payload)
 
 
-def _finding_snapshot(compilation: gbp07_compile.Gbp07Compilation) -> Mapping[str, Any]:
+def _finding_snapshot(compilation: contamination_compile.CompiledDerivation) -> Mapping[str, Any]:
     finding = compilation.finding
     if finding is None:
         raise ValueError("only a completed proposal compilation can be frozen")
@@ -158,7 +158,7 @@ def _finding_snapshot(compilation: gbp07_compile.Gbp07Compilation) -> Mapping[st
     })
 
 
-def _compiled_identities(compilation: gbp07_compile.Gbp07Compilation) -> Mapping[str, Any]:
+def _compiled_identities(compilation: contamination_compile.CompiledDerivation) -> Mapping[str, Any]:
     return MappingProxyType({
         "design_identity": _identity(compilation.design),
         "csp_identity": _identity(compilation.design.csp_contracts),
@@ -171,7 +171,7 @@ def _compiled_identities(compilation: gbp07_compile.Gbp07Compilation) -> Mapping
     })
 
 
-def _estimator_identities(compilation: gbp07_compile.Gbp07Compilation) -> Mapping[str, Any]:
+def _estimator_identities(compilation: contamination_compile.CompiledDerivation) -> Mapping[str, Any]:
     return MappingProxyType({
         "artifact_identity": compilation.artifact.artifact_identity,
         "derivation_id": compilation.artifact.derivation_id,
@@ -269,7 +269,7 @@ class ReplayResult:
     status: ReplayStatus
     reason: InvalidationReason | None
     message: str
-    compilation: gbp07_compile.Gbp07Compilation | None = None
+    compilation: contamination_compile.CompiledDerivation | None = None
     byte_identical_guaranteed: bool = False
 
     @property
@@ -278,7 +278,7 @@ class ReplayResult:
 
 
 def freeze_capsule(
-    compilation: gbp07_compile.Gbp07Compilation,
+    compilation: contamination_compile.CompiledDerivation,
     proposal: BindingProposal,
     answers: Mapping[CondensedGroup, CondensedAnswer],
     folder: str | Path,
@@ -292,7 +292,7 @@ def freeze_capsule(
         raise ValueError("capsules require proposal-bound raw source byte digests")
     if (
         compilation.source_digests.get("digest_policy_version")
-        != gbp07_compile.SOURCE_DIGEST_POLICY_VERSION
+        != contamination_compile.SOURCE_DIGEST_POLICY_VERSION
     ):
         raise ValueError("capsule source digest policy is missing or unsupported")
     root = Path(folder).expanduser()
@@ -428,14 +428,14 @@ def replay_capsule(capsule: Capsule, folder: str | Path) -> ReplayResult:
 
     same_environment = dict(environment_identity()) == dict(capsule.environment)
     with _model_free_replay_guard() as model_attempts:
-        replayed = gbp07_compile.compile_from_proposal(
+        replayed = contamination_compile.compile_from_proposal(
             capsule.proposal, folder, _answers_from_capsule(capsule)
         )
     if model_attempts:
         # This remains a hard runtime failure even if a future compiler layer catches the
         # resolver's exception and tries to turn it into an ordinary abstention.
         raise RuntimeError("model client construction was attempted during capsule replay")
-    if isinstance(replayed, gbp07_compile.ProposalCompilationAbstention):
+    if isinstance(replayed, contamination_compile.ProposalCompilationAbstention):
         return ReplayResult(
             ReplayStatus.MISMATCH, InvalidationReason.COMPILATION_ABSTAINED,
             f"the frozen proposal abstained during replay: {replayed.reason_code.value}",

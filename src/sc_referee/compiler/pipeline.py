@@ -32,8 +32,8 @@ from sc_referee.csp_contracts.contamination_condensed_ceremony import (
     CondensedAnswer,
     CondensedGroup,
 )
-from sc_referee.derivations.gbp07_compile import (
-    Gbp07Compilation,
+from sc_referee.derivations.contamination_compile import (
+    CompiledDerivation,
     ProposalCompilationAbstention,
     compile_from_proposal,
 )
@@ -137,7 +137,7 @@ class CompileAuditResult:
     capsule: Capsule | None
     replay_status: ReplayStatus | None
     summary: str
-    compilation: Gbp07Compilation | None = None
+    compilation: CompiledDerivation | None = None
     abstention: ProposalCompilationAbstention | None = None
 
     @property
@@ -339,7 +339,7 @@ def run_compile_audit(
             summary=f"NOT_CHECKED / could not compile: {reason}",
             abstention=compilation,
         )
-    if compilation.finding is None:  # pragma: no cover - Gbp07Compilation invariant
+    if compilation.finding is None:  # pragma: no cover - CompiledDerivation invariant
         raise RuntimeError("proposal compilation returned no finding")
 
     capsule = freeze_capsule(compilation, proposal, decisions, folder)

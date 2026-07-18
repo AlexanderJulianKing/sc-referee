@@ -75,7 +75,7 @@ def _bundle_total(value, identity: str) -> int:
 def capture_filtered_bundle_identity(
     root: Path, declaration: FilteredLinkDeclaration, bundle,
 ) -> FilteredBundleIdentityWitness:
-    if declaration.format != "gbp07_cells_csv/v1":
+    if declaration.format != "filtered_cells_csv/v1":
         _fail(EmptyDropletUnavailableReason.UNSUPPORTED_FORMAT, "filtered table format is unsupported")
     genes = tuple(declaration.gene_count_columns)
     if not genes or len(set(genes)) != len(genes):

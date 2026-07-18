@@ -30,12 +30,12 @@ def contamination_proposal():
         "materialized_basis_columns": ["rho_external"],
         "transform_kind_candidate": "continuous_identity",
         "causal_role_guess": "pre_exposure_nuisance",
-        "fitted_result_id": "fit:gbp07:v1",
+        "fitted_result_id": "fit:contamination:v1",
         "target_coefficient": "condition[T.case]",
         "exposure_column": "condition",
-        "estimand_id": "estimand:gbp07:v1",
+        "estimand_id": "estimand:contamination:v1",
         "row_ledger_identity": "rows:donors:v1",
-        "fitted_design_identity": "design:gbp07:v1",
+        "fitted_design_identity": "design:contamination:v1",
         "evidence_locations": ["empty_drops.csv", "analysis.R:42"],
     }
 

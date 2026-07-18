@@ -15,22 +15,50 @@ from sc_referee.csp_contracts.contamination_condensed_ceremony import (
     CondensedAnswer,
     CondensedGroup,
 )
-from sc_referee.derivations.gbp07_compile import (
-    DEFAULT_GBP07_ZIP,
-    compile_gbp07,
-    compile_gbp07_tables,
-    ratify_gbp07,
-    read_gbp07_release,
+from sc_referee.derivations.contamination_compile import (
+    ColumnBindings,
+    DEFAULT_RELEASE_ZIP,
+    compile_contamination,
+    compile_contamination_tables,
+    ratify_contamination,
+    read_release,
 )
 
 
-def _gbp07_zip() -> Path:
+# GB-P07's own declared analysis: which column carries which role, its ambient marker and
+# panel, its target, and its method parameters. The engine assumes none of this, so the
+# benchmark's tests declare the benchmark's.
+GBP07_BINDINGS = ColumnBindings(
+    cell_id="cell_id",
+    cell_donor="donor",
+    cell_total_umi="total_umi",
+    cell_marker="HBB",
+    donor_id="donor",
+    donor_genotype="g",
+    exposure_column="genotype",
+    empty_total_umi="total_umi",
+    empty_id_columns=("barcode",),
+    empty_panel_columns=("HBB", "IFI6", "ISG15", "LST1", "CXCL10"),
+    marker_gene="HBB",
+    threshold=0.18,
+    provenance=(
+        "GeneBench-Pro problems/statgen_scrna_ambient_state_eqtl/"
+        "report_public.pdf equations 18-23"
+    ),
+)
+GBP07_METHOD = {
+    "columns": GBP07_BINDINGS,
+    "target_feature": "CXCL10",
+    "target_coefficient": "genotype",
+}
+
+def _contamination_zip() -> Path:
     override = os.environ.get("GBP07_ZIP")
-    return Path(override).expanduser() if override else DEFAULT_GBP07_ZIP
+    return Path(override).expanduser() if override else DEFAULT_RELEASE_ZIP
 
 
 pytestmark = pytest.mark.skipif(
-    not _gbp07_zip().exists(),
+    not _contamination_zip().exists(),
     reason="GB-P07 data not present — set GBP07_ZIP; see bench/gbp07_anchor.py",
 )
 
@@ -45,8 +73,8 @@ def _explicit_yes_answers():
 
 
 def _finding(*, include_basis=False, answers=None):
-    compilation = compile_gbp07(_gbp07_zip(), include_basis=include_basis)
-    design = ratify_gbp07(
+    compilation = compile_contamination(_contamination_zip(), **GBP07_METHOD, include_basis=include_basis)
+    design = ratify_contamination(
         compilation, _explicit_yes_answers() if answers is None else answers
     )
     finding = ContaminationConfoundCheck().run(
@@ -84,7 +112,7 @@ def test_real_included_basis_is_conditional_pass():
 
 
 def test_proposal_only_compile_never_reaches_column_space_geometry():
-    compilation = compile_gbp07(_gbp07_zip(), include_basis=False)
+    compilation = compile_contamination(_contamination_zip(), **GBP07_METHOD, include_basis=False)
     assert compilation.design.csp_contracts == ()
     assert compilation.proposal_values
     assert compilation.scope
@@ -115,9 +143,9 @@ def test_explicit_non_yes_answer_remains_not_checked(answer):
 
 
 def test_source_poison_cannot_change_recovered_basis_or_containment_identities():
-    cells, donors, empty_drops = read_gbp07_release(_gbp07_zip())
-    baseline = compile_gbp07_tables(cells, donors, empty_drops)
-    baseline_design = ratify_gbp07(baseline, _explicit_yes_answers())
+    cells, donors, empty_drops = read_release(_contamination_zip())
+    baseline = compile_contamination_tables(cells, donors, empty_drops, **GBP07_METHOD)
+    baseline_design = ratify_contamination(baseline, _explicit_yes_answers())
     baseline_finding = ContaminationConfoundCheck().run(
         baseline_design, baseline.bundle
     )
@@ -129,8 +157,8 @@ def test_source_poison_cannot_change_recovered_basis_or_containment_identities()
         -1e12, 1e12, len(poisoned_cells)
     )
     poisoned_cells["fake_reference_answer"] = "deliberately-wrong"
-    poisoned = compile_gbp07_tables(poisoned_cells, poisoned_donors, empty_drops)
-    poisoned_design = ratify_gbp07(poisoned, _explicit_yes_answers())
+    poisoned = compile_contamination_tables(poisoned_cells, poisoned_donors, empty_drops, **GBP07_METHOD)
+    poisoned_design = ratify_contamination(poisoned, _explicit_yes_answers())
     poisoned_finding = ContaminationConfoundCheck().run(
         poisoned_design, poisoned.bundle
     )
@@ -148,8 +176,8 @@ def test_source_poison_cannot_change_recovered_basis_or_containment_identities()
 
 
 def test_archive_compilation_binds_exact_source_bytes_and_member_set():
-    first = compile_gbp07(_gbp07_zip())
-    second = compile_gbp07(_gbp07_zip())
+    first = compile_contamination(_contamination_zip(), **GBP07_METHOD)
+    second = compile_contamination(_contamination_zip(), **GBP07_METHOD)
 
     assert set(first.source_digests) == {
         "digest_policy_version", "cells", "donors", "empty_drops",
@@ -166,8 +194,8 @@ def test_archive_compilation_binds_exact_source_bytes_and_member_set():
 
 
 def test_real_donor_geometry_matches_the_companion_plan():
-    cells, donors, empty_drops = read_gbp07_release(_gbp07_zip())
-    compilation = compile_gbp07_tables(cells, donors, empty_drops)
+    cells, donors, empty_drops = read_release(_contamination_zip())
+    compilation = compile_contamination_tables(cells, donors, empty_drops, **GBP07_METHOD)
     artifact = compilation.artifact
 
     assert len(artifact.donor_table) == 24

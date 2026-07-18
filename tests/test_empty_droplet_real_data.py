@@ -17,7 +17,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_real_gbp07_empty_table_links_exactly_to_existing_filtered_bundle(tmp_path):
+def test_real_contamination_empty_table_links_exactly_to_existing_filtered_bundle(tmp_path):
     members = ("cells.csv.gz", "donors.csv.gz", "empty_drops.csv.gz")
     with zipfile.ZipFile(default_zip()) as archive:
         assert set(members) <= set(archive.namelist())

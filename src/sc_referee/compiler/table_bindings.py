@@ -8,7 +8,7 @@ from typing import Any
 
 _TABLE_COLUMN_ROLES = {
     "cell_table": {
-        "required_scalar": ("cell_id", "donor", "total_umi", "hbb"),
+        "required_scalar": ("cell_id", "donor", "total_umi", "marker"),
         "optional_scalar": (),
         "optional_nested": (),
     },

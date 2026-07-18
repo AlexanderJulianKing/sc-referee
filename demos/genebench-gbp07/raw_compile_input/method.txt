@@ -1,0 +1,1 @@
+Fit donor-level eQTL models using genotype column g. The target coefficient is genotype for CXCL10. No ambient adjustment was included. Apply genebench_gbp07_public_estimator/v1 to empty droplets.

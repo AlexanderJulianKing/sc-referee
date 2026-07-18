@@ -1,37 +1,32 @@
-# GeneBench-Pro GB-P07 — latent ambient contamination
+# GB-P07: latent ambient-RNA confounding
 
-**Status:** runnable end-to-end compiler and model-free replay demo.
+This is a runnable, end-to-end demonstration of Referee's workflow compiler on the public
+GeneBench-Pro GB-P07 benchmark. It requires the externally supplied `GB-P07-data.zip`; benchmark
+bytes are not redistributed in this repository.
 
 ```bash
 GBP07_ZIP="$HOME/Desktop/genebench_phase1_inputs/GB-P07-data.zip" \
   PYTHONPATH=src:. .venv/bin/python demos/genebench-gbp07/compile_demo.py
 ```
 
-The script builds `raw_compile_input/` idempotently, uses live Claude structural binding proposals
-when `ANTHROPIC_API_KEY` is present (and a bundled canned proposal otherwise), runs the four-YES
-scientific ceremony, freezes the capsule, and verifies a model-free `MATCH` replay. If the public
-archive is unavailable, it prints a skip message and exits cleanly.
+The script:
 
-The public bytes are expected by default at
-`~/Desktop/genebench_phase1_inputs/GB-P07-data.zip`; `GBP07_ZIP` overrides that location.
+1. materializes the benchmark's cell, donor, and empty-droplet tables locally;
+2. asks Claude to bind the unfamiliar files to Referee's typed inputs, or uses the bundled
+   evidence-bound proposal when no API key is exported;
+3. records the four scientific confirmations required for this demonstration;
+4. deterministically reconstructs the published ambient-contamination basis;
+5. checks whether the submitted fitted design contains that exact basis; and
+6. freezes and replays the result without a model.
 
-GB-P07 asks for the per-allele CXCL10 effect in activated monocytes. Claude Science submitted a
-positive estimate while the graded reference is negative. The repository's earliest anchor blamed
-allele orientation; the official walkthrough showed that diagnosis was wrong. The actual failure is
-a latent technical contamination axis derived from ambient RNA.
+On the released benchmark bytes, the demo reports a **conditional major finding**: conditional on
+the ratified scientific premises, the submitted fitted design omits the exact ratified contamination
+basis. This is a structural containment result. It does **not** claim that the omission caused the
+submitted sign error, or that adding this basis alone reproduces the benchmark reference answer.
 
-The public benchmark zip is expected outside the repository:
+`raw_compile_input/` is generated idempotently and ignored by Git. Set `GBP07_ZIP` to another path
+if the archive is stored elsewhere. If the archive is absent or unreadable, the demo exits cleanly
+with an explanatory message.
 
-```bash
-export GBP07_ZIP="$HOME/Desktop/genebench_phase1_inputs/GB-P07-data.zip"
-PYTHONPATH=src:. .venv/bin/python bench/gbp07_anchor.py
-```
-
-That anchor exercises an orientation gate and must **not** be presented as proof that Referee caught
-GB-P07's true failure. The empty-droplet adapter and contamination contracts are implemented and
-tested; the remaining gallery gate is a single, runnable folder whose ratified ambient basis reaches
-the final latent-confounding verdict on the real bytes.
-
-The compiler finding is deliberately narrow and conditional: it certifies exact basis containment
-under ratified premises. It does not claim that the omission caused the submitted effect or that an
-adjusted fit reproduces a benchmark answer.
+For the corrected investigation of the failure mode, see
+[`docs/research/2026-07-11-gbp07-repro-results.md`](../../docs/research/2026-07-11-gbp07-repro-results.md).

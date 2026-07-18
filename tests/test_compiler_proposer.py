@@ -27,7 +27,7 @@ from sc_referee.csp_contracts.contamination_condensed_ceremony import (
     CondensedAnswer,
     CondensedGroup,
 )
-from sc_referee.derivations.gbp07_compile import Gbp07Compilation, compile_from_proposal
+from sc_referee.derivations.contamination_compile import CompiledDerivation, compile_from_proposal
 from sc_referee import statuses as S
 
 
@@ -52,7 +52,7 @@ class FakeClient:
         )])
 
 
-def _write_raw_gbp07(folder):
+def _write_raw_contamination(folder):
     pd.DataFrame({
         "cell_id": ["c1", "c2"], "donor": ["d1", "d2"], "total_umi": [10, 12],
         "HBB": [1, 2], "IFI6": [0, 1], "ISG15": [0, 0], "LST1": [2, 1],
@@ -71,13 +71,15 @@ def _write_raw_gbp07(folder):
     (folder / "method.txt").write_text(
         "Fit donor-level eQTL models using genotype column g. "
         "The target coefficient is genotype for CXCL10. "
-        "Apply genebench_gbp07_public_estimator/v1 to empty droplets.\n"
+        "Apply ambient_contamination_estimator/v1 to empty droplets. "
+        "Call a donor high-contamination above 0.18, "
+        "per report_public.pdf equations 18-23.\n"
     )
 
 
 @pytest.fixture
 def inventory(tmp_path):
-    _write_raw_gbp07(tmp_path)
+    _write_raw_contamination(tmp_path)
     return build_inventory(tmp_path)
 
 
@@ -111,7 +113,7 @@ def _complete_payload(inventory):
             _binding(inventory, "cell-table", "detector_input", "cell_table", {
                 "artifact_path": "cells.csv.gz",
                 "columns": {"cell_id": "cell_id", "donor": "donor",
-                            "total_umi": "total_umi", "hbb": "HBB"},
+                            "total_umi": "total_umi", "marker": "HBB"},
             }, [_ev(inventory, "cells.csv.gz", "header", column)
                 for column in ("cell_id", "donor", "total_umi", "HBB")]),
             _binding(inventory, "donor-table", "detector_input", "donor_table", {
@@ -148,9 +150,19 @@ def _complete_payload(inventory):
                     "Fit donor-level eQTL models using genotype column g."),
             ]),
             _binding(inventory, "derivation", "detector_input", "derivation_id",
-                     "genebench_gbp07_public_estimator/v1", [
+                     "ambient_contamination_estimator/v1", [
                 _ev(inventory, method, "documentation_span",
-                    "genebench_gbp07_public_estimator/v1"),
+                    "ambient_contamination_estimator/v1"),
+            ]),
+            _binding(inventory, "threshold", "detector_input", "contamination_threshold",
+                     "0.18", [
+                _ev(inventory, method, "documentation_span",
+                    "Call a donor high-contamination above 0.18"),
+            ]),
+            _binding(inventory, "provenance", "detector_input", "method_provenance",
+                     "report_public.pdf equations 18-23", [
+                _ev(inventory, method, "documentation_span",
+                    "per report_public.pdf equations 18-23"),
             ]),
         ],
         "conflicts": [],
@@ -158,7 +170,7 @@ def _complete_payload(inventory):
     }
 
 
-def test_complete_gbp07_tool_payload_returns_grounded_binding_proposal(inventory):
+def test_complete_contamination_tool_payload_returns_grounded_binding_proposal(inventory):
     payload = _complete_payload(inventory)
     client = FakeClient(payload)
 
@@ -241,7 +253,7 @@ def test_tool_schema_does_not_require_empty_gene_panel(inventory):
 
 
 @pytest.mark.skipif(not GBP07_ZIP.exists(), reason="GB-P07 data not present — set GBP07_ZIP")
-def test_proposer_schema_valid_payload_compiles_real_gbp07_to_conditional_major(tmp_path):
+def test_proposer_schema_valid_payload_compiles_real_contamination_to_conditional_major(tmp_path):
     with ZipFile(GBP07_ZIP) as archive:
         for member in ("cells.csv.gz", "donors.csv.gz", "empty_drops.csv.gz"):
             (tmp_path / member).write_bytes(archive.read(member))
@@ -251,7 +263,9 @@ def test_proposer_schema_valid_payload_compiles_real_gbp07_to_conditional_major(
     (tmp_path / "method.txt").write_text(
         "Fit donor-level eQTL models using genotype column g. "
         "The target coefficient is genotype for CXCL10. No ambient adjustment was included. "
-        "Apply genebench_gbp07_public_estimator/v1 to empty droplets.\n",
+        "Apply ambient_contamination_estimator/v1 to empty droplets. "
+        "Call a donor high-contamination above 0.18, "
+        "per report_public.pdf equations 18-23.\n",
         encoding="utf-8",
     )
     real_inventory = build_inventory(tmp_path)
@@ -269,7 +283,7 @@ def test_proposer_schema_valid_payload_compiles_real_gbp07_to_conditional_major(
         {group: CondensedAnswer.YES for group in CondensedGroup},
     )
 
-    assert isinstance(result, Gbp07Compilation)
+    assert isinstance(result, CompiledDerivation)
     assert result.finding.status == S.MAJOR
     assert result.finding.conditional_on is not None
 
@@ -355,8 +369,8 @@ def test_complete_recovered_proposal_skips_model(inventory):
 
 
 @pytest.mark.skipif(not os.environ.get("ANTHROPIC_API_KEY"), reason="needs live Claude API key")
-def test_live_gbp07_binding_proposer(tmp_path):
-    _write_raw_gbp07(tmp_path)
+def test_live_contamination_binding_proposer(tmp_path):
+    _write_raw_contamination(tmp_path)
     inventory = build_inventory(tmp_path)
 
     proposal = propose_bindings(inventory)

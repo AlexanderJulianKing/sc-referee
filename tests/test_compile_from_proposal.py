@@ -23,25 +23,53 @@ from sc_referee.csp_contracts.contamination_condensed_ceremony import (
     CondensedAnswer,
     CondensedGroup,
 )
-from sc_referee.derivations.gbp07_compile import (
+from sc_referee.derivations.contamination_compile import (
+    ColumnBindings,
     CompilationAbstentionReason,
-    Gbp07Compilation,
+    CompiledDerivation,
     ProposalCompilationAbstention,
     compile_from_proposal,
-    compile_gbp07_tables,
+    compile_contamination_tables,
     _table_source_digests,
 )
-from sc_referee.derivations.genebench_gbp07_public_estimator import (
+from sc_referee.derivations.ambient_contamination_estimator import (
     CellCountsView,
     EmptyDropletCountsView,
 )
 
 
-DERIVATION_ID = "genebench_gbp07_public_estimator/v1"
+DERIVATION_ID = "ambient_contamination_estimator/v1"
 GBP07_ZIP = Path(os.environ.get(
     "GBP07_ZIP", "~/Desktop/genebench_phase1_inputs/GB-P07-data.zip"
 )).expanduser()
 
+
+# GB-P07's own declared analysis: which column carries which role, its ambient marker and
+# panel, its target, and its method parameters. The engine assumes none of this, so the
+# benchmark's tests declare the benchmark's.
+GBP07_BINDINGS = ColumnBindings(
+    cell_id="cell_id",
+    cell_donor="donor",
+    cell_total_umi="total_umi",
+    cell_marker="HBB",
+    donor_id="donor",
+    donor_genotype="g",
+    exposure_column="genotype",
+    empty_total_umi="total_umi",
+    empty_id_columns=("barcode",),
+    empty_panel_columns=("HBB", "IFI6", "ISG15", "LST1", "CXCL10"),
+    marker_gene="HBB",
+    threshold=0.18,
+    provenance=(
+        "GeneBench-Pro problems/statgen_scrna_ambient_state_eqtl/"
+        "report_public.pdf equations 18-23"
+    ),
+)
+GBP07_METHOD = {
+    "columns": GBP07_BINDINGS,
+    "target_feature": "CXCL10",
+    "target_coefficient": "genotype",
+}
 
 def _digest(char: str) -> str:
     return "sha256:" + char * 64
@@ -67,6 +95,8 @@ def _proposal(
     genotype="g",
     method="CXCL10 ~ genotype; no ambient adjustment",
     derivation_id=DERIVATION_ID,
+    threshold=GBP07_BINDINGS.threshold,
+    provenance=GBP07_BINDINGS.provenance,
 ) -> BindingProposal:
     values = (
         ("design", "analysis_type", "eqtl", "method.txt"),
@@ -74,7 +104,7 @@ def _proposal(
             "artifact_path": "cells.csv.gz",
             "columns": {
                 "cell_id": "cell_id", "donor": cell_donor,
-                "total_umi": "total_umi", "hbb": "HBB",
+                "total_umi": "total_umi", "marker": "HBB",
             },
         }, "cells.csv.gz"),
         ("detector_input", "donor_table", {
@@ -94,6 +124,8 @@ def _proposal(
         ("reported_claim", "target_coefficient", "+0.4839", "submission.csv"),
         ("fitted_design", "method_evidence_span", method, "method.txt"),
         ("detector_input", "derivation_id", derivation_id, "method.txt"),
+        ("detector_input", "contamination_threshold", threshold, "method.txt"),
+        ("detector_input", "method_provenance", provenance, "method.txt"),
     )
     bindings = tuple(RequestedBinding(
         binding_id=f"binding-{index}",
@@ -153,7 +185,7 @@ def test_real_proposal_compiles_to_same_conditional_verdict(tmp_path, included, 
 
     result = compile_from_proposal(_proposal(method=method), tmp_path, _answers())
 
-    assert isinstance(result, Gbp07Compilation)
+    assert isinstance(result, CompiledDerivation)
     assert result.proposal_identity == _digest("a")
     assert result.finding.status == expected
     assert result.finding.metrics["column_space_state"] == (
@@ -175,7 +207,7 @@ def test_real_proposal_without_enumerated_empty_panel_compiles_to_major(tmp_path
 
     result = compile_from_proposal(proposal, tmp_path, _answers())
 
-    assert isinstance(result, Gbp07Compilation)
+    assert isinstance(result, CompiledDerivation)
     assert result.finding.status == S.MAJOR
 
 
@@ -187,7 +219,7 @@ def test_non_yes_answer_never_becomes_a_verdict(tmp_path):
 
     result = compile_from_proposal(_proposal(), tmp_path, answers)
 
-    assert isinstance(result, Gbp07Compilation)
+    assert isinstance(result, CompiledDerivation)
     assert (result.finding.status, result.finding.coverage, S.human_state(result.finding)) == (
         S.NEEDS_EVIDENCE, S.NOT_RUN, S.NOT_CHECKED,
     )
@@ -225,7 +257,7 @@ def test_synthetic_renamed_columns_reach_same_detector_without_aliases(tmp_path)
         _answers(),
     )
 
-    assert isinstance(result, Gbp07Compilation)
+    assert isinstance(result, CompiledDerivation)
     assert result.design.genotype_column == "dose"
     assert result.design.replicate_unit == ["subject"]
     assert {"subject", "dose", "high_contamination"}.issubset(result.bundle.observations)
@@ -243,8 +275,8 @@ def test_donor_authority_order_is_reindexed_to_fitted_row_order(tmp_path):
 
     reordered = compile_from_proposal(proposal, tmp_path, _answers())
 
-    assert isinstance(aligned, Gbp07Compilation)
-    assert isinstance(reordered, Gbp07Compilation)
+    assert isinstance(aligned, CompiledDerivation)
+    assert isinstance(reordered, CompiledDerivation)
     assert aligned.finding.status == reordered.finding.status == S.MAJOR
     assert (
         aligned.scope.contract_scope["basis_output_digest"]
@@ -254,9 +286,9 @@ def test_donor_authority_order_is_reindexed_to_fitted_row_order(tmp_path):
 
 def test_estimator_fitted_donor_set_mismatch_is_typed_abstention(tmp_path):
     _write_synthetic(tmp_path)
-    from sc_referee.derivations import gbp07_compile as module
+    from sc_referee.derivations import contamination_compile as module
 
-    original = module.estimate_genebench_gbp07_public_contamination
+    original = module.estimate_ambient_contamination
 
     def missing_basis_row(*args, **kwargs):
         result = original(*args, **kwargs)
@@ -267,7 +299,7 @@ def test_estimator_fitted_donor_set_mismatch_is_typed_abstention(tmp_path):
         return module.Estimated(artifact)
 
     with patch.object(
-        module, "estimate_genebench_gbp07_public_contamination", missing_basis_row
+        module, "estimate_ambient_contamination", missing_basis_row
     ):
         result = compile_from_proposal(
             _proposal(cell_donor="subject", donor_id="subject", genotype="dose"),
@@ -294,7 +326,7 @@ def test_in_memory_source_digest_uses_canonical_typed_encoding():
     changed_cells.loc[1, "value"] = 1.5
     changed = _table_source_digests(changed_cells, donors, empty)
 
-    assert first["digest_policy_version"] == "gbp07-source-digest-v2"
+    assert first["digest_policy_version"] == "contamination-source-digest-v2"
     assert first == second
     assert first["cells"] != changed["cells"]
 
@@ -348,7 +380,7 @@ def test_direct_table_compile_returns_typed_source_value_abstention(tmp_path):
     empty = pd.read_csv(tmp_path / "empty_drops.csv.gz")
     empty.loc[0, "total_umi"] = -1
 
-    result = compile_gbp07_tables(cells, donors, empty)
+    result = compile_contamination_tables(cells, donors, empty, **GBP07_METHOD)
 
     assert isinstance(result, ProposalCompilationAbstention)
     assert result.reason_code is CompilationAbstentionReason.INVALID_SOURCE_VALUES
@@ -411,7 +443,7 @@ def test_advisory_panel_may_omit_marker_when_data_contains_it(tmp_path):
 
     result = compile_from_proposal(proposal, tmp_path, _answers())
 
-    assert isinstance(result, Gbp07Compilation)
+    assert isinstance(result, CompiledDerivation)
     assert result.finding.status == S.MAJOR
 
 
@@ -442,26 +474,75 @@ def test_unknown_derivation_and_unresolved_proposal_abstain(tmp_path):
     assert unresolved.reason_code is CompilationAbstentionReason.UNRESOLVED_PROPOSAL
 
 
+def test_undeclared_threshold_abstains_instead_of_inheriting_a_default(tmp_path):
+    """An analysis that documents no cutoff must abstain, never inherit another study's."""
+
+    undeclared = replace(
+        _proposal(), confirmed_organizational_bindings=False,
+        unresolved=("detector_input.contamination_threshold",),
+    )
+
+    result = compile_from_proposal(undeclared, tmp_path, _answers())
+
+    assert isinstance(result, ProposalCompilationAbstention)
+    assert result.reason_code is CompilationAbstentionReason.UNRESOLVED_PROPOSAL
+
+
+@pytest.mark.parametrize("declared", [1.0, 1.5, 0.0, -0.2, "not-a-number", None, True])
+def test_threshold_that_is_not_a_fraction_abstains(tmp_path, declared):
+    """The cutoff is a contamination fraction; anything else stops the compilation."""
+
+    result = compile_from_proposal(_proposal(threshold=declared), tmp_path, _answers())
+
+    assert isinstance(result, ProposalCompilationAbstention)
+    assert result.reason_code is CompilationAbstentionReason.INVALID_METHOD_PARAMETER
+
+
+def test_declared_threshold_is_what_the_estimator_actually_applies(tmp_path):
+    """The donor call must follow the analysis's own declared cutoff, not a baked-in one."""
+
+    _write_synthetic(tmp_path)
+    seen = {}
+    from sc_referee.derivations import contamination_compile as module
+    original = module.estimate_ambient_contamination
+
+    def spy(*args, **kwargs):
+        seen.update(kwargs)
+        return original(*args, **kwargs)
+
+    with patch.object(module, "estimate_ambient_contamination", spy):
+        result = compile_from_proposal(
+            _proposal(
+                cell_donor="subject", donor_id="subject", genotype="dose", threshold=0.42,
+            ),
+            tmp_path,
+            _answers(),
+        )
+
+    assert isinstance(result, CompiledDerivation)
+    assert seen["threshold"] == 0.42
+
+
 def test_estimator_receives_only_closed_views_through_proposal_path(tmp_path):
     _write_synthetic(tmp_path)
-    from sc_referee.derivations import gbp07_compile as module
+    from sc_referee.derivations import contamination_compile as module
 
-    original = module.estimate_genebench_gbp07_public_contamination
+    original = module.estimate_ambient_contamination
 
-    def guarded(empty_view, cell_view, donor_order):
+    def guarded(empty_view, cell_view, donor_order, **kwargs):
         assert isinstance(empty_view, EmptyDropletCountsView)
         assert isinstance(cell_view, CellCountsView)
         assert not hasattr(empty_view, "genotype")
         assert not hasattr(cell_view, "genotype")
         assert not hasattr(cell_view, "submitted_result")
         assert not hasattr(cell_view, "reference")
-        return original(empty_view, cell_view, donor_order)
+        return original(empty_view, cell_view, donor_order, **kwargs)
 
-    with patch.object(module, "estimate_genebench_gbp07_public_contamination", guarded):
+    with patch.object(module, "estimate_ambient_contamination", guarded):
         result = compile_from_proposal(
             _proposal(cell_donor="subject", donor_id="subject", genotype="dose"),
             tmp_path,
             _answers(),
         )
 
-    assert isinstance(result, Gbp07Compilation)
+    assert isinstance(result, CompiledDerivation)

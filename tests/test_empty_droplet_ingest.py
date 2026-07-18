@@ -8,11 +8,11 @@ import numpy as np
 from sc_referee.empty_droplet.ingest import ingest_empty_droplet_counts
 from sc_referee.empty_droplet.schema import Available
 from sc_referee.empty_droplet.serialization import canonical_artifact_bytes
-from tests.empty_droplet_fixtures import confirmed_declaration, write_gbp07_fixture
+from tests.empty_droplet_fixtures import confirmed_declaration, write_contamination_fixture
 
 
-def test_confirmed_gbp07_csv_and_cells_link_returns_available_artifact(tmp_path):
-    fixture = write_gbp07_fixture(tmp_path)
+def test_confirmed_contamination_csv_and_cells_link_returns_available_artifact(tmp_path):
+    fixture = write_contamination_fixture(tmp_path)
     declaration = confirmed_declaration(tmp_path, fixture)
     before_counts = fixture.bundle.measure.counts.copy()
     before_cells = fixture.bundle.observations.index.tolist()
@@ -41,8 +41,8 @@ def test_gzip_and_plain_share_content_but_not_source_or_attestation_golden(tmp_p
     plain_root = tmp_path / "plain"
     gzip_root = tmp_path / "gzip"
     plain_root.mkdir(); gzip_root.mkdir()
-    plain_fixture = write_gbp07_fixture(plain_root)
-    gzip_fixture = write_gbp07_fixture(gzip_root)
+    plain_fixture = write_contamination_fixture(plain_root)
+    gzip_fixture = write_contamination_fixture(gzip_root)
     plain = ingest_empty_droplet_counts(
         plain_root, confirmed_declaration(plain_root, plain_fixture), plain_fixture.bundle
     ).artifact
@@ -62,7 +62,7 @@ def test_gzip_and_plain_share_content_but_not_source_or_attestation_golden(tmp_p
 
 
 def test_reingest_is_bit_identical(tmp_path):
-    fixture = write_gbp07_fixture(tmp_path)
+    fixture = write_contamination_fixture(tmp_path)
     declaration = confirmed_declaration(tmp_path, fixture)
     first = ingest_empty_droplet_counts(tmp_path, declaration, fixture.bundle).artifact
     second = ingest_empty_droplet_counts(tmp_path, declaration, fixture.bundle).artifact
@@ -78,11 +78,11 @@ def test_reingest_is_identical_across_python_hash_seeds(tmp_path):
 import hashlib
 from pathlib import Path
 import sys
-from tests.empty_droplet_fixtures import confirmed_declaration, write_gbp07_fixture
+from tests.empty_droplet_fixtures import confirmed_declaration, write_contamination_fixture
 from sc_referee.empty_droplet.ingest import ingest_empty_droplet_counts
 from sc_referee.empty_droplet.serialization import canonical_artifact_bytes
 root = Path(sys.argv[1])
-fixture = write_gbp07_fixture(root)
+fixture = write_contamination_fixture(root)
 artifact = ingest_empty_droplet_counts(root, confirmed_declaration(root, fixture), fixture.bundle).artifact
 print(hashlib.sha256(canonical_artifact_bytes(artifact)).hexdigest())
 '''

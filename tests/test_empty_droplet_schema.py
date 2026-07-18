@@ -1,4 +1,4 @@
-from tests.empty_droplet_fixtures import write_gbp07_fixture
+from tests.empty_droplet_fixtures import write_contamination_fixture
 
 import dataclasses
 import numpy as np
@@ -6,8 +6,8 @@ import pytest
 from scipy import sparse
 
 
-def test_gbp07_fixture_has_the_real_three_table_schema(tmp_path):
-    paths = write_gbp07_fixture(tmp_path)
+def test_contamination_fixture_has_the_real_three_table_schema(tmp_path):
+    paths = write_contamination_fixture(tmp_path)
     assert paths.cells.read_text().splitlines()[0] == (
         "cell_id,donor,total_umi,HBB,IFI6,ISG15,LST1,CXCL10"
     )

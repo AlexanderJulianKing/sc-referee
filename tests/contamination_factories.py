@@ -22,8 +22,8 @@ def complete_contamination_values() -> dict[str, object]:
     return {
         "measurement_kind": "external_measurement_artifact",
         "axis_identity": {
-            "artifact_id": "artifact:gbp07-empty-drops:v1",
-            "run_id": "run:gbp07:v1",
+            "artifact_id": "artifact:contamination-empty-drops:v1",
+            "run_id": "run:contamination:v1",
             "version": "1",
             "vector_field": "mean_contamination_fraction",
             "unit": "fraction",
@@ -47,7 +47,7 @@ def complete_contamination_values() -> dict[str, object]:
             "output_digest": "sha256:" + "2" * 64,
         },
         "basis_identity": {
-            "basis_ledger_identity": "basis:gbp07-rho-bar:v1",
+            "basis_ledger_identity": "basis:contamination-rho-bar:v1",
             "ordered_columns": ("rho_external",),
             "output_digest": "sha256:" + "2" * 64,
         },
@@ -61,7 +61,7 @@ def complete_contamination_values() -> dict[str, object]:
             "coverage_policy": "not_expression_proxy",
         },
         "source_stratum_applicability": {
-            "source_strata": ("pool:gbp07",),
+            "source_strata": ("pool:contamination",),
             "mapping_identity": "mapping:droplets-to-donors:v1",
             "comparability_evidence": ("evidence:pool-comparability:v1",),
             "cross_stratum_rule": "single_source_stratum",
@@ -74,12 +74,12 @@ def complete_contamination_values() -> dict[str, object]:
             "evidence_id": "evidence:blind-selection:v1",
         },
         "measurement_scope_authority": {
-            "scope_id": "scope:gbp07-measurement:v1",
+            "scope_id": "scope:contamination-measurement:v1",
             "authority_id": "authority:analyst:v1",
             "assay": "single-cell-rna",
             "population_state": "declared-study-population",
             "source": "empty-droplet-pool",
-            "analysis_id": "analysis:gbp07:v1",
+            "analysis_id": "analysis:contamination:v1",
         },
         "pre_exposure": {"confirmed": True, "evidence_id": "evidence:timing:v1"},
         "non_descendancy": {"confirmed": True, "evidence_id": "evidence:non-descendant:v1"},
@@ -94,24 +94,24 @@ def complete_contamination_values() -> dict[str, object]:
         },
         "assignment_context": {
             "kind": "observational",
-            "assignment_identity": "assignment:gbp07:v1",
+            "assignment_identity": "assignment:contamination:v1",
             "compatibility_evidence": "evidence:assignment-compatibility:v1",
         },
         "exact_basis_adequacy": {
-            "required_basis_identity": "basis:gbp07-rho-bar:v1",
+            "required_basis_identity": "basis:contamination-rho-bar:v1",
             "transform_kind": "continuous_identity",
             "evidence_id": "evidence:exact-basis:v1",
         },
         "causal_scope_authority": {
-            "scope_id": "scope:gbp07-causal:v1",
+            "scope_id": "scope:contamination-causal:v1",
             "authority_id": "authority:analyst:v1",
-            "fitted_result_id": "fit:gbp07:v1",
+            "fitted_result_id": "fit:contamination:v1",
             "target_coefficient": "condition[T.case]",
             "exposure_column": "condition[T.case]",
             "row_ledger_identity": "rows:donors:v1",
-            "estimand_id": "estimand:gbp07:v1",
-            "measurement_basis_identity": "basis:gbp07-rho-bar:v1",
-            "fitted_design_identity": "design:gbp07:v1",
+            "estimand_id": "estimand:contamination:v1",
+            "measurement_basis_identity": "basis:contamination-rho-bar:v1",
+            "fitted_design_identity": "design:contamination:v1",
         },
     }
 
@@ -130,14 +130,14 @@ CONTAMINATION_SCOPE_KEYS = (
 def contamination_scope() -> CspScope:
     values = complete_contamination_values()
     return CspScope(
-        fitted_result_id="fit:gbp07:v1",
+        fitted_result_id="fit:contamination:v1",
         contrast_name="case_vs_control",
         target_coefficient="condition[T.case]",
         exposure_column="condition[T.case]",
         row_ledger_identity="rows:donors:v1",
-        estimand_id="estimand:gbp07:v1",
+        estimand_id="estimand:contamination:v1",
         group_source_column="donor",
-        assignment_identity="assignment:gbp07:v1",
+        assignment_identity="assignment:contamination:v1",
         contract_scope={
             "measurement_artifact_identity": values["axis_identity"]["artifact_id"],
             "measurement_run_identity": values["axis_identity"]["run_id"],
@@ -256,7 +256,7 @@ def contamination_case(
     design = make_design(
         batch=(), sample_unit=("donor_id",), aggregation_key=("donor_id",),
         analyst_adjusted_for=list(adjusted), fitted_design=declaration,
-        estimand_id="estimand:gbp07:v1", csp_contracts=(),
+        estimand_id="estimand:contamination:v1", csp_contracts=(),
         confidence={
             "condition": "high", "analyst_adjusted_for": "high",
             "aggregation_key": "high", "fitted_design": "high",
@@ -296,7 +296,7 @@ def contamination_case(
     }
     values["causal_scope_authority"] = {
         **values["causal_scope_authority"],
-        "fitted_result_id": "fit:gbp07:v1",
+        "fitted_result_id": "fit:contamination:v1",
         "target_coefficient": design.target_coefficient,
         "exposure_column": "condition",
         "row_ledger_identity": rows.row_ledger_identity,
@@ -308,7 +308,7 @@ def contamination_case(
         "assignment_identity": live_assignment_identity,
     }
     scope = CspScope(
-        fitted_result_id="fit:gbp07:v1", contrast_name=design.name,
+        fitted_result_id="fit:contamination:v1", contrast_name=design.name,
         target_coefficient=design.target_coefficient, exposure_column="condition",
         row_ledger_identity=rows.row_ledger_identity, estimand_id=design.estimand_id,
         group_source_column="donor_id", assignment_identity=live_assignment_identity,
@@ -368,8 +368,8 @@ def eqtl_contamination_case(*, adjusted, ratified=True):
         aggregation_key=("donor",), model="~ genotype",
         analyst_adjusted_for=list(adjusted), fitted_design=declaration,
         target_coefficient="genotype", genotype_column="genotype",
-        variant_id="rsGB-P07", target_feature="target",
-        estimand_id="estimand:gbp07-eqtl:v1", csp_contracts=(),
+        variant_id="rs-contamination-eqtl", target_feature="target",
+        estimand_id="estimand:contamination-eqtl:v1", csp_contracts=(),
         confidence={
             "analyst_adjusted_for": "high", "aggregation_key": "high",
             "fitted_design": "high",
@@ -408,7 +408,7 @@ def eqtl_contamination_case(*, adjusted, ratified=True):
     }
     values["causal_scope_authority"] = {
         **values["causal_scope_authority"],
-        "fitted_result_id": "fit:gbp07-eqtl:v1",
+        "fitted_result_id": "fit:contamination-eqtl:v1",
         "target_coefficient": design.target_coefficient,
         "exposure_column": "genotype",
         "row_ledger_identity": rows.row_ledger_identity,
@@ -420,7 +420,7 @@ def eqtl_contamination_case(*, adjusted, ratified=True):
         "assignment_identity": live_assignment_identity,
     }
     scope = CspScope(
-        fitted_result_id="fit:gbp07-eqtl:v1", contrast_name=design.name,
+        fitted_result_id="fit:contamination-eqtl:v1", contrast_name=design.name,
         target_coefficient=design.target_coefficient, exposure_column="genotype",
         row_ledger_identity=rows.row_ledger_identity, estimand_id=design.estimand_id,
         group_source_column="donor", assignment_identity=live_assignment_identity,
@@ -440,7 +440,7 @@ def eqtl_contamination_case(*, adjusted, ratified=True):
     return replace(design, csp_contracts=(record,)), bundle
 
 
-def gbp07_obligation_pair():
+def contamination_obligation_pair():
     """GB-P07-shaped mechanism fixture only; not the live GB-P07 anchor or artifact."""
     without, without_bundle = contamination_case(
         adjusted=("condition",), ratified=True
@@ -449,10 +449,10 @@ def gbp07_obligation_pair():
         adjusted=("condition", "rho_external"), ratified=True
     )
     without_record = replace(
-        without.csp_contracts[0], contract_id="csp:test-only:gbp07-shaped:without-rho"
+        without.csp_contracts[0], contract_id="csp:test-only:contamination-shaped:without-rho"
     )
     with_record = replace(
-        with_basis.csp_contracts[0], contract_id="csp:test-only:gbp07-shaped:with-rho"
+        with_basis.csp_contracts[0], contract_id="csp:test-only:contamination-shaped:with-rho"
     )
     return (
         replace(without, csp_contracts=(without_record,)), without_bundle,

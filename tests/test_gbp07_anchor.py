@@ -18,7 +18,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_gbp07_orientation_gate_refuses_to_certify_the_unratified_sign():
+def test_contamination_orientation_gate_refuses_to_certify_the_unratified_sign():
     finding, info = run_gbp07_anchor()
 
     # The referee neither rubber-stamps (+0.48) nor false-accuses: it abstains at the seam.

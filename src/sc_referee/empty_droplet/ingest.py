@@ -87,7 +87,7 @@ def _declaration_failures(root: Path, declaration: EmptyDropletIngestDeclaration
         failures.append((R.VERSION_INCOMPATIBLE, "unsupported declaration schema"))
     if (
         declaration.source.format != "dense_csv/v1"
-        or declaration.filtered_link.format != "gbp07_cells_csv/v1"
+        or declaration.filtered_link.format != "filtered_cells_csv/v1"
         or declaration.source.compression not in {"none", "gzip"}
         or declaration.filtered_link.compression not in {"none", "gzip"}
     ):

@@ -36,7 +36,7 @@ from sc_referee.compiler.table_bindings import table_binding_value_schema
 DEFAULT_MODEL = "claude-opus-4-8"
 PROPOSAL_TOOL = "propose_compiler_bindings"
 
-# This cycle intentionally targets the released GB-P07-shaped eQTL-contamination workflow.  New
+# This cycle intentionally targets the released eQTL-contamination workflow shape.  New
 # registered derivations can add destinations in a later additive schema revision.
 REQUIRED_DESTINATIONS = (
     Destination("design", "analysis_type"),
@@ -49,6 +49,8 @@ REQUIRED_DESTINATIONS = (
     Destination("reported_claim", "target_coefficient"),
     Destination("fitted_design", "method_evidence_span"),
     Destination("detector_input", "derivation_id"),
+    Destination("detector_input", "contamination_threshold"),
+    Destination("detector_input", "method_provenance"),
 )
 
 SYSTEM_PROMPT = """You organize structural compiler bindings from a bounded file inventory.
@@ -62,16 +64,20 @@ resolves those locators and mints evidence digests; do not supply a digest. Neve
 ungroundable value: put its authority.field in
 unresolved instead. Retain differing candidates for one destination as a conflict.
 
-For a GB-P07-shaped workflow, represent every table candidate identically as an object containing
-artifact_path and a columns object. The cell-table columns object contains cell_id, donor,
-total_umi, and hbb; the donor-table columns object contains donor and genotype; the empty-droplet
-columns object contains total_umi and may identify an id or barcode column. Do not enumerate gene
-panels: the compiler deterministically discovers count columns from the bound tables. A legacy
-panel object is accepted only as advisory evidence and is not load-bearing.
-Other candidates are scalar strings. analysis_type is eqtl and the only
-currently registered derivation is genebench_gbp07_public_estimator/v1. This is structural
-organization only: never emit a verdict, status, severity, CSP state, confirmed_by_human, code, or
-an authority attestation.
+Represent every table candidate identically as an object containing artifact_path and a columns
+object. Bind each column role the target derivation requires to the source column the documentation
+grounds it in: the cell-table columns object binds cell_id, donor, total_umi, and marker; the
+donor-table columns object binds donor and genotype; the empty-droplet columns object binds
+total_umi and may identify an id or barcode column. Do not enumerate gene panels: the compiler
+deterministically discovers count columns from the bound tables. A legacy panel object is accepted
+only as advisory evidence and is not load-bearing.
+Other candidates are scalar strings. Bind analysis_type and derivation_id to values grounded in the
+supplied documentation and the registered-derivation list. Bind contamination_threshold to the
+cutoff this analysis's own documentation states (the verbatim number, a fraction between 0 and 1)
+and method_provenance to the citation that documentation gives for it. Never carry a threshold over
+from another study, and never supply a customary default: if the documentation states no cutoff, put
+detector_input.contamination_threshold in unresolved. This is structural organization only: never
+emit a verdict, status, severity, CSP state, confirmed_by_human, code, or an authority attestation.
 """
 
 

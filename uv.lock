@@ -2484,7 +2484,7 @@ wheels = [
 
 [[package]]
 name = "sc-referee"
-version = "0.0.1"
+version = "0.0.2"
 source = { editable = "." }
 dependencies = [
     { name = "anndata", version = "0.11.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
