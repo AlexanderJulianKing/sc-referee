@@ -66,7 +66,7 @@ def test_minimal_single_claim_render_fixture_is_frozen():
         " CLEAR  (pass)  second\n"
         "  verdict two\n"
         "\n"
-        "worst status: needs_evidence   CI: FAIL\n"
+        "worst status: needs_evidence   CI: neutral\n"
         "coverage: 2 findings · 1 clear · 1 not checked\n"
     )
     assert to_md(result) == (
@@ -89,7 +89,7 @@ def test_minimal_single_claim_render_fixture_is_frozen():
         "verdict two\n"
         "\n"
         "\n"
-        "**Worst status:** `needs_evidence` — CI **fails**\n"
+        "**Worst status:** `needs_evidence` — CI **neutral** — posted, not a clean bill of health\n"
         "\n"
         "**Coverage:** 2 findings · 1 clear · 1 not checked\n"
     )
@@ -97,8 +97,8 @@ def test_minimal_single_claim_render_fixture_is_frozen():
         "analysis_type": "marker_detection",
         "confirmed_by_human": False,
         "worst_status": "needs_evidence",
-        "ci_fails": True,
-        "ci_conclusion": "fail",
+        "ci_fails": False,
+        "ci_conclusion": "neutral",
         "fully_audited": True,
         "analyses": [{
             "claim": None,

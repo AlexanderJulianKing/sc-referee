@@ -284,30 +284,34 @@ class AuditResult:
         return max((f.status for f in self.findings), key=lambda s: S.SEVERITY.get(s, 0))
 
     def ci_fails(self, fail_on=S.FAIL_ON_DEFAULT) -> bool:
-        """Fail closed unless a ratified analysis earned at least one applicable proved PASS.
+        """Only a blocker fails the build (configurable). Everything else is posted, not gated."""
+        return any(f.status in fail_on for f in self.findings)
 
-        Scientific status and certification remain separate: missing evidence stays
-        ``needs_evidence`` rather than becoming a blocker, but it cannot authorize CI success.
+    def ci_conclusion(self, fail_on=S.FAIL_ON_DEFAULT) -> str:
+        """fail | neutral | pass.
+
+        `neutral` covers advisory and unaudited findings: they are POSTED, never rendered as a
+        clean bill of health. This is what carries "we did not look" honestly, so the exit code
+        does not have to lie about it.
         """
-        proved_pass = any(
+        if self.ci_fails(fail_on):
+            return "fail"
+        advisory = (S.MAJOR, S.NEEDS_EVIDENCE, S.NOT_AUDITED)
+        if not self.findings or any(f.status in advisory for f in self.findings):
+            return "neutral"
+        if not self.confirmed_by_human:
+            return "neutral"     # nothing was ratified — a clean `pass` would overclaim
+        # `pass` is a POSITIVE claim, so it needs a proof rather than the mere absence of
+        # complaints: at least one applicable check that reached complete coverage and conformed.
+        # A not-applicable finding spelled `pass` proves nothing about this analysis.
+        proved = any(
             finding.status == S.PASS
             and finding.applicability == S.APPLIES
             and finding.coverage == S.COMPLETE
             and finding.judgment in (None, S.CONFORMANT)
             for finding in self.findings
         )
-        return (
-            not self.confirmed_by_human
-            or not self.findings
-            or not proved_pass
-            or any(f.status in fail_on for f in self.findings)
-        )
-
-    def ci_conclusion(self, fail_on=S.FAIL_ON_DEFAULT) -> str:
-        """Return the two-valued, fail-closed certification conclusion: ``fail`` or ``pass``."""
-        if self.ci_fails(fail_on):
-            return "fail"
-        return "pass"
+        return "pass" if proved else "neutral"
 
     def fully_audited(self) -> bool:
         """False when some check that should have run could not. A green CI run on a

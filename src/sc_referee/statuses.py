@@ -30,7 +30,12 @@ SEVERITY = {
 # Scientific statuses remain three-valued, but certification is deliberately stricter: a proved
 # defect or unresolved/unaudited obligation all fail the default gate.  This does not relabel an
 # uncertainty as a blocker; it only refuses to certify it.
-FAIL_ON_DEFAULT = (BLOCKER, MAJOR, NEEDS_EVIDENCE, NOT_AUDITED)
+# Only a blocker gates the build. An abstention is not an accusation: rendering
+# `needs_evidence` / `not_audited` as a red build says "this failed" about an analysis the engine
+# merely declined to certify, which is the same over-claim this engine refuses to make in a
+# verdict. The honest signal for "we did not look" is `ci_conclusion == "neutral"`, not exit 1.
+# Callers who genuinely want to gate on unverified analyses pass their own `fail_on`.
+FAIL_ON_DEFAULT = (BLOCKER,)
 
 
 # Canonical report-ledger axes. These classify a Finding for presentation only; the shipped

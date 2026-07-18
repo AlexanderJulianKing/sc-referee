@@ -77,5 +77,5 @@ def test_normalized_run_audits_confounding_but_abstains_the_recompute(tmp_path):
 
     assert "confounding" in by_id and by_id["confounding"].status != S.NOT_AUDITED   # it still ran
     assert by_id["experimental_unit"].status == S.NOT_AUDITED                        # abstained, not silent
-    assert result.ci_conclusion() == "fail"                                          # never a false green
+    assert result.ci_conclusion() == "neutral"                                       # never a false green
     assert result.fully_audited() is False

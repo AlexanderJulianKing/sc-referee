@@ -79,5 +79,5 @@ paired (or mixed-model) sensitivity check.
   double_dipping did not evaluate results/splicing.csv: the claim's own producing test is mannwhitneyu, outside this 
 detector's covered marker-test family; coverage is NOT_RUN.
 
-worst status: needs_evidence   CI: FAIL
+worst status: needs_evidence   CI: neutral — NOT FULLY AUDITED
 coverage: 13 findings · 4 clear · 3 flagged · 5 not checked · 1 n/a

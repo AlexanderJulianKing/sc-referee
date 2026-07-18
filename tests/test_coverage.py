@@ -2,8 +2,9 @@
 
 `not_audited` is a first-class status: a recognised analysis type with no methods check
 available yet is POSTED, never silently passed. The scientific status remains `not_audited`,
-while the stricter certification gate fails closed. This matters more, not less, as analysis types
-accrete — most real analyses will hit the "no check applies" path first.
+and certification stays `neutral` — never `pass`, but never a red build either: an abstention is
+not an accusation. This matters more, not less, as analysis types accrete — most real analyses will
+hit the "no check applies" path first.
 """
 import json
 
@@ -39,8 +40,8 @@ def test_not_audited_fails_certification_without_becoming_a_blocker(tmp_path):
     _retype(tmp_path, "trajectory")
 
     result = run_audit(tmp_path)
-    assert result.ci_fails() is True
-    assert result.ci_conclusion() == "fail"
+    assert result.ci_fails() is False               # an abstention is not an accusation
+    assert result.ci_conclusion() == "neutral"      # ...and never a clean bill of health
     assert result.worst_status() == S.NOT_AUDITED   # uncertainty was not relabeled a blocker
     assert result.fully_audited() is False
 
@@ -70,31 +71,48 @@ def test_legacy_config_keeps_layer1_verdict_but_strong_coverage_is_explicit(tmp_
     assert result.ci_fails() is True
 
 
-def test_default_ci_conclusion_is_fail_closed_or_proved_pass():
+def test_ci_gates_on_blockers_only_and_pass_still_needs_a_proof():
+    """The CI contract, in both directions.
+
+    GATING: only a blocker reddens the build. Rendering an abstention as a failed build says "this
+    analysis is wrong" about one the engine merely declined to certify — the same over-claim the
+    engine refuses to make in a verdict, moved into the exit code. `neutral` is what carries "we
+    did not look", so the exit code does not have to lie about it.
+
+    CERTIFYING: `pass` stays a positive claim that needs a proof. Absence of complaints is not
+    evidence, so anything unproved, unratified, or merely not-applicable is `neutral`, never `pass`.
+    """
     from sc_referee.audit import AuditResult
     from sc_referee.checks.base import Finding
 
     def result(*statuses, confirmed=True):
         return AuditResult(findings=[Finding("c", s, "v") for s in statuses], confirmed_by_human=confirmed)
 
+    # only a blocker gates
     assert result(S.BLOCKER).ci_conclusion() == "fail"
-    assert result(S.MAJOR).ci_conclusion() == "fail"
-    assert result(S.NEEDS_EVIDENCE).ci_conclusion() == "fail"
-    assert result(S.NOT_AUDITED).ci_conclusion() == "fail"
-    assert result(S.INFORMATIONAL).ci_conclusion() == "fail"  # no applicable proved PASS
-    assert result().ci_conclusion() == "fail"
+    assert result(S.BLOCKER).ci_fails() is True
+    for advisory in (S.MAJOR, S.NEEDS_EVIDENCE, S.NOT_AUDITED):
+        assert result(advisory).ci_conclusion() == "neutral", advisory
+        assert result(advisory).ci_fails() is False, advisory
+
+    # ...but nothing below earns a clean bill either
+    assert result().ci_conclusion() == "neutral"                      # nothing ran
+    assert result(S.PASS, confirmed=False).ci_conclusion() == "neutral"   # nothing ratified
+    assert result(S.INFORMATIONAL).ci_conclusion() == "neutral"        # no applicable proved PASS
     not_applicable = AuditResult(
         findings=[Finding("c", S.PASS, "not applicable", applicability=S.NOT_APPLICABLE)],
         confirmed_by_human=True,
     )
-    assert not_applicable.ci_conclusion() == "fail"  # status spelling alone is not a proof
+    assert not_applicable.ci_conclusion() == "neutral"  # status spelling alone is not a proof
+
+    proved = AuditResult(
+        findings=[Finding("c", S.PASS, "checked", applicability=S.APPLIES, coverage=S.COMPLETE)],
+        confirmed_by_human=True,
+    )
+    assert proved.ci_conclusion() == "pass"
     assert result(S.PASS).ci_conclusion() == "pass"
     assert result(S.INFORMATIONAL, S.PASS).ci_conclusion() == "pass"   # a fact, not a defect
     assert result(S.BLOCKER, S.PASS).ci_conclusion() == "fail"
-    # a clean `pass` requires ratification — an UNCONFIRMED design/manifest is never a clean bill.
-    assert result(S.PASS, confirmed=False).ci_conclusion() == "fail"
-
-    assert result(S.MAJOR).ci_fails() is True
     assert result(S.BLOCKER).ci_fails() is True
 
 

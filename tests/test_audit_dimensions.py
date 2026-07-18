@@ -4,6 +4,7 @@
 EXPECTED_DIMENSIONS = {
     "experimental_unit": ("unit_of_independence",),
     "allele_orientation": ("orientation",),
+    "eqtl_design_support": ("unit_of_independence",),
     "confounding": ("conditioning_set",),
     "confounding_strong": ("conditioning_set",),
     "confounding_random_intercept": ("conditioning_set",),

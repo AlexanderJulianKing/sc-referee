@@ -93,7 +93,7 @@ def test_shipped_audit_rejects_a_self_ratified_coordinate_contract(tmp_path):
                    if item.check_id == "inference.coordinate_consumption")
     assert finding.status == "not_audited"
     assert finding.metrics["engine_outcome"] == "ABSTAIN"
-    assert result.ci_fails() is True
+    assert result.ci_conclusion() == "neutral"   # not certified, and not adverse either
 
 
 def test_shipped_audit_keeps_nonhuman_or_source_changed_contracts_nonadverse(tmp_path):
@@ -104,14 +104,14 @@ def test_shipped_audit_keeps_nonhuman_or_source_changed_contracts_nonadverse(tmp
     finding = next(item for item in nonhuman.findings
                    if item.check_id == "inference.coordinate_consumption")
     assert finding.status == "not_audited"
-    assert nonhuman.ci_fails() is True
+    assert nonhuman.ci_conclusion() == "neutral"
 
     _write_live_coordinate_fixture(tmp_path, source_matches=False)
     changed = run_audit(tmp_path, engine="simple")
     finding = next(item for item in changed.findings
                    if item.check_id == "inference.coordinate_consumption")
     assert finding.status == "not_audited"
-    assert changed.ci_fails() is True
+    assert changed.ci_conclusion() == "neutral"
 
 
 def test_without_contract_the_only_change_is_policy_specific_not_audited(tmp_path):

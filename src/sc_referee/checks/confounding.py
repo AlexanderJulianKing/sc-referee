@@ -265,6 +265,34 @@ def _with_intercept(block: np.ndarray, n: int) -> np.ndarray:
     return np.column_stack([np.ones(n), block]) if block.size else np.ones((n, 1))
 
 
+def _certified_alias(t: np.ndarray, Z: np.ndarray) -> bool:
+    """Is `t` EXACTLY in col(Z)? The algebraic question a blocker actually claims to answer.
+
+    `r2 >= 1 - ALIAS_TOL` is not that question, and the gap is a false blocker. A FULL RANK design —
+    the target demonstrably estimable, a model provably able to separate it — reaches R² =
+    0.9999999983 whenever a covariate almost-but-not-exactly encodes the target: an ancestry PC, a
+    rounded or derived measurement, a near-duplicate covariate. Blocking there tells a scientist "no
+    statistical model can separate the biological effect" about a design where one demonstrably can.
+    Severe collinearity is a DEGREE, and VIF/leakage already report it as one. This module's
+    docstring promises "exact design-matrix algebra"; a flat tolerance on R² is not exact.
+
+    Rank answers it directly: appending `t` to `Z` either enlarges the span or it does not. Columns
+    are unit-norm equilibrated first — an unequilibrated solve mis-ranks a matrix whose columns
+    differ by 1e20 and MISSES a real alias (F1), which is the failure `_equilibrated_lstsq` exists
+    to prevent.
+    """
+
+    if Z.size == 0:
+        return False
+    scaled = Z / _column_l2_norms(Z)
+    target = np.asarray(t, dtype=float)
+    target_norm = float(np.linalg.norm(target))
+    if target_norm > 0:
+        target = target / target_norm
+    return int(np.linalg.matrix_rank(np.column_stack([scaled, target]))) == int(
+        np.linalg.matrix_rank(scaled))
+
+
 def _r2(t: np.ndarray, Z: np.ndarray):
     """R² of regressing the target indicator on the nuisance design matrix. None if no variation."""
     tss = float(((t - t.mean()) ** 2).sum())
@@ -480,7 +508,8 @@ def evaluate_confounding(observations: pd.DataFrame, design: Design) -> Finding:
         omitted = []
 
     try:
-        r2 = _r2(t, _with_intercept(_design_block(sub, nuis_present, continuous)[0], len(sub)))
+        nuisance_matrix = _with_intercept(_design_block(sub, nuis_present, continuous)[0], len(sub))
+        r2 = _r2(t, nuisance_matrix)
         leakage = _leakage(sub, t, included, omitted, continuous)
         omitted_r2 = _partial_r2(sub, t, included, omitted, continuous)   # the DECISION statistic
     except DesignMatrixError as exc:
@@ -491,8 +520,13 @@ def evaluate_confounding(observations: pd.DataFrame, design: Design) -> Finding:
                   f"I can't build the design matrix to test estimability ({exc}); check that the "
                   f"declared-continuous covariates are finite numeric values, then re-run.",
                   coverage=S.NOT_RUN, nuisance=nuis_present)
-    aliased = r2 is not None and r2 >= 1.0 - ALIAS_TOL
-    vif = float("inf") if aliased else 1.0 / (1.0 - r2)
+    # A blocker asserts NON-IDENTIFICATION, so it must be certified by rank, not by R² landing
+    # within a flat tolerance of 1. The R² screen stays as the cheap first cut; certification is
+    # what earns the verdict. This can only ever REMOVE blockers, never add one.
+    aliased = (r2 is not None and r2 >= 1.0 - ALIAS_TOL
+               and _certified_alias(t, nuisance_matrix))
+    # r2 == 1.0 without certification means numerically saturated but full rank: report the degree.
+    vif = float("inf") if (aliased or r2 is None or r2 >= 1.0) else 1.0 / (1.0 - r2)
     max_leak = max((abs(v) for v in leakage.values()), default=0.0)
 
     # target aliased with the nuisance INTERACTION, but additively identified -> report, never block

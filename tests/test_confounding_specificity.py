@@ -384,3 +384,52 @@ def test_large_integer_continuous_covariate_abstains_not_false_blocks():
     f = evaluate_confounding(obs, design)
     assert f.status == S.NEEDS_EVIDENCE, f.verdict
     assert f.status != S.BLOCKER
+
+
+def _near_alias_design(offset: float):
+    """A covariate that almost-but-not-exactly encodes condition: full rank, R² -> 1."""
+    n = 24
+    pc = np.where(np.arange(n) < 12, 0.0, 1.0)
+    pc[0] += offset
+    obs = pd.DataFrame({
+        "donor_id": [f"D{i:02d}" for i in range(n)],
+        "condition": ["ctrl"] * 12 + ["stim"] * 12,
+        "pc1": pc,
+    })
+    fd = fitted_design_declaration(
+        column_kinds={"pc1": "continuous", "condition": "categorical"},
+        categorical_levels={"condition": ("ctrl", "stim")},
+        transforms={"pc1": "identity", "condition": "identity"},
+    )
+    design = make_design(
+        model="~ pc1 + condition", batch=(), sample_unit=("donor_id",),
+        replicate_unit=("donor_id",), analyst_adjusted_for=["pc1"], fitted_design=fd,
+        confidence={"condition": "high", "analyst_adjusted_for": "high",
+                    "fitted_design": "high"},
+    )
+    return obs, design
+
+
+@pytest.mark.parametrize("offset", [3e-5, 1e-4, 1e-3, 1e-2])
+def test_near_alias_is_severe_collinearity_not_a_blocker(offset):
+    """Regression: a blocker asserts NON-IDENTIFICATION, so it must be certified by RANK, not by R²
+    landing inside a flat tolerance of 1. A covariate that almost-but-not-exactly encodes the
+    condition (an ancestry PC, a rounded measurement) leaves a FULL RANK design — a model provably
+    separates them — yet scores R² = 0.999999998. Blocking there tells a scientist no model can
+    separate their effect when one demonstrably can, which is the worst error this tool makes.
+    Severe collinearity is a DEGREE and VIF already reports it as one."""
+    obs, design = _near_alias_design(offset)
+    f = evaluate_confounding(obs, design)
+    assert f.status != S.BLOCKER, f.verdict
+    assert "perfectly entangled" not in f.verdict
+    assert f.metrics["vif"] > 1.0, f.metrics          # the degree is still reported
+
+
+def test_exact_continuous_alias_still_blocks_after_rank_certification():
+    """Positive control for the certification: an EXACT affine alias is rank-deficient, the target
+    is genuinely non-identified, and it MUST still block. Certification may only ever remove
+    blockers that rank does not support — never weaken a real one."""
+    obs, design = _near_alias_design(0.0)             # offset 0 -> pc1 encodes condition exactly
+    f = evaluate_confounding(obs, design)
+    assert f.status == S.BLOCKER, f.verdict
+    assert f.metrics["r2"] >= 1.0 - 1e-6, f.metrics

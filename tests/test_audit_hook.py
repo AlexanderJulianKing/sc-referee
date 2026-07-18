@@ -104,7 +104,7 @@ def test_audit_result_has_a_non_gating_diagnostics_field():
     before = r.ci_fails()
     # Diagnostics never participate in the gate; the empty/unconfirmed audit already fails closed.
     r.diagnostics.append({"diagnostic": "confounder_candidate", "ran": True})
-    assert before is True and r.ci_fails() is before
+    assert r.ci_fails() is before          # diagnostics are evidence, never gating
     assert r.worst_status()  # does not consult diagnostics
 
 

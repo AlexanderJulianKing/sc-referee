@@ -109,7 +109,7 @@ def test_unrecorded_replicate_yields_not_audited_not_a_silent_pass():
 
     result = AuditResult(findings=[Finding("experimental_unit", S.NOT_AUDITED, reason)])
     assert result.fully_audited() is False
-    assert result.ci_conclusion() == "fail"
+    assert result.ci_conclusion() == "neutral"   # not a silent pass; not an accusation either
     assert result.worst_status() != S.PASS
 
 

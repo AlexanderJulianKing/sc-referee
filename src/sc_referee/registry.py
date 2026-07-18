@@ -21,6 +21,7 @@ from sc_referee.checks.allele_orientation import AlleleOrientationCheck
 from sc_referee.checks.count_model import CountModelCheck
 from sc_referee.checks.double_dipping import DoubleDippingCheck
 from sc_referee.checks.effect_size import EffectSizeCheck
+from sc_referee.checks.eqtl_design_support import EqtlDesignSupportCheck
 from sc_referee.checks.experimental_unit import ExperimentalUnitCheck
 from sc_referee.checks.hic_loop_strength import HiCLoopStrengthCheck
 from sc_referee.checks.multiple_testing import MultipleTestingCheck
@@ -32,7 +33,7 @@ from sc_referee.inference.live import build_engine_verifiers
 
 CHECK_CLASSES = (ConfoundingCheck, ConfoundingStrongCheck, ConfoundingRandomInterceptCheck, ConfoundingRandomInterceptConditionalCheck, ContaminationConfoundCheck, ExperimentalUnitCheck, MultipleTestingCheck, CountModelCheck,
                  DoubleDippingCheck, EffectSizeCheck, PseudobulkIntegrityCheck, PairingCheck,
-                 AlleleOrientationCheck, HiCLoopStrengthCheck)
+                 AlleleOrientationCheck, HiCLoopStrengthCheck, EqtlDesignSupportCheck)
 
 # THE EXTENSION POINT. Each entry is a factory `engine -> Check`. To add an analysis type, append
 # its verifier factories here; each verifier declares the `analysis_types` it applies to and the
@@ -53,6 +54,10 @@ _VERIFIER_FACTORIES = (
     lambda engine: PairingCheck(),         # omitted pairing / pair-matching structure (diagnostic)
     lambda engine: AlleleOrientationCheck(),  # eQTL effect-allele sign contract + OLS recompute
     lambda engine: HiCLoopStrengthCheck(),  # report-bound exact Hi-C O/E delta conformance
+    # eQTL donor/genotype support. Certifies only the structure that makes a donor-level genotype
+    # coefficient estimable, and says nothing about the reported effect. Entitled to at most
+    # `not_audited`, so it can award a positive certification but can never accuse.
+    lambda engine: EqtlDesignSupportCheck(),
 )
 
 

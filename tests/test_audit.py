@@ -36,7 +36,7 @@ def test_registry_carries_the_built_checks():
         "confounding_random_intercept_conditional", "experimental_unit", "multiple_testing", "count_model", "double_dipping",
         "contamination_confound",
         "effect_size_threshold", "pseudobulk_integrity", "pairing", "allele_orientation",
-        "hic_loop_strength", "inference.allele_harmonization",
+        "hic_loop_strength", "eqtl_design_support", "inference.allele_harmonization",
         "inference.enrichment_universe", "inference.coordinate_consumption",
         "inference.spatial_iid", "inference.trajectory_circularity",
         "inference.confounding",
@@ -143,6 +143,7 @@ def test_eqtl_audit_routes_the_orientation_check_end_to_end(tmp_path):
     result = run_audit(tmp_path, engine="simple")
     assert [(f.check_id, f.status) for f in result.findings] == [
         ("allele_orientation", S.PASS),
+        ("eqtl_design_support", S.PASS),   # donor/genotype structure certified alongside the sign
     ]
     assert result.fully_audited() is True  # single-source eQTL is outside the joint-policy scope
 

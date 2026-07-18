@@ -144,8 +144,8 @@ def test_audit_gate_requires_the_manifest_to_be_confirmed_too(tmp_path):
 
     result = run_audit(tmp_path, engine="simple")
     assert result.confirmed_by_human is False
-    assert result.ci_fails()                                 # unratified authority cannot certify
-    assert result.ci_conclusion() == "fail"
+    assert result.ci_conclusion() == "neutral"               # unratified authority cannot certify
+    assert result.ci_fails() is False                        # ...but absence of proof is not a blocker
     assert all(f.status != S.BLOCKER for f in result.findings)
 
 
