@@ -100,7 +100,7 @@ themselves, qualify a detector or support a public generality claim.
 
 ## P1 — Make ordinary repositories connect to the existing machinery
 
-- [ ] **L04 — Publication and input selection ergonomics.** Let the scientist resolve ambiguous
+- [x] **L04 — Publication and input selection ergonomics.** Let the scientist resolve ambiguous
   report, source, input, and output candidates through bounded typed questions instead of editing
   internal records or rerunning discovery by hand.
   - Acceptance: selected identities bind to the immutable snapshot and resume segment; stale,
@@ -244,8 +244,9 @@ themselves, qualify a detector or support a public generality claim.
 
 Work on the first unchecked prerequisite, in order:
 
-1. L04 — bounded publication and input selection;
-2. L05 — general static connectivity; then
+1. L05 — general static connectivity;
+2. L06 through L08 — natural-language, source, notebook, Quarto, and R Markdown adapters over the
+   common joins; then
 3. L09 and L10 — natural calculation layouts and large single-cell artifacts.
 
 Do not begin detector promotion, MCP transport, or project execution while these prerequisites are

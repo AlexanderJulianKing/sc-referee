@@ -32,6 +32,9 @@ def test_repository_skill_has_discoverable_metadata(project_root: Path) -> None:
     assert "sc-referee submit-proposals <new-segment>" in body
     assert "sc-referee record-answer <new-segment>" in body
     assert "sc-referee record-structured-answer <new-segment>" in body
+    assert "sc-referee record-scope-answer <new-segment>" in body
+    assert "--question-id <question-id>" in body
+    assert "bounded-review-scope-selection-v1" in body
     assert "Treat this as a post-hoc review" in body
     assert "uninspected means no semantic/deep inspection" in body
     assert "it does not mean no byte access" in body

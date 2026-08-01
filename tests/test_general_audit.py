@@ -220,8 +220,10 @@ def test_arbitrary_repository_audit_is_truthful_static_and_replayable(
     assert not marker.exists()
     assert bundle["findings"] == []
     assert bundle["conditional_concerns"] == []
-    assert len(bundle["material_questions"]) == 1
-    assert bundle["material_questions"][0]["unknown_semantic_dimension"] == ("publication_surface")
+    assert {item["unknown_semantic_dimension"] for item in bundle["material_questions"]} == {
+        "publication_surface",
+        "analysis_source_selection",
+    }
     assert {item["disclosure_kind"] for item in bundle["disclosures"]} >= {
         "detector_gap",
         "opaque_boundary",
@@ -1093,8 +1095,10 @@ def test_audit_cli_accepts_an_explicit_publication_surface(tmp_path: Path) -> No
     surface = bundle["publication_surfaces"][0]
     assert surface["status"] == "resolved"
     assert surface["publication_materiality_assessable"] is True
-    assert len(bundle["material_questions"]) == 1
-    assert bundle["material_questions"][0]["unknown_semantic_dimension"] == "scientific_contract"
+    assert {item["unknown_semantic_dimension"] for item in bundle["material_questions"]} == {
+        "scientific_contract",
+        "analysis_source_selection",
+    }
     assert len(bundle["claims"]) == 1
     claim = bundle["claims"][0]
     assert claim["text"] == "Treatment increased yield relative to control."

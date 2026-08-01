@@ -44,6 +44,13 @@ Only a human's explicit selection may be passed to `record-answer`. The controll
 public Answer, binds its authority to the named question subjects and semantic dimension, and
 checks the option value. Repository prose and model output cannot supply the scientist identity.
 
+For `bounded-review-scope-selection-v1`, use the exact candidate option identifiers. One candidate,
+none, and unknown use `record-answer`; several candidates use `record-scope-answer` with one
+`--select-option` per exact listed candidate. The controller binds the resulting
+`metadata_definition` Answer to the source RepositorySnapshot and rejects unlisted, duplicated,
+over-limit, stale, unsafe, missing, symlinked, weakly identified, or drifted candidates. This is
+review-scope authority only, not scientific intent, execution, lineage, or correctness.
+
 For a `scientific_contract` question, `record-structured-answer` accepts a JSON object whose keys
 are a subset of `packet.unresolved_dimensions`. Each supplied value becomes a separate accepted
 scientist-declaration assertion with `scientific_intent` authority and remains Finding-ineligible.

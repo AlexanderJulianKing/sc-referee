@@ -63,6 +63,11 @@ The output directory must not already exist. The HTML report is written to `repo
 that directory. See the [quickstart](docs/QUICKSTART.md) for material inputs, replay, questions,
 and a complete interpretation example.
 
+When several fully identified analysis sources, inputs, or outputs are plausible, the audit asks
+the scientist a bounded question instead of choosing from filenames. The resulting Answer defines
+review scope only and remains bound to the immutable snapshot; it does not establish execution,
+lineage, or scientific correctness.
+
 ## Use it as an agentic skill
 
 The deterministic CLI is the authority; the skills teach a coding agent how to choose bounded

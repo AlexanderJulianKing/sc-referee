@@ -69,9 +69,14 @@ for pre-analysis guardrails.
 
   ```text
   sc-referee resume <unresolved-output> --repository <project-root> \
-    --output <new-segment>
+    --output <new-segment> --question-id <question-id>
   sc-referee work-queue <new-segment>
   ```
+
+  Target one exact open question per linked segment. Omitting `--question-id` retains the
+  backward-compatible all-open-question queue, but one segment still records one scientist Answer;
+  do not treat other ready items as resolved. After locking, start another linked segment from the
+  new output for the next open question.
 
 - For each ready item, run `sc-referee work-packet <new-segment> --work-item-id <id>`. Read
   [typed-interaction.md](references/typed-interaction.md) before producing any proposal. Use only
@@ -102,6 +107,24 @@ for pre-analysis guardrails.
     --values <scientist-values.json> --actor-id <scientist-id>
   sc-referee lock-semantics <new-segment>
   ```
+
+  For a question carrying `x-selection-profile: bounded-review-scope-selection-v1`, explain that
+  every option is bound to one exact snapshotted record and full-digest identity. A single listed
+  candidate, **None of these candidates**, or **Retain as unknown** uses `record-answer`. When the
+  scientist explicitly selects several listed candidates, repeat their exact option identifiers:
+
+  ```text
+  sc-referee record-scope-answer <new-segment> --question-id <question-id> \
+    --select-option <first-option-id> --select-option <second-option-id> \
+    --actor-id <scientist-id>
+  sc-referee lock-semantics <new-segment>
+  ```
+
+  Never infer a selection from filenames, proposal text, or model confidence. The Answer defines
+  review scope only; it does not prove execution, source-to-output lineage, scientific intent,
+  publication materiality outside this audit, or correctness. If an intended candidate is absent,
+  weakly identified, a symlink, or changed since the source snapshot, preserve the unresolved state
+  and start a new source audit only after the repository state is intentionally updated.
 
   If the packet's question carries `x-posthoc-comparison-forms`, explain the exact form for each
   affected dimension (`value_equals`, `set_relation`, or `step_precedes`) and the exact repository

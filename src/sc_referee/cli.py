@@ -35,6 +35,7 @@ from sc_referee.execution_request import (
 )
 from sc_referee.interaction import (
     create_candidate_answer,
+    create_scope_selection_answer,
     create_structured_answer,
     resume_semantics,
     submit_proposal,
@@ -159,6 +160,11 @@ def resume(
     source_audit: Path = typer.Argument(..., exists=True, file_okay=False),
     repository: Path = typer.Option(..., "--repository", exists=True, file_okay=False),
     output: Path = typer.Option(..., "--output", "-o"),
+    question_id: str | None = typer.Option(
+        None,
+        "--question-id",
+        help="Exact open MaterialQuestion to resolve; required when several are open.",
+    ),
     schema_root: Path | None = typer.Option(None, exists=True, file_okay=False),
 ) -> None:
     """Create a linked exact-snapshot pre-lock semantic interaction segment."""
@@ -168,6 +174,7 @@ def resume(
             repository,
             output,
             schema_root or _default_schema_root(),
+            question_id=question_id,
         )
     except (FileExistsError, OSError, ValueError) as error:
         raise typer.BadParameter(str(error)) from error
@@ -276,6 +283,35 @@ def record_structured_answer(
     except (OSError, ValueError) as error:
         raise typer.BadParameter(str(error)) from error
     typer.echo(f"Recorded structured Answer {answer['answer_id']}")
+
+
+@app.command("record-scope-answer")
+def record_scope_answer(
+    audit_root: Path = typer.Argument(..., exists=True, file_okay=False),
+    question_id: str = typer.Option(..., "--question-id"),
+    selected_option: list[str] = typer.Option(
+        ...,
+        "--select-option",
+        help="One listed candidate option; repeat to select several exact identities.",
+    ),
+    actor_id: str = typer.Option(..., "--actor-id"),
+    schema_root: Path | None = typer.Option(None, exists=True, file_okay=False),
+) -> None:
+    """Append one bounded multi-candidate review-scope Answer."""
+
+    active_schemas = schema_root or _default_schema_root()
+    try:
+        answer = create_scope_selection_answer(
+            audit_root,
+            question_id,
+            tuple(selected_option),
+            actor_id,
+            active_schemas,
+        )
+        record_answer_controller(audit_root, answer, active_schemas)
+    except (OSError, ValueError) as error:
+        raise typer.BadParameter(str(error)) from error
+    typer.echo(f"Recorded scope Answer {answer['answer_id']}")
 
 
 @app.command("lock-semantics")

@@ -960,6 +960,8 @@ def main() -> int:
             str(general_project),
             "--output",
             str(contract_interaction),
+            "--question-id",
+            str(contract_question["question_id"]),
         )
         contract_work_item = json.loads(
             (contract_interaction / "derived" / "work-item.jsonl")
