@@ -1,0 +1,122 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.9.0/parser-manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "backend": {
+      "enum": [
+        "cpython_ast_tokenize",
+        "tree_sitter_r",
+        "base_r_parse_data",
+        "jupyter_json",
+        "pandoc_document_ast",
+        "shell_parser",
+        "snakemake_static_adapter",
+        "nextflow_static_adapter",
+        "other"
+      ]
+    },
+    "capabilities": {
+      "items": {
+        "enum": [
+          "inventory",
+          "syntax_tree",
+          "exact_spans",
+          "comments",
+          "formulas",
+          "operation_extraction",
+          "error_recovery",
+          "source_references"
+        ]
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "executes_project_code": {
+      "const": false
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "grammar_or_runtime_identity": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "implementation_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Digest"
+    },
+    "language_or_surface": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "parser_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Identifier"
+    },
+    "parser_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemVer"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "parser_manifest"
+    },
+    "runtime_requirements": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "supported_versions": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "unsupported_constructs": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "parser_id",
+    "parser_version",
+    "language_or_surface",
+    "backend",
+    "supported_versions",
+    "capabilities",
+    "unsupported_constructs",
+    "executes_project_code",
+    "implementation_digest",
+    "runtime_requirements",
+    "provenance"
+  ],
+  "title": "sc-referee Parser Manifest",
+  "type": "object"
+}

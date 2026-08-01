@@ -1,0 +1,123 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.18.0/adjudicated-root-cause.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "adjudicated_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Timestamp"
+    },
+    "adjudicated_root_cause_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+    },
+    "affected_record_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "bounded_statement": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "case_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+    },
+    "confidence_used_for_identity": {
+      "const": false
+    },
+    "evidence": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/EvidenceItem"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "identity_profile": {
+      "const": "cross-review-candidate-set-v1"
+    },
+    "issue_class": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "material_dissent": {
+      "const": false
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "adjudicated_root_cause"
+    },
+    "required_scientific_premises": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "stage1_candidate_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/RootCauseCandidateRef"
+      },
+      "minItems": 2,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "stage2_review_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 2,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "statement_source_review_ref": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/RecordRef"
+    },
+    "stronger_claims_excluded": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "adjudicated_root_cause_id",
+    "case_id",
+    "identity_profile",
+    "stage1_candidate_refs",
+    "stage2_review_refs",
+    "statement_source_review_ref",
+    "bounded_statement",
+    "issue_class",
+    "evidence",
+    "affected_record_refs",
+    "required_scientific_premises",
+    "stronger_claims_excluded",
+    "material_dissent",
+    "confidence_used_for_identity",
+    "adjudicated_at",
+    "provenance"
+  ],
+  "title": "sc-referee Adjudicated Root Cause",
+  "type": "object"
+}

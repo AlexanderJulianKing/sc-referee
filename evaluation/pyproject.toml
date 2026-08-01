@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sc-referee-evaluation"
+version = "0.1.0.dev0"
+description = "Isolated answer-side validation tools for sc-referee qualification evidence"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+dependencies = [
+  "sc-referee==0.3.0.dev0",
+]
+
+[project.scripts]
+sc-referee-eval = "sc_referee_evaluation.cli:entrypoint"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["sc_referee_evaluation"]
+mypy_path = "$MYPY_CONFIG_FILE_DIR/../src"

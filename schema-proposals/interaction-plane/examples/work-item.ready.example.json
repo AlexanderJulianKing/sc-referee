@@ -1,0 +1,69 @@
+{
+  "schema_version": "__SCHEMA_VERSION__",
+  "record_type": "work_item",
+  "work_item_id": "work-item:semantic-population",
+  "audit_run_id": "audit:interaction-example",
+  "kind": "semantic_resolution",
+  "target_refs": [
+    {"record_type": "claim", "record_id": "claim:results-1"}
+  ],
+  "dependency_work_item_refs": [],
+  "status": "ready",
+  "scheduling": {
+    "estimated_elapsed_seconds": 45,
+    "expected_information_gain": "high",
+    "claim_materiality": "claim_material",
+    "downstream_reach": 2,
+    "component_maturity": "experimental",
+    "cache_status": "not_cacheable",
+    "execution_privilege": "safe_inspection"
+  },
+  "packet": {
+    "packet_version": "1.0.0",
+    "packet_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "packet_digest_profile": "canonical-json-excluding-packet-digest-v1",
+    "prompt_template_id": "prompt:semantic-resolution-v1",
+    "prompt_template_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "snapshot_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "source_refs": [
+      {
+        "source_kind": "file_span",
+        "locator": "report.md:10",
+        "path": "report.md",
+        "content_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "start_line": 10,
+        "end_line": 10,
+        "quoted_text": "Treatment increased yield relative to control."
+      }
+    ],
+    "record_refs": [
+      {"record_type": "claim", "record_id": "claim:results-1"},
+      {"record_type": "scientific_contract", "record_id": "contract:results-1"}
+    ],
+    "unresolved_dimensions": ["target_population", "analysis_population"],
+    "required_output_record_types": ["semantic_assertion", "material_question"],
+    "limitations": [
+      "Propose only meanings supported by the bounded packet; preserve every unresolved dimension."
+    ],
+    "policy": {
+      "open_ended_issue_discovery": false,
+      "project_code_execution": false,
+      "model_may_establish_material_premise": false,
+      "accepted_status_allowed": false
+    }
+  },
+  "material_question_refs": [],
+  "output_refs": [],
+  "created_at": "2026-07-28T21:00:00Z",
+  "provenance": {
+    "actor": {
+      "actor_kind": "controller",
+      "actor_id": "software:sc-referee-controller",
+      "display_name": "sc-referee controller"
+    },
+    "method": "deterministic_work_scheduling",
+    "created_at": "2026-07-28T21:00:00Z",
+    "tool": "sc-referee",
+    "tool_version": "0.2.0.dev0"
+  }
+}

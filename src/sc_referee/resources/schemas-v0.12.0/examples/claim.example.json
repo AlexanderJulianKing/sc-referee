@@ -1,0 +1,117 @@
+{
+  "audit_run_id": "audit:example-001",
+  "claim_id": "claim:1",
+  "claim_kind": "directional",
+  "claim_status": "final",
+  "extensions": {
+    "x-v0-7-aggregate-lineage-status": "complete"
+  },
+  "extraction": {
+    "explicit_source_meaning": true,
+    "independently_verified": true,
+    "method": "model_assisted",
+    "semantic_assertion_ids": [
+      "assertion:report-direction"
+    ]
+  },
+  "lineage": {
+    "grades": {
+      "computational_origin": {
+        "limitations": [
+          "Public v0.7.0 did not preserve an independent computational_origin grade."
+        ],
+        "record_refs": [],
+        "source_refs": [],
+        "status": "unavailable"
+      },
+      "execution_origin": {
+        "limitations": [
+          "Public v0.7.0 did not preserve an independent execution_origin grade."
+        ],
+        "record_refs": [],
+        "source_refs": [],
+        "status": "unavailable"
+      },
+      "input_origin": {
+        "limitations": [
+          "Public v0.7.0 did not preserve an independent input_origin grade."
+        ],
+        "record_refs": [],
+        "source_refs": [],
+        "status": "unavailable"
+      },
+      "report_origin": {
+        "limitations": [
+          "Public v0.7.0 did not preserve an independent report_origin grade."
+        ],
+        "record_refs": [],
+        "source_refs": [],
+        "status": "unavailable"
+      },
+      "result_origin": {
+        "limitations": [
+          "Public v0.7.0 did not preserve an independent result_origin grade."
+        ],
+        "record_refs": [],
+        "source_refs": [],
+        "status": "unavailable"
+      },
+      "semantic_origin": {
+        "limitations": [
+          "Public v0.7.0 did not preserve an independent semantic_origin grade."
+        ],
+        "record_refs": [],
+        "source_refs": [],
+        "status": "unavailable"
+      }
+    },
+    "input_refs": [
+      {
+        "record_id": "data:expression",
+        "record_type": "data_asset"
+      }
+    ],
+    "missing_links": [],
+    "opaque_dependency_refs": [],
+    "operation_refs": [
+      {
+        "record_id": "operation:model-fit",
+        "record_type": "operation"
+      }
+    ],
+    "result_refs": [
+      {
+        "record_id": "artifact:coefficient",
+        "record_type": "artifact"
+      }
+    ],
+    "status": "unavailable"
+  },
+  "proposition": {
+    "claim_strength": "associational",
+    "comparison": "treated versus control",
+    "direction": "positive",
+    "population": "analysis cohort",
+    "predicate": "increased expression",
+    "scale": "log expression",
+    "subject": "treatment contrast"
+  },
+  "record_type": "claim",
+  "report_ref": {
+    "record_id": "artifact:report",
+    "record_type": "artifact"
+  },
+  "schema_version": "0.12.0",
+  "scientific_contract_id": "contract:claim-1",
+  "source_refs": [
+    {
+      "chunk_label": "claim-1",
+      "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "locator": "manuscript/results.qmd#claim-1",
+      "path": "manuscript/results.qmd",
+      "quoted_text": "Treatment increased expression.",
+      "source_kind": "document_chunk"
+    }
+  ],
+  "text": "Treatment increased expression."
+}

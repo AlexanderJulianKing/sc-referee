@@ -1,0 +1,788 @@
+{
+  "$defs": {
+    "ProjectExecutionEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "authorization_ref": {
+          "additionalProperties": false,
+          "properties": {
+            "record_id": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Identifier"
+            },
+            "record_type": {
+              "const": "project_execution_authorization"
+            }
+          },
+          "required": [
+            "record_type",
+            "record_id"
+          ],
+          "type": "object"
+        },
+        "authorization_semantic_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Digest"
+        },
+        "cleanup_state": {
+          "enum": [
+            "succeeded",
+            "failed",
+            "unavailable"
+          ]
+        },
+        "command": {
+          "additionalProperties": false,
+          "properties": {
+            "argv": {
+              "items": {
+                "maxLength": 4096,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 128,
+              "minItems": 1,
+              "type": "array"
+            },
+            "normalized_digest": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Digest"
+            }
+          },
+          "required": [
+            "argv",
+            "normalized_digest"
+          ],
+          "type": "object"
+        },
+        "consumption": {
+          "additionalProperties": false,
+          "properties": {
+            "attempt_id": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Identifier"
+            },
+            "disposition": {
+              "enum": [
+                "completed",
+                "failed",
+                "failed_unknown"
+              ]
+            },
+            "receipt_digest": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Digest"
+            }
+          },
+          "required": [
+            "receipt_digest",
+            "attempt_id",
+            "disposition"
+          ],
+          "type": "object"
+        },
+        "effective_policy": {
+          "additionalProperties": false,
+          "properties": {
+            "environment": {
+              "additionalProperties": false,
+              "properties": {
+                "entries": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "maxLength": 128,
+                        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                        "type": "string"
+                      },
+                      "value": {
+                        "maxLength": 4096,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 64,
+                  "type": "array",
+                  "uniqueItems": true
+                },
+                "normalized_digest": {
+                  "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Digest"
+                }
+              },
+              "required": [
+                "entries",
+                "normalized_digest"
+              ],
+              "type": "object"
+            },
+            "limits": {
+              "additionalProperties": false,
+              "properties": {
+                "cpu_quota_millis": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "memory_bytes": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "open_files": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "process_count": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "wall_time_seconds": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "writable_bytes": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "cpu_quota_millis",
+                "memory_bytes",
+                "open_files",
+                "process_count",
+                "wall_time_seconds",
+                "writable_bytes"
+              ],
+              "type": "object"
+            },
+            "network_policy": {
+              "const": "denied"
+            }
+          },
+          "required": [
+            "network_policy",
+            "limits",
+            "environment"
+          ],
+          "type": "object"
+        },
+        "image": {
+          "additionalProperties": false,
+          "properties": {
+            "manifest_digest": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Digest"
+            },
+            "reference": {
+              "maxLength": 2048,
+              "pattern": "^.+@sha256:[a-f0-9]{64}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "reference",
+            "manifest_digest"
+          ],
+          "type": "object"
+        },
+        "log_refs": {
+          "additionalProperties": false,
+          "properties": {
+            "controller_events": {
+              "additionalProperties": false,
+              "properties": {
+                "record_id": {
+                  "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Identifier"
+                },
+                "record_type": {
+                  "const": "artifact"
+                }
+              },
+              "required": [
+                "record_type",
+                "record_id"
+              ],
+              "type": "object"
+            },
+            "output_manifest": {
+              "additionalProperties": false,
+              "properties": {
+                "record_id": {
+                  "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Identifier"
+                },
+                "record_type": {
+                  "const": "artifact"
+                }
+              },
+              "required": [
+                "record_type",
+                "record_id"
+              ],
+              "type": "object"
+            },
+            "stderr": {
+              "additionalProperties": false,
+              "properties": {
+                "record_id": {
+                  "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Identifier"
+                },
+                "record_type": {
+                  "const": "artifact"
+                }
+              },
+              "required": [
+                "record_type",
+                "record_id"
+              ],
+              "type": "object"
+            },
+            "stdout": {
+              "additionalProperties": false,
+              "properties": {
+                "record_id": {
+                  "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Identifier"
+                },
+                "record_type": {
+                  "const": "artifact"
+                }
+              },
+              "required": [
+                "record_type",
+                "record_id"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "stdout",
+            "stderr",
+            "controller_events",
+            "output_manifest"
+          ],
+          "type": "object"
+        },
+        "observed_resources": {
+          "additionalProperties": false,
+          "properties": {
+            "cpu_time_seconds": {
+              "oneOf": [
+                {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "open_files_peak": {
+              "oneOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "peak_memory_bytes": {
+              "oneOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "process_count_peak": {
+              "oneOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "written_bytes": {
+              "oneOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "cpu_time_seconds",
+            "peak_memory_bytes",
+            "process_count_peak",
+            "open_files_peak",
+            "written_bytes"
+          ],
+          "type": "object"
+        },
+        "purpose": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "type": "string"
+        },
+        "source_semantic_lock_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Digest"
+        },
+        "work_item_ref": {
+          "additionalProperties": false,
+          "properties": {
+            "record_id": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Identifier"
+            },
+            "record_type": {
+              "const": "work_item"
+            }
+          },
+          "required": [
+            "record_type",
+            "record_id"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "authorization_ref",
+        "authorization_semantic_digest",
+        "consumption",
+        "source_semantic_lock_digest",
+        "work_item_ref",
+        "purpose",
+        "image",
+        "command",
+        "effective_policy",
+        "log_refs",
+        "observed_resources",
+        "cleanup_state"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://w3id.org/sc-referee/schema/v0.16.0/execution.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "execution_kind": {
+            "const": "auditor_verification"
+          }
+        },
+        "required": [
+          "execution_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "actor": {
+            "const": "sc_referee_auditor"
+          },
+          "sandbox": {
+            "properties": {
+              "authorization_status": {
+                "const": "not_required"
+              },
+              "project_code_executed": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution_kind": {
+            "const": "project_workflow"
+          }
+        },
+        "required": [
+          "execution_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "actor": {
+            "const": "project_workflow"
+          },
+          "sandbox": {
+            "properties": {
+              "authorization_status": {
+                "const": "authorized"
+              },
+              "project_code_executed": {
+                "const": true
+              }
+            },
+            "required": [
+              "sandbox_capability_ref"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution_kind": {
+            "const": "auditor_verification"
+          }
+        },
+        "required": [
+          "execution_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "authorization_evidence_status": {
+            "const": "not_required"
+          },
+          "project_execution": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution_kind": {
+            "const": "imported"
+          }
+        },
+        "required": [
+          "execution_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "authorization_evidence_status": {
+            "const": "imported"
+          },
+          "project_execution": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "authorization_evidence_status": {
+            "const": "complete"
+          },
+          "execution_kind": {
+            "const": "project_workflow"
+          }
+        },
+        "required": [
+          "execution_kind",
+          "authorization_evidence_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "project_execution": {
+            "$ref": "#/$defs/ProjectExecutionEvidence"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "authorization_evidence_status": {
+            "const": "legacy_authorization_projection_unavailable"
+          }
+        },
+        "required": [
+          "authorization_evidence_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "project_execution": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "actor": {
+      "enum": [
+        "sc_referee_auditor",
+        "project_workflow",
+        "external_import"
+      ]
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Identifier"
+    },
+    "authorization_evidence_status": {
+      "enum": [
+        "complete",
+        "not_required",
+        "imported",
+        "legacy_authorization_projection_unavailable"
+      ]
+    },
+    "command": {
+      "additionalProperties": false,
+      "properties": {
+        "display": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "normalized_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Digest"
+        },
+        "tool_identity_ref": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/RecordRef"
+        }
+      },
+      "required": [
+        "display",
+        "normalized_digest"
+      ],
+      "type": "object"
+    },
+    "environment_ref": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "environment"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "execution_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Identifier"
+    },
+    "execution_kind": {
+      "enum": [
+        "auditor_verification",
+        "project_workflow",
+        "imported"
+      ]
+    },
+    "exit": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "state": {
+          "enum": [
+            "succeeded",
+            "failed",
+            "timed_out",
+            "not_observed"
+          ]
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object"
+    },
+    "identity_strength": {
+      "enum": [
+        "exact",
+        "imported_strong",
+        "imported_weak",
+        "unknown"
+      ]
+    },
+    "input_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/RecordRef"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "limitations": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "method": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "output_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/RecordRef"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "project_execution": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ProjectExecutionEvidence"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "execution"
+    },
+    "sandbox": {
+      "additionalProperties": false,
+      "properties": {
+        "authorization_status": {
+          "enum": [
+            "not_required",
+            "authorized",
+            "not_authorized",
+            "unknown"
+          ]
+        },
+        "network_policy": {
+          "enum": [
+            "denied",
+            "allowed",
+            "unknown",
+            "not_applicable"
+          ]
+        },
+        "project_code_executed": {
+          "type": "boolean"
+        },
+        "sandbox_capability_ref": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/RecordRef"
+        }
+      },
+      "required": [
+        "project_code_executed",
+        "authorization_status",
+        "network_policy"
+      ],
+      "type": "object"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "source_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/SourceRef"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "timing": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "started_at"
+                  ]
+                },
+                {
+                  "required": [
+                    "finished_at"
+                  ]
+                }
+              ]
+            }
+          },
+          "if": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "observed",
+                  "imported"
+                ]
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "required": [
+              "started_at",
+              "finished_at"
+            ]
+          }
+        }
+      ],
+      "properties": {
+        "finished_at": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Timestamp"
+        },
+        "started_at": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Timestamp"
+        },
+        "state": {
+          "enum": [
+            "observed",
+            "imported",
+            "unavailable"
+          ]
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "execution_id",
+    "audit_run_id",
+    "execution_kind",
+    "actor",
+    "method",
+    "command",
+    "input_refs",
+    "output_refs",
+    "environment_ref",
+    "timing",
+    "exit",
+    "sandbox",
+    "identity_strength",
+    "source_refs",
+    "limitations",
+    "provenance",
+    "authorization_evidence_status",
+    "project_execution"
+  ],
+  "title": "sc-referee Execution",
+  "type": "object"
+}

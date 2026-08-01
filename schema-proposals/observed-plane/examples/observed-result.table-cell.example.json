@@ -1,0 +1,21 @@
+{
+  "schema_version": "__SCHEMA_VERSION__",
+  "record_type": "observed_result",
+  "observed_result_id": "observed-result:cell",
+  "audit_run_id": "audit:candidate",
+  "value_kind": "table_cell",
+  "table_cell_value": {"row": "treated", "column": "estimate", "value": -0.42},
+  "observation_method": "literal_extraction",
+  "producing_operation_ref": {"record_type": "operation", "record_id": "operation:estimate"},
+  "artifact_ref": {"record_type": "artifact", "record_id": "artifact:table"},
+  "source_refs": [{"source_kind": "file_span", "locator": "table.csv:2", "path": "table.csv", "start_line": 2, "end_line": 2}],
+  "lineage_status": "partial",
+  "lineage_limitations": ["The table cell was extracted literally; upstream computation linkage remained partial."],
+  "comparison": {"state": "unknown", "rationale": "Comparison semantics were not independently verified.", "evidence_refs": []},
+  "orientation": {"state": "unknown", "rationale": "Orientation semantics were not independently verified.", "evidence_refs": []},
+  "scale": {"state": "unknown", "rationale": "Scale metadata was absent.", "evidence_refs": []},
+  "unit": {"state": "unknown", "rationale": "Unit metadata was absent.", "evidence_refs": []},
+  "population": {"state": "unknown", "rationale": "Population metadata was absent.", "evidence_refs": []},
+  "timing": {"state": "unknown", "rationale": "Timing metadata was absent.", "evidence_refs": []},
+  "provenance": {"actor": {"actor_kind": "parser", "actor_id": "parser:csv"}, "method": "literal_table_cell_extraction", "created_at": "2026-07-27T20:00:03Z"}
+}

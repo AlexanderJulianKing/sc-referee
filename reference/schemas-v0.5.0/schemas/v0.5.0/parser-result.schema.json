@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/parser-result.schema.json",
+  "title": "sc-referee Parser Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "parser_result_id",
+    "audit_run_id",
+    "parser_id",
+    "parser_version",
+    "source_ref",
+    "state",
+    "coverage_status",
+    "emitted_record_refs",
+    "syntax_issues",
+    "opaque_constructs",
+    "started_at",
+    "completed_at",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "parser_result"
+    },
+    "parser_result_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "parser_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "parser_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemVer"
+    },
+    "source_ref": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SourceRef"
+    },
+    "state": {
+      "enum": [
+        "parsed",
+        "partially_parsed",
+        "unsupported",
+        "parser_unavailable",
+        "error"
+      ]
+    },
+    "coverage_status": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/CoverageStatus"
+    },
+    "emitted_record_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/RecordRef"
+      }
+    },
+    "syntax_issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_ref": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SourceRef"
+          },
+          "recoverable": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "opaque_constructs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "reason",
+          "source_ref"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_ref": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SourceRef"
+          }
+        }
+      }
+    },
+    "secondary_parser_result_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "parser_disagreement": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "started_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "completed_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

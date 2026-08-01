@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/conditional-concern.schema.json",
+  "title": "Conditional Scientific Concern",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "concern_id",
+    "audit_run_id",
+    "grouping_key",
+    "issue_class",
+    "title",
+    "conditional_statement",
+    "condition",
+    "material_question_id",
+    "potential_impact",
+    "review_priority",
+    "subject_refs",
+    "affected_descendants",
+    "evidence",
+    "why_material",
+    "next_evidence_needed",
+    "detector_result_ids",
+    "created_at",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "conditional_concern"
+    },
+    "concern_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "grouping_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "issue_class": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/IssueClass"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "conditional_statement": {
+      "type": "string",
+      "minLength": 1
+    },
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "premise_id",
+        "premise_state",
+        "if_true"
+      ],
+      "properties": {
+        "premise_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+        },
+        "premise_state": {
+          "enum": [
+            "unknown",
+            "conflicted"
+          ]
+        },
+        "if_true": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "material_question_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "potential_impact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "level",
+        "rationale"
+      ],
+      "properties": {
+        "level": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/PotentialImpactLevel"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "review_priority": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/ReviewPriority"
+    },
+    "subject_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 1
+    },
+    "affected_descendants": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/AffectedDescendant"
+      },
+      "minItems": 0
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/EvidenceItem"
+      },
+      "minItems": 0
+    },
+    "why_material": {
+      "type": "string",
+      "minLength": 1
+    },
+    "next_evidence_needed": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "detector_result_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+      },
+      "minItems": 1
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "additionalProperties": true
+    }
+  }
+}

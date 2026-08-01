@@ -1,0 +1,119 @@
+{
+  "audit_run_id": "run:example",
+  "created_at": "2026-07-28T21:00:00Z",
+  "dependency_work_item_refs": [],
+  "kind": "project_execution",
+  "material_question_refs": [],
+  "output_refs": [],
+  "packet": {
+    "allowed_output_paths": [
+      "result.json"
+    ],
+    "declared_input_refs": [
+      {
+        "record_id": "snapshot:example",
+        "record_type": "repository_snapshot"
+      }
+    ],
+    "launch_envelope": {
+      "argv": [
+        "python",
+        "/project/analysis.py",
+        "--output",
+        "/output/result.json"
+      ],
+      "environment": {
+        "entries": [
+          {
+            "name": "PYTHONHASHSEED",
+            "value": "0"
+          }
+        ],
+        "normalized_digest": "sha256:b0d35a9c8ef00da94078ed3c2fe2496242a371f507ce3bedc459d4984e4900fe"
+      },
+      "image": {
+        "manifest_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "reference": "localhost/sc-referee-python@sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "limits": {
+        "cpu_quota_millis": 1000,
+        "memory_bytes": 268435456,
+        "open_files": 64,
+        "process_count": 32,
+        "wall_time_seconds": 60,
+        "writable_bytes": 1048576
+      },
+      "unresolved_fields": []
+    },
+    "limitations": [
+      "This locked request does not authorize execution; a fresh direct challenge is still required."
+    ],
+    "packet_digest": "sha256:97f629ac356a6cfd52a7c6cf45d5c816c23854b31d8644f0bb79f26b28d91f5d",
+    "packet_digest_profile": "canonical-json-excluding-packet-digest-v1",
+    "packet_kind": "project_execution_request_v1",
+    "packet_version": "1.0.0",
+    "policy": {
+      "direct_interactive_authorization_required": true,
+      "host_or_hpc_escalation_allowed": false,
+      "launch_authorized": false,
+      "model_output_may_authorize_or_broaden": false,
+      "network_policy": "denied",
+      "repository_text_may_authorize_or_broaden": false,
+      "scientist_output_may_authorize_or_broaden": false
+    },
+    "purpose": "Run the exact bounded example analysis selected before semantic lock.",
+    "required_output_record_types": [
+      "project_execution_authorization",
+      "execution",
+      "environment",
+      "artifact",
+      "file_record",
+      "asset_identity",
+      "audit_run",
+      "sandbox_capability"
+    ],
+    "source_snapshot": {
+      "record_ref": {
+        "record_id": "snapshot:example",
+        "record_type": "repository_snapshot"
+      },
+      "semantic_digest": "sha256:8514f70c69bd6850c36a4462c17f827e19fad2221c00234f32530c1ae7cde49c"
+    },
+    "target_refs": [
+      {
+        "record_id": "snapshot:example",
+        "record_type": "repository_snapshot"
+      }
+    ]
+  },
+  "provenance": {
+    "actor": {
+      "actor_id": "software:sc-referee-controller",
+      "actor_kind": "controller",
+      "display_name": "sc-referee controller"
+    },
+    "created_at": "2026-07-28T21:00:00Z",
+    "method": "deterministic_work_scheduling",
+    "tool": "sc-referee",
+    "tool_version": "0.2.0.dev0"
+  },
+  "record_type": "work_item",
+  "scheduling": {
+    "cache_status": "not_cacheable",
+    "claim_materiality": "unknown",
+    "component_maturity": "experimental",
+    "downstream_reach": 1,
+    "estimated_elapsed_seconds": 60,
+    "execution_privilege": "project_code_execution",
+    "expected_information_gain": "unknown"
+  },
+  "schema_version": "0.16.0",
+  "status": "awaiting_authorization",
+  "target_refs": [
+    {
+      "record_id": "snapshot:example",
+      "record_type": "repository_snapshot"
+    }
+  ],
+  "work_item_id": "work-item:execute-example"
+}

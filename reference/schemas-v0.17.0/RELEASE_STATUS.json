@@ -1,0 +1,9 @@
+{
+  "accepted": true,
+  "baseline_version": "0.16.0",
+  "public_release": true,
+  "release_version": "0.17.0",
+  "source_adrs": [
+    "docs/implementation/ADR-0042-MODULAR-METHOD-CHECK-EXTENSION-BOUNDARY.md"
+  ]
+}

@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/asset-identity.schema.json",
+  "title": "Asset Identity",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "asset_identity_id",
+    "audit_run_id",
+    "asset_ref",
+    "tier",
+    "identity_evidence",
+    "limitations",
+    "created_at",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "asset_identity"
+    },
+    "asset_identity_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "asset_ref": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/RecordRef"
+    },
+    "tier": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/DataIdentityTier"
+    },
+    "identity_evidence": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "digest"
+          ],
+          "properties": {
+            "kind": {
+              "const": "full_digest"
+            },
+            "digest": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Digest"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "external_identifier",
+            "version"
+          ],
+          "properties": {
+            "kind": {
+              "const": "immutable_external"
+            },
+            "external_identifier": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "digest": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Digest"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "manifest_ref",
+            "manifest_digest"
+          ],
+          "properties": {
+            "kind": {
+              "const": "manifest"
+            },
+            "manifest_ref": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SourceRef"
+            },
+            "manifest_digest": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Digest"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "path",
+            "size_bytes",
+            "sampled_fingerprint"
+          ],
+          "properties": {
+            "kind": {
+              "const": "weak_fingerprint"
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "size_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "modified_at": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+            },
+            "sampled_fingerprint": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Digest"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "properties": {
+            "kind": {
+              "const": "unidentified"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reported_location": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "tier": {
+            "const": "weak_fingerprint"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "identity_evidence": {
+            "properties": {
+              "kind": {
+                "const": "weak_fingerprint"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "limitations": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}

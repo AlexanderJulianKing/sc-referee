@@ -1,0 +1,275 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.6.0/claim.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "lineage": {
+            "properties": {
+              "status": {
+                "const": "complete"
+              }
+            }
+          }
+        },
+        "required": [
+          "lineage"
+        ]
+      },
+      "then": {
+        "properties": {
+          "lineage": {
+            "properties": {
+              "input_refs": {
+                "minItems": 1
+              },
+              "missing_links": {
+                "maxItems": 0
+              },
+              "opaque_dependency_refs": {
+                "maxItems": 0
+              },
+              "operation_refs": {
+                "minItems": 1
+              },
+              "result_refs": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+    },
+    "causal_contract_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+    },
+    "claim_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+    },
+    "claim_kind": {
+      "enum": [
+        "quantitative",
+        "directional",
+        "comparative",
+        "causal",
+        "diagnostic",
+        "adequacy",
+        "descriptive",
+        "recommendation",
+        "other"
+      ]
+    },
+    "claim_status": {
+      "enum": [
+        "final",
+        "draft",
+        "superseded",
+        "excluded"
+      ]
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "extraction": {
+      "additionalProperties": false,
+      "properties": {
+        "explicit_source_meaning": {
+          "type": "boolean"
+        },
+        "independently_verified": {
+          "type": "boolean"
+        },
+        "method": {
+          "enum": [
+            "deterministic",
+            "model_assisted",
+            "human"
+          ]
+        },
+        "semantic_assertion_ids": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+          },
+          "minItems": 0,
+          "type": "array"
+        }
+      },
+      "required": [
+        "method",
+        "explicit_source_meaning",
+        "independently_verified"
+      ],
+      "type": "object"
+    },
+    "lineage": {
+      "additionalProperties": false,
+      "properties": {
+        "input_refs": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/RecordRef"
+          },
+          "minItems": 0,
+          "type": "array"
+        },
+        "missing_links": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 0,
+          "type": "array"
+        },
+        "opaque_dependency_refs": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/RecordRef"
+          },
+          "minItems": 0,
+          "type": "array"
+        },
+        "operation_refs": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/RecordRef"
+          },
+          "minItems": 0,
+          "type": "array"
+        },
+        "result_refs": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/RecordRef"
+          },
+          "minItems": 0,
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "complete",
+            "partial",
+            "missing",
+            "unavailable"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "result_refs",
+        "operation_refs",
+        "input_refs",
+        "missing_links",
+        "opaque_dependency_refs"
+      ],
+      "type": "object"
+    },
+    "proposition": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_strength": {
+          "enum": [
+            "descriptive",
+            "associational",
+            "causal",
+            "predictive",
+            "diagnostic",
+            "recommendation",
+            "ambiguous"
+          ]
+        },
+        "comparison": {
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            "positive",
+            "negative",
+            "null",
+            "higher",
+            "lower",
+            "equivalent",
+            "not_stated"
+          ]
+        },
+        "estimate": {},
+        "population": {
+          "type": "string"
+        },
+        "predicate": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "scale": {
+          "type": "string"
+        },
+        "subject": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "time": {
+          "type": "string"
+        },
+        "uncertainty": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "unit": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "subject",
+        "predicate",
+        "claim_strength"
+      ],
+      "type": "object"
+    },
+    "record_type": {
+      "const": "claim"
+    },
+    "report_ref": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/RecordRef"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "scientific_contract_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+    },
+    "source_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/SourceRef"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "text": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "claim_id",
+    "audit_run_id",
+    "report_ref",
+    "claim_status",
+    "claim_kind",
+    "text",
+    "source_refs",
+    "scientific_contract_id",
+    "proposition",
+    "lineage",
+    "extraction"
+  ],
+  "title": "Reported Claim",
+  "type": "object"
+}

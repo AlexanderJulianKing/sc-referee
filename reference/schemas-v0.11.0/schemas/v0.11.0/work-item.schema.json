@@ -1,0 +1,396 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.11.0/work-item.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "claim_extraction",
+              "semantic_resolution",
+              "material_question_drafting",
+              "source_evidence_verification"
+            ]
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "scheduling": {
+            "properties": {
+              "execution_privilege": {
+                "const": "safe_inspection"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "completed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "output_refs": {
+            "minItems": 1
+          }
+        },
+        "required": [
+          "completed_at"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "awaiting_answer"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "material_question_refs": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Identifier"
+    },
+    "completed_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Timestamp"
+    },
+    "completion_reason": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Timestamp"
+    },
+    "dependency_work_item_refs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "record_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Identifier"
+          },
+          "record_type": {
+            "const": "work_item"
+          }
+        },
+        "required": [
+          "record_type",
+          "record_id"
+        ],
+        "type": "object"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "kind": {
+      "enum": [
+        "claim_extraction",
+        "semantic_resolution",
+        "material_question_drafting",
+        "source_evidence_verification",
+        "detector_evaluation",
+        "auditor_owned_verification"
+      ]
+    },
+    "material_question_refs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "record_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Identifier"
+          },
+          "record_type": {
+            "const": "material_question"
+          }
+        },
+        "required": [
+          "record_type",
+          "record_id"
+        ],
+        "type": "object"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "output_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "packet": {
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "properties": {
+            "source_refs": {
+              "minItems": 1
+            }
+          },
+          "required": [
+            "source_refs"
+          ]
+        },
+        {
+          "properties": {
+            "record_refs": {
+              "minItems": 1
+            }
+          },
+          "required": [
+            "record_refs"
+          ]
+        }
+      ],
+      "properties": {
+        "limitations": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "packet_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Digest"
+        },
+        "packet_digest_profile": {
+          "const": "canonical-json-excluding-packet-digest-v1"
+        },
+        "packet_version": {
+          "const": "1.0.0"
+        },
+        "policy": {
+          "additionalProperties": false,
+          "properties": {
+            "accepted_status_allowed": {
+              "const": false
+            },
+            "model_may_establish_material_premise": {
+              "const": false
+            },
+            "open_ended_issue_discovery": {
+              "const": false
+            },
+            "project_code_execution": {
+              "const": false
+            }
+          },
+          "required": [
+            "open_ended_issue_discovery",
+            "project_code_execution",
+            "model_may_establish_material_premise",
+            "accepted_status_allowed"
+          ],
+          "type": "object"
+        },
+        "prompt_template_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Digest"
+        },
+        "prompt_template_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_refs": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/RecordRef"
+          },
+          "minItems": 0,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "required_output_record_types": {
+          "items": {
+            "enum": [
+              "claim",
+              "semantic_assertion",
+              "material_question"
+            ]
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "snapshot_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Digest"
+        },
+        "source_refs": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/SourceRef"
+          },
+          "minItems": 0,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "unresolved_dimensions": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "packet_version",
+        "packet_digest",
+        "packet_digest_profile",
+        "prompt_template_id",
+        "prompt_template_digest",
+        "snapshot_digest",
+        "source_refs",
+        "record_refs",
+        "unresolved_dimensions",
+        "required_output_record_types",
+        "limitations",
+        "policy"
+      ],
+      "type": "object"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "work_item"
+    },
+    "scheduling": {
+      "additionalProperties": false,
+      "properties": {
+        "cache_status": {
+          "enum": [
+            "miss",
+            "hit",
+            "stale",
+            "not_cacheable"
+          ]
+        },
+        "claim_materiality": {
+          "enum": [
+            "none",
+            "local",
+            "claim_material",
+            "multi_claim",
+            "conclusion_material",
+            "unknown"
+          ]
+        },
+        "component_maturity": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Maturity"
+        },
+        "downstream_reach": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "estimated_elapsed_seconds": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "execution_privilege": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/ExecutionLevel"
+        },
+        "expected_information_gain": {
+          "enum": [
+            "low",
+            "moderate",
+            "high",
+            "unknown"
+          ]
+        }
+      },
+      "required": [
+        "estimated_elapsed_seconds",
+        "expected_information_gain",
+        "claim_materiality",
+        "downstream_reach",
+        "component_maturity",
+        "cache_status",
+        "execution_privilege"
+      ],
+      "type": "object"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "started_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Timestamp"
+    },
+    "status": {
+      "enum": [
+        "ready",
+        "in_progress",
+        "submitted",
+        "awaiting_answer",
+        "completed",
+        "rejected",
+        "skipped",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "target_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "work_item_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Identifier"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "work_item_id",
+    "audit_run_id",
+    "kind",
+    "target_refs",
+    "dependency_work_item_refs",
+    "status",
+    "scheduling",
+    "packet",
+    "material_question_refs",
+    "output_refs",
+    "created_at",
+    "provenance"
+  ],
+  "title": "sc-referee WorkItem",
+  "type": "object"
+}

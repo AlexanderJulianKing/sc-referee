@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/claim.schema.json",
+  "title": "Reported Claim",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "claim_id",
+    "audit_run_id",
+    "report_ref",
+    "claim_status",
+    "claim_kind",
+    "text",
+    "source_refs",
+    "scientific_contract_id",
+    "proposition",
+    "lineage",
+    "extraction"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "claim"
+    },
+    "claim_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "report_ref": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/RecordRef"
+    },
+    "claim_status": {
+      "enum": [
+        "final",
+        "draft",
+        "superseded",
+        "excluded"
+      ]
+    },
+    "claim_kind": {
+      "enum": [
+        "quantitative",
+        "directional",
+        "comparative",
+        "causal",
+        "diagnostic",
+        "adequacy",
+        "descriptive",
+        "recommendation",
+        "other"
+      ]
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SourceRef"
+      },
+      "minItems": 1
+    },
+    "scientific_contract_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "proposition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject",
+        "predicate",
+        "claim_strength"
+      ],
+      "properties": {
+        "subject": {
+          "type": "string",
+          "minLength": 1
+        },
+        "predicate": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claim_strength": {
+          "enum": [
+            "descriptive",
+            "associational",
+            "causal",
+            "predictive",
+            "diagnostic",
+            "recommendation",
+            "ambiguous"
+          ]
+        },
+        "population": {
+          "type": "string"
+        },
+        "comparison": {
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            "positive",
+            "negative",
+            "null",
+            "higher",
+            "lower",
+            "equivalent",
+            "not_stated"
+          ]
+        },
+        "estimate": {},
+        "unit": {
+          "type": "string"
+        },
+        "scale": {
+          "type": "string"
+        },
+        "time": {
+          "type": "string"
+        },
+        "uncertainty": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "result_refs",
+        "operation_refs",
+        "input_refs",
+        "missing_links",
+        "opaque_dependency_refs"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "complete",
+            "partial",
+            "missing",
+            "unavailable"
+          ]
+        },
+        "result_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/RecordRef"
+          },
+          "minItems": 0
+        },
+        "operation_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/RecordRef"
+          },
+          "minItems": 0
+        },
+        "input_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/RecordRef"
+          },
+          "minItems": 0
+        },
+        "missing_links": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        },
+        "opaque_dependency_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/RecordRef"
+          },
+          "minItems": 0
+        }
+      }
+    },
+    "extraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "explicit_source_meaning",
+        "independently_verified"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "deterministic",
+            "model_assisted",
+            "human"
+          ]
+        },
+        "explicit_source_meaning": {
+          "type": "boolean"
+        },
+        "independently_verified": {
+          "type": "boolean"
+        },
+        "semantic_assertion_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+          },
+          "minItems": 0
+        }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "additionalProperties": true
+    },
+    "causal_contract_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "lineage": {
+            "properties": {
+              "status": {
+                "const": "complete"
+              }
+            }
+          }
+        },
+        "required": [
+          "lineage"
+        ]
+      },
+      "then": {
+        "properties": {
+          "lineage": {
+            "properties": {
+              "missing_links": {
+                "maxItems": 0
+              },
+              "opaque_dependency_refs": {
+                "maxItems": 0
+              },
+              "result_refs": {
+                "minItems": 1
+              },
+              "operation_refs": {
+                "minItems": 1
+              },
+              "input_refs": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

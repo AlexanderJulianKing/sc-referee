@@ -1,0 +1,95 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.13.0/cache-policy.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "cache_key_requirements": {
+      "additionalProperties": false,
+      "properties": {
+        "component_versions": {
+          "const": true
+        },
+        "content_digests": {
+          "const": true
+        },
+        "policy_digest": {
+          "const": true
+        },
+        "semantic_dependencies": {
+          "const": true
+        }
+      },
+      "required": [
+        "content_digests",
+        "component_versions",
+        "policy_digest",
+        "semantic_dependencies"
+      ],
+      "type": "object"
+    },
+    "cache_policy_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+    },
+    "cross_repository_source_derived_reuse": {
+      "const": false
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "global_cache_allowed_classes": {
+      "const": [
+        "parser_binaries_and_grammars",
+        "public_package_downloads",
+        "isolated_dependency_environments",
+        "public_external_evidence",
+        "tool_owned_immutable_assets"
+      ]
+    },
+    "global_cache_root": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "project_local_categories": {
+      "const": [
+        "parser_results",
+        "claims",
+        "semantic_assertions",
+        "scientific_contracts",
+        "model_packets_and_outputs",
+        "detector_results",
+        "reports",
+        "source_derived_objects"
+      ]
+    },
+    "project_store_root": {
+      "const": ".sc-referee/"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "cache_policy"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "source_derived_scope": {
+      "const": "project_local_only"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "cache_policy_id",
+    "project_store_root",
+    "source_derived_scope",
+    "cross_repository_source_derived_reuse",
+    "project_local_categories",
+    "global_cache_allowed_classes",
+    "cache_key_requirements",
+    "provenance"
+  ],
+  "title": "sc-referee Cache Policy",
+  "type": "object"
+}

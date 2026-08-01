@@ -1,0 +1,135 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.13.0/selection-envelope.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "else": {
+        "properties": {
+          "limitations": {
+            "minItems": 1
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "completeness_status": {
+            "const": "complete"
+          }
+        },
+        "required": [
+          "completeness_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "analysis_decision_refs": {
+            "minItems": 1
+          },
+          "limitations": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "affected_claim_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/RecordRef"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "affected_result_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/RecordRef"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "analysis_decision_refs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "record_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+          },
+          "record_type": {
+            "const": "analysis_decision"
+          }
+        },
+        "required": [
+          "record_type",
+          "record_id"
+        ],
+        "type": "object"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+    },
+    "candidate_alternative_count": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "completeness_status": {
+      "enum": [
+        "complete",
+        "partial",
+        "unavailable",
+        "opaque"
+      ]
+    },
+    "limitations": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "selection_envelope"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "scope_description": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "selection_envelope_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+    },
+    "source_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/SourceRef"
+      },
+      "minItems": 1,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "selection_envelope_id",
+    "audit_run_id",
+    "completeness_status",
+    "scope_description",
+    "analysis_decision_refs",
+    "candidate_alternative_count",
+    "affected_claim_refs",
+    "affected_result_refs",
+    "source_refs",
+    "limitations",
+    "provenance"
+  ],
+  "title": "sc-referee SelectionEnvelope",
+  "type": "object"
+}

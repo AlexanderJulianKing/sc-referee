@@ -1,0 +1,93 @@
+{
+  "affected_record_refs": [
+    {
+      "record_id": "claim:1",
+      "record_type": "claim"
+    }
+  ],
+  "blindness": {
+    "answer_key_hidden": true,
+    "benchmark_grade_hidden": true,
+    "detector_identity_hidden": true,
+    "exceptions": [],
+    "other_reviews_hidden": true,
+    "sc_referee_output_hidden": true
+  },
+  "bounded_statement": "The report states a positive coefficient while the linked result is negative under the established contrast orientation.",
+  "case_id": "case:gene-1",
+  "completed_at": "2026-07-27T18:00:00Z",
+  "confidence_used_for_labeling": false,
+  "counterevidence_considered": [],
+  "evidence": [
+    {
+      "description": "The linked coefficient is negative.",
+      "evidence_id": "evidence:sign",
+      "observed_value": -0.42,
+      "record_refs": [
+        {
+          "record_id": "claim:1",
+          "record_type": "claim"
+        }
+      ],
+      "source_refs": [],
+      "support_role": "supports"
+    }
+  ],
+  "issue_class": "claim_result_agreement",
+  "provenance": {
+    "actor": {
+      "actor_id": "software:sc-referee-eval",
+      "actor_kind": "controller",
+      "display_name": "sc-referee evaluation controller"
+    },
+    "created_at": "2026-07-27T18:00:00Z",
+    "method": "deterministic_evaluation_runner",
+    "tool": "sc-referee-eval",
+    "tool_version": "0.5.0"
+  },
+  "record_type": "agent_review",
+  "review_id": "review:case-1:claude-1",
+  "reviewer_agent": {
+    "agent_surface": "Claude Code",
+    "agent_version": "1.0.0",
+    "environment_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "execution_context_id": "context:claude-1",
+    "independent_context": true,
+    "model_id": "claude-opus-5",
+    "model_name": "Claude Opus 5",
+    "model_snapshot": null,
+    "provider": "Anthropic",
+    "reasoning_configuration": "high",
+    "system_prompt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "task_prompt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "tool_policy_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "root_cause": "report/result direction mismatch",
+  "root_cause_identity": {
+    "candidate_root_cause_id": "root-cause-candidate:ee2c680a68b8012a9e93",
+    "equivalence_evidence": [],
+    "identity_profile": "review-local-root-cause-v1",
+    "reconciled_stage1_candidates": []
+  },
+  "schema_version": "0.17.0",
+  "scope": {
+    "claim_refs": [
+      {
+        "record_id": "claim:1",
+        "record_type": "claim"
+      }
+    ],
+    "issue_class_scope": [
+      "claim_result_agreement"
+    ],
+    "reviewed_paths": [
+      "analysis.py",
+      "report.md"
+    ]
+  },
+  "self_reported_confidence": "high",
+  "stage": "stage1_blind",
+  "transcript_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "unresolved_material_questions": [],
+  "verdict": "demonstrated_issue"
+}

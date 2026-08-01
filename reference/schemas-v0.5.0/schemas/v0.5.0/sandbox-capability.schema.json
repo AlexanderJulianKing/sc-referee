@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/sandbox-capability.schema.json",
+  "title": "sc-referee Sandbox Capability",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "sandbox_capability_id",
+    "captured_at",
+    "backend_kind",
+    "backend_name",
+    "project_code_execution_supported",
+    "controls",
+    "unsafe_fallback_available",
+    "limitations",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "sandbox_capability"
+    },
+    "sandbox_capability_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "captured_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "backend_kind": {
+      "enum": [
+        "no_execution",
+        "auditor_subprocess",
+        "rootless_oci"
+      ]
+    },
+    "backend_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "backend_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_code_execution_supported": {
+      "type": "boolean"
+    },
+    "rootless_verified": {
+      "type": "boolean"
+    },
+    "controls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository_read_only",
+        "writable_roots_enforced",
+        "network_default_denied",
+        "resource_limits_enforced",
+        "process_limits_enforced",
+        "device_access_restricted",
+        "capabilities_dropped"
+      ],
+      "properties": {
+        "repository_read_only": {
+          "type": "boolean"
+        },
+        "writable_roots_enforced": {
+          "type": "boolean"
+        },
+        "network_default_denied": {
+          "type": "boolean"
+        },
+        "resource_limits_enforced": {
+          "type": "boolean"
+        },
+        "process_limits_enforced": {
+          "type": "boolean"
+        },
+        "device_access_restricted": {
+          "type": "boolean"
+        },
+        "capabilities_dropped": {
+          "type": "boolean"
+        }
+      }
+    },
+    "unsafe_fallback_available": {
+      "const": false
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "project_code_execution_supported": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "backend_kind": {
+            "const": "rootless_oci"
+          },
+          "rootless_verified": {
+            "const": true
+          },
+          "controls": {
+            "properties": {
+              "repository_read_only": {
+                "const": true
+              },
+              "writable_roots_enforced": {
+                "const": true
+              },
+              "network_default_denied": {
+                "const": true
+              },
+              "resource_limits_enforced": {
+                "const": true
+              },
+              "process_limits_enforced": {
+                "const": true
+              },
+              "device_access_restricted": {
+                "const": true
+              },
+              "capabilities_dropped": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

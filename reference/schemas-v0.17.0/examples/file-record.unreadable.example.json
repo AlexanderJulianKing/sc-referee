@@ -1,0 +1,26 @@
+{
+  "audit_run_id": "audit:candidate",
+  "classification": "unknown",
+  "entry_kind": "regular_file",
+  "file_record_id": "file:unreadable",
+  "identity_disposition": "not_recorded",
+  "inspection_disposition": "unreadable",
+  "limitations": [
+    "Bytes could not be read under the active filesystem authority."
+  ],
+  "path": "restricted.bin",
+  "provenance": {
+    "actor": {
+      "actor_id": "controller:candidate",
+      "actor_kind": "controller"
+    },
+    "created_at": "2026-07-27T20:00:01Z",
+    "method": "safe_file_inventory"
+  },
+  "record_type": "file_record",
+  "schema_version": "0.17.0",
+  "snapshot_ref": {
+    "record_id": "snapshot:candidate",
+    "record_type": "repository_snapshot"
+  }
+}

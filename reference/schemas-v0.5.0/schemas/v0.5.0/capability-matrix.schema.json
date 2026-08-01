@@ -1,0 +1,274 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/capability-matrix.schema.json",
+  "title": "sc-referee Capability Matrix",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "matrix_id",
+    "release_version",
+    "generated_at",
+    "generated_from_manifest_refs",
+    "entries",
+    "domain_wide_support_claim_allowed",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "capability_matrix"
+    },
+    "matrix_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "release_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemVer"
+    },
+    "generated_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "generated_from_manifest_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 1
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "entry_id",
+          "domain",
+          "language",
+          "operation_scope",
+          "syntax_recognition",
+          "operation_extraction",
+          "semantic_modeling",
+          "detectors",
+          "known_gaps",
+          "abstention_conditions",
+          "tested_versions",
+          "inferred_compatibility",
+          "domain_wide_validation_claim_allowed"
+        ],
+        "properties": {
+          "entry_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+          },
+          "domain": {
+            "type": "string",
+            "minLength": 1
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "package": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "operation_scope": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "syntax_recognition": {
+            "enum": [
+              "not_started",
+              "planned",
+              "partial",
+              "validated",
+              "complete_for_declared_forms"
+            ]
+          },
+          "operation_extraction": {
+            "enum": [
+              "not_started",
+              "planned",
+              "partial",
+              "validated",
+              "complete_for_declared_forms"
+            ]
+          },
+          "semantic_modeling": {
+            "enum": [
+              "not_started",
+              "planned",
+              "partial",
+              "validated",
+              "complete_for_declared_contract"
+            ]
+          },
+          "detectors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "detector_id",
+                "maturity",
+                "qualification_ref",
+                "strongest_output_type",
+                "review_basis"
+              ],
+              "properties": {
+                "detector_id": {
+                  "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+                },
+                "maturity": {
+                  "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Maturity"
+                },
+                "qualification_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "strongest_output_type": {
+                  "enum": [
+                    "none",
+                    "disclosure",
+                    "material_question",
+                    "conditional_concern",
+                    "finding"
+                  ]
+                },
+                "review_basis": {
+                  "enum": [
+                    "not_qualified",
+                    "agent_panel",
+                    "mixed_panel",
+                    "human_panel"
+                  ]
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "maturity": {
+                        "const": "experimental"
+                      }
+                    },
+                    "required": [
+                      "maturity"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "qualification_ref": {
+                        "type": "null"
+                      },
+                      "review_basis": {
+                        "const": "not_qualified"
+                      },
+                      "strongest_output_type": {
+                        "enum": [
+                          "none",
+                          "disclosure",
+                          "material_question",
+                          "conditional_concern"
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "maturity": {
+                        "enum": [
+                          "validated",
+                          "publication_grade"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "maturity"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "qualification_ref": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "review_basis": {
+                        "enum": [
+                          "agent_panel",
+                          "mixed_panel",
+                          "human_panel"
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "minItems": 0
+          },
+          "known_gaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0
+          },
+          "abstention_conditions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0
+          },
+          "tested_versions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0
+          },
+          "inferred_compatibility": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0
+          },
+          "domain_wide_validation_claim_allowed": {
+            "const": false
+          }
+        }
+      }
+    },
+    "domain_wide_support_claim_allowed": {
+      "const": false
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "additionalProperties": true
+    }
+  }
+}

@@ -1,2 +1,0 @@
-"""Rich type refinement seams."""
-

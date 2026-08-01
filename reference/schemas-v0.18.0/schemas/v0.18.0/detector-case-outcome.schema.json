@@ -1,0 +1,1026 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.18.0/detector-case-outcome.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "comparison_status": {
+            "const": "reconciled"
+          }
+        },
+        "required": [
+          "comparison_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "exact_cross_provider_agreement": {
+            "const": true
+          },
+          "exclusion_reasons": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "comparison_status": {
+            "const": "comparison_excluded"
+          }
+        },
+        "required": [
+          "comparison_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "exclusion_reasons": {
+            "minItems": 1
+          },
+          "metric_eligible": {
+            "const": false
+          },
+          "promotion_evidence_eligible": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "corpus_partition": {
+            "const": "public_development"
+          }
+        },
+        "required": [
+          "corpus_partition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "promotion_evidence_eligible": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "fixture_kind": {
+            "const": "positive_issue_fixture"
+          }
+        },
+        "required": [
+          "fixture_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "root_cause_refs": {
+            "minItems": 1
+          },
+          "root_outcomes": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "fixture_kind": {
+            "enum": [
+              "verified_good_fixture",
+              "scope_verified_good",
+              "hard_negative_fixture",
+              "ambiguous_fixture"
+            ]
+          }
+        },
+        "required": [
+          "fixture_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "root_cause_refs": {
+            "maxItems": 0
+          },
+          "root_outcomes": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "metric_input_status": {
+            "const": "complete"
+          }
+        },
+        "required": [
+          "metric_input_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "detector_result_outcomes": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "metric_input_status": {
+            "const": "legacy_source_projection_unavailable"
+          }
+        },
+        "required": [
+          "metric_input_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "detector_result_outcomes": {
+            "maxItems": 0
+          },
+          "metric_eligible": {
+            "const": false
+          },
+          "promotion_evidence_eligible": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "metric_eligible": {
+            "const": true
+          }
+        },
+        "required": [
+          "metric_eligible"
+        ]
+      },
+      "then": {
+        "properties": {
+          "comparison_status": {
+            "const": "reconciled"
+          },
+          "metric_input_status": {
+            "const": "complete"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "comparison_status": {
+            "const": "reconciled"
+          },
+          "metric_input_status": {
+            "const": "complete"
+          },
+          "qualification_proof_status": {
+            "const": "complete"
+          }
+        },
+        "required": [
+          "comparison_status",
+          "metric_input_status",
+          "qualification_proof_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "metric_eligible": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "qualification_proof_status": {
+            "enum": [
+              "excluded_label",
+              "legacy_proof_projection_unavailable"
+            ]
+          }
+        },
+        "required": [
+          "qualification_proof_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "metric_eligible": {
+            "const": false
+          },
+          "promotion_evidence_eligible": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "metric_eligible": {
+            "const": true
+          }
+        },
+        "required": [
+          "metric_eligible"
+        ]
+      },
+      "then": {
+        "properties": {
+          "qualification_proof_status": {
+            "const": "complete"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "fixture_kind": {
+            "const": "verified_good_fixture"
+          }
+        },
+        "required": [
+          "fixture_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "qualification_proof_family": {
+            "const": "clean_execution"
+          },
+          "static_qualification_proof_ref": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "fixture_kind": {
+            "const": "hard_negative_fixture"
+          }
+        },
+        "required": [
+          "fixture_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "qualification_proof_family": {
+            "const": "clean_execution"
+          },
+          "static_qualification_proof_ref": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "fixture_kind": {
+            "const": "scope_verified_good"
+          }
+        },
+        "required": [
+          "fixture_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "qualification_proof_family": {
+            "const": "documented_external_execution"
+          },
+          "static_qualification_proof_ref": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "fixture_kind": {
+            "const": "static_scope_verified_good"
+          }
+        },
+        "required": [
+          "fixture_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "qualification_proof_family": {
+            "const": "static_closed_scope"
+          },
+          "static_qualification_proof_ref": {
+            "additionalProperties": false,
+            "properties": {
+              "record_id": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+              },
+              "record_type": {
+                "const": "static_qualification_proof"
+              }
+            },
+            "required": [
+              "record_type",
+              "record_id"
+            ],
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "fixture_kind": {
+            "const": "static_scope_hard_negative"
+          }
+        },
+        "required": [
+          "fixture_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "qualification_proof_family": {
+            "const": "static_closed_scope"
+          },
+          "static_qualification_proof_ref": {
+            "additionalProperties": false,
+            "properties": {
+              "record_id": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+              },
+              "record_type": {
+                "const": "static_qualification_proof"
+              }
+            },
+            "required": [
+              "record_type",
+              "record_id"
+            ],
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "fixture_kind": {
+            "const": "positive_issue_fixture"
+          }
+        },
+        "required": [
+          "fixture_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "qualification_proof_family": {
+            "const": "positive_issue"
+          },
+          "static_qualification_proof_ref": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "fixture_kind": {
+            "const": "ambiguous_fixture"
+          }
+        },
+        "required": [
+          "fixture_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "qualification_proof_family": {
+            "const": "excluded_ambiguous"
+          },
+          "static_qualification_proof_ref": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "adjudication_ref": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "benchmark_adjudication"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "audit_bundle_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Digest"
+    },
+    "audit_bundle_ref": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "audit_bundle"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "candidate_outcomes": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_ref": {
+            "additionalProperties": false,
+            "properties": {
+              "record_id": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+              },
+              "record_type": {
+                "const": "detector_evaluation_candidate"
+              }
+            },
+            "required": [
+              "record_type",
+              "record_id"
+            ],
+            "type": "object"
+          },
+          "root_cause_ref": {
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "record_id": {
+                    "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+                  },
+                  "record_type": {
+                    "const": "adjudicated_root_cause"
+                  }
+                },
+                "required": [
+                  "record_type",
+                  "record_id"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "enum": [
+              "bounded_root_match",
+              "overstated_root_match",
+              "false_root_localization",
+              "out_of_declared_scope",
+              "mixed_detector_attribution",
+              "unresolved"
+            ]
+          }
+        },
+        "required": [
+          "candidate_ref",
+          "status",
+          "root_cause_ref"
+        ],
+        "type": "object"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "candidate_refs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "record_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+          },
+          "record_type": {
+            "const": "detector_evaluation_candidate"
+          }
+        },
+        "required": [
+          "record_type",
+          "record_id"
+        ],
+        "type": "object"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "case_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+    },
+    "case_outcome_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+    },
+    "comparison_review_refs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "record_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+          },
+          "record_type": {
+            "const": "stage3_comparison_review"
+          }
+        },
+        "required": [
+          "record_type",
+          "record_id"
+        ],
+        "type": "object"
+      },
+      "minItems": 2,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "comparison_status": {
+      "enum": [
+        "reconciled",
+        "comparison_excluded"
+      ]
+    },
+    "corpus_partition": {
+      "enum": [
+        "public_development",
+        "held_out",
+        "hidden",
+        "independent_replication"
+      ]
+    },
+    "detector_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+    },
+    "detector_manifest_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Digest"
+    },
+    "detector_output_observed": {
+      "const": true
+    },
+    "detector_result_outcomes": {
+      "items": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "execution_class": {
+                  "const": "completed"
+                }
+              }
+            },
+            "if": {
+              "properties": {
+                "state": {
+                  "const": "detector_error"
+                }
+              },
+              "required": [
+                "state"
+              ]
+            },
+            "then": {
+              "properties": {
+                "execution_class": {
+                  "const": "detector_error"
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "applicability_status": {
+            "enum": [
+              "applicable",
+              "not_applicable",
+              "uncertain"
+            ]
+          },
+          "coverage_status": {
+            "enum": [
+              "covered",
+              "partially_covered",
+              "not_covered",
+              "unknown"
+            ]
+          },
+          "detector_result_digest": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Digest"
+          },
+          "detector_result_ref": {
+            "additionalProperties": false,
+            "properties": {
+              "record_id": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+              },
+              "record_type": {
+                "const": "detector_result"
+              }
+            },
+            "required": [
+              "record_type",
+              "record_id"
+            ],
+            "type": "object"
+          },
+          "evaluation_candidate_refs": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "record_id": {
+                  "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+                },
+                "record_type": {
+                  "const": "detector_evaluation_candidate"
+                }
+              },
+              "required": [
+                "record_type",
+                "record_id"
+              ],
+              "type": "object"
+            },
+            "minItems": 0,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "execution_class": {
+            "enum": [
+              "completed",
+              "detector_error"
+            ]
+          },
+          "state": {
+            "enum": [
+              "finding_candidate",
+              "evaluation_finding_candidate",
+              "conditional_concern_candidate",
+              "material_question_candidate",
+              "disclosure_candidate",
+              "no_issue_detected_within_coverage",
+              "not_applicable",
+              "insufficient_semantics",
+              "unsupported_path",
+              "execution_evidence_unavailable",
+              "detector_error"
+            ]
+          }
+        },
+        "required": [
+          "detector_result_ref",
+          "detector_result_digest",
+          "state",
+          "applicability_status",
+          "coverage_status",
+          "evaluation_candidate_refs",
+          "execution_class"
+        ],
+        "type": "object"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "detector_run_outcome": {
+      "additionalProperties": false,
+      "properties": {
+        "applicability_status": {
+          "enum": [
+            "applicable",
+            "not_applicable",
+            "uncertain"
+          ]
+        },
+        "coverage_status": {
+          "enum": [
+            "covered",
+            "partially_covered",
+            "not_covered",
+            "unknown"
+          ]
+        },
+        "execution_status": {
+          "enum": [
+            "completed",
+            "detector_error"
+          ]
+        }
+      },
+      "required": [
+        "execution_status",
+        "applicability_status",
+        "coverage_status"
+      ],
+      "type": "object"
+    },
+    "detector_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/SemVer"
+    },
+    "exact_cross_provider_agreement": {
+      "type": "boolean"
+    },
+    "exclusion_reasons": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "fixture_kind": {
+      "enum": [
+        "verified_good_fixture",
+        "scope_verified_good",
+        "hard_negative_fixture",
+        "positive_issue_fixture",
+        "ambiguous_fixture",
+        "static_scope_verified_good",
+        "static_scope_hard_negative"
+      ]
+    },
+    "fixture_ref": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "benchmark_fixture"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "fixture_semantic_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Digest"
+    },
+    "fresh_contexts_verified": {
+      "const": true
+    },
+    "metric_eligible": {
+      "type": "boolean"
+    },
+    "metric_input_status": {
+      "enum": [
+        "complete",
+        "legacy_source_projection_unavailable"
+      ]
+    },
+    "model_free_reconciliation": {
+      "const": true
+    },
+    "problem_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+    },
+    "promotion_evidence_eligible": {
+      "type": "boolean"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Provenance"
+    },
+    "provider_families": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 2,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "qualification_proof_family": {
+      "enum": [
+        "clean_execution",
+        "documented_external_execution",
+        "static_closed_scope",
+        "positive_issue",
+        "excluded_ambiguous"
+      ]
+    },
+    "qualification_proof_status": {
+      "enum": [
+        "complete",
+        "excluded_label",
+        "legacy_proof_projection_unavailable"
+      ]
+    },
+    "reconciled_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Timestamp"
+    },
+    "record_type": {
+      "const": "detector_case_outcome"
+    },
+    "root_cause_refs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "record_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+          },
+          "record_type": {
+            "const": "adjudicated_root_cause"
+          }
+        },
+        "required": [
+          "record_type",
+          "record_id"
+        ],
+        "type": "object"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "root_outcomes": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "matched_candidate_refs": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "record_id": {
+                  "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+                },
+                "record_type": {
+                  "const": "detector_evaluation_candidate"
+                }
+              },
+              "required": [
+                "record_type",
+                "record_id"
+              ],
+              "type": "object"
+            },
+            "minItems": 0,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "root_cause_ref": {
+            "additionalProperties": false,
+            "properties": {
+              "record_id": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+              },
+              "record_type": {
+                "const": "adjudicated_root_cause"
+              }
+            },
+            "required": [
+              "record_type",
+              "record_id"
+            ],
+            "type": "object"
+          },
+          "status": {
+            "enum": [
+              "boundedly_localized",
+              "localized_but_overstated",
+              "missed",
+              "unresolved"
+            ]
+          }
+        },
+        "required": [
+          "root_cause_ref",
+          "status",
+          "matched_candidate_refs"
+        ],
+        "type": "object"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "scientific_label_freeze_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Digest"
+    },
+    "static_qualification_proof_ref": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "record_id": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+            },
+            "record_type": {
+              "const": "static_qualification_proof"
+            }
+          },
+          "required": [
+            "record_type",
+            "record_id"
+          ],
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "case_outcome_id",
+    "case_id",
+    "problem_id",
+    "corpus_partition",
+    "fixture_kind",
+    "fixture_ref",
+    "adjudication_ref",
+    "scientific_label_freeze_digest",
+    "audit_bundle_ref",
+    "audit_bundle_digest",
+    "detector_id",
+    "detector_version",
+    "detector_manifest_digest",
+    "comparison_review_refs",
+    "provider_families",
+    "fresh_contexts_verified",
+    "exact_cross_provider_agreement",
+    "comparison_status",
+    "exclusion_reasons",
+    "root_cause_refs",
+    "candidate_refs",
+    "root_outcomes",
+    "candidate_outcomes",
+    "metric_input_status",
+    "detector_result_outcomes",
+    "detector_run_outcome",
+    "metric_eligible",
+    "promotion_evidence_eligible",
+    "detector_output_observed",
+    "model_free_reconciliation",
+    "reconciled_at",
+    "provenance",
+    "fixture_semantic_digest",
+    "qualification_proof_status",
+    "qualification_proof_family",
+    "static_qualification_proof_ref"
+  ],
+  "title": "sc-referee Reconciled Detector Case Outcome",
+  "type": "object"
+}

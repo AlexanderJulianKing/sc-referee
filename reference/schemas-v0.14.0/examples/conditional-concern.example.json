@@ -1,0 +1,65 @@
+{
+  "affected_descendants": [
+    {
+      "effect": "The uncertainty statement may depend on the unresolved unit definition.",
+      "relationship_path": [
+        {
+          "record_id": "operation:model-fit",
+          "record_type": "operation"
+        },
+        {
+          "record_id": "claim:1",
+          "record_type": "claim"
+        }
+      ],
+      "target_ref": {
+        "record_id": "claim:1",
+        "record_type": "claim"
+      }
+    }
+  ],
+  "audit_run_id": "audit:example-001",
+  "concern_id": "concern:repeated-measures",
+  "condition": {
+    "if_true": "sample_id identifies biological donors.",
+    "premise_id": "premise:sample-id-is-donor",
+    "premise_state": "unknown"
+  },
+  "conditional_statement": "If sample_id identifies biological donors, the fitted model appears to treat repeated donor measurements as independent.",
+  "created_at": "2026-07-27T20:00:00Z",
+  "detector_result_ids": [
+    "result:repeated-measures"
+  ],
+  "evidence": [],
+  "grouping_key": "detector:repeated-measures|operation:model-fit|dependence_structure",
+  "issue_class": "batch_nuisance_dependence_omission",
+  "material_question_id": "question:sample-id",
+  "next_evidence_needed": [
+    "A data dictionary or scientist answer defining sample_id."
+  ],
+  "potential_impact": {
+    "level": "material_if_true",
+    "rationale": "Unmodeled within-donor dependence could affect uncertainty for the linked claim."
+  },
+  "provenance": {
+    "actor": {
+      "actor_id": "sc_referee.core",
+      "actor_kind": "controller"
+    },
+    "created_at": "2026-07-27T20:00:00Z",
+    "method": "deterministic_generation",
+    "tool": "sc_referee.core",
+    "tool_version": "0.5.0"
+  },
+  "record_type": "conditional_concern",
+  "review_priority": "high",
+  "schema_version": "0.14.0",
+  "subject_refs": [
+    {
+      "record_id": "operation:model-fit",
+      "record_type": "operation"
+    }
+  ],
+  "title": "If sample_id identifies donors, repeated donor measurements appear to be modeled as independent",
+  "why_material": "The concern could change whether the model accounts for dependence."
+}

@@ -1,2 +1,0 @@
-"""Trajectory-circularity policy placeholder."""
-

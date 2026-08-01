@@ -1,0 +1,33 @@
+{
+  "audit_run_id": "audit:lineage-example",
+  "dependency_refs": [],
+  "environment_id": "environment:auditor-runtime",
+  "environment_kind": "auditor_runtime",
+  "identity_status": "exact",
+  "limitations": [],
+  "platform": {
+    "machine": "x86_64",
+    "system": "Linux"
+  },
+  "provenance": {
+    "actor": {
+      "actor_id": "runtime:sc-referee",
+      "actor_kind": "runtime"
+    },
+    "created_at": "2026-07-28T18:00:00Z",
+    "method": "auditor_runtime_introspection"
+  },
+  "record_type": "environment",
+  "runtime": {
+    "implementation": "CPython",
+    "name": "Python",
+    "version": "3.11.9"
+  },
+  "schema_version": "0.16.0",
+  "source_refs": [
+    {
+      "locator": "sc-referee bounded verifier runtime",
+      "source_kind": "runtime_command"
+    }
+  ]
+}

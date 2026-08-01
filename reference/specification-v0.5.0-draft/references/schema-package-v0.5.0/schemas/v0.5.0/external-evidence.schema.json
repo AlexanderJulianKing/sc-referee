@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/external-evidence.schema.json",
+  "title": "External Evidence Retrieval",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "external_evidence_id",
+    "audit_run_id",
+    "requested_uri",
+    "resolved_uri",
+    "purpose",
+    "source_class",
+    "retrieved_at",
+    "content_identity",
+    "redirect_chain",
+    "authentication_used",
+    "cache_status",
+    "reproducibility_effect",
+    "finding_premise_eligibility",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "external_evidence"
+    },
+    "external_evidence_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "requested_uri": {
+      "type": "string",
+      "format": "uri"
+    },
+    "resolved_uri": {
+      "type": "string",
+      "format": "uri"
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_class": {
+      "enum": [
+        "package_documentation",
+        "package_source",
+        "scientific_literature",
+        "workflow_reference",
+        "metadata",
+        "data",
+        "other"
+      ]
+    },
+    "retrieved_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "content_identity": {
+      "oneOf": [
+        {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Digest"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "reason"
+          ],
+          "properties": {
+            "status": {
+              "const": "unavailable"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "version_label": {
+      "type": "string"
+    },
+    "redirect_chain": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "minItems": 0
+    },
+    "authentication_used": {
+      "type": "boolean"
+    },
+    "cache_status": {
+      "enum": [
+        "cached",
+        "not_cacheable",
+        "cache_failed"
+      ]
+    },
+    "cached_artifact_ref": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/RecordRef"
+    },
+    "reproducibility_effect": {
+      "enum": [
+        "immutable_or_versioned",
+        "snapshot_cached",
+        "mutable_unversioned",
+        "unknown"
+      ]
+    },
+    "finding_premise_eligibility": {
+      "enum": [
+        "context_only",
+        "eligible_after_independent_verification",
+        "detector_bundled_definition"
+      ]
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "additionalProperties": true
+    }
+  }
+}

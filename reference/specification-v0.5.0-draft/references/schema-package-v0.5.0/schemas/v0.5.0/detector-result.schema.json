@@ -1,0 +1,347 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/detector-result.schema.json",
+  "title": "Detector Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "result_id",
+    "audit_run_id",
+    "detector_id",
+    "detector_version",
+    "detector_manifest_digest",
+    "detector_maturity",
+    "target_refs",
+    "state",
+    "evaluated_at",
+    "runtime_mode",
+    "deterministic_input_digest",
+    "applicability",
+    "premise_evaluations",
+    "evidence",
+    "counterevidence_execution",
+    "coverage",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "detector_result"
+    },
+    "result_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "detector_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "detector_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemVer"
+    },
+    "detector_manifest_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Digest"
+    },
+    "detector_maturity": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Maturity"
+    },
+    "target_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 1
+    },
+    "state": {
+      "enum": [
+        "finding_candidate",
+        "conditional_concern_candidate",
+        "material_question_candidate",
+        "disclosure_candidate",
+        "no_issue_detected_within_coverage",
+        "not_applicable",
+        "insufficient_semantics",
+        "unsupported_path",
+        "execution_evidence_unavailable",
+        "detector_error"
+      ]
+    },
+    "evaluated_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "runtime_mode": {
+      "enum": [
+        "static",
+        "inspect",
+        "reproduce"
+      ]
+    },
+    "deterministic_input_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Digest"
+    },
+    "applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "basis"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "applicable",
+            "not_applicable",
+            "uncertain"
+          ]
+        },
+        "basis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unsupported_constructs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        }
+      }
+    },
+    "premise_evaluations": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/LogicalPremise"
+      },
+      "minItems": 0
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/EvidenceItem"
+      },
+      "minItems": 0
+    },
+    "counterevidence_execution": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "check_id",
+          "status",
+          "outcome"
+        ],
+        "properties": {
+          "check_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+          },
+          "status": {
+            "enum": [
+              "completed",
+              "not_applicable",
+              "unavailable",
+              "error"
+            ]
+          },
+          "outcome": {
+            "enum": [
+              "no_counterevidence",
+              "counterevidence_found",
+              "inconclusive",
+              "not_applicable"
+            ]
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+            },
+            "minItems": 0
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 0
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "basis"
+      ],
+      "properties": {
+        "status": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/CoverageStatus"
+        },
+        "basis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assessment_type",
+        "title",
+        "bounded_statement"
+      ],
+      "properties": {
+        "assessment_type": {
+          "enum": [
+            "finding",
+            "conditional_concern",
+            "material_question",
+            "disclosure"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bounded_statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_premise_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+          },
+          "minItems": 0
+        },
+        "unresolved_material_premise_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+          },
+          "minItems": 0
+        }
+      }
+    },
+    "unavailable_evidence": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0
+    },
+    "error": {
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "finding_candidate",
+              "conditional_concern_candidate",
+              "material_question_candidate",
+              "disclosure_candidate"
+            ]
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "required": [
+          "candidate"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "finding_candidate"
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "properties": {
+          "detector_maturity": {
+            "enum": [
+              "validated",
+              "publication_grade"
+            ]
+          },
+          "candidate": {
+            "properties": {
+              "assessment_type": {
+                "const": "finding"
+              },
+              "unresolved_material_premise_ids": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        "required": [
+          "candidate"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "no_issue_detected_within_coverage"
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "covered",
+                  "partially_covered"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

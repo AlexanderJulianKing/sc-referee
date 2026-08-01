@@ -1,0 +1,131 @@
+schema_version: 0.5.0
+record_type: audit_plan
+audit_plan_id: audit-plan:quick-example
+audit_run_id: run:example
+mode: quick
+scope:
+  project_root: .
+  inventory: whole_project
+  deep_inspection: final_claim_backward_slices
+  include_selection_envelope: true
+  publication_surface_policy: precedence_then_ask_if_ambiguous
+  explicit_exclusions:
+  - .git/**
+  - .venv/**
+  - renv/library/**
+  - node_modules/**
+deadlines:
+  clock: user_visible_elapsed
+  scheduling_cutoff_seconds: 120
+  hard_deadline_seconds: 300
+  pause_states:
+  - awaiting_scientist_response
+  no_automatic_mode_escalation: true
+  resume_creates_linked_run_segment: true
+model_policy:
+  auditor_call_limit: null
+  auditor_input_token_limit: null
+  auditor_output_token_limit: null
+  limit_authority: host_managed
+  record_usage: true
+  packetized_work: true
+  allow_bounded_semantic_extraction: true
+  allow_open_ended_scientific_issue_search: false
+  allow_model_finding_admission: false
+execution_policy:
+  static_first: true
+  automatic_execution_levels:
+  - safe_inspection
+  - auditor_owned_verification
+  project_code_execution: denied
+  project_code_network_access: denied
+  allow_dependency_installation: false
+  dependency_installation_isolation: isolated_environment_only
+  unversioned_environment_status: approximate
+  allow_local_project_installation: false
+  allow_system_package_installation: false
+  allow_full_workflow_execution: false
+  allow_hpc_submission: false
+  unsafe_deserialization: deny
+  repository_mount: read_only
+  writable_roots:
+  - .sc-referee/runs/${run_id}/
+network_policy:
+  claude_network_access: host_managed_unrestricted
+  controller_network_access: allowed_with_provenance
+  project_code_network_access: explicit_authorization_required
+  record_retrieval_provenance: true
+  cache_retrieved_evidence: true
+  repository_content_can_authorize: false
+data_policy:
+  identity_policy: tiered
+  max_total_bytes_read_from_large_assets: 50000000
+  max_source_packet_bytes: 250000
+question_policy:
+  ask_only_material: true
+  batch_questions: true
+  maximum_interactive_rounds: 1
+  unanswered_behavior: preserve_unknown_and_continue
+finding_policy:
+  finding_means_demonstrated_issue_only: true
+  minimum_detector_maturity: validated
+  require_all_five_admission_conditions: true
+  require_finite_counterevidence_protocol: true
+  reserve_severity_for_findings: true
+  emit_numerical_finding_confidence: false
+  never_emit_global_correctness_status: true
+  group_findings_by_root_cause: true
+on_deadline:
+  stop_new_optional_work_at_cutoff: true
+  terminate_eligible_children_at_hard_deadline: true
+  preserve_completed_records: true
+  preserve_pending_work_items: true
+  calculate_partial_coverage: true
+  render_partial_report: true
+created_at: '2026-07-27T23:30:00Z'
+provenance:
+  actor:
+    actor_kind: controller
+    actor_id: sc-referee-core
+    display_name: sc-referee controller
+  method: deterministic_controller
+  created_at: '2026-07-27T23:30:00Z'
+  tool: sc-referee-core
+  tool_version: 0.5.0
+  source_refs: []
+snapshot_policy:
+  strategy: immutable_initial_snapshot
+  live_mutation_behavior: continue_snapshot_mark_workspace_diverged
+  mix_live_content_into_run: false
+parser_policy:
+  python_stack: cpython_ast_plus_tokenize
+  r_stack:
+  - tree_sitter_r
+  - base_r_parse_data_when_available
+  execute_source_during_parse: false
+  record_parser_coverage: true
+storage_policy:
+  canonical_records: json_or_jsonl
+  scientist_editable_records: yaml_or_json
+  generated_query_index: sqlite
+  query_index_disposable: true
+cache_policy:
+  source_derived_scope: project_local_only
+  cross_repository_semantic_cache: false
+  global_cache_allowed_classes:
+  - parser_binaries_and_grammars
+  - public_package_downloads
+  - isolated_dependency_environments
+  - public_external_evidence
+  - tool_owned_immutable_assets
+sandbox_policy:
+  project_code_backend: rootless_oci_required
+  unsafe_fallback: false
+  auditor_owned_verification_backend: restricted_subprocess_allowed
+  report_capabilities: true
+report_policy:
+  renderer: jinja2_static_html
+  self_contained: true
+  external_assets: false
+  core_readable_without_javascript: true
+  template_autoescape: true

@@ -1,0 +1,18 @@
+{
+  "schema_version": "__SCHEMA_VERSION__",
+  "record_type": "file_record",
+  "file_record_id": "file:unreadable",
+  "audit_run_id": "audit:candidate",
+  "snapshot_ref": {"record_type": "repository_snapshot", "record_id": "snapshot:candidate"},
+  "path": "restricted.bin",
+  "entry_kind": "regular_file",
+  "classification": "unknown",
+  "inspection_disposition": "unreadable",
+  "identity_disposition": "not_recorded",
+  "limitations": ["Bytes could not be read under the active filesystem authority."],
+  "provenance": {
+    "actor": {"actor_kind": "controller", "actor_id": "controller:candidate"},
+    "method": "safe_file_inventory",
+    "created_at": "2026-07-27T20:00:01Z"
+  }
+}

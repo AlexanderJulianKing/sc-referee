@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/performance-record.schema.json",
+  "title": "sc-referee Performance Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "performance_record_id",
+    "audit_run_id",
+    "recorded_at",
+    "user_visible_elapsed_seconds",
+    "paused_for_scientist_seconds",
+    "model_usage",
+    "io_usage",
+    "cache_usage",
+    "termination",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "performance_record"
+    },
+    "performance_record_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "recorded_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "user_visible_elapsed_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "paused_for_scientist_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "active_cpu_seconds": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "peak_memory_bytes": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "model_usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "calls",
+        "input_tokens",
+        "output_tokens",
+        "host_limit_reached"
+      ],
+      "properties": {
+        "calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "input_tokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "output_tokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "host_limit_reached": {
+          "type": "boolean"
+        }
+      }
+    },
+    "io_usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_bytes_read",
+        "large_asset_bytes_read",
+        "network_bytes_received"
+      ],
+      "properties": {
+        "source_bytes_read": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "large_asset_bytes_read": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "network_bytes_received": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "cache_usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hits",
+        "misses",
+        "invalidations"
+      ],
+      "properties": {
+        "hits": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "misses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "invalidations": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "stage_timings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stage",
+          "elapsed_seconds",
+          "state"
+        ],
+        "properties": {
+          "stage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "elapsed_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "state": {
+            "enum": [
+              "complete",
+              "partial",
+              "failed",
+              "timed_out",
+              "skipped"
+            ]
+          }
+        }
+      }
+    },
+    "termination": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "reason"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "complete_within_plan",
+            "partial",
+            "failed_with_artifacts"
+          ]
+        },
+        "reason": {
+          "enum": [
+            "completed",
+            "hard_deadline",
+            "host_model_limit",
+            "user_cancelled",
+            "evidence_unavailable",
+            "controller_error",
+            "other"
+          ]
+        },
+        "detail": {
+          "type": "string"
+        }
+      }
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "public_examples_validated": 79,
+  "public_schema_version": "0.18.0",
+  "observed_plane_records": "public",
+  "multidimensional_lineage_plane": "public",
+  "walking_skeleton": "passed",
+  "synthetic_findings": 1,
+  "conditional_concerns": 1,
+  "material_questions": 1,
+  "disclosures": 1,
+  "deterministic_replay": "passed",
+  "storage_integrity": "passed",
+  "generated_capability_matrix": "passed_fail_closed_manifest_profile",
+  "capability_matrix_entries": 15,
+  "capability_matrix_detector_qualification": "experimental_unqualified_only",
+  "capability_matrix_tested_versions": "none_declared",
+  "public_detector_qualification": "not_claimed"
+}

@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/artifact.schema.json",
+  "title": "sc-referee Artifact review candidate",
+  "$comment": "Nonpublic ADR-0002 template. Artifact presence and lineage do not establish scientific correctness.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "artifact_id",
+    "audit_run_id",
+    "kind",
+    "observed_role",
+    "source_refs",
+    "producer_operation_refs",
+    "consumer_operation_refs",
+    "asset_identity_ref",
+    "limitations",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {"const": "artifact"},
+    "artifact_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+    },
+    "kind": {
+      "enum": [
+        "source_file", "data_file", "result_file", "report", "computed_value",
+        "table", "figure", "model", "log", "other", "unknown"
+      ]
+    },
+    "observed_role": {"type": "string", "minLength": 1},
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/SourceRef"
+      }
+    },
+    "producer_operation_refs": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/OperationRef"},
+      "uniqueItems": true
+    },
+    "consumer_operation_refs": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/OperationRef"},
+      "uniqueItems": true
+    },
+    "asset_identity_ref": {"$ref": "#/$defs/AssetIdentityRef"},
+    "limitations": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Provenance"
+    }
+  },
+  "$defs": {
+    "OperationRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_type", "record_id"],
+      "properties": {
+        "record_type": {"const": "operation"},
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+        }
+      }
+    },
+    "AssetIdentityRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_type", "record_id"],
+      "properties": {
+        "record_type": {"const": "asset_identity"},
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+        }
+      }
+    }
+  }
+}

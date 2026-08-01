@@ -1,0 +1,48 @@
+{
+  "audit_run_id": "audit:example-001",
+  "authority_scope": "scientific_intent",
+  "disposition_id": "disposition:1",
+  "provenance": {
+    "actor": {
+      "actor_id": "scientist:alex",
+      "actor_kind": "human",
+      "display_name": "Example Scientist"
+    },
+    "created_at": "2026-07-27T20:00:00Z",
+    "method": "scientist_answer",
+    "source_refs": [
+      {
+        "chunk_label": "claim-1",
+        "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "locator": "manuscript/results.qmd#claim-1",
+        "path": "manuscript/results.qmd",
+        "quoted_text": "Treatment increased expression.",
+        "source_kind": "document_chunk"
+      }
+    ]
+  },
+  "rationale": "The manuscript sentence refers to the wrong contrast.",
+  "record_type": "scientist_disposition",
+  "recorded_at": "2026-07-27T20:00:00Z",
+  "respondent": {
+    "actor_id": "scientist:alex",
+    "actor_kind": "human",
+    "display_name": "Example Scientist"
+  },
+  "schema_version": "0.17.0",
+  "source_refs": [
+    {
+      "chunk_label": "claim-1",
+      "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "locator": "manuscript/results.qmd#claim-1",
+      "path": "manuscript/results.qmd",
+      "quoted_text": "Treatment increased expression.",
+      "source_kind": "document_chunk"
+    }
+  ],
+  "status": "confirmed",
+  "target_assessment_ref": {
+    "record_id": "finding:claim-direction",
+    "record_type": "finding"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sc-referee:starter:v0.1.0:artifact",
+  "title": "Provisional Artifact",
+  "type": "object",
+  "required": [
+    "record_type",
+    "artifact_id",
+    "run_id",
+    "kind",
+    "identity"
+  ],
+  "properties": {
+    "record_type": {
+      "const": "artifact"
+    },
+    "artifact_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string"
+    },
+    "identity": {
+      "type": "string"
+    },
+    "producer_operation_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}

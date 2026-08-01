@@ -1,0 +1,525 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.18.0/deterministic-check-observation.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "applicability": {
+            "const": "applicable"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "comparison": {
+            "properties": {
+              "outcome": {
+                "enum": [
+                  "conformant",
+                  "nonconformant"
+                ]
+              }
+            }
+          },
+          "lineage_status": {
+            "const": "complete"
+          },
+          "operands": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "applicability": {
+            "const": "not_applicable"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "comparison": {
+            "properties": {
+              "outcome": {
+                "const": "not_applicable"
+              }
+            }
+          },
+          "lineage_status": {
+            "const": "not_applicable"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "applicability": {
+            "enum": [
+              "ambiguous",
+              "unsupported"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "comparison": {
+            "properties": {
+              "outcome": {
+                "const": "unknown"
+              }
+            }
+          },
+          "lineage_status": {
+            "const": "incomplete"
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "adapter_manifest": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+        },
+        "adapter_version": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/SemVer"
+        },
+        "implementation_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Digest"
+        },
+        "manifest_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Digest"
+        },
+        "manifest_kind": {
+          "const": "calculation_adapter_manifest"
+        }
+      },
+      "required": [
+        "manifest_kind",
+        "adapter_id",
+        "adapter_version",
+        "implementation_digest",
+        "manifest_digest"
+      ],
+      "type": "object"
+    },
+    "applicability": {
+      "enum": [
+        "applicable",
+        "not_applicable",
+        "ambiguous",
+        "unsupported"
+      ]
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+    },
+    "check_manifest": {
+      "additionalProperties": false,
+      "properties": {
+        "check_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+        },
+        "check_version": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/SemVer"
+        },
+        "implementation_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Digest"
+        },
+        "manifest_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Digest"
+        },
+        "manifest_kind": {
+          "const": "calculation_check_manifest"
+        }
+      },
+      "required": [
+        "manifest_kind",
+        "check_id",
+        "check_version",
+        "implementation_digest",
+        "manifest_digest"
+      ],
+      "type": "object"
+    },
+    "comparison": {
+      "additionalProperties": false,
+      "properties": {
+        "outcome": {
+          "enum": [
+            "conformant",
+            "nonconformant",
+            "unknown",
+            "not_applicable"
+          ]
+        },
+        "relation": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "relation",
+        "outcome"
+      ],
+      "type": "object"
+    },
+    "deterministic_check_observation_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "input_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "limitations": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "lineage_status": {
+      "enum": [
+        "complete",
+        "incomplete",
+        "not_applicable"
+      ]
+    },
+    "non_inferences": {
+      "const": [
+        "causality",
+        "execution",
+        "scientific_correctness",
+        "universal_method_adequacy"
+      ]
+    },
+    "observation_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Digest"
+    },
+    "operands": {
+      "items": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "boolean"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "integer"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "finite_number"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "boolean_array"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "items": {
+                    "type": "boolean"
+                  },
+                  "maxItems": 10000,
+                  "type": "array"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "integer_array"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "items": {
+                    "type": "integer"
+                  },
+                  "maxItems": 10000,
+                  "type": "array"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "finite_number_array"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "maxItems": 10000,
+                  "type": "array"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "string_array"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 10000,
+                  "type": "array"
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "boolean",
+              "integer",
+              "finite_number",
+              "string",
+              "boolean_array",
+              "integer_array",
+              "finite_number_array",
+              "string_array"
+            ]
+          },
+          "name": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+          },
+          "value": {}
+        },
+        "required": [
+          "name",
+          "kind",
+          "value"
+        ],
+        "type": "object"
+      },
+      "maxItems": 64,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "output_ceiling": {
+      "enum": [
+        "question_only",
+        "disclosure_only",
+        "evaluation_candidate"
+      ]
+    },
+    "production_finding_permitted": {
+      "const": false
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Provenance"
+    },
+    "receipts": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "predicate": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+          },
+          "receipt_kind": {
+            "enum": [
+              "applicability",
+              "ambiguity",
+              "counterevidence",
+              "completeness"
+            ]
+          },
+          "source_refs": {
+            "items": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/SourceRef"
+            },
+            "minItems": 0,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "state": {
+            "enum": [
+              "passed",
+              "triggered",
+              "not_applicable",
+              "unsupported"
+            ]
+          }
+        },
+        "required": [
+          "receipt_kind",
+          "predicate",
+          "state",
+          "source_refs",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "record_type": {
+      "const": "deterministic_check_observation"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "source_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/SourceRef"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "target_ref": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/RecordRef"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "deterministic_check_observation_id",
+    "audit_run_id",
+    "check_manifest",
+    "adapter_manifest",
+    "applicability",
+    "output_ceiling",
+    "target_ref",
+    "input_refs",
+    "source_refs",
+    "operands",
+    "comparison",
+    "receipts",
+    "lineage_status",
+    "limitations",
+    "non_inferences",
+    "production_finding_permitted",
+    "observation_digest",
+    "provenance"
+  ],
+  "title": "sc-referee Deterministic Check Observation",
+  "type": "object"
+}

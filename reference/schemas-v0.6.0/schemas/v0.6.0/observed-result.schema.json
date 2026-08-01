@@ -1,0 +1,460 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "artifact"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "EpistemicOrientation": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "evidence_refs": {
+              "items": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/SourceRef"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "state": {
+              "const": "known"
+            },
+            "value": {
+              "enum": [
+                "treated_minus_control",
+                "control_minus_treated",
+                "other"
+              ]
+            }
+          },
+          "required": [
+            "state",
+            "value",
+            "evidence_refs"
+          ],
+          "type": "object"
+        },
+        {
+          "$ref": "#/$defs/UnknownSlot"
+        }
+      ]
+    },
+    "EpistemicString": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/KnownString"
+        },
+        {
+          "$ref": "#/$defs/UnknownSlot"
+        }
+      ]
+    },
+    "KnownString": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_refs": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/SourceRef"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "state": {
+          "const": "known"
+        },
+        "value": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "state",
+        "value",
+        "evidence_refs"
+      ],
+      "type": "object"
+    },
+    "OperationRef": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "operation"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "UnknownSlot": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_refs": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/SourceRef"
+          },
+          "type": "array"
+        },
+        "rationale": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "unknown",
+            "conflicted",
+            "unavailable"
+          ]
+        }
+      },
+      "required": [
+        "state",
+        "rationale",
+        "evidence_refs"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://w3id.org/sc-referee/schema/v0.6.0/observed-result.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "else": {
+        "properties": {
+          "lineage_limitations": {
+            "minItems": 1
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "lineage_status": {
+            "const": "complete"
+          }
+        },
+        "required": [
+          "lineage_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "lineage_limitations": {
+            "maxItems": 0
+          }
+        },
+        "required": [
+          "producing_operation_ref",
+          "artifact_ref"
+        ]
+      }
+    }
+  ],
+  "oneOf": [
+    {
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "interval_value"
+            ]
+          },
+          {
+            "required": [
+              "vector_summary_value"
+            ]
+          },
+          {
+            "required": [
+              "table_cell_value"
+            ]
+          }
+        ]
+      },
+      "properties": {
+        "value_kind": {
+          "const": "scalar"
+        }
+      },
+      "required": [
+        "scalar_value"
+      ]
+    },
+    {
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "scalar_value"
+            ]
+          },
+          {
+            "required": [
+              "vector_summary_value"
+            ]
+          },
+          {
+            "required": [
+              "table_cell_value"
+            ]
+          }
+        ]
+      },
+      "properties": {
+        "value_kind": {
+          "const": "interval"
+        }
+      },
+      "required": [
+        "interval_value"
+      ]
+    },
+    {
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "scalar_value"
+            ]
+          },
+          {
+            "required": [
+              "interval_value"
+            ]
+          },
+          {
+            "required": [
+              "table_cell_value"
+            ]
+          }
+        ]
+      },
+      "properties": {
+        "value_kind": {
+          "const": "vector_summary"
+        }
+      },
+      "required": [
+        "vector_summary_value"
+      ]
+    },
+    {
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "scalar_value"
+            ]
+          },
+          {
+            "required": [
+              "interval_value"
+            ]
+          },
+          {
+            "required": [
+              "vector_summary_value"
+            ]
+          }
+        ]
+      },
+      "properties": {
+        "value_kind": {
+          "const": "table_cell"
+        }
+      },
+      "required": [
+        "table_cell_value"
+      ]
+    }
+  ],
+  "properties": {
+    "artifact_ref": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+    },
+    "comparison": {
+      "$ref": "#/$defs/EpistemicString"
+    },
+    "interval_value": {
+      "additionalProperties": false,
+      "properties": {
+        "lower": {
+          "type": "number"
+        },
+        "upper": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "lower",
+        "upper"
+      ],
+      "type": "object"
+    },
+    "lineage_limitations": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "lineage_status": {
+      "enum": [
+        "complete",
+        "partial",
+        "missing",
+        "unavailable"
+      ]
+    },
+    "observation_method": {
+      "enum": [
+        "literal_extraction",
+        "deterministic_verification"
+      ]
+    },
+    "observed_result_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+    },
+    "orientation": {
+      "$ref": "#/$defs/EpistemicOrientation"
+    },
+    "population": {
+      "$ref": "#/$defs/EpistemicString"
+    },
+    "producing_operation_ref": {
+      "$ref": "#/$defs/OperationRef"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "observed_result"
+    },
+    "scalar_value": {
+      "type": "number"
+    },
+    "scale": {
+      "$ref": "#/$defs/EpistemicString"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "source_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/SourceRef"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "table_cell_value": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "type": [
+            "string",
+            "integer"
+          ]
+        },
+        "row": {
+          "type": [
+            "string",
+            "integer"
+          ]
+        },
+        "value": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "row",
+        "column",
+        "value"
+      ],
+      "type": "object"
+    },
+    "timing": {
+      "$ref": "#/$defs/EpistemicString"
+    },
+    "unit": {
+      "$ref": "#/$defs/EpistemicString"
+    },
+    "value_kind": {
+      "enum": [
+        "scalar",
+        "interval",
+        "vector_summary",
+        "table_cell"
+      ]
+    },
+    "vector_summary_value": {
+      "additionalProperties": false,
+      "minProperties": 2,
+      "properties": {
+        "count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "mean": {
+          "type": "number"
+        },
+        "median": {
+          "type": "number"
+        },
+        "minimum": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "count"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "observed_result_id",
+    "audit_run_id",
+    "value_kind",
+    "observation_method",
+    "source_refs",
+    "lineage_status",
+    "lineage_limitations",
+    "comparison",
+    "orientation",
+    "scale",
+    "unit",
+    "population",
+    "timing",
+    "provenance"
+  ],
+  "title": "sc-referee ObservedResult",
+  "type": "object"
+}

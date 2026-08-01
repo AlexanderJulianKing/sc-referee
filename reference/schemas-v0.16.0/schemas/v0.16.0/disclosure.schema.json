@@ -1,0 +1,104 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.16.0/disclosure.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "affected_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Identifier"
+    },
+    "coverage_status": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/CoverageStatus"
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Timestamp"
+    },
+    "description": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "disclosure_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Identifier"
+    },
+    "disclosure_kind": {
+      "enum": [
+        "coverage_gap",
+        "lineage_gap",
+        "unsupported_operation",
+        "opaque_boundary",
+        "evidence_unavailable",
+        "data_identity_weak",
+        "reproducibility_limit",
+        "parser_gap",
+        "detector_gap",
+        "uninspected_path",
+        "other"
+      ]
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "importance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/DisclosureImportance"
+    },
+    "interpretive_consequence": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "next_step": {
+      "type": "string"
+    },
+    "non_accusatory": {
+      "const": true
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "disclosure"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "source_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/SourceRef"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "title": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "disclosure_id",
+    "audit_run_id",
+    "disclosure_kind",
+    "title",
+    "description",
+    "importance",
+    "non_accusatory",
+    "affected_refs",
+    "source_refs",
+    "coverage_status",
+    "interpretive_consequence",
+    "created_at",
+    "provenance"
+  ],
+  "title": "sc-referee Disclosure",
+  "type": "object"
+}

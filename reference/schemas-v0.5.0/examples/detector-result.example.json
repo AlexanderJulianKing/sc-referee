@@ -1,0 +1,136 @@
+{
+  "schema_version": "0.5.0",
+  "record_type": "detector_result",
+  "result_id": "result:claim-direction",
+  "audit_run_id": "audit:example-001",
+  "detector_id": "detector:claim-direction",
+  "detector_version": "1.0.0",
+  "detector_manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "detector_maturity": "validated",
+  "target_refs": [
+    {
+      "record_type": "claim",
+      "record_id": "claim:1"
+    }
+  ],
+  "state": "finding_candidate",
+  "evaluated_at": "2026-07-27T20:00:00Z",
+  "runtime_mode": "static",
+  "deterministic_input_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "applicability": {
+    "status": "applicable",
+    "basis": "The claim has explicit direction, linked result, and established contrast orientation.",
+    "unsupported_constructs": []
+  },
+  "premise_evaluations": [
+    {
+      "premise_id": "premise:reported-positive",
+      "statement": "The report states a positive direction.",
+      "state": "established",
+      "material": true,
+      "evidence_ids": [
+        "evidence:report-text"
+      ]
+    },
+    {
+      "premise_id": "premise:result-negative",
+      "statement": "The linked result is negative under the established orientation.",
+      "state": "established",
+      "material": true,
+      "evidence_ids": [
+        "evidence:result-sign"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "evidence:result-sign",
+      "description": "The linked coefficient is -0.42 under the established contrast orientation.",
+      "support_role": "supports",
+      "source_refs": [
+        {
+          "source_kind": "file_span",
+          "locator": "analysis.py:42-47",
+          "path": "analysis.py",
+          "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "start_line": 42,
+          "end_line": 47,
+          "quoted_text": "result = fit(y ~ treatment)"
+        }
+      ],
+      "record_refs": [
+        {
+          "record_type": "claim",
+          "record_id": "claim:1"
+        }
+      ],
+      "observed_value": -0.42
+    },
+    {
+      "evidence_id": "evidence:report-text",
+      "description": "The report states that treatment increased expression.",
+      "support_role": "supports",
+      "source_refs": [
+        {
+          "source_kind": "document_chunk",
+          "locator": "manuscript/results.qmd#claim-1",
+          "path": "manuscript/results.qmd",
+          "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "chunk_label": "claim-1",
+          "quoted_text": "Treatment increased expression."
+        }
+      ],
+      "record_refs": [
+        {
+          "record_type": "claim",
+          "record_id": "claim:1"
+        }
+      ],
+      "observed_value": "positive"
+    }
+  ],
+  "counterevidence_execution": [
+    {
+      "check_id": "check:orientation",
+      "status": "completed",
+      "outcome": "no_counterevidence",
+      "evidence_ids": [
+        "evidence:result-sign"
+      ]
+    },
+    {
+      "check_id": "check:report-qualification",
+      "status": "completed",
+      "outcome": "no_counterevidence",
+      "evidence_ids": [
+        "evidence:report-text"
+      ]
+    }
+  ],
+  "coverage": {
+    "status": "covered",
+    "basis": "All required evidence and declared counterevidence sources were inspected.",
+    "gaps": []
+  },
+  "candidate": {
+    "assessment_type": "finding",
+    "title": "Reported direction disagrees with linked result",
+    "bounded_statement": "The report describes the linked treatment contrast as positive, while the linked coefficient is negative under the established orientation.",
+    "material_premise_ids": [
+      "premise:reported-positive",
+      "premise:result-negative"
+    ],
+    "unresolved_material_premise_ids": []
+  },
+  "unavailable_evidence": [],
+  "provenance": {
+    "actor": {
+      "actor_kind": "detector",
+      "actor_id": "detector:claim-direction"
+    },
+    "method": "deterministic_detection",
+    "created_at": "2026-07-27T20:00:00Z",
+    "tool": "sc_referee.core",
+    "tool_version": "0.5.0"
+  }
+}

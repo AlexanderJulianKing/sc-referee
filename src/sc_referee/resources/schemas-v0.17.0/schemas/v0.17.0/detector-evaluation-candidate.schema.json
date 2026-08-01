@@ -1,0 +1,256 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.17.0/detector-evaluation-candidate.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "admission_checks": {
+      "additionalProperties": false,
+      "properties": {
+        "bounded_wording": {
+          "const": true
+        },
+        "counterevidence_protocol_complete": {
+          "const": true
+        },
+        "deterministic_replay": {
+          "const": true
+        },
+        "direct_entailment": {
+          "const": true
+        },
+        "exact_detector_applicability": {
+          "const": true
+        },
+        "material_premise_ids": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "no_reversing_unknown": {
+          "const": true
+        },
+        "non_inferences": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "source_references_resolved": {
+          "const": true
+        },
+        "unresolved_material_premise_ids": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+          },
+          "maxItems": 0,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "direct_entailment",
+        "no_reversing_unknown",
+        "exact_detector_applicability",
+        "counterevidence_protocol_complete",
+        "bounded_wording",
+        "deterministic_replay",
+        "source_references_resolved",
+        "material_premise_ids",
+        "unresolved_material_premise_ids",
+        "non_inferences"
+      ],
+      "type": "object"
+    },
+    "affected_record_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "audit_bundle_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Digest"
+    },
+    "audit_bundle_ref": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "audit_bundle"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "bounded_statement": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "candidate_created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Timestamp"
+    },
+    "case_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+    },
+    "detector_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+    },
+    "detector_manifest_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Digest"
+    },
+    "detector_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/SemVer"
+    },
+    "evaluation_candidate_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/EvidenceItem"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "fixture_ref": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "benchmark_fixture"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "issue_class": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/IssueClass"
+    },
+    "maturity_gate_bypassed_for_evaluation": {
+      "const": true
+    },
+    "non_inferences": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 2,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "production_admission_permitted": {
+      "const": false
+    },
+    "production_finding_ref": {
+      "const": null
+    },
+    "proposed_assessment_type": {
+      "const": "finding"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "detector_evaluation_candidate"
+    },
+    "root_locator": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/finding.schema.json#/properties/root_cause"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "scientific_label_freeze_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Digest"
+    },
+    "semantic_lock_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Digest"
+    },
+    "source_detector_result_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Digest"
+    },
+    "source_detector_result_ref": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "detector_result"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "subject_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "title": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "evaluation_candidate_id",
+    "case_id",
+    "fixture_ref",
+    "scientific_label_freeze_digest",
+    "audit_bundle_ref",
+    "audit_bundle_digest",
+    "semantic_lock_digest",
+    "detector_id",
+    "detector_version",
+    "detector_manifest_digest",
+    "source_detector_result_ref",
+    "source_detector_result_digest",
+    "proposed_assessment_type",
+    "title",
+    "bounded_statement",
+    "issue_class",
+    "root_locator",
+    "subject_refs",
+    "affected_record_refs",
+    "evidence",
+    "admission_checks",
+    "maturity_gate_bypassed_for_evaluation",
+    "production_admission_permitted",
+    "production_finding_ref",
+    "candidate_created_at",
+    "non_inferences",
+    "provenance"
+  ],
+  "title": "sc-referee Qualification-only Detector Evaluation Candidate",
+  "type": "object"
+}

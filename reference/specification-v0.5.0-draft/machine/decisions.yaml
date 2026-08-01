@@ -1,0 +1,434 @@
+schema_version: 0.5.0
+decisions:
+- id: ADR-0001
+  title: Use an evidence-compiler architecture
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0001-evidence-compiler.md
+  summary: Transform source material through observed facts, proposed semantics, locked
+    semantics, deterministic detector results, findings, and coverage.
+  consequences:
+  - Model output is proposed evidence, not final authority.
+  - The deterministic admission kernel is independently testable.
+- id: ADR-0002
+  title: Preserve scoped authorities instead of overwriting conflicts
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0002-scoped-authority.md
+  summary: Keep intended scientific meaning, observed computation, report wording,
+    and model proposals as distinct authority scopes.
+  consequences:
+  - Scientist intent does not rewrite code observations.
+  - "Intent\u2013implementation mismatches remain detectable."
+- id: ADR-0003
+  title: Use a content-addressed semantic lock for deterministic reruns
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0003-semantic-lock.md
+  summary: Lock normalized semantics and provenance so detection, grouping, coverage,
+    and rendering rerun without a language model.
+  consequences:
+  - Audits are replayable and diffable.
+  - Material source or policy changes invalidate affected locks.
+- id: ADR-0004
+  title: Use a budgeted, claim-centric audit scope
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0004-budgeted-claim-centric-audit.md
+  summary: Inventory the whole project and deeply inspect final-claim backward slices
+    plus the selection envelope under hard budgets.
+  consequences:
+  - Default audits can remain interactive.
+  - Unfinished work becomes explicit coverage gaps.
+- id: ADR-0005
+  title: Never present absence of findings as a correctness certificate
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0005-no-correctness-certificate.md
+  summary: Every report couples findings with scope, unknowns, opaque boundaries,
+    and coverage and never emits a global pass/fail correctness status.
+  consequences:
+  - Reduces overreliance.
+  - Requires careful zero-finding report wording.
+- id: ADR-0006
+  title: Group downstream manifestations under a root cause
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0006-root-cause-grouping.md
+  summary: Represent one causal root finding with all material descendant claims and
+    artifacts rather than warning duplication.
+  consequences:
+  - Reports are more actionable.
+  - Root-cause inference must be explicit and testable.
+- id: ADR-0007
+  title: Require executable detector coverage contracts
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0007-executable-coverage-contracts.md
+  summary: Every detector declares applicability, assumptions, abstention rules, supported
+    operations, maturity, evidence ceiling, and fixtures.
+  consequences:
+  - Negative results have bounded meaning.
+  - Detector authors carry additional manifest and fixture obligations.
+- id: ADR-0008
+  title: Use static-first inspection and sandboxed selected reproduction
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0008-static-first-sandbox.md
+  summary: Avoid executing project code during discovery and permit only bounded,
+    policy-controlled reproduction in a sandbox.
+  consequences:
+  - Audits are safer and faster.
+  - Dynamic semantics may remain opaque.
+- id: ADR-0009
+  title: Author scientific contracts hierarchically and lock them flat
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0009-hierarchical-contracts.md
+  summary: Allow study-, cohort-, analysis-, and claim-level inheritance, then materialize
+    complete target contracts in the semantic lock.
+  consequences:
+  - Reduces repetitive inference and questions.
+  - Inheritance and invalidation require precise semantics.
+- id: ADR-0010
+  title: Represent trust in opaque boundaries by dimension
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0010-multidimensional-opaque-trust.md
+  summary: Track artifact identity, execution provenance, numerical correctness, scientific
+    semantics, and reproducibility separately.
+  consequences:
+  - Downstream audit can continue with honest limits.
+  - Detectors must declare required trust dimensions.
+- id: ADR-0011
+  title: Use distinct assessment record types
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0011-distinct-assessment-records.md
+  summary: Reserve Finding for demonstrated issues and separate conditional concerns,
+    questions, and disclosures.
+  consequences:
+  - No public supported tier or numeric finding confidence.
+  - Severity is reserved for Findings.
+- id: ADR-0012
+  title: Prohibit open-ended language-model issue discovery in production
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0012-no-open-ended-llm-search.md
+  summary: Use the model only for bounded extraction and interaction, not unspecified
+    scientific error discovery.
+  consequences:
+  - Protects precision.
+  - Future classes require detector development.
+- id: ADR-0013
+  title: Allow only verified explicit model extraction as Finding evidence
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0013-model-extraction-eligibility.md
+  summary: Literal exact-source extraction may become eligible after non-model verification;
+    implicit inference requires corroboration.
+  consequences:
+  - Reduces interruptions for literal claims.
+  - Prevents model confidence from becoming authority.
+- id: ADR-0014
+  title: Separate scientist disposition from independent adjudication
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0014-disposition-versus-adjudication.md
+  summary: A scientist may dispute but only independent adjudication records false
+    positives or detector defects.
+  consequences:
+  - Preserves authority scopes.
+  - Keeps audit history intact.
+- id: ADR-0015
+  title: Require finite detector-specific counterevidence protocols
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0015-finite-counterevidence-protocols.md
+  summary: Every Finding-capable detector has a finite, versioned counterevidence
+    checklist.
+  consequences:
+  - Admission is bounded and testable.
+  - Decisive unavailable evidence blocks Findings.
+- id: ADR-0016
+  title: Use user-visible elapsed deadlines and fixed trial mode ceilings
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0016-user-visible-deadlines.md
+  summary: Measure the user experience directly and use 120/300, 480/600, and 1500/1800
+    second cutoff/deadline defaults.
+  consequences:
+  - External latency cannot evade the deadline.
+  - Resume creates a linked run segment.
+- id: ADR-0017
+  title: Separate execution privileges and prohibit interactive HPC submission in
+    version one
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0017-execution-privilege-and-no-hpc.md
+  summary: Allow automatic safe inspection and auditor-owned verification; require
+    authorization for project code and emit ReproductionRequests for HPC or full workflows.
+  consequences:
+  - Low cost is not a security boundary.
+  - Dynamic evidence may require later import.
+- id: ADR-0018
+  title: Allow Claude and controller inquiry while separating project-code network
+    authority
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0018-network-freedom-with-provenance.md
+  summary: Permit host-provided Claude network use and provenance-recorded controller
+    retrieval while keeping project-code network access separately authorized.
+  consequences:
+  - Claude can investigate freely.
+  - External evidence remains auditable.
+- id: ADR-0019
+  title: Permit automatic isolated dependency reconstruction in standard mode
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0019-isolated-dependency-reconstruction.md
+  summary: Install declared dependencies only in audit-owned isolated environments
+    and label unpinned resolution approximate.
+  consequences:
+  - The user environment is not mutated.
+  - Installation consumes the same deadline.
+- id: ADR-0020
+  title: Use tiered identity for data and artifacts
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0020-tiered-asset-identity.md
+  summary: Use full, immutable-external, manifest, weak, or unidentified identity
+    according to cost and evidence.
+  consequences:
+  - Large data need not be fully hashed.
+  - Identity limitations remain explicit.
+- id: ADR-0021
+  title: Resolve publication surface by explicit precedence and leave materiality
+    unassessed when ambiguous
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0021-publication-surface-precedence.md
+  summary: Prefer explicit selection and build evidence; keep unresolved candidate
+    audits separate.
+  consequences:
+  - The wrong manuscript is not silently selected.
+  - Materiality can remain unassessed.
+- id: ADR-0022
+  title: Impose no auditor-specific numeric model-call or token cap
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0022-host-managed-model-usage.md
+  summary: Use host-managed limits and elapsed deadlines rather than a fixed Scientific
+    Audit quota.
+  consequences:
+  - Useful work is not stopped by an arbitrary call count.
+  - Usage remains recorded and packetized.
+- id: ADR-0023
+  title: Use layered causal contracts with optional scoped causal structure
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0023-layered-causal-contracts.md
+  summary: Separate claim intent, estimand, identification, implementation, and report;
+    require graph scope when structure is supplied.
+  consequences:
+  - Narrow causal checks do not require a full DAG.
+  - Model-invented causal structure cannot support Findings.
+- id: ADR-0024
+  title: Adopt the sc-referee public identity while retaining /scientific-audit
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0024-sc-referee-identity.md
+  summary: The project, repository, primary distribution, and CLI use `sc-referee`;
+    Python imports use `sc_referee`; the Claude action remains `/scientific-audit`.
+    See SA-FR-001 and SA-FR-082.
+  consequences:
+  - Continuity with the original prototype is preserved.
+  - The command remains legible to scientists.
+  - Package and command identities are intentionally decoupled.
+- id: ADR-0025
+  title: Use W3ID for immutable canonical schema identifiers
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0025-w3id-schema-namespace.md
+  summary: Versioned `$id` and `$ref` values use `https://w3id.org/sc-referee/schema/v<version>/...`.
+    A `latest` path may aid browsing but is never persisted. See SA-FR-083.
+  consequences:
+  - Published record identity is independent of repository hosting.
+  - The project must maintain the W3ID redirect configuration.
+- id: ADR-0026
+  title: License original sc-referee materials under Apache-2.0
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0026-apache-license.md
+  summary: Original code, schemas, documentation, templates, and original fixtures
+    use Apache License 2.0. External material retains source-specific provenance and
+    terms. See SA-FR-084.
+  consequences:
+  - One main license simplifies reuse and contribution.
+  - Third-party and benchmark licensing remains an explicit release gate.
+- id: ADR-0027
+  title: Require tiered independent approval for detector promotion
+  status: superseded_in_part
+  date: '2026-07-27'
+  document: adrs/ADR-0027-tiered-detector-promotion.md
+  summary: Original mandatory-human approval requirement is superseded by ADR-0037;
+    maintainer approval, public reports, and emergency demotion remain.
+  consequences:
+  - Small teams can iterate experimentally.
+  - Higher maturity has credible independent review.
+  - Qualification reports and emergency demotion become mandatory.
+- id: ADR-0028
+  title: Support Python 3.11 or newer
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0028-python-311.md
+  summary: The first public implementation requires Python 3.11 or newer. Source-syntax
+    parser coverage is reported separately from runtime support. See SA-FR-086.
+  consequences:
+  - Compatibility remains broad.
+  - Newer-language features may require compatibility helpers.
+- id: ADR-0029
+  title: Use canonical JSON/JSONL with a generated SQLite index
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0029-jsonl-sqlite.md
+  summary: JSON and JSONL are canonical; safe YAML is allowed for editable answers
+    and policy; SQLite is generated and disposable. See SA-FR-087.
+  consequences:
+  - Audit meaning survives database deletion.
+  - Local graph traversal remains efficient without a database service.
+- id: ADR-0030
+  title: Use CPython ast plus tokenize for Python extraction
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0030-python-ast-tokenize.md
+  summary: Use CPython `ast` for semantic extraction and `tokenize` for comments,
+    literals, and boundaries. Do not import or execute project modules. Rejected syntax
+    becomes explicit partial coverage. See SA-FR-088.
+  consequences:
+  - The stack is lightweight and standard-library based.
+  - Error recovery and newer-than-runtime syntax are explicit limitations.
+- id: ADR-0031
+  title: Use Tree-sitter-R plus a non-evaluating base-R parser helper
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0031-dual-r-parser.md
+  summary: Use Tree-sitter-R for resilient inventory and an isolated helper calling
+    `parse(keep.source = TRUE)` and `getParseData()` when R is available. Never source
+    or evaluate project code. See SA-FR-089.
+  consequences:
+  - R remains inspectable without a complete environment.
+  - Parser disagreement and dynamic semantics stay visible.
+- id: ADR-0032
+  title: Render self-contained static HTML with Jinja2
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0032-static-jinja-html.md
+  summary: Use Jinja2 with explicit autoescaping and strict undefined variables. Embed
+    required assets; JavaScript is optional enhancement only. See SA-FR-090.
+  consequences:
+  - Reports are portable and rerenderable from records.
+  - Template wording remains centrally controlled.
+- id: ADR-0033
+  title: Require rootless OCI isolation for project-authored execution
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0033-rootless-oci-sandbox.md
+  summary: Project-authored execution requires a capability-reported rootless OCI
+    backend enforcing required controls. No unsafe fallback is offered. Auditor-owned
+    verification may use a restricted subprocess. See SA-FR-091.
+  consequences:
+  - Static audits remain available everywhere.
+  - Selected project execution is unavailable on unsupported hosts.
+- id: ADR-0034
+  title: Keep source-derived caches project-local
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0034-project-local-source-cache.md
+  summary: All source-derived caches remain project-local in version one. Global caches
+    contain only tool-owned or public assets and isolated dependency environments.
+    See SA-FR-092.
+  consequences:
+  - Cross-project leakage risk is reduced.
+  - Some potential cache reuse is intentionally sacrificed.
+- id: ADR-0035
+  title: Continue against the immutable initial snapshot after live edits
+  status: accepted_for_draft
+  date: '2026-07-27'
+  document: adrs/ADR-0035-immutable-snapshot-divergence.md
+  summary: Each run stays bound to its initial immutable snapshot. Live edits set
+    `workspace_diverged` and may trigger a linked follow-up run; they never enter
+    the current run. See SA-FR-093.
+  consequences:
+  - One run remains internally coherent.
+  - Scientists may continue editing without corrupting the audit.
+- id: ADR-0036
+  title: Separate the domain-neutral core slice from the first bulk RNA-seq profile
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0036-domain-neutral-core-bulk-rnaseq.md
+  summary: Build a domain-neutral architecture slice, then a narrow bulk RNA-seq domain
+    pack.
+  consequences:
+  - Core remains reusable across domains.
+  - GeneBench alignment starts before domain expansion.
+- id: ADR-0037
+  title: Use conservative cross-provider coding-agent adjudication
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0037-cross-provider-agent-adjudication.md
+  summary: Use pinned Claude Code/Claude Opus 5 and Codex/GPT-5.6 Sol panels initially,
+    with blind multi-run review and conservative disagreement exclusion.
+  consequences:
+  - Agent errors are mitigated rather than ignored.
+  - Agent-only qualification is disclosed.
+- id: ADR-0038
+  title: Use scoped verified-good and hard-negative fixture classes
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0038-benchmark-fixture-taxonomy.md
+  summary: Distinguish verified-good, scope-verified-good, hard-negative, positive,
+    and ambiguous fixtures.
+  consequences:
+  - Negative labels have explicit scope.
+  - Global correctness claims are prohibited.
+- id: ADR-0039
+  title: Export RO-Crate 1.3 before W3C PROV
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0039-ro-crate-first-export.md
+  summary: Package native audit records and publication metadata as RO-Crate 1.3;
+    defer PROV until needed.
+  consequences:
+  - Research-object packaging arrives early.
+  - Native semantics remain canonical.
+- id: ADR-0040
+  title: Publish a generated multidimensional capability matrix
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0040-generated-capability-matrix.md
+  summary: Generate narrow capability entries from implementation and qualification
+    manifests.
+  consequences:
+  - Public claims cannot drift from manifests.
+  - Domain-wide overclaiming is blocked.
+- id: ADR-0041
+  title: Permit validated and publication-grade detectors to emit Findings
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0041-validated-and-publication-grade-findings.md
+  summary: Both qualified maturity levels use the same Finding admission standard;
+    experimental detectors cannot emit Findings.
+  consequences:
+  - Useful validated detectors may ship earlier.
+  - Maturity never strengthens wording.
+- id: ADR-0042
+  title: Fix promotion safety gates before numerical thresholds
+  status: accepted
+  date: '2026-07-27'
+  document: adrs/ADR-0042-promotion-safety-gates-before-thresholds.md
+  summary: Apply structural safety gates now and defer universal numerical cutoffs
+    until a pilot-informed ADR.
+  consequences:
+  - Qualification is constrained now.
+  - Thresholds will reflect actual corpus structure.

@@ -1,0 +1,27 @@
+{
+  "schema_version": "__SCHEMA_VERSION__",
+  "record_type": "execution",
+  "execution_id": "execution:auditor-mean-difference",
+  "audit_run_id": "audit:lineage-example",
+  "execution_kind": "auditor_verification",
+  "actor": "sc_referee_auditor",
+  "method": "bounded_mean_difference_recomputation",
+  "command": {
+    "display": "internal:verify_mean_difference",
+    "normalized_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "input_refs": [{"record_type": "data_asset", "record_id": "data-asset:analysis-csv"}],
+  "output_refs": [{"record_type": "observed_result", "record_id": "observed-result:mean-difference"}],
+  "environment_ref": {"record_type": "environment", "record_id": "environment:auditor-runtime"},
+  "timing": {"state": "observed", "started_at": "2026-07-28T18:00:00Z", "finished_at": "2026-07-28T18:00:01Z"},
+  "exit": {"state": "succeeded", "code": 0},
+  "sandbox": {"project_code_executed": false, "authorization_status": "not_required", "network_policy": "denied"},
+  "identity_strength": "exact",
+  "source_refs": [{"source_kind": "runtime_command", "locator": "internal:verify_mean_difference"}],
+  "limitations": ["This is auditor-owned verification and is not evidence that the project workflow executed."],
+  "provenance": {
+    "actor": {"actor_kind": "runtime", "actor_id": "runtime:sc-referee"},
+    "method": "bounded_auditor_verification",
+    "created_at": "2026-07-28T18:00:01Z"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "schema_version": "0.5.0",
+  "record_type": "parser_manifest",
+  "parser_id": "parser:python",
+  "parser_version": "0.5.0",
+  "language_or_surface": "python",
+  "backend": "cpython_ast_tokenize",
+  "supported_versions": [
+    "3.8-3.14 source syntax where accepted by runtime AST"
+  ],
+  "capabilities": [
+    "inventory",
+    "syntax_tree",
+    "exact_spans",
+    "comments",
+    "operation_extraction",
+    "source_references"
+  ],
+  "unsupported_constructs": [
+    "runtime-generated code",
+    "eval semantics"
+  ],
+  "executes_project_code": false,
+  "implementation_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "grammar_or_runtime_identity": [
+    "CPython ast 3.11"
+  ],
+  "runtime_requirements": [
+    "Python >=3.11"
+  ],
+  "limitations": [
+    "Files using syntax newer than the running interpreter may be only partially parsed."
+  ],
+  "provenance": {
+    "actor": {
+      "actor_kind": "controller",
+      "actor_id": "software:sc-referee-controller",
+      "display_name": "sc-referee controller"
+    },
+    "method": "deterministic_controller",
+    "created_at": "2026-07-27T12:00:00Z",
+    "tool": "sc-referee",
+    "tool_version": "0.5.0"
+  }
+}

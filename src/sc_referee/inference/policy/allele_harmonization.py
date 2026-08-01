@@ -1,2 +1,0 @@
-"""Allele-harmonization policy placeholder."""
-

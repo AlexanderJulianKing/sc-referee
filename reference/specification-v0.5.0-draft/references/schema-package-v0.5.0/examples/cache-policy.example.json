@@ -1,0 +1,44 @@
+{
+  "schema_version": "0.5.0",
+  "record_type": "cache_policy",
+  "cache_policy_id": "cache-policy:default-v0.4",
+  "project_store_root": ".sc-referee/",
+  "source_derived_scope": "project_local_only",
+  "cross_repository_source_derived_reuse": false,
+  "project_local_categories": [
+    "parser_results",
+    "claims",
+    "semantic_assertions",
+    "scientific_contracts",
+    "model_packets_and_outputs",
+    "detector_results",
+    "reports",
+    "source_derived_objects"
+  ],
+  "global_cache_allowed_classes": [
+    "parser_binaries_and_grammars",
+    "public_package_downloads",
+    "isolated_dependency_environments",
+    "public_external_evidence",
+    "tool_owned_immutable_assets"
+  ],
+  "cache_key_requirements": {
+    "content_digests": true,
+    "component_versions": true,
+    "policy_digest": true,
+    "semantic_dependencies": true
+  },
+  "global_cache_root": "${platform_user_cache}/sc-referee",
+  "provenance": {
+    "actor": {
+      "actor_kind": "controller",
+      "actor_id": "sc-referee-core",
+      "display_name": "sc-referee controller"
+    },
+    "method": "deterministic_controller",
+    "created_at": "2026-07-27T23:45:00Z",
+    "tool": "sc-referee-core",
+    "tool_version": "0.5.0",
+    "source_refs": []
+  }
+}

@@ -1,0 +1,182 @@
+{
+  "audit_run_id": "audit:example-001",
+  "contract_id": "contract:claim-1",
+  "created_at": "2026-07-27T20:00:00Z",
+  "dimensions": {
+    "adjustment_set": {
+      "accepted_assertion_ids": [
+        "assertion:adjustment"
+      ],
+      "assertion_ids": [
+        "assertion:adjustment"
+      ],
+      "state": "known"
+    },
+    "analysis_population": {
+      "accepted_assertion_ids": [
+        "assertion:analysis-population"
+      ],
+      "assertion_ids": [
+        "assertion:analysis-population"
+      ],
+      "state": "known"
+    },
+    "comparison": {
+      "accepted_assertion_ids": [
+        "assertion:comparison"
+      ],
+      "assertion_ids": [
+        "assertion:comparison"
+      ],
+      "state": "known"
+    },
+    "control_set": {
+      "accepted_assertion_ids": [
+        "assertion:control"
+      ],
+      "assertion_ids": [
+        "assertion:control"
+      ],
+      "state": "known"
+    },
+    "denominator_or_universe": {
+      "rationale": "No rate or enrichment denominator.",
+      "state": "not_applicable"
+    },
+    "dependence_structure": {
+      "accepted_assertion_ids": [
+        "assertion:dependence"
+      ],
+      "assertion_ids": [
+        "assertion:dependence"
+      ],
+      "state": "known"
+    },
+    "estimand": {
+      "accepted_assertion_ids": [
+        "assertion:estimand"
+      ],
+      "assertion_ids": [
+        "assertion:estimand"
+      ],
+      "state": "known"
+    },
+    "exposure_or_treatment": {
+      "accepted_assertion_ids": [
+        "assertion:treatment"
+      ],
+      "assertion_ids": [
+        "assertion:treatment"
+      ],
+      "state": "known"
+    },
+    "measurement_model": {
+      "accepted_assertion_ids": [
+        "assertion:measurement"
+      ],
+      "assertion_ids": [
+        "assertion:measurement"
+      ],
+      "state": "known"
+    },
+    "missingness_and_transport": {
+      "accepted_assertion_ids": [
+        "assertion:missingness"
+      ],
+      "assertion_ids": [
+        "assertion:missingness"
+      ],
+      "state": "known"
+    },
+    "outcome": {
+      "accepted_assertion_ids": [
+        "assertion:outcome"
+      ],
+      "assertion_ids": [
+        "assertion:outcome"
+      ],
+      "state": "known"
+    },
+    "scale_and_orientation": {
+      "accepted_assertion_ids": [
+        "assertion:orientation"
+      ],
+      "assertion_ids": [
+        "assertion:orientation"
+      ],
+      "state": "known"
+    },
+    "selection_process": {
+      "accepted_assertion_ids": [
+        "assertion:selection"
+      ],
+      "assertion_ids": [
+        "assertion:selection"
+      ],
+      "state": "known"
+    },
+    "target_population": {
+      "accepted_assertion_ids": [
+        "assertion:target-population"
+      ],
+      "assertion_ids": [
+        "assertion:target-population"
+      ],
+      "state": "known"
+    },
+    "time_definition": {
+      "rationale": "No longitudinal timing in this contrast.",
+      "state": "not_applicable"
+    },
+    "uncertainty_target": {
+      "accepted_assertion_ids": [
+        "assertion:uncertainty"
+      ],
+      "assertion_ids": [
+        "assertion:uncertainty"
+      ],
+      "state": "known"
+    },
+    "unit_of_analysis": {
+      "accepted_assertion_ids": [
+        "assertion:unit"
+      ],
+      "assertion_ids": [
+        "assertion:unit"
+      ],
+      "state": "known"
+    }
+  },
+  "record_type": "scientific_contract",
+  "schema_version": "0.7.0",
+  "scope": {
+    "level": "claim",
+    "subject_refs": [
+      {
+        "record_id": "claim:1",
+        "record_type": "claim"
+      }
+    ]
+  },
+  "source_refs": [
+    {
+      "chunk_label": "claim-1",
+      "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "locator": "manuscript/results.qmd#claim-1",
+      "path": "manuscript/results.qmd",
+      "quoted_text": "Treatment increased expression.",
+      "source_kind": "document_chunk"
+    },
+    {
+      "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "end_line": 47,
+      "locator": "analysis.py:42-47",
+      "path": "analysis.py",
+      "quoted_text": "result = fit(y ~ treatment)",
+      "source_kind": "file_span",
+      "start_line": 42
+    }
+  ],
+  "status": "resolved",
+  "title": "Treatment-expression claim contract"
+}

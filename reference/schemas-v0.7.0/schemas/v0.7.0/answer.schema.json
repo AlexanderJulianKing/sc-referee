@@ -1,0 +1,261 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.7.0/answer.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "answer_kind": {
+            "const": "candidate_selection"
+          }
+        },
+        "required": [
+          "answer_kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "selected_option_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "timestamp_status": {
+            "const": "available"
+          }
+        },
+        "required": [
+          "timestamp_status"
+        ]
+      },
+      "then": {
+        "required": [
+          "answered_at"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "timestamp_status": {
+            "const": "unavailable"
+          }
+        },
+        "required": [
+          "timestamp_status"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "answered_at"
+          ]
+        }
+      }
+    },
+    {
+      "properties": {
+        "provenance": {
+          "properties": {
+            "actor": {
+              "properties": {
+                "actor_kind": {
+                  "const": "human"
+                }
+              },
+              "required": [
+                "actor_kind"
+              ]
+            },
+            "method": {
+              "const": "scientist_answer"
+            }
+          },
+          "required": [
+            "actor",
+            "method"
+          ]
+        },
+        "respondent": {
+          "properties": {
+            "actor_kind": {
+              "const": "human"
+            }
+          },
+          "required": [
+            "actor_kind"
+          ]
+        }
+      }
+    }
+  ],
+  "properties": {
+    "answer_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Digest"
+    },
+    "answer_digest_profile": {
+      "const": "canonical-json-excluding-answer-digest-v1"
+    },
+    "answer_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Identifier"
+    },
+    "answer_kind": {
+      "enum": [
+        "candidate_selection",
+        "structured_value",
+        "free_text",
+        "unknown"
+      ]
+    },
+    "answer_value": {},
+    "answered_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Timestamp"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Identifier"
+    },
+    "authority_scope": {
+      "additionalProperties": false,
+      "properties": {
+        "authority_kind": {
+          "enum": [
+            "scientific_intent",
+            "publication_surface",
+            "reported_intent",
+            "metadata_definition"
+          ]
+        },
+        "semantic_dimensions": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "subject_refs": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/RecordRef"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "authority_kind",
+        "subject_refs",
+        "semantic_dimensions"
+      ],
+      "type": "object"
+    },
+    "certainty": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/QualitativeCertainty"
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Timestamp"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Provenance"
+    },
+    "question_ref": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "material_question"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "record_type": {
+      "const": "answer"
+    },
+    "respondent": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Actor"
+    },
+    "response_source": {
+      "enum": [
+        "interactive_scientist",
+        "provided_answer_file",
+        "explicit_task_statement",
+        "prior_scientist_record"
+      ]
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "selected_option_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Identifier"
+    },
+    "source_snapshot_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Digest"
+    },
+    "supersedes_answer_refs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "record_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Identifier"
+          },
+          "record_type": {
+            "const": "answer"
+          }
+        },
+        "required": [
+          "record_type",
+          "record_id"
+        ],
+        "type": "object"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "timestamp_status": {
+      "enum": [
+        "available",
+        "unavailable"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "answer_id",
+    "audit_run_id",
+    "question_ref",
+    "source_snapshot_digest",
+    "answer_kind",
+    "answer_value",
+    "respondent",
+    "response_source",
+    "authority_scope",
+    "certainty",
+    "timestamp_status",
+    "supersedes_answer_refs",
+    "answer_digest",
+    "answer_digest_profile",
+    "created_at",
+    "provenance"
+  ],
+  "title": "sc-referee Answer",
+  "type": "object"
+}

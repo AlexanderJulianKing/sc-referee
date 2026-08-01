@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/repository-snapshot.schema.json",
+  "title": "sc-referee Repository Snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "snapshot_id",
+    "audit_run_id",
+    "project_root",
+    "captured_at",
+    "strategy",
+    "snapshot_digest",
+    "immutability",
+    "git_state",
+    "file_manifest_ref",
+    "large_asset_policy",
+    "live_workspace_state",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "repository_snapshot"
+    },
+    "snapshot_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "project_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "captured_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "strategy": {
+      "enum": [
+        "content_addressed_copy",
+        "git_objects_with_dirty_overlay",
+        "equivalent_immutable_materialization"
+      ]
+    },
+    "snapshot_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Digest"
+    },
+    "immutability": {
+      "const": true
+    },
+    "git_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "available",
+        "worktree_state"
+      ],
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "commit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "branch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "worktree_state": {
+          "enum": [
+            "clean",
+            "dirty",
+            "not_applicable",
+            "unknown"
+          ]
+        },
+        "captured_dirty_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "captured_untracked_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "file_manifest_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "included_roots": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "excluded_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "large_asset_policy": {
+      "const": "identity_record_unless_material_copy_authorized"
+    },
+    "live_workspace_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "mix_live_content_into_run"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "unchanged",
+            "workspace_diverged",
+            "not_monitored"
+          ]
+        },
+        "mix_live_content_into_run": {
+          "const": false
+        },
+        "detected_at": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+        },
+        "changed_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "follow_up_run_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+        }
+      }
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "live_workspace_state": {
+            "properties": {
+              "status": {
+                "const": "workspace_diverged"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "live_workspace_state": {
+            "required": [
+              "detected_at",
+              "changed_paths"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

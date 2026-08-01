@@ -1,0 +1,87 @@
+{
+  "audit_run_id": "audit:interaction-example",
+  "completed_at": "2026-07-28T21:00:08Z",
+  "completion_reason": "Exact quoted wording was deterministically matched.",
+  "created_at": "2026-07-28T21:00:00Z",
+  "dependency_work_item_refs": [],
+  "kind": "source_evidence_verification",
+  "material_question_refs": [],
+  "output_refs": [
+    {
+      "record_id": "assertion:population-verified",
+      "record_type": "semantic_assertion"
+    }
+  ],
+  "packet": {
+    "limitations": [
+      "Verify only exact wording in the supplied source span."
+    ],
+    "packet_digest": "sha256:e4a4e229e031ffd1341c0a1a5cbf814635f3a614859e0dc6bcdaf33a120a31a3",
+    "packet_digest_profile": "canonical-json-excluding-packet-digest-v1",
+    "packet_kind": "semantic_or_auditor_work_v1",
+    "packet_version": "1.0.0",
+    "policy": {
+      "accepted_status_allowed": false,
+      "model_may_establish_material_premise": false,
+      "open_ended_issue_discovery": false,
+      "project_code_execution": false
+    },
+    "prompt_template_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "prompt_template_id": "prompt:source-evidence-verification-v1",
+    "record_refs": [
+      {
+        "record_id": "assertion:population-proposal",
+        "record_type": "semantic_assertion"
+      }
+    ],
+    "required_output_record_types": [
+      "semantic_assertion"
+    ],
+    "snapshot_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "source_refs": [
+      {
+        "content_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "end_line": 10,
+        "locator": "report.md:10",
+        "path": "report.md",
+        "quoted_text": "Treatment increased yield relative to control.",
+        "source_kind": "file_span",
+        "start_line": 10
+      }
+    ],
+    "unresolved_dimensions": [
+      "target_population"
+    ]
+  },
+  "provenance": {
+    "actor": {
+      "actor_id": "software:sc-referee-controller",
+      "actor_kind": "controller",
+      "display_name": "sc-referee controller"
+    },
+    "created_at": "2026-07-28T21:00:08Z",
+    "method": "deterministic_work_completion",
+    "tool": "sc-referee",
+    "tool_version": "0.2.0.dev0"
+  },
+  "record_type": "work_item",
+  "scheduling": {
+    "cache_status": "miss",
+    "claim_materiality": "claim_material",
+    "component_maturity": "experimental",
+    "downstream_reach": 2,
+    "estimated_elapsed_seconds": 10,
+    "execution_privilege": "safe_inspection",
+    "expected_information_gain": "high"
+  },
+  "schema_version": "0.14.0",
+  "started_at": "2026-07-28T21:00:05Z",
+  "status": "completed",
+  "target_refs": [
+    {
+      "record_id": "assertion:population-proposal",
+      "record_type": "semantic_assertion"
+    }
+  ],
+  "work_item_id": "work-item:verify-explicit-text"
+}

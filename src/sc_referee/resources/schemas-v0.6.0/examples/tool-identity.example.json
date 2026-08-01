@@ -1,0 +1,34 @@
+{
+  "build_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "captured_at": "2026-07-27T23:45:00Z",
+  "claude_skill_command": "/scientific-audit",
+  "cli_executable": "sc-referee",
+  "compatibility_cli_aliases": [
+    "referee"
+  ],
+  "component_versions": {
+    "controller": "0.5.0-draft",
+    "schemas": "0.5.0"
+  },
+  "distribution_name": "sc-referee",
+  "import_namespace": "sc_referee",
+  "namespaced_plugin_command": "/sc-referee:scientific-audit",
+  "product_name": "sc-referee",
+  "provenance": {
+    "actor": {
+      "actor_id": "sc-referee-core",
+      "actor_kind": "controller",
+      "display_name": "sc-referee controller"
+    },
+    "created_at": "2026-07-27T23:45:00Z",
+    "method": "deterministic_controller",
+    "source_refs": [],
+    "tool": "sc-referee-core",
+    "tool_version": "0.5.0"
+  },
+  "python_runtime": "3.11.9",
+  "record_type": "tool_identity",
+  "schema_namespace": "https://w3id.org/sc-referee/schema/v0.6.0/",
+  "schema_version": "0.6.0",
+  "tool_identity_id": "tool-identity:sc-referee:0.5.0"
+}

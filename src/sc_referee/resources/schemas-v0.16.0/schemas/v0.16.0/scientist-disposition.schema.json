@@ -1,0 +1,84 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.16.0/scientist-disposition.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Identifier"
+    },
+    "authority_scope": {
+      "enum": [
+        "scientific_intent",
+        "materiality_judgment",
+        "risk_acceptance",
+        "dispute",
+        "correction_status"
+      ]
+    },
+    "disposition_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Identifier"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Provenance"
+    },
+    "rationale": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "record_type": {
+      "const": "scientist_disposition"
+    },
+    "recorded_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Timestamp"
+    },
+    "respondent": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Actor"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "source_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/SourceRef"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "status": {
+      "enum": [
+        "confirmed",
+        "accepted_risk",
+        "disputed",
+        "not_material",
+        "deferred",
+        "corrected_in_later_revision"
+      ]
+    },
+    "target_assessment_ref": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/RecordRef"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "disposition_id",
+    "audit_run_id",
+    "target_assessment_ref",
+    "status",
+    "rationale",
+    "respondent",
+    "authority_scope",
+    "source_refs",
+    "recorded_at",
+    "provenance"
+  ],
+  "title": "Scientist Disposition",
+  "type": "object"
+}

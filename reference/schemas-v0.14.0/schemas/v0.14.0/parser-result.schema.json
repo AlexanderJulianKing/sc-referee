@@ -1,0 +1,134 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.14.0/parser-result.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/Identifier"
+    },
+    "completed_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/Timestamp"
+    },
+    "coverage_status": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/CoverageStatus"
+    },
+    "emitted_record_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/RecordRef"
+      },
+      "type": "array"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "opaque_constructs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "reason": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "source_ref": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/SourceRef"
+          }
+        },
+        "required": [
+          "kind",
+          "reason",
+          "source_ref"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "parser_disagreement": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "parser_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/Identifier"
+    },
+    "parser_result_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/Identifier"
+    },
+    "parser_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/SemVer"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "parser_result"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "secondary_parser_result_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/Identifier"
+    },
+    "source_ref": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/SourceRef"
+    },
+    "started_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/Timestamp"
+    },
+    "state": {
+      "enum": [
+        "parsed",
+        "partially_parsed",
+        "unsupported",
+        "parser_unavailable",
+        "error"
+      ]
+    },
+    "syntax_issues": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "recoverable": {
+            "type": "boolean"
+          },
+          "source_ref": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/SourceRef"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "parser_result_id",
+    "audit_run_id",
+    "parser_id",
+    "parser_version",
+    "source_ref",
+    "state",
+    "coverage_status",
+    "emitted_record_refs",
+    "syntax_issues",
+    "opaque_constructs",
+    "started_at",
+    "completed_at",
+    "provenance"
+  ],
+  "title": "sc-referee Parser Result",
+  "type": "object"
+}

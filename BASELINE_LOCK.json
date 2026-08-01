@@ -1,0 +1,23 @@
+{
+  "starter_version": "0.1.0",
+  "architecture_baseline": "0.5.0-draft",
+  "schema_baseline": "0.5.0",
+  "files": {
+    "reference/sc-referee-specification-v0.5.0-draft.zip": {
+      "sha256": "569d9155c6e331fb6243e332f253ea1a23ed38e95d049d4db74686dfffbdf9c7",
+      "bytes": 627468
+    },
+    "reference/sc-referee-schemas-v0.5.0.zip": {
+      "sha256": "25e5222a0f2cff769dea6dcad580534bc3669cd8e17aff7716bf7a2d55ade75b",
+      "bytes": 115161
+    },
+    "reference/specification-v0.5.0-draft/MASTER_SPEC.md": {
+      "sha256": "7df69c4b056bd4beb9b6a21a1f857c5ce676375ec93cf0a45a1b9a775408ae34",
+      "bytes": 254632
+    },
+    "reference/schemas-v0.5.0/schema-catalog.json": {
+      "sha256": "fc8b83f6d02adc3ce9d289e3247258555efdaa9af00a745e60471653f2ae3dbc",
+      "bytes": 7455
+    }
+  }
+}

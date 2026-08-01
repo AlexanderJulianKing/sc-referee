@@ -1,7 +1,5 @@
-"""sc-referee — the bioinformatics reviewer you can leave behind.
+"""Conservative evidence compiler for scientific-analysis auditing."""
 
-Claude proposes (plain language) -> a human confirms once -> arithmetic decides.
-The verdict is a deterministic recompute, never an LLM opinion.
-"""
+from .version import __version__
 
-__version__ = "0.0.1"
+__all__ = ["__version__"]

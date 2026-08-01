@@ -1,0 +1,84 @@
+{
+  "audit_run_id": "audit:interaction-example",
+  "created_at": "2026-07-28T21:00:00Z",
+  "dependency_work_item_refs": [],
+  "kind": "semantic_resolution",
+  "material_question_refs": [],
+  "output_refs": [],
+  "packet": {
+    "limitations": [
+      "Propose only meanings supported by the bounded packet; preserve every unresolved dimension."
+    ],
+    "packet_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "packet_digest_profile": "canonical-json-excluding-packet-digest-v1",
+    "packet_version": "1.0.0",
+    "policy": {
+      "accepted_status_allowed": false,
+      "model_may_establish_material_premise": false,
+      "open_ended_issue_discovery": false,
+      "project_code_execution": false
+    },
+    "prompt_template_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "prompt_template_id": "prompt:semantic-resolution-v1",
+    "record_refs": [
+      {
+        "record_id": "claim:results-1",
+        "record_type": "claim"
+      },
+      {
+        "record_id": "contract:results-1",
+        "record_type": "scientific_contract"
+      }
+    ],
+    "required_output_record_types": [
+      "semantic_assertion",
+      "material_question"
+    ],
+    "snapshot_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "source_refs": [
+      {
+        "content_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "end_line": 10,
+        "locator": "report.md:10",
+        "path": "report.md",
+        "quoted_text": "Treatment increased yield relative to control.",
+        "source_kind": "file_span",
+        "start_line": 10
+      }
+    ],
+    "unresolved_dimensions": [
+      "target_population",
+      "analysis_population"
+    ]
+  },
+  "provenance": {
+    "actor": {
+      "actor_id": "software:sc-referee-controller",
+      "actor_kind": "controller",
+      "display_name": "sc-referee controller"
+    },
+    "created_at": "2026-07-28T21:00:00Z",
+    "method": "deterministic_work_scheduling",
+    "tool": "sc-referee",
+    "tool_version": "0.2.0.dev0"
+  },
+  "record_type": "work_item",
+  "scheduling": {
+    "cache_status": "not_cacheable",
+    "claim_materiality": "claim_material",
+    "component_maturity": "experimental",
+    "downstream_reach": 2,
+    "estimated_elapsed_seconds": 45,
+    "execution_privilege": "safe_inspection",
+    "expected_information_gain": "high"
+  },
+  "schema_version": "0.13.0",
+  "status": "ready",
+  "target_refs": [
+    {
+      "record_id": "claim:results-1",
+      "record_type": "claim"
+    }
+  ],
+  "work_item_id": "work-item:semantic-population"
+}

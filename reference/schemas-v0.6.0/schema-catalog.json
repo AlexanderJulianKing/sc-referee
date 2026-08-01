@@ -1,0 +1,263 @@
+{
+  "schema_version": "0.6.0",
+  "schemas": [
+    {
+      "file": "adjudication.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/adjudication.schema.json",
+      "kind": "record",
+      "name": "adjudication"
+    },
+    {
+      "file": "agent-review.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/agent-review.schema.json",
+      "kind": "record",
+      "name": "agent_review"
+    },
+    {
+      "file": "asset-identity.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/asset-identity.schema.json",
+      "kind": "record",
+      "name": "asset_identity"
+    },
+    {
+      "file": "audit-bundle.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/audit-bundle.schema.json",
+      "kind": "record",
+      "name": "audit_bundle"
+    },
+    {
+      "file": "audit-plan.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/audit-plan.schema.json",
+      "kind": "record",
+      "name": "audit_plan"
+    },
+    {
+      "file": "benchmark-adjudication.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/benchmark-adjudication.schema.json",
+      "kind": "record",
+      "name": "benchmark_adjudication"
+    },
+    {
+      "file": "benchmark-fixture.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/benchmark-fixture.schema.json",
+      "kind": "record",
+      "name": "benchmark_fixture"
+    },
+    {
+      "file": "cache-entry.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/cache-entry.schema.json",
+      "kind": "record",
+      "name": "cache_entry"
+    },
+    {
+      "file": "cache-policy.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/cache-policy.schema.json",
+      "kind": "record",
+      "name": "cache_policy"
+    },
+    {
+      "file": "capability-matrix.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/capability-matrix.schema.json",
+      "kind": "record",
+      "name": "capability_matrix"
+    },
+    {
+      "file": "causal-contract.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/causal-contract.schema.json",
+      "kind": "record",
+      "name": "causal_contract"
+    },
+    {
+      "file": "claim.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/claim.schema.json",
+      "kind": "record",
+      "name": "claim"
+    },
+    {
+      "file": "common.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json",
+      "kind": "supporting",
+      "name": "common"
+    },
+    {
+      "file": "conditional-concern.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/conditional-concern.schema.json",
+      "kind": "record",
+      "name": "conditional_concern"
+    },
+    {
+      "file": "coverage-record.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/coverage-record.schema.json",
+      "kind": "record",
+      "name": "coverage_record"
+    },
+    {
+      "file": "detector-manifest.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/detector-manifest.schema.json",
+      "kind": "record",
+      "name": "detector_manifest"
+    },
+    {
+      "file": "detector-qualification.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/detector-qualification.schema.json",
+      "kind": "record",
+      "name": "detector_qualification"
+    },
+    {
+      "file": "detector-result.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/detector-result.schema.json",
+      "kind": "record",
+      "name": "detector_result"
+    },
+    {
+      "file": "disclosure.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/disclosure.schema.json",
+      "kind": "record",
+      "name": "disclosure"
+    },
+    {
+      "file": "environment-reconstruction.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/environment-reconstruction.schema.json",
+      "kind": "record",
+      "name": "environment_reconstruction"
+    },
+    {
+      "file": "external-evidence.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/external-evidence.schema.json",
+      "kind": "record",
+      "name": "external_evidence"
+    },
+    {
+      "file": "finding.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/finding.schema.json",
+      "kind": "record",
+      "name": "finding"
+    },
+    {
+      "file": "material-question.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/material-question.schema.json",
+      "kind": "record",
+      "name": "material_question"
+    },
+    {
+      "file": "parser-manifest.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/parser-manifest.schema.json",
+      "kind": "record",
+      "name": "parser_manifest"
+    },
+    {
+      "file": "parser-result.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/parser-result.schema.json",
+      "kind": "record",
+      "name": "parser_result"
+    },
+    {
+      "file": "performance-record.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/performance-record.schema.json",
+      "kind": "record",
+      "name": "performance_record"
+    },
+    {
+      "file": "publication-surface.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/publication-surface.schema.json",
+      "kind": "record",
+      "name": "publication_surface"
+    },
+    {
+      "file": "record-union.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/record-union.schema.json",
+      "kind": "supporting",
+      "name": "record_union"
+    },
+    {
+      "file": "repository-snapshot.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/repository-snapshot.schema.json",
+      "kind": "record",
+      "name": "repository_snapshot"
+    },
+    {
+      "file": "reproduction-request.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/reproduction-request.schema.json",
+      "kind": "record",
+      "name": "reproduction_request"
+    },
+    {
+      "file": "ro-crate-export.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/ro-crate-export.schema.json",
+      "kind": "record",
+      "name": "ro_crate_export"
+    },
+    {
+      "file": "sandbox-capability.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/sandbox-capability.schema.json",
+      "kind": "record",
+      "name": "sandbox_capability"
+    },
+    {
+      "file": "scientific-contract.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/scientific-contract.schema.json",
+      "kind": "record",
+      "name": "scientific_contract"
+    },
+    {
+      "file": "scientist-disposition.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/scientist-disposition.schema.json",
+      "kind": "record",
+      "name": "scientist_disposition"
+    },
+    {
+      "file": "semantic-assertion.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/semantic-assertion.schema.json",
+      "kind": "record",
+      "name": "semantic_assertion"
+    },
+    {
+      "file": "storage-manifest.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/storage-manifest.schema.json",
+      "kind": "record",
+      "name": "storage_manifest"
+    },
+    {
+      "file": "tool-identity.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/tool-identity.schema.json",
+      "kind": "record",
+      "name": "tool_identity"
+    },
+    {
+      "file": "audit-run.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/audit-run.schema.json",
+      "kind": "record",
+      "name": "audit_run"
+    },
+    {
+      "file": "stage-result.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/stage-result.schema.json",
+      "kind": "record",
+      "name": "stage_result"
+    },
+    {
+      "file": "file-record.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/file-record.schema.json",
+      "kind": "record",
+      "name": "file_record"
+    },
+    {
+      "file": "operation.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/operation.schema.json",
+      "kind": "record",
+      "name": "operation"
+    },
+    {
+      "file": "artifact.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/artifact.schema.json",
+      "kind": "record",
+      "name": "artifact"
+    },
+    {
+      "file": "observed-result.schema.json",
+      "id": "https://w3id.org/sc-referee/schema/v0.6.0/observed-result.schema.json",
+      "kind": "record",
+      "name": "observed_result"
+    }
+  ]
+}

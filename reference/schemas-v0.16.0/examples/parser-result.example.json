@@ -1,0 +1,53 @@
+{
+  "audit_run_id": "run:example",
+  "completed_at": "2026-07-27T12:00:02Z",
+  "coverage_status": "partially_covered",
+  "emitted_record_refs": [
+    {
+      "record_id": "operation:1",
+      "record_type": "operation"
+    }
+  ],
+  "opaque_constructs": [
+    {
+      "kind": "eval",
+      "reason": "Runtime expression cannot be statically resolved.",
+      "source_ref": {
+        "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "end_line": 10,
+        "locator": "analysis.py:1-10",
+        "path": "analysis.py",
+        "source_kind": "file_span",
+        "start_line": 1
+      }
+    }
+  ],
+  "parser_disagreement": null,
+  "parser_id": "parser:python",
+  "parser_result_id": "parser-result:example",
+  "parser_version": "0.5.0",
+  "provenance": {
+    "actor": {
+      "actor_id": "software:sc-referee-controller",
+      "actor_kind": "controller",
+      "display_name": "sc-referee controller"
+    },
+    "created_at": "2026-07-27T12:00:00Z",
+    "method": "deterministic_controller",
+    "tool": "sc-referee",
+    "tool_version": "0.5.0"
+  },
+  "record_type": "parser_result",
+  "schema_version": "0.16.0",
+  "source_ref": {
+    "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "end_line": 10,
+    "locator": "analysis.py:1-10",
+    "path": "analysis.py",
+    "source_kind": "file_span",
+    "start_line": 1
+  },
+  "started_at": "2026-07-27T12:00:01Z",
+  "state": "partially_parsed",
+  "syntax_issues": []
+}

@@ -1,0 +1,419 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.17.0/stage3-comparison-review.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "adjudication_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Digest"
+    },
+    "adjudication_ref": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "benchmark_adjudication"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "all_candidates_accounted_for": {
+      "const": true
+    },
+    "all_roots_accounted_for": {
+      "const": true
+    },
+    "audit_bundle_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Digest"
+    },
+    "audit_bundle_ref": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "audit_bundle"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "candidate_mappings": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "affected_scope": {
+            "enum": [
+              "within_adjudicated_scope",
+              "exceeds_adjudicated_scope",
+              "outside_declared_scope",
+              "not_applicable",
+              "unresolved"
+            ]
+          },
+          "candidate_ref": {
+            "additionalProperties": false,
+            "properties": {
+              "record_id": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+              },
+              "record_type": {
+                "const": "detector_evaluation_candidate"
+              }
+            },
+            "required": [
+              "record_type",
+              "record_id"
+            ],
+            "type": "object"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/EvidenceItem"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "issue_class_relationship": {
+            "enum": [
+              "exact",
+              "mismatch",
+              "not_applicable",
+              "unresolved"
+            ]
+          },
+          "material_ambiguity": {
+            "type": "boolean"
+          },
+          "rationale": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "root_cause_ref": {
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "record_id": {
+                    "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+                  },
+                  "record_type": {
+                    "const": "adjudicated_root_cause"
+                  }
+                },
+                "required": [
+                  "record_type",
+                  "record_id"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scientific_relation": {
+            "enum": [
+              "same_first_material_divergence",
+              "different_root_cause",
+              "no_adjudicated_root",
+              "unresolved"
+            ]
+          },
+          "statement_boundedness": {
+            "enum": [
+              "within_adjudicated_bounds",
+              "exceeds_adjudicated_bounds",
+              "not_applicable",
+              "unresolved"
+            ]
+          }
+        },
+        "required": [
+          "candidate_ref",
+          "root_cause_ref",
+          "scientific_relation",
+          "statement_boundedness",
+          "affected_scope",
+          "issue_class_relationship",
+          "evidence",
+          "material_ambiguity",
+          "rationale"
+        ],
+        "type": "object"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "candidate_refs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "record_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+          },
+          "record_type": {
+            "const": "detector_evaluation_candidate"
+          }
+        },
+        "required": [
+          "record_type",
+          "record_id"
+        ],
+        "type": "object"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "case_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+    },
+    "comparison_access": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_root_causes_visible": {
+          "const": true
+        },
+        "detector_output_visible": {
+          "const": true
+        },
+        "other_stage3_reviews_hidden": {
+          "const": true
+        },
+        "prior_review_context_reused": {
+          "const": false
+        },
+        "scientific_label_frozen_before_detector_output": {
+          "const": true
+        }
+      },
+      "required": [
+        "scientific_label_frozen_before_detector_output",
+        "detector_output_visible",
+        "canonical_root_causes_visible",
+        "other_stage3_reviews_hidden",
+        "prior_review_context_reused"
+      ],
+      "type": "object"
+    },
+    "comparison_review_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+    },
+    "completed_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Timestamp"
+    },
+    "confidence_used_for_equivalence": {
+      "const": false
+    },
+    "detector_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+    },
+    "detector_manifest_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Digest"
+    },
+    "detector_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/SemVer"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "fixture_ref": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "benchmark_fixture"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "material_ambiguity_retained": {
+      "type": "boolean"
+    },
+    "packet_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Digest"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "stage3_comparison_review"
+    },
+    "reviewer_agent": {
+      "additionalProperties": false,
+      "properties": {
+        "agent_surface": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "agent_version": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "environment_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Digest"
+        },
+        "execution_context_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+        },
+        "independent_context": {
+          "const": true
+        },
+        "model_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "model_name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "model_snapshot": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "reasoning_configuration": {
+          "type": [
+            "string",
+            "object",
+            "null"
+          ]
+        },
+        "system_prompt_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Digest"
+        },
+        "task_prompt_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Digest"
+        },
+        "tool_policy_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Digest"
+        }
+      },
+      "required": [
+        "provider",
+        "agent_surface",
+        "model_name",
+        "model_id",
+        "agent_version",
+        "execution_context_id",
+        "independent_context",
+        "system_prompt_digest",
+        "task_prompt_digest",
+        "tool_policy_digest",
+        "environment_digest"
+      ],
+      "type": "object"
+    },
+    "root_cause_refs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "record_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+          },
+          "record_type": {
+            "const": "adjudicated_root_cause"
+          }
+        },
+        "required": [
+          "record_type",
+          "record_id"
+        ],
+        "type": "object"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "scientific_label_freeze_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Digest"
+    },
+    "stage": {
+      "const": "stage3_detector_comparison"
+    },
+    "transcript_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Digest"
+    },
+    "unmatched_root_cause_refs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "record_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+          },
+          "record_type": {
+            "const": "adjudicated_root_cause"
+          }
+        },
+        "required": [
+          "record_type",
+          "record_id"
+        ],
+        "type": "object"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "comparison_review_id",
+    "case_id",
+    "stage",
+    "reviewer_agent",
+    "fixture_ref",
+    "adjudication_ref",
+    "adjudication_digest",
+    "scientific_label_freeze_digest",
+    "audit_bundle_ref",
+    "audit_bundle_digest",
+    "detector_id",
+    "detector_version",
+    "detector_manifest_digest",
+    "root_cause_refs",
+    "candidate_refs",
+    "candidate_mappings",
+    "unmatched_root_cause_refs",
+    "all_roots_accounted_for",
+    "all_candidates_accounted_for",
+    "comparison_access",
+    "material_ambiguity_retained",
+    "confidence_used_for_equivalence",
+    "packet_digest",
+    "transcript_digest",
+    "completed_at",
+    "provenance"
+  ],
+  "title": "sc-referee Stage-3 Detector Comparison Review",
+  "type": "object"
+}

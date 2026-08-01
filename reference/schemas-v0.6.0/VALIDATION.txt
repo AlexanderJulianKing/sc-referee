@@ -1,0 +1,10 @@
+sc-referee schema package 0.6.0 validation
+
+JSON Schemas checked: 43
+Cataloged schemas: 43
+Example records validated: 50
+Invariant tests passed: 58
+Canonical local references: all resolved
+JSON Schema meta-validation: passed
+
+These checks establish structural and selected deterministic-policy consistency. They do not establish scientific detector validity, benchmark-label truth, precision, recall, runtime performance, or W3ID deployment.

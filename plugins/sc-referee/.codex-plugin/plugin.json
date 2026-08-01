@@ -1,0 +1,33 @@
+{
+  "name": "sc-referee",
+  "version": "0.3.0-dev.0+codex.20260801021301",
+  "description": "Conservative scientific method contracting and workflow auditing through the deterministic sc-referee CLI",
+  "author": {
+    "name": "sc-referee contributors"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "scientific-audit",
+    "reproducibility",
+    "static-analysis"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "sc-referee",
+    "shortDescription": "Method contracts and conservative workflow audits",
+    "longDescription": "Uses the installed sc-referee CLI to freeze narrow human-authorized method contracts before coding and to audit scientific workflows without executing project-authored code, separating demonstrated Findings from unknowns and coverage limits.",
+    "developerName": "sc-referee contributors",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Claimless scientific method contracting",
+      "Static scientific audit",
+      "Typed human-in-the-loop resolution",
+      "Model-free replay"
+    ],
+    "defaultPrompt": [
+      "Freeze the intended method before coding this workflow.",
+      "Audit this scientific workflow conservatively.",
+      "Replay this sc-referee audit from its semantic lock."
+    ]
+  }
+}

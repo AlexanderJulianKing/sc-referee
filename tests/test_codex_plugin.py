@@ -1,0 +1,58 @@
+from __future__ import annotations
+
+import json
+import re
+from pathlib import Path
+
+import pytest
+
+STRICT_SEMVER = re.compile(
+    r"^(0|[1-9]\d*)\."
+    r"(0|[1-9]\d*)\."
+    r"(0|[1-9]\d*)"
+    r"(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
+)
+
+
+def _relative_files(root: Path) -> list[Path]:
+    return sorted(path.relative_to(root) for path in root.rglob("*") if path.is_file())
+
+
+def test_codex_plugin_manifest_declares_the_bounded_local_surface(project_root: Path) -> None:
+    plugin_root = project_root / "plugins" / "sc-referee"
+    manifest = json.loads(
+        (plugin_root / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+    )
+
+    assert manifest["name"] == plugin_root.name
+    assert STRICT_SEMVER.fullmatch(manifest["version"])
+    assert manifest["skills"] == "./skills/"
+    assert manifest["license"] == "Apache-2.0"
+    assert "repository" not in manifest
+    assert "homepage" not in manifest
+    assert manifest["interface"]["capabilities"] == [
+        "Claimless scientific method contracting",
+        "Static scientific audit",
+        "Typed human-in-the-loop resolution",
+        "Model-free replay",
+    ]
+    prompts = manifest["interface"]["defaultPrompt"]
+    assert 1 <= len(prompts) <= 3
+    assert all(len(prompt) <= 128 for prompt in prompts)
+    assert "installed sc-referee CLI" in manifest["interface"]["longDescription"]
+
+
+@pytest.mark.parametrize("skill_name", ["scientific-audit", "method-contract"])
+def test_codex_plugin_skill_is_an_exact_copy_of_the_authoritative_skill(
+    project_root: Path,
+    skill_name: str,
+) -> None:
+    authoritative = project_root / ".agents" / "skills" / skill_name
+    packaged = project_root / "plugins" / "sc-referee" / "skills" / skill_name
+
+    assert _relative_files(packaged) == _relative_files(authoritative)
+    for relative_path in _relative_files(authoritative):
+        assert (packaged / relative_path).read_bytes() == (
+            authoritative / relative_path
+        ).read_bytes()

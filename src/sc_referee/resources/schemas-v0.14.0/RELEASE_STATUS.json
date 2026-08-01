@@ -1,0 +1,9 @@
+{
+  "accepted": true,
+  "baseline_version": "0.13.0",
+  "public_release": true,
+  "release_version": "0.14.0",
+  "source_adrs": [
+    "docs/implementation/ADR-0014-TYPED-PROJECT-EXECUTION-WORK-ITEM.md"
+  ]
+}

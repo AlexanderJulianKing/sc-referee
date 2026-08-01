@@ -1,0 +1,55 @@
+{
+  "schema_version": "0.5.0",
+  "record_type": "performance_record",
+  "performance_record_id": "performance:example",
+  "audit_run_id": "run:example",
+  "recorded_at": "2026-07-27T12:10:00Z",
+  "user_visible_elapsed_seconds": 600,
+  "paused_for_scientist_seconds": 45,
+  "active_cpu_seconds": 22.5,
+  "peak_memory_bytes": 268435456,
+  "model_usage": {
+    "calls": 14,
+    "input_tokens": 120000,
+    "output_tokens": 18000,
+    "host_limit_reached": false
+  },
+  "io_usage": {
+    "source_bytes_read": 1500000,
+    "large_asset_bytes_read": 5000000,
+    "network_bytes_received": 250000
+  },
+  "cache_usage": {
+    "hits": 34,
+    "misses": 7,
+    "invalidations": 2
+  },
+  "stage_timings": [
+    {
+      "stage": "inventory",
+      "elapsed_seconds": 2.1,
+      "state": "complete"
+    },
+    {
+      "stage": "semantic_mapping",
+      "elapsed_seconds": 420,
+      "state": "partial"
+    }
+  ],
+  "termination": {
+    "state": "partial",
+    "reason": "hard_deadline",
+    "detail": "Rendered completed work at the standard hard deadline."
+  },
+  "provenance": {
+    "actor": {
+      "actor_kind": "controller",
+      "actor_id": "software:sc-referee-controller",
+      "display_name": "sc-referee controller"
+    },
+    "method": "deterministic_controller",
+    "created_at": "2026-07-27T12:00:00Z",
+    "tool": "sc-referee",
+    "tool_version": "0.5.0"
+  }
+}

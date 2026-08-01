@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/audit-run.schema.json",
+  "title": "sc-referee AuditRun review candidate",
+  "$comment": "Nonpublic ADR-0002 template. __SCHEMA_VERSION__ must be supplied explicitly by the candidate builder.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "audit_run_id",
+    "state",
+    "created_at",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {"const": "audit_run"},
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+    },
+    "state": {
+      "enum": [
+        "created",
+        "snapshotted",
+        "inventoried",
+        "parsed",
+        "semantics_locked",
+        "detected",
+        "reported",
+        "complete",
+        "partial_deadline",
+        "partial_host_limit",
+        "cancelled",
+        "failed_controller"
+      ]
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Timestamp"
+    },
+    "snapshot_ref": {"$ref": "#/$defs/RepositorySnapshotRef"},
+    "parent_run_ref": {"$ref": "#/$defs/AuditRunRef"},
+    "terminal_reason": {"type": "string", "minLength": 1},
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Provenance"
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"state": {"const": "created"}}, "required": ["state"]},
+      "then": {"not": {"required": ["snapshot_ref"]}}
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "snapshotted",
+              "inventoried",
+              "parsed",
+              "semantics_locked",
+              "detected",
+              "reported",
+              "complete"
+            ]
+          }
+        },
+        "required": ["state"]
+      },
+      "then": {"required": ["snapshot_ref"]}
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "partial_deadline",
+              "partial_host_limit",
+              "cancelled",
+              "failed_controller"
+            ]
+          }
+        },
+        "required": ["state"]
+      },
+      "then": {"required": ["terminal_reason"]}
+    }
+  ],
+  "$defs": {
+    "RepositorySnapshotRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_type", "record_id"],
+      "properties": {
+        "record_type": {"const": "repository_snapshot"},
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+        }
+      }
+    },
+    "AuditRunRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_type", "record_id"],
+      "properties": {
+        "record_type": {"const": "audit_run"},
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+        }
+      }
+    }
+  }
+}

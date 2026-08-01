@@ -1,0 +1,593 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.10.0/audit-plan.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "audit_plan_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Identifier"
+    },
+    "cache_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "cross_repository_semantic_cache": {
+          "const": false
+        },
+        "global_cache_allowed_classes": {
+          "const": [
+            "parser_binaries_and_grammars",
+            "public_package_downloads",
+            "isolated_dependency_environments",
+            "public_external_evidence",
+            "tool_owned_immutable_assets"
+          ]
+        },
+        "source_derived_scope": {
+          "const": "project_local_only"
+        }
+      },
+      "required": [
+        "source_derived_scope",
+        "cross_repository_semantic_cache",
+        "global_cache_allowed_classes"
+      ],
+      "type": "object"
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Timestamp"
+    },
+    "data_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "identity_policy": {
+          "const": "tiered"
+        },
+        "max_source_packet_bytes": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_total_bytes_read_from_large_assets": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "identity_policy",
+        "max_total_bytes_read_from_large_assets",
+        "max_source_packet_bytes"
+      ],
+      "type": "object"
+    },
+    "deadlines": {
+      "additionalProperties": false,
+      "properties": {
+        "clock": {
+          "const": "user_visible_elapsed"
+        },
+        "hard_deadline_seconds": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "no_automatic_mode_escalation": {
+          "const": true
+        },
+        "pause_states": {
+          "const": [
+            "awaiting_scientist_response"
+          ]
+        },
+        "resume_creates_linked_run_segment": {
+          "const": true
+        },
+        "scheduling_cutoff_seconds": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "clock",
+        "scheduling_cutoff_seconds",
+        "hard_deadline_seconds",
+        "pause_states",
+        "no_automatic_mode_escalation",
+        "resume_creates_linked_run_segment"
+      ],
+      "type": "object"
+    },
+    "execution_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_dependency_installation": {
+          "description": "Whether the selected mode permits automatic project dependency installation in an isolated audit-owned environment. Quick mode may set false; standard and publication defaults set true.",
+          "type": "boolean"
+        },
+        "allow_full_workflow_execution": {
+          "const": false
+        },
+        "allow_hpc_submission": {
+          "const": false
+        },
+        "allow_local_project_installation": {
+          "const": false
+        },
+        "allow_system_package_installation": {
+          "const": false
+        },
+        "automatic_execution_levels": {
+          "allOf": [
+            {
+              "contains": {
+                "const": "safe_inspection"
+              }
+            },
+            {
+              "contains": {
+                "const": "auditor_owned_verification"
+              }
+            },
+            {
+              "not": {
+                "contains": {
+                  "const": "project_code_execution"
+                }
+              }
+            }
+          ],
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/ExecutionLevel"
+          },
+          "minItems": 2,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "dependency_installation_isolation": {
+          "const": "isolated_environment_only"
+        },
+        "project_code_execution": {
+          "enum": [
+            "denied",
+            "explicitly_authorized"
+          ]
+        },
+        "project_code_network_access": {
+          "enum": [
+            "denied",
+            "explicitly_authorized"
+          ]
+        },
+        "repository_mount": {
+          "const": "read_only"
+        },
+        "static_first": {
+          "const": true
+        },
+        "unsafe_deserialization": {
+          "const": "deny"
+        },
+        "unversioned_environment_status": {
+          "const": "approximate"
+        },
+        "writable_roots": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "static_first",
+        "automatic_execution_levels",
+        "project_code_execution",
+        "project_code_network_access",
+        "allow_dependency_installation",
+        "dependency_installation_isolation",
+        "unversioned_environment_status",
+        "allow_local_project_installation",
+        "allow_system_package_installation",
+        "allow_full_workflow_execution",
+        "allow_hpc_submission",
+        "unsafe_deserialization",
+        "repository_mount",
+        "writable_roots"
+      ],
+      "type": "object"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "finding_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "emit_numerical_finding_confidence": {
+          "const": false
+        },
+        "finding_means_demonstrated_issue_only": {
+          "const": true
+        },
+        "group_findings_by_root_cause": {
+          "const": true
+        },
+        "minimum_detector_maturity": {
+          "enum": [
+            "validated",
+            "publication_grade"
+          ]
+        },
+        "never_emit_global_correctness_status": {
+          "const": true
+        },
+        "require_all_five_admission_conditions": {
+          "const": true
+        },
+        "require_finite_counterevidence_protocol": {
+          "const": true
+        },
+        "reserve_severity_for_findings": {
+          "const": true
+        }
+      },
+      "required": [
+        "finding_means_demonstrated_issue_only",
+        "minimum_detector_maturity",
+        "require_all_five_admission_conditions",
+        "require_finite_counterevidence_protocol",
+        "reserve_severity_for_findings",
+        "emit_numerical_finding_confidence",
+        "never_emit_global_correctness_status",
+        "group_findings_by_root_cause"
+      ],
+      "type": "object"
+    },
+    "mode": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/AuditMode"
+    },
+    "model_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_bounded_semantic_extraction": {
+          "const": true
+        },
+        "allow_model_finding_admission": {
+          "const": false
+        },
+        "allow_open_ended_scientific_issue_search": {
+          "const": false
+        },
+        "auditor_call_limit": {
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "auditor_input_token_limit": {
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "auditor_output_token_limit": {
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "limit_authority": {
+          "const": "host_managed"
+        },
+        "packetized_work": {
+          "const": true
+        },
+        "record_usage": {
+          "const": true
+        }
+      },
+      "required": [
+        "auditor_call_limit",
+        "auditor_input_token_limit",
+        "auditor_output_token_limit",
+        "limit_authority",
+        "record_usage",
+        "packetized_work",
+        "allow_bounded_semantic_extraction",
+        "allow_open_ended_scientific_issue_search",
+        "allow_model_finding_admission"
+      ],
+      "type": "object"
+    },
+    "network_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "cache_retrieved_evidence": {
+          "const": true
+        },
+        "claude_network_access": {
+          "const": "host_managed_unrestricted"
+        },
+        "controller_network_access": {
+          "const": "allowed_with_provenance"
+        },
+        "project_code_network_access": {
+          "const": "explicit_authorization_required"
+        },
+        "record_retrieval_provenance": {
+          "const": true
+        },
+        "repository_content_can_authorize": {
+          "const": false
+        }
+      },
+      "required": [
+        "claude_network_access",
+        "controller_network_access",
+        "project_code_network_access",
+        "record_retrieval_provenance",
+        "cache_retrieved_evidence",
+        "repository_content_can_authorize"
+      ],
+      "type": "object"
+    },
+    "on_deadline": {
+      "additionalProperties": false,
+      "properties": {
+        "calculate_partial_coverage": {
+          "const": true
+        },
+        "preserve_completed_records": {
+          "const": true
+        },
+        "preserve_pending_work_items": {
+          "const": true
+        },
+        "render_partial_report": {
+          "const": true
+        },
+        "stop_new_optional_work_at_cutoff": {
+          "const": true
+        },
+        "terminate_eligible_children_at_hard_deadline": {
+          "const": true
+        }
+      },
+      "required": [
+        "stop_new_optional_work_at_cutoff",
+        "terminate_eligible_children_at_hard_deadline",
+        "preserve_completed_records",
+        "preserve_pending_work_items",
+        "calculate_partial_coverage",
+        "render_partial_report"
+      ],
+      "type": "object"
+    },
+    "parser_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "execute_source_during_parse": {
+          "const": false
+        },
+        "python_stack": {
+          "const": "cpython_ast_plus_tokenize"
+        },
+        "r_stack": {
+          "const": [
+            "tree_sitter_r",
+            "base_r_parse_data_when_available"
+          ]
+        },
+        "record_parser_coverage": {
+          "const": true
+        }
+      },
+      "required": [
+        "python_stack",
+        "r_stack",
+        "execute_source_during_parse",
+        "record_parser_coverage"
+      ],
+      "type": "object"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Provenance"
+    },
+    "question_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "ask_only_material": {
+          "const": true
+        },
+        "batch_questions": {
+          "const": true
+        },
+        "maximum_interactive_rounds": {
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "unanswered_behavior": {
+          "const": "preserve_unknown_and_continue"
+        }
+      },
+      "required": [
+        "ask_only_material",
+        "batch_questions",
+        "unanswered_behavior"
+      ],
+      "type": "object"
+    },
+    "record_type": {
+      "const": "audit_plan"
+    },
+    "report_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "core_readable_without_javascript": {
+          "const": true
+        },
+        "external_assets": {
+          "const": false
+        },
+        "renderer": {
+          "const": "jinja2_static_html"
+        },
+        "self_contained": {
+          "const": true
+        },
+        "template_autoescape": {
+          "const": true
+        }
+      },
+      "required": [
+        "renderer",
+        "self_contained",
+        "external_assets",
+        "core_readable_without_javascript",
+        "template_autoescape"
+      ],
+      "type": "object"
+    },
+    "sandbox_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "auditor_owned_verification_backend": {
+          "const": "restricted_subprocess_allowed"
+        },
+        "project_code_backend": {
+          "const": "rootless_oci_required"
+        },
+        "report_capabilities": {
+          "const": true
+        },
+        "unsafe_fallback": {
+          "const": false
+        }
+      },
+      "required": [
+        "project_code_backend",
+        "unsafe_fallback",
+        "auditor_owned_verification_backend",
+        "report_capabilities"
+      ],
+      "type": "object"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "scope": {
+      "additionalProperties": false,
+      "properties": {
+        "deep_inspection": {
+          "const": "final_claim_backward_slices"
+        },
+        "explicit_exclusions": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "include_selection_envelope": {
+          "const": true
+        },
+        "inventory": {
+          "const": "whole_project"
+        },
+        "project_root": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "publication_surface_policy": {
+          "const": "precedence_then_ask_if_ambiguous"
+        }
+      },
+      "required": [
+        "project_root",
+        "inventory",
+        "deep_inspection",
+        "include_selection_envelope",
+        "publication_surface_policy"
+      ],
+      "type": "object"
+    },
+    "snapshot_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "live_mutation_behavior": {
+          "const": "continue_snapshot_mark_workspace_diverged"
+        },
+        "mix_live_content_into_run": {
+          "const": false
+        },
+        "strategy": {
+          "const": "immutable_initial_snapshot"
+        }
+      },
+      "required": [
+        "strategy",
+        "live_mutation_behavior",
+        "mix_live_content_into_run"
+      ],
+      "type": "object"
+    },
+    "storage_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_records": {
+          "const": "json_or_jsonl"
+        },
+        "generated_query_index": {
+          "const": "sqlite"
+        },
+        "query_index_disposable": {
+          "const": true
+        },
+        "scientist_editable_records": {
+          "const": "yaml_or_json"
+        }
+      },
+      "required": [
+        "canonical_records",
+        "scientist_editable_records",
+        "generated_query_index",
+        "query_index_disposable"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "audit_plan_id",
+    "mode",
+    "scope",
+    "deadlines",
+    "model_policy",
+    "execution_policy",
+    "network_policy",
+    "data_policy",
+    "question_policy",
+    "finding_policy",
+    "snapshot_policy",
+    "parser_policy",
+    "storage_policy",
+    "cache_policy",
+    "sandbox_policy",
+    "report_policy",
+    "on_deadline",
+    "created_at",
+    "provenance"
+  ],
+  "title": "sc-referee Audit Plan",
+  "type": "object"
+}

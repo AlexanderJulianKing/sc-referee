@@ -1,0 +1,81 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.13.0/ro-crate-export.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "audit_bundle_ref": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/RecordRef"
+    },
+    "content_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Digest"
+    },
+    "crate_metadata_path": {
+      "const": "ro-crate-metadata.json"
+    },
+    "entity_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "export_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "generated_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Timestamp"
+    },
+    "native_records_included": {
+      "const": true
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "ro_crate_export"
+    },
+    "ro_crate_version": {
+      "const": "1.3"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "validation_messages": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "validation_status": {
+      "enum": [
+        "not_validated",
+        "valid",
+        "invalid"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "export_id",
+    "audit_bundle_ref",
+    "ro_crate_version",
+    "native_records_included",
+    "crate_metadata_path",
+    "entity_refs",
+    "validation_status",
+    "content_digest",
+    "generated_at",
+    "provenance"
+  ],
+  "title": "sc-referee RO-Crate Export",
+  "type": "object"
+}

@@ -1,0 +1,126 @@
+{
+  "$defs": {
+    "AssetIdentityRef": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "asset_identity"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "OperationRef": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "operation"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://w3id.org/sc-referee/schema/v0.18.0/artifact.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+    },
+    "asset_identity_ref": {
+      "$ref": "#/$defs/AssetIdentityRef"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Identifier"
+    },
+    "consumer_operation_refs": {
+      "items": {
+        "$ref": "#/$defs/OperationRef"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "kind": {
+      "enum": [
+        "source_file",
+        "data_file",
+        "result_file",
+        "report",
+        "computed_value",
+        "table",
+        "figure",
+        "model",
+        "log",
+        "other",
+        "unknown"
+      ]
+    },
+    "limitations": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "observed_role": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "path": {
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$",
+      "type": "string"
+    },
+    "producer_operation_refs": {
+      "items": {
+        "$ref": "#/$defs/OperationRef"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "artifact"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "source_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.18.0/common.schema.json#/$defs/SourceRef"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "artifact_id",
+    "audit_run_id",
+    "kind",
+    "observed_role",
+    "source_refs",
+    "producer_operation_refs",
+    "consumer_operation_refs",
+    "asset_identity_ref",
+    "limitations",
+    "provenance"
+  ],
+  "title": "sc-referee Artifact",
+  "type": "object"
+}

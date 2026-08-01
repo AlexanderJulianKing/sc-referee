@@ -1,0 +1,154 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.11.0/sandbox-capability.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "project_code_execution_supported": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "backend_kind": {
+            "const": "rootless_oci"
+          },
+          "controls": {
+            "properties": {
+              "capabilities_dropped": {
+                "const": true
+              },
+              "device_access_restricted": {
+                "const": true
+              },
+              "network_default_denied": {
+                "const": true
+              },
+              "process_limits_enforced": {
+                "const": true
+              },
+              "repository_read_only": {
+                "const": true
+              },
+              "resource_limits_enforced": {
+                "const": true
+              },
+              "writable_roots_enforced": {
+                "const": true
+              }
+            }
+          },
+          "rootless_verified": {
+            "const": true
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "backend_kind": {
+      "enum": [
+        "no_execution",
+        "auditor_subprocess",
+        "rootless_oci"
+      ]
+    },
+    "backend_name": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "backend_version": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "captured_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Timestamp"
+    },
+    "controls": {
+      "additionalProperties": false,
+      "properties": {
+        "capabilities_dropped": {
+          "type": "boolean"
+        },
+        "device_access_restricted": {
+          "type": "boolean"
+        },
+        "network_default_denied": {
+          "type": "boolean"
+        },
+        "process_limits_enforced": {
+          "type": "boolean"
+        },
+        "repository_read_only": {
+          "type": "boolean"
+        },
+        "resource_limits_enforced": {
+          "type": "boolean"
+        },
+        "writable_roots_enforced": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "repository_read_only",
+        "writable_roots_enforced",
+        "network_default_denied",
+        "resource_limits_enforced",
+        "process_limits_enforced",
+        "device_access_restricted",
+        "capabilities_dropped"
+      ],
+      "type": "object"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "limitations": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "project_code_execution_supported": {
+      "type": "boolean"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "sandbox_capability"
+    },
+    "rootless_verified": {
+      "type": "boolean"
+    },
+    "sandbox_capability_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Identifier"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "unsafe_fallback_available": {
+      "const": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "sandbox_capability_id",
+    "captured_at",
+    "backend_kind",
+    "backend_name",
+    "project_code_execution_supported",
+    "controls",
+    "unsafe_fallback_available",
+    "limitations",
+    "provenance"
+  ],
+  "title": "sc-referee Sandbox Capability",
+  "type": "object"
+}

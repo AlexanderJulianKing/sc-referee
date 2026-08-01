@@ -1,0 +1,55 @@
+{
+  "schema_version": "0.5.0",
+  "record_type": "adjudication",
+  "adjudication_id": "adjudication:1",
+  "audit_run_id": "audit:example-001",
+  "target_assessment_ref": {
+    "record_type": "finding",
+    "record_id": "finding:claim-direction"
+  },
+  "status": "adjudicated_true_positive",
+  "rationale": "Independent review confirmed that the report sentence and linked coefficient refer to the same contrast and have opposite directions.",
+  "reviewers": [
+    {
+      "actor_kind": "human",
+      "actor_id": "reviewer:1",
+      "display_name": "Independent Reviewer"
+    }
+  ],
+  "independence_statement": "The reviewer did not author the workflow or detector.",
+  "evidence": [
+    {
+      "evidence_id": "evidence:result-sign",
+      "description": "The linked coefficient is -0.42 under the established contrast orientation.",
+      "support_role": "supports",
+      "source_refs": [
+        {
+          "source_kind": "file_span",
+          "locator": "analysis.py:42-47",
+          "path": "analysis.py",
+          "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "start_line": 42,
+          "end_line": 47,
+          "quoted_text": "result = fit(y ~ treatment)"
+        }
+      ],
+      "record_refs": [
+        {
+          "record_type": "claim",
+          "record_id": "claim:1"
+        }
+      ],
+      "observed_value": -0.42
+    }
+  ],
+  "adjudicated_at": "2026-07-27T20:00:00Z",
+  "provenance": {
+    "actor": {
+      "actor_kind": "human",
+      "actor_id": "reviewer:1",
+      "display_name": "Independent Reviewer"
+    },
+    "method": "independent_adjudication",
+    "created_at": "2026-07-27T20:00:00Z"
+  }
+}

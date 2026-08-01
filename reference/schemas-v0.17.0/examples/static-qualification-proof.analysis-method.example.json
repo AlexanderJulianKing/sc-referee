@@ -1,0 +1,297 @@
+{
+  "applicability_results": [
+    {
+      "check_id": "unique_selected_output_writer",
+      "completion_status": "completed",
+      "detail_code": "unique_supported_closure",
+      "evidence_paths": [
+        "analysis.py",
+        "report.md"
+      ],
+      "outcome": "agreement"
+    }
+  ],
+  "case_assignment_artifact": {
+    "artifact_id": "case-assignment:direction-case-1",
+    "artifact_kind": "opaque_case_assignment",
+    "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "chronology": {
+    "case_assigned_at": "2026-07-30T18:01:00Z",
+    "detector_dispatched_at": null,
+    "label_frozen_at": "2026-07-30T18:02:00Z",
+    "profile_frozen_at": "2026-07-30T18:00:00Z",
+    "proof_frozen_at": "2026-07-30T18:03:00Z",
+    "stage3_started_at": null
+  },
+  "counterevidence_results": [
+    {
+      "check_id": "alternate_or_superseding_intent",
+      "completion_status": "completed",
+      "detail_code": "closed_search_complete",
+      "evidence_paths": [
+        "analysis.py",
+        "report.md"
+      ],
+      "outcome": "counterevidence_absent"
+    }
+  ],
+  "dependency_graph": {
+    "edges": [
+      {
+        "from_node_id": "node:data",
+        "relation": "derives",
+        "to_node_id": "node:mean"
+      },
+      {
+        "from_node_id": "node:mean",
+        "relation": "writes",
+        "to_node_id": "node:report"
+      }
+    ],
+    "nodes": [
+      {
+        "node_id": "node:data",
+        "node_kind": "raw_byte_source",
+        "path": "data.csv",
+        "semantic_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      {
+        "node_id": "node:mean",
+        "node_kind": "derived_fact",
+        "path": null,
+        "semantic_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      {
+        "node_id": "node:report",
+        "node_kind": "candidate",
+        "path": "report.md",
+        "semantic_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    ]
+  },
+  "derived_facts": {
+    "binding_digest": "sha256:41b8298ff41743a936f60f57e6ac382daa9b94ff914a63264699ebc8219805c5",
+    "binding_id": "method-conflict-binding:founder-orientation-before-hmm-emission-v1",
+    "candidate_paths": [
+      "analysis.py",
+      "report.md"
+    ],
+    "check_id": "check:founder-orientation-before-hmm-emission",
+    "comparison": {
+      "comparison_form": "value_equals",
+      "outcome": "exact_conflict_candidate",
+      "values_equal": false
+    },
+    "comparison_form": "value_equals",
+    "dimension": "scale_and_orientation",
+    "forbidden_members": [],
+    "governing_answer": {
+      "record_ref": {
+        "record_id": "answer:analysis",
+        "record_type": "answer"
+      },
+      "semantic_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+    },
+    "governing_contract": {
+      "record_ref": {
+        "record_id": "contract:analysis",
+        "record_type": "scientific_contract"
+      },
+      "semantic_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+    },
+    "governing_question": {
+      "record_ref": {
+        "record_id": "question:analysis",
+        "record_type": "material_question"
+      },
+      "semantic_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+    },
+    "observations": [
+      {
+        "candidate_paths": [
+          "analysis.py",
+          "report.md"
+        ],
+        "declarations": [
+          {
+            "end_line": 1,
+            "evidence_plane": "reported_text",
+            "path": "report.md",
+            "retained_text": "Exact independently retained method declaration.",
+            "start_line": 1
+          }
+        ],
+        "evidence_plane": "reported_text",
+        "operand": {
+          "kind": "canonical_scalar",
+          "value": "use_supplied_founder_alleles_directly_in_hmm_emission"
+        },
+        "scope_join_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "scope_join_path": [
+          {
+            "relation": "selected_by_publication_surface",
+            "source_ref": {
+              "record_id": "artifact:report",
+              "record_type": "artifact"
+            },
+            "target_ref": {
+              "record_id": "surface:selected",
+              "record_type": "publication_surface"
+            }
+          }
+        ]
+      },
+      {
+        "candidate_paths": [
+          "analysis.py",
+          "report.md"
+        ],
+        "declarations": [
+          {
+            "end_line": 6,
+            "evidence_plane": "static_source",
+            "path": "analysis.py",
+            "retained_text": "Exact independently retained method declaration.",
+            "start_line": 1
+          }
+        ],
+        "evidence_plane": "static_source",
+        "operand": {
+          "kind": "canonical_scalar",
+          "value": "use_supplied_founder_alleles_directly_in_hmm_emission"
+        },
+        "scope_join_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "scope_join_path": [
+          {
+            "relation": "selected_by_publication_surface",
+            "source_ref": {
+              "record_id": "artifact:report",
+              "record_type": "artifact"
+            },
+            "target_ref": {
+              "record_id": "surface:selected",
+              "record_type": "publication_surface"
+            }
+          }
+        ]
+      }
+    ],
+    "observed_operand": {
+      "kind": "canonical_scalar",
+      "value": "use_supplied_founder_alleles_directly_in_hmm_emission"
+    },
+    "operand_kind": "canonical_scalar",
+    "production_finding_permitted": false,
+    "qualification_adapter": {
+      "adapter_id": "qualification-adapter:founder-orientation-python-v1",
+      "adapter_version": "1.0.0",
+      "dependency_closure": [
+        {
+          "content_digest": "sha256:c82438a583e986614b5bc7d95aa5c424c02e3ec93650cbd9057a4c48509e0f95",
+          "path": "sc_referee_evaluation/analysis_method_qualification.py"
+        },
+        {
+          "content_digest": "sha256:e778b9e23d26347d6a700be526931b20fdbc0b3173895a3b0e8710117bcbc954",
+          "path": "sc_referee_evaluation/founder_orientation_adapter.py"
+        }
+      ],
+      "entry_point": "sc_referee_evaluation.founder_orientation_adapter:FounderOrientationQualificationAdapter",
+      "implementation_digest": "sha256:f25dc490954058d8599ef5800ba43767079b3afc9a656e79d84d1247e0715dd9",
+      "imports_production_semantic_implementation": false
+    },
+    "requirement_assertion": {
+      "record_ref": {
+        "record_id": "assertion:analysis-requirement",
+        "record_type": "semantic_assertion"
+      },
+      "semantic_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "requirement_operand": {
+      "kind": "canonical_scalar",
+      "value": "repair_ril_founder_orientation_before_hmm_emission"
+    },
+    "supported_exclusions": []
+  },
+  "label_freeze_artifact": {
+    "artifact_id": "label-freeze:direction-case-1",
+    "artifact_kind": "scientific_label_freeze",
+    "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "limitations": [
+    "This proof establishes only the frozen review-scoped declaration envelope."
+  ],
+  "profile": {
+    "record_ref": {
+      "record_id": "static-profile:typed-static-method-conflict-v1",
+      "record_type": "static_qualification_profile"
+    },
+    "semantic_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+  },
+  "proof_id": "static-proof:analysis-method-case-1",
+  "proof_profile_kind": "typed_static_method_conflict_v1",
+  "proof_semantic_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "proof_status": "complete",
+  "provenance": {
+    "actor": {
+      "actor_id": "software:sc-referee-eval",
+      "actor_kind": "controller",
+      "display_name": "sc-referee evaluation controller"
+    },
+    "created_at": "2026-07-30T18:03:00Z",
+    "method": "deterministic_static_qualification",
+    "tool": "sc-referee-eval",
+    "tool_version": "0.7.0"
+  },
+  "record_type": "static_qualification_proof",
+  "retained_bytes": [
+    {
+      "asset_identity": {
+        "record_ref": {
+          "record_id": "identity:analysis.py",
+          "record_type": "asset_identity"
+        },
+        "semantic_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      "byte_size": 200,
+      "content_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "encoding": "utf-8",
+      "file_record": {
+        "record_ref": {
+          "record_id": "file:analysis.py",
+          "record_type": "file_record"
+        },
+        "semantic_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      "path": "analysis.py"
+    },
+    {
+      "asset_identity": {
+        "record_ref": {
+          "record_id": "identity:report.md",
+          "record_type": "asset_identity"
+        },
+        "semantic_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "byte_size": 100,
+      "content_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "encoding": "utf-8",
+      "file_record": {
+        "record_ref": {
+          "record_id": "file:report.md",
+          "record_type": "file_record"
+        },
+        "semantic_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "path": "report.md"
+    }
+  ],
+  "schema_version": "0.17.0",
+  "snapshot": {
+    "record_ref": {
+      "record_id": "snapshot:direction-case-1",
+      "record_type": "repository_snapshot"
+    },
+    "semantic_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  }
+}

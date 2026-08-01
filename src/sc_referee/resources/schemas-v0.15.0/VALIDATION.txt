@@ -1,0 +1,8 @@
+sc-referee schema package 0.15.0 validation
+
+JSON Schemas checked: 60
+Cataloged schemas: 60
+Example records validated: 75
+Invariant tests declared: 122
+Canonical local references: all resolved
+JSON Schema meta-validation: passed

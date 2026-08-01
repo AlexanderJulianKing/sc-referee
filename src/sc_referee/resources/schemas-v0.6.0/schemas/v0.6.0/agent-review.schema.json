@@ -1,0 +1,428 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.6.0/agent-review.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "stage1_blind"
+          }
+        },
+        "required": [
+          "stage"
+        ]
+      },
+      "then": {
+        "properties": {
+          "blindness": {
+            "properties": {
+              "answer_key_hidden": {
+                "const": true
+              },
+              "benchmark_grade_hidden": {
+                "const": true
+              },
+              "detector_identity_hidden": {
+                "const": true
+              },
+              "other_reviews_hidden": {
+                "const": true
+              },
+              "sc_referee_output_hidden": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "stage2_scientific_adjudication"
+          }
+        },
+        "required": [
+          "stage"
+        ]
+      },
+      "then": {
+        "properties": {
+          "blindness": {
+            "properties": {
+              "detector_identity_hidden": {
+                "const": true
+              },
+              "other_reviews_hidden": {
+                "const": false
+              },
+              "sc_referee_output_hidden": {
+                "const": true
+              }
+            }
+          },
+          "falsification_attempt": {
+            "properties": {
+              "material_dissent": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": [
+          "falsification_attempt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verdict": {
+            "const": "demonstrated_issue"
+          }
+        },
+        "required": [
+          "verdict"
+        ]
+      },
+      "then": {
+        "properties": {
+          "bounded_statement": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "evidence": {
+            "minItems": 1
+          },
+          "issue_class": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "root_cause": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "bounded_statement",
+          "root_cause",
+          "issue_class",
+          "evidence"
+        ]
+      }
+    }
+  ],
+  "properties": {
+    "affected_record_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "blindness": {
+      "additionalProperties": false,
+      "properties": {
+        "answer_key_hidden": {
+          "type": "boolean"
+        },
+        "benchmark_grade_hidden": {
+          "type": "boolean"
+        },
+        "detector_identity_hidden": {
+          "type": "boolean"
+        },
+        "exceptions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "other_reviews_hidden": {
+          "type": "boolean"
+        },
+        "sc_referee_output_hidden": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "other_reviews_hidden",
+        "sc_referee_output_hidden",
+        "benchmark_grade_hidden",
+        "answer_key_hidden",
+        "detector_identity_hidden"
+      ],
+      "type": "object"
+    },
+    "bounded_statement": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "case_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+    },
+    "completed_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Timestamp"
+    },
+    "confidence_used_for_labeling": {
+      "const": false
+    },
+    "counterevidence_considered": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/EvidenceItem"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/EvidenceItem"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "falsification_attempt": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_tested": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/EvidenceItem"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "material_dissent": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "root_cause_survived",
+            "label_reversed",
+            "unresolved"
+          ]
+        },
+        "reversing_premises": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 0,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "strongest_innocent_explanation": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "strongest_innocent_explanation",
+        "reversing_premises",
+        "evidence_tested",
+        "outcome",
+        "material_dissent"
+      ],
+      "type": "object"
+    },
+    "issue_class": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "agent_review"
+    },
+    "review_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+    },
+    "reviewer_agent": {
+      "additionalProperties": false,
+      "properties": {
+        "agent_surface": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "agent_version": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "environment_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Digest"
+        },
+        "execution_context_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+        },
+        "independent_context": {
+          "const": true
+        },
+        "model_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "model_name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "model_snapshot": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "reasoning_configuration": {
+          "type": [
+            "string",
+            "object",
+            "null"
+          ]
+        },
+        "system_prompt_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Digest"
+        },
+        "task_prompt_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Digest"
+        },
+        "tool_policy_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Digest"
+        }
+      },
+      "required": [
+        "provider",
+        "agent_surface",
+        "model_name",
+        "model_id",
+        "agent_version",
+        "execution_context_id",
+        "independent_context",
+        "system_prompt_digest",
+        "task_prompt_digest",
+        "tool_policy_digest",
+        "environment_digest"
+      ],
+      "type": "object"
+    },
+    "root_cause": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "scope": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_refs": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/RecordRef"
+          },
+          "minItems": 0,
+          "type": "array"
+        },
+        "issue_class_scope": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "reviewed_paths": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "claim_refs",
+        "issue_class_scope",
+        "reviewed_paths"
+      ],
+      "type": "object"
+    },
+    "self_reported_confidence": {
+      "type": [
+        "string",
+        "number",
+        "null"
+      ]
+    },
+    "stage": {
+      "enum": [
+        "stage1_blind",
+        "stage2_scientific_adjudication",
+        "stage3_detector_comparison"
+      ]
+    },
+    "transcript_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Digest"
+    },
+    "unresolved_material_questions": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "verdict": {
+      "enum": [
+        "demonstrated_issue",
+        "no_demonstrated_issue_within_scope",
+        "conditional_or_unknown",
+        "insufficient_evidence",
+        "review_failure"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "review_id",
+    "case_id",
+    "stage",
+    "reviewer_agent",
+    "blindness",
+    "scope",
+    "verdict",
+    "confidence_used_for_labeling",
+    "transcript_digest",
+    "completed_at",
+    "provenance"
+  ],
+  "title": "sc-referee Agent Review",
+  "type": "object"
+}

@@ -1,0 +1,459 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.10.0/audit-bundle.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "adjudicated_root_causes": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/adjudicated-root-cause.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "adjudications": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/adjudication.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "agent_reviews": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/agent-review.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "analysis_decisions": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/analysis-decision.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "answers": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/answer.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "artifacts": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/artifact.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "asset_identities": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/asset-identity.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "audit_plans": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/audit-plan.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Identifier"
+    },
+    "audit_runs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/audit-run.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "benchmark_adjudications": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/benchmark-adjudication.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "benchmark_fixtures": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/benchmark-fixture.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "bundle_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Identifier"
+    },
+    "cache_entries": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/cache-entry.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "cache_policies": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/cache-policy.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "capability_matrices": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/capability-matrix.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "causal_contracts": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/causal-contract.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "claims": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/claim.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "conditional_concerns": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/conditional-concern.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "coverage_records": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/coverage-record.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "data_assets": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/data-asset.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "detector_case_outcomes": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/detector-case-outcome.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "detector_evaluation_candidates": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/detector-evaluation-candidate.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "detector_manifests": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/detector-manifest.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "detector_qualifications": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/detector-qualification.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "detector_results": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/detector-result.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "disclosures": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/disclosure.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "environment_reconstructions": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/environment-reconstruction.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "environments": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/environment.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "executions": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/execution.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "external_evidence": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/external-evidence.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "file_records": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/file-record.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/finding.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "generated_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Timestamp"
+    },
+    "material_questions": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/material-question.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "observed_results": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/observed-result.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "operations": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/operation.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "parser_manifests": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/parser-manifest.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "parser_results": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/parser-result.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "performance_records": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/performance-record.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "publication_surfaces": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/publication-surface.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "qualification_metric_sets": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/qualification-metric-set.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "record_type": {
+      "const": "audit_bundle"
+    },
+    "repository_snapshots": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/repository-snapshot.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "reproduction_requests": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/reproduction-request.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "ro_crate_exports": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/ro-crate-export.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "sandbox_capabilities": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/sandbox-capability.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "scientific_contracts": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/scientific-contract.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "scientist_dispositions": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/scientist-disposition.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "selection_envelopes": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/selection-envelope.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "semantic_assertions": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/semantic-assertion.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "semantic_lock_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Digest"
+    },
+    "stage3_comparison_reviews": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/stage3-comparison-review.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "stage_results": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/stage-result.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "storage_manifests": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/storage-manifest.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "tool_identities": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/tool-identity.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "variables": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/variable.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "work_items": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/work-item.schema.json"
+      },
+      "minItems": 0,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "bundle_id",
+    "audit_run_id",
+    "generated_at",
+    "semantic_lock_digest",
+    "scientific_contracts",
+    "semantic_assertions",
+    "claims",
+    "detector_manifests",
+    "detector_results",
+    "findings",
+    "conditional_concerns",
+    "material_questions",
+    "disclosures",
+    "scientist_dispositions",
+    "adjudications",
+    "coverage_records",
+    "audit_plans",
+    "asset_identities",
+    "publication_surfaces",
+    "external_evidence",
+    "environment_reconstructions",
+    "reproduction_requests",
+    "causal_contracts",
+    "repository_snapshots",
+    "parser_manifests",
+    "parser_results",
+    "sandbox_capabilities",
+    "cache_entries",
+    "performance_records",
+    "detector_qualifications",
+    "tool_identities",
+    "cache_policies",
+    "storage_manifests",
+    "agent_reviews",
+    "benchmark_adjudications",
+    "benchmark_fixtures",
+    "capability_matrices",
+    "ro_crate_exports",
+    "audit_runs",
+    "stage_results",
+    "file_records",
+    "operations",
+    "artifacts",
+    "observed_results",
+    "work_items",
+    "answers",
+    "data_assets",
+    "variables",
+    "analysis_decisions",
+    "selection_envelopes",
+    "executions",
+    "environments",
+    "adjudicated_root_causes",
+    "detector_evaluation_candidates",
+    "stage3_comparison_reviews",
+    "detector_case_outcomes",
+    "qualification_metric_sets"
+  ],
+  "title": "sc-referee Audit Bundle",
+  "type": "object"
+}

@@ -1,0 +1,230 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.15.0/finding.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "properties": {
+        "admission": {
+          "properties": {
+            "unresolved_material_premise_ids": {
+              "maxItems": 0
+            }
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "admission": {
+      "additionalProperties": false,
+      "properties": {
+        "bounded_wording": {
+          "const": true
+        },
+        "counterevidence_protocol_complete": {
+          "const": true
+        },
+        "detector_maturity": {
+          "enum": [
+            "validated",
+            "publication_grade"
+          ]
+        },
+        "deterministic_replay": {
+          "const": true
+        },
+        "direct_entailment": {
+          "const": true
+        },
+        "exact_detector_applicability": {
+          "const": true
+        },
+        "material_premise_ids": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/Identifier"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "no_reversing_unknown": {
+          "const": true
+        },
+        "non_inferences": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "source_references_resolved": {
+          "const": true
+        },
+        "unresolved_material_premise_ids": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/Identifier"
+          },
+          "minItems": 0,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "direct_entailment",
+        "no_reversing_unknown",
+        "exact_detector_applicability",
+        "counterevidence_protocol_complete",
+        "bounded_wording",
+        "deterministic_replay",
+        "source_references_resolved",
+        "detector_maturity",
+        "material_premise_ids",
+        "unresolved_material_premise_ids",
+        "non_inferences"
+      ],
+      "type": "object"
+    },
+    "affected_descendants": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/AffectedDescendant"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/Identifier"
+    },
+    "coverage_limitations": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/Timestamp"
+    },
+    "demonstration_status": {
+      "const": "demonstrated"
+    },
+    "detector_result_ids": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/Identifier"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "evidence": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/EvidenceItem"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "finding_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/Identifier"
+    },
+    "grouping_key": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "issue_class": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/IssueClass"
+    },
+    "logical_basis": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "next_action": {
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/Provenance"
+    },
+    "publication_materiality": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/PublicationMaterialityAssessment"
+    },
+    "record_type": {
+      "const": "finding"
+    },
+    "root_cause": {
+      "additionalProperties": false,
+      "properties": {
+        "explanation": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "root_ref": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/RecordRef"
+        },
+        "violated_semantic_dimension": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "root_ref",
+        "violated_semantic_dimension",
+        "explanation"
+      ],
+      "type": "object"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "severity": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/SeverityAssessment"
+    },
+    "subject_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "summary": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "title": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "finding_id",
+    "audit_run_id",
+    "grouping_key",
+    "issue_class",
+    "title",
+    "summary",
+    "demonstration_status",
+    "admission",
+    "severity",
+    "publication_materiality",
+    "root_cause",
+    "subject_refs",
+    "affected_descendants",
+    "evidence",
+    "logical_basis",
+    "detector_result_ids",
+    "coverage_limitations",
+    "created_at",
+    "provenance"
+  ],
+  "title": "Demonstrated sc-referee Finding",
+  "type": "object"
+}

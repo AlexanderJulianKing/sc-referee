@@ -1,0 +1,10 @@
+[project]
+name = "sc-referee-schemas"
+version = "0.15.0"
+description = "Versioned JSON Schemas for sc-referee audit records"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = ["jsonschema[format]>=4.20", "PyYAML>=6.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

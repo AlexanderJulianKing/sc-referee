@@ -1,0 +1,250 @@
+{
+  "$defs": {
+    "AssetIdentityRef": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.12.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "asset_identity"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "SnapshotRef": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.12.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "repository_snapshot"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://w3id.org/sc-referee/schema/v0.12.0/file-record.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "else": {
+        "not": {
+          "required": [
+            "asset_identity_ref"
+          ]
+        },
+        "properties": {
+          "limitations": {
+            "minItems": 1
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "identity_disposition": {
+            "const": "recorded"
+          }
+        },
+        "required": [
+          "identity_disposition"
+        ]
+      },
+      "then": {
+        "required": [
+          "asset_identity_ref"
+        ]
+      }
+    },
+    {
+      "else": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "symlink_target"
+              ]
+            },
+            {
+              "required": [
+                "symlink_followed"
+              ]
+            }
+          ]
+        }
+      },
+      "if": {
+        "properties": {
+          "entry_kind": {
+            "const": "symlink"
+          }
+        },
+        "required": [
+          "entry_kind"
+        ]
+      },
+      "then": {
+        "oneOf": [
+          {
+            "required": [
+              "symlink_target"
+            ]
+          },
+          {
+            "not": {
+              "required": [
+                "symlink_target"
+              ]
+            },
+            "properties": {
+              "limitations": {
+                "minItems": 1
+              }
+            }
+          }
+        ],
+        "properties": {
+          "inspection_disposition": {
+            "const": "symlink_not_followed"
+          }
+        },
+        "required": [
+          "symlink_followed"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "inspection_disposition": {
+            "enum": [
+              "unreadable",
+              "unsupported",
+              "special_file"
+            ]
+          }
+        },
+        "required": [
+          "inspection_disposition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "asset_identity_ref": {
+      "$ref": "#/$defs/AssetIdentityRef"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.12.0/common.schema.json#/$defs/Identifier"
+    },
+    "byte_size": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "classification": {
+      "enum": [
+        "analysis_source",
+        "data",
+        "result",
+        "report_candidate",
+        "workflow",
+        "configuration",
+        "documentation",
+        "other",
+        "unknown"
+      ]
+    },
+    "entry_kind": {
+      "enum": [
+        "regular_file",
+        "directory",
+        "symlink",
+        "special",
+        "unknown"
+      ]
+    },
+    "file_record_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.12.0/common.schema.json#/$defs/Identifier"
+    },
+    "identity_disposition": {
+      "enum": [
+        "recorded",
+        "not_recorded"
+      ]
+    },
+    "inspection_disposition": {
+      "enum": [
+        "inspected",
+        "not_selected",
+        "excluded",
+        "unreadable",
+        "unsupported",
+        "special_file",
+        "symlink_not_followed"
+      ]
+    },
+    "limitations": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "path": {
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.12.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "file_record"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.12.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "snapshot_ref": {
+      "$ref": "#/$defs/SnapshotRef"
+    },
+    "symlink_followed": {
+      "const": false
+    },
+    "symlink_target": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "file_record_id",
+    "audit_run_id",
+    "snapshot_ref",
+    "path",
+    "entry_kind",
+    "classification",
+    "inspection_disposition",
+    "identity_disposition",
+    "limitations",
+    "provenance"
+  ],
+  "title": "sc-referee FileRecord",
+  "type": "object"
+}

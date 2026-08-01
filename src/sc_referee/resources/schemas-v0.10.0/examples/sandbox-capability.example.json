@@ -1,0 +1,35 @@
+{
+  "backend_kind": "rootless_oci",
+  "backend_name": "Podman rootless",
+  "backend_version": "5.0",
+  "captured_at": "2026-07-27T12:00:00Z",
+  "controls": {
+    "capabilities_dropped": true,
+    "device_access_restricted": true,
+    "network_default_denied": true,
+    "process_limits_enforced": true,
+    "repository_read_only": true,
+    "resource_limits_enforced": true,
+    "writable_roots_enforced": true
+  },
+  "limitations": [
+    "Host-kernel isolation is shared with the container runtime."
+  ],
+  "project_code_execution_supported": true,
+  "provenance": {
+    "actor": {
+      "actor_id": "software:sc-referee-controller",
+      "actor_kind": "controller",
+      "display_name": "sc-referee controller"
+    },
+    "created_at": "2026-07-27T12:00:00Z",
+    "method": "deterministic_controller",
+    "tool": "sc-referee",
+    "tool_version": "0.5.0"
+  },
+  "record_type": "sandbox_capability",
+  "rootless_verified": true,
+  "sandbox_capability_id": "sandbox:rootless-podman",
+  "schema_version": "0.10.0",
+  "unsafe_fallback_available": false
+}

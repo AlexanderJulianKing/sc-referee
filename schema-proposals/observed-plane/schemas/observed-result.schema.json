@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/observed-result.schema.json",
+  "title": "sc-referee ObservedResult review candidate",
+  "$comment": "Nonpublic ADR-0002 template. Every scientific semantic slot retains an explicit epistemic state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "observed_result_id",
+    "audit_run_id",
+    "value_kind",
+    "observation_method",
+    "source_refs",
+    "lineage_status",
+    "lineage_limitations",
+    "comparison",
+    "orientation",
+    "scale",
+    "unit",
+    "population",
+    "timing",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {"const": "observed_result"},
+    "observed_result_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+    },
+    "value_kind": {"enum": ["scalar", "interval", "vector_summary", "table_cell"]},
+    "scalar_value": {"type": "number"},
+    "interval_value": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lower", "upper"],
+      "properties": {
+        "lower": {"type": "number"},
+        "upper": {"type": "number"}
+      }
+    },
+    "vector_summary_value": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["count"],
+      "minProperties": 2,
+      "properties": {
+        "count": {"type": "integer", "minimum": 0},
+        "minimum": {"type": "number"},
+        "maximum": {"type": "number"},
+        "mean": {"type": "number"},
+        "median": {"type": "number"}
+      }
+    },
+    "table_cell_value": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["row", "column", "value"],
+      "properties": {
+        "row": {"type": ["string", "integer"]},
+        "column": {"type": ["string", "integer"]},
+        "value": {"type": ["string", "number", "boolean", "null"]}
+      }
+    },
+    "observation_method": {"enum": ["literal_extraction", "deterministic_verification"]},
+    "producing_operation_ref": {"$ref": "#/$defs/OperationRef"},
+    "artifact_ref": {"$ref": "#/$defs/ArtifactRef"},
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/SourceRef"
+      },
+      "minItems": 1
+    },
+    "lineage_status": {"enum": ["complete", "partial", "missing", "unavailable"]},
+    "lineage_limitations": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "comparison": {"$ref": "#/$defs/EpistemicString"},
+    "orientation": {"$ref": "#/$defs/EpistemicOrientation"},
+    "scale": {"$ref": "#/$defs/EpistemicString"},
+    "unit": {"$ref": "#/$defs/EpistemicString"},
+    "population": {"$ref": "#/$defs/EpistemicString"},
+    "timing": {"$ref": "#/$defs/EpistemicString"},
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Provenance"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"lineage_status": {"const": "complete"}},
+        "required": ["lineage_status"]
+      },
+      "then": {
+        "required": ["producing_operation_ref", "artifact_ref"],
+        "properties": {"lineage_limitations": {"maxItems": 0}}
+      },
+      "else": {"properties": {"lineage_limitations": {"minItems": 1}}}
+    }
+  ],
+  "oneOf": [
+    {
+      "properties": {"value_kind": {"const": "scalar"}},
+      "required": ["scalar_value"],
+      "not": {"anyOf": [{"required": ["interval_value"]}, {"required": ["vector_summary_value"]}, {"required": ["table_cell_value"]}]}
+    },
+    {
+      "properties": {"value_kind": {"const": "interval"}},
+      "required": ["interval_value"],
+      "not": {"anyOf": [{"required": ["scalar_value"]}, {"required": ["vector_summary_value"]}, {"required": ["table_cell_value"]}]}
+    },
+    {
+      "properties": {"value_kind": {"const": "vector_summary"}},
+      "required": ["vector_summary_value"],
+      "not": {"anyOf": [{"required": ["scalar_value"]}, {"required": ["interval_value"]}, {"required": ["table_cell_value"]}]}
+    },
+    {
+      "properties": {"value_kind": {"const": "table_cell"}},
+      "required": ["table_cell_value"],
+      "not": {"anyOf": [{"required": ["scalar_value"]}, {"required": ["interval_value"]}, {"required": ["vector_summary_value"]}]}
+    }
+  ],
+  "$defs": {
+    "KnownString": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "value", "evidence_refs"],
+      "properties": {
+        "state": {"const": "known"},
+        "value": {"type": "string", "minLength": 1},
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/SourceRef"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "UnknownSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "rationale", "evidence_refs"],
+      "properties": {
+        "state": {"enum": ["unknown", "conflicted", "unavailable"]},
+        "rationale": {"type": "string", "minLength": 1},
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/SourceRef"
+          }
+        }
+      }
+    },
+    "EpistemicString": {"oneOf": [{"$ref": "#/$defs/KnownString"}, {"$ref": "#/$defs/UnknownSlot"}]},
+    "EpistemicOrientation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "value", "evidence_refs"],
+          "properties": {
+            "state": {"const": "known"},
+            "value": {"enum": ["treated_minus_control", "control_minus_treated", "other"]},
+            "evidence_refs": {
+              "type": "array",
+              "items": {
+                "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/SourceRef"
+              },
+              "minItems": 1
+            }
+          }
+        },
+        {"$ref": "#/$defs/UnknownSlot"}
+      ]
+    },
+    "OperationRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_type", "record_id"],
+      "properties": {
+        "record_type": {"const": "operation"},
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+        }
+      }
+    },
+    "ArtifactRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_type", "record_id"],
+      "properties": {
+        "record_type": {"const": "artifact"},
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "audit_run_id": "run:example",
+  "canonical_manifest_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+  "canonical_record_formats": [
+    "json",
+    "jsonl"
+  ],
+  "canonical_record_roots": [
+    ".sc-referee/runs/run-example/observed/",
+    ".sc-referee/runs/run-example/resolved/",
+    ".sc-referee/runs/run-example/derived/"
+  ],
+  "content_addressed_object_store": {
+    "digest_algorithm": "sha256",
+    "root": ".sc-referee/runs/run-example/objects/"
+  },
+  "created_at": "2026-07-27T23:45:00Z",
+  "generated_query_index": {
+    "canonical": false,
+    "disposable": true,
+    "engine": "sqlite",
+    "last_rebuild_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "path": ".sc-referee/runs/run-example/audit.db",
+    "rebuildable_from_canonical_records": true
+  },
+  "provenance": {
+    "actor": {
+      "actor_id": "sc-referee-core",
+      "actor_kind": "controller",
+      "display_name": "sc-referee controller"
+    },
+    "created_at": "2026-07-27T23:45:00Z",
+    "method": "deterministic_controller",
+    "source_refs": [],
+    "tool": "sc-referee-core",
+    "tool_version": "0.5.0"
+  },
+  "record_type": "storage_manifest",
+  "schema_version": "0.6.0",
+  "scientist_editable_formats": [
+    "yaml",
+    "json"
+  ],
+  "storage_manifest_id": "storage-manifest:run-example"
+}

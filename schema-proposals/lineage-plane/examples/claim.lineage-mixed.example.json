@@ -1,0 +1,30 @@
+{
+  "schema_version": "__SCHEMA_VERSION__",
+  "record_type": "claim",
+  "claim_id": "claim:lineage-mixed",
+  "audit_run_id": "audit:lineage-example",
+  "report_ref": {"record_type": "artifact", "record_id": "artifact:report"},
+  "claim_status": "final",
+  "claim_kind": "directional",
+  "text": "The treated mean was higher than the control mean.",
+  "source_refs": [{"source_kind": "file_span", "locator": "report.md:10", "path": "report.md", "start_line": 10, "end_line": 10}],
+  "scientific_contract_id": "contract:lineage-mixed",
+  "proposition": {"subject": "treated mean", "predicate": "was higher than control mean", "claim_strength": "descriptive", "direction": "higher", "comparison": "treated versus control"},
+  "lineage": {
+    "status": "partial",
+    "result_refs": [{"record_type": "observed_result", "record_id": "observed-result:mean-difference"}],
+    "operation_refs": [{"record_type": "operation", "record_id": "operation:mean-difference"}],
+    "input_refs": [{"record_type": "data_asset", "record_id": "data-asset:analysis-csv"}],
+    "missing_links": ["Project execution was not observed."],
+    "opaque_dependency_refs": [],
+    "grades": {
+      "report_origin": {"status": "complete", "record_refs": [{"record_type": "artifact", "record_id": "artifact:report"}], "source_refs": [{"source_kind": "file_span", "locator": "report.md:10", "path": "report.md", "start_line": 10, "end_line": 10}], "limitations": []},
+      "result_origin": {"status": "partial", "record_refs": [{"record_type": "observed_result", "record_id": "observed-result:mean-difference"}], "source_refs": [], "limitations": ["The result-to-report generation edge was not observed."]},
+      "computational_origin": {"status": "opaque", "record_refs": [], "source_refs": [], "limitations": ["A dependency boundary is opaque."]},
+      "input_origin": {"status": "complete", "record_refs": [{"record_type": "data_asset", "record_id": "data-asset:analysis-csv"}], "source_refs": [], "limitations": []},
+      "execution_origin": {"status": "missing", "record_refs": [], "source_refs": [], "limitations": ["No project Execution record exists."]},
+      "semantic_origin": {"status": "unavailable", "record_refs": [], "source_refs": [], "limitations": ["No scientist semantic answer is available."]}
+    }
+  },
+  "extraction": {"method": "deterministic", "explicit_source_meaning": true, "independently_verified": true, "semantic_assertion_ids": []}
+}

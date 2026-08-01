@@ -1,0 +1,16 @@
+{
+  "manifest_kind": "synthetic_fixture_test_double",
+  "fixture_id": "fixture:walking-skeleton-direction",
+  "detector_id": "detector:claim-result-direction",
+  "detector_version": "0.1.0",
+  "schema_maturity_simulated": "validated",
+  "public_qualification_claimed": false,
+  "purpose": "Exercise deterministic Finding admission only inside the bundled synthetic fixture.",
+  "counterevidence_checks": [
+    "orientation",
+    "scale",
+    "report-qualification",
+    "lineage-target"
+  ],
+  "prohibited_use": "Do not expose this detector as a validated public capability or run it against arbitrary repositories."
+}

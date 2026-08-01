@@ -1,0 +1,115 @@
+{
+  "acknowledgements": {
+    "network_denied": true,
+    "no_host_or_hpc_escalation": true,
+    "output_confined_to_audit_root": true,
+    "project_code_is_untrusted": true,
+    "project_code_will_execute": true
+  },
+  "authorization_id": "authorization:example-once",
+  "authorizing_actor": {
+    "actor_id": "local-user:declared",
+    "actor_kind": "human",
+    "display_name": "Declared local user"
+  },
+  "command": {
+    "argv": [
+      "python",
+      "/project/analysis.py",
+      "--output",
+      "/output/result.json"
+    ],
+    "normalized_digest": "sha256:addcbe60bcf76c36406e6ea4529a7ff24addfed6f867c1f15d72a2d21762ce3e"
+  },
+  "environment": {
+    "entries": [
+      {
+        "name": "PYTHONHASHSEED",
+        "value": "0"
+      }
+    ],
+    "normalized_digest": "sha256:b0d35a9c8ef00da94078ed3c2fe2496242a371f507ce3bedc459d4984e4900fe"
+  },
+  "expires_at": "2026-07-29T20:05:00Z",
+  "identity_assurance": "declared_local_user",
+  "image": {
+    "manifest_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "reference": "localhost/sc-referee-python@sha256:3333333333333333333333333333333333333333333333333333333333333333"
+  },
+  "limitations": [
+    "Local actor identity is declared and is not externally authenticated."
+  ],
+  "limits": {
+    "cpu_quota_millis": 1000,
+    "memory_bytes": 268435456,
+    "open_files": 64,
+    "process_count": 32,
+    "wall_time_seconds": 60,
+    "writable_bytes": 1048576
+  },
+  "network_policy": "denied",
+  "provenance": {
+    "actor": {
+      "actor_id": "local-user:declared",
+      "actor_kind": "human"
+    },
+    "created_at": "2026-07-29T20:00:00Z",
+    "method": "interactive_fresh_challenge_authorization",
+    "tool": "sc-referee",
+    "tool_version": "0.3.0.dev0"
+  },
+  "record_type": "project_execution_authorization",
+  "registry_binding": {
+    "linked_output_root_id": "output-root:example-once",
+    "registry_id": "authorization-registry:example-once"
+  },
+  "schema_version": "0.14.0",
+  "scope": {
+    "allowed_output_paths": [
+      "result.json"
+    ],
+    "capability": {
+      "record_ref": {
+        "record_id": "sandbox:rootless-podman",
+        "record_type": "sandbox_capability"
+      },
+      "semantic_digest": "sha256:676831149c962eb023359b77cf3d45c0ab6bd05597b3aac7ce130c62241031c5"
+    },
+    "declared_input_refs": [
+      {
+        "record_id": "snapshot:example",
+        "record_type": "repository_snapshot"
+      }
+    ],
+    "linked_audit_run_ref": {
+      "record_id": "audit:linked-reproduction",
+      "record_type": "audit_run"
+    },
+    "purpose": "Run the exact bounded example analysis selected before semantic lock.",
+    "snapshot": {
+      "record_ref": {
+        "record_id": "snapshot:example",
+        "record_type": "repository_snapshot"
+      },
+      "semantic_digest": "sha256:8514f70c69bd6850c36a4462c17f827e19fad2221c00234f32530c1ae7cde49c"
+    },
+    "source_audit_run_ref": {
+      "record_id": "run:example",
+      "record_type": "audit_run"
+    },
+    "source_semantic_lock_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+    "target_refs": [
+      {
+        "record_id": "snapshot:example",
+        "record_type": "repository_snapshot"
+      }
+    ],
+    "work_item_binding_status": "complete_project_execution_work_item",
+    "work_item_ref": {
+      "record_id": "work-item:execute-example",
+      "record_type": "work_item"
+    },
+    "work_item_semantic_digest": "sha256:29c6ef7e92ae6d5387506fc40b093bb07b082dba97d9800b425d254f933fb22a"
+  },
+  "single_use_nonce": "nonce:example-once-0001"
+}

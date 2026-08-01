@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sc-referee:starter:v0.1.0:file-record",
+  "title": "Provisional FileRecord",
+  "type": "object",
+  "required": [
+    "record_type",
+    "file_id",
+    "run_id",
+    "path",
+    "size_bytes",
+    "identity_strength",
+    "digest"
+  ],
+  "properties": {
+    "record_type": {
+      "const": "file_record"
+    },
+    "file_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string"
+    },
+    "size_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "language": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string"
+    },
+    "identity_strength": {
+      "enum": [
+        "strong",
+        "manifest",
+        "weak",
+        "unidentified"
+      ]
+    },
+    "digest": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

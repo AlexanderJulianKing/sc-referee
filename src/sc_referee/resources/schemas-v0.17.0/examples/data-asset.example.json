@@ -1,0 +1,45 @@
+{
+  "artifact_ref": {
+    "record_id": "artifact:analysis-csv",
+    "record_type": "artifact"
+  },
+  "asset_identity_ref": {
+    "record_id": "asset-identity:analysis-csv",
+    "record_type": "asset_identity"
+  },
+  "audit_run_id": "audit:lineage-example",
+  "data_asset_id": "data-asset:analysis-csv",
+  "format": "csv",
+  "limitations": [],
+  "path": "data/analysis.csv",
+  "provenance": {
+    "actor": {
+      "actor_id": "parser:csv-structure",
+      "actor_kind": "parser"
+    },
+    "created_at": "2026-07-28T18:00:00Z",
+    "method": "static_csv_structure_inspection"
+  },
+  "record_type": "data_asset",
+  "role": "input",
+  "schema_version": "0.17.0",
+  "source_refs": [
+    {
+      "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "locator": "data/analysis.csv",
+      "path": "data/analysis.csv",
+      "source_kind": "artifact"
+    }
+  ],
+  "structure_status": "complete",
+  "variable_refs": [
+    {
+      "record_id": "variable:analysis-csv-group",
+      "record_type": "variable"
+    },
+    {
+      "record_id": "variable:analysis-csv-value",
+      "record_type": "variable"
+    }
+  ]
+}

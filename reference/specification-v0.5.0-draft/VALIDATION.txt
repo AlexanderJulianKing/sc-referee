@@ -1,0 +1,75 @@
+# sc-referee specification validation
+
+Version: 0.5.0-draft
+Validation date: 2026-07-27
+
+## Normative specification checks
+
+```text
+Validated 118 requirements, 118 traceability rows, 42 ADRs, and 6 open decisions.
+Accepted epistemic, runtime, implementation-foundation, and v0.5 evaluation invariants are internally consistent.
+Specification validation passed.
+```
+
+The acceptance appendix contains 64 gates. AC-52 deliberately remains a pre-release gate: the versioned W3ID namespace is locally consistent, but external redirect registration and remote-resolution testing are not established by this package.
+
+## Scientific-validation design checks
+
+The specification now requires:
+
+- a domain-neutral first architectural slice followed by a separate narrow bulk RNA-seq profile;
+- four blind Stage-1 coding-agent reviews across two provider families;
+- two fresh Stage-2 adjudications, one per provider family;
+- exact model, agent, prompt, tool-policy, environment, and transcript identities for every review;
+- an explicit Stage-2 falsification attempt documenting the strongest innocent explanation, reversing premises, evidence tested, and outcome;
+- deterministic source-reference and counterevidence checks;
+- exclusion of materially disputed cases from positive and verified-good labels rather than majority voting;
+- distinct verified-good, scope-verified-good, hard-negative, positive, and ambiguous fixture obligations;
+- generated multidimensional capability claims rather than domain-wide support checkmarks;
+- explicit agent-only, mixed, or human qualification-basis disclosure;
+- RO-Crate 1.3 export while native sc-referee records remain canonical; and
+- non-negotiable promotion safety gates, with universal numerical thresholds deferred until a pilot corpus supports a separate ADR.
+
+These checks establish internal consistency of the evaluation protocol. They do not establish that any agent panel is infallible or that any detector has yet earned validated or publication-grade status.
+
+## Schema checks
+
+The standalone schema package and the byte-identical embedded schema snapshot contain:
+
+- 37 cataloged JSON Schema Draft 2020-12 schemas;
+- 36 validating example records; and
+- 46 passing schema and deterministic-invariant tests.
+
+Additional checks found:
+
+- no duplicate JSON keys;
+- all canonical local references resolved;
+- JSON Schema meta-validation passed; and
+- the embedded schema snapshot is byte-identical to the standalone package, excluding transient test-cache directories.
+
+All published schema identifiers and references use the versioned `https://w3id.org/sc-referee/schema/v0.5.0/` namespace. Both schema and specification SHA-256 manifests verify successfully.
+
+## Generated-document checks
+
+- `MASTER_SPEC.md`, `MASTER_SPEC.html`, and `sc-referee-specification-v0.5.0.docx` were generated from the modular source documents, ADRs, accepted-decision log, and machine registers.
+- The Word review copy rendered successfully to 99 tagged Letter-size pages.
+- Every rendered page was visually inspected after the final edit batch.
+- No clipping, overlapping elements, broken tables, truncated text, missing glyphs, header or footer defects, or unintended blank pages were found.
+- Automated raster checks found no blank pages and no non-white content within 12 pixels of a page boundary.
+- The rendered PDF contains no JavaScript and is not encrypted.
+
+## Accessibility checks
+
+The Word accessibility audit reported:
+
+```text
+high:   0
+medium: 0
+low:    19
+```
+
+All 19 low-severity observations are raw-URL display text in the deliberately explicit reference appendix. No high- or medium-severity accessibility defect was reported.
+
+## Scope of validation
+
+These checks establish document consistency, schema validity, requirement traceability, selected controller-invariant consistency, rendered-document quality, and archive-internal integrity. They do not establish detector scientific validity, benchmark-label truth, false-accusation performance, recall, measured runtime on representative repositories, independence of future adjudication runs, or remote W3ID redirect operation.

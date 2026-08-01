@@ -1,0 +1,61 @@
+{
+  "assertion_class": "explicit_text_extraction",
+  "assertion_id": "assertion:report-direction",
+  "audit_run_id": "audit:example-001",
+  "authority_scope": "reported_wording",
+  "certainty": {
+    "basis": "Literal statement in the report span.",
+    "level": "explicit"
+  },
+  "contradicts_assertion_ids": [],
+  "epistemic_status": "accepted",
+  "finding_eligibility": "eligible",
+  "independently_checkable": true,
+  "object": "positive",
+  "predicate": "reported_direction",
+  "provenance": {
+    "actor": {
+      "actor_id": "claude-example",
+      "actor_kind": "model"
+    },
+    "created_at": "2026-07-27T20:00:00Z",
+    "method": "bounded_explicit_extraction",
+    "source_refs": [
+      {
+        "chunk_label": "claim-1",
+        "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "locator": "manuscript/results.qmd#claim-1",
+        "path": "manuscript/results.qmd",
+        "quoted_text": "Treatment increased expression.",
+        "source_kind": "document_chunk"
+      }
+    ],
+    "tool": "sc_referee.claude",
+    "tool_version": "0.5.0"
+  },
+  "rationale": "The source text states that treatment increased expression.",
+  "record_type": "semantic_assertion",
+  "schema_version": "0.7.0",
+  "semantic_role": "reported",
+  "source_refs": [
+    {
+      "chunk_label": "claim-1",
+      "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "locator": "manuscript/results.qmd#claim-1",
+      "path": "manuscript/results.qmd",
+      "quoted_text": "Treatment increased expression.",
+      "source_kind": "document_chunk"
+    }
+  ],
+  "subject_ref": {
+    "record_id": "claim:1",
+    "record_type": "claim"
+  },
+  "supersedes_assertion_ids": [],
+  "verification": {
+    "method": "exact_quote_match",
+    "status": "verified",
+    "validator_id": "validator:literal-direction",
+    "verified_at": "2026-07-27T20:00:00Z"
+  }
+}

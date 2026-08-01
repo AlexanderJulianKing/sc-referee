@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/cache-policy.schema.json",
+  "title": "sc-referee Cache Policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "cache_policy_id",
+    "project_store_root",
+    "source_derived_scope",
+    "cross_repository_source_derived_reuse",
+    "project_local_categories",
+    "global_cache_allowed_classes",
+    "cache_key_requirements",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "cache_policy"
+    },
+    "cache_policy_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "project_store_root": {
+      "const": ".sc-referee/"
+    },
+    "source_derived_scope": {
+      "const": "project_local_only"
+    },
+    "cross_repository_source_derived_reuse": {
+      "const": false
+    },
+    "project_local_categories": {
+      "const": [
+        "parser_results",
+        "claims",
+        "semantic_assertions",
+        "scientific_contracts",
+        "model_packets_and_outputs",
+        "detector_results",
+        "reports",
+        "source_derived_objects"
+      ]
+    },
+    "global_cache_allowed_classes": {
+      "const": [
+        "parser_binaries_and_grammars",
+        "public_package_downloads",
+        "isolated_dependency_environments",
+        "public_external_evidence",
+        "tool_owned_immutable_assets"
+      ]
+    },
+    "cache_key_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "content_digests",
+        "component_versions",
+        "policy_digest",
+        "semantic_dependencies"
+      ],
+      "properties": {
+        "content_digests": {
+          "const": true
+        },
+        "component_versions": {
+          "const": true
+        },
+        "policy_digest": {
+          "const": true
+        },
+        "semantic_dependencies": {
+          "const": true
+        }
+      }
+    },
+    "global_cache_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

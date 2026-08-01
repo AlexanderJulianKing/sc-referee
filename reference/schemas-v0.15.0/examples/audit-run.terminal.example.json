@@ -1,0 +1,20 @@
+{
+  "audit_run_id": "audit:candidate",
+  "created_at": "2026-07-27T20:00:00Z",
+  "provenance": {
+    "actor": {
+      "actor_id": "controller:candidate",
+      "actor_kind": "controller"
+    },
+    "created_at": "2026-07-27T20:10:00Z",
+    "method": "append_lifecycle_observation"
+  },
+  "record_type": "audit_run",
+  "schema_version": "0.15.0",
+  "snapshot_ref": {
+    "record_id": "snapshot:candidate",
+    "record_type": "repository_snapshot"
+  },
+  "state": "partial_deadline",
+  "terminal_reason": "User-visible hard deadline reached after semantic lock."
+}

@@ -1,0 +1,113 @@
+{
+  "schema_version": "0.5.0",
+  "record_type": "agent_review",
+  "review_id": "review:case-1:codex-stage2",
+  "case_id": "case:gene-1",
+  "stage": "stage2_scientific_adjudication",
+  "reviewer_agent": {
+    "provider": "OpenAI",
+    "agent_surface": "Codex",
+    "model_name": "GPT-5.6 Sol",
+    "model_id": "gpt-5.6-sol",
+    "model_snapshot": null,
+    "agent_version": "1.0.0",
+    "reasoning_configuration": "high",
+    "execution_context_id": "context:codex-stage2",
+    "independent_context": true,
+    "system_prompt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "task_prompt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "tool_policy_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "environment_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "blindness": {
+    "other_reviews_hidden": false,
+    "sc_referee_output_hidden": true,
+    "benchmark_grade_hidden": false,
+    "answer_key_hidden": false,
+    "detector_identity_hidden": true,
+    "exceptions": [
+      "Frozen Stage-1 rationales and answer-side evidence supplied"
+    ]
+  },
+  "scope": {
+    "claim_refs": [
+      {
+        "record_type": "claim",
+        "record_id": "claim:1"
+      }
+    ],
+    "issue_class_scope": [
+      "claim_result_agreement"
+    ],
+    "reviewed_paths": [
+      "analysis.py",
+      "report.md"
+    ]
+  },
+  "verdict": "demonstrated_issue",
+  "bounded_statement": "The report states a positive coefficient while the linked result is negative under the established contrast orientation.",
+  "root_cause": "report/result direction mismatch",
+  "issue_class": "claim_result_agreement",
+  "evidence": [
+    {
+      "evidence_id": "evidence:sign",
+      "description": "The linked coefficient is negative.",
+      "support_role": "supports",
+      "source_refs": [],
+      "record_refs": [
+        {
+          "record_type": "claim",
+          "record_id": "claim:1"
+        }
+      ],
+      "observed_value": -0.42
+    }
+  ],
+  "counterevidence_considered": [],
+  "affected_record_refs": [
+    {
+      "record_type": "claim",
+      "record_id": "claim:1"
+    }
+  ],
+  "unresolved_material_questions": [],
+  "self_reported_confidence": "high",
+  "confidence_used_for_labeling": false,
+  "transcript_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "completed_at": "2026-07-27T18:30:00Z",
+  "provenance": {
+    "actor": {
+      "actor_kind": "controller",
+      "actor_id": "software:sc-referee-eval",
+      "display_name": "sc-referee evaluation controller"
+    },
+    "method": "deterministic_evaluation_runner",
+    "created_at": "2026-07-27T18:00:00Z",
+    "tool": "sc-referee-eval",
+    "tool_version": "0.5.0"
+  },
+  "falsification_attempt": {
+    "strongest_innocent_explanation": "The report may use a reversed contrast or transformed sign convention.",
+    "reversing_premises": [
+      "The report and result use different reference orientations."
+    ],
+    "evidence_tested": [
+      {
+        "evidence_id": "evidence:sign",
+        "description": "The linked coefficient is negative.",
+        "support_role": "supports",
+        "source_refs": [],
+        "record_refs": [
+          {
+            "record_type": "claim",
+            "record_id": "claim:1"
+          }
+        ],
+        "observed_value": -0.42
+      }
+    ],
+    "outcome": "root_cause_survived",
+    "material_dissent": false,
+    "notes": "The contrast orientation was resolved from the fitted result and report lineage."
+  }
+}

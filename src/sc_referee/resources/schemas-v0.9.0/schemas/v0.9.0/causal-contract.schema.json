@@ -1,0 +1,276 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.9.0/causal-contract.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Identifier"
+    },
+    "causal_contract_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Identifier"
+    },
+    "causal_structure": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "graph_scope": {
+              "const": "not_available"
+            },
+            "presence": {
+              "const": "none"
+            },
+            "relation_assertion_ids": {
+              "const": []
+            },
+            "source_refs": {
+              "const": []
+            }
+          },
+          "required": [
+            "presence",
+            "graph_scope",
+            "relation_assertion_ids",
+            "source_refs"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "graph_scope": {
+              "enum": [
+                "partial_open_world",
+                "complete_for_named_query",
+                "closed_world"
+              ]
+            },
+            "presence": {
+              "enum": [
+                "partial",
+                "complete"
+              ]
+            },
+            "relation_assertion_ids": {
+              "items": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Identifier"
+              },
+              "minItems": 1,
+              "type": "array",
+              "uniqueItems": true
+            },
+            "source_refs": {
+              "items": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SourceRef"
+              },
+              "minItems": 1,
+              "type": "array"
+            }
+          },
+          "required": [
+            "presence",
+            "graph_scope",
+            "relation_assertion_ids",
+            "source_refs"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "claim_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Timestamp"
+    },
+    "estimand": {
+      "additionalProperties": false,
+      "properties": {
+        "censoring_and_competing_events": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "comparison": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "effect_measure_and_scale": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "effect_type": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "interference": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "outcome": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "outcome_horizon": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "target_population": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "time_zero": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "transport_relationship": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "treatment_or_exposure": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "treatment_strategies": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "unit_of_analysis": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        }
+      },
+      "required": [
+        "target_population",
+        "unit_of_analysis",
+        "treatment_or_exposure",
+        "treatment_strategies",
+        "outcome",
+        "comparison",
+        "effect_measure_and_scale",
+        "time_zero",
+        "outcome_horizon",
+        "effect_type",
+        "censoring_and_competing_events",
+        "interference",
+        "transport_relationship"
+      ],
+      "type": "object"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "identification": {
+      "additionalProperties": false,
+      "properties": {
+        "adjustment_set": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "consistency_and_treatment_versions": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "covariate_roles": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "assertion_ids": {
+                "items": {
+                  "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Identifier"
+                },
+                "minItems": 0,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "estimand_scope": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Identifier"
+              },
+              "role": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/CausalVariableRole"
+              },
+              "temporal_relation": {
+                "enum": [
+                  "pre_treatment",
+                  "post_treatment",
+                  "concurrent",
+                  "post_outcome",
+                  "unknown"
+                ]
+              },
+              "variable_ref": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/RecordRef"
+              }
+            },
+            "required": [
+              "variable_ref",
+              "role",
+              "estimand_scope",
+              "temporal_relation",
+              "assertion_ids"
+            ],
+            "type": "object"
+          },
+          "minItems": 0,
+          "type": "array"
+        },
+        "exchangeability": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "measurement_and_calibration": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "positivity": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "strategy": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "temporal_ordering": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+        }
+      },
+      "required": [
+        "strategy",
+        "adjustment_set",
+        "covariate_roles",
+        "exchangeability",
+        "positivity",
+        "consistency_and_treatment_versions",
+        "measurement_and_calibration",
+        "temporal_ordering"
+      ],
+      "type": "object"
+    },
+    "intent": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemanticSlot"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "causal_contract"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "source_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SourceRef"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "updated_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Timestamp"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "causal_contract_id",
+    "audit_run_id",
+    "claim_refs",
+    "intent",
+    "estimand",
+    "identification",
+    "causal_structure",
+    "source_refs",
+    "created_at",
+    "provenance"
+  ],
+  "title": "Causal Estimand and Identification Contract",
+  "type": "object"
+}
