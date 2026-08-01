@@ -449,6 +449,7 @@ def main() -> int:
     run("-m", "compileall", "-q", "src", "evaluation/src", "tests", "scripts")
     run("scripts/validate_starter.py")
     run("scripts/validate_regression_corpus.py")
+    run("scripts/run_regression_corpus.py")
     run("-m", "sc_referee.cli", "validate-schemas")
     verify_built_wheel()
     verify_built_evaluation_wheel()
@@ -1479,6 +1480,9 @@ def main() -> int:
         "modular_method_check_extension_adr_accepted": True,
         "deterministic_calculation_check_adr_accepted": True,
         "bounded_bh_control_family": "passed_disclosure_only_zero_findings",
+        "post_mpp_regression_corpus": (
+            "31_declared_cases_19_pytest_selectors_4_direct_audit_replays_passed"
+        ),
     }
     (ROOT / "HANDOFF_VERIFICATION.json").write_text(
         json.dumps(verification, indent=2) + "\n", encoding="utf-8"

@@ -77,7 +77,7 @@ themselves, qualify a detector or support a public generality claim.
     complete registry coverage, forbidden qualification leakage, and mutation rejection.
   - Limitation: inventory coverage does not establish scientific representativeness.
 
-- [ ] **L02 — One-command corpus regression runner.** Add a test runner that audits and replays the
+- [x] **L02 — One-command corpus regression runner.** Add a test runner that audits and replays the
   ledger's local non-executing cases and compares declared semantic outcomes without relying on
   disposable SQLite or unstable timestamps.
   - Acceptance: one command detects a lost question, new false question, changed output ceiling,
@@ -244,10 +244,9 @@ themselves, qualify a detector or support a public generality claim.
 
 Work on the first unchecked prerequisite, in order:
 
-1. L02 — corpus runner;
-2. L03 — baseline completeness for current modules;
-3. L04 and L05 — selection and general static connectivity; then
-4. L09 and L10 — natural calculation layouts and large single-cell artifacts.
+1. L03 — baseline completeness for current modules;
+2. L04 and L05 — selection and general static connectivity; then
+3. L09 and L10 — natural calculation layouts and large single-cell artifacts.
 
 Do not begin detector promotion, MCP transport, or project execution while these prerequisites are
 unfinished.

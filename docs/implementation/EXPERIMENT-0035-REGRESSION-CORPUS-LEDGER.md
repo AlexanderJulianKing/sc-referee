@@ -48,10 +48,12 @@ ceilings, and mixed scientific/calculation authority.
 
 ## Result
 
-The v1 ledger binds 26 active modules to 29 retained cases across nine sources. All sources and
-cases are explicitly excluded from qualification. The focused ledger tests and all 1,232 repository
-tests pass. Ruff, format checking, strict mypy for 105 production and 26 evaluation source files,
-the 79 public schema examples, the walking skeleton, and the standalone ledger validator pass.
+The v1 ledger initially bound 26 active modules to 29 retained cases across nine sources. L02 later
+added one explicit unsupported case and one replay guard, bringing the same ledger to 31 cases.
+All sources and cases remain explicitly excluded from qualification. The focused ledger tests and
+all 1,232 repository tests passed at the L01 merge. Ruff, format checking, strict mypy for 105
+production and 26 evaluation source files, the 79 public schema examples, the walking skeleton,
+and the standalone ledger validator passed.
 
 ## Remaining limitations
 
@@ -59,7 +61,7 @@ the 79 public schema examples, the walking skeleton, and the standalone ledger v
   detector qualification, or Finding authority.
 - Most current entries identify pytest-generated fixtures rather than independently materialized
   repositories.
-- L02 must run the declared local cases through one semantic comparison command; L03 must fill
-  every mandatory regression role for every active module.
+- L02 now runs the declared local cases through one semantic comparison command; L03 must still
+  fill every mandatory regression role for every active module.
 - An immutable external revision proves source identity only when its payload is separately
   materialized and digest-verified; this ledger performs no network retrieval.

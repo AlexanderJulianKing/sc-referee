@@ -141,8 +141,11 @@ python -m pip install -e '.[dev]'
 ruff check .
 ruff format --check .
 mypy src
+mypy --config-file evaluation/pyproject.toml evaluation/src
 pytest
 python scripts/validate_starter.py
+python scripts/validate_regression_corpus.py
+python scripts/run_regression_corpus.py
 ```
 
 The accepted specification and immutable schema releases live under `reference/`. Start with

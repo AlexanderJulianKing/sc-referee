@@ -51,6 +51,16 @@ from sc_referee_evaluation.regression_corpus import (
     regression_tree_digest,
     validate_regression_corpus_ledger,
 )
+from sc_referee_evaluation.regression_runner import (
+    DEFAULT_REGRESSION_CORPUS_EXECUTION_PLAN,
+    REGRESSION_CORPUS_EXECUTION_PLAN_VERSION,
+    REGRESSION_CORPUS_RUNNER_VERSION,
+    RegressionCorpusRunnerError,
+    compare_corpus_semantic_outcome,
+    corpus_semantic_projection,
+    run_regression_corpus,
+    validate_regression_corpus_execution_plan,
+)
 from sc_referee_evaluation.root_cause import (
     RootCauseReconciliationError,
     build_adjudicated_root_cause,
@@ -70,9 +80,12 @@ from sc_referee_evaluation.stage3 import (
 from sc_referee_evaluation.validation import EvaluationValidationError, validate_case_packet
 
 __all__ = [
+    "DEFAULT_REGRESSION_CORPUS_EXECUTION_PLAN",
     "DEFAULT_REGRESSION_CORPUS_LEDGER",
     "PROFILE_MANIFEST",
+    "REGRESSION_CORPUS_EXECUTION_PLAN_VERSION",
     "REGRESSION_CORPUS_LEDGER_VERSION",
+    "REGRESSION_CORPUS_RUNNER_VERSION",
     "AnalysisMethodQualificationError",
     "CorpusPreflightError",
     "DetectorComparisonError",
@@ -85,6 +98,7 @@ __all__ = [
     "MethodContractDiagnosticError",
     "QualificationMetricError",
     "RegressionCorpusLedgerError",
+    "RegressionCorpusRunnerError",
     "ReviewCaptureError",
     "RootCauseReconciliationError",
     "SourceMethodProbeError",
@@ -95,7 +109,9 @@ __all__ = [
     "build_qualification_metric_set",
     "build_stage3_review_packet",
     "capture_review_submission",
+    "compare_corpus_semantic_outcome",
     "compare_detector_output",
+    "corpus_semantic_projection",
     "diagnose_genebench_method_contract_conflict",
     "freeze_bounded_analysis_method_profile",
     "generate_ambiguous_fixture",
@@ -112,8 +128,10 @@ __all__ = [
     "regression_tree_digest",
     "revalidate_analysis_method_proof",
     "revalidate_fixture_proof",
+    "run_regression_corpus",
     "validate_adjudicated_root_cause",
     "validate_case_packet",
+    "validate_regression_corpus_execution_plan",
     "validate_regression_corpus_ledger",
     "validate_stage3_review_submission",
     "verify_bounded_analysis_method_case",
