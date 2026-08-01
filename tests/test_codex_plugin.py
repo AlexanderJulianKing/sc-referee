@@ -14,6 +14,8 @@ STRICT_SEMVER = re.compile(
     r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
 )
 
+GITHUB_REPOSITORY = "https://github.com/AlexanderJulianKing/sc-referee"
+
 
 def _relative_files(root: Path) -> list[Path]:
     return sorted(path.relative_to(root) for path in root.rglob("*") if path.is_file())
@@ -29,8 +31,10 @@ def test_codex_plugin_manifest_declares_the_bounded_local_surface(project_root: 
     assert STRICT_SEMVER.fullmatch(manifest["version"])
     assert manifest["skills"] == "./skills/"
     assert manifest["license"] == "Apache-2.0"
-    assert "repository" not in manifest
-    assert "homepage" not in manifest
+    assert manifest["author"]["url"] == "https://github.com/AlexanderJulianKing"
+    assert manifest["repository"] == GITHUB_REPOSITORY
+    assert manifest["homepage"] == f"{GITHUB_REPOSITORY}#readme"
+    assert manifest["interface"]["websiteURL"] == GITHUB_REPOSITORY
     assert manifest["interface"]["capabilities"] == [
         "Claimless scientific method contracting",
         "Static scientific audit",
