@@ -24,6 +24,7 @@ jobs:
         run: mypy src
       - run: pytest
       - run: python scripts/validate_starter.py
+      - run: python scripts/validate_regression_corpus.py
       - name: Generate walking-skeleton review artifacts
         if: matrix.python-version == '3.11'
         run: |

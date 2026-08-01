@@ -44,6 +44,13 @@ from sc_referee_evaluation.metrics import (
     bootstrap_problem_sample,
     build_qualification_metric_set,
 )
+from sc_referee_evaluation.regression_corpus import (
+    DEFAULT_REGRESSION_CORPUS_LEDGER,
+    REGRESSION_CORPUS_LEDGER_VERSION,
+    RegressionCorpusLedgerError,
+    regression_tree_digest,
+    validate_regression_corpus_ledger,
+)
 from sc_referee_evaluation.root_cause import (
     RootCauseReconciliationError,
     build_adjudicated_root_cause,
@@ -63,7 +70,9 @@ from sc_referee_evaluation.stage3 import (
 from sc_referee_evaluation.validation import EvaluationValidationError, validate_case_packet
 
 __all__ = [
+    "DEFAULT_REGRESSION_CORPUS_LEDGER",
     "PROFILE_MANIFEST",
+    "REGRESSION_CORPUS_LEDGER_VERSION",
     "AnalysisMethodQualificationError",
     "CorpusPreflightError",
     "DetectorComparisonError",
@@ -75,6 +84,7 @@ __all__ = [
     "GeneBenchNumericGradeError",
     "MethodContractDiagnosticError",
     "QualificationMetricError",
+    "RegressionCorpusLedgerError",
     "ReviewCaptureError",
     "RootCauseReconciliationError",
     "SourceMethodProbeError",
@@ -99,10 +109,12 @@ __all__ = [
     "probe_python_method_shapes",
     "project_evaluation_candidate",
     "reconcile_detector_case",
+    "regression_tree_digest",
     "revalidate_analysis_method_proof",
     "revalidate_fixture_proof",
     "validate_adjudicated_root_cause",
     "validate_case_packet",
+    "validate_regression_corpus_ledger",
     "validate_stage3_review_submission",
     "verify_bounded_analysis_method_case",
 ]
