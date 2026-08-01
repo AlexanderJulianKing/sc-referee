@@ -7,7 +7,7 @@ from typing import Any, Literal, Protocol
 
 from sc_referee.core.ids import semantic_digest, sha256_digest
 from sc_referee.records.observed import controller_provenance
-from sc_referee.scientific_checks import RecordRef
+from sc_referee.scientific_checks import RecordRef, ScopeJoinProof
 from sc_referee.version import SCHEMA_VERSION
 
 Applicability = Literal["applicable", "not_applicable", "ambiguous", "unsupported"]
@@ -108,6 +108,7 @@ class FrozenCalculationInput:
     content: bytes
     content_digest: str
     source_ref: dict[str, Any]
+    scope_join_path: tuple[ScopeJoinProof, ...]
 
     def __post_init__(self) -> None:
         if not self.path or self.path.startswith("/") or ".." in self.path.split("/"):
@@ -120,6 +121,13 @@ class FrozenCalculationInput:
             raise CalculationCheckContractError("calculation input source digest mismatch")
         if self.source_ref.get("path") != self.path:
             raise CalculationCheckContractError("calculation input source path mismatch")
+        if not self.scope_join_path or self.scope_join_path[0].edge.source_ref != self.artifact_ref:
+            raise CalculationCheckContractError("calculation input has no exact scope-join path")
+        if any(
+            left.edge.target_ref != right.edge.source_ref
+            for left, right in zip(self.scope_join_path, self.scope_join_path[1:], strict=False)
+        ):
+            raise CalculationCheckContractError("calculation input scope-join path is disconnected")
 
 
 @dataclass(frozen=True)
@@ -151,6 +159,7 @@ class CalculationContext:
                         "path": item.path,
                         "artifact_ref": item.artifact_ref.to_dict(),
                         "content_digest": item.content_digest,
+                        "scope_join_path": [proof.to_dict() for proof in item.scope_join_path],
                     }
                     for item in self.tabular_inputs
                 ],

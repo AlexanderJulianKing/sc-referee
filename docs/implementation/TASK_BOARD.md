@@ -25,9 +25,10 @@ selectors, and four direct audit/replay controls. The 0.3.0 overhaul is now on `
 follow-ups change no detector authority or schema meaning. Experiment 0038 completes L04 through
 bounded typed report/source/input/output selection, exact snapshot binding, multi-segment Answer
 preservation, and deterministic rebinding of still-open questions to current segment-local
-AssetIdentity records. Post-MPP functionality work remains ordered in
-`docs/implementation/POST_MPP_PRODUCT_BACKLOG.md`; L05 general static scope joins are now the first
-pending prerequisite.
+AssetIdentity records. Experiment 0039 completes L05 through one digest-bound static scope graph
+shared by publication, cell, writer, calculation, selection, and exact imported-execution paths.
+Post-MPP functionality work remains ordered in `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md`;
+L06 natural-language adapter expansion is now the first pending prerequisite.
 
 ## Epic A — Baseline and quality gates
 
@@ -1008,8 +1009,8 @@ the draft pull request as a published or detector-qualified release.
 
 ## Immediate next task
 
-Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. L01 through L04 are
-complete; start with L05 general static scope joins before broadening adapters or scientific
-coverage.
+Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. L01 through L05 are
+complete; start with L06 natural-language adapter expansion before broadening source adapters or
+scientific coverage.
 Every subsequent feature must retain the mandatory positive, corrected, hard-negative, ambiguous,
 unsupported, isolation, mutation, no-execution, and replay controls described there.

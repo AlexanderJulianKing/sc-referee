@@ -58,13 +58,30 @@ def build_scope_selection_contracts(
         and isinstance(source_ref.get("content_digest"), str)
     }
 
+    explicit_inputs = {_normalized_path(value) for value in explicit_material_inputs}
     source_candidates = _source_candidates(file_records, identities, regular_paths, parsed_paths)
-    input_candidates = _artifact_candidates(
+    artifact_input_candidates = _artifact_candidates(
         artifacts,
         identities,
         regular_paths,
         kinds={"data_file", "table"},
         observed_roles={"input_file", "material_input", "tabular_input"},
+        explicitly_selected_paths=explicit_inputs,
+    )
+    artifact_input_paths = {str(item["path"]) for item in artifact_input_candidates}
+    input_candidates = _deduplicate_candidates(
+        [
+            *artifact_input_candidates,
+            *(
+                item
+                for item in _explicit_file_candidates(
+                    file_records,
+                    identities,
+                    explicitly_selected_paths=explicit_inputs,
+                )
+                if item["path"] not in artifact_input_paths
+            ),
+        ]
     )
     output_candidates = _artifact_candidates(
         artifacts,
@@ -78,7 +95,6 @@ def build_scope_selection_contracts(
         "material_input": input_candidates,
         "analysis_output": output_candidates,
     }
-    explicit_inputs = {_normalized_path(value) for value in explicit_material_inputs}
     questions: list[dict[str, Any]] = []
     selections: dict[str, Any] = {}
     for kind, candidates in by_kind.items():
@@ -412,18 +428,41 @@ def _artifact_candidates(
     *,
     kinds: set[str],
     observed_roles: set[str],
+    explicitly_selected_paths: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
     for record in artifacts:
         path = record.get("path")
         if (
             record.get("kind") not in kinds
-            or record.get("observed_role") not in observed_roles
+            or (
+                record.get("observed_role") not in observed_roles
+                and path not in (explicitly_selected_paths or set())
+            )
             or not _safe_path(path)
             or path not in regular_paths
         ):
             continue
         binding = _binding(record, "artifact", identities)
+        if binding is not None:
+            candidates.append(binding)
+    return _deduplicate_candidates(candidates)
+
+
+def _explicit_file_candidates(
+    file_records: list[dict[str, Any]],
+    identities: dict[str, dict[str, Any]],
+    *,
+    explicitly_selected_paths: set[str],
+) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    for record in file_records:
+        if (
+            record.get("entry_kind") != "regular_file"
+            or record.get("path") not in explicitly_selected_paths
+        ):
+            continue
+        binding = _binding(record, "file_record", identities)
         if binding is not None:
             candidates.append(binding)
     return _deduplicate_candidates(candidates)

@@ -11,8 +11,17 @@ from sc_referee.scientific_checks.core import (
     ReceiptKind,
     RecordRef,
 )
+from sc_referee.scientific_checks.scope_joins import selected_publication_path
 
-_COMMON_IMPLEMENTATION_DIGEST = sha256_digest(Path(__file__).read_bytes())
+_COMMON_IMPLEMENTATION_DIGEST = semantic_digest(
+    {
+        "adapter_common": sha256_digest(Path(__file__).read_bytes()),
+        "scope_join_core": sha256_digest(Path(__file__).with_name("core.py").read_bytes()),
+        "scope_join_resolver": sha256_digest(
+            Path(__file__).with_name("scope_joins.py").read_bytes()
+        ),
+    }
+)
 
 
 def adapter_implementation_digest(implementation_path: Path) -> str:
@@ -70,13 +79,14 @@ def selected_surface_document(
 
 
 def selected_surface_owns_artifact(context: FrozenInspectionContext) -> bool:
-    surface = base_record(context, context.selected_surface_ref)
-    if surface is None or surface.get("status") != "resolved":
-        return False
-    selection = surface.get("selection")
-    return isinstance(selection, dict) and selection.get("selected_surface_refs") == [
-        context.selected_artifact_ref.to_dict()
-    ]
+    return bool(
+        selected_publication_path(
+            context.scope_join_graph,
+            selected_artifact_ref=context.selected_artifact_ref,
+            selected_surface_ref=context.selected_surface_ref,
+            relation="selected_by_publication_surface",
+        )
+    )
 
 
 def base_record(context: FrozenInspectionContext, ref: RecordRef) -> dict[str, Any] | None:

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from sc_referee.core.ids import canonical_json, semantic_digest
+from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.parsers.python_ast import PARSER_ID as PYTHON_PARSER_ID
 from sc_referee.parsers.python_ast import PARSER_VERSION as PYTHON_PARSER_VERSION
 from sc_referee.scientific_checks.core import (
@@ -190,6 +190,9 @@ def scientific_check_release_projection(
         "manifest_set_id": "scientific-check-manifest-set:v1",
         "profile_id": "scientific_check_registry_v1",
         "implementation_files": {
+            "scientific_checks/core.py": sha256_digest(
+                (Path(__file__).resolve().parent / "core.py").read_bytes()
+            ),
             "scientific_checks/python_founder_adapter.py": (
                 PYTHON_FOUNDER_ADAPTER_IMPLEMENTATION_DIGEST
             ),
@@ -199,6 +202,9 @@ def scientific_check_release_projection(
             "scientific_checks/registry.py": SCIENTIFIC_CHECK_REDUCER_IMPLEMENTATION_DIGEST,
             "scientific_checks/selected_report_adapter.py": (
                 SELECTED_REPORT_ADAPTER_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/scope_joins.py": sha256_digest(
+                (Path(__file__).resolve().parent / "scope_joins.py").read_bytes()
             ),
         },
         "modules": [

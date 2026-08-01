@@ -23,8 +23,8 @@ from sc_referee.scientific_checks.core import (
     InspectionReceipt,
     NormalizedMethodObservation,
     RoleBinding,
-    ScopeJoinEdge,
 )
+from sc_referee.scientific_checks.scope_joins import selected_publication_path
 
 RMARKDOWN_MVMR_ADAPTER_IMPLEMENTATION_DIGEST = adapter_implementation_digest(Path(__file__))
 
@@ -146,12 +146,11 @@ class RMarkdownMVMRCovarianceAdapter:
                 ),
             )
         )
-        scope_path = (
-            ScopeJoinEdge(
-                source_ref=context.selected_artifact_ref,
-                relation="selected_source_artifact_of_publication_surface",
-                target_ref=context.selected_surface_ref,
-            ),
+        scope_path = selected_publication_path(
+            context.scope_join_graph,
+            selected_artifact_ref=context.selected_artifact_ref,
+            selected_surface_ref=context.selected_surface_ref,
+            relation="selected_source_artifact_of_publication_surface",
         )
         receipts = tuple(
             InspectionReceipt(

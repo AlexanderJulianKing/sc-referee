@@ -15,6 +15,12 @@ from sc_referee.calculation_checks.material_context import MaterialCalculationCo
 from sc_referee.core.ids import stable_id
 from sc_referee.records.observed import controller_provenance, typed_ref
 from sc_referee.scientific_checks import FrozenInspectionContext, RecordRef
+from sc_referee.scientific_checks.scope_joins import (
+    FULL_DIGEST_PROFILE,
+    PUBLICATION_PROFILE,
+    full_digest_identity_path,
+    selected_review_path,
+)
 from sc_referee.snapshot.repository import SnapshotOutput
 from sc_referee.version import SCHEMA_VERSION
 
@@ -42,6 +48,24 @@ def build_calculation_context(
     if selected is None or not isinstance(selected.get("path"), str):
         return None
     selected_path = str(selected["path"])
+    graph = scientific_context.scope_join_graph
+    if graph is None:
+        return None
+    snapshot_refs = {
+        proof.edge.target_ref
+        for proof in graph.proofs_for_profile(FULL_DIGEST_PROFILE)
+        if proof.edge.target_ref.record_type == "repository_snapshot"
+    }
+    if len(snapshot_refs) != 1:
+        return None
+    snapshot_ref = next(iter(snapshot_refs))
+    report_scope = graph.unique_path(
+        scientific_context.selected_artifact_ref,
+        scientific_context.selected_surface_ref,
+        profiles=(PUBLICATION_PROFILE,),
+    )
+    if not report_scope:
+        return None
     report_documents = [
         item
         for item in scientific_context.documents
@@ -58,6 +82,7 @@ def build_calculation_context(
         content=report_document.content,
         content_digest=report_document.content_digest,
         source_ref=report_source,
+        scope_join_path=report_scope,
     )
 
     artifact_paths: dict[str, list[dict[str, Any]]] = {}
@@ -91,6 +116,14 @@ def build_calculation_context(
         )
         if not isinstance(digest, str):
             continue
+        artifact_ref = RecordRef("artifact", str(matches[0]["artifact_id"]))
+        identity_scope = full_digest_identity_path(
+            graph,
+            source_ref=artifact_ref,
+            snapshot_ref=snapshot_ref,
+        )
+        if not identity_scope:
+            continue
         materialized = snapshot.materialized_root / path
         try:
             size = materialized.stat().st_size
@@ -110,7 +143,7 @@ def build_calculation_context(
         try:
             table = FrozenCalculationInput(
                 path=path,
-                artifact_ref=RecordRef("artifact", str(matches[0]["artifact_id"])),
+                artifact_ref=artifact_ref,
                 content=content,
                 content_digest=digest,
                 source_ref={
@@ -120,6 +153,7 @@ def build_calculation_context(
                     "artifact_id": str(matches[0]["artifact_id"]),
                     "content_digest": digest,
                 },
+                scope_join_path=identity_scope,
             )
         except ValueError:
             continue
@@ -180,12 +214,21 @@ def build_calculation_context(
                         "path": path,
                         "content_digest": digest,
                     }
+                material_scope = selected_review_path(
+                    graph,
+                    kind="material_input",
+                    source_ref=input_ref,
+                    selected_surface_ref=scientific_context.selected_surface_ref,
+                )
+                if not material_scope:
+                    continue
                 material_input = FrozenCalculationInput(
                     path=path,
                     artifact_ref=input_ref,
                     content=content,
                     content_digest=digest,
                     source_ref=input_source_ref,
+                    scope_join_path=material_scope,
                 )
             except (OSError, ValueError):
                 continue

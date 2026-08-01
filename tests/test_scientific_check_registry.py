@@ -369,6 +369,7 @@ def test_adapter_receives_only_the_frozen_base_capability_surface() -> None:
         "documents",
         "base_records",
         "shared_derivations",
+        "scope_join_graph",
     }
     assert isinstance(context.documents[0].content, bytes)
     assert isinstance(context.base_records[0].canonical_payload, bytes)

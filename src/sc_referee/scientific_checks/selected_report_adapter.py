@@ -23,8 +23,8 @@ from sc_referee.scientific_checks.core import (
     InspectionReceipt,
     NormalizedMethodObservation,
     RoleBinding,
-    ScopeJoinEdge,
 )
+from sc_referee.scientific_checks.scope_joins import selected_publication_path
 
 SELECTED_REPORT_ADAPTER_IMPLEMENTATION_DIGEST = adapter_implementation_digest(Path(__file__))
 
@@ -124,14 +124,13 @@ class SelectedReportMethodAdapter:
         rule, start, end = matches[0]
         target = context.selected_artifact_ref
         span = _evidence_span(document, text, start, end)
-        scope_path = (
-            ScopeJoinEdge(
-                source_ref=target,
-                relation="selected_by_publication_surface",
-                target_ref=context.selected_surface_ref,
-            ),
+        scope_path = selected_publication_path(
+            context.scope_join_graph,
+            selected_artifact_ref=target,
+            selected_surface_ref=context.selected_surface_ref,
+            relation="selected_by_publication_surface",
         )
-        if not selected_surface_owns_artifact(context):
+        if not scope_path or not selected_surface_owns_artifact(context):
             return self._abstain(
                 "unsupported",
                 "The selected report Artifact is not owned by the resolved PublicationSurface selection.",

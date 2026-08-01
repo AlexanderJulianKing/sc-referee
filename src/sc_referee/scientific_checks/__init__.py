@@ -18,6 +18,8 @@ from sc_referee.scientific_checks.core import (
     ScientificCheckContractError,
     ScientificCheckModule,
     ScopeJoinEdge,
+    ScopeJoinProof,
+    StaticScopeJoinGraph,
 )
 from sc_referee.scientific_checks.registry import (
     RegistryEvaluation,
@@ -46,4 +48,6 @@ __all__ = [
     "ScientificCheckModule",
     "ScientificCheckRegistry",
     "ScopeJoinEdge",
+    "ScopeJoinProof",
+    "StaticScopeJoinGraph",
 ]

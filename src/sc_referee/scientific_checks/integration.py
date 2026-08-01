@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import copy
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -20,6 +20,7 @@ from sc_referee.scientific_checks.core import (
     ScientificCheckModule,
 )
 from sc_referee.scientific_checks.registry import RegistryEvaluation, ScientificCheckRegistry
+from sc_referee.scientific_checks.scope_joins import build_static_scope_join_graph
 from sc_referee.version import SCHEMA_VERSION, __version__
 
 _MAX_ADAPTER_DOCUMENT_BYTES = 2_000_000
@@ -43,6 +44,11 @@ def build_frozen_inspection_context(
     operations: list[dict[str, Any]],
     artifacts: list[dict[str, Any]],
     publication_surface: dict[str, Any],
+    repository_snapshot: dict[str, Any],
+    executions: list[dict[str, Any]] | None = None,
+    environments: list[dict[str, Any]] | None = None,
+    scope_selections: dict[str, Any] | None = None,
+    selection_evidence_records: list[dict[str, Any]] | None = None,
 ) -> FrozenInspectionContext | None:
     """Construct immutable adapter bytes without exposing filesystem or controller handles."""
 
@@ -56,12 +62,16 @@ def build_frozen_inspection_context(
     if len(selected_artifacts) != 1:
         return None
     base_values = [
+        repository_snapshot,
         publication_surface,
         *file_records,
         *asset_identities,
         *parser_results,
         *operations,
         *artifacts,
+        *(executions or []),
+        *(environments or []),
+        *(selection_evidence_records or []),
     ]
     base_records: list[FrozenBaseRecord] = []
     for value in base_values:
@@ -128,7 +138,7 @@ def build_frozen_inspection_context(
         )
         if document is not None:
             documents.append(document)
-    return FrozenInspectionContext(
+    context = FrozenInspectionContext(
         snapshot_digest=snapshot_digest,
         selected_surface_ref=RecordRef(
             "publication_surface", str(publication_surface["publication_surface_id"])
@@ -137,6 +147,19 @@ def build_frozen_inspection_context(
         documents=tuple(documents),
         base_records=tuple(base_records),
     )
+    snapshot_ref = _record_ref(repository_snapshot)
+    if snapshot_ref is None:
+        return None
+    graph = build_static_scope_join_graph(
+        snapshot_digest=snapshot_digest,
+        snapshot_ref=snapshot_ref,
+        selected_surface_ref=context.selected_surface_ref,
+        selected_artifact_ref=context.selected_artifact_ref,
+        documents=context.documents,
+        base_records=context.base_records,
+        scope_selections=scope_selections,
+    )
+    return replace(context, scope_join_graph=graph)
 
 
 def _whole_file_inspection_document(
@@ -677,6 +700,11 @@ def _record_ref(value: dict[str, Any]) -> RecordRef | None:
         "operation": "operation_id",
         "parser_result": "parser_result_id",
         "publication_surface": "publication_surface_id",
+        "repository_snapshot": "snapshot_id",
+        "execution": "execution_id",
+        "environment": "environment_id",
+        "material_question": "question_id",
+        "answer": "answer_id",
     }.get(str(record_type))
     record_id = value.get(field) if field is not None else None
     if not isinstance(record_type, str) or not isinstance(record_id, str):
