@@ -119,7 +119,7 @@ themselves, qualify a detector or support a public generality claim.
     transformed payload, weak identity, unselected artifact, module removal, and byte replay.
   - Limitation: a static writer path does not prove that code ran or produced the snapshotted bytes.
 
-- [ ] **L06 — Natural-language adapter expansion.** Broaden existing selected-report adapters to
+- [x] **L06 — Natural-language adapter expansion.** Broaden existing selected-report adapters to
   natural, independently observed scientific wording while keeping each normalized operand and
   output ceiling unchanged.
   - Acceptance: each grammar expansion is justified by a frozen real example and adds close
@@ -244,8 +244,7 @@ themselves, qualify a detector or support a public generality claim.
 
 Work on the first unchecked prerequisite, in order:
 
-1. L06 through L08 — natural-language, source, notebook, Quarto, and R Markdown adapters over the
-   common joins; then
+1. L07 through L08 — source, notebook, Quarto, and R Markdown adapters over the common joins; then
 2. L09 and L10 — natural calculation layouts and large single-cell artifacts.
 
 Do not begin detector promotion, MCP transport, or project execution while these prerequisites are

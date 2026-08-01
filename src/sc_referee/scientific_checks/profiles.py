@@ -787,6 +787,13 @@ def _ancestry_exposure_profile() -> _ReportProfile:
                 ),
             ),
             ReportOperandRule(
+                CanonicalOperand.scalar(called),
+                (
+                    r"(?is)\b(?:uncalled|masked)\s+gaps?\b[^.]{0,120}\b(?:rejected|filtered|low[- ]confidence)\s+intervals?\b[^.]{0,120}\b(?:were\s+)?(?:omitted|excluded)\s+from\s+(?:the\s+)?ancestry\s+exposure\b",
+                    r"(?i)t\s*=\s*N[_ ]?switch\s*/\s*\(\s*\(\s*1\s*-\s*p[_ ]?A\s*\)\s*L[_ ]?A\s*\+\s*p[_ ]?A\s*L[_ ]?B\s*\)",
+                ),
+            ),
+            ReportOperandRule(
                 CanonicalOperand.scalar(full),
                 (
                     r"(?i)(?:transition|pulse[- ]time)\s+exposure\s+used\s+(?:the\s+)?(?:complete|full)\s+(?:chromosome|genetic)[- ]map\s+length",
@@ -810,8 +817,8 @@ def _ancestry_exposure_profile() -> _ReportProfile:
         question_wording=(
             "Which chromosome-length exposure definition governs pulse timing for this review?"
         ),
-        check_version="1.1.0",
-        adapter_version="1.1.0",
+        check_version="1.2.0",
+        adapter_version="1.2.0",
     )
 
 
@@ -1436,6 +1443,13 @@ def _direct_standardization_conditioning_set_profile() -> _ReportProfile:
                 ),
             ),
             ReportOperandRule(
+                CanonicalOperand.scalar(include_availability),
+                (
+                    r"(?is)\b(?:formed|constructed|defined)\s+(?:exact\s+)?(?:poststrata|standardization\s+cells)\s+from\b(?=[^.]*\b(?:ancestry|substantive\s+risk)\b)(?=[^.]*\bfamily[- ]history(?:\s+tier)?\b)(?=[^.]*\b(?:intake\s+)?site\b)(?=[^.]*\b(?:collection\s+)?wave\b)[^.]*",
+                    r"(?is)\bcompleted[- ](?:partner|participant|row|test)\s+(?:positive\s+)?(?:rate|distribution)\s+in\s+each\s+cell\s+(?:is|was)\s+weighted\s+by\s+(?:that|the)\s+cell(?:'s)?\s+share\s+of\s+all\s+(?:[0-9][0-9,]*\s+)?(?:ancestry[- ]specific\s+)?(?:roster|target[- ]population)\s+rows\b",
+                ),
+            ),
+            ReportOperandRule(
                 CanonicalOperand.scalar(substantive_only),
                 (
                     r"(?i)\bcompleted\s+(?:partners?|rows?|participants?)\b[^.]*\b(?:analy[sz]ed|standardized)\b[^.]*\b(?:ancestry|substantive\s+risk)\b[^.]*\bfamily[- ]history(?:\s+tier)?\b[^.]*\bstandardized\b[^.]*\b(?:full\s+roster|roster\s+rows?|target\s+population)\b",
@@ -1445,11 +1459,14 @@ def _direct_standardization_conditioning_set_profile() -> _ReportProfile:
         ),
         triggers=(
             r"(?is)(?=.*\b(?:standardized|direct\s+standardization)\b)(?=.*\bcompleted(?:[- ]test|\s+(?:rows?|partners?|participants?))\b)(?=.*\b(?:full[- ]roster|target[- ]population)\b)(?=.*\b(?:site|center)\b)(?=.*\b(?:wave|period)\b)",
+            r"(?is)(?=.*\b(?:poststrata|standardization\s+cells)\b)(?=.*\bcompleted[- ](?:partner|participant|row|test)\b)(?=.*\b(?:roster|target[- ]population)\s+rows\b)(?=.*\b(?:site|center)\b)(?=.*\b(?:wave|period)\b)",
         ),
         question_wording=(
             "Which conditioning set governs direct standardization from completed rows to the "
             "full target roster for this review?"
         ),
+        check_version="1.1.0",
+        adapter_version="1.1.0",
     )
 
 
