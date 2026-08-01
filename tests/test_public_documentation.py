@@ -95,8 +95,8 @@ def test_task_board_freezes_post_mpp_dependency_and_regression_policy(
     )
 
     assert "POST_MPP_PRODUCT_BACKLOG.md" in task_board
-    assert "L01 through L05 are" in task_board
-    assert "start with L06 natural-language adapter expansion" in task_board
+    assert "L01 through L06 are" in task_board
+    assert "start with L07 Python and R source adapters" in task_board
     scientific_registry = default_scientific_check_registry()
     calculation_registry = default_calculation_check_registry()
     capability_profiles = json.loads(
@@ -137,7 +137,8 @@ def test_task_board_freezes_post_mpp_dependency_and_regression_policy(
     assert "- [x] **L03 — Baseline every current module.**" in backlog
     assert "- [x] **L04 — Publication and input selection ergonomics.**" in backlog
     assert "- [x] **L05 — General static scope joins.**" in backlog
-    assert "1. L06 through L08" in backlog
+    assert "- [x] **L06 — Natural-language adapter expansion.**" in backlog
+    assert "1. L07 through L08" in backlog
     assert "Do not begin detector promotion, MCP transport, or project execution" in backlog
 
 

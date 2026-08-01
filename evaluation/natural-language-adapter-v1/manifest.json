@@ -1,0 +1,64 @@
+{
+  "corpus_id": "natural-language-adapter-corpus:v1",
+  "corpus_version": "1.0.0",
+  "record_type": "natural_language_adapter_corpus",
+  "qualification_use_permitted": false,
+  "authority_limitation": "These answer-visible fresh-agent reports establish exact development wording cases only; they do not establish a governing scientific method, detector qualification, or Finding authority.",
+  "adapter_identity_keys_forbidden": [
+    "case_id",
+    "experiment_id",
+    "origin_report_digest",
+    "origin_source_label",
+    "repository_name"
+  ],
+  "cases": [
+    {
+      "case_id": "natural-language:carrier-poststrata:positive",
+      "case_role": "positive",
+      "path": "cases/carrier-poststrata-positive.md",
+      "content_digest": "sha256:73aa24319d0882c1a620bc2064c8d5e75471ffbb0ffa8b2403ec5e8fcb7a7407",
+      "check_id": "check:direct-standardization-conditioning-set",
+      "expected_applicability": "applicable",
+      "expected_operand": "include_named_availability_variables_in_direct_standardization_cells",
+      "origin_source_label": "fresh-context carrier-risk generalization workflow",
+      "origin_report_digest": "sha256:6072ea7f73abecff69c56f060883e9b1735ddc932dcc8b648e64ad76930d89a1",
+      "origin_source_span": "report.md:74-85",
+      "benchmark_derived": true,
+      "qualification_status": "excluded"
+    },
+    {
+      "case_id": "natural-language:popgen-called-exposure:positive",
+      "case_role": "positive",
+      "path": "cases/popgen-called-exposure-positive.md",
+      "content_digest": "sha256:b35fc9fff78919a9f18a8f0ce96ce5e0d3bac8cc81b1283ffab20193f0a9c1fe",
+      "check_id": "check:full-map-ancestry-exposure",
+      "expected_applicability": "applicable",
+      "expected_operand": "high_confidence_called_tract_exposure_only",
+      "origin_source_label": "fresh-context recent-pulse population-genetics workflow",
+      "origin_report_digest": "sha256:d1f31b51dde46953152d8392c6bfa255f50bb6e0e7b8e3361b1f9596cf509bc9",
+      "origin_source_span": "report.md:7-9",
+      "benchmark_derived": true,
+      "qualification_status": "excluded"
+    },
+    {
+      "case_id": "natural-language:structural-dosage-unlinked:close-negative",
+      "case_role": "hard_negative",
+      "path": "cases/structural-dosage-unlinked-negative.md",
+      "content_digest": "sha256:a4f39e999af0b30c196f6e1bbd167f065539e6d21ad0da04899c176704dec685",
+      "check_id": "check:classifier-derived-copy-dosage-representation",
+      "expected_applicability": "unsupported",
+      "expected_operand": null,
+      "origin_source_label": "fresh-context structural-copy follow-up workflow",
+      "origin_report_digest": "sha256:0fdc8b4921a7c0db282670c6fa391eaedeefa1ae75307001209666e64f1a9d2c",
+      "origin_source_span": "report.md:14-22",
+      "benchmark_derived": true,
+      "qualification_status": "excluded"
+    }
+  ],
+  "known_limitations": [
+    "The corpus contains fresh agent-authored scientific reports, not a representative sample of natural scientific writing.",
+    "The two positive cases cover one poststratification wording family and one pulse-exposure wording family.",
+    "The close negative proves only that an unlinked rounded copy-count declaration remains unsupported."
+  ],
+  "manifest_digest": "sha256:c4cc51fd3ee6b3a4ae61daf6741ed34c192f068056124babd9754cec9ed480b4"
+}

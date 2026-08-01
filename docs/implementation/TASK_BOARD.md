@@ -27,8 +27,11 @@ bounded typed report/source/input/output selection, exact snapshot binding, mult
 preservation, and deterministic rebinding of still-open questions to current segment-local
 AssetIdentity records. Experiment 0039 completes L05 through one digest-bound static scope graph
 shared by publication, cell, writer, calculation, selection, and exact imported-execution paths.
+Experiment 0040 completes L06 through a frozen fresh-report wording corpus and two bounded grammar
+expansions for existing poststratification and pulse-exposure operands, while an unlinked dosage
+report remains unsupported.
 Post-MPP functionality work remains ordered in `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md`;
-L06 natural-language adapter expansion is now the first pending prerequisite.
+L07 Python and R source adapters are now the first pending prerequisite.
 
 ## Epic A — Baseline and quality gates
 
@@ -1009,8 +1012,8 @@ the draft pull request as a published or detector-qualified release.
 
 ## Immediate next task
 
-Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. L01 through L05 are
-complete; start with L06 natural-language adapter expansion before broadening source adapters or
+Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. L01 through L06 are
+complete; start with L07 Python and R source adapters before broadening notebook connectivity or
 scientific coverage.
 Every subsequent feature must retain the mandatory positive, corrected, hard-negative, ambiguous,
 unsupported, isolation, mutation, no-execution, and replay controls described there.

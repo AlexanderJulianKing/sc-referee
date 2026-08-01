@@ -1,0 +1,5 @@
+# Recent-pulse local-ancestry analysis
+
+## Method and QC
+
+Morgan lengths were used directly. Calls were retained at posterior >= 0.90 and low-complexity fraction <= 0.50; uncalled gaps and rejected intervals were omitted from ancestry exposure. Rejected calls are 0.03-Morgan posterior-0.62, low-complexity-0.92 islands with matching high-confidence flanks, so they were treated as uncertain intervals inside one run rather than two biological transitions. Ordinary short gaps flanked by different high-confidence states localize one transition. For each haplotype, p_A=L_A/(L_A+L_B). Under a two-state pulse model, t=N_switch/((1-p_A)L_A+p_A L_B). Chromosome endpoints are censored: exposure is included but no terminal switch is invented. Structural validation found no problems. Primary fits used 10.866334 M and 14 switches for parent 1, and 10.833726 M and 28 switches for parent 2. Raw-call and gap/artifact sensitivities, rejected rows, directional counts, and count-based SEs are in `diagnostics.json`.
