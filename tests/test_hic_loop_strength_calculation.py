@@ -5,7 +5,7 @@ from pathlib import Path
 
 from sc_referee.calculation_checks.core import CalculationCheckRegistry
 from sc_referee.calculation_checks.hic_loop_strength import hic_loop_strength_registry
-from sc_referee.controller import run_audit
+from sc_referee.controller import replay, run_audit
 
 
 def _contract(*, claim_semantics: str = "loop_strength_delta") -> str:
@@ -95,6 +95,15 @@ def test_reported_hic_delta_mismatch_is_disclosed_without_finding(
     _workspace(workspace, reported_delta=-1.0)
 
     bundle = _audit(workspace, tmp_path / "audit", schema_root)
+    replayed = replay(tmp_path / "audit" / "semantic.lock.json", tmp_path / "replay", schema_root)
+    for field in (
+        "deterministic_check_observations",
+        "material_questions",
+        "disclosures",
+        "findings",
+        "coverage_records",
+    ):
+        assert replayed[field] == bundle[field]
 
     assert bundle["findings"] == []
     observation = bundle["deterministic_check_observations"][0]

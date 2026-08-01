@@ -6,7 +6,7 @@ from sc_referee.calculation_checks.core import CalculationCheckRegistry
 from sc_referee.calculation_checks.count_model_compatibility import (
     count_model_compatibility_registry,
 )
-from sc_referee.controller import run_audit
+from sc_referee.controller import replay, run_audit
 
 
 def _contract(
@@ -67,6 +67,15 @@ def test_raw_counts_with_generic_test_is_disclosed_without_execution_or_finding(
     marker = _workspace(workspace)
 
     bundle = _audit(workspace, tmp_path / "audit", schema_root)
+    replayed = replay(tmp_path / "audit" / "semantic.lock.json", tmp_path / "replay", schema_root)
+    for field in (
+        "deterministic_check_observations",
+        "material_questions",
+        "disclosures",
+        "findings",
+        "coverage_records",
+    ):
+        assert replayed[field] == bundle[field]
 
     assert not marker.exists()
     assert bundle["findings"] == []

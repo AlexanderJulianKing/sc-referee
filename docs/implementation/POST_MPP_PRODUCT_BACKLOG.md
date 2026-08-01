@@ -88,7 +88,7 @@ themselves, qualify a detector or support a public generality claim.
   - Limitation: external repositories that are not vendored or available offline require a
     separately pinned preparation step.
 
-- [ ] **L03 — Baseline every current module.** Fill the mandatory regression pack for all current
+- [x] **L03 — Baseline every current module.** Fill the mandatory regression pack for all current
   scientific checks and calculation checks, beginning with modules that presently rely mostly on
   one development workflow.
   - Acceptance: no active module lacks a positive or applicable case, corrected or conformant
@@ -244,8 +244,8 @@ themselves, qualify a detector or support a public generality claim.
 
 Work on the first unchecked prerequisite, in order:
 
-1. L03 — baseline completeness for current modules;
-2. L04 and L05 — selection and general static connectivity; then
+1. L04 — bounded publication and input selection;
+2. L05 — general static connectivity; then
 3. L09 and L10 — natural calculation layouts and large single-cell artifacts.
 
 Do not begin detector promotion, MCP transport, or project execution while these prerequisites are

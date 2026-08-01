@@ -4,7 +4,7 @@ from pathlib import Path
 
 from sc_referee.calculation_checks.core import CalculationCheckRegistry
 from sc_referee.calculation_checks.eqtl_sign import eqtl_sign_registry
-from sc_referee.controller import run_audit
+from sc_referee.controller import replay, run_audit
 
 
 def _contract(*, orientation_binding: str = "exact") -> str:
@@ -79,6 +79,15 @@ def test_oriented_donor_slope_detects_reported_sign_disagreement(
     _workspace(workspace, effect=0.8)
 
     bundle = _audit(workspace, tmp_path / "audit", schema_root)
+    replayed = replay(tmp_path / "audit" / "semantic.lock.json", tmp_path / "replay", schema_root)
+    for field in (
+        "deterministic_check_observations",
+        "material_questions",
+        "disclosures",
+        "findings",
+        "coverage_records",
+    ):
+        assert replayed[field] == bundle[field]
 
     assert bundle["findings"] == []
     observation = bundle["deterministic_check_observations"][0]
@@ -122,6 +131,21 @@ def test_unresolved_orientation_and_insufficient_classes_abstain(
     sparse_observation = sparse_bundle["deterministic_check_observations"][0]
     assert sparse_observation["applicability"] == "unsupported"
     assert sparse_observation["operands"] == []
+
+
+def test_descriptive_donor_plot_is_a_hard_negative(schema_root: Path, tmp_path: Path) -> None:
+    workspace = tmp_path / "hard-negative"
+    _workspace(workspace)
+    (workspace / "report.md").write_text(
+        "# Quality control\n\nDonor genotypes and expression were plotted descriptively.\n",
+        encoding="utf-8",
+    )
+
+    bundle = _audit(workspace, tmp_path / "audit", schema_root)
+
+    assert bundle["deterministic_check_observations"] == []
+    assert bundle["findings"] == []
+    assert not any("eQTL direction differs" in item["title"] for item in bundle["disclosures"])
 
 
 def test_module_removal_isolated(schema_root: Path, tmp_path: Path) -> None:

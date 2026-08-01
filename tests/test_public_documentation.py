@@ -95,8 +95,8 @@ def test_task_board_freezes_post_mpp_dependency_and_regression_policy(
     )
 
     assert "POST_MPP_PRODUCT_BACKLOG.md" in task_board
-    assert "L01 and L02 are" in task_board
-    assert "start with L03 module-baseline completeness" in task_board
+    assert "L01 through L03 are" in task_board
+    assert "start with L04 bounded publication and input selection" in task_board
     scientific_registry = default_scientific_check_registry()
     calculation_registry = default_calculation_check_registry()
     capability_profiles = json.loads(
@@ -134,7 +134,8 @@ def test_task_board_freezes_post_mpp_dependency_and_regression_policy(
     ):
         assert required_control in backlog
     assert "- [x] **L02 — One-command corpus regression runner.**" in backlog
-    assert "1. L03 — baseline completeness for current modules" in backlog
+    assert "- [x] **L03 — Baseline every current module.**" in backlog
+    assert "1. L04 — bounded publication and input selection" in backlog
     assert "Do not begin detector promotion, MCP transport, or project execution" in backlog
 
 
