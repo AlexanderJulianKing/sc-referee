@@ -17,7 +17,7 @@ from sc_referee.calculation_checks.single_cell_sensitivity import (
     SingleCellSensitivityError,
     single_cell_sensitivity_registry,
 )
-from sc_referee.controller import run_audit
+from sc_referee.controller import replay, run_audit
 
 
 class _StubSensitivityEngine:
@@ -168,6 +168,15 @@ def test_declared_observation_level_family_emits_bounded_sensitivity_disclosure(
     engine = _StubSensitivityEngine((0.01, 0.9, 0.02, 0.8))
 
     bundle = _audit(workspace, tmp_path / "audit", schema_root, engine)
+    replayed = replay(tmp_path / "audit" / "semantic.lock.json", tmp_path / "replay", schema_root)
+    for field in (
+        "deterministic_check_observations",
+        "material_questions",
+        "disclosures",
+        "findings",
+        "coverage_records",
+    ):
+        assert replayed[field] == bundle[field]
 
     assert engine.calls == 1
     assert bundle["findings"] == []

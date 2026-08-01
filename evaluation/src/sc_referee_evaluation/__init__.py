@@ -44,6 +44,13 @@ from sc_referee_evaluation.metrics import (
     bootstrap_problem_sample,
     build_qualification_metric_set,
 )
+from sc_referee_evaluation.regression_baseline import (
+    MODULE_BASELINE_REQUIREMENTS_VERSION,
+    RegressionModuleBaselineError,
+    regression_module_baseline_gaps,
+    regression_module_baseline_projection,
+    validate_regression_module_baselines,
+)
 from sc_referee_evaluation.regression_corpus import (
     DEFAULT_REGRESSION_CORPUS_LEDGER,
     REGRESSION_CORPUS_LEDGER_VERSION,
@@ -82,6 +89,7 @@ from sc_referee_evaluation.validation import EvaluationValidationError, validate
 __all__ = [
     "DEFAULT_REGRESSION_CORPUS_EXECUTION_PLAN",
     "DEFAULT_REGRESSION_CORPUS_LEDGER",
+    "MODULE_BASELINE_REQUIREMENTS_VERSION",
     "PROFILE_MANIFEST",
     "REGRESSION_CORPUS_EXECUTION_PLAN_VERSION",
     "REGRESSION_CORPUS_LEDGER_VERSION",
@@ -99,6 +107,7 @@ __all__ = [
     "QualificationMetricError",
     "RegressionCorpusLedgerError",
     "RegressionCorpusRunnerError",
+    "RegressionModuleBaselineError",
     "ReviewCaptureError",
     "RootCauseReconciliationError",
     "SourceMethodProbeError",
@@ -125,6 +134,8 @@ __all__ = [
     "probe_python_method_shapes",
     "project_evaluation_candidate",
     "reconcile_detector_case",
+    "regression_module_baseline_gaps",
+    "regression_module_baseline_projection",
     "regression_tree_digest",
     "revalidate_analysis_method_proof",
     "revalidate_fixture_proof",
@@ -133,6 +144,7 @@ __all__ = [
     "validate_case_packet",
     "validate_regression_corpus_execution_plan",
     "validate_regression_corpus_ledger",
+    "validate_regression_module_baselines",
     "validate_stage3_review_submission",
     "verify_bounded_analysis_method_case",
 ]

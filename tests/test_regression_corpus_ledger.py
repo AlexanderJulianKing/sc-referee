@@ -180,7 +180,9 @@ def test_local_path_digest_and_selector_mutations_fail_closed(tmp_path: Path) ->
 
 def test_external_sources_require_immutable_revision_and_payload_digest(tmp_path: Path) -> None:
     value = _ledger()
-    external = value["sources"][0]
+    external = next(
+        source for source in value["sources"] if source["source_id"] == "source:bh-control-family"
+    )
     external.clear()
     external.update(
         {

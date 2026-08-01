@@ -936,6 +936,94 @@ def test_unrelated_lookalike_and_ambiguous_reports_do_not_create_questions(
     ("report_text", "expected_state"),
     [
         (
+            "The founder-origin HMM was fitted using the supplied founder alleles.\n\n"
+            "Founder alleles were reoriented before the HMM emission.\n",
+            "ambiguous",
+        ),
+        (
+            "Founder alleles were plotted beside a founder-origin HMM diagram for quality "
+            "control; no emission coding choice was declared.\n",
+            "unsupported",
+        ),
+        (
+            "A standard regression was fitted and summarized.\n",
+            "not_applicable",
+        ),
+    ],
+)
+def test_founder_orientation_profile_preserves_ambiguity_and_hard_negative(
+    tmp_path: Path,
+    schema_root: Path,
+    report_text: str,
+    expected_state: str,
+) -> None:
+    bundle = _audit(tmp_path, schema_root, report_text=report_text)
+
+    assert bundle["findings"] == []
+    assert _check_questions(bundle) == []
+    assert _check_assertions(bundle) == []
+    assert _module(bundle, FOUNDER_CHECK)["state"] == expected_state
+
+
+def test_expected_count_unrelated_report_is_a_hard_negative(
+    tmp_path: Path, schema_root: Path
+) -> None:
+    bundle = _audit(
+        tmp_path,
+        schema_root,
+        report_text=(
+            "Observed and expected counts were plotted for descriptive quality control; no "
+            "expected-count background or focal-target handling rule was declared.\n"
+        ),
+    )
+
+    assert bundle["findings"] == []
+    assert _check_questions(bundle) == []
+    assert _check_assertions(bundle) == []
+    assert _module(bundle, EXPECTED_COUNT_CONSTRUCTION_CHECK)["state"] == "not_applicable"
+    assert _module(bundle, EXPECTED_COUNT_TARGET_HANDLING_CHECK)["state"] == "not_applicable"
+
+
+@pytest.mark.parametrize(
+    ("report_text", "check_id", "expected_state"),
+    [
+        (
+            "We used a Tukey biweight M-estimator on Cholesky-whitened residual innovations.\n\n"
+            "The robust M-estimator also used unwhitened residual innovations and ignored LD.\n",
+            MVMR_CHECK,
+            "unsupported",
+        ),
+        (
+            "A standard regression was fitted and summarized.\n",
+            MVMR_CHECK,
+            "not_applicable",
+        ),
+        (
+            "A standard regression was fitted and summarized.\n",
+            MVMR_ESTIMATOR_CHECK,
+            "not_applicable",
+        ),
+    ],
+)
+def test_remaining_mvmr_profiles_preserve_ambiguity_and_hard_negatives(
+    tmp_path: Path,
+    schema_root: Path,
+    report_text: str,
+    check_id: str,
+    expected_state: str,
+) -> None:
+    bundle = _audit(tmp_path, schema_root, report_text=report_text)
+
+    assert bundle["findings"] == []
+    assert _check_questions(bundle) == []
+    assert _check_assertions(bundle) == []
+    assert _module(bundle, check_id)["state"] == expected_state
+
+
+@pytest.mark.parametrize(
+    ("report_text", "expected_state"),
+    [
+        (
             "The supplied average of the two directional measurement-error rates cannot identify "
             "the rates separately. The primary observation model uses the symmetric "
             "interpretation: both directions equal the supplied average.\n\n"
@@ -2300,6 +2388,40 @@ def test_casrx_isoform_axis_module_is_removable_and_sibling_isolated() -> None:
     assert canonical_json(reduced.to_dict()) == canonical_json(full.to_dict())
 
 
+@pytest.mark.parametrize(
+    "removed_check_id",
+    [module.manifest.check_id for module in default_scientific_check_registry().canonical_modules],
+)
+def test_each_scientific_module_is_removable_and_sibling_isolated(
+    removed_check_id: str,
+) -> None:
+    full_registry = default_scientific_check_registry()
+    removed = next(
+        module for module in full_registry.modules if module.manifest.check_id == removed_check_id
+    )
+    reduced_registry = ScientificCheckRegistry(
+        tuple(
+            module
+            for module in full_registry.modules
+            if module.manifest.check_id != removed_check_id
+        ),
+        unavailable_manifests=(removed.manifest,),
+    )
+    context = _inspection_context()
+    full = {
+        item.check_id: canonical_json(item.to_dict())
+        for item in full_registry.evaluate(context).modules
+        if item.check_id != removed_check_id
+    }
+    reduced = {
+        item.check_id: canonical_json(item.to_dict())
+        for item in reduced_registry.evaluate(context).modules
+        if item.check_id != removed_check_id
+    }
+
+    assert reduced == full
+
+
 def test_scientific_check_inventory_and_evaluation_are_locked_for_replay(
     tmp_path: Path, schema_root: Path
 ) -> None:
@@ -2313,6 +2435,15 @@ def test_scientific_check_inventory_and_evaluation_are_locked_for_replay(
     assert lock["scientific_check_registry"] == bundle["_scientific_check_registry"]
     assert lock["scientific_check_registry"]["registry_digest"].startswith("sha256:")
     assert lock["model_access_after_lock"] is False
+    replayed = replay(tmp_path / "audit" / "semantic.lock.json", tmp_path / "replay", schema_root)
+    for field in (
+        "semantic_assertions",
+        "material_questions",
+        "disclosures",
+        "findings",
+        "coverage_records",
+    ):
+        assert replayed[field] == bundle[field]
 
 
 def test_agent_and_html_surfaces_show_exact_scientist_choices_and_observation(

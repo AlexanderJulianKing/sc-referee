@@ -4,7 +4,7 @@ from pathlib import Path
 
 from sc_referee.calculation_checks.core import CalculationCheckRegistry
 from sc_referee.calculation_checks.design_integrity import design_integrity_registry
-from sc_referee.controller import run_audit
+from sc_referee.controller import replay, run_audit
 
 
 def _contract(
@@ -81,6 +81,15 @@ def test_exact_design_incompatibilities_are_reported_without_finding(
     _workspace(workspace)
 
     bundle = _audit(workspace, tmp_path / "audit", schema_root)
+    replayed = replay(tmp_path / "audit" / "semantic.lock.json", tmp_path / "replay", schema_root)
+    for field in (
+        "deterministic_check_observations",
+        "material_questions",
+        "disclosures",
+        "findings",
+        "coverage_records",
+    ):
+        assert replayed[field] == bundle[field]
 
     assert bundle["findings"] == []
     observation = bundle["deterministic_check_observations"][0]

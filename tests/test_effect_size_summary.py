@@ -5,7 +5,7 @@ from pathlib import Path
 from sc_referee.calculation_checks.core import CalculationCheckRegistry
 from sc_referee.calculation_checks.effect_size_summary import effect_size_summary_registry
 from sc_referee.calculation_checks.profiles import default_calculation_check_registry
-from sc_referee.controller import run_audit
+from sc_referee.controller import replay, run_audit
 
 
 def _contract(
@@ -72,6 +72,15 @@ def test_declared_relevance_floor_emits_exact_disclosure(schema_root: Path, tmp_
     _workspace(workspace)
 
     bundle = _audit(workspace, tmp_path / "audit", schema_root)
+    replayed = replay(tmp_path / "audit" / "semantic.lock.json", tmp_path / "replay", schema_root)
+    for field in (
+        "deterministic_check_observations",
+        "material_questions",
+        "disclosures",
+        "findings",
+        "coverage_records",
+    ):
+        assert replayed[field] == bundle[field]
 
     assert bundle["findings"] == []
     observation = bundle["deterministic_check_observations"][0]

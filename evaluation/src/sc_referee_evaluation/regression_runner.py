@@ -15,6 +15,7 @@ from sc_referee.controller import replay, run_audit
 from sc_referee.core.ids import canonical_json, semantic_digest
 from sc_referee.records.normalization import write_normalized_json_once
 from sc_referee.version import SCHEMA_VERSION
+from sc_referee_evaluation.regression_baseline import validate_regression_module_baselines
 from sc_referee_evaluation.regression_corpus import (
     DEFAULT_REGRESSION_CORPUS_LEDGER,
     validate_regression_corpus_ledger,
@@ -337,6 +338,7 @@ def run_regression_corpus(
         if destination.exists() or destination.is_symlink():
             raise FileExistsError(f"regression-corpus receipt already exists: {destination}")
     ledger = validate_regression_corpus_ledger(ledger_path, project_root=root)
+    validate_regression_module_baselines(ledger)
     plan = validate_regression_corpus_execution_plan(
         plan_path, ledger_path=ledger_path, project_root=root
     )
