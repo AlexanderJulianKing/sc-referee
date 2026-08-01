@@ -252,6 +252,200 @@ class InspectionDocument:
         return value
 
 
+@dataclass(frozen=True, order=True)
+class ScopeJoinEdge:
+    source_ref: RecordRef
+    relation: str
+    target_ref: RecordRef
+
+    def __post_init__(self) -> None:
+        _require_identifier(self.relation, "scope-join relation")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "source_ref": self.source_ref.to_dict(),
+            "relation": self.relation,
+            "target_ref": self.target_ref.to_dict(),
+        }
+
+
+@dataclass(frozen=True, order=True)
+class ScopeJoinProof:
+    """One independently supported internal edge; never an execution or correctness claim."""
+
+    edge: ScopeJoinEdge
+    profile: str
+    evidence_refs: tuple[RecordRef, ...]
+    evidence_payload_digests: tuple[str, ...]
+    evidence_digest: str
+    snapshot_digest: str
+    authority_limitations: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        _require_identifier(self.profile, "scope-join profile")
+        _require_sha256(self.evidence_digest, "scope-join evidence digest")
+        _require_sha256(self.snapshot_digest, "scope-join snapshot digest")
+        _require_unique(
+            (canonical_json(item.to_dict()) for item in self.evidence_refs),
+            "scope-join evidence references",
+        )
+        if not self.evidence_refs:
+            raise ScientificCheckContractError("scope-join proof requires exact evidence")
+        if not self.evidence_payload_digests:
+            raise ScientificCheckContractError("scope-join proof requires bound evidence payloads")
+        for digest in self.evidence_payload_digests:
+            _require_sha256(digest, "scope-join evidence payload digest")
+        if (
+            not self.authority_limitations
+            or len(self.authority_limitations) != len(set(self.authority_limitations))
+            or any(not item for item in self.authority_limitations)
+        ):
+            raise ScientificCheckContractError(
+                "scope-join authority limitations must be unique non-empty text"
+            )
+        expected = semantic_digest(self.evidence_projection())
+        if expected != self.evidence_digest:
+            raise ScientificCheckContractError("scope-join evidence digest mismatch")
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        edge: ScopeJoinEdge,
+        profile: str,
+        evidence_refs: Sequence[RecordRef],
+        evidence_payload_digests: Sequence[str],
+        snapshot_digest: str,
+        authority_limitations: Sequence[str],
+    ) -> ScopeJoinProof:
+        normalized_refs = tuple(sorted(evidence_refs))
+        normalized_payload_digests = tuple(sorted(evidence_payload_digests))
+        normalized_limitations = tuple(sorted(authority_limitations))
+        projection = {
+            "edge": edge.to_dict(),
+            "profile": profile,
+            "evidence_refs": [item.to_dict() for item in normalized_refs],
+            "evidence_payload_digests": list(normalized_payload_digests),
+            "snapshot_digest": snapshot_digest,
+            "authority_limitations": list(normalized_limitations),
+        }
+        return cls(
+            edge=edge,
+            profile=profile,
+            evidence_refs=normalized_refs,
+            evidence_payload_digests=normalized_payload_digests,
+            evidence_digest=semantic_digest(projection),
+            snapshot_digest=snapshot_digest,
+            authority_limitations=normalized_limitations,
+        )
+
+    def evidence_projection(self) -> dict[str, Any]:
+        return {
+            "edge": self.edge.to_dict(),
+            "profile": self.profile,
+            "evidence_refs": [item.to_dict() for item in self.evidence_refs],
+            "evidence_payload_digests": list(self.evidence_payload_digests),
+            "snapshot_digest": self.snapshot_digest,
+            "authority_limitations": list(self.authority_limitations),
+        }
+
+    def to_dict(self) -> dict[str, Any]:
+        return {**self.evidence_projection(), "evidence_digest": self.evidence_digest}
+
+
+@dataclass(frozen=True)
+class StaticScopeJoinGraph:
+    """Canonical bounded graph shared by scientific and calculation adapters."""
+
+    snapshot_digest: str
+    proofs: tuple[ScopeJoinProof, ...]
+    profile: str = "general-static-scope-join-v1"
+    max_path_edges: int = 8
+
+    def __post_init__(self) -> None:
+        _require_sha256(self.snapshot_digest, "scope-join graph snapshot digest")
+        _require_identifier(self.profile, "scope-join graph profile")
+        if self.max_path_edges < 1 or self.max_path_edges > 32:
+            raise ScientificCheckContractError("scope-join path ceiling is outside the bound")
+        if any(item.snapshot_digest != self.snapshot_digest for item in self.proofs):
+            raise ScientificCheckContractError("scope-join proof snapshot mismatch")
+        ordered = tuple(sorted(self.proofs, key=lambda item: canonical_json(item.to_dict())))
+        if ordered != self.proofs:
+            raise ScientificCheckContractError("scope-join proofs are not canonical")
+        keys = [
+            canonical_json(
+                {
+                    "edge": item.edge.to_dict(),
+                    "profile": item.profile,
+                }
+            )
+            for item in self.proofs
+        ]
+        _require_unique(keys, "scope-join logical edges")
+
+    @property
+    def graph_digest(self) -> str:
+        return semantic_digest(self.to_manifest_projection())
+
+    def to_manifest_projection(self) -> dict[str, Any]:
+        return {
+            "profile": self.profile,
+            "snapshot_digest": self.snapshot_digest,
+            "max_path_edges": self.max_path_edges,
+            "proofs": [item.to_dict() for item in self.proofs],
+        }
+
+    def to_lock_projection(self) -> dict[str, Any]:
+        value = self.to_manifest_projection()
+        value["graph_digest"] = semantic_digest(value)
+        return value
+
+    def unique_path(
+        self,
+        source_ref: RecordRef,
+        target_ref: RecordRef,
+        *,
+        profiles: Sequence[str],
+    ) -> tuple[ScopeJoinProof, ...]:
+        """Return one finite acyclic path, or fail closed on absence or ambiguity."""
+
+        allowed = set(profiles)
+        if not allowed or any(not item for item in allowed):
+            raise ScientificCheckContractError("scope-join path profiles are invalid")
+        adjacency: dict[RecordRef, list[ScopeJoinProof]] = {}
+        for proof in self.proofs:
+            if proof.profile in allowed:
+                adjacency.setdefault(proof.edge.source_ref, []).append(proof)
+        paths: list[tuple[ScopeJoinProof, ...]] = []
+
+        def walk(
+            current: RecordRef,
+            path: tuple[ScopeJoinProof, ...],
+            visited: frozenset[RecordRef],
+        ) -> None:
+            if len(paths) > 1 or len(path) >= self.max_path_edges:
+                return
+            for proof in adjacency.get(current, []):
+                next_ref = proof.edge.target_ref
+                if next_ref in visited:
+                    continue
+                candidate = (*path, proof)
+                if next_ref == target_ref:
+                    paths.append(candidate)
+                    if len(paths) > 1:
+                        return
+                else:
+                    walk(next_ref, candidate, visited | {next_ref})
+
+        if source_ref == target_ref:
+            return ()
+        walk(source_ref, (), frozenset({source_ref}))
+        return paths[0] if len(paths) == 1 else ()
+
+    def proofs_for_profile(self, profile: str) -> tuple[ScopeJoinProof, ...]:
+        return tuple(item for item in self.proofs if item.profile == profile)
+
+
 @dataclass(frozen=True)
 class FrozenInspectionContext:
     """The complete capability surface visible to every adapter in one registry evaluation."""
@@ -262,6 +456,7 @@ class FrozenInspectionContext:
     documents: tuple[InspectionDocument, ...]
     base_records: tuple[FrozenBaseRecord, ...]
     shared_derivations: tuple[FrozenBaseRecord, ...] = ()
+    scope_join_graph: StaticScopeJoinGraph | None = None
 
     def __post_init__(self) -> None:
         _require_sha256(self.snapshot_digest, "snapshot_digest")
@@ -285,6 +480,11 @@ class FrozenInspectionContext:
             raise ScientificCheckContractError(
                 "selected publication surface and artifact must be present in the frozen base view"
             )
+        if (
+            self.scope_join_graph is not None
+            and self.scope_join_graph.snapshot_digest != self.snapshot_digest
+        ):
+            raise ScientificCheckContractError("scope-join graph is bound to another snapshot")
 
     @property
     def context_digest(self) -> str:
@@ -330,6 +530,11 @@ class FrozenInspectionContext:
                 {"ref": item.ref.to_dict(), "payload_digest": item.payload_digest}
                 for item in sorted(self.shared_derivations, key=lambda value: value.ref)
             ],
+            "scope_join_graph": (
+                self.scope_join_graph.to_lock_projection()
+                if self.scope_join_graph is not None
+                else None
+            ),
         }
 
 
@@ -391,23 +596,6 @@ class CanonicalOperand:
 
     def to_dict(self) -> dict[str, Any]:
         return {"kind": self.kind, "value": self.value}
-
-
-@dataclass(frozen=True, order=True)
-class ScopeJoinEdge:
-    source_ref: RecordRef
-    relation: str
-    target_ref: RecordRef
-
-    def __post_init__(self) -> None:
-        _require_identifier(self.relation, "scope-join relation")
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "source_ref": self.source_ref.to_dict(),
-            "relation": self.relation,
-            "target_ref": self.target_ref.to_dict(),
-        }
 
 
 @dataclass(frozen=True, order=True)

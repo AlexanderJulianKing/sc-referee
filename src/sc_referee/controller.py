@@ -889,6 +889,11 @@ def run_audit(
             operations=static_graph["operations"],
             artifacts=all_artifacts,
             publication_surface=publication_surface,
+            repository_snapshot=snapshot.snapshot_record,
+            executions=executions,
+            environments=environments,
+            scope_selections=scope_selection_build.projection,
+            selection_evidence_records=questions,
         )
         if scientific_context is not None:
             scientific_evaluation = active_scientific_checks.evaluate(scientific_context)
@@ -905,6 +910,10 @@ def run_audit(
             scientific_check_disclosures.extend(scientific_compilation.disclosures)
             scientific_check_lock["evaluation"] = scientific_evaluation.to_dict()
             scientific_check_lock["context_digest"] = scientific_context.context_digest
+            assert scientific_context.scope_join_graph is not None
+            scientific_check_lock["scope_join_graph"] = (
+                scientific_context.scope_join_graph.to_lock_projection()
+            )
             expected_count_obligation = compile_unresolved_expected_count_obligation(
                 context=scientific_context,
                 run_id=run_id,

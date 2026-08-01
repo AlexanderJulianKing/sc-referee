@@ -25,6 +25,7 @@ from sc_referee.scientific_checks.profiles import (
     scientific_check_release_projection,
     verify_scientific_check_release_manifest,
 )
+from sc_referee.scientific_checks.scope_joins import build_static_scope_join_graph
 
 FOUNDER_CHECK = "check:founder-orientation-before-hmm-emission"
 DIRECTIONAL_MEASUREMENT_ERROR_CHECK = "check:directional-measurement-error-interpretation"
@@ -110,6 +111,7 @@ def _inspection_context(*, report_parser_version: str = "0.2.0") -> FrozenInspec
     identity_ref = RecordRef("asset_identity", "asset-identity:test-report")
     file_ref = RecordRef("file_record", "file:test-report")
     parser_ref = RecordRef("parser_result", "parser-result:test-report")
+    snapshot_ref = RecordRef("repository_snapshot", "snapshot:test")
     parser = canonical_json(
         {
             "parser_id": "parser:markdown-inventory",
@@ -140,13 +142,18 @@ def _inspection_context(*, report_parser_version: str = "0.2.0") -> FrozenInspec
             {
                 "asset_identity_id": identity_ref.record_id,
                 "tier": "full_digest",
-                "identity_evidence": {"digest": sha256_digest(report)},
+                "asset_ref": artifact_ref.to_dict(),
+                "identity_evidence": {
+                    "kind": "full_digest",
+                    "digest": sha256_digest(report),
+                },
             },
         ),
+        (snapshot_ref, {"snapshot_id": snapshot_ref.record_id}),
         (file_ref, {"file_record_id": file_ref.record_id}),
         (parser_ref, {"parser_result_id": parser_ref.record_id}),
     )
-    return FrozenInspectionContext(
+    context = FrozenInspectionContext(
         snapshot_digest=sha256_digest("snapshot"),
         selected_surface_ref=surface_ref,
         selected_artifact_ref=artifact_ref,
@@ -163,6 +170,17 @@ def _inspection_context(*, report_parser_version: str = "0.2.0") -> FrozenInspec
             ),
         ),
         base_records=tuple(FrozenBaseRecord.from_record(ref, value) for ref, value in records),
+    )
+    return replace(
+        context,
+        scope_join_graph=build_static_scope_join_graph(
+            snapshot_digest=context.snapshot_digest,
+            snapshot_ref=snapshot_ref,
+            selected_surface_ref=surface_ref,
+            selected_artifact_ref=artifact_ref,
+            documents=context.documents,
+            base_records=context.base_records,
+        ),
     )
 
 

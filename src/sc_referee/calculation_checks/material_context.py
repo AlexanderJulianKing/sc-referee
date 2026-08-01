@@ -36,6 +36,7 @@ class MaterialCalculationContext(CalculationContext):
                         "path": item.path,
                         "artifact_ref": item.artifact_ref.to_dict(),
                         "content_digest": item.content_digest,
+                        "scope_join_path": [proof.to_dict() for proof in item.scope_join_path],
                     }
                     for item in self.material_inputs
                 ],

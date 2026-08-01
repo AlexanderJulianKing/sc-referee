@@ -110,7 +110,7 @@ themselves, qualify a detector or support a public generality claim.
   - Limitation: scientist selection establishes review scope, not execution or scientific
     correctness.
 
-- [ ] **L05 — General static scope joins.** Replace check-specific connectivity with reusable typed
+- [x] **L05 — General static scope joins.** Replace check-specific connectivity with reusable typed
   joins from selected publication surface to source, cell, declared inputs, deterministic outputs,
   and imported execution evidence where each edge is independently supported.
   - Acceptance: current founder-orientation, notebook/Quarto-cell, separate-source, calculation,
@@ -244,10 +244,9 @@ themselves, qualify a detector or support a public generality claim.
 
 Work on the first unchecked prerequisite, in order:
 
-1. L05 — general static connectivity;
-2. L06 through L08 — natural-language, source, notebook, Quarto, and R Markdown adapters over the
+1. L06 through L08 — natural-language, source, notebook, Quarto, and R Markdown adapters over the
    common joins; then
-3. L09 and L10 — natural calculation layouts and large single-cell artifacts.
+2. L09 and L10 — natural calculation layouts and large single-cell artifacts.
 
 Do not begin detector promotion, MCP transport, or project execution while these prerequisites are
 unfinished.

@@ -24,6 +24,11 @@ from sc_referee.scientific_checks.core import (
     RoleBinding,
     ScopeJoinEdge,
 )
+from sc_referee.scientific_checks.scope_joins import (
+    selected_container_path,
+    selected_publication_path,
+    selected_static_writer_path,
+)
 
 _ADAPTER_IMPLEMENTATION_BYTES_DIGEST = sha256_digest(Path(__file__).read_bytes())
 SELECTED_REPORT_ADAPTER_IMPLEMENTATION_DIGEST = _ADAPTER_IMPLEMENTATION_BYTES_DIGEST
@@ -130,12 +135,11 @@ class SelectedReportMethodAdapter:
         rule, start, end = matches[0]
         target = context.selected_artifact_ref
         span = _evidence_span(document, text, start, end)
-        scope_path = (
-            ScopeJoinEdge(
-                source_ref=target,
-                relation="selected_by_publication_surface",
-                target_ref=context.selected_surface_ref,
-            ),
+        scope_path = selected_publication_path(
+            context.scope_join_graph,
+            selected_artifact_ref=target,
+            selected_surface_ref=context.selected_surface_ref,
+            relation="selected_by_publication_surface",
         )
         if not _selected_surface_owns_artifact(context):
             return self._abstain(
@@ -345,12 +349,11 @@ class RMarkdownMVMRCovarianceAdapter:
                 ),
             )
         )
-        scope_path = (
-            ScopeJoinEdge(
-                source_ref=context.selected_artifact_ref,
-                relation="selected_source_artifact_of_publication_surface",
-                target_ref=context.selected_surface_ref,
-            ),
+        scope_path = selected_publication_path(
+            context.scope_join_graph,
+            selected_artifact_ref=context.selected_artifact_ref,
+            selected_surface_ref=context.selected_surface_ref,
+            relation="selected_source_artifact_of_publication_surface",
         )
         receipts = tuple(
             InspectionReceipt(
@@ -1240,65 +1243,25 @@ def _selected_surface_document(
 
 
 def _selected_surface_owns_artifact(context: FrozenInspectionContext) -> bool:
-    surface = _base_record(context, context.selected_surface_ref)
-    if surface is None or surface.get("status") != "resolved":
-        return False
-    selection = surface.get("selection")
-    return isinstance(selection, dict) and selection.get("selected_surface_refs") == [
-        context.selected_artifact_ref.to_dict()
-    ]
+    return bool(
+        selected_publication_path(
+            context.scope_join_graph,
+            selected_artifact_ref=context.selected_artifact_ref,
+            selected_surface_ref=context.selected_surface_ref,
+            relation="selected_by_publication_surface",
+        )
+    )
 
 
 def _selected_container_scope_path(
     context: FrozenInspectionContext,
     document: InspectionDocument,
 ) -> tuple[ScopeJoinEdge, ...]:
-    """Prove exact containment in the selected source artifact, never execution or primacy."""
-
-    location = document.source_location
-    if location is None or location.source_kind not in {"notebook_cell", "document_chunk"}:
-        return ()
-    if document.parser_result_payload is None:
-        return ()
-    try:
-        parser_result = json.loads(document.parser_result_payload)
-    except (UnicodeDecodeError, json.JSONDecodeError):
-        return ()
-    virtual = (
-        parser_result.get("extensions", {}).get("x-virtual-source")
-        if isinstance(parser_result, dict)
-        else None
-    )
-    if not isinstance(virtual, dict) or virtual.get("executes_project_code") is not False:
-        return ()
-    execution = virtual.get("execution_declaration")
-    if (
-        location.source_kind == "document_chunk"
-        and isinstance(execution, dict)
-        and execution.get("kind") == "quarto_eval_option"
-        and execution.get("state") == "disabled_declared"
-    ):
-        return ()
-    artifact = _base_record(context, context.selected_artifact_ref)
-    if (
-        artifact is None
-        or artifact.get("kind") != "report"
-        or artifact.get("path") != document.path
-        or location.content_digest not in _artifact_content_digests(context, artifact)
-        or not _selected_surface_owns_artifact(context)
-    ):
-        return ()
-    return (
-        ScopeJoinEdge(
-            source_ref=document.file_ref,
-            relation="contained_in_selected_source_artifact",
-            target_ref=context.selected_artifact_ref,
-        ),
-        ScopeJoinEdge(
-            source_ref=context.selected_artifact_ref,
-            relation="selected_by_publication_surface",
-            target_ref=context.selected_surface_ref,
-        ),
+    return selected_container_path(
+        context.scope_join_graph,
+        document=document,
+        selected_artifact_ref=context.selected_artifact_ref,
+        selected_surface_ref=context.selected_surface_ref,
     )
 
 
@@ -1306,163 +1269,11 @@ def _selected_static_writer_scope_path(
     context: FrozenInspectionContext,
     document: InspectionDocument,
 ) -> tuple[ScopeJoinEdge, ...]:
-    """Prove one whole-file source declares the exact selected report as its output."""
-
-    location = document.source_location
-    if (
-        location is None
-        or location.source_kind != "file_span"
-        or document.media_type != "text/x-python"
-        or not _python_parser_supported(document)
-        or not _selected_surface_owns_artifact(context)
-    ):
-        return ()
-    selected = _base_record(context, context.selected_artifact_ref)
-    if selected is None or selected.get("kind") != "report":
-        return ()
-    producer_refs = selected.get("producer_operation_refs")
-    if not isinstance(producer_refs, list) or len(producer_refs) != 1:
-        return ()
-    producer_value = producer_refs[0]
-    if not isinstance(producer_value, dict):
-        return ()
-    producer_ref = RecordRef(
-        str(producer_value.get("record_type")), str(producer_value.get("record_id"))
-    )
-    producer = _base_record(context, producer_ref)
-    implementation = producer.get("implementation") if producer is not None else None
-    implementation_name = (
-        implementation.get("name") if isinstance(implementation, dict) else implementation
-    )
-    if (
-        producer is None
-        or producer.get("inspection_status") != "supported"
-        or not isinstance(implementation_name, str)
-        or not implementation_name.endswith((".write_text", ".write_bytes"))
-        or producer.get("output_refs") != [context.selected_artifact_ref.to_dict()]
-        or not _operation_belongs_to_document(producer, document)
-        or not _writer_is_statically_reachable(document, producer)
-    ):
-        return ()
-    return (
-        ScopeJoinEdge(
-            source_ref=document.file_ref,
-            relation="contains_unique_static_selected_output_writer",
-            target_ref=producer_ref,
-        ),
-        ScopeJoinEdge(
-            source_ref=producer_ref,
-            relation="declares_selected_output_artifact",
-            target_ref=context.selected_artifact_ref,
-        ),
-        ScopeJoinEdge(
-            source_ref=context.selected_artifact_ref,
-            relation="selected_by_publication_surface",
-            target_ref=context.selected_surface_ref,
-        ),
-    )
-
-
-def _operation_belongs_to_document(operation: dict[str, Any], document: InspectionDocument) -> bool:
-    refs = operation.get("source_refs")
-    return (
-        isinstance(refs, list)
-        and len(refs) == 1
-        and isinstance(refs[0], dict)
-        and refs[0].get("source_kind") == "file_span"
-        and refs[0].get("path") == document.path
-        and refs[0].get("content_digest") == document.content_digest
-    )
-
-
-def _writer_is_statically_reachable(
-    document: InspectionDocument, operation: dict[str, Any]
-) -> bool:
-    """Accept a module writer or one exact zero-argument guarded entrypoint."""
-
-    try:
-        tree = ast.parse(document.content.decode("utf-8"), filename=document.path)
-    except (SyntaxError, UnicodeDecodeError):
-        return False
-    refs = operation.get("source_refs")
-    if not isinstance(refs, list) or len(refs) != 1 or not isinstance(refs[0], dict):
-        return False
-    source = refs[0]
-    matches = [
-        node
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and node.func.attr in {"write_text", "write_bytes"}
-        and node.lineno == source.get("start_line")
-        and getattr(node, "end_lineno", node.lineno) == source.get("end_line")
-        and node.col_offset + 1 == source.get("start_column")
-        and getattr(node, "end_col_offset", node.col_offset) + 1 == source.get("end_column")
-    ]
-    if len(matches) != 1:
-        return False
-    parents = {child: parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)}
-    expression = parents.get(matches[0])
-    if not isinstance(expression, ast.Expr):
-        return False
-    container = parents.get(expression)
-    if isinstance(container, ast.Module):
-        return True
-    if not isinstance(container, ast.FunctionDef) or expression not in container.body:
-        return False
-    if container.decorator_list or not _zero_argument_function(container):
-        return False
-    definitions = [
-        item
-        for item in tree.body
-        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)) and item.name == container.name
-    ]
-    guarded_calls = [
-        item
-        for statement in tree.body
-        if isinstance(statement, ast.If) and _is_main_guard(statement)
-        for item in statement.body
-        if isinstance(item, ast.Expr)
-        and isinstance(item.value, ast.Call)
-        and isinstance(item.value.func, ast.Name)
-        and item.value.func.id == container.name
-        and not item.value.args
-        and not item.value.keywords
-    ]
-    all_calls = [
-        item
-        for item in ast.walk(tree)
-        if isinstance(item, ast.Call)
-        and isinstance(item.func, ast.Name)
-        and item.func.id == container.name
-    ]
-    return len(definitions) == len(guarded_calls) == len(all_calls) == 1
-
-
-def _zero_argument_function(function: ast.FunctionDef) -> bool:
-    arguments = function.args
-    return not (
-        arguments.posonlyargs
-        or arguments.args
-        or arguments.vararg is not None
-        or arguments.kwonlyargs
-        or arguments.kwarg is not None
-        or arguments.defaults
-        or any(item is not None for item in arguments.kw_defaults)
-    )
-
-
-def _is_main_guard(statement: ast.If) -> bool:
-    test = statement.test
-    return (
-        not statement.orelse
-        and isinstance(test, ast.Compare)
-        and isinstance(test.left, ast.Name)
-        and test.left.id == "__name__"
-        and len(test.ops) == len(test.comparators) == 1
-        and isinstance(test.ops[0], ast.Eq)
-        and isinstance(test.comparators[0], ast.Constant)
-        and test.comparators[0].value == "__main__"
+    return selected_static_writer_path(
+        context.scope_join_graph,
+        document=document,
+        selected_artifact_ref=context.selected_artifact_ref,
+        selected_surface_ref=context.selected_surface_ref,
     )
 
 

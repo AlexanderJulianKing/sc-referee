@@ -60,6 +60,7 @@ from sc_referee.records.observed import (
 )
 from sc_referee.records.schema_registry import LocalSchemaRegistry
 from sc_referee.reproduction import build_reproduction_requests
+from sc_referee.scientific_checks.integration import build_frozen_inspection_context
 from sc_referee.scope_selection import (
     SCOPE_SELECTION_PROFILE,
     build_scope_selection_contracts,
@@ -917,6 +918,29 @@ def lock_semantics(
         deadline_ledger_digest=str(context["deadline_ledger"]["ledger_digest"]),
     )
     context["registry"].validate(performance_record)
+    scientific_check_registry_lock = copy.deepcopy(parent_lock.get("scientific_check_registry", {}))
+    rebuilt_scientific_context = build_frozen_inspection_context(
+        snapshot_root=snapshot.materialized_root,
+        snapshot_digest=str(context["session"]["source_snapshot_digest"]),
+        file_records=file_records,
+        asset_identities=current_asset_identities,
+        parser_results=copy.deepcopy(parent_lock.get("parser_results", [])),
+        operations=operations,
+        artifacts=artifacts,
+        publication_surface=surface,
+        repository_snapshot=snapshot_record,
+        executions=executions,
+        environments=environments,
+        scope_selections=scope_selections,
+        selection_evidence_records=[*questions, *answers],
+    )
+    if rebuilt_scientific_context is None or rebuilt_scientific_context.scope_join_graph is None:
+        raise InteractionProtocolError(
+            "linked scope selections could not rebuild the exact static scope-join graph"
+        )
+    scientific_check_registry_lock["scope_join_graph"] = (
+        rebuilt_scientific_context.scope_join_graph.to_lock_projection()
+    )
     locked: dict[str, Any] = {
         "lock_kind": "general_static_v1",
         "lock_version": "0.2.0",
@@ -968,9 +992,7 @@ def lock_semantics(
         "performance_records": [performance_record],
         "coverage_inputs": coverage_inputs,
         **({"scope_selections": scope_selections} if scope_selections is not None else {}),
-        "scientific_check_registry": copy.deepcopy(
-            parent_lock.get("scientific_check_registry", {})
-        ),
+        "scientific_check_registry": scientific_check_registry_lock,
         "calculation_check_registry": copy.deepcopy(
             parent_lock.get("calculation_check_registry", {})
         ),

@@ -68,6 +68,7 @@ def _context(
         operations=bundle["operations"],
         artifacts=bundle["artifacts"],
         publication_surface=bundle["publication_surfaces"][0],
+        repository_snapshot=bundle["repository_snapshots"][0],
     )
     assert context is not None
     assert repository.is_dir()

@@ -27,6 +27,20 @@ from sc_referee.core.ids import canonical_json, sha256_digest
 _CORE_IMPLEMENTATION_DIGEST = sha256_digest(
     (Path(__file__).resolve().parent / "core.py").read_bytes()
 )
+_CONTEXT_IMPLEMENTATION_FILES = {
+    "calculation_checks/core.py": _CORE_IMPLEMENTATION_DIGEST,
+    "calculation_checks/integration.py": sha256_digest(
+        (Path(__file__).resolve().parent / "integration.py").read_bytes()
+    ),
+    "calculation_checks/material_context.py": sha256_digest(
+        (Path(__file__).resolve().parent / "material_context.py").read_bytes()
+    ),
+    "scientific_checks/scope_joins.py": sha256_digest(
+        (
+            Path(__file__).resolve().parent.parent / "scientific_checks" / "scope_joins.py"
+        ).read_bytes()
+    ),
+}
 _RELEASE_MANIFEST = (
     Path(__file__).resolve().parents[1]
     / "resources"
@@ -138,6 +152,7 @@ def calculation_check_release_projection(
     return {
         "manifest_set_id": "calculation-check-manifest-set:v1",
         "profile_id": registry.profile_id,
+        "implementation_files": _CONTEXT_IMPLEMENTATION_FILES,
         "modules": [
             {
                 "check_manifest": module.manifest.to_dict(),
