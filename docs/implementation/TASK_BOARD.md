@@ -8,11 +8,18 @@ Tasks are ordered by dependency. A coding agent should complete the first pendin
 - 🟡 Partially implemented or provisional; finish before treating it as production-ready.
 - ⬜ Not implemented.
 
+## Current delivery phase
+
+Experiments 0030 and 0031 closed practical feature parity inside the overhaul's stricter evidence
+boundary. The draft GitHub replacement branch passes the full local handoff and both hosted push
+and pull-request matrices on Python 3.11, 3.12, and 3.13. Experiment 0032 is the current work:
+public documentation, local plugin distribution, clean-checkout command verification, and release
+metadata preparation. This phase does not change detector authority or schema meaning.
+
 ## Epic A — Baseline and quality gates
 
-- 🟡 **A01** Pytest, Ruff, mypy, schema validation, demo, and replay pass in isolated local
-  CPython 3.11.15 and 3.13.13 environments and the project 3.12 environment; the clean hosted CI
-  verification run remains pending.
+- ✅ **A01** Pytest, Ruff, mypy, schema validation, demo, and replay pass locally, and both hosted
+  push and pull-request matrices pass on Python 3.11, 3.12, and 3.13.
 - ✅ **A02** Machine-readable overlay version, baseline identities, and baseline digests are present.
 - ✅ **A03** All vendored immutable v0.5 and accepted v0.6.0 schemas and examples validate offline.
 - ✅ **A04** CI generates and uploads the walking-skeleton report and validation log on Python 3.11.
@@ -178,8 +185,8 @@ Tasks are ordered by dependency. A coding agent should complete the first pendin
 - ✅ **H02** `sc-referee replay` regenerates derived records with model access absent.
 - ✅ **H03** A forced post-lock deadline checkpoints a schema-valid partial bundle, SQLite index, HTML report, terminal state, and explicit unevaluated detector coverage. The pre-lock bundle schema gap is registered.
 - ✅ **H04** Normalized Finding, ConditionalConcern, MaterialQuestion, Disclosure, and DetectorResult records replay byte-for-byte.
-- 🟡 **H05** Every local Milestone 0 gate passes across Python 3.11–3.13; a clean hosted
-  Python 3.11–3.13 CI run remains the release-candidate gate.
+- ✅ **H05** Every local Milestone 0 gate passes across Python 3.11–3.13, and clean hosted push and
+  pull-request matrices pass on all three versions.
 - ✅ **H06** `export-ro-crate` creates a deterministic attached RO-Crate 1.3 ZIP from an
   integrity-verified audit without changing native bundle, report, semantic-lock, or canonical
   record bytes. It excludes disposable SQLite, requires explicit declared package author/license
@@ -981,7 +988,7 @@ Keep the generated multidimensional capability matrix synchronized with exact ma
 populate detector, qualification, tested-version, or inferred-compatibility fields without their
 required source evidence.
 Do not propose numeric promotion thresholds until real pilot evidence exists.
-The clean
-hosted CI run, live platform credential-store smoke tests, W3ID deployment, and independent
-cross-provider detector qualification remain external release gates. Repository reconciliation and
-publication are intentionally deferred.
+The hosted Python matrix is satisfied. Live platform credential-store smoke tests, W3ID
+deployment, final release identity, and independent cross-provider detector qualification remain
+external or later gates. The documentation phase must preserve those limits rather than presenting
+the draft pull request as a published or detector-qualified release.

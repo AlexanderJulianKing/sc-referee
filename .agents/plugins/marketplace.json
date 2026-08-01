@@ -1,0 +1,20 @@
+{
+  "name": "sc-referee",
+  "interface": {
+    "displayName": "Sc Referee"
+  },
+  "plugins": [
+    {
+      "name": "sc-referee",
+      "source": {
+        "source": "local",
+        "path": "./plugins/sc-referee"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

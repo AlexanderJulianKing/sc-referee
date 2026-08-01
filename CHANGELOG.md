@@ -2,6 +2,13 @@
 
 ## 0.3.0.dev0
 
+- Added a user-facing documentation layer for the practical-parity overhaul: a concise root
+  README, executable quickstart, agentic-skill setup, bounded capability guide, and explicit
+  migration notice. A generated repo-local Codex marketplace now exposes the existing validated
+  skills-only plugin without adding inference, execution, detector, or schema authority. Hosted
+  push and pull-request matrices pass on Python 3.11–3.13; documentation-contract tests freeze the
+  public links, safety wording, version identities, plugin target, demo, audit, status, and replay
+  paths. Final public version, citation, W3ID deployment, and detector qualification remain open.
 - Accepted ADR-0044 and published immutable schema v0.18.0 with a generic, content-addressed
   deterministic-calculation registry and typed observation. Its first bounded adapter recognizes
   one explicit complete-family Benjamini-Hochberg contract, reads immutable CSV/TSV bytes without

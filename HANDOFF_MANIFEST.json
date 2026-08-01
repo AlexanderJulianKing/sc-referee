@@ -3,7 +3,7 @@
   "program_version": "0.3.0.dev0",
   "product": "sc-referee",
   "architecture_specification": "0.5.0-draft",
-  "schema_version": "0.15.0",
+  "schema_version": "0.18.0",
   "python_minimum": "3.11",
   "first_commands": [
     "python -m pip install -e '.[dev]'",
@@ -16,7 +16,7 @@
   ],
   "normative_reference_roots": [
     "reference/specification-v0.5.0-draft",
-    "reference/schemas-v0.15.0"
+    "reference/schemas-v0.18.0"
   ],
   "immutable_baseline_roots": [
     "reference/specification-v0.5.0-draft",
@@ -29,7 +29,10 @@
     "reference/schemas-v0.11.0",
     "reference/schemas-v0.12.0",
     "reference/schemas-v0.13.0",
-    "reference/schemas-v0.14.0"
+    "reference/schemas-v0.14.0",
+    "reference/schemas-v0.15.0",
+    "reference/schemas-v0.16.0",
+    "reference/schemas-v0.17.0"
   ],
   "implementation_entry_points": [
     "AGENTS.md",
@@ -81,5 +84,5 @@
     "static_qualification_profiles": 0,
     "static_qualification_proofs": 0
   },
-  "next_task": "Add typed scientist-confirmed or exact static source-to-result scope only from a concrete unselected-file validation case; otherwise extend the common evidence path from another independently recurring method representation. Cross-cell state, notebook markdown, rendering, outputs, Claims, and runtime semantics remain unsupported. Hosted CI, W3ID deployment, repository reconciliation, independent detector qualification, and publication remain external gates."
+  "next_task": "Complete public documentation and clean-checkout skill installation verification, then decide final program version, citation metadata, migration/archive presentation, W3ID deployment, and merge or release timing. Independent detector qualification remains required before any experimental real-project detector gains Finding authority; project-code execution remains post-MPP."
 }

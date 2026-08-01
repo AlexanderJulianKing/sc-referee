@@ -444,7 +444,7 @@ fresh-context skill portability and the bounded answer-key-informed follow-up on
 case. Experiment 0029 exercises the first calculation module on four frozen synthetic roles.
 Exact case assignments and external qualification evidence remain next. No
 project-authored code has been launched
-by the production auditor. A clean hosted CI run remains an external release gate.
+by the production auditor. Hosted push and pull-request matrices pass on Python 3.11–3.13.
 The handoff is locally verified across Python 3.11–3.13 with pytest,
 schema/example validation, compileall, isolated installs, model-free deterministic replay, storage
 integrity checks, Ruff, formatting, and strict mypy.

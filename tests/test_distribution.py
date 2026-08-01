@@ -64,9 +64,14 @@ def test_handoff_manifest_includes_runtime_and_skill_but_not_build_outputs(
 
     assert ".agents/skills/scientific-audit/SKILL.md" in paths
     assert ".agents/skills/method-contract/SKILL.md" in paths
+    assert ".agents/plugins/marketplace.json" in paths
     assert "plugins/sc-referee/.codex-plugin/plugin.json" in paths
     assert "plugins/sc-referee/skills/scientific-audit/SKILL.md" in paths
     assert "plugins/sc-referee/skills/method-contract/SKILL.md" in paths
+    assert "docs/QUICKSTART.md" in paths
+    assert "docs/AGENTIC_SKILL.md" in paths
+    assert "docs/CAPABILITIES.md" in paths
+    assert "docs/MIGRATION.md" in paths
     assert "src/sc_referee/agent_protocol.py" in paths
     assert "evaluation/pyproject.toml" in paths
     assert "evaluation/src/sc_referee_evaluation/validation.py" in paths

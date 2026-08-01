@@ -43,6 +43,26 @@ def test_codex_plugin_manifest_declares_the_bounded_local_surface(project_root: 
     assert "installed sc-referee CLI" in manifest["interface"]["longDescription"]
 
 
+def test_codex_plugin_marketplace_points_to_the_validated_local_plugin(
+    project_root: Path,
+) -> None:
+    marketplace = json.loads(
+        (project_root / ".agents" / "plugins" / "marketplace.json").read_text(encoding="utf-8")
+    )
+
+    assert marketplace["name"] == "sc-referee"
+    assert marketplace["interface"]["displayName"] == "Sc Referee"
+    assert marketplace["plugins"] == [
+        {
+            "name": "sc-referee",
+            "source": {"source": "local", "path": "./plugins/sc-referee"},
+            "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+            "category": "Developer Tools",
+        }
+    ]
+    assert (project_root / marketplace["plugins"][0]["source"]["path"]).is_dir()
+
+
 @pytest.mark.parametrize("skill_name", ["scientific-audit", "method-contract"])
 def test_codex_plugin_skill_is_an_exact_copy_of_the_authoritative_skill(
     project_root: Path,

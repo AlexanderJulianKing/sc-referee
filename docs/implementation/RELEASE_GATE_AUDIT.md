@@ -1,6 +1,6 @@
 # Release-gate audit
 
-## Locally satisfied
+## Current gate snapshot
 
 The current first vertical slice passes the complete local handoff under isolated Python 3.11.15,
 the project Python 3.12 environment, and isolated Python 3.13.13:
@@ -9,7 +9,7 @@ the project Python 3.12 environment, and isolated Python 3.13.13:
 - Ruff lint and format check;
 - strict mypy over `src`;
 - the full test suite;
-- immutable accepted public schema validation through v0.15.0;
+- immutable accepted public schema validation through v0.18.0;
 - starter validation and storage-integrity checks;
 - immutable-snapshot demo;
 - model-free replay of derived assessments; and
@@ -17,26 +17,27 @@ the project Python 3.12 environment, and isolated Python 3.13.13:
 - deterministic report-byte regeneration as part of integrity status; and
 - deterministic attached RO-Crate 1.3 export with native-byte preservation and bounded offline
   validation from the built production wheel; and
-- deterministic generation and exact reproduction of the fail-closed public capability matrix
-  from the built production wheel, with one explicitly experimental, unqualified,
-  Finding-ineligible detector and no tested-version, inferred-compatibility, qualification, or
-  domain-wide support claim in the bundled release set.
+- deterministic generation and exact reproduction of the fail-closed 15-entry public capability
+  matrix from the built production wheel, with explicitly experimental, unqualified,
+  Finding-ineligible detector entries and no tested-version, inferred-compatibility,
+  qualification, or domain-wide support claim in the bundled release set.
+
+The draft replacement branch also passes hosted GitHub Actions for Python 3.11, 3.12, and 3.13 on
+both push and pull-request events. Every job performs installation, Ruff, formatting, strict mypy,
+the complete test suite, starter validation, walking-skeleton artifact generation, and artifact
+upload where configured.
 
 The demo remains explicitly synthetic. It rejects repositories without `fixture_mode: true`, and
 its fixture qualification envelope says that no public detector qualification is claimed.
 
-## Gates that require authority or external evidence
+## Gate status details
 
-### A01 / H05 — hosted Python release matrix
+### ✅ A01 / H05 — hosted Python release matrix
 
-The workflow is configured for Python 3.11, 3.12, and 3.13. Disposable environments using
-CPython 3.11.15 and 3.13.13 each passed `python scripts/verify_handoff.py`; the project Python 3.12
-environment also passes the complete handoff. This is local compatibility evidence only. It does
-not exercise a fresh hosted runner, workflow permissions, artifact upload, or the exact dependency
-resolution performed by GitHub Actions, so a clean hosted run cannot be inferred from it.
-
-Required evidence: a clean CI run of `.github/workflows/ci.yml` on all three configured versions,
-including the generated demo artifact on 3.11.
+Satisfied on the draft replacement branch. Hosted push run `30683312102` and pull-request run
+`30683313655` both completed successfully on Python 3.11, 3.12, and 3.13. The first hosted attempt
+exposed an undeclared NumPy typing boundary; the direct `numpy>=1.26,<2.5` dependency and its
+regression test corrected that packaging defect before the successful matrix.
 
 ### D01 / E01 — local public observed-plane schema release
 
@@ -236,9 +237,12 @@ detector qualification, cross-provider answer-blind evidence, and Finding author
 
 ## Exact release posture
 
-The first vertical slice is locally executable and conservative, but it is not yet the
-evidence-first MPP, a public validated scientific capability, or a release candidate. Completion
-requires bounded real-workflow evidence inspection, at least one genuinely qualified detector,
-real answer-blind validation, and the remaining external release gates. Built-in project-code
-execution is post-MPP and is not one of those prerequisites. These gates do not justify weakening
-Finding admission or broadening unsupported scientific claims.
+The evidence-first vertical slice and practical-parity modules are locally executable and hosted-CI
+verified. The GitHub replacement remains a draft development alpha rather than a final release.
+Public documentation, clean-checkout skill installation, final program version, citation metadata,
+migration/archive presentation, and any W3ID deployment decision remain release work.
+
+Experimental real-project detectors still lack answer-blind cross-provider qualification and
+maintainer promotion, so they cannot emit production Findings. That qualification is a capability-
+promotion gate, not permission to hide the useful Disclosure-only audit behind a global
+“incomplete” label. Built-in project-code execution remains post-MPP.
