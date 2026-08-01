@@ -70,7 +70,7 @@ runtime behavior, implicit scientific relevance, and unverified safeguards remai
 
 ## Release and skill verification
 
-The final repository gates pass with 1,211 tests, 79 accepted public schema examples, strict Ruff
+The final repository gates pass with 1,212 tests, 79 accepted public schema examples, strict Ruff
 and mypy checks, starter validation, clean wheel construction, semantic-lock replay, storage
 integrity, and the complete handoff verifier. The authoritative and packaged skills are exact
 copies and both pass skill validation. Plugin package
@@ -92,3 +92,9 @@ loads those modules through one lazy import boundary, and
 unsupported result. Immutable calculation manifest v2 was not rewritten; maintenance manifest v9
 binds the new implementation digest, and the default registry advances from profile v8 to v9 with
 no schema or scientific-record meaning change.
+
+The first hosted Python 3.12 job then installed NumPy 2.5.1 transitively through h5py. Its stubs use
+syntax unavailable under the project's deliberate mypy Python-3.11 target, so the hosted type gate
+failed before tests. Because production modules import NumPy directly, `pyproject.toml` now declares
+the dependency directly as `numpy>=1.26,<2.5`; this is a packaging correction rather than a hidden
+scientific default. `test_numpy_is_a_direct_python_311_compatible_dependency` freezes the bound.

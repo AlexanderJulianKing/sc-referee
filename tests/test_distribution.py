@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -47,6 +48,12 @@ def test_version_distinguishes_program_schema_and_starter_lineage() -> None:
 
     assert result.exit_code == 0
     assert result.stdout == ("sc-referee 0.3.0.dev0 (schema 0.18.0; starter lineage 0.1.0)\n")
+
+
+def test_numpy_is_a_direct_python_311_compatible_dependency(project_root: Path) -> None:
+    pyproject = tomllib.loads((project_root / "pyproject.toml").read_text(encoding="utf-8"))
+
+    assert "numpy>=1.26,<2.5" in pyproject["project"]["dependencies"]
 
 
 def test_handoff_manifest_includes_runtime_and_skill_but_not_build_outputs(
