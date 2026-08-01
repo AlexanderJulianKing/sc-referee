@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sc-referee:starter:v0.1.0:audit-run",
+  "title": "Provisional AuditRun",
+  "type": "object",
+  "required": [
+    "record_type",
+    "run_id",
+    "state",
+    "created_at",
+    "snapshot_id"
+  ],
+  "properties": {
+    "record_type": {
+      "const": "audit_run"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "created",
+        "snapshotted",
+        "inventoried",
+        "parsed",
+        "semantics_locked",
+        "detected",
+        "reported",
+        "complete",
+        "partial_deadline",
+        "partial_host_limit",
+        "cancelled",
+        "failed_controller"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "snapshot_id": {
+      "type": "string"
+    },
+    "parent_run_id": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

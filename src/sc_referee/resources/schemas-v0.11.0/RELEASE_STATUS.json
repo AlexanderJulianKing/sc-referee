@@ -1,0 +1,10 @@
+{
+  "accepted": true,
+  "baseline_version": "0.10.0",
+  "public_release": true,
+  "release_version": "0.11.0",
+  "source_adrs": [
+    "docs/implementation/ADR-0010-EXPERIMENTAL-DETECTOR-CANDIDATE-STATE.md",
+    "docs/implementation/ADR-0011-REPRODUCIBLE-QUALIFICATION-METRIC-INPUTS.md"
+  ]
+}

@@ -1,0 +1,62 @@
+schema_version: 0.5.0
+open_decisions:
+- id: OD-036
+  title: Quantitative detector promotion thresholds
+  state: deferred
+  category: scientific_scope_and_validation
+  question: Which minimum precision, false-accusation ceiling, effective sample size,
+    clustered uncertainty interval, and diversity requirements are necessary for validated
+    and publication-grade promotion?
+  recommended_working_default: Apply ADR-0042 safety gates now and set numeric cutoffs
+    only after a pilot corpus through a separate threshold ADR.
+  resolve_by: Before promoting the first detector to validated.
+  document: docs/12-open-decisions.md
+- id: OD-031
+  title: Claude command naming
+  state: open
+  category: integration_and_distribution
+  question: Can distribution preserve the exact /scientific-audit invocation across
+    standalone skills and namespaced plugins?
+  recommended_working_default: Provide a standalone skill alias and a namespaced plugin
+    command over the same controller.
+  resolve_by: Milestone 5 integration prototype.
+  document: docs/12-open-decisions.md
+- id: OD-032
+  title: Local tool protocol
+  state: open
+  category: integration_and_distribution
+  question: Should the Claude integration use MCP exclusively, direct CLI calls, or
+    both?
+  recommended_working_default: Use a typed local MCP server and retain the CLI as
+    canonical reproducible interface and fallback.
+  resolve_by: Milestone 5.
+  document: docs/12-open-decisions.md
+- id: OD-033
+  title: Audit bundle signing
+  state: open
+  category: integration_and_distribution
+  question: Should publication-critical audit bundles be cryptographically signed?
+  recommended_working_default: Preserve signable manifests and defer mandatory signing
+    until key management exists.
+  resolve_by: Before regulated or formal publication-review claims.
+  document: docs/12-open-decisions.md
+- id: OD-034
+  title: Telemetry
+  state: open
+  category: integration_and_distribution
+  question: May the open-source tool collect usage, performance, or detector-feedback
+    telemetry?
+  recommended_working_default: No telemetry by default; future telemetry must be opt-in
+    and content-minimizing.
+  resolve_by: Before any hosted service or telemetry implementation.
+  document: docs/12-open-decisions.md
+- id: OD-035
+  title: Feedback export
+  state: open
+  category: integration_and_distribution
+  question: How can users submit false positives or missed issues without leaking
+    sensitive repositories?
+  recommended_working_default: Provide a local reviewed redaction/export utility and
+    never upload automatically.
+  resolve_by: Milestone 9.
+  document: docs/12-open-decisions.md

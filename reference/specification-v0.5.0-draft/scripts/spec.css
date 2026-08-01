@@ -1,0 +1,41 @@
+:root {
+  --ink: #17212b;
+  --muted: #5d6875;
+  --line: #d7dde5;
+  --panel: #f5f7fa;
+  --accent: #173f67;
+  --warning: #7a4f00;
+}
+html { font-size: 16px; }
+body {
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  line-height: 1.58;
+  margin: 0 auto;
+  max-width: 1040px;
+  padding: 2.5rem 3.25rem 6rem;
+}
+h1, h2, h3, h4 { color: var(--accent); line-height: 1.22; margin-top: 2rem; }
+h1 { border-bottom: 2px solid var(--line); padding-bottom: .35rem; }
+h2 { border-bottom: 1px solid var(--line); padding-bottom: .2rem; }
+a { color: #0a5a9c; }
+nav#TOC { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 1rem 1.4rem; }
+nav#TOC > ul { columns: 2; column-gap: 2rem; }
+table { border-collapse: collapse; display: block; margin: 1rem 0 1.5rem; overflow-x: auto; width: 100%; }
+th, td { border: 1px solid var(--line); padding: .5rem .65rem; text-align: left; vertical-align: top; }
+th { background: var(--panel); }
+pre { background: #f3f5f7; border: 1px solid var(--line); border-radius: 6px; overflow-x: auto; padding: .9rem 1rem; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .92em; }
+blockquote { border-left: 4px solid #8aa4be; color: #31475c; margin-left: 0; padding: .35rem 1rem; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 2.5rem 0; }
+@media (max-width: 760px) {
+  body { padding: 1.2rem; }
+  nav#TOC > ul { columns: 1; }
+}
+@media print {
+  body { max-width: none; padding: 0; }
+  nav#TOC { break-after: page; }
+  h1, h2, h3 { break-after: avoid; }
+  table, pre, blockquote { break-inside: avoid; }
+  a { color: inherit; text-decoration: none; }
+}

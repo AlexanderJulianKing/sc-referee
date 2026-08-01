@@ -1,0 +1,7 @@
+{
+  "accepted": true,
+  "baseline_version": "0.6.0",
+  "public_release": true,
+  "release_version": "0.7.0",
+  "source_adr": "docs/implementation/ADR-0004-TYPED-SEMANTIC-INTERACTION-PLANE.md"
+}

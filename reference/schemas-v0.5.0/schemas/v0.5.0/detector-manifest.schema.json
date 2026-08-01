@@ -1,0 +1,517 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/detector-manifest.schema.json",
+  "title": "Detector Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "detector_id",
+    "detector_version",
+    "title",
+    "description",
+    "detector_family",
+    "issue_classes",
+    "maturity",
+    "applies_to_record_types",
+    "domains",
+    "languages",
+    "workflow_systems",
+    "supported_operations",
+    "required_evidence",
+    "accepted_assertion_classes",
+    "assumptions",
+    "abstain_when",
+    "permitted_output_types",
+    "counterevidence_protocol",
+    "coverage_contract",
+    "wording_constraints",
+    "implementation",
+    "test_fixtures",
+    "validation",
+    "limitations",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "detector_manifest"
+    },
+    "detector_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "detector_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemVer"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "detector_family": {
+      "type": "string",
+      "minLength": 1
+    },
+    "issue_classes": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/IssueClass"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "maturity": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Maturity"
+    },
+    "applies_to_record_types": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "domains": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "workflow_systems": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "supported_operations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "package_constraints": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0
+    },
+    "required_evidence": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "accepted_assertion_classes": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "direct_observation",
+          "explicit_text_extraction",
+          "scientist_declaration",
+          "metadata_definition",
+          "deterministic_derivation",
+          "external_declaration"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0
+    },
+    "abstain_when": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "permitted_output_types": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "finding",
+          "conditional_concern",
+          "material_question",
+          "disclosure"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "counterevidence_protocol": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "check_id",
+          "description",
+          "applies_when",
+          "sources_to_search",
+          "unavailability_effect",
+          "counterevidence_effect"
+        ],
+        "properties": {
+          "check_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "applies_when": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sources_to_search": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          },
+          "unavailability_effect": {
+            "enum": [
+              "block_finding",
+              "emit_conditional_concern",
+              "emit_disclosure",
+              "no_effect"
+            ]
+          },
+          "counterevidence_effect": {
+            "enum": [
+              "suppress_candidate",
+              "bound_wording",
+              "change_assessment_type",
+              "no_effect"
+            ]
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "coverage_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "covered_when",
+        "partially_covered_when",
+        "not_covered_when"
+      ],
+      "properties": {
+        "covered_when": {
+          "type": "string",
+          "minLength": 1
+        },
+        "partially_covered_when": {
+          "type": "string",
+          "minLength": 1
+        },
+        "not_covered_when": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "wording_constraints": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entry_point",
+        "implementation_digest",
+        "deterministic"
+      ],
+      "properties": {
+        "entry_point": {
+          "type": "string",
+          "minLength": 1
+        },
+        "implementation_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Digest"
+        },
+        "deterministic": {
+          "const": true
+        }
+      }
+    },
+    "test_fixtures": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "positive",
+        "verified_good_negative",
+        "ambiguous",
+        "unsupported_path",
+        "counterevidence"
+      ],
+      "properties": {
+        "positive": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "verified_good_negative": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "ambiguous": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "unsupported_path": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "counterevidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "not_evaluated",
+            "development_only",
+            "held_out_validated",
+            "independently_validated"
+          ]
+        },
+        "evaluation_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qualification_record_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "software_maintainer_approval_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "qualification_review_basis": {
+          "enum": [
+            "not_qualified",
+            "agent_panel",
+            "mixed_panel",
+            "human_panel"
+          ]
+        },
+        "agent_adjudication_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "human_scientific_approval_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "maturity": {
+            "const": "experimental"
+          }
+        },
+        "required": [
+          "maturity"
+        ]
+      },
+      "then": {
+        "properties": {
+          "permitted_output_types": {
+            "not": {
+              "contains": {
+                "const": "finding"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "maturity": {
+            "const": "validated"
+          }
+        },
+        "required": [
+          "maturity"
+        ]
+      },
+      "then": {
+        "properties": {
+          "validation": {
+            "required": [
+              "qualification_record_ref",
+              "software_maintainer_approval_count",
+              "qualification_review_basis",
+              "agent_adjudication_count"
+            ],
+            "properties": {
+              "qualification_record_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "software_maintainer_approval_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "qualification_review_basis": {
+                "enum": [
+                  "agent_panel",
+                  "mixed_panel",
+                  "human_panel"
+                ]
+              },
+              "agent_adjudication_count": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "maturity": {
+            "const": "publication_grade"
+          }
+        },
+        "required": [
+          "maturity"
+        ]
+      },
+      "then": {
+        "properties": {
+          "validation": {
+            "required": [
+              "qualification_record_ref",
+              "software_maintainer_approval_count",
+              "qualification_review_basis",
+              "agent_adjudication_count"
+            ],
+            "properties": {
+              "qualification_record_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "software_maintainer_approval_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "qualification_review_basis": {
+                "enum": [
+                  "agent_panel",
+                  "mixed_panel",
+                  "human_panel"
+                ]
+              },
+              "agent_adjudication_count": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

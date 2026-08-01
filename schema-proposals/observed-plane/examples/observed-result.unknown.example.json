@@ -1,0 +1,25 @@
+{
+  "schema_version": "__SCHEMA_VERSION__",
+  "record_type": "observed_result",
+  "observed_result_id": "observed-result:unknown",
+  "audit_run_id": "audit:candidate",
+  "value_kind": "scalar",
+  "scalar_value": 0.42,
+  "observation_method": "literal_extraction",
+  "producing_operation_ref": {"record_type": "operation", "record_id": "operation:estimate"},
+  "artifact_ref": {"record_type": "artifact", "record_id": "artifact:estimate"},
+  "source_refs": [{"source_kind": "file_span", "locator": "result.json:1", "path": "result.json", "start_line": 1, "end_line": 1}],
+  "lineage_status": "complete",
+  "lineage_limitations": [],
+  "comparison": {"state": "unknown", "rationale": "The literal result does not name the compared groups.", "evidence_refs": []},
+  "orientation": {"state": "unknown", "rationale": "Operand order was not independently verified.", "evidence_refs": []},
+  "scale": {"state": "unknown", "rationale": "The literal result has no scale metadata.", "evidence_refs": []},
+  "unit": {"state": "unknown", "rationale": "The literal result has no unit metadata.", "evidence_refs": []},
+  "population": {"state": "unknown", "rationale": "The literal result has no population metadata.", "evidence_refs": []},
+  "timing": {"state": "unknown", "rationale": "The literal result has no timing metadata.", "evidence_refs": []},
+  "provenance": {
+    "actor": {"actor_kind": "parser", "actor_id": "parser:json"},
+    "method": "literal_json_extraction",
+    "created_at": "2026-07-27T20:00:03Z"
+  }
+}

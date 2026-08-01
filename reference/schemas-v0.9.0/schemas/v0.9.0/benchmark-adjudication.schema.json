@@ -1,0 +1,435 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.9.0/benchmark-adjudication.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "label_status": {
+            "enum": [
+              "positive_demonstrated",
+              "verified_good_eligible",
+              "hard_negative_eligible"
+            ]
+          }
+        },
+        "required": [
+          "label_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "agreement": {
+            "properties": {
+              "cross_provider_support": {
+                "const": true
+              },
+              "material_disagreement": {
+                "const": false
+              }
+            }
+          },
+          "deterministic_checks": {
+            "properties": {
+              "bounded_entailment_checked": {
+                "const": true
+              },
+              "claim_output_agreement_checked": {
+                "const": true
+              },
+              "counterevidence_checked": {
+                "const": true
+              },
+              "falsification_records_complete": {
+                "const": true
+              },
+              "fixture_scope_complete": {
+                "const": true
+              },
+              "source_references_resolved": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "label_status": {
+            "enum": [
+              "ambiguous_excluded",
+              "insufficient_evidence",
+              "adjudication_failed"
+            ]
+          }
+        },
+        "required": [
+          "label_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "exclusion_reason": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "exclusion_reason"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "label_status": {
+            "const": "positive_demonstrated"
+          }
+        },
+        "required": [
+          "label_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "adjudicated_root_cause_refs": {
+            "minItems": 1
+          },
+          "root_cause_reconciliation_status": {
+            "const": "verified"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "label_status": {
+            "enum": [
+              "verified_good_eligible",
+              "hard_negative_eligible"
+            ]
+          }
+        },
+        "required": [
+          "label_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "adjudicated_root_cause_refs": {
+            "maxItems": 0
+          },
+          "root_cause_reconciliation_status": {
+            "const": "not_applicable"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "label_status": {
+            "enum": [
+              "ambiguous_excluded",
+              "insufficient_evidence",
+              "adjudication_failed"
+            ]
+          }
+        },
+        "required": [
+          "label_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "adjudicated_root_cause_refs": {
+            "maxItems": 0
+          },
+          "root_cause_reconciliation_status": {
+            "enum": [
+              "not_applicable",
+              "unresolved"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "adjudicated_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Timestamp"
+    },
+    "adjudicated_root_cause_refs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "record_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Identifier"
+          },
+          "record_type": {
+            "const": "adjudicated_root_cause"
+          }
+        },
+        "required": [
+          "record_type",
+          "record_id"
+        ],
+        "type": "object"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "adjudication_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Identifier"
+    },
+    "agent_only_disclosure": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "agreement": {
+      "additionalProperties": false,
+      "properties": {
+        "cross_provider_support": {
+          "type": "boolean"
+        },
+        "material_disagreement": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unresolved_dissent_excluded": {
+          "const": true
+        }
+      },
+      "required": [
+        "cross_provider_support",
+        "material_disagreement",
+        "unresolved_dissent_excluded"
+      ],
+      "type": "object"
+    },
+    "answer_side_evidence_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "case_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Identifier"
+    },
+    "deterministic_checks": {
+      "additionalProperties": false,
+      "properties": {
+        "bounded_entailment_checked": {
+          "type": "boolean"
+        },
+        "claim_output_agreement_checked": {
+          "type": "boolean"
+        },
+        "counterevidence_checked": {
+          "type": "boolean"
+        },
+        "falsification_records_complete": {
+          "type": "boolean"
+        },
+        "fixture_scope_complete": {
+          "type": "boolean"
+        },
+        "source_references_resolved": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source_references_resolved",
+        "claim_output_agreement_checked",
+        "bounded_entailment_checked",
+        "counterevidence_checked",
+        "fixture_scope_complete",
+        "falsification_records_complete"
+      ],
+      "type": "object"
+    },
+    "exclusion_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "label_status": {
+      "enum": [
+        "positive_demonstrated",
+        "verified_good_eligible",
+        "hard_negative_eligible",
+        "ambiguous_excluded",
+        "insufficient_evidence",
+        "adjudication_failed"
+      ]
+    },
+    "majority_vote_permitted": {
+      "const": false
+    },
+    "protocol_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SemVer"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Provenance"
+    },
+    "provider_families": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 2,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "provider_participation": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "distinct_execution_context_count": {
+            "minimum": 3,
+            "type": "integer"
+          },
+          "provider_family": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "stage1_review_count": {
+            "minimum": 2,
+            "type": "integer"
+          },
+          "stage2_review_count": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "provider_family",
+          "stage1_review_count",
+          "stage2_review_count",
+          "distinct_execution_context_count"
+        ],
+        "type": "object"
+      },
+      "minItems": 2,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "record_type": {
+      "const": "benchmark_adjudication"
+    },
+    "reference_agent_configuration": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_surface": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "model_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "model_name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "provider": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "agent_surface",
+          "model_name",
+          "model_id"
+        ],
+        "type": "object"
+      },
+      "minItems": 2,
+      "type": "array"
+    },
+    "review_basis": {
+      "enum": [
+        "agent_panel",
+        "mixed_panel"
+      ]
+    },
+    "root_cause_reconciliation_status": {
+      "enum": [
+        "verified",
+        "not_applicable",
+        "unresolved"
+      ]
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "stage1_review_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 4,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "stage2_review_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 2,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "stage3_detector_comparison_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "adjudication_id",
+    "case_id",
+    "protocol_version",
+    "review_basis",
+    "stage1_review_refs",
+    "stage2_review_refs",
+    "provider_families",
+    "provider_participation",
+    "label_status",
+    "agreement",
+    "deterministic_checks",
+    "majority_vote_permitted",
+    "agent_only_disclosure",
+    "adjudicated_at",
+    "provenance",
+    "adjudicated_root_cause_refs",
+    "root_cause_reconciliation_status"
+  ],
+  "title": "sc-referee Benchmark Adjudication",
+  "type": "object"
+}

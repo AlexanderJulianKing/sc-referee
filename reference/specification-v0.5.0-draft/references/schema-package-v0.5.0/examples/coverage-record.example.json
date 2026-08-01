@@ -1,0 +1,86 @@
+{
+  "schema_version": "0.5.0",
+  "record_type": "coverage_record",
+  "coverage_id": "coverage:1",
+  "audit_run_id": "audit:example-001",
+  "generated_at": "2026-07-27T20:00:00Z",
+  "overall_status": "complete_within_plan",
+  "scope": {
+    "inventory_scope": "whole_repository",
+    "deep_inspection_scope": "final-claim backward slices and selection envelope",
+    "publication_surface_refs": [
+      {
+        "record_type": "artifact",
+        "record_id": "artifact:report"
+      }
+    ],
+    "selection_envelope_included": true
+  },
+  "inventory_summary": {
+    "files_total": 42,
+    "files_classified": 42,
+    "files_deeply_inspected": 12
+  },
+  "assessment_counts": {
+    "findings": 1,
+    "conditional_concerns": 1,
+    "material_questions": 1,
+    "disclosures": 1
+  },
+  "claim_coverage": {
+    "claims_total": 3,
+    "claims_inspected": 3,
+    "claims_with_complete_lineage": 2
+  },
+  "parser_coverage": [
+    {
+      "surface": "python",
+      "status": "covered",
+      "details": "All relevant Python files parsed."
+    },
+    {
+      "surface": "custom binary",
+      "status": "not_covered",
+      "details": "Treated as an opaque boundary."
+    }
+  ],
+  "detector_coverage": [
+    {
+      "detector_id": "detector:claim-direction",
+      "status": "covered",
+      "targets_total": 1,
+      "targets_evaluated": 1,
+      "details": "All prerequisites available."
+    }
+  ],
+  "unknown_semantic_ids": [
+    "question:sample-id"
+  ],
+  "opaque_boundary_refs": [
+    {
+      "record_type": "operation",
+      "record_id": "operation:custom-caller"
+    }
+  ],
+  "uninspected_paths": [
+    "archive/old-notebooks/"
+  ],
+  "known_gaps": [
+    "No validated detector inspected the custom caller internal measurement model."
+  ],
+  "interpretation_policy": {
+    "correctness_conclusion_allowed": false,
+    "global_risk_rating_allowed": false,
+    "absence_of_finding_statement": "No finding means only that no issue was admitted within the declared evidence and validated detector coverage."
+  },
+  "provenance": {
+    "actor": {
+      "actor_kind": "controller",
+      "actor_id": "sc_referee.core"
+    },
+    "method": "deterministic_generation",
+    "created_at": "2026-07-27T20:00:00Z",
+    "tool": "sc_referee.core",
+    "tool_version": "0.5.0"
+  }
+}

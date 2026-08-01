@@ -1,0 +1,126 @@
+{
+  "$defs": {
+    "Grade": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "limitations": {
+                "minItems": 1
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "status": {
+                "const": "complete"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "anyOf": [
+              {
+                "properties": {
+                  "record_refs": {
+                    "minItems": 1
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "source_refs": {
+                    "minItems": 1
+                  }
+                }
+              }
+            ],
+            "properties": {
+              "limitations": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "limitations": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "record_refs": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.12.0/common.schema.json#/$defs/RecordRef"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "source_refs": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.12.0/common.schema.json#/$defs/SourceRef"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "status": {
+          "enum": [
+            "complete",
+            "partial",
+            "missing",
+            "unavailable",
+            "opaque"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "record_refs",
+        "source_refs",
+        "limitations"
+      ],
+      "type": "object"
+    },
+    "GradeSet": {
+      "additionalProperties": false,
+      "properties": {
+        "computational_origin": {
+          "$ref": "#/$defs/Grade"
+        },
+        "execution_origin": {
+          "$ref": "#/$defs/Grade"
+        },
+        "input_origin": {
+          "$ref": "#/$defs/Grade"
+        },
+        "report_origin": {
+          "$ref": "#/$defs/Grade"
+        },
+        "result_origin": {
+          "$ref": "#/$defs/Grade"
+        },
+        "semantic_origin": {
+          "$ref": "#/$defs/Grade"
+        }
+      },
+      "required": [
+        "report_origin",
+        "result_origin",
+        "computational_origin",
+        "input_origin",
+        "execution_origin",
+        "semantic_origin"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://w3id.org/sc-referee/schema/v0.12.0/lineage-grade.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "sc-referee Claim lineage grades"
+}

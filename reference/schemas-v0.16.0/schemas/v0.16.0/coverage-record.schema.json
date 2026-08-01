@@ -1,0 +1,569 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.16.0/coverage-record.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "assessment_counts": {
+      "additionalProperties": false,
+      "properties": {
+        "conditional_concerns": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "disclosures": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "findings": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "material_questions": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "findings",
+        "conditional_concerns",
+        "material_questions",
+        "disclosures"
+      ],
+      "type": "object"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Identifier"
+    },
+    "claim_coverage": {
+      "additionalProperties": false,
+      "properties": {
+        "claims_inspected": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "claims_total": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "claims_with_complete_lineage": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "lineage_grade_counts": {
+          "additionalProperties": false,
+          "properties": {
+            "computational_origin": {
+              "additionalProperties": false,
+              "properties": {
+                "complete": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "missing": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "opaque": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "partial": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "total": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "unavailable": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "complete",
+                "partial",
+                "missing",
+                "unavailable",
+                "opaque",
+                "total"
+              ],
+              "type": "object"
+            },
+            "execution_origin": {
+              "additionalProperties": false,
+              "properties": {
+                "complete": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "missing": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "opaque": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "partial": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "total": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "unavailable": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "complete",
+                "partial",
+                "missing",
+                "unavailable",
+                "opaque",
+                "total"
+              ],
+              "type": "object"
+            },
+            "input_origin": {
+              "additionalProperties": false,
+              "properties": {
+                "complete": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "missing": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "opaque": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "partial": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "total": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "unavailable": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "complete",
+                "partial",
+                "missing",
+                "unavailable",
+                "opaque",
+                "total"
+              ],
+              "type": "object"
+            },
+            "report_origin": {
+              "additionalProperties": false,
+              "properties": {
+                "complete": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "missing": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "opaque": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "partial": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "total": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "unavailable": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "complete",
+                "partial",
+                "missing",
+                "unavailable",
+                "opaque",
+                "total"
+              ],
+              "type": "object"
+            },
+            "result_origin": {
+              "additionalProperties": false,
+              "properties": {
+                "complete": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "missing": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "opaque": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "partial": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "total": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "unavailable": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "complete",
+                "partial",
+                "missing",
+                "unavailable",
+                "opaque",
+                "total"
+              ],
+              "type": "object"
+            },
+            "semantic_origin": {
+              "additionalProperties": false,
+              "properties": {
+                "complete": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "missing": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "opaque": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "partial": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "total": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "unavailable": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "complete",
+                "partial",
+                "missing",
+                "unavailable",
+                "opaque",
+                "total"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "report_origin",
+            "result_origin",
+            "computational_origin",
+            "input_origin",
+            "execution_origin",
+            "semantic_origin"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "claims_total",
+        "claims_inspected",
+        "claims_with_complete_lineage",
+        "lineage_grade_counts"
+      ],
+      "type": "object"
+    },
+    "coverage_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Identifier"
+    },
+    "detector_coverage": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "details": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "detector_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Identifier"
+          },
+          "status": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/CoverageStatus"
+          },
+          "targets_evaluated": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "targets_total": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "detector_id",
+          "status",
+          "targets_total",
+          "targets_evaluated",
+          "details"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "generated_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Timestamp"
+    },
+    "interpretation_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "absence_of_finding_statement": {
+          "const": "No finding means only that no issue was admitted within the declared evidence and validated detector coverage."
+        },
+        "correctness_conclusion_allowed": {
+          "const": false
+        },
+        "global_risk_rating_allowed": {
+          "const": false
+        }
+      },
+      "required": [
+        "correctness_conclusion_allowed",
+        "absence_of_finding_statement",
+        "global_risk_rating_allowed"
+      ],
+      "type": "object"
+    },
+    "inventory_summary": {
+      "additionalProperties": false,
+      "properties": {
+        "files_classified": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "files_deeply_inspected": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "files_total": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "files_total",
+        "files_classified",
+        "files_deeply_inspected"
+      ],
+      "type": "object"
+    },
+    "known_gaps": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "opaque_boundary_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "overall_status": {
+      "enum": [
+        "complete_within_plan",
+        "partial_budget_exhausted",
+        "partial_evidence_unavailable",
+        "partial_error"
+      ]
+    },
+    "parser_coverage": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "details": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "status": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/CoverageStatus"
+          },
+          "surface": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "surface",
+          "status",
+          "details"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "performance_ref": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/RecordRef"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "coverage_record"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "scope": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "publication_surface_status": {
+                "const": "resolved"
+              }
+            },
+            "required": [
+              "publication_surface_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "publication_surface_refs": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "publication_surface_status": {
+                "const": "unavailable"
+              }
+            },
+            "required": [
+              "publication_surface_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "publication_surface_refs": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "deep_inspection_scope": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "inventory_scope": {
+          "const": "whole_repository"
+        },
+        "publication_surface_refs": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/RecordRef"
+          },
+          "minItems": 0,
+          "type": "array"
+        },
+        "publication_surface_status": {
+          "enum": [
+            "resolved",
+            "unresolved",
+            "unavailable"
+          ]
+        },
+        "selection_envelope_included": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "inventory_scope",
+        "deep_inspection_scope",
+        "publication_surface_refs",
+        "publication_surface_status"
+      ],
+      "type": "object"
+    },
+    "uninspected_paths": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "unknown_semantic_ids": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.16.0/common.schema.json#/$defs/Identifier"
+      },
+      "minItems": 0,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "coverage_id",
+    "audit_run_id",
+    "generated_at",
+    "overall_status",
+    "scope",
+    "inventory_summary",
+    "assessment_counts",
+    "claim_coverage",
+    "parser_coverage",
+    "detector_coverage",
+    "unknown_semantic_ids",
+    "opaque_boundary_refs",
+    "uninspected_paths",
+    "known_gaps",
+    "interpretation_policy",
+    "provenance"
+  ],
+  "title": "Audit Coverage Record",
+  "type": "object"
+}

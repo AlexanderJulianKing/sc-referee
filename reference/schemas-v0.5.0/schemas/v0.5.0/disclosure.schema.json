@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/disclosure.schema.json",
+  "title": "sc-referee Disclosure",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "disclosure_id",
+    "audit_run_id",
+    "disclosure_kind",
+    "title",
+    "description",
+    "importance",
+    "non_accusatory",
+    "affected_refs",
+    "source_refs",
+    "coverage_status",
+    "interpretive_consequence",
+    "created_at",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "disclosure"
+    },
+    "disclosure_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "disclosure_kind": {
+      "enum": [
+        "coverage_gap",
+        "lineage_gap",
+        "unsupported_operation",
+        "opaque_boundary",
+        "evidence_unavailable",
+        "data_identity_weak",
+        "reproducibility_limit",
+        "parser_gap",
+        "detector_gap",
+        "uninspected_path",
+        "other"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "importance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/DisclosureImportance"
+    },
+    "non_accusatory": {
+      "const": true
+    },
+    "affected_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 0
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SourceRef"
+      },
+      "minItems": 0
+    },
+    "coverage_status": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/CoverageStatus"
+    },
+    "interpretive_consequence": {
+      "type": "string",
+      "minLength": 1
+    },
+    "next_step": {
+      "type": "string"
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "additionalProperties": true
+    }
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.9.0/stage-result.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "failed",
+              "timed_out"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "error"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "completed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "error"
+          ]
+        }
+      }
+    }
+  ],
+  "properties": {
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Identifier"
+    },
+    "completed_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Timestamp"
+    },
+    "details": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    },
+    "error": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "details_known": {
+          "type": "boolean"
+        },
+        "message": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "type": "object"
+    },
+    "produced_record_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/RecordRef"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "stage_result"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "sequence": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "stage": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "stage_result_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Identifier"
+    },
+    "started_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.9.0/common.schema.json#/$defs/Timestamp"
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "partial",
+        "failed",
+        "skipped",
+        "timed_out"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "stage_result_id",
+    "audit_run_id",
+    "stage",
+    "sequence",
+    "status",
+    "details",
+    "produced_record_refs",
+    "provenance"
+  ],
+  "title": "sc-referee StageResult",
+  "type": "object"
+}

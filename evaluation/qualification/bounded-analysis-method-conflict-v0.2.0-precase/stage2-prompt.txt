@@ -1,0 +1,1 @@
+Using the frozen Stage-1 panel and the separately supplied answer-side evidence, attempt to falsify each exact proposed root cause and reconcile only evidence-supported candidates. Preserve material dissent and ambiguity. Do not inspect or infer any sc-referee detector identity or output, and do not let reviewer confidence establish a premise.

@@ -1,0 +1,47 @@
+{
+  "schema_version": "__SCHEMA_VERSION__",
+  "record_type": "answer",
+  "answer_id": "answer:target-population",
+  "audit_run_id": "audit:interaction-example",
+  "question_ref": {
+    "record_type": "material_question",
+    "record_id": "question:target-population"
+  },
+  "source_snapshot_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "answer_kind": "structured_value",
+  "answer_value": {
+    "population_label": "All randomized participants",
+    "exclusions": []
+  },
+  "respondent": {
+    "actor_kind": "human",
+    "actor_id": "scientist:example"
+  },
+  "response_source": "provided_answer_file",
+  "authority_scope": {
+    "authority_kind": "scientific_intent",
+    "subject_refs": [
+      {"record_type": "claim", "record_id": "claim:results-1"}
+    ],
+    "semantic_dimensions": ["target_population"]
+  },
+  "certainty": {
+    "level": "high",
+    "basis": "The study principal investigator supplied the answer."
+  },
+  "timestamp_status": "unavailable",
+  "supersedes_answer_refs": [],
+  "answer_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+  "answer_digest_profile": "canonical-json-excluding-answer-digest-v1",
+  "created_at": "2026-07-28T21:06:00Z",
+  "provenance": {
+    "actor": {
+      "actor_kind": "human",
+      "actor_id": "scientist:example"
+    },
+    "method": "scientist_answer",
+    "created_at": "2026-07-28T21:06:00Z",
+    "tool": "sc-referee",
+    "tool_version": "0.2.0.dev0"
+  }
+}

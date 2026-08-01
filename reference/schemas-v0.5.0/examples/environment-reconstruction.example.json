@@ -1,0 +1,43 @@
+{
+  "schema_version": "0.5.0",
+  "record_type": "environment_reconstruction",
+  "environment_reconstruction_id": "env-recon:python",
+  "audit_run_id": "run:example",
+  "status": "approximate",
+  "definition_refs": [
+    {
+      "source_kind": "file_span",
+      "locator": "requirements.txt:1-8",
+      "path": "requirements.txt",
+      "start_line": 1,
+      "end_line": 8
+    }
+  ],
+  "isolated_location": ".sc-referee/cache/envs/example",
+  "approximation_reason": "Package versions were not pinned in requirements.txt.",
+  "user_environment_modified": false,
+  "system_packages_installed": false,
+  "local_project_installed": false,
+  "dependencies": [
+    {
+      "name": "pandas",
+      "version": "2.3.1",
+      "source": "configured package index",
+      "version_status": "resolved_current"
+    }
+  ],
+  "started_at": "2026-07-27T23:30:00Z",
+  "finished_at": "2026-07-27T23:30:15Z",
+  "provenance": {
+    "actor": {
+      "actor_id": "sc_referee.core",
+      "display_name": "sc-referee controller",
+      "actor_kind": "controller"
+    },
+    "method": "deterministic_controller",
+    "created_at": "2026-07-27T23:30:00Z",
+    "tool": "sc_referee.core",
+    "tool_version": "0.5.0",
+    "source_refs": []
+  }
+}

@@ -1,0 +1,253 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.13.0/publication-surface.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "resolved"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "candidates": {
+            "minItems": 1
+          },
+          "publication_materiality_assessable": {
+            "const": true
+          },
+          "selection": {
+            "properties": {
+              "kind": {
+                "const": "resolved"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "unresolved"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "publication_materiality_assessable": {
+            "const": false
+          },
+          "selection": {
+            "properties": {
+              "kind": {
+                "const": "unresolved"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "candidates": {
+            "maxItems": 0
+          }
+        },
+        "required": [
+          "candidates"
+        ]
+      },
+      "then": {
+        "properties": {
+          "publication_materiality_assessable": {
+            "const": false
+          },
+          "selection": {
+            "properties": {
+              "kind": {
+                "const": "unresolved"
+              }
+            },
+            "required": [
+              "kind",
+              "material_question_id"
+            ]
+          },
+          "status": {
+            "const": "unresolved"
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+    },
+    "candidates": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "items": {
+              "enum": [
+                "explicit_user_target",
+                "active_workspace_document",
+                "declared_build_target",
+                "explicit_task_or_repository_statement",
+                "unique_lineage_evidence",
+                "filename_signal",
+                "modification_time_signal"
+              ]
+            },
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "notes": {
+            "type": "string"
+          },
+          "surface_ref": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/RecordRef"
+          }
+        },
+        "required": [
+          "surface_ref",
+          "evidence"
+        ],
+        "type": "object"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Timestamp"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "precedence_policy": {
+      "const": [
+        "explicit_user_target_or_active_workspace",
+        "declared_build_target",
+        "explicit_task_or_repository_statement",
+        "unique_lineage_evidence",
+        "filename_and_time_supporting_only"
+      ]
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Provenance"
+    },
+    "publication_materiality_assessable": {
+      "type": "boolean"
+    },
+    "publication_surface_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+    },
+    "record_type": {
+      "const": "publication_surface"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "selection": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "resolved"
+            },
+            "rationale": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "scientist_answer_id": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+            },
+            "selected_surface_refs": {
+              "items": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/RecordRef"
+              },
+              "minItems": 1,
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "kind",
+            "selected_surface_refs",
+            "rationale"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "candidate_surface_refs": {
+              "items": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/RecordRef"
+              },
+              "minItems": 2,
+              "type": "array",
+              "uniqueItems": true
+            },
+            "kind": {
+              "const": "unresolved"
+            },
+            "material_question_id": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+            },
+            "reason": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "reason",
+            "material_question_id"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "status": {
+      "enum": [
+        "resolved",
+        "unresolved"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "publication_surface_id",
+    "audit_run_id",
+    "status",
+    "candidates",
+    "precedence_policy",
+    "selection",
+    "publication_materiality_assessable",
+    "created_at",
+    "provenance"
+  ],
+  "title": "Publication Surface Resolution",
+  "type": "object"
+}

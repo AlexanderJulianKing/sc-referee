@@ -1,0 +1,20 @@
+{
+  "schema_version": "__SCHEMA_VERSION__",
+  "record_type": "file_record",
+  "file_record_id": "file:symlink",
+  "audit_run_id": "audit:candidate",
+  "snapshot_ref": {"record_type": "repository_snapshot", "record_id": "snapshot:candidate"},
+  "path": "linked-data.csv",
+  "entry_kind": "symlink",
+  "classification": "data",
+  "inspection_disposition": "symlink_not_followed",
+  "identity_disposition": "not_recorded",
+  "symlink_target": "outside/data.csv",
+  "symlink_followed": false,
+  "limitations": ["Symlink target was recorded but not followed."],
+  "provenance": {
+    "actor": {"actor_kind": "controller", "actor_id": "controller:candidate"},
+    "method": "safe_file_inventory",
+    "created_at": "2026-07-27T20:00:01Z"
+  }
+}

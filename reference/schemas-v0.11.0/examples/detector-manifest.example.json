@@ -1,0 +1,135 @@
+{
+  "abstain_when": [
+    "Contrast orientation is unknown or conflicted."
+  ],
+  "accepted_assertion_classes": [
+    "direct_observation",
+    "explicit_text_extraction",
+    "scientist_declaration",
+    "metadata_definition",
+    "deterministic_derivation"
+  ],
+  "applies_to_record_types": [
+    "claim"
+  ],
+  "assumptions": [
+    "The linked result is the result intended by the report claim."
+  ],
+  "counterevidence_protocol": [
+    {
+      "applies_when": "The claim and result directions appear inconsistent.",
+      "check_id": "check:orientation",
+      "counterevidence_effect": "suppress_candidate",
+      "description": "Check for upstream contrast or reference reversal.",
+      "sources_to_search": [
+        "Scientific Contract orientation slot",
+        "model contrast metadata",
+        "package output labels"
+      ],
+      "unavailability_effect": "block_finding"
+    },
+    {
+      "applies_when": "A directional claim was extracted.",
+      "check_id": "check:report-qualification",
+      "counterevidence_effect": "bound_wording",
+      "description": "Check whether the surrounding report text qualifies or negates the extracted direction.",
+      "sources_to_search": [
+        "same paragraph",
+        "caption",
+        "footnote"
+      ],
+      "unavailability_effect": "block_finding"
+    }
+  ],
+  "coverage_contract": {
+    "covered_when": "Claim, result, and orientation are all linked and supported.",
+    "not_covered_when": "Orientation or result linkage is unavailable.",
+    "partially_covered_when": "Result is linked but some non-material lineage metadata is absent."
+  },
+  "description": "Checks whether an explicitly reported direction agrees with the linked result under established orientation.",
+  "detector_family": "claim_result_agreement",
+  "detector_id": "detector:claim-direction",
+  "detector_version": "1.0.0",
+  "domains": [
+    "general_statistics"
+  ],
+  "implementation": {
+    "deterministic": true,
+    "entry_point": "sc_referee.detectors.claim_direction:Detector",
+    "implementation_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "issue_classes": [
+    "claim_result_disagreement"
+  ],
+  "languages": [
+    "python",
+    "r"
+  ],
+  "limitations": [
+    "Does not determine whether a different analysis would reverse the result."
+  ],
+  "maturity": "validated",
+  "package_constraints": [],
+  "permitted_output_types": [
+    "finding",
+    "conditional_concern",
+    "material_question",
+    "disclosure"
+  ],
+  "provenance": {
+    "actor": {
+      "actor_id": "detector:claim-direction",
+      "actor_kind": "detector"
+    },
+    "created_at": "2026-07-27T20:00:00Z",
+    "method": "deterministic_detection",
+    "tool": "sc_referee.core",
+    "tool_version": "0.5.0"
+  },
+  "record_type": "detector_manifest",
+  "required_evidence": [
+    "explicit reported direction",
+    "linked numerical result",
+    "established contrast orientation"
+  ],
+  "schema_version": "0.11.0",
+  "supported_operations": [
+    "model_fit",
+    "estimate"
+  ],
+  "test_fixtures": {
+    "ambiguous": [
+      "fixtures/ambiguous.json"
+    ],
+    "counterevidence": [
+      "fixtures/reversed-reference.json"
+    ],
+    "positive": [
+      "fixtures/positive.json"
+    ],
+    "unsupported_path": [
+      "fixtures/unsupported.json"
+    ],
+    "verified_good_negative": [
+      "fixtures/negative.json"
+    ]
+  },
+  "title": "Claim/result direction agreement",
+  "validation": {
+    "agent_adjudication_count": 1,
+    "evaluation_ref": "eval:claim-direction-v1",
+    "human_scientific_approval_count": 0,
+    "qualification_record_ref": "qualification:example",
+    "qualification_review_basis": "agent_panel",
+    "software_maintainer_approval_count": 1,
+    "status": "held_out_validated"
+  },
+  "wording_constraints": [
+    "State only the bounded direction mismatch.",
+    "Do not claim the biological conclusion is false."
+  ],
+  "workflow_systems": [
+    "jupyter",
+    "quarto"
+  ]
+}

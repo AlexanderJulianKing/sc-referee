@@ -1,0 +1,714 @@
+{
+  "$defs": {
+    "Actor": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "actor_kind": {
+          "enum": [
+            "human",
+            "model",
+            "controller",
+            "parser",
+            "detector",
+            "runtime",
+            "external"
+          ]
+        },
+        "display_name": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "actor_kind",
+        "actor_id"
+      ],
+      "type": "object"
+    },
+    "AffectedDescendant": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "relationship_path": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/RecordRef"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "target_ref": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/RecordRef"
+        }
+      },
+      "required": [
+        "target_ref",
+        "relationship_path",
+        "effect"
+      ],
+      "type": "object"
+    },
+    "AuditMode": {
+      "enum": [
+        "quick",
+        "standard",
+        "publication"
+      ]
+    },
+    "CausalClaimIntent": {
+      "enum": [
+        "descriptive",
+        "associational",
+        "predictive",
+        "causal",
+        "ambiguous"
+      ]
+    },
+    "CausalVariableRole": {
+      "enum": [
+        "confounder",
+        "mediator",
+        "collider",
+        "post_treatment_variable",
+        "precision_variable",
+        "instrument",
+        "proxy",
+        "selection_variable",
+        "unknown"
+      ]
+    },
+    "CoverageStatus": {
+      "enum": [
+        "covered",
+        "partially_covered",
+        "not_covered",
+        "not_applicable",
+        "unknown"
+      ]
+    },
+    "DataIdentityTier": {
+      "enum": [
+        "full_digest",
+        "immutable_external",
+        "manifest",
+        "weak_fingerprint",
+        "unidentified"
+      ]
+    },
+    "Digest": {
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "type": "string"
+    },
+    "DisclosureImportance": {
+      "enum": [
+        "informational",
+        "important",
+        "material"
+      ]
+    },
+    "EvidenceItem": {
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "properties": {
+            "source_refs": {
+              "minItems": 1
+            }
+          },
+          "required": [
+            "source_refs"
+          ]
+        },
+        {
+          "properties": {
+            "record_refs": {
+              "minItems": 1
+            }
+          },
+          "required": [
+            "record_refs"
+          ]
+        }
+      ],
+      "properties": {
+        "description": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "evidence_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+        },
+        "observed_value": {},
+        "record_refs": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/RecordRef"
+          },
+          "minItems": 0,
+          "type": "array"
+        },
+        "source_refs": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/SourceRef"
+          },
+          "minItems": 0,
+          "type": "array"
+        },
+        "support_role": {
+          "enum": [
+            "supports",
+            "counterevidence",
+            "context",
+            "limitation"
+          ]
+        }
+      },
+      "required": [
+        "evidence_id",
+        "description",
+        "support_role"
+      ],
+      "type": "object"
+    },
+    "ExecutionLevel": {
+      "enum": [
+        "safe_inspection",
+        "auditor_owned_verification",
+        "project_code_execution"
+      ]
+    },
+    "Identifier": {
+      "maxLength": 512,
+      "minLength": 3,
+      "pattern": "^[A-Za-z][A-Za-z0-9._:/-]*$",
+      "type": "string"
+    },
+    "IssueClass": {
+      "minLength": 1,
+      "pattern": "^(claim_result_disagreement|outcome_guided_selection|population_estimand_adjustment_mismatch|measurement_error_nonidentification|denominator_background_control_mismatch|batch_nuisance_dependence_omission|group_specific_misfit|unsupported_orientation_scale_timing_invariant|missingness_transport_calibration_uncertainty|incomplete_computational_lineage|x-[a-z0-9][a-z0-9._-]*)$",
+      "type": "string"
+    },
+    "LogicalPremise": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_ids": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+          },
+          "minItems": 0,
+          "type": "array"
+        },
+        "material": {
+          "type": "boolean"
+        },
+        "premise_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+        },
+        "state": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/PremiseState"
+        },
+        "statement": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "premise_id",
+        "statement",
+        "state",
+        "material"
+      ],
+      "type": "object"
+    },
+    "MaterialityAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/MaterialityLevel"
+        },
+        "rationale": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "level",
+        "rationale"
+      ],
+      "type": "object"
+    },
+    "MaterialityLevel": {
+      "enum": [
+        "local",
+        "claim_material",
+        "multi_claim",
+        "conclusion_material"
+      ]
+    },
+    "Maturity": {
+      "enum": [
+        "experimental",
+        "validated",
+        "publication_grade"
+      ]
+    },
+    "PotentialImpactLevel": {
+      "enum": [
+        "limited",
+        "material_if_true",
+        "broad_if_true",
+        "potentially_conclusion_changing"
+      ]
+    },
+    "PremiseState": {
+      "enum": [
+        "established",
+        "refuted",
+        "unknown",
+        "conflicted",
+        "not_applicable"
+      ]
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "actor": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Actor"
+        },
+        "created_at": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Timestamp"
+        },
+        "method": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "source_refs": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/SourceRef"
+          },
+          "minItems": 0,
+          "type": "array"
+        },
+        "tool": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "tool_version": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "actor",
+        "method",
+        "created_at"
+      ],
+      "type": "object"
+    },
+    "PublicationMaterialityAssessment": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "level": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/MaterialityLevel"
+            },
+            "publication_surface_ids": {
+              "items": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+              },
+              "minItems": 1,
+              "type": "array",
+              "uniqueItems": true
+            },
+            "rationale": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "state": {
+              "const": "assessed"
+            }
+          },
+          "required": [
+            "state",
+            "level",
+            "rationale",
+            "publication_surface_ids"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "candidate_publication_surface_ids": {
+              "items": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+              },
+              "minItems": 2,
+              "type": "array",
+              "uniqueItems": true
+            },
+            "rationale": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "reason": {
+              "const": "unresolved_publication_surface"
+            },
+            "state": {
+              "const": "unassessed"
+            }
+          },
+          "required": [
+            "state",
+            "reason",
+            "rationale",
+            "candidate_publication_surface_ids"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "QualitativeCertainty": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "level": {
+          "enum": [
+            "explicit",
+            "high",
+            "moderate",
+            "low",
+            "unknown"
+          ]
+        }
+      },
+      "required": [
+        "level",
+        "basis"
+      ],
+      "type": "object"
+    },
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "ResolvedSemanticSlot": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "accepted_assertion_ids": {
+              "items": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+              },
+              "minItems": 1,
+              "type": "array",
+              "uniqueItems": true
+            },
+            "assertion_ids": {
+              "items": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+              },
+              "minItems": 1,
+              "type": "array",
+              "uniqueItems": true
+            },
+            "notes": {
+              "type": "string"
+            },
+            "state": {
+              "const": "known"
+            }
+          },
+          "required": [
+            "state",
+            "assertion_ids",
+            "accepted_assertion_ids"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "rationale": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "state": {
+              "const": "not_applicable"
+            }
+          },
+          "required": [
+            "state",
+            "rationale"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "ReviewPriority": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ]
+    },
+    "SchemaVersion": {
+      "const": "0.6.0"
+    },
+    "SemVer": {
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "type": "string"
+    },
+    "SemanticSlot": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "accepted_assertion_ids": {
+              "items": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+              },
+              "minItems": 1,
+              "type": "array",
+              "uniqueItems": true
+            },
+            "assertion_ids": {
+              "items": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+              },
+              "minItems": 1,
+              "type": "array",
+              "uniqueItems": true
+            },
+            "notes": {
+              "type": "string"
+            },
+            "state": {
+              "const": "known"
+            }
+          },
+          "required": [
+            "state",
+            "assertion_ids",
+            "accepted_assertion_ids"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "material_question_id": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+            },
+            "reason": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "searched_source_refs": {
+              "items": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/SourceRef"
+              },
+              "minItems": 0,
+              "type": "array"
+            },
+            "state": {
+              "const": "unknown"
+            }
+          },
+          "required": [
+            "state",
+            "reason"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "assertion_ids": {
+              "items": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+              },
+              "minItems": 2,
+              "type": "array",
+              "uniqueItems": true
+            },
+            "conflict_description": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "material_question_id": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+            },
+            "state": {
+              "const": "conflicted"
+            }
+          },
+          "required": [
+            "state",
+            "assertion_ids",
+            "conflict_description"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "rationale": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "state": {
+              "const": "not_applicable"
+            }
+          },
+          "required": [
+            "state",
+            "rationale"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "SeverityAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/SeverityLevel"
+        },
+        "rationale": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "level",
+        "rationale"
+      ],
+      "type": "object"
+    },
+    "SeverityLevel": {
+      "enum": [
+        "minor",
+        "moderate",
+        "major",
+        "critical"
+      ]
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "cell_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "chunk_label": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "command_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "content_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Digest"
+        },
+        "end_column": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "end_line": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "external": {
+          "default": false,
+          "type": "boolean"
+        },
+        "locator": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "page": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "path": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "quoted_text": {
+          "type": "string"
+        },
+        "selector": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "source_kind": {
+          "enum": [
+            "file_span",
+            "notebook_cell",
+            "document_chunk",
+            "workflow_node",
+            "shell_command",
+            "html_element",
+            "pdf_region",
+            "runtime_command",
+            "artifact",
+            "external_uri"
+          ]
+        },
+        "start_column": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "start_line": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "source_kind",
+        "locator"
+      ],
+      "type": "object"
+    },
+    "Timestamp": {
+      "format": "date-time",
+      "type": "string"
+    }
+  },
+  "$id": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "sc-referee Common Definitions"
+}

@@ -1,0 +1,25 @@
+{
+  "schema_version": "__SCHEMA_VERSION__",
+  "record_type": "observed_result",
+  "observed_result_id": "observed-result:scalar",
+  "audit_run_id": "audit:candidate",
+  "value_kind": "scalar",
+  "scalar_value": -0.42,
+  "observation_method": "deterministic_verification",
+  "producing_operation_ref": {"record_type": "operation", "record_id": "operation:estimate"},
+  "artifact_ref": {"record_type": "artifact", "record_id": "artifact:estimate"},
+  "source_refs": [{"source_kind": "file_span", "locator": "analysis.py:14", "path": "analysis.py", "start_line": 14, "end_line": 14}],
+  "lineage_status": "complete",
+  "lineage_limitations": [],
+  "comparison": {"state": "known", "value": "treated versus control", "evidence_refs": [{"source_kind": "file_span", "locator": "analysis.py:12", "path": "analysis.py", "start_line": 12, "end_line": 12}]},
+  "orientation": {"state": "known", "value": "treated_minus_control", "evidence_refs": [{"source_kind": "file_span", "locator": "analysis.py:14", "path": "analysis.py", "start_line": 14, "end_line": 14}]},
+  "scale": {"state": "known", "value": "expression", "evidence_refs": [{"source_kind": "file_span", "locator": "data.csv:1", "path": "data.csv", "start_line": 1, "end_line": 1}]},
+  "unit": {"state": "unknown", "rationale": "No independently checkable unit declaration was found.", "evidence_refs": []},
+  "population": {"state": "unknown", "rationale": "Population semantics were not declared in the inspected source.", "evidence_refs": []},
+  "timing": {"state": "unknown", "rationale": "Measurement timing was not declared in the inspected source.", "evidence_refs": []},
+  "provenance": {
+    "actor": {"actor_kind": "controller", "actor_id": "verifier:scalar"},
+    "method": "bounded_csv_mean_difference_verification",
+    "created_at": "2026-07-27T20:00:03Z"
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "audit_run_id": "audit:lineage-example",
+  "claim_id": "claim:lineage-mixed",
+  "claim_kind": "directional",
+  "claim_status": "final",
+  "extraction": {
+    "explicit_source_meaning": true,
+    "independently_verified": true,
+    "method": "deterministic",
+    "semantic_assertion_ids": []
+  },
+  "lineage": {
+    "grades": {
+      "computational_origin": {
+        "limitations": [
+          "A dependency boundary is opaque."
+        ],
+        "record_refs": [],
+        "source_refs": [],
+        "status": "opaque"
+      },
+      "execution_origin": {
+        "limitations": [
+          "No project Execution record exists."
+        ],
+        "record_refs": [],
+        "source_refs": [],
+        "status": "missing"
+      },
+      "input_origin": {
+        "limitations": [],
+        "record_refs": [
+          {
+            "record_id": "data-asset:analysis-csv",
+            "record_type": "data_asset"
+          }
+        ],
+        "source_refs": [],
+        "status": "complete"
+      },
+      "report_origin": {
+        "limitations": [],
+        "record_refs": [
+          {
+            "record_id": "artifact:report",
+            "record_type": "artifact"
+          }
+        ],
+        "source_refs": [
+          {
+            "end_line": 10,
+            "locator": "report.md:10",
+            "path": "report.md",
+            "source_kind": "file_span",
+            "start_line": 10
+          }
+        ],
+        "status": "complete"
+      },
+      "result_origin": {
+        "limitations": [
+          "The result-to-report generation edge was not observed."
+        ],
+        "record_refs": [
+          {
+            "record_id": "observed-result:mean-difference",
+            "record_type": "observed_result"
+          }
+        ],
+        "source_refs": [],
+        "status": "partial"
+      },
+      "semantic_origin": {
+        "limitations": [
+          "No scientist semantic answer is available."
+        ],
+        "record_refs": [],
+        "source_refs": [],
+        "status": "unavailable"
+      }
+    },
+    "input_refs": [
+      {
+        "record_id": "data-asset:analysis-csv",
+        "record_type": "data_asset"
+      }
+    ],
+    "missing_links": [
+      "Project execution was not observed."
+    ],
+    "opaque_dependency_refs": [],
+    "operation_refs": [
+      {
+        "record_id": "operation:mean-difference",
+        "record_type": "operation"
+      }
+    ],
+    "result_refs": [
+      {
+        "record_id": "observed-result:mean-difference",
+        "record_type": "observed_result"
+      }
+    ],
+    "status": "partial"
+  },
+  "proposition": {
+    "claim_strength": "descriptive",
+    "comparison": "treated versus control",
+    "direction": "higher",
+    "predicate": "was higher than control mean",
+    "subject": "treated mean"
+  },
+  "record_type": "claim",
+  "report_ref": {
+    "record_id": "artifact:report",
+    "record_type": "artifact"
+  },
+  "schema_version": "0.12.0",
+  "scientific_contract_id": "contract:lineage-mixed",
+  "source_refs": [
+    {
+      "end_line": 10,
+      "locator": "report.md:10",
+      "path": "report.md",
+      "source_kind": "file_span",
+      "start_line": 10
+    }
+  ],
+  "text": "The treated mean was higher than the control mean."
+}

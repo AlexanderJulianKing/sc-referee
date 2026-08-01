@@ -1,0 +1,234 @@
+{
+  "audit_run_id": "run:example",
+  "causal_contract_id": "causal:therapy-survival",
+  "causal_structure": {
+    "graph_scope": "partial_open_world",
+    "presence": "partial",
+    "relation_assertion_ids": [
+      "assertion:treatment-outcome-edge"
+    ],
+    "source_refs": [
+      {
+        "end_line": 54,
+        "locator": "analysis-plan.md:40-54",
+        "path": "analysis-plan.md",
+        "source_kind": "file_span",
+        "start_line": 40
+      }
+    ]
+  },
+  "claim_refs": [
+    {
+      "record_id": "claim:therapy-survival",
+      "record_type": "claim"
+    }
+  ],
+  "created_at": "2026-07-27T23:30:00Z",
+  "estimand": {
+    "censoring_and_competing_events": {
+      "rationale": "No censoring in the synthetic example.",
+      "state": "not_applicable"
+    },
+    "comparison": {
+      "accepted_assertion_ids": [
+        "assertion:comparison"
+      ],
+      "assertion_ids": [
+        "assertion:comparison"
+      ],
+      "state": "known"
+    },
+    "effect_measure_and_scale": {
+      "accepted_assertion_ids": [
+        "assertion:risk-difference"
+      ],
+      "assertion_ids": [
+        "assertion:risk-difference"
+      ],
+      "state": "known"
+    },
+    "effect_type": {
+      "accepted_assertion_ids": [
+        "assertion:total-effect"
+      ],
+      "assertion_ids": [
+        "assertion:total-effect"
+      ],
+      "state": "known"
+    },
+    "interference": {
+      "reason": "The report does not state whether interference is possible.",
+      "searched_source_refs": [],
+      "state": "unknown"
+    },
+    "outcome": {
+      "accepted_assertion_ids": [
+        "assertion:outcome"
+      ],
+      "assertion_ids": [
+        "assertion:outcome"
+      ],
+      "state": "known"
+    },
+    "outcome_horizon": {
+      "accepted_assertion_ids": [
+        "assertion:horizon"
+      ],
+      "assertion_ids": [
+        "assertion:horizon"
+      ],
+      "state": "known"
+    },
+    "target_population": {
+      "accepted_assertion_ids": [
+        "assertion:target-pop"
+      ],
+      "assertion_ids": [
+        "assertion:target-pop"
+      ],
+      "state": "known"
+    },
+    "time_zero": {
+      "accepted_assertion_ids": [
+        "assertion:time-zero"
+      ],
+      "assertion_ids": [
+        "assertion:time-zero"
+      ],
+      "state": "known"
+    },
+    "transport_relationship": {
+      "rationale": "The target and source populations are the same.",
+      "state": "not_applicable"
+    },
+    "treatment_or_exposure": {
+      "accepted_assertion_ids": [
+        "assertion:treatment"
+      ],
+      "assertion_ids": [
+        "assertion:treatment"
+      ],
+      "state": "known"
+    },
+    "treatment_strategies": {
+      "accepted_assertion_ids": [
+        "assertion:strategies"
+      ],
+      "assertion_ids": [
+        "assertion:strategies"
+      ],
+      "state": "known"
+    },
+    "unit_of_analysis": {
+      "accepted_assertion_ids": [
+        "assertion:unit-person"
+      ],
+      "assertion_ids": [
+        "assertion:unit-person"
+      ],
+      "state": "known"
+    }
+  },
+  "identification": {
+    "adjustment_set": {
+      "accepted_assertion_ids": [
+        "assertion:adjustment"
+      ],
+      "assertion_ids": [
+        "assertion:adjustment"
+      ],
+      "state": "known"
+    },
+    "consistency_and_treatment_versions": {
+      "accepted_assertion_ids": [
+        "assertion:treatment-version"
+      ],
+      "assertion_ids": [
+        "assertion:treatment-version"
+      ],
+      "state": "known"
+    },
+    "covariate_roles": [
+      {
+        "assertion_ids": [
+          "assertion:age-role"
+        ],
+        "estimand_scope": "causal:therapy-survival",
+        "role": "precision_variable",
+        "temporal_relation": "pre_treatment",
+        "variable_ref": {
+          "record_id": "variable:baseline-age",
+          "record_type": "variable"
+        }
+      }
+    ],
+    "exchangeability": {
+      "accepted_assertion_ids": [
+        "assertion:randomization"
+      ],
+      "assertion_ids": [
+        "assertion:randomization"
+      ],
+      "state": "known"
+    },
+    "measurement_and_calibration": {
+      "rationale": "Outcome is directly observed in this synthetic example.",
+      "state": "not_applicable"
+    },
+    "positivity": {
+      "reason": "Treatment-arm support was not summarized by subgroup.",
+      "searched_source_refs": [],
+      "state": "unknown"
+    },
+    "strategy": {
+      "accepted_assertion_ids": [
+        "assertion:randomized"
+      ],
+      "assertion_ids": [
+        "assertion:randomized"
+      ],
+      "state": "known"
+    },
+    "temporal_ordering": {
+      "accepted_assertion_ids": [
+        "assertion:timing"
+      ],
+      "assertion_ids": [
+        "assertion:timing"
+      ],
+      "state": "known"
+    }
+  },
+  "intent": {
+    "accepted_assertion_ids": [
+      "assertion:intent-causal"
+    ],
+    "assertion_ids": [
+      "assertion:intent-causal"
+    ],
+    "state": "known"
+  },
+  "provenance": {
+    "actor": {
+      "actor_id": "sc_referee.core",
+      "actor_kind": "controller",
+      "display_name": "sc-referee controller"
+    },
+    "created_at": "2026-07-27T23:30:00Z",
+    "method": "deterministic_controller",
+    "source_refs": [],
+    "tool": "sc_referee.core",
+    "tool_version": "0.5.0"
+  },
+  "record_type": "causal_contract",
+  "schema_version": "0.12.0",
+  "source_refs": [
+    {
+      "end_line": 54,
+      "locator": "analysis-plan.md:20-54",
+      "path": "analysis-plan.md",
+      "source_kind": "file_span",
+      "start_line": 20
+    }
+  ]
+}

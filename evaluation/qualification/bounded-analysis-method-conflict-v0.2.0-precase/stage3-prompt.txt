@@ -1,0 +1,1 @@
+Compare the frozen scientific label and exact adjudicated root-cause records with the supplied detector outputs. Account for every detector candidate and every adjudicated root cause without reopening the scientific label. Preserve unmatched, ambiguous, and abstaining states; an evaluation candidate is not a Finding or promotion decision.

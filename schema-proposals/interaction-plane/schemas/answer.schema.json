@@ -1,0 +1,181 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/answer.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "sc-referee Answer",
+  "type": "object",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {"answer_kind": {"const": "candidate_selection"}},
+        "required": ["answer_kind"]
+      },
+      "then": {"required": ["selected_option_id"]}
+    },
+    {
+      "if": {
+        "properties": {"timestamp_status": {"const": "available"}},
+        "required": ["timestamp_status"]
+      },
+      "then": {"required": ["answered_at"]}
+    },
+    {
+      "if": {
+        "properties": {"timestamp_status": {"const": "unavailable"}},
+        "required": ["timestamp_status"]
+      },
+      "then": {"not": {"required": ["answered_at"]}}
+    },
+    {
+      "properties": {
+        "provenance": {
+          "properties": {
+            "actor": {
+              "properties": {"actor_kind": {"const": "human"}},
+              "required": ["actor_kind"]
+            },
+            "method": {"const": "scientist_answer"}
+          },
+          "required": ["actor", "method"]
+        },
+        "respondent": {
+          "properties": {"actor_kind": {"const": "human"}},
+          "required": ["actor_kind"]
+        }
+      }
+    }
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {"const": "answer"},
+    "answer_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+    },
+    "question_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "record_type": {"const": "material_question"},
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+        }
+      },
+      "required": ["record_type", "record_id"]
+    },
+    "source_snapshot_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Digest"
+    },
+    "answer_kind": {
+      "enum": ["candidate_selection", "structured_value", "free_text", "unknown"]
+    },
+    "selected_option_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+    },
+    "answer_value": {},
+    "respondent": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Actor"
+    },
+    "response_source": {
+      "enum": [
+        "interactive_scientist",
+        "provided_answer_file",
+        "explicit_task_statement",
+        "prior_scientist_record"
+      ]
+    },
+    "authority_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "authority_kind": {
+          "enum": [
+            "scientific_intent",
+            "publication_surface",
+            "reported_intent",
+            "metadata_definition"
+          ]
+        },
+        "subject_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/RecordRef"
+          }
+        },
+        "semantic_dimensions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      },
+      "required": ["authority_kind", "subject_refs", "semantic_dimensions"]
+    },
+    "certainty": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/QualitativeCertainty"
+    },
+    "timestamp_status": {"enum": ["available", "unavailable"]},
+    "answered_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Timestamp"
+    },
+    "supersedes_answer_refs": {
+      "type": "array",
+      "minItems": 0,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "record_type": {"const": "answer"},
+          "record_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+          }
+        },
+        "required": ["record_type", "record_id"]
+      }
+    },
+    "answer_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Digest"
+    },
+    "answer_digest_profile": {
+      "const": "canonical-json-excluding-answer-digest-v1"
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Timestamp"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {"pattern": "^x-"},
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "answer_id",
+    "audit_run_id",
+    "question_ref",
+    "source_snapshot_digest",
+    "answer_kind",
+    "answer_value",
+    "respondent",
+    "response_source",
+    "authority_scope",
+    "certainty",
+    "timestamp_status",
+    "supersedes_answer_refs",
+    "answer_digest",
+    "answer_digest_profile",
+    "created_at",
+    "provenance"
+  ]
+}

@@ -1,0 +1,135 @@
+{
+  "schema_version": "0.5.0",
+  "record_type": "detector_manifest",
+  "detector_id": "detector:claim-direction",
+  "detector_version": "1.0.0",
+  "title": "Claim/result direction agreement",
+  "description": "Checks whether an explicitly reported direction agrees with the linked result under established orientation.",
+  "detector_family": "claim_result_agreement",
+  "issue_classes": [
+    "claim_result_disagreement"
+  ],
+  "maturity": "validated",
+  "applies_to_record_types": [
+    "claim"
+  ],
+  "domains": [
+    "general_statistics"
+  ],
+  "languages": [
+    "python",
+    "r"
+  ],
+  "workflow_systems": [
+    "jupyter",
+    "quarto"
+  ],
+  "supported_operations": [
+    "model_fit",
+    "estimate"
+  ],
+  "package_constraints": [],
+  "required_evidence": [
+    "explicit reported direction",
+    "linked numerical result",
+    "established contrast orientation"
+  ],
+  "accepted_assertion_classes": [
+    "direct_observation",
+    "explicit_text_extraction",
+    "scientist_declaration",
+    "metadata_definition",
+    "deterministic_derivation"
+  ],
+  "assumptions": [
+    "The linked result is the result intended by the report claim."
+  ],
+  "abstain_when": [
+    "Contrast orientation is unknown or conflicted."
+  ],
+  "permitted_output_types": [
+    "finding",
+    "conditional_concern",
+    "material_question",
+    "disclosure"
+  ],
+  "counterevidence_protocol": [
+    {
+      "check_id": "check:orientation",
+      "description": "Check for upstream contrast or reference reversal.",
+      "applies_when": "The claim and result directions appear inconsistent.",
+      "sources_to_search": [
+        "Scientific Contract orientation slot",
+        "model contrast metadata",
+        "package output labels"
+      ],
+      "unavailability_effect": "block_finding",
+      "counterevidence_effect": "suppress_candidate"
+    },
+    {
+      "check_id": "check:report-qualification",
+      "description": "Check whether the surrounding report text qualifies or negates the extracted direction.",
+      "applies_when": "A directional claim was extracted.",
+      "sources_to_search": [
+        "same paragraph",
+        "caption",
+        "footnote"
+      ],
+      "unavailability_effect": "block_finding",
+      "counterevidence_effect": "bound_wording"
+    }
+  ],
+  "coverage_contract": {
+    "covered_when": "Claim, result, and orientation are all linked and supported.",
+    "partially_covered_when": "Result is linked but some non-material lineage metadata is absent.",
+    "not_covered_when": "Orientation or result linkage is unavailable."
+  },
+  "wording_constraints": [
+    "State only the bounded direction mismatch.",
+    "Do not claim the biological conclusion is false."
+  ],
+  "implementation": {
+    "entry_point": "sc_referee.detectors.claim_direction:Detector",
+    "implementation_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "deterministic": true
+  },
+  "test_fixtures": {
+    "positive": [
+      "fixtures/positive.json"
+    ],
+    "verified_good_negative": [
+      "fixtures/negative.json"
+    ],
+    "ambiguous": [
+      "fixtures/ambiguous.json"
+    ],
+    "unsupported_path": [
+      "fixtures/unsupported.json"
+    ],
+    "counterevidence": [
+      "fixtures/reversed-reference.json"
+    ]
+  },
+  "validation": {
+    "status": "held_out_validated",
+    "evaluation_ref": "eval:claim-direction-v1",
+    "qualification_record_ref": "qualification:example",
+    "software_maintainer_approval_count": 1,
+    "qualification_review_basis": "agent_panel",
+    "agent_adjudication_count": 1,
+    "human_scientific_approval_count": 0
+  },
+  "limitations": [
+    "Does not determine whether a different analysis would reverse the result."
+  ],
+  "provenance": {
+    "actor": {
+      "actor_kind": "detector",
+      "actor_id": "detector:claim-direction"
+    },
+    "method": "deterministic_detection",
+    "created_at": "2026-07-27T20:00:00Z",
+    "tool": "sc_referee.core",
+    "tool_version": "0.5.0"
+  }
+}

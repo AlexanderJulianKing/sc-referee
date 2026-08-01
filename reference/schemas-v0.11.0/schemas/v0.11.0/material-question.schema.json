@@ -1,0 +1,152 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.11.0/material-question.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "affected_claim_ids": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Identifier"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "answer_ids": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Identifier"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Identifier"
+    },
+    "blocked_detector_ids": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Identifier"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "candidate_answers": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "answer_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Identifier"
+          },
+          "consequence": {
+            "type": "string"
+          },
+          "label": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "answer_id",
+          "label",
+          "value"
+        ],
+        "type": "object"
+      },
+      "minItems": 2,
+      "type": "array"
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Timestamp"
+    },
+    "evidence_searched": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "result": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "source": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "result"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "linked_conditional_concern_ids": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Identifier"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "priority": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/ReviewPriority"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Provenance"
+    },
+    "question": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "question_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/Identifier"
+    },
+    "record_type": {
+      "const": "material_question"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.11.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "status": {
+      "enum": [
+        "open",
+        "answered",
+        "deferred",
+        "superseded"
+      ]
+    },
+    "unknown_semantic_dimension": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "why_it_matters": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "question_id",
+    "audit_run_id",
+    "question",
+    "unknown_semantic_dimension",
+    "why_it_matters",
+    "candidate_answers",
+    "evidence_searched",
+    "blocked_detector_ids",
+    "affected_claim_ids",
+    "linked_conditional_concern_ids",
+    "priority",
+    "status",
+    "answer_ids",
+    "created_at",
+    "provenance"
+  ],
+  "title": "Material Scientific Question",
+  "type": "object"
+}

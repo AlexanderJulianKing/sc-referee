@@ -1,0 +1,471 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.10.0/qualification-metric-set.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "corpus_partitions": {
+            "contains": {
+              "const": "public_development"
+            }
+          }
+        },
+        "required": [
+          "corpus_partitions"
+        ]
+      },
+      "then": {
+        "properties": {
+          "promotion_evidence_eligible": {
+            "const": false
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "bootstrap": {
+      "additionalProperties": false,
+      "properties": {
+        "cluster_unit": {
+          "const": "problem_id"
+        },
+        "confidence_level": {
+          "const": 0.95
+        },
+        "counter_stream": {
+          "const": "sha256-counter-rejection-sampling-v1"
+        },
+        "input_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Digest"
+        },
+        "profile": {
+          "const": "problem-cluster-bootstrap-percentile-v1"
+        },
+        "replicates": {
+          "const": 10000
+        }
+      },
+      "required": [
+        "profile",
+        "cluster_unit",
+        "replicates",
+        "confidence_level",
+        "counter_stream",
+        "input_digest"
+      ],
+      "type": "object"
+    },
+    "case_outcome_inputs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "case_outcome_digest": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Digest"
+          },
+          "case_outcome_ref": {
+            "additionalProperties": false,
+            "properties": {
+              "record_id": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Identifier"
+              },
+              "record_type": {
+                "const": "detector_case_outcome"
+              }
+            },
+            "required": [
+              "record_type",
+              "record_id"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "case_outcome_ref",
+          "case_outcome_digest"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "corpus_partitions": {
+      "items": {
+        "enum": [
+          "public_development",
+          "held_out",
+          "hidden",
+          "independent_replication"
+        ]
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "counts": {
+      "additionalProperties": false,
+      "properties": {
+        "abstentions": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "adjudicated_roots": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "applicable_covered_opportunities": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "bounded_root_matches": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "boundedly_localized_roots": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "detector_errors": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "evaluation_candidates": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "false_root_localizations": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "localized_but_overstated_roots": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "missed_roots": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "opportunities": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "overstated_root_matches": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "problem_clusters": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "unresolved_comparisons": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "unsupported_opportunities": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "workflows": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "problem_clusters",
+        "workflows",
+        "opportunities",
+        "applicable_covered_opportunities",
+        "evaluation_candidates",
+        "adjudicated_roots",
+        "bounded_root_matches",
+        "overstated_root_matches",
+        "false_root_localizations",
+        "boundedly_localized_roots",
+        "localized_but_overstated_roots",
+        "missed_roots",
+        "abstentions",
+        "unsupported_opportunities",
+        "detector_errors",
+        "unresolved_comparisons"
+      ],
+      "type": "object"
+    },
+    "detector_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Identifier"
+    },
+    "detector_manifest_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Digest"
+    },
+    "detector_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/SemVer"
+    },
+    "excluded_case_outcomes": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "case_outcome_ref": {
+            "additionalProperties": false,
+            "properties": {
+              "record_id": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Identifier"
+              },
+              "record_type": {
+                "const": "detector_case_outcome"
+              }
+            },
+            "required": [
+              "record_type",
+              "record_id"
+            ],
+            "type": "object"
+          },
+          "reason": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_outcome_ref",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "generated_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Timestamp"
+    },
+    "metric_profile": {
+      "const": "root-cause-clustered-metrics-v1"
+    },
+    "metric_set_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Identifier"
+    },
+    "metrics": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "denominator": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "estimate": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "interval": {
+            "additionalProperties": false,
+            "properties": {
+              "confidence_level": {
+                "const": 0.95
+              },
+              "invalid_replicates": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "limitations": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "minItems": 0,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "lower": {
+                "maximum": 1,
+                "minimum": 0,
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "estimated",
+                  "not_estimable"
+                ]
+              },
+              "upper": {
+                "maximum": 1,
+                "minimum": 0,
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "valid_replicates": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "status",
+              "confidence_level",
+              "lower",
+              "upper",
+              "valid_replicates",
+              "invalid_replicates",
+              "limitations"
+            ],
+            "type": "object"
+          },
+          "metric_name": {
+            "enum": [
+              "workflow_unsafe_candidate_probability",
+              "completed_opportunity_false_positive_rate",
+              "applicable_covered_opportunity_false_positive_rate",
+              "finding_candidate_precision",
+              "false_root_localization_rate",
+              "overstatement_rate",
+              "adjudicated_root_recall",
+              "bounded_root_localization_accuracy",
+              "abstention_rate",
+              "unsupported_rate",
+              "detector_error_rate",
+              "unresolved_comparison_rate"
+            ]
+          },
+          "numerator": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "metric_name",
+          "numerator",
+          "denominator",
+          "estimate",
+          "interval"
+        ],
+        "type": "object"
+      },
+      "maxItems": 12,
+      "minItems": 12,
+      "type": "array"
+    },
+    "non_inferences": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 2,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "numeric_threshold_policy": {
+      "const": "deferred_until_pilot_threshold_adr"
+    },
+    "problem_cluster_ids": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Identifier"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "promotion_evidence_eligible": {
+      "type": "boolean"
+    },
+    "promotion_permitted": {
+      "const": false
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Provenance"
+    },
+    "qualification_envelope": {
+      "additionalProperties": false,
+      "properties": {
+        "issue_classes": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "languages": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 0,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "operation_forms": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "packages": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 0,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "issue_classes",
+        "languages",
+        "packages",
+        "operation_forms"
+      ],
+      "type": "object"
+    },
+    "record_type": {
+      "const": "qualification_metric_set"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/SchemaVersion"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "metric_set_id",
+    "metric_profile",
+    "detector_id",
+    "detector_version",
+    "detector_manifest_digest",
+    "qualification_envelope",
+    "case_outcome_inputs",
+    "corpus_partitions",
+    "problem_cluster_ids",
+    "excluded_case_outcomes",
+    "counts",
+    "metrics",
+    "bootstrap",
+    "numeric_threshold_policy",
+    "promotion_permitted",
+    "promotion_evidence_eligible",
+    "generated_at",
+    "non_inferences",
+    "provenance"
+  ],
+  "title": "sc-referee Qualification Metric Set",
+  "type": "object"
+}

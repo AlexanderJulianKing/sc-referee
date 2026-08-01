@@ -1,0 +1,274 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.7.0/capability-matrix.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "domain_wide_support_claim_allowed": {
+      "const": false
+    },
+    "entries": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "abstention_conditions": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0,
+            "type": "array"
+          },
+          "detectors": {
+            "items": {
+              "additionalProperties": false,
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "maturity": {
+                        "const": "experimental"
+                      }
+                    },
+                    "required": [
+                      "maturity"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "qualification_ref": {
+                        "type": "null"
+                      },
+                      "review_basis": {
+                        "const": "not_qualified"
+                      },
+                      "strongest_output_type": {
+                        "enum": [
+                          "none",
+                          "disclosure",
+                          "material_question",
+                          "conditional_concern"
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "maturity": {
+                        "enum": [
+                          "validated",
+                          "publication_grade"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "maturity"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "qualification_ref": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "review_basis": {
+                        "enum": [
+                          "agent_panel",
+                          "mixed_panel",
+                          "human_panel"
+                        ]
+                      }
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "detector_id": {
+                  "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Identifier"
+                },
+                "maturity": {
+                  "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Maturity"
+                },
+                "qualification_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "review_basis": {
+                  "enum": [
+                    "not_qualified",
+                    "agent_panel",
+                    "mixed_panel",
+                    "human_panel"
+                  ]
+                },
+                "strongest_output_type": {
+                  "enum": [
+                    "none",
+                    "disclosure",
+                    "material_question",
+                    "conditional_concern",
+                    "finding"
+                  ]
+                }
+              },
+              "required": [
+                "detector_id",
+                "maturity",
+                "qualification_ref",
+                "strongest_output_type",
+                "review_basis"
+              ],
+              "type": "object"
+            },
+            "minItems": 0,
+            "type": "array"
+          },
+          "domain": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "domain_wide_validation_claim_allowed": {
+            "const": false
+          },
+          "entry_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Identifier"
+          },
+          "inferred_compatibility": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0,
+            "type": "array"
+          },
+          "known_gaps": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0,
+            "type": "array"
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "operation_extraction": {
+            "enum": [
+              "not_started",
+              "planned",
+              "partial",
+              "validated",
+              "complete_for_declared_forms"
+            ]
+          },
+          "operation_scope": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "package": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "semantic_modeling": {
+            "enum": [
+              "not_started",
+              "planned",
+              "partial",
+              "validated",
+              "complete_for_declared_contract"
+            ]
+          },
+          "syntax_recognition": {
+            "enum": [
+              "not_started",
+              "planned",
+              "partial",
+              "validated",
+              "complete_for_declared_forms"
+            ]
+          },
+          "tested_versions": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0,
+            "type": "array"
+          }
+        },
+        "required": [
+          "entry_id",
+          "domain",
+          "language",
+          "operation_scope",
+          "syntax_recognition",
+          "operation_extraction",
+          "semantic_modeling",
+          "detectors",
+          "known_gaps",
+          "abstention_conditions",
+          "tested_versions",
+          "inferred_compatibility",
+          "domain_wide_validation_claim_allowed"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "generated_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Timestamp"
+    },
+    "generated_from_manifest_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "matrix_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Identifier"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "capability_matrix"
+    },
+    "release_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/SemVer"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/SchemaVersion"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "matrix_id",
+    "release_version",
+    "generated_at",
+    "generated_from_manifest_refs",
+    "entries",
+    "domain_wide_support_claim_allowed",
+    "provenance"
+  ],
+  "title": "sc-referee Capability Matrix",
+  "type": "object"
+}

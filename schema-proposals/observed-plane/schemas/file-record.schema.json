@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/file-record.schema.json",
+  "title": "sc-referee FileRecord review candidate",
+  "$comment": "Nonpublic ADR-0002 template. Identity tier is intentionally absent.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "file_record_id",
+    "audit_run_id",
+    "snapshot_ref",
+    "path",
+    "entry_kind",
+    "classification",
+    "inspection_disposition",
+    "identity_disposition",
+    "limitations",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {"const": "file_record"},
+    "file_record_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+    },
+    "snapshot_ref": {"$ref": "#/$defs/SnapshotRef"},
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "entry_kind": {"enum": ["regular_file", "directory", "symlink", "special", "unknown"]},
+    "byte_size": {"type": "integer", "minimum": 0},
+    "classification": {
+      "enum": [
+        "analysis_source",
+        "data",
+        "result",
+        "report_candidate",
+        "workflow",
+        "configuration",
+        "documentation",
+        "other",
+        "unknown"
+      ]
+    },
+    "inspection_disposition": {
+      "enum": [
+        "inspected",
+        "not_selected",
+        "excluded",
+        "unreadable",
+        "unsupported",
+        "special_file",
+        "symlink_not_followed"
+      ]
+    },
+    "identity_disposition": {"enum": ["recorded", "not_recorded"]},
+    "asset_identity_ref": {"$ref": "#/$defs/AssetIdentityRef"},
+    "symlink_target": {"type": "string"},
+    "symlink_followed": {"const": false},
+    "limitations": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Provenance"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"identity_disposition": {"const": "recorded"}},
+        "required": ["identity_disposition"]
+      },
+      "then": {"required": ["asset_identity_ref"]},
+      "else": {
+        "not": {"required": ["asset_identity_ref"]},
+        "properties": {"limitations": {"minItems": 1}}
+      }
+    },
+    {
+      "if": {"properties": {"entry_kind": {"const": "symlink"}}, "required": ["entry_kind"]},
+      "then": {
+        "required": ["symlink_followed"],
+        "properties": {"inspection_disposition": {"const": "symlink_not_followed"}},
+        "oneOf": [
+          {"required": ["symlink_target"]},
+          {
+            "not": {"required": ["symlink_target"]},
+            "properties": {"limitations": {"minItems": 1}}
+          }
+        ]
+      },
+      "else": {
+        "not": {"anyOf": [{"required": ["symlink_target"]}, {"required": ["symlink_followed"]}]}
+      }
+    },
+    {
+      "if": {
+        "properties": {"inspection_disposition": {"enum": ["unreadable", "unsupported", "special_file"]}},
+        "required": ["inspection_disposition"]
+      },
+      "then": {"properties": {"limitations": {"minItems": 1}}}
+    }
+  ],
+  "$defs": {
+    "SnapshotRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_type", "record_id"],
+      "properties": {
+        "record_type": {"const": "repository_snapshot"},
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+        }
+      }
+    },
+    "AssetIdentityRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_type", "record_id"],
+      "properties": {
+        "record_type": {"const": "asset_identity"},
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+        }
+      }
+    }
+  }
+}

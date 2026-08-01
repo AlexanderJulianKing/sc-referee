@@ -1,0 +1,4 @@
+interface:
+  display_name: "Scientific Audit"
+  short_description: "Conservative scientific workflow auditing"
+  default_prompt: "Use $scientific-audit to statically audit this scientific workflow and report demonstrated issues, unknowns, and coverage limits."

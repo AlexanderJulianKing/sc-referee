@@ -1,0 +1,20 @@
+{
+  "schema_version": "__SCHEMA_VERSION__",
+  "record_type": "operation",
+  "operation_id": "operation:opaque",
+  "audit_run_id": "audit:candidate",
+  "kind": "opaque_operation",
+  "source_refs": [{"source_kind": "file_span", "locator": "analysis.py:20", "path": "analysis.py", "start_line": 20, "end_line": 20}],
+  "input_refs": [],
+  "output_refs": [],
+  "literal_parameters": {},
+  "determinism": "unknown",
+  "parser_result_ref": {"record_type": "parser_result", "record_id": "parser-result:analysis"},
+  "inspection_status": "opaque",
+  "opaque_boundaries": ["Dynamic receiver dispatch could not be resolved statically."],
+  "provenance": {
+    "actor": {"actor_kind": "parser", "actor_id": "parser:python-ast"},
+    "method": "static_ast_extraction",
+    "created_at": "2026-07-27T20:00:02Z"
+  }
+}

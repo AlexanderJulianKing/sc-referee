@@ -1,0 +1,42 @@
+{
+  "affected_refs": [
+    {
+      "record_id": "artifact:variant-calls",
+      "record_type": "artifact"
+    }
+  ],
+  "audit_run_id": "audit:example-001",
+  "coverage_status": "not_covered",
+  "created_at": "2026-07-27T20:00:00Z",
+  "description": "The binary output was accepted as an input artifact, but its internal measurement and error semantics were not inspected.",
+  "disclosure_id": "disclosure:opaque-caller",
+  "disclosure_kind": "opaque_boundary",
+  "importance": "material",
+  "interpretive_consequence": "Downstream checks do not establish correctness of the caller internal error model.",
+  "next_step": "Provide an immutable version and validation documentation if publication claims depend on caller internals.",
+  "non_accusatory": true,
+  "provenance": {
+    "actor": {
+      "actor_id": "sc_referee.core",
+      "actor_kind": "controller"
+    },
+    "created_at": "2026-07-27T20:00:00Z",
+    "method": "deterministic_generation",
+    "tool": "sc_referee.core",
+    "tool_version": "0.5.0"
+  },
+  "record_type": "disclosure",
+  "schema_version": "0.8.0",
+  "source_refs": [
+    {
+      "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "end_line": 18,
+      "locator": "workflow.sh:18",
+      "path": "workflow.sh",
+      "quoted_text": "custom-caller input.bam > calls.vcf",
+      "source_kind": "shell_command",
+      "start_line": 18
+    }
+  ],
+  "title": "Custom variant-calling binary was treated as an opaque boundary"
+}

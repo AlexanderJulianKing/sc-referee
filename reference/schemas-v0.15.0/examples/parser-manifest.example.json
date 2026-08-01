@@ -1,0 +1,45 @@
+{
+  "backend": "cpython_ast_tokenize",
+  "capabilities": [
+    "inventory",
+    "syntax_tree",
+    "exact_spans",
+    "comments",
+    "operation_extraction",
+    "source_references"
+  ],
+  "executes_project_code": false,
+  "grammar_or_runtime_identity": [
+    "CPython ast 3.11"
+  ],
+  "implementation_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "language_or_surface": "python",
+  "limitations": [
+    "Files using syntax newer than the running interpreter may be only partially parsed."
+  ],
+  "parser_id": "parser:python",
+  "parser_version": "0.5.0",
+  "provenance": {
+    "actor": {
+      "actor_id": "software:sc-referee-controller",
+      "actor_kind": "controller",
+      "display_name": "sc-referee controller"
+    },
+    "created_at": "2026-07-27T12:00:00Z",
+    "method": "deterministic_controller",
+    "tool": "sc-referee",
+    "tool_version": "0.5.0"
+  },
+  "record_type": "parser_manifest",
+  "runtime_requirements": [
+    "Python >=3.11"
+  ],
+  "schema_version": "0.15.0",
+  "supported_versions": [
+    "3.8-3.14 source syntax where accepted by runtime AST"
+  ],
+  "unsupported_constructs": [
+    "runtime-generated code",
+    "eval semantics"
+  ]
+}

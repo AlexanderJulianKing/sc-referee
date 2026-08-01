@@ -1,0 +1,107 @@
+{
+  "adjudicated_at": "2026-07-27T19:00:00Z",
+  "adjudicated_root_cause_refs": [
+    {
+      "record_id": "adjudicated-root-cause:case-1",
+      "record_type": "adjudicated_root_cause"
+    }
+  ],
+  "adjudication_id": "benchmark-adjudication:case-1",
+  "agent_only_disclosure": "This label was established by a pinned cross-provider agent panel; it is not represented as human expert review.",
+  "agreement": {
+    "cross_provider_support": true,
+    "material_disagreement": false,
+    "notes": "Both provider families independently localized the same root cause.",
+    "unresolved_dissent_excluded": true
+  },
+  "answer_side_evidence_refs": [],
+  "case_id": "case:gene-1",
+  "deterministic_checks": {
+    "bounded_entailment_checked": true,
+    "claim_output_agreement_checked": true,
+    "counterevidence_checked": true,
+    "falsification_records_complete": true,
+    "fixture_scope_complete": true,
+    "source_references_resolved": true
+  },
+  "exclusion_reason": null,
+  "label_status": "positive_demonstrated",
+  "majority_vote_permitted": false,
+  "protocol_version": "1.0.0",
+  "provenance": {
+    "actor": {
+      "actor_id": "software:sc-referee-eval",
+      "actor_kind": "controller",
+      "display_name": "sc-referee evaluation controller"
+    },
+    "created_at": "2026-07-27T18:00:00Z",
+    "method": "deterministic_evaluation_runner",
+    "tool": "sc-referee-eval",
+    "tool_version": "0.5.0"
+  },
+  "provider_families": [
+    "Anthropic",
+    "OpenAI"
+  ],
+  "provider_participation": [
+    {
+      "distinct_execution_context_count": 3,
+      "provider_family": "Anthropic",
+      "stage1_review_count": 2,
+      "stage2_review_count": 1
+    },
+    {
+      "distinct_execution_context_count": 3,
+      "provider_family": "OpenAI",
+      "stage1_review_count": 2,
+      "stage2_review_count": 1
+    }
+  ],
+  "record_type": "benchmark_adjudication",
+  "reference_agent_configuration": [
+    {
+      "agent_surface": "Claude Code",
+      "model_id": "claude-opus-5",
+      "model_name": "Claude Opus 5",
+      "provider": "Anthropic"
+    },
+    {
+      "agent_surface": "Codex",
+      "model_id": "gpt-5.6-sol",
+      "model_name": "GPT-5.6 Sol",
+      "provider": "OpenAI"
+    }
+  ],
+  "review_basis": "agent_panel",
+  "root_cause_reconciliation_status": "verified",
+  "schema_version": "0.12.0",
+  "stage1_review_refs": [
+    {
+      "record_id": "review:stage1:1",
+      "record_type": "agent_review"
+    },
+    {
+      "record_id": "review:stage1:2",
+      "record_type": "agent_review"
+    },
+    {
+      "record_id": "review:stage1:3",
+      "record_type": "agent_review"
+    },
+    {
+      "record_id": "review:stage1:4",
+      "record_type": "agent_review"
+    }
+  ],
+  "stage2_review_refs": [
+    {
+      "record_id": "review:stage2:1",
+      "record_type": "agent_review"
+    },
+    {
+      "record_id": "review:stage2:2",
+      "record_type": "agent_review"
+    }
+  ],
+  "stage3_detector_comparison_refs": []
+}

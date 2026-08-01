@@ -1,0 +1,7 @@
+{
+  "accepted": true,
+  "baseline_version": "0.7.0",
+  "public_release": true,
+  "release_version": "0.8.0",
+  "source_adr": "docs/implementation/ADR-0005-MULTIDIMENSIONAL-LINEAGE-PLANE.md"
+}

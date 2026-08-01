@@ -1,0 +1,64 @@
+{
+  "schema_version": "0.5.0",
+  "record_type": "capability_matrix",
+  "matrix_id": "capability:release-0.5.0",
+  "release_version": "0.5.0",
+  "generated_at": "2026-07-27T20:00:00Z",
+  "generated_from_manifest_refs": [
+    {
+      "record_type": "detector_manifest",
+      "record_id": "detector:claim-sign"
+    }
+  ],
+  "entries": [
+    {
+      "entry_id": "capability:bulk-rnaseq:deseq2:results",
+      "domain": "bulk_rnaseq",
+      "language": "R",
+      "package": "DESeq2",
+      "operation_scope": [
+        "DESeqDataSetFromMatrix",
+        "DESeq",
+        "results"
+      ],
+      "syntax_recognition": "complete_for_declared_forms",
+      "operation_extraction": "validated",
+      "semantic_modeling": "partial",
+      "detectors": [
+        {
+          "detector_id": "detector:claim-sign",
+          "maturity": "validated",
+          "qualification_ref": "qualification:claim-sign-v1",
+          "strongest_output_type": "finding",
+          "review_basis": "agent_panel"
+        }
+      ],
+      "known_gaps": [
+        "Dynamic contrast construction"
+      ],
+      "abstention_conditions": [
+        "Package version outside declared envelope"
+      ],
+      "tested_versions": [
+        "1.40",
+        "1.42"
+      ],
+      "inferred_compatibility": [
+        "1.38-1.44"
+      ],
+      "domain_wide_validation_claim_allowed": false
+    }
+  ],
+  "domain_wide_support_claim_allowed": false,
+  "provenance": {
+    "actor": {
+      "actor_kind": "controller",
+      "actor_id": "software:sc-referee-eval",
+      "display_name": "sc-referee evaluation controller"
+    },
+    "method": "deterministic_evaluation_runner",
+    "created_at": "2026-07-27T18:00:00Z",
+    "tool": "sc-referee-eval",
+    "tool_version": "0.5.0"
+  }
+}

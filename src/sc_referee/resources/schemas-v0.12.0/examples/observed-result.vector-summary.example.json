@@ -1,0 +1,77 @@
+{
+  "artifact_ref": {
+    "record_id": "artifact:vector",
+    "record_type": "artifact"
+  },
+  "audit_run_id": "audit:candidate",
+  "comparison": {
+    "evidence_refs": [],
+    "rationale": "Comparison metadata was not verified for this summary.",
+    "state": "unknown"
+  },
+  "lineage_limitations": [],
+  "lineage_status": "complete",
+  "observation_method": "deterministic_verification",
+  "observed_result_id": "observed-result:vector",
+  "orientation": {
+    "evidence_refs": [],
+    "rationale": "Orientation is not applicable without comparison semantics.",
+    "state": "unknown"
+  },
+  "population": {
+    "evidence_refs": [],
+    "rationale": "Population metadata was absent.",
+    "state": "unknown"
+  },
+  "producing_operation_ref": {
+    "record_id": "operation:estimate",
+    "record_type": "operation"
+  },
+  "provenance": {
+    "actor": {
+      "actor_id": "verifier:vector",
+      "actor_kind": "controller"
+    },
+    "created_at": "2026-07-27T20:00:03Z",
+    "method": "bounded_vector_summary"
+  },
+  "record_type": "observed_result",
+  "scale": {
+    "evidence_refs": [
+      {
+        "end_line": 1,
+        "locator": "data.csv:1",
+        "path": "data.csv",
+        "source_kind": "file_span",
+        "start_line": 1
+      }
+    ],
+    "state": "known",
+    "value": "expression"
+  },
+  "schema_version": "0.12.0",
+  "source_refs": [
+    {
+      "end_line": 5,
+      "locator": "data.csv:1-5",
+      "path": "data.csv",
+      "source_kind": "file_span",
+      "start_line": 1
+    }
+  ],
+  "timing": {
+    "evidence_refs": [],
+    "rationale": "Timing metadata was absent.",
+    "state": "unknown"
+  },
+  "unit": {
+    "evidence_refs": [],
+    "rationale": "Unit metadata was absent.",
+    "state": "unknown"
+  },
+  "value_kind": "vector_summary",
+  "vector_summary_value": {
+    "count": 4,
+    "mean": -0.42
+  }
+}

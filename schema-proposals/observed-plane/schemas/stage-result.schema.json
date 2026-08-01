@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/stage-result.schema.json",
+  "title": "sc-referee StageResult review candidate",
+  "$comment": "Nonpublic ADR-0002 template.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "stage_result_id",
+    "audit_run_id",
+    "stage",
+    "sequence",
+    "status",
+    "details",
+    "produced_record_refs",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {"const": "stage_result"},
+    "stage_result_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+    },
+    "stage": {"type": "string", "minLength": 1},
+    "sequence": {"type": "integer", "minimum": 1},
+    "status": {"enum": ["completed", "partial", "failed", "skipped", "timed_out"]},
+    "details": {"type": "string", "minLength": 1, "maxLength": 4096},
+    "started_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Timestamp"
+    },
+    "completed_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Timestamp"
+    },
+    "produced_record_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/RecordRef"
+      },
+      "uniqueItems": true
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "message": {"type": "string", "minLength": 1},
+        "details_known": {"type": "boolean"}
+      }
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Provenance"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"status": {"enum": ["failed", "timed_out"]}},
+        "required": ["status"]
+      },
+      "then": {"required": ["error"]}
+    },
+    {
+      "if": {"properties": {"status": {"const": "completed"}}, "required": ["status"]},
+      "then": {"not": {"required": ["error"]}}
+    }
+  ]
+}

@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/scientific-contract.schema.json",
+  "title": "Scientific Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "contract_id",
+    "audit_run_id",
+    "title",
+    "status",
+    "scope",
+    "dimensions",
+    "source_refs",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "scientific_contract"
+    },
+    "contract_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "resolved"
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "level",
+        "subject_refs"
+      ],
+      "properties": {
+        "level": {
+          "enum": [
+            "study",
+            "cohort",
+            "analysis",
+            "claim"
+          ]
+        },
+        "subject_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/RecordRef"
+          },
+          "minItems": 1
+        },
+        "parent_contract_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+        }
+      }
+    },
+    "dimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_population",
+        "analysis_population",
+        "unit_of_analysis",
+        "exposure_or_treatment",
+        "outcome",
+        "estimand",
+        "comparison",
+        "time_definition",
+        "scale_and_orientation",
+        "adjustment_set",
+        "denominator_or_universe",
+        "control_set",
+        "dependence_structure",
+        "measurement_model",
+        "missingness_and_transport",
+        "uncertainty_target",
+        "selection_process"
+      ],
+      "properties": {
+        "target_population": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "analysis_population": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "unit_of_analysis": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "exposure_or_treatment": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "outcome": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "estimand": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "comparison": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "time_definition": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "scale_and_orientation": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "adjustment_set": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "denominator_or_universe": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "control_set": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "dependence_structure": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "measurement_model": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "missingness_and_transport": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "uncertainty_target": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemanticSlot"
+        },
+        "selection_process": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemanticSlot"
+        }
+      }
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SourceRef"
+      },
+      "minItems": 1
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "updated_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "additionalProperties": true
+    },
+    "causal_contract_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "resolved"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "dimensions": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "target_population",
+              "analysis_population",
+              "unit_of_analysis",
+              "exposure_or_treatment",
+              "outcome",
+              "estimand",
+              "comparison",
+              "time_definition",
+              "scale_and_orientation",
+              "adjustment_set",
+              "denominator_or_universe",
+              "control_set",
+              "dependence_structure",
+              "measurement_model",
+              "missingness_and_transport",
+              "uncertainty_target",
+              "selection_process"
+            ],
+            "properties": {
+              "target_population": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/ResolvedSemanticSlot"
+              },
+              "analysis_population": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/ResolvedSemanticSlot"
+              },
+              "unit_of_analysis": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/ResolvedSemanticSlot"
+              },
+              "exposure_or_treatment": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/ResolvedSemanticSlot"
+              },
+              "outcome": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/ResolvedSemanticSlot"
+              },
+              "estimand": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/ResolvedSemanticSlot"
+              },
+              "comparison": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/ResolvedSemanticSlot"
+              },
+              "time_definition": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/ResolvedSemanticSlot"
+              },
+              "scale_and_orientation": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/ResolvedSemanticSlot"
+              },
+              "adjustment_set": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/ResolvedSemanticSlot"
+              },
+              "denominator_or_universe": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/ResolvedSemanticSlot"
+              },
+              "control_set": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/ResolvedSemanticSlot"
+              },
+              "dependence_structure": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/ResolvedSemanticSlot"
+              },
+              "measurement_model": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/ResolvedSemanticSlot"
+              },
+              "missingness_and_transport": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/ResolvedSemanticSlot"
+              },
+              "uncertainty_target": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/ResolvedSemanticSlot"
+              },
+              "selection_process": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/ResolvedSemanticSlot"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

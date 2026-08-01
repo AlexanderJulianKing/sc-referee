@@ -1,2 +1,0 @@
-"""Coordinate-consumption policy placeholder."""
-

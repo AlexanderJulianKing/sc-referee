@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sc-referee:starter:v0.1.0:stage-result",
+  "title": "Provisional StageResult",
+  "type": "object",
+  "required": [
+    "record_type",
+    "stage_result_id",
+    "run_id",
+    "stage",
+    "status",
+    "details"
+  ],
+  "properties": {
+    "record_type": {
+      "const": "stage_result"
+    },
+    "stage_result_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "stage": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "partial",
+        "failed",
+        "skipped",
+        "timed_out"
+      ]
+    },
+    "details": {
+      "type": "string"
+    },
+    "error_code": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

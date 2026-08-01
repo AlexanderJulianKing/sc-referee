@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/storage-manifest.schema.json",
+  "title": "sc-referee Storage Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "storage_manifest_id",
+    "audit_run_id",
+    "canonical_record_formats",
+    "scientist_editable_formats",
+    "content_addressed_object_store",
+    "generated_query_index",
+    "canonical_manifest_digest",
+    "created_at",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "storage_manifest"
+    },
+    "storage_manifest_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "canonical_record_formats": {
+      "const": [
+        "json",
+        "jsonl"
+      ]
+    },
+    "scientist_editable_formats": {
+      "const": [
+        "yaml",
+        "json"
+      ]
+    },
+    "canonical_record_roots": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "content_addressed_object_store": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "root",
+        "digest_algorithm"
+      ],
+      "properties": {
+        "root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest_algorithm": {
+          "const": "sha256"
+        }
+      }
+    },
+    "generated_query_index": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "engine",
+        "path",
+        "canonical",
+        "disposable",
+        "rebuildable_from_canonical_records"
+      ],
+      "properties": {
+        "engine": {
+          "const": "sqlite"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "canonical": {
+          "const": false
+        },
+        "disposable": {
+          "const": true
+        },
+        "rebuildable_from_canonical_records": {
+          "const": true
+        },
+        "last_rebuild_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Digest"
+        }
+      }
+    },
+    "canonical_manifest_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Digest"
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

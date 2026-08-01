@@ -1,0 +1,313 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.6.0/semantic-assertion.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "finding_eligibility": {
+            "const": "eligible"
+          }
+        },
+        "required": [
+          "finding_eligibility"
+        ]
+      },
+      "then": {
+        "properties": {
+          "independently_checkable": {
+            "const": true
+          },
+          "verification": {
+            "properties": {
+              "status": {
+                "const": "verified"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "assertion_class": {
+            "const": "implicit_scientific_inference"
+          }
+        },
+        "required": [
+          "assertion_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "finding_eligibility": {
+            "enum": [
+              "ineligible",
+              "pending"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "assertion_class": {
+            "const": "scientist_declaration"
+          }
+        },
+        "required": [
+          "assertion_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "provenance": {
+            "properties": {
+              "actor": {
+                "properties": {
+                  "actor_kind": {
+                    "const": "human"
+                  }
+                },
+                "required": [
+                  "actor_kind"
+                ]
+              },
+              "method": {
+                "const": "scientist_answer"
+              }
+            },
+            "required": [
+              "actor",
+              "method"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "provenance": {
+            "properties": {
+              "actor": {
+                "properties": {
+                  "actor_kind": {
+                    "const": "model"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "provenance"
+        ]
+      },
+      "then": {
+        "if": {
+          "properties": {
+            "finding_eligibility": {
+              "const": "eligible"
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "assertion_class": {
+              "const": "explicit_text_extraction"
+            },
+            "verification": {
+              "properties": {
+                "method": {
+                  "enum": [
+                    "structural_parser",
+                    "exact_quote_match",
+                    "deterministic_comparison"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "assertion_class": {
+      "enum": [
+        "direct_observation",
+        "explicit_text_extraction",
+        "implicit_scientific_inference",
+        "scientist_declaration",
+        "metadata_definition",
+        "deterministic_derivation",
+        "external_declaration"
+      ]
+    },
+    "assertion_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+    },
+    "authority_scope": {
+      "enum": [
+        "scientific_intent",
+        "executed_computation",
+        "reported_wording",
+        "metadata_definition",
+        "external_declaration",
+        "none"
+      ]
+    },
+    "certainty": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/QualitativeCertainty"
+    },
+    "contradicts_assertion_ids": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "epistemic_status": {
+      "enum": [
+        "proposed",
+        "accepted",
+        "rejected",
+        "superseded"
+      ]
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "finding_eligibility": {
+      "enum": [
+        "eligible",
+        "ineligible",
+        "pending"
+      ]
+    },
+    "independently_checkable": {
+      "type": "boolean"
+    },
+    "object": {},
+    "predicate": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Provenance"
+    },
+    "rationale": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "record_type": {
+      "const": "semantic_assertion"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "semantic_role": {
+      "enum": [
+        "intended",
+        "realized",
+        "reported",
+        "observed",
+        "inferred",
+        "declared"
+      ]
+    },
+    "source_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/SourceRef"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "subject_ref": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/RecordRef"
+    },
+    "supersedes_assertion_ids": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Identifier"
+      },
+      "minItems": 0,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "verification": {
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "enum": [
+            "structural_parser",
+            "exact_quote_match",
+            "deterministic_comparison",
+            "scientist_confirmation",
+            "metadata_corroboration",
+            "not_applicable"
+          ]
+        },
+        "notes": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "not_checked",
+            "verified",
+            "failed",
+            "not_applicable"
+          ]
+        },
+        "validator_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "verified_at": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.6.0/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "status",
+        "method"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "assertion_id",
+    "audit_run_id",
+    "subject_ref",
+    "predicate",
+    "object",
+    "semantic_role",
+    "assertion_class",
+    "epistemic_status",
+    "authority_scope",
+    "independently_checkable",
+    "finding_eligibility",
+    "verification",
+    "certainty",
+    "rationale",
+    "source_refs",
+    "provenance"
+  ],
+  "title": "Semantic Assertion",
+  "type": "object"
+}

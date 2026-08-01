@@ -1,0 +1,780 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.13.0/sandbox-capability.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "project_code_execution_supported": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "backend_kind": {
+            "const": "rootless_oci"
+          },
+          "controls": {
+            "properties": {
+              "capabilities_dropped": {
+                "const": true
+              },
+              "device_access_restricted": {
+                "const": true
+              },
+              "network_default_denied": {
+                "const": true
+              },
+              "process_limits_enforced": {
+                "const": true
+              },
+              "repository_read_only": {
+                "const": true
+              },
+              "resource_limits_enforced": {
+                "const": true
+              },
+              "writable_roots_enforced": {
+                "const": true
+              }
+            }
+          },
+          "rootless_verified": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "project_code_execution_supported": {
+            "const": true
+          }
+        },
+        "required": [
+          "project_code_execution_supported"
+        ]
+      },
+      "then": {
+        "properties": {
+          "backend_kind": {
+            "const": "rootless_oci"
+          },
+          "capability_evidence": {
+            "additionalProperties": false,
+            "properties": {
+              "backend": {
+                "additionalProperties": false,
+                "properties": {
+                  "backend_kind": {
+                    "enum": [
+                      "podman_rootless",
+                      "docker_rootless"
+                    ]
+                  },
+                  "executable_digest": {
+                    "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Digest"
+                  },
+                  "executable_path": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "version": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "backend_kind",
+                  "executable_path",
+                  "executable_digest",
+                  "version"
+                ],
+                "type": "object"
+              },
+              "captured_at": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Timestamp"
+              },
+              "effective_controls": {
+                "additionalProperties": false,
+                "properties": {
+                  "capabilities_dropped": {
+                    "const": true
+                  },
+                  "cpu_limit_enforced": {
+                    "const": true
+                  },
+                  "device_access_restricted": {
+                    "const": true
+                  },
+                  "memory_limit_enforced": {
+                    "const": true
+                  },
+                  "network_denied": {
+                    "const": true
+                  },
+                  "no_new_privileges": {
+                    "const": true
+                  },
+                  "open_file_limit_enforced": {
+                    "const": true
+                  },
+                  "process_limit_enforced": {
+                    "const": true
+                  },
+                  "repository_read_only": {
+                    "const": true
+                  },
+                  "separate_writable_root": {
+                    "const": true
+                  },
+                  "wall_time_enforced": {
+                    "const": true
+                  },
+                  "writable_bytes_enforced": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "capabilities_dropped",
+                  "cpu_limit_enforced",
+                  "device_access_restricted",
+                  "memory_limit_enforced",
+                  "network_denied",
+                  "no_new_privileges",
+                  "open_file_limit_enforced",
+                  "process_limit_enforced",
+                  "repository_read_only",
+                  "separate_writable_root",
+                  "wall_time_enforced",
+                  "writable_bytes_enforced"
+                ],
+                "type": "object"
+              },
+              "endpoint": {
+                "additionalProperties": false,
+                "properties": {
+                  "arbitrary_remote": {
+                    "const": false
+                  },
+                  "connection_id": {
+                    "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+                  },
+                  "machine_id": {
+                    "oneOf": [
+                      {
+                        "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "service_id": {
+                    "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+                  },
+                  "transport": {
+                    "enum": [
+                      "local_unix_socket",
+                      "podman_managed_machine"
+                    ]
+                  }
+                },
+                "required": [
+                  "transport",
+                  "connection_id",
+                  "service_id",
+                  "machine_id",
+                  "arbitrary_remote"
+                ],
+                "type": "object"
+              },
+              "expires_at": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Timestamp"
+              },
+              "host_platform": {
+                "additionalProperties": false,
+                "properties": {
+                  "machine": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "release": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "system": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "system",
+                  "release",
+                  "machine"
+                ],
+                "type": "object"
+              },
+              "normalized_info_digest": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Digest"
+              },
+              "oci_runtime": {
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "version": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "version"
+                ],
+                "type": "object"
+              },
+              "probe_artifact_digest": {
+                "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Digest"
+              },
+              "probe_log_refs": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "record_id": {
+                      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+                    },
+                    "record_type": {
+                      "const": "artifact"
+                    }
+                  },
+                  "required": [
+                    "record_type",
+                    "record_id"
+                  ],
+                  "type": "object"
+                },
+                "minItems": 1,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "probe_outcome": {
+                "const": "passed"
+              },
+              "probe_profile": {
+                "const": "rootless-oci-capability-probe-v1"
+              },
+              "tested_limits": {
+                "additionalProperties": false,
+                "properties": {
+                  "cpu_quota_millis": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "memory_bytes": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "open_files": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "process_count": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "wall_time_seconds": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "writable_bytes": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "cpu_quota_millis",
+                  "memory_bytes",
+                  "open_files",
+                  "process_count",
+                  "wall_time_seconds",
+                  "writable_bytes"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "probe_profile",
+              "probe_outcome",
+              "backend",
+              "endpoint",
+              "normalized_info_digest",
+              "probe_log_refs",
+              "probe_artifact_digest",
+              "effective_controls",
+              "tested_limits",
+              "host_platform",
+              "oci_runtime",
+              "captured_at",
+              "expires_at"
+            ],
+            "type": "object"
+          },
+          "capability_evidence_status": {
+            "const": "complete_effective_probe"
+          },
+          "controls": {
+            "properties": {
+              "no_new_privileges": {
+                "const": true
+              },
+              "open_file_limits_enforced": {
+                "const": true
+              },
+              "wall_time_enforced": {
+                "const": true
+              },
+              "writable_bytes_enforced": {
+                "const": true
+              }
+            }
+          },
+          "rootless_verified": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "capability_evidence_status": {
+            "enum": [
+              "not_supported",
+              "legacy_probe_projection_unavailable"
+            ]
+          }
+        },
+        "required": [
+          "capability_evidence_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "capability_evidence": {
+            "type": "null"
+          },
+          "project_code_execution_supported": {
+            "const": false
+          },
+          "rootless_verified": {
+            "const": false
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "backend_kind": {
+      "enum": [
+        "no_execution",
+        "auditor_subprocess",
+        "rootless_oci"
+      ]
+    },
+    "backend_name": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "backend_version": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "capability_evidence": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "backend": {
+              "additionalProperties": false,
+              "properties": {
+                "backend_kind": {
+                  "enum": [
+                    "podman_rootless",
+                    "docker_rootless"
+                  ]
+                },
+                "executable_digest": {
+                  "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Digest"
+                },
+                "executable_path": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "version": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "backend_kind",
+                "executable_path",
+                "executable_digest",
+                "version"
+              ],
+              "type": "object"
+            },
+            "captured_at": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Timestamp"
+            },
+            "effective_controls": {
+              "additionalProperties": false,
+              "properties": {
+                "capabilities_dropped": {
+                  "const": true
+                },
+                "cpu_limit_enforced": {
+                  "const": true
+                },
+                "device_access_restricted": {
+                  "const": true
+                },
+                "memory_limit_enforced": {
+                  "const": true
+                },
+                "network_denied": {
+                  "const": true
+                },
+                "no_new_privileges": {
+                  "const": true
+                },
+                "open_file_limit_enforced": {
+                  "const": true
+                },
+                "process_limit_enforced": {
+                  "const": true
+                },
+                "repository_read_only": {
+                  "const": true
+                },
+                "separate_writable_root": {
+                  "const": true
+                },
+                "wall_time_enforced": {
+                  "const": true
+                },
+                "writable_bytes_enforced": {
+                  "const": true
+                }
+              },
+              "required": [
+                "capabilities_dropped",
+                "cpu_limit_enforced",
+                "device_access_restricted",
+                "memory_limit_enforced",
+                "network_denied",
+                "no_new_privileges",
+                "open_file_limit_enforced",
+                "process_limit_enforced",
+                "repository_read_only",
+                "separate_writable_root",
+                "wall_time_enforced",
+                "writable_bytes_enforced"
+              ],
+              "type": "object"
+            },
+            "endpoint": {
+              "additionalProperties": false,
+              "properties": {
+                "arbitrary_remote": {
+                  "const": false
+                },
+                "connection_id": {
+                  "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+                },
+                "machine_id": {
+                  "oneOf": [
+                    {
+                      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "service_id": {
+                  "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+                },
+                "transport": {
+                  "enum": [
+                    "local_unix_socket",
+                    "podman_managed_machine"
+                  ]
+                }
+              },
+              "required": [
+                "transport",
+                "connection_id",
+                "service_id",
+                "machine_id",
+                "arbitrary_remote"
+              ],
+              "type": "object"
+            },
+            "expires_at": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Timestamp"
+            },
+            "host_platform": {
+              "additionalProperties": false,
+              "properties": {
+                "machine": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "release": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "system": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "system",
+                "release",
+                "machine"
+              ],
+              "type": "object"
+            },
+            "normalized_info_digest": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Digest"
+            },
+            "oci_runtime": {
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "version": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "version"
+              ],
+              "type": "object"
+            },
+            "probe_artifact_digest": {
+              "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Digest"
+            },
+            "probe_log_refs": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "record_id": {
+                    "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+                  },
+                  "record_type": {
+                    "const": "artifact"
+                  }
+                },
+                "required": [
+                  "record_type",
+                  "record_id"
+                ],
+                "type": "object"
+              },
+              "minItems": 1,
+              "type": "array",
+              "uniqueItems": true
+            },
+            "probe_outcome": {
+              "const": "passed"
+            },
+            "probe_profile": {
+              "const": "rootless-oci-capability-probe-v1"
+            },
+            "tested_limits": {
+              "additionalProperties": false,
+              "properties": {
+                "cpu_quota_millis": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "memory_bytes": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "open_files": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "process_count": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "wall_time_seconds": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "writable_bytes": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "cpu_quota_millis",
+                "memory_bytes",
+                "open_files",
+                "process_count",
+                "wall_time_seconds",
+                "writable_bytes"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "probe_profile",
+            "probe_outcome",
+            "backend",
+            "endpoint",
+            "normalized_info_digest",
+            "probe_log_refs",
+            "probe_artifact_digest",
+            "effective_controls",
+            "tested_limits",
+            "host_platform",
+            "oci_runtime",
+            "captured_at",
+            "expires_at"
+          ],
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "capability_evidence_status": {
+      "enum": [
+        "complete_effective_probe",
+        "not_supported",
+        "legacy_probe_projection_unavailable"
+      ]
+    },
+    "captured_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Timestamp"
+    },
+    "controls": {
+      "additionalProperties": false,
+      "properties": {
+        "capabilities_dropped": {
+          "type": "boolean"
+        },
+        "device_access_restricted": {
+          "type": "boolean"
+        },
+        "network_default_denied": {
+          "type": "boolean"
+        },
+        "no_new_privileges": {
+          "type": "boolean"
+        },
+        "open_file_limits_enforced": {
+          "type": "boolean"
+        },
+        "process_limits_enforced": {
+          "type": "boolean"
+        },
+        "repository_read_only": {
+          "type": "boolean"
+        },
+        "resource_limits_enforced": {
+          "type": "boolean"
+        },
+        "wall_time_enforced": {
+          "type": "boolean"
+        },
+        "writable_bytes_enforced": {
+          "type": "boolean"
+        },
+        "writable_roots_enforced": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "repository_read_only",
+        "writable_roots_enforced",
+        "network_default_denied",
+        "resource_limits_enforced",
+        "process_limits_enforced",
+        "device_access_restricted",
+        "capabilities_dropped",
+        "no_new_privileges",
+        "open_file_limits_enforced",
+        "wall_time_enforced",
+        "writable_bytes_enforced"
+      ],
+      "type": "object"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "limitations": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "project_code_execution_supported": {
+      "type": "boolean"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "sandbox_capability"
+    },
+    "rootless_verified": {
+      "type": "boolean"
+    },
+    "sandbox_capability_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "unsafe_fallback_available": {
+      "const": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "sandbox_capability_id",
+    "captured_at",
+    "backend_kind",
+    "backend_name",
+    "project_code_execution_supported",
+    "controls",
+    "unsafe_fallback_available",
+    "limitations",
+    "provenance",
+    "rootless_verified",
+    "capability_evidence_status",
+    "capability_evidence"
+  ],
+  "title": "sc-referee Sandbox Capability",
+  "type": "object"
+}

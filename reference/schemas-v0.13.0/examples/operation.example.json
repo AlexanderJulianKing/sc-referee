@@ -1,0 +1,49 @@
+{
+  "audit_run_id": "audit:candidate",
+  "determinism": "deterministic",
+  "implementation": {
+    "name": "python.function:compute_difference"
+  },
+  "input_refs": [
+    {
+      "record_id": "artifact:data",
+      "record_type": "artifact"
+    }
+  ],
+  "inspection_status": "supported",
+  "kind": "estimate",
+  "literal_parameters": {
+    "comparison": "treated versus control"
+  },
+  "opaque_boundaries": [],
+  "operation_id": "operation:estimate",
+  "output_refs": [
+    {
+      "record_id": "artifact:estimate",
+      "record_type": "artifact"
+    }
+  ],
+  "parser_result_ref": {
+    "record_id": "parser-result:analysis",
+    "record_type": "parser_result"
+  },
+  "provenance": {
+    "actor": {
+      "actor_id": "parser:python-ast",
+      "actor_kind": "parser"
+    },
+    "created_at": "2026-07-27T20:00:02Z",
+    "method": "static_ast_extraction"
+  },
+  "record_type": "operation",
+  "schema_version": "0.13.0",
+  "source_refs": [
+    {
+      "end_line": 14,
+      "locator": "analysis.py:10-14",
+      "path": "analysis.py",
+      "source_kind": "file_span",
+      "start_line": 10
+    }
+  ]
+}

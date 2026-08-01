@@ -1,0 +1,158 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.17.0/variable.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "scientific_meaning_status": {
+            "const": "resolved_by_assertion"
+          }
+        },
+        "required": [
+          "scientific_meaning_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "semantic_assertion_refs": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "scientific_meaning_status": {
+            "const": "unresolved"
+          }
+        },
+        "required": [
+          "scientific_meaning_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "semantic_assertion_refs": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+    },
+    "data_asset_ref": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "data_asset"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "limitations": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "observed_level_count": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "observed_name": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "variable"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "scientific_meaning_status": {
+      "enum": [
+        "unresolved",
+        "resolved_by_assertion",
+        "conflicted",
+        "not_applicable"
+      ]
+    },
+    "semantic_assertion_refs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "record_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+          },
+          "record_type": {
+            "const": "semantic_assertion"
+          }
+        },
+        "required": [
+          "record_type",
+          "record_id"
+        ],
+        "type": "object"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "source_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/SourceRef"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "storage_type": {
+      "enum": [
+        "string",
+        "integer",
+        "number",
+        "boolean",
+        "datetime",
+        "categorical",
+        "mixed",
+        "unknown"
+      ]
+    },
+    "variable_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/common.schema.json#/$defs/Identifier"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "variable_id",
+    "audit_run_id",
+    "data_asset_ref",
+    "observed_name",
+    "storage_type",
+    "scientific_meaning_status",
+    "semantic_assertion_refs",
+    "source_refs",
+    "limitations",
+    "provenance"
+  ],
+  "title": "sc-referee Variable",
+  "type": "object"
+}

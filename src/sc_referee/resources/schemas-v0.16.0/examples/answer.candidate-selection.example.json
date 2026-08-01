@@ -1,0 +1,53 @@
+{
+  "answer_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "answer_digest_profile": "canonical-json-excluding-answer-digest-v1",
+  "answer_id": "answer:publication-surface",
+  "answer_kind": "candidate_selection",
+  "answer_value": "artifact:report-md",
+  "answered_at": "2026-07-28T21:05:00Z",
+  "audit_run_id": "audit:interaction-example",
+  "authority_scope": {
+    "authority_kind": "publication_surface",
+    "semantic_dimensions": [
+      "publication_surface"
+    ],
+    "subject_refs": [
+      {
+        "record_id": "surface:unresolved",
+        "record_type": "publication_surface"
+      }
+    ]
+  },
+  "certainty": {
+    "basis": "The respondent directly selected the final report.",
+    "level": "explicit"
+  },
+  "created_at": "2026-07-28T21:05:00Z",
+  "provenance": {
+    "actor": {
+      "actor_id": "scientist:example",
+      "actor_kind": "human",
+      "display_name": "Example scientist"
+    },
+    "created_at": "2026-07-28T21:05:00Z",
+    "method": "scientist_answer",
+    "tool": "sc-referee",
+    "tool_version": "0.2.0.dev0"
+  },
+  "question_ref": {
+    "record_id": "question:publication-surface",
+    "record_type": "material_question"
+  },
+  "record_type": "answer",
+  "respondent": {
+    "actor_id": "scientist:example",
+    "actor_kind": "human",
+    "display_name": "Example scientist"
+  },
+  "response_source": "interactive_scientist",
+  "schema_version": "0.16.0",
+  "selected_option_id": "answer-option:report-md",
+  "source_snapshot_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "supersedes_answer_refs": [],
+  "timestamp_status": "available"
+}

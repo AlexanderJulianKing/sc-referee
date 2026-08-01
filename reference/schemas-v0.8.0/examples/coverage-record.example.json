@@ -1,0 +1,137 @@
+{
+  "assessment_counts": {
+    "conditional_concerns": 1,
+    "disclosures": 1,
+    "findings": 1,
+    "material_questions": 1
+  },
+  "audit_run_id": "audit:example-001",
+  "claim_coverage": {
+    "claims_inspected": 3,
+    "claims_total": 3,
+    "claims_with_complete_lineage": 0,
+    "lineage_grade_counts": {
+      "computational_origin": {
+        "complete": 0,
+        "missing": 0,
+        "opaque": 0,
+        "partial": 0,
+        "total": 3,
+        "unavailable": 3
+      },
+      "execution_origin": {
+        "complete": 0,
+        "missing": 0,
+        "opaque": 0,
+        "partial": 0,
+        "total": 3,
+        "unavailable": 3
+      },
+      "input_origin": {
+        "complete": 0,
+        "missing": 0,
+        "opaque": 0,
+        "partial": 0,
+        "total": 3,
+        "unavailable": 3
+      },
+      "report_origin": {
+        "complete": 0,
+        "missing": 0,
+        "opaque": 0,
+        "partial": 0,
+        "total": 3,
+        "unavailable": 3
+      },
+      "result_origin": {
+        "complete": 0,
+        "missing": 0,
+        "opaque": 0,
+        "partial": 0,
+        "total": 3,
+        "unavailable": 3
+      },
+      "semantic_origin": {
+        "complete": 0,
+        "missing": 0,
+        "opaque": 0,
+        "partial": 0,
+        "total": 3,
+        "unavailable": 3
+      }
+    }
+  },
+  "coverage_id": "coverage:1",
+  "detector_coverage": [
+    {
+      "details": "All prerequisites available.",
+      "detector_id": "detector:claim-direction",
+      "status": "covered",
+      "targets_evaluated": 1,
+      "targets_total": 1
+    }
+  ],
+  "generated_at": "2026-07-27T20:00:00Z",
+  "interpretation_policy": {
+    "absence_of_finding_statement": "No finding means only that no issue was admitted within the declared evidence and validated detector coverage.",
+    "correctness_conclusion_allowed": false,
+    "global_risk_rating_allowed": false
+  },
+  "inventory_summary": {
+    "files_classified": 42,
+    "files_deeply_inspected": 12,
+    "files_total": 42
+  },
+  "known_gaps": [
+    "No validated detector inspected the custom caller internal measurement model."
+  ],
+  "opaque_boundary_refs": [
+    {
+      "record_id": "operation:custom-caller",
+      "record_type": "operation"
+    }
+  ],
+  "overall_status": "complete_within_plan",
+  "parser_coverage": [
+    {
+      "details": "All relevant Python files parsed.",
+      "status": "covered",
+      "surface": "python"
+    },
+    {
+      "details": "Treated as an opaque boundary.",
+      "status": "not_covered",
+      "surface": "custom binary"
+    }
+  ],
+  "provenance": {
+    "actor": {
+      "actor_id": "sc_referee.core",
+      "actor_kind": "controller"
+    },
+    "created_at": "2026-07-27T20:00:00Z",
+    "method": "deterministic_generation",
+    "tool": "sc_referee.core",
+    "tool_version": "0.5.0"
+  },
+  "record_type": "coverage_record",
+  "schema_version": "0.8.0",
+  "scope": {
+    "deep_inspection_scope": "final-claim backward slices and selection envelope",
+    "inventory_scope": "whole_repository",
+    "publication_surface_refs": [
+      {
+        "record_id": "artifact:report",
+        "record_type": "artifact"
+      }
+    ],
+    "publication_surface_status": "resolved",
+    "selection_envelope_included": true
+  },
+  "uninspected_paths": [
+    "archive/old-notebooks/"
+  ],
+  "unknown_semantic_ids": [
+    "question:sample-id"
+  ]
+}

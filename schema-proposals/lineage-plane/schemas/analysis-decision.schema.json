@@ -1,0 +1,87 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/analysis-decision.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "sc-referee AnalysisDecision",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/SchemaVersion"},
+    "record_type": {"const": "analysis_decision"},
+    "analysis_decision_id": {"$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"},
+    "audit_run_id": {"$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"},
+    "decision_kind": {
+      "enum": ["filter", "threshold", "subgroup", "model", "feature", "outcome", "exposure", "covariate", "missing_data", "multiple_testing", "other"]
+    },
+    "observation_status": {"enum": ["observed", "declared", "unresolved", "opaque"]},
+    "description": {"type": "string", "minLength": 1},
+    "decision_input_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/RecordRef"}
+    },
+    "alternatives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "alternative_id": {"$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"},
+          "label": {"type": "string", "minLength": 1},
+          "state": {"enum": ["selected", "rejected", "candidate", "unknown"]},
+          "source_refs": {
+            "type": "array",
+            "items": {"$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/SourceRef"}
+          }
+        },
+        "required": ["alternative_id", "label", "state", "source_refs"]
+      }
+    },
+    "selection_statistic": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "state": {"enum": ["observed", "not_observed", "not_applicable", "opaque"]},
+        "name": {"type": "string", "minLength": 1},
+        "value": {},
+        "source_refs": {
+          "type": "array",
+          "items": {"$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/SourceRef"}
+        }
+      },
+      "required": ["state", "source_refs"]
+    },
+    "outcome_influence": {"enum": ["demonstrated", "possible", "not_assessed", "not_applicable"]},
+    "downstream_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/RecordRef"}
+    },
+    "source_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/SourceRef"}
+    },
+    "limitations": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "provenance": {"$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Provenance"}
+  },
+  "required": [
+    "schema_version", "record_type", "analysis_decision_id", "audit_run_id",
+    "decision_kind", "observation_status", "description", "decision_input_refs",
+    "alternatives", "selection_statistic", "outcome_influence", "downstream_refs",
+    "source_refs", "limitations", "provenance"
+  ],
+  "allOf": [
+    {
+      "if": {"properties": {"observation_status": {"enum": ["unresolved", "opaque"]}}, "required": ["observation_status"]},
+      "then": {"properties": {"limitations": {"minItems": 1}}}
+    },
+    {
+      "if": {"properties": {"observation_status": {"const": "declared"}}, "required": ["observation_status"]},
+      "then": {"properties": {"provenance": {"properties": {"actor": {"properties": {"actor_kind": {"const": "human"}}, "required": ["actor_kind"]}}}}}
+    }
+  ]
+}

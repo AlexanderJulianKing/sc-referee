@@ -1,0 +1,118 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/data-asset.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "sc-referee DataAsset",
+  "type": "object",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {"structure_status": {"const": "complete"}},
+        "required": ["structure_status"]
+      },
+      "then": {"properties": {"limitations": {"maxItems": 0}}},
+      "else": {"properties": {"limitations": {"minItems": 1}}}
+    }
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {"const": "data_asset"},
+    "data_asset_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+    },
+    "artifact_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "record_type": {"const": "artifact"},
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+        }
+      },
+      "required": ["record_type", "record_id"]
+    },
+    "asset_identity_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "record_type": {"const": "asset_identity"},
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+        }
+      },
+      "required": ["record_type", "record_id"]
+    },
+    "role": {
+      "enum": ["input", "intermediate", "output", "reference", "unknown"]
+    },
+    "format": {
+      "enum": [
+        "csv",
+        "tsv",
+        "parquet",
+        "json",
+        "jsonl",
+        "database",
+        "matrix",
+        "image",
+        "archive",
+        "other",
+        "unknown"
+      ]
+    },
+    "path": {"minLength": 1, "type": "string"},
+    "structure_status": {
+      "enum": ["complete", "partial", "unavailable", "opaque"]
+    },
+    "variable_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "record_type": {"const": "variable"},
+          "record_id": {
+            "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Identifier"
+          }
+        },
+        "required": ["record_type", "record_id"]
+      }
+    },
+    "source_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/SourceRef"
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v__SCHEMA_VERSION__/common.schema.json#/$defs/Provenance"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "data_asset_id",
+    "audit_run_id",
+    "artifact_ref",
+    "asset_identity_ref",
+    "role",
+    "format",
+    "structure_status",
+    "variable_refs",
+    "source_refs",
+    "limitations",
+    "provenance"
+  ]
+}

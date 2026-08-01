@@ -1,0 +1,1705 @@
+{
+  "adjudications": [
+    {
+      "adjudicated_at": "2026-07-27T20:00:00Z",
+      "adjudication_id": "adjudication:1",
+      "audit_run_id": "audit:example-001",
+      "evidence": [
+        {
+          "description": "The linked coefficient is -0.42 under the established contrast orientation.",
+          "evidence_id": "evidence:result-sign",
+          "observed_value": -0.42,
+          "record_refs": [
+            {
+              "record_id": "claim:1",
+              "record_type": "claim"
+            }
+          ],
+          "source_refs": [
+            {
+              "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "end_line": 47,
+              "locator": "analysis.py:42-47",
+              "path": "analysis.py",
+              "quoted_text": "result = fit(y ~ treatment)",
+              "source_kind": "file_span",
+              "start_line": 42
+            }
+          ],
+          "support_role": "supports"
+        }
+      ],
+      "independence_statement": "The reviewer did not author the workflow or detector.",
+      "provenance": {
+        "actor": {
+          "actor_id": "reviewer:1",
+          "actor_kind": "human",
+          "display_name": "Independent Reviewer"
+        },
+        "created_at": "2026-07-27T20:00:00Z",
+        "method": "independent_adjudication"
+      },
+      "rationale": "Independent review confirmed that the report sentence and linked coefficient refer to the same contrast and have opposite directions.",
+      "record_type": "adjudication",
+      "reviewers": [
+        {
+          "actor_id": "reviewer:1",
+          "actor_kind": "human",
+          "display_name": "Independent Reviewer"
+        }
+      ],
+      "schema_version": "0.7.0",
+      "status": "adjudicated_true_positive",
+      "target_assessment_ref": {
+        "record_id": "finding:claim-direction",
+        "record_type": "finding"
+      }
+    }
+  ],
+  "agent_reviews": [],
+  "answers": [],
+  "artifacts": [],
+  "asset_identities": [
+    {
+      "asset_identity_id": "asset-identity:raw-bam",
+      "asset_ref": {
+        "record_id": "data:raw-bam",
+        "record_type": "data_asset"
+      },
+      "audit_run_id": "run:example",
+      "created_at": "2026-07-27T23:30:00Z",
+      "identity_evidence": {
+        "kind": "manifest",
+        "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "manifest_ref": {
+          "end_line": 1,
+          "locator": "checksums/inputs.sha256:1",
+          "path": "checksums/inputs.sha256",
+          "source_kind": "file_span",
+          "start_line": 1
+        }
+      },
+      "limitations": [
+        "Raw BAM files were not read during the interactive audit."
+      ],
+      "provenance": {
+        "actor": {
+          "actor_id": "sc_referee.core",
+          "actor_kind": "controller",
+          "display_name": "sc-referee controller"
+        },
+        "created_at": "2026-07-27T23:30:00Z",
+        "method": "deterministic_controller",
+        "source_refs": [],
+        "tool": "sc_referee.core",
+        "tool_version": "0.5.0"
+      },
+      "record_type": "asset_identity",
+      "schema_version": "0.7.0",
+      "tier": "manifest"
+    }
+  ],
+  "audit_plans": [],
+  "audit_run_id": "audit:example-001",
+  "audit_runs": [],
+  "benchmark_adjudications": [],
+  "benchmark_fixtures": [],
+  "bundle_id": "bundle:1",
+  "cache_entries": [],
+  "cache_policies": [
+    {
+      "cache_key_requirements": {
+        "component_versions": true,
+        "content_digests": true,
+        "policy_digest": true,
+        "semantic_dependencies": true
+      },
+      "cache_policy_id": "cache-policy:default-v0.4",
+      "cross_repository_source_derived_reuse": false,
+      "global_cache_allowed_classes": [
+        "parser_binaries_and_grammars",
+        "public_package_downloads",
+        "isolated_dependency_environments",
+        "public_external_evidence",
+        "tool_owned_immutable_assets"
+      ],
+      "global_cache_root": "${platform_user_cache}/sc-referee",
+      "project_local_categories": [
+        "parser_results",
+        "claims",
+        "semantic_assertions",
+        "scientific_contracts",
+        "model_packets_and_outputs",
+        "detector_results",
+        "reports",
+        "source_derived_objects"
+      ],
+      "project_store_root": ".sc-referee/",
+      "provenance": {
+        "actor": {
+          "actor_id": "sc-referee-core",
+          "actor_kind": "controller",
+          "display_name": "sc-referee controller"
+        },
+        "created_at": "2026-07-27T23:45:00Z",
+        "method": "deterministic_controller",
+        "source_refs": [],
+        "tool": "sc-referee-core",
+        "tool_version": "0.5.0"
+      },
+      "record_type": "cache_policy",
+      "schema_version": "0.7.0",
+      "source_derived_scope": "project_local_only"
+    }
+  ],
+  "capability_matrices": [],
+  "causal_contracts": [
+    {
+      "audit_run_id": "run:example",
+      "causal_contract_id": "causal:therapy-survival",
+      "causal_structure": {
+        "graph_scope": "partial_open_world",
+        "presence": "partial",
+        "relation_assertion_ids": [
+          "assertion:treatment-outcome-edge"
+        ],
+        "source_refs": [
+          {
+            "end_line": 54,
+            "locator": "analysis-plan.md:40-54",
+            "path": "analysis-plan.md",
+            "source_kind": "file_span",
+            "start_line": 40
+          }
+        ]
+      },
+      "claim_refs": [
+        {
+          "record_id": "claim:therapy-survival",
+          "record_type": "claim"
+        }
+      ],
+      "created_at": "2026-07-27T23:30:00Z",
+      "estimand": {
+        "censoring_and_competing_events": {
+          "rationale": "No censoring in the synthetic example.",
+          "state": "not_applicable"
+        },
+        "comparison": {
+          "accepted_assertion_ids": [
+            "assertion:comparison"
+          ],
+          "assertion_ids": [
+            "assertion:comparison"
+          ],
+          "state": "known"
+        },
+        "effect_measure_and_scale": {
+          "accepted_assertion_ids": [
+            "assertion:risk-difference"
+          ],
+          "assertion_ids": [
+            "assertion:risk-difference"
+          ],
+          "state": "known"
+        },
+        "effect_type": {
+          "accepted_assertion_ids": [
+            "assertion:total-effect"
+          ],
+          "assertion_ids": [
+            "assertion:total-effect"
+          ],
+          "state": "known"
+        },
+        "interference": {
+          "reason": "The report does not state whether interference is possible.",
+          "searched_source_refs": [],
+          "state": "unknown"
+        },
+        "outcome": {
+          "accepted_assertion_ids": [
+            "assertion:outcome"
+          ],
+          "assertion_ids": [
+            "assertion:outcome"
+          ],
+          "state": "known"
+        },
+        "outcome_horizon": {
+          "accepted_assertion_ids": [
+            "assertion:horizon"
+          ],
+          "assertion_ids": [
+            "assertion:horizon"
+          ],
+          "state": "known"
+        },
+        "target_population": {
+          "accepted_assertion_ids": [
+            "assertion:target-pop"
+          ],
+          "assertion_ids": [
+            "assertion:target-pop"
+          ],
+          "state": "known"
+        },
+        "time_zero": {
+          "accepted_assertion_ids": [
+            "assertion:time-zero"
+          ],
+          "assertion_ids": [
+            "assertion:time-zero"
+          ],
+          "state": "known"
+        },
+        "transport_relationship": {
+          "rationale": "The target and source populations are the same.",
+          "state": "not_applicable"
+        },
+        "treatment_or_exposure": {
+          "accepted_assertion_ids": [
+            "assertion:treatment"
+          ],
+          "assertion_ids": [
+            "assertion:treatment"
+          ],
+          "state": "known"
+        },
+        "treatment_strategies": {
+          "accepted_assertion_ids": [
+            "assertion:strategies"
+          ],
+          "assertion_ids": [
+            "assertion:strategies"
+          ],
+          "state": "known"
+        },
+        "unit_of_analysis": {
+          "accepted_assertion_ids": [
+            "assertion:unit-person"
+          ],
+          "assertion_ids": [
+            "assertion:unit-person"
+          ],
+          "state": "known"
+        }
+      },
+      "identification": {
+        "adjustment_set": {
+          "accepted_assertion_ids": [
+            "assertion:adjustment"
+          ],
+          "assertion_ids": [
+            "assertion:adjustment"
+          ],
+          "state": "known"
+        },
+        "consistency_and_treatment_versions": {
+          "accepted_assertion_ids": [
+            "assertion:treatment-version"
+          ],
+          "assertion_ids": [
+            "assertion:treatment-version"
+          ],
+          "state": "known"
+        },
+        "covariate_roles": [
+          {
+            "assertion_ids": [
+              "assertion:age-role"
+            ],
+            "estimand_scope": "causal:therapy-survival",
+            "role": "precision_variable",
+            "temporal_relation": "pre_treatment",
+            "variable_ref": {
+              "record_id": "variable:baseline-age",
+              "record_type": "variable"
+            }
+          }
+        ],
+        "exchangeability": {
+          "accepted_assertion_ids": [
+            "assertion:randomization"
+          ],
+          "assertion_ids": [
+            "assertion:randomization"
+          ],
+          "state": "known"
+        },
+        "measurement_and_calibration": {
+          "rationale": "Outcome is directly observed in this synthetic example.",
+          "state": "not_applicable"
+        },
+        "positivity": {
+          "reason": "Treatment-arm support was not summarized by subgroup.",
+          "searched_source_refs": [],
+          "state": "unknown"
+        },
+        "strategy": {
+          "accepted_assertion_ids": [
+            "assertion:randomized"
+          ],
+          "assertion_ids": [
+            "assertion:randomized"
+          ],
+          "state": "known"
+        },
+        "temporal_ordering": {
+          "accepted_assertion_ids": [
+            "assertion:timing"
+          ],
+          "assertion_ids": [
+            "assertion:timing"
+          ],
+          "state": "known"
+        }
+      },
+      "intent": {
+        "accepted_assertion_ids": [
+          "assertion:intent-causal"
+        ],
+        "assertion_ids": [
+          "assertion:intent-causal"
+        ],
+        "state": "known"
+      },
+      "provenance": {
+        "actor": {
+          "actor_id": "sc_referee.core",
+          "actor_kind": "controller",
+          "display_name": "sc-referee controller"
+        },
+        "created_at": "2026-07-27T23:30:00Z",
+        "method": "deterministic_controller",
+        "source_refs": [],
+        "tool": "sc_referee.core",
+        "tool_version": "0.5.0"
+      },
+      "record_type": "causal_contract",
+      "schema_version": "0.7.0",
+      "source_refs": [
+        {
+          "end_line": 54,
+          "locator": "analysis-plan.md:20-54",
+          "path": "analysis-plan.md",
+          "source_kind": "file_span",
+          "start_line": 20
+        }
+      ]
+    }
+  ],
+  "claims": [
+    {
+      "audit_run_id": "audit:example-001",
+      "claim_id": "claim:1",
+      "claim_kind": "directional",
+      "claim_status": "final",
+      "extraction": {
+        "explicit_source_meaning": true,
+        "independently_verified": true,
+        "method": "model_assisted",
+        "semantic_assertion_ids": [
+          "assertion:report-direction"
+        ]
+      },
+      "lineage": {
+        "input_refs": [
+          {
+            "record_id": "data:expression",
+            "record_type": "data_asset"
+          }
+        ],
+        "missing_links": [],
+        "opaque_dependency_refs": [],
+        "operation_refs": [
+          {
+            "record_id": "operation:model-fit",
+            "record_type": "operation"
+          }
+        ],
+        "result_refs": [
+          {
+            "record_id": "artifact:coefficient",
+            "record_type": "artifact"
+          }
+        ],
+        "status": "complete"
+      },
+      "proposition": {
+        "claim_strength": "associational",
+        "comparison": "treated versus control",
+        "direction": "positive",
+        "population": "analysis cohort",
+        "predicate": "increased expression",
+        "scale": "log expression",
+        "subject": "treatment contrast"
+      },
+      "record_type": "claim",
+      "report_ref": {
+        "record_id": "artifact:report",
+        "record_type": "artifact"
+      },
+      "schema_version": "0.7.0",
+      "scientific_contract_id": "contract:claim-1",
+      "source_refs": [
+        {
+          "chunk_label": "claim-1",
+          "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "locator": "manuscript/results.qmd#claim-1",
+          "path": "manuscript/results.qmd",
+          "quoted_text": "Treatment increased expression.",
+          "source_kind": "document_chunk"
+        }
+      ],
+      "text": "Treatment increased expression."
+    }
+  ],
+  "conditional_concerns": [
+    {
+      "affected_descendants": [
+        {
+          "effect": "The uncertainty statement may depend on the unresolved unit definition.",
+          "relationship_path": [
+            {
+              "record_id": "operation:model-fit",
+              "record_type": "operation"
+            },
+            {
+              "record_id": "claim:1",
+              "record_type": "claim"
+            }
+          ],
+          "target_ref": {
+            "record_id": "claim:1",
+            "record_type": "claim"
+          }
+        }
+      ],
+      "audit_run_id": "audit:example-001",
+      "concern_id": "concern:repeated-measures",
+      "condition": {
+        "if_true": "sample_id identifies biological donors.",
+        "premise_id": "premise:sample-id-is-donor",
+        "premise_state": "unknown"
+      },
+      "conditional_statement": "If sample_id identifies biological donors, the fitted model appears to treat repeated donor measurements as independent.",
+      "created_at": "2026-07-27T20:00:00Z",
+      "detector_result_ids": [
+        "result:repeated-measures"
+      ],
+      "evidence": [],
+      "grouping_key": "detector:repeated-measures|operation:model-fit|dependence_structure",
+      "issue_class": "batch_nuisance_dependence_omission",
+      "material_question_id": "question:sample-id",
+      "next_evidence_needed": [
+        "A data dictionary or scientist answer defining sample_id."
+      ],
+      "potential_impact": {
+        "level": "material_if_true",
+        "rationale": "Unmodeled within-donor dependence could affect uncertainty for the linked claim."
+      },
+      "provenance": {
+        "actor": {
+          "actor_id": "sc_referee.core",
+          "actor_kind": "controller"
+        },
+        "created_at": "2026-07-27T20:00:00Z",
+        "method": "deterministic_generation",
+        "tool": "sc_referee.core",
+        "tool_version": "0.5.0"
+      },
+      "record_type": "conditional_concern",
+      "review_priority": "high",
+      "schema_version": "0.7.0",
+      "subject_refs": [
+        {
+          "record_id": "operation:model-fit",
+          "record_type": "operation"
+        }
+      ],
+      "title": "If sample_id identifies donors, repeated donor measurements appear to be modeled as independent",
+      "why_material": "The concern could change whether the model accounts for dependence."
+    }
+  ],
+  "coverage_records": [
+    {
+      "assessment_counts": {
+        "conditional_concerns": 1,
+        "disclosures": 1,
+        "findings": 1,
+        "material_questions": 1
+      },
+      "audit_run_id": "audit:example-001",
+      "claim_coverage": {
+        "claims_inspected": 3,
+        "claims_total": 3,
+        "claims_with_complete_lineage": 2
+      },
+      "coverage_id": "coverage:1",
+      "detector_coverage": [
+        {
+          "details": "All prerequisites available.",
+          "detector_id": "detector:claim-direction",
+          "status": "covered",
+          "targets_evaluated": 1,
+          "targets_total": 1
+        }
+      ],
+      "generated_at": "2026-07-27T20:00:00Z",
+      "interpretation_policy": {
+        "absence_of_finding_statement": "No finding means only that no issue was admitted within the declared evidence and validated detector coverage.",
+        "correctness_conclusion_allowed": false,
+        "global_risk_rating_allowed": false
+      },
+      "inventory_summary": {
+        "files_classified": 42,
+        "files_deeply_inspected": 12,
+        "files_total": 42
+      },
+      "known_gaps": [
+        "No validated detector inspected the custom caller internal measurement model."
+      ],
+      "opaque_boundary_refs": [
+        {
+          "record_id": "operation:custom-caller",
+          "record_type": "operation"
+        }
+      ],
+      "overall_status": "complete_within_plan",
+      "parser_coverage": [
+        {
+          "details": "All relevant Python files parsed.",
+          "status": "covered",
+          "surface": "python"
+        },
+        {
+          "details": "Treated as an opaque boundary.",
+          "status": "not_covered",
+          "surface": "custom binary"
+        }
+      ],
+      "provenance": {
+        "actor": {
+          "actor_id": "sc_referee.core",
+          "actor_kind": "controller"
+        },
+        "created_at": "2026-07-27T20:00:00Z",
+        "method": "deterministic_generation",
+        "tool": "sc_referee.core",
+        "tool_version": "0.5.0"
+      },
+      "record_type": "coverage_record",
+      "schema_version": "0.7.0",
+      "scope": {
+        "deep_inspection_scope": "final-claim backward slices and selection envelope",
+        "inventory_scope": "whole_repository",
+        "publication_surface_refs": [
+          {
+            "record_id": "artifact:report",
+            "record_type": "artifact"
+          }
+        ],
+        "publication_surface_status": "resolved",
+        "selection_envelope_included": true
+      },
+      "uninspected_paths": [
+        "archive/old-notebooks/"
+      ],
+      "unknown_semantic_ids": [
+        "question:sample-id"
+      ]
+    }
+  ],
+  "detector_manifests": [
+    {
+      "abstain_when": [
+        "Contrast orientation is unknown or conflicted."
+      ],
+      "accepted_assertion_classes": [
+        "direct_observation",
+        "explicit_text_extraction",
+        "scientist_declaration",
+        "metadata_definition",
+        "deterministic_derivation"
+      ],
+      "applies_to_record_types": [
+        "claim"
+      ],
+      "assumptions": [
+        "The linked result is the result intended by the report claim."
+      ],
+      "counterevidence_protocol": [
+        {
+          "applies_when": "The claim and result directions appear inconsistent.",
+          "check_id": "check:orientation",
+          "counterevidence_effect": "suppress_candidate",
+          "description": "Check for upstream contrast or reference reversal.",
+          "sources_to_search": [
+            "Scientific Contract orientation slot",
+            "model contrast metadata",
+            "package output labels"
+          ],
+          "unavailability_effect": "block_finding"
+        },
+        {
+          "applies_when": "A directional claim was extracted.",
+          "check_id": "check:report-qualification",
+          "counterevidence_effect": "bound_wording",
+          "description": "Check whether the surrounding report text qualifies or negates the extracted direction.",
+          "sources_to_search": [
+            "same paragraph",
+            "caption",
+            "footnote"
+          ],
+          "unavailability_effect": "block_finding"
+        }
+      ],
+      "coverage_contract": {
+        "covered_when": "Claim, result, and orientation are all linked and supported.",
+        "not_covered_when": "Orientation or result linkage is unavailable.",
+        "partially_covered_when": "Result is linked but some non-material lineage metadata is absent."
+      },
+      "description": "Checks whether an explicitly reported direction agrees with the linked result under established orientation.",
+      "detector_family": "claim_result_agreement",
+      "detector_id": "detector:claim-direction",
+      "detector_version": "1.0.0",
+      "domains": [
+        "general_statistics"
+      ],
+      "implementation": {
+        "deterministic": true,
+        "entry_point": "sc_referee.detectors.claim_direction:Detector",
+        "implementation_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "issue_classes": [
+        "claim_result_disagreement"
+      ],
+      "languages": [
+        "python",
+        "r"
+      ],
+      "limitations": [
+        "Does not determine whether a different analysis would reverse the result."
+      ],
+      "maturity": "validated",
+      "package_constraints": [],
+      "permitted_output_types": [
+        "finding",
+        "conditional_concern",
+        "material_question",
+        "disclosure"
+      ],
+      "provenance": {
+        "actor": {
+          "actor_id": "detector:claim-direction",
+          "actor_kind": "detector"
+        },
+        "created_at": "2026-07-27T20:00:00Z",
+        "method": "deterministic_detection",
+        "tool": "sc_referee.core",
+        "tool_version": "0.5.0"
+      },
+      "record_type": "detector_manifest",
+      "required_evidence": [
+        "explicit reported direction",
+        "linked numerical result",
+        "established contrast orientation"
+      ],
+      "schema_version": "0.7.0",
+      "supported_operations": [
+        "model_fit",
+        "estimate"
+      ],
+      "test_fixtures": {
+        "ambiguous": [
+          "fixtures/ambiguous.json"
+        ],
+        "counterevidence": [
+          "fixtures/reversed-reference.json"
+        ],
+        "positive": [
+          "fixtures/positive.json"
+        ],
+        "unsupported_path": [
+          "fixtures/unsupported.json"
+        ],
+        "verified_good_negative": [
+          "fixtures/negative.json"
+        ]
+      },
+      "title": "Claim/result direction agreement",
+      "validation": {
+        "agent_adjudication_count": 1,
+        "evaluation_ref": "eval:claim-direction-v1",
+        "human_scientific_approval_count": 0,
+        "qualification_record_ref": "qualification:example",
+        "qualification_review_basis": "agent_panel",
+        "software_maintainer_approval_count": 1,
+        "status": "held_out_validated"
+      },
+      "wording_constraints": [
+        "State only the bounded direction mismatch.",
+        "Do not claim the biological conclusion is false."
+      ],
+      "workflow_systems": [
+        "jupyter",
+        "quarto"
+      ]
+    }
+  ],
+  "detector_qualifications": [],
+  "detector_results": [
+    {
+      "applicability": {
+        "basis": "The claim has explicit direction, linked result, and established contrast orientation.",
+        "status": "applicable",
+        "unsupported_constructs": []
+      },
+      "audit_run_id": "audit:example-001",
+      "candidate": {
+        "assessment_type": "finding",
+        "bounded_statement": "The report describes the linked treatment contrast as positive, while the linked coefficient is negative under the established orientation.",
+        "material_premise_ids": [
+          "premise:reported-positive",
+          "premise:result-negative"
+        ],
+        "title": "Reported direction disagrees with linked result",
+        "unresolved_material_premise_ids": []
+      },
+      "counterevidence_execution": [
+        {
+          "check_id": "check:orientation",
+          "evidence_ids": [
+            "evidence:result-sign"
+          ],
+          "outcome": "no_counterevidence",
+          "status": "completed"
+        },
+        {
+          "check_id": "check:report-qualification",
+          "evidence_ids": [
+            "evidence:report-text"
+          ],
+          "outcome": "no_counterevidence",
+          "status": "completed"
+        }
+      ],
+      "coverage": {
+        "basis": "All required evidence and declared counterevidence sources were inspected.",
+        "gaps": [],
+        "status": "covered"
+      },
+      "detector_id": "detector:claim-direction",
+      "detector_manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "detector_maturity": "validated",
+      "detector_version": "1.0.0",
+      "deterministic_input_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evaluated_at": "2026-07-27T20:00:00Z",
+      "evidence": [
+        {
+          "description": "The linked coefficient is -0.42 under the established contrast orientation.",
+          "evidence_id": "evidence:result-sign",
+          "observed_value": -0.42,
+          "record_refs": [
+            {
+              "record_id": "claim:1",
+              "record_type": "claim"
+            }
+          ],
+          "source_refs": [
+            {
+              "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "end_line": 47,
+              "locator": "analysis.py:42-47",
+              "path": "analysis.py",
+              "quoted_text": "result = fit(y ~ treatment)",
+              "source_kind": "file_span",
+              "start_line": 42
+            }
+          ],
+          "support_role": "supports"
+        },
+        {
+          "description": "The report states that treatment increased expression.",
+          "evidence_id": "evidence:report-text",
+          "observed_value": "positive",
+          "record_refs": [
+            {
+              "record_id": "claim:1",
+              "record_type": "claim"
+            }
+          ],
+          "source_refs": [
+            {
+              "chunk_label": "claim-1",
+              "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "locator": "manuscript/results.qmd#claim-1",
+              "path": "manuscript/results.qmd",
+              "quoted_text": "Treatment increased expression.",
+              "source_kind": "document_chunk"
+            }
+          ],
+          "support_role": "supports"
+        }
+      ],
+      "premise_evaluations": [
+        {
+          "evidence_ids": [
+            "evidence:report-text"
+          ],
+          "material": true,
+          "premise_id": "premise:reported-positive",
+          "state": "established",
+          "statement": "The report states a positive direction."
+        },
+        {
+          "evidence_ids": [
+            "evidence:result-sign"
+          ],
+          "material": true,
+          "premise_id": "premise:result-negative",
+          "state": "established",
+          "statement": "The linked result is negative under the established orientation."
+        }
+      ],
+      "provenance": {
+        "actor": {
+          "actor_id": "detector:claim-direction",
+          "actor_kind": "detector"
+        },
+        "created_at": "2026-07-27T20:00:00Z",
+        "method": "deterministic_detection",
+        "tool": "sc_referee.core",
+        "tool_version": "0.5.0"
+      },
+      "record_type": "detector_result",
+      "result_id": "result:claim-direction",
+      "runtime_mode": "static",
+      "schema_version": "0.7.0",
+      "state": "finding_candidate",
+      "target_refs": [
+        {
+          "record_id": "claim:1",
+          "record_type": "claim"
+        }
+      ],
+      "unavailable_evidence": []
+    }
+  ],
+  "disclosures": [
+    {
+      "affected_refs": [
+        {
+          "record_id": "artifact:variant-calls",
+          "record_type": "artifact"
+        }
+      ],
+      "audit_run_id": "audit:example-001",
+      "coverage_status": "not_covered",
+      "created_at": "2026-07-27T20:00:00Z",
+      "description": "The binary output was accepted as an input artifact, but its internal measurement and error semantics were not inspected.",
+      "disclosure_id": "disclosure:opaque-caller",
+      "disclosure_kind": "opaque_boundary",
+      "importance": "material",
+      "interpretive_consequence": "Downstream checks do not establish correctness of the caller internal error model.",
+      "next_step": "Provide an immutable version and validation documentation if publication claims depend on caller internals.",
+      "non_accusatory": true,
+      "provenance": {
+        "actor": {
+          "actor_id": "sc_referee.core",
+          "actor_kind": "controller"
+        },
+        "created_at": "2026-07-27T20:00:00Z",
+        "method": "deterministic_generation",
+        "tool": "sc_referee.core",
+        "tool_version": "0.5.0"
+      },
+      "record_type": "disclosure",
+      "schema_version": "0.7.0",
+      "source_refs": [
+        {
+          "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "end_line": 18,
+          "locator": "workflow.sh:18",
+          "path": "workflow.sh",
+          "quoted_text": "custom-caller input.bam > calls.vcf",
+          "source_kind": "shell_command",
+          "start_line": 18
+        }
+      ],
+      "title": "Custom variant-calling binary was treated as an opaque boundary"
+    }
+  ],
+  "environment_reconstructions": [
+    {
+      "approximation_reason": "Package versions were not pinned in requirements.txt.",
+      "audit_run_id": "run:example",
+      "definition_refs": [
+        {
+          "end_line": 8,
+          "locator": "requirements.txt:1-8",
+          "path": "requirements.txt",
+          "source_kind": "file_span",
+          "start_line": 1
+        }
+      ],
+      "dependencies": [
+        {
+          "name": "pandas",
+          "source": "configured package index",
+          "version": "2.3.1",
+          "version_status": "resolved_current"
+        }
+      ],
+      "environment_reconstruction_id": "env-recon:python",
+      "finished_at": "2026-07-27T23:30:15Z",
+      "isolated_location": ".sc-referee/cache/envs/example",
+      "local_project_installed": false,
+      "provenance": {
+        "actor": {
+          "actor_id": "sc_referee.core",
+          "actor_kind": "controller",
+          "display_name": "sc-referee controller"
+        },
+        "created_at": "2026-07-27T23:30:00Z",
+        "method": "deterministic_controller",
+        "source_refs": [],
+        "tool": "sc_referee.core",
+        "tool_version": "0.5.0"
+      },
+      "record_type": "environment_reconstruction",
+      "schema_version": "0.7.0",
+      "started_at": "2026-07-27T23:30:00Z",
+      "status": "approximate",
+      "system_packages_installed": false,
+      "user_environment_modified": false
+    }
+  ],
+  "external_evidence": [
+    {
+      "audit_run_id": "run:example",
+      "authentication_used": false,
+      "cache_status": "cached",
+      "cached_artifact_ref": {
+        "record_id": "artifact:external-doc-cache",
+        "record_type": "artifact"
+      },
+      "content_identity": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "external_evidence_id": "external:package-doc",
+      "finding_premise_eligibility": "eligible_after_independent_verification",
+      "provenance": {
+        "actor": {
+          "actor_id": "sc_referee.core",
+          "actor_kind": "controller",
+          "display_name": "sc-referee controller"
+        },
+        "created_at": "2026-07-27T23:30:00Z",
+        "method": "deterministic_controller",
+        "source_refs": [],
+        "tool": "sc_referee.core",
+        "tool_version": "0.5.0"
+      },
+      "purpose": "Verify the documented orientation of the versioned model coefficient.",
+      "record_type": "external_evidence",
+      "redirect_chain": [],
+      "reproducibility_effect": "snapshot_cached",
+      "requested_uri": "https://docs.python.org/3.11/library/ast.html",
+      "resolved_uri": "https://docs.python.org/3.11/library/ast.html",
+      "retrieved_at": "2026-07-27T23:30:00Z",
+      "schema_version": "0.7.0",
+      "source_class": "package_documentation",
+      "version_label": "1.0"
+    }
+  ],
+  "file_records": [],
+  "findings": [
+    {
+      "admission": {
+        "bounded_wording": true,
+        "counterevidence_protocol_complete": true,
+        "detector_maturity": "validated",
+        "deterministic_replay": true,
+        "direct_entailment": true,
+        "exact_detector_applicability": true,
+        "material_premise_ids": [
+          "premise:reported-positive",
+          "premise:result-negative"
+        ],
+        "no_reversing_unknown": true,
+        "non_inferences": [
+          "This finding does not establish that the biological conclusion is false.",
+          "This finding does not estimate the effect of correcting the report."
+        ],
+        "source_references_resolved": true,
+        "unresolved_material_premise_ids": []
+      },
+      "affected_descendants": [
+        {
+          "effect": "The final directional claim requires correction.",
+          "relationship_path": [
+            {
+              "record_id": "claim:1",
+              "record_type": "claim"
+            }
+          ],
+          "target_ref": {
+            "record_id": "claim:1",
+            "record_type": "claim"
+          }
+        }
+      ],
+      "audit_run_id": "audit:example-001",
+      "coverage_limitations": [
+        "The detector does not assess biological plausibility."
+      ],
+      "created_at": "2026-07-27T20:00:00Z",
+      "demonstration_status": "demonstrated",
+      "detector_result_ids": [
+        "result:claim-direction"
+      ],
+      "evidence": [
+        {
+          "description": "The linked coefficient is -0.42 under the established contrast orientation.",
+          "evidence_id": "evidence:result-sign",
+          "observed_value": -0.42,
+          "record_refs": [
+            {
+              "record_id": "claim:1",
+              "record_type": "claim"
+            }
+          ],
+          "source_refs": [
+            {
+              "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "end_line": 47,
+              "locator": "analysis.py:42-47",
+              "path": "analysis.py",
+              "quoted_text": "result = fit(y ~ treatment)",
+              "source_kind": "file_span",
+              "start_line": 42
+            }
+          ],
+          "support_role": "supports"
+        }
+      ],
+      "finding_id": "finding:claim-direction",
+      "grouping_key": "detector:claim-direction|claim:1|scale_and_orientation",
+      "issue_class": "claim_result_disagreement",
+      "logical_basis": "Explicit positive report wording AND established negative linked result under the same contrast orientation implies a bounded direction contradiction.",
+      "next_action": "Correct the claim wording or the linked result reference.",
+      "provenance": {
+        "actor": {
+          "actor_id": "sc_referee.core",
+          "actor_kind": "controller"
+        },
+        "created_at": "2026-07-27T20:00:00Z",
+        "method": "deterministic_generation",
+        "tool": "sc_referee.core",
+        "tool_version": "0.5.0"
+      },
+      "publication_materiality": {
+        "level": "claim_material",
+        "publication_surface_ids": [
+          "surface:manuscript-results"
+        ],
+        "rationale": "The issue directly affects one final claim.",
+        "state": "assessed"
+      },
+      "record_type": "finding",
+      "root_cause": {
+        "explanation": "The reported proposition and linked numerical result have opposite signs after orientation is established.",
+        "root_ref": {
+          "record_id": "claim:1",
+          "record_type": "claim"
+        },
+        "violated_semantic_dimension": "scale_and_orientation"
+      },
+      "schema_version": "0.7.0",
+      "severity": {
+        "level": "major",
+        "rationale": "The direction of a final reported effect is incorrect."
+      },
+      "subject_refs": [
+        {
+          "record_id": "claim:1",
+          "record_type": "claim"
+        }
+      ],
+      "summary": "The report describes the linked treatment contrast as positive, while the linked coefficient is negative under the established orientation.",
+      "title": "Reported direction disagrees with linked result"
+    }
+  ],
+  "generated_at": "2026-07-27T20:00:00Z",
+  "material_questions": [
+    {
+      "affected_claim_ids": [
+        "claim:1"
+      ],
+      "answer_ids": [],
+      "audit_run_id": "audit:example-001",
+      "blocked_detector_ids": [
+        "detector:repeated-measures"
+      ],
+      "candidate_answers": [
+        {
+          "answer_id": "answer-option:donor",
+          "consequence": "The current row-level model may omit within-donor dependence.",
+          "label": "Biological donor",
+          "value": "donor"
+        },
+        {
+          "answer_id": "answer-option:library",
+          "consequence": "The repeated-measures concern may not apply at the donor level.",
+          "label": "Sequencing library",
+          "value": "library"
+        },
+        {
+          "answer_id": "answer-option:unknown",
+          "consequence": "The detector must remain unresolved.",
+          "label": "Unknown",
+          "value": "unknown"
+        }
+      ],
+      "created_at": "2026-07-27T20:00:00Z",
+      "evidence_searched": [
+        {
+          "result": "No definition was found.",
+          "source": "repository metadata and code comments"
+        }
+      ],
+      "linked_conditional_concern_ids": [
+        "concern:repeated-measures"
+      ],
+      "priority": "high",
+      "provenance": {
+        "actor": {
+          "actor_id": "sc_referee.core",
+          "actor_kind": "controller"
+        },
+        "created_at": "2026-07-27T20:00:00Z",
+        "method": "deterministic_generation",
+        "tool": "sc_referee.core",
+        "tool_version": "0.5.0"
+      },
+      "question": "What biological or technical unit does sample_id identify?",
+      "question_id": "question:sample-id",
+      "record_type": "material_question",
+      "schema_version": "0.7.0",
+      "status": "open",
+      "unknown_semantic_dimension": "unit_of_analysis",
+      "why_it_matters": "The answer determines whether repeated biological units are modeled as independent."
+    }
+  ],
+  "observed_results": [],
+  "operations": [],
+  "parser_manifests": [],
+  "parser_results": [],
+  "performance_records": [],
+  "publication_surfaces": [
+    {
+      "audit_run_id": "run:example",
+      "candidates": [
+        {
+          "evidence": [
+            "declared_build_target",
+            "unique_lineage_evidence"
+          ],
+          "notes": "Declared as the rendered manuscript target.",
+          "surface_ref": {
+            "record_id": "artifact:results-qmd",
+            "record_type": "artifact"
+          }
+        }
+      ],
+      "created_at": "2026-07-27T23:30:00Z",
+      "precedence_policy": [
+        "explicit_user_target_or_active_workspace",
+        "declared_build_target",
+        "explicit_task_or_repository_statement",
+        "unique_lineage_evidence",
+        "filename_and_time_supporting_only"
+      ],
+      "provenance": {
+        "actor": {
+          "actor_id": "sc_referee.core",
+          "actor_kind": "controller",
+          "display_name": "sc-referee controller"
+        },
+        "created_at": "2026-07-27T23:30:00Z",
+        "method": "deterministic_controller",
+        "source_refs": [],
+        "tool": "sc_referee.core",
+        "tool_version": "0.5.0"
+      },
+      "publication_materiality_assessable": true,
+      "publication_surface_id": "surface:manuscript-results",
+      "record_type": "publication_surface",
+      "schema_version": "0.7.0",
+      "selection": {
+        "kind": "resolved",
+        "rationale": "The build configuration declares this artifact as the manuscript target.",
+        "selected_surface_refs": [
+          {
+            "record_id": "artifact:results-qmd",
+            "record_type": "artifact"
+          }
+        ]
+      },
+      "status": "resolved"
+    }
+  ],
+  "record_type": "audit_bundle",
+  "repository_snapshots": [],
+  "reproduction_requests": [
+    {
+      "affected_claim_refs": [
+        {
+          "record_id": "claim:variant-count",
+          "record_type": "claim"
+        }
+      ],
+      "affected_detector_ids": [
+        "lineage.reference-build.v1"
+      ],
+      "audit_run_id": "run:example",
+      "created_at": "2026-07-27T23:30:00Z",
+      "environment_requirements": [
+        "Existing Nextflow profile"
+      ],
+      "expected_outputs": [
+        {
+          "format": "TSV",
+          "identity_expectation": "full_digest",
+          "role": "Nextflow trace"
+        },
+        {
+          "format": "OCI digest",
+          "identity_expectation": "immutable_external",
+          "role": "container identity"
+        }
+      ],
+      "imported_evidence_refs": [],
+      "input_requirements": [
+        "Institutional object-store access"
+      ],
+      "provenance": {
+        "actor": {
+          "actor_id": "sc_referee.core",
+          "actor_kind": "controller",
+          "display_name": "sc-referee controller"
+        },
+        "created_at": "2026-07-27T23:30:00Z",
+        "method": "deterministic_controller",
+        "source_refs": [],
+        "tool": "sc_referee.core",
+        "tool_version": "0.5.0"
+      },
+      "reason": "The saved report lacks the runtime trace needed to identify the executed reference build.",
+      "record_type": "reproduction_request",
+      "reproduction_request_id": "repro-request:hpc-trace",
+      "requested_action": {
+        "description": "Run the existing workflow target in the institutional environment and export the Nextflow trace plus container digest.",
+        "kind": "collect_runtime_trace"
+      },
+      "resource_class": "hpc_cpu",
+      "schema_version": "0.7.0",
+      "security_considerations": [
+        "Do not include subject identifiers in exported logs."
+      ],
+      "status": "proposed",
+      "target_refs": [
+        {
+          "record_id": "process:variant-call",
+          "record_type": "workflow_process"
+        }
+      ]
+    }
+  ],
+  "ro_crate_exports": [],
+  "sandbox_capabilities": [],
+  "schema_version": "0.7.0",
+  "scientific_contracts": [
+    {
+      "audit_run_id": "audit:example-001",
+      "contract_id": "contract:claim-1",
+      "created_at": "2026-07-27T20:00:00Z",
+      "dimensions": {
+        "adjustment_set": {
+          "accepted_assertion_ids": [
+            "assertion:adjustment"
+          ],
+          "assertion_ids": [
+            "assertion:adjustment"
+          ],
+          "state": "known"
+        },
+        "analysis_population": {
+          "accepted_assertion_ids": [
+            "assertion:analysis-population"
+          ],
+          "assertion_ids": [
+            "assertion:analysis-population"
+          ],
+          "state": "known"
+        },
+        "comparison": {
+          "accepted_assertion_ids": [
+            "assertion:comparison"
+          ],
+          "assertion_ids": [
+            "assertion:comparison"
+          ],
+          "state": "known"
+        },
+        "control_set": {
+          "accepted_assertion_ids": [
+            "assertion:control"
+          ],
+          "assertion_ids": [
+            "assertion:control"
+          ],
+          "state": "known"
+        },
+        "denominator_or_universe": {
+          "rationale": "No rate or enrichment denominator.",
+          "state": "not_applicable"
+        },
+        "dependence_structure": {
+          "accepted_assertion_ids": [
+            "assertion:dependence"
+          ],
+          "assertion_ids": [
+            "assertion:dependence"
+          ],
+          "state": "known"
+        },
+        "estimand": {
+          "accepted_assertion_ids": [
+            "assertion:estimand"
+          ],
+          "assertion_ids": [
+            "assertion:estimand"
+          ],
+          "state": "known"
+        },
+        "exposure_or_treatment": {
+          "accepted_assertion_ids": [
+            "assertion:treatment"
+          ],
+          "assertion_ids": [
+            "assertion:treatment"
+          ],
+          "state": "known"
+        },
+        "measurement_model": {
+          "accepted_assertion_ids": [
+            "assertion:measurement"
+          ],
+          "assertion_ids": [
+            "assertion:measurement"
+          ],
+          "state": "known"
+        },
+        "missingness_and_transport": {
+          "accepted_assertion_ids": [
+            "assertion:missingness"
+          ],
+          "assertion_ids": [
+            "assertion:missingness"
+          ],
+          "state": "known"
+        },
+        "outcome": {
+          "accepted_assertion_ids": [
+            "assertion:outcome"
+          ],
+          "assertion_ids": [
+            "assertion:outcome"
+          ],
+          "state": "known"
+        },
+        "scale_and_orientation": {
+          "accepted_assertion_ids": [
+            "assertion:orientation"
+          ],
+          "assertion_ids": [
+            "assertion:orientation"
+          ],
+          "state": "known"
+        },
+        "selection_process": {
+          "accepted_assertion_ids": [
+            "assertion:selection"
+          ],
+          "assertion_ids": [
+            "assertion:selection"
+          ],
+          "state": "known"
+        },
+        "target_population": {
+          "accepted_assertion_ids": [
+            "assertion:target-population"
+          ],
+          "assertion_ids": [
+            "assertion:target-population"
+          ],
+          "state": "known"
+        },
+        "time_definition": {
+          "rationale": "No longitudinal timing in this contrast.",
+          "state": "not_applicable"
+        },
+        "uncertainty_target": {
+          "accepted_assertion_ids": [
+            "assertion:uncertainty"
+          ],
+          "assertion_ids": [
+            "assertion:uncertainty"
+          ],
+          "state": "known"
+        },
+        "unit_of_analysis": {
+          "accepted_assertion_ids": [
+            "assertion:unit"
+          ],
+          "assertion_ids": [
+            "assertion:unit"
+          ],
+          "state": "known"
+        }
+      },
+      "record_type": "scientific_contract",
+      "schema_version": "0.7.0",
+      "scope": {
+        "level": "claim",
+        "subject_refs": [
+          {
+            "record_id": "claim:1",
+            "record_type": "claim"
+          }
+        ]
+      },
+      "source_refs": [
+        {
+          "chunk_label": "claim-1",
+          "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "locator": "manuscript/results.qmd#claim-1",
+          "path": "manuscript/results.qmd",
+          "quoted_text": "Treatment increased expression.",
+          "source_kind": "document_chunk"
+        },
+        {
+          "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "end_line": 47,
+          "locator": "analysis.py:42-47",
+          "path": "analysis.py",
+          "quoted_text": "result = fit(y ~ treatment)",
+          "source_kind": "file_span",
+          "start_line": 42
+        }
+      ],
+      "status": "resolved",
+      "title": "Treatment-expression claim contract"
+    }
+  ],
+  "scientist_dispositions": [
+    {
+      "audit_run_id": "audit:example-001",
+      "authority_scope": "scientific_intent",
+      "disposition_id": "disposition:1",
+      "provenance": {
+        "actor": {
+          "actor_id": "scientist:alex",
+          "actor_kind": "human",
+          "display_name": "Example Scientist"
+        },
+        "created_at": "2026-07-27T20:00:00Z",
+        "method": "scientist_answer",
+        "source_refs": [
+          {
+            "chunk_label": "claim-1",
+            "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "locator": "manuscript/results.qmd#claim-1",
+            "path": "manuscript/results.qmd",
+            "quoted_text": "Treatment increased expression.",
+            "source_kind": "document_chunk"
+          }
+        ]
+      },
+      "rationale": "The manuscript sentence refers to the wrong contrast.",
+      "record_type": "scientist_disposition",
+      "recorded_at": "2026-07-27T20:00:00Z",
+      "respondent": {
+        "actor_id": "scientist:alex",
+        "actor_kind": "human",
+        "display_name": "Example Scientist"
+      },
+      "schema_version": "0.7.0",
+      "source_refs": [
+        {
+          "chunk_label": "claim-1",
+          "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "locator": "manuscript/results.qmd#claim-1",
+          "path": "manuscript/results.qmd",
+          "quoted_text": "Treatment increased expression.",
+          "source_kind": "document_chunk"
+        }
+      ],
+      "status": "confirmed",
+      "target_assessment_ref": {
+        "record_id": "finding:claim-direction",
+        "record_type": "finding"
+      }
+    }
+  ],
+  "semantic_assertions": [
+    {
+      "assertion_class": "explicit_text_extraction",
+      "assertion_id": "assertion:report-direction",
+      "audit_run_id": "audit:example-001",
+      "authority_scope": "reported_wording",
+      "certainty": {
+        "basis": "Literal statement in the report span.",
+        "level": "explicit"
+      },
+      "contradicts_assertion_ids": [],
+      "epistemic_status": "accepted",
+      "finding_eligibility": "eligible",
+      "independently_checkable": true,
+      "object": "positive",
+      "predicate": "reported_direction",
+      "provenance": {
+        "actor": {
+          "actor_id": "claude-example",
+          "actor_kind": "model"
+        },
+        "created_at": "2026-07-27T20:00:00Z",
+        "method": "bounded_explicit_extraction",
+        "source_refs": [
+          {
+            "chunk_label": "claim-1",
+            "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "locator": "manuscript/results.qmd#claim-1",
+            "path": "manuscript/results.qmd",
+            "quoted_text": "Treatment increased expression.",
+            "source_kind": "document_chunk"
+          }
+        ],
+        "tool": "sc_referee.claude",
+        "tool_version": "0.5.0"
+      },
+      "rationale": "The source text states that treatment increased expression.",
+      "record_type": "semantic_assertion",
+      "schema_version": "0.7.0",
+      "semantic_role": "reported",
+      "source_refs": [
+        {
+          "chunk_label": "claim-1",
+          "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "locator": "manuscript/results.qmd#claim-1",
+          "path": "manuscript/results.qmd",
+          "quoted_text": "Treatment increased expression.",
+          "source_kind": "document_chunk"
+        }
+      ],
+      "subject_ref": {
+        "record_id": "claim:1",
+        "record_type": "claim"
+      },
+      "supersedes_assertion_ids": [],
+      "verification": {
+        "method": "exact_quote_match",
+        "status": "verified",
+        "validator_id": "validator:literal-direction",
+        "verified_at": "2026-07-27T20:00:00Z"
+      }
+    }
+  ],
+  "semantic_lock_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "stage_results": [],
+  "storage_manifests": [
+    {
+      "audit_run_id": "run:example",
+      "canonical_manifest_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "canonical_record_formats": [
+        "json",
+        "jsonl"
+      ],
+      "canonical_record_roots": [
+        ".sc-referee/runs/run-example/observed/",
+        ".sc-referee/runs/run-example/resolved/",
+        ".sc-referee/runs/run-example/derived/"
+      ],
+      "content_addressed_object_store": {
+        "digest_algorithm": "sha256",
+        "root": ".sc-referee/runs/run-example/objects/"
+      },
+      "created_at": "2026-07-27T23:45:00Z",
+      "generated_query_index": {
+        "canonical": false,
+        "disposable": true,
+        "engine": "sqlite",
+        "last_rebuild_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "path": ".sc-referee/runs/run-example/audit.db",
+        "rebuildable_from_canonical_records": true
+      },
+      "provenance": {
+        "actor": {
+          "actor_id": "sc-referee-core",
+          "actor_kind": "controller",
+          "display_name": "sc-referee controller"
+        },
+        "created_at": "2026-07-27T23:45:00Z",
+        "method": "deterministic_controller",
+        "source_refs": [],
+        "tool": "sc-referee-core",
+        "tool_version": "0.5.0"
+      },
+      "record_type": "storage_manifest",
+      "schema_version": "0.7.0",
+      "scientist_editable_formats": [
+        "yaml",
+        "json"
+      ],
+      "storage_manifest_id": "storage-manifest:run-example"
+    }
+  ],
+  "tool_identities": [
+    {
+      "build_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "captured_at": "2026-07-27T23:45:00Z",
+      "claude_skill_command": "/scientific-audit",
+      "cli_executable": "sc-referee",
+      "compatibility_cli_aliases": [
+        "referee"
+      ],
+      "component_versions": {
+        "controller": "0.5.0-draft",
+        "schemas": "0.5.0"
+      },
+      "distribution_name": "sc-referee",
+      "import_namespace": "sc_referee",
+      "namespaced_plugin_command": "/sc-referee:scientific-audit",
+      "product_name": "sc-referee",
+      "provenance": {
+        "actor": {
+          "actor_id": "sc-referee-core",
+          "actor_kind": "controller",
+          "display_name": "sc-referee controller"
+        },
+        "created_at": "2026-07-27T23:45:00Z",
+        "method": "deterministic_controller",
+        "source_refs": [],
+        "tool": "sc-referee-core",
+        "tool_version": "0.5.0"
+      },
+      "python_runtime": "3.11.9",
+      "record_type": "tool_identity",
+      "schema_namespace": "https://w3id.org/sc-referee/schema/v0.7.0/",
+      "schema_version": "0.7.0",
+      "tool_identity_id": "tool-identity:sc-referee:0.5.0"
+    }
+  ],
+  "work_items": []
+}

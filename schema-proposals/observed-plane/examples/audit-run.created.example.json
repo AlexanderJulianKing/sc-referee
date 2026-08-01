@@ -1,0 +1,12 @@
+{
+  "schema_version": "__SCHEMA_VERSION__",
+  "record_type": "audit_run",
+  "audit_run_id": "audit:candidate",
+  "state": "created",
+  "created_at": "2026-07-27T20:00:00Z",
+  "provenance": {
+    "actor": {"actor_kind": "controller", "actor_id": "controller:candidate"},
+    "method": "append_lifecycle_observation",
+    "created_at": "2026-07-27T20:00:00Z"
+  }
+}

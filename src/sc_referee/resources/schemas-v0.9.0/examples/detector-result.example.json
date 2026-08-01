@@ -1,0 +1,136 @@
+{
+  "applicability": {
+    "basis": "The claim has explicit direction, linked result, and established contrast orientation.",
+    "status": "applicable",
+    "unsupported_constructs": []
+  },
+  "audit_run_id": "audit:example-001",
+  "candidate": {
+    "assessment_type": "finding",
+    "bounded_statement": "The report describes the linked treatment contrast as positive, while the linked coefficient is negative under the established orientation.",
+    "material_premise_ids": [
+      "premise:reported-positive",
+      "premise:result-negative"
+    ],
+    "title": "Reported direction disagrees with linked result",
+    "unresolved_material_premise_ids": []
+  },
+  "counterevidence_execution": [
+    {
+      "check_id": "check:orientation",
+      "evidence_ids": [
+        "evidence:result-sign"
+      ],
+      "outcome": "no_counterevidence",
+      "status": "completed"
+    },
+    {
+      "check_id": "check:report-qualification",
+      "evidence_ids": [
+        "evidence:report-text"
+      ],
+      "outcome": "no_counterevidence",
+      "status": "completed"
+    }
+  ],
+  "coverage": {
+    "basis": "All required evidence and declared counterevidence sources were inspected.",
+    "gaps": [],
+    "status": "covered"
+  },
+  "detector_id": "detector:claim-direction",
+  "detector_manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "detector_maturity": "validated",
+  "detector_version": "1.0.0",
+  "deterministic_input_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "evaluated_at": "2026-07-27T20:00:00Z",
+  "evidence": [
+    {
+      "description": "The linked coefficient is -0.42 under the established contrast orientation.",
+      "evidence_id": "evidence:result-sign",
+      "observed_value": -0.42,
+      "record_refs": [
+        {
+          "record_id": "claim:1",
+          "record_type": "claim"
+        }
+      ],
+      "source_refs": [
+        {
+          "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "end_line": 47,
+          "locator": "analysis.py:42-47",
+          "path": "analysis.py",
+          "quoted_text": "result = fit(y ~ treatment)",
+          "source_kind": "file_span",
+          "start_line": 42
+        }
+      ],
+      "support_role": "supports"
+    },
+    {
+      "description": "The report states that treatment increased expression.",
+      "evidence_id": "evidence:report-text",
+      "observed_value": "positive",
+      "record_refs": [
+        {
+          "record_id": "claim:1",
+          "record_type": "claim"
+        }
+      ],
+      "source_refs": [
+        {
+          "chunk_label": "claim-1",
+          "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "locator": "manuscript/results.qmd#claim-1",
+          "path": "manuscript/results.qmd",
+          "quoted_text": "Treatment increased expression.",
+          "source_kind": "document_chunk"
+        }
+      ],
+      "support_role": "supports"
+    }
+  ],
+  "premise_evaluations": [
+    {
+      "evidence_ids": [
+        "evidence:report-text"
+      ],
+      "material": true,
+      "premise_id": "premise:reported-positive",
+      "state": "established",
+      "statement": "The report states a positive direction."
+    },
+    {
+      "evidence_ids": [
+        "evidence:result-sign"
+      ],
+      "material": true,
+      "premise_id": "premise:result-negative",
+      "state": "established",
+      "statement": "The linked result is negative under the established orientation."
+    }
+  ],
+  "provenance": {
+    "actor": {
+      "actor_id": "detector:claim-direction",
+      "actor_kind": "detector"
+    },
+    "created_at": "2026-07-27T20:00:00Z",
+    "method": "deterministic_detection",
+    "tool": "sc_referee.core",
+    "tool_version": "0.5.0"
+  },
+  "record_type": "detector_result",
+  "result_id": "result:claim-direction",
+  "runtime_mode": "static",
+  "schema_version": "0.9.0",
+  "state": "finding_candidate",
+  "target_refs": [
+    {
+      "record_id": "claim:1",
+      "record_type": "claim"
+    }
+  ],
+  "unavailable_evidence": []
+}

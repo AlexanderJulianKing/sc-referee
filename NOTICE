@@ -1,0 +1,8 @@
+sc-referee
+Copyright 2026 Alexander King
+
+The sc-referee name continues the project identity first used for a Claude Life Sciences hackathon prototype. This specification describes a rearchitecture focused on conservative localization of subtle scientific-analysis mistakes.
+
+sc-referee 0.3.0 was developed with substantial assistance from OpenAI Codex and Anthropic Claude. Alexander King is the project's sole human author.
+
+Third-party and benchmark-derived materials retain their own source-specific terms and provenance.

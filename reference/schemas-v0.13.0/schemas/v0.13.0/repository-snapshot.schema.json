@@ -1,0 +1,187 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.13.0/repository-snapshot.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "live_workspace_state": {
+            "properties": {
+              "status": {
+                "const": "workspace_diverged"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "live_workspace_state": {
+            "required": [
+              "detected_at",
+              "changed_paths"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+    },
+    "captured_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Timestamp"
+    },
+    "excluded_paths": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "file_manifest_ref": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "git_state": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "branch": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "captured_dirty_paths": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "captured_untracked_paths": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "commit": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "worktree_state": {
+          "enum": [
+            "clean",
+            "dirty",
+            "not_applicable",
+            "unknown"
+          ]
+        }
+      },
+      "required": [
+        "available",
+        "worktree_state"
+      ],
+      "type": "object"
+    },
+    "immutability": {
+      "const": true
+    },
+    "included_roots": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "large_asset_policy": {
+      "const": "identity_record_unless_material_copy_authorized"
+    },
+    "live_workspace_state": {
+      "additionalProperties": false,
+      "properties": {
+        "changed_paths": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "detected_at": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Timestamp"
+        },
+        "follow_up_run_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+        },
+        "mix_live_content_into_run": {
+          "const": false
+        },
+        "status": {
+          "enum": [
+            "unchanged",
+            "workspace_diverged",
+            "not_monitored"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "mix_live_content_into_run"
+      ],
+      "type": "object"
+    },
+    "project_root": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "repository_snapshot"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "snapshot_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Digest"
+    },
+    "snapshot_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.13.0/common.schema.json#/$defs/Identifier"
+    },
+    "strategy": {
+      "enum": [
+        "content_addressed_copy",
+        "git_objects_with_dirty_overlay",
+        "equivalent_immutable_materialization"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "snapshot_id",
+    "audit_run_id",
+    "project_root",
+    "captured_at",
+    "strategy",
+    "snapshot_digest",
+    "immutability",
+    "git_state",
+    "file_manifest_ref",
+    "large_asset_policy",
+    "live_workspace_state",
+    "provenance"
+  ],
+  "title": "sc-referee Repository Snapshot",
+  "type": "object"
+}

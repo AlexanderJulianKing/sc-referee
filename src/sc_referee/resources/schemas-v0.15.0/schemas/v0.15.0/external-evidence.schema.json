@@ -1,0 +1,138 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.15.0/external-evidence.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/Identifier"
+    },
+    "authentication_used": {
+      "type": "boolean"
+    },
+    "cache_status": {
+      "enum": [
+        "cached",
+        "not_cacheable",
+        "cache_failed"
+      ]
+    },
+    "cached_artifact_ref": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/RecordRef"
+    },
+    "content_identity": {
+      "oneOf": [
+        {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/Digest"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "reason": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "status": {
+              "const": "unavailable"
+            }
+          },
+          "required": [
+            "status",
+            "reason"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "external_evidence_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/Identifier"
+    },
+    "finding_premise_eligibility": {
+      "enum": [
+        "context_only",
+        "eligible_after_independent_verification",
+        "detector_bundled_definition"
+      ]
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/Provenance"
+    },
+    "purpose": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "record_type": {
+      "const": "external_evidence"
+    },
+    "redirect_chain": {
+      "items": {
+        "format": "uri",
+        "type": "string"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "reproducibility_effect": {
+      "enum": [
+        "immutable_or_versioned",
+        "snapshot_cached",
+        "mutable_unversioned",
+        "unknown"
+      ]
+    },
+    "requested_uri": {
+      "format": "uri",
+      "type": "string"
+    },
+    "resolved_uri": {
+      "format": "uri",
+      "type": "string"
+    },
+    "retrieved_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/Timestamp"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.15.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "source_class": {
+      "enum": [
+        "package_documentation",
+        "package_source",
+        "scientific_literature",
+        "workflow_reference",
+        "metadata",
+        "data",
+        "other"
+      ]
+    },
+    "version_label": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "external_evidence_id",
+    "audit_run_id",
+    "requested_uri",
+    "resolved_uri",
+    "purpose",
+    "source_class",
+    "retrieved_at",
+    "content_identity",
+    "redirect_chain",
+    "authentication_used",
+    "cache_status",
+    "reproducibility_effect",
+    "finding_premise_eligibility",
+    "provenance"
+  ],
+  "title": "External Evidence Retrieval",
+  "type": "object"
+}

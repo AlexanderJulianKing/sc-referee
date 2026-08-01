@@ -1,0 +1,6 @@
+sc-referee
+Copyright 2026 sc-referee contributors
+
+The sc-referee name continues the project identity first used for a Claude Life Sciences hackathon prototype. This distribution contains a rearchitected specification and schemas focused on conservative detection of subtle scientific-analysis mistakes.
+
+Third-party and benchmark-derived materials, when present, retain their own source-specific terms and provenance.

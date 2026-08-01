@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/environment-reconstruction.schema.json",
+  "title": "Environment Reconstruction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "environment_reconstruction_id",
+    "audit_run_id",
+    "status",
+    "definition_refs",
+    "isolated_location",
+    "user_environment_modified",
+    "system_packages_installed",
+    "local_project_installed",
+    "dependencies",
+    "started_at",
+    "finished_at",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "environment_reconstruction"
+    },
+    "environment_reconstruction_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "status": {
+      "enum": [
+        "exact",
+        "approximate",
+        "failed",
+        "timed_out",
+        "skipped"
+      ]
+    },
+    "definition_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SourceRef"
+      },
+      "minItems": 1
+    },
+    "isolated_location": {
+      "type": "string",
+      "minLength": 1
+    },
+    "environment_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Digest"
+    },
+    "approximation_reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "user_environment_modified": {
+      "const": false
+    },
+    "system_packages_installed": {
+      "const": false
+    },
+    "local_project_installed": {
+      "const": false
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "source",
+          "version_status"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version_status": {
+            "enum": [
+              "pinned",
+              "resolved_current",
+              "unknown"
+            ]
+          },
+          "digest": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Digest"
+          }
+        }
+      },
+      "minItems": 0
+    },
+    "started_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "finished_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "failure_reason": {
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "approximate"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "approximation_reason"
+        ]
+      }
+    }
+  ]
+}

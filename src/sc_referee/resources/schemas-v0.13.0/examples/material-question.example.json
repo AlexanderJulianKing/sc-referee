@@ -1,0 +1,58 @@
+{
+  "affected_claim_ids": [
+    "claim:1"
+  ],
+  "answer_ids": [],
+  "audit_run_id": "audit:example-001",
+  "blocked_detector_ids": [
+    "detector:repeated-measures"
+  ],
+  "candidate_answers": [
+    {
+      "answer_id": "answer-option:donor",
+      "consequence": "The current row-level model may omit within-donor dependence.",
+      "label": "Biological donor",
+      "value": "donor"
+    },
+    {
+      "answer_id": "answer-option:library",
+      "consequence": "The repeated-measures concern may not apply at the donor level.",
+      "label": "Sequencing library",
+      "value": "library"
+    },
+    {
+      "answer_id": "answer-option:unknown",
+      "consequence": "The detector must remain unresolved.",
+      "label": "Unknown",
+      "value": "unknown"
+    }
+  ],
+  "created_at": "2026-07-27T20:00:00Z",
+  "evidence_searched": [
+    {
+      "result": "No definition was found.",
+      "source": "repository metadata and code comments"
+    }
+  ],
+  "linked_conditional_concern_ids": [
+    "concern:repeated-measures"
+  ],
+  "priority": "high",
+  "provenance": {
+    "actor": {
+      "actor_id": "sc_referee.core",
+      "actor_kind": "controller"
+    },
+    "created_at": "2026-07-27T20:00:00Z",
+    "method": "deterministic_generation",
+    "tool": "sc_referee.core",
+    "tool_version": "0.5.0"
+  },
+  "question": "What biological or technical unit does sample_id identify?",
+  "question_id": "question:sample-id",
+  "record_type": "material_question",
+  "schema_version": "0.13.0",
+  "status": "open",
+  "unknown_semantic_dimension": "unit_of_analysis",
+  "why_it_matters": "The answer determines whether repeated biological units are modeled as independent."
+}

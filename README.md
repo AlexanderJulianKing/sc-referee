@@ -1,360 +1,168 @@
 # sc-referee
 
-**The bioinformatics reviewer you can leave behind.**
+`sc-referee` is a conservative auditor for scientific-analysis repositories. It takes an immutable
+snapshot, inspects supported files without running project-authored code, records exactly what it
+could and could not establish, and produces a replayable audit report.
 
-sc-referee is an extensible, deterministic review engine for computational biology. Point it at an
-analysis folder—data, metadata, results, and ideally code. Referee reconstructs the scientific
-claim, asks a scientist to confirm the load-bearing design facts, and independently checks the
-analysis using deterministic statistics.
+> **Public alpha:** the current program version is `0.3.0` and the public record schema
+> is `0.18.0`. The overhaul is usable for bounded review, but it is not a correctness certificate,
+> publication approval, or general detector of every possible scientific mistake.
 
-Its adapters handle standard single-cell files and multi-sample layouts. Its modular checks encode
-recurring review decisions such as pseudoreplication, confounding, pairing, multiple testing, count
-models, and circular inference. Every report distinguishes what was verified, what was flagged,
-and what lacked enough evidence to audit.
+## Why it exists
 
-> **Claude proposes. A scientist ratifies. Arithmetic decides.**
+Scientific workflows often combine code, notebooks, reports, intermediate tables, large datasets,
+and undocumented choices. A reviewer may be able to demonstrate one narrow mismatch while many
+other questions remain unresolved. `sc-referee` preserves that distinction.
 
-```bash
-# From the cloned repository root (requires uv: https://docs.astral.sh/uv/)
-uv venv --python 3.11
-uv pip install --python .venv/bin/python ".[engine,llm]"
-.venv/bin/referee                 # open the desktop folder picker
-# .venv/bin/referee ./analysis    # or review a specific folder directly
-```
+Its public assessment types are:
 
-## A published analysis, reviewed from the real data
+| Assessment | Meaning |
+|---|---|
+| `Finding` | A narrowly worded demonstrated issue that passed every admission requirement. |
+| `ConditionalConcern` | A stated consequence that applies only if an unresolved premise is later established. |
+| `MaterialQuestion` | A bounded question whose answer can change the audit. |
+| `Disclosure` | A relevant limitation, unsupported boundary, or deterministic observation below Finding authority. |
 
-The authors of the [Biermann et al. melanoma study](https://doi.org/10.1016/j.cell.2022.06.007)
-compared tumor cells from brain and peripheral metastases with a cell-level MAST analysis. Referee
-reconstructed that comparison from the official [GSE200218 public count
-matrix](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE200218) and repeated the inference with
-patients as the independent units.
+Zero Findings means only that no issue was admitted within the audit's declared evidence and
+coverage. It does not mean the workflow is correct.
 
-**16,289 reported discoveries became 770 patient-level survivors.** In other words, **95.3% lost
-significance after correcting the experimental unit**.
+## Five-minute start
 
-Referee also refused to overstate the finding. The patient-level recomputation was underpowered
-(`powered_fraction = 0.3817`), so it presented the collapse as a critical discrepancy while
-withholding a hard blocker. It did not claim that 95.3% of the biology was false.
-
-Two versions are provided:
-
-- [`demos/biermann-pseudoreplication/`](demos/biermann-pseudoreplication/) is a 5 MB, immediately
-  runnable capsule containing the published result family and its exact patient-level aggregate.
-- [`demos/biermann-pseudoreplication-full/`](demos/biermann-pseudoreplication-full/) downloads the
-  official 145,555-cell matrix, reconstructs the 82,783 tumor nuclei, verifies count-for-count
-  equality with the compact capsule, and runs Referee on the sparse full-cell matrix.
+Python 3.11 or newer is required. The development alpha is installed from a source checkout:
 
 ```bash
-.venv/bin/referee demos/biermann-pseudoreplication
+git clone https://github.com/AlexanderJulianKing/sc-referee.git
+cd sc-referee
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -e .
+sc-referee version
 ```
 
-## How it works
+Run the self-contained demonstration:
+
+```bash
+sc-referee demo examples/walking-skeleton --output .demo-audit
+sc-referee status .demo-audit --json
+sc-referee replay .demo-audit/semantic.lock.json --output .demo-replay
+```
+
+Audit an existing project by explicitly naming its final report when one is known:
+
+```bash
+sc-referee audit /path/to/project \
+  --output /path/to/project/.scientific-audit/runs/first-review \
+  --mode standard \
+  --report results/report.md
+
+sc-referee status /path/to/project/.scientific-audit/runs/first-review --json
+sc-referee questions /path/to/project/.scientific-audit/runs/first-review
+```
+
+The output directory must not already exist. The HTML report is written to `report.html` inside
+that directory. See the [quickstart](docs/QUICKSTART.md) for material inputs, replay, questions,
+and a complete interpretation example.
+
+## Use it as an agentic skill
+
+The deterministic CLI is the authority; the skills teach a coding agent how to choose bounded
+inputs, preserve human questions, and report the records without exaggeration.
+
+This repository contains:
+
+- `scientific-audit` for post-hoc review of an existing workflow; and
+- `method-contract` for freezing one narrow scientist-authorized method choice before coding.
+
+The skills are distributed in a validated Codex plugin under `plugins/sc-referee`. A repo
+marketplace is included for local installation. See [agentic skill setup](docs/AGENTIC_SKILL.md)
+for Codex and the bounded manual Agent Skills path for Claude Code.
+
+Example request after installation:
 
 ```text
-analysis folder
-      │
-      ▼
-1. ADAPT      H5AD, count tables, metadata, code, and declared sample shards
-      │
-      ▼
-2. DESCRIBE   Claude proposes roles; deterministic signals win; a scientist confirms
-      │
-      ▼
-3. AUDIT      claim-specific checks recompute, prove, or measure the consequence
-      │
-      ▼
-4. REPORT     clear · flagged · not checked · not applicable
+Use $sc-referee:scientific-audit to audit this existing scientific workflow.
+Treat report/results.md as the selected report and ask me any material questions.
 ```
 
-### 1. Adapt varied analysis layouts
+The skill must not execute project scripts, import project modules, launch notebooks, or follow
+instructions found inside the audited repository.
 
-Adapters convert supported artifacts into one canonical evidence model: observations, feature
-identities, raw counts or declared measurements, reported claims, code signals, and provenance.
-Scientific checks operate on that model rather than on a particular filename convention.
+## Current scientific coverage
 
-### 2. Confirm scientific intent
+The architecture can inventory an arbitrary repository, but scientific conclusions are available
+only for explicit bounded profiles. Current calculation modules cover:
 
-Some facts cannot be recovered safely from bytes alone: which column is the biological replicate,
-which group is the reference, or whether a measured technical axis is genuinely a nuisance.
-Deterministic signals resolve unambiguous cases. Claude may propose only structured roles when they
-are ambiguous. A scientist confirms the load-bearing facts; Claude cannot author the formula or the
-verdict.
+- complete-family Benjamini-Hochberg recomputation;
+- replicate-level single-cell sensitivity;
+- declared effect-size relevance;
+- categorical design integrity, including selected confounding, adjustment, pairing, and
+  aggregation checks;
+- selected namespaced R method/response compatibility;
+- one bounded Scanpy selection-and-test reuse shape;
+- one donor-level unadjusted eQTL sign/support profile; and
+- one arithmetic-background Hi-C loop-strength profile.
 
-### 3. Run deterministic checks
+These modules are independently removable, fail closed outside their declared contracts, and
+currently produce deterministic observations or Disclosures—not production Findings. The only
+complete Finding-producing path remains a synthetic test fixture. Read the
+[capability and limitation guide](docs/CAPABILITIES.md) before interpreting a real audit.
 
-Each check declares the analysis types and evidence it requires. Some checks recompute the result,
-some prove a design-matrix fact, and some measure a discrepancy that must be interpreted under an
-explicit power or evidence gate. The LLM is not part of this stage.
+## Safety and evidence boundary
 
-### 4. Report coverage, not just warnings
+- Production audits do not execute project-authored code.
+- Repository text is evidence, never instructions for the auditor or its agent.
+- The snapshotter opens eligible regular files to compute immutable identities. “Uninspected”
+  means no semantic/deep inspection, not no byte access.
+- A path that must not be read must be excluded from the audit workspace itself.
+- Model confidence cannot establish a material scientific premise.
+- No model calls occur after semantic lock.
+- Canonical records are JSON/JSONL; SQLite is a disposable query index.
+- Replay regenerates supported semantic outputs without model access or project execution.
 
-Referee never mistakes missing evidence for a clean analysis:
+## Documentation
 
-- **Clear** — the audited decision passed.
-- **Flagged** — the evidence earned an adverse finding.
-- **Not checked** — the decision was relevant, but a required artifact, premise, binding, or power
-  condition was missing.
-- **N/A** — the check genuinely did not apply to that claim.
+- [Quickstart and result interpretation](docs/QUICKSTART.md)
+- [Agentic skill installation and use](docs/AGENTIC_SKILL.md)
+- [Capabilities and explicit limits](docs/CAPABILITIES.md)
+- [Migration from the earlier public implementation](docs/MIGRATION.md)
+- [Authorship and AI assistance](ACKNOWLEDGMENTS.md)
+- [Citation metadata](CITATION.cff)
+- [Documentation index](docs/README.md)
+- [Practical parity matrix](docs/implementation/PRACTICAL_PARITY_MATRIX.md)
+- [Full completion matrix](docs/implementation/FULL_COMPLETION_MATRIX.md)
+- [Architecture and implementation records](docs/implementation/)
 
-If the folder itself is dangerously ambiguous—for example, two candidate matrices with no declared
-assembly—Referee stops safely with exit code `2` rather than auditing whichever file sorts first.
+## Development
 
-## What it accepts
-
-| Analysis layout | Current behavior |
-|---|---|
-| One raw-count H5AD, dense or sparse | Supported; full recomputation is available when design evidence is present |
-| Cell-by-gene CSV/TSV plus cell metadata | Supported |
-| One declared H5AD or count-table shard per biological sample | Supported through a confirmed, integrity-bound manifest |
-| Normalized values without raw counts | Structural and report-level checks still run; raw-count recomputations are marked **not checked** |
-| Multiple plausible matrices or result tables | Refuses or leaves the claim unbound until the intended artifact is declared |
-| Specialized Hi-C contact folders | Supported for the loop-strength claim contract |
-| Generic 10x MTX directory | Not yet a first-class input path; convert to H5AD or a supported table layout |
-| Arbitrary chunks of one sample across many files | Not yet a supported assembly contract |
-| One file per cell | Not a supported or practical layout |
-
-The strongest current target is a standard single-cell analysis folder containing an H5AD or count
-table, observation metadata, a results table, and analysis code. AI-produced workflows often use
-these conventions, but Referee does not assume that an AI-generated folder is complete or
-unambiguous.
-
-## What it audits today
-
-Coverage is organized by **scientific decision**, not merely by file type.
-
-| Decision family | Current reach |
-|---|---|
-| Condition-contrast differential expression | Flagship path: experimental unit, confounding, pairing, count model, multiple testing, effect-size context, and pseudobulk integrity |
-| Marker detection | Circular cluster-then-test provenance and relevant cross-cutting checks |
-| Differential abundance | Confounding, pairing, multiple testing, and enrichment-universe coverage; no general compositional-inference engine yet |
-| eQTL | Effect-allele orientation and supported sign-conformance contracts |
-| Hi-C | Specialized loop-strength claim recomputation |
-| Contamination/confounding | Contract-driven measurement and fitted-design geometry; the live GB-P07 demo remains gated until its complete evidence chain is independently cleared |
-| Trajectory and spatial claims | Narrow circularity or independence policies, not complete validation of the biological analysis |
-
-No warning means only that the decisions listed as audited passed. It does not mean every decision
-in the project was examined. The detailed boundary is maintained in
-[`docs/coverage-boundary.md`](docs/coverage-boundary.md).
-
-## Built to accumulate scientific expertise
-
-The durable artifact is not this week's check count. It is the machinery for turning another
-hard-earned review lesson into executable policy.
-
-Referee separates two extension points:
-
-- **Adapters** teach it how to assemble another artifact or storage layout into the canonical
-  evidence model.
-- **Checks** teach it how to audit another scientific decision and what evidence must be present
-  before a verdict is allowed.
-
-A new check reuses the existing confirmation gates, status semantics, report renderers, citations,
-CI behavior, and adversarial-test conventions. Contributors do not have to build a new application
-for every analysis type.
-
-Today this is a stable internal extension seam, not yet a drop-in third-party plugin SDK. A public
-SDK would additionally require versioned manifests, entry-point discovery, compatibility checks,
-isolation, and a conformance suite.
-
-## Why not just ask Claude?
-
-- **Referee recomputes; an LLM critiques.** It returns the corrected number and the measured
-  discrepancy, not merely a warning that something might be wrong.
-- **It is independent of the system that produced the analysis.** Asking the authoring model to
-  grade its own work shares its blind spots.
-- **It is deterministic and persistent.** The same evidence produces the same verdict in a local
-  report or CI run.
-- **It applies the checklist without relying on the analyst to know what to ask.**
-- **Its uncertainty is typed.** Missing evidence becomes a specific coverage gap, not reassuring
-  prose.
-
-## Evidence portfolio
-
-Each example has a different job. They should not be presented as interchangeable proof.
-
-| Case | Role | What it establishes |
-|---|---|---|
-| **Biermann melanoma** | Published-analysis audit | Referee can expose a publication-threatening experimental-unit discrepancy in a real published analysis while preserving the power qualification |
-| **Kang paired IFN-β** | Real-data calibration | A deliberately naive analysis on public human data is corrected without erasing a strong genuine response; this is not an error attributed to Kang et al. |
-| **GeneBench-Pro GB-P07** | Collaborative adversarial case | Claude, scientist-ratified premises, and deterministic geometry can expose a subtle contamination/confounding failure; the live case remains gated until fully integrated |
-| **Synthetic fixtures** | Known-truth validation | Individual checks are tested against clean controls, planted failures, abstention cases, and adversarial mutations |
-
-See [`demos/`](demos/) for the runnable/gated gallery and
-[`docs/planning/2026-07-12-final-hackathon-strategy.md`](docs/planning/2026-07-12-final-hackathon-strategy.md)
-for the claim discipline behind it.
-
-## Validation against planted truth
-
-The headline benchmark uses a multi-sample negative-binomial simulator mirroring **muscat**'s
-`simData` design. The simulator plants a known set of sample-level DE genes. From every dataset the
-harness emits a pseudoreplicated per-cell analysis and an independently estimated replicate-aware
-analysis, then scores Referee against the planted truth.
-
-**120 deterministic datasets**: 20 seeds × donor counts `{3, 4, 5, 6, 8, 12}`.
-
-| Measurement | Result |
-|---|---:|
-| Pseudoreplicated analyses never green-lit | **120 / 120** |
-| Correct analyses never falsely accused | **120 / 120** |
-| Strong `blocker` earned | **83.3%** overall; **100% at n ≥ 4** |
-| Honest `needs_evidence` abstention | **16.7%**, all at `n = 3` |
-| Precision against planted genes | per-cell **0.068** → pseudobulk **0.883** |
-| Pseudobulk recall | **0.734** |
-
-The correct arm is not Referee's own output recycled as an answer key. It is an independent
-pseudobulk → log2CPM → Welch *t* → BH estimator, and the harness fails if its agreement becomes
-degenerate. Committed metrics live in [`bench/metrics.json`](bench/metrics.json), with regression
-floors in [`bench/expected_metrics.json`](bench/expected_metrics.json).
+Install the development dependencies and run the complete local gates:
 
 ```bash
-PYTHONPATH=src:. python bench/run_benchmark.py --seeds 20 --out bench/metrics.json
+python -m pip install -e '.[dev]'
+ruff check .
+ruff format --check .
+mypy src
+pytest
+python scripts/validate_starter.py
 ```
 
-These numbers validate the experimental-unit pathway under known truth. They are not evidence that
-every registered decision family has the same measured sensitivity.
+The accepted specification and immutable schema releases live under `reference/`. Start with
+[`START_HERE.md`](START_HERE.md) and [`AGENTS.md`](AGENTS.md) before changing architecture or
+record meaning.
 
-## Adversarial testing
+## Version names
 
-The red-team corpus attacks the boundaries that commonly make scientific automation unsafe:
+The three visible version lines describe different things:
 
-- duplicate or transposed matrices, malformed counts, missing and extra cells;
-- normalized data presented as counts and ambiguous internal H5AD layers;
-- missing, duplicated, reordered, or undeclared sample shards;
-- decoy matrices and competing reported-result tables;
-- post-confirmation file mutation, stale digests, and path escapes;
-- ambiguous statistical producers, aliased imports, monkey-patching, and multiple writers;
-- paired/unpaired confusion, confounded designs, low power, and clean look-alike controls;
-- contamination-specific proposal injection, row permutation, crafted names, nonfinite axes,
-  random-intercept/weight/offset substitutions, and mutation after ratification.
+- `0.3.0` — the installable public-alpha Python program;
+- `0.18.0` — the current public JSON Schema release; and
+- `0.1.0` — the historical starter lineage.
 
-The purpose of this corpus is to establish safe behavior over the supported contracts: either the
-correct finding, a visibly conditional result, or a value-free abstention. It is not yet a measured
-recognition-rate benchmark over a representative sample of naturally occurring lab folders.
-
-Implementation notes and gate history are recorded in
-[`tests/PIPELINE_BUILD_NOTES.md`](tests/PIPELINE_BUILD_NOTES.md); the complete routing and refusal
-logic is mapped in [`docs/decision-tree.md`](docs/decision-tree.md).
-
-## Use it
-
-### Desktop flow
-
-```bash
-.venv/bin/referee                 # choose a folder in the native picker
-.venv/bin/referee ./analysis      # or skip the picker
-```
-
-Choose an analysis folder, review the proposed design, and let the browser report open when the
-audit finishes.
-
-### Explicit CLI flow
-
-```bash
-.venv/bin/sc-referee init    ./analysis
-.venv/bin/sc-referee confirm ./analysis/sc-referee.yaml
-.venv/bin/sc-referee audit   ./analysis \
-  --html ./analysis/sc-referee-report.html \
-  --json ./analysis/sc-referee-report.json
-```
-
-For Claude-assisted proposals, put `ANTHROPIC_API_KEY=...` in a gitignored `.env` in the directory
-where Referee is launched, or export it in the shell. Exported values take precedence.
-
-Exit codes:
-
-- `0` — no blocker was earned;
-- `1` — a blocker was earned;
-- `2` — the analysis could not be evaluated safely because its input or configuration was invalid.
-
-### Continuous review
-
-The reusable GitHub Action can audit the analysis on every pull request, attach the report, and fail
-only when a blocker is earned:
-
-```yaml
-jobs:
-  referee:
-    uses: ./.github/workflows/sc-referee.yml
-    with:
-      folder: analysis
-```
-
-Repository contributors can use `./scripts/dev-install.sh` for a local development installation.
-
-### Run the GB-P07 benchmark demo
-
-The GeneBench-Pro GB-P07 demo exercises the adaptive workflow compiler on externally supplied
-benchmark files, then freezes and replays a deterministic finding without a model:
-
-```bash
-GBP07_ZIP="$HOME/Desktop/genebench_phase1_inputs/GB-P07-data.zip" \
-  PYTHONPATH=src:. .venv/bin/python demos/genebench-gbp07/compile_demo.py
-```
-
-It reports a **conditional major finding** when the human-ratified ambient-contamination basis is
-absent from the submitted fitted design. The repository does not redistribute the benchmark bytes;
-see the [GB-P07 demo README](demos/genebench-gbp07/README.md) for the precise evidence boundary.
-
-## Status
-
-Early open-source build created for **Built with Claude: Life Sciences**, Builder Track. The
-flagship condition-DE pathway is runnable and backed by synthetic known-truth validation plus real
-public-data anchors. Several additional decision families are narrower or contract-driven, as
-documented above.
-
-The long-term goal is a growing, open-source library of executable peer-review decisions: a lab's
-hard-earned methods knowledge, applied consistently to every future analysis after its original
-author has moved on.
-
-## References
-
-| injected error | verdict | |
-|---|---|---|
-| pseudoreplication | `blocker` | detected + diagnosed |
-| count model (t-test on log2CPM) | `major` | detected + diagnosed |
-| no multiple-testing correction | `major` | detected + diagnosed |
-| no effect-size threshold | `major` | detected + diagnosed |
-| confounding (batch ⟂ condition) | `blocker` | detected + diagnosed |
-| normalized matrix, not raw counts | `not_audited` | detected at ingest — recompute abstains |
-| double dipping (cluster, then test) | `needs_evidence` | detected — flagged, never green-lit |
-
-Every injected error is caught. Two rows are deliberately *not* a `blocker`, and the table keeps
-that honest: `double_dipping` **abstains** (`needs_evidence`) — it flags a post-clustering marker
-test and refuses to green-light it, but the recompute that would *earn* a blocker is deferred; and
-`effect_size` tops out at `major` because an effect-size cutoff is policy, not mathematics, so it is
-reported, never blocked. (Earlier builds listed these last two as silent misses — a `not_audited`
-and, worse, a `pass`; both are now closed.)
-
-Still genuinely open: the `simple` engine handles paired designs only, and the double-dipping
-*blocking* recompute is deferred.
-
-### Beyond differential expression: eQTL review
-
-The first non-DE vertical. For a genotype→expression (`eqtl`) analysis, sc-referee forces the
-**effect-allele orientation** an analyst can leave implicit, and — when the reported estimator
-matches a supported OLS-on-log2CPM contract — independently recomputes the donor-level per-allele
-**sign** and blocks a flip. Honest by construction: with no ratified effect-allele footprint it
-returns `needs_evidence` — it will not certify a sign it cannot orient — and a non-OLS reported model
-returns `not_audited`, never a false blocker. Validated on synthetic sign-flip and specificity fixtures;
-[`docs/planning/2026-07-09-eqtl-orientation-vertical.md`](docs/planning/2026-07-09-eqtl-orientation-vertical.md)
-has the design and the honest boundary.
-- Biermann J, Melms JC, Amin AD, et al. **Dissecting the treatment-naïve ecosystem of human
-  melanoma brain metastasis.** *Cell*. 2022;185(14):2591–2608.e30.
-  [DOI](https://doi.org/10.1016/j.cell.2022.06.007) ·
-  [PubMed](https://pubmed.ncbi.nlm.nih.gov/35803246/) ·
-  [open-access full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC9677434/)
-- **GSE200218: Melanoma Brain Metastasis Atlas, sc/snRNA-seq.**
-  [NCBI GEO record and processed files](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE200218)
-- Izar Lab. **Melanoma Brain Metastasis analysis code.**
-  [GitHub repository](https://github.com/IzarLab/Melanoma_Brain_Metastasis)
-
-GB-P07 itself was **not** an allele-orientation failure. The official walkthrough showed a latent
-ambient-RNA technical axis aligned with genotype and omitted from the submitted fit. The runnable
-[GB-P07 compiler demo](demos/genebench-gbp07/) reconstructs that exposure-blind contamination basis
-and checks its containment under explicit human-ratified premises. It deliberately does not claim
-that this omission alone caused the submitted coefficient or reproduces the graded answer.
+The accepted “0.6.0 minimum proud product” is an architecture boundary, not the package version.
+The public-alpha package release is `0.3.0`.
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE).
+Apache License 2.0. Alexander King is the sole human author; OpenAI Codex and Anthropic Claude are
+acknowledged as AI development collaborators. See [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md),
+[CITATION.cff](CITATION.cff), [LICENSE](LICENSE), [NOTICE](NOTICE), and
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

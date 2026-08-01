@@ -1,0 +1,81 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.7.0/adjudication.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "adjudicated_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Timestamp"
+    },
+    "adjudication_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Identifier"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Identifier"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/EvidenceItem"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "independence_statement": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Provenance"
+    },
+    "rationale": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "record_type": {
+      "const": "adjudication"
+    },
+    "reviewers": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/Actor"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "status": {
+      "enum": [
+        "adjudicated_true_positive",
+        "adjudicated_false_positive",
+        "detector_defect",
+        "insufficient_evidence"
+      ]
+    },
+    "target_assessment_ref": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.7.0/common.schema.json#/$defs/RecordRef"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "adjudication_id",
+    "audit_run_id",
+    "target_assessment_ref",
+    "status",
+    "rationale",
+    "reviewers",
+    "independence_statement",
+    "evidence",
+    "adjudicated_at",
+    "provenance"
+  ],
+  "title": "Independent Adjudication",
+  "type": "object"
+}

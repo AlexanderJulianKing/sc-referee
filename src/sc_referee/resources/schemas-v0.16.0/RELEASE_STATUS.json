@@ -1,0 +1,9 @@
+{
+  "accepted": true,
+  "baseline_version": "0.15.0",
+  "public_release": true,
+  "release_version": "0.16.0",
+  "source_adrs": [
+    "docs/implementation/ADR-0041-SECOND-STATIC-QUALIFICATION-PROFILE.md"
+  ]
+}

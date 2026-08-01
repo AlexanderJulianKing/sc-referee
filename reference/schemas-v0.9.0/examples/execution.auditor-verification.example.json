@@ -1,0 +1,61 @@
+{
+  "actor": "sc_referee_auditor",
+  "audit_run_id": "audit:lineage-example",
+  "command": {
+    "display": "internal:verify_mean_difference",
+    "normalized_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "environment_ref": {
+    "record_id": "environment:auditor-runtime",
+    "record_type": "environment"
+  },
+  "execution_id": "execution:auditor-mean-difference",
+  "execution_kind": "auditor_verification",
+  "exit": {
+    "code": 0,
+    "state": "succeeded"
+  },
+  "identity_strength": "exact",
+  "input_refs": [
+    {
+      "record_id": "data-asset:analysis-csv",
+      "record_type": "data_asset"
+    }
+  ],
+  "limitations": [
+    "This is auditor-owned verification and is not evidence that the project workflow executed."
+  ],
+  "method": "bounded_mean_difference_recomputation",
+  "output_refs": [
+    {
+      "record_id": "observed-result:mean-difference",
+      "record_type": "observed_result"
+    }
+  ],
+  "provenance": {
+    "actor": {
+      "actor_id": "runtime:sc-referee",
+      "actor_kind": "runtime"
+    },
+    "created_at": "2026-07-28T18:00:01Z",
+    "method": "bounded_auditor_verification"
+  },
+  "record_type": "execution",
+  "sandbox": {
+    "authorization_status": "not_required",
+    "network_policy": "denied",
+    "project_code_executed": false
+  },
+  "schema_version": "0.9.0",
+  "source_refs": [
+    {
+      "locator": "internal:verify_mean_difference",
+      "source_kind": "runtime_command"
+    }
+  ],
+  "timing": {
+    "finished_at": "2026-07-28T18:00:01Z",
+    "started_at": "2026-07-28T18:00:00Z",
+    "state": "observed"
+  }
+}

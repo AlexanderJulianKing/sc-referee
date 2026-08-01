@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sc-referee:starter:v0.1.0:common",
+  "title": "sc-referee starter provisional common definitions",
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "source_ref": {
+      "type": "object",
+      "required": [
+        "path",
+        "start_line",
+        "end_line",
+        "content_digest"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "content_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "quoted_text": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

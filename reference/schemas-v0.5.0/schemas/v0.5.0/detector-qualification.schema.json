@@ -1,0 +1,450 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/detector-qualification.schema.json",
+  "title": "sc-referee Detector Qualification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "qualification_id",
+    "detector_id",
+    "detector_version",
+    "requested_maturity",
+    "outcome",
+    "effective_maturity",
+    "software_maintainer_approvals",
+    "review_basis",
+    "agent_adjudication_refs",
+    "human_scientific_approvals",
+    "author_actor_ids",
+    "qualification_report_ref",
+    "evaluation_refs",
+    "safety_gates",
+    "numeric_threshold_policy",
+    "qualification_basis_disclosure",
+    "decided_at",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "detector_qualification"
+    },
+    "qualification_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "detector_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "detector_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemVer"
+    },
+    "requested_maturity": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Maturity"
+    },
+    "outcome": {
+      "enum": [
+        "promoted",
+        "retained",
+        "rejected",
+        "deferred",
+        "demoted"
+      ]
+    },
+    "effective_maturity": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Maturity"
+    },
+    "software_maintainer_approvals": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Actor"
+      },
+      "minItems": 1
+    },
+    "review_basis": {
+      "enum": [
+        "agent_panel",
+        "mixed_panel",
+        "human_panel"
+      ]
+    },
+    "agent_adjudication_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "human_scientific_approvals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reviewer",
+          "independent_of_author",
+          "domain_expertise"
+        ],
+        "properties": {
+          "reviewer": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Actor"
+          },
+          "independent_of_author": {
+            "const": true
+          },
+          "domain_expertise": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          }
+        }
+      },
+      "minItems": 0
+    },
+    "author_actor_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "qualification_report_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evaluation_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "independent_corpus_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "safety_gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "no_known_high_or_critical_false_accusations",
+        "conditional_never_promoted",
+        "verified_good_and_hard_negative_included",
+        "decisive_counterevidence_included",
+        "cluster_aware_uncertainty_reported",
+        "public_development_cases_not_used_for_qualification",
+        "regression_fixture_for_every_discovered_false_accusation",
+        "unresolved_disagreement_excluded",
+        "qualification_report_public"
+      ],
+      "properties": {
+        "no_known_high_or_critical_false_accusations": {
+          "type": "boolean"
+        },
+        "conditional_never_promoted": {
+          "type": "boolean"
+        },
+        "verified_good_and_hard_negative_included": {
+          "type": "boolean"
+        },
+        "decisive_counterevidence_included": {
+          "type": "boolean"
+        },
+        "cluster_aware_uncertainty_reported": {
+          "type": "boolean"
+        },
+        "public_development_cases_not_used_for_qualification": {
+          "type": "boolean"
+        },
+        "regression_fixture_for_every_discovered_false_accusation": {
+          "type": "boolean"
+        },
+        "unresolved_disagreement_excluded": {
+          "type": "boolean"
+        },
+        "qualification_report_public": {
+          "type": "boolean"
+        }
+      }
+    },
+    "quantitative_metrics": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true
+    },
+    "numeric_threshold_policy": {
+      "const": "deferred_until_pilot_threshold_adr"
+    },
+    "qualification_basis_disclosure": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reviewer_disagreement": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "decided_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "review_basis": {
+            "const": "agent_panel"
+          }
+        },
+        "required": [
+          "review_basis"
+        ]
+      },
+      "then": {
+        "properties": {
+          "agent_adjudication_refs": {
+            "minItems": 1
+          },
+          "human_scientific_approvals": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "review_basis": {
+            "const": "mixed_panel"
+          }
+        },
+        "required": [
+          "review_basis"
+        ]
+      },
+      "then": {
+        "properties": {
+          "agent_adjudication_refs": {
+            "minItems": 1
+          },
+          "human_scientific_approvals": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "review_basis": {
+            "const": "human_panel"
+          }
+        },
+        "required": [
+          "review_basis"
+        ]
+      },
+      "then": {
+        "properties": {
+          "agent_adjudication_refs": {
+            "maxItems": 0
+          },
+          "human_scientific_approvals": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "review_basis": {
+            "enum": [
+              "agent_panel",
+              "mixed_panel"
+            ]
+          }
+        },
+        "required": [
+          "review_basis"
+        ]
+      },
+      "then": {
+        "properties": {
+          "agent_adjudication_refs": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "requested_maturity": {
+            "enum": [
+              "validated",
+              "publication_grade"
+            ]
+          },
+          "outcome": {
+            "const": "promoted"
+          }
+        },
+        "required": [
+          "requested_maturity",
+          "outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "agent_adjudication_refs": {
+            "minItems": 1
+          },
+          "safety_gates": {
+            "properties": {
+              "no_known_high_or_critical_false_accusations": {
+                "const": true
+              },
+              "conditional_never_promoted": {
+                "const": true
+              },
+              "verified_good_and_hard_negative_included": {
+                "const": true
+              },
+              "decisive_counterevidence_included": {
+                "const": true
+              },
+              "cluster_aware_uncertainty_reported": {
+                "const": true
+              },
+              "public_development_cases_not_used_for_qualification": {
+                "const": true
+              },
+              "regression_fixture_for_every_discovered_false_accusation": {
+                "const": true
+              },
+              "unresolved_disagreement_excluded": {
+                "const": true
+              },
+              "qualification_report_public": {
+                "const": true
+              }
+            }
+          },
+          "review_basis": {
+            "enum": [
+              "agent_panel",
+              "mixed_panel"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "requested_maturity": {
+            "const": "publication_grade"
+          },
+          "outcome": {
+            "const": "promoted"
+          }
+        },
+        "required": [
+          "requested_maturity",
+          "outcome"
+        ]
+      },
+      "then": {
+        "required": [
+          "independent_corpus_refs"
+        ],
+        "properties": {
+          "independent_corpus_refs": {
+            "minItems": 1
+          },
+          "agent_adjudication_refs": {
+            "minItems": 2
+          },
+          "review_basis": {
+            "enum": [
+              "agent_panel",
+              "mixed_panel"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "requested_maturity": {
+            "const": "validated"
+          },
+          "outcome": {
+            "const": "promoted"
+          }
+        },
+        "required": [
+          "requested_maturity",
+          "outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "effective_maturity": {
+            "const": "validated"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "requested_maturity": {
+            "const": "publication_grade"
+          },
+          "outcome": {
+            "const": "promoted"
+          }
+        },
+        "required": [
+          "requested_maturity",
+          "outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "effective_maturity": {
+            "const": "publication_grade"
+          }
+        }
+      }
+    }
+  ]
+}

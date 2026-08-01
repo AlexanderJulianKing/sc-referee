@@ -1,2 +1,0 @@
-"""IR transfer-function seam."""
-

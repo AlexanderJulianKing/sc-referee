@@ -1,0 +1,65 @@
+{
+  "schema_version": "0.5.0",
+  "record_type": "conditional_concern",
+  "concern_id": "concern:repeated-measures",
+  "audit_run_id": "audit:example-001",
+  "grouping_key": "detector:repeated-measures|operation:model-fit|dependence_structure",
+  "issue_class": "batch_nuisance_dependence_omission",
+  "title": "If sample_id identifies donors, repeated donor measurements appear to be modeled as independent",
+  "conditional_statement": "If sample_id identifies biological donors, the fitted model appears to treat repeated donor measurements as independent.",
+  "condition": {
+    "premise_id": "premise:sample-id-is-donor",
+    "premise_state": "unknown",
+    "if_true": "sample_id identifies biological donors."
+  },
+  "material_question_id": "question:sample-id",
+  "potential_impact": {
+    "level": "material_if_true",
+    "rationale": "Unmodeled within-donor dependence could affect uncertainty for the linked claim."
+  },
+  "review_priority": "high",
+  "subject_refs": [
+    {
+      "record_type": "operation",
+      "record_id": "operation:model-fit"
+    }
+  ],
+  "affected_descendants": [
+    {
+      "target_ref": {
+        "record_type": "claim",
+        "record_id": "claim:1"
+      },
+      "relationship_path": [
+        {
+          "record_type": "operation",
+          "record_id": "operation:model-fit"
+        },
+        {
+          "record_type": "claim",
+          "record_id": "claim:1"
+        }
+      ],
+      "effect": "The uncertainty statement may depend on the unresolved unit definition."
+    }
+  ],
+  "evidence": [],
+  "why_material": "The concern could change whether the model accounts for dependence.",
+  "next_evidence_needed": [
+    "A data dictionary or scientist answer defining sample_id."
+  ],
+  "detector_result_ids": [
+    "result:repeated-measures"
+  ],
+  "created_at": "2026-07-27T20:00:00Z",
+  "provenance": {
+    "actor": {
+      "actor_kind": "controller",
+      "actor_id": "sc_referee.core"
+    },
+    "method": "deterministic_generation",
+    "created_at": "2026-07-27T20:00:00Z",
+    "tool": "sc_referee.core",
+    "tool_version": "0.5.0"
+  }
+}

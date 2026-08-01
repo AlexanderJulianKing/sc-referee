@@ -1,0 +1,102 @@
+{
+  "schema_version": "0.5.0",
+  "record_type": "benchmark_adjudication",
+  "adjudication_id": "benchmark-adjudication:case-1",
+  "case_id": "case:gene-1",
+  "protocol_version": "1.0.0",
+  "review_basis": "agent_panel",
+  "stage1_review_refs": [
+    {
+      "record_type": "agent_review",
+      "record_id": "review:stage1:1"
+    },
+    {
+      "record_type": "agent_review",
+      "record_id": "review:stage1:2"
+    },
+    {
+      "record_type": "agent_review",
+      "record_id": "review:stage1:3"
+    },
+    {
+      "record_type": "agent_review",
+      "record_id": "review:stage1:4"
+    }
+  ],
+  "stage2_review_refs": [
+    {
+      "record_type": "agent_review",
+      "record_id": "review:stage2:1"
+    },
+    {
+      "record_type": "agent_review",
+      "record_id": "review:stage2:2"
+    }
+  ],
+  "stage3_detector_comparison_refs": [],
+  "provider_families": [
+    "Anthropic",
+    "OpenAI"
+  ],
+  "reference_agent_configuration": [
+    {
+      "provider": "Anthropic",
+      "agent_surface": "Claude Code",
+      "model_name": "Claude Opus 5",
+      "model_id": "claude-opus-5"
+    },
+    {
+      "provider": "OpenAI",
+      "agent_surface": "Codex",
+      "model_name": "GPT-5.6 Sol",
+      "model_id": "gpt-5.6-sol"
+    }
+  ],
+  "label_status": "positive_demonstrated",
+  "bounded_root_cause_statement": "The report direction contradicts the linked result under the resolved orientation.",
+  "issue_class": "claim_result_agreement",
+  "agreement": {
+    "cross_provider_support": true,
+    "material_disagreement": false,
+    "unresolved_dissent_excluded": true,
+    "notes": "Both provider families independently localized the same root cause."
+  },
+  "deterministic_checks": {
+    "source_references_resolved": true,
+    "claim_output_agreement_checked": true,
+    "bounded_entailment_checked": true,
+    "counterevidence_checked": true,
+    "fixture_scope_complete": true,
+    "falsification_records_complete": true
+  },
+  "majority_vote_permitted": false,
+  "exclusion_reason": null,
+  "agent_only_disclosure": "This label was established by a pinned cross-provider agent panel; it is not represented as human expert review.",
+  "answer_side_evidence_refs": [],
+  "adjudicated_at": "2026-07-27T19:00:00Z",
+  "provenance": {
+    "actor": {
+      "actor_kind": "controller",
+      "actor_id": "software:sc-referee-eval",
+      "display_name": "sc-referee evaluation controller"
+    },
+    "method": "deterministic_evaluation_runner",
+    "created_at": "2026-07-27T18:00:00Z",
+    "tool": "sc-referee-eval",
+    "tool_version": "0.5.0"
+  },
+  "provider_participation": [
+    {
+      "provider_family": "Anthropic",
+      "stage1_review_count": 2,
+      "stage2_review_count": 1,
+      "distinct_execution_context_count": 3
+    },
+    {
+      "provider_family": "OpenAI",
+      "stage1_review_count": 2,
+      "stage2_review_count": 1,
+      "distinct_execution_context_count": 3
+    }
+  ]
+}

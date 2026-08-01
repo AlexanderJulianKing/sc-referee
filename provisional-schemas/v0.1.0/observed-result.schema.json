@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sc-referee:starter:v0.1.0:observed-result",
+  "title": "Provisional ObservedResult",
+  "type": "object",
+  "required": [
+    "record_type",
+    "result_id",
+    "run_id",
+    "value",
+    "comparison",
+    "orientation",
+    "scale",
+    "source_refs",
+    "lineage_status"
+  ],
+  "properties": {
+    "record_type": {
+      "const": "observed_result"
+    },
+    "result_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "value": {
+      "type": "number"
+    },
+    "comparison": {
+      "type": "string"
+    },
+    "orientation": {
+      "enum": [
+        "treated_minus_control",
+        "control_minus_treated",
+        "unknown"
+      ]
+    },
+    "scale": {
+      "type": "string"
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SourceRef"
+      },
+      "minItems": 1
+    },
+    "lineage_status": {
+      "enum": [
+        "complete",
+        "partial",
+        "missing",
+        "unavailable"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

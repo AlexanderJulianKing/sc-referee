@@ -1,0 +1,323 @@
+{% macro source_package(source_refs, prefix) -%}
+{% if source_refs %}
+<div class="evidence-package">
+  <p><strong>Source navigation:</strong></p>
+  <ul>
+  {% for source in source_refs %}
+    <li><a href="#{{ prefix }}-source-{{ loop.index }}"><code>{{ source.locator }}</code></a></li>
+  {% endfor %}
+  </ul>
+  {% for source in source_refs %}
+  <div class="source-excerpt" id="{{ prefix }}-source-{{ loop.index }}">
+    <p><code>{{ source.locator }}</code>{% if source.content_digest is defined %} · <code>{{ source.content_digest }}</code>{% endif %}</p>
+    {% if source.quoted_text is defined %}<blockquote><code>{{ source.quoted_text|truncate(500, true, '…') }}</code></blockquote>{% else %}<p>No quoted excerpt was stored for this source.</p>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{%- endmacro %}
+{% macro evidence_package(evidence, prefix) -%}
+{% if evidence %}
+<details><summary>Exact evidence and bounded excerpts</summary>
+{% for item in evidence %}
+  <section class="evidence-item">
+    <h4>{{ item.description }}</h4>
+    <p>Role: {{ item.support_role|replace('_', ' ') }}</p>
+    {{ source_package(item.source_refs, prefix ~ '-evidence-' ~ loop.index) }}
+  </section>
+{% endfor %}
+</details>
+{% endif %}
+{%- endmacro %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sc-referee audit</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    body { max-width: 72rem; margin: 0 auto; padding: 2rem; line-height: 1.5; }
+    header, section { margin-bottom: 2rem; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem; }
+    .card { border: 1px solid #8886; border-radius: .5rem; padding: 1rem; margin-bottom: 1rem; }
+    .count { font-size: 1.8rem; font-weight: 700; }
+    code, pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+    details { margin: .75rem 0; }
+    .notice { border: 1px solid #8888; border-radius: .5rem; padding: .75rem 1rem; }
+    .source-excerpt { border: 1px solid #8886; border-radius: .5rem; padding: .75rem 1rem; scroll-margin-top: 1rem; }
+    .decision-panel { background: #8881; border-radius: .5rem; padding: 1rem; margin: 1rem 0; }
+    .decision-panel h4 { margin-top: 0; }
+    blockquote { margin-left: 0; padding: .75rem; background: #8881; }
+  </style>
+</head>
+<body>
+{% set coverage = bundle.coverage_records[0] %}
+{% set interrupted = coverage.extensions['x-run-state'] != 'complete' %}
+{% set coverage_limited = coverage.overall_status != 'complete_within_plan' and not interrupted %}
+<header>
+  <h1>sc-referee scientific audit</h1>
+  {% if interrupted %}
+  <p><strong>Partial audit: completed records were checkpointed before scheduled work finished.</strong></p>
+  <p>No claims needing correction were identified among completed detector evaluations. Pending targets are not negative results.</p>
+  {% elif coverage_limited %}
+  <p><strong>Coverage-limited audit: the deterministic run completed, but required evidence or supported detector coverage was unavailable.</strong></p>
+  <p>Zero Findings is not evidence that uncovered claims or operations are correct.</p>
+  {% elif bundle.findings %}
+  <p><strong>{{ bundle.findings|length }} claim{{ '' if bundle.findings|length == 1 else 's' }} need{{ 's' if bundle.findings|length == 1 else '' }} correction within the inspected evidence and detector coverage.</strong></p>
+  {% else %}
+  <p><strong>No claims needing correction were identified within the inspected evidence and detector coverage.</strong></p>
+  {% endif %}
+  <p class="notice">This report is not a determination that the analysis is correct, safe, publication-ready, or free of uninspected scientific issues.</p>
+</header>
+<section class="summary" aria-label="Assessment counts">
+  <div class="card"><div class="count">{{ bundle.findings|length }}</div><div>Findings</div></div>
+  <div class="card"><div class="count">{{ bundle.conditional_concerns|length }}</div><div>Conditional concerns</div></div>
+  <div class="card"><div class="count">{{ bundle.material_questions|length }}</div><div>Material questions</div></div>
+  <div class="card"><div class="count">{{ bundle.disclosures|length }}</div><div>Disclosures</div></div>
+</section>
+<section>
+  <h2>Coverage and completion</h2>
+  <p><strong>Run coverage state:</strong> {{ coverage.overall_status|replace('_', ' ') }}</p>
+  <p>{{ coverage.inventory_summary.files_classified }} of {{ coverage.inventory_summary.files_total }} inventoried files were classified; {{ coverage.inventory_summary.files_deeply_inspected }} were deeply inspected.</p>
+  <p>{{ coverage.claim_coverage.claims_inspected }} of {{ coverage.claim_coverage.claims_total }} claims were inspected; {{ coverage.claim_coverage.claims_with_complete_lineage }} had complete lineage.</p>
+  <h3>Parser surfaces</h3>
+  <ul>{% for item in coverage.parser_coverage %}<li>{{ item.surface }}: {{ item.status|replace('_', ' ') }}. {{ item.details }}</li>{% endfor %}</ul>
+  <h3>Detector targets</h3>
+  <ul>{% for item in coverage.detector_coverage %}<li><code>{{ item.detector_id }}</code>: {{ item.targets_evaluated }} of {{ item.targets_total }} evaluated ({{ item.status|replace('_', ' ') }}). {{ item.details }}</li>{% endfor %}</ul>
+  {% if coverage.extensions['x-pending-work'] %}<h3>Pending or unprocessed work</h3><ul>{% for item in coverage.extensions['x-pending-work'] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
+  {% if coverage.known_gaps %}<h3>Known coverage gaps</h3><ul>{% for item in coverage.known_gaps %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
+</section>
+<section>
+  <h2>Claims needing correction</h2>
+  {% for item in bundle.findings %}
+  <article class="card" id="finding-{{ loop.index }}">
+    {% set finding_index = loop.index %}
+    <h3>{{ item.title }}</h3>
+    <p>{{ item.summary }}</p>
+    <p><strong>Severity:</strong> {{ item.severity.level }} — {{ item.severity.rationale }}</p>
+    <p><strong>Publication materiality:</strong> {{ item.publication_materiality.level }} — {{ item.publication_materiality.rationale }}</p>
+    <p><strong>Detector maturity:</strong> {{ item.admission.detector_maturity|replace('_', ' ') }}{% if item.extensions is defined and item.extensions['x-fixture-only-test-double'] is defined and item.extensions['x-fixture-only-test-double'] %} (synthetic fixture simulation; no public qualification){% endif %}</p>
+    <p><strong>Next action:</strong> {{ item.next_action }}</p>
+    <details><summary>Admission checks and explicit non-inferences</summary>
+      <ul>
+        <li>Direct entailment: satisfied</li><li>No reversing unknown: satisfied</li><li>Exact detector applicability: satisfied</li>
+        <li>Finite counterevidence protocol: complete</li><li>Bounded wording: satisfied</li><li>Deterministic replay: satisfied</li><li>Source references: resolved</li>
+      </ul>
+      <p><strong>This Finding does not infer:</strong></p><ul>{% for statement in item.admission.non_inferences %}<li>{{ statement }}</li>{% endfor %}</ul>
+    </details>
+    <details><summary>Logical basis, affected descendants, and limits</summary>
+      <p>{{ item.logical_basis }}</p>
+      <ul>{% for descendant in item.affected_descendants %}<li>{{ descendant.effect }}</li>{% endfor %}</ul>
+      <ul>{% for limitation in item.coverage_limitations %}<li>{{ limitation }}</li>{% endfor %}</ul>
+    </details>
+    {{ evidence_package(item.evidence, 'finding-' ~ finding_index) }}
+  </article>
+  {% else %}<p>None in the inspected detector path.</p>{% endfor %}
+</section>
+<section>
+  <h2>Experimental detector outputs</h2>
+  <p>These are deterministic development outputs, not Findings. An evaluation candidate cannot enter production Finding admission unless a later, independently supported qualification promotes the exact detector version.</p>
+  {% for item in bundle.detector_results if item.detector_maturity == 'experimental' %}
+  <article class="card" id="experimental-detector-result-{{ loop.index }}">
+    <h3><code>{{ item.detector_id }}</code></h3>
+    <p><strong>State:</strong> {{ item.state|replace('_', ' ') }}. <strong>Maturity:</strong> experimental; <strong>production Finding permission:</strong> none.</p>
+    <p>{{ item.applicability.basis }}</p>
+    {% if item.candidate is defined %}<p><strong>Evaluation-only bounded statement:</strong> {{ item.candidate.bounded_statement }}</p>{% endif %}
+    {% if item.coverage.gaps %}<details><summary>Coverage gaps</summary><ul>{% for gap in item.coverage.gaps %}<li>{{ gap }}</li>{% endfor %}</ul></details>{% endif %}
+    {{ evidence_package(item.evidence, 'experimental-detector-result-' ~ loop.index) }}
+  </article>
+  {% else %}<p>No experimental detector target was evaluated.</p>{% endfor %}
+</section>
+<section>
+  <h2>Answer-side adjudicated root causes</h2>
+  <p>These qualification records preserve exact cross-provider panel decisions. They are not Findings in this audit and do not establish detector equivalence, global correctness, or publication readiness.</p>
+  {% for item in bundle.adjudicated_root_causes %}
+  <article class="card" id="root-cause-{{ loop.index }}">
+    {% set root_index = loop.index %}
+    <h3>{{ item.bounded_statement }}</h3>
+    <p><strong>Issue class:</strong> <code>{{ item.issue_class }}</code>. <strong>Identity:</strong> <code>{{ item.adjudicated_root_cause_id }}</code>.</p>
+    <p><strong>Exact panel basis:</strong> {{ item.stage1_candidate_refs|length }} Stage-1 candidates reconciled by {{ item.stage2_review_refs|length }} fresh Stage-2 reviews.</p>
+    {% if item.required_scientific_premises %}<details><summary>Required scientific premises</summary><ul>{% for premise in item.required_scientific_premises %}<li>{{ premise }}</li>{% endfor %}</ul></details>{% endif %}
+    <details><summary>Explicit stronger-claim exclusions</summary><ul>{% for exclusion in item.stronger_claims_excluded %}<li>{{ exclusion }}</li>{% endfor %}</ul></details>
+    {{ evidence_package(item.evidence, 'root-cause-' ~ root_index) }}
+  </article>
+  {% else %}<p>No answer-side adjudicated root-cause records are carried by this bundle.</p>{% endfor %}
+</section>
+<section>
+  <h2>Detector qualification evidence</h2>
+  <p>These records are qualification-only evidence. Evaluation candidates are not Findings, case outcomes are not detector qualifications, and no metric shown here permits promotion.</p>
+  <h3>Scientific-label review basis</h3>
+  {% for item in bundle.benchmark_adjudications %}
+  <article class="card">
+    <p><strong>Adjudication:</strong> <code>{{ item.adjudication_id }}</code>. <strong>Review basis:</strong> {{ item.review_basis|replace('_', ' ') }}. <strong>Provider families:</strong> {{ item.provider_families|join(', ') }}.</p>
+    {% if item.review_basis == 'agent_panel' %}<p>{{ item.agent_only_disclosure }}</p>{% endif %}
+  </article>
+  {% else %}<p>No scientific-label adjudications are carried by this bundle.</p>{% endfor %}
+  <h3>Evaluation candidates</h3>
+  {% for item in bundle.detector_evaluation_candidates %}
+  <article class="card" id="evaluation-candidate-{{ loop.index }}">
+    <h4>{{ item.title }}</h4>
+    <p>{{ item.bounded_statement }}</p>
+    <p><strong>Detector:</strong> <code>{{ item.detector_id }}</code> {{ item.detector_version }}. <strong>Candidate identity:</strong> <code>{{ item.evaluation_candidate_id }}</code>.</p>
+    <p><strong>Production admission:</strong> prohibited; the maturity gate was bypassed only for evaluation.</p>
+    <details><summary>Explicit non-inferences</summary><ul>{% for statement in item.admission_checks.non_inferences %}<li>{{ statement }}</li>{% endfor %}</ul></details>
+    {{ evidence_package(item.evidence, 'evaluation-candidate-' ~ loop.index) }}
+  </article>
+  {% else %}<p>No qualification-only detector candidates are carried by this bundle.</p>{% endfor %}
+  <h3>Fresh Stage-3 comparisons</h3>
+  {% for item in bundle.stage3_comparison_reviews %}
+  <article class="card">
+    <p><strong>Review:</strong> <code>{{ item.comparison_review_id }}</code>. <strong>Provider:</strong> {{ item.reviewer_agent.provider }}.</p>
+    <p>{{ item.candidate_mappings|length }} candidate mapping{{ '' if item.candidate_mappings|length == 1 else 's' }}; material ambiguity retained: {{ item.material_ambiguity_retained }}. Confidence had no equivalence authority.</p>
+  </article>
+  {% else %}<p>No Stage-3 comparison reviews are carried by this bundle.</p>{% endfor %}
+  <h3>Deterministic case outcomes</h3>
+  {% for item in bundle.detector_case_outcomes %}
+  <article class="card">
+    <p><strong>Case:</strong> <code>{{ item.case_id }}</code>. <strong>Status:</strong> {{ item.comparison_status|replace('_', ' ') }}.</p>
+    <p><strong>Qualification proof family:</strong> {{ item.qualification_proof_family|replace('_', ' ') }}.{% if item.qualification_proof_family == 'static_closed_scope' %} This is a non-executing, detector-specific static scope control, not a clean-execution control.{% endif %}</p>
+    <p><strong>Metric input:</strong> {{ item.metric_input_status|replace('_', ' ') }}; exact detector opportunities: {{ item.detector_result_outcomes|length }}.</p>
+    <p>Metric eligible: {{ item.metric_eligible }}; promotion-evidence eligible: {{ item.promotion_evidence_eligible }}; candidates: {{ item.candidate_outcomes|length }}; adjudicated roots: {{ item.root_outcomes|length }}.</p>
+    {% if item.metric_input_status == 'legacy_source_projection_unavailable' %}<p><strong>Coverage limitation:</strong> the legacy source lacks the exact per-result projection required for metrics, so this outcome is excluded fail-closed.</p>{% endif %}
+    {% if item.exclusion_reasons %}<ul>{% for reason in item.exclusion_reasons %}<li>{{ reason }}</li>{% endfor %}</ul>{% endif %}
+  </article>
+  {% else %}<p>No reconciled detector case outcomes are carried by this bundle.</p>{% endfor %}
+  <h3>Clustered metric sets</h3>
+  {% for item in bundle.qualification_metric_sets %}
+  <article class="card">
+    <p><strong>Metric set:</strong> <code>{{ item.metric_set_id }}</code>. {{ item.counts.problem_clusters }} problem clusters, {{ item.counts.workflows }} workflows, and {{ item.counts.opportunities }} exact detector opportunities.</p>
+    <p><strong>Verified input digest:</strong> <code>{{ item.bootstrap.input_digest }}</code>. Excluded case outcomes: {{ item.excluded_case_outcomes|length }}. Promotion-evidence eligible: {{ item.promotion_evidence_eligible }}.</p>
+    <p>Promotion remains prohibited; numeric thresholds are deferred to a pilot-informed ADR.</p>
+    <ul>{% for metric in item.metrics %}<li>{{ metric.metric_name|replace('_', ' ') }}: {% if metric.estimate is none %}not estimable ({{ metric.numerator }}/{{ metric.denominator }}){% else %}{{ metric.numerator }}/{{ metric.denominator }} = {{ metric.estimate }}{% endif %}; interval {{ metric.interval.status|replace('_', ' ') }}{% if metric.interval.status == 'estimated' %} [{{ metric.interval.lower }}, {{ metric.interval.upper }}]{% endif %}, {{ metric.interval.valid_replicates }} valid and {{ metric.interval.invalid_replicates }} invalid replicates{% if metric.interval.limitations %}. Limitations: {{ metric.interval.limitations|join(' ') }}{% endif %}</li>{% endfor %}</ul>
+    <h4>Control-family strata</h4>
+    <p>These control families are reported separately; the overall metric list must not hide differences between execution-backed, imported-execution, and static evidence.</p>
+    {% for stratum in item.control_family_strata %}
+    <details><summary>{{ stratum.proof_family|replace('_', ' ') }} — {{ stratum.case_count }} case{{ '' if stratum.case_count == 1 else 's' }}</summary>
+      {% if stratum.metrics %}<ul>{% for metric in stratum.metrics %}<li>{{ metric.metric_name|replace('_', ' ') }}: {% if metric.estimate is none %}not estimable ({{ metric.numerator }}/{{ metric.denominator }}){% else %}{{ metric.numerator }}/{{ metric.denominator }} = {{ metric.estimate }}{% endif %}</li>{% endfor %}</ul>{% else %}<p>No cases in this proof family; no family-specific rate is estimated.</p>{% endif %}
+    </details>
+    {% endfor %}
+  </article>
+  {% else %}<p>No clustered qualification metric set is carried by this bundle.</p>{% endfor %}
+  <h3>Static qualification proof records</h3>
+  {% for item in bundle.static_qualification_profiles %}
+  <article class="card">
+    <p><strong>Profile:</strong> <code>{{ item.profile_id }}</code>. <strong>Target:</strong> <code>{{ item.target_detector.detector_id }}</code> {{ item.target_detector.detector_version }}.</p>
+    <p>This profile covers only its frozen static byte-and-grammar envelope. It does not claim project execution or global scientific correctness.</p>
+  </article>
+  {% else %}<p>No static qualification profile is carried by this bundle.</p>{% endfor %}
+  {% for item in bundle.static_qualification_proofs %}
+  <article class="card">
+    <p><strong>Static proof:</strong> <code>{{ item.proof_id }}</code>. <strong>Status:</strong> {{ item.proof_status }}. Retained exact files: {{ item.retained_bytes|length }}.</p>
+    <p>No project-authored code was executed by this proof. Unsupported, ambiguous, weak-identity, or over-budget paths do not become negative controls.</p>
+  </article>
+  {% endfor %}
+</section>
+<section>
+  <h2>Conditional concerns requiring scientific review</h2>
+  {% for item in bundle.conditional_concerns %}
+  <article class="card" id="concern-{{ loop.index }}">
+    {% set concern_index = loop.index %}<h3>{{ item.title }}</h3><p>{{ item.conditional_statement }}</p>
+    <p><strong>Potential impact:</strong> {{ item.potential_impact.level|replace('_', ' ') }} — {{ item.potential_impact.rationale }}</p>
+    <p><strong>Review priority:</strong> {{ item.review_priority }}</p>
+    <p><a href="#question-{{ item.material_question_id|replace(':', '-') }}">Open the linked material question</a></p>
+    <p><strong>Why it matters:</strong> {{ item.why_material }}</p>
+    {{ evidence_package(item.evidence, 'concern-' ~ concern_index) }}
+  </article>
+  {% else %}<p>None recorded.</p>{% endfor %}
+</section>
+<section>
+  <h2>Material questions</h2>
+  {% for item in bundle.material_questions %}
+  {% set question_extensions = item.extensions if item.extensions is defined else {} %}
+  {% set is_scientific_check = question_extensions['x-scientific-check-id'] is defined %}
+  <article class="card" id="question-{{ item.question_id|replace(':', '-') }}"><h3>{{ item.question }}</h3><p>{{ item.why_it_matters }}</p>
+    <p><strong>Status:</strong> {{ item.status|replace('_', ' ') }}. <strong>Priority:</strong> {{ item.priority }}</p>
+    {% if is_scientific_check %}
+    <div class="decision-panel">
+      <h4>What the audit observed</h4>
+      {% for dimension, assertion_ids in question_extensions['x-posthoc-reported-assertion-ids']|dictsort %}
+        {% for assertion in bundle.semantic_assertions if assertion.assertion_id in assertion_ids %}
+        <p><strong>{{ dimension|replace('_', ' ') }}:</strong> <code>{{ assertion.object|tojson }}</code></p>
+        <p>This is <code>{{ assertion.predicate }}</code> on <code>{{ assertion.subject_ref.record_type }}:{{ assertion.subject_ref.record_id }}</code>. It is Finding-ineligible and does not establish execution or scientific correctness.</p>
+        {{ source_package(assertion.source_refs, 'question-' ~ loop.index ~ '-observed') }}
+        {% endfor %}
+      {% endfor %}
+      <h4>What the scientist can decide for this review</h4>
+      <ul>
+      {% for candidate in question_extensions['x-scientific-check-requirement-candidates'] %}
+        <li><strong>{{ candidate.label }}:</strong> <code>{{ candidate.operand.value|tojson }}</code>. {{ candidate.authority_basis }}</li>
+      {% endfor %}
+      </ul>
+      <p><strong>Scope:</strong> <code>{{ question_extensions['x-analysis-subject-ref'].record_type }}:{{ question_extensions['x-analysis-subject-ref'].record_id }}</code>; comparison form <code>{{ question_extensions['x-posthoc-comparison-forms'].values()|first }}</code>.</p>
+      <p>The selected value governs only this review. It does not prove historical intent, execution, numerical truth, or universal scientific correctness. Retaining the requirement as unknown produces no compatibility conclusion.</p>
+    </div>
+    {% endif %}
+    {% if item.blocked_detector_ids %}<p><strong>Blocked detectors:</strong> {% for detector in item.blocked_detector_ids %}<code>{{ detector }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</p>{% elif is_scientific_check %}<p><strong>Downstream effect:</strong> The Answer enables only one bounded review-scoped compatibility comparison; it does not unblock a detector or Finding.</p>{% endif %}
+    <details><summary>Response paths and evidence searched</summary>
+      <ul>{% for answer in item.candidate_answers %}<li><strong>{{ answer.label }}:</strong> {{ answer.consequence }}</li>{% endfor %}</ul>
+      <ul>{% for evidence in item.evidence_searched %}<li>{{ evidence.source }}: {{ evidence.result }}</li>{% endfor %}</ul>
+    </details>
+  </article>
+  {% else %}<p>None recorded.</p>{% endfor %}
+</section>
+<section>
+  <h2>Coverage and trust disclosures</h2>
+  {% for item in bundle.disclosures %}
+  <article class="card" id="disclosure-{{ loop.index }}"><h3>{{ item.title }}</h3><p>{{ item.description }}</p>
+    <p><strong>Importance:</strong> {{ item.importance }}</p><p><strong>Interpretive consequence:</strong> {{ item.interpretive_consequence }}</p>
+    {{ source_package(item.source_refs, 'disclosure-' ~ loop.index) }}
+  </article>
+  {% else %}<p>None recorded.</p>{% endfor %}
+</section>
+<section>
+  <h2>External reproduction requests</h2>
+  <p>These are proposed evidence requests only. They do not authorize sc-referee to execute project code, use credentials, or submit work to a scheduler.</p>
+  {% for item in bundle.reproduction_requests %}
+  <article class="card"><h3>{{ item.requested_action.kind|replace('_', ' ') }}</h3>
+    <p>{{ item.reason }}</p><p><strong>Status:</strong> {{ item.status }}. <strong>Resource class:</strong> {{ item.resource_class|replace('_', ' ') }}.</p>
+    <p>{{ item.requested_action.description }}</p>
+    {% if item.security_considerations %}<ul>{% for limitation in item.security_considerations %}<li>{{ limitation }}</li>{% endfor %}</ul>{% endif %}
+  </article>
+  {% else %}<p>No external reproduction request was generated for the selected scope.</p>{% endfor %}
+</section>
+<section>
+  <h2>Claim lineage</h2>
+  <p>Each grade is independent. A partial aggregate does not show that the project workflow executed or that the report was reproduced.</p>
+  {% for claim in bundle.claims %}<article class="card"><h3>{{ claim.text }}</h3><p>Aggregate lineage: {{ claim.lineage.status }}.</p>
+    <p>Linked results: {{ claim.lineage.result_refs|length }}; operations: {{ claim.lineage.operation_refs|length }}; inputs: {{ claim.lineage.input_refs|length }}; opaque dependencies: {{ claim.lineage.opaque_dependency_refs|length }}.</p>
+    <ul>
+    {% for name, grade in claim.lineage.grades|dictsort %}
+      <li><strong>{{ name|replace('_', ' ') }}:</strong> {{ grade.status }}{% if grade.limitations %} — {{ grade.limitations|join(' ') }}{% endif %}</li>
+    {% endfor %}
+    </ul>
+    {{ source_package(claim.source_refs, 'claim-' ~ loop.index) }}
+  </article>{% endfor %}
+</section>
+<section>
+  <h2>Asset identity</h2>
+  <p>Identity strength limits only claims, lineage, or detector conclusions for which exact asset identity is a material premise. A weak or unidentified asset is a coverage and reproducibility limitation, not a scientific defect.</p>
+  {% for item in bundle.asset_identities %}
+  <article class="card"><h3><code>{{ item.asset_ref.record_id }}</code></h3>
+    <p>Tier: {{ item.tier|replace('_', ' ') }}.</p>
+    {% if item.limitations %}<ul>{% for limitation in item.limitations %}<li>{{ limitation }}</li>{% endfor %}</ul>{% endif %}
+  </article>
+  {% else %}<p>No asset identity records were available in this bundle.</p>{% endfor %}
+</section>
+<section>
+  <h2>Audit identity and provenance</h2>
+  <p>Run: <code>{{ bundle.audit_run_id }}</code></p><p>Semantic lock: <code>{{ bundle.semantic_lock_digest }}</code></p>
+  {% if bundle.repository_snapshots %}{% for snapshot in bundle.repository_snapshots %}<p>Snapshot: <code>{{ snapshot.snapshot_digest }}</code>; live workspace: {{ snapshot.live_workspace_state.status|replace('_', ' ') }}.</p>{% endfor %}{% elif bundle.extensions and bundle.extensions['x-report-snapshot-projection'] %}{% set projection = bundle.extensions['x-report-snapshot-projection'] %}<p>Snapshot: <code>{{ projection.snapshot_digest }}</code>; live workspace: {{ projection.live_workspace_status|replace('_', ' ') }}.</p>{% endif %}
+  <p>External evidence records: {{ bundle.external_evidence|length }}. Project/auditor environments: {{ bundle.environments|length }}. Environment reconstructions: {{ bundle.environment_reconstructions|length }}. Reproduction requests: {{ bundle.reproduction_requests|length }}.</p>
+  {% for item in bundle.performance_records %}
+  <article class="card">
+    <h3>Performance measurement through semantic lock</h3>
+    <p>This is a replayable boundary measurement, not total run duration. Post-lock report, storage, and integrity time is excluded.</p>
+    <p>User-visible elapsed: {{ item.user_visible_elapsed_seconds }} seconds; paused for scientist: {{ item.paused_for_scientist_seconds }} seconds.</p>
+    <p>Controller-observed model calls: {{ item.model_usage.calls }}; parser-cache hits: {{ item.cache_usage.hits }}; misses: {{ item.cache_usage.misses }}; invalidations: {{ item.cache_usage.invalidations }}.</p>
+    <p>Metered snapshot full-digest reads: {{ item.io_usage.source_bytes_read }} bytes; sampled-fingerprint reads: {{ item.io_usage.large_asset_bytes_read }} bytes. Other I/O is not included.</p>
+  </article>
+  {% else %}<p>No public performance measurement was recorded for this path.</p>{% endfor %}
+</section>
+</body>
+</html>

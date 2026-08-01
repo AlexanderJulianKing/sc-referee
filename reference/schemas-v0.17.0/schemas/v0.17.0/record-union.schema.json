@@ -1,0 +1,175 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.17.0/record-union.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/adjudication.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/agent-review.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/asset-identity.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/audit-plan.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/benchmark-adjudication.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/benchmark-fixture.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/cache-entry.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/cache-policy.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/capability-matrix.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/causal-contract.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/claim.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/conditional-concern.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/coverage-record.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/detector-manifest.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/detector-qualification.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/detector-result.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/disclosure.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/environment-reconstruction.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/external-evidence.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/finding.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/material-question.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/parser-manifest.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/parser-result.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/performance-record.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/publication-surface.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/repository-snapshot.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/reproduction-request.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/ro-crate-export.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/sandbox-capability.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/scientific-contract.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/scientist-disposition.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/semantic-assertion.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/storage-manifest.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/tool-identity.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/audit-run.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/stage-result.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/file-record.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/operation.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/artifact.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/observed-result.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/work-item.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/answer.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/data-asset.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/variable.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/analysis-decision.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/selection-envelope.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/execution.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/environment.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/adjudicated-root-cause.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/detector-evaluation-candidate.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/stage3-comparison-review.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/detector-case-outcome.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/qualification-metric-set.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/project-execution-authorization.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/static-qualification-profile.schema.json"
+    },
+    {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.17.0/static-qualification-proof.schema.json"
+    }
+  ],
+  "title": "sc-referee Record Union"
+}

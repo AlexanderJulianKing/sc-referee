@@ -1,0 +1,30 @@
+{
+  "schema_version": "__SCHEMA_VERSION__",
+  "record_type": "analysis_decision",
+  "analysis_decision_id": "analysis-decision:literal-group-filter",
+  "audit_run_id": "audit:lineage-example",
+  "decision_kind": "subgroup",
+  "observation_status": "observed",
+  "description": "The source selects rows whose group literal is treated or control.",
+  "decision_input_refs": [
+    {"record_type": "data_asset", "record_id": "data-asset:analysis-csv"}
+  ],
+  "alternatives": [
+    {"alternative_id": "alternative:treated", "label": "treated", "state": "selected", "source_refs": [{"source_kind": "file_span", "locator": "analysis.py:8", "path": "analysis.py", "start_line": 8, "end_line": 8}]},
+    {"alternative_id": "alternative:control", "label": "control", "state": "selected", "source_refs": [{"source_kind": "file_span", "locator": "analysis.py:9", "path": "analysis.py", "start_line": 9, "end_line": 9}]}
+  ],
+  "selection_statistic": {"state": "not_applicable", "source_refs": []},
+  "outcome_influence": "not_assessed",
+  "downstream_refs": [
+    {"record_type": "operation", "record_id": "operation:mean-difference"}
+  ],
+  "source_refs": [
+    {"source_kind": "file_span", "locator": "analysis.py:8-9", "path": "analysis.py", "start_line": 8, "end_line": 9}
+  ],
+  "limitations": ["Static observation of literal filtering does not establish why the alternatives were chosen."],
+  "provenance": {
+    "actor": {"actor_kind": "parser", "actor_id": "parser:python-ast-tokenize"},
+    "method": "static_literal_extraction",
+    "created_at": "2026-07-28T18:00:00Z"
+  }
+}

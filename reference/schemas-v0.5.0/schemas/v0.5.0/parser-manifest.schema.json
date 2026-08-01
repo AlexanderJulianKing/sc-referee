@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/parser-manifest.schema.json",
+  "title": "sc-referee Parser Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "parser_id",
+    "parser_version",
+    "language_or_surface",
+    "backend",
+    "supported_versions",
+    "capabilities",
+    "unsupported_constructs",
+    "executes_project_code",
+    "implementation_digest",
+    "runtime_requirements",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "parser_manifest"
+    },
+    "parser_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "parser_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SemVer"
+    },
+    "language_or_surface": {
+      "type": "string",
+      "minLength": 1
+    },
+    "backend": {
+      "enum": [
+        "cpython_ast_tokenize",
+        "tree_sitter_r",
+        "base_r_parse_data",
+        "jupyter_json",
+        "pandoc_document_ast",
+        "shell_parser",
+        "snakemake_static_adapter",
+        "nextflow_static_adapter",
+        "other"
+      ]
+    },
+    "supported_versions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "inventory",
+          "syntax_tree",
+          "exact_spans",
+          "comments",
+          "formulas",
+          "operation_extraction",
+          "error_recovery",
+          "source_references"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "unsupported_constructs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "executes_project_code": {
+      "const": false
+    },
+    "implementation_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Digest"
+    },
+    "grammar_or_runtime_identity": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "runtime_requirements": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

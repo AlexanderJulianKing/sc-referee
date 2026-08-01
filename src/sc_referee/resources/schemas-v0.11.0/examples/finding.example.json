@@ -1,0 +1,115 @@
+{
+  "admission": {
+    "bounded_wording": true,
+    "counterevidence_protocol_complete": true,
+    "detector_maturity": "validated",
+    "deterministic_replay": true,
+    "direct_entailment": true,
+    "exact_detector_applicability": true,
+    "material_premise_ids": [
+      "premise:reported-positive",
+      "premise:result-negative"
+    ],
+    "no_reversing_unknown": true,
+    "non_inferences": [
+      "This finding does not establish that the biological conclusion is false.",
+      "This finding does not estimate the effect of correcting the report."
+    ],
+    "source_references_resolved": true,
+    "unresolved_material_premise_ids": []
+  },
+  "affected_descendants": [
+    {
+      "effect": "The final directional claim requires correction.",
+      "relationship_path": [
+        {
+          "record_id": "claim:1",
+          "record_type": "claim"
+        }
+      ],
+      "target_ref": {
+        "record_id": "claim:1",
+        "record_type": "claim"
+      }
+    }
+  ],
+  "audit_run_id": "audit:example-001",
+  "coverage_limitations": [
+    "The detector does not assess biological plausibility."
+  ],
+  "created_at": "2026-07-27T20:00:00Z",
+  "demonstration_status": "demonstrated",
+  "detector_result_ids": [
+    "result:claim-direction"
+  ],
+  "evidence": [
+    {
+      "description": "The linked coefficient is -0.42 under the established contrast orientation.",
+      "evidence_id": "evidence:result-sign",
+      "observed_value": -0.42,
+      "record_refs": [
+        {
+          "record_id": "claim:1",
+          "record_type": "claim"
+        }
+      ],
+      "source_refs": [
+        {
+          "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "end_line": 47,
+          "locator": "analysis.py:42-47",
+          "path": "analysis.py",
+          "quoted_text": "result = fit(y ~ treatment)",
+          "source_kind": "file_span",
+          "start_line": 42
+        }
+      ],
+      "support_role": "supports"
+    }
+  ],
+  "finding_id": "finding:claim-direction",
+  "grouping_key": "detector:claim-direction|claim:1|scale_and_orientation",
+  "issue_class": "claim_result_disagreement",
+  "logical_basis": "Explicit positive report wording AND established negative linked result under the same contrast orientation implies a bounded direction contradiction.",
+  "next_action": "Correct the claim wording or the linked result reference.",
+  "provenance": {
+    "actor": {
+      "actor_id": "sc_referee.core",
+      "actor_kind": "controller"
+    },
+    "created_at": "2026-07-27T20:00:00Z",
+    "method": "deterministic_generation",
+    "tool": "sc_referee.core",
+    "tool_version": "0.5.0"
+  },
+  "publication_materiality": {
+    "level": "claim_material",
+    "publication_surface_ids": [
+      "surface:manuscript-results"
+    ],
+    "rationale": "The issue directly affects one final claim.",
+    "state": "assessed"
+  },
+  "record_type": "finding",
+  "root_cause": {
+    "explanation": "The reported proposition and linked numerical result have opposite signs after orientation is established.",
+    "root_ref": {
+      "record_id": "claim:1",
+      "record_type": "claim"
+    },
+    "violated_semantic_dimension": "scale_and_orientation"
+  },
+  "schema_version": "0.11.0",
+  "severity": {
+    "level": "major",
+    "rationale": "The direction of a final reported effect is incorrect."
+  },
+  "subject_refs": [
+    {
+      "record_id": "claim:1",
+      "record_type": "claim"
+    }
+  ],
+  "summary": "The report describes the linked treatment contrast as positive, while the linked coefficient is negative under the established orientation.",
+  "title": "Reported direction disagrees with linked result"
+}

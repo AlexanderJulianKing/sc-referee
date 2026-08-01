@@ -1,0 +1,21 @@
+{
+  "schema_version": "__SCHEMA_VERSION__",
+  "record_type": "observed_result",
+  "observed_result_id": "observed-result:interval",
+  "audit_run_id": "audit:candidate",
+  "value_kind": "interval",
+  "interval_value": {"lower": -0.8, "upper": -0.1},
+  "observation_method": "literal_extraction",
+  "producing_operation_ref": {"record_type": "operation", "record_id": "operation:estimate"},
+  "artifact_ref": {"record_type": "artifact", "record_id": "artifact:interval"},
+  "source_refs": [{"source_kind": "file_span", "locator": "result.json:2", "path": "result.json", "start_line": 2, "end_line": 2}],
+  "lineage_status": "partial",
+  "lineage_limitations": ["The interval was extracted literally; its computation was not independently reconstructed."],
+  "comparison": {"state": "unknown", "rationale": "Comparison metadata was absent.", "evidence_refs": []},
+  "orientation": {"state": "unknown", "rationale": "Orientation metadata was absent.", "evidence_refs": []},
+  "scale": {"state": "unknown", "rationale": "Scale metadata was absent.", "evidence_refs": []},
+  "unit": {"state": "unknown", "rationale": "Unit metadata was absent.", "evidence_refs": []},
+  "population": {"state": "unknown", "rationale": "Population metadata was absent.", "evidence_refs": []},
+  "timing": {"state": "unknown", "rationale": "Timing metadata was absent.", "evidence_refs": []},
+  "provenance": {"actor": {"actor_kind": "parser", "actor_id": "parser:json"}, "method": "literal_json_extraction", "created_at": "2026-07-27T20:00:03Z"}
+}

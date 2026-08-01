@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/cache-entry.schema.json",
+  "title": "sc-referee Cache Entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "cache_entry_id",
+    "cache_scope",
+    "content_class",
+    "input_digests",
+    "output_refs",
+    "contains_source_derived_information",
+    "cross_repository_reuse_allowed",
+    "created_at",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "cache_entry"
+    },
+    "cache_entry_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "cache_scope": {
+      "enum": [
+        "project_local",
+        "user_global_tool_asset"
+      ]
+    },
+    "content_class": {
+      "enum": [
+        "source_derived",
+        "public_tool_asset",
+        "public_external_evidence",
+        "dependency_environment"
+      ]
+    },
+    "input_digests": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Digest"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "output_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/RecordRef"
+      }
+    },
+    "contains_source_derived_information": {
+      "type": "boolean"
+    },
+    "cross_repository_reuse_allowed": {
+      "type": "boolean"
+    },
+    "dependency_keys": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "last_validated_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "invalidated_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "invalidation_reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "contains_source_derived_information": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "cache_scope": {
+            "const": "project_local"
+          },
+          "cross_repository_reuse_allowed": {
+            "const": false
+          }
+        }
+      }
+    }
+  ]
+}

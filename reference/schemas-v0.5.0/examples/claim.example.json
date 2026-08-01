@@ -1,0 +1,64 @@
+{
+  "schema_version": "0.5.0",
+  "record_type": "claim",
+  "claim_id": "claim:1",
+  "audit_run_id": "audit:example-001",
+  "report_ref": {
+    "record_type": "artifact",
+    "record_id": "artifact:report"
+  },
+  "claim_status": "final",
+  "claim_kind": "directional",
+  "text": "Treatment increased expression.",
+  "source_refs": [
+    {
+      "source_kind": "document_chunk",
+      "locator": "manuscript/results.qmd#claim-1",
+      "path": "manuscript/results.qmd",
+      "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "chunk_label": "claim-1",
+      "quoted_text": "Treatment increased expression."
+    }
+  ],
+  "scientific_contract_id": "contract:claim-1",
+  "proposition": {
+    "subject": "treatment contrast",
+    "predicate": "increased expression",
+    "claim_strength": "associational",
+    "population": "analysis cohort",
+    "comparison": "treated versus control",
+    "direction": "positive",
+    "scale": "log expression"
+  },
+  "lineage": {
+    "status": "complete",
+    "result_refs": [
+      {
+        "record_type": "artifact",
+        "record_id": "artifact:coefficient"
+      }
+    ],
+    "operation_refs": [
+      {
+        "record_type": "operation",
+        "record_id": "operation:model-fit"
+      }
+    ],
+    "input_refs": [
+      {
+        "record_type": "data_asset",
+        "record_id": "data:expression"
+      }
+    ],
+    "missing_links": [],
+    "opaque_dependency_refs": []
+  },
+  "extraction": {
+    "method": "model_assisted",
+    "explicit_source_meaning": true,
+    "independently_verified": true,
+    "semantic_assertion_ids": [
+      "assertion:report-direction"
+    ]
+  }
+}

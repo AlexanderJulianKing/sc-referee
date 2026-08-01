@@ -1,0 +1,251 @@
+{
+  "$defs": {
+    "LiteralValue": {
+      "oneOf": [
+        {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "type": "array"
+        }
+      ]
+    },
+    "ParserResultRef": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "parser_result"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "ToolIdentityRef": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "tool_identity"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://w3id.org/sc-referee/schema/v0.10.0/operation.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "opaque_operation"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "inspection_status": {
+            "const": "opaque"
+          },
+          "opaque_boundaries": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "inspection_status": {
+            "const": "opaque"
+          }
+        },
+        "required": [
+          "inspection_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "kind": {
+            "const": "opaque_operation"
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Identifier"
+    },
+    "determinism": {
+      "enum": [
+        "deterministic",
+        "nondeterministic",
+        "unknown"
+      ]
+    },
+    "environment_ref": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/RecordRef"
+    },
+    "implementation": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "package": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "package_version": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "tool_identity_ref": {
+          "$ref": "#/$defs/ToolIdentityRef"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "input_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/RecordRef"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "inspection_status": {
+      "enum": [
+        "supported",
+        "partial",
+        "opaque",
+        "unsupported"
+      ]
+    },
+    "kind": {
+      "enum": [
+        "read",
+        "write",
+        "parse",
+        "validate",
+        "join",
+        "filter",
+        "exclude",
+        "sample",
+        "transform",
+        "normalize",
+        "calibrate",
+        "impute",
+        "aggregate",
+        "reshape",
+        "select_feature",
+        "choose_threshold",
+        "choose_subgroup",
+        "choose_model",
+        "fit_model",
+        "test_hypothesis",
+        "estimate",
+        "predict",
+        "diagnose",
+        "resample",
+        "adjust_multiple_testing",
+        "render",
+        "export",
+        "opaque_operation"
+      ]
+    },
+    "literal_parameters": {
+      "additionalProperties": {
+        "$ref": "#/$defs/LiteralValue"
+      },
+      "type": "object"
+    },
+    "opaque_boundaries": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "operation_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Identifier"
+    },
+    "output_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/RecordRef"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "parser_result_ref": {
+      "$ref": "#/$defs/ParserResultRef"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "operation"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "source_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/SourceRef"
+      },
+      "minItems": 1,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "operation_id",
+    "audit_run_id",
+    "kind",
+    "source_refs",
+    "input_refs",
+    "output_refs",
+    "literal_parameters",
+    "determinism",
+    "parser_result_ref",
+    "inspection_status",
+    "opaque_boundaries",
+    "provenance"
+  ],
+  "title": "sc-referee Operation",
+  "type": "object"
+}

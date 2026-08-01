@@ -1,0 +1,21 @@
+sc-referee schema package 0.5.0 validation
+
+JSON Schemas checked: 37
+Cataloged schemas: 37
+Example records validated: 36
+Invariant tests passed: 46
+Duplicate JSON keys: none detected
+Canonical local references: all resolved
+JSON Schema meta-validation: passed
+
+Record validation command:
+  python tools/validate_records.py examples
+
+Test command:
+  pytest -q
+
+Result:
+  Validated 36 record(s).
+  46 passed in 1.16s
+
+These checks establish structural and selected deterministic-policy consistency. They do not establish scientific detector validity, benchmark-label truth, precision, recall, or runtime performance.

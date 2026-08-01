@@ -1,0 +1,18 @@
+{
+  "schema_version": "__SCHEMA_VERSION__",
+  "record_type": "artifact",
+  "artifact_id": "artifact:estimate",
+  "audit_run_id": "audit:candidate",
+  "kind": "computed_value",
+  "observed_role": "mean difference output",
+  "source_refs": [{"source_kind": "file_span", "locator": "analysis.py:14", "path": "analysis.py", "start_line": 14, "end_line": 14}],
+  "producer_operation_refs": [{"record_type": "operation", "record_id": "operation:estimate"}],
+  "consumer_operation_refs": [],
+  "asset_identity_ref": {"record_type": "asset_identity", "record_id": "asset-identity:estimate"},
+  "limitations": ["Observed lineage does not establish scientific correctness."],
+  "provenance": {
+    "actor": {"actor_kind": "parser", "actor_id": "parser:python-ast"},
+    "method": "static_artifact_extraction",
+    "created_at": "2026-07-27T20:00:02Z"
+  }
+}

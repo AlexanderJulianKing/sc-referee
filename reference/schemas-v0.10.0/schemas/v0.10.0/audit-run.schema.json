@@ -1,0 +1,166 @@
+{
+  "$defs": {
+    "AuditRunRef": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "audit_run"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    },
+    "RepositorySnapshotRef": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Identifier"
+        },
+        "record_type": {
+          "const": "repository_snapshot"
+        }
+      },
+      "required": [
+        "record_type",
+        "record_id"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://w3id.org/sc-referee/schema/v0.10.0/audit-run.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "created"
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "snapshot_ref"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "snapshotted",
+              "inventoried",
+              "parsed",
+              "semantics_proposed",
+              "awaiting_answers",
+              "semantics_resolved",
+              "semantics_locked",
+              "detected",
+              "reported",
+              "complete"
+            ]
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "required": [
+          "snapshot_ref"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "partial_deadline",
+              "partial_host_limit",
+              "cancelled",
+              "failed_controller"
+            ]
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "required": [
+          "terminal_reason"
+        ]
+      }
+    }
+  ],
+  "properties": {
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Identifier"
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Timestamp"
+    },
+    "parent_run_ref": {
+      "$ref": "#/$defs/AuditRunRef"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "audit_run"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.10.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "snapshot_ref": {
+      "$ref": "#/$defs/RepositorySnapshotRef"
+    },
+    "state": {
+      "enum": [
+        "created",
+        "snapshotted",
+        "inventoried",
+        "parsed",
+        "semantics_proposed",
+        "awaiting_answers",
+        "semantics_resolved",
+        "semantics_locked",
+        "detected",
+        "reported",
+        "complete",
+        "partial_deadline",
+        "partial_host_limit",
+        "cancelled",
+        "failed_controller"
+      ]
+    },
+    "terminal_reason": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "audit_run_id",
+    "state",
+    "created_at",
+    "provenance"
+  ],
+  "title": "sc-referee AuditRun",
+  "type": "object"
+}

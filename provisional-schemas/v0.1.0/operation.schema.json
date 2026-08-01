@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sc-referee:starter:v0.1.0:operation",
+  "title": "Provisional Operation",
+  "type": "object",
+  "required": [
+    "record_type",
+    "operation_id",
+    "run_id",
+    "kind",
+    "source_refs",
+    "inspection_status"
+  ],
+  "properties": {
+    "record_type": {
+      "const": "operation"
+    },
+    "operation_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "implementation": {
+      "type": "string"
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SourceRef"
+      }
+    },
+    "input_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "output_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "inspection_status": {
+      "enum": [
+        "supported",
+        "partial",
+        "opaque",
+        "unsupported"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

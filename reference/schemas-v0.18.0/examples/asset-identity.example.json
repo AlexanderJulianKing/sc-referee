@@ -1,0 +1,38 @@
+{
+  "asset_identity_id": "asset-identity:raw-bam",
+  "asset_ref": {
+    "record_id": "data:raw-bam",
+    "record_type": "data_asset"
+  },
+  "audit_run_id": "run:example",
+  "created_at": "2026-07-27T23:30:00Z",
+  "identity_evidence": {
+    "kind": "manifest",
+    "manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "manifest_ref": {
+      "end_line": 1,
+      "locator": "checksums/inputs.sha256:1",
+      "path": "checksums/inputs.sha256",
+      "source_kind": "file_span",
+      "start_line": 1
+    }
+  },
+  "limitations": [
+    "Raw BAM files were not read during the interactive audit."
+  ],
+  "provenance": {
+    "actor": {
+      "actor_id": "sc_referee.core",
+      "actor_kind": "controller",
+      "display_name": "sc-referee controller"
+    },
+    "created_at": "2026-07-27T23:30:00Z",
+    "method": "deterministic_controller",
+    "source_refs": [],
+    "tool": "sc_referee.core",
+    "tool_version": "0.5.0"
+  },
+  "record_type": "asset_identity",
+  "schema_version": "0.18.0",
+  "tier": "manifest"
+}

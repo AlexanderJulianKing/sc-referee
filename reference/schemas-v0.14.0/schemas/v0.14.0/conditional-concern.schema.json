@@ -1,0 +1,158 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.14.0/conditional-concern.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "affected_descendants": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/AffectedDescendant"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/Identifier"
+    },
+    "concern_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/Identifier"
+    },
+    "condition": {
+      "additionalProperties": false,
+      "properties": {
+        "if_true": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "premise_id": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/Identifier"
+        },
+        "premise_state": {
+          "enum": [
+            "unknown",
+            "conflicted"
+          ]
+        }
+      },
+      "required": [
+        "premise_id",
+        "premise_state",
+        "if_true"
+      ],
+      "type": "object"
+    },
+    "conditional_statement": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/Timestamp"
+    },
+    "detector_result_ids": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/Identifier"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/EvidenceItem"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "grouping_key": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "issue_class": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/IssueClass"
+    },
+    "material_question_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/Identifier"
+    },
+    "next_evidence_needed": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "potential_impact": {
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/PotentialImpactLevel"
+        },
+        "rationale": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "level",
+        "rationale"
+      ],
+      "type": "object"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "conditional_concern"
+    },
+    "review_priority": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/ReviewPriority"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "subject_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.14.0/common.schema.json#/$defs/RecordRef"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "title": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "why_material": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "concern_id",
+    "audit_run_id",
+    "grouping_key",
+    "issue_class",
+    "title",
+    "conditional_statement",
+    "condition",
+    "material_question_id",
+    "potential_impact",
+    "review_priority",
+    "subject_refs",
+    "affected_descendants",
+    "evidence",
+    "why_material",
+    "next_evidence_needed",
+    "detector_result_ids",
+    "created_at",
+    "provenance"
+  ],
+  "title": "Conditional Scientific Concern",
+  "type": "object"
+}

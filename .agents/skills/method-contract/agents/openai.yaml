@@ -1,0 +1,4 @@
+interface:
+  display_name: "Method Contract"
+  short_description: "Freeze scientific method intent before coding"
+  default_prompt: "Use $method-contract to freeze the intended analysis method before implementing this scientific workflow."

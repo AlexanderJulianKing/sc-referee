@@ -1,0 +1,464 @@
+{
+  "package": "sc-referee-specification",
+  "version": "0.5.0-draft",
+  "schema_version": "0.5.0",
+  "date": "2026-07-27",
+  "source_of_truth": "modular_markdown_adrs_and_machine_registers",
+  "generated_review_copies": [
+    "MASTER_SPEC.md",
+    "MASTER_SPEC.html",
+    "sc-referee-specification-v0.5.0.docx"
+  ],
+  "documents": [
+    {
+      "path": "ACCEPTANCE_CRITERIA.md",
+      "title": "Initial acceptance criteria",
+      "sha256": "86b4f8c1252d27985b619643bb5bebf66ff819908310d4b933ae72ada0cc687a",
+      "word_count": 1289
+    },
+    {
+      "path": "CHANGELOG.md",
+      "title": "Changelog",
+      "sha256": "7c427a755b3069f44f0a1673fe885efa71bb2474ec19d6211a609f03a185dbe6",
+      "word_count": 348
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "title": "Contributing to the specification",
+      "sha256": "10f15eaf5ab7019ad94af20d6ea0080d8c917fbc04821f8dfe957c917c958211",
+      "word_count": 150
+    },
+    {
+      "path": "DECISIONS_v0.5.md",
+      "title": "Accepted decisions in specification 0.5.0",
+      "sha256": "855f04d846f1ff0cc93c53057430dca97b71088eab0e94d5453ab5466d40a181",
+      "word_count": 244
+    },
+    {
+      "path": "README.md",
+      "title": "sc-referee specification package",
+      "sha256": "07c99f199b8a64421caba49eea57f6f99d9033187fd11cdd712a994b3be17012",
+      "word_count": 185
+    },
+    {
+      "path": "REVIEW_CHECKLIST.md",
+      "title": "Specification review checklist",
+      "sha256": "143dc486b5c120438a1c54cf48ff0737d4cea0b31336dfc0b131d8e39bb1db9e",
+      "word_count": 648
+    },
+    {
+      "path": "adrs/ADR-0001-evidence-compiler.md",
+      "title": "ADR-0001: Use an evidence-compiler architecture",
+      "sha256": "efbe74c4fc368f4397df05f75171210c05c149b8cb7cd1b78d84d27643e0477e",
+      "word_count": 260
+    },
+    {
+      "path": "adrs/ADR-0002-scoped-authority.md",
+      "title": "ADR-0002: Preserve scoped authorities instead of overwriting conflicts",
+      "sha256": "878501bd835a9c55969132b7df965d3d8e0d6394636dc69b246a957005f55152",
+      "word_count": 237
+    },
+    {
+      "path": "adrs/ADR-0003-semantic-lock.md",
+      "title": "ADR-0003: Use a content-addressed semantic lock for deterministic reruns",
+      "sha256": "2e00ab16e3d1956230046239b1d4f5b720cdc1c53ec690275ff6960328252f9d",
+      "word_count": 225
+    },
+    {
+      "path": "adrs/ADR-0004-budgeted-claim-centric-audit.md",
+      "title": "ADR-0004: Use a budgeted, claim-centric audit scope",
+      "sha256": "6a87ca028fa3e18a3d72890997943082e215bdbf68cadd41fe64afae25b246e8",
+      "word_count": 244
+    },
+    {
+      "path": "adrs/ADR-0005-no-correctness-certificate.md",
+      "title": "ADR-0005: Never present absence of findings as a correctness certificate",
+      "sha256": "c7597cda2130a8c3bc29e319e5898a35251266e38ced39c9646ad0bc84a6efed",
+      "word_count": 192
+    },
+    {
+      "path": "adrs/ADR-0006-root-cause-grouping.md",
+      "title": "ADR-0006: Group downstream manifestations under a root cause",
+      "sha256": "e99ac821280060d42f43b209c6fddb6b61393b8d75d566a72390291e1bd5d3cf",
+      "word_count": 206
+    },
+    {
+      "path": "adrs/ADR-0007-executable-coverage-contracts.md",
+      "title": "ADR-0007: Require executable detector coverage contracts",
+      "sha256": "3f47e5785a43ef22efc2e701ab8e79f0fd826dd577c1c294f652b4964b6ee1cf",
+      "word_count": 195
+    },
+    {
+      "path": "adrs/ADR-0008-static-first-sandbox.md",
+      "title": "ADR-0008: Use static-first inspection and sandboxed selected reproduction",
+      "sha256": "ac1648eea7641470f969578ae5842ecb6acbc721fe0466e5a9291f31db47332c",
+      "word_count": 225
+    },
+    {
+      "path": "adrs/ADR-0009-hierarchical-contracts.md",
+      "title": "ADR-0009: Author scientific contracts hierarchically and lock them flat",
+      "sha256": "aa29f4601896d5e5554c869b076f13206b1e1ed48c7145a60352b315b59317bc",
+      "word_count": 197
+    },
+    {
+      "path": "adrs/ADR-0010-multidimensional-opaque-trust.md",
+      "title": "ADR-0010: Represent trust in opaque boundaries by dimension",
+      "sha256": "2856d9ad48ceb77ca6ea92126f6040400dfe3ba34b4ac49661d7a6290af7b585",
+      "word_count": 241
+    },
+    {
+      "path": "adrs/ADR-0011-distinct-assessment-records.md",
+      "title": "ADR-0011: Use distinct assessment record types",
+      "sha256": "7998990a1d06e42e7b016da1fbf7beb0ca84bea355d5cdb57d11d8843c6605c0",
+      "word_count": 99
+    },
+    {
+      "path": "adrs/ADR-0012-no-open-ended-llm-search.md",
+      "title": "ADR-0012: Prohibit open-ended language-model issue discovery in production",
+      "sha256": "79aea7408c19c5739c2c07dec7c15cc310263cda8500ee94156c2b848ec5d3f5",
+      "word_count": 104
+    },
+    {
+      "path": "adrs/ADR-0013-model-extraction-eligibility.md",
+      "title": "ADR-0013: Allow only verified explicit model extraction as Finding evidence",
+      "sha256": "d4a3bfac2e15cda7be8ad8cc61d30f44246f279aad9134a5ff7f8d7c8cdaac7e",
+      "word_count": 94
+    },
+    {
+      "path": "adrs/ADR-0014-disposition-versus-adjudication.md",
+      "title": "ADR-0014: Separate scientist disposition from independent adjudication",
+      "sha256": "574165b02ff8bedc8c30263ab9374fb0917f793bc66e050e1113930372ea1211",
+      "word_count": 87
+    },
+    {
+      "path": "adrs/ADR-0015-finite-counterevidence-protocols.md",
+      "title": "ADR-0015: Require finite detector-specific counterevidence protocols",
+      "sha256": "efe90f9efa108cbfc2153333cd7e0b75ffa981e4b95735f8bf9d547c85610a1f",
+      "word_count": 83
+    },
+    {
+      "path": "adrs/ADR-0016-user-visible-deadlines.md",
+      "title": "ADR-0016: Use user-visible elapsed deadlines and fixed trial mode ceilings",
+      "sha256": "78275a35238360ff69aa4a43a8cbe4cd23919b52f22d07296b0e935b053736a1",
+      "word_count": 140
+    },
+    {
+      "path": "adrs/ADR-0017-execution-privilege-and-no-hpc.md",
+      "title": "ADR-0017: Separate execution privileges and prohibit interactive HPC submission in version one",
+      "sha256": "0ea90d5dd56cec76ecc9d1387087b1963c594d922a6ce12ff7192b98d602c5ba",
+      "word_count": 106
+    },
+    {
+      "path": "adrs/ADR-0018-network-freedom-with-provenance.md",
+      "title": "ADR-0018: Allow Claude and controller inquiry while separating project-code network authority",
+      "sha256": "53d06724af7edbc1844a9faf0b478407b1267e35e98324c26bfc71de45936bdf",
+      "word_count": 108
+    },
+    {
+      "path": "adrs/ADR-0019-isolated-dependency-reconstruction.md",
+      "title": "ADR-0019: Permit automatic isolated dependency reconstruction in standard mode",
+      "sha256": "ab4dee455de4e2eb35147ae737234da092943fa627d0dc704ad2cfc56118c1a4",
+      "word_count": 105
+    },
+    {
+      "path": "adrs/ADR-0020-tiered-asset-identity.md",
+      "title": "ADR-0020: Use tiered identity for data and artifacts",
+      "sha256": "667f8de85babc69963bb502a910e11b18b9eba653a7c26811d58808c2c56e524",
+      "word_count": 79
+    },
+    {
+      "path": "adrs/ADR-0021-publication-surface-precedence.md",
+      "title": "ADR-0021: Resolve publication surface by explicit precedence and leave materiality unassessed when ambiguous",
+      "sha256": "fb7e9d333cb7e5eb2755925b83e1f60833d34d3d64da4c52b1288ba8ad57cbb0",
+      "word_count": 109
+    },
+    {
+      "path": "adrs/ADR-0022-host-managed-model-usage.md",
+      "title": "ADR-0022: Impose no auditor-specific numeric model-call or token cap",
+      "sha256": "26fddb3df03afa21eabeb20518dfd6def5ae8e14b3d53c9c21bf9eda5ab6762a",
+      "word_count": 99
+    },
+    {
+      "path": "adrs/ADR-0023-layered-causal-contracts.md",
+      "title": "ADR-0023: Use layered causal contracts with optional scoped causal structure",
+      "sha256": "d940efa9ef57a08e39759f65d94946d689bebba64e2fd29985202b281d1d2e36",
+      "word_count": 117
+    },
+    {
+      "path": "adrs/ADR-0024-sc-referee-identity.md",
+      "title": "ADR-0024: Adopt the sc-referee public identity while retaining /scientific-audit",
+      "sha256": "fe6ed9697a63adea3a26f7002e156e260fe768cebbe1914667e10bb46393032c",
+      "word_count": 75
+    },
+    {
+      "path": "adrs/ADR-0025-w3id-schema-namespace.md",
+      "title": "ADR-0025: Use W3ID for immutable canonical schema identifiers",
+      "sha256": "dc8409d13c7b94dec20f6f4e2f001b1f7fa6e9e32da1cfb05bf72d8ca134bb11",
+      "word_count": 67
+    },
+    {
+      "path": "adrs/ADR-0026-apache-license.md",
+      "title": "ADR-0026: License original sc-referee materials under Apache-2.0",
+      "sha256": "248315db63d9453e8ef6e0d3f98cabb9e8eb86ded55d52f4adf06c66edfea611",
+      "word_count": 73
+    },
+    {
+      "path": "adrs/ADR-0027-tiered-detector-promotion.md",
+      "title": "ADR-0027: Require tiered independent approval for detector promotion",
+      "sha256": "4ebf45e2fe4d5b4a7fccffd5efa4d395a46d9b0fdddc940bf2e7ca397e1498bf",
+      "word_count": 93
+    },
+    {
+      "path": "adrs/ADR-0028-python-311.md",
+      "title": "ADR-0028: Support Python 3.11 or newer",
+      "sha256": "382d89f12190ab29e36644aa1bc3d6a8b1e75dbb2871aa13f3afa0aad0bf897d",
+      "word_count": 58
+    },
+    {
+      "path": "adrs/ADR-0029-jsonl-sqlite.md",
+      "title": "ADR-0029: Use canonical JSON/JSONL with a generated SQLite index",
+      "sha256": "261868ee8015accb4cc0924b11ddce6889b1d3c465b94459f76726cad4573fd9",
+      "word_count": 62
+    },
+    {
+      "path": "adrs/ADR-0030-python-ast-tokenize.md",
+      "title": "ADR-0030: Use CPython ast plus tokenize for Python extraction",
+      "sha256": "3b6200773bd477381f90de1deae419a0dfad2deeff2bf5def232bf617d468285",
+      "word_count": 69
+    },
+    {
+      "path": "adrs/ADR-0031-dual-r-parser.md",
+      "title": "ADR-0031: Use Tree-sitter-R plus a non-evaluating base-R parser helper",
+      "sha256": "862fbb3c77c0cbd4e18db4968f908b9145140f7738ba54545edf563f4529b7a4",
+      "word_count": 70
+    },
+    {
+      "path": "adrs/ADR-0032-static-jinja-html.md",
+      "title": "ADR-0032: Render self-contained static HTML with Jinja2",
+      "sha256": "1c0fe310b43ded0ff3b4f075e3ea264d26bc598b1eaff5a35107b1a639f9c832",
+      "word_count": 58
+    },
+    {
+      "path": "adrs/ADR-0033-rootless-oci-sandbox.md",
+      "title": "ADR-0033: Require rootless OCI isolation for project-authored execution",
+      "sha256": "f8516434edd5380860e2a40842c9c14c571f453c358755fa379286d8ad2dad71",
+      "word_count": 64
+    },
+    {
+      "path": "adrs/ADR-0034-project-local-source-cache.md",
+      "title": "ADR-0034: Keep source-derived caches project-local",
+      "sha256": "af8d8d5901d4933e55170cc62311c0013bf7d05c211073a1c653b6e8e3fdd9bd",
+      "word_count": 61
+    },
+    {
+      "path": "adrs/ADR-0035-immutable-snapshot-divergence.md",
+      "title": "ADR-0035: Continue against the immutable initial snapshot after live edits",
+      "sha256": "30f8b17052842ee2c58e943e78df1a52ce37683578410e02e0bea433ad0fa409",
+      "word_count": 70
+    },
+    {
+      "path": "adrs/ADR-0036-domain-neutral-core-bulk-rnaseq.md",
+      "title": "ADR-0036: Separate the domain-neutral core slice from the first bulk RNA-seq profile",
+      "sha256": "d3b777d1d59bfb0e47982b1eccca8cf2bdfdc05668ebec47db76324e34a5d65f",
+      "word_count": 109
+    },
+    {
+      "path": "adrs/ADR-0037-cross-provider-agent-adjudication.md",
+      "title": "ADR-0037: Use conservative cross-provider coding-agent adjudication",
+      "sha256": "85cfb890eb4d7c45412b24df8bb77cefaab4d6ee41aa4757fae2fa23bf9d4936",
+      "word_count": 168
+    },
+    {
+      "path": "adrs/ADR-0038-benchmark-fixture-taxonomy.md",
+      "title": "ADR-0038: Use scoped verified-good and hard-negative fixture classes",
+      "sha256": "9a0a380ccf147babf08510ef41459ed6d14c946e79b9bd76fd3c1325e9edf448",
+      "word_count": 99
+    },
+    {
+      "path": "adrs/ADR-0039-ro-crate-first-export.md",
+      "title": "ADR-0039: Export RO-Crate 1.3 before W3C PROV",
+      "sha256": "9ed379827db1123e573459b6f5de40fa5d0932fce9e4773a472b2c06ddd67008",
+      "word_count": 97
+    },
+    {
+      "path": "adrs/ADR-0040-generated-capability-matrix.md",
+      "title": "ADR-0040: Publish a generated multidimensional capability matrix",
+      "sha256": "8d4660dbdad386e49fddc25bf790b55656bb8f77fda98585f3ec38bc1c700aef",
+      "word_count": 86
+    },
+    {
+      "path": "adrs/ADR-0041-validated-and-publication-grade-findings.md",
+      "title": "ADR-0041: Permit validated and publication-grade detectors to emit Findings",
+      "sha256": "46c8760cc169b4a34aec2a62774097be4a3bbdb679f25312468a75a62b0cd4f0",
+      "word_count": 80
+    },
+    {
+      "path": "adrs/ADR-0042-promotion-safety-gates-before-thresholds.md",
+      "title": "ADR-0042: Fix promotion safety gates before numerical thresholds",
+      "sha256": "47ee3a2196cee165d856b7008744e24d0bfc32b504c4cf200780979efbcf0e60",
+      "word_count": 102
+    },
+    {
+      "path": "docs/00-charter.md",
+      "title": "0. Product charter",
+      "sha256": "fd6b5fcffe2e0c722827106e07547ffb0df3d461d6fd51ad0d5a3d97c296646a",
+      "word_count": 1648
+    },
+    {
+      "path": "docs/01-product-requirements.md",
+      "title": "1. Product requirements",
+      "sha256": "c6c40a5ab04d6132797a69d4bd249c819df17fcf5db39c7baeba1ef5f038c9c7",
+      "word_count": 4494
+    },
+    {
+      "path": "docs/02-system-architecture.md",
+      "title": "2. System architecture",
+      "sha256": "82c5583d9b2aaa16c749f7fae459f5fcfc5280843d21f2251e13b28418deee8d",
+      "word_count": 2059
+    },
+    {
+      "path": "docs/03-record-model.md",
+      "title": "3. Record model and evidence graph",
+      "sha256": "822cd7696c387b2409f73bb2fff9818fe6e22dfa8b3d937c806f44c3ea35ee4f",
+      "word_count": 2399
+    },
+    {
+      "path": "docs/04-audit-lifecycle.md",
+      "title": "4. Audit lifecycle",
+      "sha256": "a84408a69707098232c2efd16cc879316cdb24fc1d7d676258e970bb21e59431",
+      "word_count": 1925
+    },
+    {
+      "path": "docs/05-detector-framework.md",
+      "title": "5. Detector framework and finding admission",
+      "sha256": "c2f07053b828c26609a89638778f73093a8b264fa8a6fa040ff93f516c551b6e",
+      "word_count": 1882
+    },
+    {
+      "path": "docs/06-runtime-and-performance.md",
+      "title": "6. Runtime, performance, and resource policy",
+      "sha256": "1456a3d72f1dc6b6700ab2521f6633b188051cc97000116ca25d3787b85b3d66",
+      "word_count": 1527
+    },
+    {
+      "path": "docs/07-security-and-trust.md",
+      "title": "7. Security, trust, and authority",
+      "sha256": "b1f969d216182939b047d37d7857838460a06a759debddf7bb98b48f26db4c03",
+      "word_count": 1289
+    },
+    {
+      "path": "docs/08-reporting-and-ux.md",
+      "title": "8. Reporting and user experience",
+      "sha256": "d261ad0608250a00bdb703c8ea6a59dbeb013f3fcd06f1432f4110cc6d55ffd6",
+      "word_count": 1212
+    },
+    {
+      "path": "docs/09-claude-integration.md",
+      "title": "9. Claude Code and Claude Science integration",
+      "sha256": "4f6be088cdfcd3ec95721305cc2b93d4cb0908d606589ad714620f62e1b41f4f",
+      "word_count": 1025
+    },
+    {
+      "path": "docs/10-evaluation-and-validation.md",
+      "title": "10. Evaluation and validation plan",
+      "sha256": "a4aa9140860b506333aa7ca648f58e14b93a42c42f85c7fad445b52592c4c057",
+      "word_count": 1872
+    },
+    {
+      "path": "docs/11-implementation-plan.md",
+      "title": "11. Implementation plan",
+      "sha256": "257d266ded9ac33b391e0f8d3f3d3cebec35d59034e152d9e8d5169ad4335035",
+      "word_count": 1220
+    },
+    {
+      "path": "docs/12-open-decisions.md",
+      "title": "12. Open decisions",
+      "sha256": "aca3898f9936d1660ae627d0167851fd55546db659921ce949a0a98caa786b6e",
+      "word_count": 589
+    },
+    {
+      "path": "docs/13-glossary.md",
+      "title": "13. Glossary",
+      "sha256": "136cb48c22c34bc6408f7d180e1544831c5964785c75b659c08522352e6ca79d",
+      "word_count": 1067
+    },
+    {
+      "path": "examples/audit-plan.publication.yaml",
+      "title": "audit-plan.publication",
+      "sha256": "ac181e7af914d9aaaff13c8e7264c7d350549551c620e4bf93368d965a85d12b",
+      "word_count": 236
+    },
+    {
+      "path": "examples/audit-plan.quick.yaml",
+      "title": "audit-plan.quick",
+      "sha256": "a7ef3a61d10414c16442dc727ee8c5355b6a774d7b77b13f3c9a5b4d0f889a9d",
+      "word_count": 236
+    },
+    {
+      "path": "examples/audit-plan.standard.yaml",
+      "title": "audit-plan.standard",
+      "sha256": "f59995d9885c9e403f13adc772f8898fc8ca7135d26760dc79b4225592da88b0",
+      "word_count": 236
+    },
+    {
+      "path": "examples/capability-matrix.md",
+      "title": "Example capability matrix",
+      "sha256": "b9e2483a8afefd5a84b651989c3615a8cea4e639df1de5f4c37f8c417bf2e034",
+      "word_count": 151
+    },
+    {
+      "path": "examples/human-report-fragment.md",
+      "title": "sc-referee \u2014 example report fragment",
+      "sha256": "6ad15568c78aba323dba25828d6f88ca306059cb4e5395b4a9da18188cb1fb1d",
+      "word_count": 228
+    },
+    {
+      "path": "references/AGENT_ADJUDICATION_PROTOCOL.md",
+      "title": "Agent adjudication protocol reference",
+      "sha256": "d7e5bfc526b2e182552e3f72bc3f30f04cc38265223c69c7a11046e6ad8337ff",
+      "word_count": 270
+    },
+    {
+      "path": "references/CLAUDE_CODE_INTEGRATION_NOTES.md",
+      "title": "Claude Code integration notes",
+      "sha256": "dd8414d6b8c61db954d004efb5af0245c150eebd8d4873cd0eec5ed8a99fa4d8",
+      "word_count": 331
+    },
+    {
+      "path": "references/REFERENCES.md",
+      "title": "References",
+      "sha256": "7b03a2ad3caa388c3d20da3b8b85345ac497262a75e467fad5991f75c04bd200",
+      "word_count": 347
+    },
+    {
+      "path": "references/W3ID_REGISTRATION.md",
+      "title": "W3ID registration status",
+      "sha256": "bf1d4c385d47c803d85bb0f466db3d551d592c02636074f6d06dd0d022f7da9a",
+      "word_count": 125
+    },
+    {
+      "path": "templates/ADR_TEMPLATE.md",
+      "title": "ADR-NNNN: Decision title",
+      "sha256": "80d4b4cf536f2bac98b677202a397ef483ca9eaa4b7fa6a7a944cbfd1485284d",
+      "word_count": 69
+    },
+    {
+      "path": "templates/CHANGE_PROPOSAL_TEMPLATE.md",
+      "title": "Specification change proposal: `<title>`",
+      "sha256": "e80ff96da2899bbd19e28bd5a569056a031ec91c1fa48a5c90efc4b34637e2fd",
+      "word_count": 88
+    },
+    {
+      "path": "templates/DETECTOR_SPEC_TEMPLATE.md",
+      "title": "Detector specification: `<detector_id>`",
+      "sha256": "8786c3fa9a588676c1bd33e58374f797fd39b78e62c9222ccffa57aecbafaafb",
+      "word_count": 209
+    },
+    {
+      "path": "templates/DOMAIN_PROFILE_TEMPLATE.md",
+      "title": "Domain profile specification: `<profile_id>`",
+      "sha256": "43ed4041a20d3cc7add3271cc28c8d3d00787d0e0a90581926f48d19d37d700f",
+      "word_count": 152
+    }
+  ]
+}

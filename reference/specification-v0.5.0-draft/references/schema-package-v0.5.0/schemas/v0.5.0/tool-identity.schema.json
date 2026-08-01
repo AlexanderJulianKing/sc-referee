@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/schema/v0.5.0/tool-identity.schema.json",
+  "title": "sc-referee Tool Identity",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "tool_identity_id",
+    "product_name",
+    "distribution_name",
+    "import_namespace",
+    "cli_executable",
+    "claude_skill_command",
+    "schema_namespace",
+    "component_versions",
+    "build_digest",
+    "python_runtime",
+    "captured_at",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "record_type": {
+      "const": "tool_identity"
+    },
+    "tool_identity_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Identifier"
+    },
+    "product_name": {
+      "const": "sc-referee"
+    },
+    "distribution_name": {
+      "const": "sc-referee"
+    },
+    "import_namespace": {
+      "const": "sc_referee"
+    },
+    "cli_executable": {
+      "const": "sc-referee"
+    },
+    "compatibility_cli_aliases": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "claude_skill_command": {
+      "const": "/scientific-audit"
+    },
+    "namespaced_plugin_command": {
+      "const": "/sc-referee:scientific-audit"
+    },
+    "schema_namespace": {
+      "const": "https://w3id.org/sc-referee/schema/v0.5.0/"
+    },
+    "component_versions": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "build_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Digest"
+    },
+    "python_runtime": {
+      "type": "string",
+      "pattern": "^3\\.(1[1-9]|[2-9][0-9])(?:\\.[0-9]+)?$"
+    },
+    "captured_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Timestamp"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.5.0/common.schema.json#/$defs/Provenance"
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

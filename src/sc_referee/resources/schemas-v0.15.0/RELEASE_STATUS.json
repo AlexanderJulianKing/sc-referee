@@ -1,0 +1,9 @@
+{
+  "accepted": true,
+  "baseline_version": "0.14.0",
+  "public_release": true,
+  "release_version": "0.15.0",
+  "source_adrs": [
+    "docs/implementation/ADR-0022-STATIC-CLOSED-SCOPE-QUALIFICATION-PROOF.md"
+  ]
+}

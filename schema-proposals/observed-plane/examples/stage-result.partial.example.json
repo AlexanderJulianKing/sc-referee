@@ -1,0 +1,18 @@
+{
+  "schema_version": "__SCHEMA_VERSION__",
+  "record_type": "stage_result",
+  "stage_result_id": "stage-result:candidate:4",
+  "audit_run_id": "audit:candidate",
+  "stage": "detection",
+  "sequence": 4,
+  "status": "partial",
+  "details": "One scheduled detector remained unevaluated at the deadline.",
+  "produced_record_refs": [
+    {"record_type": "coverage_record", "record_id": "coverage:candidate"}
+  ],
+  "provenance": {
+    "actor": {"actor_kind": "controller", "actor_id": "controller:candidate"},
+    "method": "persist_stage_result",
+    "created_at": "2026-07-27T20:10:00Z"
+  }
+}
