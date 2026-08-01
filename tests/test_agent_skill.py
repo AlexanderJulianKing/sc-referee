@@ -92,8 +92,12 @@ def test_method_contract_skill_is_separate_claimless_and_human_authorized(
     assert "claims` and `publication_surfaces` are empty" in body
     assert "Do not choose an estimator" in body
     assert "It is not a Finding" in body
+    assert "Use `$sc-referee:scientific-audit`" in body
+    assert "Use `$scientific-audit` only when the skill was installed standalone" in body
     assert "TODO" not in contents
 
     interface = yaml.safe_load((root / "agents" / "openai.yaml").read_text(encoding="utf-8"))
     assert interface["interface"]["display_name"] == "Method Contract"
-    assert "$method-contract" in interface["interface"]["default_prompt"]
+    assert "$sc-referee:method-contract" in interface["interface"]["default_prompt"]
+    assert "$method-contract standalone" in interface["interface"]["default_prompt"]
+    assert "expected-count/background profile" in interface["interface"]["default_prompt"]

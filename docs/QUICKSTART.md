@@ -1,6 +1,6 @@
 # Quickstart
 
-This guide runs the current development alpha from source, audits a repository without executing
+This guide runs the current public alpha from source, audits a repository without executing
 its code, and explains the result categories.
 
 ## 1. Install the CLI
@@ -26,8 +26,8 @@ Expected version shape:
 sc-referee 0.3.0 (schema 0.18.0; starter lineage 0.1.0)
 ```
 
-The version is intentionally a development version. Do not infer release stability from the schema
-version.
+Program `0.3.0` is a public-alpha release. The schema version is a separate record-format identity;
+do not infer program stability or scientific coverage from it.
 
 ## 2. Run the deterministic demo
 
@@ -142,6 +142,20 @@ Read assessments in this order:
 
 Never summarize zero Findings as “passed,” “correct,” or “publication-ready.”
 
+### Worked interpretation example
+
+For the bundled `examples/general-static` command above, sc-referee 0.3.0 reports verified
+integrity, `partial_evidence_unavailable` coverage, zero Findings, one MaterialQuestion, and twenty
+Disclosures. A conservative summary is:
+
+> Integrity is verified, and no issue was admitted as a Finding within this audit's declared
+> evidence and qualified-detector coverage. One scientist question remains open, twenty
+> Disclosures describe bounded observations or coverage limits, and overall coverage is partial.
+> This result does not establish that the workflow is correct or publication-ready.
+
+That summary reports what the audit established without turning zero Findings into a pass. Read the
+question and material Disclosures next; do not collapse them into a score.
+
 ## 6. Answer a material question
 
 The ordinary agentic workflow manages linked question segments. For direct CLI use, create a new
@@ -155,9 +169,56 @@ sc-referee resume /path/to/project/.scientific-audit/runs/first-review \
 sc-referee work-queue /path/to/project/.scientific-audit/runs/first-answer
 ```
 
-Use `work-packet` for a ready item. A scientist—not the model—must select an existing answer option.
-After recording the answer, lock semantics and verify the linked segment. The complete typed
-interaction protocol is in the bundled `scientific-audit` skill.
+For each ready item returned by `work-queue`, inspect its exact digest-bound packet:
+
+```bash
+sc-referee work-packet /path/to/project/.scientific-audit/runs/first-answer \
+  --work-item-id <work-item-id>
+```
+
+If the item requests a bounded semantic proposal, give only that packet to the coding agent. Save
+the agent's schema-valid proposed record as `proposal.json`, then submit it against the same work
+item. The proposal remains proposed and cannot select an answer for the scientist:
+
+```bash
+sc-referee submit-proposals /path/to/project/.scientific-audit/runs/first-answer \
+  --work-item-id <work-item-id> \
+  --proposal proposal.json
+
+sc-referee questions /path/to/project/.scientific-audit/runs/first-answer
+```
+
+After the scientist chooses an existing candidate answer, record its exact IDs and a stable human
+actor identity:
+
+```bash
+sc-referee record-answer /path/to/project/.scientific-audit/runs/first-answer \
+  --question-id <question-id> \
+  --select-option <answer-option-id> \
+  --actor-id scientist:<stable-id>
+```
+
+For a question that explicitly requests named ScientificContract dimensions, save only the values
+actually supplied by the scientist as one JSON object and use the structured form instead:
+
+```bash
+sc-referee record-structured-answer \
+  /path/to/project/.scientific-audit/runs/first-answer \
+  --question-id <question-id> \
+  --values scientist-values.json \
+  --actor-id scientist:<stable-id>
+```
+
+Never translate the agent's preference into either Answer. When the queue is resolved—or the
+scientist has explicitly retained an available unknown option—lock and verify the linked segment:
+
+```bash
+sc-referee lock-semantics /path/to/project/.scientific-audit/runs/first-answer
+sc-referee status /path/to/project/.scientific-audit/runs/first-answer --json
+```
+
+Stop if final integrity is not `verified`. The bundled `scientific-audit` skill contains the full
+typed interaction policy and failure handling.
 
 ## 7. Replay or compare
 

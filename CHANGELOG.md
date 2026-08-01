@@ -2,6 +2,10 @@
 
 ## 0.3.0
 
+- Completed the public direct-CLI question workflow, added a worked conservative result
+  interpretation, corrected the contributor schema authority pointer to v0.18.0, narrowed plugin
+  method-contract copy to the one supported expected-count/background profile, and made the
+  method-contract-to-audit handoff provider-aware.
 - Finalized the public release identity: Alexander King is the sole human author, while OpenAI
   Codex and Anthropic Claude are acknowledged as AI development collaborators. Added citation and
   acknowledgment metadata, linked the Codex plugin page to the GitHub repository, and retained

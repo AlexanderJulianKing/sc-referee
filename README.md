@@ -28,7 +28,7 @@ coverage. It does not mean the workflow is correct.
 
 ## Five-minute start
 
-Python 3.11 or newer is required. The development alpha is installed from a source checkout:
+Python 3.11 or newer is required. The public alpha is installed from a source checkout:
 
 ```bash
 git clone https://github.com/AlexanderJulianKing/sc-referee.git

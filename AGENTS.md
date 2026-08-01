@@ -9,7 +9,7 @@ Implement sc-referee as an evidence compiler that localizes demonstrated scienti
 When instructions conflict, use this order:
 
 1. Accepted ADRs and normative requirements in `reference/specification-v0.5.0-draft/`.
-2. Current accepted public JSON Schemas in `reference/schemas-v0.17.0/`; older accepted versions
+2. Current accepted public JSON Schemas in `reference/schemas-v0.18.0/`; older accepted versions
    remain immutable migration baselines.
 3. `docs/implementation/MILESTONE_0_BUILD_SPEC.md`.
 4. Other implementation-overlay documents.
