@@ -39,7 +39,7 @@ def test_codex_plugin_manifest_declares_the_bounded_local_surface(project_root: 
     assert manifest["interface"]["websiteURL"] == GITHUB_REPOSITORY
     assert manifest["interface"]["developerName"] == "Alexander King"
     assert manifest["interface"]["capabilities"] == [
-        "Claimless scientific method contracting",
+        "Expected-count/background method contract",
         "Static scientific audit",
         "Typed human-in-the-loop resolution",
         "Model-free replay",
@@ -48,6 +48,12 @@ def test_codex_plugin_manifest_declares_the_bounded_local_surface(project_root: 
     assert 1 <= len(prompts) <= 3
     assert all(len(prompt) <= 128 for prompt in prompts)
     assert "installed sc-referee CLI" in manifest["interface"]["longDescription"]
+    assert (
+        "one supported expected-count/background profile"
+        in manifest["interface"]["longDescription"]
+    )
+    assert "scientist-supplied expected-count/background profile" in prompts[0]
+    assert "method contracts" not in manifest["description"]
 
 
 def test_codex_plugin_marketplace_points_to_the_validated_local_plugin(

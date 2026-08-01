@@ -54,6 +54,33 @@ def test_public_documentation_freezes_version_and_epistemic_boundaries(
     assert "1,211" not in text
 
 
+def test_public_documentation_completes_the_newcomer_interaction_path(
+    project_root: Path,
+) -> None:
+    agents = (project_root / "AGENTS.md").read_text(encoding="utf-8")
+    quickstart = (project_root / "docs" / "QUICKSTART.md").read_text(encoding="utf-8")
+
+    assert "Current accepted public JSON Schemas in `reference/schemas-v0.18.0/`" in agents
+    assert "Current accepted public JSON Schemas in `reference/schemas-v0.17.0/`" not in agents
+    for command in (
+        "sc-referee work-packet",
+        "sc-referee submit-proposals",
+        "sc-referee questions",
+        "sc-referee record-answer",
+        "sc-referee record-structured-answer",
+        "sc-referee lock-semantics",
+        "sc-referee status",
+    ):
+        assert command in quickstart
+    assert (
+        "The proposal remains proposed and cannot select an answer for the scientist" in quickstart
+    )
+    assert "### Worked interpretation example" in quickstart
+    assert "zero Findings, one MaterialQuestion, and twenty" in quickstart
+    assert "overall coverage is partial" in quickstart
+    assert "does not establish that the workflow is correct or publication-ready" in quickstart
+
+
 def test_documented_demo_and_static_audit_sequences_execute(
     project_root: Path,
     tmp_path: Path,

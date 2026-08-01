@@ -79,4 +79,5 @@ verify exactly. It creates Claim-scoped derived intent assertions and sets
 Interpret `evaluation_finding_candidate` only as an experimental exact conflict between frozen
 governing intent and supported reported wording. It is not a Finding and does not show that code
 ran, that the numeric result is wrong for that reason, or that the governing method is universally
-correct. Use `$scientific-audit` for the full post-hoc interpretation workflow.
+correct. Use `$sc-referee:scientific-audit` when the skills were installed through the sc-referee
+Codex plugin. Use `$scientific-audit` only when the skill was installed standalone.
