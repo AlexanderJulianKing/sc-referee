@@ -164,7 +164,8 @@ segment rather than editing the completed audit:
 ```bash
 sc-referee resume /path/to/project/.scientific-audit/runs/first-review \
   --repository /path/to/project \
-  --output /path/to/project/.scientific-audit/runs/first-answer
+  --output /path/to/project/.scientific-audit/runs/first-answer \
+  --question-id <question-id>
 
 sc-referee work-queue /path/to/project/.scientific-audit/runs/first-answer
 ```
@@ -208,6 +209,24 @@ sc-referee record-structured-answer \
   --values scientist-values.json \
   --actor-id scientist:<stable-id>
 ```
+
+If a `bounded-review-scope-selection-v1` question asks which exact source, input, or output
+identities belong in review scope, one listed candidate, none, or unknown still uses
+`record-answer`. To select several listed identities, repeat their exact option IDs:
+
+```bash
+sc-referee record-scope-answer \
+  /path/to/project/.scientific-audit/runs/first-answer \
+  --question-id <question-id> \
+  --select-option <first-answer-option-id> \
+  --select-option <second-answer-option-id> \
+  --actor-id scientist:<stable-id>
+```
+
+The selection is bound to the immutable source snapshot and defines this audit's review scope
+only. It does not prove that source code ran, produced an output, used an input, or was
+scientifically correct. Resolve another open question in a fresh linked segment created from this
+segment after it is locked.
 
 Never translate the agent's preference into either Answer. When the queue is resolved—or the
 scientist has explicitly retained an available unknown option—lock and verify the linked segment:

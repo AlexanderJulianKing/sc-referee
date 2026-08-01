@@ -109,12 +109,16 @@ class AgentMaterialQuestion(BaseModel):
     observed_operands: list[AgentObservedOperand] = Field(default_factory=list)
     output_ceiling: str | None = None
     authority_limitation: str | None = None
+    selection_profile: str | None = None
+    selection_kind: str | None = None
+    multiple_selection_allowed: bool = False
+    max_selections: int | None = None
 
 
 class AgentQuestionBatch(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    protocol_version: Literal["0.1.0"] = "0.1.0"
+    protocol_version: Literal["0.2.0"] = "0.2.0"
     audit_run_id: str
     semantic_lock_digest: str
     integrity: Literal["verified"] = "verified"
@@ -312,7 +316,33 @@ def _agent_material_question(
             if isinstance(extension_values.get("x-output-ceiling"), str)
             else None
         ),
-        authority_limitation=limitations[0] if len(set(limitations)) == 1 else None,
+        authority_limitation=(
+            str(extension_values["x-authority-limitation"])
+            if isinstance(extension_values.get("x-authority-limitation"), str)
+            else limitations[0]
+            if len(set(limitations)) == 1
+            else None
+        ),
+        selection_profile=(
+            str(extension_values["x-selection-profile"])
+            if isinstance(extension_values.get("x-selection-profile"), str)
+            else None
+        ),
+        selection_kind=(
+            str(extension_values["x-selection-kind"])
+            if isinstance(extension_values.get("x-selection-kind"), str)
+            else None
+        ),
+        multiple_selection_allowed=(
+            extension_values.get("x-selection-profile") == "bounded-review-scope-selection-v1"
+            and isinstance(extension_values.get("x-max-selections"), int)
+            and int(extension_values["x-max-selections"]) > 1
+        ),
+        max_selections=(
+            int(extension_values["x-max-selections"])
+            if isinstance(extension_values.get("x-max-selections"), int)
+            else None
+        ),
     )
 
 

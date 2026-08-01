@@ -68,16 +68,26 @@ artifact paths; general runs also expose the locked deadline policy. It cannot a
 change semantics.
 
 The public local write boundary is a linked exact-snapshot segment. `sc-referee resume` creates the
-new segment and public WorkItems without changing the parent. `submit-proposals` validates model
-records against the exact packet and immutable snapshot. `record-answer` constructs a public,
-self-digested Answer from an existing option and exact human authority scope. `lock-semantics`
-closes model submission, persists proposals and Answers, and completes controller-owned detection
-and reporting without model access.
+new segment and public WorkItems without changing the parent; `--question-id` targets one exact
+open question. `submit-proposals` validates model records against the exact packet and immutable
+snapshot. `record-answer` constructs a public, self-digested Answer from an existing option and
+exact human authority scope. `lock-semantics` closes model submission, persists proposals and
+Answers, and completes controller-owned detection and reporting without model access. Unanswered
+questions and prior Answers survive subsequent linked segments.
 
 For `scientific_contract` questions, `record-structured-answer` accepts only dimension keys named
 by the WorkItem. Each supplied value becomes a separate accepted scientist-declaration assertion
 with `scientific_intent` authority and remains Finding-ineligible. Omitted dimensions stay unknown;
 these declarations never establish executed computation or lineage.
+
+When two or more fully identified analysis sources, material inputs, or snapshotted analysis
+outputs remain plausible, the controller may emit a
+`bounded-review-scope-selection-v1` MaterialQuestion. `record-scope-answer` accepts several exact
+listed option IDs; single, none, and unknown selections use `record-answer`. These Answers have
+`metadata_definition` authority over the exact RepositorySnapshot and define review scope only.
+Weak identities, static-only output paths, symlinks, unsafe paths, stale Answers, and digest drift
+remain unresolved. Selection never proves execution, source-to-output lineage, scientific intent,
+or correctness.
 
 Ordinary audits also bind a release-manifested registry of exact question-only scientific checks.
 These checks inspect only their declared immutable report or static-source surfaces, emit

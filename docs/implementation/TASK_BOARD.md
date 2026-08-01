@@ -22,9 +22,12 @@ executes 19 retained pytest selectors and field-compares four direct audit/repla
 using timestamps or SQLite. Experiment 0037 completes L03: all 26 active modules now have a
 generated, mutation-tested development baseline across 103 case declarations, 67 unique pytest
 selectors, and four direct audit/replay controls. The 0.3.0 overhaul is now on `main`; these
-follow-ups change no detector authority or schema meaning. Post-MPP functionality work is ordered
-in `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md`; L04 bounded publication and input selection
-is now the first pending prerequisite.
+follow-ups change no detector authority or schema meaning. Experiment 0038 completes L04 through
+bounded typed report/source/input/output selection, exact snapshot binding, multi-segment Answer
+preservation, and deterministic rebinding of still-open questions to current segment-local
+AssetIdentity records. Post-MPP functionality work remains ordered in
+`docs/implementation/POST_MPP_PRODUCT_BACKLOG.md`; L05 general static scope joins are now the first
+pending prerequisite.
 
 ## Epic A — Baseline and quality gates
 
@@ -1005,8 +1008,8 @@ the draft pull request as a published or detector-qualified release.
 
 ## Immediate next task
 
-Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. L01 through L03 are
-complete; start with L04 bounded publication and input selection before generalizing static
-connectivity or broadening scientific coverage.
+Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. L01 through L04 are
+complete; start with L05 general static scope joins before broadening adapters or scientific
+coverage.
 Every subsequent feature must retain the mandatory positive, corrected, hard-negative, ambiguous,
 unsupported, isolation, mutation, no-execution, and replay controls described there.

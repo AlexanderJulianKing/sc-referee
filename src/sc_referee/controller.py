@@ -122,6 +122,7 @@ from sc_referee.scientific_checks.integration import (
 )
 from sc_referee.scientific_checks.profiles import default_scientific_check_registry
 from sc_referee.scientific_checks.registry import ScientificCheckRegistry
+from sc_referee.scope_selection import build_scope_selection_contracts
 from sc_referee.snapshot.identity import build_asset_identity, full_digest_evidence
 from sc_referee.snapshot.repository import (
     AssetIdentityPolicy,
@@ -793,6 +794,20 @@ def run_audit(
             publication_artifacts,
             explicit_report=report,
         )
+        scope_selection_build = build_scope_selection_contracts(
+            run_id=run_id,
+            created_at=created_at,
+            repository_snapshot=snapshot.snapshot_record,
+            file_records=public_file_records,
+            asset_identities=[
+                *snapshot.asset_identity_records,
+                *all_graph_asset_identities,
+            ],
+            parser_results=parser_results,
+            artifacts=all_artifacts,
+            explicit_material_inputs=material_inputs,
+        )
+        questions.extend(scope_selection_build.questions)
         claims, scientific_contracts, semantic_assertions = _extract_resolved_literal_claims(
             run_id,
             created_at,
@@ -1098,6 +1113,7 @@ def run_audit(
                 "descendants": descendant_cache_summary,
             },
             "coverage_inputs": coverage_inputs,
+            "scope_selections": scope_selection_build.projection,
             "scientific_check_registry": scientific_check_lock,
             "calculation_check_registry": calculation_check_lock,
             **(

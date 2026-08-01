@@ -60,6 +60,15 @@ from sc_referee.records.observed import (
 )
 from sc_referee.records.schema_registry import LocalSchemaRegistry
 from sc_referee.reproduction import build_reproduction_requests
+from sc_referee.scope_selection import (
+    SCOPE_SELECTION_PROFILE,
+    build_scope_selection_contracts,
+    is_scope_selection_question,
+    refresh_scope_selection_projection,
+    selected_bindings_from_answer,
+    update_scope_selection_projection,
+    validate_scope_selection_question,
+)
 from sc_referee.snapshot.repository import capture_repository
 from sc_referee.storage.jsonl import JsonlRecordStore
 from sc_referee.storage.layout import AuditLayout
@@ -89,6 +98,7 @@ def resume_semantics(
     output: Path,
     schema_root: Path,
     *,
+    question_id: str | None = None,
     created_at: str | None = None,
 ) -> dict[str, Any]:
     """Create a linked, exact-snapshot, append-only pre-lock interaction segment."""
@@ -101,11 +111,19 @@ def resume_semantics(
     parent_lock = _read_object(source_layout.lock_path)
     if parent_lock.get("lock_kind") != "general_static_v1":
         raise InteractionProtocolError("only a general static audit can start this resume path")
-    questions = [
+    open_questions = [
         item for item in parent_bundle.get("material_questions", []) if item.get("status") == "open"
     ]
-    if not questions:
+    if not open_questions:
         raise InteractionProtocolError("source audit has no open MaterialQuestion")
+    if question_id is not None:
+        questions = [item for item in open_questions if item.get("question_id") == question_id]
+        if len(questions) != 1:
+            raise InteractionProtocolError("selected MaterialQuestion is not uniquely open")
+    elif len(open_questions) == 1:
+        questions = open_questions
+    else:
+        questions = open_questions
 
     timestamp = created_at or _timestamp_now()
     run_id = f"audit:{uuid4().hex}"
@@ -123,8 +141,14 @@ def resume_semantics(
     registry.validate(created)
     store.append(created)
 
+    preferred_paths, material_paths = _source_snapshot_capture_paths(parent_bundle)
     snapshot = capture_repository(
-        repository.resolve(), layout.observed / "snapshot", run_id, captured_at=timestamp
+        repository.resolve(),
+        layout.observed / "snapshot",
+        run_id,
+        captured_at=timestamp,
+        preferred_full_digest_paths=preferred_paths,
+        material_full_digest_paths=material_paths,
     )
     source_snapshot_digest = _source_snapshot_digest(parent_bundle)
     if snapshot.snapshot_record["snapshot_digest"] != source_snapshot_digest:
@@ -182,6 +206,7 @@ def resume_semantics(
         "parent_bundle_digest": semantic_digest(parent_bundle),
         "source_snapshot_digest": source_snapshot_digest,
         "snapshot_id": snapshot.snapshot_record["snapshot_id"],
+        "target_question_ids": [str(item["question_id"]) for item in questions],
         "created_at": timestamp,
         "clock_mode": "injected" if created_at is not None else "wall",
         "deadline_ledger_ref": f"observed/{LEDGER_FILENAME}",
@@ -452,6 +477,115 @@ def create_structured_answer(
     return answer
 
 
+def create_scope_selection_answer(
+    session_root: Path,
+    question_id: str,
+    selected_option_ids: tuple[str, ...],
+    actor_id: str,
+    schema_root: Path,
+    *,
+    answered_at: str | None = None,
+) -> dict[str, Any]:
+    """Construct a public structured Answer selecting several exact scope candidates."""
+
+    context = _load_session(session_root, schema_root, require_unlocked=True)
+    question = _question(context["parent_bundle"], question_id)
+    try:
+        contract = validate_scope_selection_question(
+            context["parent_bundle"],
+            question,
+            str(context["session"]["source_snapshot_digest"]),
+        )
+    except ValueError as error:
+        raise InteractionProtocolError(str(error)) from error
+    _submitted_work_item(context, question_id)
+    if not selected_option_ids:
+        raise InteractionProtocolError(
+            "multi-selection Answer must name at least one candidate option"
+        )
+    if len(set(selected_option_ids)) != len(selected_option_ids):
+        raise InteractionProtocolError("multi-selection Answer repeats an option")
+    options = {str(item.get("answer_id")): item for item in question.get("candidate_answers", [])}
+    selected_refs: list[dict[str, str]] = []
+    for option_id in selected_option_ids:
+        option = options.get(option_id)
+        value = option.get("value") if isinstance(option, dict) else None
+        refs = value.get("selected_candidate_refs") if isinstance(value, dict) else None
+        if (
+            value is None
+            or value.get("selection_kind") != contract["kind"]
+            or not isinstance(refs, list)
+            or len(refs) != 1
+            or not isinstance(refs[0], dict)
+        ):
+            raise InteractionProtocolError(
+                "multi-selection Answer may contain only listed single-candidate options"
+            )
+        selected_refs.append(copy.deepcopy(refs[0]))
+    candidate_order = {
+        canonical_json(item["record_ref"]): index
+        for index, item in enumerate(contract["candidate_bindings"])
+    }
+    selected_refs.sort(key=lambda item: candidate_order[canonical_json(item)])
+    values = {
+        "selection_kind": contract["kind"],
+        "selected_candidate_refs": selected_refs,
+    }
+    normalized_actor = actor_id.strip()
+    if not normalized_actor:
+        raise InteractionProtocolError("actor_id must identify the answering scientist")
+    timestamp = _interaction_timestamp(context, answered_at)
+    answer: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "record_type": "answer",
+        "answer_id": stable_id(
+            "answer-scope-selection",
+            str(context["session"]["audit_run_id"]),
+            question_id,
+            semantic_digest(values),
+            normalized_actor,
+        ),
+        "audit_run_id": context["session"]["audit_run_id"],
+        "question_ref": typed_ref("material_question", question_id),
+        "source_snapshot_digest": context["session"]["source_snapshot_digest"],
+        "answer_kind": "structured_value",
+        "answer_value": values,
+        "respondent": {"actor_kind": "human", "actor_id": normalized_actor},
+        "response_source": "interactive_scientist",
+        "authority_scope": {
+            "authority_kind": "metadata_definition",
+            "subject_refs": [copy.deepcopy(contract["snapshot_ref"])],
+            "semantic_dimensions": [str(contract["dimension"])],
+        },
+        "certainty": {
+            "level": "explicit",
+            "basis": (
+                "The human respondent explicitly selected these exact immutable candidates as "
+                "review scope."
+            ),
+        },
+        "timestamp_status": "available",
+        "answered_at": timestamp,
+        "supersedes_answer_refs": [],
+        "answer_digest_profile": _ANSWER_PROFILE,
+        "created_at": timestamp,
+        "provenance": {
+            "actor": {"actor_kind": "human", "actor_id": normalized_actor},
+            "method": "scientist_answer",
+            "created_at": timestamp,
+            "tool": "sc-referee",
+            "tool_version": __version__,
+        },
+    }
+    try:
+        selected_bindings_from_answer(contract, answer)
+    except ValueError as error:
+        raise InteractionProtocolError(str(error)) from error
+    answer["answer_digest"] = semantic_digest(answer)
+    context["registry"].validate(answer)
+    return answer
+
+
 def record_answer(
     session_root: Path,
     answer: dict[str, Any],
@@ -520,20 +654,32 @@ def lock_semantics(
         raise InteractionProtocolError(
             f"semantic lock requires semantics_resolved, not {context['state'].value}"
         )
-    answers = list(_latest_records(context["derived_store"], "answer", "answer_id").values())
-    if not answers:
+    current_answers = list(
+        _latest_records(context["derived_store"], "answer", "answer_id").values()
+    )
+    if not current_answers:
         raise InteractionProtocolError("semantic lock requires at least one validated Answer")
-    work_items = list(context["derived_store"].iter_records("work_item"))
-    proposals = list(context["derived_store"].iter_records("semantic_assertion"))
     parent_lock = context["parent_lock"]
+    answers = _merge_records_by_id(
+        copy.deepcopy(parent_lock.get("answers", [])),
+        current_answers,
+        "answer_id",
+    )
+    current_work_items = list(context["derived_store"].iter_records("work_item"))
+    work_items = [
+        *copy.deepcopy(parent_lock.get("work_items", [])),
+        *current_work_items,
+    ]
+    proposals = list(context["derived_store"].iter_records("semantic_assertion"))
     prior_assertions = copy.deepcopy(parent_lock.get("semantic_assertions", []))
     timestamp = _interaction_timestamp(context, locked_at)
     _checkpoint_interaction_deadline(context, timestamp, "semantic_lock_reached")
-    answer = answers[-1]
+    answer = current_answers[-1]
     question = _question(context["parent_bundle"], str(answer["question_ref"]["record_id"]))
 
     run_id = str(context["session"]["audit_run_id"])
     artifacts = copy.deepcopy(parent_lock.get("artifacts", []))
+    scope_selections = copy.deepcopy(parent_lock.get("scope_selections"))
     answered_question = _answered_question(question, answer, run_id, timestamp)
     scientist_assertions: list[dict[str, Any]] = []
     extracted_assertions: list[dict[str, Any]] = []
@@ -560,6 +706,36 @@ def lock_semantics(
             artifacts,
             surface,
         )
+    elif is_scope_selection_question(question):
+        surfaces = copy.deepcopy(parent_lock.get("publication_surfaces", []))
+        if len(surfaces) != 1:
+            raise InteractionProtocolError(
+                "scope selection requires one preserved publication-surface record"
+            )
+        surface = surfaces[0]
+        surface["audit_run_id"] = run_id
+        claims = copy.deepcopy(parent_lock.get("claims", []))
+        contracts = copy.deepcopy(parent_lock.get("scientific_contracts", []))
+        for claim in claims:
+            claim["audit_run_id"] = run_id
+        for contract in contracts:
+            contract["audit_run_id"] = run_id
+        try:
+            selection_contract = validate_scope_selection_question(
+                context["parent_bundle"],
+                question,
+                str(context["session"]["source_snapshot_digest"]),
+            )
+            if not isinstance(scope_selections, dict):
+                raise ValueError("source audit has no scope-selection projection")
+            scope_selections = update_scope_selection_projection(
+                scope_selections,
+                contract=selection_contract,
+                answer=answer,
+                snapshot_digest=str(context["session"]["source_snapshot_digest"]),
+            )
+        except ValueError as error:
+            raise InteractionProtocolError(str(error)) from error
     elif question.get("unknown_semantic_dimension") == "scientific_contract":
         surfaces = copy.deepcopy(parent_lock.get("publication_surfaces", []))
         if len(surfaces) != 1 or surfaces[0].get("status") != "resolved":
@@ -634,16 +810,13 @@ def lock_semantics(
         run_id,
         timestamp,
     )
-    questions = [
-        answered_question,
-        *_build_contract_questions(
-            run_id,
-            timestamp,
-            claims,
-            contracts,
-            [*prior_assertions, *extracted_assertions, *scientist_assertions],
-        ),
-    ]
+    rebuilt_contract_questions = _build_contract_questions(
+        run_id,
+        timestamp,
+        claims,
+        contracts,
+        [*prior_assertions, *extracted_assertions, *scientist_assertions],
+    )
     snapshot_record = _read_object(context["layout"].observed / "snapshot.json")
     snapshot = _snapshot_projection(context, snapshot_record)
     file_records = list(context["observed_store"].iter_records("file_record"))
@@ -684,13 +857,53 @@ def lock_semantics(
         if item.get("asset_ref", {}).get("record_type") != "file_record"
     ]
     snapshot_asset_identities = list(context["observed_store"].iter_records("asset_identity"))
+    current_asset_identities = [*snapshot_asset_identities, *source_asset_identities]
+    _, material_paths = _source_snapshot_capture_paths(context["parent_bundle"])
+    scope_build = build_scope_selection_contracts(
+        run_id=run_id,
+        created_at=timestamp,
+        repository_snapshot=snapshot_record,
+        file_records=file_records,
+        asset_identities=current_asset_identities,
+        parser_results=copy.deepcopy(parent_lock.get("parser_results", [])),
+        artifacts=artifacts,
+        explicit_material_inputs=material_paths,
+    )
+    try:
+        scope_selections = (
+            scope_build.projection
+            if scope_selections is None
+            else refresh_scope_selection_projection(
+                scope_selections,
+                scope_build.projection,
+                snapshot_digest=str(context["session"]["source_snapshot_digest"]),
+            )
+        )
+    except ValueError as error:
+        raise InteractionProtocolError(str(error)) from error
+    resolved_scope_kinds = {
+        kind
+        for kind, entry in scope_selections["selections"].items()
+        if entry.get("status")
+        in {"selected", "selected_none", "unknown", "selected_explicit_invocation"}
+    }
+    rebuilt_scope_questions = [
+        question
+        for question in scope_build.questions
+        if question.get("extensions", {}).get("x-selection-kind") not in resolved_scope_kinds
+    ]
+    questions = _merge_material_questions(
+        copy.deepcopy(context["parent_bundle"].get("material_questions", [])),
+        answered_question,
+        [*rebuilt_contract_questions, *rebuilt_scope_questions],
+    )
     submitted_model_calls = [
         {
             "work_item_id": item["work_item_id"],
             "packet_digest": item["packet"]["packet_digest"],
             "prompt_template_digest": item["packet"]["prompt_template_digest"],
         }
-        for item in work_items
+        for item in current_work_items
         if item.get("status") == "submitted"
     ]
     deadline_segment = current_segment(context["deadline_ledger"])
@@ -711,14 +924,17 @@ def lock_semantics(
         "parent_audit_run_id": context["session"]["parent_audit_run_id"],
         "locked_at": timestamp,
         "snapshot_digest": context["session"]["source_snapshot_digest"],
-        "model_calls": submitted_model_calls,
+        "model_calls": [
+            *copy.deepcopy(parent_lock.get("model_calls", [])),
+            *submitted_model_calls,
+        ],
         "model_access_after_lock": False,
         "deadline_policy": copy.deepcopy(parent_lock.get("deadline_policy")),
         "deadline_ledger": copy.deepcopy(context["deadline_ledger"]),
         "agent_inputs": copy.deepcopy(answers),
         "repository_snapshot": snapshot_record,
         "file_records": file_records,
-        "asset_identities": [*snapshot_asset_identities, *source_asset_identities],
+        "asset_identities": current_asset_identities,
         "parser_results": copy.deepcopy(parent_lock.get("parser_results", [])),
         "operations": operations,
         "artifacts": artifacts,
@@ -751,6 +967,7 @@ def lock_semantics(
         "reproduction_requests": reproduction_requests,
         "performance_records": [performance_record],
         "coverage_inputs": coverage_inputs,
+        **({"scope_selections": scope_selections} if scope_selections is not None else {}),
         "scientific_check_registry": copy.deepcopy(
             parent_lock.get("scientific_check_registry", {})
         ),
@@ -1348,6 +1565,30 @@ def _build_work_item(
         source_refs = _packet_source_refs(parent_bundle, surface)
         unresolved_dimensions = [dimension]
         materiality = "conclusion_material"
+    elif is_scope_selection_question(question):
+        try:
+            selection = validate_scope_selection_question(
+                parent_bundle,
+                question,
+                str(session["source_snapshot_digest"]),
+            )
+        except ValueError as error:
+            raise InteractionProtocolError(str(error)) from error
+        target_refs = [copy.deepcopy(selection["snapshot_ref"])]
+        record_refs = [
+            typed_ref("material_question", question_id),
+            *target_refs,
+            *[copy.deepcopy(item["record_ref"]) for item in selection["candidate_bindings"]],
+            *[
+                copy.deepcopy(item["asset_identity_ref"])
+                for item in selection["candidate_bindings"]
+            ],
+        ]
+        source_refs = [
+            copy.deepcopy(item["source_ref"]) for item in selection["candidate_bindings"]
+        ]
+        unresolved_dimensions = [str(selection["dimension"])]
+        materiality = "conclusion_material"
     elif dimension == "scientific_contract":
         contract = _question_contract(parent_bundle, question)
         scope = contract.get("scope", {})
@@ -1401,7 +1642,18 @@ def _build_work_item(
         "unresolved_dimensions": unresolved_dimensions,
         "required_output_record_types": ["semantic_assertion"],
         "limitations": [
-            "Proposals may interpret only this exact question, candidate surface, and source set; unresolved alternatives remain explicit."
+            (
+                "Proposals may interpret only this exact question, candidate surface, and source "
+                "set; unresolved alternatives remain explicit."
+                if dimension == "publication_surface"
+                else (
+                    "Proposals may describe only the exact bounded question and immutable "
+                    "candidates; only the scientist may select review scope."
+                    if is_scope_selection_question(question)
+                    else "Proposals may interpret only the exact bounded contract question and "
+                    "source set; only the scientist may establish governing intent."
+                )
+            )
         ],
         "policy": {
             "open_ended_issue_discovery": False,
@@ -1551,6 +1803,16 @@ def _validate_answer(context: dict[str, Any], answer: dict[str, Any]) -> None:
     question = _question(
         context["parent_bundle"], str(answer.get("question_ref", {}).get("record_id"))
     )
+    selection_contract: dict[str, Any] | None = None
+    if is_scope_selection_question(question):
+        try:
+            selection_contract = validate_scope_selection_question(
+                context["parent_bundle"],
+                question,
+                str(context["session"]["source_snapshot_digest"]),
+            )
+        except ValueError as error:
+            raise InteractionProtocolError(str(error)) from error
     if answer.get("answer_kind") in {"candidate_selection", "unknown"}:
         option = next(
             (
@@ -1572,19 +1834,34 @@ def _validate_answer(context: dict[str, Any], answer: dict[str, Any]) -> None:
             "action": "retain_unknown"
         }:
             raise InteractionProtocolError("retain-unknown option requires an unknown Answer")
-        expected_dimensions = [str(question["unknown_semantic_dimension"])]
+        if selection_contract is not None:
+            try:
+                selected_bindings_from_answer(selection_contract, answer)
+            except ValueError as error:
+                raise InteractionProtocolError(str(error)) from error
+            expected_dimensions = [str(selection_contract["dimension"])]
+        else:
+            expected_dimensions = [str(question["unknown_semantic_dimension"])]
     elif answer.get("answer_kind") == "structured_value":
         values = answer.get("answer_value")
         if not isinstance(values, dict) or not values:
             raise InteractionProtocolError("structured Answer value must be a non-empty object")
-        work_item = _submitted_work_item(context, str(question["question_id"]))
-        allowed_dimensions = set(work_item["packet"]["unresolved_dimensions"])
-        if any(key not in allowed_dimensions for key in values):
-            raise InteractionProtocolError(
-                "structured Answer contains a dimension outside the bounded WorkItem"
-            )
-        _validate_closed_method_answer(question, values)
-        expected_dimensions = sorted(values)
+        if selection_contract is not None:
+            _submitted_work_item(context, str(question["question_id"]))
+            try:
+                selected_bindings_from_answer(selection_contract, answer)
+            except ValueError as error:
+                raise InteractionProtocolError(str(error)) from error
+            expected_dimensions = [str(selection_contract["dimension"])]
+        else:
+            work_item = _submitted_work_item(context, str(question["question_id"]))
+            allowed_dimensions = set(work_item["packet"]["unresolved_dimensions"])
+            if any(key not in allowed_dimensions for key in values):
+                raise InteractionProtocolError(
+                    "structured Answer contains a dimension outside the bounded WorkItem"
+                )
+            _validate_closed_method_answer(question, values)
+            expected_dimensions = sorted(values)
     else:
         raise InteractionProtocolError("unsupported Answer kind for this interaction slice")
     expected_subjects, expected_kind = _answer_authority(context["parent_bundle"], question)
@@ -1742,6 +2019,119 @@ def _source_snapshot_digest(bundle: dict[str, Any]) -> str:
     return digest
 
 
+def _source_snapshot_capture_paths(
+    bundle: dict[str, Any],
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    snapshots = bundle.get("repository_snapshots", [])
+    if not isinstance(snapshots, list) or len(snapshots) != 1:
+        raise InteractionProtocolError("source audit must contain exactly one snapshot")
+    extensions = snapshots[0].get("extensions", {})
+    if not isinstance(extensions, dict):
+        raise InteractionProtocolError("source snapshot extensions are malformed")
+
+    def paths(key: str) -> tuple[str, ...]:
+        values = extensions.get(key, [])
+        if not isinstance(values, list) or any(
+            not isinstance(value, str)
+            or not value
+            or PurePosixPath(value).is_absolute()
+            or ".." in PurePosixPath(value).parts
+            for value in values
+        ):
+            raise InteractionProtocolError(f"source snapshot {key} paths are unsafe")
+        return tuple(values)
+
+    return (
+        paths("x-preferred-full-digest-paths"),
+        paths("x-material-full-digest-paths"),
+    )
+
+
+def _merge_records_by_id(
+    prior: list[dict[str, Any]],
+    current: list[dict[str, Any]],
+    identity_field: str,
+) -> list[dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    order: list[str] = []
+    for record in [*prior, *current]:
+        identity = record.get(identity_field)
+        if not isinstance(identity, str):
+            raise InteractionProtocolError(f"linked record has no {identity_field} identity")
+        if identity not in merged:
+            order.append(identity)
+        merged[identity] = copy.deepcopy(record)
+    return [merged[identity] for identity in order]
+
+
+def _merge_material_questions(
+    prior: list[dict[str, Any]],
+    answered: dict[str, Any],
+    rebuilt: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    answered_id = str(answered["question_id"])
+    merged = [
+        copy.deepcopy(answered) if item.get("question_id") == answered_id else copy.deepcopy(item)
+        for item in prior
+    ]
+    if not any(item.get("question_id") == answered_id for item in merged):
+        merged.append(copy.deepcopy(answered))
+    for incoming in rebuilt:
+        incoming_id = str(incoming["question_id"])
+        exact = next(
+            (index for index, item in enumerate(merged) if item.get("question_id") == incoming_id),
+            None,
+        )
+        if exact is not None:
+            merged[exact] = copy.deepcopy(incoming)
+            continue
+        continuity = _question_continuity_key(incoming)
+        replace = next(
+            (
+                index
+                for index, item in enumerate(merged)
+                if item.get("status") == "open"
+                and continuity is not None
+                and _question_continuity_key(item) == continuity
+            ),
+            None,
+        )
+        if replace is None:
+            merged.append(copy.deepcopy(incoming))
+        else:
+            merged[replace] = copy.deepcopy(incoming)
+    identities = [str(item.get("question_id")) for item in merged]
+    if len(identities) != len(set(identities)):
+        raise InteractionProtocolError("linked MaterialQuestion identity is duplicated")
+    return merged
+
+
+def _question_continuity_key(question: dict[str, Any]) -> str | None:
+    extensions = question.get("extensions")
+    if not isinstance(extensions, dict):
+        return None
+    selection_kind = extensions.get("x-selection-kind")
+    if extensions.get("x-selection-profile") == SCOPE_SELECTION_PROFILE and (
+        selection_kind in {"analysis_source", "material_input", "analysis_output"}
+    ):
+        return canonical_json(
+            {
+                "dimension": question.get("unknown_semantic_dimension"),
+                "selection_kind": selection_kind,
+            }
+        )
+    contract_ref = extensions.get("x-contract-ref")
+    if not isinstance(contract_ref, dict):
+        return None
+    return canonical_json(
+        {
+            "dimension": question.get("unknown_semantic_dimension"),
+            "contract_ref": contract_ref,
+            "affected_claim_ids": question.get("affected_claim_ids", []),
+        }
+    )
+
+
 def _source_surface(parent_bundle: dict[str, Any], question: dict[str, Any]) -> dict[str, Any]:
     question_id = question.get("question_id")
     matches = [
@@ -1822,6 +2212,13 @@ def _answer_authority(
             [typed_ref("publication_surface", str(surface["publication_surface_id"]))],
             "publication_surface",
         )
+    if is_scope_selection_question(question):
+        snapshot_digest = _source_snapshot_digest(parent_bundle)
+        try:
+            contract = validate_scope_selection_question(parent_bundle, question, snapshot_digest)
+        except ValueError as error:
+            raise InteractionProtocolError(str(error)) from error
+        return [copy.deepcopy(contract["snapshot_ref"])], "metadata_definition"
     contract = _question_contract(parent_bundle, question)
     scope = contract.get("scope", {})
     subject_refs = copy.deepcopy(scope.get("subject_refs", []))
