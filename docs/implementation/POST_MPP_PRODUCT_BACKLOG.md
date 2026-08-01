@@ -15,7 +15,7 @@ ADRs remain authoritative for their exact scopes.
 
 The 0.3.0 baseline contains:
 
-- 18 active question-oriented scientific checks through 19 bounded adapters;
+- 18 active question-oriented scientific checks through 23 bounded adapters;
 - 8 active deterministic calculation-check families;
 - 15 published capability profiles;
 - one experimental method-conflict detector binding; and
@@ -128,7 +128,7 @@ themselves, qualify a detector or support a public generality claim.
   - Tests: parameterized adapter conformance suite plus corpus-level false-question regression.
   - Limitation: text can establish an explicit declaration, not that the declared method was run.
 
-- [ ] **L07 — Python and R source adapters for existing checks.** Add bounded AST-based source
+- [x] **L07 — Python and R source adapters for existing checks.** Add bounded AST-based source
   observations for the highest-value existing questions, prioritizing calculation setup, design
   matrices, selection reuse, multiple-testing families, and method arguments.
   - Acceptance: source adapters emit the same normalized method observation as report adapters;
@@ -244,7 +244,7 @@ themselves, qualify a detector or support a public generality claim.
 
 Work on the first unchecked prerequisite, in order:
 
-1. L07 through L08 — source, notebook, Quarto, and R Markdown adapters over the common joins; then
+1. L08 — notebook, Quarto, and R Markdown adapters over the common joins; then
 2. L09 and L10 — natural calculation layouts and large single-cell artifacts.
 
 Do not begin detector promotion, MCP transport, or project execution while these prerequisites are

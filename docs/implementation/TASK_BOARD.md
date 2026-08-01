@@ -30,8 +30,12 @@ shared by publication, cell, writer, calculation, selection, and exact imported-
 Experiment 0040 completes L06 through a frozen fresh-report wording corpus and two bounded grammar
 expansions for existing poststratification and pulse-exposure operands, while an unlinked dosage
 report remains unsupported.
+Experiment 0041 completes L07 through one shared question-only static-source boundary and four
+Python/R adapters for two existing checks. The adapters recognize bounded classifier-copy-dosage
+and LD-whitening source shapes, use the common scope graph, and preserve source/report conflict,
+parser disagreement, shadowing, branches, and unscoped source as explicit uncertainty.
 Post-MPP functionality work remains ordered in `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md`;
-L07 Python and R source adapters are now the first pending prerequisite.
+L08 notebook, Quarto, and R Markdown analysis connectivity is now the first pending prerequisite.
 
 ## Epic A — Baseline and quality gates
 
@@ -1012,8 +1016,8 @@ the draft pull request as a published or detector-qualified release.
 
 ## Immediate next task
 
-Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. L01 through L06 are
-complete; start with L07 Python and R source adapters before broadening notebook connectivity or
+Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. L01 through L07 are
+complete; start with L08 notebook, Quarto, and R Markdown analysis connectivity before broadening
 scientific coverage.
 Every subsequent feature must retain the mandatory positive, corrected, hard-negative, ambiguous,
 unsupported, isolation, mutation, no-execution, and replay controls described there.

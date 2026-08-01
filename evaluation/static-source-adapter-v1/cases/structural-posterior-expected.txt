@@ -1,0 +1,529 @@
+#!/usr/bin/env python3
+"""Deterministic analysis of the anonymous Locus Q release."""
+
+from __future__ import annotations
+
+import json
+import math
+import os
+import warnings
+from pathlib import Path
+from typing import Any
+
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
+
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, log_loss, mean_squared_error
+from sklearn.model_selection import StratifiedKFold, cross_val_predict
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+ROOT = Path(__file__).resolve().parent
+DATA = ROOT / "data_files"
+SEED = 20260730
+Z975 = 1.959963984540054
+
+
+def read(name: str) -> pd.DataFrame:
+    return pd.read_csv(DATA / f"{name}.tsv.gz", sep="\t")
+
+
+def rounded(value: float, digits: int = 6) -> float:
+    return float(round(float(value), digits))
+
+
+def interval(value: float, se: float) -> list[float]:
+    return [rounded(value - Z975 * se), rounded(value + Z975 * se)]
+
+
+def json_write(path: Path, value: Any) -> None:
+    path.write_text(
+        json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+
+
+def calibration_model(c_value: float) -> Any:
+    return make_pipeline(
+        StandardScaler(),
+        LogisticRegression(
+            C=c_value,
+            max_iter=10_000,
+            random_state=SEED,
+            solver="lbfgs",
+        ),
+    )
+
+
+def tune_calibrator(
+    frame: pd.DataFrame, markers: list[str], outcome: str
+) -> tuple[Any, dict[str, Any]]:
+    classes = np.array([0, 1, 2], dtype=float)
+    folds = StratifiedKFold(n_splits=10, shuffle=True, random_state=SEED)
+    scores: list[dict[str, Any]] = []
+    best: tuple[float, float] | None = None
+    for c_value in (0.01, 0.1, 1.0, 10.0, 100.0):
+        probabilities = cross_val_predict(
+            calibration_model(c_value),
+            frame[markers],
+            frame[outcome],
+            cv=folds,
+            method="predict_proba",
+            n_jobs=1,
+        )
+        expected = probabilities @ classes
+        loss = float(log_loss(frame[outcome], probabilities, labels=[0, 1, 2]))
+        score = {
+            "C": c_value,
+            "accuracy": rounded(accuracy_score(frame[outcome], probabilities.argmax(axis=1))),
+            "expected_dosage_rmse": rounded(
+                math.sqrt(mean_squared_error(frame[outcome], expected))
+            ),
+            "log_loss": rounded(loss),
+        }
+        scores.append(score)
+        candidate = (loss, c_value)
+        if best is None or candidate < best:
+            best = candidate
+    assert best is not None
+    chosen_c = best[1]
+    fitted = calibration_model(chosen_c).fit(frame[markers], frame[outcome])
+    return fitted, {"chosen_C": chosen_c, "cross_validation": scores}
+
+
+def expected_copy(model: Any, predictors: pd.DataFrame) -> np.ndarray:
+    probabilities = model.predict_proba(predictors)
+    classes = model.named_steps["logisticregression"].classes_.astype(float)
+    return probabilities @ classes
+
+
+def stratified_classifier_dosage(
+    training: pd.DataFrame,
+    prediction: pd.DataFrame,
+    markers: list[str],
+    outcome: str,
+) -> tuple[np.ndarray, np.ndarray, dict[str, Any]]:
+    expected = np.full(len(prediction), np.nan, dtype=float)
+    hard = np.full(len(prediction), -1, dtype=int)
+    validation: dict[str, Any] = {
+        "model": "ancestry-stratified multinomial posterior expected dosage",
+        "groups": {},
+    }
+    for ancestry in sorted(prediction["ancestry_group"].unique()):
+        train_mask = training["ancestry_group"] == ancestry
+        prediction_mask = prediction["ancestry_group"] == ancestry
+        model, details = tune_calibrator(training.loc[train_mask], markers, outcome)
+        expected[prediction_mask.to_numpy()] = expected_copy(
+            model, prediction.loc[prediction_mask, markers]
+        )
+        hard[prediction_mask.to_numpy()] = model.predict(
+            prediction.loc[prediction_mask, markers]
+        ).astype(int)
+        validation["groups"][str(ancestry)] = {
+            "n": int(train_mask.sum()),
+            **details,
+        }
+    assert np.isfinite(expected).all()
+    assert (hard >= 0).all()
+    return expected, hard, validation
+
+
+def design_matrix(frame: pd.DataFrame, exposure: str = "segment_b_dosage") -> pd.DataFrame:
+    continuous = frame[
+        [exposure, "outer_dosage", "age", "sex", "pc1", "pc2", "pc3"]
+    ].astype(float)
+    clinic = pd.get_dummies(
+        frame["clinic_stratum"], prefix="clinic", drop_first=True, dtype=float
+    )
+    return sm.add_constant(pd.concat([continuous, clinic], axis=1), has_constant="add")
+
+
+def main() -> None:
+    cohort = read("cohort")
+    breakpoint = read("breakpoint_panel")
+    tags = read("tag_markers")
+    marker_info = read("marker_info")
+    expression = read("expression_panel")
+    sampling = read("sampling_design")
+
+    assert cohort["sample_id"].is_unique and tags["sample_id"].is_unique
+    assert breakpoint["sample_id"].is_unique
+    assert set(cohort["sample_id"]) == set(tags["sample_id"])
+    assert len(cohort) == 1900 and len(breakpoint) == 780
+
+    # Reliability thresholds lie in observed gaps: molecules 16--34, MAPQ 49--54.1,
+    # entropy .17--.22, pair balance .61--.651, and local complexity .281--.430.
+    reliable_mask = (
+        (breakpoint["molecule_count"] >= 30)
+        & (breakpoint["mean_mapq"] >= 50)
+        & (breakpoint["alignment_entropy"] <= 0.20)
+        & (breakpoint["pair_balance"] >= 0.65)
+        & (breakpoint["local_complexity"] <= 0.35)
+    )
+    reliable = breakpoint.loc[reliable_mask].copy()
+
+    # Outer evidence is a split-molecule allele fraction, so 0/.5/1 maps to 0/1/2.
+    reliable["outer_call"] = np.select(
+        [reliable["bp_alt_fraction"] < 0.25, reliable["bp_alt_fraction"] < 0.75],
+        [0, 1],
+        default=2,
+    ).astype(int)
+
+    # Segment-B requires agreement between its copy index and orthogonal depth shift.
+    index_call = np.select(
+        [
+            reliable["copy_index_segment_B"] < 0.5,
+            reliable["copy_index_segment_B"] < 1.5,
+        ],
+        [0, 1],
+        default=2,
+    ).astype(int)
+    depth_call = np.select(
+        [
+            reliable["depth_log2_segment_B"] < 0.15,
+            reliable["depth_log2_segment_B"] < 0.45,
+        ],
+        [0, 1],
+        default=2,
+    ).astype(int)
+    concordant = index_call == depth_call
+    reliable = reliable.loc[concordant].copy()
+    reliable["segment_b_call"] = index_call[concordant]
+
+    n_reliable = int(len(reliable))
+    n_calibrated_carriers = int((reliable["segment_b_call"] > 0).sum())
+    assert n_reliable == 483
+    assert n_calibrated_carriers == 195
+
+    training = reliable.merge(tags, on="sample_id", validate="one_to_one")
+    training = training.merge(
+        cohort[["sample_id", "ancestry_group"]], on="sample_id", validate="one_to_one"
+    )
+
+    # M025--M036 are the nested, lower-information sub-interval within interval_2.
+    segment_markers = marker_info.loc[
+        (marker_info["panel_block"] == "interval_2")
+        & (marker_info["mean_impute_info"] < 0.95),
+        "marker_id",
+    ].tolist()
+    outer_markers = marker_info.loc[
+        marker_info["panel_block"] == "interval_1", "marker_id"
+    ].tolist()
+    assert segment_markers == [f"M{i:03d}" for i in range(25, 37)]
+    assert outer_markers == [f"M{i:03d}" for i in range(1, 19)]
+
+    prediction = tags.merge(
+        cohort[["sample_id", "ancestry_group"]], on="sample_id", validate="one_to_one"
+    )
+    segment_dosage, segment_hard, segment_validation = stratified_classifier_dosage(
+        training, prediction, segment_markers, "segment_b_call"
+    )
+    outer_dosage, outer_hard, outer_validation = stratified_classifier_dosage(
+        training, prediction, outer_markers, "outer_call"
+    )
+
+    dosages = prediction[["sample_id"]].copy()
+    dosages["segment_b_dosage"] = segment_dosage
+    dosages["outer_dosage"] = outer_dosage
+    dosages["segment_b_hard"] = segment_hard
+    dosages["outer_hard"] = outer_hard
+
+    sampling_keys = [
+        "clinic_stratum",
+        "recruitment_stream",
+        "ancestry_group",
+        "age_band",
+        "case",
+    ]
+    analytic = cohort.merge(dosages, on="sample_id", validate="one_to_one").merge(
+        sampling, on=sampling_keys, validate="many_to_one"
+    )
+    assert analytic["sample_fraction"].notna().all()
+    analytic["ipw"] = 1.0 / analytic["sample_fraction"]
+    analytic["ipw"] /= analytic["ipw"].mean()
+
+    clinical_x = design_matrix(analytic)
+    clinical = sm.GLM(
+        analytic["case"],
+        clinical_x,
+        family=sm.families.Binomial(),
+        var_weights=analytic["ipw"],
+    ).fit(cov_type="HC0")
+    subhap_log_or = float(clinical.params["segment_b_dosage"])
+    subhap_se = float(clinical.bse["segment_b_dosage"])
+
+    hard_frame = analytic.rename(
+        columns={"segment_b_hard": "hard_b", "outer_hard": "hard_outer"}
+    ).copy()
+    hard_x = hard_frame[
+        ["hard_b", "hard_outer", "age", "sex", "pc1", "pc2", "pc3"]
+    ].astype(float)
+    hard_x = pd.concat(
+        [
+            hard_x,
+            pd.get_dummies(
+                hard_frame["clinic_stratum"],
+                prefix="clinic",
+                drop_first=True,
+                dtype=float,
+            ),
+        ],
+        axis=1,
+    )
+    hard_clinical = sm.GLM(
+        hard_frame["case"],
+        sm.add_constant(hard_x, has_constant="add"),
+        family=sm.families.Binomial(),
+        var_weights=hard_frame["ipw"],
+    ).fit(cov_type="HC0")
+
+    expression_analytic = expression.merge(
+        analytic[
+            [
+                "sample_id",
+                "segment_b_dosage",
+                "outer_dosage",
+                "age",
+                "sex",
+                "pc1",
+                "pc2",
+                "pc3",
+                "clinic_stratum",
+                "ipw",
+            ]
+        ],
+        on="sample_id",
+        validate="many_to_one",
+    )
+    expression_analytic["mapping_pass"] = (
+        (expression_analytic["assay_depth_millions"] >= 30)
+        & (expression_analytic["unique_fraction"] >= 0.75)
+        & (expression_analytic["multimapper_fraction"] <= 0.20)
+    )
+
+    expression_results: dict[str, Any] = {}
+    fitted_expression: dict[str, Any] = {}
+    for gene_id in sorted(expression_analytic["gene_id"].unique()):
+        gene = expression_analytic.loc[
+            (expression_analytic["gene_id"] == gene_id)
+            & expression_analytic["mapping_pass"]
+        ].copy()
+        if len(gene) < 100:
+            expression_results[gene_id] = {
+                "eligible": False,
+                "n_mapping_pass": int(len(gene)),
+                "reason": "insufficient uniquely mapped expression observations",
+            }
+            continue
+        base = gene[
+            [
+                "segment_b_dosage",
+                "outer_dosage",
+                "age",
+                "sex",
+                "pc1",
+                "pc2",
+                "pc3",
+                "assay_depth_millions",
+                "unique_fraction",
+                "multimapper_fraction",
+                "gc_metric",
+            ]
+        ].astype(float)
+        categorical = pd.get_dummies(
+            gene[["tissue_source", "expr_batch", "clinic_stratum"]],
+            drop_first=True,
+            dtype=float,
+        )
+        expression_x = sm.add_constant(
+            pd.concat([base, categorical], axis=1), has_constant="add"
+        )
+        fit = sm.WLS(
+            gene["log_expr"], expression_x, weights=gene["ipw"]
+        ).fit(cov_type="HC1")
+        estimate = float(fit.params["segment_b_dosage"])
+        se = float(fit.bse["segment_b_dosage"])
+        expression_results[gene_id] = {
+            "eligible": True,
+            "n_mapping_pass": int(len(gene)),
+            "segment_b_log_fc": rounded(estimate),
+            "robust_se": rounded(se),
+            "ci95": interval(estimate, se),
+            "p_value": rounded(float(fit.pvalues["segment_b_dosage"]), 12),
+            "outer_coefficient": rounded(fit.params["outer_dosage"]),
+        }
+        fitted_expression[gene_id] = fit
+
+    eligible_count = sum(v["eligible"] for v in expression_results.values())
+    supported = [
+        gene
+        for gene, result in expression_results.items()
+        if result["eligible"]
+        and result["segment_b_log_fc"] > 0
+        and result["p_value"] < 0.05 / eligible_count
+    ]
+    assert supported == ["GENE2"]
+    supported_gene = supported[0]
+    expression_log_fc = float(
+        fitted_expression[supported_gene].params["segment_b_dosage"]
+    )
+    expression_se = float(fitted_expression[supported_gene].bse["segment_b_dosage"])
+    target_support_code = int(expression_log_fc > 0 and subhap_log_or < 0)
+
+    group_validation = {
+        ancestry: {
+            "n": details["n"],
+            "rmse_apparent": details["cross_validation"][-1]["expected_dosage_rmse"],
+        }
+        for ancestry, details in segment_validation["groups"].items()
+    }
+
+    weights = analytic["ipw"].to_numpy()
+    effective_n = float(weights.sum() ** 2 / np.square(weights).sum())
+    answer = {
+        "answer": {
+            "n_calibrated_carriers": n_calibrated_carriers,
+            "target_support_code": target_support_code,
+            "expression_log_fc": rounded(expression_log_fc),
+            "subhap_log_or": rounded(subhap_log_or),
+        },
+        "reasoning": (
+            "Breakpoint QC used observed quality gaps; outer dosage was called from split-molecule "
+            "fractions, while segment-B required concordant copy-index and depth calls. Separate "
+            "multinomial marker calibrators transported outer and segment-B states as continuous "
+            "posterior expected copy dosages. Inverse sampling-fraction weighted models adjusted "
+            "for outer dosage, continuous age, sex, PCs, and clinic; expression additionally "
+            "adjusted for tissue, batch, depth, mapping, and GC metrics. GENE2 alone passed mapping "
+            "QC and multiplicity-controlled positive support; the clinical point estimate was protective."
+        ),
+    }
+
+    diagnostics = {
+        "answer_values_unrounded": {
+            "expression_log_fc": expression_log_fc,
+            "subhap_log_or": subhap_log_or,
+        },
+        "breakpoint_calibration": {
+            "panel_n": int(len(breakpoint)),
+            "quality_pass_n": int(reliable_mask.sum()),
+            "quality_and_signal_concordant_n": n_reliable,
+            "segment_b_call_counts": {
+                str(key): int(value)
+                for key, value in reliable["segment_b_call"]
+                .value_counts()
+                .sort_index()
+                .items()
+            },
+            "outer_call_counts": {
+                str(key): int(value)
+                for key, value in reliable["outer_call"]
+                .value_counts()
+                .sort_index()
+                .items()
+            },
+            "copy_index_depth_discordant_after_quality_qc": int((~concordant).sum()),
+            "qc_thresholds": {
+                "alignment_entropy_max": 0.20,
+                "local_complexity_max": 0.35,
+                "mean_mapq_min": 50,
+                "molecule_count_min": 30,
+                "pair_balance_min": 0.65,
+            },
+        },
+        "dosage_representation": {
+            "primary": "continuous posterior expected copy dosage P(copy=1)+2*P(copy=2)",
+            "segment_markers": segment_markers,
+            "outer_markers": outer_markers,
+            "segment_calibration": segment_validation,
+            "outer_calibration": outer_validation,
+            "full_cohort_segment_dosage_range": [
+                rounded(dosages["segment_b_dosage"].min()),
+                rounded(dosages["segment_b_dosage"].max()),
+            ],
+            "ancestry_apparent_rmse": group_validation,
+        },
+        "sampling_design": {
+            "weight": "inverse sample_fraction, normalized to mean one, untrimmed",
+            "weight_min": rounded(analytic["ipw"].min()),
+            "weight_max": rounded(analytic["ipw"].max()),
+            "weight_effective_n": rounded(effective_n),
+            "design_columns": sampling_keys,
+        },
+        "clinical_model": {
+            "n": int(len(analytic)),
+            "outcome": "case",
+            "covariates": [
+                "outer posterior expected dosage",
+                "continuous age",
+                "sex",
+                "pc1",
+                "pc2",
+                "pc3",
+                "clinic_stratum indicators",
+            ],
+            "excluded_from_regression_but_used_in_weighting": [
+                "age_band",
+                "ancestry_group",
+                "recruitment_stream",
+                "case",
+            ],
+            "estimate": rounded(subhap_log_or),
+            "robust_se_conditional_on_calibration": rounded(subhap_se),
+            "ci95_conditional_on_calibration": interval(subhap_log_or, subhap_se),
+            "p_value": rounded(float(clinical.pvalues["segment_b_dosage"]), 12),
+            "outer_coefficient": rounded(clinical.params["outer_dosage"]),
+            "integer_hard_call_sensitivity": rounded(hard_clinical.params["hard_b"]),
+        },
+        "expression_models": expression_results,
+        "supported_gene": supported_gene,
+        "limitations": [
+            "The calibration panel is a subset; transport outside its observed ancestry and marker patterns is not established.",
+            "Regression sandwich intervals condition on the fitted dosage calibrators and do not propagate first-stage calibration uncertainty.",
+            "Inverse-probability weights are variable, reducing the clinical effective sample size and widening uncertainty.",
+            "GENE1 failed the prespecified uniqueness/multimapping QC, so no reliable expression coefficient is claimed for it.",
+            "Association estimates are observational total-effect associations, not causal effects.",
+        ],
+    }
+
+    report = f"""# Locus Q structural-copy analysis
+
+## Results
+
+The calibrated segment-B carrier count is **{n_calibrated_carriers}** among {n_reliable} reliable breakpoint-panel samples. The primary source-population clinical estimate is `subhap_log_or = {rounded(subhap_log_or):.6f}` per additional segment-B copy (robust conditional 95% CI {interval(subhap_log_or, subhap_se)[0]:.6f} to {interval(subhap_log_or, subhap_se)[1]:.6f}). The supported expression target is **{supported_gene}**, with `expression_log_fc = {rounded(expression_log_fc):.6f}` (robust conditional 95% CI {interval(expression_log_fc, expression_se)[0]:.6f} to {interval(expression_log_fc, expression_se)[1]:.6f}). Because expression is positive and the clinical point estimate is protective, `target_support_code = {target_support_code}`.
+
+## Breakpoint QC and copy conversion
+
+Reliability required molecule count >=30, mean MAPQ >=50, alignment entropy <=0.20, pair balance >=0.65, and local complexity <=0.35. These cut points fall in visible gaps in the joint quality distributions and retained {int(reliable_mask.sum())}/{len(breakpoint)} samples. The outer orientation was converted independently from split-molecule fraction: <0.25, 0.25--<0.75, and >=0.75 correspond to 0, 1, and 2 outer copies. Segment B was converted to 0/1/2 both from copy index (<0.5, 0.5--<1.5, >=1.5) and depth-log2 shift (<0.15, 0.15--<0.45, >=0.45); a calibrated label required agreement. There were {int((~concordant).sum())} disagreements after quality QC. Segment-B counts were 288/173/22 for 0/1/2 copies, so 195 samples carried at least one copy. Segment B was not constrained to equal or be bounded by the outer call; the two assays were analyzed as distinct observed structural states.
+
+## Dosage calibration and transport
+
+The full-cohort representation in this reverse control is **ancestry-stratified posterior expected copy dosage**, `P(copy=1) + 2*P(copy=2)`, not an integer hard call. Separate standardized multinomial logistic calibrators were trained within each ancestry without clinical or expression outcomes: M025--M036 for segment B and M001--M018 for the outer orientation. The outer state entered downstream regressions explicitly, separating the nested dosage effect from broader orientation tagging. Calibration is well resolved in this panel, but first-stage uncertainty is not propagated into regression intervals.
+
+## Source-population clinical model
+
+Every cohort record matched one of the 108 released sampling cells. The weight was the untrimmed inverse `sample_fraction`, normalized to mean one. All cell fields (clinic stratum, recruitment stream, ancestry group, age band, and case) defined weights. The weighted binomial logit used segment-B expected dosage, outer expected dosage, continuous age, sex, PC1--PC3, and clinic-stratum indicators. Age band, recruitment stream, and ancestry group were not added as redundant baseline regression terms: age and PCs were used continuously, and recruitment stream is an ascertainment field. Expression was not adjusted in the clinical model, so the segment-B coefficient is a total-effect association. A robust sandwich was used; weight variability reduced the effective sample size to {effective_n:.1f}, and the clinical interval includes zero despite a protective point estimate. Integer hard-call sensitivity gave {rounded(hard_clinical.params['hard_b']):.6f}.
+
+## Expression support
+
+Expression mapping QC required assay depth >=30 million, unique fraction >=0.75, and multimapper fraction <=0.20. This excluded all GENE1 rows as unreliable mapping evidence and retained 560 rows for each of GENE2--GENE4. Per-gene weighted least-squares models adjusted for outer dosage, age, sex, PC1--PC3, clinic, tissue source, expression batch, assay depth, unique fraction, multimapper fraction, and GC metric, with robust covariance. GENE2 alone had positive segment-B support after Bonferroni correction across the three eligible genes. Case was not adjusted because it is downstream of genotype; source-population weighting instead reverses the released outcome-dependent sampling.
+
+## Limitations
+
+The calibration-panel selection mechanism beyond the measured covariates is unknown, ancestry-specific validation groups are modest, and no external calibration cohort is available. Plug-in dosage intervals omit first-stage uncertainty. Large inverse sampling weights make the clinical estimate imprecise. The expression panel is smaller than the cohort, and its additional selection probabilities were not provided. These are observational associations and do not establish causality.
+"""
+
+    json_write(ROOT / "answer.json", answer)
+    json_write(ROOT / "diagnostics.json", diagnostics)
+    (ROOT / "report.md").write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
