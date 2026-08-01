@@ -1,6 +1,6 @@
 {
   "starter_version": "0.1.0",
-  "program_version": "0.3.0.dev0",
+  "program_version": "0.3.0",
   "product": "sc-referee",
   "architecture_specification": "0.5.0-draft",
   "schema_version": "0.18.0",
@@ -84,5 +84,5 @@
     "static_qualification_profiles": 0,
     "static_qualification_proofs": 0
   },
-  "next_task": "Complete public documentation and clean-checkout skill installation verification, then decide final program version, citation metadata, migration/archive presentation, W3ID deployment, and merge or release timing. Independent detector qualification remains required before any experimental real-project detector gains Finding authority; project-code execution remains post-MPP."
+  "next_task": "Verify the installed skill from the merged 0.3.0 repository, then decide release-tag and W3ID publication timing. Independent detector qualification remains required before any experimental real-project detector gains Finding authority; project-code execution remains post-MPP."
 }

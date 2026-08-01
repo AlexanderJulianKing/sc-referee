@@ -29,12 +29,15 @@ def test_codex_plugin_manifest_declares_the_bounded_local_surface(project_root: 
 
     assert manifest["name"] == plugin_root.name
     assert STRICT_SEMVER.fullmatch(manifest["version"])
+    assert manifest["version"].startswith("0.3.0+codex.")
     assert manifest["skills"] == "./skills/"
     assert manifest["license"] == "Apache-2.0"
+    assert manifest["author"]["name"] == "Alexander King"
     assert manifest["author"]["url"] == "https://github.com/AlexanderJulianKing"
     assert manifest["repository"] == GITHUB_REPOSITORY
     assert manifest["homepage"] == f"{GITHUB_REPOSITORY}#readme"
     assert manifest["interface"]["websiteURL"] == GITHUB_REPOSITORY
+    assert manifest["interface"]["developerName"] == "Alexander King"
     assert manifest["interface"]["capabilities"] == [
         "Claimless scientific method contracting",
         "Static scientific audit",

@@ -238,9 +238,11 @@ detector qualification, cross-provider answer-blind evidence, and Finding author
 ## Exact release posture
 
 The evidence-first vertical slice and practical-parity modules are locally executable and hosted-CI
-verified. The GitHub replacement remains a draft development alpha rather than a final release.
-Public documentation, clean-checkout skill installation, final program version, citation metadata,
-migration/archive presentation, and any W3ID deployment decision remain release work.
+verified. The project owner selected public-alpha version 0.3.0, fixed Alexander King as the sole
+human author, acknowledged OpenAI Codex and Anthropic Claude as AI development collaborators, and
+authorized the GitHub replacement after final green release gates. Citation, migration, and
+Git-history archival presentation are present. A release tag and any W3ID deployment remain
+separate publication operations.
 
 Experimental real-project detectors still lack answer-blind cross-provider qualification and
 maintainer promotion, so they cannot emit production Findings. That qualification is a capability-

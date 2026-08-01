@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use sc-referee, please cite it using this metadata."
+title: "sc-referee"
+type: software
+version: 0.3.0
+authors:
+  - family-names: King
+    given-names: Alexander
+repository-code: "https://github.com/AlexanderJulianKing/sc-referee"
+url: "https://github.com/AlexanderJulianKing/sc-referee"
+license: Apache-2.0
+abstract: >-
+  A conservative evidence compiler that audits supported scientific-analysis workflows without
+  executing project-authored code and separates demonstrated Findings from questions,
+  conditional concerns, disclosures, and unsupported coverage.
+keywords:
+  - scientific auditing
+  - reproducibility
+  - static analysis
+  - evidence compilation

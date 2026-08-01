@@ -1,6 +1,6 @@
 {
   "starter_version": "0.1.0",
-  "tool_version": "0.3.0.dev0",
+  "tool_version": "0.3.0",
   "pytest": "passed",
   "compileall": "passed",
   "public_schema_examples": 79,

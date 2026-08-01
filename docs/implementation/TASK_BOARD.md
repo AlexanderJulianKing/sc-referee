@@ -11,10 +11,11 @@ Tasks are ordered by dependency. A coding agent should complete the first pendin
 ## Current delivery phase
 
 Experiments 0030 and 0031 closed practical feature parity inside the overhaul's stricter evidence
-boundary. The draft GitHub replacement branch passes the full local handoff and both hosted push
-and pull-request matrices on Python 3.11, 3.12, and 3.13. Experiment 0032 is the current work:
-public documentation, local plugin distribution, clean-checkout command verification, and release
-metadata preparation. This phase does not change detector authority or schema meaning.
+boundary. Experiment 0032 added public documentation, local plugin distribution, and
+clean-checkout verification. Experiment 0033 fixes the authorized 0.3.0 release identity,
+authorship, AI acknowledgment, and merge gate. The replacement branch must pass the full local
+handoff and both hosted Python 3.11–3.13 matrices on its final bytes before it replaces `main`.
+This phase does not change detector authority or schema meaning.
 
 ## Epic A — Baseline and quality gates
 

@@ -51,8 +51,8 @@ repo marketplace and its exact plugin target.
   material inputs.
 - Local Codex marketplace installation is not public-directory publication or signing.
 - The manual Claude Code path is not independently packaged or continuously exercised.
-- Documentation does not satisfy real detector qualification, W3ID deployment, citation identity,
-  or the final public-version decision.
+- Documentation does not satisfy real detector qualification or W3ID deployment. Experiment 0033
+  separately closes citation identity and the public-version decision.
 
 ## Result
 
@@ -65,5 +65,5 @@ model-free replay.
 
 The complete repository gate passes Ruff, format checking across 316 files, strict mypy across 105
 source files, 1,216 tests, and starter validation. The authoritative source and draft GitHub
-worktree documentation bytes are synchronized. Hosted CI must rerun on the documentation commit;
-the previously green six-job matrix is not silently reused as evidence for changed bytes.
+worktree documentation bytes are synchronized. Both push- and pull-request-triggered hosted
+matrices passed on Python 3.11, 3.12, and 3.13 for the documentation commit.

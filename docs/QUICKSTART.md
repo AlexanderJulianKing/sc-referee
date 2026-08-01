@@ -23,7 +23,7 @@ sc-referee version
 Expected version shape:
 
 ```text
-sc-referee 0.3.0.dev0 (schema 0.18.0; starter lineage 0.1.0)
+sc-referee 0.3.0 (schema 0.18.0; starter lineage 0.1.0)
 ```
 
 The version is intentionally a development version. Do not infer release stability from the schema

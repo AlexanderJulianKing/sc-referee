@@ -47,7 +47,7 @@ def test_version_distinguishes_program_schema_and_starter_lineage() -> None:
     result = CliRunner().invoke(app, ["version"])
 
     assert result.exit_code == 0
-    assert result.stdout == ("sc-referee 0.3.0.dev0 (schema 0.18.0; starter lineage 0.1.0)\n")
+    assert result.stdout == ("sc-referee 0.3.0 (schema 0.18.0; starter lineage 0.1.0)\n")
 
 
 def test_numpy_is_a_direct_python_311_compatible_dependency(project_root: Path) -> None:

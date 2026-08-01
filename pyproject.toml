@@ -4,12 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sc-referee"
-version = "0.3.0.dev0"
+version = "0.3.0"
 description = "Conservative evidence compiler for scientific-analysis auditing"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
-authors = [{ name = "sc-referee contributors" }]
+authors = [{ name = "Alexander King" }]
+maintainers = [{ name = "Alexander King" }]
 dependencies = [
   "h5py>=3.11",
   "jinja2>=3.1",

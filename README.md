@@ -4,7 +4,7 @@
 snapshot, inspects supported files without running project-authored code, records exactly what it
 could and could not establish, and produces a replayable audit report.
 
-> **Development alpha:** the current program version is `0.3.0.dev0` and the public record schema
+> **Public alpha:** the current program version is `0.3.0` and the public record schema
 > is `0.18.0`. The overhaul is usable for bounded review, but it is not a correctness certificate,
 > publication approval, or general detector of every possible scientific mistake.
 
@@ -125,6 +125,8 @@ complete Finding-producing path remains a synthetic test fixture. Read the
 - [Agentic skill installation and use](docs/AGENTIC_SKILL.md)
 - [Capabilities and explicit limits](docs/CAPABILITIES.md)
 - [Migration from the earlier public implementation](docs/MIGRATION.md)
+- [Authorship and AI assistance](ACKNOWLEDGMENTS.md)
+- [Citation metadata](CITATION.cff)
 - [Documentation index](docs/README.md)
 - [Practical parity matrix](docs/implementation/PRACTICAL_PARITY_MATRIX.md)
 - [Full completion matrix](docs/implementation/FULL_COMPLETION_MATRIX.md)
@@ -151,14 +153,16 @@ record meaning.
 
 The three visible version lines describe different things:
 
-- `0.3.0.dev0` — the installable Python program under development;
+- `0.3.0` — the installable public-alpha Python program;
 - `0.18.0` — the current public JSON Schema release; and
 - `0.1.0` — the historical starter lineage.
 
-The accepted “0.6.0 minimum proud product” is an architecture boundary, not the current package
-version. A final public release number has not yet been selected.
+The accepted “0.6.0 minimum proud product” is an architecture boundary, not the package version.
+The public-alpha package release is `0.3.0`.
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE), [NOTICE](NOTICE), and
+Apache License 2.0. Alexander King is the sole human author; OpenAI Codex and Anthropic Claude are
+acknowledged as AI development collaborators. See [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md),
+[CITATION.cff](CITATION.cff), [LICENSE](LICENSE), [NOTICE](NOTICE), and
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

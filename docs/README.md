@@ -8,6 +8,8 @@ Start with the guide that matches what you are trying to do:
 | Let Codex or Claude Code perform the bounded audit workflow | [Agentic skill](AGENTIC_SKILL.md) |
 | Check whether a scientific method or file form is currently covered | [Capabilities](CAPABILITIES.md) |
 | Move from the earlier public implementation to this overhaul | [Migration](MIGRATION.md) |
+| Cite the software | [Citation metadata](../CITATION.cff) |
+| Review human authorship and AI assistance | [Acknowledgments](../ACKNOWLEDGMENTS.md) |
 
 The files under [`implementation/`](implementation/) are engineering records: accepted ADRs,
 experiment reports, schema decisions, qualification evidence, and task history. They are retained

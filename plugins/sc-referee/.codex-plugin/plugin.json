@@ -1,9 +1,9 @@
 {
   "name": "sc-referee",
-  "version": "0.3.0-dev.0+codex.20260801050900",
+  "version": "0.3.0+codex.20260801052231",
   "description": "Conservative scientific method contracting and workflow auditing through the deterministic sc-referee CLI",
   "author": {
-    "name": "sc-referee contributors",
+    "name": "Alexander King",
     "url": "https://github.com/AlexanderJulianKing"
   },
   "homepage": "https://github.com/AlexanderJulianKing/sc-referee#readme",
@@ -19,7 +19,7 @@
     "displayName": "sc-referee",
     "shortDescription": "Method contracts and conservative workflow audits",
     "longDescription": "Uses the installed sc-referee CLI to freeze narrow human-authorized method contracts before coding and to audit scientific workflows without executing project-authored code, separating demonstrated Findings from unknowns and coverage limits.",
-    "developerName": "sc-referee contributors",
+    "developerName": "Alexander King",
     "category": "Developer Tools",
     "websiteURL": "https://github.com/AlexanderJulianKing/sc-referee",
     "capabilities": [

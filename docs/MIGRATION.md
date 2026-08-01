@@ -54,18 +54,20 @@ It does not issue a global pass, risk score, publication approval, or correctnes
 
 ## Versions
 
-The current development branch reports:
+The current release reports:
 
 ```text
-sc-referee 0.3.0.dev0 (schema 0.18.0; starter lineage 0.1.0)
+sc-referee 0.3.0 (schema 0.18.0; starter lineage 0.1.0)
 ```
 
 The program version, record-schema version, and historical starter lineage are deliberately
 separate. The accepted `0.6.0` minimum-proud-product language refers to the architecture boundary,
 not an already published Python package version.
 
-## What is not decided yet
+## Release identity and prior implementation
 
-The final public program version, citation metadata, release tag, W3ID deployment, and archival
-presentation of the prior implementation remain release decisions. This guide does not invent
-those defaults.
+The overhaul is released as program version `0.3.0`. Citation metadata names Alexander King as
+the sole human author and separately acknowledges Codex and Claude as AI development
+collaborators. The prior implementation remains recoverable from Git history; no compatibility
+layer is claimed or added. A release tag and any W3ID deployment remain separate publication
+operations.
