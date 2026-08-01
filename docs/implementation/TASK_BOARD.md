@@ -17,9 +17,11 @@ authorship, AI acknowledgment, and completed merge gate. Experiment 0034 follows
 fresh-context documentation review by completing the direct interaction example and narrowing
 plugin wording to the actual method-contract profile. Experiment 0035 freezes the first
 machine-readable post-MPP regression ledger: all 26 active modules map to retained, digest-bound,
-qualification-excluded development cases. The 0.3.0 overhaul is now on `main`; these follow-ups
-change no detector authority or schema meaning. Post-MPP functionality work is ordered in
-`docs/implementation/POST_MPP_PRODUCT_BACKLOG.md`; its L02 one-command corpus runner is the first
+qualification-excluded development cases. Experiment 0036 adds the L02 one-command runner, which
+executes 19 retained pytest selectors and field-compares four direct audit/replay controls without
+using timestamps or SQLite. The 0.3.0 overhaul is now on `main`; these follow-ups change no detector
+authority or schema meaning. Post-MPP functionality work is ordered in
+`docs/implementation/POST_MPP_PRODUCT_BACKLOG.md`; L03 module-baseline completeness is now the first
 pending prerequisite.
 
 ## Epic A — Baseline and quality gates
@@ -1001,7 +1003,8 @@ the draft pull request as a published or detector-qualified release.
 
 ## Immediate next task
 
-Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. L01 is complete;
-start with the one-command L02 corpus runner before broadening connectivity or scientific coverage.
+Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. L01 and L02 are
+complete; start with L03 module-baseline completeness before broadening connectivity or scientific
+coverage.
 Every subsequent feature must retain the mandatory positive, corrected, hard-negative, ambiguous,
 unsupported, isolation, mutation, no-execution, and replay controls described there.
