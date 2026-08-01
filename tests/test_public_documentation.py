@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import json
 import re
 import shutil
 from pathlib import Path
 
 from typer.testing import CliRunner
 
+from sc_referee.calculation_checks.profiles import default_calculation_check_registry
 from sc_referee.cli import app
+from sc_referee.scientific_checks.profiles import default_scientific_check_registry
 
 PUBLIC_DOCS = (
     "README.md",
@@ -79,6 +82,58 @@ def test_public_documentation_completes_the_newcomer_interaction_path(
     assert "zero Findings, one MaterialQuestion, and twenty" in quickstart
     assert "overall coverage is partial" in quickstart
     assert "does not establish that the workflow is correct or publication-ready" in quickstart
+
+
+def test_task_board_freezes_post_mpp_dependency_and_regression_policy(
+    project_root: Path,
+) -> None:
+    task_board = (project_root / "docs" / "implementation" / "TASK_BOARD.md").read_text(
+        encoding="utf-8"
+    )
+    backlog = (project_root / "docs" / "implementation" / "POST_MPP_PRODUCT_BACKLOG.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "POST_MPP_PRODUCT_BACKLOG.md" in task_board
+    assert "Start with L01" in task_board
+    scientific_registry = default_scientific_check_registry()
+    calculation_registry = default_calculation_check_registry()
+    capability_profiles = json.loads(
+        (
+            project_root
+            / "src"
+            / "sc_referee"
+            / "resources"
+            / "capability-manifests-v1"
+            / "profile-manifests.json"
+        ).read_text(encoding="utf-8")
+    )["records"]
+    assert f"{len(scientific_registry.modules)} active question-oriented" in backlog
+    assert (
+        f"through {sum(len(module.adapters) for module in scientific_registry.modules)} bounded"
+        in backlog
+    )
+    assert f"{len(calculation_registry.modules)} active deterministic calculation-check" in backlog
+    assert f"{len(capability_profiles)} published capability profiles" in backlog
+    assert len(scientific_registry.method_conflict_bindings) == 1
+    for task_id in (f"L{index:02d}" for index in range(1, 18)):
+        assert f"**{task_id} " in backlog
+    for required_control in (
+        "**Positive:**",
+        "**Corrected twin:**",
+        "**Hard negative:**",
+        "**Ambiguous:**",
+        "**Unsupported:**",
+        "**Counterevidence:**",
+        "**Removal and sibling isolation:**",
+        "**Mutation:**",
+        "**No execution and no late model access:**",
+        "**Replay:**",
+        "**Independent false-positive control:**",
+    ):
+        assert required_control in backlog
+    assert "1. L01 — regression corpus ledger" in backlog
+    assert "Do not begin detector promotion, MCP transport, or project execution" in backlog
 
 
 def test_documented_demo_and_static_audit_sequences_execute(

@@ -16,7 +16,9 @@ clean-checkout verification. Experiment 0033 fixes the authorized 0.3.0 release 
 authorship, AI acknowledgment, and completed merge gate. Experiment 0034 follows an independent
 fresh-context documentation review by completing the direct interaction example and narrowing
 plugin wording to the actual method-contract profile. The 0.3.0 overhaul is now on `main`; this
-follow-up changes no detector authority or schema meaning.
+follow-up changes no detector authority or schema meaning. Post-MPP functionality work is ordered
+in `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md`; its L01 regression corpus ledger is the first
+pending prerequisite.
 
 ## Epic A — Baseline and quality gates
 
@@ -501,7 +503,7 @@ follow-up changes no detector authority or schema meaning.
   or reference grader. The real run is public-development coverage evidence, not authenticated
   reviewer qualification or promotion evidence.
 
-## Immediate next task
+## Historical capability-development record
 
 Accepted ADR-0017 makes the `0.6.0` MPP evidence-first and non-executing. Do not spend the next
 implementation cycle on Podman, dependency installation, or project-code launch.
@@ -994,3 +996,11 @@ The hosted Python matrix is satisfied. Live platform credential-store smoke test
 deployment, final release identity, and independent cross-provider detector qualification remain
 external or later gates. The documentation phase must preserve those limits rather than presenting
 the draft pull request as a published or detector-qualified release.
+
+## Immediate next task
+
+Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. Start with L01, the
+machine-readable regression corpus ledger, then implement the one-command L02 runner before
+broadening connectivity or scientific coverage. Every subsequent feature must retain the mandatory
+positive, corrected, hard-negative, ambiguous, unsupported, isolation, mutation, no-execution, and
+replay controls described there.
