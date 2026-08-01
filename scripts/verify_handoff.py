@@ -448,6 +448,7 @@ def main() -> int:
     run("-m", "pytest", "-q")
     run("-m", "compileall", "-q", "src", "evaluation/src", "tests", "scripts")
     run("scripts/validate_starter.py")
+    run("scripts/validate_regression_corpus.py")
     run("-m", "sc_referee.cli", "validate-schemas")
     verify_built_wheel()
     verify_built_evaluation_wheel()

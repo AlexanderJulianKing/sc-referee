@@ -15,9 +15,11 @@ boundary. Experiment 0032 added public documentation, local plugin distribution,
 clean-checkout verification. Experiment 0033 fixes the authorized 0.3.0 release identity,
 authorship, AI acknowledgment, and completed merge gate. Experiment 0034 follows an independent
 fresh-context documentation review by completing the direct interaction example and narrowing
-plugin wording to the actual method-contract profile. The 0.3.0 overhaul is now on `main`; this
-follow-up changes no detector authority or schema meaning. Post-MPP functionality work is ordered
-in `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md`; its L01 regression corpus ledger is the first
+plugin wording to the actual method-contract profile. Experiment 0035 freezes the first
+machine-readable post-MPP regression ledger: all 26 active modules map to retained, digest-bound,
+qualification-excluded development cases. The 0.3.0 overhaul is now on `main`; these follow-ups
+change no detector authority or schema meaning. Post-MPP functionality work is ordered in
+`docs/implementation/POST_MPP_PRODUCT_BACKLOG.md`; its L02 one-command corpus runner is the first
 pending prerequisite.
 
 ## Epic A — Baseline and quality gates
@@ -999,8 +1001,7 @@ the draft pull request as a published or detector-qualified release.
 
 ## Immediate next task
 
-Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. Start with L01, the
-machine-readable regression corpus ledger, then implement the one-command L02 runner before
-broadening connectivity or scientific coverage. Every subsequent feature must retain the mandatory
-positive, corrected, hard-negative, ambiguous, unsupported, isolation, mutation, no-execution, and
-replay controls described there.
+Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. L01 is complete;
+start with the one-command L02 corpus runner before broadening connectivity or scientific coverage.
+Every subsequent feature must retain the mandatory positive, corrected, hard-negative, ambiguous,
+unsupported, isolation, mutation, no-execution, and replay controls described there.

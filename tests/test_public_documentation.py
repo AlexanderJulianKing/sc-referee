@@ -95,7 +95,8 @@ def test_task_board_freezes_post_mpp_dependency_and_regression_policy(
     )
 
     assert "POST_MPP_PRODUCT_BACKLOG.md" in task_board
-    assert "Start with L01" in task_board
+    assert "L01 is complete" in task_board
+    assert "start with the one-command L02 corpus runner" in task_board
     scientific_registry = default_scientific_check_registry()
     calculation_registry = default_calculation_check_registry()
     capability_profiles = json.loads(
@@ -132,7 +133,7 @@ def test_task_board_freezes_post_mpp_dependency_and_regression_policy(
         "**Independent false-positive control:**",
     ):
         assert required_control in backlog
-    assert "1. L01 — regression corpus ledger" in backlog
+    assert "1. L02 — corpus runner" in backlog
     assert "Do not begin detector promotion, MCP transport, or project execution" in backlog
 
 

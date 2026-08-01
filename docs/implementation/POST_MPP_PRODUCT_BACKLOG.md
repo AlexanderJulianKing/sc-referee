@@ -67,7 +67,7 @@ themselves, qualify a detector or support a public generality claim.
 
 ## P0 — Freeze and continuously test what already works
 
-- [ ] **L01 — Machine-readable regression corpus ledger.** Create a versioned ledger that names
+- [x] **L01 — Machine-readable regression corpus ledger.** Create a versioned ledger that names
   every retained synthetic fixture, frozen failed workflow, corrected twin, independent repository,
   expected applicability state, permitted assessment ceiling, and exact source revision.
   - Acceptance: every active scientific-check and calculation-check family maps to at least one
@@ -244,11 +244,10 @@ themselves, qualify a detector or support a public generality claim.
 
 Work on the first unchecked prerequisite, in order:
 
-1. L01 — regression corpus ledger;
-2. L02 — corpus runner;
-3. L03 — baseline completeness for current modules;
-4. L04 and L05 — selection and general static connectivity; then
-5. L09 and L10 — natural calculation layouts and large single-cell artifacts.
+1. L02 — corpus runner;
+2. L03 — baseline completeness for current modules;
+3. L04 and L05 — selection and general static connectivity; then
+4. L09 and L10 — natural calculation layouts and large single-cell artifacts.
 
 Do not begin detector promotion, MCP transport, or project execution while these prerequisites are
 unfinished.
