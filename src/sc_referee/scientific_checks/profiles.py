@@ -40,6 +40,10 @@ from sc_referee.scientific_checks.selected_report_adapter import (
     SelectedReportMethodAdapter,
     report_recognition_grammar_digest,
 )
+from sc_referee.scientific_checks.static_source_adapter import (
+    STATIC_SOURCE_ADAPTER_IMPLEMENTATION_DIGEST,
+    make_static_source_adapter,
+)
 
 NON_INFERENCES = (
     "execution",
@@ -203,6 +207,9 @@ def scientific_check_release_projection(
             "scientific_checks/selected_report_adapter.py": (
                 SELECTED_REPORT_ADAPTER_IMPLEMENTATION_DIGEST
             ),
+            "scientific_checks/static_source_adapter.py": (
+                STATIC_SOURCE_ADAPTER_IMPLEMENTATION_DIGEST
+            ),
             "scientific_checks/scope_joins.py": sha256_digest(
                 (Path(__file__).resolve().parent / "scope_joins.py").read_bytes()
             ),
@@ -365,6 +372,20 @@ def _module(profile: _ReportProfile) -> ScientificCheckModule:
                 role_bindings=profile.role_bindings,
             )
         )
+    source_recognizer = {
+        "check:classifier-derived-copy-dosage-representation": "classifier_copy_dosage",
+        "check:ld-covariance-whitening-before-robust-fit": "ld_whitening",
+    }.get(profile.check_id)
+    if source_recognizer is not None:
+        for language in ("python", "r"):
+            source_manifest, source_adapter = make_static_source_adapter(
+                check_manifest=check,
+                language=language,
+                recognizer=source_recognizer,  # type: ignore[arg-type]
+                role_bindings=profile.role_bindings,
+            )
+            adapter_manifests.append(source_manifest)
+            adapters.append(source_adapter)
     return ScientificCheckModule(
         manifest=check,
         declared_manifest_digest=check.manifest_digest,
@@ -1126,7 +1147,7 @@ def _ld_whitening_profile() -> _ReportProfile:
         question_wording=(
             "Which LD-covariance treatment governs the robust multivariable fit for this review?"
         ),
-        check_version="1.1.0",
+        check_version="1.2.0",
         adapter_version="1.1.0",
     )
 
@@ -1557,7 +1578,7 @@ def _classifier_copy_dosage_profile() -> _ReportProfile:
             "Which calibrated copy-number representation governs the quantitative "
             "exposure for this review?"
         ),
-        check_version="1.2.0",
+        check_version="1.3.0",
         adapter_version="1.2.0",
     )
 

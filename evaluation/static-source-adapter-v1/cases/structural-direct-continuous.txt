@@ -1,0 +1,457 @@
+#!/usr/bin/env python3
+"""Deterministic analysis of the released anonymous Locus Q files."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+from sklearn.linear_model import RidgeCV
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.model_selection import KFold
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+
+ROOT = Path(__file__).resolve().parent
+DATA = ROOT / "data_files"
+INPUT_NAMES = (
+    "breakpoint_panel.tsv.gz",
+    "cohort.tsv.gz",
+    "expression_panel.tsv.gz",
+    "file_notes.tsv.gz",
+    "marker_info.tsv.gz",
+    "sampling_design.tsv.gz",
+    "tag_markers.tsv.gz",
+)
+ALPHAS = np.logspace(-3, 3, 61)
+SEED = 7921
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def write_json(path: Path, value: Any) -> None:
+    path.write_text(
+        json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+
+
+def ridge_model() -> Any:
+    # Standardization is learned within each ancestry stratum. RidgeCV's exact
+    # leave-one-out generalized CV is deterministic and avoids a random tuning split.
+    return make_pipeline(StandardScaler(), RidgeCV(alphas=ALPHAS))
+
+
+def make_group_folds(calibration: pd.DataFrame) -> np.ndarray:
+    folds = np.full(len(calibration), -1, dtype=int)
+    ancestry = calibration["ancestry_group"].to_numpy()
+    for group in sorted(calibration["ancestry_group"].unique()):
+        indices = np.flatnonzero(ancestry == group)
+        splitter = KFold(n_splits=5, shuffle=True, random_state=SEED)
+        for fold, (_, test_local) in enumerate(splitter.split(indices)):
+            folds[indices[test_local]] = fold
+    if np.any(folds < 0):
+        raise RuntimeError("Fold construction failed")
+    return folds
+
+
+def cross_validated_ridge(
+    calibration: pd.DataFrame,
+    markers: list[str],
+    target: str,
+    group_specific: bool,
+) -> dict[str, float]:
+    y = calibration[target].to_numpy(dtype=float)
+    folds = make_group_folds(calibration)
+    ancestry = calibration["ancestry_group"].to_numpy()
+    predictions = np.zeros(len(calibration), dtype=float)
+    groups = sorted(calibration["ancestry_group"].unique()) if group_specific else ["ALL"]
+    for group in groups:
+        in_group = np.ones(len(calibration), dtype=bool) if group == "ALL" else ancestry == group
+        for fold in range(5):
+            train = in_group & (folds != fold)
+            test = in_group & (folds == fold)
+            model = ridge_model().fit(calibration.loc[train, markers], y[train])
+            predictions[test] = model.predict(calibration.loc[test, markers])
+    predictions = np.clip(predictions, 0.0, 2.0)
+    return {
+        "rmse": float(mean_squared_error(y, predictions) ** 0.5),
+        "r2": float(r2_score(y, predictions)),
+    }
+
+
+def calibrate_full_cohort(
+    calibration: pd.DataFrame,
+    cohort: pd.DataFrame,
+    markers: list[str],
+    target: str,
+) -> tuple[pd.Series, dict[str, Any]]:
+    scores = pd.Series(np.nan, index=cohort.index, dtype=float)
+    model_diagnostics: dict[str, Any] = {}
+    for group in sorted(calibration["ancestry_group"].unique()):
+        train = calibration[calibration["ancestry_group"] == group]
+        apply = cohort["ancestry_group"] == group
+        model = ridge_model().fit(train[markers], train[target])
+        raw = model.predict(cohort.loc[apply, markers])
+        clipped = np.clip(raw, 0.0, 2.0)
+        scores.loc[apply] = clipped
+        fitted = np.clip(model.predict(train[markers]), 0.0, 2.0)
+        model_diagnostics[group] = {
+            "alpha": float(model.named_steps["ridgecv"].alpha_),
+            "n_calibration": int(len(train)),
+            "training_rmse": float(mean_squared_error(train[target], fitted) ** 0.5),
+            "training_r2": float(r2_score(train[target], fitted)),
+            "n_full_cohort_clipped_low": int(np.sum(raw < 0.0)),
+            "n_full_cohort_clipped_high": int(np.sum(raw > 2.0)),
+        }
+    if scores.isna().any():
+        raise RuntimeError("Some full-cohort samples lacked an ancestry-specific calibration")
+    return scores, model_diagnostics
+
+
+def main() -> None:
+    paths = {name: DATA / name for name in INPUT_NAMES}
+    missing = [name for name, path in paths.items() if not path.is_file()]
+    if missing:
+        raise FileNotFoundError(f"Missing released inputs: {missing}")
+
+    breakpoint = pd.read_csv(paths["breakpoint_panel.tsv.gz"], sep="\t")
+    cohort = pd.read_csv(paths["cohort.tsv.gz"], sep="\t")
+    expression = pd.read_csv(paths["expression_panel.tsv.gz"], sep="\t")
+    notes = pd.read_csv(paths["file_notes.tsv.gz"], sep="\t")
+    marker_info = pd.read_csv(paths["marker_info.tsv.gz"], sep="\t")
+    sampling = pd.read_csv(paths["sampling_design.tsv.gz"], sep="\t")
+    tags = pd.read_csv(paths["tag_markers.tsv.gz"], sep="\t")
+
+    if cohort["sample_id"].duplicated().any() or tags["sample_id"].duplicated().any():
+        raise ValueError("Expected one cohort and marker row per sample")
+    if set(cohort["sample_id"]) != set(tags["sample_id"]):
+        raise ValueError("Cohort and full marker panel sample IDs differ")
+    if breakpoint["sample_id"].duplicated().any():
+        raise ValueError("Expected one breakpoint row per calibration sample")
+    if not set(breakpoint["sample_id"]).issubset(set(cohort["sample_id"])):
+        raise ValueError("Breakpoint panel is not a cohort subset")
+    if expression.groupby("sample_id")["gene_id"].nunique().nunique() != 1:
+        raise ValueError("Expression genes are not balanced across panel samples")
+
+    # The cutoffs separate visibly bimodal high- and low-reliability assay summaries.
+    # local_complexity <= 0.30 is especially important: the next observed value is
+    # 0.430. The exact same rule is applied without looking at clinical status.
+    base_reliability = (
+        (breakpoint["molecule_count"] >= 30)
+        & (breakpoint["mean_mapq"] >= 50.0)
+        & (breakpoint["alignment_entropy"] <= 0.20)
+        & (breakpoint["pair_balance"] >= 0.60)
+    )
+    reliability = base_reliability & (breakpoint["local_complexity"] <= 0.30)
+    reliable_breakpoint = breakpoint.loc[reliability].copy()
+    # Copy index is centered on integer copy states but retained as a continuous
+    # calibration target. A carrier count, unlike modeling dosage, needs a hard call.
+    reliable_breakpoint["segment_b_carrier"] = (
+        reliable_breakpoint["copy_index_segment_B"] >= 0.5
+    )
+    n_calibrated_carriers = int(reliable_breakpoint["segment_b_carrier"].sum())
+
+    full = cohort.merge(tags, on="sample_id", validate="one_to_one")
+    calibration = (
+        reliable_breakpoint.merge(
+            cohort[["sample_id", "ancestry_group"]], on="sample_id", validate="one_to_one"
+        ).merge(tags, on="sample_id", validate="one_to_one")
+    )
+    # bp_alt_fraction is a molecule fraction and is mapped to diploid dosage.
+    calibration["segment_b_target"] = calibration["copy_index_segment_B"]
+    calibration["outer_target"] = 2.0 * calibration["bp_alt_fraction"]
+
+    interval_1 = marker_info.loc[
+        marker_info["panel_block"] == "interval_1", "marker_id"
+    ].tolist()
+    interval_2 = marker_info.loc[
+        marker_info["panel_block"] == "interval_2", "marker_id"
+    ].tolist()
+    if len(interval_1) != 18 or len(interval_2) != 18:
+        raise ValueError("Unexpected marker-block structure")
+
+    cv = {
+        "segment_b": {
+            "pooled": cross_validated_ridge(
+                calibration, interval_2, "segment_b_target", False
+            ),
+            "ancestry_specific": cross_validated_ridge(
+                calibration, interval_2, "segment_b_target", True
+            ),
+        },
+        "outer_orientation": {
+            "pooled": cross_validated_ridge(calibration, interval_1, "outer_target", False),
+            "ancestry_specific": cross_validated_ridge(
+                calibration, interval_1, "outer_target", True
+            ),
+        },
+    }
+
+    full["segment_b_dosage"], segment_models = calibrate_full_cohort(
+        calibration, full, interval_2, "segment_b_target"
+    )
+    full["outer_orientation_dosage"], outer_models = calibrate_full_cohort(
+        calibration, full, interval_1, "outer_target"
+    )
+
+    design_keys = [
+        "clinic_stratum",
+        "recruitment_stream",
+        "ancestry_group",
+        "age_band",
+        "case",
+    ]
+    if sampling.duplicated(design_keys).any():
+        raise ValueError("Sampling design keys are not unique")
+    clinical = full.merge(sampling, on=design_keys, validate="many_to_one")
+    if len(clinical) != len(full) or clinical["sample_fraction"].isna().any():
+        raise ValueError("Incomplete sampling-design join")
+    clinical["source_weight"] = 1.0 / clinical["sample_fraction"]
+    # Scaling all inverse-probability weights by a constant leaves coefficients
+    # unchanged and gives a more interpretable robust covariance calculation.
+    clinical["source_weight_normalized"] = (
+        clinical["source_weight"] / clinical["source_weight"].mean()
+    )
+    clinical_formula = (
+        "case ~ segment_b_dosage + outer_orientation_dosage + age + sex + "
+        "pc1 + pc2 + pc3 + C(ancestry_group) + C(clinic_stratum)"
+    )
+    clinical_fit = smf.glm(
+        clinical_formula,
+        data=clinical,
+        family=sm.families.Binomial(),
+        freq_weights=clinical["source_weight_normalized"],
+    ).fit(cov_type="HC0")
+    subhap_log_or = float(clinical_fit.params["segment_b_dosage"])
+
+    expression_data = expression.merge(
+        full[
+            [
+                "sample_id",
+                "segment_b_dosage",
+                "outer_orientation_dosage",
+                "age",
+                "sex",
+                "pc1",
+                "pc2",
+                "pc3",
+                "ancestry_group",
+            ]
+        ],
+        on="sample_id",
+        validate="many_to_one",
+    )
+    # Exclude non-unique expression measurements rather than treating their
+    # abundance as equivalent evidence; modest residual variation is adjusted.
+    expression_qc = (
+        (expression_data["assay_depth_millions"] >= 30.0)
+        & (expression_data["unique_fraction"] >= 0.80)
+        & (expression_data["multimapper_fraction"] <= 0.20)
+    )
+    expression_clean = expression_data.loc[expression_qc].copy()
+    expression_formula = (
+        "log_expr ~ segment_b_dosage + outer_orientation_dosage + "
+        "C(tissue_source) + C(expr_batch) + assay_depth_millions + "
+        "unique_fraction + multimapper_fraction + gc_metric + age + sex + "
+        "pc1 + pc2 + pc3 + C(ancestry_group)"
+    )
+    expression_results: dict[str, Any] = {}
+    for gene in sorted(expression["gene_id"].unique()):
+        gene_data = expression_clean[expression_clean["gene_id"] == gene]
+        if len(gene_data) < 100:
+            expression_results[gene] = {
+                "eligible": False,
+                "n": int(len(gene_data)),
+                "reason": "fewer than 100 expression-QC-passing rows",
+            }
+            continue
+        fit = smf.ols(expression_formula, data=gene_data).fit(cov_type="HC3")
+        expression_results[gene] = {
+            "eligible": True,
+            "n": int(len(gene_data)),
+            "segment_b_log_fc": float(fit.params["segment_b_dosage"]),
+            "segment_b_hc3_se": float(fit.bse["segment_b_dosage"]),
+            "segment_b_p_value": float(fit.pvalues["segment_b_dosage"]),
+            "outer_orientation_log_fc": float(fit.params["outer_orientation_dosage"]),
+            "outer_orientation_hc3_se": float(fit.bse["outer_orientation_dosage"]),
+            "outer_orientation_p_value": float(fit.pvalues["outer_orientation_dosage"]),
+        }
+
+    eligible = [gene for gene, value in expression_results.items() if value["eligible"]]
+    alpha_bonferroni = 0.05 / len(eligible)
+    supported = [
+        gene
+        for gene in eligible
+        if expression_results[gene]["segment_b_log_fc"] > 0.0
+        and expression_results[gene]["segment_b_p_value"] < alpha_bonferroni
+    ]
+    if len(supported) != 1:
+        raise RuntimeError(f"Expected one positively supported segment-B gene, found {supported}")
+    supported_gene = supported[0]
+    expression_log_fc = float(expression_results[supported_gene]["segment_b_log_fc"])
+    target_support_code = int(expression_log_fc > 0.0 and subhap_log_or < 0.0)
+
+    reasoning = (
+        "I excluded breakpoint records with low molecule count/map quality, high alignment "
+        "entropy, poor pair balance, or local complexity above the clear 0.30 reliability gap; "
+        f"{len(calibration)} remained and {n_calibrated_carriers} had segment-B copy index >=0.5. "
+        "Segment-B copy index was calibrated from interval_2 tags and outer-orientation dosage "
+        "(2*breakpoint alternate-molecule fraction) separately from interval_1 tags. Five-fold "
+        "held-out checks favored ancestry-specific over pooled ridge calibration, so final scores "
+        "were fit separately in AFR, EAS, and EUR and clipped to the biological 0-2 range. The "
+        "full-cohort clinical model was inverse-sampling-fraction weighted and adjusted only for "
+        "baseline age, sex, PCs, ancestry, clinic, and the separate outer dosage; recruitment "
+        "stream and age band entered weighting only. Expression rows required depth >=30M, "
+        "unique fraction >=0.80, and multimapper fraction <=0.20. Gene-wise HC3 OLS adjusted "
+        "for outer dosage, tissue, batch, assay metrics, age, sex, PCs, and ancestry; GENE2 was "
+        "the sole positive Bonferroni-supported segment-B gene."
+    )
+    answer = {
+        "answer": {
+            "n_calibrated_carriers": n_calibrated_carriers,
+            "target_support_code": target_support_code,
+            "expression_log_fc": expression_log_fc,
+            "subhap_log_or": subhap_log_or,
+        },
+        "reasoning": reasoning,
+    }
+
+    diagnostics = {
+        "input_files": {
+            name: {"rows": int(len(pd.read_csv(path, sep="\t"))), "sha256": sha256(path)}
+            for name, path in paths.items()
+        },
+        "integrity": {
+            "n_cohort": int(len(cohort)),
+            "n_breakpoint_panel": int(len(breakpoint)),
+            "n_expression_samples": int(expression["sample_id"].nunique()),
+            "n_markers": int(len(marker_info)),
+            "n_sampling_strata": int(len(sampling)),
+            "n_file_note_rows": int(len(notes)),
+        },
+        "breakpoint_qc": {
+            "thresholds": {
+                "molecule_count_min": 30,
+                "mean_mapq_min": 50.0,
+                "alignment_entropy_max": 0.20,
+                "pair_balance_min": 0.60,
+                "local_complexity_max": 0.30,
+                "carrier_copy_index_min": 0.50,
+            },
+            "n_reliable": int(len(reliable_breakpoint)),
+            "n_excluded": int(len(breakpoint) - len(reliable_breakpoint)),
+            "n_calibrated_carriers": n_calibrated_carriers,
+            "n_reliable_by_ancestry": {
+                str(key): int(value)
+                for key, value in calibration["ancestry_group"].value_counts().sort_index().items()
+            },
+            "max_local_complexity_retained": float(reliable_breakpoint["local_complexity"].max()),
+            "min_local_complexity_excluded_above_cutoff": float(
+                breakpoint.loc[
+                    base_reliability & (breakpoint["local_complexity"] > 0.30),
+                    "local_complexity",
+                ].min()
+            ),
+        },
+        "calibration": {
+            "pooling_choice": "ancestry-specific (AFR, EAS, EUR)",
+            "targets": {
+                "segment_b": "continuous copy_index_segment_B",
+                "outer_orientation": "2 * bp_alt_fraction",
+            },
+            "marker_blocks": {
+                "segment_b": "interval_2 (M019-M036)",
+                "outer_orientation": "interval_1 (M001-M018)",
+            },
+            "five_fold_cv": cv,
+            "final_models": {
+                "segment_b": segment_models,
+                "outer_orientation": outer_models,
+            },
+            "full_cohort_score_summary": {
+                "segment_b_mean": float(full["segment_b_dosage"].mean()),
+                "segment_b_sd": float(full["segment_b_dosage"].std(ddof=1)),
+                "outer_mean": float(full["outer_orientation_dosage"].mean()),
+                "outer_sd": float(full["outer_orientation_dosage"].std(ddof=1)),
+                "score_correlation": float(
+                    full[["segment_b_dosage", "outer_orientation_dosage"]].corr().iloc[0, 1]
+                ),
+            },
+        },
+        "clinical": {
+            "estimand": "source-population conditional total-effect log odds ratio per calibrated segment-B copy",
+            "formula": clinical_formula,
+            "n": int(len(clinical)),
+            "weight": "inverse sample_fraction, normalized to mean one",
+            "raw_weight_min": float(clinical["source_weight"].min()),
+            "raw_weight_max": float(clinical["source_weight"].max()),
+            "segment_b_log_or": subhap_log_or,
+            "segment_b_hc0_se": float(clinical_fit.bse["segment_b_dosage"]),
+            "outer_orientation_log_or": float(
+                clinical_fit.params["outer_orientation_dosage"]
+            ),
+            "outer_orientation_hc0_se": float(
+                clinical_fit.bse["outer_orientation_dosage"]
+            ),
+        },
+        "expression": {
+            "qc_thresholds": {
+                "assay_depth_millions_min": 30.0,
+                "unique_fraction_min": 0.80,
+                "multimapper_fraction_max": 0.20,
+            },
+            "formula": expression_formula,
+            "multiplicity": f"Bonferroni across {len(eligible)} eligible genes; alpha={alpha_bonferroni}",
+            "genes": expression_results,
+            "supported_gene": supported_gene,
+            "expression_log_fc": expression_log_fc,
+        },
+        "answer": answer["answer"],
+    }
+
+    report = f"""# Locus Q analysis report
+
+## Result
+
+The calibrated segment-B association with case status was protective: **subhap_log_or = {subhap_log_or:.12f}** per additional calibrated copy in the inverse-sampling-weighted full cohort. **GENE2** was the expression-supported gene, with **expression_log_fc = {expression_log_fc:.12f}** natural-log units per calibrated segment-B copy. Because the expression coefficient is positive and the clinical coefficient is negative, `target_support_code` is **{target_support_code}**. There were **{n_calibrated_carriers}** reliable breakpoint-panel carriers.
+
+## Structural dosage calibration and QC
+
+I treated the breakpoint panel solely as a calibration panel, not as the clinical association cohort. A record was reliable only with molecule count >=30, mean MAPQ >=50, alignment entropy <=0.20, pair balance >=0.60, and local complexity <=0.30. These thresholds isolate the high-quality modes in the supplied summaries; notably, retained local complexity ends at {reliable_breakpoint['local_complexity'].max():.3f} and, among records passing the other four criteria, the next excluded value above the cutoff is {breakpoint.loc[base_reliability & (breakpoint['local_complexity'] > 0.30), 'local_complexity'].min():.3f}. This left {len(reliable_breakpoint)}/{len(breakpoint)} records. I called a carrier for the requested count when `copy_index_segment_B >= 0.5`, yielding {n_calibrated_carriers}; I retained the continuous copy index for dosage calibration rather than rounding away assay information.
+
+The calibration was **group-specific, not pooled**. Segment-B copy index was learned from the 18 interval_2 markers (M019-M036), while the broader outer orientation was independently learned from interval_1 (M001-M018), using `2 * bp_alt_fraction` as its diploid dosage target. Within each of AFR, EAS, and EUR, markers were standardized and ridge regression strength was selected by deterministic exact RidgeCV over 0.001-1000. Five-fold held-out comparisons showed ancestry-specific segment-B RMSE {cv['segment_b']['ancestry_specific']['rmse']:.4f} versus pooled {cv['segment_b']['pooled']['rmse']:.4f}, and outer-orientation RMSE {cv['outer_orientation']['ancestry_specific']['rmse']:.4f} versus pooled {cv['outer_orientation']['pooled']['rmse']:.4f}. Final predictions were clipped to the biologically meaningful 0-2 range. Group-specific calibration respects ancestry-dependent tag/structure relationships, but the sparse two-copy state in some groups remains a limitation.
+
+## Clinical model
+
+I joined every cohort row to the released sampling design on clinic stratum, recruitment stream, ancestry group, age band, and case status, then used inverse `sample_fraction` weights (rescaled to mean one, which does not change the coefficient). The weighted binomial-logit model included calibrated segment-B dosage, separately calibrated outer-orientation dosage, continuous age, sex, PC1-PC3, ancestry group, and clinic stratum. Age band and recruitment stream were used for weighting only, as directed by the file notes. I did not adjust for expression or another possible consequence of the structural exposure, so the segment-B coefficient targets the stated total association conditional on baseline covariates and outer dosage. The HC0 standard error was {clinical_fit.bse['segment_b_dosage']:.4f}; it is diagnostic only because it does not propagate first-stage calibration uncertainty.
+
+## Expression support
+
+Expression rows required >=30 million assay depth, unique fraction >=0.80, and multimapper fraction <=0.20. This made the poorly unique GENE1 ineligible; {len(eligible)} genes remained evaluable. For each eligible gene I fit an unweighted OLS model with HC3 covariance, adjusting for segment-B and outer dosages together, tissue, batch, assay depth, unique fraction, multimapper fraction, GC metric, age, sex, PC1-PC3, and ancestry. I did not use the case-control sampling weights for this molecular model because the released design gives cohort inclusion fractions but no second-stage expression-panel inclusion probabilities; I also did not condition on case status, which could be downstream of dosage. GENE2 alone had a positive segment-B coefficient passing Bonferroni correction. GENE4 instead had a large outer-orientation coefficient ({expression_results['GENE4']['outer_orientation_log_fc']:.4f}), illustrating why separating the two structural dosages is material.
+
+## Limitations
+
+This is an association analysis, not proof of a causal mechanism. Ridge-calibrated dosage is estimated rather than directly observed in most participants, and the reported point estimates do not include calibration-model uncertainty. Reliability and expression-QC thresholds were chosen from the supplied assay summaries and visible distribution gaps, not from an external preregistration. Calibration-panel representativeness within ancestry is assumed. The expression panel has no released second-stage sampling fractions, so its coefficient is a covariate-adjusted panel association rather than a formally survey-weighted source-population expression estimand. Odds ratios are also non-collapsible; the clinical number is the coefficient from the explicitly stated adjusted model.
+"""
+
+    write_json(ROOT / "answer.json", answer)
+    write_json(ROOT / "diagnostics.json", diagnostics)
+    (ROOT / "report.md").write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
