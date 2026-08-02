@@ -41,6 +41,43 @@ class BoundedDelimitedHeader:
     read_chunks: int
 
 
+@dataclass(frozen=True)
+class BoundedDelimitedContent:
+    content: bytes
+    table_format: Literal["csv", "tsv"]
+    content_encoding: Literal["gzip"]
+    raw_file_bytes: int
+    logical_bytes_read: int
+    read_chunks: int
+    raw_byte_ceiling: int
+    content_byte_ceiling: int
+    logical_read_byte_ceiling: int
+    chunk_byte_ceiling: int
+
+    def __post_init__(self) -> None:
+        if len(self.content) > self.content_byte_ceiling:
+            raise ValueError("decoded delimited content exceeds its byte ceiling")
+        if self.logical_bytes_read != len(self.content):
+            raise ValueError("decoded delimited byte accounting is inconsistent")
+        if self.logical_bytes_read > self.logical_read_byte_ceiling:
+            raise ValueError("decoded delimited logical reads exceed their ceiling")
+        if self.raw_file_bytes > self.raw_byte_ceiling or self.read_chunks < 0:
+            raise ValueError("decoded delimited raw-byte or chunk accounting is inconsistent")
+
+    def lock_projection(self) -> dict[str, int | str]:
+        return {
+            "table_format": self.table_format,
+            "content_encoding": self.content_encoding,
+            "raw_file_bytes": self.raw_file_bytes,
+            "logical_bytes_read": self.logical_bytes_read,
+            "read_chunks": self.read_chunks,
+            "raw_byte_ceiling": self.raw_byte_ceiling,
+            "content_byte_ceiling": self.content_byte_ceiling,
+            "logical_read_byte_ceiling": self.logical_read_byte_ceiling,
+            "chunk_byte_ceiling": self.chunk_byte_ceiling,
+        }
+
+
 def classify_delimited_path(path: str) -> DelimitedFormat | None:
     lowered = path.casefold()
     formats: tuple[
@@ -199,3 +236,89 @@ def read_bounded_delimited_header(
         )
 
     raise AssertionError("bounded delimited reader terminated without a result")
+
+
+def read_bounded_delimited_content(
+    payload: bytes,
+    path: str,
+    *,
+    raw_byte_ceiling: int,
+    content_byte_ceiling: int,
+    logical_read_byte_ceiling: int,
+    chunk_byte_ceiling: int,
+    checkpoint: Callable[[], None] | None = None,
+) -> BoundedDelimitedContent:
+    """Fully decompress one exact gzip CSV/TSV payload under explicit logical ceilings."""
+
+    file_format = classify_delimited_path(path)
+    if file_format is None or file_format.content_encoding != "gzip":
+        raise DelimitedReadError(
+            "path is not a supported gzip-delimited format",
+            reason="unsupported_path",
+        )
+    if (
+        min(
+            raw_byte_ceiling,
+            content_byte_ceiling,
+            logical_read_byte_ceiling,
+            chunk_byte_ceiling,
+        )
+        <= 0
+    ):
+        raise ValueError("delimited read ceilings must be positive")
+    if content_byte_ceiling >= logical_read_byte_ceiling:
+        raise ValueError("logical read ceiling must reserve at least one content sentinel byte")
+    if len(payload) > raw_byte_ceiling:
+        raise DelimitedReadError(
+            "compressed delimited payload exceeds the raw-byte ceiling",
+            reason="raw_budget_exceeded",
+        )
+
+    stream = gzip.GzipFile(fileobj=io.BytesIO(payload), mode="rb")
+    logical = bytearray()
+    logical_bytes_read = 0
+    read_chunks = 0
+    while True:
+        remaining = logical_read_byte_ceiling - logical_bytes_read
+        if remaining <= 0:
+            raise DelimitedReadError(
+                "compressed delimited content exceeds the logical-read ceiling",
+                reason="logical_budget_exceeded",
+                logical_bytes_read=logical_bytes_read,
+                read_chunks=read_chunks,
+            )
+        if checkpoint is not None:
+            checkpoint()
+        try:
+            chunk = stream.read(min(chunk_byte_ceiling, remaining))
+        except (EOFError, OSError) as error:
+            raise DelimitedReadError(
+                "gzip stream could not be read and validated safely",
+                reason="invalid_compression",
+                logical_bytes_read=logical_bytes_read,
+                read_chunks=read_chunks,
+            ) from error
+        if not chunk:
+            break
+        logical.extend(chunk)
+        logical_bytes_read += len(chunk)
+        read_chunks += 1
+        if len(logical) > content_byte_ceiling:
+            raise DelimitedReadError(
+                "compressed delimited content exceeds the content-byte ceiling",
+                reason="content_budget_exceeded",
+                logical_bytes_read=logical_bytes_read,
+                read_chunks=read_chunks,
+            )
+    return BoundedDelimitedContent(
+        content=bytes(logical),
+        table_format=file_format.table_format,
+        content_encoding="gzip",
+        raw_file_bytes=len(payload),
+        logical_bytes_read=logical_bytes_read,
+        read_chunks=read_chunks,
+        raw_byte_ceiling=raw_byte_ceiling,
+        content_byte_ceiling=content_byte_ceiling,
+        logical_read_byte_ceiling=logical_read_byte_ceiling,
+        chunk_byte_ceiling=chunk_byte_ceiling,
+    )

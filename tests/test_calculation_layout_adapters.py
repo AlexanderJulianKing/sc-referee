@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import gzip
 import json
 import shutil
 from pathlib import Path
 
+import pytest
+
+from sc_referee.calculation_checks import integration as calculation_integration
 from sc_referee.controller import replay, run_audit
 
 
@@ -53,10 +57,28 @@ def _bh_sidecar_workspace(tmp_path: Path) -> Path:
     return repository
 
 
+def _compress_bh_table(repository: Path, *, payload: bytes | None = None) -> str:
+    table_path = "exported/tables/hypotheses.tsv"
+    source = repository / table_path
+    compressed_path = source.with_name(f"{source.name}.gz")
+    compressed_path.write_bytes(
+        gzip.compress(source.read_bytes(), mtime=0) if payload is None else payload
+    )
+    source.unlink()
+    binding = repository / "configuration" / "review-bindings.yaml"
+    binding.write_text(
+        binding.read_text(encoding="utf-8").replace(table_path, f"{table_path}.gz"),
+        encoding="utf-8",
+    )
+    return f"{table_path}.gz"
+
+
+@pytest.mark.parametrize("compressed", [False, True], ids=("identity", "gzip"))
 def test_bh_sidecar_layout_uses_same_calculation_with_alternate_paths_and_columns(
     project_root: Path,
     schema_root: Path,
     tmp_path: Path,
+    compressed: bool,
 ) -> None:
     embedded_repository = tmp_path / "embedded-bh"
     shutil.copytree(
@@ -75,15 +97,23 @@ def test_bh_sidecar_layout_uses_same_calculation_with_alternate_paths_and_column
         schema_root,
         report="report.md",
     )["deterministic_check_observations"][0]
+    sidecar_repository = _bh_sidecar_workspace(tmp_path)
+    table_path = "exported/tables/hypotheses.tsv"
+    if compressed:
+        table_path = _compress_bh_table(sidecar_repository)
+        (sidecar_repository / "trap.py").write_text(
+            "from pathlib import Path\nPath('project-code-ran').write_text('unsafe')\n",
+            encoding="utf-8",
+        )
     sidecar_output = tmp_path / "sidecar-audit"
     sidecar = run_audit(
-        _bh_sidecar_workspace(tmp_path),
+        sidecar_repository,
         sidecar_output,
         schema_root,
         report="analysis-summary.md",
         material_inputs=(
             "configuration/review-bindings.yaml",
-            "exported/tables/hypotheses.tsv",
+            table_path,
         ),
     )["deterministic_check_observations"][0]
 
@@ -109,12 +139,108 @@ def test_bh_sidecar_layout_uses_same_calculation_with_alternate_paths_and_column
         for item in sidecar["input_refs"]
         if item["record_type"] == "artifact"
     )
+    if compressed:
+        assert not (sidecar_repository / "project-code-ran").exists()
+        snapshot = sidecar["input_refs"]
+        assert isinstance(snapshot, list)
+        receipt = sidecar_output / "semantic.lock.json"
+        lock = json.loads(receipt.read_text(encoding="utf-8"))
+        calculation_receipts = lock["repository_snapshot"]["extensions"][
+            "x-delimited-calculation-read-receipts"
+        ]
+        assert len(calculation_receipts) == 1
+        assert calculation_receipts[0]["status"] == "inspected"
+        assert calculation_receipts[0]["termination_reason"] is None
+        assert calculation_receipts[0]["logical_content_digest"].startswith("sha256:")
+        (sidecar_repository / table_path).write_bytes(b"changed after semantic lock")
     replayed = replay(
         sidecar_output / "semantic.lock.json",
         tmp_path / "sidecar-replay",
         schema_root,
     )
     assert replayed["deterministic_check_observations"][0] == sidecar
+
+
+@pytest.mark.parametrize(
+    ("payload", "receipt_status", "termination_reason"),
+    [
+        (b"\x1f\x8b\x08\x00truncated", "unsupported", "invalid_compression"),
+        (
+            gzip.compress(
+                b"called\tq_reported\tfeature_key\tnuisance\tp_raw\n"
+                + b"x" * (calculation_integration.MAX_CONTEXT_GZIP_CONTENT_BYTES + 1),
+                mtime=0,
+            ),
+            "unsupported",
+            "content_budget_exceeded",
+        ),
+        (gzip.compress(b"\xff\n", mtime=0), "inspected", None),
+    ],
+    ids=("malformed", "compression-bomb", "non-utf8"),
+)
+def test_bh_compressed_table_failures_are_localized_without_findings(
+    schema_root: Path,
+    tmp_path: Path,
+    payload: bytes,
+    receipt_status: str,
+    termination_reason: str | None,
+) -> None:
+    repository = _bh_sidecar_workspace(tmp_path)
+    table_path = _compress_bh_table(repository, payload=payload)
+    output = tmp_path / "unsupported-gzip-audit"
+
+    bundle = run_audit(
+        repository,
+        output,
+        schema_root,
+        report="analysis-summary.md",
+        material_inputs=("configuration/review-bindings.yaml", table_path),
+    )
+
+    assert len(bundle["deterministic_check_observations"]) == 1
+    observation = bundle["deterministic_check_observations"][0]
+    assert observation["applicability"] == "unsupported"
+    assert observation["comparison"]["outcome"] == "unknown"
+    assert observation["operands"] == []
+    assert bundle["findings"] == []
+    lock = json.loads((output / "semantic.lock.json").read_text(encoding="utf-8"))
+    receipts = lock["repository_snapshot"]["extensions"]["x-delimited-calculation-read-receipts"]
+    assert len(receipts) == 1
+    assert receipts[0]["status"] == receipt_status
+    assert receipts[0]["termination_reason"] == termination_reason
+
+
+def test_selected_compressed_table_is_decoded_once_under_aggregate_budget(
+    schema_root: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = _bh_sidecar_workspace(tmp_path)
+    original = (repository / "exported/tables/hypotheses.tsv").read_bytes()
+    table_path = _compress_bh_table(repository)
+    (repository / "zz-extra.csv.gz").write_bytes(gzip.compress(b"a,b\n1,2\n", mtime=0))
+    monkeypatch.setattr(
+        calculation_integration,
+        "MAX_CONTEXT_GZIP_TOTAL_LOGICAL_BYTES",
+        len(original) + 1,
+    )
+    output = tmp_path / "aggregate-budget-audit"
+
+    bundle = run_audit(
+        repository,
+        output,
+        schema_root,
+        report="analysis-summary.md",
+        material_inputs=("configuration/review-bindings.yaml", table_path),
+    )
+
+    assert len(bundle["deterministic_check_observations"]) == 1
+    assert bundle["findings"] == []
+    lock = json.loads((output / "semantic.lock.json").read_text(encoding="utf-8"))
+    receipts = lock["repository_snapshot"]["extensions"]["x-delimited-calculation-read-receipts"]
+    assert [item["path"] for item in receipts] == [table_path, "zz-extra.csv.gz"]
+    assert receipts[0]["status"] == "inspected"
+    assert receipts[1]["termination_reason"] == "aggregate_logical_budget_exhausted"
 
 
 def test_competing_embedded_and_sidecar_bh_contracts_fail_closed(

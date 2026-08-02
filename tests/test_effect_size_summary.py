@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import gzip
 from pathlib import Path
+
+import pytest
 
 from sc_referee.calculation_checks.core import CalculationCheckRegistry
 from sc_referee.calculation_checks.effect_size_summary import effect_size_summary_registry
@@ -186,8 +189,9 @@ def test_default_registry_contains_frozen_effect_size_module() -> None:
     ]
 
 
+@pytest.mark.parametrize("compressed", [False, True], ids=("identity", "gzip"))
 def test_selected_sidecar_layout_normalizes_to_same_effect_summary(
-    schema_root: Path, tmp_path: Path
+    schema_root: Path, tmp_path: Path, compressed: bool
 ) -> None:
     workspace = tmp_path / "sidecar"
     _workspace(workspace)
@@ -208,13 +212,24 @@ def test_selected_sidecar_layout_normalizes_to_same_effect_summary(
         "      producer_binding: exact\n",
         encoding="utf-8",
     )
+    results_path = "results.csv"
+    if compressed:
+        source = workspace / results_path
+        (workspace / f"{results_path}.gz").write_bytes(gzip.compress(source.read_bytes(), mtime=0))
+        source.unlink()
+        binding = workspace / "bindings.yml"
+        binding.write_text(
+            binding.read_text(encoding="utf-8").replace(results_path, f"{results_path}.gz"),
+            encoding="utf-8",
+        )
+        results_path = f"{results_path}.gz"
 
     bundle = run_audit(
         workspace,
         tmp_path / "sidecar-audit",
         schema_root,
         report="report.md",
-        material_inputs=("bindings.yml", "results.csv"),
+        material_inputs=("bindings.yml", results_path),
     )
     observation = next(
         item

@@ -27,8 +27,10 @@ from sc_referee.calculation_checks.core import (
     NamedOperand,
     ObservationReceipt,
 )
+from sc_referee.calculation_checks.delimited import bounded_table_text
 from sc_referee.calculation_checks.material_context import MaterialCalculationContext
 from sc_referee.core.ids import semantic_digest, sha256_digest
+from sc_referee.delimited_io import classify_delimited_path
 
 MAX_SOURCE_BYTES = 2 * 1024 * 1024
 MAX_TABLE_BYTES = 8 * 1024 * 1024
@@ -394,13 +396,20 @@ def _parse_contract_value(value: dict[str, Any], source_ref: dict[str, Any]) -> 
         raise SelectionReuseError("selection-reuse contract keys are missing or extra")
     if any(not isinstance(value[key], str) or not value[key].strip() for key in _REQUIRED_KEYS):
         raise SelectionReuseError("selection-reuse contract values must be nonempty strings")
-    for key, suffixes in {
-        "source_file": {".py"},
-        "results_table": {".csv", ".tsv"},
-    }.items():
-        path = PurePosixPath(str(value[key]))
-        if path.is_absolute() or ".." in path.parts or path.suffix.casefold() not in suffixes:
-            raise SelectionReuseError(f"{key} is not one bounded supported path")
+    source_path = PurePosixPath(str(value["source_file"]))
+    if (
+        source_path.is_absolute()
+        or ".." in source_path.parts
+        or source_path.suffix.casefold() != ".py"
+    ):
+        raise SelectionReuseError("source_file is not one bounded supported path")
+    results_path = str(value["results_table"])
+    if (
+        results_path.startswith("/")
+        or ".." in results_path.split("/")
+        or classify_delimited_path(results_path) is None
+    ):
+        raise SelectionReuseError("results_table is not one bounded supported path")
     for key in ("selection_object", "test_object", "groupby_key", "pvalue_column"):
         if not str(value[key]).isidentifier():
             raise SelectionReuseError(f"{key} must be one literal identifier")
@@ -489,15 +498,15 @@ def _inspect_source(source: FrozenCalculationInput, contract: _Contract) -> _Sta
 
 
 def _count_pvalues(table: FrozenCalculationInput, contract: _Contract) -> int:
-    if len(table.content) > MAX_TABLE_BYTES:
-        raise SelectionReuseError("declared result table exceeds the byte ceiling")
-    try:
-        text = table.content.decode("utf-8", errors="strict")
-    except UnicodeDecodeError as error:
-        raise SelectionReuseError("declared result table is not strict UTF-8") from error
+    text, delimiter = bounded_table_text(
+        table,
+        byte_ceiling=MAX_TABLE_BYTES,
+        error_type=SelectionReuseError,
+        label="declared result table",
+    )
     reader = csv.DictReader(
         io.StringIO(text, newline=""),
-        delimiter="\t" if table.path.casefold().endswith(".tsv") else ",",
+        delimiter=delimiter,
     )
     header = reader.fieldnames
     if (

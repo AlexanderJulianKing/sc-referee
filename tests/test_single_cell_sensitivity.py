@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gzip
 from pathlib import Path
 
 import h5py
@@ -197,8 +198,9 @@ def test_declared_observation_level_family_emits_bounded_sensitivity_disclosure(
     )
 
 
+@pytest.mark.parametrize("compressed", [False, True], ids=("identity", "gzip"))
 def test_selected_sidecar_layout_normalizes_to_same_sensitivity_recompute(
-    schema_root: Path, tmp_path: Path
+    schema_root: Path, tmp_path: Path, compressed: bool
 ) -> None:
     workspace = tmp_path / "sidecar"
     _write_workspace(workspace)
@@ -228,6 +230,17 @@ def test_selected_sidecar_layout_normalizes_to_same_sensitivity_recompute(
         "      dependence_semantics: iid_rows\n",
         encoding="utf-8",
     )
+    results_path = "results.csv"
+    if compressed:
+        source = workspace / results_path
+        (workspace / f"{results_path}.gz").write_bytes(gzip.compress(source.read_bytes(), mtime=0))
+        source.unlink()
+        binding = workspace / "sensitivity-bindings.yaml"
+        binding.write_text(
+            binding.read_text(encoding="utf-8").replace(results_path, f"{results_path}.gz"),
+            encoding="utf-8",
+        )
+        results_path = f"{results_path}.gz"
     engine = _StubSensitivityEngine((0.01, 0.9, 0.02, 0.8))
     base = single_cell_sensitivity_registry(
         adapter=DeclaredSingleCellSensitivityAdapter(engine=engine)
@@ -246,7 +259,7 @@ def test_selected_sidecar_layout_normalizes_to_same_sensitivity_recompute(
         tmp_path / "sidecar-audit",
         schema_root,
         report="report.md",
-        material_inputs=("sensitivity-bindings.yaml", "counts.h5ad", "results.csv"),
+        material_inputs=("sensitivity-bindings.yaml", "counts.h5ad", results_path),
         calculation_check_registry=registry,
     )
     observation = bundle["deterministic_check_observations"][0]
@@ -356,7 +369,7 @@ def test_removing_single_cell_module_removes_only_its_observation(
 def test_default_registry_contains_frozen_single_cell_module() -> None:
     registry = default_calculation_check_registry()
 
-    assert registry.profile_id == "deterministic_calculation_check_v10"
+    assert registry.profile_id == "deterministic_calculation_check_v11"
     assert {module.manifest.check_id for module in registry.modules} == {
         "calculation-check:benjamini-hochberg-complete-family-v1",
         "calculation-check:single-cell-replicate-sensitivity-v1",

@@ -125,8 +125,9 @@ complete Finding-producing path remains a synthetic test fixture. Read the
   are scanned in fixed chunks and never densified; physical files outside the selected-material
   budget remain unavailable to this profile.
 - Fully identified `.csv.gz` and `.tsv.gz` files may receive a bounded first-record header
-  inventory. Their row bodies are not decompressed or validated, and compressed tables do not yet
-  feed deterministic calculations.
+  inventory. When an existing calculation contract selects one of these files, the auditor may
+  also validate and decode its complete body under an 8 MiB per-input and 64 MiB aggregate logical
+  budget, then feed the same deterministic calculation used for uncompressed tables.
 - A path that must not be read must be excluded from the audit workspace itself.
 - Model confidence cannot establish a material scientific premise.
 - No model calls occur after semantic lock.

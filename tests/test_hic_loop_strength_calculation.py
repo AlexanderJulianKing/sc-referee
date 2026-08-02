@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import csv
+import gzip
 from pathlib import Path
+
+import pytest
 
 from sc_referee.calculation_checks.core import CalculationCheckRegistry
 from sc_referee.calculation_checks.hic_loop_strength import hic_loop_strength_registry
@@ -117,8 +120,9 @@ def test_reported_hic_delta_mismatch_is_disclosed_without_finding(
     )
 
 
+@pytest.mark.parametrize("compressed", [False, True], ids=("identity", "gzip"))
 def test_selected_sidecar_layout_normalizes_to_same_hic_recompute(
-    schema_root: Path, tmp_path: Path
+    schema_root: Path, tmp_path: Path, compressed: bool
 ) -> None:
     workspace = tmp_path / "sidecar"
     _workspace(workspace, reported_delta=-1.0)
@@ -153,17 +157,30 @@ def test_selected_sidecar_layout_normalizes_to_same_hic_recompute(
         "      producer_binding: exact\n",
         encoding="utf-8",
     )
+    selected_paths = ["loop-contract.yaml", "contacts.csv", "bins.csv", "results.csv"]
+    if compressed:
+        binding = workspace / "loop-contract.yaml"
+        binding_text = binding.read_text(encoding="utf-8")
+        for table_path in ("contacts.csv", "bins.csv", "results.csv"):
+            source = workspace / table_path
+            (workspace / f"{table_path}.gz").write_bytes(
+                gzip.compress(source.read_bytes(), mtime=0)
+            )
+            source.unlink()
+            binding_text = binding_text.replace(table_path, f"{table_path}.gz")
+        binding.write_text(binding_text, encoding="utf-8")
+        selected_paths = [
+            "loop-contract.yaml",
+            "contacts.csv.gz",
+            "bins.csv.gz",
+            "results.csv.gz",
+        ]
     bundle = run_audit(
         workspace,
         tmp_path / "sidecar-audit",
         schema_root,
         report="report.md",
-        material_inputs=(
-            "loop-contract.yaml",
-            "contacts.csv",
-            "bins.csv",
-            "results.csv",
-        ),
+        material_inputs=tuple(selected_paths),
     )
     observation = next(
         item

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import gzip
 from pathlib import Path
+
+import pytest
 
 from sc_referee.calculation_checks.core import CalculationCheckRegistry
 from sc_referee.calculation_checks.selection_reuse import selection_reuse_registry
@@ -97,8 +100,9 @@ def test_same_object_selection_and_marker_testing_is_disclosed_without_finding(
     assert any("reused for de-novo clustering" in item["title"] for item in bundle["disclosures"])
 
 
+@pytest.mark.parametrize("compressed", [False, True], ids=("identity", "gzip"))
 def test_selected_sidecar_layout_normalizes_to_same_selection_reuse_pattern(
-    schema_root: Path, tmp_path: Path
+    schema_root: Path, tmp_path: Path, compressed: bool
 ) -> None:
     workspace = tmp_path / "sidecar"
     _workspace(workspace)
@@ -120,12 +124,23 @@ def test_selected_sidecar_layout_normalizes_to_same_selection_reuse_pattern(
         "      producer_binding: exact\n",
         encoding="utf-8",
     )
+    results_path = "markers.csv"
+    if compressed:
+        source = workspace / results_path
+        (workspace / f"{results_path}.gz").write_bytes(gzip.compress(source.read_bytes(), mtime=0))
+        source.unlink()
+        binding = workspace / "review.yaml"
+        binding.write_text(
+            binding.read_text(encoding="utf-8").replace(results_path, f"{results_path}.gz"),
+            encoding="utf-8",
+        )
+        results_path = f"{results_path}.gz"
     bundle = run_audit(
         workspace,
         tmp_path / "sidecar-audit",
         schema_root,
         report="report.md",
-        material_inputs=("review.yaml", "analysis.py", "markers.csv"),
+        material_inputs=("review.yaml", "analysis.py", results_path),
     )
     observation = next(
         item

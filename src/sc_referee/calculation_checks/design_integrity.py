@@ -4,7 +4,7 @@ import csv
 import io
 import re
 from dataclasses import dataclass
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -26,8 +26,10 @@ from sc_referee.calculation_checks.core import (
     NamedOperand,
     ObservationReceipt,
 )
+from sc_referee.calculation_checks.delimited import bounded_table_text
 from sc_referee.calculation_checks.material_context import MaterialCalculationContext
 from sc_referee.core.ids import semantic_digest, sha256_digest
+from sc_referee.delimited_io import classify_delimited_path
 
 MAX_TABLE_BYTES = 8 * 1024 * 1024
 MAX_TABLE_ROWS = 100_000
@@ -387,8 +389,8 @@ def _parse_contract_value(value: dict[str, Any], source_ref: dict[str, Any]) -> 
     }:
         if not isinstance(value[key], str) or not value[key].strip():
             raise DesignIntegrityError("design-integrity text values must be nonempty strings")
-    path = PurePosixPath(str(value["metadata_table"]))
-    if path.is_absolute() or ".." in path.parts or path.suffix.casefold() not in {".csv", ".tsv"}:
+    path = str(value["metadata_table"])
+    if path.startswith("/") or ".." in path.split("/") or classify_delimited_path(path) is None:
         raise DesignIntegrityError("metadata table path must be a bounded CSV or TSV path")
     if value["reference_level"] == value["test_level"]:
         raise DesignIntegrityError("reference and test levels must differ")
@@ -441,15 +443,15 @@ def _column_list(value: object, label: str) -> tuple[str, ...]:
 
 
 def _evaluate_table(table: FrozenCalculationInput, contract: _Contract) -> _Metrics:
-    if len(table.content) > MAX_TABLE_BYTES:
-        raise DesignIntegrityError("declared metadata table exceeds the byte ceiling")
-    try:
-        text = table.content.decode("utf-8", errors="strict")
-    except UnicodeDecodeError as error:
-        raise DesignIntegrityError("declared metadata table is not strict UTF-8") from error
+    text, delimiter = bounded_table_text(
+        table,
+        byte_ceiling=MAX_TABLE_BYTES,
+        error_type=DesignIntegrityError,
+        label="declared metadata table",
+    )
     reader = csv.DictReader(
         io.StringIO(text, newline=""),
-        delimiter="\t" if table.path.casefold().endswith(".tsv") else ",",
+        delimiter=delimiter,
     )
     header = reader.fieldnames
     required = {

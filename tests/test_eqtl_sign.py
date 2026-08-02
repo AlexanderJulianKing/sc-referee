@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import gzip
 from pathlib import Path
+
+import pytest
 
 from sc_referee.calculation_checks.core import CalculationCheckRegistry
 from sc_referee.calculation_checks.eqtl_sign import eqtl_sign_registry
@@ -100,8 +103,9 @@ def test_oriented_donor_slope_detects_reported_sign_disagreement(
     assert any("eQTL direction differs" in item["title"] for item in bundle["disclosures"])
 
 
+@pytest.mark.parametrize("compressed", [False, True], ids=("identity", "gzip"))
 def test_selected_sidecar_layout_normalizes_to_same_eqtl_sign_recompute(
-    schema_root: Path, tmp_path: Path
+    schema_root: Path, tmp_path: Path, compressed: bool
 ) -> None:
     workspace = tmp_path / "sidecar"
     _workspace(workspace, effect=0.8)
@@ -131,12 +135,25 @@ def test_selected_sidecar_layout_normalizes_to_same_eqtl_sign_recompute(
         "      orientation_binding: exact\n",
         encoding="utf-8",
     )
+    selected_paths = ["orientation.yaml", "donors.csv", "results.csv"]
+    if compressed:
+        binding = workspace / "orientation.yaml"
+        binding_text = binding.read_text(encoding="utf-8")
+        for table_path in ("donors.csv", "results.csv"):
+            source = workspace / table_path
+            (workspace / f"{table_path}.gz").write_bytes(
+                gzip.compress(source.read_bytes(), mtime=0)
+            )
+            source.unlink()
+            binding_text = binding_text.replace(table_path, f"{table_path}.gz")
+        binding.write_text(binding_text, encoding="utf-8")
+        selected_paths = ["orientation.yaml", "donors.csv.gz", "results.csv.gz"]
     bundle = run_audit(
         workspace,
         tmp_path / "sidecar-audit",
         schema_root,
         report="report.md",
-        material_inputs=("orientation.yaml", "donors.csv", "results.csv"),
+        material_inputs=tuple(selected_paths),
     )
     observation = next(
         item
