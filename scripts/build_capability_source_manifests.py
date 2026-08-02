@@ -37,6 +37,56 @@ def _upsert(collection: dict[str, Any], id_field: str, record: dict[str, Any]) -
 
 def main() -> None:
     parser_collection = _load("parser-manifests.json")
+    tabular_parser_resource = ROOT / "src" / "sc_referee" / "tabular_inventory.py"
+    _upsert(
+        parser_collection,
+        "parser_id",
+        {
+            "backend": "other",
+            "capabilities": ["inventory", "exact_spans", "source_references"],
+            "executes_project_code": False,
+            "extensions": {"x-implementation-resource": "tabular_inventory.py"},
+            "grammar_or_runtime_identity": [
+                "Python standard-library strict CSV first-record reader",
+                "bounded identity or gzip logical-record stream under ADR-0054",
+            ],
+            "implementation_digest": sha256_digest(tabular_parser_resource.read_bytes()),
+            "language_or_surface": "delimited_table",
+            "limitations": [
+                "Only the first logical record is interpreted as a header.",
+                "For gzip inputs, bytes after the first logical record are not decompressed or validated.",
+                "Column names do not establish storage types, scientific meanings, row shape, row count, or cell values.",
+            ],
+            "parser_id": "parser:tabular-delimited-header-inventory",
+            "parser_version": "0.2.0",
+            "provenance": {
+                "actor": {
+                    "actor_id": "software:sc-referee-controller",
+                    "actor_kind": "controller",
+                    "display_name": "sc-referee controller",
+                },
+                "created_at": GENERATED_AT,
+                "method": "deterministic_release_manifest",
+                "tool": "sc-referee",
+                "tool_version": __version__,
+            },
+            "record_type": "parser_manifest",
+            "runtime_requirements": ["Python >=3.11", "strict UTF-8 header"],
+            "schema_version": SCHEMA_VERSION,
+            "supported_versions": [
+                "Comma-delimited CSV and tab-delimited TSV first logical records, stored directly or in one gzip byte stream, under ADR-0054"
+            ],
+            "unsupported_constructs": [
+                "row and cell inspection",
+                "compression formats other than gzip",
+                "non-UTF-8 headers",
+                "non-comma CSV and non-tab TSV dialects",
+                "headers above 1024 columns or 1 MiB",
+                "gzip member integrity after the first logical record",
+                "scientific interpretation",
+            ],
+        },
+    )
     python_parser_resource = ROOT / "src" / "sc_referee" / "parsers" / "python_ast.py"
     _upsert(
         parser_collection,
@@ -923,6 +973,25 @@ def main() -> None:
     _write("profile-manifests.json", profile_collection)
 
     version_collection = _load("version-manifests.json")
+    tabular_versions = [
+        record
+        for record in version_collection.get("records", [])
+        if record.get("version_manifest_id")
+        == "version-manifest:tabular-delimited-header-inventory-v1"
+    ]
+    if len(tabular_versions) != 1:
+        raise ValueError("tabular delimited version manifest must be unique")
+    tabular_versions[0]["evidence_refs"] = [
+        "docs/implementation/ADR-0054-BOUNDED-GZIP-DELIMITED-HEADER-INVENTORY.md",
+        "src/sc_referee/delimited_io.py",
+        "src/sc_referee/tabular_inventory.py",
+        "tests/test_tabular_inventory.py",
+        "tests/test_capability_matrix.py",
+    ]
+    tabular_versions[0]["known_gaps"] = [
+        "No release-qualified CSV, TSV, or gzip version/dialect envelope is published.",
+        "Only first-record header inventory is qualified; gzip bodies and full compressed calculation inputs remain unsupported.",
+    ]
     expected_count_versions = [
         record
         for record in version_collection.get("records", [])

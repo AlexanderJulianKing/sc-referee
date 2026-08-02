@@ -124,6 +124,9 @@ complete Finding-producing path remains a synthetic test fixture. Read the
 - Exact selected H5AD inputs may receive bounded dense/CSR/CSC structural inspection. Sparse arrays
   are scanned in fixed chunks and never densified; physical files outside the selected-material
   budget remain unavailable to this profile.
+- Fully identified `.csv.gz` and `.tsv.gz` files may receive a bounded first-record header
+  inventory. Their row bodies are not decompressed or validated, and compressed tables do not yet
+  feed deterministic calculations.
 - A path that must not be read must be excluded from the audit workspace itself.
 - Model confidence cannot establish a material scientific premise.
 - No model calls occur after semantic lock.

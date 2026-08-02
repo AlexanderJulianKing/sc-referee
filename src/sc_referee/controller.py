@@ -40,6 +40,7 @@ from sc_referee.core.errors import (
 )
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest, stable_id
 from sc_referee.core.state import AuditState, transition
+from sc_referee.delimited_io import classify_delimited_path
 from sc_referee.detectors.admission import AdmissionContext, admit_finding
 from sc_referee.detectors.bounded_report_mean_direction import (
     BoundedReportMeanDirectionDetector,
@@ -331,7 +332,7 @@ def _append_tabular_inventory_gaps(known_gaps: list[str], bundle: dict[str, Any]
         for record in bundle.get("file_records", [])
         if isinstance(record, dict)
         and isinstance(record.get("path"), str)
-        and PurePosixPath(str(record["path"])).suffix.casefold() in {".csv", ".tsv"}
+        and classify_delimited_path(str(record["path"])) is not None
     }
     data_assets = [
         record
@@ -652,17 +653,23 @@ def run_audit(
             lineage_cache_handle,
             _bounded_lineage_records(bounded_lineage),
         )
+
+        def large_artifact_read_checkpoint() -> None:
+            _check_run_control(active_control, journal, "parsing")
+            _check_prelock_deadline(active_deadline, journal, "parsing")
+
         tabular_inventory = inspect_delimited_inventory(
             snapshot,
             static_graph["artifacts"],
             bounded_lineage.data_assets,
             run_id,
             created_at,
+            read_checkpoint=large_artifact_read_checkpoint,
         )
-
-        def large_artifact_read_checkpoint() -> None:
-            _check_run_control(active_control, journal, "parsing")
-            _check_prelock_deadline(active_deadline, journal, "parsing")
+        if tabular_inventory.read_receipts:
+            snapshot.snapshot_record["extensions"]["x-delimited-read-receipts"] = [
+                item.to_dict() for item in tabular_inventory.read_receipts
+            ]
 
         h5ad_inventory = inspect_h5ad_inventory(
             snapshot,
@@ -776,8 +783,9 @@ def run_audit(
         journal.record_stage(
             "parsing",
             "completed",
-            "Supported Python and Markdown files were statically inspected, bounded CSV/TSV "
-            "headers and explicitly selected dense or sparse H5AD inputs were inventoried, the default "
+            "Supported Python and Markdown files were statically inspected, bounded CSV/TSV or "
+            "gzip-compressed headers and explicitly selected dense or sparse H5AD inputs were "
+            "inventoried, the default "
             "Nextflow trace profile was imported when available, and unsupported paths were "
             "retained as coverage gaps.",
         )

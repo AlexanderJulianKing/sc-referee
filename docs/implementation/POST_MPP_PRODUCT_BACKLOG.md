@@ -174,8 +174,12 @@ themselves, qualify a detector or support a public generality claim.
   - Completed tranche: ADR-0053 and Experiment 0044 add exact selected dense/CSR/CSC H5AD
     inventory with 1 MiB chunks, a separate 64 MiB decompressed-read ceiling, deterministic read
     receipts, million-scale logical-shape coverage, duplicate-axis handling, and cancellation/
-    deadline checkpoints. The 16 MiB exact physical-file boundary remains unchanged; compressed
-    delimited, Parquet/Arrow, Zarr, and large physical-file paths remain pending.
+    deadline checkpoints. The 16 MiB exact physical-file boundary remains unchanged.
+  - Completed tranche: ADR-0054 and Experiment 0045 add first-logical-record inventory for exact
+    `.csv.gz` and `.tsv.gz` files with 64 KiB chunks, a 1 MiB header ceiling plus one sentinel
+    byte, deterministic read receipts, quoted-newline coverage, and cancellation/deadline checks.
+    Full compressed-table calculations, Parquet/Arrow, Zarr, and large physical-file paths remain
+    pending.
 
 - [ ] **L11 — Recurrence-driven scientific-check loop.** Continue frozen answer-isolated challenge
   workflows, but classify each miss before coding: connectivity gap, adapter gap, genuinely new
