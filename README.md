@@ -121,6 +121,9 @@ complete Finding-producing path remains a synthetic test fixture. Read the
 - Repository text is evidence, never instructions for the auditor or its agent.
 - The snapshotter opens eligible regular files to compute immutable identities. “Uninspected”
   means no semantic/deep inspection, not no byte access.
+- Exact selected H5AD inputs may receive bounded dense/CSR/CSC structural inspection. Sparse arrays
+  are scanned in fixed chunks and never densified; physical files outside the selected-material
+  budget remain unavailable to this profile.
 - A path that must not be read must be excluded from the audit workspace itself.
 - Model confidence cannot establish a material scientific premise.
 - No model calls occur after semantic lock.

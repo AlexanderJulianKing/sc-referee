@@ -442,6 +442,27 @@ report and sidecar observations fail closed. Sidecar declarations do not establi
 truth, scientific adequacy, or producer lineage. Every v10 calculation remains Disclosure-only and
 Finding-ineligible under schema v0.18.0.
 
+## Bounded H5AD read receipts
+
+Accepted ADR-0053 extends the existing exact selected-H5AD structural inventory from dense integer
+`X` datasets to exact AnnData CSR and CSC groups. Sparse arrays remain inside the immutable
+selected-material copy, use hard HDF5 links and allowlisted compression, and are scanned without
+dense allocation.
+
+When at least one exact selected H5AD is attempted, the repository snapshot extension
+`x-h5ad-read-receipts` contains a deterministic object per path with:
+
+- `path` and `content_digest`;
+- `status` (`inspected` or `unsupported`);
+- `raw_file_bytes`, `logical_bytes_read`, and `read_chunks`;
+- `logical_byte_ceiling` and `chunk_byte_ceiling`; and
+- a closed `termination_reason`, which is null only for a completed inspection.
+
+The current ceilings are 1 MiB per logical chunk and 64 MiB of decompressed logical reads, in
+addition to the unchanged 16 MiB aggregate exact selected-material copy budget. These extension
+receipts are controller observations for auditability and replay. They do not establish scientific
+meaning, analysis use, experimental unit, or a calculation premise.
+
 ## Evaluation-private public-corpus preflight
 
 `sc-referee-eval preflight-genebench-public` verifies an already-local, full-revision-pinned

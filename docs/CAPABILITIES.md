@@ -12,8 +12,8 @@ Available now:
 - canonical JSON/JSONL evidence with a rebuildable SQLite index;
 - exact source locations and multidimensional Claim lineage;
 - bounded static inspection of Python, Markdown, R Markdown, R, Jupyter notebooks, and Quarto;
-- bounded CSV/TSV headers, selected H5AD structure, checksum declarations, and default Nextflow
-  trace import;
+- bounded CSV/TSV headers, selected dense/CSR/CSC H5AD structure, checksum declarations, and
+  default Nextflow trace import;
 - typed scientist questions and linked answer segments;
 - semantic lock, integrity verification, deterministic report generation, and model-free replay;
 - attached RO-Crate export under the project's bounded profile; and
@@ -85,7 +85,11 @@ repository-declared checksum is retained as a declaration unless the target byte
 verified.
 
 Selected material inputs have a separate finite budget: at most eight paths and 16 MiB total. The
-current H5AD semantic adapter is intentionally narrower than the general snapshot identity layer.
+current H5AD structural adapter accepts bounded dense, CSR, and CSC integer `X` layouts. It scans
+decompressed arrays in chunks of at most 1 MiB under a separate 64 MiB logical-read ceiling and
+records the measured reads in the immutable snapshot. It never densifies sparse matrices. Layers,
+`raw`, floating matrices, files outside the exact material-copy budget, and biological meaning
+remain unsupported.
 
 ## How to read coverage
 

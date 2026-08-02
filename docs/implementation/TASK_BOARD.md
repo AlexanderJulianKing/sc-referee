@@ -1022,6 +1022,18 @@ Proceed in this order:
     passes 1,370 tests, Ruff, formatting, strict typing for 109 production and 28 evaluation files,
     starter/schema validation, the 121-case regression ledger with all 26 module baselines, and
     the complete clean-wheel handoff verifier.
+13. ✅ Experiment 0044 and accepted ADR-0053 complete the first L10 tranche. Exact selected H5AD
+    inventory now supports dense, CSR, and CSC integer `X` layouts using at most 1 MiB per logical
+    read and 64 MiB of decompressed logical reads, without densifying sparse matrices. Snapshot
+    receipts record raw bytes, logical bytes, chunks, ceilings, status, and bounded termination;
+    cancellation and deadline checks run between chunks. Million-scale logical shape, duplicate
+    observations, pointer-boundary mutation, compressed logical-budget escape, selected-only,
+    replay, and existing dense controls pass. Schema v0.18.0, the 16 MiB exact physical material
+    budget, Finding ceilings, and the no-project-execution boundary are unchanged. The full
+    checkpoint passes 1,375 tests, Ruff, formatting, strict typing for 109 production and 28
+    evaluation files, starter/schema validation, the 121-case regression ledger with all 26 module
+    baselines, and the complete clean-wheel handoff verifier. L10 remains open for compressed
+    delimited and separately justified Parquet/Arrow, Zarr, or large physical-file adapters.
 
 Further Python lineage profiles are justified only when they unblock a named detector premise or
 real validation case. Branches, DAGs, dynamic runtime semantics, and over-budget calculations remain
@@ -1038,6 +1050,7 @@ the draft pull request as a published or detector-qualified release.
 ## Immediate next task
 
 Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. L01 through L09 are
-complete; start with L10 bounded large-artifact support before broader scientific coverage.
+complete; continue L10 with bounded compressed-delimited summaries before considering optional
+Parquet/Arrow, Zarr, or large physical-file adapters.
 Every subsequent feature must retain the mandatory positive, corrected, hard-negative, ambiguous,
 unsupported, isolation, mutation, no-execution, and replay controls described there.

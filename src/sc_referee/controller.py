@@ -396,7 +396,7 @@ def _append_h5ad_inventory_gaps(known_gaps: list[str], bundle: dict[str, Any]) -
     if unavailable_count:
         known_gaps.append(
             f"{unavailable_count} explicitly selected H5AD input(s) were unavailable or outside "
-            "the supported dense integer profile; no H5AD structure was inferred for them."
+            "the supported dense/CSR/CSC integer profile; no H5AD structure was inferred for them."
         )
 
 
@@ -659,12 +659,22 @@ def run_audit(
             run_id,
             created_at,
         )
+
+        def large_artifact_read_checkpoint() -> None:
+            _check_run_control(active_control, journal, "parsing")
+            _check_prelock_deadline(active_deadline, journal, "parsing")
+
         h5ad_inventory = inspect_h5ad_inventory(
             snapshot,
             [*static_graph["artifacts"], *tabular_inventory.artifacts],
             run_id,
             created_at,
+            read_checkpoint=large_artifact_read_checkpoint,
         )
+        if h5ad_inventory.read_receipts:
+            snapshot.snapshot_record["extensions"]["x-h5ad-read-receipts"] = [
+                item.to_dict() for item in h5ad_inventory.read_receipts
+            ]
         nextflow_trace = inspect_nextflow_trace(snapshot, run_id, created_at)
         if nextflow_trace.parser_result is not None:
             parser_results = sorted(
@@ -767,7 +777,7 @@ def run_audit(
             "parsing",
             "completed",
             "Supported Python and Markdown files were statically inspected, bounded CSV/TSV "
-            "headers and explicitly selected dense H5AD inputs were inventoried, the default "
+            "headers and explicitly selected dense or sparse H5AD inputs were inventoried, the default "
             "Nextflow trace profile was imported when available, and unsupported paths were "
             "retained as coverage gaps.",
         )
