@@ -428,6 +428,20 @@ hierarchical, adaptive, or non-BH procedures, dynamic table construction, runtim
 effect, or universal method adequacy. Human answers are retained as authority for a later audit;
 they do not retroactively make an incomplete table calculable or promote any result to Finding.
 
+Accepted ADR-0052 and calculation registry profile v10 add a second evidence layout for all eight
+active calculation families. An explicitly selected, fully digested YAML material input may carry
+the exact root marker `sc_referee_calculation_contracts: 1` and a bounded list of unique
+`check_id`/`contract` mappings. Its filename and directory are not semantic. Each sidecar adapter
+normalizes that mapping into the same typed internal contract used by the existing report adapter;
+the family evaluator and comparison relation are shared rather than copied.
+
+The sidecar parser accepts strict UTF-8 safe YAML under 256 KiB and 32 contracts. Exact root and
+entry keys, mapping-valued contracts, unique check IDs, and the existing selected-material scope
+path are mandatory. Unmarked YAML is ignored. An unselected sidecar has no authority, and competing
+report and sidecar observations fail closed. Sidecar declarations do not establish execution,
+truth, scientific adequacy, or producer lineage. Every v10 calculation remains Disclosure-only and
+Finding-ineligible under schema v0.18.0.
+
 ## Evaluation-private public-corpus preflight
 
 `sc-referee-eval preflight-genebench-public` verifies an already-local, full-revision-pinned

@@ -7,11 +7,12 @@ import numpy as np
 import pytest
 
 from sc_referee.calculation_checks import single_cell_sensitivity as sensitivity_module
-from sc_referee.calculation_checks.core import CalculationCheckRegistry
+from sc_referee.calculation_checks.core import CalculationCheckModule, CalculationCheckRegistry
 from sc_referee.calculation_checks.profiles import default_calculation_check_registry
 from sc_referee.calculation_checks.single_cell_sensitivity import (
     DeclaredSingleCellSensitivityAdapter,
     PyDESeq2SensitivityEngine,
+    SelectedSidecarSingleCellSensitivityAdapter,
     SensitivityRecomputeInput,
     SensitivityRecomputeResult,
     SingleCellSensitivityError,
@@ -196,6 +197,68 @@ def test_declared_observation_level_family_emits_bounded_sensitivity_disclosure(
     )
 
 
+def test_selected_sidecar_layout_normalizes_to_same_sensitivity_recompute(
+    schema_root: Path, tmp_path: Path
+) -> None:
+    workspace = tmp_path / "sidecar"
+    _write_workspace(workspace)
+    (workspace / "report.md").write_text("# Results\n", encoding="utf-8")
+    (workspace / "sensitivity-bindings.yaml").write_text(
+        "sc_referee_calculation_contracts: 1\n"
+        "contracts:\n"
+        "  - check_id: calculation-check:single-cell-replicate-sensitivity-v1\n"
+        "    contract:\n"
+        "      reported_table: results.csv\n"
+        "      count_matrix: counts.h5ad\n"
+        "      feature_id_column: feature\n"
+        "      reported_adjusted_p_column: reported_padj\n"
+        "      reported_effect_column: effect\n"
+        "      matrix_feature_index: var/_index\n"
+        "      replicate_field: obs/patient\n"
+        "      condition_field: obs/condition\n"
+        "      reference_level: control\n"
+        "      test_level: treated\n"
+        "      model: '~ condition'\n"
+        "      alpha: 0.05\n"
+        "      reference_effect: 1.0\n"
+        "      target_power: 0.8\n"
+        "      minimum_powered_fraction: 0.8\n"
+        "      reported_unit: observation\n"
+        "      producer_binding: exact\n"
+        "      dependence_semantics: iid_rows\n",
+        encoding="utf-8",
+    )
+    engine = _StubSensitivityEngine((0.01, 0.9, 0.02, 0.8))
+    base = single_cell_sensitivity_registry(
+        adapter=DeclaredSingleCellSensitivityAdapter(engine=engine)
+    )
+    registry = CalculationCheckRegistry(
+        (
+            CalculationCheckModule(
+                base.modules[0].manifest,
+                (SelectedSidecarSingleCellSensitivityAdapter(engine=engine),),
+            ),
+        ),
+        profile_id="test-sidecar-single-cell-sensitivity",
+    )
+    bundle = run_audit(
+        workspace,
+        tmp_path / "sidecar-audit",
+        schema_root,
+        report="report.md",
+        material_inputs=("sensitivity-bindings.yaml", "counts.h5ad", "results.csv"),
+        calculation_check_registry=registry,
+    )
+    observation = bundle["deterministic_check_observations"][0]
+    assert observation["adapter_manifest"]["adapter_id"] == (
+        "calculation-adapter:selected-sidecar-single-cell-replicate-sensitivity-v1"
+    )
+    assert observation["comparison"]["outcome"] == "nonconformant"
+    assert _operand(observation, "replicate_level_survivors") == 2
+    assert _operand(observation, "reported_significant_testable") == 3
+    assert engine.calls == 1
+
+
 def test_corrected_twin_is_conformant_and_hard_negative_does_not_recompute(
     schema_root: Path, tmp_path: Path
 ) -> None:
@@ -293,7 +356,7 @@ def test_removing_single_cell_module_removes_only_its_observation(
 def test_default_registry_contains_frozen_single_cell_module() -> None:
     registry = default_calculation_check_registry()
 
-    assert registry.profile_id == "deterministic_calculation_check_v9"
+    assert registry.profile_id == "deterministic_calculation_check_v10"
     assert {module.manifest.check_id for module in registry.modules} == {
         "calculation-check:benjamini-hochberg-complete-family-v1",
         "calculation-check:single-cell-replicate-sensitivity-v1",

@@ -10,6 +10,11 @@ from typing import Any
 
 import yaml
 
+from sc_referee.calculation_checks.contracts import (
+    selected_sidecar_contract,
+    sidecar_adapter_manifest,
+    with_sidecar_lineage,
+)
 from sc_referee.calculation_checks.core import (
     CalculationAdapterManifest,
     CalculationCheckManifest,
@@ -28,6 +33,7 @@ MAX_TABLE_BYTES = 8 * 1024 * 1024
 MAX_TABLE_ROWS = 250_000
 MAX_TABLE_COLUMNS = 64
 MIN_BACKGROUND_PAIRS = 50
+HIC_LOOP_CHECK_ID = "calculation-check:hic-loop-strength-v1"
 
 _BLOCK = re.compile(
     r"```sc-referee-hic-loop-strength-v1\s*\n(?P<body>.*?)\n```",
@@ -167,6 +173,14 @@ class DeclaredHiCLoopStrengthAdapter:
             contract = _parse_contract(match.group("body"), source_ref)
         except HiCLoopStrengthError as error:
             return self._unsupported(context, source_ref, "hic_loop_contract_valid", str(error))
+        return self.inspect_normalized(context, contract)
+
+    def inspect_normalized(
+        self,
+        context: CalculationContext,
+        contract: _Contract,
+    ) -> CalculationObservation:
+        source_ref = contract.source_ref
         if contract.claim_semantics == "descriptive_contact_map":
             return self._not_applicable(context, contract)
         if contract.claim_semantics == "unresolved" or contract.producer_binding == "unresolved":
@@ -341,10 +355,29 @@ class DeclaredHiCLoopStrengthAdapter:
         )
 
 
+class SelectedSidecarHiCLoopStrengthAdapter:
+    def __init__(self) -> None:
+        self.manifest = sidecar_adapter_manifest(
+            family="hic-loop-strength",
+            implementation_digest=sha256_digest(Path(__file__).read_bytes()),
+        )
+        self._evaluator = DeclaredHiCLoopStrengthAdapter()
+
+    def inspect(self, context: CalculationContext) -> CalculationObservation | None:
+        sidecar = selected_sidecar_contract(context, check_id=HIC_LOOP_CHECK_ID)
+        if sidecar is None:
+            return None
+        contract = _parse_contract_value(sidecar.value, sidecar.source_ref)
+        return with_sidecar_lineage(
+            self._evaluator.inspect_normalized(context, contract),
+            sidecar,
+        )
+
+
 def hic_loop_strength_registry() -> CalculationCheckRegistry:
     adapter = DeclaredHiCLoopStrengthAdapter()
     check = CalculationCheckManifest(
-        check_id="calculation-check:hic-loop-strength-v1",
+        check_id=HIC_LOOP_CHECK_ID,
         check_version="1.0.0",
         implementation_digest=sha256_digest(Path(__file__).read_bytes()),
         comparison_relation="declared_hic_loop_strength_delta_conformance",
@@ -364,7 +397,13 @@ def _parse_contract(body: str, source_ref: dict[str, Any]) -> _Contract:
         value = yaml.safe_load(body)
     except yaml.YAMLError as error:
         raise HiCLoopStrengthError("Hi-C contract is not valid YAML") from error
-    if not isinstance(value, dict) or set(value) != _REQUIRED_KEYS:
+    if not isinstance(value, dict):
+        raise HiCLoopStrengthError("Hi-C contract must be a mapping")
+    return _parse_contract_value(value, source_ref)
+
+
+def _parse_contract_value(value: dict[str, Any], source_ref: dict[str, Any]) -> _Contract:
+    if set(value) != _REQUIRED_KEYS:
         raise HiCLoopStrengthError("Hi-C contract keys are missing or extra")
     text_keys = _REQUIRED_KEYS - {
         "replicate_columns",

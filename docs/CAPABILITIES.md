@@ -45,6 +45,13 @@ bounded deterministic observation or incompatibility, not a production Finding.
 | eQTL sign/support | Donor-level unadjusted OLS with explicit allele and dosage orientation | Adjusted, mixed, nonlinear, and count-likelihood models; inferred orientation |
 | Hi-C loop strength | Fixed-resolution cis single-pixel arithmetic background with exact exclusions | Balanced contacts, model-based expected counts, domains, stripes, covariates |
 
+Every row has two deterministic evidence-layout adapters: the original explicit declaration in the
+selected report and an explicitly selected YAML sidecar. Both normalize into the same family
+evaluator. The sidecar's filename is irrelevant, but its marker, check ID, contract keys, referenced
+paths, and material-input selection must be exact. It makes the bounded modules portable across
+repository layouts; it does not infer missing scientific intent or prove that the declaration is
+true.
+
 The compact practical-parity matrix records the exact relationship to the earlier public feature
 families: [`implementation/PRACTICAL_PARITY_MATRIX.md`](implementation/PRACTICAL_PARITY_MATRIX.md).
 

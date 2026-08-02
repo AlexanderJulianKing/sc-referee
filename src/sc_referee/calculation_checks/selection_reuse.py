@@ -11,6 +11,11 @@ from typing import Any
 
 import yaml
 
+from sc_referee.calculation_checks.contracts import (
+    selected_sidecar_contract,
+    sidecar_adapter_manifest,
+    with_sidecar_lineage,
+)
 from sc_referee.calculation_checks.core import (
     CalculationAdapterManifest,
     CalculationCheckManifest,
@@ -29,6 +34,7 @@ MAX_SOURCE_BYTES = 2 * 1024 * 1024
 MAX_TABLE_BYTES = 8 * 1024 * 1024
 MAX_TABLE_ROWS = 50_000
 MAX_TABLE_COLUMNS = 64
+SELECTION_REUSE_CHECK_ID = "calculation-check:scanpy-selection-reuse-v1"
 
 _BLOCK = re.compile(
     r"```sc-referee-selection-reuse-v1\s*\n(?P<body>.*?)\n```",
@@ -146,6 +152,14 @@ class DeclaredSelectionReuseAdapter:
                 "selection_reuse_contract_valid",
                 str(error),
             )
+        return self.inspect_normalized(context, contract)
+
+    def inspect_normalized(
+        self,
+        context: CalculationContext,
+        contract: _Contract,
+    ) -> CalculationObservation:
+        source_ref = contract.source_ref
         if contract.analysis_mode in {
             "predefined_group_inference",
             "descriptive_marker_ranking",
@@ -328,10 +342,29 @@ class DeclaredSelectionReuseAdapter:
         )
 
 
+class SelectedSidecarSelectionReuseAdapter:
+    def __init__(self) -> None:
+        self.manifest = sidecar_adapter_manifest(
+            family="scanpy-selection-reuse",
+            implementation_digest=sha256_digest(Path(__file__).read_bytes()),
+        )
+        self._evaluator = DeclaredSelectionReuseAdapter()
+
+    def inspect(self, context: CalculationContext) -> CalculationObservation | None:
+        sidecar = selected_sidecar_contract(context, check_id=SELECTION_REUSE_CHECK_ID)
+        if sidecar is None:
+            return None
+        contract = _parse_contract_value(sidecar.value, sidecar.source_ref)
+        return with_sidecar_lineage(
+            self._evaluator.inspect_normalized(context, contract),
+            sidecar,
+        )
+
+
 def selection_reuse_registry() -> CalculationCheckRegistry:
     adapter = DeclaredSelectionReuseAdapter()
     check = CalculationCheckManifest(
-        check_id="calculation-check:scanpy-selection-reuse-v1",
+        check_id=SELECTION_REUSE_CHECK_ID,
         check_version="1.0.0",
         implementation_digest=sha256_digest(Path(__file__).read_bytes()),
         comparison_relation="declared_de_novo_selection_and_marker_test_data_separation",
@@ -351,7 +384,13 @@ def _parse_contract(body: str, source_ref: dict[str, Any]) -> _Contract:
         value = yaml.safe_load(body)
     except yaml.YAMLError as error:
         raise SelectionReuseError("selection-reuse contract is not valid YAML") from error
-    if not isinstance(value, dict) or set(value) != _REQUIRED_KEYS:
+    if not isinstance(value, dict):
+        raise SelectionReuseError("selection-reuse contract must be a mapping")
+    return _parse_contract_value(value, source_ref)
+
+
+def _parse_contract_value(value: dict[str, Any], source_ref: dict[str, Any]) -> _Contract:
+    if set(value) != _REQUIRED_KEYS:
         raise SelectionReuseError("selection-reuse contract keys are missing or extra")
     if any(not isinstance(value[key], str) or not value[key].strip() for key in _REQUIRED_KEYS):
         raise SelectionReuseError("selection-reuse contract values must be nonempty strings")

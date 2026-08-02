@@ -1013,6 +1013,15 @@ Proceed in this order:
     passes 1,357 tests, Ruff, formatting, strict typing for 108 production and 28 evaluation files,
     starter/schema validation, the 113-case regression ledger with all 26 module baselines, and
     the complete clean-wheel handoff verifier.
+12. ✅ Experiment 0043 and accepted ADR-0052 complete L09 with one shared, bounded selected-sidecar
+    contract format and a separate content-addressed adapter for each of the eight calculation
+    families. Existing embedded-report adapters and the new adapters converge on the same
+    per-family normalized calculation path; competing declarations, unselected inputs, malformed
+    or over-budget sidecars, duplicate IDs, and unsupported values fail closed. Schema v0.18.0,
+    Finding ceilings, and the no-project-execution boundary are unchanged. The full checkpoint
+    passes 1,370 tests, Ruff, formatting, strict typing for 109 production and 28 evaluation files,
+    starter/schema validation, the 121-case regression ledger with all 26 module baselines, and
+    the complete clean-wheel handoff verifier.
 
 Further Python lineage profiles are justified only when they unblock a named detector premise or
 real validation case. Branches, DAGs, dynamic runtime semantics, and over-budget calculations remain
@@ -1028,8 +1037,7 @@ the draft pull request as a published or detector-qualified release.
 
 ## Immediate next task
 
-Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. L01 through L08 are
-complete; start with L09 calculation-check generalization before L10 large-artifact support and
-broader scientific coverage.
+Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. L01 through L09 are
+complete; start with L10 bounded large-artifact support before broader scientific coverage.
 Every subsequent feature must retain the mandatory positive, corrected, hard-negative, ambiguous,
 unsupported, isolation, mutation, no-execution, and replay controls described there.

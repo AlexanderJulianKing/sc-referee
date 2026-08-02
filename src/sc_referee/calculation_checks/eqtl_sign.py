@@ -11,6 +11,11 @@ from typing import Any
 import numpy as np
 import yaml
 
+from sc_referee.calculation_checks.contracts import (
+    selected_sidecar_contract,
+    sidecar_adapter_manifest,
+    with_sidecar_lineage,
+)
 from sc_referee.calculation_checks.core import (
     CalculationAdapterManifest,
     CalculationCheckManifest,
@@ -28,6 +33,7 @@ from sc_referee.core.ids import semantic_digest, sha256_digest
 MAX_TABLE_BYTES = 8 * 1024 * 1024
 MAX_TABLE_ROWS = 100_000
 MAX_TABLE_COLUMNS = 64
+EQTL_SIGN_CHECK_ID = "calculation-check:donor-eqtl-sign-v1"
 
 _BLOCK = re.compile(
     r"```sc-referee-eqtl-sign-v1\s*\n(?P<body>.*?)\n```",
@@ -148,6 +154,14 @@ class DeclaredEqtlSignAdapter:
                 "eqtl_sign_contract_valid",
                 str(error),
             )
+        return self.inspect_normalized(context, contract)
+
+    def inspect_normalized(
+        self,
+        context: CalculationContext,
+        contract: _Contract,
+    ) -> CalculationObservation:
+        source_ref = contract.source_ref
         if (
             contract.producer_binding == "unresolved"
             or contract.orientation_binding == "unresolved"
@@ -296,10 +310,29 @@ class DeclaredEqtlSignAdapter:
         )
 
 
+class SelectedSidecarEqtlSignAdapter:
+    def __init__(self) -> None:
+        self.manifest = sidecar_adapter_manifest(
+            family="donor-eqtl-sign",
+            implementation_digest=sha256_digest(Path(__file__).read_bytes()),
+        )
+        self._evaluator = DeclaredEqtlSignAdapter()
+
+    def inspect(self, context: CalculationContext) -> CalculationObservation | None:
+        sidecar = selected_sidecar_contract(context, check_id=EQTL_SIGN_CHECK_ID)
+        if sidecar is None:
+            return None
+        contract = _parse_contract_value(sidecar.value, sidecar.source_ref)
+        return with_sidecar_lineage(
+            self._evaluator.inspect_normalized(context, contract),
+            sidecar,
+        )
+
+
 def eqtl_sign_registry() -> CalculationCheckRegistry:
     adapter = DeclaredEqtlSignAdapter()
     check = CalculationCheckManifest(
-        check_id="calculation-check:donor-eqtl-sign-v1",
+        check_id=EQTL_SIGN_CHECK_ID,
         check_version="1.0.0",
         implementation_digest=sha256_digest(Path(__file__).read_bytes()),
         comparison_relation="declared_effect_allele_reported_vs_donor_ols_sign_conformance",
@@ -319,7 +352,13 @@ def _parse_contract(body: str, source_ref: dict[str, Any]) -> _Contract:
         value = yaml.safe_load(body)
     except yaml.YAMLError as error:
         raise EqtlSignError("eQTL-sign contract is not valid YAML") from error
-    if not isinstance(value, dict) or set(value) != _REQUIRED_KEYS:
+    if not isinstance(value, dict):
+        raise EqtlSignError("eQTL-sign contract must be a mapping")
+    return _parse_contract_value(value, source_ref)
+
+
+def _parse_contract_value(value: dict[str, Any], source_ref: dict[str, Any]) -> _Contract:
+    if set(value) != _REQUIRED_KEYS:
         raise EqtlSignError("eQTL-sign contract keys are missing or extra")
     text_keys = _REQUIRED_KEYS - {
         "variant_alleles",

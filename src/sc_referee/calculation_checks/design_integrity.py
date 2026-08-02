@@ -10,6 +10,11 @@ from typing import Any
 import numpy as np
 import yaml
 
+from sc_referee.calculation_checks.contracts import (
+    selected_sidecar_contract,
+    sidecar_adapter_manifest,
+    with_sidecar_lineage,
+)
 from sc_referee.calculation_checks.core import (
     CalculationAdapterManifest,
     CalculationCheckManifest,
@@ -28,6 +33,7 @@ MAX_TABLE_BYTES = 8 * 1024 * 1024
 MAX_TABLE_ROWS = 100_000
 MAX_TABLE_COLUMNS = 64
 MAX_DECLARED_COLUMNS = 16
+DESIGN_INTEGRITY_CHECK_ID = "calculation-check:tabular-design-integrity-v1"
 
 _BLOCK = re.compile(
     r"```sc-referee-design-integrity-v1\s*\n(?P<body>.*?)\n```",
@@ -154,6 +160,14 @@ class DeclaredDesignIntegrityAdapter:
                 "design_integrity_contract_valid",
                 str(error),
             )
+        return self.inspect_normalized(context, contract)
+
+    def inspect_normalized(
+        self,
+        context: CalculationContext,
+        contract: _Contract,
+    ) -> CalculationObservation:
+        source_ref = contract.source_ref
         if (
             contract.comparison_mode == "unresolved"
             or contract.aggregation_binding == "unresolved"
@@ -312,10 +326,29 @@ class DeclaredDesignIntegrityAdapter:
         )
 
 
+class SelectedSidecarDesignIntegrityAdapter:
+    def __init__(self) -> None:
+        self.manifest = sidecar_adapter_manifest(
+            family="tabular-design-integrity",
+            implementation_digest=sha256_digest(Path(__file__).read_bytes()),
+        )
+        self._evaluator = DeclaredDesignIntegrityAdapter()
+
+    def inspect(self, context: CalculationContext) -> CalculationObservation | None:
+        sidecar = selected_sidecar_contract(context, check_id=DESIGN_INTEGRITY_CHECK_ID)
+        if sidecar is None:
+            return None
+        contract = _parse_contract_value(sidecar.value, sidecar.source_ref)
+        return with_sidecar_lineage(
+            self._evaluator.inspect_normalized(context, contract),
+            sidecar,
+        )
+
+
 def design_integrity_registry() -> CalculationCheckRegistry:
     adapter = DeclaredDesignIntegrityAdapter()
     check = CalculationCheckManifest(
-        check_id="calculation-check:tabular-design-integrity-v1",
+        check_id=DESIGN_INTEGRITY_CHECK_ID,
         check_version="1.0.0",
         implementation_digest=sha256_digest(Path(__file__).read_bytes()),
         comparison_relation="declared_tabular_design_structure_conformance",
@@ -335,7 +368,13 @@ def _parse_contract(body: str, source_ref: dict[str, Any]) -> _Contract:
         value = yaml.safe_load(body)
     except yaml.YAMLError as error:
         raise DesignIntegrityError("design-integrity contract is not valid YAML") from error
-    if not isinstance(value, dict) or set(value) != _REQUIRED_KEYS:
+    if not isinstance(value, dict):
+        raise DesignIntegrityError("design-integrity contract must be a mapping")
+    return _parse_contract_value(value, source_ref)
+
+
+def _parse_contract_value(value: dict[str, Any], source_ref: dict[str, Any]) -> _Contract:
+    if set(value) != _REQUIRED_KEYS:
         raise DesignIntegrityError("design-integrity contract keys are missing or extra")
     for key in {
         "metadata_table",

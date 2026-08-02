@@ -10,6 +10,11 @@ from typing import Any
 
 import yaml
 
+from sc_referee.calculation_checks.contracts import (
+    selected_sidecar_contract,
+    sidecar_adapter_manifest,
+    with_sidecar_lineage,
+)
 from sc_referee.calculation_checks.core import (
     CalculationAdapterManifest,
     CalculationCheckManifest,
@@ -27,6 +32,7 @@ from sc_referee.core.ids import semantic_digest, sha256_digest
 MAX_TABLE_BYTES = 8 * 1024 * 1024
 MAX_TABLE_ROWS = 50_000
 MAX_TABLE_COLUMNS = 64
+EFFECT_SIZE_CHECK_ID = "calculation-check:effect-size-relevance-summary-v1"
 
 _BLOCK = re.compile(
     r"```sc-referee-effect-size-summary-v1\s*\n(?P<body>.*?)\n```",
@@ -129,6 +135,14 @@ class DeclaredEffectSizeSummaryAdapter:
                 "effect_size_summary_contract_valid",
                 str(error),
             )
+        return self.inspect_normalized(context, contract)
+
+    def inspect_normalized(
+        self,
+        context: CalculationContext,
+        contract: _Contract,
+    ) -> CalculationObservation:
+        source_ref = contract.source_ref
         if contract.claim_semantics == "statistical_significance_only":
             return self._not_applicable(context, contract)
         if contract.claim_semantics == "unresolved" or contract.producer_binding == "unresolved":
@@ -285,10 +299,30 @@ class DeclaredEffectSizeSummaryAdapter:
         )
 
 
+class SelectedSidecarEffectSizeSummaryAdapter:
+    def __init__(self) -> None:
+        implementation_digest = sha256_digest(Path(__file__).read_bytes())
+        self.manifest = sidecar_adapter_manifest(
+            family="effect-size-summary",
+            implementation_digest=implementation_digest,
+        )
+        self._evaluator = DeclaredEffectSizeSummaryAdapter()
+
+    def inspect(self, context: CalculationContext) -> CalculationObservation | None:
+        sidecar = selected_sidecar_contract(context, check_id=EFFECT_SIZE_CHECK_ID)
+        if sidecar is None:
+            return None
+        contract = _parse_contract_value(sidecar.value, sidecar.source_ref)
+        return with_sidecar_lineage(
+            self._evaluator.inspect_normalized(context, contract),
+            sidecar,
+        )
+
+
 def effect_size_summary_registry() -> CalculationCheckRegistry:
     adapter = DeclaredEffectSizeSummaryAdapter()
     check = CalculationCheckManifest(
-        check_id="calculation-check:effect-size-relevance-summary-v1",
+        check_id=EFFECT_SIZE_CHECK_ID,
         check_version="1.0.0",
         implementation_digest=sha256_digest(Path(__file__).read_bytes()),
         comparison_relation="declared_significant_family_effect_relevance_conformance",
@@ -308,7 +342,13 @@ def _parse_contract(body: str, source_ref: dict[str, Any]) -> _Contract:
         value = yaml.safe_load(body)
     except yaml.YAMLError as error:
         raise EffectSizeSummaryError("effect-size summary contract is not valid YAML") from error
-    if not isinstance(value, dict) or set(value) != _REQUIRED_KEYS:
+    if not isinstance(value, dict):
+        raise EffectSizeSummaryError("effect-size summary contract must be a mapping")
+    return _parse_contract_value(value, source_ref)
+
+
+def _parse_contract_value(value: dict[str, Any], source_ref: dict[str, Any]) -> _Contract:
+    if set(value) != _REQUIRED_KEYS:
         raise EffectSizeSummaryError("effect-size summary contract keys are missing or extra")
     text_keys = _REQUIRED_KEYS - {"alpha", "effect_threshold"}
     if any(not isinstance(value[key], str) or not value[key].strip() for key in text_keys):

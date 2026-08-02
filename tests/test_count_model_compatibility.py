@@ -89,6 +89,44 @@ def test_raw_counts_with_generic_test_is_disclosed_without_execution_or_finding(
     )
 
 
+def test_selected_sidecar_layout_normalizes_to_same_count_model_check(
+    schema_root: Path, tmp_path: Path
+) -> None:
+    workspace = tmp_path / "sidecar"
+    marker = _workspace(workspace)
+    (workspace / "report.md").write_text("# Bound model\n", encoding="utf-8")
+    (workspace / "audit-bindings.yml").write_text(
+        "sc_referee_calculation_contracts: 1\n"
+        "contracts:\n"
+        "  - check_id: calculation-check:r-count-model-compatibility-v1\n"
+        "    contract:\n"
+        "      source_file: analysis.R\n"
+        "      producer_call: stats::t.test\n"
+        "      response_scale: raw_counts\n"
+        "      required_method_family: count_likelihood\n"
+        "      producer_binding: exact\n",
+        encoding="utf-8",
+    )
+    bundle = run_audit(
+        workspace,
+        tmp_path / "sidecar-audit",
+        schema_root,
+        report="report.md",
+        material_inputs=("audit-bindings.yml", "analysis.R"),
+    )
+    observation = next(
+        item
+        for item in bundle["deterministic_check_observations"]
+        if item["check_manifest"]["check_id"] == "calculation-check:r-count-model-compatibility-v1"
+    )
+    assert not marker.exists()
+    assert observation["adapter_manifest"]["adapter_id"] == (
+        "calculation-adapter:selected-sidecar-r-count-model-compatibility-v1"
+    )
+    assert observation["comparison"]["outcome"] == "nonconformant"
+    assert _operand(observation, "method_scale_compatible") is False
+
+
 def test_negative_binomial_count_model_is_conformant(schema_root: Path, tmp_path: Path) -> None:
     workspace = tmp_path / "count-model"
     _workspace(
