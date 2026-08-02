@@ -109,7 +109,7 @@ def main() -> None:
                 "x-implementation-resource": "parsers/rmarkdown_inventory.py",
             },
             "grammar_or_runtime_identity": [
-                "bounded strict-UTF-8 YAML, prose, and fenced R-chunk inventory v1"
+                "bounded strict-UTF-8 YAML, prose, and fenced R-chunk inventory v2"
             ],
             "implementation_digest": sha256_digest(parser_resource.read_bytes()),
             "language_or_surface": "r_markdown",
@@ -118,7 +118,7 @@ def main() -> None:
                 "Only literal fenced {r} or {R} chunks and literal eval=FALSE/F options are classified.",
             ],
             "parser_id": "parser:rmarkdown-selected-report-inventory",
-            "parser_version": "0.1.0",
+            "parser_version": "0.2.0",
             "provenance": {
                 "actor": {
                     "actor_id": "software:sc-referee-controller",
@@ -134,7 +134,7 @@ def main() -> None:
             "runtime_requirements": ["Python >=3.11", "strict UTF-8 input"],
             "schema_version": SCHEMA_VERSION,
             "supported_versions": [
-                "Strict UTF-8 R Markdown sources using the bounded fenced-R-chunk subset in ADR-0021"
+                "Strict UTF-8 R Markdown sources using the bounded fenced-R-chunk subset in ADR-0021 and ADR-0051"
             ],
             "unsupported_constructs": [
                 "general R syntax and dataflow",
@@ -268,7 +268,7 @@ def main() -> None:
                 ],
             },
             "grammar_or_runtime_identity": [
-                "bounded independently parsed Python-or-R container cells under ADR-0036 with ADR-0037 source-location transport"
+                "bounded independently parsed Python-or-R container cells under ADR-0036 and ADR-0051 with ADR-0037 source-location transport"
             ],
             "implementation_digest": sha256_digest(bridge_resource.read_bytes()),
             "language_or_surface": "container_cell",
@@ -277,7 +277,7 @@ def main() -> None:
                 "Cells are parsed independently; cross-cell state, execution order, runtime behavior, and code-to-output provenance remain unknown.",
             ],
             "parser_id": "parser:container-cell-language-bridge",
-            "parser_version": "0.1.0",
+            "parser_version": "0.2.0",
             "provenance": {
                 "actor": {
                     "actor_id": "software:sc-referee-controller",
@@ -296,11 +296,12 @@ def main() -> None:
             ],
             "schema_version": SCHEMA_VERSION,
             "supported_versions": [
-                "Exact Python or R cells extracted from bounded ADR-0034/ADR-0035 container inventories"
+                "Exact Python or R cells extracted from bounded ADR-0034/ADR-0035/ADR-0051 container inventories"
             ],
             "unsupported_constructs": [
                 "conflicting, absent, or unsupported notebook language declarations",
                 "Quarto cell engines other than Python and R",
+                "R Markdown chunks outside the exact fenced R subset",
                 "more than 200 recognized code cells per container",
                 "cross-cell bindings and runtime state",
                 "kernel magics, output authenticity, rendering, and project execution",
@@ -726,11 +727,11 @@ def main() -> None:
             "domain": "domain_neutral_scientific_analysis",
             "known_gaps": [
                 "The MVMR covariance module is separately pinned as question-only in the scientific-check release manifest and cannot emit a Finding.",
-                "This profile advertises format connectivity only; it does not claim general R Markdown, R, or package support.",
+                "Exact active R chunks may delegate to existing bounded R adapters, but this does not claim general R Markdown, R, cross-chunk state, or package support.",
             ],
             "language": "r_markdown",
             "operation_extraction": "not_started",
-            "operation_scope": ["utf8_rmarkdown_chunk_inventory_v1"],
+            "operation_scope": ["bounded_rmarkdown_source_chunk_inventory_v2"],
             "package": None,
             "parser_refs": [
                 {
@@ -887,7 +888,7 @@ def main() -> None:
         "profile_id",
         {
             "abstention_conditions": [
-                "The parent notebook or Quarto inventory is incomplete, over budget, or cannot reverify the exact cell bytes.",
+                "The parent notebook, Quarto, or R Markdown inventory is incomplete, over budget, or cannot reverify the exact cell bytes.",
                 "A notebook language declaration is absent, unsupported, or conflicting, or a Quarto cell engine is not exactly Python or R.",
                 "A conclusion requires cross-cell state, execution, output provenance, rendering, a Claim, or scientific meaning.",
             ],
@@ -897,12 +898,12 @@ def main() -> None:
             "known_gaps": [
                 "This profile delegates at most 200 recognized cells independently to the existing static Python or R parsers.",
                 "It preserves container cell locations but does not establish cross-cell bindings, execution order, runtime behavior, or code-to-output provenance.",
-                "ADR-0037 permits existing exact static adapters to inspect independently reverified cell bytes. ADR-0038 admits only full-digest containment in the selected source Artifact for the existing founder-orientation question; it adds no general scope, execution, primary-analysis, Claim, detector, or Finding authority.",
+                "ADR-0037 permits existing exact static adapters to inspect independently reverified cell bytes. ADR-0038 and ADR-0051 admit only exact selected-container or selected-analysis-source containment; they add no execution, primary-analysis, Claim, detector, or Finding authority.",
             ],
             "language": "container_cell",
             "operation_extraction": "partial",
             "operation_scope": [
-                "bounded_container_cell_static_language_bridge_v1",
+                "bounded_container_cell_static_language_bridge_v2",
                 "python_bounded_static_operation_inventory_v1",
                 "r_direct_and_namespaced_call_inventory_v1",
             ],
@@ -1075,6 +1076,7 @@ def main() -> None:
                 "docs/implementation/ADR-0036-BOUNDED-CONTAINER-CELL-LANGUAGE-BRIDGE.md",
                 "docs/implementation/ADR-0037-CELL-AWARE-SCIENTIFIC-EVIDENCE-CONTRACT.md",
                 "docs/implementation/ADR-0038-SELECTED-CONTAINER-CELL-SCOPE-JOIN.md",
+                "docs/implementation/ADR-0051-BOUNDED-CONTAINER-SOURCE-CELL-CONNECTIVITY.md",
                 "src/sc_referee/parsers/cell_language_bridge.py",
                 "tests/test_cell_language_bridge.py",
                 "tests/test_cell_scientific_evidence.py",
@@ -1082,7 +1084,7 @@ def main() -> None:
             ],
             "inferred_compatibility": [],
             "known_gaps": [
-                "No Jupyter, Quarto, Python, R, kernel, package, or cell-order version envelope has independent qualification evidence."
+                "No Jupyter, Quarto, R Markdown, Python, R, kernel, package, or cell-order version envelope has independent qualification evidence."
             ],
             "profile_ref": "semantic-profile:container-cell-static-language-bridge-v1",
             "tested_versions": [],

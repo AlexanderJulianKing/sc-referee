@@ -1448,8 +1448,9 @@ def _inspect_supported_repository_sources(
         elif suffix in {".md", ".markdown"}:
             parser_results.append(inspect_markdown(materialized, run_id, source_path=relative_path))
         elif suffix == ".rmd":
-            parser_results.append(
-                inspect_rmarkdown(materialized, run_id, source_path=relative_path)
+            parent = inspect_rmarkdown(materialized, run_id, source_path=relative_path)
+            parser_results.extend(
+                [parent, *inspect_embedded_cell_sources(materialized, parent, run_id)]
             )
     return parser_results
 

@@ -1001,6 +1001,18 @@ Proceed in this order:
     boundary after a clean `.[dev]` install exposed a mypy failure when that extra was absent. The
     optional dependency still fails locally to unsupported, the v2 manifest remains unchanged,
     and `test_optional_recompute_dependency_failure_is_localized` covers the no-extra path.
+11. ✅ Experiment 0042 and accepted ADR-0051 complete L08 without adding cross-cell execution
+    semantics. Exact active-or-unspecified Jupyter, Quarto, and R Markdown cells can now reach an
+    existing question-only static adapter through one verified child-to-parent containment edge
+    and one scientist-selected analysis-source edge. Explicitly disabled and unselected cells have
+    no path; method fragments split across cells remain unsupported regardless of cell order or
+    saved execution counts. R Markdown v0.2 adds collision-free chunk identities, exact code
+    digests, literal evaluation declarations, and dual-R static bridging while preserving the
+    existing selected-report MVMR lifecycle. Schema v0.18.0, the 15-entry capability count, all
+    Finding ceilings, and the no-project-execution boundary are unchanged. The full checkpoint
+    passes 1,357 tests, Ruff, formatting, strict typing for 108 production and 28 evaluation files,
+    starter/schema validation, the 113-case regression ledger with all 26 module baselines, and
+    the complete clean-wheel handoff verifier.
 
 Further Python lineage profiles are justified only when they unblock a named detector premise or
 real validation case. Branches, DAGs, dynamic runtime semantics, and over-budget calculations remain
@@ -1016,8 +1028,8 @@ the draft pull request as a published or detector-qualified release.
 
 ## Immediate next task
 
-Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. L01 through L07 are
-complete; start with L08 notebook, Quarto, and R Markdown analysis connectivity before broadening
-scientific coverage.
+Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. L01 through L08 are
+complete; start with L09 calculation-check generalization before L10 large-artifact support and
+broader scientific coverage.
 Every subsequent feature must retain the mandatory positive, corrected, hard-negative, ambiguous,
 unsupported, isolation, mutation, no-execution, and replay controls described there.

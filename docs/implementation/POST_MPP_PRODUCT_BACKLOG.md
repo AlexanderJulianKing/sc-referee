@@ -139,7 +139,7 @@ themselves, qualify a detector or support a public generality claim.
   - Limitation: static calls do not establish runtime values, package behavior, or primary-analysis
     status.
 
-- [ ] **L08 — Notebook, Quarto, and R Markdown analysis connectivity.** Extend the existing inert
+- [x] **L08 — Notebook, Quarto, and R Markdown analysis connectivity.** Extend the existing inert
   cell parsers with bounded same-document scope and dataflow joins needed by L05 and L07.
   - Acceptance: selected active cells can contribute supported observations and exact citations;
     disabled, unselected, cross-cell-ambiguous, or state-dependent paths abstain.

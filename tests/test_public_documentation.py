@@ -95,8 +95,8 @@ def test_task_board_freezes_post_mpp_dependency_and_regression_policy(
     )
 
     assert "POST_MPP_PRODUCT_BACKLOG.md" in task_board
-    assert "L01 through L07 are" in task_board
-    assert "start with L08 notebook, Quarto, and R Markdown" in task_board
+    assert "L01 through L08 are" in task_board
+    assert "start with L09 calculation-check generalization" in task_board
     scientific_registry = default_scientific_check_registry()
     calculation_registry = default_calculation_check_registry()
     capability_profiles = json.loads(

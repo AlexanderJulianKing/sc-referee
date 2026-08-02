@@ -9,6 +9,12 @@ from pathlib import PurePosixPath
 from typing import Any
 
 from sc_referee.core.ids import canonical_json, semantic_digest
+from sc_referee.parsers.cell_language_bridge import (
+    SUPPORTED_CELL_LANGUAGE_BRIDGE_IDENTITIES,
+)
+from sc_referee.parsers.jupyter_inventory import JUPYTER_PARSER_ID
+from sc_referee.parsers.quarto_inventory import QUARTO_PARSER_ID
+from sc_referee.parsers.rmarkdown_inventory import RMARKDOWN_PARSER_ID
 from sc_referee.scientific_checks.core import (
     FrozenBaseRecord,
     InspectionDocument,
@@ -20,6 +26,7 @@ from sc_referee.scientific_checks.core import (
 
 PUBLICATION_PROFILE = "exact-publication-surface-selection"
 CELL_PROFILE = "verified-active-cell-containment"
+CELL_SOURCE_PROFILE = "verified-active-cell-in-selected-analysis-source"
 STATIC_WRITER_SOURCE_PROFILE = "unique-reachable-static-writer-source"
 STATIC_WRITER_OUTPUT_PROFILE = "mutual-static-writer-output"
 FULL_DIGEST_PROFILE = "full-digest-snapshot-identity"
@@ -31,6 +38,7 @@ REVIEW_SELECTION_PROFILES = {
     "material_input": "selected-material-input-for-review",
     "analysis_output": "selected-analysis-output-for-review",
 }
+_CONTAINER_PARSER_IDS = frozenset({JUPYTER_PARSER_ID, QUARTO_PARSER_ID, RMARKDOWN_PARSER_ID})
 
 _SELECTION_LIMITATION = (
     "Review selection does not establish execution, lineage, scientific intent, materiality, "
@@ -146,7 +154,32 @@ def selected_container_path(
         or path[0].edge.target_ref != selected_artifact_ref
         or path[1].edge.source_ref != selected_artifact_ref
     ):
-        return ()
+        source_path = graph.unique_path(
+            document.parser_result_ref,
+            selected_surface_ref,
+            profiles=(
+                CELL_SOURCE_PROFILE,
+                REVIEW_SELECTION_PROFILES["analysis_source"],
+            ),
+        )
+        if (
+            len(source_path) != 2
+            or source_path[0].edge.target_ref != document.file_ref
+            or source_path[1].edge.source_ref != document.file_ref
+        ):
+            return ()
+        return (
+            ScopeJoinEdge(
+                source_ref=document.parser_result_ref,
+                relation="contained_in_selected_analysis_source",
+                target_ref=document.file_ref,
+            ),
+            ScopeJoinEdge(
+                source_ref=document.file_ref,
+                relation="selected_analysis_source_for_review",
+                target_ref=selected_surface_ref,
+            ),
+        )
     return (
         ScopeJoinEdge(
             source_ref=document.file_ref,
@@ -253,10 +286,10 @@ def _cell_proofs(
     records: dict[RecordRef, dict[str, Any]],
 ) -> list[ScopeJoinProof]:
     artifact = records.get(selected_artifact_ref)
-    identity_ref = _full_digest_identity_ref(artifact, selected_artifact_ref, records)
-    if artifact is None or identity_ref is None:
-        return []
-    digest = _full_digest(identity_ref, records)
+    artifact_identity_ref = _full_digest_identity_ref(artifact, selected_artifact_ref, records)
+    artifact_digest = (
+        _full_digest(artifact_identity_ref, records) if artifact_identity_ref is not None else None
+    )
     proofs: list[ScopeJoinProof] = []
     for document in documents:
         location = document.source_location
@@ -265,9 +298,6 @@ def _cell_proofs(
             or location.source_kind not in {"notebook_cell", "document_chunk"}
             or document.parser_result_ref is None
             or document.parser_result_payload is None
-            or artifact.get("kind") != "report"
-            or artifact.get("path") != document.path
-            or location.content_digest != digest
         ):
             continue
         try:
@@ -275,30 +305,104 @@ def _cell_proofs(
         except (UnicodeDecodeError, json.JSONDecodeError):
             continue
         virtual = parser.get("extensions", {}).get("x-virtual-source")
-        if not isinstance(virtual, dict) or virtual.get("executes_project_code") is not False:
-            continue
-        execution = virtual.get("execution_declaration")
+        bridge_identity = (
+            (virtual.get("profile"), virtual.get("bridge_version"))
+            if isinstance(virtual, dict)
+            else (None, None)
+        )
         if (
-            location.source_kind == "document_chunk"
-            and isinstance(execution, dict)
-            and execution.get("kind") == "quarto_eval_option"
-            and execution.get("state") == "disabled_declared"
+            not isinstance(virtual, dict)
+            or bridge_identity not in SUPPORTED_CELL_LANGUAGE_BRIDGE_IDENTITIES
+            or virtual.get("executes_project_code") is not False
+            or parser.get("state") != "parsed"
+            or parser.get("syntax_issues")
+            or virtual.get("source_digest") != document.content_digest
+            or not isinstance(virtual.get("source_ref"), dict)
+            or canonical_json(virtual["source_ref"]).encode("utf-8") != location.canonical_payload
         ):
             continue
-        proofs.append(
-            _scope_proof(
-                edge=ScopeJoinEdge(
-                    document.parser_result_ref,
-                    "contained_in_selected_source_artifact",
-                    selected_artifact_ref,
-                ),
-                profile=CELL_PROFILE,
-                evidence_refs=(document.file_ref, document.parser_result_ref, identity_ref),
-                records=records,
-                snapshot_digest=snapshot_digest,
-                authority_limitations=(_STATIC_LIMITATION,),
+        parent_id = virtual.get("container_parser_result_id")
+        if not isinstance(parent_id, str):
+            continue
+        parent_ref = RecordRef("parser_result", parent_id)
+        parent = records.get(parent_ref)
+        if not isinstance(parent, dict):
+            continue
+        parent_summary = parent.get("extensions", {}).get("x-cell-language-bridge")
+        parent_source = parent.get("source_ref")
+        if (
+            not isinstance(parent_summary, dict)
+            or not isinstance(parent_source, dict)
+            or parent.get("parser_id") not in _CONTAINER_PARSER_IDS
+            or parent.get("state") != "parsed"
+            or parent.get("syntax_issues")
+            or (parent_summary.get("profile"), parent_summary.get("bridge_version"))
+            != bridge_identity
+            or parent_summary.get("state") != "bridged"
+            or parent_summary.get("executes_project_code") is not False
+            or parent_source.get("path") != document.path
+            or parent_source.get("content_digest") != location.content_digest
+        ):
+            continue
+        execution = virtual.get("execution_declaration")
+        if isinstance(execution, dict) and execution.get("state") in {
+            "disabled",
+            "disabled_declared",
+        }:
+            continue
+        if (
+            artifact is not None
+            and artifact_identity_ref is not None
+            and artifact.get("kind") == "report"
+            and artifact.get("path") == document.path
+            and location.content_digest == artifact_digest
+        ):
+            proofs.append(
+                _scope_proof(
+                    edge=ScopeJoinEdge(
+                        document.parser_result_ref,
+                        "contained_in_selected_source_artifact",
+                        selected_artifact_ref,
+                    ),
+                    profile=CELL_PROFILE,
+                    evidence_refs=(
+                        document.file_ref,
+                        parent_ref,
+                        document.parser_result_ref,
+                        artifact_identity_ref,
+                    ),
+                    records=records,
+                    snapshot_digest=snapshot_digest,
+                    authority_limitations=(_STATIC_LIMITATION,),
+                )
             )
-        )
+        source_record = records.get(document.file_ref)
+        source_identity_ref = _full_digest_identity_ref(source_record, document.file_ref, records)
+        if (
+            source_record is not None
+            and source_identity_ref is not None
+            and source_record.get("path") == document.path
+            and location.content_digest == _full_digest(source_identity_ref, records)
+        ):
+            proofs.append(
+                _scope_proof(
+                    edge=ScopeJoinEdge(
+                        document.parser_result_ref,
+                        "contained_in_analysis_source_file",
+                        document.file_ref,
+                    ),
+                    profile=CELL_SOURCE_PROFILE,
+                    evidence_refs=(
+                        document.file_ref,
+                        parent_ref,
+                        document.parser_result_ref,
+                        source_identity_ref,
+                    ),
+                    records=records,
+                    snapshot_digest=snapshot_digest,
+                    authority_limitations=(_STATIC_LIMITATION,),
+                )
+            )
     return proofs
 
 

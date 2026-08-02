@@ -15,6 +15,7 @@ from sc_referee.parsers.r_dual import inspect_r_source
 from sc_referee.scientific_checks import (
     FrozenBaseRecord,
     FrozenInspectionContext,
+    FrozenSourceLocation,
     InspectionDocument,
     RecordRef,
     ScientificCheckRegistry,
@@ -24,6 +25,7 @@ from sc_referee.scientific_checks import (
 )
 from sc_referee.scientific_checks.profiles import scientific_check_release_registry
 from sc_referee.scientific_checks.scope_joins import (
+    CELL_SOURCE_PROFILE,
     PUBLICATION_PROFILE,
     REVIEW_SELECTION_PROFILES,
 )
@@ -266,6 +268,78 @@ def _context(
     )
 
 
+def _selected_container_cell_context(
+    payload: bytes,
+    language: str,
+    *,
+    line_offset: int = 9,
+    cell_identity: str = "method",
+    execution_state: str = "unspecified",
+    execution_value: int | None = None,
+) -> FrozenInspectionContext:
+    context = _context(payload, language, scoped=False)
+    document = context.documents[0]
+    assert document.parser_result_payload is not None
+    assert document.parser_result_ref is not None
+    parser_result = json.loads(document.parser_result_payload)
+    container_path = "analysis.ipynb" if language == "python" else "analysis.Rmd"
+    source_kind = "notebook_cell" if language == "python" else "document_chunk"
+    source_ref: dict[str, Any] = {
+        "source_kind": source_kind,
+        "locator": f"{container_path}#cell={cell_identity}:code:10-20",
+        "path": container_path,
+        "content_digest": sha256_digest(b"container bytes"),
+        "start_line": 10,
+        "end_line": 20,
+    }
+    if language == "python":
+        source_ref.update({"cell_id": cell_identity, "selector": "id"})
+        execution_kind = "saved_execution_count"
+        line_offset = 0
+    else:
+        source_ref["chunk_label"] = cell_identity
+        execution_kind = "rmarkdown_eval_option"
+    parser_result["source_ref"] = source_ref
+    parser_result.setdefault("extensions", {})["x-virtual-source"] = {
+        "profile": "bounded-container-cell-static-language-bridge-v2",
+        "bridge_version": "0.2.0",
+        "container_parser_result_id": "parser-result:container",
+        "language": language,
+        "source_digest": sha256_digest(payload),
+        "source_ref": source_ref,
+        "execution_declaration": {
+            "kind": execution_kind,
+            "state": execution_state,
+            **({"value": execution_value} if execution_value is not None else {}),
+            "establishes_execution": False,
+        },
+        "executes_project_code": False,
+    }
+    parser_payload = canonical_json(parser_result).encode()
+    source_location = FrozenSourceLocation.from_source_ref(source_ref)
+    virtual_document = replace(
+        document,
+        path=container_path,
+        parser_result_payload=parser_payload,
+        parser_result_digest=sha256_digest(parser_payload),
+        source_location=source_location,
+        line_offset=line_offset,
+    )
+    proofs = (
+        _proof(document.parser_result_ref, document.file_ref, CELL_SOURCE_PROFILE),
+        _proof(
+            document.file_ref,
+            context.selected_surface_ref,
+            REVIEW_SELECTION_PROFILES["analysis_source"],
+        ),
+    )
+    graph = StaticScopeJoinGraph(
+        snapshot_digest=SNAPSHOT_DIGEST,
+        proofs=tuple(sorted(proofs, key=lambda item: canonical_json(item.to_dict()))),
+    )
+    return replace(context, documents=(virtual_document,), scope_join_graph=graph)
+
+
 @pytest.mark.parametrize(
     ("payload", "expected"),
     [
@@ -323,6 +397,76 @@ def test_ld_calls_method_arguments_and_formulas_normalize_whitening(
     assert observation.applicability == "applicable"
     assert observation.observed_operand is not None
     assert observation.observed_operand.value == WHITENED
+
+
+def test_selected_rmarkdown_cell_contributes_scoped_observation_and_exact_citation() -> None:
+    observation = _adapter(LD_CHECK, "r").inspect(
+        _selected_container_cell_context(R_LD_DIRECT, "r")
+    )
+
+    assert observation.applicability == "applicable"
+    assert observation.observed_operand is not None
+    assert observation.observed_operand.value == WHITENED
+    assert [edge.relation for edge in observation.scope_join_path] == [
+        "contained_in_selected_analysis_source",
+        "selected_analysis_source_for_review",
+    ]
+    assert observation.evidence_spans[0].path == "analysis.Rmd"
+    assert observation.evidence_spans[0].content_digest == sha256_digest(b"container bytes")
+    assert observation.evidence_spans[0].start_line >= 10
+
+
+def test_cross_cell_hidden_state_and_saved_execution_order_do_not_create_operand() -> None:
+    first = _selected_container_cell_context(
+        b"from sklearn.linear_model import LogisticRegression\n"
+        b"classifier = LogisticRegression().fit(features, states)\n"
+        b"probabilities = classifier.predict_proba(features)\n",
+        "python",
+        cell_identity="later-saved-count",
+        execution_state="literal",
+        execution_value=20,
+    )
+    second = _selected_container_cell_context(
+        b"copy_states = [0, 1, 2]\nsegment_copy_dosage = probabilities @ copy_states\n",
+        "python",
+        cell_identity="earlier-saved-count",
+        execution_state="literal",
+        execution_value=3,
+        line_offset=30,
+    )
+    assert first.scope_join_graph is not None
+    assert second.scope_join_graph is not None
+    proofs_by_digest = {
+        semantic_digest(proof.to_dict()): proof
+        for proof in (
+            *first.scope_join_graph.proofs,
+            *second.scope_join_graph.proofs,
+        )
+    }
+    graph = StaticScopeJoinGraph(
+        snapshot_digest=SNAPSHOT_DIGEST,
+        proofs=tuple(
+            sorted(proofs_by_digest.values(), key=lambda item: canonical_json(item.to_dict()))
+        ),
+    )
+    forward = replace(
+        first,
+        documents=(first.documents[0], second.documents[0]),
+        scope_join_graph=graph,
+    )
+    reversed_cells = replace(
+        first,
+        documents=(second.documents[0], first.documents[0]),
+        scope_join_graph=graph,
+    )
+
+    forward_observation = _adapter(COPY_CHECK, "python").inspect(forward)
+    reversed_observation = _adapter(COPY_CHECK, "python").inspect(reversed_cells)
+
+    assert forward_observation.applicability == "unsupported"
+    assert forward_observation.observed_operand is None
+    assert reversed_observation.applicability == "unsupported"
+    assert reversed_observation.observed_operand is None
 
 
 def test_shadowing_forces_local_unsupported_state() -> None:

@@ -588,7 +588,7 @@ def _mvmr_covariance_module() -> ScientificCheckModule:
             zero, provided, bindings
         ),
         parser_id="parser:rmarkdown-selected-report-inventory",
-        parser_version="0.1.0",
+        parser_version="0.2.0",
         source_language="r_markdown",
         evidence_plane="static_source",
         semantic_roles=roles,

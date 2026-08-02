@@ -70,8 +70,8 @@ def test_python_notebook_cells_reuse_static_parser_with_exact_cell_refs(
     assert len(children) == 2
     assert len({item["parser_result_id"] for item in children}) == 2
     assert parent["extensions"]["x-cell-language-bridge"] == {
-        "profile": "bounded-container-cell-static-language-bridge-v1",
-        "bridge_version": "0.1.0",
+        "profile": "bounded-container-cell-static-language-bridge-v2",
+        "bridge_version": "0.2.0",
         "state": "bridged",
         "eligible_cell_count": 2,
         "emitted_parser_result_count": 2,
