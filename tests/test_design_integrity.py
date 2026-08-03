@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import gzip
 from pathlib import Path
+
+import pytest
 
 from sc_referee.calculation_checks.core import CalculationCheckRegistry
 from sc_referee.calculation_checks.design_integrity import design_integrity_registry
@@ -107,8 +110,9 @@ def test_exact_design_incompatibilities_are_reported_without_finding(
     )
 
 
+@pytest.mark.parametrize("compressed", [False, True], ids=("identity", "gzip"))
 def test_selected_sidecar_layout_normalizes_to_same_design_metrics(
-    schema_root: Path, tmp_path: Path
+    schema_root: Path, tmp_path: Path, compressed: bool
 ) -> None:
     workspace = tmp_path / "sidecar"
     _workspace(workspace)
@@ -135,12 +139,23 @@ def test_selected_sidecar_layout_normalizes_to_same_design_metrics(
         "      model_binding: exact\n",
         encoding="utf-8",
     )
+    metadata_path = "metadata.csv"
+    if compressed:
+        source = workspace / metadata_path
+        (workspace / f"{metadata_path}.gz").write_bytes(gzip.compress(source.read_bytes(), mtime=0))
+        source.unlink()
+        binding = workspace / "design-bindings.yaml"
+        binding.write_text(
+            binding.read_text(encoding="utf-8").replace(metadata_path, f"{metadata_path}.gz"),
+            encoding="utf-8",
+        )
+        metadata_path = f"{metadata_path}.gz"
     bundle = run_audit(
         workspace,
         tmp_path / "sidecar-audit",
         schema_root,
         report="report.md",
-        material_inputs=("design-bindings.yaml", "metadata.csv"),
+        material_inputs=("design-bindings.yaml", metadata_path),
     )
     observation = next(
         item

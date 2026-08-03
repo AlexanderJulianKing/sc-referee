@@ -32,8 +32,10 @@ from sc_referee.calculation_checks.core import (
     NamedOperand,
     ObservationReceipt,
 )
+from sc_referee.calculation_checks.delimited import bounded_table_text
 from sc_referee.calculation_checks.material_context import MaterialCalculationContext
 from sc_referee.core.ids import semantic_digest, sha256_digest
+from sc_referee.delimited_io import classify_delimited_path
 
 MAX_SENSITIVITY_TABLE_BYTES = 8 * 1024 * 1024
 MAX_SENSITIVITY_TABLE_ROWS = 50_000
@@ -575,7 +577,7 @@ def _parse_contract_value(value: dict[str, Any], source_ref: dict[str, Any]) -> 
         path = PurePosixPath(str(value[key]))
         if path.is_absolute() or ".." in path.parts:
             raise SingleCellSensitivityError("sensitivity input paths must be bounded and relative")
-    if PurePosixPath(str(value["reported_table"])).suffix.casefold() not in {".csv", ".tsv"}:
+    if classify_delimited_path(str(value["reported_table"])) is None:
         raise SingleCellSensitivityError("reported sensitivity table must be CSV or TSV")
     if PurePosixPath(str(value["count_matrix"])).suffix.casefold() != ".h5ad":
         raise SingleCellSensitivityError("sensitivity count matrix must be H5AD")
@@ -617,15 +619,15 @@ def _parse_contract_value(value: dict[str, Any], source_ref: dict[str, Any]) -> 
 
 
 def _parse_reported_family(table: FrozenCalculationInput, contract: _Contract) -> _ReportedFamily:
-    if len(table.content) > MAX_SENSITIVITY_TABLE_BYTES:
-        raise SingleCellSensitivityError("declared reported table exceeds the byte ceiling")
-    try:
-        text = table.content.decode("utf-8", errors="strict")
-    except UnicodeDecodeError as error:
-        raise SingleCellSensitivityError("declared reported table is not strict UTF-8") from error
+    text, delimiter = bounded_table_text(
+        table,
+        byte_ceiling=MAX_SENSITIVITY_TABLE_BYTES,
+        error_type=SingleCellSensitivityError,
+        label="declared reported table",
+    )
     reader = csv.DictReader(
         io.StringIO(text, newline=""),
-        delimiter="\t" if table.path.casefold().endswith(".tsv") else ",",
+        delimiter=delimiter,
     )
     header = reader.fieldnames
     required = {

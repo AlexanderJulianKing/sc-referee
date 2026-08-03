@@ -5,7 +5,7 @@ import io
 import math
 import re
 from dataclasses import dataclass
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Any
 
 import yaml
@@ -26,8 +26,10 @@ from sc_referee.calculation_checks.core import (
     NamedOperand,
     ObservationReceipt,
 )
+from sc_referee.calculation_checks.delimited import bounded_table_text
 from sc_referee.calculation_checks.material_context import MaterialCalculationContext
 from sc_referee.core.ids import semantic_digest, sha256_digest
+from sc_referee.delimited_io import classify_delimited_path
 
 MAX_TABLE_BYTES = 8 * 1024 * 1024
 MAX_TABLE_ROWS = 250_000
@@ -416,12 +418,8 @@ def _parse_contract_value(value: dict[str, Any], source_ref: dict[str, Any]) -> 
     if any(not isinstance(value[key], str) or not value[key].strip() for key in text_keys):
         raise HiCLoopStrengthError("Hi-C text values must be nonempty strings")
     for key in ("contacts_table", "bins_table", "results_table"):
-        path = PurePosixPath(str(value[key]))
-        if (
-            path.is_absolute()
-            or ".." in path.parts
-            or path.suffix.casefold() not in {".csv", ".tsv"}
-        ):
+        path = str(value[key])
+        if path.startswith("/") or ".." in path.split("/") or classify_delimited_path(path) is None:
             raise HiCLoopStrengthError("Hi-C input paths must be bounded CSV or TSV paths")
     replicates = value["replicate_columns"]
     if (
@@ -638,15 +636,15 @@ def _reported_delta(table: FrozenCalculationInput, contract: _Contract) -> float
 
 
 def _rows(table: FrozenCalculationInput, required: set[str]) -> list[dict[str, str]]:
-    if len(table.content) > MAX_TABLE_BYTES:
-        raise HiCLoopStrengthError("declared Hi-C table exceeds the byte ceiling")
-    try:
-        text = table.content.decode("utf-8", errors="strict")
-    except UnicodeDecodeError as error:
-        raise HiCLoopStrengthError("declared Hi-C table is not strict UTF-8") from error
+    text, delimiter = bounded_table_text(
+        table,
+        byte_ceiling=MAX_TABLE_BYTES,
+        error_type=HiCLoopStrengthError,
+        label="declared Hi-C table",
+    )
     reader = csv.DictReader(
         io.StringIO(text, newline=""),
-        delimiter="\t" if table.path.casefold().endswith(".tsv") else ",",
+        delimiter=delimiter,
     )
     header = reader.fieldnames
     if (

@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from sc_referee.controller import replay, run_audit
+from sc_referee.delimited_io import read_bounded_delimited_content
 from sc_referee.records.schema_registry import LocalSchemaRegistry
 from sc_referee.snapshot.repository import AssetIdentityPolicy, capture_repository
 from sc_referee.tabular_inventory import (
@@ -249,6 +250,32 @@ def test_compressed_header_reader_propagates_cancellation_between_chunks(tmp_pat
             read_checkpoint=checkpoint,
         )
     assert calls == 3
+
+
+def test_compressed_calculation_reader_propagates_cancellation_between_chunks() -> None:
+    payload = gzip.compress(b"name,value\n" + b"x" * 200_000, mtime=0)
+    calls = 0
+
+    class _Cancelled(RuntimeError):
+        pass
+
+    def checkpoint() -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise _Cancelled("stop complete compressed read")
+
+    with pytest.raises(_Cancelled, match="stop complete compressed read"):
+        read_bounded_delimited_content(
+            payload,
+            "results.csv.gz",
+            raw_byte_ceiling=1_000_000,
+            content_byte_ceiling=1_000_000,
+            logical_read_byte_ceiling=1_000_001,
+            chunk_byte_ceiling=64 * 1024,
+            checkpoint=checkpoint,
+        )
+    assert calls == 2
 
 
 def test_compressed_header_receipt_is_locked_and_replayed_without_project_execution(

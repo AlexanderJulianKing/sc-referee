@@ -954,12 +954,18 @@ def run_audit(
                     else {}
                 ),
             }
-            calculation_context = build_calculation_context(
+            calculation_context_build = build_calculation_context(
                 snapshot=snapshot,
                 scientific_context=scientific_context,
                 artifacts=all_artifacts,
+                read_checkpoint=large_artifact_read_checkpoint,
             )
-            if calculation_context is not None:
+            if calculation_context_build is not None:
+                calculation_context = calculation_context_build.context
+                if calculation_context_build.read_receipts:
+                    snapshot.snapshot_record["extensions"][
+                        "x-delimited-calculation-read-receipts"
+                    ] = list(calculation_context_build.read_receipts)
                 calculation_evaluation = active_calculation_checks.evaluate(calculation_context)
                 calculation_compilation = compile_calculation_records(
                     calculation_evaluation,

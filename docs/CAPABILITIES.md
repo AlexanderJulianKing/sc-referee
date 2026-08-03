@@ -91,10 +91,14 @@ records the measured reads in the immutable snapshot. It never densifies sparse 
 `raw`, floating matrices, files outside the exact material-copy budget, and biological meaning
 remain unsupported.
 
-Fully identified `.csv.gz` and `.tsv.gz` files receive only a bounded first-logical-record header
-inventory: at most 64 KiB per decompressed read and a 1 MiB header plus one sentinel byte. The
-gzip body is not decompressed or validated, so row values and full compressed calculation inputs
-remain unsupported.
+Fully identified `.csv.gz` and `.tsv.gz` files receive a bounded first-logical-record header
+inventory: at most 64 KiB per decompressed read and a 1 MiB header plus one sentinel byte. If an
+existing calculation contract selects the table, the calculation layer separately validates the
+complete gzip stream and admits at most 8 MiB of decoded content per input and 64 MiB of aggregate
+logical reads. Its locked receipt preserves both the physical gzip digest and a separate decoded
+content digest. The seven table-consuming calculation families accept this view; the R
+response/method check has no table input. These format mechanics do not establish column meaning,
+producer lineage, method suitability, or support for a larger table.
 
 ## How to read coverage
 

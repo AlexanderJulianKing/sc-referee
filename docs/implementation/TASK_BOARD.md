@@ -1043,7 +1043,20 @@ Proceed in this order:
     authority, and Finding ceilings remain unchanged. The full checkpoint passes 1,379 tests,
     Ruff, formatting, strict typing for 110 production and 28 evaluation files, starter/schema
     validation, the 121-case regression ledger with all 26 module baselines, and the complete
-    clean-wheel handoff verifier. Full compressed-table calculations remain the next L10 tranche.
+    clean-wheel handoff verifier. Full compressed-table calculations were the next L10 tranche and
+    are completed immediately below under ADR-0055.
+15. ✅ Experiment 0046 and accepted ADR-0055 complete the third L10 tranche. Exact `.csv.gz` and
+    `.tsv.gz` snapshot bytes can now feed all seven table-consuming L09 families through one shared
+    complete decoder with 64 KiB chunks, an 8 MiB per-input decoded-content ceiling plus one
+    sentinel byte, and a 64 MiB aggregate logical-read ceiling. Locked receipts preserve physical
+    and decoded identities plus measured reads and termination state. Cross-family identity/gzip
+    equivalence, malformed gzip, compression-bomb, non-UTF-8, aggregate-budget, deduplication,
+    cancellation, mutation, replay, no-execution, and all earlier regression controls pass. Schema
+    v0.18.0 and every Disclosure-only/Finding ceiling remain unchanged. The full checkpoint passes
+    1,391 tests, Ruff, formatting, strict typing for 111 production and 28 evaluation files,
+    starter/schema validation, the 121-case regression ledger with all 26 module baselines, and the
+    complete clean-wheel handoff verifier. Parquet/Arrow, Zarr, and larger physical files remain
+    unsupported pending concrete corpus demand.
 
 Further Python lineage profiles are justified only when they unblock a named detector premise or
 real validation case. Branches, DAGs, dynamic runtime semantics, and over-budget calculations remain
@@ -1060,8 +1073,9 @@ the draft pull request as a published or detector-qualified release.
 ## Immediate next task
 
 Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. L01 through L09 are
-complete; continue L10 by feeding fully and measurably decompressed gzip tables into the existing
-L09 calculation adapters before considering optional Parquet/Arrow, Zarr, or large physical-file
-adapters.
+complete and three evidence-backed L10 tranches now cover bounded sparse H5AD plus compressed
+delimited headers and calculations. Before adding Parquet/Arrow, Zarr, or larger physical-file
+adapters, identify a concrete retained-corpus need and its exact calculation consumer; otherwise
+advance to L11's recurrence-driven scientific-check loop rather than adding speculative formats.
 Every subsequent feature must retain the mandatory positive, corrected, hard-negative, ambiguous,
 unsupported, isolation, mutation, no-execution, and replay controls described there.

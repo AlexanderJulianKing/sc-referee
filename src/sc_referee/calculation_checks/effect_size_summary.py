@@ -5,7 +5,7 @@ import io
 import math
 import re
 from dataclasses import dataclass
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Any
 
 import yaml
@@ -26,8 +26,10 @@ from sc_referee.calculation_checks.core import (
     NamedOperand,
     ObservationReceipt,
 )
+from sc_referee.calculation_checks.delimited import bounded_table_text
 from sc_referee.calculation_checks.material_context import MaterialCalculationContext
 from sc_referee.core.ids import semantic_digest, sha256_digest
+from sc_referee.delimited_io import classify_delimited_path
 
 MAX_TABLE_BYTES = 8 * 1024 * 1024
 MAX_TABLE_ROWS = 50_000
@@ -353,8 +355,8 @@ def _parse_contract_value(value: dict[str, Any], source_ref: dict[str, Any]) -> 
     text_keys = _REQUIRED_KEYS - {"alpha", "effect_threshold"}
     if any(not isinstance(value[key], str) or not value[key].strip() for key in text_keys):
         raise EffectSizeSummaryError("effect-size summary text values must be nonempty strings")
-    path = PurePosixPath(str(value["reported_table"]))
-    if path.is_absolute() or ".." in path.parts or path.suffix.casefold() not in {".csv", ".tsv"}:
+    path = str(value["reported_table"])
+    if path.startswith("/") or ".." in path.split("/") or classify_delimited_path(path) is None:
         raise EffectSizeSummaryError("reported table path must be a bounded CSV or TSV path")
     if value["effect_scale"] != "log2_fold_change":
         raise EffectSizeSummaryError("effect scale is outside the closed initial vocabulary")
@@ -389,15 +391,15 @@ def _parse_contract_value(value: dict[str, Any], source_ref: dict[str, Any]) -> 
 
 
 def _summarize(table: FrozenCalculationInput, contract: _Contract) -> _Summary:
-    if len(table.content) > MAX_TABLE_BYTES:
-        raise EffectSizeSummaryError("declared result table exceeds the byte ceiling")
-    try:
-        text = table.content.decode("utf-8", errors="strict")
-    except UnicodeDecodeError as error:
-        raise EffectSizeSummaryError("declared result table is not strict UTF-8") from error
+    text, delimiter = bounded_table_text(
+        table,
+        byte_ceiling=MAX_TABLE_BYTES,
+        error_type=EffectSizeSummaryError,
+        label="declared result table",
+    )
     reader = csv.DictReader(
         io.StringIO(text, newline=""),
-        delimiter="\t" if table.path.casefold().endswith(".tsv") else ",",
+        delimiter=delimiter,
     )
     required = {
         contract.feature_id_column,

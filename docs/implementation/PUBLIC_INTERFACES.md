@@ -450,6 +450,27 @@ report and sidecar observations fail closed. Sidecar declarations do not establi
 truth, scientific adequacy, or producer lineage. Every v10 calculation remains Disclosure-only and
 Finding-ineligible under schema v0.18.0.
 
+Accepted ADR-0055 and calculation registry profile v11 preserve those exact contracts and add a
+bounded decoded-input view for exact `.csv.gz` and `.tsv.gz` paths. This is a storage-format
+extension only: normalized scientific operands, family evaluators, comparison relations, and
+Disclosure-only ceilings remain unchanged.
+
+When complete gzip calculation input is attempted, the repository snapshot extension
+`x-delimited-calculation-read-receipts` contains one deterministic object per exact path and
+physical digest with:
+
+- physical `content_digest` and separate `logical_content_digest`;
+- `status` (`inspected` or `unsupported`) and a closed `termination_reason`;
+- measured raw bytes, logical bytes, and decompression chunks;
+- raw, decoded-content, logical-read, chunk, and aggregate ceilings; and
+- aggregate logical bytes after that read.
+
+The current limits are 64 KiB per chunk, 8 MiB decoded content per input plus one sentinel byte,
+and 64 MiB of aggregate logical reads. The controller checks cancellation and its pre-lock deadline
+before physical access and between chunks. A malformed or over-budget input is excluded from
+calculation authority, so its adapter can only abstain or return unsupported. Replay consumes the
+locked result and does not reopen or execute the project.
+
 ## Bounded H5AD read receipts
 
 Accepted ADR-0053 extends the existing exact selected-H5AD structural inventory from dense integer

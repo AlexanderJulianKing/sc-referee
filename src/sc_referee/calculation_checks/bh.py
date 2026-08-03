@@ -5,7 +5,7 @@ import io
 import re
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation, localcontext
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Any, Literal
 
 from sc_referee.calculation_checks.contracts import (
@@ -22,7 +22,9 @@ from sc_referee.calculation_checks.core import (
     NamedOperand,
     ObservationReceipt,
 )
+from sc_referee.calculation_checks.delimited import bounded_table_text
 from sc_referee.core.ids import semantic_digest, sha256_digest
+from sc_referee.delimited_io import classify_delimited_path
 from sc_referee.scientific_checks import RecordRef
 
 MAX_TABLE_BYTES = 1_000_000
@@ -163,15 +165,11 @@ class DeclaredBHTableAdapter:
         normalized: NormalizedBHInput,
     ) -> CalculationObservation:
         declaration_source = normalized.source_ref
-        relative = PurePosixPath(normalized.table_path)
+        relative = normalized.table_path
         if (
-            relative.is_absolute()
-            or ".." in relative.parts
-            or relative.suffix.casefold()
-            not in {
-                ".csv",
-                ".tsv",
-            }
+            relative.startswith("/")
+            or ".." in relative.split("/")
+            or classify_delimited_path(relative) is None
         ):
             return self._unsupported(
                 context,
@@ -179,7 +177,7 @@ class DeclaredBHTableAdapter:
                 "declared_table_path_supported",
                 "The declared table path is not a bounded relative CSV/TSV path.",
             )
-        tables = [item for item in context.tabular_inputs if item.path == relative.as_posix()]
+        tables = [item for item in context.tabular_inputs if item.path == relative]
         if len(tables) != 1:
             return self._unsupported(
                 context,
@@ -428,17 +426,13 @@ def _parse_table(
     adjusted_column: str,
     call_column: str,
 ) -> tuple[tuple[str, Decimal, Decimal, bool], ...]:
-    content = table.content
-    path = table.path
-    if len(content) > MAX_TABLE_BYTES:
-        raise CalculationCheckContractError("declared table exceeds the byte ceiling")
-    try:
-        text = content.decode("utf-8", errors="strict")
-    except UnicodeDecodeError as error:
-        raise CalculationCheckContractError("declared table is not strict UTF-8") from error
-    reader = csv.reader(
-        io.StringIO(text, newline=""), delimiter="\t" if path.casefold().endswith(".tsv") else ","
+    text, delimiter = bounded_table_text(
+        table,
+        byte_ceiling=MAX_TABLE_BYTES,
+        error_type=CalculationCheckContractError,
+        label="declared table",
     )
+    reader = csv.reader(io.StringIO(text, newline=""), delimiter=delimiter)
     try:
         header = next(reader)
     except (StopIteration, csv.Error) as error:

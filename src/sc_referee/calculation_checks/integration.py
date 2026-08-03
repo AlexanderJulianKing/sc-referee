@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import copy
+from collections.abc import Callable
 from dataclasses import dataclass
-from pathlib import PurePosixPath
 from typing import Any
 
 from sc_referee.calculation_checks.core import (
@@ -12,7 +12,13 @@ from sc_referee.calculation_checks.core import (
     public_observation_record,
 )
 from sc_referee.calculation_checks.material_context import MaterialCalculationContext
-from sc_referee.core.ids import stable_id
+from sc_referee.core.ids import sha256_digest, stable_id
+from sc_referee.delimited_io import (
+    BoundedDelimitedContent,
+    DelimitedReadError,
+    classify_delimited_path,
+    read_bounded_delimited_content,
+)
 from sc_referee.records.observed import controller_provenance, typed_ref
 from sc_referee.scientific_checks import FrozenInspectionContext, RecordRef
 from sc_referee.scientific_checks.scope_joins import (
@@ -28,6 +34,9 @@ MAX_CONTEXT_TABLES = 128
 MAX_CONTEXT_TABLE_BYTES = 1_000_000
 MAX_CONTEXT_TOTAL_BYTES = 8_000_000
 MAX_MATERIAL_CONTEXT_INPUTS = 8
+MAX_CONTEXT_GZIP_CONTENT_BYTES = 8 * 1024 * 1024
+MAX_CONTEXT_GZIP_TOTAL_LOGICAL_BYTES = 64 * 1024 * 1024
+MAX_CONTEXT_GZIP_CHUNK_BYTES = 64 * 1024
 
 
 @dataclass(frozen=True)
@@ -37,12 +46,19 @@ class CalculationCompilation:
     disclosures: tuple[dict[str, Any], ...]
 
 
+@dataclass(frozen=True)
+class CalculationContextBuild:
+    context: CalculationContext
+    read_receipts: tuple[dict[str, Any], ...]
+
+
 def build_calculation_context(
     *,
     snapshot: SnapshotOutput,
     scientific_context: FrozenInspectionContext,
     artifacts: list[dict[str, Any]],
-) -> CalculationContext | None:
+    read_checkpoint: Callable[[], None] | None = None,
+) -> CalculationContextBuild | None:
     artifacts_by_id = {str(item["artifact_id"]): item for item in artifacts}
     selected = artifacts_by_id.get(scientific_context.selected_artifact_ref.record_id)
     if selected is None or not isinstance(selected.get("path"), str):
@@ -85,10 +101,92 @@ def build_calculation_context(
         scope_join_path=report_scope,
     )
 
+    decoded_by_identity: dict[tuple[str, str], BoundedDelimitedContent | None] = {}
+    receipt_by_identity: dict[tuple[str, str], dict[str, Any]] = {}
+    gzip_logical_bytes_read = 0
+
+    def bounded_gzip_content(
+        path: str,
+        content: bytes,
+        digest: str,
+        raw_byte_ceiling: int,
+    ) -> tuple[BoundedDelimitedContent | None, bool]:
+        nonlocal gzip_logical_bytes_read
+        file_format = classify_delimited_path(path)
+        if file_format is None or file_format.content_encoding == "identity":
+            return None, True
+        key = (path, digest)
+        if key in decoded_by_identity:
+            decoded = decoded_by_identity[key]
+            return decoded, decoded is not None
+        remaining = MAX_CONTEXT_GZIP_TOTAL_LOGICAL_BYTES - gzip_logical_bytes_read
+        if remaining <= 1:
+            receipt_by_identity[key] = _calculation_read_receipt(
+                path=path,
+                digest=digest,
+                status="unsupported",
+                raw_file_bytes=len(content),
+                logical_bytes_read=0,
+                read_chunks=0,
+                raw_byte_ceiling=raw_byte_ceiling,
+                content_byte_ceiling=MAX_CONTEXT_GZIP_CONTENT_BYTES,
+                logical_read_byte_ceiling=MAX_CONTEXT_GZIP_CONTENT_BYTES + 1,
+                aggregate_logical_bytes_after_read=gzip_logical_bytes_read,
+                termination_reason="aggregate_logical_budget_exhausted",
+            )
+            decoded_by_identity[key] = None
+            return None, False
+        content_ceiling = min(MAX_CONTEXT_GZIP_CONTENT_BYTES, remaining - 1)
+        logical_ceiling = content_ceiling + 1
+        try:
+            decoded = read_bounded_delimited_content(
+                content,
+                path,
+                raw_byte_ceiling=raw_byte_ceiling,
+                content_byte_ceiling=content_ceiling,
+                logical_read_byte_ceiling=logical_ceiling,
+                chunk_byte_ceiling=MAX_CONTEXT_GZIP_CHUNK_BYTES,
+                checkpoint=read_checkpoint,
+            )
+        except DelimitedReadError as error:
+            gzip_logical_bytes_read += error.logical_bytes_read
+            receipt_by_identity[key] = _calculation_read_receipt(
+                path=path,
+                digest=digest,
+                status="unsupported",
+                raw_file_bytes=len(content),
+                logical_bytes_read=error.logical_bytes_read,
+                read_chunks=error.read_chunks,
+                raw_byte_ceiling=raw_byte_ceiling,
+                content_byte_ceiling=content_ceiling,
+                logical_read_byte_ceiling=logical_ceiling,
+                aggregate_logical_bytes_after_read=gzip_logical_bytes_read,
+                termination_reason=error.reason,
+            )
+            decoded_by_identity[key] = None
+            return None, False
+        gzip_logical_bytes_read += decoded.logical_bytes_read
+        receipt_by_identity[key] = _calculation_read_receipt(
+            path=path,
+            digest=digest,
+            status="inspected",
+            raw_file_bytes=len(content),
+            logical_bytes_read=decoded.logical_bytes_read,
+            read_chunks=decoded.read_chunks,
+            raw_byte_ceiling=raw_byte_ceiling,
+            content_byte_ceiling=content_ceiling,
+            logical_read_byte_ceiling=logical_ceiling,
+            aggregate_logical_bytes_after_read=gzip_logical_bytes_read,
+            termination_reason=None,
+            logical_content_digest=sha256_digest(decoded.content),
+        )
+        decoded_by_identity[key] = decoded
+        return decoded, True
+
     artifact_paths: dict[str, list[dict[str, Any]]] = {}
     for artifact in artifacts:
         path = artifact.get("path")
-        if isinstance(path, str) and PurePosixPath(path).suffix.casefold() in {".csv", ".tsv"}:
+        if isinstance(path, str) and classify_delimited_path(path) is not None:
             artifact_paths.setdefault(path, []).append(artifact)
     raw_files = {
         str(item["path"]): item
@@ -136,9 +234,24 @@ def build_calculation_context(
             or total_bytes + size > MAX_CONTEXT_TOTAL_BYTES
         ):
             continue
+        file_format = classify_delimited_path(path)
+        if (
+            read_checkpoint is not None
+            and file_format is not None
+            and file_format.content_encoding == "gzip"
+        ):
+            read_checkpoint()
         try:
             content = materialized.read_bytes()
         except OSError:
+            continue
+        decoded_content, supported = bounded_gzip_content(
+            path,
+            content,
+            digest,
+            MAX_CONTEXT_TABLE_BYTES,
+        )
+        if not supported:
             continue
         try:
             table = FrozenCalculationInput(
@@ -154,6 +267,7 @@ def build_calculation_context(
                     "content_digest": digest,
                 },
                 scope_join_path=identity_scope,
+                decoded_delimited_content=decoded_content,
             )
         except ValueError:
             continue
@@ -195,8 +309,23 @@ def build_calculation_context(
                 > snapshot.identity_policy.material_full_digest_byte_budget
             ):
                 continue
+            file_format = classify_delimited_path(path)
+            if (
+                read_checkpoint is not None
+                and file_format is not None
+                and file_format.content_encoding == "gzip"
+            ):
+                read_checkpoint()
             try:
                 content = materialized.read_bytes()
+                decoded_content, supported = bounded_gzip_content(
+                    path,
+                    content,
+                    digest,
+                    snapshot.identity_policy.material_full_digest_byte_budget,
+                )
+                if not supported:
+                    continue
                 if matches:
                     input_ref = RecordRef("artifact", str(matches[0]["artifact_id"]))
                     input_source_ref = {
@@ -229,13 +358,14 @@ def build_calculation_context(
                     content_digest=digest,
                     source_ref=input_source_ref,
                     scope_join_path=material_scope,
+                    decoded_delimited_content=decoded_content,
                 )
             except (OSError, ValueError):
                 continue
             material_inputs.append(material_input)
             material_total_bytes += size
     if material_inputs:
-        return MaterialCalculationContext(
+        context: CalculationContext = MaterialCalculationContext(
             snapshot_digest=scientific_context.snapshot_digest,
             selected_surface_ref=scientific_context.selected_surface_ref,
             selected_artifact_ref=scientific_context.selected_artifact_ref,
@@ -243,13 +373,52 @@ def build_calculation_context(
             tabular_inputs=tuple(tables),
             material_inputs=tuple(material_inputs),
         )
-    return CalculationContext(
-        snapshot_digest=scientific_context.snapshot_digest,
-        selected_surface_ref=scientific_context.selected_surface_ref,
-        selected_artifact_ref=scientific_context.selected_artifact_ref,
-        selected_report=report_input,
-        tabular_inputs=tuple(tables),
+    else:
+        context = CalculationContext(
+            snapshot_digest=scientific_context.snapshot_digest,
+            selected_surface_ref=scientific_context.selected_surface_ref,
+            selected_artifact_ref=scientific_context.selected_artifact_ref,
+            selected_report=report_input,
+            tabular_inputs=tuple(tables),
+        )
+    return CalculationContextBuild(
+        context=context,
+        read_receipts=tuple(receipt_by_identity[key] for key in sorted(receipt_by_identity)),
     )
+
+
+def _calculation_read_receipt(
+    *,
+    path: str,
+    digest: str,
+    status: str,
+    raw_file_bytes: int,
+    logical_bytes_read: int,
+    read_chunks: int,
+    raw_byte_ceiling: int,
+    content_byte_ceiling: int,
+    logical_read_byte_ceiling: int,
+    aggregate_logical_bytes_after_read: int,
+    termination_reason: str | None,
+    logical_content_digest: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "path": path,
+        "content_digest": digest,
+        "content_encoding": "gzip",
+        "status": status,
+        "raw_file_bytes": raw_file_bytes,
+        "logical_bytes_read": logical_bytes_read,
+        "read_chunks": read_chunks,
+        "raw_byte_ceiling": raw_byte_ceiling,
+        "content_byte_ceiling": content_byte_ceiling,
+        "logical_read_byte_ceiling": logical_read_byte_ceiling,
+        "chunk_byte_ceiling": MAX_CONTEXT_GZIP_CHUNK_BYTES,
+        "aggregate_logical_bytes_after_read": aggregate_logical_bytes_after_read,
+        "aggregate_logical_byte_ceiling": MAX_CONTEXT_GZIP_TOTAL_LOGICAL_BYTES,
+        "termination_reason": termination_reason,
+        "logical_content_digest": logical_content_digest,
+    }
 
 
 def compile_calculation_records(

@@ -147,6 +147,11 @@ sc-referee audit /path/to/project \
   --material-input exported/hypotheses.tsv
 ```
 
+The same existing table-consuming contracts accept exact `.csv.gz` or `.tsv.gz` paths. Complete
+gzip calculation input is decoded in 64 KiB chunks under an 8 MiB per-input and 64 MiB aggregate
+logical-read budget. The audit records physical and decoded digests separately; compression does
+not change the scientific contract or make undocumented columns authoritative.
+
 Do not let an auditing agent invent the scientific values in this file. They must already be
 explicitly documented or supplied by the scientist. A sidecar is a review-scoped declaration, not
 proof of execution, correctness, or method adequacy. If both the report and sidecar declare the

@@ -31,14 +31,6 @@ class MaterialCalculationContext(CalculationContext):
         return semantic_digest(
             {
                 "base_context_digest": super().context_digest,
-                "material_inputs": [
-                    {
-                        "path": item.path,
-                        "artifact_ref": item.artifact_ref.to_dict(),
-                        "content_digest": item.content_digest,
-                        "scope_join_path": [proof.to_dict() for proof in item.scope_join_path],
-                    }
-                    for item in self.material_inputs
-                ],
+                "material_inputs": [item.digest_projection() for item in self.material_inputs],
             }
         )

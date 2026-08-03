@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 
 from sc_referee.core.ids import semantic_digest, sha256_digest
+from sc_referee.delimited_io import BoundedDelimitedContent, classify_delimited_path
 from sc_referee.records.observed import controller_provenance
 from sc_referee.scientific_checks import RecordRef, ScopeJoinProof
 from sc_referee.version import SCHEMA_VERSION
@@ -109,6 +110,7 @@ class FrozenCalculationInput:
     content_digest: str
     source_ref: dict[str, Any]
     scope_join_path: tuple[ScopeJoinProof, ...]
+    decoded_delimited_content: BoundedDelimitedContent | None = None
 
     def __post_init__(self) -> None:
         if not self.path or self.path.startswith("/") or ".." in self.path.split("/"):
@@ -128,6 +130,40 @@ class FrozenCalculationInput:
             for left, right in zip(self.scope_join_path, self.scope_join_path[1:], strict=False)
         ):
             raise CalculationCheckContractError("calculation input scope-join path is disconnected")
+        if self.decoded_delimited_content is not None:
+            file_format = classify_delimited_path(self.path)
+            if file_format is None or file_format.content_encoding != "gzip":
+                raise CalculationCheckContractError(
+                    "decoded calculation input requires an exact gzip-delimited path"
+                )
+            if self.decoded_delimited_content.table_format != file_format.table_format:
+                raise CalculationCheckContractError(
+                    "decoded calculation input format does not match its exact compound suffix"
+                )
+            if self.decoded_delimited_content.raw_file_bytes != len(self.content):
+                raise CalculationCheckContractError(
+                    "decoded calculation input raw-byte accounting mismatch"
+                )
+
+    @property
+    def inspection_content(self) -> bytes:
+        if self.decoded_delimited_content is not None:
+            return self.decoded_delimited_content.content
+        return self.content
+
+    def digest_projection(self) -> dict[str, Any]:
+        value: dict[str, Any] = {
+            "path": self.path,
+            "artifact_ref": self.artifact_ref.to_dict(),
+            "content_digest": self.content_digest,
+            "scope_join_path": [proof.to_dict() for proof in self.scope_join_path],
+        }
+        if self.decoded_delimited_content is not None:
+            value["decoded_delimited_content"] = {
+                **self.decoded_delimited_content.lock_projection(),
+                "content_digest": sha256_digest(self.decoded_delimited_content.content),
+            }
+        return value
 
 
 @dataclass(frozen=True)
@@ -154,15 +190,7 @@ class CalculationContext:
                 "selected_surface_ref": self.selected_surface_ref.to_dict(),
                 "selected_artifact_ref": self.selected_artifact_ref.to_dict(),
                 "selected_report_digest": self.selected_report.content_digest,
-                "tabular_inputs": [
-                    {
-                        "path": item.path,
-                        "artifact_ref": item.artifact_ref.to_dict(),
-                        "content_digest": item.content_digest,
-                        "scope_join_path": [proof.to_dict() for proof in item.scope_join_path],
-                    }
-                    for item in self.tabular_inputs
-                ],
+                "tabular_inputs": [item.digest_projection() for item in self.tabular_inputs],
             }
         )
 

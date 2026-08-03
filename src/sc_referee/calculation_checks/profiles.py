@@ -50,11 +50,17 @@ _CORE_IMPLEMENTATION_DIGEST = sha256_digest(
 )
 _CONTEXT_IMPLEMENTATION_FILES = {
     "calculation_checks/core.py": _CORE_IMPLEMENTATION_DIGEST,
+    "calculation_checks/delimited.py": sha256_digest(
+        (Path(__file__).resolve().parent / "delimited.py").read_bytes()
+    ),
     "calculation_checks/integration.py": sha256_digest(
         (Path(__file__).resolve().parent / "integration.py").read_bytes()
     ),
     "calculation_checks/material_context.py": sha256_digest(
         (Path(__file__).resolve().parent / "material_context.py").read_bytes()
+    ),
+    "delimited_io.py": sha256_digest(
+        (Path(__file__).resolve().parent.parent / "delimited_io.py").read_bytes()
     ),
     "scientific_checks/scope_joins.py": sha256_digest(
         (
@@ -122,6 +128,12 @@ _GENERALIZED_RELEASE_MANIFEST = (
     / "calculation-check-manifests-v10"
     / "registry.json"
 )
+_COMPRESSED_RELEASE_MANIFEST = (
+    Path(__file__).resolve().parents[1]
+    / "resources"
+    / "calculation-check-manifests-v11"
+    / "registry.json"
+)
 
 
 def calculation_check_release_registry() -> CalculationCheckRegistry:
@@ -150,14 +162,6 @@ def default_calculation_check_registry() -> CalculationCheckRegistry:
     selection_reuse = selection_reuse_registry()
     eqtl_sign = eqtl_sign_registry()
     hic_loop = hic_loop_strength_registry()
-    verify_calculation_check_release_manifest(base)
-    verify_single_cell_calculation_release_manifest_v9(single_cell)
-    verify_effect_size_calculation_release_manifest(effect_size)
-    verify_design_integrity_calculation_release_manifest(design_integrity)
-    verify_count_model_calculation_release_manifest(count_model)
-    verify_selection_reuse_calculation_release_manifest(selection_reuse)
-    verify_eqtl_sign_calculation_release_manifest(eqtl_sign)
-    verify_hic_loop_calculation_release_manifest(hic_loop)
     generalized = _generalized_calculation_check_registry(
         base=base,
         single_cell=single_cell,
@@ -168,8 +172,12 @@ def default_calculation_check_registry() -> CalculationCheckRegistry:
         eqtl_sign=eqtl_sign,
         hic_loop=hic_loop,
     )
-    verify_generalized_calculation_release_manifest(generalized)
-    return generalized
+    compressed = CalculationCheckRegistry(
+        generalized.modules,
+        profile_id="deterministic_calculation_check_v11",
+    )
+    verify_compressed_calculation_release_manifest(compressed)
+    return compressed
 
 
 def generalized_calculation_check_registry() -> CalculationCheckRegistry:
@@ -182,6 +190,14 @@ def generalized_calculation_check_registry() -> CalculationCheckRegistry:
         selection_reuse=selection_reuse_registry(),
         eqtl_sign=eqtl_sign_registry(),
         hic_loop=hic_loop_strength_registry(),
+    )
+
+
+def compressed_calculation_check_registry() -> CalculationCheckRegistry:
+    generalized = generalized_calculation_check_registry()
+    return CalculationCheckRegistry(
+        generalized.modules,
+        profile_id="deterministic_calculation_check_v11",
     )
 
 
@@ -262,6 +278,38 @@ def generalized_calculation_release_projection(
     value = calculation_check_release_projection(registry)
     value["manifest_set_id"] = "calculation-check-manifest-set:v10-normalized-layout-adapters"
     return value
+
+
+def compressed_calculation_release_projection(
+    registry: CalculationCheckRegistry,
+) -> dict[str, Any]:
+    value = calculation_check_release_projection(registry)
+    value["manifest_set_id"] = "calculation-check-manifest-set:v11-bounded-gzip-inputs"
+    return value
+
+
+def verify_compressed_calculation_release_manifest(
+    registry: CalculationCheckRegistry,
+    *,
+    manifest_path: Path = _COMPRESSED_RELEASE_MANIFEST,
+) -> None:
+    try:
+        payload = manifest_path.read_bytes()
+        expected = json.loads(payload)
+    except (OSError, json.JSONDecodeError) as error:
+        raise CalculationCheckContractError(
+            "compressed-input calculation-check release manifest is unavailable or invalid"
+        ) from error
+    if not isinstance(expected, dict) or canonical_json(expected).encode("utf-8") != payload.rstrip(
+        b"\n"
+    ):
+        raise CalculationCheckContractError(
+            "compressed-input calculation-check release manifest is not canonical JSON"
+        )
+    if expected != compressed_calculation_release_projection(registry):
+        raise CalculationCheckContractError(
+            "compressed-input calculation-check release manifest or implementation drift"
+        )
 
 
 def verify_generalized_calculation_release_manifest(
