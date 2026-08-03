@@ -16,6 +16,11 @@ import h5py  # type: ignore[import-untyped]
 import numpy as np
 import yaml
 
+from sc_referee.calculation_checks.contracts import (
+    selected_sidecar_contract,
+    sidecar_adapter_manifest,
+    with_sidecar_lineage,
+)
 from sc_referee.calculation_checks.core import (
     CalculationAdapterManifest,
     CalculationCheckManifest,
@@ -36,6 +41,7 @@ MAX_SENSITIVITY_TABLE_COLUMNS = 64
 MAX_SENSITIVITY_MATRIX_ELEMENTS = 2_000_000
 MAX_SENSITIVITY_MATRIX_BYTES = 16 * 1024 * 1024
 MAX_SENSITIVITY_TEXT_BYTES = 2 * 1024 * 1024
+SINGLE_CELL_SENSITIVITY_CHECK_ID = "calculation-check:single-cell-replicate-sensitivity-v1"
 
 _BLOCK = re.compile(
     r"```sc-referee-single-cell-sensitivity-v1\s*\n(?P<body>.*?)\n```",
@@ -292,6 +298,14 @@ class DeclaredSingleCellSensitivityAdapter:
                 "single_cell_sensitivity_contract_valid",
                 str(error),
             )
+        return self.inspect_normalized(context, contract)
+
+    def inspect_normalized(
+        self,
+        context: CalculationContext,
+        contract: _Contract,
+    ) -> CalculationObservation:
+        block_source = contract.source_ref
         if contract.reported_unit == "biological_replicate":
             return self._not_applicable(context, contract)
         if contract.reported_unit != "observation":
@@ -481,12 +495,41 @@ class DeclaredSingleCellSensitivityAdapter:
         )
 
 
+class SelectedSidecarSingleCellSensitivityAdapter:
+    def __init__(self, *, engine: SensitivityRecomputeEngine | None = None) -> None:
+        self._evaluator = DeclaredSingleCellSensitivityAdapter(engine=engine)
+        self.manifest = sidecar_adapter_manifest(
+            family="single-cell-replicate-sensitivity",
+            implementation_digest=semantic_digest(
+                {
+                    "adapter_source": sha256_digest(Path(__file__).read_bytes()),
+                    "engine_id": self._evaluator.engine.engine_id,
+                    "engine_version": self._evaluator.engine.engine_version,
+                    "engine_implementation_digest": (self._evaluator.engine.implementation_digest),
+                }
+            ),
+        )
+
+    def inspect(self, context: CalculationContext) -> CalculationObservation | None:
+        sidecar = selected_sidecar_contract(
+            context,
+            check_id=SINGLE_CELL_SENSITIVITY_CHECK_ID,
+        )
+        if sidecar is None:
+            return None
+        contract = _parse_contract_value(sidecar.value, sidecar.source_ref)
+        return with_sidecar_lineage(
+            self._evaluator.inspect_normalized(context, contract),
+            sidecar,
+        )
+
+
 def single_cell_sensitivity_registry(
     *, adapter: DeclaredSingleCellSensitivityAdapter | None = None
 ) -> CalculationCheckRegistry:
     active_adapter = adapter or DeclaredSingleCellSensitivityAdapter()
     check = CalculationCheckManifest(
-        check_id="calculation-check:single-cell-replicate-sensitivity-v1",
+        check_id=SINGLE_CELL_SENSITIVITY_CHECK_ID,
         check_version="1.0.0",
         implementation_digest=sha256_digest(Path(__file__).read_bytes()),
         comparison_relation="reported_vs_declared_replicate_level_discovery_equivalence",
@@ -509,7 +552,13 @@ def _parse_contract(body: str, source_ref: dict[str, Any]) -> _Contract:
         raise SingleCellSensitivityError(
             "sensitivity contract is not valid bounded YAML"
         ) from error
-    if not isinstance(value, dict) or set(value) != _REQUIRED_KEYS:
+    if not isinstance(value, dict):
+        raise SingleCellSensitivityError("sensitivity contract must be a mapping")
+    return _parse_contract_value(value, source_ref)
+
+
+def _parse_contract_value(value: dict[str, Any], source_ref: dict[str, Any]) -> _Contract:
+    if set(value) != _REQUIRED_KEYS:
         raise SingleCellSensitivityError(
             "sensitivity contract keys are missing, extra, or duplicated"
         )

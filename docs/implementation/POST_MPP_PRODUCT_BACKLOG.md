@@ -149,7 +149,7 @@ themselves, qualify a detector or support a public generality claim.
 
 ## P2 — Broaden useful deterministic scientific coverage
 
-- [ ] **L09 — Generalize the eight current calculation checks beyond capsules.** Separate their
+- [x] **L09 — Generalize the eight current calculation checks beyond capsules.** Separate their
   normalized scientific inputs from repository-specific filenames, headings, and fixture layouts.
   Start with multiple-testing families, design integrity, single-cell replicate sensitivity, effect
   relevance, and selection reuse.

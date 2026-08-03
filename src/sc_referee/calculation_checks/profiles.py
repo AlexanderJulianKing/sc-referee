@@ -4,7 +4,11 @@ import json
 from pathlib import Path
 from typing import Any
 
-from sc_referee.calculation_checks.bh import DeclaredBHTableAdapter
+from sc_referee.calculation_checks.bh import (
+    BH_CHECK_ID,
+    DeclaredBHTableAdapter,
+    SelectedSidecarBHTableAdapter,
+)
 from sc_referee.calculation_checks.core import (
     CalculationCheckContractError,
     CalculationCheckManifest,
@@ -12,14 +16,31 @@ from sc_referee.calculation_checks.core import (
     CalculationCheckRegistry,
 )
 from sc_referee.calculation_checks.count_model_compatibility import (
+    SelectedSidecarCountModelCompatibilityAdapter,
     count_model_compatibility_registry,
 )
-from sc_referee.calculation_checks.design_integrity import design_integrity_registry
-from sc_referee.calculation_checks.effect_size_summary import effect_size_summary_registry
-from sc_referee.calculation_checks.eqtl_sign import eqtl_sign_registry
-from sc_referee.calculation_checks.hic_loop_strength import hic_loop_strength_registry
-from sc_referee.calculation_checks.selection_reuse import selection_reuse_registry
+from sc_referee.calculation_checks.design_integrity import (
+    SelectedSidecarDesignIntegrityAdapter,
+    design_integrity_registry,
+)
+from sc_referee.calculation_checks.effect_size_summary import (
+    SelectedSidecarEffectSizeSummaryAdapter,
+    effect_size_summary_registry,
+)
+from sc_referee.calculation_checks.eqtl_sign import (
+    SelectedSidecarEqtlSignAdapter,
+    eqtl_sign_registry,
+)
+from sc_referee.calculation_checks.hic_loop_strength import (
+    SelectedSidecarHiCLoopStrengthAdapter,
+    hic_loop_strength_registry,
+)
+from sc_referee.calculation_checks.selection_reuse import (
+    SelectedSidecarSelectionReuseAdapter,
+    selection_reuse_registry,
+)
 from sc_referee.calculation_checks.single_cell_sensitivity import (
+    SelectedSidecarSingleCellSensitivityAdapter,
     single_cell_sensitivity_registry,
 )
 from sc_referee.core.ids import canonical_json, sha256_digest
@@ -95,11 +116,17 @@ _HIC_LOOP_RELEASE_MANIFEST = (
     / "calculation-check-manifests-v8"
     / "registry.json"
 )
+_GENERALIZED_RELEASE_MANIFEST = (
+    Path(__file__).resolve().parents[1]
+    / "resources"
+    / "calculation-check-manifests-v10"
+    / "registry.json"
+)
 
 
 def calculation_check_release_registry() -> CalculationCheckRegistry:
     check = CalculationCheckManifest(
-        check_id="calculation-check:benjamini-hochberg-complete-family-v1",
+        check_id=BH_CHECK_ID,
         check_version="1.0.0",
         implementation_digest=_CORE_IMPLEMENTATION_DIGEST,
         comparison_relation="benjamini_hochberg_complete_family_conformance",
@@ -131,19 +158,134 @@ def default_calculation_check_registry() -> CalculationCheckRegistry:
     verify_selection_reuse_calculation_release_manifest(selection_reuse)
     verify_eqtl_sign_calculation_release_manifest(eqtl_sign)
     verify_hic_loop_calculation_release_manifest(hic_loop)
+    generalized = _generalized_calculation_check_registry(
+        base=base,
+        single_cell=single_cell,
+        effect_size=effect_size,
+        design_integrity=design_integrity,
+        count_model=count_model,
+        selection_reuse=selection_reuse,
+        eqtl_sign=eqtl_sign,
+        hic_loop=hic_loop,
+    )
+    verify_generalized_calculation_release_manifest(generalized)
+    return generalized
+
+
+def generalized_calculation_check_registry() -> CalculationCheckRegistry:
+    return _generalized_calculation_check_registry(
+        base=calculation_check_release_registry(),
+        single_cell=single_cell_sensitivity_registry(),
+        effect_size=effect_size_summary_registry(),
+        design_integrity=design_integrity_registry(),
+        count_model=count_model_compatibility_registry(),
+        selection_reuse=selection_reuse_registry(),
+        eqtl_sign=eqtl_sign_registry(),
+        hic_loop=hic_loop_strength_registry(),
+    )
+
+
+def _generalized_calculation_check_registry(
+    *,
+    base: CalculationCheckRegistry,
+    single_cell: CalculationCheckRegistry,
+    effect_size: CalculationCheckRegistry,
+    design_integrity: CalculationCheckRegistry,
+    count_model: CalculationCheckRegistry,
+    selection_reuse: CalculationCheckRegistry,
+    eqtl_sign: CalculationCheckRegistry,
+    hic_loop: CalculationCheckRegistry,
+) -> CalculationCheckRegistry:
     return CalculationCheckRegistry(
         (
-            *base.modules,
-            *single_cell.modules,
-            *effect_size.modules,
-            *design_integrity.modules,
-            *count_model.modules,
-            *selection_reuse.modules,
-            *eqtl_sign.modules,
-            *hic_loop.modules,
+            CalculationCheckModule(
+                base.modules[0].manifest,
+                (*base.modules[0].adapters, SelectedSidecarBHTableAdapter()),
+            ),
+            CalculationCheckModule(
+                single_cell.modules[0].manifest,
+                (
+                    *single_cell.modules[0].adapters,
+                    SelectedSidecarSingleCellSensitivityAdapter(),
+                ),
+            ),
+            CalculationCheckModule(
+                effect_size.modules[0].manifest,
+                (
+                    *effect_size.modules[0].adapters,
+                    SelectedSidecarEffectSizeSummaryAdapter(),
+                ),
+            ),
+            CalculationCheckModule(
+                design_integrity.modules[0].manifest,
+                (
+                    *design_integrity.modules[0].adapters,
+                    SelectedSidecarDesignIntegrityAdapter(),
+                ),
+            ),
+            CalculationCheckModule(
+                count_model.modules[0].manifest,
+                (
+                    *count_model.modules[0].adapters,
+                    SelectedSidecarCountModelCompatibilityAdapter(),
+                ),
+            ),
+            CalculationCheckModule(
+                selection_reuse.modules[0].manifest,
+                (
+                    *selection_reuse.modules[0].adapters,
+                    SelectedSidecarSelectionReuseAdapter(),
+                ),
+            ),
+            CalculationCheckModule(
+                eqtl_sign.modules[0].manifest,
+                (
+                    *eqtl_sign.modules[0].adapters,
+                    SelectedSidecarEqtlSignAdapter(),
+                ),
+            ),
+            CalculationCheckModule(
+                hic_loop.modules[0].manifest,
+                (
+                    *hic_loop.modules[0].adapters,
+                    SelectedSidecarHiCLoopStrengthAdapter(),
+                ),
+            ),
         ),
-        profile_id="deterministic_calculation_check_v9",
+        profile_id="deterministic_calculation_check_v10",
     )
+
+
+def generalized_calculation_release_projection(
+    registry: CalculationCheckRegistry,
+) -> dict[str, Any]:
+    value = calculation_check_release_projection(registry)
+    value["manifest_set_id"] = "calculation-check-manifest-set:v10-normalized-layout-adapters"
+    return value
+
+
+def verify_generalized_calculation_release_manifest(
+    registry: CalculationCheckRegistry,
+    *,
+    manifest_path: Path = _GENERALIZED_RELEASE_MANIFEST,
+) -> None:
+    try:
+        payload = manifest_path.read_bytes()
+        expected = json.loads(payload)
+    except (OSError, json.JSONDecodeError) as error:
+        raise CalculationCheckContractError(
+            "generalized calculation-check release manifest is unavailable or invalid"
+        ) from error
+    if not isinstance(expected, dict) or canonical_json(expected).encode("utf-8") != payload.rstrip(
+        b"\n"
+    ):
+        raise CalculationCheckContractError(
+            "generalized calculation-check release manifest is not canonical JSON"
+        )
+    if expected != generalized_calculation_release_projection(registry):
+        raise CalculationCheckContractError(
+            "generalized calculation-check release manifest or implementation drift"
+        )
 
 
 def calculation_check_release_projection(

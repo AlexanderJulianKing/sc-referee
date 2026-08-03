@@ -86,9 +86,9 @@ def test_runner_audits_replays_and_emits_deterministic_create_once_receipt(
     assert first == second
     assert regression_tree_digest(retained_tree) == retained_digest
     assert first_output.read_bytes() == (canonical_json(first) + "\n").encode()
-    assert first["ledger_case_count"] == 113
-    assert first["pytest_case_count"] == 109
-    assert first["pytest_selector_count"] == len(selected[0]) == 76
+    assert first["ledger_case_count"] == 121
+    assert first["pytest_case_count"] == 117
+    assert first["pytest_selector_count"] == len(selected[0]) == 84
     assert first["audit_replay_case_count"] == 4
     assert first["case_role_counts"]["corrected_twin"] == 9
     assert first["case_role_counts"]["hard_negative"] == 26

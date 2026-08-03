@@ -107,6 +107,54 @@ def test_exact_design_incompatibilities_are_reported_without_finding(
     )
 
 
+def test_selected_sidecar_layout_normalizes_to_same_design_metrics(
+    schema_root: Path, tmp_path: Path
+) -> None:
+    workspace = tmp_path / "sidecar"
+    _workspace(workspace)
+    (workspace / "report.md").write_text(
+        "# Bound differential-expression design\n", encoding="utf-8"
+    )
+    (workspace / "design-bindings.yaml").write_text(
+        "sc_referee_calculation_contracts: 1\n"
+        "contracts:\n"
+        "  - check_id: calculation-check:tabular-design-integrity-v1\n"
+        "    contract:\n"
+        "      metadata_table: metadata.csv\n"
+        "      condition_column: condition\n"
+        "      reference_level: control\n"
+        "      test_level: treated\n"
+        "      replicate_columns: [donor]\n"
+        "      pairing_columns: []\n"
+        "      aggregation_columns: [donor, lane]\n"
+        "      required_categorical_adjustment_columns: [batch]\n"
+        "      fitted_fixed_effect_columns: [condition]\n"
+        "      fitted_random_intercept_columns: []\n"
+        "      comparison_mode: unpaired\n"
+        "      aggregation_binding: exact\n"
+        "      model_binding: exact\n",
+        encoding="utf-8",
+    )
+    bundle = run_audit(
+        workspace,
+        tmp_path / "sidecar-audit",
+        schema_root,
+        report="report.md",
+        material_inputs=("design-bindings.yaml", "metadata.csv"),
+    )
+    observation = next(
+        item
+        for item in bundle["deterministic_check_observations"]
+        if item["check_manifest"]["check_id"] == "calculation-check:tabular-design-integrity-v1"
+    )
+    assert observation["adapter_manifest"]["adapter_id"] == (
+        "calculation-adapter:selected-sidecar-tabular-design-integrity-v1"
+    )
+    assert observation["comparison"]["outcome"] == "nonconformant"
+    assert _operand(observation, "missing_aggregation_rows") == 1
+    assert _operand(observation, "required_adjustments_omitted") == ["batch"]
+
+
 def test_corrected_paired_design_is_conformant(schema_root: Path, tmp_path: Path) -> None:
     workspace = tmp_path / "corrected"
     _workspace(

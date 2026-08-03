@@ -7,6 +7,11 @@ from typing import Any
 
 import yaml
 
+from sc_referee.calculation_checks.contracts import (
+    selected_sidecar_contract,
+    sidecar_adapter_manifest,
+    with_sidecar_lineage,
+)
 from sc_referee.calculation_checks.core import (
     CalculationAdapterManifest,
     CalculationCheckManifest,
@@ -21,6 +26,8 @@ from sc_referee.calculation_checks.core import (
 from sc_referee.calculation_checks.material_context import MaterialCalculationContext
 from sc_referee.core.ids import semantic_digest, sha256_digest
 from sc_referee.parsers.r_dual import inspect_r_source
+
+COUNT_MODEL_CHECK_ID = "calculation-check:r-count-model-compatibility-v1"
 
 _BLOCK = re.compile(
     r"```sc-referee-count-model-compatibility-v1\s*\n(?P<body>.*?)\n```",
@@ -119,6 +126,14 @@ class DeclaredCountModelCompatibilityAdapter:
                 "count_model_contract_valid",
                 str(error),
             )
+        return self.inspect_normalized(context, contract)
+
+    def inspect_normalized(
+        self,
+        context: CalculationContext,
+        contract: _Contract,
+    ) -> CalculationObservation:
+        source_ref = contract.source_ref
         if (
             contract.response_scale == "unresolved"
             or contract.required_method_family == "unresolved"
@@ -277,10 +292,29 @@ class DeclaredCountModelCompatibilityAdapter:
         )
 
 
+class SelectedSidecarCountModelCompatibilityAdapter:
+    def __init__(self) -> None:
+        self.manifest = sidecar_adapter_manifest(
+            family="r-count-model-compatibility",
+            implementation_digest=sha256_digest(Path(__file__).read_bytes()),
+        )
+        self._evaluator = DeclaredCountModelCompatibilityAdapter()
+
+    def inspect(self, context: CalculationContext) -> CalculationObservation | None:
+        sidecar = selected_sidecar_contract(context, check_id=COUNT_MODEL_CHECK_ID)
+        if sidecar is None:
+            return None
+        contract = _parse_contract_value(sidecar.value, sidecar.source_ref)
+        return with_sidecar_lineage(
+            self._evaluator.inspect_normalized(context, contract),
+            sidecar,
+        )
+
+
 def count_model_compatibility_registry() -> CalculationCheckRegistry:
     adapter = DeclaredCountModelCompatibilityAdapter()
     check = CalculationCheckManifest(
-        check_id="calculation-check:r-count-model-compatibility-v1",
+        check_id=COUNT_MODEL_CHECK_ID,
         check_version="1.0.0",
         implementation_digest=sha256_digest(Path(__file__).read_bytes()),
         comparison_relation="declared_r_producer_method_response_scale_compatibility",
@@ -300,7 +334,13 @@ def _parse_contract(body: str, source_ref: dict[str, Any]) -> _Contract:
         value = yaml.safe_load(body)
     except yaml.YAMLError as error:
         raise CountModelCompatibilityError("count-model contract is not valid YAML") from error
-    if not isinstance(value, dict) or set(value) != _REQUIRED_KEYS:
+    if not isinstance(value, dict):
+        raise CountModelCompatibilityError("count-model contract must be a mapping")
+    return _parse_contract_value(value, source_ref)
+
+
+def _parse_contract_value(value: dict[str, Any], source_ref: dict[str, Any]) -> _Contract:
+    if set(value) != _REQUIRED_KEYS:
         raise CountModelCompatibilityError("count-model contract keys are missing or extra")
     if any(not isinstance(value[key], str) or not value[key].strip() for key in _REQUIRED_KEYS):
         raise CountModelCompatibilityError("count-model contract values must be nonempty strings")

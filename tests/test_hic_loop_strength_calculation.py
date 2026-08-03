@@ -117,6 +117,67 @@ def test_reported_hic_delta_mismatch_is_disclosed_without_finding(
     )
 
 
+def test_selected_sidecar_layout_normalizes_to_same_hic_recompute(
+    schema_root: Path, tmp_path: Path
+) -> None:
+    workspace = tmp_path / "sidecar"
+    _workspace(workspace, reported_delta=-1.0)
+    (workspace / "report.md").write_text("# Hi-C result\n", encoding="utf-8")
+    (workspace / "loop-contract.yaml").write_text(
+        "sc_referee_calculation_contracts: 1\n"
+        "contracts:\n"
+        "  - check_id: calculation-check:hic-loop-strength-v1\n"
+        "    contract:\n"
+        "      contacts_table: contacts.csv\n"
+        "      bins_table: bins.csv\n"
+        "      results_table: results.csv\n"
+        "      replicate_columns: [sample]\n"
+        "      condition_column: condition\n"
+        "      reference_level: control\n"
+        "      test_level: treated\n"
+        "      genome_assembly: hg38\n"
+        "      resolution_bp: 20000\n"
+        "      target_bin_i: b20\n"
+        "      target_bin_j: b21\n"
+        "      background_view_start: 0\n"
+        "      background_view_end: 1200000\n"
+        "      expected_model: cis_exact_distance_arithmetic_mean_target_excluded_v1\n"
+        "      mask_policy: exclude_if_either_bin_masked_v1\n"
+        "      zero_policy: dense_including_zeros\n"
+        "      pseudocount: 0.0\n"
+        "      target_statistic: single_pixel\n"
+        "      replicate_functional: equal_weight_mean_log2_oe_v1\n"
+        "      reported_delta_tolerance: 0.01\n"
+        "      tolerance_authority: rounding_absolute_log2_ratio_delta\n"
+        "      claim_semantics: loop_strength_delta\n"
+        "      producer_binding: exact\n",
+        encoding="utf-8",
+    )
+    bundle = run_audit(
+        workspace,
+        tmp_path / "sidecar-audit",
+        schema_root,
+        report="report.md",
+        material_inputs=(
+            "loop-contract.yaml",
+            "contacts.csv",
+            "bins.csv",
+            "results.csv",
+        ),
+    )
+    observation = next(
+        item
+        for item in bundle["deterministic_check_observations"]
+        if item["check_manifest"]["check_id"] == "calculation-check:hic-loop-strength-v1"
+    )
+    assert observation["adapter_manifest"]["adapter_id"] == (
+        "calculation-adapter:selected-sidecar-hic-loop-strength-v1"
+    )
+    assert observation["comparison"]["outcome"] == "nonconformant"
+    assert _operand(observation, "background_pairs") == 58
+    assert _operand(observation, "recomputed_delta") == 1.0
+
+
 def test_matching_hic_delta_is_corrected_twin(schema_root: Path, tmp_path: Path) -> None:
     workspace = tmp_path / "corrected"
     _workspace(workspace, reported_delta=1.0)

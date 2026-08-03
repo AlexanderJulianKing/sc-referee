@@ -116,6 +116,42 @@ python -m pip install -e '.[single-cell-recompute]'
 
 Do not install that extra silently during an audit.
 
+### Optional portable calculation sidecar
+
+The eight bounded calculation families can read an explicitly selected YAML contract instead of
+requiring a purpose-built declaration inside the report. The filename and directory are arbitrary.
+For example, a complete-family BH binding may contain:
+
+```yaml
+sc_referee_calculation_contracts: 1
+contracts:
+  - check_id: calculation-check:benjamini-hochberg-complete-family-v1
+    contract:
+      procedure: benjamini_hochberg
+      family: complete
+      alpha: "0.05"
+      table: exported/hypotheses.tsv
+      id_column: feature_id
+      raw_pvalue_column: p_raw
+      adjusted_pvalue_column: q_reported
+      call_column: discovered
+```
+
+Select both the sidecar and its material table:
+
+```bash
+sc-referee audit /path/to/project \
+  --output /path/to/project/.scientific-audit/runs/bh-review \
+  --report results/report.md \
+  --material-input review/calculations.yaml \
+  --material-input exported/hypotheses.tsv
+```
+
+Do not let an auditing agent invent the scientific values in this file. They must already be
+explicitly documented or supplied by the scientist. A sidecar is a review-scoped declaration, not
+proof of execution, correctness, or method adequacy. If both the report and sidecar declare the
+same check, that check fails closed as competing evidence.
+
 ## 5. Verify and read the result
 
 ```bash

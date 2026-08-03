@@ -3,10 +3,16 @@ from __future__ import annotations
 import csv
 import io
 import re
+from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation, localcontext
 from pathlib import Path, PurePosixPath
 from typing import Any, Literal
 
+from sc_referee.calculation_checks.contracts import (
+    selected_sidecar_contract,
+    sidecar_adapter_manifest,
+    with_sidecar_lineage,
+)
 from sc_referee.calculation_checks.core import (
     CalculationAdapterManifest,
     CalculationCheckContractError,
@@ -23,6 +29,7 @@ MAX_TABLE_BYTES = 1_000_000
 MAX_ROWS = 10_000
 MAX_COLUMNS = 64
 BH_ADAPTER_IMPLEMENTATION_DIGEST = sha256_digest(Path(__file__).read_bytes())
+BH_CHECK_ID = "calculation-check:benjamini-hochberg-complete-family-v1"
 
 _COMPLETE = re.compile(
     r"Multiplicity\s+contract:\s*Benjamini-Hochberg\s+false-discovery-rate\s+control\s+"
@@ -57,6 +64,28 @@ BH_RECOGNITION_GRAMMAR_DIGEST = semantic_digest(
         "max_columns": MAX_COLUMNS,
     }
 )
+
+_SIDECAR_KEYS = {
+    "procedure",
+    "family",
+    "alpha",
+    "table",
+    "id_column",
+    "raw_pvalue_column",
+    "adjusted_pvalue_column",
+    "call_column",
+}
+
+
+@dataclass(frozen=True)
+class NormalizedBHInput:
+    alpha: str
+    table_path: str
+    id_column: str
+    raw_column: str
+    adjusted_column: str
+    call_column: str
+    source_ref: dict[str, Any]
 
 
 class DeclaredBHTableAdapter:
@@ -117,8 +146,24 @@ class DeclaredBHTableAdapter:
                 predicate="single_supported_adjustment_procedure",
                 detail="The selected report also names a multiplicity procedure outside this adapter.",
             )
-        path = match.group("path")
-        relative = PurePosixPath(path)
+        normalized = NormalizedBHInput(
+            alpha=match.group("alpha"),
+            table_path=match.group("path"),
+            id_column="test_id",
+            raw_column=match.group("raw"),
+            adjusted_column=match.group("adjusted"),
+            call_column=match.group("call"),
+            source_ref=declaration_source,
+        )
+        return self.inspect_normalized(context, normalized)
+
+    def inspect_normalized(
+        self,
+        context: CalculationContext,
+        normalized: NormalizedBHInput,
+    ) -> CalculationObservation:
+        declaration_source = normalized.source_ref
+        relative = PurePosixPath(normalized.table_path)
         if (
             relative.is_absolute()
             or ".." in relative.parts
@@ -145,15 +190,15 @@ class DeclaredBHTableAdapter:
         table = tables[0]
         source_refs = (declaration_source, table.source_ref)
         try:
-            alpha = _decimal(match.group("alpha"), "alpha")
+            alpha = _decimal(normalized.alpha, "alpha")
             if alpha <= 0 or alpha >= 1:
                 raise CalculationCheckContractError("alpha must be strictly between zero and one")
             rows = _parse_table(
                 table,
-                id_column="test_id",
-                raw_column=match.group("raw"),
-                adjusted_column=match.group("adjusted"),
-                call_column=match.group("call"),
+                id_column=normalized.id_column,
+                raw_column=normalized.raw_column,
+                adjusted_column=normalized.adjusted_column,
+                call_column=normalized.call_column,
             )
         except CalculationCheckContractError as error:
             return self._unsupported(
@@ -318,6 +363,44 @@ class DeclaredBHTableAdapter:
             ),
             lineage_status="incomplete",
             limitations=(detail, "No numerical disagreement was inferred."),
+        )
+
+
+class SelectedSidecarBHTableAdapter:
+    manifest = sidecar_adapter_manifest(
+        family="bh-complete-family",
+        implementation_digest=BH_ADAPTER_IMPLEMENTATION_DIGEST,
+    )
+
+    def __init__(self) -> None:
+        self._evaluator = DeclaredBHTableAdapter()
+
+    def inspect(self, context: CalculationContext) -> CalculationObservation | None:
+        sidecar = selected_sidecar_contract(context, check_id=BH_CHECK_ID)
+        if sidecar is None:
+            return None
+        value = sidecar.value
+        if set(value) != _SIDECAR_KEYS or any(
+            not isinstance(value.get(key), str) or not str(value[key]).strip()
+            for key in _SIDECAR_KEYS
+        ):
+            raise CalculationCheckContractError("BH sidecar contract keys must be exact strings")
+        if value["procedure"] != "benjamini_hochberg" or value["family"] != "complete":
+            raise CalculationCheckContractError(
+                "BH sidecar requires a complete benjamini_hochberg family"
+            )
+        normalized = NormalizedBHInput(
+            alpha=str(value["alpha"]).strip(),
+            table_path=str(value["table"]).strip(),
+            id_column=str(value["id_column"]).strip(),
+            raw_column=str(value["raw_pvalue_column"]).strip(),
+            adjusted_column=str(value["adjusted_pvalue_column"]).strip(),
+            call_column=str(value["call_column"]).strip(),
+            source_ref=sidecar.source_ref,
+        )
+        return with_sidecar_lineage(
+            self._evaluator.inspect_normalized(context, normalized),
+            sidecar,
         )
 
 

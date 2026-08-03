@@ -100,6 +100,57 @@ def test_oriented_donor_slope_detects_reported_sign_disagreement(
     assert any("eQTL direction differs" in item["title"] for item in bundle["disclosures"])
 
 
+def test_selected_sidecar_layout_normalizes_to_same_eqtl_sign_recompute(
+    schema_root: Path, tmp_path: Path
+) -> None:
+    workspace = tmp_path / "sidecar"
+    _workspace(workspace, effect=0.8)
+    (workspace / "report.md").write_text("# eQTL result\n", encoding="utf-8")
+    (workspace / "orientation.yaml").write_text(
+        "sc_referee_calculation_contracts: 1\n"
+        "contracts:\n"
+        "  - check_id: calculation-check:donor-eqtl-sign-v1\n"
+        "    contract:\n"
+        "      donor_table: donors.csv\n"
+        "      results_table: results.csv\n"
+        "      donor_id_column: donor\n"
+        "      genotype_column: dosage\n"
+        "      expression_column: expression\n"
+        "      result_feature_column: feature\n"
+        "      result_effect_column: effect\n"
+        "      variant_id: rs-test\n"
+        "      target_feature: GENE1\n"
+        "      variant_alleles: [A, G]\n"
+        "      dosage_counts_allele: A\n"
+        "      effect_allele: G\n"
+        "      dosage_ploidy: 2\n"
+        "      estimator: ols_with_intercept\n"
+        "      outcome_scale: log2_cpm_plus_1\n"
+        "      minimum_donors_per_supported_class: 3\n"
+        "      producer_binding: exact\n"
+        "      orientation_binding: exact\n",
+        encoding="utf-8",
+    )
+    bundle = run_audit(
+        workspace,
+        tmp_path / "sidecar-audit",
+        schema_root,
+        report="report.md",
+        material_inputs=("orientation.yaml", "donors.csv", "results.csv"),
+    )
+    observation = next(
+        item
+        for item in bundle["deterministic_check_observations"]
+        if item["check_manifest"]["check_id"] == "calculation-check:donor-eqtl-sign-v1"
+    )
+    assert observation["adapter_manifest"]["adapter_id"] == (
+        "calculation-adapter:selected-sidecar-donor-eqtl-sign-v1"
+    )
+    assert observation["comparison"]["outcome"] == "nonconformant"
+    assert _operand(observation, "recomputed_sign") == -1
+    assert _operand(observation, "donor_count") == 9
+
+
 def test_matching_reported_sign_is_corrected_twin(schema_root: Path, tmp_path: Path) -> None:
     workspace = tmp_path / "corrected"
     _workspace(workspace, effect=-0.8)

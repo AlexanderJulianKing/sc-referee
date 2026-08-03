@@ -184,3 +184,47 @@ def test_default_registry_contains_frozen_effect_size_module() -> None:
         "calculation-check:donor-eqtl-sign-v1",
         "calculation-check:hic-loop-strength-v1",
     ]
+
+
+def test_selected_sidecar_layout_normalizes_to_same_effect_summary(
+    schema_root: Path, tmp_path: Path
+) -> None:
+    workspace = tmp_path / "sidecar"
+    _workspace(workspace)
+    (workspace / "report.md").write_text("# Differential expression result\n", encoding="utf-8")
+    (workspace / "bindings.yml").write_text(
+        "sc_referee_calculation_contracts: 1\n"
+        "contracts:\n"
+        "  - check_id: calculation-check:effect-size-relevance-summary-v1\n"
+        "    contract:\n"
+        "      reported_table: results.csv\n"
+        "      feature_id_column: feature\n"
+        "      adjusted_p_column: padj\n"
+        "      effect_column: log2fc\n"
+        "      alpha: 0.05\n"
+        "      effect_threshold: 0.5\n"
+        "      effect_scale: log2_fold_change\n"
+        "      claim_semantics: biologically_relevant_discovery\n"
+        "      producer_binding: exact\n",
+        encoding="utf-8",
+    )
+
+    bundle = run_audit(
+        workspace,
+        tmp_path / "sidecar-audit",
+        schema_root,
+        report="report.md",
+        material_inputs=("bindings.yml", "results.csv"),
+    )
+    observation = next(
+        item
+        for item in bundle["deterministic_check_observations"]
+        if item["check_manifest"]["check_id"]
+        == "calculation-check:effect-size-relevance-summary-v1"
+    )
+    assert observation["adapter_manifest"]["adapter_id"] == (
+        "calculation-adapter:selected-sidecar-effect-size-summary-v1"
+    )
+    assert observation["comparison"]["outcome"] == "nonconformant"
+    assert _operand(observation, "significant_discoveries") == 3
+    assert _operand(observation, "below_threshold_discoveries") == 2
