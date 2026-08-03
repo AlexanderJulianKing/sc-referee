@@ -55,7 +55,7 @@ def test_every_active_module_has_the_exact_l03_baseline(project_root: Path) -> N
 
     assert projection["requirements_version"] == MODULE_BASELINE_REQUIREMENTS_VERSION
     assert projection["complete"] is True
-    assert len(projection["modules"]) == 26
+    assert len(projection["modules"]) == 27
     assert all(module["complete"] is True for module in projection["modules"])
     assert all(
         requirement["case_ids"]

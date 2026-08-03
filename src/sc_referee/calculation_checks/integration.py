@@ -598,6 +598,16 @@ def compile_calculation_records(
                     f"{operands['absolute_error']} exceeds the declared tolerance "
                     f"{operands['reported_delta_tolerance']}."
                 )
+            elif check_id == "calculation-check:selected-sequence-record-boundary-v1":
+                title = "Selected parser includes a non-sequence record line"
+                description = (
+                    f"The exact selected record {operands['record_path']} has an "
+                    "amino-acid-alphabet-only value on line 1 and non-FASTA-header text containing "
+                    "a character outside that alphabet on line 2. The uniquely path-bound closed "
+                    f"join shape at {operands['source_path']}:"
+                    f"{operands['join_start_line']} includes every nonempty or non-FASTA-header "
+                    "line, so the second line enters the constructed value."
+                )
             else:
                 title = "Declared BH outputs differ from bounded recomputation"
                 description = (

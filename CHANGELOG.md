@@ -2,6 +2,14 @@
 
 ## 0.3.0
 
+- Accepted ADR-0057 after Experiment 0048 observed the same two-line sequence-record parsing
+  boundary in three independent answer-isolated author attempts and a fresh corrected control.
+  Calculation profile v12 adds one general selected-material, inert-Python-AST check with exact
+  direct or single-call path binding. Its strongest output is a Disclosure that a non-FASTA-header
+  second line enters the constructed value; corrected, sequence-only, FASTA, wrong-path,
+  validated, ambiguous, unsupported, removal, mutation, execution-trap, and replay controls retain
+  zero Findings. The grammar contains no ScienceAgentBench filenames, answer keys, model judgment,
+  project execution, downstream-effect claim, qualification, or schema change.
 - Completed the public direct-CLI question workflow, added a worked conservative result
   interpretation, corrected the contributor schema authority pointer to v0.18.0, narrowed plugin
   method-contract copy to the one supported expected-count/background profile, and made the

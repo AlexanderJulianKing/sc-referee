@@ -471,6 +471,21 @@ before physical access and between chunks. A malformed or over-budget input is e
 calculation authority, so its adapter can only abstain or return unsupported. Replay consumes the
 locked result and does not reopen or execute the project.
 
+Accepted ADR-0057 and calculation registry profile v12 add one independent, Disclosure-only
+selected record-boundary family. It inspects only exact selected material: one bounded strict-UTF-8
+two-line record and selected `.py` source. The record grammar requires an amino-acid-alphabet-only
+first line and a non-FASTA-header second line containing text outside that alphabet. The inert AST
+grammar requires one empty-string join over the selected record's split lines and an exact direct
+or single-call path flow from that record to the read. Merely mentioning the filename does not
+bind the source.
+
+The check records the exact two record lines, exact join span, typed operands, finite receipts, and
+limitations. A unique path-bound join can produce only a non-accusatory Disclosure; competing
+pairs are ambiguous, a unique selected Python parse failure is unsupported, and corrected,
+validated, FASTA, sequence-only, dynamic, or unbound forms abstain. It does not establish that the
+first line is biologically meaningful, that the code ran, or that any downstream result changed.
+It has no model, benchmark identity, qualification, Finding permission, or schema change.
+
 ## Bounded H5AD read receipts
 
 Accepted ADR-0053 extends the existing exact selected-H5AD structural inventory from dense integer

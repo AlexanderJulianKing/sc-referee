@@ -2,6 +2,13 @@
 
 ## Ready now
 
+- Accepted ADR-0057 and Experiment 0048 add a ninth deterministic calculation family for one
+  selected two-line record/Python parser boundary. Exact selected bytes, a unique inert-AST join,
+  and exact path flow can produce a Disclosure that line 2 enters the constructed value. Corrected,
+  FASTA, all-sequence, wrong-path, validated, ambiguous, unsupported, removal, mutation,
+  no-execution, and replay controls preserve zero Findings. The grammar contains no benchmark
+  identity or answer authority and does not establish execution, downstream impact, biological
+  meaning, qualification, or broad sequence-format support.
 - Accepted ADR-0044 and Experiment 0029 add a generic non-executing calculation-check registry,
   typed schema-v0.18 observation, and one bounded complete-family BH adapter. Its mismatch,
   corrected twin, single-primary hard negative, and incomplete-family ambiguity pass ordinary

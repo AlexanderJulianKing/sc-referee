@@ -1057,6 +1057,15 @@ Proceed in this order:
     starter/schema validation, the 121-case regression ledger with all 26 module baselines, and the
     complete clean-wheel handoff verifier. Parquet/Arrow, Zarr, and larger physical files remain
     unsupported pending concrete corpus demand.
+16. ✅ Experiment 0048 and accepted ADR-0057 complete one L11 recurrence-driven development loop.
+    Three independent fresh authors repeated the same two-line record-boundary mistake, and a
+    separately authored corrected control selected line 1 while retaining line 2 as its label.
+    Calculation profile v12 adds one general, selected-material, inert-Python-AST check requiring
+    exact direct or single-call path flow into a unique join. It emits a Disclosure only; FASTA,
+    all-sequence, corrected, wrong-path, validated, ambiguous, unsupported, removal, mutation,
+    no-execution, and replay controls preserve zero Findings. Benchmark identities and answer-side
+    material are absent from the grammar. Dynamic/multi-call flow and broad sequence formats remain
+    unsupported, and the development cases are qualification-ineligible.
 
 Further Python lineage profiles are justified only when they unblock a named detector premise or
 real validation case. Branches, DAGs, dynamic runtime semantics, and over-budget calculations remain
