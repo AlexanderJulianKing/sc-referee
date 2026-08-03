@@ -230,7 +230,7 @@
   <h2>Material questions</h2>
   {% for item in bundle.material_questions %}
   {% set question_extensions = item.extensions if item.extensions is defined else {} %}
-  {% set is_scientific_check = question_extensions['x-scientific-check-id'] is defined %}
+  {% set is_scientific_check = question_extensions['x-scientific-check-id'] is defined and question_extensions['x-posthoc-reported-assertion-ids'] is defined %}
   <article class="card" id="question-{{ item.question_id|replace(':', '-') }}"><h3>{{ item.question }}</h3><p>{{ item.why_it_matters }}</p>
     <p><strong>Status:</strong> {{ item.status|replace('_', ' ') }}. <strong>Priority:</strong> {{ item.priority }}</p>
     {% if is_scientific_check %}

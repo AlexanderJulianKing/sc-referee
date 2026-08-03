@@ -10,6 +10,7 @@ from sc_referee.posthoc_method_ledger import (
     PosthocMethodLedgerError,
     project_analysis_posthoc_method_ledger,
 )
+from sc_referee.review_case import ReviewCase, review_gates_from_counterevidence
 from sc_referee.scientific_checks.core import MethodConflictBinding
 from sc_referee.version import SCHEMA_VERSION, __version__
 
@@ -22,7 +23,7 @@ class BoundedAnalysisMethodConflictDetector:
     """Evaluate registered exact analysis-scoped report/source method conflicts."""
 
     detector_id = "detector:bounded-analysis-method-conflict"
-    detector_version = "0.2.0"
+    detector_version = "0.3.0"
     entry_point = (
         "sc_referee.detectors.bounded_analysis_method_conflict:"
         "BoundedAnalysisMethodConflictDetector"
@@ -199,6 +200,34 @@ class BoundedAnalysisMethodConflictDetector:
             self.check_ids,
             binding,
         )
+        applicability_gates, counterevidence_gates = review_gates_from_counterevidence(checks)
+        review_case = ReviewCase(
+            case_family="analysis_method_requirement_consistency",
+            case_version="1.0.0",
+            target_ref=deepcopy(subject_ref),
+            requirement=deepcopy(ledger.get("requirement")),
+            observed_operand=deepcopy(ledger.get("observed")),
+            comparison_form=comparison_form,
+            analysis_binding={
+                "binding_id": binding.binding_id,
+                "contract_id": str(contracts[0]["contract_id"]),
+                "scientific_check_id": binding.check_id,
+                "scope_join_path": deepcopy(list(scope_path)),
+                "scope_join_digest": scope_digest,
+            },
+            evidence_planes=tuple(binding.required_evidence_planes),
+            applicability_gates=applicability_gates,
+            counterevidence_gates=counterevidence_gates,
+            affected_descendant_refs=(),
+            unresolved_dimensions=(str(dimension),) if suppressors else (),
+            unsupported_constructs=(),
+            output_ceiling="evaluation_candidate",
+        )
+        review_case_extensions = {
+            "x-posthoc-method-ledger-digest": ledger["ledger_digest"],
+            "x-review-case-profile": "analysis_method_requirement_consistency:1.0.0",
+            "x-review-case-digest": review_case.review_case_digest,
+        }
         ledger_evidence = {
             "evidence_id": "evidence:analysis-method-ledger",
             "description": (
@@ -276,7 +305,7 @@ class BoundedAnalysisMethodConflictDetector:
                 evidence=evidence,
                 checks=checks,
                 gaps=suppressors,
-                extra_extensions={"x-posthoc-method-ledger-digest": ledger["ledger_digest"]},
+                extra_extensions=review_case_extensions,
             )
 
         basis = (
@@ -294,7 +323,7 @@ class BoundedAnalysisMethodConflictDetector:
                 evidence=evidence,
                 checks=checks,
                 gaps=[],
-                extra_extensions={"x-posthoc-method-ledger-digest": ledger["ledger_digest"]},
+                extra_extensions=review_case_extensions,
             )
         if outcome != "exact_conflict_candidate":
             problem = f"The closed ledger outcome is {outcome}; no exact conflict is established."
@@ -308,7 +337,7 @@ class BoundedAnalysisMethodConflictDetector:
                 evidence=evidence,
                 checks=checks,
                 gaps=[problem],
-                extra_extensions={"x-posthoc-method-ledger-digest": ledger["ledger_digest"]},
+                extra_extensions=review_case_extensions,
             )
 
         candidate = {
@@ -337,7 +366,7 @@ class BoundedAnalysisMethodConflictDetector:
             checks=checks,
             gaps=[],
             candidate=candidate,
-            extra_extensions={"x-posthoc-method-ledger-digest": ledger["ledger_digest"]},
+            extra_extensions=review_case_extensions,
         )
 
     def _work_packet(

@@ -105,33 +105,51 @@ def scientific_check_release_registry() -> ScientificCheckRegistry:
     """Construct the complete content-addressed registry before release-manifest verification."""
 
     modules = _scientific_check_release_modules()
-    founder = next(
-        module
-        for module in modules
-        if module.manifest.check_id == "check:founder-orientation-before-hmm-emission"
-    )
     detector_manifest = _method_conflict_detector_manifest()
-    binding = MethodConflictBinding(
-        binding_id="method-conflict-binding:founder-orientation-before-hmm-emission-v1",
-        check_id=founder.manifest.check_id,
-        check_version=founder.manifest.check_version,
-        check_manifest_digest=founder.manifest.manifest_digest,
+    substantive_modules = modules[:-1]
+    bindings = tuple(
+        _method_conflict_binding(module, detector_manifest) for module in substantive_modules
+    )
+    return ScientificCheckRegistry(modules, method_conflict_bindings=bindings)
+
+
+def _method_conflict_binding(
+    module: ScientificCheckModule, detector_manifest: Mapping[str, Any]
+) -> MethodConflictBinding:
+    manifest = module.manifest
+    operand_kinds = {candidate.operand.kind for candidate in manifest.requirement_candidates}
+    if len(operand_kinds) != 1:
+        raise RegistryValidationError(
+            f"scientific check has mixed requirement operand kinds: {manifest.check_id}"
+        )
+    evidence_planes = tuple(
+        sorted({adapter.evidence_plane for adapter in module.adapter_manifests})
+    )
+    assertion_roles = tuple(
+        sorted(
+            {"reported" if plane == "reported_text" else "observed" for plane in evidence_planes}
+        )
+    )
+    return MethodConflictBinding(
+        binding_id=(f"method-conflict-binding:{manifest.check_id.removeprefix('check:')}-v1"),
+        check_id=manifest.check_id,
+        check_version=manifest.check_version,
+        check_manifest_digest=manifest.manifest_digest,
         detector_id=str(detector_manifest["detector_id"]),
         detector_version=str(detector_manifest["detector_version"]),
         detector_manifest_digest=semantic_digest(detector_manifest),
-        dimension=founder.manifest.dimension,
-        comparison_form=founder.manifest.comparison_form,
-        operand_kind="canonical_scalar",
-        required_evidence_planes=("reported_text", "static_source"),
-        required_semantic_roles=founder.manifest.semantic_roles,
-        required_assertion_roles=("reported", "observed"),
+        dimension=manifest.dimension,
+        comparison_form=manifest.comparison_form,
+        operand_kind=next(iter(operand_kinds)),
+        required_evidence_planes=evidence_planes,
+        required_semantic_roles=manifest.semantic_roles,
+        required_assertion_roles=assertion_roles,
         counterevidence_predicates=(
             "approved_method_deviation",
             "governing_protocol_amendment",
             "method_obligation_applicability",
         ),
     )
-    return ScientificCheckRegistry(modules, method_conflict_bindings=(binding,))
 
 
 def _scientific_check_release_modules() -> tuple[ScientificCheckModule, ...]:
@@ -274,7 +292,7 @@ def _method_conflict_detector_manifest() -> Mapping[str, Any]:
     manifest = matches[0]
     if (
         manifest.get("record_type") != "detector_manifest"
-        or manifest.get("detector_version") != "0.2.0"
+        or manifest.get("detector_version") != "0.3.0"
         or manifest.get("maturity") != "experimental"
         or "finding" in manifest.get("permitted_output_types", [])
     ):

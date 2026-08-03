@@ -12,6 +12,30 @@ from sc_referee.version import SCHEMA_VERSION, __version__
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_ROOT = ROOT / "src" / "sc_referee" / "resources" / "capability-manifests-v1"
 GENERATED_AT = "2026-07-30T00:00:00Z"
+ANALYSIS_METHOD_CONFLICT_CHECK_IDS = sorted(
+    [
+        "check:full-map-ancestry-exposure",
+        "check:casrx-isoform-axis-model",
+        "check:classifier-derived-copy-dosage-representation",
+        "check:direct-standardization-conditioning-set",
+        "check:directional-measurement-error-interpretation",
+        "check:expected-count-background-construction",
+        "check:expected-count-focal-target-handling",
+        "check:founder-orientation-before-hmm-emission",
+        "check:ld-covariance-whitening-before-robust-fit",
+        "check:local-perturbation-primary-row-scope",
+        "check:local-perturbation-regression-specification",
+        "check:mvmr-cross-exposure-covariance",
+        "check:mvmr-residual-heterogeneity-estimator",
+        "check:paired-bridge-location-alignment",
+        "check:phase-split-mvmr-instrument-construction",
+        "check:poststratified-misclassification-estimator",
+        "check:posttreatment-missingness-strategy",
+        "check:recoverable-technical-group-adjustment",
+        "check:somatic-clonality-representation",
+        "check:within-sequence-transition-path-continuity",
+    ]
+)
 
 
 def _load(name: str) -> dict[str, Any]:
@@ -593,25 +617,25 @@ def main() -> None:
             ],
             "coverage_contract": {
                 "covered_when": (
-                    "One exact human review requirement and identical selected-report/static-source "
-                    "operands resolve through the full-digest selected-output graph, and all ten "
-                    "finite checks complete without a suppressor."
+                    "One exact human review requirement and every binding-required evidence-plane "
+                    "operand resolve through the exact selected-analysis scope, and all ten finite "
+                    "checks complete without a suppressor."
                 ),
                 "not_covered_when": (
                     "Any authority, uniqueness, corroboration, scope, identity, or finite-check "
                     "prerequisite is unavailable or unsupported."
                 ),
                 "partially_covered_when": (
-                    "Not used by version 0.2.0; incomplete or conflicted records remain not covered."
+                    "Not used by version 0.3.0; incomplete or conflicted records remain not covered."
                 ),
             },
             "description": (
                 "Compares one scope-bound human review requirement with identical operands from "
-                "the selected report and its exact statically connected source writer."
+                "the evidence planes explicitly required by each content-addressed binding."
             ),
             "detector_family": "analysis_method_requirement_consistency",
             "detector_id": "detector:bounded-analysis-method-conflict",
-            "detector_version": "0.2.0",
+            "detector_version": "0.3.0",
             "domains": ["domain_neutral_scientific_analysis"],
             "extensions": {
                 "x-adr-ref": (
@@ -619,7 +643,7 @@ def main() -> None:
                 ),
                 "x-implementation-resource": ("detectors/bounded_analysis_method_conflict.py"),
                 "x-production-finding-permitted": False,
-                "x-scientific-check-ids": ["check:founder-orientation-before-hmm-emission"],
+                "x-scientific-check-ids": ANALYSIS_METHOD_CONFLICT_CHECK_IDS,
             },
             "implementation": {
                 "deterministic": True,
@@ -630,7 +654,7 @@ def main() -> None:
                 "implementation_digest": sha256_digest(analysis_conflict_resource.read_bytes()),
             },
             "issue_classes": ["x-review-scoped-analysis-method-requirement-mismatch"],
-            "languages": ["markdown", "python"],
+            "languages": ["markdown", "python", "r", "r_markdown"],
             "limitations": [
                 "Experimental output cannot become a production Finding.",
                 "Only scientific checks explicitly present in the content-addressed release binding registry are covered.",
@@ -652,8 +676,8 @@ def main() -> None:
             "required_evidence": [
                 "one exact answered analysis-scoped MaterialQuestion",
                 "one scope-bound human Answer and controller-verified requirement",
-                "one selected-report operand and one corroborating static-source operand",
-                "one full-digest file-to-writer-to-report-to-publication-surface graph",
+                "one exact operand from every evidence plane declared by the registered binding",
+                "one exact selected-analysis scope graph appropriate to those evidence planes",
                 "ten completed finite counterevidence checks",
             ],
             "schema_version": SCHEMA_VERSION,

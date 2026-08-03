@@ -23,6 +23,18 @@ from sc_referee.method_contracts import (
 from sc_referee.records.normalization import write_normalized_json
 from sc_referee.records.observed import build_file_records, controller_provenance, typed_ref
 from sc_referee.records.schema_registry import LocalSchemaRegistry
+from sc_referee.scientific_checks.registry import ScientificCheckRegistry
+from sc_referee.scientific_requirement_contract import (
+    SCIENTIFIC_REQUIREMENT_PROFILE_ID,
+    ScientificRequirementContractError,
+    bind_scientific_requirement_to_audit,
+    build_scientific_requirement_records,
+    is_scientific_requirement_profile,
+    resolve_scientific_requirement_profile,
+    resolved_scientific_requirement_from_lock_profile,
+    scientific_requirement_lock_profile,
+    verify_parent_scientific_requirement,
+)
 from sc_referee.snapshot.repository import capture_repository
 from sc_referee.storage.jsonl import JsonlRecordStore
 from sc_referee.storage.layout import AuditLayout
@@ -47,18 +59,31 @@ def run_method_contract(
     actor_id: str | None = None,
     created_at: str | None = None,
 ) -> dict[str, Any]:
-    """Freeze one claimless analysis-level expected-count method contract."""
+    """Freeze one claimless analysis-level method contract."""
 
     if output.exists() or output.is_symlink():
         raise FileExistsError(f"method-contract output already exists: {output}")
     task_path = _normalize_task_path(task)
-    normalized_profile = validate_expected_count_profile(profile) if profile is not None else None
+    scientific_requirement = (
+        resolve_scientific_requirement_profile(profile)
+        if is_scientific_requirement_profile(profile)
+        else None
+    )
+    normalized_profile = (
+        None
+        if scientific_requirement is not None
+        else validate_expected_count_profile(profile)
+        if profile is not None
+        else None
+    )
     normalized_actor = actor_id.strip() if isinstance(actor_id, str) else ""
-    if normalized_profile is not None and not normalized_actor:
+    if (
+        normalized_profile is not None or scientific_requirement is not None
+    ) and not normalized_actor:
         raise MethodContractRunError(
             "actor_id must identify the scientist who supplied the governing profile"
         )
-    if normalized_profile is None and normalized_actor:
+    if normalized_profile is None and scientific_requirement is None and normalized_actor:
         raise MethodContractRunError("actor_id is accepted only with a complete profile")
 
     timestamp = created_at or _timestamp_now()
@@ -91,16 +116,36 @@ def run_method_contract(
         task_path, file_records, snapshot.asset_identity_records
     )
     source_ref = _task_source_ref(task_record, task_identity)
-    records = _build_claimless_records(
-        run_id=run_id,
-        created_at=timestamp,
-        snapshot_digest=str(snapshot.snapshot_record["snapshot_digest"]),
-        task_record=task_record,
-        task_source_ref=source_ref,
-        profile=normalized_profile,
-        actor_id=normalized_actor or None,
-        files_total=len(file_records),
-    )
+    if scientific_requirement is not None:
+        assert normalized_actor
+        records = build_scientific_requirement_records(
+            run_id=run_id,
+            created_at=timestamp,
+            snapshot_digest=str(snapshot.snapshot_record["snapshot_digest"]),
+            task_record=task_record,
+            task_source_ref=source_ref,
+            resolved=scientific_requirement,
+            actor_id=normalized_actor,
+            files_total=len(file_records),
+        )
+        lock_profile = scientific_requirement_lock_profile(scientific_requirement)
+    else:
+        records = _build_claimless_records(
+            run_id=run_id,
+            created_at=timestamp,
+            snapshot_digest=str(snapshot.snapshot_record["snapshot_digest"]),
+            task_record=task_record,
+            task_source_ref=source_ref,
+            profile=normalized_profile,
+            actor_id=normalized_actor or None,
+            files_total=len(file_records),
+        )
+        lock_profile = {
+            "profile_id": EXPECTED_COUNT_PROFILE_ID,
+            "profile_version": EXPECTED_COUNT_PROFILE_VERSION,
+            "profile_manifest_digest": semantic_digest(EXPECTED_COUNT_PROFILE_MANIFEST),
+            "resolution_status": "resolved" if normalized_profile is not None else "unresolved",
+        }
     locked: dict[str, Any] = {
         "lock_kind": METHOD_CONTRACT_LOCK_KIND,
         "lock_version": METHOD_CONTRACT_LOCK_VERSION,
@@ -120,12 +165,7 @@ def run_method_contract(
         "material_questions": [records["question"]],
         "answers": records["answers"],
         "disclosures": [records["disclosure"]],
-        "method_contract_profile": {
-            "profile_id": EXPECTED_COUNT_PROFILE_ID,
-            "profile_version": EXPECTED_COUNT_PROFILE_VERSION,
-            "profile_manifest_digest": semantic_digest(EXPECTED_COUNT_PROFILE_MANIFEST),
-            "resolution_status": "resolved" if normalized_profile is not None else "unresolved",
-        },
+        "method_contract_profile": lock_profile,
         "coverage_inputs": records["coverage_inputs"],
     }
     locked["semantic_lock_digest"] = semantic_digest(locked)
@@ -218,6 +258,9 @@ def bind_frozen_method_contract(
     claims: list[dict[str, Any]],
     contracts: list[dict[str, Any]],
     assertions: list[dict[str, Any]],
+    questions: list[dict[str, Any]],
+    answers: list[dict[str, Any]],
+    scientific_check_registry: ScientificCheckRegistry,
     run_id: str,
     created_at: str,
 ) -> dict[str, Any]:
@@ -225,6 +268,36 @@ def bind_frozen_method_contract(
 
     parent = _read_lock(lock_path)
     registry = LocalSchemaRegistry(schema_root)
+    profile_record = parent.get("method_contract_profile")
+    if (
+        isinstance(profile_record, Mapping)
+        and profile_record.get("profile_id") == SCIENTIFIC_REQUIREMENT_PROFILE_ID
+    ):
+        parent_contract, resolved_requirement, _, parent_answer = (
+            verify_parent_scientific_requirement(parent, registry)
+        )
+        current_source_ref = _verify_current_task_identity(
+            parent_contract,
+            parent,
+            file_records,
+            asset_identities,
+        )
+        return bind_scientific_requirement_to_audit(
+            parent=parent,
+            parent_contract=parent_contract,
+            resolved=resolved_requirement,
+            parent_answer=parent_answer,
+            current_source_ref=current_source_ref,
+            snapshot_record=snapshot_record,
+            questions=questions,
+            answers=answers,
+            contracts=contracts,
+            assertions=assertions,
+            active_registry=scientific_check_registry,
+            schema_registry=registry,
+            run_id=run_id,
+            created_at=created_at,
+        )
     parent_contract, parent_profile, parent_assertions, parent_answer = (
         _verified_resolved_parent_contract(parent, registry)
     )
@@ -694,6 +767,11 @@ def _method_contract_coverage(
 ) -> dict[str, Any]:
     inputs = _mapping(locked.get("coverage_inputs"), "method-contract coverage inputs")
     resolved = inputs.get("resolved") is True
+    profile_id = str(inputs.get("profile_id", EXPECTED_COUNT_PROFILE_ID))
+    resolved_dimensions = inputs.get("resolved_dimensions")
+    if not isinstance(resolved_dimensions, list):
+        resolved_dimensions = list(EXPECTED_COUNT_REQUIRED_DIMENSIONS)
+    scope_description = str(inputs.get("scope_description", "six expected-count method dimensions"))
     zero_grade = {
         dimension: {
             "complete": 0,
@@ -758,7 +836,11 @@ def _method_contract_coverage(
         ],
         "detector_coverage": [
             {
-                "detector_id": "detector:bounded-reported-method-contract-conflict",
+                "detector_id": (
+                    "detector:bounded-analysis-method-conflict"
+                    if profile_id == SCIENTIFIC_REQUIREMENT_PROFILE_ID
+                    else "detector:bounded-reported-method-contract-conflict"
+                ),
                 "status": "not_applicable",
                 "targets_total": 0,
                 "targets_evaluated": 0,
@@ -776,10 +858,10 @@ def _method_contract_coverage(
         ],
         "known_gaps": [
             (
-                "Only six expected-count method dimensions are frozen; the other eleven "
-                "ScientificContract dimensions remain unknown."
+                f"Only {scope_description} is frozen; all unrelated ScientificContract "
+                "dimensions remain unknown."
                 if resolved
-                else "The six expected-count method dimensions remain unresolved."
+                else f"The supported dimensions remain unresolved: {resolved_dimensions}."
             ),
             "No Claim, publication surface, result, computation, or execution was created or inspected.",
         ],
@@ -797,9 +879,7 @@ def _method_contract_coverage(
             "x-run-state": "complete",
             "x-termination-reason": "completed",
             "x-pending-work": (
-                []
-                if resolved
-                else ["Obtain a human-authorized complete expected-count method profile."]
+                [] if resolved else ["Obtain a human-authorized complete supported method profile."]
             ),
             "x-deeply-inspected-paths": [str(inputs["task_path"])],
             "x-uninspected-path-policy": (
@@ -987,9 +1067,14 @@ def _verify_lock_envelope(locked: Mapping[str, Any]) -> None:
     ):
         raise MethodContractRunError("method-contract lock violates its claimless boundary")
     profile = locked.get("method_contract_profile")
-    if not isinstance(profile, Mapping) or profile.get("profile_manifest_digest") != (
-        semantic_digest(EXPECTED_COUNT_PROFILE_MANIFEST)
-    ):
+    if not isinstance(profile, Mapping):
+        raise MethodContractRunError("method-contract profile manifest identity mismatch")
+    if profile.get("profile_id") == SCIENTIFIC_REQUIREMENT_PROFILE_ID:
+        try:
+            resolved_scientific_requirement_from_lock_profile(profile)
+        except ScientificRequirementContractError as error:
+            raise MethodContractRunError(str(error)) from error
+    elif profile.get("profile_manifest_digest") != semantic_digest(EXPECTED_COUNT_PROFILE_MANIFEST):
         raise MethodContractRunError("method-contract profile manifest identity mismatch")
 
 

@@ -76,7 +76,8 @@ inputs, preserve human questions, and report the records without exaggeration.
 This repository contains:
 
 - `scientific-audit` for post-hoc review of an existing workflow; and
-- `method-contract` for freezing one narrow scientist-authorized method choice before coding.
+- `method-contract` for freezing either the closed expected-count profile or one atomic,
+  registry-published scientist-authorized requirement before coding.
 
 The skills are distributed in a validated Codex plugin under `plugins/sc-referee`. A repo
 marketplace is included for local installation. See [agentic skill setup](docs/AGENTIC_SKILL.md)

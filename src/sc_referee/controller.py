@@ -819,6 +819,7 @@ def run_audit(
             publication_artifacts,
             explicit_report=report,
         )
+        answers: list[dict[str, Any]] = []
         scope_selection_build = build_scope_selection_contracts(
             run_id=run_id,
             created_at=created_at,
@@ -1018,6 +1019,9 @@ def run_audit(
                 claims=claims,
                 contracts=scientific_contracts,
                 assertions=semantic_assertions,
+                questions=questions,
+                answers=answers,
+                scientific_check_registry=active_scientific_checks,
                 run_id=run_id,
                 created_at=created_at,
             )
@@ -1052,6 +1056,7 @@ def run_audit(
             *scientific_contracts,
             *semantic_assertions,
             *questions,
+            *answers,
             *calculation_observations,
         ]:
             validator.validate(record)
@@ -1162,6 +1167,7 @@ def run_audit(
             ],
             "publication_surfaces": [publication_surface],
             "material_questions": questions,
+            "answers": answers,
             "disclosures": disclosures,
             "cache_entries": cache_entries,
             "cache_policies": [parser_cache.cache_policy],

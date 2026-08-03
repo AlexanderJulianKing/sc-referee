@@ -80,7 +80,7 @@ def _method_binding(project_root: Path) -> tuple[dict[str, Any], dict[str, str]]
         binding.get("detector_id") != DETECTOR_ID
         or binding.get("detector_version") != DETECTOR_VERSION
     ):
-        raise ValueError("Qualification binding targets a different detector identity.")
+        raise ValueError("The frozen qualification binding has drifted: detector identity.")
     adapter = FounderOrientationQualificationAdapter()
     binding["qualification_adapter"] = {
         "adapter_id": adapter.adapter_id,

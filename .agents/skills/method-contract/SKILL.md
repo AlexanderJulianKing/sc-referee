@@ -1,6 +1,6 @@
 ---
 name: method-contract
-description: Freeze a narrow, human-authorized scientific method contract before an agent implements an analysis, then bind that immutable contract to a later sc-referee audit. Use when a user asks a coding agent to build or overhaul a scientific workflow whose expected-count or background definition must be decided explicitly before code or results exist. Do not use for post-hoc repository auditing, ordinary statistical advice, or letting an agent approve its own method choice.
+description: Freeze a narrow, human-authorized scientific method contract before an agent implements an analysis, then bind that immutable contract to a later sc-referee audit. Use when a user asks a coding agent to build or overhaul a scientific workflow and one registered scientific requirement must be decided explicitly before code or results exist. Do not use for post-hoc repository auditing, ordinary statistical advice, or letting an agent approve its own method choice.
 ---
 
 # Method Contract
@@ -17,7 +17,13 @@ creating or checking the contract.
    `.venv/bin/sc-referee`. Do not install dependencies or run project setup code automatically.
 3. Select a new absent output directory under
    `<project>/.scientific-audit/method-contracts/<unique-name>`. Never overwrite a prior run.
-4. If no scientist has supplied a complete `expected_count_background_v1` profile, run:
+4. Choose one of the two closed profile families. Use `expected_count_background_v1` for its
+   six-field expected-count/background contract. Use `scientific_check_requirement_v1` for one
+   atomic option already published by an installed scientific check. Read
+   [expected-count-profile.md](references/expected-count-profile.md) or
+   [scientific-check-requirement.md](references/scientific-check-requirement.md), respectively.
+   Never infer the family, check, or candidate from the implementation.
+5. If the scientist has not supplied a complete supported profile, run:
 
    ```text
    sc-referee method-contract <project-root> --task <relative-task-path> \
@@ -28,10 +34,9 @@ creating or checking the contract.
 
    Present the exact open `MaterialQuestion`. Do not choose an estimator, covariate, exclusion,
    grouping rule, or resolution yourself. The coding agent's proposal is not governing authority.
-5. When the scientist explicitly supplies every supported field, serialize only those supplied
-   values as the closed JSON object described in
-   [expected-count-profile.md](references/expected-count-profile.md). Require a stable scientist
-   identifier and run a new claimless contract:
+6. When the scientist explicitly supplies a complete supported profile, serialize only those
+   supplied values as the exact closed JSON object. Require a stable scientist identifier and run
+   a new claimless contract:
 
    ```text
    sc-referee method-contract <project-root> --task <relative-task-path> \
@@ -42,13 +47,13 @@ creating or checking the contract.
 
    Never translate the agent's preferred method into a scientist Answer. If the user cannot
    resolve a field, keep the unresolved contract instead of inventing a default.
-6. Read `audit.bundle.json` and confirm all of the following before coding:
+7. Read `audit.bundle.json` and confirm all of the following before coding:
 
    - `claims` and `publication_surfaces` are empty;
    - the contract scope is `analysis` and names the exact task `FileRecord`;
    - `x-method-profile-resolution-status` is `resolved`;
-   - six human declarations remain Finding-ineligible;
-   - six separate controller derivations are eligible and exact;
+   - human declarations remain Finding-ineligible;
+   - separate controller derivations are exact and limited to the selected profile;
    - every other ScientificContract dimension remains unknown; and
    - `model_calls` is empty, `model_access_after_lock` is false, and project execution is false.
 
@@ -72,9 +77,12 @@ sc-referee audit <project-root> --report <relative-report-path> \
 sc-referee status <new-audit-output> --json
 ```
 
-The bind is valid only when the parent lock, Answer, closed profile, and governing task identity all
-verify exactly. It creates Claim-scoped derived intent assertions and sets
-`scope.parent_contract_id`; it does not import model confidence or establish execution.
+The bind is valid only when the parent lock, Answer, closed profile, governing task identity, and
+active registry identities verify exactly. An expected-count contract creates Claim-scoped intent.
+An atomic scientific-check contract automatically answers only the one matching current
+analysis-scoped question with a `prior_scientist_record`; it does not require post-audit human
+rescue. A nonapplicable check remains a clean abstention. Neither path imports model confidence or
+establishes execution.
 
 Interpret `evaluation_finding_candidate` only as an experimental exact conflict between frozen
 governing intent and supported reported wording. It is not a Finding and does not show that code

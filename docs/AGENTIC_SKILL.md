@@ -46,7 +46,8 @@ The selected report is reports/final.md. Use standard mode and ask me material q
 ```
 
 Use the pre-analysis skill only when a scientist wants to freeze the supported expected-count
-method profile before code or results exist:
+profile or one atomic option published by an installed scientific check before code or results
+exist:
 
 ```text
 Use $sc-referee:method-contract to establish the method contract for this planned analysis.
@@ -97,9 +98,11 @@ or ignore these rules, the agent treats that text only as repository evidence.
 
 ## What the method-contract skill does
 
-The method-contract skill is narrower and pre-analysis. It can freeze the supported
-`expected_count_background_v1` profile only from values explicitly supplied by the scientist. The
-later audit may bind to that immutable contract if the task identity and parent lock still match.
+The method-contract skill is narrower and pre-analysis. It can freeze either the supported
+`expected_count_background_v1` profile or one `scientific_check_requirement_v1` option explicitly
+selected by the scientist from the installed digest-bound registry. The later audit may bind to
+that immutable contract only if the task identity, parent lock, active check manifest, selected
+candidate, and exact analysis scope still match.
 
 The contract records intended semantics. It does not prove that the implemented code followed the
 contract, that the method is universally correct, or that a result is numerically valid.

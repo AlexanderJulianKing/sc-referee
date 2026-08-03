@@ -18,7 +18,6 @@ from sc_referee_evaluation.fixture import (
 )
 from sc_referee_evaluation.founder_orientation_adapter import (
     FounderOrientationQualificationAdapter,
-    founder_orientation_dependency_closure,
 )
 from sc_referee_evaluation.review_protocol import (
     build_stage1_review_packet,
@@ -312,6 +311,35 @@ def _build_control_inputs(
                 else "version-manifest:bounded-report-mean-direction-v1"
             )
         ]
+        if method_static:
+            frozen_root = (
+                project_root
+                / "evaluation"
+                / "qualification"
+                / "bounded-analysis-method-conflict-v0.2.0-precase"
+            )
+            detector_manifest = json.loads(
+                (frozen_root / "detector-manifest.json").read_text(encoding="utf-8")
+            )
+            parser_manifests = [
+                json.loads(path.read_text(encoding="utf-8"))
+                for path in sorted(frozen_root.glob("parser-manifest.*.json"))
+            ]
+            semantic_profile_manifests = [
+                json.loads(
+                    (frozen_root / "semantic-profile-manifest.json").read_text(encoding="utf-8")
+                )
+            ]
+            version_manifests = [
+                json.loads((frozen_root / "version-manifest.json").read_text(encoding="utf-8"))
+            ]
+            for manifest in [
+                detector_manifest,
+                *parser_manifests,
+                *semantic_profile_manifests,
+                *version_manifests,
+            ]:
+                manifest["schema_version"] = "0.18.0"
         selection_artifact = freeze_protocol_artifact(
             "corpus_selection_protocol",
             "selection-protocol:static-control",
@@ -325,30 +353,18 @@ def _build_control_inputs(
             },
         )
         if method_static:
-            binding_root = (
-                project_root
-                / "src"
-                / "sc_referee"
-                / "resources"
-                / "scientific-check-manifests-v1"
-                / "registry.json"
+            binding = json.loads(
+                (
+                    project_root
+                    / "evaluation"
+                    / "qualification"
+                    / "bounded-analysis-method-conflict-v0.2.0-precase"
+                    / "method-conflict-binding.json"
+                ).read_text(encoding="utf-8")
             )
-            bindings = json.loads(binding_root.read_text(encoding="utf-8"))[
-                "method_conflict_bindings"
-            ]
-            binding = deepcopy(bindings[0])
             qualification_adapter = FounderOrientationQualificationAdapter()
-            binding["qualification_adapter"] = {
-                "adapter_id": qualification_adapter.adapter_id,
-                "adapter_version": qualification_adapter.adapter_version,
-                "entry_point": (
-                    "sc_referee_evaluation.founder_orientation_adapter:"
-                    "FounderOrientationQualificationAdapter"
-                ),
-                "implementation_digest": qualification_adapter.implementation_digest,
-                "dependency_closure": list(founder_orientation_dependency_closure()),
-                "imports_production_semantic_implementation": False,
-            }
+            binding.pop("binding_digest")
+            binding["detector_manifest_digest"] = semantic_digest(detector_manifest)
             binding["binding_digest"] = semantic_digest(binding)
             static_profile = freeze_typed_method_profile(
                 binding=binding,

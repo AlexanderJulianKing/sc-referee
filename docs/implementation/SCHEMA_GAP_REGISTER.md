@@ -314,6 +314,22 @@ controller, storage, reporting, admission, or schema meaning. This resolves repr
 local mechanism only. Authenticated answer-blind cross-provider evidence, thresholds, promotion,
 and Finding authority remain external and absent.
 
+### Blocking v0.3 method-conflict promotion representation gap in v0.18.0
+
+Accepted ADR-0060 and Experiment 0047 advance the generic contract-bound method-conflict candidate
+to version `0.3.0`, add an internal ReviewCase projection, and bind all substantive registered
+scientific checks to the unchanged closed comparison core. Immutable schema v0.18.0 cannot encode
+a qualification or promotion for that candidate: its typed static-method profile fixes the target
+detector to version `0.2.0`, and `numeric_threshold_policy` is fixed to
+`deferred_until_pilot_threshold_adr`, which correctly forbids a promoted outcome.
+
+Do not edit v0.18.0, reuse the historical v0.2 freeze, hide a grant in extensions, or treat a
+development fixture as qualification. After an independent pilot block exists, a forward-only
+schema release must encode the accepted numeric threshold identity and exact v0.3 binding/envelope,
+with migration preserving all v0.18 records as nonpromoting historical evidence. Until then,
+`production_finding_permitted` remains false and the controller must not admit a production
+Finding from this detector family.
+
 ## Resolved pre-snapshot AuditRun failure gap
 
 Public v0.9.0 permits `created`, `cancelled`, and `failed_controller` records without a fabricated

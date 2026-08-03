@@ -117,7 +117,10 @@ def test_task_board_freezes_post_mpp_dependency_and_regression_policy(
     )
     assert f"{len(calculation_registry.modules)} active deterministic calculation-check" in backlog
     assert f"{len(capability_profiles)} published capability profiles" in backlog
-    assert len(scientific_registry.method_conflict_bindings) == 1
+    assert (
+        f"{len(scientific_registry.method_conflict_bindings)} experimental method-conflict "
+        "detector bindings" in backlog
+    )
     for task_id in (f"L{index:02d}" for index in range(1, 18)):
         assert f"**{task_id} " in backlog
     for required_control in (

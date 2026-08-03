@@ -1,4 +1,4 @@
 interface:
   display_name: "Method Contract"
   short_description: "Freeze one expected-count/background profile"
-  default_prompt: "Use $sc-referee:method-contract (or $method-contract standalone) to freeze a scientist-supplied expected-count/background profile."
+  default_prompt: "Use $sc-referee:method-contract (or $method-contract standalone) to freeze one scientist-supplied closed analysis requirement."

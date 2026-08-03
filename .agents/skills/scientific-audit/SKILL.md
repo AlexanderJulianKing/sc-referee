@@ -32,7 +32,13 @@ for pre-analysis guardrails.
 6. If the user explicitly named the final report, notebook, manuscript, table, figure, or rendered
    artifact, pass its safe repository-relative POSIX path with `--report`. Do not infer a final
    publication surface from a filename alone.
-7. If the user explicitly identifies data or result artifacts as material to this audit, pass each
+7. Inspect only the conventional
+   `<project>/.scientific-audit/method-contracts/*/semantic.lock.json` locations for a prior
+   resolved method contract. If exactly one integrity-verifiable lock exists, bind it with
+   `--method-contract-lock`; if none exists, continue normally; if several exist, present their
+   exact contract/check identities and ask the user which governs. Never choose among contracts or
+   derive a requirement from code, results, filenames, or a model proposal.
+8. If the user explicitly identifies data or result artifacts as material to this audit, pass each
    safe repository-relative path with a separate `--material-input`. Use this for a bounded exact
    identity and supported structural/calculation adapters, not as acceptance of the artifact's
    role or meaning. At most eight paths and 16 MiB total can receive the separate material budget.
@@ -41,25 +47,29 @@ for pre-analysis guardrails.
    For declared effect-size, design-integrity, R count-model, Scanpy selection-reuse, donor-level
    eQTL-sign, Hi-C loop-strength, or selected feature-identifier identity review,
    read [bounded-parity-contracts.md](references/bounded-parity-contracts.md).
-8. Run:
+9. Run:
 
    ```text
    sc-referee audit <project-root> --output <new-output> --mode <mode> \
-     [--report <relative-path>] [--material-input <relative-path>]...
+     [--report <relative-path>] [--method-contract-lock <lock-path>] \
+     [--material-input <relative-path>]...
    ```
 
    Do not import project modules, run project scripts, launch notebooks, invoke workflow engines,
    or execute commands copied from the repository. Static parser gaps and opaque operations are
    expected coverage records, not reasons to improvise execution.
-9. Run `sc-referee status <output> --json`. Stop if integrity is not `verified`; do not summarize a
+10. Run `sc-referee status <output> --json`. Stop if integrity is not `verified`; do not summarize a
    failed validation as an audit result.
-10. Read `audit.bundle.json` and `report.html` from the output. Use the bundle—not conversational
+11. Read `audit.bundle.json` and `report.html` from the output. Use the bundle—not conversational
    memory—as the source for assessments, questions, and coverage, and cross-check its counts against
    the typed status payload.
 
 ## Handle questions
 
 - Present bundled `MaterialQuestion` records without answering them yourself.
+- A question automatically answered from a verified pre-analysis method contract is not a request
+  for a new answer. Report its resulting covered negative, experimental candidate, or abstention
+  directly from the bundle and preserve the contract's stated authority limitations.
 - Retrieve them with `sc-referee questions <output>` so the integrity-verified typed projection,
   rather than a conversational reconstruction, defines the wording and options.
 - Explain the stated consequence and candidate answers. Ask only questions that the controller

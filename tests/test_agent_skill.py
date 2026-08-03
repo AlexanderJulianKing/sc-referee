@@ -20,6 +20,9 @@ def test_repository_skill_has_discoverable_metadata(project_root: Path) -> None:
     assert "open-ended scientific-error hunting" in metadata["description"]
     assert "TODO" not in contents
     assert "sc-referee audit <project-root>" in body
+    assert ".scientific-audit/method-contracts/*/semantic.lock.json" in body
+    assert "--method-contract-lock <lock-path>" in body
+    assert "automatically answered from a verified pre-analysis method contract" in body
     assert "--mode <mode>" in body
     assert "120-second scheduling cutoff" in body
     assert "480/600 seconds" in body
@@ -91,6 +94,9 @@ def test_method_contract_skill_is_separate_claimless_and_human_authorized(
     assert "before an agent implements" in metadata["description"]
     assert "letting an agent approve its own method choice" in metadata["description"]
     assert "sc-referee method-contract <project-root>" in body
+    assert "scientific_check_requirement_v1" in body
+    assert "scientific-check-requirement.md" in body
+    assert "prior_scientist_record" in body
     assert "--method-contract-lock" in body
     assert "claims` and `publication_surfaces` are empty" in body
     assert "Do not choose an estimator" in body
@@ -103,4 +109,6 @@ def test_method_contract_skill_is_separate_claimless_and_human_authorized(
     assert interface["interface"]["display_name"] == "Method Contract"
     assert "$sc-referee:method-contract" in interface["interface"]["default_prompt"]
     assert "$method-contract standalone" in interface["interface"]["default_prompt"]
-    assert "expected-count/background profile" in interface["interface"]["default_prompt"]
+    assert (
+        "scientist-supplied closed analysis requirement" in interface["interface"]["default_prompt"]
+    )

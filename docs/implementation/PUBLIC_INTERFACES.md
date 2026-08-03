@@ -233,18 +233,22 @@ create a Claim or publication surface, invoke a model, or execute project-author
 profile it freezes an analysis-level draft ScientificContract and one bounded open
 MaterialQuestion.
 
-An explicit `--profile <json> --actor-id <scientist-id>` accepts only the complete closed
-`expected_count_background_v1` grammar. The human declarations remain Finding-ineligible; six
-separate controller derivations become eligible only after exact Answer digest, human authority,
-task identity, scope, profile shape, and dimension checks. The contract remains publicly `draft`
-because the other eleven v0.14.0 dimensions stay unknown; the profile-specific extension records
-whether the supported six-dimension slice is resolved. Replay is model-free and claimless.
+An explicit `--profile <json> --actor-id <scientist-id>` accepts either the complete closed
+`expected_count_background_v1` grammar or the four-key `scientific_check_requirement_v1` grammar.
+The latter resolves one exact `check_id` and `candidate_id` through the installed digest-bound
+registry and freezes the complete check manifest, candidate operand, comparison form, and semantic
+dimension. Human declarations remain Finding-ineligible; separate controller derivations require
+exact Answer digest, human authority, task identity, scope, profile shape, and registry identity.
+The contract remains publicly `draft` because unrelated dimensions stay unknown. Replay is
+model-free and claimless.
 
 A later `sc-referee audit ... --method-contract-lock <lock>` accepts only a digest-valid resolved
-parent lock whose governing task bytes are unchanged. Applicable Claim contracts receive
-`scope.parent_contract_id` and new Claim-scoped controller derivations. The parent contract does
-not establish execution, numeric correctness, or general method adequacy. The separate
-`$method-contract` skill drives this lifecycle; `$scientific-audit` remains post-hoc.
+parent lock whose governing task bytes are unchanged. Expected-count profiles bind to applicable
+Claims. Atomic scientific-check profiles automatically answer only one exact matching
+analysis-scoped question from a `prior_scientist_record`; a missing target remains
+`not_applicable`. The parent contract does not establish execution, numeric correctness, or
+general method adequacy. The separate `$method-contract` skill drives this lifecycle;
+`$scientific-audit` remains post-hoc.
 
 ## Exact selected-output writer question scope
 
@@ -353,9 +357,9 @@ Experiment 0007 profile, and every reference resolves before output is created.
 
 The generator never converts parser-supported versions to `tested_versions`, never converts code
 or fixture presence into detector qualification, and never allows a domain-wide support or
-validation claim. The current bundled matrix contains 15 narrow entries: 12 have no detector,
-while the direction, expected-count method-contract, and cross-surface analysis-method entries
-attach only experimental unqualified detectors.
+validation claim. The current bundled matrix contains 16 narrow entries: 12 have no detector,
+while the direction, expected-count method-contract, cross-surface analysis-method, and selected
+feature-identifier entries attach only experimental unqualified detectors.
 The no-detector set includes three distinct `.R` call-inventory profiles for DESeq2, edgeR, and
 limma-voom plus bounded nbformat-v4 cell/saved-output and Quarto source/cell inventories and one
 separate static Python/R container-cell bridge. ADR-0037 lets existing exact static adapters receive
@@ -364,9 +368,11 @@ full-digest selected-container containment join for the existing founder-orienta
 adds no capability entry, execution claim, general scientific scope, detector, or Finding
 authority. ADR-0039 adds the separate exact selected-output writer scope for that same question and
 updates the Python static path inventory to version `0.15.1`. ADR-0040 adds the separate
-cross-surface detector entry only after the scope is complete; it adds no qualification or Finding
-authority and allowlists just one scientific check. These exact scopes do not establish package
-dispatch, workflow validity, cross-cell state, notebook execution, Quarto rendering,
+cross-surface detector entry only after the scope is complete. ADR-0060 and Experiment 0047 advance
+that experimental detector to version `0.3.0`, bind all 20 substantive installed checks through
+one closed comparison core, and add automatic pre-analysis requirement binding plus an internal
+ReviewCase digest. No binding is qualified or permitted to emit Findings. These exact scopes do
+not establish package dispatch, workflow validity, cross-cell state, notebook execution, Quarto rendering,
 primary-analysis role, or scientific correctness;
 container semantic modeling is not started and tested/inferred package versions are empty.
 Explicit gaps and abstentions prevent broader negative results or scientific support from being
@@ -393,7 +399,7 @@ These interfaces establish synthetic mechanism evidence only; they do not claim 
 execution, general static-analysis adequacy, detector qualification, or Finding permission.
 
 Schema v0.17.0 also publishes `typed_static_method_conflict_v1` for accepted ADR-0042. A profile
-binds one installed method check, detector version `0.2.0`, closed comparison relation and operand
+binds one installed method check, historical detector version `0.2.0`, closed comparison relation and operand
 type, one or two required evidence planes, finite counterevidence predicates, and an explicit
 independent qualification adapter by dependency digest. A complete proof contains only the
 independently rederived typed observations, exact retained declarations and scope paths, bound
@@ -406,6 +412,10 @@ reads retained bytes without importing the production scientific-check adapters,
 ledger and without executing project code. The superseded v0.16 founder-specific verifier remains
 a historical replay baseline only and cannot qualify detector `0.2.0`. No current CLI claim,
 qualification metric, promotion, or Finding permission follows from this local interface.
+
+The active v0.3 candidate cannot reuse this v0.2 profile or freeze. Schema v0.18.0 also retains the
+deferred numeric-threshold policy that prohibits promotion. The forward-only representation and
+independent evidence needed for a v0.3 qualification are recorded as an open schema gap.
 
 `freeze_typed_method_profile` freezes the binding, detector/parser/profile/version manifests,
 independent adapter identity, budgets, and selection protocol before assignment.

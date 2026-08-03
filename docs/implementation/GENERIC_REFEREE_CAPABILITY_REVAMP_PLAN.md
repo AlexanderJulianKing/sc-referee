@@ -1,8 +1,8 @@
 # Generic referee capability revamp plan
 
 - **Status:** Active planning artifact
-- **Scope:** Product-wide scientific capability architecture, beginning with dependence and
-  pseudoreplication
+- **Scope:** Generic Finding architecture for the ten frozen public task families, followed by the
+  broader scientific-capability portfolio
 - **Policy effect:** None. Record meaning, Finding authority, and public capability claims may
   change only through separately accepted ADRs and qualification evidence.
 
@@ -12,8 +12,9 @@ Turn sc-referee's bounded scientific calculations into useful referee capabiliti
 overfitting production logic to one benchmark, repository, language, file layout, domain, or known
 answer.
 
-The first complete vertical will be generic dependence and pseudoreplication review. The same
-architecture will then be applied selectively to other scientific-error families.
+The first complete production-Finding vertical will be founder orientation. Dependence and
+pseudoreplication remain the next new normalized family after the contract-bound method relations
+are closed.
 
 ## Progress snapshot: 2026-08-03
 
@@ -28,9 +29,125 @@ This completes the ten-case inventory, not the broader capability program. In pa
 population-genetics label-orientation error still requires a data/model adapter, and the generic
 dependence/pseudoreplication vertical remains the next architectural milestone.
 
+## Finding-level implementation checklist
+
+This checklist supersedes relevant-question localization as the delivery criterion. A target is
+complete only when an independently adjudicated erroneous workflow emits a production `Finding`
+without a post-audit scientist Answer, while its corrected and valid-alternative controls emit no
+Finding.
+
+### A. Freeze the target before more detector work
+
+- [x] Freeze one atomic root-cause ledger for all ten GeneBench-Pro task families.
+- [x] Preserve every independently adjudicated material root cause rather than selecting the
+  easiest detectable issue per workflow.
+- [ ] Add an independently authored error-bearing workflow for each task family whose current cold
+  workflow is correct.
+- [ ] Freeze one corrected twin, one valid alternative, one close hard negative, one ambiguous
+  case, and one unsupported case for every target relation.
+- [x] Label every public or answer-visible case development-only and promotion-ineligible.
+
+### B. Make governing requirements available before the workflow exists
+
+- [x] Generalize the claimless method-contract lifecycle beyond
+  `expected_count_background_v1` to registered scientific-check requirements.
+- [x] Bind each requirement to one exact task/protocol identity, analysis subject, semantic
+  dimension, comparison form, canonical operand, human authority, and immutable lock digest.
+- [x] Reject answer keys, post-hoc grades, model proposals, repository conventions, and unscoped
+  guidelines as requirement authority.
+- [x] Make later audits consume a verified pre-analysis contract automatically; the target Finding
+  path must not require a post-audit MaterialQuestion or Answer.
+- [x] Preserve question/abstention behavior when no contract or separately qualified invariant
+  applies.
+
+### C. Compile workflow evidence into generic review cases
+
+- [x] Add one internal `ReviewCase` protocol carrying requirement, observed operand, analysis
+  binding, evidence planes, applicability, finite counterevidence, affected descendants, and
+  output ceiling.
+- [x] Keep the comparison core limited to closed relations such as equality, set containment,
+  order, orientation consistency, population membership, and model-term inclusion.
+- [x] Require exact selected-analysis scope through a report/writer path, an explicitly selected
+  analysis source, or another accepted deterministic binding.
+- [x] Keep report, static-source, material-input, and execution evidence as separate authorities.
+- [x] Localize unsupported adapters and dynamic or conflicting flows without converting them to
+  negative evidence.
+
+### D. Prove one real Finding vertical before scaling
+
+- [x] Use founder orientation as the first end-to-end vertical.
+- [ ] Consume a pre-frozen requirement and an unseen renamed workflow.
+- [x] Establish one exact observed orientation operand and selected-analysis binding.
+- [x] Complete every applicability and counterevidence check.
+- [x] Emit an evaluation candidate with bounded wording and compile a complete Finding draft that
+  passes every non-maturity admission gate.
+- [ ] After qualification applies, emit `finding_candidate` rather than relabelling an
+  experimental result.
+- [ ] Complete held-out qualification and promote only the exact supported envelope to
+  `validated`.
+- [ ] Demonstrate one production Finding on the error and zero Findings on corrected, ambiguous,
+  unsupported, and unrelated controls through both CLI and installed skill.
+
+### E. Extend the unchanged core across the remaining families
+
+- [ ] Ordering and set relations: poststratified calibration, Hi-C background/target handling, and
+  required technical adjustment.
+- [ ] Representation and model specification: continuous copy exposure, clonality/missingness,
+  and local-perturbation population/model terms.
+- [ ] Algebra and matrix flow: directional observation error and cis-MVMR covariance/whitening.
+- [ ] Data-dependent consistency: binary label harmonization, map/path exposure, and other exact
+  input/model relations that prose cannot establish.
+- [ ] Qualify and promote each binding/envelope independently; one validated relation must not
+  grant Finding authority to sibling checks or adapters.
+
+### F. Enforce non-overfitting mechanically
+
+- [x] Add a CI firewall rejecting benchmark/task identifiers, repository names, benchmark fixture
+  paths, and answer-side evaluation namespaces in production detector code and manifests.
+- [ ] Add file, variable, function, level, and identifier renaming tests plus row/column reordering
+  and equivalent-encoding tests.
+- [x] Add adapter-removal, sibling-isolation, and one mutation per applicability and
+  counterevidence gate.
+- [ ] Hold out at least one independently authored implementation style per claimed envelope.
+- [ ] Freeze detector bytes and case assignment before qualification labels; any later logic
+  change creates a new detector version and restarts qualification.
+
+### G. Qualify, promote, and deliver the product behavior
+
+- [ ] Run answer-blind, no-replacement, cross-provider Stage-1 and Stage-2 adjudication.
+- [ ] Use a separate pilot block to accept numeric promotion thresholds before opening the final
+  held-out block.
+- [ ] Require zero known high-severity false accusations and retain every discovered false
+  accusation as a permanent regression.
+- [ ] Publish one envelope-specific qualification record and maintainer promotion decision for
+  every detector allowed to emit Findings.
+- [ ] Make reports lead with Findings and move unrelated `not_applicable` coverage to an appendix.
+- [x] Update the scientific-audit skill and plugin packaging so contract discovery, audit,
+  integrity verification, Finding reporting, and replay work on a fresh machine.
+- [ ] Pass the final installed-product matrix: all frozen target root causes found; every corrected,
+  valid-alternative, hard-negative, ambiguous, and unsupported control remains Finding-clean.
+
+### Program-level exit gate
+
+- [ ] Ten error-bearing task-family workflows produce their intended production Findings without
+  post-audit human rescue.
+- [ ] The two existing correct cold workflows and all ten corrected twins produce zero Findings.
+- [ ] Every Finding is deterministic, exactly localized, independently qualified, narrowly worded,
+  and reproducible through both CLI and skill.
+- [ ] No benchmark identity or answer-side value is present in the production decision path.
+
 “Generic” means that the evaluator operates on domain-neutral scientific relationships and accepts
 evidence through removable adapters. It does not mean that static software can understand opaque
 arbitrary workflows. Unsupported evidence must abstain cleanly.
+
+### Current external qualification gate
+
+The implementation has reached the generic evaluation-candidate boundary. Production promotion is
+not a local coding toggle: v0.3 requires newly assigned label-blind cases, authenticated independent
+reviews, a pilot-derived numeric threshold accepted before the final held-out block, and an exact
+maintainer promotion record. The immutable v0.2 pre-case freeze cannot qualify v0.3, and public
+GeneBench cases cannot supply that evidence. Until those inputs exist, every binding remains
+Finding-ineligible by construction.
 
 ## Current diagnosis
 

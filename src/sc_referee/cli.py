@@ -643,7 +643,10 @@ def method_contract(
         "--profile",
         exists=True,
         dir_okay=False,
-        help="Complete expected_count_background_v1 JSON supplied by the scientist.",
+        help=(
+            "Complete expected_count_background_v1 or scientific_check_requirement_v1 JSON "
+            "supplied by the scientist."
+        ),
     ),
     actor_id: str | None = typer.Option(
         None,
@@ -696,7 +699,10 @@ def audit(
         "--method-contract-lock",
         exists=True,
         dir_okay=False,
-        help="Frozen claimless method-contract semantic lock to bind to later Claims.",
+        help=(
+            "Frozen claimless method-contract semantic lock to bind to later Claims or one "
+            "matching analysis-scoped scientific-check question."
+        ),
     ),
     material_input: list[str] | None = typer.Option(
         None,

@@ -10,9 +10,15 @@ from sc_referee.capability_matrix import (
     load_capability_detector_manifest,
 )
 from sc_referee.core.ids import canonical_json, semantic_digest
+from sc_referee.detectors.admission import (
+    AdmissionContext,
+    admit_finding,
+    evaluate_non_maturity_finding_admission,
+)
 from sc_referee.detectors.bounded_analysis_method_conflict import (
     BoundedAnalysisMethodConflictDetector,
 )
+from sc_referee.detectors.method_conflict_finding import draft_method_conflict_finding
 from sc_referee.records.schema_registry import LocalSchemaRegistry
 from sc_referee.scientific_checks.profiles import scientific_check_release_registry
 
@@ -248,7 +254,12 @@ def detector(schema_root) -> BoundedAnalysisMethodConflictDetector:
     manifest["implementation"][  # type: ignore[index]
         "implementation_digest"
     ] = BoundedAnalysisMethodConflictDetector.implementation_digest()
-    binding = scientific_check_release_registry().method_conflict_bindings[0]
+    binding = next(
+        item
+        for item in scientific_check_release_registry().method_conflict_bindings
+        if item.check_id == CHECK_ID
+    )
+    manifest["extensions"]["x-scientific-check-ids"] = [CHECK_ID]  # type: ignore[index]
     binding = replace(binding, detector_manifest_digest=semantic_digest(manifest))
     return BoundedAnalysisMethodConflictDetector(manifest, (binding,))
 
@@ -272,6 +283,10 @@ def test_exact_analysis_method_conflict_is_evaluation_only_and_replay_stable(
     assert canonical_json(first) == canonical_json(second)
     assert first["state"] == "evaluation_finding_candidate"
     assert first["extensions"]["x-production-finding-permitted"] is False
+    assert first["extensions"]["x-review-case-profile"] == (
+        "analysis_method_requirement_consistency:1.0.0"
+    )
+    assert str(first["extensions"]["x-review-case-digest"]).startswith("sha256:")
     assert first["candidate"]["assessment_type"] == "finding"
     assert "does not establish that the source ran" in first["candidate"]["bounded_statement"]
     assert len(first["counterevidence_execution"]) == 10
@@ -280,6 +295,36 @@ def test_exact_analysis_method_conflict_is_evaluation_only_and_replay_stable(
         for item in first["counterevidence_execution"]
     )
     LocalSchemaRegistry(schema_root).validate(first)
+
+
+def test_complete_conflict_has_a_schema_valid_draft_but_no_ambient_finding_authority(
+    detector, schema_root
+) -> None:
+    locked, question = _case()
+    result = _result(detector, locked, question)
+    draft = draft_method_conflict_finding(result, detector.bindings[0])
+    promoted_shape = deepcopy(result)
+    promoted_shape["state"] = "finding_candidate"
+    promoted_shape["detector_maturity"] = "validated"
+    context = AdmissionContext(
+        finding_draft=draft,
+        source_references_resolved=True,
+        detector_qualification_applies=False,
+        wording_constraints_satisfied=True,
+        expected_deterministic_input_digest=str(result["deterministic_input_digest"]),
+        required_counterevidence_check_ids=detector.check_ids,
+        non_inferences=(
+            "No project execution is established.",
+            "No numerical causality or universal scientific correctness is established.",
+        ),
+    )
+
+    assert evaluate_non_maturity_finding_admission(promoted_shape, context) is not None
+    assert admit_finding(promoted_shape, context) is None
+    qualified_context = replace(context, detector_qualification_applies=True)
+    finding = admit_finding(promoted_shape, qualified_context)
+    assert finding is not None
+    LocalSchemaRegistry(schema_root).validate(finding)
 
 
 def test_matching_analysis_method_is_one_covered_negative(detector, schema_root) -> None:
