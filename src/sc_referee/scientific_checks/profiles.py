@@ -155,6 +155,8 @@ def _scientific_check_release_modules() -> tuple[ScientificCheckModule, ...]:
         _recoverable_technical_group_profile(),
         _casrx_isoform_axis_profile(),
         _paired_bridge_location_alignment_profile(),
+        _local_perturbation_row_scope_profile(),
+        _local_perturbation_regression_profile(),
     )
     modules = (
         *(tuple(_module(profile) for profile in report_profiles)),
@@ -339,7 +341,7 @@ def _module(profile: _ReportProfile) -> ScientificCheckModule:
         )
         source_manifest = AdapterManifest(
             adapter_id="adapter:founder-orientation-before-hmm-emission:python-ast-v1",
-            adapter_version="1.2.0",
+            adapter_version="1.3.0",
             implementation_digest=PYTHON_FOUNDER_ADAPTER_IMPLEMENTATION_DIGEST,
             recognition_grammar_digest=python_founder_recognition_grammar_digest(
                 direct_operand, repaired_operand, profile.role_bindings
@@ -349,7 +351,7 @@ def _module(profile: _ReportProfile) -> ScientificCheckModule:
             source_language="python",
             evidence_plane="static_source",
             semantic_roles=profile.semantic_roles,
-            applicability_profile="exact-founder-input-to-emission-ast-flow-and-scope-v2",
+            applicability_profile="exact-founder-input-to-emission-ast-flow-and-scope-v3",
             counterevidence_profiles=(
                 "exact-founder-emission-role-binding",
                 "alternative-orientation-targets-absent",
@@ -358,6 +360,7 @@ def _module(profile: _ReportProfile) -> ScientificCheckModule:
             known_gaps=(
                 "dynamic dispatch",
                 "multiple founder-emission targets",
+                "nonsemantic founder inputs or nonlocal call targets",
                 "separate source files without exact selected-output writer lineage",
                 "writer or selected-container scope does not establish execution or primary-analysis status",
             ),
@@ -372,15 +375,26 @@ def _module(profile: _ReportProfile) -> ScientificCheckModule:
                 role_bindings=profile.role_bindings,
             )
         )
-    source_recognizer = {
-        "check:classifier-derived-copy-dosage-representation": "classifier_copy_dosage",
-        "check:ld-covariance-whitening-before-robust-fit": "ld_whitening",
+    source_profile = {
+        "check:classifier-derived-copy-dosage-representation": (
+            "classifier_copy_dosage",
+            ("python", "r"),
+        ),
+        "check:directional-measurement-error-interpretation": (
+            "directional_measurement_error",
+            ("python",),
+        ),
+        "check:ld-covariance-whitening-before-robust-fit": (
+            "ld_whitening",
+            ("python", "r"),
+        ),
     }.get(profile.check_id)
-    if source_recognizer is not None:
-        for language in ("python", "r"):
+    if source_profile is not None:
+        source_recognizer, source_languages = source_profile
+        for language in source_languages:
             source_manifest, source_adapter = make_static_source_adapter(
                 check_manifest=check,
-                language=language,
+                language=language,  # type: ignore[arg-type]
                 recognizer=source_recognizer,  # type: ignore[arg-type]
                 role_bindings=profile.role_bindings,
             )
@@ -443,6 +457,14 @@ def _expected_count_background_construction_profile() -> _ReportProfile:
                 (
                     r"(?is)\bexpected\s+(?:count\s+)?is\s+the\s+per[- ]replicate\s+arithmetic\s+mean\b",
                     r"(?is)\b(?:same[- ]distance|same\s+(?:genomic\s+)?(?:distance|separation)|pixels?\s+at\s+`?dist_bin\s*=\s*[1-9][0-9]*)\b",
+                ),
+                match_scope="document",
+            ),
+            ReportOperandRule(
+                CanonicalOperand.scalar(same_stratum),
+                (
+                    r"(?is)\b(?:for\s+each\s+replicate|replicate[- ]specific(?:ally)?)\b[^.]{0,220}\bexpected\s+(?:value|count)\b[^.]{0,160}\barithmetic\s+mean\b",
+                    r"(?is)\b(?:same\s+diagonal|on\s+(?:that|the)\s+diagonal|same[- ]distance|same\s+(?:genomic\s+)?(?:distance|separation))\b",
                 ),
                 match_scope="document",
             ),
@@ -514,6 +536,13 @@ def _expected_count_focal_target_handling_profile() -> _ReportProfile:
                 (
                     r"(?is)\b(?:target\s+pair|focal\s+pixel|focal\s+observation|focal\s+target)\b[^.]{0,100}\b(?:was\s+|is\s+)?excluded\s+from\s+(?:expected[- ]count\s+)?(?:training|background)\b",
                     r"(?is)\b(?:predict|predicted|predicting)\b[^.]{0,200}\bheld[- ]out\s+(?:focal\s+)?target\b[^.]{0,120}\bexpect(?:ation|ed\s+count)\b",
+                ),
+                match_scope="document",
+            ),
+            ReportOperandRule(
+                CanonicalOperand.scalar(exclude),
+                (
+                    r"(?is)\b(?:target\s+pair|focal\s+pixel|focal\s+observation|focal\s+target)\b[^.]{0,120}\b(?:left\s+out|omitted|removed)\s+(?:from|of)\s+(?:its(?:\s+own)?\s+)?(?:expected(?:[- ]count)?\s+)?(?:training|background)\b",
                 ),
                 match_scope="document",
             ),
@@ -748,6 +777,14 @@ def _directional_measurement_error_profile() -> _ReportProfile:
                     r"(?is)\b(?:independent(?:ly)?\s+supplied|externally\s+supplied|stated)\b[^.]*\b(?:directional\s+constraint|baseline|error\s+floor|low[- ]direction\s+rate|high[- ]error\s+direction)\b",
                 ),
             ),
+            ReportOperandRule(
+                CanonicalOperand.scalar(directional_split),
+                (
+                    r"(?is)\b(?:reported|supplied)\b.{0,300}?\baverage\s+of\s+(?:the\s+)?(?:two\s+)?directional\s+(?:(?:allele[- ])?miscall|measurement[- ]error|error)\s+rates?\b",
+                    r"(?is)\b(?:given|using|with)\b[^.]*\b(?:stated|supplied|instrument|baseline|low)\b[^.]*\b(?:error|miscall)\b[^.]*\bdirection\b",
+                    r"(?is)\b(?:complementary|other)\s+direction\b[^.]*\b(?:evaluat(?:e|ed|ing)|assign(?:ment|ed)|comput(?:e|ed|ing)|deriv(?:e|ed|ing))\b|\b(?:evaluat(?:e|ed|ing)|assign(?:ment|ed))\b[^.]*\bboth\s+(?:possible\s+)?assignments?\b",
+                ),
+            ),
         ),
         triggers=(
             r"(?is)(?=.*\baverage\s+of\s+(?:the\s+)?two\s+directional\b)(?=.*\b(?:(?:allele[- ])?miscall|measurement[- ]error|error)\s+rates?\b)",
@@ -815,6 +852,15 @@ def _ancestry_exposure_profile() -> _ReportProfile:
                 ),
             ),
             ReportOperandRule(
+                CanonicalOperand.scalar(called),
+                (
+                    r"(?is)\b(?:single[- ]pulse|pulse\s+time)\b.{0,700}\b(?:two[- ]state|ancestry[- ]switch|transition)\b",
+                    r"(?is)\b(?:retained\s+)?called\s+(?:tract\s+)?length\s+only\b",
+                    r"(?is)\bdid\s+not\s+use\s+(?:the\s+)?full\s+(?:chromosome|genetic)[- ]map\s+length\s+as\s+(?:the\s+)?denominator\b",
+                ),
+                match_scope="document",
+            ),
+            ReportOperandRule(
                 CanonicalOperand.scalar(full),
                 (
                     r"(?i)(?:transition|pulse[- ]time)\s+exposure\s+used\s+(?:the\s+)?(?:complete|full)\s+(?:chromosome|genetic)[- ]map\s+length",
@@ -834,6 +880,7 @@ def _ancestry_exposure_profile() -> _ReportProfile:
             r"(?i)pulse[- ]time\s+transition\s+exposure",
             r"(?i)time[- ]model\s+exposure",
             r"(?i)t\s*=\s*N[_ ]?switch\s*/",
+            r"(?is)(?=.*\b(?:single[- ]pulse|pulse\s+time)\b)(?=.*\bdid\s+not\s+use\s+(?:the\s+)?full\s+(?:chromosome|genetic)[- ]map\s+length\s+as\s+(?:the\s+)?denominator\b)",
         ),
         question_wording=(
             "Which chromosome-length exposure definition governs pulse timing for this review?"
@@ -890,6 +937,12 @@ def _transition_path_continuity_profile() -> _ReportProfile:
                 ),
             ),
             ReportOperandRule(
+                CanonicalOperand.scalar(preserve),
+                (
+                    r"(?is)\b(?:positive[- ]length\s+)?(?:uncalled|missing|masked|unobserved)\s+gaps?\b[^.]{0,180}\b(?:exact\s+)?(?:two[- ]state\s+)?transition\s+(?:matrix|probabilit\w*)\b[^.]{0,180}\bintegrat(?:e|ed|ing)\b[^.]{0,180}\b(?:hidden\s+)?(?:switches|transitions|paths?)\b",
+                ),
+            ),
+            ReportOperandRule(
                 CanonicalOperand.scalar(terminate),
                 (
                     r"(?is)\b(?:transitions?|switch(?:es)?)\b[^.]*\bonly\b[^.]*\b(?:touching|contiguous)\b[^.]*\b(?:callable|eligible|retained)\b[^.]*\bboundar",
@@ -915,6 +968,7 @@ def _transition_path_continuity_profile() -> _ReportProfile:
         triggers=(
             r"(?is)\b(?:transitions?|switch(?:es)?)\b[^.]*\b(?:successive|adjacent|touching|contiguous)\b[^.]*\b(?:callable|eligible|retained)\b",
             r"(?is)\b(?:masked|uncalled|missing|filtered|unobserved|gaps?)\b[^.]*\b(?:terminate|break)\b[^.]*\b(?:path|observation|sequence|trajectory)\b",
+            r"(?is)(?=.*\b(?:uncalled|missing|masked|unobserved)\s+gaps?\b)(?=.*\btransition\s+(?:matrix|probabilit\w*)\b)(?=.*\bintegrat(?:e|ed|ing)\b[^.]{0,180}\b(?:hidden\s+)?(?:switches|transitions|paths?)\b)",
         ),
         question_wording=(
             "Should the within-sequence transition path continue across retained-data gaps for "
@@ -1214,10 +1268,17 @@ def _poststratified_misclassification_profile() -> _ReportProfile:
                 ),
             ),
             ReportOperandRule(
+                CanonicalOperand.scalar(aggregate_first),
+                (
+                    r"(?i)\b(?:directly\s+)?standardiz(?:ed|ing)[^.]*\b(?:observed|completed[- ]test)\b[^.]*\b(?:assay[- ]?)?(?:outcome|call|class)\s+(?:rates?|distributions?)\b",
+                    r"(?i)\bthen\s+(?:applied|used|performed)[^.]*\b(?:control|calibration|confusion|misclassification)\b[^.]*\b(?:correction|calibrat(?:ed|ion)|deconvol(?:ved|ution)|invert(?:ed|ing))\b",
+                ),
+            ),
+            ReportOperandRule(
                 CanonicalOperand.scalar(constrained_cellwise),
                 (
                     r"(?i)\b(?:nonnegative|simplex|probability)[- ]constrained\s+(?:joint\s+)?(?:calibration|deconvolution|class(?:-prevalence)?\s+estimation)\b",
-                    r"(?i)\b(?:within|inside|for)\s+each\s+(?:target-population\s+)?(?:post-?strat(?:ification\s+)?cell|post-?stratum|cell)\b",
+                    r"(?i)\b(?:within|inside|for)\s+each\s+(?:(?:target[- ]population|sampling[- ]frame)\s+)?(?:post-?strat(?:ification\s+)?cell|post-?stratum|cell)\b",
                     r"(?i)\b(?:then|before)\s+(?:standardiz(?:ed|ing)|post-?stratif(?:ied|ying)|weight(?:ed|ing)|aggregat(?:ed|ing))\b",
                 ),
             ),
@@ -1295,6 +1356,15 @@ def _posttreatment_missingness_strategy_profile() -> _ReportProfile:
                 ),
             ),
             ReportOperandRule(
+                CanonicalOperand.scalar(sequential_imputation),
+                (
+                    r"(?is)\bmodel(?:ed|ing)?\b[^.;]{0,100}\b(?:assessment|assessability|observation)\b[^.;]{0,180}\b(?:treatment|exposure)\b[^.;]{0,160}\b(?:toxicity|adverse\s+event|intermediate\s+endpoint|mediator)\b",
+                    r"(?is)\bmodel(?:ed|ing)?\b[^.;]{0,100}\b(?:benefit|later\s+outcome|outcome)\b[^.;]{0,100}\bamong\s+assessed\b[^.;]{0,180}\b(?:toxicity|adverse\s+event|intermediate\s+endpoint|mediator)\b",
+                    r"(?is)\bintegrat(?:e|ed|ing)\b[^.;]{0,120}\b(?:toxicity|adverse\s+event|intermediate\s+endpoint|mediator)\b[^.;]{0,160}\bunder\s+each\s+(?:treatment|exposure)\b[^.;]{0,160}\bbefore\s+standardiz(?:e|ed|ing)\b",
+                ),
+                match_scope="document",
+            ),
+            ReportOperandRule(
                 CanonicalOperand.scalar(baseline_ipcw),
                 (
                     r"(?i)\b(?:assessment|censoring|missingness)\s+model\b[^.]*\bexclud(?:e|es|ed|ing)\b[^.]*\b(?:observed\s+)?(?:week[- ]?\d+\s+)?(?:toxicity|adverse\s+event|intermediate\s+endpoint|mediator)\b",
@@ -1315,13 +1385,14 @@ def _posttreatment_missingness_strategy_profile() -> _ReportProfile:
             r"(?is)(?=.*\bmissing\s+(?:week[- ]?\d+\s+)?outcomes?\b)(?=.*\b(?:toxicity|adverse\s+event|intermediate\s+endpoint|mediator)\b)(?=.*\b(?:imput|assessment|censor|IPCW)\b)",
             r"(?is)(?=.*\b(?:assessment|censoring|missingness)\s+model\b)(?=.*\b(?:after\s+|post[- ]?)treatment\b)(?=.*\b(?:toxicity|adverse\s+event|intermediate\s+endpoint|mediator)\b)",
             r"(?is)(?=.*\bsensitivity\s+analysis\b)(?=.*\b(?:after\s+|post[- ]?)treatment\b)(?=.*\binverse[- ]assessment\b)(?=.*\bprimary\s+missing[- ]outcome\s+strategy\b)",
+            r"(?is)(?=.*\bmodel(?:ed|ing)?\b[^.;]{0,100}\b(?:assessment|assessability|observation)\b)(?=.*\bmodel(?:ed|ing)?\b[^.;]{0,100}\b(?:benefit|later\s+outcome|outcome)\b[^.;]{0,100}\bamong\s+assessed\b)(?=.*\bintegrat(?:e|ed|ing)\b[^.;]{0,160}\bunder\s+each\s+(?:treatment|exposure)\b)",
         ),
         question_wording=(
             "Which missing-outcome transport strategy governs the treatment-effect estimate for "
             "this review?"
         ),
-        check_version="1.1.0",
-        adapter_version="1.1.0",
+        check_version="1.2.0",
+        adapter_version="1.2.0",
     )
 
 
@@ -1377,6 +1448,15 @@ def _somatic_clonality_representation_profile() -> _ReportProfile:
                 ),
             ),
             ReportOperandRule(
+                CanonicalOperand.scalar(copy_ceiling),
+                (
+                    r"(?is)\btarget\s+(?:membership|eligibility|population|gate)\b.{0,500}\b(?:case|record|sample|unit)\b[^.]{0,120}\bhad\s+to\s+meet\s+all\s+of\s+the\s+following\b",
+                    r"(?is)\b(?:alternate|variant)[- ]+(?:molecule|allele|read)[- ]fraction\b[^.;]{0,100}(?:>=|≥|at\s+least|above)",
+                    r"(?is)\b(?:local\s+)?(?:total\s+)?copy(?:\s+number)?\b[^.;]{0,100}(?:<|≤|below|less\s+than|ceiling)",
+                ),
+                match_scope="document",
+            ),
+            ReportOperandRule(
                 CanonicalOperand.scalar(adjusted_clonality),
                 (
                     r"(?is)\btarget\s+(?:membership|eligibility|population)\b[^.]*\b(?:determined|defined|used|uses|retains|required)\b(?=.*\b(?:purity[/-]copy[- ]adjusted|purity[- ]and[- ]copy[- ]adjusted)\b)",
@@ -1398,8 +1478,8 @@ def _somatic_clonality_representation_profile() -> _ReportProfile:
         question_wording=(
             "Which clonality representation governs somatic target eligibility for this review?"
         ),
-        check_version="1.1.0",
-        adapter_version="1.1.0",
+        check_version="1.2.0",
+        adapter_version="1.2.0",
     )
 
 
@@ -1553,6 +1633,14 @@ def _classifier_copy_dosage_profile() -> _ReportProfile:
                 ),
             ),
             ReportOperandRule(
+                CanonicalOperand.scalar(expected_dosage),
+                (
+                    r"(?is)\b(?:trained|fit|fitted)\b.{0,240}\b(?:classifier|classification|discriminant)\b.{0,180}\b(?:copy\s+)?class(?:es)?\b",
+                    r"(?i)\b(?:for\s+)?downstream\b[^.]{0,120}\b(?:used|entered)\b[^.]{0,160}\bposterior\s+expected\s+(?:copy\s+)?(?:count|dosage|copies)\b",
+                ),
+                match_scope="document",
+            ),
+            ReportOperandRule(
                 CanonicalOperand.scalar(direct_dosage),
                 (
                     r"(?i)\b(?:primary|full[- ]cohort|downstream)[^.]*\bcontinuous\s+calibrated\s+(?:copy\s+)?dosage\b",
@@ -1578,8 +1666,8 @@ def _classifier_copy_dosage_profile() -> _ReportProfile:
             "Which calibrated copy-number representation governs the quantitative "
             "exposure for this review?"
         ),
-        check_version="1.3.0",
-        adapter_version="1.2.0",
+        check_version="1.4.0",
+        adapter_version="1.3.0",
     )
 
 
@@ -1652,17 +1740,28 @@ def _recoverable_technical_group_profile() -> _ReportProfile:
                     r"(?i)\bno\b[^.]*\b(?:ambient[- ]group|technical[- ]group)\s+covariate\b[^.]*\bincluded\b",
                 ),
             ),
+            ReportOperandRule(
+                CanonicalOperand.scalar(omit_group),
+                (
+                    r"(?is)\b(?:ambient[- ]only|negative[- ]control)\b[^.]{0,120}\b(?:marker|proxy)\b",
+                    r"(?is)\b(?:allows?|estimat(?:e|ed|ing))\b[^.]{0,180}\b(?:contamination|technical[- ]signal)\b[^.]{0,120}\b(?:differ|vary)\b[^.]{0,80}\b(?:cell|observation|sample)\b",
+                    r"(?is)\b(?:for\s+each|by)\s+(?:donor|subject|sample|participant|cluster)\b[^.]{0,180}\b(?:pseudobulk(?:ed|ing)?|aggregat(?:e|ed|ing)|summ(?:ed|ing))\b",
+                    r"(?is)\bprimary\s+(?:association\s+)?model\s+was\b[^.]{0,300}\bexp\((?:(?!\b(?:batch|plate|wave|technical|contamination|proxy|group)\b)[^()]){1,320}\)",
+                ),
+                match_scope="document",
+            ),
         ),
         triggers=(
             r"(?is)(?=.*\b(?:reconstruct|recover)[^.]*\btechnical[- ]group\b)(?=.*\b(?:covariate|adjustment)\b)",
             r"(?is)(?=.*\b(?:ambient[- ]group|technical[- ]group)\b)(?=.*\b(?:covariate|adjustment)\b)",
+            r"(?is)(?=.*\b(?:ambient[- ]only|negative[- ]control)\b[^.]{0,120}\b(?:marker|proxy)\b)(?=.*\b(?:donor|subject|sample|participant|cluster)\b[^.]{0,180}\b(?:pseudobulk|aggregat|summ))(?=.*\bprimary\s+(?:association\s+)?model\b)",
         ),
         question_wording=(
             "Which treatment of a recoverable technical grouping governs the primary association "
             "adjustment set for this review?"
         ),
-        check_version="1.1.0",
-        adapter_version="1.1.0",
+        check_version="1.2.0",
+        adapter_version="1.2.0",
     )
 
 
@@ -1814,6 +1913,130 @@ def _paired_bridge_location_alignment_profile() -> _ReportProfile:
         question_wording=(
             "Does this review require group-specific location alignment estimated from paired "
             "bridge measurements before follow-up effect estimation?"
+        ),
+    )
+
+
+def _local_perturbation_row_scope_profile() -> _ReportProfile:
+    full_assay = "full_assay_rows_after_cross_modal_residual_screening"
+    nominal_subset = "nominal_focal_target_rows_only"
+    authority_basis = (
+        "Scientist-supplied primary-model row-scope and cross-modal QC requirement; the check "
+        "does not infer that residual screening is valid, choose a residual cutoff, or treat a "
+        "benchmark answer as scientific authority."
+    )
+    return _ReportProfile(
+        check_id="check:local-perturbation-primary-row-scope",
+        dimension="analysis_population",
+        candidates=(
+            _candidate(
+                "full-assay-after-cross-modal-screening",
+                "Fit the local perturbation model on full-assay rows after cross-modal residual screening",
+                full_assay,
+                authority_basis,
+            ),
+            _candidate(
+                "nominal-focal-target-subset",
+                "Fit the local perturbation model only on rows nominally assigned to the focal target",
+                nominal_subset,
+                authority_basis,
+            ),
+        ),
+        semantic_roles=(
+            "primary_local_model",
+            "assay_row_population",
+            "cross_modal_residual_screen",
+            "nominal_target_assignment",
+        ),
+        role_bindings=(
+            RoleBinding("primary_local_model", "reported_local_perturbation_model"),
+            RoleBinding("assay_row_population", "reported_model_fitting_rows"),
+            RoleBinding("cross_modal_residual_screen", "reported_pre_fit_row_screen"),
+            RoleBinding("nominal_target_assignment", "reported_focal_row_filter"),
+        ),
+        rules=(
+            ReportOperandRule(
+                CanonicalOperand.scalar(full_assay),
+                (
+                    r"(?is)(?=.*\b(?:first[- ]pass|initial)\s+(?:local\s+)?(?:model|fit)\b)(?=.*\b(?:cross[- ]modal|count[- ]expression|measurement[- ]outcome)\b[^.]{0,220}\b(?:contradiction\w*|residual\w*|discordan\w*)\b)(?=.*\b(?:rows?|guides?|features?|observations?)\b[^.]{0,160}\b(?:exclude|remove|retain|screen|flag)\w*\b)(?=.*\brefit\b)",
+                ),
+            ),
+            ReportOperandRule(
+                CanonicalOperand.scalar(nominal_subset),
+                (
+                    r"(?is)\b(?:used|fit|restricted\s+to)\b[^.]{0,100}\b(?:the\s+)?\d+\s+(?:rows?|guides?|features?|observations?)\b[^.]{0,160}\bnominally\s+(?:aimed|assigned|targeted|annotated)\b[^.]{0,160}\b(?:locus|target|region|feature)\b",
+                ),
+            ),
+        ),
+        triggers=(
+            r"(?is)(?=.*\b(?:rows?|guides?|features?|observations?)\b)(?=.*\bnominal(?:ly)?\s+(?:aimed|assigned|targeted|annotated)\b)(?=.*\b(?:local[- ]locus|local\s+perturbation|neighbor[- ]mediated|adjacent[- ]target)\s+(?:model|effect|component)\b)",
+            r"(?is)(?=.*\b(?:first[- ]pass|initial)\s+(?:local\s+)?(?:model|fit)\b)(?=.*\b(?:cross[- ]modal|count[- ]expression|measurement[- ]outcome)\b)(?=.*\brefit\b)",
+        ),
+        question_wording=(
+            "Which assay-row scope and cross-modal screening rule governs the primary local "
+            "perturbation model for this review?"
+        ),
+    )
+
+
+def _local_perturbation_regression_profile() -> _ReportProfile:
+    joint_adjusted = "joint_target_axes_with_observed_guide_nuisance_terms"
+    residualized_single_axis = "external_target_subtraction_then_single_remaining_axis"
+    authority_basis = (
+        "Scientist-supplied local perturbation estimand and adjustment set; the check does not "
+        "infer which measured guide features are causal nuisances or use numeric agreement as "
+        "scientific authority."
+    )
+    return _ReportProfile(
+        check_id="check:local-perturbation-regression-specification",
+        dimension="adjustment_set",
+        candidates=(
+            _candidate(
+                "joint-target-axes-with-guide-nuisance-terms",
+                "Jointly fit measured target axes with observed guide-level nuisance terms",
+                joint_adjusted,
+                authority_basis,
+            ),
+            _candidate(
+                "external-subtraction-then-single-axis",
+                "Subtract an externally estimated target contribution, then fit one remaining target axis",
+                residualized_single_axis,
+                authority_basis,
+            ),
+        ),
+        semantic_roles=(
+            "local_perturbation_outcome",
+            "measured_target_axes",
+            "guide_level_nuisance_terms",
+            "external_target_contribution",
+        ),
+        role_bindings=(
+            RoleBinding("local_perturbation_outcome", "reported_primary_local_effect"),
+            RoleBinding("measured_target_axes", "reported_local_knockdown_predictors"),
+            RoleBinding("guide_level_nuisance_terms", "reported_primary_adjustment_set"),
+            RoleBinding("external_target_contribution", "reported_pre_fit_subtraction"),
+        ),
+        rules=(
+            ReportOperandRule(
+                CanonicalOperand.scalar(joint_adjusted),
+                (
+                    r"(?is)(?=.*\b(?:joint|same|single)\s+(?:linear\s+)?(?:local\s+)?(?:perturbation\s+)?(?:model|regression|fit)\b)(?=.*\b(?:measured|observed)\b[^.]{0,180}\b(?:knockdown|repression|target)\b)(?=.*\b(?:guide[- ]level|sequence|composition|GC)\b[^.]{0,160}\b(?:nuisance|covariate|excess|adjust)\w*\b)(?=.*\b(?:promoter|position|distance|core)[- ]\w*\b[^.]{0,160}\b(?:indicator|term|covariate|adjust)\w*\b)",
+                ),
+            ),
+            ReportOperandRule(
+                CanonicalOperand.scalar(residualized_single_axis),
+                (
+                    r"(?is)\b(?:first\s+)?(?:removed|subtracted)\b[^.]{0,240}\b(?:external(?:ly)?\s+(?:identified|estimated)\s+)?(?:transcript|target|component)\s+contribution\b[^.]{0,240}\bthen\s+fit\s+an?\s+intercept\s+plus\s+[^.]{1,80}\b(?:Huber|robust|ordinary|linear)\s+(?:regression|fit|model)\b",
+                ),
+            ),
+        ),
+        triggers=(
+            r"(?is)(?=.*\b(?:local[- ]locus|local\s+perturbation|neighbor[- ]mediated|adjacent[- ]target)\s+(?:model|effect|component)\b)(?=.*\b(?:removed|subtracted)\b[^.]{0,240}\b(?:transcript|target|component)\s+contribution\b)(?=.*\b(?:regression|fit|model)\b)",
+            r"(?is)(?=.*\b(?:same|joint|primary)\s+(?:linear\s+)?(?:local\s+)?(?:perturbation\s+)?(?:model|regression|fit)\b)(?=.*\b(?:guide[- ]level|sequence|composition|GC)\b)(?=.*\b(?:promoter|position|distance|core)\b)",
+        ),
+        question_wording=(
+            "Which target-axis and guide-nuisance specification governs the primary local "
+            "perturbation effect for this review?"
         ),
     )
 

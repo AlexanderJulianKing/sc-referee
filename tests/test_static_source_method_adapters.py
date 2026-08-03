@@ -32,11 +32,14 @@ from sc_referee.scientific_checks.scope_joins import (
 from sc_referee.scientific_checks.static_source_adapter import StaticSourceMethodAdapter
 
 COPY_CHECK = "check:classifier-derived-copy-dosage-representation"
+DIRECTIONAL_CHECK = "check:directional-measurement-error-interpretation"
 LD_CHECK = "check:ld-covariance-whitening-before-robust-fit"
 EXPECTED = "continuous_posterior_expected_copy_dosage"
 HARD = "integer_hard_copy_state_as_numeric_dosage"
 CONTINUOUS = "direct_continuous_calibrated_copy_dosage"
 WHITENED = "ld_covariance_cholesky_whitening_before_robust_fit"
+SYMMETRIC_ERROR = "reported_average_as_symmetric_bidirectional_error_rate"
+DIRECTIONAL_ERROR = "direction_specific_error_rates_from_average_and_directional_constraint"
 SNAPSHOT_DIGEST = sha256_digest("static-source-adapter-test-snapshot")
 CORPUS_ROOT = Path(__file__).resolve().parents[1] / "evaluation" / "static-source-adapter-v1"
 
@@ -74,6 +77,20 @@ factor = factor_covariance(ld_covariance)
 y_white = triangular_solve(factor, outcome_innovations)
 x_white = triangular_solve(factor, exposure_innovations)
 fit = robust_fit(y_white, x_white, M=redescending_norm())
+"""
+
+PYTHON_SYMMETRIC_ERROR_AFFINE = b"""\
+mean_miscall = metadata["average_error"]
+observed_probability = mean_miscall + (1 - 2 * mean_miscall) * latent_probability
+"""
+
+PYTHON_SYMMETRIC_ERROR_TWO_STATE = b"""\
+flip_rate = assay_error
+observed_probability = latent_probability * (1 - flip_rate) + (1 - latent_probability) * flip_rate
+"""
+
+PYTHON_DIRECTIONAL_ERROR = b"""\
+observed_probability = false_positive * (1 - latent_probability) + (1 - false_negative) * latent_probability
 """
 
 R_EXPECTED = b"""\
@@ -382,6 +399,53 @@ def test_python_and_r_copy_formulas_are_cross_language_equivalent() -> None:
 
 
 @pytest.mark.parametrize(
+    ("payload", "expected"),
+    [
+        (PYTHON_SYMMETRIC_ERROR_AFFINE, SYMMETRIC_ERROR),
+        (PYTHON_SYMMETRIC_ERROR_TWO_STATE, SYMMETRIC_ERROR),
+        (PYTHON_DIRECTIONAL_ERROR, DIRECTIONAL_ERROR),
+    ],
+)
+def test_python_observation_error_algebra_normalizes_directionality(
+    payload: bytes, expected: str
+) -> None:
+    observation = _adapter(DIRECTIONAL_CHECK, "python").inspect(_context(payload, "python"))
+
+    assert observation.applicability == "applicable"
+    assert observation.observed_operand is not None
+    assert observation.observed_operand.value == expected
+
+
+def test_observation_error_algebra_ignores_unrelated_mixtures_and_abstains_on_conflict() -> None:
+    unrelated = b"observed = weight * component_a + (1 - weight) * component_b\n"
+    negative = _adapter(DIRECTIONAL_CHECK, "python").inspect(_context(unrelated, "python"))
+    competing = _adapter(DIRECTIONAL_CHECK, "python").inspect(
+        _context(
+            PYTHON_SYMMETRIC_ERROR_AFFINE
+            + PYTHON_DIRECTIONAL_ERROR.replace(b"observed_probability", b"directional_probability"),
+            "python",
+        )
+    )
+
+    assert negative.applicability == "not_applicable"
+    assert negative.observed_operand is None
+    assert competing.applicability == "ambiguous"
+    assert competing.observed_operand is None
+
+
+def test_branch_dependent_observation_error_formula_is_unsupported() -> None:
+    payload = b"""\
+if use_directional_error:
+    observed_probability = false_positive * (1 - latent_probability) + (1 - false_negative) * latent_probability
+"""
+    observation = _adapter(DIRECTIONAL_CHECK, "python").inspect(_context(payload, "python"))
+
+    assert observation.applicability == "unsupported"
+    assert observation.observed_operand is None
+    assert "branch-dependent" in (observation.abstention_reason or "")
+
+
+@pytest.mark.parametrize(
     ("language", "payload"),
     [
         ("python", PYTHON_LD_ALIAS),
@@ -569,7 +633,11 @@ def test_report_and_source_agreement_or_disagreement_uses_existing_reducer(
 
 @pytest.mark.parametrize(
     ("check_id", "payload"),
-    [(COPY_CHECK, PYTHON_EXPECTED), (LD_CHECK, PYTHON_LD_ALIAS)],
+    [
+        (COPY_CHECK, PYTHON_EXPECTED),
+        (DIRECTIONAL_CHECK, PYTHON_DIRECTIONAL_ERROR),
+        (LD_CHECK, PYTHON_LD_ALIAS),
+    ],
 )
 def test_removing_source_adapters_changes_only_the_source_evidence_plane(
     check_id: str, payload: bytes
@@ -602,11 +670,12 @@ def test_static_source_grammar_digest_is_stable_and_identity_free() -> None:
     adapters = [
         _adapter(COPY_CHECK, "python"),
         _adapter(COPY_CHECK, "r"),
+        _adapter(DIRECTIONAL_CHECK, "python"),
         _adapter(LD_CHECK, "python"),
         _adapter(LD_CHECK, "r"),
     ]
 
-    assert len({item.recognition_grammar_digest for item in adapters}) == 4
+    assert len({item.recognition_grammar_digest for item in adapters}) == 5
     projection = canonical_json(
         {
             "digests": [item.recognition_grammar_digest for item in adapters],

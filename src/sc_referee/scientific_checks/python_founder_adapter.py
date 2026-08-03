@@ -518,7 +518,7 @@ class PythonFounderOrientationAdapter:
                 ),
             )
         document, shape = shapes[0]
-        span = _ast_evidence_span(document, shape.nodes)
+        spans = _ast_evidence_spans(document, shape.nodes)
         scope_path = _selected_container_scope_path(
             context, document
         ) or _selected_static_writer_scope_path(context, document)
@@ -528,7 +528,7 @@ class PythonFounderOrientationAdapter:
                 receipt_id="exact-founder-emission-role-binding",
                 kind="counterevidence",
                 state="passed",
-                evidence_digest=semantic_digest(span.to_dict()),
+                evidence_digest=semantic_digest([span.to_dict() for span in spans]),
                 description=(
                     "The founder allele input and emission call roles were resolved by exact AST flow."
                 ),
@@ -586,7 +586,7 @@ class PythonFounderOrientationAdapter:
             method_target_ref=document.file_ref,
             role_bindings=self.role_bindings,
             observed_operand=shape.operand,
-            evidence_spans=(span,),
+            evidence_spans=spans,
             scope_join_path=scope_path,
             receipts=receipts,
             non_inferences=self.check_manifest.prohibited_inferences,
@@ -753,11 +753,15 @@ def _founder_source_triggered(tree: ast.Module) -> bool:
     has_comparison = any(isinstance(node, ast.Compare) for node in ast.walk(tree))
     has_orientation_call = any(
         isinstance(node, ast.Call)
-        and _terminal_call_name(node)
-        in {"orient_ril_founder_alleles", "repair_ril_founder_orientation"}
+        and (
+            _terminal_call_name(node)
+            in {"orient_ril_founder_alleles", "repair_ril_founder_orientation"}
+            or _orientation_call_semantics(_terminal_call_name(node))
+        )
         for node in ast.walk(tree)
     )
-    return has_founder_field and (has_comparison or has_orientation_call)
+    has_founder_semantics = has_founder_field or _founder_origin_expression(tree)
+    return has_founder_semantics and (has_comparison or has_orientation_call)
 
 
 def _resolve_founder_argument(
@@ -773,12 +777,64 @@ def _resolve_founder_argument(
     if isinstance(expression, ast.Call):
         call_name = _terminal_call_name(expression)
         if call_name in orientation_calls:
+            resolved = _resolve_orientation_input(
+                expression,
+                scope=scope,
+                tree=tree,
+                parent_map=parent_map,
+                local_functions=local_functions,
+                orientation_calls=orientation_calls,
+                seen=seen,
+            )
+            if resolved is not None:
+                return _ResolvedFounderArgument(
+                    state="repaired",
+                    origin_key=resolved.origin_key,
+                    nodes=(expression, *resolved.nodes),
+                )
+        if _orientation_call_semantics(call_name):
+            resolved = _resolve_orientation_input(
+                expression,
+                scope=scope,
+                tree=tree,
+                parent_map=parent_map,
+                local_functions=local_functions,
+                orientation_calls=orientation_calls,
+                seen=seen,
+            )
+            if resolved is not None:
+                return _ResolvedFounderArgument(
+                    state="repaired",
+                    origin_key=resolved.origin_key,
+                    nodes=(expression, *resolved.nodes),
+                )
+        if _founder_origin_expression(expression):
             return _ResolvedFounderArgument(
-                state="repaired",
-                origin_key=f"orientation:{ast.dump(expression, include_attributes=False)}",
+                state="direct",
+                origin_key=f"founder-origin:{ast.dump(expression, include_attributes=False)}",
                 nodes=(expression,),
             )
         return None
+    if (
+        isinstance(expression, ast.BinOp)
+        and isinstance(expression.op, ast.Sub)
+        and _numeric_literal(expression.left) == 1.0
+    ):
+        resolved = _resolve_founder_argument(
+            expression.right,
+            scope=scope,
+            tree=tree,
+            parent_map=parent_map,
+            local_functions=local_functions,
+            orientation_calls=orientation_calls,
+            seen=seen,
+        )
+        if resolved is not None:
+            return _ResolvedFounderArgument(
+                state="repaired",
+                origin_key=resolved.origin_key,
+                nodes=(expression, *resolved.nodes),
+            )
     if isinstance(expression, ast.Attribute):
         if expression.attr == "founder_alleles":
             return _ResolvedFounderArgument(
@@ -813,6 +869,37 @@ def _resolve_founder_argument(
     if seen_key in seen:
         return None
     bindings = _name_bindings(scope, expression.id, parent_map)
+    if not bindings:
+        parameter_resolution = _resolve_parameter_from_callers(
+            expression.id,
+            scope=scope,
+            tree=tree,
+            parent_map=parent_map,
+            local_functions=local_functions,
+            orientation_calls=orientation_calls,
+            seen=seen | {seen_key},
+        )
+        if parameter_resolution is not None:
+            return parameter_resolution
+        outer_scope = _lexical_parent_scope(scope, parent_map)
+        if outer_scope is None:
+            return None
+        resolved = _resolve_founder_argument(
+            expression,
+            scope=outer_scope,
+            tree=tree,
+            parent_map=parent_map,
+            local_functions=local_functions,
+            orientation_calls=orientation_calls,
+            seen=seen | {seen_key},
+        )
+        if resolved is None:
+            return None
+        return _ResolvedFounderArgument(
+            state=resolved.state,
+            origin_key=resolved.origin_key,
+            nodes=resolved.nodes,
+        )
     if len(bindings) != 1:
         return None
     assignment, value, tuple_index = bindings[0]
@@ -844,6 +931,144 @@ def _resolve_founder_argument(
         origin_key=resolved.origin_key,
         nodes=(assignment, *resolved.nodes),
     )
+
+
+def _resolve_orientation_input(
+    expression: ast.Call,
+    *,
+    scope: ast.Module | ast.FunctionDef | ast.AsyncFunctionDef,
+    tree: ast.Module,
+    parent_map: dict[ast.AST, ast.AST],
+    local_functions: dict[str, tuple[ast.FunctionDef | ast.AsyncFunctionDef, ...]],
+    orientation_calls: set[str],
+    seen: frozenset[tuple[int, str]],
+) -> _ResolvedFounderArgument | None:
+    if len(expression.args) != 1 or expression.keywords:
+        return None
+    return _resolve_founder_argument(
+        expression.args[0],
+        scope=scope,
+        tree=tree,
+        parent_map=parent_map,
+        local_functions=local_functions,
+        orientation_calls=orientation_calls,
+        seen=seen,
+    )
+
+
+def _resolve_parameter_from_callers(
+    name: str,
+    *,
+    scope: ast.Module | ast.FunctionDef | ast.AsyncFunctionDef,
+    tree: ast.Module,
+    parent_map: dict[ast.AST, ast.AST],
+    local_functions: dict[str, tuple[ast.FunctionDef | ast.AsyncFunctionDef, ...]],
+    orientation_calls: set[str],
+    seen: frozenset[tuple[int, str]],
+) -> _ResolvedFounderArgument | None:
+    if isinstance(scope, ast.Module):
+        return None
+    positional = (*scope.args.posonlyargs, *scope.args.args)
+    indexes = [index for index, parameter in enumerate(positional) if parameter.arg == name]
+    if len(indexes) != 1:
+        return None
+    parameter_index = indexes[0]
+    calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and _terminal_call_name(node) == scope.name
+    ]
+    if not calls:
+        return None
+    resolutions: list[_ResolvedFounderArgument] = []
+    for call in calls:
+        argument = _call_argument(call, name=name, positional_index=parameter_index)
+        if argument is None:
+            return None
+        caller_scope = _enclosing_scope(tree, call, parent_map)
+        resolved = _resolve_founder_argument(
+            argument,
+            scope=caller_scope,
+            tree=tree,
+            parent_map=parent_map,
+            local_functions=local_functions,
+            orientation_calls=orientation_calls,
+            seen=seen,
+        )
+        if resolved is None:
+            return None
+        resolutions.append(
+            _ResolvedFounderArgument(
+                state=resolved.state,
+                origin_key=resolved.origin_key,
+                nodes=(call, *resolved.nodes),
+            )
+        )
+    return _collapse_founder_resolutions(resolutions)
+
+
+def _call_argument(call: ast.Call, *, name: str, positional_index: int) -> ast.expr | None:
+    if positional_index < len(call.args):
+        return call.args[positional_index]
+    matching_keywords = [item.value for item in call.keywords if item.arg == name]
+    return matching_keywords[0] if len(matching_keywords) == 1 else None
+
+
+def _collapse_founder_resolutions(
+    resolutions: list[_ResolvedFounderArgument],
+) -> _ResolvedFounderArgument | None:
+    if not resolutions:
+        return None
+    states = {item.state for item in resolutions}
+    origins = {item.origin_key for item in resolutions}
+    if len(states) != 1 or len(origins) != 1:
+        return None
+    return _ResolvedFounderArgument(
+        state=next(iter(states)),
+        origin_key=next(iter(origins)),
+        nodes=_unique_ast_nodes(tuple(node for item in resolutions for node in item.nodes)),
+    )
+
+
+def _lexical_parent_scope(
+    scope: ast.Module | ast.FunctionDef | ast.AsyncFunctionDef,
+    parent_map: dict[ast.AST, ast.AST],
+) -> ast.Module | ast.FunctionDef | ast.AsyncFunctionDef | None:
+    if isinstance(scope, ast.Module):
+        return None
+    current: ast.AST = scope
+    while current in parent_map:
+        current = parent_map[current]
+        if isinstance(current, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef)):
+            return current
+    return None
+
+
+def _orientation_call_semantics(name: str) -> bool:
+    tokens = _identifier_tokens(name)
+    return bool(tokens & {"complement", "flip", "invert", "orient", "orientation", "recode"})
+
+
+def _founder_origin_expression(node: ast.AST) -> bool:
+    tokens: set[str] = set()
+    for item in ast.walk(node):
+        if isinstance(item, ast.Name):
+            tokens.update(_identifier_tokens(item.id))
+        elif isinstance(item, ast.Attribute):
+            tokens.update(_identifier_tokens(item.attr))
+        elif isinstance(item, ast.Constant) and isinstance(item.value, str):
+            tokens.update(_identifier_tokens(item.value))
+    return bool(tokens & {"founder", "founders"})
+
+
+def _identifier_tokens(value: str) -> set[str]:
+    return {item for item in re.split(r"[^a-z0-9]+", value.casefold()) if item}
+
+
+def _numeric_literal(node: ast.expr) -> float | None:
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+        return float(node.value)
+    return None
 
 
 def _resolve_call_return_component(
@@ -993,25 +1218,58 @@ def _names(node: ast.AST) -> set[str]:
     return {item.id for item in ast.walk(node) if isinstance(item, ast.Name)}
 
 
-def _ast_evidence_span(document: InspectionDocument, nodes: tuple[ast.AST, ...]) -> EvidenceSpan:
-    first = min(nodes, key=lambda item: (item.lineno, item.col_offset))  # type: ignore[attr-defined]
-    last = max(
-        nodes,
-        key=lambda item: (
-            getattr(item, "end_lineno", getattr(item, "lineno", 1)),
-            getattr(item, "end_col_offset", getattr(item, "col_offset", 0)),
+def _ast_evidence_spans(
+    document: InspectionDocument, nodes: tuple[ast.AST, ...]
+) -> tuple[EvidenceSpan, ...]:
+    candidates = _unique_ast_nodes(nodes)
+    outermost = tuple(
+        node
+        for node in candidates
+        if not any(
+            other is not node
+            and getattr(other, "lineno", 1) <= getattr(node, "lineno", 1)
+            and getattr(other, "end_lineno", getattr(other, "lineno", 1))
+            >= getattr(node, "end_lineno", getattr(node, "lineno", 1))
+            and (
+                getattr(other, "lineno", 1) < getattr(node, "lineno", 1)
+                or getattr(other, "end_lineno", getattr(other, "lineno", 1))
+                > getattr(node, "end_lineno", getattr(node, "lineno", 1))
+            )
+            for other in candidates
+        )
+    )
+    ordered = sorted(
+        outermost,
+        key=lambda node: (
+            0 if isinstance(node, ast.Call) else 1,
+            getattr(node, "lineno", 0),
+            getattr(node, "col_offset", 0),
+            type(node).__name__,
         ),
     )
+    return tuple(_ast_node_evidence_span(document, node) for node in ordered)
+
+
+def _ast_node_evidence_span(document: InspectionDocument, node: ast.AST) -> EvidenceSpan:
     assert document.parser_result_ref is not None
     assert document.source_location is not None
+    start_line = getattr(node, "lineno", 1)
+    end_line = getattr(node, "end_lineno", start_line)
+    lines = document.content.decode("utf-8").splitlines()
+    if start_line == end_line and 1 <= start_line <= len(lines):
+        start_column = 1
+        end_column = len(lines[start_line - 1]) + 1
+    else:
+        start_column = getattr(node, "col_offset", 0) + 1
+        end_column = getattr(node, "end_col_offset", getattr(node, "col_offset", 0)) + 1
     return EvidenceSpan(
         file_ref=document.file_ref,
         path=document.path,
         content_digest=document.source_location.content_digest,
-        start_line=getattr(first, "lineno", 1) + document.line_offset,
-        end_line=(getattr(last, "end_lineno", getattr(last, "lineno", 1)) + document.line_offset),
-        start_column=getattr(first, "col_offset", 0) + 1,
-        end_column=getattr(last, "end_col_offset", getattr(last, "col_offset", 0)) + 1,
+        start_line=start_line + document.line_offset,
+        end_line=end_line + document.line_offset,
+        start_column=start_column,
+        end_column=end_column,
         parser_result_ref=document.parser_result_ref,
     )
 
@@ -1023,21 +1281,32 @@ def python_founder_recognition_grammar_digest(
 ) -> str:
     return semantic_digest(
         {
-            "profile": "python-founder-orientation-before-emission-ast-v3",
+            "profile": "python-founder-orientation-before-emission-ast-v4",
             "orientation_call_names": [
                 "orient_ril_founder_alleles",
                 "repair_ril_founder_orientation",
             ],
             "emission_target": (
                 "one locally defined two-or-more-argument function whose first two formal roles "
-                "are compared and whose second call argument has exact founder-field provenance"
+                "are compared and whose second call argument has exact founder-semantic origin "
+                "provenance through bounded local assignments, lexical closures, and call parameters"
             ),
+            "orientation_transform_shapes": [
+                "one-minus-founder-input",
+                "single-argument call with orient, orientation, flip, invert, complement, or recode token",
+            ],
             "symbol_identity_authoritative": False,
             "direct_operand": direct_operand.to_dict(),
             "repaired_operand": repaired_operand.to_dict(),
             "role_bindings": [item.to_dict() for item in role_bindings],
             "dynamic_dispatch_supported": False,
             "multiple_targets_supported": False,
+            "interprocedural_limits": {
+                "local_functions_only": True,
+                "unique_bindings_only": True,
+                "all_callers_must_resolve_to_one_origin_and_state": True,
+                "variadic_arguments_supported": False,
+            },
             "scope_profiles": [
                 "exact-static-cell-contained-in-selected-source-artifact-v1",
                 "exact-static-source-unique-selected-output-writer-v1",

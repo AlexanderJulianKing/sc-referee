@@ -43,6 +43,8 @@ CLASSIFIER_COPY_DOSAGE_CHECK = "check:classifier-derived-copy-dosage-representat
 TECHNICAL_GROUP_CHECK = "check:recoverable-technical-group-adjustment"
 CASRX_AXIS_CHECK = "check:casrx-isoform-axis-model"
 PAIRED_BRIDGE_CHECK = "check:paired-bridge-location-alignment"
+LOCAL_PERTURBATION_ROW_SCOPE_CHECK = "check:local-perturbation-primary-row-scope"
+LOCAL_PERTURBATION_REGRESSION_CHECK = "check:local-perturbation-regression-specification"
 EXPECTED_COUNT_CONSTRUCTION_CHECK = "check:expected-count-background-construction"
 EXPECTED_COUNT_TARGET_HANDLING_CHECK = "check:expected-count-focal-target-handling"
 CONFORMANCE_CHECK = "check:registry-conformance-token"
@@ -203,6 +205,22 @@ def _inspection_context(*, report_parser_version: str = "0.2.0") -> FrozenInspec
             "repair_ril_founder_orientation_before_hmm_emission",
         ),
         (
+            "For each replicate separately, the expected value was the arithmetic mean of "
+            "counts on the same diagonal.\n",
+            EXPECTED_COUNT_CONSTRUCTION_CHECK,
+            "same_stratum_arithmetic_mean_expected_count",
+        ),
+        (
+            "The focal pixel was left out of its own expected-count background.\n",
+            EXPECTED_COUNT_TARGET_HANDLING_CHECK,
+            "exclude_focal_target_from_expected_count_training",
+        ),
+        (
+            "The focal observation was left out of its expected background.\n",
+            EXPECTED_COUNT_TARGET_HANDLING_CHECK,
+            "exclude_focal_target_from_expected_count_training",
+        ),
+        (
             "The supplied average of the two directional measurement-error rates cannot identify "
             "the rates separately. The primary observation model uses the symmetric "
             "interpretation: both directions equal the supplied average.\n",
@@ -219,6 +237,13 @@ def _inspection_context(*, report_parser_version: str = "0.2.0") -> FrozenInspec
             "The reported average of the two directional measurement-error rates was decomposed "
             "into direction-specific error rates using the independently supplied error floor "
             "before constructing the observation model.\n",
+            DIRECTIONAL_MEASUREMENT_ERROR_CHECK,
+            "direction_specific_error_rates_from_average_and_directional_constraint",
+        ),
+        (
+            "The reported read error is an average of directional miscall rates, not a "
+            "symmetric rate. Given the stated low instrument-error direction, I computed the "
+            "complementary direction and evaluated both possible assignments.\n",
             DIRECTIONAL_MEASUREMENT_ERROR_CHECK,
             "direction_specific_error_rates_from_average_and_directional_constraint",
         ),
@@ -314,6 +339,14 @@ def _inspection_context(*, report_parser_version: str = "0.2.0") -> FrozenInspec
             "sequential_outcome_imputation_conditioning_on_posttreatment_endpoint",
         ),
         (
+            "The longitudinal procedure modeled visit assessment from exposure, adverse event, "
+            "and baseline variables; modeled the later outcome among assessed participants from "
+            "exposure, adverse event, and baseline variables; and integrated the adverse event "
+            "under each exposure before standardizing over the cohort.\n",
+            POSTTREATMENT_MISSINGNESS_CHECK,
+            "sequential_outcome_imputation_conditioning_on_posttreatment_endpoint",
+        ),
+        (
             "The normalized IPCW assessment model excludes observed week-8 toxicity because it "
             "occurs after treatment.\n",
             POSTTREATMENT_MISSINGNESS_CHECK,
@@ -330,6 +363,13 @@ def _inspection_context(*, report_parser_version: str = "0.2.0") -> FrozenInspec
         (
             "Target membership for the somatic structural variant used local total copy number "
             "below 4 as the eligibility ceiling.\n",
+            SOMATIC_CLONALITY_CHECK,
+            "direct_local_copy_number_ceiling_for_target_eligibility",
+        ),
+        (
+            "Target eligibility used all of the following molecular gate criteria: variant-"
+            "molecule fraction at least 0.12 and local total copy below 4, together with mapping "
+            "and phase support.\n",
             SOMATIC_CLONALITY_CHECK,
             "direct_local_copy_number_ceiling_for_target_eligibility",
         ),
@@ -386,6 +426,13 @@ def _inspection_context(*, report_parser_version: str = "0.2.0") -> FrozenInspec
             "continuous_posterior_expected_copy_dosage",
         ),
         (
+            "We trained separate discriminant classifiers against the ordered copy classes. "
+            "For downstream risk models, we used posterior expected copies as the quantitative "
+            "dosage, preserving classification uncertainty.\n",
+            CLASSIFIER_COPY_DOSAGE_CHECK,
+            "continuous_posterior_expected_copy_dosage",
+        ),
+        (
             "The full-cohort representation is ancestry-stratified continuous calibrated copy "
             "dosage, not an integer hard call or posterior class expectation. Separate RidgeCV "
             "calibration models produced the downstream copy dosage within each ancestry.\n",
@@ -429,6 +476,14 @@ def _inspection_context(*, report_parser_version: str = "0.2.0") -> FrozenInspec
             "No donor-specific ambient group or technical group is directly observed. None is "
             "reconstructed. Consequently, no ambient-group or technical-group covariate is "
             "included.\n",
+            TECHNICAL_GROUP_CHECK,
+            "omit_unobserved_or_unlinked_technical_group_covariate",
+        ),
+        (
+            "An assay-control feature was treated as an ambient-only negative-control proxy. "
+            "The cell estimator allows technical contamination to vary by observation.\n\n"
+            "By subject, the retained measurements were aggregated for the outcome. The primary "
+            "association model was mean = exposure * exp(intercept + treatment + age).\n",
             TECHNICAL_GROUP_CHECK,
             "omit_unobserved_or_unlinked_technical_group_covariate",
         ),
@@ -1125,6 +1180,26 @@ def test_pulse_timing_exposure_does_not_conflate_the_ancestry_fraction_denominat
     assert _module(bundle, PULSE_CHECK)["state"] == "applicable"
 
 
+def test_pulse_timing_recognizes_explicit_called_path_instead_of_full_map(
+    tmp_path: Path, schema_root: Path
+) -> None:
+    bundle = _audit(
+        tmp_path,
+        schema_root,
+        report_text=(
+            "Under a single-pulse model, the ancestry path was a two-state continuous-time "
+            "process. I used retained called tract length only for its exposure and did not use "
+            "the full genetic-map length as the denominator.\n"
+        ),
+    )
+
+    assert bundle["findings"] == []
+    assert [item["object"] for item in _check_assertions(bundle)] == [
+        "high_confidence_called_tract_exposure_only"
+    ]
+    assert _module(bundle, PULSE_CHECK)["state"] == "applicable"
+
+
 @pytest.mark.parametrize(
     ("report_text", "expected_state"),
     [
@@ -1183,6 +1258,25 @@ def test_transition_continuity_and_pulse_exposure_are_independent_questions(
         "terminate_path_at_unobserved_or_filtered_intervals",
         "high_confidence_called_tract_exposure_only",
     }
+
+
+def test_transition_path_recognizes_exact_hidden_gap_integration(
+    tmp_path: Path, schema_root: Path
+) -> None:
+    bundle = _audit(
+        tmp_path,
+        schema_root,
+        report_text=(
+            "For each positive-length uncalled gap, the exact two-state transition matrix "
+            "integrated over zero or more hidden switches in the path.\n"
+        ),
+    )
+
+    assert bundle["findings"] == []
+    assert [item["object"] for item in _check_assertions(bundle)] == [
+        "preserve_within_sequence_path_across_unobserved_intervals"
+    ]
+    assert _module(bundle, TRANSITION_PATH_CHECK)["state"] == "applicable"
 
 
 @pytest.mark.parametrize(
@@ -1312,6 +1406,42 @@ def test_poststratified_calibration_profile_preserves_ambiguity_and_hard_negativ
     assert _check_questions(bundle) == []
     assert _check_assertions(bundle) == []
     assert _module(bundle, POSTSTRATIFIED_CALIBRATION_CHECK)["state"] == expected_state
+
+
+@pytest.mark.parametrize(
+    ("report_text", "expected_operand"),
+    [
+        (
+            "I directly standardized completed-test outcome rates to the full sampling frame "
+            "across region, intake channel, and collection-period cells. Within each region and "
+            "period group I then applied the matched control correction.\n",
+            "aggregate_observed_distribution_then_joint_calibration",
+        ),
+        (
+            "For each sampling-frame cell, I used simplex-constrained joint deconvolution of "
+            "the mutually exclusive class probabilities, then standardized the calibrated "
+            "cell estimates using the target weights.\n",
+            "constrained_joint_calibration_within_each_poststratum_then_standardize",
+        ),
+    ],
+)
+def test_poststratified_calibration_recognizes_order_across_renamed_strata(
+    tmp_path: Path,
+    schema_root: Path,
+    report_text: str,
+    expected_operand: str,
+) -> None:
+    bundle = _audit(tmp_path, schema_root, report_text=report_text)
+
+    module = _module(bundle, POSTSTRATIFIED_CALIBRATION_CHECK)
+    observation = next(
+        item for item in module["observations"] if item["applicability"] == "applicable"
+    )
+
+    assert module["state"] == "applicable"
+    assert observation["observed_operand"]["value"] == expected_operand
+    assert len(_check_questions(bundle)) == 1
+    assert bundle["findings"] == []
 
 
 @pytest.mark.parametrize(
@@ -1632,6 +1762,12 @@ def test_direct_standardization_profile_preserves_ambiguity_and_hard_negatives(
             "Medication dosage was rounded to an integer before a classifier was evaluated.\n",
             "not_applicable",
         ),
+        (
+            "We trained a discriminant classifier for response classes. For downstream risk "
+            "models, we used posterior response probability; no copy count or copy dosage was "
+            "defined.\n",
+            "not_applicable",
+        ),
     ],
 )
 def test_classifier_copy_dosage_profile_preserves_ambiguity_and_hard_negatives(
@@ -1675,6 +1811,13 @@ def test_classifier_copy_dosage_profile_preserves_ambiguity_and_hard_negatives(
             "The primary association included the directly recorded sequencing batch; no "
             "data-derived grouping was used.\n",
             "not_applicable",
+        ),
+        (
+            "An assay-control feature was treated as an ambient-only negative-control proxy. "
+            "The cell estimator allows technical contamination to vary by observation. By "
+            "subject, measurements were aggregated. The primary association model was mean = "
+            "exposure * exp(intercept + treatment + batch).\n",
+            "unsupported",
         ),
         (
             "Biological treatment groups were included as covariates in the association model.\n",
@@ -1802,6 +1945,88 @@ def test_casrx_axis_and_paired_bridge_are_independent_questions(
     assert bundle["findings"] == []
 
 
+@pytest.mark.parametrize(
+    ("report_text", "expected_state"),
+    [
+        (
+            "An initial local model compared count outcomes with expression-predicted effects. "
+            "Cross-modal count-expression contradictions were flagged by robust residuals, those "
+            "guide rows were excluded, and we refit the local model on the retained full-assay "
+            "rows.\n",
+            "applicable",
+        ),
+        (
+            "For the neighbor-mediated local-locus model, I used the 36 guides nominally aimed "
+            "at the focal locus and fit the effect model on that subset.\n",
+            "applicable",
+        ),
+        (
+            "The primary local perturbation model used nominally targeted guide rows, but its "
+            "exact row filter was not stated.\n",
+            "unsupported",
+        ),
+        (
+            "The clinical model used 36 patients nominally assigned to treatment. No perturbation "
+            "analysis was fitted.\n",
+            "not_applicable",
+        ),
+    ],
+)
+def test_local_perturbation_row_scope_profile_preserves_hard_negatives(
+    tmp_path: Path,
+    schema_root: Path,
+    report_text: str,
+    expected_state: str,
+) -> None:
+    bundle = _audit(tmp_path, schema_root, report_text=report_text)
+
+    assert bundle["findings"] == []
+    module = _module(bundle, LOCAL_PERTURBATION_ROW_SCOPE_CHECK)
+    assert module["state"] == expected_state
+    assert len(_check_questions(bundle)) == (1 if expected_state == "applicable" else 0)
+
+
+@pytest.mark.parametrize(
+    ("report_text", "expected_state"),
+    [
+        (
+            "The same linear local perturbation model jointly used both measured knockdown axes. "
+            "Guide-level GC excess was included as a nuisance covariate, together with a "
+            "promoter-core indicator.\n",
+            "applicable",
+        ),
+        (
+            "In the neighbor-mediated local-locus model, I first removed the externally estimated "
+            "transcript contribution, then fit an intercept plus the remaining knockdown axis "
+            "with Huber regression.\n",
+            "applicable",
+        ),
+        (
+            "The primary local perturbation regression displayed guide GC and promoter distance "
+            "in QC plots, but the exact adjustment set was not stated.\n",
+            "unsupported",
+        ),
+        (
+            "A clinical regression included patient GC status and distance to hospital. No guide "
+            "or local perturbation model was used.\n",
+            "not_applicable",
+        ),
+    ],
+)
+def test_local_perturbation_regression_profile_preserves_hard_negatives(
+    tmp_path: Path,
+    schema_root: Path,
+    report_text: str,
+    expected_state: str,
+) -> None:
+    bundle = _audit(tmp_path, schema_root, report_text=report_text)
+
+    assert bundle["findings"] == []
+    module = _module(bundle, LOCAL_PERTURBATION_REGRESSION_CHECK)
+    assert module["state"] == expected_state
+    assert len(_check_questions(bundle)) == (1 if expected_state == "applicable" else 0)
+
+
 def test_report_path_and_markdown_formatting_do_not_define_profile_identity(
     tmp_path: Path, schema_root: Path
 ) -> None:
@@ -1855,6 +2080,54 @@ def fit(cohort, calls):
     return score_calls(calls, cohort.founder_alleles[0], 0.01)
 """
 
+INTERPROCEDURAL_DIRECT_SOURCE = """
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+
+def compare_calls(sample_calls, reference_haplotypes, miscoding_rate):
+    matched = sample_calls[:, None] == reference_haplotypes[None, :]
+    return matched
+
+def propagate_hidden_states(observation_table, parental_templates, miscoding_rate):
+    return compare_calls(observation_table[:, 0], parental_templates[0], miscoding_rate)
+
+def main():
+    founder_records = [{"parent_a": 0, "parent_b": 1}]
+    founder_labels = ["parent_a", "parent_b"]
+    founder_matrix = np.array(
+        [[int(row[label]) for label in founder_labels] for row in founder_records]
+    )
+    propagate_hidden_states(observed_calls, founder_matrix, 0.01)
+    report = "A hidden-state reconstruction and mixed-model scan were completed."
+    (ROOT / "report.md").write_text(report)
+
+if __name__ == "__main__":
+    main()
+"""
+
+INTERPROCEDURAL_REPAIRED_SOURCE = INTERPROCEDURAL_DIRECT_SOURCE.replace(
+    "propagate_hidden_states(observed_calls, founder_matrix, 0.01)",
+    "propagate_hidden_states(observed_calls, 1 - founder_matrix, 0.01)",
+)
+
+INTERPROCEDURAL_NAMED_REPAIR_SOURCE = INTERPROCEDURAL_DIRECT_SOURCE.replace(
+    "propagate_hidden_states(observed_calls, founder_matrix, 0.01)",
+    "propagate_hidden_states(observed_calls, orient_binary_reference(founder_matrix), 0.01)",
+)
+
+INTERPROCEDURAL_MIXED_SOURCE = INTERPROCEDURAL_DIRECT_SOURCE.replace(
+    "propagate_hidden_states(observed_calls, founder_matrix, 0.01)",
+    "propagate_hidden_states(observed_calls, founder_matrix, 0.01)\n"
+    "    propagate_hidden_states(validation_calls, 1 - founder_matrix, 0.01)",
+)
+
+INTERPROCEDURAL_HARD_NEGATIVE_SOURCE = (
+    INTERPROCEDURAL_DIRECT_SOURCE.replace("founder_records", "reference_records")
+    .replace("founder_labels", "reference_labels")
+    .replace("founder_matrix", "reference_matrix")
+)
+
 
 def _selected_report_writer_source(*, marker: Path | None = None, guarded: bool = True) -> str:
     marker_line = (
@@ -1875,6 +2148,78 @@ def _selected_report_writer_source(*, marker: Path | None = None, guarded: bool 
         f"{writer_body}"
         f"{guard}"
     )
+
+
+@pytest.mark.parametrize(
+    ("analysis_text", "expected_operand"),
+    [
+        (
+            INTERPROCEDURAL_DIRECT_SOURCE,
+            "use_supplied_founder_alleles_directly_in_hmm_emission",
+        ),
+        (
+            INTERPROCEDURAL_REPAIRED_SOURCE,
+            "repair_ril_founder_orientation_before_hmm_emission",
+        ),
+        (
+            INTERPROCEDURAL_NAMED_REPAIR_SOURCE,
+            "repair_ril_founder_orientation_before_hmm_emission",
+        ),
+    ],
+)
+def test_founder_adapter_tracks_one_origin_through_local_call_parameters(
+    tmp_path: Path,
+    schema_root: Path,
+    analysis_text: str,
+    expected_operand: str,
+) -> None:
+    bundle = _audit(
+        tmp_path,
+        schema_root,
+        report_text="A hidden-state reconstruction and mixed-model scan were completed.\n",
+        analysis_text=analysis_text,
+    )
+
+    module = _module(bundle, FOUNDER_CHECK)
+    source = next(
+        item for item in module["observations"] if item["evidence_plane"] == "static_source"
+    )
+
+    assert module["state"] == "applicable"
+    assert source["applicability"] == "applicable"
+    assert source["observed_operand"]["value"] == expected_operand
+    assert len(source["evidence_spans"]) >= 2
+    assert all(item["end_line"] - item["start_line"] <= 4 for item in source["evidence_spans"])
+    assert len(_check_questions(bundle)) == 1
+    assert _check_questions(bundle)[0]["extensions"]["x-scientific-check-id"] == FOUNDER_CHECK
+    assert bundle["findings"] == []
+
+
+@pytest.mark.parametrize(
+    "analysis_text",
+    [INTERPROCEDURAL_MIXED_SOURCE, INTERPROCEDURAL_HARD_NEGATIVE_SOURCE],
+)
+def test_founder_adapter_abstains_on_mixed_flow_and_nonfounder_comparisons(
+    tmp_path: Path,
+    schema_root: Path,
+    analysis_text: str,
+) -> None:
+    bundle = _audit(
+        tmp_path,
+        schema_root,
+        report_text="A hidden-state reconstruction and mixed-model scan were completed.\n",
+        analysis_text=analysis_text,
+    )
+
+    module = _module(bundle, FOUNDER_CHECK)
+
+    assert module["state"] in {"not_applicable", "unsupported"}
+    assert not [
+        item
+        for item in _check_questions(bundle)
+        if item["extensions"].get("x-scientific-check-id") == FOUNDER_CHECK
+    ]
+    assert bundle["findings"] == []
 
 
 @pytest.mark.parametrize(

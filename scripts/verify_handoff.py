@@ -1506,9 +1506,9 @@ def main() -> int:
         "sequence_record_boundary_adr_accepted": True,
         "bounded_bh_control_family": "passed_disclosure_only_zero_findings",
         "post_mpp_regression_corpus": (
-            "131_declared_cases_92_pytest_selectors_4_direct_audit_replays_passed"
+            "144_declared_cases_100_pytest_selectors_4_direct_audit_replays_passed"
         ),
-        "post_mpp_module_baselines": "27_of_27_complete_development_only",
+        "post_mpp_module_baselines": "30_of_30_complete_development_only",
     }
     (ROOT / "HANDOFF_VERIFICATION.json").write_text(
         json.dumps(verification, indent=2) + "\n", encoding="utf-8"

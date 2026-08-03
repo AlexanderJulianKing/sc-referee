@@ -15,7 +15,7 @@ ADRs remain authoritative for their exact scopes.
 
 The 0.3.0 baseline contains:
 
-- 18 active question-oriented scientific checks through 23 bounded adapters;
+- 20 active question-oriented scientific checks through 26 bounded adapters;
 - 10 active deterministic calculation-check families;
 - 16 published capability profiles;
 - one experimental method-conflict detector binding; and

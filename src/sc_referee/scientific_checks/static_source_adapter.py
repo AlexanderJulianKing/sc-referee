@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -43,6 +44,8 @@ _COPY_HARD = "integer_hard_copy_state_as_numeric_dosage"
 _COPY_EXPECTED = "continuous_posterior_expected_copy_dosage"
 _COPY_CONTINUOUS = "direct_continuous_calibrated_copy_dosage"
 _LD_WHITENED = "ld_covariance_cholesky_whitening_before_robust_fit"
+_DIRECTIONAL_SYMMETRIC = "reported_average_as_symmetric_bidirectional_error_rate"
+_DIRECTIONAL_SPLIT = "direction_specific_error_rates_from_average_and_directional_constraint"
 
 _MODEL_CLASSIFIER = "model:classifier"
 _MODEL_CONTINUOUS = "model:continuous"
@@ -91,9 +94,17 @@ _COPY_OPERANDS = {
     _COPY_CONTINUOUS: CanonicalOperand.scalar(_COPY_CONTINUOUS),
 }
 _LD_OPERANDS = {_LD_WHITENED: CanonicalOperand.scalar(_LD_WHITENED)}
+_DIRECTIONAL_OPERANDS = {
+    _DIRECTIONAL_SYMMETRIC: CanonicalOperand.scalar(_DIRECTIONAL_SYMMETRIC),
+    _DIRECTIONAL_SPLIT: CanonicalOperand.scalar(_DIRECTIONAL_SPLIT),
+}
 
 SourceLanguage = Literal["python", "r"]
-Recognizer = Literal["classifier_copy_dosage", "ld_whitening"]
+Recognizer = Literal[
+    "classifier_copy_dosage",
+    "directional_measurement_error",
+    "ld_whitening",
+]
 
 
 @dataclass(frozen=True)
@@ -335,7 +346,7 @@ def static_source_recognition_grammar_digest(
             "prediction_calls": ["predict", "stats::predict"],
             "prediction_types": ["class", "probs", "response"],
         }
-    else:
+    elif recognizer == "ld_whitening":
         grammar["operands"] = {key: value.to_dict() for key, value in _LD_OPERANDS.items()}
         grammar["python_calls"] = {
             "cholesky": sorted(_PYTHON_CHOL_CALLS),
@@ -349,6 +360,29 @@ def static_source_recognition_grammar_digest(
             "robust_fit": ["MASS::rlm", "rlm"],
             "redescending_norm": ["MASS::psi.bisquare", "psi.bisquare"],
         }
+    else:
+        grammar["operands"] = {key: value.to_dict() for key, value in _DIRECTIONAL_OPERANDS.items()}
+        grammar["python_algebra"] = {
+            "symmetric_affine": "error + (1 - 2 * error) * latent_probability",
+            "symmetric_two_state": (
+                "latent_probability * (1 - error) + (1 - latent_probability) * error"
+            ),
+            "directional_two_state": (
+                "latent_probability * (1 - forward_error) + "
+                "(1 - latent_probability) * reverse_error"
+            ),
+            "semantic_rate_tokens": [
+                "err",
+                "error",
+                "false_negative",
+                "false_positive",
+                "flip",
+                "miscal",
+                "misclass",
+                "miscall",
+            ],
+        }
+        grammar["r_support"] = False
     return semantic_digest(grammar)
 
 
@@ -416,20 +450,24 @@ def _scan_document(
             tree = ast.parse(text, filename=document.path, type_comments=True)
         except SyntaxError:
             return _ScanOutcome((), False, "Python AST parsing was incomplete")
-        return (
-            _python_copy_dosage_scan(tree)
-            if recognizer == "classifier_copy_dosage"
-            else _python_ld_whitening_scan(tree)
-        )
+        if recognizer == "classifier_copy_dosage":
+            return _python_copy_dosage_scan(tree)
+        if recognizer == "directional_measurement_error":
+            return _python_directional_measurement_error_scan(tree)
+        return _python_ld_whitening_scan(tree)
     payload = text.encode("utf-8")
     r_tree = Parser(Language(tree_sitter_r.language())).parse(payload)
     if r_tree.root_node.has_error:
         return _ScanOutcome((), False, "Tree-sitter-R parsing was incomplete")
-    return (
-        _r_copy_dosage_scan(r_tree.root_node, payload)
-        if recognizer == "classifier_copy_dosage"
-        else _r_ld_whitening_scan(r_tree.root_node, payload)
-    )
+    if recognizer == "classifier_copy_dosage":
+        return _r_copy_dosage_scan(r_tree.root_node, payload)
+    if recognizer == "directional_measurement_error":
+        return _ScanOutcome(
+            (),
+            False,
+            "the directional measurement-error algebra is not implemented for R",
+        )
+    return _r_ld_whitening_scan(r_tree.root_node, payload)
 
 
 def _parser_boundary(document: InspectionDocument, language: SourceLanguage) -> str | None:
@@ -546,6 +584,193 @@ def _python_copy_dosage_scan(tree: ast.Module) -> _ScanOutcome:
                 if category in _COPY_OPERANDS and _python_target_mentions_dosage_target(target):
                     shapes.append(_python_shape(_COPY_OPERANDS[category], node))
     return _collapse_shapes(shapes, triggered, boundary)
+
+
+def _python_directional_measurement_error_scan(tree: ast.Module) -> _ScanOutcome:
+    """Recognize closed two-state observation-error algebra without domain identifiers."""
+
+    parents = {child: parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)}
+    shapes: list[_SourceShape] = []
+    triggered = False
+    boundary: str | None = None
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)) or node.value is None:
+            continue
+        scope = _python_nearest_scope(node, parents)
+        bindings = _python_unique_expression_bindings(scope)
+        if bindings is None:
+            if _python_contains_error_rate_semantics(node.value, {}):
+                triggered = True
+                boundary = "measurement-error source assignments are ambiguous"
+            continue
+        triggered = triggered or _python_contains_error_rate_semantics(node.value, bindings)
+        operand = _python_measurement_error_operand(node.value, bindings)
+        if operand is None:
+            continue
+        if _python_has_branch_ancestor(node, parents):
+            boundary = "the observation-error formula is branch-dependent"
+            continue
+        shapes.append(_python_shape(_DIRECTIONAL_OPERANDS[operand], node))
+    return _collapse_shapes(shapes, triggered, boundary)
+
+
+def _python_measurement_error_operand(node: ast.expr, bindings: dict[str, ast.expr]) -> str | None:
+    affine_rate = _python_symmetric_affine_rate(node)
+    if affine_rate is not None and _python_is_error_rate_atom(affine_rate, bindings):
+        return _DIRECTIONAL_SYMMETRIC
+
+    terms = _python_commutative_pair(node, ast.Add)
+    if terms is None:
+        return None
+    for first, second in (terms, tuple(reversed(terms))):
+        first_factors = _python_commutative_pair(first, ast.Mult)
+        second_factors = _python_commutative_pair(second, ast.Mult)
+        if first_factors is None or second_factors is None:
+            continue
+        for probability, retained_rate in (
+            first_factors,
+            tuple(reversed(first_factors)),
+        ):
+            forward_rate = _python_one_minus_atom(retained_rate)
+            if forward_rate is None or not _python_is_atom(probability):
+                continue
+            for probability_complement, reverse_rate in (
+                second_factors,
+                tuple(reversed(second_factors)),
+            ):
+                latent = _python_one_minus_atom(probability_complement)
+                if (
+                    latent is None
+                    or not _python_same_atom(probability, latent)
+                    or not _python_is_atom(reverse_rate)
+                    or not _python_is_error_rate_atom(forward_rate, bindings)
+                    or not _python_is_error_rate_atom(reverse_rate, bindings)
+                ):
+                    continue
+                return (
+                    _DIRECTIONAL_SYMMETRIC
+                    if _python_same_atom(forward_rate, reverse_rate)
+                    else _DIRECTIONAL_SPLIT
+                )
+    return None
+
+
+def _python_symmetric_affine_rate(node: ast.expr) -> ast.expr | None:
+    terms = _python_commutative_pair(node, ast.Add)
+    if terms is None:
+        return None
+    for rate, scaled_probability in (terms, tuple(reversed(terms))):
+        if not _python_is_atom(rate):
+            continue
+        factors = _python_commutative_pair(scaled_probability, ast.Mult)
+        if factors is None:
+            continue
+        for coefficient, probability in (factors, tuple(reversed(factors))):
+            coefficient_rate = _python_one_minus_twice_atom(coefficient)
+            if (
+                coefficient_rate is not None
+                and _python_is_atom(probability)
+                and _python_same_atom(rate, coefficient_rate)
+            ):
+                return rate
+    return None
+
+
+def _python_one_minus_twice_atom(node: ast.expr) -> ast.expr | None:
+    if not (
+        isinstance(node, ast.BinOp)
+        and isinstance(node.op, ast.Sub)
+        and _python_numeric_value(node.left) == 1.0
+    ):
+        return None
+    factors = _python_commutative_pair(node.right, ast.Mult)
+    if factors is None:
+        return None
+    for number, atom in (factors, tuple(reversed(factors))):
+        if _python_numeric_value(number) == 2.0 and _python_is_atom(atom):
+            return atom
+    return None
+
+
+def _python_one_minus_atom(node: ast.expr) -> ast.expr | None:
+    if (
+        isinstance(node, ast.BinOp)
+        and isinstance(node.op, ast.Sub)
+        and _python_numeric_value(node.left) == 1.0
+        and _python_is_atom(node.right)
+    ):
+        return node.right
+    return None
+
+
+def _python_commutative_pair(
+    node: ast.expr, operator: type[ast.operator]
+) -> tuple[ast.expr, ast.expr] | None:
+    if isinstance(node, ast.BinOp) and isinstance(node.op, operator):
+        return node.left, node.right
+    return None
+
+
+def _python_is_atom(node: ast.expr) -> bool:
+    return isinstance(node, (ast.Name, ast.Attribute, ast.Subscript))
+
+
+def _python_same_atom(first: ast.expr, second: ast.expr) -> bool:
+    return ast.dump(first, annotate_fields=True, include_attributes=False) == ast.dump(
+        second, annotate_fields=True, include_attributes=False
+    )
+
+
+def _python_numeric_value(node: ast.expr) -> float | None:
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+        return float(node.value)
+    return None
+
+
+def _python_contains_error_rate_semantics(node: ast.AST, bindings: dict[str, ast.expr]) -> bool:
+    return any(
+        _python_is_error_rate_atom(item, bindings)
+        for item in ast.walk(node)
+        if isinstance(item, (ast.Name, ast.Attribute, ast.Subscript))
+    )
+
+
+def _python_is_error_rate_atom(node: ast.expr, bindings: dict[str, ast.expr]) -> bool:
+    if not _python_is_atom(node):
+        return False
+    text = _python_semantic_text(node)
+    if isinstance(node, ast.Name) and node.id in bindings:
+        text += " " + _python_semantic_text(bindings[node.id])
+    normalized = text.casefold()
+    tokens = {item for item in re.split(r"[^a-z0-9]+", normalized) if item}
+    if tokens & {
+        "err",
+        "error",
+        "errors",
+        "flip",
+        "miscall",
+        "miscalls",
+        "misclass",
+        "misclassification",
+    }:
+        return True
+    joined = "_".join(sorted(tokens))
+    return any(
+        marker in normalized or marker in joined
+        for marker in ("false_negative", "false_positive", "miscal")
+    ) or bool(re.fullmatch(r"e_(?:ad|da|01|10)", normalized))
+
+
+def _python_semantic_text(node: ast.AST) -> str:
+    values: list[str] = []
+    for item in ast.walk(node):
+        if isinstance(item, ast.Name):
+            values.append(item.id)
+        elif isinstance(item, ast.Attribute):
+            values.append(item.attr)
+        elif isinstance(item, ast.Constant) and isinstance(item.value, str):
+            values.append(item.value)
+    return " ".join(values)
 
 
 def _python_ld_whitening_scan(tree: ast.Module) -> _ScanOutcome:
