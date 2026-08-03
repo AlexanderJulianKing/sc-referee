@@ -142,9 +142,17 @@ target-byte verification.
 ## Bounded delimited-header inventory experiment
 
 Under Experiment 0009, every fully captured regular `.csv` or `.tsv` file is eligible for strict
-UTF-8 first-record inspection. Valid unique headers of at most 1,024 columns produce a partial
-DataAsset and Variables containing exact names only. Storage types, observed levels, row shape,
-row count, cell values, missingness, units, scientific roles, and meanings remain unknown.
+UTF-8 first-record inspection. ADR-0054 and Experiment 0045 extend that inventory to exact
+`.csv.gz` and `.tsv.gz` bytes. Valid unique headers of at most 1,024 columns and 1 MiB produce a
+partial DataAsset and Variables containing exact names only. A quoted header may span physical
+lines; the bounded unit is one logical CSV/TSV record.
+
+Compressed reads use at most 64 KiB per chunk and one sentinel byte beyond the 1 MiB header limit.
+The snapshot extension `x-delimited-read-receipts` records path, content digest, encoding, raw and
+logical bytes, chunks, all ceilings, status, and a closed termination reason. The gzip member after
+the header is not decompressed or validated. Storage types, observed levels, row shape, row count,
+cell values, missingness, units, scientific roles, and meanings remain unknown, and gzip tables do
+not yet feed the L09 calculations.
 
 When exactly one existing static Artifact resolves to the same path, its producer/consumer edges
 may label the DataAsset input, intermediate, or output. That label is static source evidence and

@@ -12,8 +12,8 @@ Available now:
 - canonical JSON/JSONL evidence with a rebuildable SQLite index;
 - exact source locations and multidimensional Claim lineage;
 - bounded static inspection of Python, Markdown, R Markdown, R, Jupyter notebooks, and Quarto;
-- bounded CSV/TSV headers, selected dense/CSR/CSC H5AD structure, checksum declarations, and
-  default Nextflow trace import;
+- bounded plain or gzip-compressed CSV/TSV headers, selected dense/CSR/CSC H5AD structure,
+  checksum declarations, and default Nextflow trace import;
 - typed scientist questions and linked answer segments;
 - semantic lock, integrity verification, deterministic report generation, and model-free replay;
 - attached RO-Crate export under the project's bounded profile; and
@@ -89,6 +89,11 @@ current H5AD structural adapter accepts bounded dense, CSR, and CSC integer `X` 
 decompressed arrays in chunks of at most 1 MiB under a separate 64 MiB logical-read ceiling and
 records the measured reads in the immutable snapshot. It never densifies sparse matrices. Layers,
 `raw`, floating matrices, files outside the exact material-copy budget, and biological meaning
+remain unsupported.
+
+Fully identified `.csv.gz` and `.tsv.gz` files receive only a bounded first-logical-record header
+inventory: at most 64 KiB per decompressed read and a 1 MiB header plus one sentinel byte. The
+gzip body is not decompressed or validated, so row values and full compressed calculation inputs
 remain unsupported.
 
 ## How to read coverage

@@ -1034,6 +1034,16 @@ Proceed in this order:
     evaluation files, starter/schema validation, the 121-case regression ledger with all 26 module
     baselines, and the complete clean-wheel handoff verifier. L10 remains open for compressed
     delimited and separately justified Parquet/Arrow, Zarr, or large physical-file adapters.
+14. ✅ Experiment 0045 and accepted ADR-0054 complete the second L10 tranche. Exact `.csv.gz`
+    and `.tsv.gz` bytes now receive first-logical-record header inventory with 64 KiB chunks, a
+    1 MiB header ceiling plus one sentinel byte, deterministic snapshot receipts, and
+    cancellation/deadline checkpoints. Quoted multiline headers, unread multi-megabyte bodies,
+    malformed gzip, header compression bombs, cancellation, live mutation, replay, and
+    no-project-execution controls pass. Schema v0.18.0, physical snapshot budgets, calculation
+    authority, and Finding ceilings remain unchanged. The full checkpoint passes 1,379 tests,
+    Ruff, formatting, strict typing for 110 production and 28 evaluation files, starter/schema
+    validation, the 121-case regression ledger with all 26 module baselines, and the complete
+    clean-wheel handoff verifier. Full compressed-table calculations remain the next L10 tranche.
 
 Further Python lineage profiles are justified only when they unblock a named detector premise or
 real validation case. Branches, DAGs, dynamic runtime semantics, and over-budget calculations remain
@@ -1050,7 +1060,8 @@ the draft pull request as a published or detector-qualified release.
 ## Immediate next task
 
 Follow `docs/implementation/POST_MPP_PRODUCT_BACKLOG.md` in dependency order. L01 through L09 are
-complete; continue L10 with bounded compressed-delimited summaries before considering optional
-Parquet/Arrow, Zarr, or large physical-file adapters.
+complete; continue L10 by feeding fully and measurably decompressed gzip tables into the existing
+L09 calculation adapters before considering optional Parquet/Arrow, Zarr, or large physical-file
+adapters.
 Every subsequent feature must retain the mandatory positive, corrected, hard-negative, ambiguous,
 unsupported, isolation, mutation, no-execution, and replay controls described there.
