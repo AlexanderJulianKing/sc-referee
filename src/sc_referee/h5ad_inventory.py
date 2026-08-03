@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import io
+from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import PurePosixPath
-from typing import Any
+from typing import Any, Literal
 
 import h5py  # type: ignore[import-untyped]
 import numpy as np
@@ -21,6 +22,11 @@ MAX_H5AD_AXIS_ITEMS = 2_000_000
 MAX_H5AD_MATRIX_ELEMENTS = 2_000_000
 MAX_H5AD_MATRIX_BYTES = 16 * 1024 * 1024
 MAX_H5AD_TEXT_BYTES = 2 * 1024 * 1024
+MAX_H5AD_LOGICAL_READ_BYTES = 64 * 1024 * 1024
+MAX_H5AD_READ_CHUNK_BYTES = 1024 * 1024
+MAX_H5AD_SPARSE_STORED_VALUES = 8_000_000
+MAX_H5AD_UNIQUENESS_ITEMS = 100_000
+MAX_H5AD_STRING_CHUNK_ITEMS = 4_096
 _ALLOWED_COMPRESSIONS = {None, "gzip", "lzf", "szip"}
 
 
@@ -41,11 +47,60 @@ class H5ADStructure:
     matrix_nonnegative: bool
     matrix_integer_valued: bool
     matrix_sum: int
+    matrix_stored_values: int
+    logical_bytes_read: int
+    read_chunks: int
     obs_fields: tuple[str, ...]
     obs_index: str
+    observation_index_unique: bool | None
     var_index: str
-    feature_index_unique: bool
+    feature_index_unique: bool | None
     field_storage: tuple[tuple[str, str], ...]
+
+
+@dataclass(frozen=True)
+class H5ADReadReceipt:
+    path: str
+    content_digest: str
+    status: Literal["inspected", "unsupported"]
+    raw_file_bytes: int
+    logical_bytes_read: int
+    read_chunks: int
+    logical_byte_ceiling: int
+    chunk_byte_ceiling: int
+    termination_reason: str | None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "path": self.path,
+            "content_digest": self.content_digest,
+            "status": self.status,
+            "raw_file_bytes": self.raw_file_bytes,
+            "logical_bytes_read": self.logical_bytes_read,
+            "read_chunks": self.read_chunks,
+            "logical_byte_ceiling": self.logical_byte_ceiling,
+            "chunk_byte_ceiling": self.chunk_byte_ceiling,
+            "termination_reason": self.termination_reason,
+        }
+
+
+@dataclass
+class _ReadMeter:
+    checkpoint: Callable[[], None] | None
+    logical_bytes_read: int = 0
+    read_chunks: int = 0
+
+    def before_read(self) -> None:
+        if self.checkpoint is not None:
+            self.checkpoint()
+
+    def record(self, byte_count: int) -> None:
+        if byte_count < 0 or byte_count > MAX_H5AD_READ_CHUNK_BYTES:
+            raise H5ADInspectionError("H5AD read escaped the chunk-byte ceiling")
+        if self.logical_bytes_read + byte_count > MAX_H5AD_LOGICAL_READ_BYTES:
+            raise H5ADInspectionError("H5AD logical reads exceed the decompressed-byte ceiling")
+        self.logical_bytes_read += byte_count
+        self.read_chunks += 1
 
 
 @dataclass(frozen=True)
@@ -59,6 +114,7 @@ class H5ADInventoryOutput:
     unavailable_paths: tuple[str, ...]
     unsupported_paths: tuple[str, ...]
     ambiguous_artifact_paths: tuple[str, ...]
+    read_receipts: tuple[H5ADReadReceipt, ...]
 
 
 def inspect_h5ad_inventory(
@@ -66,6 +122,8 @@ def inspect_h5ad_inventory(
     existing_artifacts: list[dict[str, Any]],
     run_id: str,
     created_at: str,
+    *,
+    read_checkpoint: Callable[[], None] | None = None,
 ) -> H5ADInventoryOutput:
     """Inspect only explicitly selected, fully identified H5AD material inputs."""
 
@@ -95,6 +153,7 @@ def inspect_h5ad_inventory(
     unavailable: list[str] = []
     unsupported: list[str] = []
     ambiguous: list[str] = []
+    read_receipts: list[H5ADReadReceipt] = []
 
     for path in selected_paths:
         file_record = files_by_path.get(path)
@@ -117,6 +176,8 @@ def inspect_h5ad_inventory(
         ):
             unavailable.append(path)
             continue
+        if read_checkpoint is not None:
+            read_checkpoint()
         try:
             payload = materialized.read_bytes()
         except OSError:
@@ -130,10 +191,24 @@ def inspect_h5ad_inventory(
             ambiguous.append(path)
             continue
         source_ref = _source_ref(path, digest)
+        meter = _ReadMeter(read_checkpoint)
         try:
-            raw_structure = _inspect_h5ad(payload, path, digest, source_ref)
+            raw_structure = _inspect_h5ad(payload, path, digest, source_ref, meter)
         except (H5ADInspectionError, OSError, ValueError):
             unsupported.append(path)
+            read_receipts.append(
+                H5ADReadReceipt(
+                    path=path,
+                    content_digest=digest,
+                    status="unsupported",
+                    raw_file_bytes=len(payload),
+                    logical_bytes_read=meter.logical_bytes_read,
+                    read_chunks=meter.read_chunks,
+                    logical_byte_ceiling=MAX_H5AD_LOGICAL_READ_BYTES,
+                    chunk_byte_ceiling=MAX_H5AD_READ_CHUNK_BYTES,
+                    termination_reason="unsupported_layout_or_budget",
+                )
+            )
             continue
 
         if matches:
@@ -162,6 +237,19 @@ def inspect_h5ad_inventory(
         data_assets.append(data_asset)
         variables.extend(h5ad_variables)
         inspected.append(path)
+        read_receipts.append(
+            H5ADReadReceipt(
+                path=path,
+                content_digest=digest,
+                status="inspected",
+                raw_file_bytes=len(payload),
+                logical_bytes_read=meter.logical_bytes_read,
+                read_chunks=meter.read_chunks,
+                logical_byte_ceiling=MAX_H5AD_LOGICAL_READ_BYTES,
+                chunk_byte_ceiling=MAX_H5AD_READ_CHUNK_BYTES,
+                termination_reason=None,
+            )
+        )
 
     return H5ADInventoryOutput(
         artifacts=sorted(artifacts, key=lambda item: str(item["artifact_id"])),
@@ -173,6 +261,7 @@ def inspect_h5ad_inventory(
         unavailable_paths=tuple(sorted(unavailable)),
         unsupported_paths=tuple(sorted(unsupported)),
         ambiguous_artifact_paths=tuple(sorted(ambiguous)),
+        read_receipts=tuple(sorted(read_receipts, key=lambda item: item.path)),
     )
 
 
@@ -192,6 +281,7 @@ def _inspect_h5ad(
     path: str,
     digest: str,
     source_ref: dict[str, Any],
+    meter: _ReadMeter,
 ) -> dict[str, Any]:
     try:
         handle = h5py.File(io.BytesIO(payload), "r")
@@ -200,23 +290,9 @@ def _inspect_h5ad(
     with handle:
         if _attribute_text(handle.attrs.get("encoding-type")) != "anndata":
             raise H5ADInspectionError("root encoding-type is not anndata")
-        matrix = _hard_object(handle, "X", h5py.Dataset)
-        if len(matrix.shape) != 2:
-            raise H5ADInspectionError("X is not two-dimensional")
-        n_obs, n_vars = (int(matrix.shape[0]), int(matrix.shape[1]))
-        if (
-            n_obs < 1
-            or n_vars < 1
-            or n_obs > MAX_H5AD_AXIS_ITEMS
-            or n_vars > MAX_H5AD_AXIS_ITEMS
-            or n_obs * n_vars > MAX_H5AD_MATRIX_ELEMENTS
-            or int(matrix.nbytes) > MAX_H5AD_MATRIX_BYTES
-        ):
-            raise H5ADInspectionError("X exceeds the bounded dense-matrix profile")
-        if matrix.dtype.kind not in {"i", "u"}:
-            raise H5ADInspectionError("X is not stored as a dense integer array")
-        if matrix.is_virtual or matrix.compression not in _ALLOWED_COMPRESSIONS:
-            raise H5ADInspectionError("X uses an unsupported virtual or compressed layout")
+        matrix = _hard_object(handle, "X", (h5py.Dataset, h5py.Group))
+        matrix_info = _inspect_matrix(matrix, meter)
+        n_obs, n_vars = matrix_info["shape"]
 
         obs = _hard_object(handle, "obs", h5py.Group)
         var = _hard_object(handle, "var", h5py.Group)
@@ -233,45 +309,194 @@ def _inspect_h5ad(
 
         field_storage: list[tuple[str, str]] = []
         obs_fields: list[str] = []
+        observation_index_unique: bool | None = None
         for name in sorted(obs.keys()):
-            storage = _inspect_axis_field(obs, name, n_obs)
+            storage, unique = _inspect_axis_field(
+                obs,
+                name,
+                n_obs,
+                meter,
+                check_uniqueness=name == obs_index,
+            )
             field_storage.append((f"obs/{name}", storage))
             obs_fields.append(name)
+            if name == obs_index:
+                observation_index_unique = unique
         if obs_index not in obs_fields:
             raise H5ADInspectionError("declared obs index is not present")
 
-        feature_values, feature_storage = _read_axis_strings(var, var_index, n_vars)
+        feature_storage, feature_index_unique = _inspect_axis_field(
+            var,
+            var_index,
+            n_vars,
+            meter,
+            check_uniqueness=True,
+        )
         field_storage.append((f"var/{var_index}", feature_storage))
-        feature_index_unique = len(set(feature_values)) == len(feature_values)
-
-        matrix_nonnegative = True
-        matrix_sum = 0
-        rows_per_chunk = max(1, min(n_obs, 1_048_576 // max(1, n_vars * matrix.dtype.itemsize)))
-        for start in range(0, n_obs, rows_per_chunk):
-            block = np.asarray(matrix[start : min(n_obs, start + rows_per_chunk), :])
-            if block.shape != (min(rows_per_chunk, n_obs - start), n_vars):
-                raise H5ADInspectionError("X returned an inconsistent bounded slice")
-            if bool(np.any(block < 0)):
-                matrix_nonnegative = False
-            matrix_sum += int(block.sum(dtype=object))
 
     return {
         "path": path,
         "source_ref": source_ref,
         "content_digest": digest,
         "matrix_path": "X",
+        **matrix_info,
+        "logical_bytes_read": meter.logical_bytes_read,
+        "read_chunks": meter.read_chunks,
+        "obs_fields": tuple(obs_fields),
+        "obs_index": obs_index,
+        "observation_index_unique": observation_index_unique,
+        "var_index": var_index,
+        "feature_index_unique": feature_index_unique,
+        "field_storage": tuple(field_storage),
+    }
+
+
+def _inspect_matrix(matrix: Any, meter: _ReadMeter) -> dict[str, Any]:
+    if isinstance(matrix, h5py.Dataset):
+        return _inspect_dense_matrix(matrix, meter)
+    if not isinstance(matrix, h5py.Group):
+        raise H5ADInspectionError("X has an unsupported HDF5 object type")
+    return _inspect_sparse_matrix(matrix, meter)
+
+
+def _inspect_dense_matrix(matrix: h5py.Dataset, meter: _ReadMeter) -> dict[str, Any]:
+    if len(matrix.shape) != 2:
+        raise H5ADInspectionError("X is not two-dimensional")
+    n_obs, n_vars = (int(matrix.shape[0]), int(matrix.shape[1]))
+    if (
+        n_obs < 1
+        or n_vars < 1
+        or n_obs > MAX_H5AD_AXIS_ITEMS
+        or n_vars > MAX_H5AD_AXIS_ITEMS
+        or n_obs * n_vars > MAX_H5AD_MATRIX_ELEMENTS
+        or int(matrix.nbytes) > MAX_H5AD_MATRIX_BYTES
+    ):
+        raise H5ADInspectionError("X exceeds the bounded dense-matrix profile")
+    if matrix.dtype.kind not in {"i", "u"}:
+        raise H5ADInspectionError("X is not stored as a dense integer array")
+    _require_supported_dataset(matrix, "X")
+
+    matrix_nonnegative = True
+    matrix_sum = 0
+    columns_per_chunk = max(
+        1,
+        min(n_vars, MAX_H5AD_READ_CHUNK_BYTES // max(1, matrix.dtype.itemsize)),
+    )
+    rows_per_chunk = max(
+        1,
+        min(
+            n_obs,
+            MAX_H5AD_READ_CHUNK_BYTES // max(1, columns_per_chunk * matrix.dtype.itemsize),
+        ),
+    )
+    for row_start in range(0, n_obs, rows_per_chunk):
+        row_stop = min(n_obs, row_start + rows_per_chunk)
+        for column_start in range(0, n_vars, columns_per_chunk):
+            column_stop = min(n_vars, column_start + columns_per_chunk)
+            meter.before_read()
+            block = np.asarray(matrix[row_start:row_stop, column_start:column_stop])
+            expected = (row_stop - row_start, column_stop - column_start)
+            if block.shape != expected:
+                raise H5ADInspectionError("X returned an inconsistent bounded slice")
+            meter.record(int(block.nbytes))
+            if bool(np.any(block < 0)):
+                matrix_nonnegative = False
+            matrix_sum += sum(int(value) for value in block.flat)
+    return {
         "shape": (n_obs, n_vars),
         "matrix_storage": "dense",
         "matrix_dtype": str(matrix.dtype),
         "matrix_nonnegative": matrix_nonnegative,
         "matrix_integer_valued": True,
         "matrix_sum": matrix_sum,
-        "obs_fields": tuple(obs_fields),
-        "obs_index": obs_index,
-        "var_index": var_index,
-        "feature_index_unique": feature_index_unique,
-        "field_storage": tuple(field_storage),
+        "matrix_stored_values": n_obs * n_vars,
     }
+
+
+def _inspect_sparse_matrix(matrix: h5py.Group, meter: _ReadMeter) -> dict[str, Any]:
+    storage = _attribute_text(matrix.attrs.get("encoding-type"))
+    if storage not in {"csr_matrix", "csc_matrix"}:
+        raise H5ADInspectionError("X sparse encoding is unsupported")
+    shape = _sparse_shape(matrix.attrs.get("shape"))
+    n_obs, n_vars = shape
+    if n_obs < 1 or n_vars < 1 or n_obs > MAX_H5AD_AXIS_ITEMS or n_vars > MAX_H5AD_AXIS_ITEMS:
+        raise H5ADInspectionError("X exceeds the bounded sparse-axis profile")
+    data = _hard_object(matrix, "data", h5py.Dataset)
+    indices = _hard_object(matrix, "indices", h5py.Dataset)
+    indptr = _hard_object(matrix, "indptr", h5py.Dataset)
+    for name, dataset in (("data", data), ("indices", indices), ("indptr", indptr)):
+        if len(dataset.shape) != 1 or dataset.dtype.kind not in {"i", "u"}:
+            raise H5ADInspectionError(f"X sparse {name} is not one integer vector")
+        _require_supported_dataset(dataset, f"X/{name}")
+    nnz = int(data.shape[0])
+    if int(indices.shape[0]) != nnz or nnz > MAX_H5AD_SPARSE_STORED_VALUES:
+        raise H5ADInspectionError("X sparse stored-value arrays are inconsistent or over budget")
+    major = n_obs if storage == "csr_matrix" else n_vars
+    minor = n_vars if storage == "csr_matrix" else n_obs
+    if int(indptr.shape[0]) != major + 1:
+        raise H5ADInspectionError("X sparse pointer length does not match its shape")
+    logical_size = int(data.nbytes) + int(indices.nbytes) + int(indptr.nbytes)
+    if logical_size > MAX_H5AD_LOGICAL_READ_BYTES:
+        raise H5ADInspectionError("X sparse arrays exceed the decompressed-byte ceiling")
+
+    matrix_nonnegative = True
+    matrix_sum = 0
+    for block in _numeric_chunks(data, meter):
+        if bool(np.any(block < 0)):
+            matrix_nonnegative = False
+        matrix_sum += sum(int(value) for value in block.flat)
+    for block in _numeric_chunks(indices, meter):
+        if block.size and (int(block.min()) < 0 or int(block.max()) >= minor):
+            raise H5ADInspectionError("X sparse indices fall outside the minor axis")
+    previous: int | None = None
+    pointer_count = 0
+    for block in _numeric_chunks(indptr, meter):
+        for raw_value in block.flat:
+            value = int(raw_value)
+            if value < 0 or value > nnz or (previous is not None and value < previous):
+                raise H5ADInspectionError("X sparse pointers are invalid or nonmonotonic")
+            if pointer_count == 0 and value != 0:
+                raise H5ADInspectionError("X sparse pointers must start at zero")
+            previous = value
+            pointer_count += 1
+    if previous != nnz:
+        raise H5ADInspectionError("X sparse pointers do not terminate at stored-value count")
+    return {
+        "shape": shape,
+        "matrix_storage": "csr" if storage == "csr_matrix" else "csc",
+        "matrix_dtype": str(data.dtype),
+        "matrix_nonnegative": matrix_nonnegative,
+        "matrix_integer_valued": True,
+        "matrix_sum": matrix_sum,
+        "matrix_stored_values": nnz,
+    }
+
+
+def _sparse_shape(value: Any) -> tuple[int, int]:
+    raw = np.asarray(value)
+    if raw.shape != (2,) or raw.dtype.kind not in {"i", "u"}:
+        raise H5ADInspectionError("X sparse shape must be exactly two integers")
+    return int(raw[0]), int(raw[1])
+
+
+def _require_supported_dataset(dataset: h5py.Dataset, label: str) -> None:
+    if dataset.is_virtual or dataset.compression not in _ALLOWED_COMPRESSIONS:
+        raise H5ADInspectionError(f"{label} uses an unsupported virtual or compressed layout")
+
+
+def _numeric_chunks(dataset: h5py.Dataset, meter: _ReadMeter) -> Any:
+    items_per_chunk = max(
+        1,
+        MAX_H5AD_READ_CHUNK_BYTES // max(1, dataset.dtype.itemsize),
+    )
+    for start in range(0, int(dataset.shape[0]), items_per_chunk):
+        stop = min(int(dataset.shape[0]), start + items_per_chunk)
+        meter.before_read()
+        block = np.asarray(dataset[start:stop])
+        if block.shape != (stop - start,):
+            raise H5ADInspectionError("H5AD numeric vector returned an inconsistent slice")
+        meter.record(int(block.nbytes))
+        yield block
 
 
 def _hard_object(
@@ -288,46 +513,135 @@ def _hard_object(
     return value
 
 
-def _inspect_axis_field(parent: h5py.Group, name: str, length: int) -> str:
+def _inspect_axis_field(
+    parent: h5py.Group,
+    name: str,
+    length: int,
+    meter: _ReadMeter,
+    *,
+    check_uniqueness: bool,
+) -> tuple[str, bool | None]:
     value = _hard_object(parent, name, (h5py.Group, h5py.Dataset))
     if isinstance(value, h5py.Dataset):
-        _read_string_dataset(value, length)
-        return "string"
+        return "string", _read_string_dataset(
+            value,
+            length,
+            meter,
+            check_uniqueness=check_uniqueness,
+        )
     if _attribute_text(value.attrs.get("encoding-type")) != "categorical":
         raise H5ADInspectionError(f"axis field {name!r} is not string or categorical")
     categories = _hard_object(value, "categories", h5py.Dataset)
     codes = _hard_object(value, "codes", h5py.Dataset)
-    category_values = _read_string_dataset(categories, int(categories.shape[0]))
+    category_values = _collect_string_dataset(categories, int(categories.shape[0]), meter)
+    if len(set(category_values)) != len(category_values):
+        raise H5ADInspectionError(f"categorical field {name!r} has duplicate categories")
     if len(codes.shape) != 1 or int(codes.shape[0]) != length or codes.dtype.kind not in {"i", "u"}:
         raise H5ADInspectionError(f"categorical field {name!r} has invalid codes")
-    code_values = np.asarray(codes[...])
-    if code_values.size and (
-        int(code_values.min()) < -1 or int(code_values.max()) >= len(category_values)
-    ):
-        raise H5ADInspectionError(f"categorical field {name!r} has out-of-range codes")
-    return "categorical"
+    _require_supported_dataset(codes, f"axis field {name!r} codes")
+    uniqueness = _UniquenessTracker(check_uniqueness)
+    for code_values in _numeric_chunks(codes, meter):
+        if code_values.size and (
+            int(code_values.min()) < -1 or int(code_values.max()) >= len(category_values)
+        ):
+            raise H5ADInspectionError(f"categorical field {name!r} has out-of-range codes")
+        if check_uniqueness:
+            for code in code_values.flat:
+                uniqueness.observe(int(code))
+    return "categorical", uniqueness.result()
 
 
-def _read_axis_strings(parent: h5py.Group, name: str, length: int) -> tuple[tuple[str, ...], str]:
-    value = _hard_object(parent, name, h5py.Dataset)
-    return _read_string_dataset(value, length), "string"
+@dataclass
+class _UniquenessTracker:
+    enabled: bool
+    seen: set[Any] | None = None
+    duplicate: bool = False
+
+    def __post_init__(self) -> None:
+        if self.enabled:
+            self.seen = set()
+
+    def observe(self, value: Any) -> None:
+        if not self.enabled or self.duplicate or self.seen is None:
+            return
+        if value in self.seen:
+            self.duplicate = True
+            return
+        self.seen.add(value)
+        if len(self.seen) > MAX_H5AD_UNIQUENESS_ITEMS:
+            self.seen = None
+
+    def result(self) -> bool | None:
+        if not self.enabled:
+            return None
+        if self.duplicate:
+            return False
+        return self.seen is not None
 
 
-def _read_string_dataset(dataset: h5py.Dataset, length: int) -> tuple[str, ...]:
+def _read_string_dataset(
+    dataset: h5py.Dataset,
+    length: int,
+    meter: _ReadMeter,
+    *,
+    check_uniqueness: bool,
+) -> bool | None:
     if len(dataset.shape) != 1 or int(dataset.shape[0]) != length:
         raise H5ADInspectionError("axis string field has an inconsistent shape")
     if length > MAX_H5AD_AXIS_ITEMS:
         raise H5ADInspectionError("axis string field exceeds the item ceiling")
-    try:
-        raw = dataset.asstr(encoding="utf-8", errors="strict")[...]
-    except (OSError, TypeError, UnicodeError) as error:
-        raise H5ADInspectionError("axis string field is not strict UTF-8") from error
-    values = tuple(str(item) for item in np.asarray(raw).tolist())
-    if any(not item for item in values):
-        raise H5ADInspectionError("axis string field contains an empty identifier")
-    if sum(len(item.encode("utf-8")) for item in values) > MAX_H5AD_TEXT_BYTES:
-        raise H5ADInspectionError("axis string values exceed the text ceiling")
-    return values
+    _require_supported_dataset(dataset, "axis string field")
+    uniqueness = _UniquenessTracker(check_uniqueness)
+    text_bytes = 0
+    for start in range(0, length, MAX_H5AD_STRING_CHUNK_ITEMS):
+        stop = min(length, start + MAX_H5AD_STRING_CHUNK_ITEMS)
+        meter.before_read()
+        try:
+            raw = dataset.asstr(encoding="utf-8", errors="strict")[start:stop]
+        except (OSError, TypeError, UnicodeError) as error:
+            raise H5ADInspectionError("axis string field is not strict UTF-8") from error
+        values = tuple(str(item) for item in np.asarray(raw).tolist())
+        if len(values) != stop - start or any(not item for item in values):
+            raise H5ADInspectionError("axis string field contains an empty identifier")
+        chunk_bytes = sum(len(item.encode("utf-8")) for item in values)
+        text_bytes += chunk_bytes
+        if text_bytes > MAX_H5AD_TEXT_BYTES:
+            raise H5ADInspectionError("axis string values exceed the text ceiling")
+        meter.record(chunk_bytes)
+        for item in values:
+            uniqueness.observe(item)
+    return uniqueness.result()
+
+
+def _collect_string_dataset(
+    dataset: h5py.Dataset,
+    length: int,
+    meter: _ReadMeter,
+) -> tuple[str, ...]:
+    if length > MAX_H5AD_UNIQUENESS_ITEMS:
+        raise H5ADInspectionError("categorical dictionary exceeds the item ceiling")
+    values: list[str] = []
+    if len(dataset.shape) != 1 or int(dataset.shape[0]) != length:
+        raise H5ADInspectionError("categorical dictionary has an inconsistent shape")
+    _require_supported_dataset(dataset, "categorical dictionary")
+    text_bytes = 0
+    for start in range(0, length, MAX_H5AD_STRING_CHUNK_ITEMS):
+        stop = min(length, start + MAX_H5AD_STRING_CHUNK_ITEMS)
+        meter.before_read()
+        try:
+            raw = dataset.asstr(encoding="utf-8", errors="strict")[start:stop]
+        except (OSError, TypeError, UnicodeError) as error:
+            raise H5ADInspectionError("categorical dictionary is not strict UTF-8") from error
+        chunk = tuple(str(item) for item in np.asarray(raw).tolist())
+        if len(chunk) != stop - start or any(not item for item in chunk):
+            raise H5ADInspectionError("categorical dictionary contains an empty value")
+        chunk_bytes = sum(len(item.encode("utf-8")) for item in chunk)
+        text_bytes += chunk_bytes
+        if text_bytes > MAX_H5AD_TEXT_BYTES:
+            raise H5ADInspectionError("categorical dictionary exceeds the text ceiling")
+        meter.record(chunk_bytes)
+        values.extend(chunk)
+    return tuple(values)
 
 
 def _attribute_text(value: Any) -> str:
@@ -419,11 +733,24 @@ def _public_records(
         )
     limitations: list[str] = []
     structure_status = "complete"
-    if not structure.feature_index_unique:
+    if structure.observation_index_unique is False:
+        structure_status = "partial"
+        limitations.append(
+            "The inspected observation index is not unique; cell or sample binding is incomplete."
+        )
+    elif structure.observation_index_unique is None:
+        structure_status = "partial"
+        limitations.append(
+            "Observation-index uniqueness exceeded the exact uniqueness-check budget."
+        )
+    if structure.feature_index_unique is False:
         structure_status = "partial"
         limitations.append(
             "The inspected feature index is not unique; feature-level binding is incomplete."
         )
+    elif structure.feature_index_unique is None:
+        structure_status = "partial"
+        limitations.append("Feature-index uniqueness exceeded the exact uniqueness-check budget.")
     data_asset = {
         "schema_version": SCHEMA_VERSION,
         "record_type": "data_asset",
