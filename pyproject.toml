@@ -59,6 +59,7 @@ sc_referee = [
   "resources/calculation-check-manifests-v10/*.json",
   "resources/calculation-check-manifests-v11/*.json",
   "resources/calculation-check-manifests-v12/*.json",
+  "resources/calculation-check-manifests-v13/*.json",
   "resources/scientific-check-manifests-v1/*.json",
   "resources/r-helper/*.R",
   "resources/third-party/tree-sitter-r/*",

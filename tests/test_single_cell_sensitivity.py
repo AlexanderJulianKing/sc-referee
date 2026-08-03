@@ -369,7 +369,7 @@ def test_removing_single_cell_module_removes_only_its_observation(
 def test_default_registry_contains_frozen_single_cell_module() -> None:
     registry = default_calculation_check_registry()
 
-    assert registry.profile_id == "deterministic_calculation_check_v12"
+    assert registry.profile_id == "deterministic_calculation_check_v13"
     assert {module.manifest.check_id for module in registry.modules} == {
         "calculation-check:benjamini-hochberg-complete-family-v1",
         "calculation-check:single-cell-replicate-sensitivity-v1",
@@ -380,6 +380,7 @@ def test_default_registry_contains_frozen_single_cell_module() -> None:
         "calculation-check:donor-eqtl-sign-v1",
         "calculation-check:hic-loop-strength-v1",
         "calculation-check:selected-sequence-record-boundary-v1",
+        "calculation-check:selected-feature-identifier-identity-v1",
     }
 
 

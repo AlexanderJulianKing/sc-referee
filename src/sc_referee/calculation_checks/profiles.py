@@ -31,6 +31,9 @@ from sc_referee.calculation_checks.eqtl_sign import (
     SelectedSidecarEqtlSignAdapter,
     eqtl_sign_registry,
 )
+from sc_referee.calculation_checks.feature_identifier_identity import (
+    feature_identifier_identity_registry,
+)
 from sc_referee.calculation_checks.hic_loop_strength import (
     SelectedSidecarHiCLoopStrengthAdapter,
     hic_loop_strength_registry,
@@ -143,6 +146,12 @@ _SEQUENCE_BOUNDARY_RELEASE_MANIFEST = (
     / "calculation-check-manifests-v12"
     / "registry.json"
 )
+_FEATURE_IDENTITY_RELEASE_MANIFEST = (
+    Path(__file__).resolve().parents[1]
+    / "resources"
+    / "calculation-check-manifests-v13"
+    / "registry.json"
+)
 
 
 def calculation_check_release_registry() -> CalculationCheckRegistry:
@@ -186,11 +195,17 @@ def default_calculation_check_registry() -> CalculationCheckRegistry:
         profile_id="deterministic_calculation_check_v11",
     )
     sequence_boundary = sequence_record_boundary_registry()
-    current = CalculationCheckRegistry(
+    sequence_registry = CalculationCheckRegistry(
         (*compressed.modules, *sequence_boundary.modules),
         profile_id="deterministic_calculation_check_v12",
     )
-    verify_sequence_boundary_calculation_release_manifest(current)
+    verify_sequence_boundary_calculation_release_manifest(sequence_registry)
+    feature_identity = feature_identifier_identity_registry()
+    current = CalculationCheckRegistry(
+        (*sequence_registry.modules, *feature_identity.modules),
+        profile_id="deterministic_calculation_check_v13",
+    )
+    verify_feature_identity_calculation_release_manifest(current)
     return current
 
 
@@ -221,6 +236,15 @@ def sequence_boundary_calculation_check_registry() -> CalculationCheckRegistry:
     return CalculationCheckRegistry(
         (*compressed.modules, *sequence_boundary.modules),
         profile_id="deterministic_calculation_check_v12",
+    )
+
+
+def feature_identity_calculation_check_registry() -> CalculationCheckRegistry:
+    sequence = sequence_boundary_calculation_check_registry()
+    feature_identity = feature_identifier_identity_registry()
+    return CalculationCheckRegistry(
+        (*sequence.modules, *feature_identity.modules),
+        profile_id="deterministic_calculation_check_v13",
     )
 
 
@@ -319,6 +343,40 @@ def sequence_boundary_calculation_release_projection(
         "calculation-check-manifest-set:v12-selected-sequence-record-boundary"
     )
     return value
+
+
+def feature_identity_calculation_release_projection(
+    registry: CalculationCheckRegistry,
+) -> dict[str, Any]:
+    value = calculation_check_release_projection(registry)
+    value["manifest_set_id"] = (
+        "calculation-check-manifest-set:v13-selected-feature-identifier-identity"
+    )
+    return value
+
+
+def verify_feature_identity_calculation_release_manifest(
+    registry: CalculationCheckRegistry,
+    *,
+    manifest_path: Path = _FEATURE_IDENTITY_RELEASE_MANIFEST,
+) -> None:
+    try:
+        payload = manifest_path.read_bytes()
+        expected = json.loads(payload)
+    except (OSError, json.JSONDecodeError) as error:
+        raise CalculationCheckContractError(
+            "feature-identity calculation-check release manifest is unavailable or invalid"
+        ) from error
+    if not isinstance(expected, dict) or canonical_json(expected).encode("utf-8") != payload.rstrip(
+        b"\n"
+    ):
+        raise CalculationCheckContractError(
+            "feature-identity calculation-check release manifest is not canonical JSON"
+        )
+    if expected != feature_identity_calculation_release_projection(registry):
+        raise CalculationCheckContractError(
+            "feature-identity calculation-check release manifest or implementation drift"
+        )
 
 
 def verify_sequence_boundary_calculation_release_manifest(

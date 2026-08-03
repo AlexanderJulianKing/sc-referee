@@ -18,6 +18,7 @@ pass.
 | Circular selection and testing | Full for the initial Scanpy shape | Unique neighbors, Leiden, and calibrated marker-test calls are checked for same-object reuse; arbitrary aliases, wrappers, Seurat, and safeguard verification abstain. |
 | eQTL orientation and support | Full for the public unadjusted donor-OLS profile | Exact allele orientation, donor/genotype support, and reported-versus-recomputed sign are checked; adjusted, mixed, nonlinear, and count-likelihood eQTL models abstain. |
 | Hi-C estimator fidelity | Full for the public arithmetic-background profile | The reported delta is independently recomputed from exact dense contacts and bins under the fixed resolution, mask, target-exclusion, zero, replicate, and tolerance rules; other estimators abstain. |
+| Selected feature-identifier identity | Experimental candidate for one closed selected pair | One complete CSV/TSV column is compared exactly as a set with one H5AD `var/` string field. A mismatch asks which relationship governs; only an exact human equality Answer can produce a nonproduction evaluation candidate. Mappings, normalization, producer lineage, repair direction, downstream impact, and production Finding authority remain unavailable. |
 
 Cross-cutting architecture, schema validation, immutable snapshots, semantic lock, no-post-lock model
 access, storage integrity, and deterministic replay exceed the public implementation's guarantees.

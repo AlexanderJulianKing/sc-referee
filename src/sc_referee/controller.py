@@ -21,6 +21,10 @@ from sc_referee.cache import (
 )
 from sc_referee.cache_auth import CacheKeyProvider
 from sc_referee.calculation_checks import CalculationCheckRegistry
+from sc_referee.calculation_checks.feature_identifier_identity import (
+    FEATURE_IDENTIFIER_IDENTITY_CHECK_ID,
+    partition_feature_identifier_identity_evaluation,
+)
 from sc_referee.calculation_checks.integration import (
     build_calculation_context,
     compile_calculation_records,
@@ -49,6 +53,9 @@ from sc_referee.detectors.bounded_reported_method_contract import (
     BoundedReportedMethodContractConflictDetector,
 )
 from sc_referee.detectors.claim_result_agreement import ClaimResultDirectionDetector
+from sc_referee.detectors.feature_identifier_identity import (
+    BoundedFeatureIdentifierIdentityDetector,
+)
 from sc_referee.detectors.manifest import (
     fixture_envelope_applies,
     load_fixture_detector_envelope,
@@ -967,14 +974,24 @@ def run_audit(
                         "x-delimited-calculation-read-receipts"
                     ] = list(calculation_context_build.read_receipts)
                 calculation_evaluation = active_calculation_checks.evaluate(calculation_context)
+                legacy_calculation_evaluation, feature_identity_compilation = (
+                    partition_feature_identifier_identity_evaluation(
+                        calculation_evaluation,
+                        run_id=run_id,
+                        created_at=created_at,
+                    )
+                )
                 calculation_compilation = compile_calculation_records(
-                    calculation_evaluation,
+                    legacy_calculation_evaluation,
                     run_id=run_id,
                     created_at=created_at,
                 )
                 calculation_observations.extend(calculation_compilation.observations)
+                calculation_observations.extend(feature_identity_compilation.observations)
                 questions.extend(calculation_compilation.questions)
+                questions.extend(feature_identity_compilation.questions)
                 calculation_disclosures.extend(calculation_compilation.disclosures)
+                calculation_disclosures.extend(feature_identity_compilation.disclosures)
                 calculation_check_lock["evaluation"] = calculation_evaluation.to_dict()
                 calculation_check_lock["context_digest"] = calculation_context.context_digest
             else:
@@ -1089,6 +1106,12 @@ def run_audit(
             BoundedReportedMethodContractConflictDetector.detector_id,
         )
         BoundedReportedMethodContractConflictDetector(bounded_method_manifest)
+        feature_identity_manifest = load_capability_detector_manifest(
+            default_capability_manifest_root(),
+            schema_root,
+            BoundedFeatureIdentifierIdentityDetector.detector_id,
+        )
+        BoundedFeatureIdentifierIdentityDetector(feature_identity_manifest)
         registered_method_conflict_manifests = validate_registered_method_conflict_manifests(
             active_scientific_checks,
             schema_root,
@@ -1135,6 +1158,7 @@ def run_audit(
                 *registered_method_conflict_manifests,
                 bounded_direction_manifest,
                 bounded_method_manifest,
+                feature_identity_manifest,
             ],
             "publication_surfaces": [publication_surface],
             "material_questions": questions,
@@ -3238,6 +3262,26 @@ def _evaluate_general_detectors(locked_case: dict[str, Any]) -> list[dict[str, A
             key=lambda claim: str(claim.get("claim_id")),
         )
         results.extend(method_detector.evaluate(locked_case, claim) for claim in targets)
+    feature_manifests = [
+        item
+        for item in locked_case.get("detector_manifests", [])
+        if item.get("detector_id") == BoundedFeatureIdentifierIdentityDetector.detector_id
+    ]
+    if len(feature_manifests) > 1:
+        raise ValueError("general semantic lock has duplicate feature-identity manifests")
+    if feature_manifests:
+        feature_detector = BoundedFeatureIdentifierIdentityDetector(feature_manifests[0])
+        targets = sorted(
+            (
+                observation
+                for observation in locked_case.get("deterministic_check_observations", [])
+                if observation.get("check_manifest", {}).get("check_id")
+                == FEATURE_IDENTIFIER_IDENTITY_CHECK_ID
+                and observation.get("comparison", {}).get("outcome") == "nonconformant"
+            ),
+            key=lambda observation: str(observation.get("deterministic_check_observation_id")),
+        )
+        results.extend(feature_detector.evaluate(locked_case, target) for target in targets)
     return results
 
 
@@ -3563,6 +3607,7 @@ def _general_coverage_record(
         *registered_method_detector_ids,
         BoundedReportMeanDirectionDetector.detector_id,
         BoundedReportedMethodContractConflictDetector.detector_id,
+        BoundedFeatureIdentifierIdentityDetector.detector_id,
         "detector:population-comparison-estimand",
         "detector:denominator-control-set",
         "detector:explicit-dependence",
@@ -3657,7 +3702,7 @@ def _general_coverage_record(
         for result in bundle["detector_results"]
     ):
         pending_work.append(
-            "Evaluate experimental direction candidates through the answer-blind qualification "
+            "Evaluate experimental candidates through the answer-blind qualification "
             "protocol; they are not production Findings."
         )
         known_gaps.append(
@@ -3749,6 +3794,14 @@ def _general_detector_target_total(
     bundle: dict[str, Any],
     method_check_ids_by_detector: dict[str, set[str]],
 ) -> int:
+    if detector_id == BoundedFeatureIdentifierIdentityDetector.detector_id:
+        return sum(
+            1
+            for observation in bundle["deterministic_check_observations"]
+            if observation.get("check_manifest", {}).get("check_id")
+            == FEATURE_IDENTIFIER_IDENTITY_CHECK_ID
+            and observation.get("comparison", {}).get("outcome") == "nonconformant"
+        )
     method_check_ids = method_check_ids_by_detector.get(detector_id)
     if method_check_ids is None:
         return len(bundle["claims"])

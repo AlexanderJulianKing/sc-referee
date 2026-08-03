@@ -441,6 +441,69 @@ def main() -> None:
             ],
         },
     )
+    feature_identity_parser_resource = (
+        ROOT / "src" / "sc_referee" / "calculation_checks" / "feature_identifier_identity.py"
+    )
+    _upsert(
+        parser_collection,
+        "parser_id",
+        {
+            "backend": "other",
+            "capabilities": [
+                "inventory",
+                "exact_spans",
+                "operation_extraction",
+                "error_recovery",
+                "source_references",
+            ],
+            "executes_project_code": False,
+            "extensions": {
+                "x-implementation-resource": ("calculation_checks/feature_identifier_identity.py")
+            },
+            "grammar_or_runtime_identity": [
+                "bounded strict-UTF-8 Markdown declaration and delimited identifier column",
+                "bounded h5py read of one AnnData X feature-axis length and one declared var dataset",
+            ],
+            "implementation_digest": sha256_digest(feature_identity_parser_resource.read_bytes()),
+            "language_or_surface": "selected_feature_identifier_axes",
+            "limitations": [
+                "Only one exact declared CSV or TSV column and one exact declared H5AD var dataset are read completely within finite ceilings.",
+                "No aliases, normalization, duplicate identifiers, producer lineage, execution, or biological meaning are interpreted.",
+            ],
+            "parser_id": "parser:selected-feature-identifier-axes",
+            "parser_version": "0.1.0",
+            "provenance": {
+                "actor": {
+                    "actor_id": "software:sc-referee-controller",
+                    "actor_kind": "controller",
+                    "display_name": "sc-referee controller",
+                },
+                "created_at": "2026-08-02T00:00:00Z",
+                "method": "deterministic_release_manifest",
+                "tool": "sc-referee",
+                "tool_version": __version__,
+            },
+            "record_type": "parser_manifest",
+            "runtime_requirements": [
+                "Python >=3.11",
+                "h5py available in the auditor environment",
+                "strict UTF-8 identifier strings",
+            ],
+            "schema_version": SCHEMA_VERSION,
+            "supported_versions": [
+                "Closed sc-referee-feature-identity-v1 declarations, CSV or TSV tables, and AnnData-encoded HDF5 with a dense or declared-shape sparse X axis"
+            ],
+            "unsupported_constructs": [
+                "compressed tables",
+                "categorical-coded H5AD var fields",
+                "more than one declaration or sidecar observation",
+                "identifier aliases and normalization",
+                "duplicate, empty, or surrounding-whitespace identifiers",
+                "objects outside the finite byte, row, column, axis, and text ceilings",
+                "scientific interpretation and project execution",
+            ],
+        },
+    )
     _write("parser-manifests.json", parser_collection)
 
     detector_collection = _load("detector-manifests.json")
@@ -637,6 +700,173 @@ def main() -> None:
             "workflow_systems": [],
         },
     )
+    feature_identity_resource = (
+        ROOT / "src" / "sc_referee" / "detectors" / "feature_identifier_identity.py"
+    )
+    feature_identity_checks = [
+        (
+            "check:feature-identity-human-requirement",
+            "Require one exact human Answer selecting exact identifier-set equality for this review.",
+        ),
+        (
+            "check:feature-identity-material-inputs",
+            "Require both declared artifacts to be selected full-digest material inputs.",
+        ),
+        (
+            "check:feature-identity-unique-axes",
+            "Require complete, nonempty, already-trimmed, unique identifier axes within finite ceilings.",
+        ),
+        (
+            "check:feature-identity-alternate-mapping",
+            "Suppress the candidate when a mapping, alias, normalization, or different-identifier relationship governs.",
+        ),
+        (
+            "check:feature-identity-complete-comparison",
+            "Require one complete exact set comparison rather than a sample or order comparison.",
+        ),
+    ]
+    _upsert(
+        detector_collection,
+        "detector_id",
+        {
+            "abstain_when": [
+                "The target is not one complete selected-feature-identifier deterministic observation with an exact linked MaterialQuestion.",
+                "The scientist has not selected exact identifier-set equality for this review.",
+                "Either selected artifact, identifier axis, full-digest identity, finite read, uniqueness check, or exact comparison is incomplete.",
+                "A mapping, normalization, alias relation, duplicate identifier, malformed input, or unsupported H5AD field is present.",
+            ],
+            "accepted_assertion_classes": [
+                "deterministic_derivation",
+                "explicit_text_extraction",
+            ],
+            "applies_to_record_types": [
+                "answer",
+                "artifact",
+                "deterministic_check_observation",
+                "material_question",
+                "publication_surface",
+            ],
+            "assumptions": [],
+            "counterevidence_protocol": [
+                {
+                    "applies_when": (
+                        "One complete nonconformant selected feature-identity observation is scheduled."
+                    ),
+                    "check_id": check_id,
+                    "counterevidence_effect": "suppress_candidate",
+                    "description": description,
+                    "sources_to_search": [
+                        "locked selected report declaration, full-digest material inputs, MaterialQuestion, human Answer, and deterministic observation"
+                    ],
+                    "unavailability_effect": "block_finding",
+                }
+                for check_id, description in feature_identity_checks
+            ],
+            "coverage_contract": {
+                "covered_when": (
+                    "One exact human equality requirement, two selected full-digest complete unique identifier axes, the no-normalization boundary, and the complete exact set comparison all resolve."
+                ),
+                "not_covered_when": (
+                    "Any authority, selection, identity, parsing, uniqueness, mapping, or finite-comparison prerequisite is unavailable, conflicted, or unsupported."
+                ),
+                "partially_covered_when": (
+                    "Not used by version 0.1.0; incomplete or conflicted targets remain not covered."
+                ),
+            },
+            "description": (
+                "Compares one complete selected delimited identifier column with one complete selected H5AD feature axis under an exact human review-scoped equality requirement."
+            ),
+            "detector_family": "data_identifier_identity_consistency",
+            "detector_id": "detector:bounded-feature-identifier-identity",
+            "detector_version": "0.1.0",
+            "domains": ["domain_neutral_scientific_analysis"],
+            "extensions": {
+                "x-adr-ref": (
+                    "docs/implementation/ADR-0058-SELECTED-FEATURE-IDENTIFIER-IDENTITY.md"
+                ),
+                "x-calculation-check-id": (
+                    "calculation-check:selected-feature-identifier-identity-v1"
+                ),
+                "x-implementation-resource": "detectors/feature_identifier_identity.py",
+                "x-production-finding-permitted": False,
+            },
+            "implementation": {
+                "deterministic": True,
+                "entry_point": (
+                    "sc_referee.detectors.feature_identifier_identity:"
+                    "BoundedFeatureIdentifierIdentityDetector"
+                ),
+                "implementation_digest": sha256_digest(feature_identity_resource.read_bytes()),
+            },
+            "issue_classes": ["x-feature-identifier-identity-conflict"],
+            "languages": ["delimited_table", "h5ad"],
+            "limitations": [
+                "Experimental output cannot become a production Finding.",
+                "Only one exact selected delimited column and H5AD var dataset under the closed declaration are covered.",
+                "No producer lineage, historical intent, repair direction, biological meaning, execution, numerical impact, or publication invalidity is established.",
+            ],
+            "maturity": "experimental",
+            "permitted_output_types": ["disclosure"],
+            "provenance": {
+                "actor": {
+                    "actor_id": "detector:bounded-feature-identifier-identity",
+                    "actor_kind": "detector",
+                },
+                "created_at": "2026-08-02T00:00:00Z",
+                "method": "deterministic_detection",
+                "tool": "sc-referee",
+                "tool_version": __version__,
+            },
+            "record_type": "detector_manifest",
+            "required_evidence": [
+                "one closed selected feature-identity comparison declaration",
+                "two exact full-digest selected material inputs",
+                "one complete unique delimited identifier column and one complete unique H5AD var field",
+                "one exact human Answer requiring identifier-set equality for this review",
+                "five completed finite counterevidence checks",
+            ],
+            "schema_version": SCHEMA_VERSION,
+            "supported_operations": [
+                "bounded_complete_delimited_identifier_column_v1",
+                "bounded_complete_h5ad_var_identifier_axis_v1",
+                "exact_identifier_set_equality_v1",
+                "feature_identifier_identity_requirement_answer_v1",
+            ],
+            "test_fixtures": {
+                "ambiguous": [
+                    "tests/test_feature_identifier_identity.py::test_retained_unknown_suppresses_candidate"
+                ],
+                "counterevidence": [
+                    "tests/test_feature_identifier_identity.py::test_alternate_mapping_suppresses_candidate"
+                ],
+                "positive": [
+                    "tests/test_feature_identifier_identity.py::test_answered_exact_mismatch_is_evaluation_only_and_replays"
+                ],
+                "unsupported_path": [
+                    "tests/test_feature_identifier_identity.py::test_duplicate_identifiers_are_unsupported"
+                ],
+                "verified_good_negative": [
+                    "tests/test_feature_identifier_identity.py::test_reordered_equal_sets_produce_no_adverse_assessment"
+                ],
+            },
+            "title": "Bounded selected feature-identifier identity consistency",
+            "validation": {
+                "agent_adjudication_count": 0,
+                "evaluation_ref": "adr:0058",
+                "human_scientific_approval_count": 0,
+                "qualification_record_ref": None,
+                "qualification_review_basis": "not_qualified",
+                "software_maintainer_approval_count": 0,
+                "status": "development_only",
+            },
+            "wording_constraints": [
+                "State only that the two exact selected complete identifier sets conflict with the human exact-equality requirement governing this review.",
+                "Do not infer corruption, spreadsheet conversion, producer lineage, which side is authoritative, repair direction, biological meaning, execution, numerical impact, or publication invalidity.",
+                "Do not describe an experimental evaluation candidate as a Finding.",
+            ],
+            "workflow_systems": [],
+        },
+    )
     _write("detector-manifests.json", detector_collection)
 
     profile_collection = _load("profile-manifests.json")
@@ -679,6 +909,48 @@ def main() -> None:
         "Only expected_count_background_v1 and exact closed report and Answer grammars are covered.",
         "Approximation tolerance, execution, numeric-cause attribution, and broader method adequacy remain unavailable.",
     ]
+    _upsert(
+        profile_collection,
+        "profile_id",
+        {
+            "abstention_conditions": [
+                "The closed declaration, exact human requirement, selected full-digest material inputs, complete unique axes, or exact set comparison is unavailable.",
+                "A mapping, normalization, alias relation, duplicate identifier, unsupported H5AD field, malformed input, or finite ceiling is encountered.",
+            ],
+            "capability_entry_id": "capability:bounded-feature-identifier-identity-v1",
+            "detector_refs": [
+                {
+                    "record_type": "detector_manifest",
+                    "record_id": "detector:bounded-feature-identifier-identity",
+                }
+            ],
+            "domain": "domain_neutral_scientific_analysis",
+            "known_gaps": [
+                "The detector is experimental, unqualified, and cannot emit a production Finding.",
+                "Only exact set identity between one selected delimited column and one selected H5AD var dataset is covered.",
+                "Mappings, normalization, duplicate identifiers, other data formats, producer lineage, biological meaning, and downstream impact remain unavailable.",
+            ],
+            "language": None,
+            "operation_extraction": "complete_for_declared_forms",
+            "operation_scope": [
+                "bounded_complete_delimited_identifier_column_v1",
+                "bounded_complete_h5ad_var_identifier_axis_v1",
+                "exact_identifier_set_equality_v1",
+                "feature_identifier_identity_requirement_answer_v1",
+            ],
+            "package": None,
+            "parser_refs": [
+                {
+                    "record_id": "parser:selected-feature-identifier-axes",
+                    "record_type": "parser_manifest",
+                }
+            ],
+            "profile_id": "semantic-profile:bounded-feature-identifier-identity-v1",
+            "semantic_modeling": "partial",
+            "syntax_recognition": "complete_for_declared_forms",
+            "version_manifest_ref": ("version-manifest:bounded-feature-identifier-identity-v1"),
+        },
+    )
     _upsert(
         profile_collection,
         "profile_id",
@@ -973,6 +1245,25 @@ def main() -> None:
     _write("profile-manifests.json", profile_collection)
 
     version_collection = _load("version-manifests.json")
+    _upsert(
+        version_collection,
+        "version_manifest_id",
+        {
+            "evidence_refs": [
+                "docs/implementation/ADR-0058-SELECTED-FEATURE-IDENTIFIER-IDENTITY.md",
+                "src/sc_referee/calculation_checks/feature_identifier_identity.py",
+                "src/sc_referee/detectors/feature_identifier_identity.py",
+                "tests/test_feature_identifier_identity.py",
+            ],
+            "inferred_compatibility": [],
+            "known_gaps": [
+                "No CSV, TSV, HDF5, AnnData, h5py, or producer-version envelope has independent qualification evidence."
+            ],
+            "profile_ref": "semantic-profile:bounded-feature-identifier-identity-v1",
+            "tested_versions": [],
+            "version_manifest_id": ("version-manifest:bounded-feature-identifier-identity-v1"),
+        },
+    )
     tabular_versions = [
         record
         for record in version_collection.get("records", [])

@@ -273,6 +273,28 @@ public manifest permits only Disclosure output, its production-Finding flag is f
 execution, numerical-cause, historical-intent, universal-method, or broader scientific claim is
 made.
 
+## Selected feature-identifier identity question and evaluation candidate
+
+Accepted ADR-0058 adds one isolated v13 calculation module for an explicitly declared comparison
+between a complete selected CSV/TSV identifier column and a complete selected H5AD `var/` string
+dataset. Both artifacts must be named full-digest material inputs. The module performs exact,
+order-insensitive set comparison within finite byte, row, column, axis, and text ceilings; it does
+not normalize identifiers or execute project code.
+
+An unequal comparison emits one `feature_identifier_identity_requirement` MaterialQuestion rather
+than an adverse Disclosure. The scientist may select exact equality, different identifiers
+permitted, an alternate mapping, or retained unknown. Only an exact human equality Answer permits
+the experimental detector to emit `evaluation_finding_candidate`. The shared non-maturity
+admission checks must pass, but production admission still rejects the candidate because the
+detector is experimental, unqualified, and explicitly denies production Finding permission.
+Conformant comparisons need no question or adverse detector assessment; malformed, duplicate,
+ambiguous, unsupported, or over-budget inputs abstain with localized coverage.
+
+This interface demonstrates at most a review-scoped conflict between two exact selected identifier
+sets and the human equality requirement. It does not establish corruption, producer lineage,
+historical intent, which side is authoritative, repair direction, biological meaning, numerical
+impact, publication invalidity, or general data-integrity coverage.
+
 ## Post-hoc unresolved expected-count obligation
 
 An ordinary `sc-referee audit ... --report <selected-report.md>` can emit a claimless,

@@ -31,8 +31,9 @@ Not available as production behavior:
 
 ## Deterministic scientific modules
 
-All current calculation modules are Disclosure-only. Their strongest real-project result is a
-bounded deterministic observation or incompatibility, not a production Finding.
+Current calculation modules emit bounded deterministic observations. Most are Disclosure-only;
+the selected feature-identifier module may feed one experimental evaluation candidate after an
+exact human Answer. None can emit a production Finding in this release.
 
 | Module | Supported initial profile | Important abstentions |
 |---|---|---|
@@ -44,6 +45,7 @@ bounded deterministic observation or incompatibility, not a production Finding.
 | Scanpy reuse | One exact neighbors → Leiden → marker-test object/group shape | Aliases, wrappers, Seurat, unverified safeguards, runtime object identity |
 | eQTL sign/support | Donor-level unadjusted OLS with explicit allele and dosage orientation | Adjusted, mixed, nonlinear, and count-likelihood models; inferred orientation |
 | Hi-C loop strength | Fixed-resolution cis single-pixel arithmetic background with exact exclusions | Balanced contacts, model-based expected counts, domains, stripes, covariates |
+| Selected feature identity | Exact set comparison between one selected CSV/TSV column and one selected H5AD `var/` string field | Mappings, normalization, duplicates, unsupported encodings, inferred equality requirements |
 
 Every row has two deterministic evidence-layout adapters: the original explicit declaration in the
 selected report and an explicitly selected YAML sidecar. Both normalize into the same family
@@ -58,7 +60,7 @@ families: [`implementation/PRACTICAL_PARITY_MATRIX.md`](implementation/PRACTICAL
 ## Experimental method checks
 
 The repository also contains bounded question and comparison machinery for explicit scientific
-method choices. It can retain exact report and source operands, ask the scientist which requirement
+method and data-identity choices. It can retain exact operands, ask the scientist which requirement
 governs, and deterministically compare supported typed values after the scientist answers.
 
 These comparisons remain experimental and review-scoped. They do not establish historical intent,
@@ -67,9 +69,10 @@ permission.
 
 ## Finding status
 
-The complete Finding admission machinery is implemented and mutation-tested. The current complete
-Finding-producing detector path is nevertheless a synthetic fixture-only test double. Public
-real-project detectors and calculation modules are experimental or Disclosure-only.
+The complete Finding admission machinery is implemented and mutation-tested. Public real-project
+detectors remain experimental: the selected feature-identifier path can now satisfy every
+non-maturity gate and produce a replayable evaluation candidate, but production admission rejects
+it until independent qualification and an accepted promotion record exist.
 
 That distinction is intentional: working infrastructure is not sufficient evidence that a
 scientific detector deserves accusation authority.

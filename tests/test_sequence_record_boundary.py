@@ -547,7 +547,7 @@ def test_v12_release_manifest_is_canonical_complete_and_current(project_root: Pa
     verify_sequence_boundary_calculation_release_manifest(registry)
 
 
-def test_default_registry_uses_v12_disclosure_only_profile() -> None:
+def test_default_registry_uses_v13_with_v12_sequence_profile() -> None:
     registry = default_calculation_check_registry()
     sequence_module = next(
         module
@@ -555,6 +555,6 @@ def test_default_registry_uses_v12_disclosure_only_profile() -> None:
         if module.manifest.check_id == SEQUENCE_RECORD_BOUNDARY_CHECK_ID
     )
 
-    assert registry.profile_id == "deterministic_calculation_check_v12"
-    assert len(registry.modules) == 9
+    assert registry.profile_id == "deterministic_calculation_check_v13"
+    assert len(registry.modules) == 10
     assert sequence_module.manifest.output_ceiling == "disclosure_only"

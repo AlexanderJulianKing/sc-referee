@@ -8,6 +8,9 @@ from typing import Any, cast
 from uuid import uuid4
 
 from sc_referee.agent_protocol import load_audit_status
+from sc_referee.calculation_checks.feature_identifier_identity import (
+    FEATURE_IDENTIFIER_IDENTITY_DIMENSION,
+)
 from sc_referee.controller import (
     _build_contract_questions,
     _derive_general_from_lock,
@@ -779,6 +782,24 @@ def lock_semantics(
         if answer.get("answer_kind") not in {"structured_value", "unknown"}:
             raise InteractionProtocolError(
                 "multiplicity resolution requires a structured or unknown Answer"
+            )
+    elif question.get("unknown_semantic_dimension") == FEATURE_IDENTIFIER_IDENTITY_DIMENSION:
+        surfaces = copy.deepcopy(parent_lock.get("publication_surfaces", []))
+        if len(surfaces) != 1 or surfaces[0].get("status") != "resolved":
+            raise InteractionProtocolError(
+                "feature-identity resolution requires one resolved publication surface"
+            )
+        surface = surfaces[0]
+        surface["audit_run_id"] = run_id
+        claims = copy.deepcopy(parent_lock.get("claims", []))
+        contracts = copy.deepcopy(parent_lock.get("scientific_contracts", []))
+        for claim in claims:
+            claim["audit_run_id"] = run_id
+        for contract in contracts:
+            contract["audit_run_id"] = run_id
+        if answer.get("answer_kind") not in {"candidate_selection", "unknown"}:
+            raise InteractionProtocolError(
+                "feature-identity resolution requires one listed option or retained unknown"
             )
     else:
         raise InteractionProtocolError("unsupported semantic question at lock boundary")
@@ -1611,6 +1632,34 @@ def _build_work_item(
         ]
         unresolved_dimensions = [str(selection["dimension"])]
         materiality = "conclusion_material"
+    elif dimension == FEATURE_IDENTIFIER_IDENTITY_DIMENSION:
+        extensions = question.get("extensions", {})
+        target_ref = extensions.get("x-analysis-subject-ref")
+        observation_ref = extensions.get("x-calculation-observation-ref")
+        source_refs = extensions.get("x-feature-identity-source-refs")
+        if (
+            not isinstance(target_ref, dict)
+            or target_ref.get("record_type") != "publication_surface"
+            or not isinstance(target_ref.get("record_id"), str)
+            or not isinstance(observation_ref, dict)
+            or observation_ref.get("record_type") != "deterministic_check_observation"
+            or not isinstance(observation_ref.get("record_id"), str)
+            or not isinstance(source_refs, list)
+            or not source_refs
+            or any(not isinstance(item, dict) for item in source_refs)
+        ):
+            raise InteractionProtocolError(
+                "feature-identity question has no bounded observation, subject, and sources"
+            )
+        target_refs = [copy.deepcopy(target_ref)]
+        record_refs = [
+            typed_ref("material_question", question_id),
+            copy.deepcopy(observation_ref),
+            *target_refs,
+        ]
+        source_refs = copy.deepcopy(source_refs)
+        unresolved_dimensions = [dimension]
+        materiality = "conclusion_material"
     elif dimension == "scientific_contract":
         contract = _question_contract(parent_bundle, question)
         scope = contract.get("scope", {})
@@ -1672,8 +1721,12 @@ def _build_work_item(
                     "Proposals may describe only the exact bounded question and immutable "
                     "candidates; only the scientist may select review scope."
                     if is_scope_selection_question(question)
-                    else "Proposals may interpret only the exact bounded contract question and "
-                    "source set; only the scientist may establish governing intent."
+                    else (
+                        "Proposals may describe only the exact selected identifier-set comparison; only the scientist may establish the relationship governing this review."
+                        if dimension == FEATURE_IDENTIFIER_IDENTITY_DIMENSION
+                        else "Proposals may interpret only the exact bounded contract question and "
+                        "source set; only the scientist may establish governing intent."
+                    )
                 )
             )
         ],
@@ -2241,6 +2294,17 @@ def _answer_authority(
         except ValueError as error:
             raise InteractionProtocolError(str(error)) from error
         return [copy.deepcopy(contract["snapshot_ref"])], "metadata_definition"
+    if question.get("unknown_semantic_dimension") == FEATURE_IDENTIFIER_IDENTITY_DIMENSION:
+        target_ref = question.get("extensions", {}).get("x-analysis-subject-ref")
+        if (
+            not isinstance(target_ref, dict)
+            or target_ref.get("record_type") != "publication_surface"
+            or not isinstance(target_ref.get("record_id"), str)
+        ):
+            raise InteractionProtocolError(
+                "feature-identity question has no bounded publication subject"
+            )
+        return [copy.deepcopy(target_ref)], "scientific_intent"
     contract = _question_contract(parent_bundle, question)
     scope = contract.get("scope", {})
     subject_refs = copy.deepcopy(scope.get("subject_refs", []))

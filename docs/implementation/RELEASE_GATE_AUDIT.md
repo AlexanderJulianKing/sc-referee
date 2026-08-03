@@ -17,7 +17,7 @@ the project Python 3.12 environment, and isolated Python 3.13.13:
 - deterministic report-byte regeneration as part of integrity status; and
 - deterministic attached RO-Crate 1.3 export with native-byte preservation and bounded offline
   validation from the built production wheel; and
-- deterministic generation and exact reproduction of the fail-closed 15-entry public capability
+- deterministic generation and exact reproduction of the fail-closed 16-entry public capability
   matrix from the built production wheel, with explicitly experimental, unqualified,
   Finding-ineligible detector entries and no tested-version, inferred-compatibility,
   qualification, or domain-wide support claim in the bundled release set.
