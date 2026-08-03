@@ -39,6 +39,9 @@ from sc_referee.calculation_checks.selection_reuse import (
     SelectedSidecarSelectionReuseAdapter,
     selection_reuse_registry,
 )
+from sc_referee.calculation_checks.sequence_record_boundary import (
+    sequence_record_boundary_registry,
+)
 from sc_referee.calculation_checks.single_cell_sensitivity import (
     SelectedSidecarSingleCellSensitivityAdapter,
     single_cell_sensitivity_registry,
@@ -134,6 +137,12 @@ _COMPRESSED_RELEASE_MANIFEST = (
     / "calculation-check-manifests-v11"
     / "registry.json"
 )
+_SEQUENCE_BOUNDARY_RELEASE_MANIFEST = (
+    Path(__file__).resolve().parents[1]
+    / "resources"
+    / "calculation-check-manifests-v12"
+    / "registry.json"
+)
 
 
 def calculation_check_release_registry() -> CalculationCheckRegistry:
@@ -176,8 +185,13 @@ def default_calculation_check_registry() -> CalculationCheckRegistry:
         generalized.modules,
         profile_id="deterministic_calculation_check_v11",
     )
-    verify_compressed_calculation_release_manifest(compressed)
-    return compressed
+    sequence_boundary = sequence_record_boundary_registry()
+    current = CalculationCheckRegistry(
+        (*compressed.modules, *sequence_boundary.modules),
+        profile_id="deterministic_calculation_check_v12",
+    )
+    verify_sequence_boundary_calculation_release_manifest(current)
+    return current
 
 
 def generalized_calculation_check_registry() -> CalculationCheckRegistry:
@@ -198,6 +212,15 @@ def compressed_calculation_check_registry() -> CalculationCheckRegistry:
     return CalculationCheckRegistry(
         generalized.modules,
         profile_id="deterministic_calculation_check_v11",
+    )
+
+
+def sequence_boundary_calculation_check_registry() -> CalculationCheckRegistry:
+    compressed = compressed_calculation_check_registry()
+    sequence_boundary = sequence_record_boundary_registry()
+    return CalculationCheckRegistry(
+        (*compressed.modules, *sequence_boundary.modules),
+        profile_id="deterministic_calculation_check_v12",
     )
 
 
@@ -286,6 +309,40 @@ def compressed_calculation_release_projection(
     value = calculation_check_release_projection(registry)
     value["manifest_set_id"] = "calculation-check-manifest-set:v11-bounded-gzip-inputs"
     return value
+
+
+def sequence_boundary_calculation_release_projection(
+    registry: CalculationCheckRegistry,
+) -> dict[str, Any]:
+    value = calculation_check_release_projection(registry)
+    value["manifest_set_id"] = (
+        "calculation-check-manifest-set:v12-selected-sequence-record-boundary"
+    )
+    return value
+
+
+def verify_sequence_boundary_calculation_release_manifest(
+    registry: CalculationCheckRegistry,
+    *,
+    manifest_path: Path = _SEQUENCE_BOUNDARY_RELEASE_MANIFEST,
+) -> None:
+    try:
+        payload = manifest_path.read_bytes()
+        expected = json.loads(payload)
+    except (OSError, json.JSONDecodeError) as error:
+        raise CalculationCheckContractError(
+            "sequence-boundary calculation-check release manifest is unavailable or invalid"
+        ) from error
+    if not isinstance(expected, dict) or canonical_json(expected).encode("utf-8") != payload.rstrip(
+        b"\n"
+    ):
+        raise CalculationCheckContractError(
+            "sequence-boundary calculation-check release manifest is not canonical JSON"
+        )
+    if expected != sequence_boundary_calculation_release_projection(registry):
+        raise CalculationCheckContractError(
+            "sequence-boundary calculation-check release manifest or implementation drift"
+        )
 
 
 def verify_compressed_calculation_release_manifest(

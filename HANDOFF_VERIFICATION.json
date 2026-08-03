@@ -137,7 +137,8 @@
   "second_static_qualification_profile_adr_accepted": true,
   "modular_method_check_extension_adr_accepted": true,
   "deterministic_calculation_check_adr_accepted": true,
+  "sequence_record_boundary_adr_accepted": true,
   "bounded_bh_control_family": "passed_disclosure_only_zero_findings",
-  "post_mpp_regression_corpus": "103_declared_cases_67_pytest_selectors_4_direct_audit_replays_passed",
-  "post_mpp_module_baselines": "26_of_26_complete_development_only"
+  "post_mpp_regression_corpus": "131_declared_cases_92_pytest_selectors_4_direct_audit_replays_passed",
+  "post_mpp_module_baselines": "27_of_27_complete_development_only"
 }

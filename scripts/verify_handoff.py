@@ -258,12 +258,44 @@ def verify_built_wheel() -> None:
         subprocess.run([sys.executable, "-c", verification_code], cwd=temp_root, check=True)
 
 
+def _install_evaluation_smoke_wheels(
+    core_wheel: Path,
+    evaluation_wheel: Path,
+    install_root: Path,
+) -> None:
+    for wheel in (core_wheel, evaluation_wheel):
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "--no-deps",
+                "--target",
+                str(install_root),
+                str(wheel),
+            ],
+            cwd=ROOT,
+            check=True,
+        )
+
+
 def verify_built_evaluation_wheel() -> None:
     with tempfile.TemporaryDirectory(prefix="sc-referee-evaluation-wheel-") as temp:
         temp_root = Path(temp)
         wheel_root = temp_root / "wheel"
         install_root = temp_root / "install"
         wheel_root.mkdir()
+        run(
+            "-m",
+            "pip",
+            "wheel",
+            "--no-deps",
+            "--no-build-isolation",
+            ".",
+            "--wheel-dir",
+            str(wheel_root),
+        )
         run(
             "-m",
             "pip",
@@ -277,6 +309,9 @@ def verify_built_evaluation_wheel() -> None:
         wheels = list(wheel_root.glob("sc_referee_evaluation-*.whl"))
         if len(wheels) != 1:
             raise RuntimeError(f"Expected one evaluation wheel, found {len(wheels)}")
+        core_wheels = list(wheel_root.glob("sc_referee-*.whl"))
+        if len(core_wheels) != 1:
+            raise RuntimeError(f"Expected one production wheel, found {len(core_wheels)}")
         with zipfile.ZipFile(wheels[0]) as archive:
             names = archive.namelist()
             if "sc_referee_evaluation/validation.py" not in names:
@@ -323,20 +358,7 @@ def verify_built_evaluation_wheel() -> None:
                 raise RuntimeError("Evaluation wheel omitted its founder qualification adapter")
             if any(name.startswith("sc_referee/") for name in names):
                 raise RuntimeError("Evaluation wheel vendors the production package")
-        subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "pip",
-                "install",
-                "--no-deps",
-                "--target",
-                str(install_root),
-                str(wheels[0]),
-            ],
-            cwd=ROOT,
-            check=True,
-        )
+        _install_evaluation_smoke_wheels(core_wheels[0], wheels[0], install_root)
         verification_code = "\n".join(
             [
                 "import sys",
@@ -1481,11 +1503,12 @@ def main() -> int:
         "second_static_qualification_profile_adr_accepted": True,
         "modular_method_check_extension_adr_accepted": True,
         "deterministic_calculation_check_adr_accepted": True,
+        "sequence_record_boundary_adr_accepted": True,
         "bounded_bh_control_family": "passed_disclosure_only_zero_findings",
         "post_mpp_regression_corpus": (
-            "103_declared_cases_67_pytest_selectors_4_direct_audit_replays_passed"
+            "131_declared_cases_92_pytest_selectors_4_direct_audit_replays_passed"
         ),
-        "post_mpp_module_baselines": "26_of_26_complete_development_only",
+        "post_mpp_module_baselines": "27_of_27_complete_development_only",
     }
     (ROOT / "HANDOFF_VERIFICATION.json").write_text(
         json.dumps(verification, indent=2) + "\n", encoding="utf-8"

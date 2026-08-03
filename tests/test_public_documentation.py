@@ -140,7 +140,8 @@ def test_task_board_freezes_post_mpp_dependency_and_regression_policy(
     assert "- [x] **L05 — General static scope joins.**" in backlog
     assert "- [x] **L06 — Natural-language adapter expansion.**" in backlog
     assert "- [x] **L07 — Python and R source adapters for existing checks.**" in backlog
-    assert "1. L08 — notebook, Quarto, and R Markdown" in backlog
+    assert "1. Continue L11 with the next independently recurrent" in backlog
+    assert "2. Begin L12 natural non-benchmark validation" in backlog
     assert "Do not begin detector promotion, MCP transport, or project execution" in backlog
 
 

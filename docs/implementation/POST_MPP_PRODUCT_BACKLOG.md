@@ -16,7 +16,7 @@ ADRs remain authoritative for their exact scopes.
 The 0.3.0 baseline contains:
 
 - 18 active question-oriented scientific checks through 23 bounded adapters;
-- 8 active deterministic calculation-check families;
+- 9 active deterministic calculation-check families;
 - 15 published capability profiles;
 - one experimental method-conflict detector binding; and
 - zero qualified detectors with production Finding authority.
@@ -194,6 +194,13 @@ themselves, qualify a detector or support a public generality claim.
     regression of every earlier workflow touched by the change.
   - Limitation: passing a repaired benchmark workflow does not prove the repair is universally
     correct.
+  - Completed loop: ADR-0056 and Experiment 0047 froze three independent ScienceAgentBench task-70
+    authors as clean development controls after the proposed donor-adjustment omission did not
+    recur; no check was added.
+  - Completed loop: ADR-0057 and Experiment 0048 add the Disclosure-only selected sequence-record
+    boundary check after three independent task-12 authors repeated one exact join-every-line
+    mistake and a fresh corrected author did not. The v12 grammar requires selected exact bytes,
+    inert AST, and exact path flow; it contains no benchmark identity or answer authority.
 
 - [ ] **L12 — Natural non-benchmark validation.** Maintain a commit-pinned collection of unrelated
   public repositories and scientist-supplied local projects that exercise supported methods,
@@ -257,8 +264,9 @@ themselves, qualify a detector or support a public generality claim.
 
 Work on the first unchecked prerequisite, in order:
 
-1. L08 — notebook, Quarto, and R Markdown adapters over the common joins; then
-2. L09 and L10 — natural calculation layouts and large single-cell artifacts.
+1. Continue L11 with the next independently recurrent, authority-bounded issue; then
+2. Begin L12 natural non-benchmark validation for the exact supported paths.
 
 Do not begin detector promotion, MCP transport, or project execution while these prerequisites are
-unfinished.
+unfinished. Do not add speculative Parquet/Arrow, Zarr, or large-file support without a concrete
+retained consumer.
