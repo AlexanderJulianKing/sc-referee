@@ -76,6 +76,7 @@ def test_report_exposes_type_specific_impact_and_exact_source_navigation(
     assert 'href="#finding-1-evidence-1-source-1"' in html
     assert "Treatment increased expression relative to control." in html
     assert "return sum(treated) / len(treated) - sum(control) / len(control)" in html
+    assert html.index("Claims needing correction") < html.index("Coverage and completion")
     concern_section = html.split("Conditional concerns requiring scientific review", 1)[1].split(
         "Material questions", 1
     )[0]

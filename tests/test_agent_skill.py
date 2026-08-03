@@ -48,6 +48,7 @@ def test_repository_skill_has_discoverable_metadata(project_root: Path) -> None:
     assert "posthoc_method_ledger_v1" in body
     assert "typed_static_method_conflict_v1" in body
     assert "independent qualification-adapter identity and digest" in body
+    assert "routine `not_applicable` scientific-check coverage records" in body
     assert "sc-referee lock-semantics <new-segment>" in body
 
     interface = yaml.safe_load((root / "agents" / "openai.yaml").read_text(encoding="utf-8"))
@@ -74,6 +75,7 @@ def test_repository_skill_preserves_epistemic_and_execution_boundaries(
         assert required in skill
     assert "Use only records present in `audit.bundle.json`" in interpretation
     assert "Proof completeness is not qualification or promotion" in interpretation
+    assert "a routine not-applicable record is not a concern" in interpretation
     assert "Replay establishes deterministic regeneration" in interpretation
     typed_interaction = (
         _skill_root(project_root) / "references" / "typed-interaction.md"

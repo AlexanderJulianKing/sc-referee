@@ -44,6 +44,16 @@ from sc_referee_evaluation.metrics import (
     bootstrap_problem_sample,
     build_qualification_metric_set,
 )
+from sc_referee_evaluation.prospective_qualification import (
+    PROTOCOL_VERSION as PROSPECTIVE_QUALIFICATION_PROTOCOL_VERSION,
+)
+from sc_referee_evaluation.prospective_qualification import (
+    REQUIRED_CELL_TYPES,
+    ProspectiveQualificationError,
+    freeze_pilot_threshold_decision,
+    freeze_prospective_qualification_protocol,
+    seal_prospective_outcome_ledger,
+)
 from sc_referee_evaluation.regression_baseline import (
     MODULE_BASELINE_REQUIREMENTS_VERSION,
     RegressionModuleBaselineError,
@@ -91,9 +101,11 @@ __all__ = [
     "DEFAULT_REGRESSION_CORPUS_LEDGER",
     "MODULE_BASELINE_REQUIREMENTS_VERSION",
     "PROFILE_MANIFEST",
+    "PROSPECTIVE_QUALIFICATION_PROTOCOL_VERSION",
     "REGRESSION_CORPUS_EXECUTION_PLAN_VERSION",
     "REGRESSION_CORPUS_LEDGER_VERSION",
     "REGRESSION_CORPUS_RUNNER_VERSION",
+    "REQUIRED_CELL_TYPES",
     "AnalysisMethodQualificationError",
     "CorpusPreflightError",
     "DetectorComparisonError",
@@ -104,6 +116,7 @@ __all__ = [
     "FixtureProofInputs",
     "GeneBenchNumericGradeError",
     "MethodContractDiagnosticError",
+    "ProspectiveQualificationError",
     "QualificationMetricError",
     "RegressionCorpusLedgerError",
     "RegressionCorpusRunnerError",
@@ -123,6 +136,8 @@ __all__ = [
     "corpus_semantic_projection",
     "diagnose_genebench_method_contract_conflict",
     "freeze_bounded_analysis_method_profile",
+    "freeze_pilot_threshold_decision",
+    "freeze_prospective_qualification_protocol",
     "generate_ambiguous_fixture",
     "generate_control_fixture",
     "generate_positive_fixture",
@@ -140,6 +155,7 @@ __all__ = [
     "revalidate_analysis_method_proof",
     "revalidate_fixture_proof",
     "run_regression_corpus",
+    "seal_prospective_outcome_ledger",
     "validate_adjudicated_root_cause",
     "validate_case_packet",
     "validate_regression_corpus_execution_plan",

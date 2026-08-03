@@ -1066,6 +1066,19 @@ Proceed in this order:
     no-execution, and replay controls preserve zero Findings. Benchmark identities and answer-side
     material are absent from the grammar. Dynamic/multi-call flow and broad sequence formats remain
     unsupported, and the development cases are qualification-ineligible.
+17. ✅ The generic-referee revamp is implemented through the honest development boundary. Ten
+    contract-bound method relations now pass a normalized seven-cell matrix and a separate raw
+    contract/audit/replay matrix, producing ten evaluation candidates, ten corrected covered
+    negatives, and ten clean abstentions without benchmark identity. Experiment 0051 freezes a
+    140-assignment pilot/held-out qualification protocol; ADR-0061 stages fail-closed, exact-binding
+    promotion plumbing without installing a grant or changing v0.18. ADR-0062 adds a domain-neutral
+    dependence evaluator with a finite seven-safeguard protocol, and three removable development
+    adapters demonstrate single-cell, longitudinal, and nested-experiment reuse without controller
+    or Finding integration. ADR-0063 replaces aggregate capability claims with six independent
+    maturity dimensions. Reports lead with Findings and collapse routine not-applicable coverage.
+    Production Findings remain unavailable until independent cases, authenticated label-blind
+    review, pilot-frozen thresholds, held-out metrics, public qualification reports, accepted
+    schema publication, and exact maintainer promotions actually exist.
 
 Further Python lineage profiles are justified only when they unblock a named detector premise or
 real validation case. Branches, DAGs, dynamic runtime semantics, and over-budget calculations remain

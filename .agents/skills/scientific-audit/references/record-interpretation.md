@@ -27,7 +27,7 @@ Use only records present in `audit.bundle.json`.
 | `DetectorCaseOutcome` | A model-free reconciliation of exact Stage-3 reviews; a complete v0.11 record retains one projection per DetectorResult opportunity | Detector qualification, a correctness class for the entire workflow, or usable metric input when its projection is legacy-incomplete |
 | `QualificationMetricSet` | Twelve deterministic ratios and problem-cluster intervals recomputed from its digest-bound case-outcome inputs | Detector promotion, a correctness certificate, or evidence outside its declared envelope and corpus partitions |
 | `StaticQualificationProof` with `proof_profile_kind: typed_static_method_conflict_v1` | An independently rederived closed typed comparison over exact retained bytes, method binding, adapter identity, human authority, scope, and finite checks | Detector qualification, execution evidence, an accuracy estimate, promotion, or a Finding |
-| `Disclosure` | An unsupported, opaque, unavailable, or intentionally uncovered boundary | Evidence that the hidden behavior is wrong |
+| `Disclosure` | An unsupported, opaque, unavailable, intentionally uncovered, or routine not-applicable coverage boundary | Evidence that the hidden behavior is wrong; a routine not-applicable record is not a concern |
 | `CoverageRecord` | The exact inspected denominator and limitations for this run | A correctness certificate |
 
 ## Required checks before summarizing
@@ -38,6 +38,9 @@ Use only records present in `audit.bundle.json`.
 3. For every Finding, preserve its bounded statement, evidence links, non-inferences, and
    publication-materiality state.
 4. Preserve every open MaterialQuestion and material Disclosure relevant to the selected surface.
+   Report routine `not_applicable` scientific-check Disclosures as a separate count unless complete
+   coverage bookkeeping is requested; do not silently drop them from the bundle or call them
+   concerns.
 5. State `overall_status`, `uninspected_paths`, opaque boundaries, and `known_gaps`.
 6. If `publication_surfaces[0].status` is `unresolved`, state that publication materiality is
    unassessed and keep candidate surfaces separate.

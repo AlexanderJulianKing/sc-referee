@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sc-referee.local/evaluation/prospective-qualification-v1/outcome-ledger.schema.json",
+  "title": "Prospective qualification outcome ledger",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["artifact_kind", "protocol_version", "protocol_ref", "block", "threshold_decision_ref", "outcomes", "retention_summary", "sealed_at", "qualification_authority", "promotion_decision_present", "ledger_digest"],
+  "properties": {
+    "artifact_kind": {"const": "prospective_qualification_outcome_ledger"},
+    "protocol_version": {"const": "1.0.0"},
+    "protocol_ref": {"$ref": "#/$defs/protocol_ref"},
+    "block": {"$ref": "#/$defs/block"},
+    "threshold_decision_ref": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/decision_ref"}]},
+    "outcomes": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/outcome"}},
+    "retention_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assigned_case_count", "retained_outcome_count", "retained_complete_count", "cell_mismatch_or_unavailable_count", "metric_eligibility_counts", "all_assigned_outcomes_retained"],
+      "properties": {
+        "assigned_case_count": {"type": "integer", "minimum": 1},
+        "retained_outcome_count": {"type": "integer", "minimum": 1},
+        "retained_complete_count": {"type": "integer", "minimum": 0},
+        "cell_mismatch_or_unavailable_count": {"type": "integer", "minimum": 0},
+        "metric_eligibility_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+        "all_assigned_outcomes_retained": {"const": true}
+      }
+    },
+    "sealed_at": {"type": "string", "format": "date-time"},
+    "qualification_authority": {"const": "none_metric_input_only"},
+    "promotion_decision_present": {"const": false},
+    "ledger_digest": {"$ref": "#/$defs/digest"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "protocol_ref": {
+      "type": "object", "additionalProperties": false, "required": ["protocol_id", "protocol_digest"],
+      "properties": {"protocol_id": {"type": "string", "minLength": 1}, "protocol_digest": {"$ref": "#/$defs/digest"}}
+    },
+    "decision_ref": {
+      "type": "object", "additionalProperties": false, "required": ["decision_id", "decision_digest"],
+      "properties": {"decision_id": {"type": "string", "minLength": 1}, "decision_digest": {"$ref": "#/$defs/digest"}}
+    },
+    "block": {
+      "type": "object", "additionalProperties": false, "required": ["block_id", "evidence_role"],
+      "properties": {"block_id": {"type": "string", "minLength": 1}, "evidence_role": {"enum": ["threshold_pilot", "qualification_heldout", "development_regression"]}}
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case_id", "retention_disposition", "contamination_status", "author_authentication_status", "review_authentication_status", "scientific_label", "detector_observation", "label_frozen_at", "completed_at", "artifact_digests", "frozen_assignment", "expected_cell_label", "cell_confirmation", "metric_eligibility"],
+      "properties": {
+        "case_id": {"type": "string", "minLength": 1},
+        "retention_disposition": {"enum": ["retained_complete", "retained_contaminated", "retained_failure", "retained_withdrawal"]},
+        "contamination_status": {"enum": ["clean", "contaminated", "unknown"]},
+        "author_authentication_status": {"enum": ["externally_verified", "unverified"]},
+        "review_authentication_status": {"enum": ["externally_verified", "unverified"]},
+        "scientific_label": {"enum": ["issue_present", "issue_absent", "indeterminate", "unsupported", "unavailable"]},
+        "detector_observation": {"enum": ["finding", "no_finding", "unavailable"]},
+        "label_frozen_at": {"type": "string", "format": "date-time"},
+        "completed_at": {"type": "string", "format": "date-time"},
+        "artifact_digests": {
+          "type": "object", "additionalProperties": false,
+          "required": ["case_material", "stage1_panel", "stage2_panel", "scientific_label", "detector_output"],
+          "properties": {
+            "case_material": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/digest"}]},
+            "stage1_panel": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/digest"}]},
+            "stage2_panel": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/digest"}]},
+            "scientific_label": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/digest"}]},
+            "detector_output": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/digest"}]}
+          }
+        },
+        "frozen_assignment": {"type": "object"},
+        "expected_cell_label": {"enum": ["issue_present", "issue_absent", "indeterminate", "unsupported"]},
+        "cell_confirmation": {"enum": ["confirmed", "not_confirmed"]},
+        "metric_eligibility": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

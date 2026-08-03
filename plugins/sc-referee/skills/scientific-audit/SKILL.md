@@ -182,8 +182,14 @@ Report, in this order:
 2. exact counts of Findings, ConditionalConcerns, MaterialQuestions, and Disclosures;
 3. narrowly worded demonstrated Findings, without strengthening them;
 4. open material questions and their recorded consequences;
-5. disclosures and major uninspected or opaque paths; and
+5. material disclosures and major uninspected or opaque paths, followed by the separate count of
+   routine `not_applicable` scientific-check coverage records; and
 6. the exact overall coverage status and non-certification boundary.
+
+The machine-readable Disclosure count includes routine negative applicability records for replay.
+Do not present those records as concerns. Summarize their count separately and expand them only
+when the user asks for complete coverage bookkeeping. Preserve ambiguous, unsupported, unavailable,
+opaque, and otherwise material disclosures individually.
 
 If the bundle carries detector-qualification records, report them only after the audit result.
 Preserve each case's `metric_input_status`, exact opportunity count, exclusions, metric input

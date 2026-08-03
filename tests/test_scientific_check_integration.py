@@ -2843,6 +2843,11 @@ def test_agent_and_html_surfaces_show_exact_scientist_choices_and_observation(
     assert "use_supplied_founder_alleles_directly_in_hmm_emission" in html
     assert "Blocked detectors:</strong> </p>" not in html
     assert "Ask the scientist to select one listed review-scoped method requirement" in html
+    routine_count = sum(
+        item["coverage_status"] == "not_applicable" for item in bundle["disclosures"]
+    )
+    assert f">{routine_count}</div><div>Routine not-applicable checks</div>" in html
+    assert "coverage bookkeeping, not concerns about the workflow" in html
     coverage = bundle["coverage_records"][0]
     assert all(
         "after the publication surface is resolved" not in item

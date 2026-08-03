@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sc-referee.local/evaluation/prospective-qualification-v1/pilot-threshold-decision.schema.json",
+  "title": "Prospective pilot threshold decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["artifact_kind", "protocol_version", "decision_id", "protocol_ref", "pilot_ledger_ref", "metric_definitions", "promotion_thresholds", "zero_high_severity_false_accusations_required", "approved_for_heldout_opening", "decided_at", "qualification_authority", "decision_digest"],
+  "properties": {
+    "artifact_kind": {"const": "prospective_pilot_threshold_decision"},
+    "protocol_version": {"const": "1.0.0"},
+    "decision_id": {"type": "string", "minLength": 1},
+    "protocol_ref": {"$ref": "#/$defs/protocol_ref"},
+    "pilot_ledger_ref": {
+      "type": "object", "additionalProperties": false, "required": ["block_id", "ledger_digest"],
+      "properties": {"block_id": {"type": "string", "minLength": 1}, "ledger_digest": {"$ref": "#/$defs/digest"}}
+    },
+    "metric_definitions": {"type": "object", "minProperties": 1},
+    "promotion_thresholds": {"type": "object", "minProperties": 1},
+    "zero_high_severity_false_accusations_required": {"const": true},
+    "approved_for_heldout_opening": {"type": "boolean"},
+    "decided_at": {"type": "string", "format": "date-time"},
+    "qualification_authority": {"const": "none_thresholds_only"},
+    "decision_digest": {"$ref": "#/$defs/digest"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "protocol_ref": {
+      "type": "object", "additionalProperties": false, "required": ["protocol_id", "protocol_digest"],
+      "properties": {"protocol_id": {"type": "string", "minLength": 1}, "protocol_digest": {"$ref": "#/$defs/digest"}}
+    }
+  }
+}

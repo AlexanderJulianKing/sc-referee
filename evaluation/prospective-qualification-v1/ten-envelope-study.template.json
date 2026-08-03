@@ -1,0 +1,106 @@
+{
+  "artifact_kind": "prospective_qualification_study_template",
+  "template_version": "1.0.0",
+  "template_id": "prospective-template:ten-generic-relation-envelopes-v1",
+  "qualification_authority": "none_template_only",
+  "expected_envelope_count": 10,
+  "envelopes": [
+    {
+      "envelope_id": "relation-envelope:founder-orientation-before-hmm-emission",
+      "check_id": "check:founder-orientation-before-hmm-emission",
+      "candidate_id": "repair-before-emission",
+      "binding_digest": "sha256:3f5fc7459f00313a676bbfc5f2e43df63638ea1a78a7ea44faaee7f80bb24ad2"
+    },
+    {
+      "envelope_id": "relation-envelope:directional-measurement-error-interpretation",
+      "check_id": "check:directional-measurement-error-interpretation",
+      "candidate_id": "direction-specific-decomposition",
+      "binding_digest": "sha256:da442c1fcfe6254f2ee55c15f9cf4b7f0085da00393f37e54535e0481b276b6e"
+    },
+    {
+      "envelope_id": "relation-envelope:poststratified-misclassification-estimator",
+      "check_id": "check:poststratified-misclassification-estimator",
+      "candidate_id": "constrained-cellwise-calibration-then-standardize",
+      "binding_digest": "sha256:e702b49497a35a37e0be245c3e53a3c72e65e9195817f0e268043bdffd669970"
+    },
+    {
+      "envelope_id": "relation-envelope:expected-count-background-construction",
+      "check_id": "check:expected-count-background-construction",
+      "candidate_id": "negative-binomial-model-prediction",
+      "binding_digest": "sha256:47d592f2092ecdfd2a9a3c815cae85be94bc5007c599c252ff859e06acbe654b"
+    },
+    {
+      "envelope_id": "relation-envelope:recoverable-technical-group-adjustment",
+      "check_id": "check:recoverable-technical-group-adjustment",
+      "candidate_id": "include-recovered-technical-group",
+      "binding_digest": "sha256:057a455348d68cb34c5033ebe2d8536485d5a0a7202d45428e686bf3a014a48a"
+    },
+    {
+      "envelope_id": "relation-envelope:phase-split-mvmr-instrument-construction",
+      "check_id": "check:phase-split-mvmr-instrument-construction",
+      "candidate_id": "phase1-ld-conditional-signals-phase2-joint-coefficients",
+      "binding_digest": "sha256:a4eaed2a49124fa5bc8ab61590e368b4eca1503ebf2c37336cde9c7cc4e0543e"
+    },
+    {
+      "envelope_id": "relation-envelope:classifier-derived-copy-dosage-representation",
+      "check_id": "check:classifier-derived-copy-dosage-representation",
+      "candidate_id": "direct-continuous-calibrated-copy-dosage",
+      "binding_digest": "sha256:e159f58ef9b34aaceaf80ea4170d105165ec578c7de84735bb4a8b8946b80166"
+    },
+    {
+      "envelope_id": "relation-envelope:somatic-clonality-representation",
+      "check_id": "check:somatic-clonality-representation",
+      "candidate_id": "purity-copy-adjusted-clonal-fraction-window",
+      "binding_digest": "sha256:1f00f66e25cebd70a24e50c44b1a4ffa2f8815490aac99f420e59b983233b927"
+    },
+    {
+      "envelope_id": "relation-envelope:local-perturbation-regression-specification",
+      "check_id": "check:local-perturbation-regression-specification",
+      "candidate_id": "joint-target-axes-with-guide-nuisance-terms",
+      "binding_digest": "sha256:75c80be96d0c826b026700ffe94196c3993fb0552da877f914aee700b45a1b88"
+    },
+    {
+      "envelope_id": "relation-envelope:full-map-ancestry-exposure",
+      "check_id": "check:full-map-ancestry-exposure",
+      "candidate_id": "full-map-exposure",
+      "binding_digest": "sha256:d492348197e149c1f15c237e03c2bbf76e68dd79ca74c5fcc5e2dc29ad6efacb"
+    }
+  ],
+  "required_blocks": [
+    "threshold_pilot",
+    "qualification_heldout"
+  ],
+  "required_cell_types": [
+    "error_bearing",
+    "corrected_twin",
+    "valid_alternative",
+    "hard_negative",
+    "ambiguous",
+    "unsupported",
+    "renamed_implementation"
+  ],
+  "required_participant_roles": [
+    "author",
+    "stage1_reviewer",
+    "stage2_reviewer",
+    "detector_implementer"
+  ],
+  "minimum_frozen_case_count": 140,
+  "external_inputs_required_before_freeze": [
+    "detector_manifest_and_implementation_digests",
+    "authenticated_participant_identity_digests",
+    "opaque_no_replacement_case_ids",
+    "authoring_brief_digests",
+    "assignment_timestamps"
+  ],
+  "external_evidence_required_after_freeze": [
+    "prospectively_authored_case_material",
+    "authenticated_answer_blind_stage1_reviews",
+    "authenticated_independent_stage2_adjudications",
+    "retained_scientific_labels_and_detector_outcomes",
+    "pilot_threshold_decision",
+    "heldout_metric_record",
+    "envelope_specific_maintainer_promotion_decisions"
+  ],
+  "template_digest": "sha256:036c726019562de4eb1b2e0671c93b217379ee2079169cf5864117d0e48d1eed"
+}

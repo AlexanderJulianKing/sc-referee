@@ -58,6 +58,12 @@ from sc_referee_evaluation.posthoc_review import (
     PosthocValidationReviewError,
     build_posthoc_validation_review,
 )
+from sc_referee_evaluation.prospective_qualification import (
+    ProspectiveQualificationError,
+    freeze_pilot_threshold_decision,
+    freeze_prospective_qualification_protocol,
+    seal_prospective_outcome_ledger,
+)
 from sc_referee_evaluation.qualification_adapter_registry import (
     registered_qualification_adapter,
 )
@@ -123,6 +129,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         Stage3ProtocolError,
         ReviewCaptureError,
         QualificationMetricError,
+        ProspectiveQualificationError,
         StaticQualificationError,
         AnalysisMethodQualificationError,
         TypedMethodQualificationError,
@@ -146,6 +153,30 @@ def _parser() -> argparse.ArgumentParser:
         description="Operate the isolated answer-side qualification protocol.",
     )
     commands = parser.add_subparsers(dest="command", required=True)
+
+    prospective_protocol = commands.add_parser("freeze-prospective-protocol")
+    prospective_protocol.add_argument("--spec", required=True)
+    prospective_protocol.add_argument("--frozen-at", required=True)
+    prospective_protocol.add_argument("--output", required=True)
+    prospective_protocol.set_defaults(handler=_prospective_protocol_command)
+
+    prospective_outcomes = commands.add_parser("seal-prospective-outcomes")
+    prospective_outcomes.add_argument("--protocol", required=True)
+    prospective_outcomes.add_argument("--outcomes-jsonl", required=True)
+    prospective_outcomes.add_argument("--block-id", required=True)
+    prospective_outcomes.add_argument("--sealed-at", required=True)
+    prospective_outcomes.add_argument("--threshold-decision")
+    prospective_outcomes.add_argument("--pilot-ledger")
+    prospective_outcomes.add_argument("--output", required=True)
+    prospective_outcomes.set_defaults(handler=_prospective_outcomes_command)
+
+    pilot_thresholds = commands.add_parser("freeze-pilot-thresholds")
+    pilot_thresholds.add_argument("--protocol", required=True)
+    pilot_thresholds.add_argument("--pilot-ledger", required=True)
+    pilot_thresholds.add_argument("--decision-spec", required=True)
+    pilot_thresholds.add_argument("--decided-at", required=True)
+    pilot_thresholds.add_argument("--output", required=True)
+    pilot_thresholds.set_defaults(handler=_pilot_thresholds_command)
 
     corpus_preflight = commands.add_parser("preflight-genebench-public")
     corpus_preflight.add_argument("--package-root", required=True)
@@ -551,6 +582,46 @@ def _parser() -> argparse.ArgumentParser:
     fixture.add_argument("--output", required=True)
     fixture.set_defaults(handler=_fixture_command)
     return parser
+
+
+def _prospective_protocol_command(arguments: argparse.Namespace) -> Path:
+    output = _absent_output(arguments.output)
+    protocol = freeze_prospective_qualification_protocol(
+        _load_object(Path(arguments.spec)), frozen_at=str(arguments.frozen_at)
+    )
+    write_normalized_json_once(output, protocol)
+    return output
+
+
+def _prospective_outcomes_command(arguments: argparse.Namespace) -> Path:
+    output = _absent_output(arguments.output)
+    decision = (
+        _load_object(Path(arguments.threshold_decision)) if arguments.threshold_decision else None
+    )
+    ledger = seal_prospective_outcome_ledger(
+        _load_object(Path(arguments.protocol)),
+        _load_jsonl(Path(arguments.outcomes_jsonl)),
+        block_id=str(arguments.block_id),
+        sealed_at=str(arguments.sealed_at),
+        threshold_decision=decision,
+        pilot_ledger=(
+            _load_object(Path(arguments.pilot_ledger)) if arguments.pilot_ledger else None
+        ),
+    )
+    write_normalized_json_once(output, ledger)
+    return output
+
+
+def _pilot_thresholds_command(arguments: argparse.Namespace) -> Path:
+    output = _absent_output(arguments.output)
+    decision = freeze_pilot_threshold_decision(
+        _load_object(Path(arguments.protocol)),
+        _load_object(Path(arguments.pilot_ledger)),
+        _load_object(Path(arguments.decision_spec)),
+        decided_at=str(arguments.decided_at),
+    )
+    write_normalized_json_once(output, decision)
+    return output
 
 
 def _corpus_preflight_command(arguments: argparse.Namespace) -> Path:

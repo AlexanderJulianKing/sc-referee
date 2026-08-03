@@ -29,6 +29,35 @@
 </details>
 {% endif %}
 {%- endmacro %}
+{% macro findings_section(findings) -%}
+<section>
+  <h2>Claims needing correction</h2>
+  {% for item in findings %}
+  <article class="card" id="finding-{{ loop.index }}">
+    {% set finding_index = loop.index %}
+    <h3>{{ item.title }}</h3>
+    <p>{{ item.summary }}</p>
+    <p><strong>Severity:</strong> {{ item.severity.level }} — {{ item.severity.rationale }}</p>
+    <p><strong>Publication materiality:</strong> {{ item.publication_materiality.level }} — {{ item.publication_materiality.rationale }}</p>
+    <p><strong>Detector maturity:</strong> {{ item.admission.detector_maturity|replace('_', ' ') }}{% if item.extensions is defined and item.extensions['x-fixture-only-test-double'] is defined and item.extensions['x-fixture-only-test-double'] %} (synthetic fixture simulation; no public qualification){% endif %}</p>
+    <p><strong>Next action:</strong> {{ item.next_action }}</p>
+    <details><summary>Admission checks and explicit non-inferences</summary>
+      <ul>
+        <li>Direct entailment: satisfied</li><li>No reversing unknown: satisfied</li><li>Exact detector applicability: satisfied</li>
+        <li>Finite counterevidence protocol: complete</li><li>Bounded wording: satisfied</li><li>Deterministic replay: satisfied</li><li>Source references: resolved</li>
+      </ul>
+      <p><strong>This Finding does not infer:</strong></p><ul>{% for statement in item.admission.non_inferences %}<li>{{ statement }}</li>{% endfor %}</ul>
+    </details>
+    <details><summary>Logical basis, affected descendants, and limits</summary>
+      <p>{{ item.logical_basis }}</p>
+      <ul>{% for descendant in item.affected_descendants %}<li>{{ descendant.effect }}</li>{% endfor %}</ul>
+      <ul>{% for limitation in item.coverage_limitations %}<li>{{ limitation }}</li>{% endfor %}</ul>
+    </details>
+    {{ evidence_package(item.evidence, 'finding-' ~ finding_index) }}
+  </article>
+  {% else %}<p>None in the inspected detector path.</p>{% endfor %}
+</section>
+{%- endmacro %}
 <!doctype html>
 <html lang="en">
 <head>
@@ -55,6 +84,8 @@
 {% set coverage = bundle.coverage_records[0] %}
 {% set interrupted = coverage.extensions['x-run-state'] != 'complete' %}
 {% set coverage_limited = coverage.overall_status != 'complete_within_plan' and not interrupted %}
+{% set routine_disclosures = bundle.disclosures|selectattr('coverage_status', 'equalto', 'not_applicable')|list %}
+{% set material_disclosure_count = bundle.disclosures|length - routine_disclosures|length %}
 <header>
   <h1>sc-referee scientific audit</h1>
   {% if interrupted %}
@@ -74,8 +105,10 @@
   <div class="card"><div class="count">{{ bundle.findings|length }}</div><div>Findings</div></div>
   <div class="card"><div class="count">{{ bundle.conditional_concerns|length }}</div><div>Conditional concerns</div></div>
   <div class="card"><div class="count">{{ bundle.material_questions|length }}</div><div>Material questions</div></div>
-  <div class="card"><div class="count">{{ bundle.disclosures|length }}</div><div>Disclosures</div></div>
+  <div class="card"><div class="count">{{ material_disclosure_count }}</div><div>Material disclosures</div></div>
+  <div class="card"><div class="count">{{ routine_disclosures|length }}</div><div>Routine not-applicable checks</div></div>
 </section>
+{{ findings_section(bundle.findings) }}
 <section>
   <h2>Coverage and completion</h2>
   <p><strong>Run coverage state:</strong> {{ coverage.overall_status|replace('_', ' ') }}</p>
@@ -87,33 +120,6 @@
   <ul>{% for item in coverage.detector_coverage %}<li><code>{{ item.detector_id }}</code>: {{ item.targets_evaluated }} of {{ item.targets_total }} evaluated ({{ item.status|replace('_', ' ') }}). {{ item.details }}</li>{% endfor %}</ul>
   {% if coverage.extensions['x-pending-work'] %}<h3>Pending or unprocessed work</h3><ul>{% for item in coverage.extensions['x-pending-work'] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
   {% if coverage.known_gaps %}<h3>Known coverage gaps</h3><ul>{% for item in coverage.known_gaps %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
-</section>
-<section>
-  <h2>Claims needing correction</h2>
-  {% for item in bundle.findings %}
-  <article class="card" id="finding-{{ loop.index }}">
-    {% set finding_index = loop.index %}
-    <h3>{{ item.title }}</h3>
-    <p>{{ item.summary }}</p>
-    <p><strong>Severity:</strong> {{ item.severity.level }} — {{ item.severity.rationale }}</p>
-    <p><strong>Publication materiality:</strong> {{ item.publication_materiality.level }} — {{ item.publication_materiality.rationale }}</p>
-    <p><strong>Detector maturity:</strong> {{ item.admission.detector_maturity|replace('_', ' ') }}{% if item.extensions is defined and item.extensions['x-fixture-only-test-double'] is defined and item.extensions['x-fixture-only-test-double'] %} (synthetic fixture simulation; no public qualification){% endif %}</p>
-    <p><strong>Next action:</strong> {{ item.next_action }}</p>
-    <details><summary>Admission checks and explicit non-inferences</summary>
-      <ul>
-        <li>Direct entailment: satisfied</li><li>No reversing unknown: satisfied</li><li>Exact detector applicability: satisfied</li>
-        <li>Finite counterevidence protocol: complete</li><li>Bounded wording: satisfied</li><li>Deterministic replay: satisfied</li><li>Source references: resolved</li>
-      </ul>
-      <p><strong>This Finding does not infer:</strong></p><ul>{% for statement in item.admission.non_inferences %}<li>{{ statement }}</li>{% endfor %}</ul>
-    </details>
-    <details><summary>Logical basis, affected descendants, and limits</summary>
-      <p>{{ item.logical_basis }}</p>
-      <ul>{% for descendant in item.affected_descendants %}<li>{{ descendant.effect }}</li>{% endfor %}</ul>
-      <ul>{% for limitation in item.coverage_limitations %}<li>{{ limitation }}</li>{% endfor %}</ul>
-    </details>
-    {{ evidence_package(item.evidence, 'finding-' ~ finding_index) }}
-  </article>
-  {% else %}<p>None in the inspected detector path.</p>{% endfor %}
 </section>
 <section>
   <h2>Experimental detector outputs</h2>
@@ -263,12 +269,22 @@
 </section>
 <section>
   <h2>Coverage and trust disclosures</h2>
-  {% for item in bundle.disclosures %}
+  {% set disclosure_summary = namespace(material_count=0) %}
+  {% for item in bundle.disclosures if item.coverage_status != 'not_applicable' %}
+  {% set disclosure_summary.material_count = disclosure_summary.material_count + 1 %}
   <article class="card" id="disclosure-{{ loop.index }}"><h3>{{ item.title }}</h3><p>{{ item.description }}</p>
     <p><strong>Importance:</strong> {{ item.importance }}</p><p><strong>Interpretive consequence:</strong> {{ item.interpretive_consequence }}</p>
     {{ source_package(item.source_refs, 'disclosure-' ~ loop.index) }}
   </article>
-  {% else %}<p>None recorded.</p>{% endfor %}
+  {% endfor %}
+  {% if disclosure_summary.material_count == 0 %}<p>None recorded.</p>{% endif %}
+  {% if routine_disclosures %}
+  <details>
+    <summary>{{ routine_disclosures|length }} routine not-applicable scientific-check record{{ '' if routine_disclosures|length == 1 else 's' }}</summary>
+    <p>These negative applicability records are retained for deterministic replay. They are coverage bookkeeping, not concerns about the workflow.</p>
+    <ul>{% for item in routine_disclosures %}<li><code>{{ item.extensions['x-scientific-check-id'] }}</code>: {{ item.description }}</li>{% endfor %}</ul>
+  </details>
+  {% endif %}
 </section>
 <section>
   <h2>External reproduction requests</h2>

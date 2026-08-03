@@ -314,7 +314,7 @@ controller, storage, reporting, admission, or schema meaning. This resolves repr
 local mechanism only. Authenticated answer-blind cross-provider evidence, thresholds, promotion,
 and Finding authority remain external and absent.
 
-### Blocking v0.3 method-conflict promotion representation gap in v0.18.0
+### Staged v0.3 method-conflict promotion representation; external gate remains
 
 Accepted ADR-0060 and Experiment 0047 advance the generic contract-bound method-conflict candidate
 to version `0.3.0`, add an internal ReviewCase projection, and bind all substantive registered
@@ -324,11 +324,18 @@ detector to version `0.2.0`, and `numeric_threshold_policy` is fixed to
 `deferred_until_pilot_threshold_adr`, which correctly forbids a promoted outcome.
 
 Do not edit v0.18.0, reuse the historical v0.2 freeze, hide a grant in extensions, or treat a
-development fixture as qualification. After an independent pilot block exists, a forward-only
-schema release must encode the accepted numeric threshold identity and exact v0.3 binding/envelope,
-with migration preserving all v0.18 records as nonpromoting historical evidence. Until then,
-`production_finding_permitted` remains false and the controller must not admit a production
-Finding from this detector family.
+development fixture as qualification. Accepted ADR-0061 now stages a reproducible, explicitly
+nonpublic v0.19.0 schema candidate. It can represent a v0.3 static profile, an exact production
+binding scope, a content-addressed pilot-informed threshold policy, thresholded metric evidence,
+and one binding-level DetectorQualification. A fail-closed resolver independently checks all of
+those identities and thresholds; no production controller discovery or installed grant exists.
+
+The remaining blocker is external rather than representational: an independent pilot block must
+produce the threshold ADR, and fresh held-out qualification must produce the authenticated review,
+proof, metric, report, and maintainer-promotion records. Only then may the candidate be reviewed as
+a forward public schema release and an exact grant be installed. Until then,
+`production_finding_permitted` remains false and the controller cannot admit a production Finding
+from this detector family.
 
 ## Resolved pre-snapshot AuditRun failure gap
 

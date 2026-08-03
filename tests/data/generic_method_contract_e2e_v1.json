@@ -1,0 +1,120 @@
+{
+  "corpus_id": "generic-method-contract-e2e-v1",
+  "purpose": "Development-only end-to-end verification of atomic method requirements, selected evidence adapters, deterministic conflict evaluation, abstention, and replay.",
+  "qualification_use_permitted": false,
+  "qualification_status": "ineligible_development_fixture",
+  "benchmark_identity_used": false,
+  "limitations": [
+    "These author-written fixtures are not a prospective, independent, blinded, or held-out qualification cohort.",
+    "The matrix verifies only enumerated static/report grammars and never executes project-authored code.",
+    "An evaluation_finding_candidate is not a production Finding and does not establish numerical causality or universal scientific correctness."
+  ],
+  "cases": [
+    {
+      "case_id": "founder-orientation",
+      "check_id": "check:founder-orientation-before-hmm-emission",
+      "required_candidate_id": "repair-before-emission",
+      "required_operand": "repair_ril_founder_orientation_before_hmm_emission",
+      "expected_source_paths": ["analysis.py", "report.md"],
+      "conflict_report": "The founder-origin HMM was fitted using the supplied founder alleles.\n",
+      "corrected_report": "Founder alleles were reoriented before the HMM emission.\n",
+      "ambiguous_report": "The founder-origin HMM was fitted using the supplied founder alleles. Founder alleles were reoriented before the HMM emission.\n",
+      "conflict_source": "from pathlib import Path\n\ndef emission_matrix(observed, founder_state, error):\n    return observed == founder_state\n\ndef fit(sample, observed):\n    return emission_matrix(observed, sample.founder_alleles[0], 0.01)\n\nPath('report.md').write_text('generated\\n', encoding='utf-8')\n",
+      "corrected_source": "from pathlib import Path\n\ndef emission_matrix(observed, founder_state, error):\n    return observed == founder_state\n\ndef fit(sample, observed):\n    repaired = orient_ril_founder_alleles(sample.founder_alleles)\n    return emission_matrix(observed, repaired[0], 0.01)\n\nPath('report.md').write_text('generated\\n', encoding='utf-8')\n"
+    },
+    {
+      "case_id": "directional-measurement-error",
+      "check_id": "check:directional-measurement-error-interpretation",
+      "required_candidate_id": "direction-specific-decomposition",
+      "required_operand": "direction_specific_error_rates_from_average_and_directional_constraint",
+      "expected_source_paths": ["analysis.py", "report.md"],
+      "conflict_report": "The supplied average of the two directional measurement-error rates cannot identify the rates separately. The primary observation model uses the symmetric interpretation: both directions equal the supplied average.\n",
+      "corrected_report": "The reported average of the two directional measurement-error rates was decomposed into direction-specific error rates using the independently supplied error floor before constructing the observation model.\n",
+      "ambiguous_report": "The supplied average of the two directional measurement-error rates cannot identify the rates separately. The primary observation model uses the symmetric interpretation: both directions equal the supplied average. The reported average was also decomposed into direction-specific measurement-error rates using the independently supplied error floor.\n",
+      "conflict_source": "from pathlib import Path\nmean_miscall = metadata['average_error']\nobserved_probability = mean_miscall + (1 - 2 * mean_miscall) * latent_probability\nPath('report.md').write_text('generated\\n', encoding='utf-8')\n",
+      "corrected_source": "from pathlib import Path\nobserved_probability = false_positive * (1 - latent_probability) + (1 - false_negative) * latent_probability\nPath('report.md').write_text('generated\\n', encoding='utf-8')\n"
+    },
+    {
+      "case_id": "poststratified-misclassification",
+      "check_id": "check:poststratified-misclassification-estimator",
+      "required_candidate_id": "constrained-cellwise-calibration-then-standardize",
+      "required_operand": "constrained_joint_calibration_within_each_poststratum_then_standardize",
+      "expected_source_paths": ["report.md"],
+      "conflict_report": "We directly standardized completed-test call distributions over the target-population cells. We then jointly deconvolved the standardized distributions with the matched control matrices.\n",
+      "corrected_report": "Within each target-population post-stratum, we used nonnegative-constrained joint calibration of the mutually exclusive class probabilities, then standardized the calibrated cell estimates with the roster weights.\n",
+      "ambiguous_report": "We directly standardized completed-test call distributions over the target-population cells and then jointly deconvolved the standardized distributions with matched control matrices. Within each target-population post-stratum, we also used nonnegative-constrained joint calibration, then standardized the calibrated cell estimates.\n"
+    },
+    {
+      "case_id": "expected-count-background",
+      "check_id": "check:expected-count-background-construction",
+      "required_candidate_id": "negative-binomial-model-prediction",
+      "required_operand": "negative_binomial_glm_predicted_expected_count",
+      "expected_source_paths": ["report.md"],
+      "conflict_report": "For each replicate separately, the expected value was the arithmetic mean of counts on the same diagonal.\n",
+      "corrected_report": "We fitted a negative-binomial GLM and predicted the held-out focal target expected count separately for every replicate.\n",
+      "ambiguous_report": "For each replicate separately, the expected value was the arithmetic mean of counts on the same diagonal. We also fitted a negative-binomial GLM and predicted the held-out focal target expected count.\n"
+    },
+    {
+      "case_id": "recoverable-technical-group",
+      "check_id": "check:recoverable-technical-group-adjustment",
+      "required_candidate_id": "include-recovered-technical-group",
+      "required_operand": "include_recovered_technical_group_covariate",
+      "expected_source_paths": ["report.md"],
+      "conflict_report": "No donor-specific ambient group or technical group is directly observed. None is reconstructed. Consequently, no ambient-group or technical-group covariate is included.\n",
+      "corrected_report": "The primary association reconstructed a donor-level technical group from mean contamination estimates and included the recovered technical group as a categorical covariate.\n",
+      "ambiguous_report": "The primary association reconstructed a donor-level technical group from mean contamination estimates and included it as a categorical covariate. No donor-specific technical group was directly observed, none was reconstructed, and no technical-group covariate was included.\n"
+    },
+    {
+      "case_id": "phase-split-multivariable-estimation",
+      "check_id": "check:phase-split-mvmr-instrument-construction",
+      "required_candidate_id": "phase1-ld-conditional-signals-phase2-joint-coefficients",
+      "required_operand": "phase1_ld_conditional_signal_union_with_phase2_joint_coefficients",
+      "expected_source_paths": ["report.md"],
+      "conflict_report": "Phase-split multivariable Mendelian-randomization used a union of phase-1 marginal-association signals; phase-2 marginal exposure coefficients and marginal disease coefficients were used.\n",
+      "corrected_report": "Phase-split multivariable Mendelian-randomization used a union of phase-1 LD-conditional joint-effect signals; phase-2 joint exposure coefficients and matching joint disease coefficients were used.\n",
+      "ambiguous_report": "Phase-split MVMR used a union of phase-1 marginal-association signals with phase-2 marginal exposure and disease coefficients. It also used a union of phase-1 LD-conditional joint-effect signals with phase-2 joint exposure and matching joint disease coefficients.\n"
+    },
+    {
+      "case_id": "classifier-copy-dosage",
+      "check_id": "check:classifier-derived-copy-dosage-representation",
+      "required_candidate_id": "direct-continuous-calibrated-copy-dosage",
+      "required_operand": "direct_continuous_calibrated_copy_dosage",
+      "expected_source_paths": ["analysis.py", "report.md"],
+      "conflict_report": "The full-cohort representation is continuous posterior expected copy dosage, P(copy=1) + 2*P(copy=2), not an integer hard call.\n",
+      "corrected_report": "The full-cohort representation is continuous calibrated copy dosage. RidgeCV calibration models produced the downstream quantitative copy exposure.\n",
+      "ambiguous_report": "The full-cohort representation is continuous posterior expected copy dosage, P(copy=1) + 2*P(copy=2). It is also continuous calibrated copy dosage produced by RidgeCV calibration models.\n",
+      "conflict_source": "from pathlib import Path\nimport numpy as np\nprobabilities = classifier.predict_proba(features)\ncopy_states = np.array([0, 1, 2])\nsegment_copy_dosage = probabilities @ copy_states\nPath('report.md').write_text('generated\\n', encoding='utf-8')\n",
+      "corrected_source": "from pathlib import Path\nfrom sklearn.linear_model import RidgeCV as Calibrator\ncalibrator = Calibrator(alphas=[0.1, 1.0]).fit(features, copy_index)\nsegment_copy_dosage = calibrator.predict(features)\nPath('report.md').write_text('generated\\n', encoding='utf-8')\n"
+    },
+    {
+      "case_id": "somatic-clonality",
+      "check_id": "check:somatic-clonality-representation",
+      "required_candidate_id": "purity-copy-adjusted-clonal-fraction-window",
+      "required_operand": "purity_copy_adjusted_clonal_fraction_window_for_target_eligibility",
+      "expected_source_paths": ["report.md"],
+      "conflict_report": "Target membership for the somatic structural variant used local total copy number below 4 as the eligibility ceiling.\n",
+      "corrected_report": "Target membership for the somatic structural variant used a purity/copy-adjusted single-copy CCF window from 0.68 through 1.25.\n",
+      "ambiguous_report": "Target membership for the somatic structural variant used local total copy number below 4 as the eligibility ceiling and also used a purity/copy-adjusted single-copy CCF window from 0.68 through 1.25.\n"
+    },
+    {
+      "case_id": "local-perturbation-regression",
+      "check_id": "check:local-perturbation-regression-specification",
+      "required_candidate_id": "joint-target-axes-with-guide-nuisance-terms",
+      "required_operand": "joint_target_axes_with_observed_guide_nuisance_terms",
+      "expected_source_paths": ["report.md"],
+      "conflict_report": "In the neighbor-mediated local-locus model, I first removed the externally estimated transcript contribution, then fit an intercept plus the remaining knockdown axis with Huber regression.\n",
+      "corrected_report": "The same linear local perturbation model jointly used both measured knockdown axes. Guide-level GC excess was included as a nuisance covariate, together with a promoter-core indicator.\n",
+      "ambiguous_report": "The local perturbation model first removed the externally estimated transcript contribution, then fit an intercept plus the remaining axis with Huber regression. The same linear local perturbation model also jointly used both measured knockdown axes with guide-level GC nuisance and a promoter-core indicator.\n"
+    },
+    {
+      "case_id": "full-map-ancestry-exposure",
+      "check_id": "check:full-map-ancestry-exposure",
+      "required_candidate_id": "full-map-exposure",
+      "required_operand": "full_chromosome_map_exposure",
+      "expected_source_paths": ["report.md"],
+      "conflict_report": "Under a single-pulse, two-state ancestry process, the timing estimate was t = N_switch / ((1-m)L_A + mL_B).\n",
+      "corrected_report": "Transition exposure used the complete chromosome-map length, so pulse timing used t = N_switch / (2 m (1-m) L_map).\n",
+      "ambiguous_report": "Under a single-pulse, two-state ancestry process, timing used t = N_switch / ((1-m)L_A + mL_B).\n\nTransition exposure used the complete chromosome-map length, so pulse timing used t = N_switch / (2 m (1-m) L_map).\n"
+    }
+  ]
+}

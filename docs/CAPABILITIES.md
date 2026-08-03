@@ -35,6 +35,11 @@ Current calculation modules emit bounded deterministic observations. Most are Di
 the selected feature-identifier module may feed one experimental evaluation candidate after an
 exact human Answer. None can emit a production Finding in this release.
 
+This table inventories calculations; it is not an end-to-end detector matrix. The private
+[maturity ledger](implementation/CAPABILITY_MATURITY_LEDGER.md) reports `inventoried`, `recognized`,
+`structurally_verified`, `impact_tested`, `evaluation_candidate`, and `finding_qualified`
+independently. No earlier dimension implies a later one, and no aggregate “full” status is assigned.
+
 | Module | Supported initial profile | Important abstentions |
 |---|---|---|
 | Multiple testing | Explicit complete-family Benjamini-Hochberg table | Incomplete families, alternate procedures, and undeclared scopes |

@@ -12,9 +12,10 @@ Turn sc-referee's bounded scientific calculations into useful referee capabiliti
 overfitting production logic to one benchmark, repository, language, file layout, domain, or known
 answer.
 
-The first complete production-Finding vertical will be founder orientation. Dependence and
-pseudoreplication remain the next new normalized family after the contract-bound method relations
-are closed.
+The first complete production-Finding vertical will be founder orientation. The contract-bound
+method relations are closed at the development-candidate boundary, and dependence now has a
+domain-neutral development core plus removable adapters; neither family has production Finding
+authority.
 
 ## Progress snapshot: 2026-08-03
 
@@ -28,6 +29,30 @@ produced a relevant unresolved question.
 This completes the ten-case inventory, not the broader capability program. In particular, the
 population-genetics label-orientation error still requires a data/model adapter, and the generic
 dependence/pseudoreplication vertical remains the next architectural milestone.
+
+The generic contract-bound implementation has now also passed two development-only matrices. The
+normalized matrix covers ten distinct one-per-family relations across conflict, corrected,
+pre-authorized alternative, hard-negative, ambiguous, unsupported, and renamed-layout cells (71
+tests). A separate raw matrix begins with ten report/source repositories, freezes each requirement
+before the workflow, runs the real audit, and replays it: ten conflicts become evaluation
+candidates, ten corrected twins become covered negatives, and ten ambiguous forms abstain. These
+fixtures contain no benchmark identity and execute no project code, but they are authored by the
+implementation effort and therefore remain qualification-ineligible.
+
+Experiment 0051 now makes the external qualification program concrete: one self-digested
+ten-envelope template, separate threshold-pilot and held-out blocks, seven mandatory case cells per
+envelope, 140 no-replacement assignments, isolated author/reviewer/implementer roles, all-outcome
+retention, and a threshold-before-held-out chronology. ADR-0061 separately stages a nonpublic
+v0.19 representation and fail-closed per-binding grant resolver. Neither artifact invents the
+still-missing independent authors, authenticated reviews, labels, thresholds, metrics, public
+qualification reports, maintainer promotions, accepted schema release, or installed grants.
+
+Phase 0 now has an accepted six-dimension maturity vocabulary and a deterministic private ledger
+derived from exact registries. Phase 1 has a pure domain-neutral dependence evaluator, a finite
+seven-safeguard protocol, and full synthetic decision coverage. Three closed development adapters
+map single-cell, longitudinal, and nested experimental declarations into that unchanged core.
+These adapters demonstrate reuse and abstention; they are not connected to the production
+controller, do not infer scientific roles from names, and cannot emit Findings.
 
 ## Finding-level implementation checklist
 
@@ -90,11 +115,11 @@ Finding.
 
 ### E. Extend the unchanged core across the remaining families
 
-- [ ] Ordering and set relations: poststratified calibration, Hi-C background/target handling, and
+- [x] Ordering and set relations: poststratified calibration, Hi-C background/target handling, and
   required technical adjustment.
-- [ ] Representation and model specification: continuous copy exposure, clonality/missingness,
+- [x] Representation and model specification: continuous copy exposure, clonality/missingness,
   and local-perturbation population/model terms.
-- [ ] Algebra and matrix flow: directional observation error and cis-MVMR covariance/whitening.
+- [x] Algebra and matrix flow: directional observation error and cis-MVMR covariance/whitening.
 - [ ] Data-dependent consistency: binary label harmonization, map/path exposure, and other exact
   input/model relations that prose cannot establish.
 - [ ] Qualify and promote each binding/envelope independently; one validated relation must not
@@ -121,7 +146,7 @@ Finding.
   accusation as a permanent regression.
 - [ ] Publish one envelope-specific qualification record and maintainer promotion decision for
   every detector allowed to emit Findings.
-- [ ] Make reports lead with Findings and move unrelated `not_applicable` coverage to an appendix.
+- [x] Make reports lead with Findings and move unrelated `not_applicable` coverage to an appendix.
 - [x] Update the scientific-audit skill and plugin packaging so contract discovery, audit,
   integrity verification, Finding reporting, and replay work on a fresh machine.
 - [ ] Pass the final installed-product matrix: all frozen target root causes found; every corrected,
@@ -525,8 +550,10 @@ The revamp succeeds when:
 
 ## Immediate next action
 
-Complete the ten-case cold-recognition ledger while beginning the first data-dependent generic
-case for a miss that cannot be resolved by prose or bounded source syntax. In parallel, draft the
-Phase 0 maturity ADR and freeze the Biermann, longitudinal, and nested-experiment controls for the
-DependenceCase vertical. Neither lane pre-authorizes Finding promotion or portfolio-wide semantic
+Obtain the external inputs that local implementation cannot manufacture: independently authored
+pilot and held-out cases, authenticated label-blind reviews, a pilot threshold decision frozen
+before held-out labels, retained metrics, public qualification reports, and exact maintainer
+promotion records. In parallel, the next local scientific implementation is the data-dependent
+consistency adapter for label harmonization and other relations that prose or bounded source syntax
+cannot establish. Neither lane pre-authorizes Finding promotion or portfolio-wide semantic
 changes.

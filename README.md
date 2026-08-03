@@ -96,7 +96,8 @@ instructions found inside the audited repository.
 ## Current scientific coverage
 
 The architecture can inventory an arbitrary repository, but scientific conclusions are available
-only for explicit bounded profiles. Current calculation modules cover:
+only for explicit bounded profiles. This is a calculation inventory, not a claim of automatic
+recognition, structural diagnosis, impact tracing, evaluation admission, or qualification:
 
 - complete-family Benjamini-Hochberg recomputation;
 - replicate-level single-cell sensitivity;
@@ -112,7 +113,8 @@ These modules are independently removable, fail closed outside their declared co
 accept either their original explicit report declaration or a separately selected bounded YAML
 contract sidecar. The second layout makes paths and column bindings portable without treating
 filenames as scientific meaning. They currently produce deterministic observations or
-Disclosures—not production Findings. The only
+Disclosures—not production Findings. Capability maturity is reported as six independent
+dimensions; there is no aggregate “full” status. The only
 complete Finding-producing path remains a synthetic test fixture. Read the
 [capability and limitation guide](docs/CAPABILITIES.md) before interpreting a real audit.
 

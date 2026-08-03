@@ -16,6 +16,9 @@ detector comparison. The same artifact operations are available without model in
 
 ```text
 sc-referee-eval build-workspace ...
+sc-referee-eval freeze-prospective-protocol ...
+sc-referee-eval seal-prospective-outcomes ...
+sc-referee-eval freeze-pilot-thresholds ...
 sc-referee-eval preflight-genebench-public ...
 sc-referee-eval prepare-genebench-public-case ...
 sc-referee-eval stage1-packet ...
@@ -54,6 +57,18 @@ the digest-matching transcript bytes, and a self-digested capture manifest. CLI 
 Stage-2 packet construction consume those verified capture directories rather than loose review
 JSON. The CLI constructs and validates protocol artifacts; it does not invoke reviewers, execute
 project code, authenticate transcript authorship, or independently prove reviewer independence.
+
+`freeze-prospective-protocol` adds the evaluation-private study-design layer for a fixed set of
+generic relation envelopes. It freezes an error/corrected/alternative/hard-negative/ambiguous/
+unsupported/renamed matrix in separate pilot and held-out blocks, with opaque no-replacement case
+assignments and disjoint author, reviewer, and detector-implementer contexts. `seal-prospective-
+outcomes` requires every assigned case to remain in the ledger even when contaminated, failed, or
+withdrawn. `freeze-pilot-thresholds` binds predeclared metric rules after the complete pilot and
+before held-out labels may open. These artifacts carry no Finding or promotion authority and do
+not manufacture independent authorship, review authentication, labels, or detector evidence.
+The adjacent `prospective-qualification-v1/ten-envelope-study.template.json` supplies the current
+self-digested one-relation-per-family envelope list but is deliberately incomplete until real
+detector locks, participant identities, briefs, and assignments are supplied.
 
 `reconcile-root-cause` deterministically constructs an exact public `AdjudicatedRootCause` from a
 closed Stage-1/Stage-2 panel, and `freeze-label` admits a positive label only after those records and
