@@ -472,6 +472,9 @@ def _source_scope_path(
     )
     if writer:
         return writer
+    assert document.source_location is not None
+    if document.source_location.source_kind in {"notebook_cell", "document_chunk"}:
+        return ()
     review = selected_review_path(
         context.scope_join_graph,
         kind="analysis_source",

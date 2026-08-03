@@ -8,6 +8,8 @@ import pytest
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.scientific_checks import (
     FrozenBaseRecord,
+    FrozenSourceLocation,
+    InspectionDocument,
     RecordRef,
     ScientificCheckContractError,
     ScopeJoinEdge,
@@ -15,6 +17,7 @@ from sc_referee.scientific_checks import (
     StaticScopeJoinGraph,
 )
 from sc_referee.scientific_checks.scope_joins import (
+    CELL_SOURCE_PROFILE,
     EXECUTION_INPUT_PROFILE,
     EXECUTION_OUTPUT_PROFILE,
     FULL_DIGEST_PROFILE,
@@ -22,6 +25,7 @@ from sc_referee.scientific_checks.scope_joins import (
     REVIEW_SELECTION_PROFILES,
     build_static_scope_join_graph,
     full_digest_identity_path,
+    selected_container_path,
     selected_review_path,
 )
 
@@ -86,6 +90,194 @@ def _selection_projection(
     }
     value["projection_digest"] = semantic_digest(value)
     return value
+
+
+def _analysis_source_projection(
+    *, source_ref: RecordRef, identity_ref: RecordRef, path: str
+) -> dict[str, Any]:
+    empty = {
+        "status": "unavailable",
+        "selected_record_refs": [],
+        "selected_identity_refs": [],
+        "selected_paths": [],
+    }
+    value = {
+        "profile": "bounded-review-scope-selection-v1",
+        "source_snapshot_digest": SNAPSHOT_DIGEST,
+        "snapshot_ref": {
+            "record_type": "repository_snapshot",
+            "record_id": "snapshot:test",
+        },
+        "selections": {
+            "analysis_source": {
+                "status": "selected",
+                "selected_record_refs": [source_ref.to_dict()],
+                "selected_identity_refs": [identity_ref.to_dict()],
+                "selected_paths": [path],
+                "selection_kind": "analysis_source",
+            },
+            "material_input": {**empty, "selection_kind": "material_input"},
+            "analysis_output": {**empty, "selection_kind": "analysis_output"},
+        },
+        "authority_limitation": "Review scope only.",
+    }
+    value["projection_digest"] = semantic_digest(value)
+    return value
+
+
+def _selected_source_cell_graph(
+    *,
+    execution_state: str,
+    container_path: str = "analysis.qmd",
+    source_kind: str = "document_chunk",
+    include_selection: bool = True,
+    include_parent_receipt: bool = True,
+) -> tuple[StaticScopeJoinGraph, InspectionDocument, dict[str, RecordRef]]:
+    refs = {
+        "snapshot": RecordRef("repository_snapshot", "snapshot:test"),
+        "surface": RecordRef("publication_surface", "surface:test"),
+        "report": RecordRef("artifact", "artifact:report"),
+        "report_identity": RecordRef("asset_identity", "identity:report"),
+        "source": RecordRef("file_record", f"file:{container_path}"),
+        "source_identity": RecordRef("asset_identity", f"identity:{container_path}"),
+        "container_parser": RecordRef("parser_result", "parser-result:analysis-container"),
+        "cell_parser": RecordRef("parser_result", "parser-result:analysis-cell"),
+    }
+    container_digest = sha256_digest("container")
+    cell_content = b"value = 1\n"
+    source_ref: dict[str, Any] = {
+        "source_kind": source_kind,
+        "locator": f"{container_path}#cell=model:code:4-4",
+        "path": container_path,
+        "content_digest": container_digest,
+        "start_line": 4,
+        "end_line": 4,
+    }
+    if source_kind == "notebook_cell":
+        source_ref.update({"cell_id": "model", "selector": "id"})
+        execution_kind = "saved_execution_count"
+        line_offset = 0
+    else:
+        source_ref["chunk_label"] = "model"
+        execution_kind = (
+            "rmarkdown_eval_option" if container_path.endswith(".Rmd") else "quarto_eval_option"
+        )
+    parser = {
+        "parser_result_id": refs["cell_parser"].record_id,
+        "parser_id": "parser:python-ast-tokenize",
+        "parser_version": "0.15.1",
+        "state": "parsed",
+        "syntax_issues": [],
+        "source_ref": source_ref,
+        "extensions": {
+            "x-virtual-source": {
+                "profile": "bounded-container-cell-static-language-bridge-v2",
+                "bridge_version": "0.2.0",
+                "container_parser_result_id": refs["container_parser"].record_id,
+                "language": "python",
+                "source_digest": sha256_digest(cell_content),
+                "source_ref": source_ref,
+                "execution_declaration": {
+                    "kind": execution_kind,
+                    "state": execution_state,
+                    "establishes_execution": False,
+                },
+                "executes_project_code": False,
+            }
+        },
+    }
+    parser_payload = canonical_json(parser).encode("utf-8")
+    parent_parser_id = (
+        "parser:jupyter-notebook-inventory"
+        if container_path.endswith(".ipynb")
+        else "parser:rmarkdown-selected-report-inventory"
+        if container_path.endswith(".Rmd")
+        else "parser:quarto-source-inventory"
+    )
+    parent = {
+        "parser_result_id": refs["container_parser"].record_id,
+        "parser_id": parent_parser_id,
+        "parser_version": "0.2.0",
+        "state": "parsed",
+        "syntax_issues": [],
+        "source_ref": {
+            "source_kind": "file_span",
+            "locator": container_path,
+            "path": container_path,
+            "content_digest": container_digest,
+        },
+        "extensions": {
+            "x-cell-language-bridge": {
+                "profile": "bounded-container-cell-static-language-bridge-v2",
+                "bridge_version": "0.2.0",
+                "state": "bridged",
+                "executes_project_code": False,
+            }
+        },
+    }
+    document = InspectionDocument(
+        path=container_path,
+        file_ref=refs["source"],
+        content=cell_content,
+        content_digest=sha256_digest(cell_content),
+        media_type="text/x-python",
+        parser_result_ref=refs["cell_parser"],
+        parser_result_payload=parser_payload,
+        parser_result_digest=sha256_digest(parser_payload),
+        source_location=FrozenSourceLocation.from_source_ref(source_ref),
+        line_offset=line_offset if source_kind == "notebook_cell" else 3,
+    )
+    records = (
+        _base(refs["snapshot"], {"snapshot_id": refs["snapshot"].record_id}),
+        _base(
+            refs["surface"],
+            {
+                "publication_surface_id": refs["surface"].record_id,
+                "status": "resolved",
+                "selection": {"selected_surface_refs": [refs["report"].to_dict()]},
+            },
+        ),
+        _base(
+            refs["report"],
+            {
+                "artifact_id": refs["report"].record_id,
+                "kind": "report",
+                "path": "report.md",
+                "asset_identity_ref": refs["report_identity"].to_dict(),
+            },
+        ),
+        _base(*_identity(refs["report_identity"], refs["report"], digest=sha256_digest("report"))),
+        _base(
+            refs["source"],
+            {
+                "file_record_id": refs["source"].record_id,
+                "entry_kind": "regular_file",
+                "path": container_path,
+                "asset_identity_ref": refs["source_identity"].to_dict(),
+            },
+        ),
+        _base(*_identity(refs["source_identity"], refs["source"], digest=container_digest)),
+        *((_base(refs["container_parser"], parent),) if include_parent_receipt else ()),
+        _base(refs["cell_parser"], parser),
+    )
+    graph = build_static_scope_join_graph(
+        snapshot_digest=SNAPSHOT_DIGEST,
+        snapshot_ref=refs["snapshot"],
+        selected_surface_ref=refs["surface"],
+        selected_artifact_ref=refs["report"],
+        documents=(document,),
+        base_records=records,
+        scope_selections=(
+            _analysis_source_projection(
+                source_ref=refs["source"],
+                identity_ref=refs["source_identity"],
+                path=container_path,
+            )
+            if include_selection
+            else None
+        ),
+    )
+    return graph, document, refs
 
 
 def _graph_fixture(
@@ -221,6 +413,100 @@ def test_general_graph_separates_identity_review_selection_and_execution_profile
         PUBLICATION_PROFILE,
     ]
     assert "does not establish execution" in selected[0].authority_limitations[0]
+
+
+@pytest.mark.parametrize(
+    ("container_path", "source_kind"),
+    [
+        ("analysis.ipynb", "notebook_cell"),
+        ("analysis.qmd", "document_chunk"),
+        ("analysis.Rmd", "document_chunk"),
+    ],
+)
+def test_active_cell_in_selected_analysis_source_has_exact_two_edge_path(
+    container_path: str, source_kind: str
+) -> None:
+    graph, document, refs = _selected_source_cell_graph(
+        execution_state="enabled_declared",
+        container_path=container_path,
+        source_kind=source_kind,
+    )
+
+    path = graph.unique_path(
+        refs["cell_parser"],
+        refs["surface"],
+        profiles=(CELL_SOURCE_PROFILE, REVIEW_SELECTION_PROFILES["analysis_source"]),
+    )
+    projected = selected_container_path(
+        graph,
+        document=document,
+        selected_artifact_ref=refs["report"],
+        selected_surface_ref=refs["surface"],
+    )
+
+    assert [item.profile for item in path] == [
+        CELL_SOURCE_PROFILE,
+        REVIEW_SELECTION_PROFILES["analysis_source"],
+    ]
+    assert [item.relation for item in projected] == [
+        "contained_in_selected_analysis_source",
+        "selected_analysis_source_for_review",
+    ]
+
+
+def test_cell_in_unselected_analysis_source_has_no_surface_path() -> None:
+    graph, document, refs = _selected_source_cell_graph(
+        execution_state="unspecified",
+        include_selection=False,
+    )
+
+    assert not graph.unique_path(
+        refs["cell_parser"],
+        refs["surface"],
+        profiles=(CELL_SOURCE_PROFILE, REVIEW_SELECTION_PROFILES["analysis_source"]),
+    )
+    assert not selected_container_path(
+        graph,
+        document=document,
+        selected_artifact_ref=refs["report"],
+        selected_surface_ref=refs["surface"],
+    )
+
+
+def test_cell_without_exact_parent_parser_receipt_has_no_surface_path() -> None:
+    graph, document, refs = _selected_source_cell_graph(
+        execution_state="unspecified",
+        include_parent_receipt=False,
+    )
+
+    assert not graph.unique_path(
+        refs["cell_parser"],
+        refs["surface"],
+        profiles=(CELL_SOURCE_PROFILE, REVIEW_SELECTION_PROFILES["analysis_source"]),
+    )
+    assert not selected_container_path(
+        graph,
+        document=document,
+        selected_artifact_ref=refs["report"],
+        selected_surface_ref=refs["surface"],
+    )
+
+
+@pytest.mark.parametrize("state", ["disabled_declared", "disabled"])
+def test_explicitly_disabled_selected_source_cell_has_no_scope_path(state: str) -> None:
+    graph, document, refs = _selected_source_cell_graph(execution_state=state)
+
+    assert not graph.unique_path(
+        refs["cell_parser"],
+        refs["surface"],
+        profiles=(CELL_SOURCE_PROFILE, REVIEW_SELECTION_PROFILES["analysis_source"]),
+    )
+    assert not selected_container_path(
+        graph,
+        document=document,
+        selected_artifact_ref=refs["report"],
+        selected_surface_ref=refs["surface"],
+    )
 
 
 def test_multiparent_paths_and_cycles_fail_closed() -> None:

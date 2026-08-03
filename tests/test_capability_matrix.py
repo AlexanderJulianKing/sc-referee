@@ -203,7 +203,7 @@ def test_bundled_matrix_is_deterministic_and_preserves_unqualified_state(project
     assert rmarkdown["syntax_recognition"] == "partial"
     assert rmarkdown["operation_extraction"] == "not_started"
     assert rmarkdown["semantic_modeling"] == "not_started"
-    assert rmarkdown["operation_scope"] == ["utf8_rmarkdown_chunk_inventory_v1"]
+    assert rmarkdown["operation_scope"] == ["bounded_rmarkdown_source_chunk_inventory_v2"]
     assert any("question-only" in gap for gap in rmarkdown["known_gaps"])
 
     r_profiles = {entry["package"]: entry for entry in first["entries"] if entry["language"] == "r"}
@@ -268,7 +268,7 @@ def test_bundled_matrix_is_deterministic_and_preserves_unqualified_state(project
     assert bridge["detectors"] == []
     assert bridge["tested_versions"] == []
     assert bridge["inferred_compatibility"] == []
-    assert "bounded_container_cell_static_language_bridge_v1" in bridge["operation_scope"]
+    assert "bounded_container_cell_static_language_bridge_v2" in bridge["operation_scope"]
 
     parser_collection = _load(root / "parser-manifests.json")
     bridge_parser = next(
@@ -277,7 +277,7 @@ def test_bundled_matrix_is_deterministic_and_preserves_unqualified_state(project
         if record["parser_id"] == "parser:container-cell-language-bridge"
     )
     assert bridge_parser["executes_project_code"] is False
-    assert bridge_parser["parser_version"] == "0.1.0"
+    assert bridge_parser["parser_version"] == "0.2.0"
     r_parsers = {
         record["parser_id"]: record
         for record in parser_collection["records"]

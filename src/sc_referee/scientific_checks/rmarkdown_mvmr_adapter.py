@@ -67,7 +67,7 @@ class RMarkdownMVMRCovarianceAdapter:
         document = selected_surface_document(
             context,
             parser_id="parser:rmarkdown-selected-report-inventory",
-            parser_version="0.1.0",
+            parser_version="0.2.0",
             media_type="text/x-r-markdown",
         )
         if document is None:
@@ -250,7 +250,7 @@ def rmarkdown_mvmr_recognition_grammar_digest(
             "required_named_argument": "gencov",
             "zero_literals": ["0", "0.0"],
             "provided_constructors": ["phenocov_mvmr", "snpcov_mvmr"],
-            "active_chunks_only": True,
+            "admitted_evaluation_states": ["enabled", "enabled_declared", "unspecified"],
             "single_line_calls_only": True,
             "zero_operand": zero_operand.to_dict(),
             "provided_operand": provided_operand.to_dict(),
@@ -274,7 +274,11 @@ def _mvmr_covariance_shapes(
     triggered = False
     unsupported = False
     for chunk in chunks:
-        if not isinstance(chunk, dict) or chunk.get("evaluation_state") != "enabled":
+        if not isinstance(chunk, dict) or chunk.get("evaluation_state") not in {
+            "enabled",
+            "enabled_declared",
+            "unspecified",
+        }:
             continue
         start = chunk.get("code_start_line")
         end = chunk.get("code_end_line")

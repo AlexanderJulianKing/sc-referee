@@ -17,8 +17,19 @@ from sc_referee.parsers.quarto_inventory import (
     extract_quarto_code_cells,
 )
 from sc_referee.parsers.r_dual import inspect_r_source
+from sc_referee.parsers.rmarkdown_inventory import (
+    RMARKDOWN_PARSER_ID,
+    extract_rmarkdown_code_chunks,
+)
 
-CELL_LANGUAGE_BRIDGE_VERSION = "0.1.0"
+CELL_LANGUAGE_BRIDGE_VERSION = "0.2.0"
+CELL_LANGUAGE_BRIDGE_PROFILE = "bounded-container-cell-static-language-bridge-v2"
+SUPPORTED_CELL_LANGUAGE_BRIDGE_IDENTITIES = frozenset(
+    {
+        ("bounded-container-cell-static-language-bridge-v1", "0.1.0"),
+        (CELL_LANGUAGE_BRIDGE_PROFILE, CELL_LANGUAGE_BRIDGE_VERSION),
+    }
+)
 MAX_BRIDGED_CODE_CELLS = 200
 _SUPPORTED_LANGUAGES = frozenset({"python", "r"})
 _BRIDGE_OPAQUE_KINDS = frozenset(
@@ -66,6 +77,8 @@ def inspect_embedded_cell_sources(
             cells = _jupyter_cells(container_path, parent_result)
         elif parser_id == QUARTO_PARSER_ID:
             cells = _quarto_cells(container_path, parent_result)
+        elif parser_id == RMARKDOWN_PARSER_ID:
+            cells = _rmarkdown_cells(container_path, parent_result)
         else:
             return []
     except (OSError, UnicodeError, ValueError) as error:
@@ -149,17 +162,16 @@ def reextract_verified_cell_source(
     extension = child_result.get("extensions", {}).get("x-virtual-source")
     if not isinstance(extension, dict):
         raise ValueError("parser result has no virtual-source contract")
+    bridge_identity = (extension.get("profile"), extension.get("bridge_version"))
     if (
-        extension.get("profile") != "bounded-container-cell-static-language-bridge-v1"
-        or extension.get("bridge_version") != CELL_LANGUAGE_BRIDGE_VERSION
+        bridge_identity not in SUPPORTED_CELL_LANGUAGE_BRIDGE_IDENTITIES
         or extension.get("executes_project_code") is not False
         or extension.get("container_parser_result_id") != parent_result.get("parser_result_id")
     ):
         raise ValueError("virtual-source bridge identity is invalid")
     summary = parent_result.get("extensions", {}).get("x-cell-language-bridge")
     if not isinstance(summary, dict) or (
-        summary.get("profile") != "bounded-container-cell-static-language-bridge-v1"
-        or summary.get("bridge_version") != CELL_LANGUAGE_BRIDGE_VERSION
+        (summary.get("profile"), summary.get("bridge_version")) != bridge_identity
         or summary.get("state") != "bridged"
         or summary.get("executes_project_code") is not False
         or summary.get("cell_ceiling") != MAX_BRIDGED_CODE_CELLS
@@ -171,6 +183,8 @@ def reextract_verified_cell_source(
         cells = _jupyter_cells(container_path, parent_result)
     elif parser_id == QUARTO_PARSER_ID:
         cells = _quarto_cells(container_path, parent_result)
+    elif parser_id == RMARKDOWN_PARSER_ID:
+        cells = _rmarkdown_cells(container_path, parent_result)
     else:
         raise ValueError("virtual-source parent parser is unsupported")
     supported = [item for item in cells if item["language"] in _SUPPORTED_LANGUAGES]
@@ -299,6 +313,39 @@ def _quarto_cells(container_path: Path, parent_result: dict[str, Any]) -> list[d
     return result
 
 
+def _rmarkdown_cells(container_path: Path, parent_result: dict[str, Any]) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    for extracted in extract_rmarkdown_code_chunks(container_path, parent_result):
+        chunk = extracted["chunk"]
+        source_text = str(extracted["source_text"])
+        start = int(chunk["code_start_line"])
+        end = max(start, int(chunk["code_end_line"]))
+        cell_ref = deepcopy(chunk["source_ref"])
+        cell_ref.update(
+            {
+                "locator": f"{cell_ref['locator']}:code:{start}-{end}",
+                "start_line": start,
+                "end_line": end,
+            }
+        )
+        result.append(
+            {
+                "language": "r",
+                "identity": str(chunk["label"]),
+                "source_text": source_text,
+                "source_digest": str(chunk["code_digest"]),
+                "cell_ref": cell_ref,
+                "line_offset": start - 1,
+                "execution_declaration": {
+                    "kind": "rmarkdown_eval_option",
+                    "state": chunk.get("evaluation_state"),
+                    "establishes_execution": False,
+                },
+            }
+        )
+    return result
+
+
 def _inspect_cell(
     container_path: Path,
     parent_result: dict[str, Any],
@@ -347,7 +394,7 @@ def _bind_virtual_results(
             str(item["source_digest"]),
         )
         result["extensions"]["x-virtual-source"] = {
-            "profile": "bounded-container-cell-static-language-bridge-v1",
+            "profile": CELL_LANGUAGE_BRIDGE_PROFILE,
             "bridge_version": CELL_LANGUAGE_BRIDGE_VERSION,
             "container_parser_result_id": parent_result["parser_result_id"],
             "language": item["language"],
@@ -418,7 +465,7 @@ def _set_bridge_summary(
     unsupported_languages: list[str],
 ) -> None:
     parent_result.setdefault("extensions", {})["x-cell-language-bridge"] = {
-        "profile": "bounded-container-cell-static-language-bridge-v1",
+        "profile": CELL_LANGUAGE_BRIDGE_PROFILE,
         "bridge_version": CELL_LANGUAGE_BRIDGE_VERSION,
         "state": state,
         "eligible_cell_count": eligible_cell_count,
