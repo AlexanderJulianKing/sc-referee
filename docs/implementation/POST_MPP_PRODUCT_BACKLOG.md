@@ -16,8 +16,8 @@ ADRs remain authoritative for their exact scopes.
 The 0.3.0 baseline contains:
 
 - 18 active question-oriented scientific checks through 23 bounded adapters;
-- 9 active deterministic calculation-check families;
-- 15 published capability profiles;
+- 10 active deterministic calculation-check families;
+- 16 published capability profiles;
 - one experimental method-conflict detector binding; and
 - zero qualified detectors with production Finding authority.
 
@@ -225,7 +225,7 @@ themselves, qualify a detector or support a public generality claim.
 
 - [ ] **L14 — Publish complete capability truth.** Extend the generated capability output to cover
   active question modules, calculation checks, adapters, tested corpus roles, maturity, and output
-  ceilings—not only the current 15 profile entries.
+  ceilings—not only the current 16 profile entries.
   - Acceptance: users can determine what was checked, what was unsupported, and what could produce
     a question, Disclosure, experimental candidate, or Finding.
   - Tests: registry-to-matrix completeness, stale digest/version rejection, unsupported-state

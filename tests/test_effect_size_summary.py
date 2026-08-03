@@ -187,6 +187,7 @@ def test_default_registry_contains_frozen_effect_size_module() -> None:
         "calculation-check:donor-eqtl-sign-v1",
         "calculation-check:hic-loop-strength-v1",
         "calculation-check:selected-sequence-record-boundary-v1",
+        "calculation-check:selected-feature-identifier-identity-v1",
     ]
 
 

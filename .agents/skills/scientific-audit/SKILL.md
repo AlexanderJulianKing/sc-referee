@@ -39,7 +39,7 @@ for pre-analysis guardrails.
    Do not select files merely because their names look relevant. For H5AD or single-cell
    sensitivity review, read [single-cell-material-inputs.md](references/single-cell-material-inputs.md).
    For declared effect-size, design-integrity, R count-model, Scanpy selection-reuse, donor-level
-   eQTL-sign, or Hi-C loop-strength review,
+   eQTL-sign, Hi-C loop-strength, or selected feature-identifier identity review,
    read [bounded-parity-contracts.md](references/bounded-parity-contracts.md).
 8. Run:
 
@@ -126,6 +126,13 @@ for pre-analysis guardrails.
   weakly identified, a symlink, or changed since the source snapshot, preserve the unresolved state
   and start a new source audit only after the repository state is intentionally updated.
 
+  For `feature_identifier_identity_requirement`, explain that the deterministic comparison found
+  an exact set difference but has not established which relationship governs the review. Present
+  all four existing choices: exact equality required, different identifiers permitted, a mapping
+  governs, or retain unknown. Never infer equality from high overlap or filenames, and never invent
+  a mapping. Only the first choice can enable the experimental evaluation candidate; none can
+  create a production Finding without a separate accepted detector promotion.
+
   If the packet's question carries `x-posthoc-comparison-forms`, explain the exact form for each
   affected dimension (`value_equals`, `set_relation`, or `step_precedes`) and the exact repository
   evidence that made the comparison available. After the scientist answers and before running the
@@ -199,6 +206,13 @@ Finding: these modules are Disclosure-only. Do not infer a relevance threshold, 
 adjustment, pairing mode, aggregation key, response scale, producer call, data relationship,
 safeguard, allele orientation, expected-contact model, or target definition from model confidence
 or filenames. An unsupported or not-applicable observation stays non-adverse.
+
+For `selected-feature-identifier-identity-v1`, report both selected full-digest input paths, the
+declared column and H5AD field, both identifier counts, overlap and one-sided difference counts,
+the exact human relationship Answer, all finite-check outcomes, and the no-normalization boundary.
+Call a mismatch with exact-equality authority an experimental evaluation candidate, never a
+Finding. Do not infer corruption, a conversion mechanism, the authoritative side, a repair,
+biological meaning, numerical impact, or publication-level consequences.
 
 For a v0.16 `bounded_analysis_method_conflict_v1` static qualification proof, report whether the
 proof is complete and preserve its selected report, unique writer, report/source operands, review

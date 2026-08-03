@@ -11,7 +11,7 @@
   "deterministic_replay": "passed",
   "storage_integrity": "passed",
   "generated_capability_matrix": "passed_fail_closed_manifest_profile",
-  "capability_matrix_entries": 15,
+  "capability_matrix_entries": 16,
   "capability_matrix_detector_qualification": "experimental_unqualified_only",
   "capability_matrix_tested_versions": "none_declared",
   "public_detector_qualification": "not_claimed"

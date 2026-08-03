@@ -26,13 +26,14 @@ def main() -> int:
     schema_root = ROOT / "reference" / "schemas-v0.18.0"
     count = LocalSchemaRegistry(schema_root).validate_example_directory()
     capability_matrix = generate_capability_matrix(default_capability_manifest_root(), schema_root)
-    assert len(capability_matrix["entries"]) == 15
+    assert len(capability_matrix["entries"]) == 16
     assert capability_matrix["domain_wide_support_claim_allowed"] is False
     detector_entries = [
         detector for entry in capability_matrix["entries"] for detector in entry["detectors"]
     ]
     assert {item["detector_id"] for item in detector_entries} == {
         "detector:bounded-analysis-method-conflict",
+        "detector:bounded-feature-identifier-identity",
         "detector:bounded-report-mean-direction",
         "detector:bounded-reported-method-contract-conflict",
     }

@@ -58,11 +58,15 @@ def test_bundled_matrix_is_deterministic_and_preserves_unqualified_state(project
 
     assert canonical_json(first) == canonical_json(second)
     assert first["domain_wide_support_claim_allowed"] is False
-    assert len(first["entries"]) == 15
+    assert len(first["entries"]) == 16
     assert first["generated_from_manifest_refs"] == [
         {
             "record_type": "detector_manifest",
             "record_id": "detector:bounded-analysis-method-conflict",
+        },
+        {
+            "record_type": "detector_manifest",
+            "record_id": "detector:bounded-feature-identifier-identity",
         },
         {
             "record_type": "detector_manifest",
@@ -104,6 +108,10 @@ def test_bundled_matrix_is_deterministic_and_preserves_unqualified_state(project
         },
         {
             "record_type": "parser_manifest",
+            "record_id": "parser:selected-feature-identifier-axes",
+        },
+        {
+            "record_type": "parser_manifest",
             "record_id": "parser:tabular-delimited-header-inventory",
         },
     ]
@@ -139,6 +147,22 @@ def test_bundled_matrix_is_deterministic_and_preserves_unqualified_state(project
         }
     ]
     assert any("cannot emit a production Finding" in gap for gap in analysis_entry["known_gaps"])
+    feature_entry = next(
+        entry
+        for entry in first["entries"]
+        if entry["entry_id"] == "capability:bounded-feature-identifier-identity-v1"
+    )
+    assert feature_entry["language"] is None
+    assert feature_entry["detectors"] == [
+        {
+            "detector_id": "detector:bounded-feature-identifier-identity",
+            "maturity": "experimental",
+            "qualification_ref": None,
+            "review_basis": "not_qualified",
+            "strongest_output_type": "disclosure",
+        }
+    ]
+    assert any("cannot emit a production Finding" in gap for gap in feature_entry["known_gaps"])
     method_entry = next(
         entry
         for entry in first["entries"]
@@ -175,7 +199,10 @@ def test_bundled_matrix_is_deterministic_and_preserves_unqualified_state(project
         assert entry["domain_wide_validation_claim_allowed"] is False
         assert entry["tested_versions"] == []
         assert entry["inferred_compatibility"] == []
-        if entry is analysis_entry or entry is detector_entry or entry is method_entry:
+        if any(
+            entry is candidate
+            for candidate in (analysis_entry, detector_entry, feature_entry, method_entry)
+        ):
             continue
         assert entry["detectors"] == []
         assert any(

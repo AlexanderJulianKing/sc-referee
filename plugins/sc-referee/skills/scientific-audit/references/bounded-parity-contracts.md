@@ -120,3 +120,28 @@ expected models, domains, stripes, covariates, paired designs, and incomplete st
 
 These additional modules are also deterministic, independently removable, Disclosure-only, and
 incapable of emitting a production Finding.
+
+## Selected feature-identifier identity
+
+````text
+```sc-referee-feature-identity-v1
+left_input: results/features.csv
+left_identifier_column: feature_id
+right_input: data/matrix.h5ad
+right_identifier_field: var/_index
+comparison: exact_identifier_set_equality
+```
+````
+
+Pass the selected report and both named artifacts explicitly. This profile reads one complete
+CSV/TSV identifier column and one complete H5AD `var/` string dataset within finite ceilings, then
+compares the unique decoded strings as sets. It does not normalize case, whitespace, aliases,
+dates, Unicode, or biological names. Duplicate, malformed, categorical-coded, missing, or
+over-budget axes abstain.
+
+An unequal comparison asks whether exact equality is required for this review, different
+identifiers are permitted, a mapping governs, or the premise remains unknown. Only the scientist
+may answer. Exact equality can produce an experimental evaluation candidate; a mapping or unknown
+suppresses it. The candidate is not a production Finding and does not establish corruption,
+producer lineage, which side is authoritative, repair direction, biological meaning, numerical
+impact, or publication invalidity.
