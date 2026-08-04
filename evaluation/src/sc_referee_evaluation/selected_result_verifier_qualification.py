@@ -8,11 +8,6 @@ from pathlib import Path
 from typing import Any, cast
 
 from sc_referee.core.ids import semantic_digest, sha256_digest
-from sc_referee_evaluation.prospective_selected_result_verifier import (
-    PYTHON_STATIC_MARKED_REPORT_PROFILE,
-    freeze_independent_selected_result_derivation,
-    revalidate_independent_selected_result_derivation,
-)
 from sc_referee_evaluation.selected_result_qualification_oracle import (
     ConstructionCertificate,
     FileCertificate,
@@ -22,7 +17,8 @@ from sc_referee_evaluation.selected_result_qualification_oracle import (
     verify_construction_certificate,
 )
 
-QUALIFICATION_CONTROLLER_VERSION = "1.0.0"
+QUALIFICATION_CONTROLLER_VERSION = "1.0.1"
+PYTHON_STATIC_MARKED_REPORT_PROFILE = "selected-result-profile:python-static-marked-report-v1"
 
 
 class SelectedResultVerifierQualificationError(ValueError):
@@ -161,6 +157,11 @@ def freeze_target_output(
 ) -> dict[str, Any]:
     """Run and freeze the target without accepting any oracle or certificate input."""
 
+    from sc_referee_evaluation.prospective_selected_result_verifier import (
+        freeze_independent_selected_result_derivation,
+        revalidate_independent_selected_result_derivation,
+    )
+
     packet = _target_packet(target_packet)
     derivation = freeze_independent_selected_result_derivation(
         case_root,
@@ -184,6 +185,10 @@ def freeze_verifier_comparison(
     compared_at: str,
 ) -> dict[str, Any]:
     """Compare only after both independently frozen inputs exist."""
+
+    from sc_referee_evaluation.prospective_selected_result_verifier import (
+        revalidate_independent_selected_result_derivation,
+    )
 
     proof = _revalidate_oracle_proof(oracle_proof, case_root)
     target = revalidate_independent_selected_result_derivation(target_derivation, case_root)

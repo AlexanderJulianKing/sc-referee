@@ -22,7 +22,7 @@ def test_runner_freeze_binds_controller_assignments_and_blind_target_input(
     project_root: Path,
 ) -> None:
     study = project_root / "evaluation" / "qualification" / "selected-result-verifier-v1.0.0-study"
-    value = _load(study / "runner-freeze.json")
+    value = _load(study / "runner-freeze.v1.0.1.json")
     basis = dict(value)
     supplied = basis.pop("runner_freeze_digest")
     assert supplied == semantic_digest(basis)
@@ -54,7 +54,7 @@ def test_runner_freeze_rebuilds_and_never_overwrites(project_root: Path, tmp_pat
         study / "opaque-assignments.json",
         rebuilt,
     )
-    assert rebuilt.read_bytes() == (study / "runner-freeze.json").read_bytes()
+    assert rebuilt.read_bytes() == (study / "runner-freeze.v1.0.1.json").read_bytes()
     with pytest.raises(FileExistsError):
         build_selected_result_verifier_runner_freeze(
             project_root,

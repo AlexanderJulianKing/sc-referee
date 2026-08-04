@@ -8,8 +8,8 @@ from typing import Any
 from sc_referee.core.ids import semantic_digest, sha256_digest
 from sc_referee.records.normalization import write_normalized_json_once
 
-FROZEN_AT = "2026-08-04T18:21:20Z"
-CONTROLLER_DIGEST = "sha256:c83af85c59bfb48970ed75fe33447eae27392d27d8fd519c89ea26fa370f0c9e"
+FROZEN_AT = "2026-08-04T18:27:10Z"
+CONTROLLER_DIGEST = "sha256:a298b7fe43ce30e4a00bd3d4e089a4e265c9d3094d0e930aabf1ebd80deb7cd3"
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -55,7 +55,7 @@ def build_selected_result_verifier_runner_freeze(
         raise ValueError("Selected-result qualification controller has drifted.")
     result: dict[str, Any] = {
         "artifact_kind": "selected_result_verifier_runner_freeze",
-        "runner_version": "1.0.0",
+        "runner_version": "1.0.1",
         "profile_ref": assignment["profile_ref"],
         "assignment_ref": {
             "assignment_digest": assignment["assignment_digest"],
