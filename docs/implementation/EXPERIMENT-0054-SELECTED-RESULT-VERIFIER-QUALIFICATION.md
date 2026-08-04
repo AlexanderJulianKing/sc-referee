@@ -168,6 +168,12 @@ bytes, cell labels, oracle states, reasons, bindings, proofs, or target outputs.
 for each assignment exposes only opaque case identity, frozen profile identity, and selected-report
 path.
 
+Before any target output, `runner-freeze.json` additionally binds the exact qualification
+controller digest, target-input allowlist and oracle-field denylist, oracle-before-target
+chronology, and closed comparison outcomes. The controller replays the oracle certificate from
+case bytes, runs the target from the three-field opaque packet, and compares exact states, reason
+codes, and positive byte-to-line bindings only after both inputs are frozen.
+
 No case, oracle proof, target output, metric, threshold result, or qualification decision exists
 yet. Existing unit tests and adversarial code review remain development evidence only. The target
 bytes and label-free assignments are frozen for the study, but the verifier is not yet qualified.
