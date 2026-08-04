@@ -186,11 +186,11 @@ Never summarize zero Findings as “passed,” “correct,” or “publication-
 ### Worked interpretation example
 
 For the bundled `examples/general-static` command above, sc-referee 0.3.0 reports verified
-integrity, `partial_evidence_unavailable` coverage, zero Findings, one MaterialQuestion, and twenty
-Disclosures. A conservative summary is:
+integrity, `partial_evidence_unavailable` coverage, zero Findings, one MaterialQuestion,
+and twenty-one Disclosures. A conservative summary is:
 
 > Integrity is verified, and no issue was admitted as a Finding within this audit's declared
-> evidence and qualified-detector coverage. One scientist question remains open, twenty
+> evidence and qualified-detector coverage. One scientist question remains open, twenty-one
 > Disclosures describe bounded observations or coverage limits, and overall coverage is partial.
 > This result does not establish that the workflow is correct or publication-ready.
 

@@ -79,7 +79,7 @@ def test_public_documentation_completes_the_newcomer_interaction_path(
         "The proposal remains proposed and cannot select an answer for the scientist" in quickstart
     )
     assert "### Worked interpretation example" in quickstart
-    assert "zero Findings, one MaterialQuestion, and twenty" in quickstart
+    assert "zero Findings, one MaterialQuestion,\nand twenty-one" in quickstart
     assert "overall coverage is partial" in quickstart
     assert "does not establish that the workflow is correct or publication-ready" in quickstart
 

@@ -174,6 +174,26 @@ maintainer promotion record. The immutable v0.2 pre-case freeze cannot qualify v
 GeneBench cases cannot supply that evidence. Until those inputs exist, every binding remains
 Finding-ineligible by construction.
 
+## Development update: 2026-08-04
+
+The first prospective pilot did not qualify any binding. Its complete scientific label freeze
+contained 2 `issue_present`, 30 `issue_absent`, 35 `indeterminate`, and 3 `unsupported` cases. The
+two admitted positives were both independently renamed forms of the same complete-domain versus
+retained-subset exposure relation, and detector v0.3 recognized neither. Eighteen additional cases
+had cross-provider agreement on a demonstrated issue and root but were made indeterminate solely
+by noncanonical synonymous issue-class text; twenty more lacked one exact selected-result path or
+enough public provenance. The sealed held-out block remains unopened.
+
+ADR-0065 now stages a small internal closed `RelationCase` interface and keeps workflow recognition
+in removable adapters. The first new adapter is genuinely subject-neutral: it recognizes explicit
+selected-report statements that a rate or spacing denominator uses either a complete declared
+domain or only a retained observed subset. A development matrix covers three unrelated conflicting
+domains, two corrected domains, ambiguity, opacity, and an unrelated control. Both label-visible
+pilot positives now emit ordinary development-only `evaluation_finding_candidate` results under a
+new generic check and fresh development locks. These smoke results are post-label and
+qualification-ineligible; they demonstrate the missing capability, not its error rate or Finding
+authority.
+
 ## Current diagnosis
 
 The cross-cutting evidence infrastructure is substantially reusable:

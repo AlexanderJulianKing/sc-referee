@@ -17,7 +17,6 @@ from sc_referee_evaluation.prospective_qualification import (
 )
 
 from sc_referee.core.ids import semantic_digest, sha256_digest, stable_id
-from sc_referee.scientific_checks.profiles import default_scientific_check_registry
 
 _DETECTOR_FROZEN_AT = "2026-08-03T12:00:00Z"
 _ASSIGNED_AT = "2026-08-03T12:30:00Z"
@@ -248,7 +247,7 @@ def test_freeze_requires_complete_ten_relation_control_matrix() -> None:
     assert protocol["study_state"] == "assignments_frozen_labels_unopened"
 
 
-def test_ten_envelope_template_matches_current_generic_registry() -> None:
+def test_v1_ten_envelope_template_remains_an_immutable_historical_record() -> None:
     template_path = (
         Path(__file__).resolve().parents[1]
         / "evaluation"
@@ -262,17 +261,11 @@ def test_ten_envelope_template_matches_current_generic_registry() -> None:
     assert template["minimum_frozen_case_count"] == 140
     assert len(template["envelopes"]) == 10
 
-    registry = default_scientific_check_registry()
-    modules = {module.manifest.check_id: module for module in registry.modules}
-    bindings = {binding.check_id: binding for binding in registry.method_conflict_bindings}
-    for envelope in template["envelopes"]:
-        module = modules[envelope["check_id"]]
-        assert envelope["candidate_id"] in {
-            candidate.candidate_id for candidate in module.manifest.requirement_candidates
-        }
-        assert (
-            semantic_digest(bindings[envelope["check_id"]].to_dict()) == envelope["binding_digest"]
-        )
+    assert template["template_version"] == "1.0.0"
+    assert template["template_id"] == "prospective-template:ten-generic-relation-envelopes-v1"
+    assert len({item["envelope_id"] for item in template["envelopes"]}) == 10
+    assert len({item["check_id"] for item in template["envelopes"]}) == 10
+    assert all(item["binding_digest"].startswith("sha256:") for item in template["envelopes"])
     mvmr = next(
         item
         for item in template["envelopes"]

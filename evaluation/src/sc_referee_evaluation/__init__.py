@@ -54,6 +54,14 @@ from sc_referee_evaluation.prospective_qualification import (
     freeze_prospective_qualification_protocol,
     seal_prospective_outcome_ledger,
 )
+from sc_referee_evaluation.prospective_qualification_v2 import (
+    CASE_EVIDENCE_CONTRACT_VERSION,
+    SCIENTIFIC_LABEL_VERSION,
+    ProspectiveQualificationV2Error,
+    freeze_case_evidence_contract,
+    freeze_stage2_scientific_label,
+    validate_case_evidence_contract,
+)
 from sc_referee_evaluation.regression_baseline import (
     MODULE_BASELINE_REQUIREMENTS_VERSION,
     RegressionModuleBaselineError,
@@ -97,6 +105,7 @@ from sc_referee_evaluation.stage3 import (
 from sc_referee_evaluation.validation import EvaluationValidationError, validate_case_packet
 
 __all__ = [
+    "CASE_EVIDENCE_CONTRACT_VERSION",
     "DEFAULT_REGRESSION_CORPUS_EXECUTION_PLAN",
     "DEFAULT_REGRESSION_CORPUS_LEDGER",
     "MODULE_BASELINE_REQUIREMENTS_VERSION",
@@ -106,6 +115,7 @@ __all__ = [
     "REGRESSION_CORPUS_LEDGER_VERSION",
     "REGRESSION_CORPUS_RUNNER_VERSION",
     "REQUIRED_CELL_TYPES",
+    "SCIENTIFIC_LABEL_VERSION",
     "AnalysisMethodQualificationError",
     "CorpusPreflightError",
     "DetectorComparisonError",
@@ -117,6 +127,7 @@ __all__ = [
     "GeneBenchNumericGradeError",
     "MethodContractDiagnosticError",
     "ProspectiveQualificationError",
+    "ProspectiveQualificationV2Error",
     "QualificationMetricError",
     "RegressionCorpusLedgerError",
     "RegressionCorpusRunnerError",
@@ -136,8 +147,10 @@ __all__ = [
     "corpus_semantic_projection",
     "diagnose_genebench_method_contract_conflict",
     "freeze_bounded_analysis_method_profile",
+    "freeze_case_evidence_contract",
     "freeze_pilot_threshold_decision",
     "freeze_prospective_qualification_protocol",
+    "freeze_stage2_scientific_label",
     "generate_ambiguous_fixture",
     "generate_control_fixture",
     "generate_positive_fixture",
@@ -157,6 +170,7 @@ __all__ = [
     "run_regression_corpus",
     "seal_prospective_outcome_ledger",
     "validate_adjudicated_root_cause",
+    "validate_case_evidence_contract",
     "validate_case_packet",
     "validate_regression_corpus_execution_plan",
     "validate_regression_corpus_ledger",

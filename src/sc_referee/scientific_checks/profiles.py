@@ -162,6 +162,7 @@ def _scientific_check_release_modules() -> tuple[ScientificCheckModule, ...]:
         _directional_measurement_error_profile(),
         _transition_path_continuity_profile(),
         _ancestry_exposure_profile(),
+        _complete_domain_exposure_profile(),
         _phase_split_mvmr_instrument_profile(),
         _mvmr_heterogeneity_estimator_profile(),
         _ld_whitening_profile(),
@@ -905,6 +906,114 @@ def _ancestry_exposure_profile() -> _ReportProfile:
         ),
         check_version="1.2.0",
         adapter_version="1.2.0",
+    )
+
+
+def _complete_domain_exposure_profile() -> _ReportProfile:
+    """Recognize a selected denominator's domain without assuming a subject area."""
+
+    complete = "complete_declared_domain_exposure"
+    retained = "retained_observed_subset_exposure_only"
+    authority_basis = (
+        "Scientist-supplied denominator-domain requirement for one selected rate or spacing "
+        "estimate; the check does not infer the governing domain, impute unobserved states, "
+        "choose a missing-data treatment, or treat file and variable names as scientific "
+        "authority."
+    )
+    selected_target = (
+        r"(?is)(?=.*\b(?:primary|selected|reported|final)\s+"
+        r"(?:(?:rate|spacing|distance|time|interval|recurrence|transition)[- ]?"
+        r"(?:estimate|calculation|result|analysis)?|estimate|calculation|result|analysis)\b)"
+        r"(?=.*\b(?:rate|spacing|distance|time|interval|recurrence|transition)\b)"
+    )
+    retained_subset = (
+        r"(?=.*\b(?:retained|observed|called|measured|eligible|non[- ]missing|"
+        r"high[- ]confidence|confidently[- ]called)\b[^.]{0,220}\b"
+        r"(?:segments?|tracts?|intervals?|spans?|positions?|bins?|windows?|rows?|"
+        r"units?|records?|lengths?)\b)"
+    )
+    excluded_complement = (
+        r"(?=.*(?:\b(?:dropped|uncalled|unobserved|unmeasured|missing|masked|filtered|"
+        r"low[- ]confidence|unconfidently[- ]called|unretained)\b[^.]{0,260}\b"
+        r"(?:gaps?|segments?|tracts?|intervals?|spans?|positions?|bins?|windows?|rows?|"
+        r"units?|records?|lengths?)\b[^.]{0,260}\b(?:omit(?:ted)?|exclud(?:e|ed)|"
+        r"not\s+includ(?:e|ed)|did\s+not\s+include|removed)\b[^.]{0,180}\b"
+        r"(?:exposure|denominator|total\s+length|total\s+duration)\b|"
+        r"\b(?:omit(?:ted)?|exclud(?:e|ed)|not\s+includ(?:e|ed)|did\s+not\s+include|"
+        r"removed)\b[^.]{0,180}\b(?:dropped|uncalled|unobserved|unmeasured|missing|"
+        r"masked|filtered|low[- ]confidence|unconfidently[- ]called|unretained)\b"
+        r"[^.]{0,180}\b(?:gaps?|segments?|tracts?|intervals?|spans?|positions?|bins?|"
+        r"windows?|rows?|units?|records?|lengths?)\b[^.]{0,180}\b(?:exposure|"
+        r"denominator|total\s+length|total\s+duration)\b))"
+    )
+    return _ReportProfile(
+        check_id="check:complete-domain-exposure-denominator",
+        dimension="denominator_or_universe",
+        candidates=(
+            _candidate(
+                "complete-declared-domain-exposure",
+                "Use the complete declared domain as exposure",
+                complete,
+                authority_basis,
+            ),
+            _candidate(
+                "retained-observed-subset-exposure",
+                "Use only the retained observed subset as exposure",
+                retained,
+                authority_basis,
+            ),
+        ),
+        semantic_roles=(
+            "selected_rate_or_spacing_estimate",
+            "exposure_denominator",
+            "declared_domain",
+            "retained_observed_subset",
+        ),
+        role_bindings=(
+            RoleBinding(
+                "selected_rate_or_spacing_estimate",
+                "reported_primary_rate_spacing_or_recurrence_target",
+            ),
+            RoleBinding("exposure_denominator", "reported_selected_target_denominator"),
+            RoleBinding("declared_domain", "complete_scientist_governed_exposure_domain"),
+            RoleBinding(
+                "retained_observed_subset",
+                "reported_observed_or_high_confidence_subset_of_declared_domain",
+            ),
+        ),
+        rules=(
+            ReportOperandRule(
+                CanonicalOperand.scalar(retained),
+                (selected_target + retained_subset + excluded_complement,),
+                match_scope="document",
+            ),
+            ReportOperandRule(
+                CanonicalOperand.scalar(complete),
+                (
+                    selected_target
+                    + r"(?=.*\b(?:calculated|computed|estimated|divided|normalized)\b"
+                    + r"[^.]{0,260}\b(?:using|over|by)\b[^.]{0,120}\b(?:the\s+)?"
+                    + r"(?:complete|full)\s+(?:declared\s+)?(?:map|sequence|route|path|"
+                    + r"span|coverage|domain|timeline|field|frame|record)\b)"
+                    + r"(?=.*\b(?:including|retaining|counting)\b[^.]{0,220}\b"
+                    + r"(?:dropped|uncalled|unobserved|unmeasured|missing|masked|filtered|"
+                    + r"low[- ]confidence|unretained)\b)",
+                ),
+                match_scope="document",
+            ),
+        ),
+        triggers=(
+            selected_target
+            + r"(?=.*\b(?:exposure|denominator|total\s+length|total\s+duration)\b)"
+            + r"(?=.*\b(?:retained|observed|called|measured|complete|full|dropped|uncalled|"
+            + r"unobserved|missing|masked|filtered)\b)",
+        ),
+        question_wording=(
+            "Which declared-domain exposure governs the selected rate or spacing denominator "
+            "for this review?"
+        ),
+        check_version="1.0.0",
+        adapter_version="1.0.0",
     )
 
 

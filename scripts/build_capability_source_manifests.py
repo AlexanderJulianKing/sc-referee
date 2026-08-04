@@ -17,6 +17,7 @@ ANALYSIS_METHOD_CONFLICT_CHECK_IDS = sorted(
         "check:full-map-ancestry-exposure",
         "check:casrx-isoform-axis-model",
         "check:classifier-derived-copy-dosage-representation",
+        "check:complete-domain-exposure-denominator",
         "check:direct-standardization-conditioning-set",
         "check:directional-measurement-error-interpretation",
         "check:expected-count-background-construction",
@@ -639,7 +640,7 @@ def main() -> None:
             "domains": ["domain_neutral_scientific_analysis"],
             "extensions": {
                 "x-adr-ref": (
-                    "docs/implementation/ADR-0042-MODULAR-METHOD-CHECK-EXTENSION-BOUNDARY.md"
+                    "docs/implementation/ADR-0065-GENERIC-CLOSED-RELATION-CASES-AND-EVIDENCE-ADAPTERS.md"
                 ),
                 "x-implementation-resource": ("detectors/bounded_analysis_method_conflict.py"),
                 "x-production-finding-permitted": False,

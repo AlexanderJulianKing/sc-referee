@@ -75,6 +75,8 @@ def verify_built_wheel() -> None:
             }
             if not required_r_resources.issubset(wheel_names):
                 raise RuntimeError("Production wheel omitted R parser provenance or helper files")
+            if "sc_referee/relation_case.py" not in wheel_names:
+                raise RuntimeError("Production wheel omitted the generic relation-case seam")
         subprocess.run(
             [
                 sys.executable,
@@ -105,8 +107,10 @@ def verify_built_wheel() -> None:
                 "from sc_referee.cli import _default_schema_root, app",
                 "from sc_referee.controller import run_audit, run_demo",
                 "from sc_referee.method_contract_run import run_method_contract",
+                "from sc_referee.relation_case import evaluate_closed_relation",
                 "from sc_referee.records.schema_registry import LocalSchemaRegistry",
                 "from sc_referee.ro_crate import export_ro_crate, validate_ro_crate",
+                "from sc_referee.scientific_checks.profiles import scientific_check_release_registry",
                 f"assert sc_referee.__version__ == {__version__!r}",
                 f"installed = Path({str(install_root)!r}).resolve()",
                 "assert Path(sc_referee.__file__).resolve().is_relative_to(installed)",
@@ -118,7 +122,7 @@ def verify_built_wheel() -> None:
                 f"capability = Path({str(temp_root)!r}) / 'capability-matrix.json'",
                 "generated = write_capability_matrix(capability, manifest_root, root)",
                 "assert validate_capability_matrix(capability, manifest_root, root) == generated",
-                "assert len(generated['entries']) == 15",
+                "assert len(generated['entries']) == 16",
                 "obligation = next(entry for entry in generated['entries'] if entry['entry_id'] == 'capability:bounded-expected-count-unresolved-obligation-v1')",
                 "assert obligation['detectors'] == []",
                 "assert obligation['operation_scope'] == ['bounded_expected_count_unresolved_obligation_v1']",
@@ -141,11 +145,14 @@ def verify_built_wheel() -> None:
                 "detectors = [detector for entry in generated['entries'] for detector in entry['detectors']]",
                 "assert {item['detector_id'] for item in detectors} == {",
                 "    'detector:bounded-analysis-method-conflict',",
+                "    'detector:bounded-feature-identifier-identity',",
                 "    'detector:bounded-report-mean-direction',",
                 "    'detector:bounded-reported-method-contract-conflict',",
                 "}",
                 "assert all(item['maturity'] == 'experimental' for item in detectors)",
                 "assert all(item['qualification_ref'] is None for item in detectors)",
+                "assert callable(evaluate_closed_relation)",
+                "assert 'check:complete-domain-exposure-denominator' in {module.manifest.check_id for module in scientific_check_release_registry().modules}",
                 "help_result = CliRunner().invoke(app, ['--help'])",
                 "assert help_result.exit_code == 0",
                 "assert all(command not in help_result.output for command in (",
@@ -356,6 +363,8 @@ def verify_built_evaluation_wheel() -> None:
                 raise RuntimeError("Evaluation wheel omitted its qualification-adapter registry")
             if "sc_referee_evaluation/founder_orientation_adapter.py" not in names:
                 raise RuntimeError("Evaluation wheel omitted its founder qualification adapter")
+            if "sc_referee_evaluation/prospective_qualification_v2.py" not in names:
+                raise RuntimeError("Evaluation wheel omitted the v2 prospective contract")
             if any(name.startswith("sc_referee/") for name in names):
                 raise RuntimeError("Evaluation wheel vendors the production package")
         _install_evaluation_smoke_wheels(core_wheels[0], wheels[0], install_root)
@@ -384,6 +393,10 @@ def verify_built_evaluation_wheel() -> None:
                 "from sc_referee_evaluation.method_contract_diagnostic import (",
                 "    MethodContractDiagnosticError,",
                 "    diagnose_genebench_method_contract_conflict,",
+                ")",
+                "from sc_referee_evaluation.prospective_qualification_v2 import (",
+                "    freeze_case_evidence_contract,",
+                "    freeze_stage2_scientific_label,",
                 ")",
                 "from sc_referee_evaluation.source_method_probe import (",
                 "    SourceMethodProbeError,",
@@ -434,6 +447,8 @@ def verify_built_evaluation_wheel() -> None:
                 "assert callable(grade_genebench_public_numeric_answer)",
                 "assert MethodContractDiagnosticError is not None",
                 "assert callable(diagnose_genebench_method_contract_conflict)",
+                "assert callable(freeze_case_evidence_contract)",
+                "assert callable(freeze_stage2_scientific_label)",
                 "assert SourceMethodProbeError is not None",
                 "assert callable(probe_python_method_shapes)",
                 "assert callable(freeze_bounded_direction_profile)",
@@ -555,6 +570,13 @@ def main() -> int:
         expected_capability_detectors = [
             {
                 "detector_id": "detector:bounded-analysis-method-conflict",
+                "maturity": "experimental",
+                "qualification_ref": None,
+                "review_basis": "not_qualified",
+                "strongest_output_type": "disclosure",
+            },
+            {
+                "detector_id": "detector:bounded-feature-identifier-identity",
                 "maturity": "experimental",
                 "qualification_ref": None,
                 "review_basis": "not_qualified",
@@ -1506,9 +1528,9 @@ def main() -> int:
         "sequence_record_boundary_adr_accepted": True,
         "bounded_bh_control_family": "passed_disclosure_only_zero_findings",
         "post_mpp_regression_corpus": (
-            "144_declared_cases_100_pytest_selectors_4_direct_audit_replays_passed"
+            "147_declared_cases_103_pytest_selectors_4_direct_audit_replays_passed"
         ),
-        "post_mpp_module_baselines": "30_of_30_complete_development_only",
+        "post_mpp_module_baselines": "31_of_31_complete_development_only",
     }
     (ROOT / "HANDOFF_VERIFICATION.json").write_text(
         json.dumps(verification, indent=2) + "\n", encoding="utf-8"
