@@ -1,0 +1,531 @@
+{
+  "artifact_kind": "direct_qualification_lane_freeze",
+  "authoring_brief_manifest_digest": "sha256:7133cb96256ab17a7eff58efa4d2b9a97dc9c2addac575a3ec03b830c869ec8e",
+  "frozen_at": "2026-08-04T23:50:00Z",
+  "heldout_seal": {
+    "author_access_state": "withheld_until_approved_threshold",
+    "block_ids": [
+      "block:88d0fdb420461a3f"
+    ],
+    "case_ids": [
+      "case:0e8a84e424013c876694",
+      "case:670f4b5b1a48188a8973",
+      "case:6a3c7be6adbfa11a7168",
+      "case:6d9579fa1e8f9f50db4c",
+      "case:79bba09d589444884c44",
+      "case:87f491b5c0fa3ae7be4a",
+      "case:cdc9e2ae44b02c1a85d2"
+    ],
+    "detector_outcomes_present": false,
+    "scientific_labels_present": false
+  },
+  "lane_freeze_digest": "sha256:c58ee57c01d5f7c46855eb9f554d0a476f664e44edbdd7e15679bd53d72fa12b",
+  "lane_freeze_version": "1.0.0",
+  "lane_id": "lane:complete-domain-exposure-denominator-v2",
+  "participant_enrollment_digest": "sha256:c29bdc3c277b840c2bf9b4369f69181190663530467926ccfdfb24407eff0016",
+  "precase_freeze_digest": "sha256:2526c7d710705bc8705ffc8dbc062f233c5555f8e9445d1ffea23c50a68a14d6",
+  "prospective_protocol": {
+    "artifact_kind": "prospective_qualification_protocol",
+    "assignments": [
+      {
+        "assigned_at": "2026-08-04T23:49:00Z",
+        "author_id": "actor:pilot-author-codex-03",
+        "authoring_brief_digest": "sha256:b11c5bdd57993ef6f8c2d8e5a5fd84a71143009c962f0ca1918bb4bacc06bab5",
+        "block_id": "block:61b869e41dea194d",
+        "case_id": "case:00e38ff58c6d50621e1c",
+        "cell_type": "renamed_implementation",
+        "envelope_id": "relation-envelope:complete-domain-exposure-denominator",
+        "reference_case_id": "case:c5e5a75d42962d2e95a3",
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:stage1-claude-01",
+          "actor:stage1-claude-02",
+          "actor:stage1-codex-01",
+          "actor:stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:stage2-claude-01",
+          "actor:stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-04T23:49:00Z",
+        "author_id": "actor:sealed-author-codex-06",
+        "authoring_brief_digest": "sha256:d13f13cc530252b4731d82b97f9bad56811773da9fb4e130191cd76f05753db7",
+        "block_id": "block:88d0fdb420461a3f",
+        "case_id": "case:0e8a84e424013c876694",
+        "cell_type": "unsupported",
+        "envelope_id": "relation-envelope:complete-domain-exposure-denominator",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:stage1-claude-01",
+          "actor:stage1-claude-02",
+          "actor:stage1-codex-01",
+          "actor:stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:stage2-claude-01",
+          "actor:stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-04T23:49:00Z",
+        "author_id": "actor:pilot-author-claude-01",
+        "authoring_brief_digest": "sha256:f1c5233b9fd435023917dc736f8dd2f1a6fc92e02366317fcb0f2b25a912b707",
+        "block_id": "block:61b869e41dea194d",
+        "case_id": "case:345133226e9fc72a32b0",
+        "cell_type": "corrected_twin",
+        "envelope_id": "relation-envelope:complete-domain-exposure-denominator",
+        "reference_case_id": "case:c5e5a75d42962d2e95a3",
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:stage1-claude-01",
+          "actor:stage1-claude-02",
+          "actor:stage1-codex-01",
+          "actor:stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:stage2-claude-01",
+          "actor:stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-04T23:49:00Z",
+        "author_id": "actor:pilot-author-claude-03",
+        "authoring_brief_digest": "sha256:41e9a28dd9a01635bb285422946407f567bbc797a528056050b20090cee9ea9c",
+        "block_id": "block:61b869e41dea194d",
+        "case_id": "case:54e6452ec78d35dc72ac",
+        "cell_type": "unsupported",
+        "envelope_id": "relation-envelope:complete-domain-exposure-denominator",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:stage1-claude-01",
+          "actor:stage1-claude-02",
+          "actor:stage1-codex-01",
+          "actor:stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:stage2-claude-01",
+          "actor:stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-04T23:49:00Z",
+        "author_id": "actor:sealed-author-codex-04",
+        "authoring_brief_digest": "sha256:eecb685f21d85f45f612bb40702fd6002c845add180a89454ea27cdb071199d4",
+        "block_id": "block:88d0fdb420461a3f",
+        "case_id": "case:670f4b5b1a48188a8973",
+        "cell_type": "error_bearing",
+        "envelope_id": "relation-envelope:complete-domain-exposure-denominator",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:stage1-claude-01",
+          "actor:stage1-claude-02",
+          "actor:stage1-codex-01",
+          "actor:stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:stage2-claude-01",
+          "actor:stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-04T23:49:00Z",
+        "author_id": "actor:sealed-author-claude-06",
+        "authoring_brief_digest": "sha256:4eef8d8f146b4f640d4a94ae468476f46d3fb96ee51903b065d7afd3ac989b7e",
+        "block_id": "block:88d0fdb420461a3f",
+        "case_id": "case:6a3c7be6adbfa11a7168",
+        "cell_type": "renamed_implementation",
+        "envelope_id": "relation-envelope:complete-domain-exposure-denominator",
+        "reference_case_id": "case:670f4b5b1a48188a8973",
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:stage1-claude-01",
+          "actor:stage1-claude-02",
+          "actor:stage1-codex-01",
+          "actor:stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:stage2-claude-01",
+          "actor:stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-04T23:49:00Z",
+        "author_id": "actor:sealed-author-codex-04",
+        "authoring_brief_digest": "sha256:72c928f9a9fb3730fb865a3bbb9bfd85ae641172d88511aa657474ebbed7902b",
+        "block_id": "block:88d0fdb420461a3f",
+        "case_id": "case:6d9579fa1e8f9f50db4c",
+        "cell_type": "corrected_twin",
+        "envelope_id": "relation-envelope:complete-domain-exposure-denominator",
+        "reference_case_id": "case:670f4b5b1a48188a8973",
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:stage1-claude-01",
+          "actor:stage1-claude-02",
+          "actor:stage1-codex-01",
+          "actor:stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:stage2-claude-01",
+          "actor:stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-04T23:49:00Z",
+        "author_id": "actor:pilot-author-codex-01",
+        "authoring_brief_digest": "sha256:ce6dcf463b4d137c8873fd08c3dd35720a245d964fb85f7cbf4e988edddd14d9",
+        "block_id": "block:61b869e41dea194d",
+        "case_id": "case:72678038fd451aac236a",
+        "cell_type": "valid_alternative",
+        "envelope_id": "relation-envelope:complete-domain-exposure-denominator",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:stage1-claude-01",
+          "actor:stage1-claude-02",
+          "actor:stage1-codex-01",
+          "actor:stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:stage2-claude-01",
+          "actor:stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-04T23:49:00Z",
+        "author_id": "actor:sealed-author-claude-05",
+        "authoring_brief_digest": "sha256:8ddef8ef5812c8dd82ad8cf28af1b4737d7b534d9e7d4078a8c1051476c59a71",
+        "block_id": "block:88d0fdb420461a3f",
+        "case_id": "case:79bba09d589444884c44",
+        "cell_type": "ambiguous",
+        "envelope_id": "relation-envelope:complete-domain-exposure-denominator",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:stage1-claude-01",
+          "actor:stage1-claude-02",
+          "actor:stage1-codex-01",
+          "actor:stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:stage2-claude-01",
+          "actor:stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-04T23:49:00Z",
+        "author_id": "actor:sealed-author-claude-04",
+        "authoring_brief_digest": "sha256:9ece870f51701e99f56d6e237cb8d6e656722cd23248943c31c4d64b8101f07a",
+        "block_id": "block:88d0fdb420461a3f",
+        "case_id": "case:87f491b5c0fa3ae7be4a",
+        "cell_type": "valid_alternative",
+        "envelope_id": "relation-envelope:complete-domain-exposure-denominator",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:stage1-claude-01",
+          "actor:stage1-claude-02",
+          "actor:stage1-codex-01",
+          "actor:stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:stage2-claude-01",
+          "actor:stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-04T23:49:00Z",
+        "author_id": "actor:pilot-author-codex-02",
+        "authoring_brief_digest": "sha256:dfe24b30f2392dce403b97e971d3de833bfa6470f1c4cf3a6f88fd4821acacc5",
+        "block_id": "block:61b869e41dea194d",
+        "case_id": "case:a35ee5ac7a59333fdcc1",
+        "cell_type": "ambiguous",
+        "envelope_id": "relation-envelope:complete-domain-exposure-denominator",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:stage1-claude-01",
+          "actor:stage1-claude-02",
+          "actor:stage1-codex-01",
+          "actor:stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:stage2-claude-01",
+          "actor:stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-04T23:49:00Z",
+        "author_id": "actor:pilot-author-claude-02",
+        "authoring_brief_digest": "sha256:0869bf61388e8b5931ee83276895c2f334fc8e51d89cee9622737e25fb6968ab",
+        "block_id": "block:61b869e41dea194d",
+        "case_id": "case:a5409f5f081836abc336",
+        "cell_type": "hard_negative",
+        "envelope_id": "relation-envelope:complete-domain-exposure-denominator",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:stage1-claude-01",
+          "actor:stage1-claude-02",
+          "actor:stage1-codex-01",
+          "actor:stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:stage2-claude-01",
+          "actor:stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-04T23:49:00Z",
+        "author_id": "actor:pilot-author-claude-01",
+        "authoring_brief_digest": "sha256:39a8542049ed75d04cba7d8777a4bd3e848e13cce46b31bbaee57db6b987b214",
+        "block_id": "block:61b869e41dea194d",
+        "case_id": "case:c5e5a75d42962d2e95a3",
+        "cell_type": "error_bearing",
+        "envelope_id": "relation-envelope:complete-domain-exposure-denominator",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:stage1-claude-01",
+          "actor:stage1-claude-02",
+          "actor:stage1-codex-01",
+          "actor:stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:stage2-claude-01",
+          "actor:stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-04T23:49:00Z",
+        "author_id": "actor:sealed-author-codex-05",
+        "authoring_brief_digest": "sha256:700cb15b7374598741a25c919b67b9a7cfffef0cbe873ef5aa7bb829b723c7d2",
+        "block_id": "block:88d0fdb420461a3f",
+        "case_id": "case:cdc9e2ae44b02c1a85d2",
+        "cell_type": "hard_negative",
+        "envelope_id": "relation-envelope:complete-domain-exposure-denominator",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:stage1-claude-01",
+          "actor:stage1-claude-02",
+          "actor:stage1-codex-01",
+          "actor:stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:stage2-claude-01",
+          "actor:stage2-codex-01"
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "block_id": "block:61b869e41dea194d",
+        "evidence_role": "threshold_pilot"
+      },
+      {
+        "block_id": "block:88d0fdb420461a3f",
+        "evidence_role": "qualification_heldout"
+      }
+    ],
+    "coverage": {
+      "matrix_blocks": {
+        "block:61b869e41dea194d": "threshold_pilot",
+        "block:88d0fdb420461a3f": "qualification_heldout"
+      },
+      "matrix_complete": true,
+      "required_case_count": 14,
+      "required_cell_types": [
+        "error_bearing",
+        "corrected_twin",
+        "valid_alternative",
+        "hard_negative",
+        "ambiguous",
+        "unsupported",
+        "renamed_implementation"
+      ]
+    },
+    "detector_lock": {
+      "detector_id": "detector:bounded-analysis-method-conflict",
+      "detector_manifest_digest": "sha256:a8e8bdf16e847745276a3d8da0bc2ba44062e42293e1f3185c9ccf9a19abecbc",
+      "detector_version": "0.3.0",
+      "frozen_at": "2026-08-04T23:33:00Z",
+      "implementation_digest": "sha256:d22f5b5cffbde98201077edf1a3825274780ac23bff997c78b44465e67bdf6d1"
+    },
+    "envelopes": [
+      {
+        "binding_digest": "sha256:127306babb8127dc820ea2d3f322ca47e7da0af976ea771eb7ef10e445fcb4f5",
+        "candidate_id": "complete-declared-domain-exposure",
+        "check_id": "check:complete-domain-exposure-denominator",
+        "envelope_id": "relation-envelope:complete-domain-exposure-denominator"
+      }
+    ],
+    "expected_envelope_count": 1,
+    "external_actions_required": [
+      "prospective_case_authoring",
+      "participant_identity_authentication",
+      "answer_blind_stage1_review",
+      "independent_stage2_adjudication",
+      "all_outcome_capture",
+      "pilot_threshold_decision",
+      "heldout_evaluation",
+      "maintainer_promotion_decision"
+    ],
+    "frozen_at": "2026-08-04T23:50:00Z",
+    "governance": {
+      "all_outcomes_retained": true,
+      "detector_implementers_label_blind": true,
+      "development_case_qualification_excluded": true,
+      "independent_review_contexts_required": true,
+      "no_replacement": true,
+      "public_benchmark_qualification_excluded": true,
+      "review_detector_output_hidden": true
+    },
+    "participants": [
+      {
+        "execution_context_id": "context:detector-implementer-blind-v2",
+        "identity_evidence_digest": "sha256:f5354a2de5e57ae0149008bc0ee9c095b5d9979fc1f183619b93d75edab35322",
+        "participant_id": "actor:detector-implementer-codex-01",
+        "provider": "OpenAI",
+        "role": "detector_implementer"
+      },
+      {
+        "execution_context_id": "context:pilot-author-claude-01-v2",
+        "identity_evidence_digest": "sha256:2976d15c5f6691872898cbad18eea7228527f12446c45556265136854d57cb24",
+        "participant_id": "actor:pilot-author-claude-01",
+        "provider": "Anthropic",
+        "role": "author"
+      },
+      {
+        "execution_context_id": "context:pilot-author-claude-02-v2",
+        "identity_evidence_digest": "sha256:1c0bdcafa772b011c4eac4e8fd18135255cde4a7a733dbb414eb2d4e84405c3a",
+        "participant_id": "actor:pilot-author-claude-02",
+        "provider": "Anthropic",
+        "role": "author"
+      },
+      {
+        "execution_context_id": "context:pilot-author-claude-03-v2",
+        "identity_evidence_digest": "sha256:d03059ce51f03664015e02079895d178dbfa304956feb8500e1544e36694c700",
+        "participant_id": "actor:pilot-author-claude-03",
+        "provider": "Anthropic",
+        "role": "author"
+      },
+      {
+        "execution_context_id": "context:pilot-author-codex-01-v2",
+        "identity_evidence_digest": "sha256:409285f65e8cdf753e0164cdb4fc3eaca104a49111f4356c2be0b829bb821c03",
+        "participant_id": "actor:pilot-author-codex-01",
+        "provider": "OpenAI",
+        "role": "author"
+      },
+      {
+        "execution_context_id": "context:pilot-author-codex-02-v2",
+        "identity_evidence_digest": "sha256:f8092f5396b516aa70b7e35cdf4606be34f651bb8268ed97024963941c49c9d5",
+        "participant_id": "actor:pilot-author-codex-02",
+        "provider": "OpenAI",
+        "role": "author"
+      },
+      {
+        "execution_context_id": "context:pilot-author-codex-03-v2",
+        "identity_evidence_digest": "sha256:5e88963348ad553c872e99cc254dd3221e06a4d7865f9f370fcacb69a00f89f5",
+        "participant_id": "actor:pilot-author-codex-03",
+        "provider": "OpenAI",
+        "role": "author"
+      },
+      {
+        "execution_context_id": "context:sealed-author-claude-04-v2",
+        "identity_evidence_digest": "sha256:b47de0f2ab18b97a20f3b960aa22d0f97e6cc78fdd46f1a022f6560d158e67f2",
+        "participant_id": "actor:sealed-author-claude-04",
+        "provider": "Anthropic",
+        "role": "author"
+      },
+      {
+        "execution_context_id": "context:sealed-author-claude-05-v2",
+        "identity_evidence_digest": "sha256:f92933871fe96bc8219bd8309997ab166e712418dc7e54f38abbc09aaff7111d",
+        "participant_id": "actor:sealed-author-claude-05",
+        "provider": "Anthropic",
+        "role": "author"
+      },
+      {
+        "execution_context_id": "context:sealed-author-claude-06-v2",
+        "identity_evidence_digest": "sha256:0fa95802fead593f1c2bbfc2463998757b0605541d79c28b816019d5a41ba0ae",
+        "participant_id": "actor:sealed-author-claude-06",
+        "provider": "Anthropic",
+        "role": "author"
+      },
+      {
+        "execution_context_id": "context:sealed-author-codex-04-v2",
+        "identity_evidence_digest": "sha256:093156e1597484c1b34abc9ac9eac39041e57adbf52cda8eaa99d2170d78229a",
+        "participant_id": "actor:sealed-author-codex-04",
+        "provider": "OpenAI",
+        "role": "author"
+      },
+      {
+        "execution_context_id": "context:sealed-author-codex-05-v2",
+        "identity_evidence_digest": "sha256:9cd9c6d5d86411629e63a0379d9435d4ab5c98c3c24df12864920300893e5c03",
+        "participant_id": "actor:sealed-author-codex-05",
+        "provider": "OpenAI",
+        "role": "author"
+      },
+      {
+        "execution_context_id": "context:sealed-author-codex-06-v2",
+        "identity_evidence_digest": "sha256:3c45349457a09bc5cfc0c7b22356f298ac343cf98dfa38e8a939468f70ef50cd",
+        "participant_id": "actor:sealed-author-codex-06",
+        "provider": "OpenAI",
+        "role": "author"
+      },
+      {
+        "execution_context_id": "context:stage1-claude-01-calibrated-v2",
+        "identity_evidence_digest": "sha256:6aa6d579660602810a368ec40362f6e1c1de23e85439f8387d230ca1975f995b",
+        "participant_id": "actor:stage1-claude-01",
+        "provider": "Anthropic",
+        "role": "stage1_reviewer"
+      },
+      {
+        "execution_context_id": "context:stage1-claude-02-calibrated-v2",
+        "identity_evidence_digest": "sha256:6fcc3ea4a090b31893638537d39ee78cdef1eef8a111690918b477ba4351f0fb",
+        "participant_id": "actor:stage1-claude-02",
+        "provider": "Anthropic",
+        "role": "stage1_reviewer"
+      },
+      {
+        "execution_context_id": "context:stage1-codex-01-calibrated-v2",
+        "identity_evidence_digest": "sha256:2b34bf7229b0ed3659b6241035a734dc1ef66b7943fce36675f5027b7c59b16a",
+        "participant_id": "actor:stage1-codex-01",
+        "provider": "OpenAI",
+        "role": "stage1_reviewer"
+      },
+      {
+        "execution_context_id": "context:stage1-codex-02-calibrated-v2",
+        "identity_evidence_digest": "sha256:63f755fca07aab3b9e5807bf1c506e7e4cf7c5a18813ba72a26dd810a4687723",
+        "participant_id": "actor:stage1-codex-02",
+        "provider": "OpenAI",
+        "role": "stage1_reviewer"
+      },
+      {
+        "execution_context_id": "context:stage2-claude-01-calibrated-v2",
+        "identity_evidence_digest": "sha256:0efbb4aa577adfcb87435ec3c2d900c21874f5b2e3470321900bc185561e8fd8",
+        "participant_id": "actor:stage2-claude-01",
+        "provider": "Anthropic",
+        "role": "stage2_reviewer"
+      },
+      {
+        "execution_context_id": "context:stage2-codex-01-calibrated-v2",
+        "identity_evidence_digest": "sha256:3245a575436e691e56cdd1163daf70faa2326fbfb901a9c139a9ec10d02ce107",
+        "participant_id": "actor:stage2-codex-01",
+        "provider": "OpenAI",
+        "role": "stage2_reviewer"
+      }
+    ],
+    "protocol_digest": "sha256:858944c67dda8bd7038d6aaa28f73c8fca82235acacfe089ede3c618e66d0d78",
+    "protocol_id": "prospective-protocol:complete-domain-exposure-denominator-v2",
+    "protocol_version": "1.0.0",
+    "qualification_authority": "none_protocol_only",
+    "study_state": "assignments_frozen_labels_unopened"
+  },
+  "qualification_authority": "none_lane_freeze_only",
+  "study_state": "assignments_frozen_labels_unopened"
+}

@@ -1,0 +1,400 @@
+{
+  "artifact_kind": "direct_qualification_authoring_brief_manifest",
+  "briefs": [
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "Create a TSV representing 120 scheduled time windows, 90 windows retained after device checks, and 30 events in retained windows, with all excluded windows accounted for."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:00e38ff58c6d50621e1c",
+        "construction_constraints": [
+          "Declare the target as the complete 120-window route schedule.",
+          "Use the 90 device-check passes as the exposure denominator for the selected frequency and describe it as route-wide.",
+          "Use different filenames, variable names, report layout, and domain vocabulary from any supplied coastal-station material.",
+          "State that no governing amendment or approved deviation exists."
+        ],
+        "required_artifacts": [
+          "One ASCII CSV or TSV input containing the complete planned-unit accounting.",
+          "One UTF-8 Python source file with an unconditional module-level literal-path write_text call.",
+          "One ASCII-LF Markdown or text report whose bytes equal the statically constructed Python output and contain exactly one [selected-result] line.",
+          "A truthful author-only selected-result declaration stored outside the three-file case tree."
+        ],
+        "scientific_task": "Independently build a traffic-sensor workflow that reports one event frequency for the complete scheduled monitoring route."
+      },
+      "brief_digest": "sha256:b11c5bdd57993ef6f8c2d8e5a5fd84a71143009c962f0ca1918bb4bacc06bab5",
+      "brief_id": "brief:81bd3ad82ef45933",
+      "case_id": "case:00e38ff58c6d50621e1c",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "Create an observation-slot table with complete commissioned and telemetry-screened counts and one retained report example."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:0e8a84e424013c876694",
+        "construction_constraints": [
+          "Compute the output path from a runtime environment value rather than a source-code path literal.",
+          "Preserve enough source and report material to show why static inspection cannot establish the selected producer-to-report binding.",
+          "Make a truthful author declaration that identifies the runtime-selected producer surface instead of asserting a single statically bound result."
+        ],
+        "required_artifacts": [
+          "One ASCII CSV or TSV input with commissioned and telemetry-screened slot accounting.",
+          "One UTF-8 Python producer whose output path depends on a runtime environment value.",
+          "One ASCII-LF retained Markdown or text report example with a [selected-result] line.",
+          "A truthful author-only producer-surface declaration stored outside the three-file case tree."
+        ],
+        "scientific_task": "Build an instrument report producer whose retained report destination is selected from a runtime environment value."
+      },
+      "brief_digest": "sha256:d13f13cc530252b4731d82b97f9bad56811773da9fb4e130191cd76f05753db7",
+      "brief_id": "brief:4d3aea8545788d76",
+      "case_id": "case:0e8a84e424013c876694",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "The base workflow represents 96 scheduled stations, 72 signal-screen passes, 18 observed occurrences, and complete omitted-station accounting."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:345133226e9fc72a32b0",
+        "construction_constraints": [
+          "Keep the scientific target as all 96 scheduled stations.",
+          "Use all 96 scheduled stations as the exposure denominator for the selected rate and retain the unavailable-station accounting.",
+          "Limit the report to claims supported by that complete-network denominator."
+        ],
+        "required_artifacts": [
+          "One ASCII CSV or TSV input containing the complete planned-unit accounting.",
+          "One UTF-8 Python source file with an unconditional module-level literal-path write_text call.",
+          "One ASCII-LF Markdown or text report whose bytes equal the statically constructed Python output and contain exactly one [selected-result] line.",
+          "A truthful author-only selected-result declaration stored outside the three-file case tree."
+        ],
+        "scientific_task": "Using the supplied coastal-station base workflow, produce a revised selected occurrence rate for the entire scheduled survey network."
+      },
+      "brief_digest": "sha256:f1c5233b9fd435023917dc736f8dd2f1a6fc92e02366317fcb0f2b25a912b707",
+      "brief_id": "brief:d8b91cf3b5c7353a",
+      "case_id": "case:345133226e9fc72a32b0",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "Create a station table with full planned and screened counts and one retained report example."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:54e6452ec78d35dc72ac",
+        "construction_constraints": [
+          "Compute the output path from a runtime argument rather than a source-code path literal.",
+          "Preserve enough source and report material to show why static inspection cannot establish the selected producer-to-report binding.",
+          "Make a truthful author declaration that identifies the runtime-selected producer surface instead of asserting a single statically bound result."
+        ],
+        "required_artifacts": [
+          "One ASCII CSV or TSV input with planned and screened station accounting.",
+          "One UTF-8 Python producer whose output path depends on a runtime command-line value.",
+          "One ASCII-LF retained Markdown or text report example with a [selected-result] line.",
+          "A truthful author-only producer-surface declaration stored outside the three-file case tree."
+        ],
+        "scientific_task": "Build a coastal-station report producer whose retained report destination is selected from a runtime command-line value."
+      },
+      "brief_digest": "sha256:41e9a28dd9a01635bb285422946407f567bbc797a528056050b20090cee9ea9c",
+      "brief_id": "brief:fddc498845b1ca12",
+      "case_id": "case:54e6452ec78d35dc72ac",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "Create a table representing 168 commissioned hourly slots, 126 retained after telemetry screening, and 21 failures among retained slots, with every omitted slot accounted for."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:670f4b5b1a48188a8973",
+        "construction_constraints": [
+          "Declare the scientific target as all 168 commissioned slots.",
+          "Use the 126 telemetry-screened slots as the exposure denominator for the selected failure intensity.",
+          "Describe the selected intensity as applying to the complete commissioned calendar.",
+          "State that no protocol amendment or approved method deviation exists."
+        ],
+        "required_artifacts": [
+          "One ASCII CSV or TSV input containing the complete planned-unit accounting.",
+          "One UTF-8 Python source file with an unconditional module-level literal-path write_text call.",
+          "One ASCII-LF Markdown or text report whose bytes equal the statically constructed Python output and contain exactly one [selected-result] line.",
+          "A truthful author-only selected-result declaration stored outside the three-file case tree."
+        ],
+        "scientific_task": "Build a compact instrument-uptime workflow that reports one failure intensity for the complete commissioned observation calendar."
+      },
+      "brief_digest": "sha256:eecb685f21d85f45f612bb40702fd6002c845add180a89454ea27cdb071199d4",
+      "brief_id": "brief:c25c1e5ef38f0142",
+      "case_id": "case:670f4b5b1a48188a8973",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "Create a CSV representing 144 programmed light periods, 108 periods retained after sensor plausibility checks, and 27 outages in retained periods, with all excluded periods accounted for."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:6a3c7be6adbfa11a7168",
+        "construction_constraints": [
+          "Declare the target as the complete 144-period illumination cycle.",
+          "Use the 108 sensor-check passes as the exposure denominator for the selected burden and describe it as cycle-wide.",
+          "Use different filenames, variable names, report layout, and domain vocabulary from any supplied instrument material.",
+          "State that no governing amendment or approved deviation exists."
+        ],
+        "required_artifacts": [
+          "One ASCII CSV or TSV input containing the complete planned-unit accounting.",
+          "One UTF-8 Python source file with an unconditional module-level literal-path write_text call.",
+          "One ASCII-LF Markdown or text report whose bytes equal the statically constructed Python output and contain exactly one [selected-result] line.",
+          "A truthful author-only selected-result declaration stored outside the three-file case tree."
+        ],
+        "scientific_task": "Independently build a greenhouse-light workflow that reports one outage burden for the complete programmed illumination cycle."
+      },
+      "brief_digest": "sha256:4eef8d8f146b4f640d4a94ae468476f46d3fb96ee51903b065d7afd3ac989b7e",
+      "brief_id": "brief:ea59bff4915df9bc",
+      "case_id": "case:6a3c7be6adbfa11a7168",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "The base workflow represents 168 commissioned slots, 126 telemetry-screen passes, 21 observed failures, and complete omitted-slot accounting."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:6d9579fa1e8f9f50db4c",
+        "construction_constraints": [
+          "Keep the target as all 168 commissioned slots.",
+          "Use all 168 commissioned slots as the exposure denominator and retain unavailable-slot accounting.",
+          "Limit the report to claims supported by that complete-calendar denominator."
+        ],
+        "required_artifacts": [
+          "One ASCII CSV or TSV input containing the complete planned-unit accounting.",
+          "One UTF-8 Python source file with an unconditional module-level literal-path write_text call.",
+          "One ASCII-LF Markdown or text report whose bytes equal the statically constructed Python output and contain exactly one [selected-result] line.",
+          "A truthful author-only selected-result declaration stored outside the three-file case tree."
+        ],
+        "scientific_task": "Using the supplied instrument-uptime base workflow, produce a revised failure intensity for the complete commissioned observation calendar."
+      },
+      "brief_digest": "sha256:72c928f9a9fb3730fb865a3bbb9bfd85ae641172d88511aa657474ebbed7902b",
+      "brief_id": "brief:e705a9f6655d0f93",
+      "case_id": "case:6d9579fa1e8f9f50db4c",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "Create a table with 96 scheduled stations, 72 signal-screen passes, 18 occurrences among those passes, and complete accounting for stations outside the eligible set."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:72678038fd451aac236a",
+        "construction_constraints": [
+          "Define the target population explicitly as the 72 signal-eligible stations.",
+          "Use those 72 stations as the selected rate denominator.",
+          "Confine every scientific claim to signal-eligible stations and distinguish that target from the scheduled network."
+        ],
+        "required_artifacts": [
+          "One ASCII CSV or TSV input containing the complete planned-unit accounting.",
+          "One UTF-8 Python source file with an unconditional module-level literal-path write_text call.",
+          "One ASCII-LF Markdown or text report whose bytes equal the statically constructed Python output and contain exactly one [selected-result] line.",
+          "A truthful author-only selected-result declaration stored outside the three-file case tree."
+        ],
+        "scientific_task": "Build a coastal-station workflow whose scientific question is the occurrence rate conditional on passing a prespecified signal screen."
+      },
+      "brief_digest": "sha256:ce6dcf463b4d137c8873fd08c3dd35720a245d964fb85f7cbf4e988edddd14d9",
+      "brief_id": "brief:092df31cef604ef8",
+      "case_id": "case:72678038fd451aac236a",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "Create 168 commissioned slots, 126 valid-telemetry slots, and 21 failures among valid slots; include one signed scope record for all commissioned slots and another for valid-telemetry slots."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:79bba09d589444884c44",
+        "construction_constraints": [
+          "Give the two scope records equal authority and provide no date, amendment, or precedence rule that resolves them.",
+          "Use 126 valid-telemetry slots as the selected intensity denominator.",
+          "Describe both governing scope records faithfully without selecting one as controlling."
+        ],
+        "required_artifacts": [
+          "One ASCII CSV or TSV input containing the complete planned-unit accounting.",
+          "One UTF-8 Python source file with an unconditional module-level literal-path write_text call.",
+          "One ASCII-LF Markdown or text report whose bytes equal the statically constructed Python output and contain exactly one [selected-result] line.",
+          "A truthful author-only selected-result declaration stored outside the three-file case tree."
+        ],
+        "scientific_task": "Build an instrument workflow governed by two equally authoritative scope records and report one failure intensity from valid-telemetry slots."
+      },
+      "brief_digest": "sha256:8ddef8ef5812c8dd82ad8cf28af1b4737d7b534d9e7d4078a8c1051476c59a71",
+      "brief_id": "brief:e4450b7d81d5ff73",
+      "case_id": "case:79bba09d589444884c44",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "Create 168 commissioned hourly slots, 126 valid-telemetry slots, 21 failures among valid slots, and complete accounting outside that eligible set."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:87f491b5c0fa3ae7be4a",
+        "construction_constraints": [
+          "Define the target explicitly as the 126 valid-telemetry slots.",
+          "Use those 126 slots as the selected intensity denominator.",
+          "Confine every scientific claim to valid-telemetry slots and distinguish that target from the commissioned calendar."
+        ],
+        "required_artifacts": [
+          "One ASCII CSV or TSV input containing the complete planned-unit accounting.",
+          "One UTF-8 Python source file with an unconditional module-level literal-path write_text call.",
+          "One ASCII-LF Markdown or text report whose bytes equal the statically constructed Python output and contain exactly one [selected-result] line.",
+          "A truthful author-only selected-result declaration stored outside the three-file case tree."
+        ],
+        "scientific_task": "Build an instrument workflow whose scientific question is failure intensity conditional on slots with valid telemetry."
+      },
+      "brief_digest": "sha256:9ece870f51701e99f56d6e237cb8d6e656722cd23248943c31c4d64b8101f07a",
+      "brief_id": "brief:d312c99bddc6e0e2",
+      "case_id": "case:87f491b5c0fa3ae7be4a",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "Create 96 scheduled stations, 72 signal-screen passes, and 18 occurrences among the passes; include one signed scope record for all scheduled stations and another for signal-eligible stations."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:a35ee5ac7a59333fdcc1",
+        "construction_constraints": [
+          "Give the two scope records equal authority and provide no date, amendment, or precedence rule that resolves them.",
+          "Use 72 signal-screened stations as the selected rate denominator.",
+          "Describe both governing scope records faithfully without selecting one as controlling."
+        ],
+        "required_artifacts": [
+          "One ASCII CSV or TSV input containing the complete planned-unit accounting.",
+          "One UTF-8 Python source file with an unconditional module-level literal-path write_text call.",
+          "One ASCII-LF Markdown or text report whose bytes equal the statically constructed Python output and contain exactly one [selected-result] line.",
+          "A truthful author-only selected-result declaration stored outside the three-file case tree."
+        ],
+        "scientific_task": "Build a coastal-station workflow governed by two equally authoritative scope records and report one rate from the signal-screened stations."
+      },
+      "brief_digest": "sha256:dfe24b30f2392dce403b97e971d3de833bfa6470f1c4cf3a6f88fd4821acacc5",
+      "brief_id": "brief:ee70355885c122dd",
+      "case_id": "case:a35ee5ac7a59333fdcc1",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "Create a table with 96 scheduled stations, complete network exposure accounting, 18 occurrences, and 72 records that complete signal screening."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:a5409f5f081836abc336",
+        "construction_constraints": [
+          "Make the selected scientific result the occurrence rate over all 96 scheduled stations.",
+          "Also report screening completion among inspected records as a clearly secondary quality-control value.",
+          "State explicitly that the quality-control denominator does not define or enter the selected scientific endpoint."
+        ],
+        "required_artifacts": [
+          "One ASCII CSV or TSV input containing the complete planned-unit accounting.",
+          "One UTF-8 Python source file with an unconditional module-level literal-path write_text call.",
+          "One ASCII-LF Markdown or text report whose bytes equal the statically constructed Python output and contain exactly one [selected-result] line.",
+          "A truthful author-only selected-result declaration stored outside the three-file case tree."
+        ],
+        "scientific_task": "Build a coastal survey with a full-network scientific occurrence endpoint and a separate screening-completion quality-control endpoint."
+      },
+      "brief_digest": "sha256:0869bf61388e8b5931ee83276895c2f334fc8e51d89cee9622737e25fb6968ab",
+      "brief_id": "brief:bca58d5eb0ce1de7",
+      "case_id": "case:a5409f5f081836abc336",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "Create a table representing 96 scheduled stations, of which 72 pass the signal screen; record 18 occurrences among the retained stations and account explicitly for every omitted station."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:c5e5a75d42962d2e95a3",
+        "construction_constraints": [
+          "Declare the scientific target as all 96 scheduled stations.",
+          "Use the 72 post-screening stations as the exposure denominator for the selected occurrence rate.",
+          "Describe the selected rate as applying to the entire scheduled network.",
+          "State that no protocol amendment or approved method deviation exists."
+        ],
+        "required_artifacts": [
+          "One ASCII CSV or TSV input containing the complete planned-unit accounting.",
+          "One UTF-8 Python source file with an unconditional module-level literal-path write_text call.",
+          "One ASCII-LF Markdown or text report whose bytes equal the statically constructed Python output and contain exactly one [selected-result] line.",
+          "A truthful author-only selected-result declaration stored outside the three-file case tree."
+        ],
+        "scientific_task": "Build a compact coastal-station workflow that reports one occurrence rate for the entire scheduled survey network."
+      },
+      "brief_digest": "sha256:39a8542049ed75d04cba7d8777a4bd3e848e13cce46b31bbaee57db6b987b214",
+      "brief_id": "brief:cebb3b28354c376a",
+      "case_id": "case:c5e5a75d42962d2e95a3",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "Create 168 commissioned slots, complete calendar exposure accounting, 21 failures, and 126 slots that complete telemetry screening."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:cdc9e2ae44b02c1a85d2",
+        "construction_constraints": [
+          "Make the selected scientific result the failure intensity over all 168 commissioned slots.",
+          "Also report telemetry completion among inspected slots as a clearly secondary quality value.",
+          "State explicitly that the quality denominator does not define or enter the selected scientific endpoint."
+        ],
+        "required_artifacts": [
+          "One ASCII CSV or TSV input containing the complete planned-unit accounting.",
+          "One UTF-8 Python source file with an unconditional module-level literal-path write_text call.",
+          "One ASCII-LF Markdown or text report whose bytes equal the statically constructed Python output and contain exactly one [selected-result] line.",
+          "A truthful author-only selected-result declaration stored outside the three-file case tree."
+        ],
+        "scientific_task": "Build an instrument study with a complete-calendar scientific failure endpoint and a separate telemetry-completion quality endpoint."
+      },
+      "brief_digest": "sha256:700cb15b7374598741a25c919b67b9a7cfffef0cbe873ef5aa7bb829b723c7d2",
+      "brief_id": "brief:a808bf014045de09",
+      "case_id": "case:cdc9e2ae44b02c1a85d2",
+      "literal_leakage_screen_passed": true
+    }
+  ],
+  "expected_case_count": 14,
+  "frozen_at": "2026-08-04T23:50:00Z",
+  "lane_id": "lane:complete-domain-exposure-denominator-v2",
+  "leakage_screen_scope": "finite_literal_and_field_screen_only",
+  "literal_hidden_terms": [
+    "ambiguous",
+    "benchmark answer",
+    "canonical issue",
+    "check:complete-domain-exposure-denominator",
+    "complete-declared-domain-exposure",
+    "corrected twin",
+    "corrected_twin",
+    "detector output",
+    "detector:bounded-analysis-method-conflict",
+    "error bearing",
+    "error-bearing",
+    "error_bearing",
+    "expected answer",
+    "hard negative",
+    "hard_negative",
+    "held-out",
+    "heldout",
+    "issue-class:",
+    "issue-class:retained-subset-for-complete-domain",
+    "method-conflict-binding:complete-domain-exposure-denominator-v1",
+    "qualification_heldout",
+    "relation-envelope:complete-domain-exposure-denominator",
+    "renamed implementation",
+    "renamed_implementation",
+    "sc-referee",
+    "threshold pilot",
+    "threshold_pilot",
+    "unsupported cell",
+    "valid alternative",
+    "valid_alternative"
+  ],
+  "manifest_digest": "sha256:7133cb96256ab17a7eff58efa4d2b9a97dc9c2addac575a3ec03b830c869ec8e",
+  "manifest_id": "brief-manifest:complete-domain-exposure-denominator-v2",
+  "manifest_version": "1.0.0",
+  "precase_freeze_digest": "sha256:2526c7d710705bc8705ffc8dbc062f233c5555f8e9445d1ffea23c50a68a14d6",
+  "qualification_authority": "none_brief_manifest_only"
+}

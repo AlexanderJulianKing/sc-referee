@@ -1,6 +1,6 @@
 # Experiment 0056: Lean direct ten-Findings qualification
 
-- **Status:** Active pre-case execution design; no metric-eligible case authored
+- **Status:** Active frozen first-envelope lane; no metric-eligible case authored
 - **Date:** 2026-08-04
 - **Supersedes:** Experiment 0055 as the delivery-path qualification design
 - **Production impact:** None until an exact detector envelope completes pilot, held-out,
@@ -128,9 +128,9 @@ development matrix and two qualification-ineligible, independently renamed posit
 
 - [x] Close its remaining file/function/identifier, wrapper/alias, reordered representation, and
   equivalent-encoding development controls.
-- [ ] Freeze its exact detector manifest, check/candidate/adapter binding, comparator/build digest,
+- [x] Freeze its exact detector manifest, check/candidate/adapter binding, comparator/build digest,
   case-evidence contract, issue-class entry, and fourteen opaque assignments.
-- [ ] Seal the seven held-out assignments before any pilot label or detector outcome exists.
+- [x] Seal the seven held-out assignments before any pilot label or detector outcome exists.
 - [ ] Author and retain all seven pilot cases without replacement.
 - [ ] Complete the required 4+2 blinded review panel and freeze resolved labels.
 - [ ] Run and replay the frozen detector on all seven pilot opportunities.
@@ -141,6 +141,21 @@ development matrix and two qualification-ineligible, independently renamed posit
 - [ ] Record an exact maintainer promotion or failure decision.
 - [ ] If promoted, prove the intended Finding and all control outcomes through the CLI, Codex skill,
   and Claude Code skill on fresh installations.
+
+The current exact pre-case evidence is the repaired v3 tuple digest
+`sha256:2526c7d710705bc8705ffc8dbc062f233c5555f8e9445d1ffea23c50a68a14d6`,
+participant-enrollment digest
+`sha256:c29bdc3c277b840c2bf9b4369f69181190663530467926ccfdfb24407eff0016`,
+authoring-brief manifest digest
+`sha256:7133cb96256ab17a7eff58efa4d2b9a97dc9c2addac575a3ec03b830c869ec8e`,
+and direct-lane freeze digest
+`sha256:c58ee57c01d5f7c46855eb9f554d0a476f664e44edbdd7e15679bd53d72fa12b`.
+An earlier zero-exposure lane was superseded before authentication or author access because its
+author prompt mentioned a README that conflicts with the comparator's exact case-tree grammar; its
+bytes and supersession record remain retained and cannot contribute evidence.
+The enrollment is declared-not-authenticated, all six reviewer configurations remain calibration-
+gated, and the sealed author briefs have not been exposed. These freezes create no scientific
+label, metric, qualification, promotion, or Finding authority.
 
 ## Stop conditions
 

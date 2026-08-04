@@ -1,0 +1,15 @@
+{
+  "artifact_kind": "direct_qualification_lane_supersession",
+  "supersession_version": "1.0.0",
+  "superseded_lane_freeze_digest": "sha256:637bc526a97e685cd58b6ccd4dcb78454936cae2c5f7d54b989da206504c494b",
+  "superseded_participant_enrollment_digest": "sha256:606d552b88259ba69f0d3ea1b4f5b43868ebd3396617ae0a8332d64fc50137db",
+  "reason_code": "author_prompt_conflicts_with_frozen_case_tree_grammar",
+  "superseded_at": "2026-08-04T23:48:00Z",
+  "participant_authentication_count": 0,
+  "author_brief_exposure_count": 0,
+  "authored_case_count": 0,
+  "scientific_label_count": 0,
+  "detector_outcome_count": 0,
+  "qualification_authority": "none_supersession_record_only",
+  "supersession_digest": "sha256:b4035359abb43bc83850751ca5cc05f513754e4b50c61fe73998536b39e81ea1"
+}

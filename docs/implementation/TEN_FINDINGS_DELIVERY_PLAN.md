@@ -6,8 +6,9 @@
 - **Current qualification score:** 0 of 10 target envelopes independently qualified
 - **Current study state:** the over-scoped selected-result meta-qualification was stopped before
   case authoring; lean direct detector qualification is active under Experiment 0056, with 0
-  metric-eligible cases authored, the first envelope's Gate 1 complete, its exact detector/binding/
-  comparator/evidence tuple frozen, and its 14 assignments not yet authored or frozen
+  metric-eligible cases authored, the first envelope's repaired v3 detector/binding/comparator/
+  evidence tuple frozen, 20 exact participant configurations declared, 14 no-replacement
+  assignments frozen, and the seven-case held-out block sealed before labels or outcomes
 - **Execution authority:** This document controls work sequencing and progress reporting. It does
   not itself change record meaning, detector authority, or Finding eligibility.
 
@@ -24,9 +25,9 @@ benchmark identity, answer value, repository identity, or fixture-specific short
 
 This is the day-to-day source of truth for the ten-Findings program. It narrows the
 product-wide architecture in `GENERIC_REFEREE_CAPABILITY_REVAMP_PLAN.md` to the work required for
-the program-level exit gate. The current prospective-study contract is Experiment 0053 and the
-v2 evaluation package. Accepted ADRs and schemas remain authoritative for policy and record
-meaning.
+the program-level exit gate. The current prospective-study contract is Experiment 0056 and the v3
+evaluation-private evidence contract. Accepted ADRs and schemas remain authoritative for policy
+and record meaning.
 
 Broader roadmap, portfolio, refactoring, and research work is out of sequence unless it is required
 to close one named unchecked item below. When such work is necessary, record the blocking checklist
@@ -87,14 +88,18 @@ Durable development evidence at commit `0ecf460297c6ff794a2965f11056e089eb098b95
   qualification-ineligible two-case smoke.
 - [x] Reports separate experimental outputs from production Findings.
 - [x] Current CLI, wheels, replay, and installed skill packaging pass development validation.
-- [x] The v2 evidence and canonical-label contract is implemented and tested.
+- [x] The v3 author-only declaration, coordinator binding, full-panel canonical-label projection,
+  and exact independent-evidence contract are implemented and tested.
 - [x] A deterministic answer-isolated selected-result comparator is implemented and adversarially
   tested; it has no independent scientific-label or Finding authority.
-- [ ] Exact v2 detector/check/adapter bytes and binding digests are frozen for qualification.
-- [ ] Authenticated v2 authors, reviewers, and evidence validators are enrolled.
-- [ ] Any v2 case is assigned, authored, reviewed, labeled, or evaluated.
+- [x] Exact current detector/check/adapter/comparator/evidence bytes and binding digests are frozen
+  for the first direct-qualification envelope.
+- [x] Exact first-envelope author, 4+2 reviewer, evidence-validator, and detector-implementer
+  configurations are declared and frozen; authentication and reviewer calibration remain pending.
+- [x] Fourteen opaque first-envelope cases are assigned without replacement and seven are sealed;
+  none is authored, reviewed, labeled, or evaluated.
 - [ ] Any numeric promotion threshold is accepted.
-- [ ] Any v2 held-out block is opened.
+- [ ] Any direct-qualification held-out block is opened.
 - [ ] Any target envelope is independently qualified or promoted.
 - [ ] Any new target error can produce a production Finding.
 
@@ -176,15 +181,17 @@ frozen, and no known local capability defect remains for that lane. Repeat for e
 - [x] Freeze the current envelope's exact check/candidate/adapter binding digest.
 - [x] Freeze the deterministic comparator/build identity and its finite supported grammar.
 - [x] Freeze the canonical issue-class registry and selected-result evidence contract.
-- [ ] Enroll exact mutually independent authors, four Stage-1 reviewers, two fresh Stage-2
-  reviewers, evidence validators, and detector implementers across the required providers; retain
-  accepted agent identity and transcript digests and disclose agent-only review.
-- [ ] Freeze benchmark-blind authoring briefs that expose no recognizer, expected answer, case role,
+- [x] Freeze exact mutually independent author, four Stage-1 reviewer, two fresh Stage-2 reviewer,
+  evidence-validator, and detector-implementer configurations across the required providers.
+- [ ] Authenticate each enrolled participant configuration when it first participates, retain its
+  exact identity and transcript digests, and disclose agent-only review.
+- [x] Freeze benchmark-blind authoring briefs that expose no recognizer, expected answer, case role,
   block role, or prior detector output.
-- [ ] Freeze 14 opaque, no-replacement assignments for the current envelope and seal its held-out
+- [x] Freeze 14 opaque, no-replacement assignments for the current envelope and seal its held-out
   seven before pilot labels; repeat for the other nine envelopes for a final total of 140.
-- [ ] Verify that no public, answer-visible, v1, or implementation-authored case is metric-eligible.
-- [ ] Seal the held-out block before any pilot label or detector outcome exists.
+- [x] Verify that no public, answer-visible, v1, or implementation-authored case is metric-eligible
+  in the frozen first-envelope assignment matrix.
+- [x] Seal the held-out block before any pilot label or detector outcome exists.
 
 **Exit gate:** all 14 assignments and relevant bytes for the current envelope are immutable and
 replayable, its held-out seven are sealed, and zero scientific labels or detector outcomes exist.
@@ -283,17 +290,17 @@ maintainer decision; there is no family-wide or portfolio-wide implied authority
 
 ## Immediate next unchecked item
 
-Enroll the exact independent authors, four Stage-1 reviewers, two fresh Stage-2 reviewers, evidence
-validators, and detector implementers for the first envelope across the required providers. Then
-freeze benchmark-blind authoring briefs and fourteen opaque no-replacement assignments, sealing the
-held-out seven before any pilot label or detector outcome exists. Preserve the stopped Experiment
-0055 machinery as non-qualifying development evidence, but perform no further cryptographic-
-registrar, distribution-`RECORD`, hostile-importer, separate 96-case verifier-study, or filesystem-
-relocation work.
+Calibrate and authenticate the exact six frozen reviewer configurations, retaining exact prompts,
+outputs, identities, execution contexts, and transcript digests. Then open only the seven-case
+pilot author briefs, authenticate their six frozen author contexts, and author all seven pilot
+workflows without replacement. Freeze each truthful author-only selected-result declaration before
+any scientific review. Preserve the stopped Experiment 0055 machinery as non-qualifying
+development evidence, but perform no further cryptographic-registrar, distribution-`RECORD`,
+hostile-importer, separate 96-case verifier-study, or filesystem-relocation work.
 
 Do not reduce the accepted 4+2 scientific review panel, open held-out material before a
 pilot-informed threshold ADR, or bypass the forward-schema requirement for promotion. Do not
-perform unrelated capability expansion before the first lane is frozen.
+perform unrelated capability expansion before the complete first pilot is retained.
 
 ## Evidence log
 
@@ -401,7 +408,7 @@ perform unrelated capability expansion before the first lane is frozen.
   thresholds, held-out outcomes, promotions, or production Findings exist; the honest score
   remains 0/10.
 
-### 2026-08-04 — First-envelope precase tuple freeze
+### 2026-08-04 — Historical first-envelope v2 precase tuple freeze (superseded)
 
 - Source checkpoint `f6d5adb6d6314f58fa2ea9a09e721015732ed2c4` was committed only after the
   complete Gate 1 verification passed.
@@ -419,6 +426,54 @@ perform unrelated capability expansion before the first lane is frozen.
   remains 0/10 qualified and 0/10 production; the `Frozen` cell remains unchecked until all 14
   assignments and roles are frozen.
 
+### 2026-08-04 — Repaired v3 evidence contract and replacement tuple freeze
+
+- A pre-assignment audit found that the v2 author artifact exposed coordinator-only scientific
+  identities, could not truthfully represent multiple or statically unsupported selected results,
+  and accepted caller-authored compact Stage-2 summaries instead of deriving them from the exact
+  full 4+2 panel evidence. No case had been assigned, so nothing was grandfathered.
+- Commit `b723f000bccff18d49efca64a4d6ece92e2b5dd2` repaired those defects in v3 while preserving
+  the accepted review panel, label-before-detector ordering, identity/context independence, and
+  zero authority. The historical v2 freeze remains immutable but is not current.
+- The replacement precase manifest at
+  `evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-v3-precase/FREEZE_MANIFEST.json`
+  binds the repaired evidence contract, direct lane, exact detector/check/adapter/binding,
+  deterministic comparator, review protocol, and twice-reproduced evaluation wheel. Its digest is
+  `sha256:2526c7d710705bc8705ffc8dbc062f233c5555f8e9445d1ffea23c50a68a14d6`.
+- Verification passed 1,894 repository tests, Ruff check and format, mypy for 122 production and 42
+  evaluation source files, 79 public schema examples, all 147 regression cases and 31 module
+  baselines, deterministic wheel reproduction, and the complete handoff verifier.
+- No case, label, detector outcome, threshold, promotion, or production Finding was created; the
+  honest qualification and production scores remain 0/10.
+
+### 2026-08-04 — First direct lane assignments frozen and held-out sealed
+
+- A pre-exposure replay found that the first lane's author system prompt mentioned a README while
+  the frozen selected-result grammar permits only the exact input, Python producer, and selected
+  report roles. That lane was superseded with zero participant authentications, brief exposures,
+  authored cases, labels, or outcomes; its bytes and supersession record remain retained.
+- The replacement exact enrollment freezes 12 author contexts, a 2+2 cross-provider Stage-1 panel,
+  a fresh 1+1 cross-provider Stage-2 panel, one deterministic evidence validator, and one
+  label-blind detector implementer. Its digest is
+  `sha256:c29bdc3c277b840c2bf9b4369f69181190663530467926ccfdfb24407eff0016`;
+  all configurations remain declared-not-authenticated and the six reviewers remain calibration-
+  gated.
+- The authoring manifest freezes fourteen opaque author-visible briefs after a finite literal and
+  field leakage screen. It contains no controller cell/block role, recognizer identity, expected
+  answer, prior label, or detector output. Its digest is
+  `sha256:7133cb96256ab17a7eff58efa4d2b9a97dc9c2addac575a3ec03b830c869ec8e`.
+- The lane freeze binds every brief to one no-replacement assignment, reuses the accepted
+  prospective protocol, and seals the seven assigned held-out identities with author access
+  withheld until an approved pilot threshold. Its digest is
+  `sha256:c58ee57c01d5f7c46855eb9f554d0a476f664e44edbdd7e15679bd53d72fa12b`.
+- Exact rebuild and replay tests confirm the 14-cell matrix, participant isolation, configuration
+  digests, brief blindness, held-out seal, and zero authority. All 1,904 repository tests, Ruff,
+  production and evaluation mypy, and starter validation pass; the one wheel smoke that initially
+  encountered an unwritable user cache passed with the project-local uv cache. No author session,
+  reviewer session, scientific label, detector outcome, metric, qualification, promotion, or
+  Finding exists. The `Frozen` matrix cell remains unchecked until the authored case contracts and
+  complete pre-label evidence are frozen; scores remain 0/10.
+
 ## Evidence log
 
 | Date | Change | Evidence | Checkboxes changed |
@@ -427,3 +482,5 @@ perform unrelated capability expansion before the first lane is frozen.
 | 2026-08-04 | Replaced the non-normative verifier meta-study with lean direct envelope qualification while retaining every accepted scientific review and Finding gate. | Experiment 0056; accepted-spec/ADR/schema audit; 178 focused tests. | No qualification, promotion, or product cell changed; score remains 0/10. |
 | 2026-08-04 | Closed the first envelope's generic controls and verified its independent development style plus exact static selected-result scope. | `evaluation/development-controls/complete-domain-exposure-v1.1.0/MANIFEST.json`; 14 focused tests; 1,865 full tests; complete handoff verifier; reproducible wheel digest `9af1306585d973fde9646de4618253f3367cd1a8d9e15f9ea44c3e3d7fbf7e29`. | First-envelope `Independent` and six applicable Gate 1 control/readiness items checked; qualification, promotion, product, and production score remain 0/10. |
 | 2026-08-04 | Froze the first envelope's exact detector/binding/comparator/evidence tuple before case authoring. | Source commit `f6d5adb6d6314f58fa2ea9a09e721015732ed2c4`; freeze digest `sha256:55a515535246aa1a4d1c091ed020e8a087b78552b727ee947439b26a01142ae8`; two replay tests. | Gate 1 comparator freeze and first four Gate 2 tuple-freeze items checked; `Frozen`, qualification, promotion, and product cells remain unchecked. |
+| 2026-08-04 | Repaired the evaluation-private evidence contract before assignment and superseded the zero-case v2 tuple with an exact v3 replacement. | Commit `b723f000bccff18d49efca64a4d6ece92e2b5dd2`; replacement freeze digest `sha256:2526c7d710705bc8705ffc8dbc062f233c5555f8e9445d1ffea23c50a68a14d6`; 1,894 full tests and complete handoff verifier. | Current first-envelope tuple items remain checked; no qualification, promotion, product, or score change. |
+| 2026-08-04 | Froze the exact first-envelope participant configurations, blind author briefs, fourteen no-replacement assignments, and seven-case held-out seal; superseded one unexposed prompt-conflicted lane before use. | Replacement enrollment digest `sha256:c29bdc3c277b840c2bf9b4369f69181190663530467926ccfdfb24407eff0016`; brief digest `sha256:7133cb96256ab17a7eff58efa4d2b9a97dc9c2addac575a3ec03b830c869ec8e`; lane digest `sha256:c58ee57c01d5f7c46855eb9f554d0a476f664e44edbdd7e15679bd53d72fa12b`; zero-exposure supersession digest `sha256:b4035359abb43bc83850751ca5cc05f513754e4b50c61fe73998536b39e81ea1`. | Five first-envelope Gate 2 freeze/seal items checked; participant authentication, `Frozen`, qualification, promotion, product, and scores remain incomplete. |
