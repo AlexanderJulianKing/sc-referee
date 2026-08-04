@@ -57,7 +57,13 @@ _LABEL_STATUSES = {
     "unsupported",
     "unavailable",
 }
-_DETECTOR_OBSERVATIONS = {"finding", "no_finding", "unavailable"}
+_DETECTOR_OBSERVATIONS = {
+    "evaluation_finding_candidate",
+    "no_issue_detected_within_coverage",
+    "insufficient_semantics",
+    "unsupported_path",
+    "unavailable",
+}
 _RETENTION_DISPOSITIONS = {
     "retained_complete",
     "retained_contaminated",

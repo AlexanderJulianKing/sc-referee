@@ -1,0 +1,328 @@
+{
+  "artifact_kind": "prospective_qualification_authoring_brief_template",
+  "template_id": "authoring-brief-template:ten-generic-relations-v1",
+  "template_version": "1.0.0",
+  "purpose": "Coordinator template for materializing one benchmark-blind author packet per opaque prospective assignment.",
+  "authority_statement": "Each governed method is a human-chosen premise for the authored study case, not a claim that the method is universally preferable.",
+  "author_visibility": {
+    "packet_fields": [
+      "opaque_case_id",
+      "block_neutral_assignment_token",
+      "one_relation_brief",
+      "one_cell_brief",
+      "neutral_repository_deliverables",
+      "submission_deadline"
+    ],
+    "withheld_material": [
+      "detector source code, recognizer mechanics, matching expressions, and implementation identifiers",
+      "public or private benchmark names, task identities, repositories, and source cases",
+      "pilot and held-out case material authored by other participants",
+      "prior detector observations, review decisions, adjudicated labels, thresholds, and scores",
+      "the desired detector response or the adjudication answer for the assigned case"
+    ],
+    "packet_isolation": "Materialize only the assigned relation brief and assigned cell brief. Do not give an author this coordinator template or another assignment's packet."
+  },
+  "neutral_repository_deliverables": [
+    "a small, internally coherent scientific-analysis repository",
+    "a selected human-readable report that states which method governs the primary target",
+    "statically inspectable source that declares the same governing method when the cell permits inspection",
+    "a short data dictionary or synthetic-input description sufficient to understand semantic roles",
+    "no copied benchmark text, detector-specific hints, or claims about what the referee should report",
+    "no requirement to execute the authored project"
+  ],
+  "study_blocks": [
+    {
+      "block_role": "threshold_pilot",
+      "author_access_rule": "Authors may see only their assigned pilot packet and any paired case explicitly permitted by its cell brief."
+    },
+    {
+      "block_role": "qualification_heldout",
+      "author_access_rule": "Held-out authors must not see pilot cases, pilot reviews, thresholds, detector observations, or another held-out assignment."
+    }
+  ],
+  "cell_briefs": [
+    {
+      "cell_type": "error_bearing",
+      "display_name": "Designed method conflict",
+      "author_task": "Create a coherent primary workflow whose selected report and inspectable source both use the contrasting construction on the exact target governed by the assigned premise.",
+      "must_include": [
+        "one unambiguous primary target",
+        "one governing human premise supplied in the relation brief",
+        "a report and source declaration that agree with each other",
+        "enough semantic context to bind the declared operation to that primary target"
+      ],
+      "must_avoid": [
+        "an amendment, approved deviation, sensitivity-only scope, or alternate primary target that resolves the conflict",
+        "instructions about the desired review label or detector response",
+        "surface wording copied from another study case"
+      ],
+      "paired_case_access": "none"
+    },
+    {
+      "cell_type": "corrected_twin",
+      "display_name": "Single-relation corrected twin",
+      "author_task": "Starting from the assigned error-bearing reference, change only the governed method relation so the primary target follows the supplied premise; retain all unrelated content and structure.",
+      "must_include": [
+        "the same author as the referenced error-bearing case",
+        "the same primary target, inputs, repository layout, prose style, and unrelated methods",
+        "matching report and source declarations after the one semantic correction",
+        "a private coordinator change note identifying only the altered semantic relation"
+      ],
+      "must_avoid": [
+        "rewriting the project broadly",
+        "removing the governed analysis",
+        "adding a waiver instead of changing the method",
+        "mentioning a desired review label or detector response in the repository"
+      ],
+      "paired_case_access": "the referenced error-bearing case only"
+    },
+    {
+      "cell_type": "valid_alternative",
+      "display_name": "Scoped valid alternative",
+      "author_task": "Create a workflow in which the primary governed target follows the supplied premise while the contrasting construction is legitimately used outside that scope, such as a clearly labeled sensitivity analysis, a different target, or an explicit pre-authorized exception.",
+      "must_include": [
+        "an exact boundary between the governed primary target and the alternate context",
+        "a report and source that agree about which context is primary",
+        "a substantive use of the contrasting construction rather than a token mention"
+      ],
+      "must_avoid": [
+        "a vague exception that could govern the primary target",
+        "silently changing the supplied premise",
+        "stating the expected review result"
+      ],
+      "paired_case_access": "none"
+    },
+    {
+      "cell_type": "hard_negative",
+      "display_name": "Near-language negative",
+      "author_task": "Create a primary workflow that follows the supplied premise while naturally discussing the contrasting construction as rejected, hypothetical, historical, or bound to an unrelated object.",
+      "must_include": [
+        "substantial terminology shared by both constructions",
+        "an unambiguous statement of the primary governing method",
+        "scope or discourse cues that distinguish use from rejection, discussion, or unrelated use"
+      ],
+      "must_avoid": [
+        "a trivial project containing only a negated keyword sentence",
+        "an unresolved contradiction between report and source",
+        "any reference to detector matching behavior"
+      ],
+      "paired_case_access": "none"
+    },
+    {
+      "cell_type": "ambiguous",
+      "display_name": "Genuinely indeterminate method",
+      "author_task": "Create a plausible workflow for which available report and source evidence does not establish which construction governs the exact primary target.",
+      "must_include": [
+        "a real analysis target and enough surrounding context to make both interpretations plausible",
+        "a specific missing relation such as operation order, target binding, primary-versus-sensitivity scope, or representation identity",
+        "no hidden coordinator note inside the repository that resolves the ambiguity"
+      ],
+      "must_avoid": [
+        "empty files or arbitrary truncation",
+        "mutually consistent declarations that actually settle the method",
+        "a desired adjudication label or detector response"
+      ],
+      "paired_case_access": "none"
+    },
+    {
+      "cell_type": "unsupported",
+      "display_name": "Locally unsupported evidence form",
+      "author_task": "Create a coherent workflow in which the governed method relation is material but cannot be established by conservative static inspection because the decisive construction is unavailable, opaque, dynamically assembled, or expressed in an unsupported source form.",
+      "must_include": [
+        "a localized reason the governing relation cannot be checked",
+        "ordinary inspectable context around the unsupported boundary",
+        "a selected report that does not falsely resolve what the unavailable source leaves unknown"
+      ],
+      "must_avoid": [
+        "malicious, destructive, or credential-dependent behavior",
+        "making the entire repository unreadable when only the target relation needs to be unsupported",
+        "asking the referee to execute project-authored code"
+      ],
+      "paired_case_access": "none"
+    },
+    {
+      "cell_type": "renamed_implementation",
+      "display_name": "Independently rewritten implementation",
+      "author_task": "Independently create a second coherent primary workflow that instantiates the same semantic contrast as the assigned relation without viewing the referenced error-bearing case.",
+      "must_include": [
+        "an author and execution context distinct from the referenced error-bearing case",
+        "a materially different domain story or measurement setting",
+        "different terminology, variable names, file layout, prose organization, and code structure",
+        "the same abstract governed relation and contrasting construction on one unambiguous primary target"
+      ],
+      "must_avoid": [
+        "access to the referenced case, its digest-resolving contents, or a summary of its surface form",
+        "mere synonym replacement or filename changes",
+        "copying a public task, development fixture, or another authored case",
+        "any mention of an expected review label or detector response"
+      ],
+      "paired_case_access": "private protocol reference only; the author receives no paired-case content"
+    }
+  ],
+  "relation_briefs": [
+    {
+      "blind_envelope_id": "blind-relation:01",
+      "display_name": "Orientation repair before state-model emissions",
+      "governed_premise": "For this case's primary state-model analysis, the inherited binary founder-state orientation must be checked and repaired against the declared reference orientation before emission probabilities are constructed.",
+      "contrasting_construction": "Use the supplied founder-state orientation directly in the primary emission calculation without the required pre-emission repair.",
+      "semantic_roles": [
+        "supplied founder-state values",
+        "reference orientation",
+        "orientation-repair operation",
+        "state-model emission calculation",
+        "primary result"
+      ],
+      "relation_that_must_be_clear_when_supported": "Whether orientation repair occurs before the emission calculation that produces the selected primary result.",
+      "generalization_guidance": "The author may choose any plausible inheritance, lineage, or latent-state setting; do not reuse a named source task or existing repository."
+    },
+    {
+      "blind_envelope_id": "blind-relation:02",
+      "display_name": "Directional measurement-error decomposition",
+      "governed_premise": "For this case's primary observation model, a supplied average of two directional error rates must be decomposed into separate forward and reverse rates using an independently supplied directional constraint.",
+      "contrasting_construction": "Assign the reported average as one symmetric error rate in both directions in the primary observation model.",
+      "semantic_roles": [
+        "reported average error summary",
+        "independent directional constraint",
+        "forward error rate",
+        "reverse error rate",
+        "primary likelihood or emission model"
+      ],
+      "relation_that_must_be_clear_when_supported": "Whether the primary model uses two constraint-derived directional rates or one symmetric rate copied from the average.",
+      "generalization_guidance": "Use any two-way classification, sensor, or state-observation setting in which the two directions have distinct scientific meanings."
+    },
+    {
+      "blind_envelope_id": "blind-relation:03",
+      "display_name": "Cellwise misclassification correction before standardization",
+      "governed_premise": "For this case's primary population estimate, jointly feasible class probabilities must be estimated within every declared population cell using the misclassification mapping, and those corrected cell estimates must then be standardized with target-population weights.",
+      "contrasting_construction": "First standardize or pool the observed class distributions across cells, then apply one joint misclassification correction to the aggregate.",
+      "semantic_roles": [
+        "mutually exclusive observed classes",
+        "misclassification mapping",
+        "population cells",
+        "within-cell probability constraints",
+        "target-population weights"
+      ],
+      "relation_that_must_be_clear_when_supported": "Whether correction is performed inside each population cell before weighting, or only after observed cell distributions have been combined.",
+      "generalization_guidance": "The cells may be districts, sampling strata, device groups, clinics, survey waves, or another substantive target-population partition."
+    },
+    {
+      "blind_envelope_id": "blind-relation:04",
+      "display_name": "Model-predicted expected-count background",
+      "governed_premise": "For this case's primary enrichment or ratio calculation, the expected count for the focal target must be a prediction from the declared negative-binomial background model rather than a direct average of other observations in the same stratum.",
+      "contrasting_construction": "Use a same-stratum arithmetic mean as the focal target's primary expected count.",
+      "semantic_roles": [
+        "focal observed count",
+        "background observations",
+        "stratum definition",
+        "negative-binomial background model",
+        "predicted expected count",
+        "primary derived result"
+      ],
+      "relation_that_must_be_clear_when_supported": "Whether the selected primary expected count is a model prediction or the arithmetic mean of the same-stratum observations.",
+      "generalization_guidance": "Use any overdispersed count setting with a focal item and a structured background; the premise is case-specific and does not assert that one estimator is universally superior."
+    },
+    {
+      "blind_envelope_id": "blind-relation:05",
+      "display_name": "Recovered technical group in the primary adjustment set",
+      "governed_premise": "For this case's primary association model, a technical group recoverable from the declared proxy and grouping rule must be included as a categorical adjustment variable.",
+      "contrasting_construction": "Recover or describe evidence for the technical grouping but omit it from the primary association adjustment set, or decline to reconstruct it despite the supplied rule.",
+      "semantic_roles": [
+        "technical proxy signal",
+        "unit-level technical summary",
+        "declared grouping rule",
+        "recovered group membership",
+        "primary association adjustment set"
+      ],
+      "relation_that_must_be_clear_when_supported": "Whether the recovered technical group is actually included in the model that produces the selected primary association result.",
+      "generalization_guidance": "The proxy may arise from controls, contamination estimates, calibration samples, machine batches, or another non-substantive technical signal."
+    },
+    {
+      "blind_envelope_id": "blind-relation:06",
+      "display_name": "Two-phase conditional instrument construction",
+      "governed_premise": "For this case's primary multivariable instrumental-variable analysis, phase one must select the union of conditionally distinct signals across exposures, and phase two must use matching jointly estimated exposure and outcome coefficients for those retained signals.",
+      "contrasting_construction": "Select the phase-one union from marginal associations and use marginal exposure and outcome coefficients in phase two.",
+      "semantic_roles": [
+        "phase-one exposure screen",
+        "dependence-aware conditional signal definition",
+        "union of retained instruments",
+        "independent phase-two data",
+        "joint exposure coefficients",
+        "joint outcome coefficients"
+      ],
+      "relation_that_must_be_clear_when_supported": "Whether both instrument selection and phase-two coefficient representation follow the conditional/joint construction rather than the marginal construction.",
+      "generalization_guidance": "Use a fresh two-phase multivariable instrument setting with correlated candidate signals; do not borrow variable names or narrative structure from an existing case."
+    },
+    {
+      "blind_envelope_id": "blind-relation:07",
+      "display_name": "Direct continuous calibrated dosage",
+      "governed_premise": "For this case's primary downstream model, the quantitative exposure must be the direct continuous prediction from the declared calibration model, retaining the continuous measurement scale.",
+      "contrasting_construction": "Use a classifier-derived hard category, rounded state, or posterior expected category count as the quantitative exposure in the primary downstream model.",
+      "semantic_roles": [
+        "calibration measurements",
+        "direct continuous calibration model",
+        "classifier or rounded state",
+        "quantitative dosage",
+        "primary downstream exposure"
+      ],
+      "relation_that_must_be_clear_when_supported": "Which representation enters the selected primary downstream model: a direct continuous calibrated prediction or a value derived from discrete class states.",
+      "generalization_guidance": "The calibrated quantity may be copy dosage or another ordered abundance with discrete reference labels and a retained continuous signal."
+    },
+    {
+      "blind_envelope_id": "blind-relation:08",
+      "display_name": "Adjusted clonal-fraction eligibility",
+      "governed_premise": "For this case's primary somatic target population, eligibility must be determined by the declared purity- and local-copy-adjusted clonal-fraction window.",
+      "contrasting_construction": "Use a raw variant-signal threshold together with a direct local copy-number ceiling as the primary eligibility gate, without applying the required adjusted clonal-fraction window.",
+      "semantic_roles": [
+        "somatic variant signal",
+        "sample purity",
+        "local copy state",
+        "adjusted clonal fraction",
+        "eligibility window",
+        "primary target population"
+      ],
+      "relation_that_must_be_clear_when_supported": "Whether target eligibility is governed by the adjusted clonal-fraction window or by direct raw-signal and local-copy thresholds.",
+      "generalization_guidance": "Choose a new somatic-analysis story and thresholds; the packet supplies the representation relation, not universal biological cutoffs."
+    },
+    {
+      "blind_envelope_id": "blind-relation:09",
+      "display_name": "Joint local-target regression with guide nuisance terms",
+      "governed_premise": "For this case's primary local perturbation effect, all measured target axes must be fit jointly in one regression with the declared observed guide-level nuisance terms.",
+      "contrasting_construction": "Subtract an externally estimated contribution for one target before fitting, then regress the residualized outcome on only the remaining target axis without the required joint nuisance-adjusted specification.",
+      "semantic_roles": [
+        "local perturbation outcome",
+        "multiple measured target axes",
+        "guide-level nuisance variables",
+        "external target contribution",
+        "primary local-effect regression"
+      ],
+      "relation_that_must_be_clear_when_supported": "Whether measured target axes and guide nuisance terms are estimated together in the primary model or one contribution is removed before a reduced fit.",
+      "generalization_guidance": "Use a new perturbation, intervention, or multi-target assay story with genuine observed nuisance variables rather than reproducing an existing analysis."
+    },
+    {
+      "blind_envelope_id": "blind-relation:10",
+      "display_name": "Full-map exposure in a transition-time estimate",
+      "governed_premise": "For this case's primary transition-time estimate, the exposure denominator must use the complete declared chromosome or sequence map, including map intervals without retained high-confidence state calls.",
+      "contrasting_construction": "Use only the summed length of retained or confidently called state tracts as the primary exposure denominator.",
+      "semantic_roles": [
+        "state-transition count",
+        "retained called tracts",
+        "uncalled or filtered intervals",
+        "complete map length",
+        "transition-time exposure denominator",
+        "primary timing estimate"
+      ],
+      "relation_that_must_be_clear_when_supported": "Whether the primary denominator is the complete map exposure or only the retained called-tract exposure.",
+      "generalization_guidance": "The setting may use chromosome maps or another mapped sequence with gaps, provided the full-versus-retained exposure distinction remains scientifically coherent."
+    }
+  ],
+  "matrix_contract": {
+    "relation_count": 10,
+    "cell_types_per_relation_per_block": 7,
+    "block_count": 2,
+    "total_assignments_after_protocol_freeze": 140,
+    "construction_rule": "For each block, create one newly authored case for every relation-by-cell combination. Retain every assigned outcome without replacement.",
+    "evidence_status": "This template and any unreviewed authored case are study materials only, not independent labels, qualification evidence, detector validation, promotion authority, or Findings."
+  },
+  "qualification_authority": "none_template_only",
+  "template_digest": "sha256:61d59c337c39a09e33cf6c40f7e9d6888354cb8b48501d27410148fa6bfa16f4"
+}

@@ -55,7 +55,7 @@
         "author_authentication_status": {"enum": ["externally_verified", "unverified"]},
         "review_authentication_status": {"enum": ["externally_verified", "unverified"]},
         "scientific_label": {"enum": ["issue_present", "issue_absent", "indeterminate", "unsupported", "unavailable"]},
-        "detector_observation": {"enum": ["finding", "no_finding", "unavailable"]},
+        "detector_observation": {"enum": ["evaluation_finding_candidate", "no_issue_detected_within_coverage", "insufficient_semantics", "unsupported_path", "unavailable"]},
         "label_frozen_at": {"type": "string", "format": "date-time"},
         "completed_at": {"type": "string", "format": "date-time"},
         "artifact_digests": {

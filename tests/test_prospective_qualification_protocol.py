@@ -172,7 +172,19 @@ def _outcomes(
                 "author_authentication_status": "externally_verified",
                 "review_authentication_status": "externally_verified",
                 "scientific_label": label,
-                "detector_observation": ("finding" if label == "issue_present" else "no_finding"),
+                "detector_observation": (
+                    "evaluation_finding_candidate"
+                    if label == "issue_present"
+                    else (
+                        "no_issue_detected_within_coverage"
+                        if label == "issue_absent"
+                        else (
+                            "insufficient_semantics"
+                            if label == "indeterminate"
+                            else "unsupported_path"
+                        )
+                    )
+                ),
                 "label_frozen_at": label_at,
                 "completed_at": completed_at,
                 "artifact_digests": {
@@ -211,8 +223,14 @@ def _threshold_decision(protocol: dict[str, Any]) -> dict[str, Any]:
         {
             "decision_id": "threshold-decision:ten-relations-v1",
             "metric_definitions": {
-                "sensitivity": "adjudicated issue-present cases with a finding",
-                "false_accusations": "adjudicated non-issue cases with a finding",
+                "sensitivity": (
+                    "adjudicated issue-present cases with an "
+                    "evaluation_finding_candidate detector state"
+                ),
+                "false_accusations": (
+                    "adjudicated non-issue cases with an "
+                    "evaluation_finding_candidate detector state"
+                ),
             },
             "promotion_thresholds": {
                 "minimum_sensitivity": 0.9,

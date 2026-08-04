@@ -1,7 +1,7 @@
 # Experiment 0051: Prospective ten-envelope qualification protocol
 
-- **Status:** Evaluation infrastructure implemented; no qualification cases have been assigned or
-  labeled
+- **Status:** Evaluation infrastructure implemented; this repository contains no qualification
+  case labels or outcomes
 - **Date:** 2026-08-03
 - **Related decisions:** ADR-0042, ADR-0056, ADR-0060, ADR-0061
 - **Production impact:** None; the production package does not import this evaluation module
@@ -70,12 +70,53 @@ The canonical artifact shapes are published as evaluation-private JSON Schemas u
 `evaluation/prospective-qualification-v1/`. Python validation additionally enforces chronology,
 cross-record references, complete matrix coverage, role isolation, and digest replay.
 
+The standalone scaffold builder freezes actual assignments only after it is given both the
+coordinator envelope template and the independently self-digested benchmark-blind authoring
+template:
+
+```text
+python scripts/build_prospective_study_scaffold.py \
+  --template evaluation/prospective-qualification-v1/ten-envelope-study.template.json \
+  --authoring-template evaluation/prospective-qualification-v1/benchmark-blind-authoring-briefs.template.json \
+  --setup /path/to/private-study-setup.json \
+  --output-root /new/write-once/study-package
+```
+
+The builder retains check IDs, candidate IDs, binding digests, block roles, and the blind-to-
+coordinator relation map only in coordinator artifacts. Author queues contain block-neutral opaque
+tokens, one relation premise, one construction brief, neutral deliverables, and an opaque
+submission channel. The script never authors a case, runs the detector, creates a label, or opens a
+held-out queue.
+
+Before an author implements a case, the coordinator can compile the frozen assignment into one
+claimless method-contract input shell per case:
+
+```text
+python scripts/build_prospective_method_contract_inputs.py \
+  --protocol /study/coordinator/protocol.json \
+  --relation-binding-map /study/coordinator/relation-binding-map.json \
+  --authoring-briefs-root /study/coordinator/authoring-briefs \
+  --block-id block:opaque-a \
+  --scientist-id scientist:stable-id \
+  --output-root /new/write-once/contract-inputs
+```
+
+The builder replays the protocol, mapping, and brief digests; requires the complete 10 × 7 block
+matrix; emits the exact registered check/candidate profile plus the human-authorized premise; and
+makes both inputs read-only. It refuses held-out preparation by default. It does not run
+`method-contract`, author project material, execute case code, release packets, create labels, or
+grant qualification authority.
+
 ## Verification
 
 Focused tests cover:
 
 - the complete 10 × 2 × 7 matrix (140 prospectively assigned cases);
 - exact registry and candidate binding of the ten-envelope template;
+- author-queue exclusion of coordinator identifiers and block roles;
+- content-addressed binding between the coordinator and benchmark-blind templates;
+- deterministic create-once method-contract inputs for all 70 cases in a selected block;
+- digest replay, read-only task/profile inputs, and default refusal of held-out preparation;
 - opaque case identities and corrected/renamed pair constraints;
 - development/public-source exclusion from pilot and held-out blocks;
 - author/reviewer/context isolation and cross-provider review panels;
