@@ -13,6 +13,11 @@ from dataclasses import asdict, dataclass, replace
 from pathlib import Path, PurePosixPath
 from typing import Literal
 
+from sc_referee_evaluation.selected_result_qualification_io import (
+    QualificationIOError,
+    RootedReader,
+)
+
 OracleState = Literal["V", "A", "I", "U"]
 
 CERTIFICATE_VERSION = "selected-result-qualification-certificate-v1"
@@ -120,23 +125,29 @@ def verify_construction_certificate(
     if certificate.certificate_digest != expected_digest:
         raise QualificationOracleError("Construction certificate digest does not replay.")
 
-    root = case_root.absolute()
-    if case_root.is_symlink() or not root.is_dir():
-        raise QualificationOracleError("Case root must be an existing, non-symlink directory.")
+    try:
+        with RootedReader(case_root) as reader:
+            case_tree = reader.read_case_tree(
+                max_files=MAX_FILES,
+                max_file_bytes=MAX_TOTAL_BYTES,
+                max_total_bytes=MAX_TOTAL_BYTES,
+            )
+    except QualificationIOError as error:
+        if "symbolic links" in str(error):
+            raise QualificationOracleError("Symlinks are unsupported in case inventory.") from error
+        raise QualificationOracleError(
+            "Case tree could not be read as one immutable descriptor-rooted inventory."
+        ) from error
 
-    observed_paths = _inventory_paths(root)
+    observed_paths = case_tree.paths
     expected_paths = tuple(item.path for item in certificate.files)
     if observed_paths != expected_paths:
         raise QualificationOracleError("Case file inventory differs from the certificate.")
 
     payloads: dict[str, bytes] = {}
     inventory_records: list[dict[str, object]] = []
-    total_bytes = 0
     for file_certificate in certificate.files:
-        payload = (root / file_certificate.path).read_bytes()
-        total_bytes += len(payload)
-        if total_bytes > MAX_TOTAL_BYTES:
-            raise QualificationOracleError("Case byte inventory exceeds the oracle ceiling.")
+        payload = case_tree.read_bytes(file_certificate.path)
         actual_digest = _sha256(payload)
         if len(payload) != file_certificate.size or actual_digest != file_certificate.sha256:
             raise QualificationOracleError(f"File identity differs for {file_certificate.path!r}.")
@@ -224,26 +235,6 @@ def _validate_certificate_shape(certificate: ConstructionCertificate) -> None:
         _binding_span_ids(certificate.positive_binding, span_ids)
     elif certificate.positive_binding is not None or not certificate.reason_codes:
         raise QualificationOracleError("States A, I, and U require reasons and forbid a binding.")
-
-
-def _inventory_paths(root: Path) -> tuple[str, ...]:
-    paths: list[str] = []
-    for child in root.rglob("*"):
-        relative = child.relative_to(root).as_posix()
-        if child.is_symlink():
-            raise QualificationOracleError(
-                f"Symlinks are unsupported in case inventory: {relative}"
-            )
-        if child.is_dir():
-            continue
-        if not child.is_file():
-            raise QualificationOracleError(
-                f"Non-regular filesystem entry is unsupported: {relative}"
-            )
-        paths.append(_relative_path(relative))
-        if len(paths) > MAX_FILES:
-            raise QualificationOracleError("Case file inventory exceeds the oracle ceiling.")
-    return tuple(sorted(paths))
 
 
 def _verified_binding(

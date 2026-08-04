@@ -1,0 +1,8 @@
+{
+  "case_id": "complete-domain-exposure-independent-style-1",
+  "development_only": true,
+  "metric_eligible": false,
+  "public_benchmark": false,
+  "selected_report_path": "selected_report.md",
+  "human_explanation": "Development-only synthetic acoustic-route workflow: the selected rate is labeled as covering all 80 planned transects while its denominator contains only the 60 retained observations and omits 20 missing or filtered transects."
+}

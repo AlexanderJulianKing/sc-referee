@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sc-referee.dev/schemas/selected-result-verifier-target-authorization-v1.0.0.json",
+  "title": "Selected-result verifier answer-blind target authorization v1.0.0",
+  "description": "The complete recursive input projection accepted by the isolated selected-result target worker. No case answer, construction declaration, or answer-side evidence field is admitted.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_kind",
+    "authorization_version",
+    "block",
+    "provider_slot",
+    "assignment_digest",
+    "runner_freeze_digest",
+    "release_gate_digest",
+    "target_identity",
+    "cases",
+    "case_count",
+    "case_replacement_permitted",
+    "qualification_authority",
+    "target_authorization_digest"
+  ],
+  "properties": {
+    "artifact_kind": {
+      "const": "selected_result_verifier_target_authorization"
+    },
+    "authorization_version": {
+      "const": "1.0.0"
+    },
+    "block": {
+      "enum": [
+        "pilot",
+        "held_out"
+      ]
+    },
+    "provider_slot": {
+      "enum": [
+        "provider-family-1",
+        "provider-family-2"
+      ]
+    },
+    "assignment_digest": {
+      "$ref": "#/$defs/sha256Digest"
+    },
+    "runner_freeze_digest": {
+      "$ref": "#/$defs/sha256Digest"
+    },
+    "release_gate_digest": {
+      "$ref": "#/$defs/sha256Digest"
+    },
+    "target_identity": {
+      "$ref": "#/$defs/targetIdentity"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 24,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/targetCase"
+      }
+    },
+    "case_count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 24
+    },
+    "case_replacement_permitted": {
+      "const": false
+    },
+    "qualification_authority": {
+      "const": "none_target_release_authorization_only"
+    },
+    "target_authorization_digest": {
+      "$ref": "#/$defs/sha256Digest"
+    }
+  },
+  "$defs": {
+    "singleLineText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^[^\\u0000\\r\\n]+$"
+    },
+    "sha256Digest": {
+      "type": "string",
+      "minLength": 71,
+      "maxLength": 71,
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "caseId": {
+      "type": "string",
+      "minLength": 25,
+      "maxLength": 25,
+      "pattern": "^case:[0-9a-f]{20}$"
+    },
+    "normalizedRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "^(?!/)(?!.*//)(?!.*\\\\)(?!.*(?:^|/)\\.\\.?(?:/|$))[^\\u0000\\r\\n]+$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "minLength": 20,
+      "maxLength": 27,
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{6})?Z$"
+    },
+    "targetIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "validator_id",
+        "provider",
+        "execution_context_id",
+        "identity_evidence_digest"
+      ],
+      "properties": {
+        "validator_id": {
+          "$ref": "#/$defs/singleLineText"
+        },
+        "provider": {
+          "$ref": "#/$defs/singleLineText"
+        },
+        "execution_context_id": {
+          "$ref": "#/$defs/singleLineText"
+        },
+        "identity_evidence_digest": {
+          "$ref": "#/$defs/sha256Digest"
+        }
+      }
+    },
+    "targetPacket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "profile_id",
+        "selected_report_path"
+      ],
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/caseId"
+        },
+        "profile_id": {
+          "const": "selected-result-profile:python-static-marked-report-v1"
+        },
+        "selected_report_path": {
+          "$ref": "#/$defs/normalizedRelativePath"
+        }
+      }
+    },
+    "targetCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "assignment_position",
+        "snapshot_path",
+        "snapshot_tree_digest",
+        "target_packet",
+        "derived_at",
+        "frozen_at"
+      ],
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/caseId"
+        },
+        "assignment_position": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 48
+        },
+        "snapshot_path": {
+          "$ref": "#/$defs/normalizedRelativePath"
+        },
+        "snapshot_tree_digest": {
+          "$ref": "#/$defs/sha256Digest"
+        },
+        "target_packet": {
+          "$ref": "#/$defs/targetPacket"
+        },
+        "derived_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "frozen_at": {
+          "$ref": "#/$defs/timestamp"
+        }
+      }
+    }
+  },
+  "x-recursively-forbidden-field-name-fragments": [
+    "answer",
+    "attestation",
+    "binding",
+    "certificate",
+    "construction",
+    "expected",
+    "gold",
+    "ground_truth",
+    "issue",
+    "label",
+    "oracle",
+    "outcome",
+    "positive",
+    "reason",
+    "reconciliation",
+    "semantic",
+    "state",
+    "author_declaration",
+    "u_cell"
+  ]
+}

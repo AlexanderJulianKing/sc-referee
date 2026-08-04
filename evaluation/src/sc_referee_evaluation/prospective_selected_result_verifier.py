@@ -565,7 +565,7 @@ def _derive_python_static_marked_report_bindings(
         raise _Unsupported("selected_result_candidate_ceiling_exceeded")
 
     source_paths = {source for writer in writers for source in writer.source_paths}
-    for source_path in source_paths:
+    for source_path in sorted(source_paths):
         source_payload = payloads[source_path]
         if (
             PurePosixPath(source_path).suffix.lower() not in _SOURCE_OPERAND_SUFFIXES
@@ -1488,6 +1488,8 @@ def _strict_python_source(payload: bytes, label: str) -> str:
         _PYTHON_ENCODING_COOKIE.match(line) for line in first_two_lines
     ):
         raise _Unsupported("unsupported_python_encoding_declaration")
+    if b"\r" in payload:
+        raise _Unsupported("non_lf_normalized_text_evidence")
     return _strict_text(payload, label)
 
 

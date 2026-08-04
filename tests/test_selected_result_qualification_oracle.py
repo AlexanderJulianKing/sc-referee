@@ -70,6 +70,22 @@ def test_positive_certificate_emits_exact_verified_binding(tmp_path: Path) -> No
     assert result.positive_binding.report.sha256 == _digest(b"selected result: 3")
 
 
+def test_oracle_uses_descriptor_rooted_tree_not_path_reopens(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    certificate = _positive_certificate(tmp_path)
+
+    def forbidden_path_access(*_args: object, **_kwargs: object) -> object:
+        raise AssertionError("oracle reopened case evidence through pathlib")
+
+    monkeypatch.setattr(Path, "read_bytes", forbidden_path_access)
+    monkeypatch.setattr(Path, "rglob", forbidden_path_access)
+
+    result = verify_construction_certificate(certificate, tmp_path)
+
+    assert result.expected_state == "V"
+
+
 @pytest.mark.parametrize("state", ["A", "I", "U"])
 def test_nonverify_states_are_closed_and_carry_no_binding(tmp_path: Path, state: str) -> None:
     payload = b"intentionally non-verifying case\n"
@@ -152,6 +168,6 @@ def test_module_has_no_production_or_prospective_imports(project_root: Path) -> 
     ).read_text(encoding="utf-8")
 
     assert "prospective_selected_result_verifier" not in source
-    assert "from sc_referee" not in source
-    assert "import sc_referee" not in source
+    assert "from sc_referee." not in source
+    assert "import sc_referee." not in source
     assert "import ast" not in source

@@ -4,8 +4,10 @@
 - **Created:** 2026-08-04
 - **Current production score:** 0 of 10 target envelopes may emit a production Finding
 - **Current qualification score:** 0 of 10 target envelopes independently qualified
-- **Current study state:** v2 contract and first finite selected-result verifier profile
-  implemented; verifier unqualified; 0 v2 cases assigned
+- **Current study state:** the over-scoped selected-result meta-qualification was stopped before
+  case authoring; lean direct detector qualification is active under Experiment 0056, with 0
+  metric-eligible cases authored, the first envelope's Gate 1 controls complete except for the
+  comparator/build freeze, and its 14-case lane not yet frozen
 - **Execution authority:** This document controls work sequencing and progress reporting. It does
   not itself change record meaning, detector authority, or Finding eligibility.
 
@@ -86,7 +88,8 @@ Durable development evidence at commit `0ecf460297c6ff794a2965f11056e089eb098b95
 - [x] Reports separate experimental outputs from production Findings.
 - [x] Current CLI, wheels, replay, and installed skill packaging pass development validation.
 - [x] The v2 evidence and canonical-label contract is implemented and tested.
-- [ ] An independent selected-result verifier is implemented, frozen, and qualified.
+- [x] A deterministic answer-isolated selected-result comparator is implemented and adversarially
+  tested; it has no independent scientific-label or Finding authority.
 - [ ] Exact v2 detector/check/adapter bytes and binding digests are frozen for qualification.
 - [ ] Authenticated v2 authors, reviewers, and evidence validators are enrolled.
 - [ ] Any v2 case is assigned, authored, reviewed, labeled, or evaluated.
@@ -113,7 +116,7 @@ above.
 | 7 | Hard or binned dosage used for a continuous target | `check:classifier-derived-copy-dosage-representation` | [x] | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | 8 | Raw eligibility used for an adjusted clonality target | `check:somatic-clonality-representation` | [x] | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
 | 9 | Reduced residualized fit used for a joint target | `check:local-perturbation-regression-specification` | [x] | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
-| 10 | Retained subset used for a complete-domain denominator | `check:complete-domain-exposure-denominator` | [x] | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] |
+| 10 | Retained subset used for a complete-domain denominator | `check:complete-domain-exposure-denominator` | [x] | [x] | [ ] | [ ] | [ ] | [ ] | [ ] |
 
 ### Matrix column definitions
 
@@ -129,65 +132,90 @@ above.
 - **Product:** Both CLI and installed skill emit the production Finding on the target and zero
   Findings on the complete acceptance-control family.
 
-## Gate 1 — Close local capability and anti-overfitting prerequisites
+## Execution order
+
+The gates below are applied envelope by envelope, beginning with
+`check:complete-domain-exposure-denominator`. This produces a real 1/10 result after one complete
+14-case lane instead of waiting for a non-normative 96-case verifier meta-study plus all 140 direct
+cases. Each later envelope repeats the same gates without changing a previously frozen tuple. The
+complete program still requires all 140 cases and every 10/10 exit item.
+
+The accepted scientific qualification panel remains four blind Stage-1 reviews across two
+providers plus two fresh cross-provider Stage-2 reviews per metric case. Cryptographic registrar
+chains, exhaustive installed-distribution locking, and fresh-filesystem relocation are not part of
+the delivery gate. Exact reviewer/model/context/prompt/tool/environment/transcript identity,
+blindness, frozen labels, hashes, deterministic replay, held-out safety gates, and narrow public
+claims remain mandatory.
+
+## Gate 1 — Close shared harness and current-envelope anti-overfitting prerequisites
 
 - [x] Reconcile the dirty local checkout, remote `main`, and this plan into one canonical working
   tree without losing unrelated work.
 - [x] Implement the independent selected-result verifier required by Experiment 0053.
-- [ ] Qualify and freeze that verifier before it supplies qualification evidence.
-- [ ] Complete file, variable, function, level, and identifier renaming controls for every claimed
-  envelope.
-- [ ] Complete row/column reordering and equivalent-encoding controls wherever applicable.
-- [ ] Complete wrapper, alias, conflicting-flow, and dynamic-dispatch controls wherever source
+- [ ] Freeze the deterministic selected-result comparator and build identity used only for
+  answer-isolated label/result comparison; do not give it scientific-label authority.
+- [x] Complete file, variable, function, level, and identifier renaming controls for the current
+  envelope before its assignments are authored; repeat before each later envelope freezes.
+- [x] Complete row/column reordering and equivalent-encoding controls wherever applicable to the
+  current envelope.
+- [x] Complete wrapper, alias, conflicting-flow, and dynamic-dispatch controls wherever source
   recognition is claimed.
-- [ ] Demonstrate at least one independently authored implementation style for every envelope.
-- [ ] Confirm every envelope has one exact selected-result scope and supported static producer path;
-  otherwise mark the case unsupported before assignment.
-- [ ] Run the complete regression, packaging, replay, and skill matrix after the final pre-study
+- [x] Demonstrate at least one independently authored implementation style for the current
+  envelope without using a metric-eligible case.
+- [x] Confirm the current envelope has one exact selected-result scope and supported static producer
+  path; otherwise mark the case unsupported before assignment.
+- [x] Run the complete regression, packaging, replay, and skill matrix after the final pre-study
   detector change.
 
-**Exit gate:** every `Independent` cell is checked and no known local capability defect remains.
+**Exit gate:** the current envelope's `Independent` cell is checked, the shared comparator/build is
+frozen, and no known local capability defect remains for that lane. Repeat for each later envelope.
 
-## Gate 2 — Freeze the v2 qualification study
+## Gate 2 — Freeze the current direct-qualification lane
 
-- [ ] Freeze the exact detector manifest and implementation bytes.
-- [ ] Freeze all ten exact check/candidate/adapter binding digests.
-- [ ] Freeze the independently qualified verifier identity and bytes.
+- [ ] Freeze the current envelope's exact detector manifest and implementation bytes.
+- [ ] Freeze the current envelope's exact check/candidate/adapter binding digest.
+- [ ] Freeze the deterministic comparator/build identity and its finite supported grammar.
 - [ ] Freeze the canonical issue-class registry and selected-result evidence contract.
-- [ ] Enroll and authenticate mutually independent authors, Stage-1 reviewers, Stage-2 reviewers,
-  evidence validators, and detector implementers across the required providers.
+- [ ] Enroll exact mutually independent authors, four Stage-1 reviewers, two fresh Stage-2
+  reviewers, evidence validators, and detector implementers across the required providers; retain
+  accepted agent identity and transcript digests and disclose agent-only review.
 - [ ] Freeze benchmark-blind authoring briefs that expose no recognizer, expected answer, case role,
   block role, or prior detector output.
-- [ ] Freeze 140 opaque, no-replacement assignments: ten envelopes by seven cells by two blocks.
+- [ ] Freeze 14 opaque, no-replacement assignments for the current envelope and seal its held-out
+  seven before pilot labels; repeat for the other nine envelopes for a final total of 140.
 - [ ] Verify that no public, answer-visible, v1, or implementation-authored case is metric-eligible.
 - [ ] Seal the held-out block before any pilot label or detector outcome exists.
 
-**Exit gate:** every assignment and relevant byte is immutable and replayable, with zero scientific
-labels or detector outcomes yet available.
+**Exit gate:** all 14 assignments and relevant bytes for the current envelope are immutable and
+replayable, its held-out seven are sealed, and zero scientific labels or detector outcomes exist.
 
-## Gate 3 — Complete the 70-case threshold pilot
+## Gate 3 — Complete the current seven-case threshold pilot
 
-- [ ] Author and retain all 70 assigned pilot workflows without replacement.
+- [ ] Author and retain all seven assigned pilot workflows for the current envelope without
+  replacement; repeat to reach 70 across ten envelopes.
 - [ ] Freeze every selected-result declaration before scientific review.
 - [ ] Independently rederive every selected report, producer, operand path, and alternative producer
   from immutable case bytes.
-- [ ] Complete authenticated answer-blind Stage-1 review.
-- [ ] Complete fresh cross-provider Stage-2 review using canonical issue-class enums.
+- [ ] Complete four answer-blind Stage-1 reviews across two providers per case.
+- [ ] Complete two fresh cross-provider Stage-2 reviews per case using canonical issue-class enums.
 - [ ] Retain failures, withdrawals, contamination, disagreement, ambiguity, insufficiency, and
   unsupported cases in the outcome ledger.
 - [ ] Run the frozen detector on every pilot opportunity and replay every result.
 - [ ] Calculate per-envelope false-accusation, missed-error, precision, sensitivity, coverage, and
   abstention measures using the frozen opportunity denominators.
-- [ ] Accept or reject a numeric threshold proposal for each envelope.
-- [ ] Freeze the maintainer-approved threshold decision before opening held-out material.
+- [ ] Accept or reject a numeric threshold proposal for the current envelope through the required
+  pilot-informed ADR and a forward accepted schema capable of representing the decision.
+- [ ] Freeze the maintainer-approved threshold decision before opening this envelope's held-out
+  material.
 
 **Exit gate:** the complete pilot and threshold decision are immutable. Any detector logic change
 creates a new version and reopens the affected freeze and pilot items.
 
-## Gate 4 — Complete the 70-case held-out evaluation
+## Gate 4 — Complete the current sealed seven-case held-out evaluation
 
 - [ ] Open the sealed held-out block only after the threshold decision replays.
-- [ ] Author and retain all 70 assigned held-out workflows without replacement.
+- [ ] Author and retain all seven assigned held-out workflows for the current envelope without
+  replacement; repeat to reach 70 across ten envelopes.
 - [ ] Complete the same independent evidence validation and two-stage scientific review used for
   the pilot.
 - [ ] Run the unchanged frozen detector and replay every held-out opportunity.
@@ -195,10 +223,10 @@ creates a new version and reopens the affected freeze and pilot items.
 - [ ] Demonstrate zero known disqualifying high-severity false accusations.
 - [ ] Convert every discovered false accusation and missed error into a permanent regression case
   without changing the evaluated version.
-- [ ] Publish the qualification evidence and explicit limitations for every envelope.
+- [ ] Publish the qualification evidence and explicit limitations for the current envelope.
 
-**Exit gate:** every `Held-out` cell is checked, and each envelope has an immutable pass or fail
-decision under its predeclared threshold.
+**Exit gate:** the current envelope's `Held-out` cell is checked and it has an immutable pass or
+fail decision under its predeclared threshold. Repeat for each later envelope.
 
 ## Gate 5 — Promote exact envelopes
 
@@ -255,10 +283,17 @@ maintainer decision; there is no family-wide or portfolio-wide implied authority
 
 ## Immediate next unchecked item
 
-Independently qualify and freeze the exact selected-result verifier implementation and profile at
-commit `57f4e581ff424c8713fceb5926e521cc3c060fe6`. Then continue the remaining Gate 1 renaming,
-encoding, dynamic-dispatch, and independent-implementation controls. Do not assign v2 cases or
-perform unrelated capability expansion before Gate 1 is complete.
+Freeze the deterministic comparator/build identity to close Gate 1 for
+`check:complete-domain-exposure-denominator`, then freeze this envelope's exact detector,
+check/candidate/adapter binding, selected-result evidence contract, canonical issue-class entry,
+and fourteen opaque assignments under Experiment 0056 before any metric-eligible case is authored.
+Preserve the stopped Experiment 0055 machinery as non-qualifying development evidence, but perform
+no further cryptographic-registrar, distribution-`RECORD`, hostile-importer, separate 96-case
+verifier-study, or filesystem-relocation work.
+
+Do not reduce the accepted 4+2 scientific review panel, open held-out material before a
+pilot-informed threshold ADR, or bypass the forward-schema requirement for promotion. Do not
+perform unrelated capability expansion before the first lane is frozen.
 
 ## Evidence log
 
@@ -298,8 +333,78 @@ perform unrelated capability expansion before Gate 1 is complete.
 - No v2 case, label, threshold, qualification, promotion, CLI Finding, or installed-skill Finding
   was created. The honest program score remains 0/10.
 
+### 2026-08-04 — Qualification v1.0 invalidation and v1.1 no-go
+
+- Experiment 0054 was invalidated before target execution because its proposed oracle copied
+  semantic truth from the author certificate and its profile did not fully specify the target's
+  classification grammar.
+- Corrective Experiment 0055 added answer-blind v1.1 assignments and development-only security
+  scaffolding. No provider case, semantic attestation, target output, metric, or promotion from
+  that experiment is qualification evidence.
+- Independent adversarial review of the uncommitted v1.1 controller reproduced false registered-
+  reason acceptance from two fabricated attestations, acceptance of an evidence-free pilot pass,
+  acceptance of an ad-hoc under-specified runner freeze, and reviewer/target identity overlap.
+- The same review confirmed the exact-span, assignment/packet, import-firewall, and validation-
+  wrapper corrections, but classified the full v1.1 tuple as no-go pending the blockers in the
+  immediate-next-item section.
+- No checkbox changed. The honest qualification and production scores remain 0/10.
+
+### 2026-08-04 — Stop over-scoped verifier meta-qualification; begin direct qualification
+
+- A read-only audit of the accepted specification, ADRs, v0.18 schemas, and Milestone 0 build spec
+  found no requirement for Experiment 0055's separate 96-case verifier study, cryptographic
+  registrar, exhaustive installed-distribution locking, hostile local-importer defense, or two
+  fresh-filesystem-location replays.
+- The same audit confirmed the requirements that remain mandatory: the five-part Finding gate,
+  validated envelope maturity, four blind Stage-1 plus two fresh Stage-2 reviews per case,
+  label-before-detector ordering, pilot-informed thresholds, held-out safety gates, deterministic
+  replay, public qualification evidence, maintainer promotion, and narrow capability claims.
+- Experiment 0055 was stopped before any metric-eligible case existed. Its comparator and security
+  work remain non-qualifying development evidence. Experiment 0056 now qualifies each detector
+  directly, beginning with the complete-domain exposure-denominator envelope.
+- The interrupted development branch was restored to 178 passing selected-result qualification,
+  packaging, launcher, target-worker, and lazy-import tests before the change in study direction.
+- No qualification or production checkbox changed. The honest scores remain 0/10.
+
+### 2026-08-04 — First-envelope Gate 1 controls and regression closure
+
+- The complete-domain profile was widened generically from interval-like units to also recognize
+  transects, observations, samples, and sites, plus the ordinary exclusion wording “left out.” The
+  profile is now check/adapter version `1.1.0`; no filename, case ID, benchmark identity, numeric
+  answer, or source identifier enters its scientific grammar.
+- A detector-blind independent author produced the development-only acoustic-route workflow at
+  `evaluation/development-cases/complete-domain-exposure-independent-style-1`. It initially exposed
+  the generality gap and then passed unchanged after the generic grammar repair. Its manifest keeps
+  it ineligible for qualification metrics.
+- `evaluation/development-controls/complete-domain-exposure-v1.1.0/MANIFEST.json` records the
+  applicable renaming, prose-layout, source-identifier, control-family, independent-style, and
+  exact-selected-result axes. Row/column reordering and source wrapper/alias/dynamic-dispatch are
+  explicitly not applicable because this adapter claims only a selected Markdown prose relation;
+  source names and flow cannot provide scientific evidence.
+- A separate three-file development control replays as exactly one static selected result under
+  `selected-result-profile:python-static-marked-report-v1` without executing project code. The
+  independently authored acoustic workflow remains outside that narrow producer grammar and would
+  be classified unsupported if proposed as a metric case; it is evidence of detector style
+  independence, not of comparator coverage.
+- Exact current identities before the precase freeze are: check manifest
+  `sha256:ab5760d4bd5201bd7dc35ae80afa0ba563f89d761a849940190baa9b64970fba`, adapter manifest
+  `sha256:cbf4d745348c8ca733e22903cd2d6121fec9cc9112f92a253117c1e6753f1b50`, and method-conflict
+  binding `sha256:127306babb8127dc820ea2d3f322ca47e7da0af976ea771eb7ef10e445fcb4f5`.
+- Verification passed: 14 focused first-envelope tests; 1,865 repository tests; Ruff check and
+  format; mypy for 122 production and 41 evaluation source files; 79 public schema examples; all
+  147 retained regression cases and 31 module baselines; deterministic replay; production and
+  evaluation wheel build/install smoke; and the complete handoff verifier. A reproducible
+  evaluation-wheel build using `SOURCE_DATE_EPOCH=1785880000` produced identical independent
+  SHA-256 values
+  `9af1306585d973fde9646de4618253f3367cd1a8d9e15f9ea44c3e3d7fbf7e29`.
+- These are development and readiness results only. Zero metric-eligible cases, scientific labels,
+  thresholds, held-out outcomes, promotions, or production Findings exist; the honest score
+  remains 0/10.
+
 ## Evidence log
 
 | Date | Change | Evidence | Checkboxes changed |
 |---|---|---|---|
 | 2026-08-04 | Baseline plan created after correcting the distinction between development recognition and production delivery. | Commit `0ecf460297c6ff794a2965f11056e089eb098b95`; `GENERIC_REFEREE_CAPABILITY_REVAMP_PLAN.md`; Experiments 0052 and 0053; green CI run `30897659713`. | Development baseline only; qualification, promotion, and product cells remain unchecked. |
+| 2026-08-04 | Replaced the non-normative verifier meta-study with lean direct envelope qualification while retaining every accepted scientific review and Finding gate. | Experiment 0056; accepted-spec/ADR/schema audit; 178 focused tests. | No qualification, promotion, or product cell changed; score remains 0/10. |
+| 2026-08-04 | Closed the first envelope's generic controls and verified its independent development style plus exact static selected-result scope. | `evaluation/development-controls/complete-domain-exposure-v1.1.0/MANIFEST.json`; 14 focused tests; 1,865 full tests; complete handoff verifier; reproducible wheel digest `9af1306585d973fde9646de4618253f3367cd1a8d9e15f9ea44c3e3d7fbf7e29`. | First-envelope `Independent` and six applicable Gate 1 control/readiness items checked; qualification, promotion, product, and production score remain 0/10. |

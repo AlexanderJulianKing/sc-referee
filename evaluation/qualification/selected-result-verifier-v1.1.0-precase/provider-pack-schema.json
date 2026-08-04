@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sc-referee.dev/schemas/selected-result-verifier-provider-pack-v1.1.0.json",
+  "title": "Selected-result verifier provider pack v1.1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_kind",
+    "pack_version",
+    "block",
+    "provider_slot",
+    "provider_family",
+    "author_identity",
+    "assignment_manifest_digest",
+    "semantic_review_contract_digest",
+    "case_count",
+    "cases",
+    "state_counts",
+    "u_cell_counts",
+    "replacement_permitted",
+    "target_outputs_present",
+    "qualification_authority",
+    "manifest_self_digest"
+  ],
+  "properties": {
+    "artifact_kind": {
+      "const": "selected_result_verifier_provider_pack"
+    },
+    "pack_version": {
+      "const": "1.1.0"
+    },
+    "block": {
+      "enum": [
+        "pilot",
+        "held_out"
+      ]
+    },
+    "provider_slot": {
+      "enum": [
+        "provider-family-1",
+        "provider-family-2"
+      ]
+    },
+    "provider_family": {
+      "$ref": "#/$defs/nonempty"
+    },
+    "author_identity": {
+      "$ref": "#/$defs/identity"
+    },
+    "assignment_manifest_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "semantic_review_contract_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "case_count": {
+      "const": 24
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 24,
+      "maxItems": 24,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    },
+    "state_counts": {
+      "const": {
+        "V": 6,
+        "A": 4,
+        "I": 4,
+        "U": 10
+      }
+    },
+    "u_cell_counts": {
+      "const": {
+        "dynamic_or_opaque_structure": 2,
+        "role_or_source_artifact_boundary": 2,
+        "encoding_newline_or_runtime_boundary": 2,
+        "syntax_value_or_finite_budget_boundary": 2,
+          "mode_or_role_boundary": 2
+      }
+    },
+    "replacement_permitted": {
+      "const": false
+    },
+    "target_outputs_present": {
+      "const": false
+    },
+    "qualification_authority": {
+      "const": "none_provider_pack_only"
+    },
+    "manifest_self_digest": {
+      "$ref": "#/$defs/digest"
+    }
+  },
+  "$defs": {
+    "nonempty": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^\\r\\n]+$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rawDigest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actor_id",
+        "provider",
+        "execution_context_id",
+        "identity_evidence_digest"
+      ],
+      "properties": {
+        "actor_id": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "provider": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "execution_context_id": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "identity_evidence_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "fileRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "size_bytes"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "sha256": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "assignment_position",
+        "provider_slot",
+        "case_tree",
+        "selected_report_path",
+        "expected_state",
+        "reason_codes",
+        "u_cell",
+        "construction_family",
+        "construction_cluster",
+        "author_identity_evidence",
+        "certificate",
+        "case_contract",
+        "files"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^case:[0-9a-f]{20}$"
+        },
+        "assignment_position": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 48
+        },
+        "provider_slot": {
+          "enum": [
+            "provider-family-1",
+            "provider-family-2"
+          ]
+        },
+        "case_tree": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "selected_report_path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "expected_state": {
+          "enum": [
+            "V",
+            "A",
+            "I",
+            "U"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "$ref": "#/$defs/nonempty"
+          }
+        },
+        "u_cell": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "dynamic_or_opaque_structure",
+                "role_or_source_artifact_boundary",
+                "encoding_newline_or_runtime_boundary",
+                "syntax_value_or_finite_budget_boundary",
+                "mode_or_role_boundary"
+              ]
+            }
+          ]
+        },
+        "construction_family": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "construction_cluster": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "author_identity_evidence": {
+          "$ref": "#/$defs/fileRef"
+        },
+        "certificate": {
+          "$ref": "#/$defs/fileRef"
+        },
+        "case_contract": {
+          "$ref": "#/$defs/fileRef"
+        },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/fileRef"
+          }
+        }
+      }
+    }
+  }
+}

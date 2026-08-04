@@ -12,11 +12,19 @@ dependencies = [
   "sc-referee==0.3.0",
 ]
 
+[project.optional-dependencies]
+stopped-selected-result-v1-1 = ["cryptography>=41,<46"]
+
 [project.scripts]
 sc-referee-eval = "sc_referee_evaluation.cli:entrypoint"
+sc-referee-eval-selected-result = "sc_referee_evaluation.selected_result_qualification_runner:entrypoint"
+sc-referee-eval-selected-result-target-worker = "sc_referee_evaluation.selected_result_qualification_target_worker:entrypoint"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"sc_referee_evaluation.qualification_resources.selected_result_v1_1" = ["*.json", "*.txt"]
 
 [tool.mypy]
 python_version = "3.11"

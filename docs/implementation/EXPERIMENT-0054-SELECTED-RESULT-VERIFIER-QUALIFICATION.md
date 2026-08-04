@@ -1,7 +1,6 @@
 # Experiment 0054: Selected-result verifier qualification
 
-- **Status:** Pre-case target/oracle/protocol freeze complete; no qualification case assigned or
-  evaluated
+- **Status:** Invalidated before any oracle proof or target output; superseded by Experiment 0055
 - **Date:** 2026-08-04
 - **Governing boundary:** ADR-0022, ADR-0042, Experiment 0053
 - **Production impact:** None; this experiment is evaluation-private
@@ -14,6 +13,27 @@
 Can the exact `python-static-marked-report-v1` selected-result verifier be shown, by a separately
 implemented oracle and previously unseen cases, to reproduce the profile's closed selected-result
 state and exact binding without false completion?
+
+## Invalidation result
+
+No. The v1.0 study cannot answer its question. Independent adversarial review demonstrated that
+the so-called oracle verified case bytes and byte spans but copied semantic state and reason codes
+from the case author's construction certificate. A valid `V` workflow could therefore be
+re-certified as `U` with an invented reason. The comparison also reduced byte spans to line
+locators, did not bind the exact assignment and target packet, relied on caller-supplied chronology,
+imported the target through the package initializer during the oracle phase, and did not exercise
+the validation wrapper named in the frozen claim.
+
+A subsequent clean-room implementation attempt, restricted to this experiment and its frozen
+profile, independently confirmed a specification gap: those inputs name the grammar and budgets
+but do not normatively enumerate the reason taxonomy, complete semantic review contract, or exact
+binding convention. An implementer could only invent a conservative subset, not reproduce the
+claimed target surface independently.
+
+The defect was found before any oracle proof, target derivation, validation-wrapper output,
+comparison, pilot metric, or held-out opening existed. The v1.0 opaque assignments and the
+unexecuted provider-family-1 draft pack are retained as invalidation evidence and are ineligible for
+qualification metrics. They will not be relabeled, reused, or replaced inside this study version.
 
 ## Exact scope
 
@@ -140,7 +160,8 @@ These thresholds cannot be weakened after pilot results. A failing exact tuple r
 - [x] Pre-case freeze manifest binding target, oracle, profile, protocol, matrices, prompts, and
   pass rules.
 - [x] Opaque pilot and held-out assignment manifests frozen before case construction.
-- [x] Independent oracle implementation with import-firewall and mutation tests.
+- [ ] Independent semantic truth source with import-firewall and mutation tests. The committed
+  byte verifier is tooling only and does not satisfy this item.
 - [ ] Complete pilot case trees, construction certificates, oracle proofs, target outputs, and
   comparison records.
 - [ ] Pilot decision freezing the unchanged tuple before held-out opening.
@@ -177,6 +198,7 @@ positive byte-to-line bindings only after both inputs are frozen. The earlier
 `runner-freeze.json` v1.0.0 is retained but superseded before any oracle proof or target output
 because its controller imported the target module eagerly.
 
-No case, oracle proof, target output, metric, threshold result, or qualification decision exists
-yet. Existing unit tests and adversarial code review remain development evidence only. The target
-bytes and label-free assignments are frozen for the study, but the verifier is not yet qualified.
+No oracle proof, target output, metric, threshold result, or qualification decision exists. One
+provider-family-1 draft case pack was authored but never passed an independent semantic gate and
+never reached target execution. Existing unit tests and adversarial code review remain development
+evidence only. This exact study version is invalid and can never qualify the verifier.

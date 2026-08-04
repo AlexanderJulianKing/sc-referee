@@ -1,0 +1,408 @@
+{
+  "artifact_kind": "selected_result_verifier_semantic_review_contract",
+  "contract_version": "1.1.0",
+  "target_profile_id": "selected-result-profile:python-static-marked-report-v1",
+  "purpose": "target-independent semantic review of selected-result verifier qualification cases",
+  "closed_states": {
+    "V": "exactly one supported static selected-result binding exists",
+    "A": "more than one supported selected-result binding or interpretation exists",
+    "I": "the profile is applicable but one required retained artifact or exact equality is absent",
+    "U": "the retained workflow is outside the frozen grammar, role, encoding, runtime, filesystem, or finite-budget envelope"
+  },
+  "reason_codes_by_state": {
+    "V": [],
+    "A": [
+      "multiple_selected_result_bindings_rederived"
+    ],
+    "I": [
+      "selected_report_missing",
+      "selected_report_empty",
+      "selected_result_marker_missing",
+      "selected_report_writer_not_rederived",
+      "selected_report_source_operand_empty",
+      "selected_report_source_operand_not_rederived",
+      "selected_report_bytes_do_not_match_static_writer",
+      "selected_report_source_operand_missing",
+      "selected_report_subscript_out_of_range",
+      "static_numeric_conversion_failed"
+    ],
+    "U": [
+      "text_io_runtime_unsupported",
+      "unsupported_selected_report_role",
+      "selected_result_candidate_ceiling_exceeded",
+      "unsupported_non_python_source_artifact",
+      "python_source_absent",
+      "python_source_byte_ceiling_exceeded",
+      "python_source_parse_failed",
+      "python_ast_node_ceiling_exceeded",
+      "python_module_without_selected_report_writer",
+      "unsupported_source_operand_role",
+      "unclassified_case_artifact",
+      "unsupported_possible_report_writer",
+      "dynamic_or_unsupported_report_writer",
+      "unsupported_selected_report_writer_signature",
+      "conditional_or_nested_selected_report_writer",
+      "selected_report_writer_value_type_unsupported",
+      "selected_report_text_not_utf8_encodable",
+      "selected_report_self_dependency",
+      "opaque_or_unallowlisted_python_call",
+      "python_module_statement_ceiling_exceeded",
+      "non_straight_line_module_statement",
+      "unsupported_python_import_binding",
+      "reserved_python_binding_reassigned",
+      "static_value_byte_ceiling_exceeded",
+      "static_sequence_item_ceiling_exceeded",
+      "static_integer_bit_ceiling_exceeded",
+      "static_evaluation_step_ceiling_exceeded",
+      "unsupported_selected_report_dependency_flow",
+      "unsupported_formatted_selected_result",
+      "unsupported_selected_report_addition",
+      "unsupported_selected_report_subscript",
+      "unsupported_static_source_read",
+      "unsupported_selected_report_keyword_argument",
+      "unsupported_selected_report_method",
+      "unsupported_selected_report_call",
+      "unsupported_selected_report_expression",
+      "non_utf8_selected_result_evidence",
+      "unsupported_python_encoding_declaration",
+      "non_lf_normalized_text_evidence",
+      "non_ascii_text_evidence",
+      "selected_result_line_ceiling_exceeded"
+    ]
+  },
+  "outcome_namespaces": {
+    "certificate": {
+      "V": {"reason_codes": []},
+      "A": {"reason_source": "registered A reason"},
+      "I": {"reason_source": "registered I reason"},
+      "U": {"reason_source": "registered U reason"}
+    },
+    "blind_derivation": {
+      "V": {"status": "one_selected_result_rederived", "reason_codes": ["one_selected_result_binding_rederived"]},
+      "A": {"status": "ambiguous_selected_result", "reason_source": "registered A reason"},
+      "I": {"status": "insufficient_evidence", "reason_source": "registered I reason"},
+      "U": {"status": "unsupported_structure", "reason_source": "registered U reason"}
+    },
+    "validation_wrapper": {
+      "V": {"status": "verified_complete", "reason_codes": ["exact_independent_binding_match"]},
+      "A": {"status": "ambiguous_selected_result", "reason_source": "registered A reason"},
+      "I": {"status": "insufficient_evidence", "reason_source": "registered I reason"},
+      "U": {"status": "unsupported_structure", "reason_source": "registered U reason"}
+    },
+    "runner_failure": {
+      "status": "uncontrolled_failure",
+      "qualification_result": "fail",
+      "never_relabel_as": ["I", "U"]
+    }
+  },
+  "inventory_profile": {
+    "root": "one real non-symlink directory",
+    "allowed_entries": ["real directory", "regular file"],
+    "forbidden_entries": ["symbolic link", "socket", "fifo", "device", "other special file"],
+    "path_rule": "canonical nonempty relative POSIX path; not absolute; no empty, dot, or dot-dot component; PurePosixPath(path).as_posix() must equal the path",
+    "ordering": "Unicode lexical order by canonical relative path",
+    "mutation_rule": "device, inode, size, mtime_ns, and mode must remain identical across each traversal or read",
+    "open_rule": "descriptor-relative no-follow opens when supported; no unsafe fallback",
+    "executable_rule": "a regular file is executable when any 0o111 permission bit is set",
+    "hard_error_rule": "root, entry-type, symlink, mutation, unsafe-open, empty-file-tree, tree-count, depth, per-file-byte, and total-byte failures are uncontrolled hard errors, never V/A/I/U",
+    "hard_links": "not rejected when every path otherwise satisfies the profile"
+  },
+  "budgets": {
+    "case_files": {"maximum_inclusive": 32, "scope": "complete retained tree", "violation_channel": "hard_error"},
+    "case_directories": {"maximum_inclusive": 32, "scope": "complete retained tree including root", "violation_channel": "hard_error"},
+    "case_entries": {"maximum_inclusive": 64, "scope": "all files and directories below root", "violation_channel": "hard_error"},
+    "case_depth": {"maximum_inclusive": 8, "scope": "root depth is zero", "violation_channel": "hard_error"},
+    "file_bytes": {"maximum_inclusive": 10485760, "scope": "each retained file", "violation_channel": "hard_error"},
+    "total_bytes": {"maximum_inclusive": 52428800, "scope": "all retained regular files", "violation_channel": "hard_error"},
+    "candidate_bindings": {"maximum_inclusive": 16, "scope": "supported writers times selected-result marker lines", "violation": "U:selected_result_candidate_ceiling_exceeded"},
+    "text_lines": {"maximum_inclusive": 10000, "scope": "each report, Python source, or operand before splitting", "violation": "U:selected_result_line_ceiling_exceeded"},
+    "python_source_bytes": {"maximum_inclusive": 1048576, "scope": "each lowercase-.py file", "violation": "U:python_source_byte_ceiling_exceeded"},
+    "python_ast_nodes": {"maximum_inclusive": 50000, "scope": "ast.walk of each Python module", "violation": "U:python_ast_node_ceiling_exceeded"},
+    "module_statements": {"maximum_inclusive": 64, "scope": "top-level body of each Python module", "violation": "U:python_module_statement_ceiling_exceeded"},
+    "static_evaluation_steps": {"maximum_inclusive": 100000, "scope": "cumulative assignments and writer expression for one writer attempt", "violation": "U:static_evaluation_step_ceiling_exceeded"},
+    "static_value_bytes": {"maximum_inclusive": 10485760, "scope": "each static string encoded UTF-8 and each bytes value", "violation": "U:static_value_byte_ceiling_exceeded"},
+    "static_sequence_items": {"maximum_inclusive": 10000, "scope": "each static list or tuple", "violation": "U:static_sequence_item_ceiling_exceeded"},
+    "static_integer_bits": {"maximum_inclusive": 4096, "scope": "each static integer using int.bit_length", "violation": "U:static_integer_bit_ceiling_exceeded"}
+  },
+  "runtime_and_text_profile": {
+    "runtime_supported": "os.linesep is LF and locale.getencoding round-trips bytes 0 through 127 exactly",
+    "python_paths": "suffix must end exactly lowercase .py",
+    "python_encoding": "strict UTF-8, no UTF-8 BOM, and no PEP-263 cookie matching ^[ \\t\\f]*#.*?coding[:=][ \\t]*[-_.a-zA-Z0-9]+ in either of the first two LF-separated chunks",
+    "report_role": "selected path has case-insensitive .md or .txt suffix, is nonexecutable, does not begin #!, and contains no NUL",
+    "operand_role": "source path has case-insensitive .csv or .tsv suffix, is nonexecutable, does not begin #!, and contains no NUL",
+    "report_and_operand_text": "strict ASCII and no CR byte",
+    "line_splitting": "Python str.splitlines semantics; line count includes a final unterminated line and recognizes every boundary recognized by str.splitlines",
+    "marker": "case-sensitive line.strip().startswith('[selected-result]'); no delimiter or nonempty payload is additionally required",
+    "write_text_rendering": "UTF-8 encoded bytes",
+    "write_bytes_rendering": "exact bytes",
+    "project_code_executed": false
+  },
+  "source_artifact_profile": {
+    "forbidden_suffixes_case_insensitive": [".bash", ".c", ".cc", ".clj", ".cpp", ".cs", ".cwl", ".do", ".fish", ".fs", ".fsx", ".go", ".groovy", ".h", ".hpp", ".ipynb", ".java", ".jl", ".js", ".jsx", ".kt", ".kts", ".lua", ".m", ".nf", ".php", ".pl", ".pm", ".r", ".rb", ".rmd", ".rs", ".sas", ".scala", ".sh", ".smk", ".sql", ".swift", ".ts", ".tsx", ".wdl", ".zsh"],
+    "forbidden_names_case_insensitive": ["dockerfile", "jenkinsfile", "makefile", "nextflow.config", "snakefile"],
+    "complete_classification": "every retained file must be exactly one lowercase-.py module, the selected report, or a source operand reached by a supported read"
+  },
+  "python_module_grammar": {
+    "potential_output_methods": ["dump", "save", "savefig", "to_csv", "to_json", "to_parquet", "write", "write_bytes", "write_text", "writelines"],
+    "whole_module_call_allowlist": {
+      "names": ["Path", "float", "int", "len", "str"],
+      "attributes": ["lstrip", "read_bytes", "read_text", "rstrip", "splitlines", "strip", "write_bytes", "write_text"]
+    },
+    "statement_order": "first statement is exactly unaliased absolute 'from pathlib import Path'; then simple-name Assign or valued AnnAssign statements; then one bare writer Expr; no statement follows the writer",
+    "assignment_targets": "each target is one simple name; multiple targets are accepted only when every target is a simple name",
+    "reserved_names": ["Path", "float", "int", "len", "str"],
+    "writer": "exactly Path(<normalized string literal>).write_text(expr) or .write_bytes(expr), one positional payload and no keyword",
+    "every_python_module": "each lexically ordered lowercase-.py module must contain at least one supported writer to the selected report",
+    "expressions": [
+      "constants of type str, bytes, int, or float under frozen Python type behavior",
+      "a previously bound name",
+      "f-string with no format specification and only no conversion or !s",
+      "addition of two strings, two bytes values, or two numeric values",
+      "integer subscript of str, bytes, list, or tuple",
+      "zero-argument Path(<normalized string literal>).read_text() or .read_bytes()",
+      "zero-argument splitlines, strip, lstrip, or rstrip on supported receiver types",
+      "single-argument str, int, float, or len under the frozen type rules"
+    ],
+    "source_operands": "every distinct literal path reached by a supported read; at least one is required",
+    "writer_equality": "evaluated writer bytes must equal the complete retained selected-report bytes exactly"
+  },
+  "binding_profile": {
+    "certificate_coordinates": "zero-based half-open byte spans",
+    "target_coordinates": "one-based inclusive line coordinates",
+    "report_and_operands": "complete retained file",
+    "result_and_producer": "complete retained line or lines including retained line endings; an unterminated final line ends at EOF",
+    "required_roles": ["report", "result", "producer", "one or more unique operands"],
+    "candidate_order": "canonical candidates sorted by semantic digest",
+    "operand_order": "path then start_line",
+    "alternative_producer_order": "path then start_line",
+    "alternative_producers": "unique, non-self, and empty for an exact single binding",
+    "declared_dynamic_selection": false
+  },
+  "decision_precedence": [
+    "inventory hard errors",
+    "runtime support",
+    "report missing",
+    "report role, encoding, newline, and line budget",
+    "report empty",
+    "marker enumeration and ceiling",
+    "forbidden non-Python source artifacts",
+    "Python-source presence",
+    "each Python file in lexical order: byte budget, encoding, line budget, parse, AST budget, call allowlist, writer scan, per-module writer presence, writer ceiling",
+    "writer-times-marker candidate ceiling",
+    "source operands in lexical order: role, encoding, newline, and line budget",
+    "complete all-file classification",
+    "operand nonempty checks and candidate construction",
+    "one candidate maps to V; two through sixteen map to A"
+  ],
+  "reason_predicates": {
+    "multiple_selected_result_bindings_rederived": "the supported-writer times marker-line Cartesian product contains 2 through 16 canonical candidates",
+    "selected_report_missing": "the normalized selected-report path is absent from the complete inventory",
+    "selected_report_empty": "the supported report contains zero split lines",
+    "selected_result_marker_missing": "the supported nonempty report contains no line matching the exact marker rule",
+    "selected_report_writer_not_rederived": "no writer remains after supported enumeration; registered for completeness but normally preempted by a more specific Python-source or module reason",
+    "selected_report_source_operand_empty": "at least one rederived source operand contains zero split lines",
+    "selected_report_source_operand_not_rederived": "static writer evaluation reaches no supported source read",
+    "selected_report_bytes_do_not_match_static_writer": "the evaluated writer bytes differ from the complete retained report bytes",
+    "selected_report_source_operand_missing": "a supported literal source-read path is absent from the inventory",
+    "selected_report_subscript_out_of_range": "a supported integer subscript is outside its supported receiver",
+    "static_numeric_conversion_failed": "supported int or float conversion raises ValueError or OverflowError",
+    "text_io_runtime_unsupported": "the exact runtime support predicate is false",
+    "unsupported_selected_report_role": "the selected report violates its exact suffix, executable, shebang, or NUL role rule",
+    "selected_result_candidate_ceiling_exceeded": "a marker, writer, or writer-times-marker count exceeds 16",
+    "unsupported_non_python_source_artifact": "any complete-inventory path matches a forbidden source suffix or name",
+    "python_source_absent": "the complete inventory contains no path ending exactly lowercase .py",
+    "python_source_byte_ceiling_exceeded": "one lexically next Python payload exceeds 1048576 bytes",
+    "python_source_parse_failed": "ast.parse raises MemoryError, RecursionError, SyntaxError, or ValueError",
+    "python_ast_node_ceiling_exceeded": "ast.walk contains more than 50000 nodes",
+    "python_module_without_selected_report_writer": "one lexically next Python module contains no supported writer to the selected report",
+    "unsupported_source_operand_role": "one lexically next reached operand violates its suffix, executable, shebang, or NUL role rule",
+    "unclassified_case_artifact": "the complete inventory contains a file outside Python modules, selected report, and reached operands",
+    "unsupported_possible_report_writer": "an allowlisted non-writer output-like call contains the selected-report literal or another frozen suspicious output form",
+    "dynamic_or_unsupported_report_writer": "a writer receiver is not exactly Path(<normalized string literal>) naming the selected report",
+    "unsupported_selected_report_writer_signature": "a matching writer does not have exactly one positional payload and zero keywords",
+    "conditional_or_nested_selected_report_writer": "a matching writer is not the permitted bare unconditional module-level expression; normally preempted by straight-line validation",
+    "selected_report_writer_value_type_unsupported": "write_text receives non-str or write_bytes receives non-bytes",
+    "selected_report_text_not_utf8_encodable": "a static write_text string cannot be encoded as UTF-8",
+    "selected_report_self_dependency": "writer evaluation reaches the selected report itself; registered but normally preempted by suspicious-writer validation",
+    "opaque_or_unallowlisted_python_call": "any call anywhere in a Python module is outside the exact whole-module call allowlist",
+    "python_module_statement_ceiling_exceeded": "a Python module body has more than 64 top-level statements",
+    "non_straight_line_module_statement": "a statement through the writer is outside the exact straight-line grammar, the writer is not a bare expression, or any statement follows it",
+    "unsupported_python_import_binding": "the pathlib Path import is absent, aliased, relative, repeated, not first, or after the writer",
+    "reserved_python_binding_reassigned": "an assignment targets Path, float, int, len, or str",
+    "static_value_byte_ceiling_exceeded": "one static str encoded UTF-8 or bytes value exceeds 10485760 bytes",
+    "static_sequence_item_ceiling_exceeded": "one static list or tuple exceeds 10000 items",
+    "static_integer_bit_ceiling_exceeded": "one static integer has bit_length greater than 4096",
+    "static_evaluation_step_ceiling_exceeded": "one writer attempt exceeds 100000 cumulative evaluation steps",
+    "unsupported_selected_report_dependency_flow": "an expression reads a name not bound by a preceding supported assignment",
+    "unsupported_formatted_selected_result": "an f-string uses an unsupported conversion, format specification, or value type",
+    "unsupported_selected_report_addition": "addition operands are not both str, both bytes, or both numeric",
+    "unsupported_selected_report_subscript": "subscript receiver or index type is unsupported",
+    "unsupported_static_source_read": "a source read is not zero-argument read_text or read_bytes on Path(<normalized literal>)",
+    "unsupported_selected_report_keyword_argument": "a supported non-writer method has any keyword argument",
+    "unsupported_selected_report_method": "a method is outside the exact supported receiver, type, and arity combinations",
+    "unsupported_selected_report_call": "a built-in call has unsupported name, type, or arity",
+    "unsupported_selected_report_expression": "an AST expression is outside every supported expression production",
+    "non_utf8_selected_result_evidence": "strict UTF-8 decoding of a Python source fails",
+    "unsupported_python_encoding_declaration": "a Python source has a UTF-8 BOM or the exact cookie regex matches either first-two-line chunk",
+    "non_lf_normalized_text_evidence": "a Python, report, or operand payload contains a CR byte",
+    "non_ascii_text_evidence": "strict ASCII decoding of a report or operand fails",
+    "selected_result_line_ceiling_exceeded": "a Python, report, or operand payload has more than 10000 split lines"
+  },
+  "classification_rules": [
+    "Only V carries a positive binding and V carries no certificate reason code.",
+    "A, I, and U each carry exactly one reason registered for that state.",
+    "A requires two or more supported bindings or selected-result interpretations.",
+    "I requires an otherwise applicable supported structure with missing or unequal retained evidence.",
+    "The first condition in decision_precedence controls; U does not globally override an earlier I condition.",
+    "Inventory hard errors are qualification failures and are never relabeled I or U.",
+    "Qualification cases must isolate their registered boundary; a validator who finds multiple unresolved classifications records disagreement rather than choosing by target behavior."
+  ],
+  "certificate_contract": {
+    "inventory": "all and only regular retained files, each with lexical relative POSIX path, byte length, and SHA-256",
+    "span_coordinates": "zero-based half-open byte offsets into one inventoried file",
+    "span_digest": "SHA-256 of exactly the retained bytes inside the half-open span",
+    "positive_binding_roles": [
+      "selected report",
+      "selected-result line",
+      "static producer statement",
+      "one or more rederived source operands"
+    ],
+    "report_span": "the entire retained selected-report file",
+    "operand_span": "the entire retained source-operand file",
+    "result_span": "complete retained line or lines including retained line endings",
+    "producer_span": "complete retained statement line or lines including retained line endings",
+    "non_v_binding": null
+  },
+  "positive_binding_digest_projection": {
+    "type": "semantic digest of the canonical byte-verifier positive_binding object",
+    "fields": [
+      "result path/start/end/span digest",
+      "producer path/start/end/span digest",
+      "ordered operand path/start/end/span digests",
+      "report path/start/end/span digest"
+    ]
+  },
+  "semantic_review_flow": {
+    "validators_per_case": 2,
+    "validator_providers": "each different from the case-author provider and from the other validator provider",
+    "validator_contexts": "two distinct authenticated fresh execution contexts with distinct session, capture, transcript, actor, and identity-receipt evidence",
+    "blind_review_inputs": [
+      "retained case bytes",
+      "opaque target packet",
+      "this complete semantic review contract"
+    ],
+    "blind_review_forbidden_inputs": [
+      "construction certificate or its unsalted answer-enumerable digest",
+      "author case contract",
+      "target source",
+      "target tests",
+      "target output",
+      "other validator review or reconciliation",
+      "benchmark answer"
+    ],
+    "blind_barrier": "both complete self-digested blind reviews and their retained session evidence must be sealed before certificate reveal",
+    "required_blind_fields": [
+      "expected_state",
+      "reason_codes",
+      "complete independently authored positive binding for V",
+      "reason-specific retained witness for non-V",
+      "complete case inventory including permission mode",
+      "ordered rule trace",
+      "authenticated provider-session evidence"
+    ],
+    "reconciliation": "a separate immutable artifact created only after the blind barrier compares the frozen conclusion with the newly revealed byte-verified certificate",
+    "unanimity": "both frozen blind conclusions must be identical, their retained evidence must replay, and both separate reconciliations must agree with the byte-verified certificate",
+    "disagreement": "retain as a failed assignment without replacement or relabeling"
+  },
+  "author_case_contract": {
+    "freeze_time": "before semantic review and blind target derivation",
+    "top_level_required": [
+      "artifact_kind=prospective_case_evidence_contract",
+      "contract_version=2.0.0",
+      "evidence_status=unverified_author_declaration",
+      "qualification_authority=none_case_contract_only",
+      "case_id",
+      "authorship.author_id",
+      "authorship.provider",
+      "selected_result_binding",
+      "selected_result_binding_digest",
+      "frozen_at",
+      "contract_digest"
+    ],
+    "selected_result_binding_required": [
+      "binding_profile=exact_selected_report_result_static_producer_v1",
+      "selection_status=one_selected_result",
+      "report_locator",
+      "result_locator",
+      "producer_locator",
+      "source_operands",
+      "alternative_producer_locators",
+      "declared_dynamic_selection=false"
+    ],
+    "locator_required": [
+      "path",
+      "content_digest",
+      "start_line",
+      "end_line"
+    ],
+    "source_operand_required": [
+      "operand_id",
+      "record_ref.record_type=file_record",
+      "record_ref.record_id",
+      "source_locator"
+    ],
+    "stable_id_rule": "prefix + ':' + first 20 lowercase hex characters of SHA-256 over UTF-8 parts joined by U+001F",
+    "semantic_digest_rule": "'sha256:' + SHA-256 of UTF-8 JSON sorted by key with comma/colon separators and ensure_ascii=false",
+    "v_contract": "must declare the exact certificate-backed selected-result binding in the line-locator schema",
+    "non_v_contract": "must contain one canonical structurally valid placeholder binding; wrapper state must short-circuit from the blind non-V derivation and can never use the placeholder to complete"
+  },
+  "target_state_mapping": {
+    "V": "one_selected_result_rederived",
+    "A": "ambiguous_selected_result",
+    "I": "insufficient_evidence",
+    "U": "unsupported_structure"
+  },
+  "validation_wrapper_mapping": {
+    "V": {
+      "status": "verified_complete",
+      "reason_codes": [
+        "exact_independent_binding_match"
+      ]
+    },
+    "A": {
+      "status": "ambiguous_selected_result",
+      "reason_source": "registered A reason"
+    },
+    "I": {
+      "status": "insufficient_evidence",
+      "reason_source": "registered I reason"
+    },
+    "U": {
+      "status": "unsupported_structure",
+      "reason_source": "registered U reason"
+    }
+  },
+  "block_matrix": {
+    "cases_per_block": 48,
+    "provider_families": 2,
+    "cases_per_provider_per_block": 24,
+    "state_counts": {
+      "V": 12,
+      "A": 8,
+      "I": 8,
+      "U": 20
+    },
+    "u_cell_counts": {
+      "dynamic_or_opaque_structure": 4,
+      "role_or_source_artifact_boundary": 4,
+      "encoding_newline_or_runtime_boundary": 4,
+      "syntax_value_or_finite_budget_boundary": 4,
+      "mode_or_role_boundary": 4
+    },
+    "minimum_construction_clusters_per_state": 4,
+    "maximum_one_family_fraction_per_block": "1/2",
+    "replacement_permitted": false
+  },
+  "qualification_authority": "none_semantic_review_contract_only",
+  "contract_digest": "sha256:bf3f4c325f8aac9e70045ff57bdcfc28cbf28764bc1974f55e83ec201b3b04a9"
+}

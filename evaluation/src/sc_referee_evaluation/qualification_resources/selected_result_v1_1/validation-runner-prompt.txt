@@ -1,0 +1,1 @@
+After all blind target derivations for the provider block are frozen and inventoried, reveal each pre-frozen author case contract and run the exact frozen validation wrapper. Bind every validation to its assignment, runner freeze, target-output digest, and case-contract digest. Retain all wrapper failures. Do not alter a target derivation or author contract.

@@ -930,20 +930,22 @@ def _complete_domain_exposure_profile() -> _ReportProfile:
         r"(?=.*\b(?:retained|observed|called|measured|eligible|non[- ]missing|"
         r"high[- ]confidence|confidently[- ]called)\b[^.]{0,220}\b"
         r"(?:segments?|tracts?|intervals?|spans?|positions?|bins?|windows?|rows?|"
-        r"units?|records?|lengths?)\b)"
+        r"units?|records?|lengths?|transects?|observations?|samples?|sites?)\b)"
     )
     excluded_complement = (
         r"(?=.*(?:\b(?:dropped|uncalled|unobserved|unmeasured|missing|masked|filtered|"
         r"low[- ]confidence|unconfidently[- ]called|unretained)\b[^.]{0,260}\b"
         r"(?:gaps?|segments?|tracts?|intervals?|spans?|positions?|bins?|windows?|rows?|"
-        r"units?|records?|lengths?)\b[^.]{0,260}\b(?:omit(?:ted)?|exclud(?:e|ed)|"
-        r"not\s+includ(?:e|ed)|did\s+not\s+include|removed)\b[^.]{0,180}\b"
+        r"units?|records?|lengths?|transects?|observations?|samples?|sites?)\b"
+        r"[^.]{0,260}\b(?:omit(?:ted)?|exclud(?:e|ed)|not\s+includ(?:e|ed)|"
+        r"did\s+not\s+include|removed|left\s+out)\b[^.]{0,180}\b"
         r"(?:exposure|denominator|total\s+length|total\s+duration)\b|"
         r"\b(?:omit(?:ted)?|exclud(?:e|ed)|not\s+includ(?:e|ed)|did\s+not\s+include|"
-        r"removed)\b[^.]{0,180}\b(?:dropped|uncalled|unobserved|unmeasured|missing|"
+        r"removed|left\s+out)\b[^.]{0,180}\b(?:dropped|uncalled|unobserved|unmeasured|missing|"
         r"masked|filtered|low[- ]confidence|unconfidently[- ]called|unretained)\b"
         r"[^.]{0,180}\b(?:gaps?|segments?|tracts?|intervals?|spans?|positions?|bins?|"
-        r"windows?|rows?|units?|records?|lengths?)\b[^.]{0,180}\b(?:exposure|"
+        r"windows?|rows?|units?|records?|lengths?|transects?|observations?|samples?|"
+        r"sites?)\b[^.]{0,180}\b(?:exposure|"
         r"denominator|total\s+length|total\s+duration)\b))"
     )
     return _ReportProfile(
@@ -1012,8 +1014,8 @@ def _complete_domain_exposure_profile() -> _ReportProfile:
             "Which declared-domain exposure governs the selected rate or spacing denominator "
             "for this review?"
         ),
-        check_version="1.0.0",
-        adapter_version="1.0.0",
+        check_version="1.1.0",
+        adapter_version="1.1.0",
     )
 
 

@@ -31,6 +31,43 @@ V014_TO_V015_TARGET_SCHEMA_ROOT = "reference/schemas-v0.15.0"
 V015_TO_V016_TARGET_SCHEMA_ROOT = "reference/schemas-v0.16.0"
 V016_TO_V017_TARGET_SCHEMA_ROOT = "reference/schemas-v0.17.0"
 V017_TO_V018_TARGET_SCHEMA_ROOT = "reference/schemas-v0.18.0"
+_V1_1_QUALIFICATION_MODULES = frozenset(
+    {
+        "sc_referee_evaluation/prospective_selected_result_verifier.py",
+        "sc_referee_evaluation/qualification_identity.py",
+        "sc_referee_evaluation/selected_result_qualification_io.py",
+        "sc_referee_evaluation/selected_result_qualification_oracle.py",
+        "sc_referee_evaluation/selected_result_qualification_runner.py",
+        "sc_referee_evaluation/selected_result_qualification_target_worker.py",
+        "sc_referee_evaluation/selected_result_qualification_trust.py",
+        "sc_referee_evaluation/selected_result_semantic_review.py",
+        "sc_referee_evaluation/selected_result_verifier_qualification.py",
+    }
+)
+_V1_1_QUALIFICATION_RESOURCE_ROOT = (
+    "sc_referee_evaluation/qualification_resources/selected_result_v1_1"
+)
+_V1_1_QUALIFICATION_RESOURCES = frozenset(
+    {
+        f"{_V1_1_QUALIFICATION_RESOURCE_ROOT}/__init__.py",
+        f"{_V1_1_QUALIFICATION_RESOURCE_ROOT}/case-author-prompt.txt",
+        f"{_V1_1_QUALIFICATION_RESOURCE_ROOT}/comparison-prompt.txt",
+        f"{_V1_1_QUALIFICATION_RESOURCE_ROOT}/provider-pack-schema.json",
+        f"{_V1_1_QUALIFICATION_RESOURCE_ROOT}/semantic-review-contract.json",
+        f"{_V1_1_QUALIFICATION_RESOURCE_ROOT}/semantic-validator-prompt.txt",
+        f"{_V1_1_QUALIFICATION_RESOURCE_ROOT}/target-authorization-schema.json",
+        f"{_V1_1_QUALIFICATION_RESOURCE_ROOT}/target-runner-prompt.txt",
+        f"{_V1_1_QUALIFICATION_RESOURCE_ROOT}/validation-runner-prompt.txt",
+    }
+)
+_V1_1_QUALIFICATION_ENTRY_POINTS = {
+    "sc-referee-eval-selected-result": (
+        "sc_referee_evaluation.selected_result_qualification_runner:entrypoint"
+    ),
+    "sc-referee-eval-selected-result-target-worker": (
+        "sc_referee_evaluation.selected_result_qualification_target_worker:entrypoint"
+    ),
+}
 
 
 def run(*args: str) -> None:
@@ -287,32 +324,105 @@ def _install_evaluation_smoke_wheels(
         )
 
 
+def _install_evaluation_smoke_venv(
+    core_wheel: Path,
+    evaluation_wheel: Path,
+    environment_root: Path,
+) -> Path:
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "venv",
+            str(environment_root),
+        ],
+        cwd=ROOT,
+        check=True,
+    )
+    scripts_root = environment_root / ("Scripts" if os.name == "nt" else "bin")
+    python_name = "python.exe" if os.name == "nt" else "python"
+    environment_python = scripts_root / python_name
+    if os.name == "nt":
+        environment_site_packages = environment_root / "Lib" / "site-packages"
+    else:
+        python_version = f"python{sys.version_info.major}.{sys.version_info.minor}"
+        environment_site_packages = environment_root / "lib" / python_version / "site-packages"
+    dependency_roots = sorted(
+        {
+            str(Path(item).resolve())
+            for item in sys.path
+            if item and "site-packages" in Path(item).parts and Path(item).is_dir()
+        }
+    )
+    if not dependency_roots:
+        raise RuntimeError("Evaluation-wheel smoke environment has no dependency runtime.")
+    (environment_site_packages / "handoff-dependency-runtime.pth").write_text(
+        "".join(f"{item}\n" for item in dependency_roots),
+        encoding="utf-8",
+    )
+    for wheel in (core_wheel, evaluation_wheel):
+        subprocess.run(
+            [
+                str(environment_python),
+                "-m",
+                "pip",
+                "install",
+                "--no-deps",
+                "--force-reinstall",
+                str(wheel),
+            ],
+            cwd=ROOT,
+            check=True,
+        )
+    return environment_python
+
+
+def _clean_subprocess_environment() -> dict[str, str]:
+    environment = dict(os.environ)
+    environment.pop("PYTHONPATH", None)
+    environment.pop("PYTHONHOME", None)
+    environment["PYTHONNOUSERSITE"] = "1"
+    return environment
+
+
+def _build_local_wheel(source: Path, wheel_root: Path) -> None:
+    uv_executable = shutil.which("uv")
+    if uv_executable is not None:
+        subprocess.run(
+            [
+                uv_executable,
+                "build",
+                "--wheel",
+                "--no-build-isolation",
+                "--python",
+                str(getattr(sys, "_base_executable", sys.executable)),
+                "--out-dir",
+                str(wheel_root),
+                str(source),
+            ],
+            cwd=ROOT,
+            check=True,
+        )
+        return
+    run(
+        "-m",
+        "pip",
+        "wheel",
+        "--no-deps",
+        "--no-build-isolation",
+        str(source),
+        "--wheel-dir",
+        str(wheel_root),
+    )
+
+
 def verify_built_evaluation_wheel() -> None:
     with tempfile.TemporaryDirectory(prefix="sc-referee-evaluation-wheel-") as temp:
         temp_root = Path(temp)
         wheel_root = temp_root / "wheel"
-        install_root = temp_root / "install"
         wheel_root.mkdir()
-        run(
-            "-m",
-            "pip",
-            "wheel",
-            "--no-deps",
-            "--no-build-isolation",
-            ".",
-            "--wheel-dir",
-            str(wheel_root),
-        )
-        run(
-            "-m",
-            "pip",
-            "wheel",
-            "--no-deps",
-            "--no-build-isolation",
-            "./evaluation",
-            "--wheel-dir",
-            str(wheel_root),
-        )
+        _build_local_wheel(ROOT, wheel_root)
+        _build_local_wheel(ROOT / "evaluation", wheel_root)
         wheels = list(wheel_root.glob("sc_referee_evaluation-*.whl"))
         if len(wheels) != 1:
             raise RuntimeError(f"Expected one evaluation wheel, found {len(wheels)}")
@@ -320,7 +430,7 @@ def verify_built_evaluation_wheel() -> None:
         if len(core_wheels) != 1:
             raise RuntimeError(f"Expected one production wheel, found {len(core_wheels)}")
         with zipfile.ZipFile(wheels[0]) as archive:
-            names = archive.namelist()
+            names = set(archive.namelist())
             if "sc_referee_evaluation/validation.py" not in names:
                 raise RuntimeError("Evaluation wheel omitted its validation module")
             if "sc_referee_evaluation/workspace.py" not in names:
@@ -367,13 +477,46 @@ def verify_built_evaluation_wheel() -> None:
                 raise RuntimeError("Evaluation wheel omitted the v2 prospective contract")
             if "sc_referee_evaluation/prospective_selected_result_verifier.py" not in names:
                 raise RuntimeError("Evaluation wheel omitted the selected-result verifier")
+            missing_modules = sorted(_V1_1_QUALIFICATION_MODULES - names)
+            if missing_modules:
+                raise RuntimeError(
+                    "Evaluation wheel omitted v1.1 qualification modules: "
+                    + ", ".join(missing_modules)
+                )
+            missing_resources = sorted(_V1_1_QUALIFICATION_RESOURCES - names)
+            if missing_resources:
+                raise RuntimeError(
+                    "Evaluation wheel omitted v1.1 qualification resources: "
+                    + ", ".join(missing_resources)
+                )
+            entry_point_names = [
+                name for name in names if name.endswith(".dist-info/entry_points.txt")
+            ]
+            if len(entry_point_names) != 1:
+                raise RuntimeError("Evaluation wheel has no unique entry-point manifest")
+            entry_points = archive.read(entry_point_names[0]).decode("utf-8")
+            for command, target in _V1_1_QUALIFICATION_ENTRY_POINTS.items():
+                if f"{command} = {target}" not in entry_points:
+                    raise RuntimeError(
+                        f"Evaluation wheel omitted qualification entry point: {command}"
+                    )
             if any(name.startswith("sc_referee/") for name in names):
                 raise RuntimeError("Evaluation wheel vendors the production package")
-        _install_evaluation_smoke_wheels(core_wheels[0], wheels[0], install_root)
+        environment_root = temp_root / "venv"
+        environment_python = _install_evaluation_smoke_venv(
+            core_wheels[0], wheels[0], environment_root
+        )
+        fresh_cwd = temp_root / "fresh-cwd"
+        fresh_cwd.mkdir()
+        clean_environment = _clean_subprocess_environment()
+        installed_package_root = environment_root.resolve()
         verification_code = "\n".join(
             [
+                "import importlib",
+                "import importlib.metadata",
+                "import importlib.resources",
+                "from pathlib import Path",
                 "import sys",
-                f"sys.path.insert(0, {str(install_root)!r})",
                 "import sc_referee_evaluation",
                 "from sc_referee_evaluation.cli import main",
                 "from sc_referee_evaluation.comparison import compare_detector_output",
@@ -440,6 +583,40 @@ def verify_built_evaluation_wheel() -> None:
                 "    validate_stage3_review_submission,",
                 ")",
                 "from sc_referee_evaluation.workspace import build_blind_workspace",
+                f"installed_root = Path({str(installed_package_root)!r})",
+                "qualification_modules = (",
+                "    'sc_referee_evaluation.qualification_identity',",
+                "    'sc_referee_evaluation.selected_result_qualification_io',",
+                "    'sc_referee_evaluation.selected_result_qualification_oracle',",
+                "    'sc_referee_evaluation.selected_result_qualification_runner',",
+                "    'sc_referee_evaluation.selected_result_qualification_target_worker',",
+                "    'sc_referee_evaluation.selected_result_qualification_trust',",
+                "    'sc_referee_evaluation.selected_result_semantic_review',",
+                "    'sc_referee_evaluation.selected_result_verifier_qualification',",
+                ")",
+                "for module_name in qualification_modules:",
+                "    module = importlib.import_module(module_name)",
+                "    assert Path(module.__file__).resolve().is_relative_to(installed_root)",
+                "resource_root = importlib.resources.files(",
+                "    'sc_referee_evaluation.qualification_resources.selected_result_v1_1'",
+                ")",
+                "required_resources = {",
+                "    'case-author-prompt.txt',",
+                "    'comparison-prompt.txt',",
+                "    'provider-pack-schema.json',",
+                "    'semantic-review-contract.json',",
+                "    'semantic-validator-prompt.txt',",
+                "    'target-authorization-schema.json',",
+                "    'target-runner-prompt.txt',",
+                "    'validation-runner-prompt.txt',",
+                "}",
+                "assert all(resource_root.joinpath(name).read_bytes() for name in required_resources)",
+                "entry_points = {",
+                "    item.name: item.value",
+                "    for item in importlib.metadata.distribution('sc-referee-evaluation').entry_points",
+                "    if item.group == 'console_scripts'",
+                "}",
+                f"assert entry_points | {dict(_V1_1_QUALIFICATION_ENTRY_POINTS)!r} == entry_points",
                 "assert callable(sc_referee_evaluation.validate_case_packet)",
                 "assert callable(main)",
                 "assert callable(compare_detector_output)",
@@ -484,7 +661,88 @@ def verify_built_evaluation_wheel() -> None:
                 "assert callable(build_blind_workspace)",
             ]
         )
-        subprocess.run([sys.executable, "-c", verification_code], cwd=temp_root, check=True)
+        subprocess.run(
+            [str(environment_python), "-I", "-c", verification_code],
+            cwd=fresh_cwd,
+            env=clean_environment,
+            check=True,
+        )
+        scripts_root = environment_python.parent
+        for command in _V1_1_QUALIFICATION_ENTRY_POINTS:
+            executable = scripts_root / (f"{command}.exe" if os.name == "nt" else command)
+            subprocess.run(
+                [str(executable), "--help"],
+                cwd=fresh_cwd,
+                env=clean_environment,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        runtime_manifest_path = fresh_cwd / "TARGET_RUNTIME_MANIFEST.json"
+        worker_command = "sc-referee-eval-selected-result-target-worker"
+        worker_executable = scripts_root / (
+            f"{worker_command}.exe" if os.name == "nt" else worker_command
+        )
+        subprocess.run(
+            [str(worker_executable), "--runtime-manifest", str(runtime_manifest_path)],
+            cwd=fresh_cwd,
+            env=clean_environment,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        runtime_payload = runtime_manifest_path.read_bytes()
+        full_runtime_manifest = json.loads(runtime_payload)
+        canonical_full_runtime = json.dumps(
+            full_runtime_manifest,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        )
+        assert runtime_payload == (canonical_full_runtime + "\n").encode("utf-8")
+        runtime_manifest = dict(full_runtime_manifest)
+        runtime_digest = runtime_manifest.pop("target_runtime_manifest_digest")
+        canonical_runtime = json.dumps(
+            runtime_manifest,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        )
+        assert (
+            runtime_digest
+            == "sha256:" + hashlib.sha256(canonical_runtime.encode("utf-8")).hexdigest()
+        )
+        assert runtime_manifest["artifact_kind"] == (
+            "selected_result_verifier_target_runtime_manifest"
+        )
+        assert set(runtime_manifest) == {
+            "artifact_kind",
+            "runtime_manifest_version",
+            "target_worker_version",
+            "python_runtime",
+            "module_files",
+            "distributions",
+            "distribution_count",
+            "distribution_file_count",
+            "distribution_total_file_bytes",
+            "input_projection",
+            "project_code_executed",
+            "qualification_authority",
+        }
+        assert runtime_manifest["input_projection"] == "installed_runtime_only"
+        assert runtime_manifest["project_code_executed"] is False
+        assert runtime_manifest["distribution_count"] == 3
+        assert {item["requested_name"] for item in runtime_manifest["distributions"]} == {
+            "cryptography",
+            "sc-referee",
+            "sc-referee-evaluation",
+        }
+        assert {item["module_name"] for item in runtime_manifest["module_files"]} == {
+            "cryptography",
+            "sc_referee.core.ids",
+            "sc_referee_evaluation.prospective_selected_result_verifier",
+            "sc_referee_evaluation.selected_result_qualification_target_worker",
+        }
 
 
 def main() -> int:

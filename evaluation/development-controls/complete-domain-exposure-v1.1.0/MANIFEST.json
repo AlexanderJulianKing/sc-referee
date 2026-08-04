@@ -1,0 +1,58 @@
+{
+  "artifact_kind": "development_control_coverage_record",
+  "authority": "none_development_only",
+  "check_id": "check:complete-domain-exposure-denominator",
+  "check_version": "1.1.0",
+  "control_family_id": "control-family:complete-domain-exposure-v1.1.0",
+  "coverage": [
+    {
+      "axis": "file_and_report_renaming",
+      "status": "covered",
+      "evidence": "test_report_filename_and_list_layout_are_not_scientific_authority"
+    },
+    {
+      "axis": "source_identifier_noise",
+      "status": "covered",
+      "evidence": "test_source_identifier_noise_cannot_create_denominator_evidence"
+    },
+    {
+      "axis": "prose_layout_and_equivalent_encoding",
+      "status": "covered",
+      "evidence": "paragraph, wrapped-line, and Markdown-list variants in tests/test_generic_exposure_denominator_relation.py"
+    },
+    {
+      "axis": "row_and_column_reordering",
+      "status": "not_applicable",
+      "reason": "This adapter claims a bounded selected-report prose relation and does not claim a tabular row or column relation."
+    },
+    {
+      "axis": "wrapper_alias_and_dynamic_dispatch",
+      "status": "not_applicable",
+      "reason": "The scientific operand adapter does not inspect or infer from producer source; source-side names and dispatch cannot provide scientific evidence."
+    },
+    {
+      "axis": "corrected_valid_alternative_hard_negative_ambiguous_unsupported_unrelated",
+      "status": "covered",
+      "evidence": "tests/test_generic_exposure_denominator_relation.py"
+    },
+    {
+      "axis": "independently_authored_style",
+      "status": "covered_development_only",
+      "evidence": "evaluation/development-cases/complete-domain-exposure-independent-style-1"
+    },
+    {
+      "axis": "exact_selected_result_and_static_producer_scope",
+      "status": "covered_development_only",
+      "evidence": "case/ under selected-result-profile:python-static-marked-report-v1"
+    }
+  ],
+  "metric_eligible": false,
+  "production_finding_permission": false,
+  "selected_result_scope": {
+    "producer_profile": "selected-result-profile:python-static-marked-report-v1",
+    "project_code_execution": false,
+    "report_path": "report.md",
+    "report_role": "ASCII LF Markdown selected report with one explicit [selected-result] marker",
+    "unsupported_boundary": "Files or producer constructs outside the frozen comparator grammar remain unsupported and cannot be reversed into a Finding."
+  }
+}

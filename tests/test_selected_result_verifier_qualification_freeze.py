@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 from pathlib import Path
 
@@ -86,23 +87,18 @@ def test_committed_pre_case_freeze_is_exact_answer_blind_and_non_authoritative(
         assert entry["size_bytes"] == path.stat().st_size
 
 
-def test_pre_case_freeze_rebuilds_byte_for_byte_and_never_overwrites(
+def test_invalidated_v1_freeze_cannot_be_rebuilt_from_changed_target(
     project_root: Path, tmp_path: Path
 ) -> None:
-    committed = (
-        project_root / "evaluation" / "qualification" / "selected-result-verifier-v1.0.0-precase"
-    )
     rebuilt = tmp_path / "freeze"
-    build_selected_result_verifier_qualification_freeze(project_root, rebuilt)
-
-    assert {path.name for path in rebuilt.iterdir()} == {path.name for path in committed.iterdir()}
-    for path in committed.iterdir():
-        assert (rebuilt / path.name).read_bytes() == path.read_bytes()
-    with pytest.raises(FileExistsError):
+    with pytest.raises(ValueError, match="implementation has drifted"):
         build_selected_result_verifier_qualification_freeze(project_root, rebuilt)
+    assert not rebuilt.exists()
 
 
-def test_oracle_import_firewall_and_target_lock_are_live(project_root: Path) -> None:
+def test_v1_target_lock_is_historical_and_oracle_import_firewall_is_live(
+    project_root: Path,
+) -> None:
     target = (
         project_root
         / "evaluation"
@@ -117,12 +113,25 @@ def test_oracle_import_firewall_and_target_lock_are_live(project_root: Path) -> 
         / "sc_referee_evaluation"
         / "selected_result_qualification_oracle.py"
     )
-    assert sha256_digest(target.read_bytes()) == TARGET_SOURCE_DIGEST
+    assert sha256_digest(target.read_bytes()) != TARGET_SOURCE_DIGEST
     source = oracle.read_text(encoding="utf-8")
     assert "prospective_selected_result_verifier" not in source
     assert "prospective_qualification_v2" not in source
-    assert "from sc_referee" not in source
-    assert "import sc_referee" not in source
+    imported_modules = {
+        node.module
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.ImportFrom) and node.module is not None
+    } | {
+        alias.name
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.Import)
+        for alias in node.names
+    }
+    assert not {
+        module
+        for module in imported_modules
+        if module == "sc_referee" or module.startswith("sc_referee.")
+    }
     assert "import ast" not in source
 
 
