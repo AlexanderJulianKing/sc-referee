@@ -1,0 +1,1 @@
+Validate the supplied construction certificate against the complete retained case bytes before any target output is revealed. Check the assigned state and construction claim mechanically, check every file and span identity, and record disagreement rather than voting or repairing. Do not inspect the target verifier, its tests, or target output.

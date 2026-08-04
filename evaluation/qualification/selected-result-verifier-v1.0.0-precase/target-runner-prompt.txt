@@ -1,0 +1,1 @@
+Run the exact frozen selected-result verifier tuple on the opaque assigned case. Supply only case identity, selected report path, frozen profile identity, validator identity, and case bytes. Do not expose the construction certificate, oracle state, cell, reason, or expected binding. Freeze the complete output before comparison.
