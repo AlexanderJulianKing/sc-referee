@@ -4,7 +4,8 @@
 - **Created:** 2026-08-04
 - **Current production score:** 0 of 10 target envelopes may emit a production Finding
 - **Current qualification score:** 0 of 10 target envelopes independently qualified
-- **Current study state:** v2 contract implemented; 0 v2 cases assigned
+- **Current study state:** v2 contract and first finite selected-result verifier profile
+  implemented; verifier unqualified; 0 v2 cases assigned
 - **Execution authority:** This document controls work sequencing and progress reporting. It does
   not itself change record meaning, detector authority, or Finding eligibility.
 
@@ -130,9 +131,9 @@ above.
 
 ## Gate 1 — Close local capability and anti-overfitting prerequisites
 
-- [ ] Reconcile the dirty local checkout, remote `main`, and this plan into one canonical working
+- [x] Reconcile the dirty local checkout, remote `main`, and this plan into one canonical working
   tree without losing unrelated work.
-- [ ] Implement the independent selected-result verifier required by Experiment 0053.
+- [x] Implement the independent selected-result verifier required by Experiment 0053.
 - [ ] Qualify and freeze that verifier before it supplies qualification evidence.
 - [ ] Complete file, variable, function, level, and identifier renaming controls for every claimed
   envelope.
@@ -254,9 +255,48 @@ maintainer decision; there is no family-wide or portfolio-wide implied authority
 
 ## Immediate next unchecked item
 
-Reconcile the canonical repository state, then implement and independently validate the selected-
-result verifier required by Experiment 0053. Do not assign v2 cases or perform unrelated capability
-expansion before Gate 1 is complete.
+Independently qualify and freeze the exact selected-result verifier implementation and profile at
+commit `57f4e581ff424c8713fceb5926e521cc3c060fe6`. Then continue the remaining Gate 1 renaming,
+encoding, dynamic-dispatch, and independent-implementation controls. Do not assign v2 cases or
+perform unrelated capability expansion before Gate 1 is complete.
+
+## Evidence log
+
+### 2026-08-04 — Canonical repository reconciliation
+
+- Canonical remote `main` was reconciled at commit
+  `b2f85043ee1d31fb51efd69e6ad349c91749898a`.
+- Superseded but potentially useful work was preserved on branch
+  `preserve/prospective-v1-scaffold-20260804` at commit
+  `7855669`; it was not silently discarded or merged into the delivery baseline.
+- Twelve duplicate working files were moved out of the canonical tree to
+  `/Users/alexanderking/Desktop/random_stuff/sc-referee-implementation-v0.1.0/tmp/preserved-duplicate-files-20260804/`.
+- The canonical delivery plan was published on `main`; repository reconciliation did not change
+  any Finding eligibility or count.
+
+### 2026-08-04 — Selected-result verifier implementation
+
+- Implementation commit: `57f4e581ff424c8713fceb5926e521cc3c060fe6`.
+- Verifier module SHA-256:
+  `d34ad9b7a85bf78840fb9109bd764a26e5a25a4e89484ce2788436120ead7eac`.
+- The auditor-owned profile rederives selected report, exact output bytes, producer, source
+  operands, and alternatives from a closed retained case tree without executing project code.
+- Closed outcomes preserve ambiguity, insufficiency, and unsupported structure. Caller-supplied
+  candidates, reasons, author labels, and self-digested forgeries cannot satisfy byte replay.
+- The finite v1 profile intentionally supports only a narrow ASCII/LF, static Python,
+  literal-`Path`, `.csv`/`.tsv` operand grammar. Other source languages, dynamic flow, extra files,
+  encoding cookies, translated newlines, executable inputs, and resource-ceiling violations
+  abstain.
+- Adversarial independent review reproduced and closed forward references, hidden Python and shell
+  producers, role overlap, import order, retained-byte mismatch, locale/newline drift, encoding
+  cookies, symlinks, tree races, and pre-allocation/cumulative-budget attacks. Final review reported
+  no remaining P1/P2 blocker. This review is implementation evidence, **not** verifier
+  qualification.
+- Verification passed: 70 focused verifier/v2/distribution tests; 1,723 full tests; Ruff check and
+  format; mypy for 122 production and 31 evaluation source files; starter validation; regression
+  replay; production and evaluation wheel build/install smoke; and the complete handoff verifier.
+- No v2 case, label, threshold, qualification, promotion, CLI Finding, or installed-skill Finding
+  was created. The honest program score remains 0/10.
 
 ## Evidence log
 
