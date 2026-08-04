@@ -1,6 +1,7 @@
 # Experiment 0053: Prospective qualification v2 evidence and label contract
 
-- **Status:** Evaluation-private contract and tests implemented; no v2 cases assigned
+- **Status:** Evaluation-private contract and first finite verifier profile implemented; verifier
+  not qualified or frozen; no v2 cases assigned
 - **Date:** 2026-08-04
 - **Policy effect:** None; this is a temporary evaluation experiment, not an accepted public
   schema or production authority source
@@ -31,6 +32,20 @@ the authoring and review contracts before any new cases exist.
 3. The author declaration has `authority: none`. A fresh independent verifier must rederive the
    selected result, producer, and operand path from immutable bytes. Failed, ambiguous, incomplete,
    and unsupported verification cannot yield `issue_present`.
+   The first temporary verifier profile is limited to a closed Python/static-report grammar. Its
+   retained case inventory includes whether each regular file was executable because that bit is
+   an input to the profile's exclusive report/producer/operand role decision. It rejects
+   executable or shebang-bearing reports and operands, unclassified files, and unsupported source
+   artifacts. These evaluation-private records have no qualification or Finding authority.
+   The implemented v1 profile supports only strict, straight-line Python with a literal
+   `pathlib.Path` report writer, exact retained-output byte equality, and statically rederived
+   `.csv`/`.tsv` operands. Text-mode operands and reports are restricted to ASCII bytes with LF
+   line endings, and the runtime encoding, platform, and line separator are implementation-locked;
+   this prevents locale encoding and universal-newline translation from being mistaken for exact
+   byte reproduction. Python source must use the default UTF-8 byte interpretation; byte-order
+   marks and PEP 263 encoding cookies are unsupported so source parsing cannot diverge from Python's
+   executable-byte semantics. Arbitrary Python, other languages, dynamic paths, executable inputs,
+   extra files, and unclassified roles are unsupported rather than guessed.
 4. Label resolution requires two distinct Stage-2 reviewers from two providers, with author,
    reviewer, and independent-verifier identities and providers mutually disjoint. It also requires
    exact review and validation digests, one exact selected-result binding digest, and complete
@@ -46,18 +61,24 @@ the authoring and review contracts before any new cases exist.
 ## Implemented artifacts
 
 - `evaluation/src/sc_referee_evaluation/prospective_qualification_v2.py`
+- `evaluation/src/sc_referee_evaluation/prospective_selected_result_verifier.py`
 - `evaluation/prospective-qualification-v2/ten-envelope-study.template.json`
 - `scripts/build_prospective_qualification_v2_template.py`
 - `tests/test_prospective_qualification_v2.py`
+- `tests/test_prospective_selected_result_verifier.py`
 
-The tests cover exact replay, missing operands, dynamic paths, result/report drift and span
-containment, duplicate alternative producers, absolute or directory paths, chronology, participant
-independence, synonymous reviewer descriptions, issue-class aliases, ambiguity, insufficient
-evidence, unsupported structure, provider disagreement, and post-review mutation.
+The tests cover exact byte replay, fresh-location replay, missing operands, dynamic paths,
+result/report drift and span containment, duplicate and non-Python alternative producers, closed
+file roles, executable/shebang rejection, import and statement order, forward references, caller
+forgery, tree and evaluator ceilings, symlinks, participant independence and chronology, canonical
+issue-class resolution, ambiguity, insufficiency, unsupported structure, provider disagreement,
+and post-review mutation. Stage-2 label freezing now replays the validation from case bytes; a
+handwritten validation summary cannot substitute for the verifier artifact.
 
 ## Remaining external gate
 
 No v2 authors, reviewers, authenticators, cases, labels, thresholds, held-out outcomes, metrics, or
-promotion decisions exist. Before use, the independent selected-result verifier and its own
-qualification must be implemented and frozen. Only then may opaque assignments be created. This
-experiment cannot be cited as detector qualification or a production Finding capability.
+promotion decisions exist. The first verifier implementation exists, but it has not undergone its
+required independent qualification or freeze. It therefore cannot yet supply qualification
+evidence, and opaque assignments must not be created. This experiment cannot be cited as verifier
+qualification, detector qualification, or a production Finding capability.

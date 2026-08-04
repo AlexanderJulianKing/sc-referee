@@ -12,18 +12,29 @@ The generated ten-envelope template replaces the domain-specific map-exposure en
 generic complete-domain denominator check. It still requires seven cells per envelope in separate
 threshold-pilot and held-out blocks, for 140 new cases total.
 
-`prospective_qualification_v2.py` provides two deterministic, evaluation-private artifact stages:
+`prospective_qualification_v2.py` and `prospective_selected_result_verifier.py` provide four
+deterministic, evaluation-private artifact stages:
 
 - `freeze_case_evidence_contract` freezes the author's exact selected-result declaration. The
   declaration has no verification or scientific authority.
+- `freeze_independent_selected_result_derivation` enumerates one narrowly supported static Python
+  report grammar directly from a closed case tree. It does not execute project code.
+- `freeze_selected_result_validation` replays that derivation from case bytes and compares it with
+  the previously frozen author declaration after the blind derivation is complete.
 - `freeze_stage2_scientific_label` requires two distinct Stage-2 providers plus an independent
-  evidence-completeness validation. It resolves labels from enums and exact digests, never from
-  free-text similarity.
+  verifier validation replayed from `case_root`. It resolves labels from enums and exact digests,
+  never from free-text similarity.
 
-These artifacts do not validate declaration truth, authenticate people or providers, create
-cases, inspect held-out material, set thresholds, calculate metrics, qualify a detector, or grant
-Finding authority. An independently implemented verifier must still rederive every selected-result
-binding from immutable case bytes.
+The first verifier profile accepts only a closed tree containing one or more strict straight-line
+Python producers, one nonexecutable ASCII/LF `.md`/`.txt` selected report, and the nonexecutable
+ASCII/LF `.csv`/`.tsv` operands actually rederived from those producers. Output bytes must match
+exactly. Other code, newline-translated or non-ASCII text, dynamic flow, extra files, ambiguous
+producers, and resource-bound violations fail closed.
+
+These artifacts do not authenticate people or providers, create cases, inspect held-out material,
+set thresholds, calculate metrics, qualify this verifier or a detector, or grant Finding authority.
+The verifier implementation must still be independently qualified and frozen before any v2 case
+assignment may rely on it.
 
 Regenerate the template with:
 

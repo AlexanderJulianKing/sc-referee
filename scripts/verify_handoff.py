@@ -365,6 +365,8 @@ def verify_built_evaluation_wheel() -> None:
                 raise RuntimeError("Evaluation wheel omitted its founder qualification adapter")
             if "sc_referee_evaluation/prospective_qualification_v2.py" not in names:
                 raise RuntimeError("Evaluation wheel omitted the v2 prospective contract")
+            if "sc_referee_evaluation/prospective_selected_result_verifier.py" not in names:
+                raise RuntimeError("Evaluation wheel omitted the selected-result verifier")
             if any(name.startswith("sc_referee/") for name in names):
                 raise RuntimeError("Evaluation wheel vendors the production package")
         _install_evaluation_smoke_wheels(core_wheels[0], wheels[0], install_root)
@@ -397,6 +399,11 @@ def verify_built_evaluation_wheel() -> None:
                 "from sc_referee_evaluation.prospective_qualification_v2 import (",
                 "    freeze_case_evidence_contract,",
                 "    freeze_stage2_scientific_label,",
+                ")",
+                "from sc_referee_evaluation.prospective_selected_result_verifier import (",
+                "    freeze_independent_selected_result_derivation,",
+                "    freeze_selected_result_validation,",
+                "    revalidate_independent_selected_result_derivation,",
                 ")",
                 "from sc_referee_evaluation.source_method_probe import (",
                 "    SourceMethodProbeError,",
@@ -449,6 +456,9 @@ def verify_built_evaluation_wheel() -> None:
                 "assert callable(diagnose_genebench_method_contract_conflict)",
                 "assert callable(freeze_case_evidence_contract)",
                 "assert callable(freeze_stage2_scientific_label)",
+                "assert callable(freeze_independent_selected_result_derivation)",
+                "assert callable(freeze_selected_result_validation)",
+                "assert callable(revalidate_independent_selected_result_derivation)",
                 "assert SourceMethodProbeError is not None",
                 "assert callable(probe_python_method_shapes)",
                 "assert callable(freeze_bounded_direction_profile)",

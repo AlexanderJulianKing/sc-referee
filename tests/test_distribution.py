@@ -76,6 +76,7 @@ def test_handoff_manifest_includes_runtime_and_skill_but_not_build_outputs(
     assert "evaluation/pyproject.toml" in paths
     assert "evaluation/src/sc_referee_evaluation/validation.py" in paths
     assert "evaluation/src/sc_referee_evaluation/stage3.py" in paths
+    assert "evaluation/src/sc_referee_evaluation/prospective_selected_result_verifier.py" in paths
     assert "src/sc_referee/records/evaluation_candidate.py" in paths
     assert (
         "src/sc_referee/resources/schemas-v0.18.0/schemas/v0.18.0/audit-bundle.schema.json" in paths

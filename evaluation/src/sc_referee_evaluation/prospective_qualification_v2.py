@@ -3,10 +3,14 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from datetime import UTC, datetime
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from typing import Any, Literal
 
 from sc_referee.core.ids import semantic_digest
+from sc_referee_evaluation.prospective_selected_result_verifier import (
+    ProspectiveSelectedResultVerifierError,
+    validate_selected_result_validation,
+)
 
 CASE_EVIDENCE_CONTRACT_VERSION = "2.0.0"
 SCIENTIFIC_LABEL_VERSION = "2.0.0"
@@ -21,12 +25,6 @@ ScientificLabel = Literal[
 ]
 
 _REVIEW_LABELS = {"issue_present", "issue_absent"}
-_VALIDATION_STATUSES = {
-    "verified_complete",
-    "ambiguous_selected_result",
-    "insufficient_evidence",
-    "unsupported_structure",
-}
 
 
 class ProspectiveQualificationV2Error(ValueError):
@@ -80,6 +78,7 @@ def freeze_case_evidence_contract(spec: Mapping[str, Any], *, frozen_at: str) ->
 def freeze_stage2_scientific_label(
     spec: Mapping[str, Any],
     *,
+    case_root: Path,
     case_contract: Mapping[str, Any],
     frozen_at: str,
 ) -> dict[str, Any]:
@@ -121,7 +120,11 @@ def freeze_stage2_scientific_label(
             "Stage-2 reviewers must be independent of the case author."
         )
 
-    validation = _evidence_validation(value["independent_evidence_validation"])
+    validation = _evidence_validation(
+        value["independent_evidence_validation"],
+        case_root=case_root,
+        case_contract=contract,
+    )
     if validation["validator_id"] in {
         str(author["author_id"]),
         *(str(item["reviewer_id"]) for item in reviews),
@@ -362,37 +365,17 @@ def _review(value: Any) -> dict[str, Any]:
     return review
 
 
-def _evidence_validation(value: Any) -> dict[str, Any]:
-    validation = deepcopy(_mapping(value, "independent_evidence_validation"))
-    _exact_keys(
-        validation,
-        {
-            "validator_id",
-            "provider",
-            "completed_at",
-            "case_contract_digest",
-            "status",
-            "selected_result_binding_digest",
-            "validation_digest",
-        },
-        "independent evidence validation",
-    )
-    expected = validation.pop("validation_digest")
-    if expected != semantic_digest(validation):
-        raise ProspectiveQualificationV2Error("Evidence-validation digest does not replay.")
-    validation["validation_digest"] = expected
-    _text(validation["validator_id"], "validator_id")
-    _text(validation["provider"], "validation provider")
-    _timestamp(_text(validation["completed_at"], "validation completed_at"))
-    _digest(validation["case_contract_digest"], "validation case_contract_digest")
-    if validation["status"] not in _VALIDATION_STATUSES:
-        raise ProspectiveQualificationV2Error("Unsupported evidence-validation status.")
-    if validation["selected_result_binding_digest"] is not None:
-        _digest(
-            validation["selected_result_binding_digest"],
-            "validation selected_result_binding_digest",
+def _evidence_validation(
+    value: Any, *, case_root: Path, case_contract: Mapping[str, Any]
+) -> dict[str, Any]:
+    try:
+        return validate_selected_result_validation(
+            _mapping(value, "independent_evidence_validation"),
+            case_root=case_root,
+            case_contract=case_contract,
         )
-    return validation
+    except ProspectiveSelectedResultVerifierError as error:
+        raise ProspectiveQualificationV2Error(str(error)) from error
 
 
 def _envelope(value: Any) -> dict[str, Any]:

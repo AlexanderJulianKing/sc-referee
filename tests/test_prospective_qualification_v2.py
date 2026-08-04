@@ -12,16 +12,37 @@ from sc_referee_evaluation.prospective_qualification_v2 import (
     freeze_stage2_scientific_label,
     validate_case_evidence_contract,
 )
+from sc_referee_evaluation.prospective_selected_result_verifier import (
+    PYTHON_STATIC_MARKED_REPORT_PROFILE,
+    ProspectiveSelectedResultVerifierError,
+    freeze_independent_selected_result_derivation,
+    freeze_selected_result_validation,
+)
 
-from sc_referee.core.ids import semantic_digest
+from sc_referee.core.ids import semantic_digest, sha256_digest, stable_id
 from sc_referee.scientific_checks.profiles import scientific_check_release_registry
 
 CASE_ID = "case:0123456789abcdefabcd"
 ISSUE_CLASS = "issue-class:retained-subset-for-complete-domain"
 DIGEST_A = "sha256:" + "a" * 64
-DIGEST_B = "sha256:" + "b" * 64
-DIGEST_C = "sha256:" + "c" * 64
-DIGEST_D = "sha256:" + "d" * 64
+REPORT = b"[selected-result] all,100\n"
+PRODUCER = (
+    b"from pathlib import Path\n"
+    b"table = Path('inputs/map.csv').read_text()\n"
+    b"value = table.splitlines()[1]\n"
+    b"report = f'[selected-result] {value}\\n'\n"
+    b"Path('results/report.md').write_text(report)\n"
+)
+ALTERNATIVE = (
+    b"from pathlib import Path\n"
+    b"rows = Path('inputs/map.csv').read_text().splitlines()\n"
+    b"report = '[selected-result] ' + rows[1] + '\\n'\n"
+    b"Path('results/report.md').write_text(report)\n"
+)
+SOURCE = b"declared-domain,total\nall,100\n"
+DIGEST_B = sha256_digest(REPORT)
+DIGEST_C = sha256_digest(PRODUCER)
+DIGEST_D = sha256_digest(SOURCE)
 
 
 def _case_spec() -> dict[str, Any]:
@@ -41,32 +62,32 @@ def _case_spec() -> dict[str, Any]:
                 "path": "results/report.md",
                 "content_digest": DIGEST_B,
                 "start_line": 1,
-                "end_line": 40,
+                "end_line": 1,
             },
             "result_locator": {
                 "path": "results/report.md",
                 "content_digest": DIGEST_B,
-                "start_line": 17,
-                "end_line": 19,
+                "start_line": 1,
+                "end_line": 1,
             },
             "producer_locator": {
                 "path": "workflow/analysis.py",
                 "content_digest": DIGEST_C,
-                "start_line": 31,
-                "end_line": 37,
+                "start_line": 5,
+                "end_line": 5,
             },
             "source_operands": [
                 {
-                    "operand_id": "operand:declared-domain",
+                    "operand_id": stable_id("operand", "inputs/map.csv", sha256_digest(SOURCE)),
                     "record_ref": {
                         "record_type": "file_record",
-                        "record_id": "file:data-map",
+                        "record_id": stable_id("file", "inputs/map.csv", sha256_digest(SOURCE)),
                     },
                     "source_locator": {
                         "path": "inputs/map.csv",
                         "content_digest": DIGEST_D,
                         "start_line": 1,
-                        "end_line": 1,
+                        "end_line": 2,
                     },
                 }
             ],
@@ -114,29 +135,91 @@ def _review(
     )
 
 
-def _validation(contract: dict[str, Any], *, status: str = "verified_complete") -> dict[str, Any]:
-    return _digested(
+def _write_verification_case(root: Path, *, include_alternative: bool = False) -> Path:
+    (root / "results").mkdir(parents=True, exist_ok=True)
+    (root / "workflow").mkdir(exist_ok=True)
+    (root / "inputs").mkdir(exist_ok=True)
+    (root / "results" / "report.md").write_bytes(REPORT)
+    (root / "workflow" / "analysis.py").write_bytes(PRODUCER)
+    (root / "inputs" / "map.csv").write_bytes(SOURCE)
+    if include_alternative:
+        (root / "workflow" / "alternative.py").write_bytes(ALTERNATIVE)
+    return root
+
+
+def _case_root(tmp_path: Path) -> Path:
+    return tmp_path / "selected-result-verification"
+
+
+def _validation(
+    contract: dict[str, Any],
+    tmp_path: Path,
+    *,
+    status: str = "verified_complete",
+    validator_id: str = "actor:independent-evidence-validator",
+    validator_provider: str = "Provider C",
+) -> dict[str, Any]:
+    include_alternative = status == "ambiguous_selected_result"
+    producer = PRODUCER
+    if status == "insufficient_evidence":
+        producer = (
+            b"from pathlib import Path\n"
+            b"report = '[selected-result] fixed\\n'\n"
+            b"Path('results/report.md').write_text(report)\n"
+        )
+    elif status == "unsupported_structure":
+        producer = (
+            b"from pathlib import Path\n"
+            b"target = 'results/report.md'\n"
+            b"source = Path('inputs/map.csv').read_text()\n"
+            b"Path(target).write_text(source)\n"
+        )
+    root = _write_verification_case(
+        _case_root(tmp_path),
+        include_alternative=include_alternative,
+    )
+    (root / "workflow" / "analysis.py").write_bytes(producer)
+    if status not in {
+        "verified_complete",
+        "ambiguous_selected_result",
+        "insufficient_evidence",
+        "unsupported_structure",
+    }:
+        raise AssertionError(f"unsupported validation fixture status: {status}")
+
+    derivation = freeze_independent_selected_result_derivation(
+        root,
         {
-            "validator_id": "actor:independent-evidence-validator",
-            "provider": "Provider C",
-            "completed_at": "2026-08-06T01:00:00Z",
-            "case_contract_digest": contract["contract_digest"],
-            "status": status,
-            "selected_result_binding_digest": (
-                contract["selected_result_binding_digest"]
-                if status == "verified_complete"
-                else None
-            ),
+            "case_id": contract["case_id"],
+            "validator_identity": {
+                "validator_id": validator_id,
+                "provider": validator_provider,
+                "execution_context_id": "context:selected-result-validator",
+                "identity_evidence_digest": "sha256:" + "c" * 64,
+            },
+            "profile_id": PYTHON_STATIC_MARKED_REPORT_PROFILE,
+            "selected_report_path": "results/report.md",
+            "derived_at": "2026-08-05T22:00:00Z",
         },
-        "validation_digest",
+        frozen_at="2026-08-05T23:00:00Z",
+    )
+    return freeze_selected_result_validation(
+        root,
+        contract,
+        derivation,
+        declaration_revealed_at="2026-08-05T23:30:00Z",
+        compared_at="2026-08-06T01:00:00Z",
     )
 
 
 def _label_spec(
     contract: dict[str, Any],
+    tmp_path: Path,
     *,
     reviews: list[dict[str, Any]] | None = None,
     validation_status: str = "verified_complete",
+    validator_id: str = "actor:independent-evidence-validator",
+    validator_provider: str = "Provider C",
 ) -> dict[str, Any]:
     binding_digest = str(contract["selected_result_binding_digest"])
     if reviews is None:
@@ -159,7 +242,13 @@ def _label_spec(
         "envelope_id": contract["envelope"]["envelope_id"],
         "case_contract_digest": contract["contract_digest"],
         "reviews": reviews,
-        "independent_evidence_validation": _validation(contract, status=validation_status),
+        "independent_evidence_validation": _validation(
+            contract,
+            tmp_path,
+            status=validation_status,
+            validator_id=validator_id,
+            validator_provider=validator_provider,
+        ),
     }
 
 
@@ -198,7 +287,7 @@ def test_case_contract_rejects_unusable_selected_result_bindings(
     elif mutation == "result_outside_report":
         spec["selected_result_binding"]["result_locator"]["path"] = "other.md"
     elif mutation == "result_span_outside_report":
-        spec["selected_result_binding"]["result_locator"]["end_line"] = 41
+        spec["selected_result_binding"]["result_locator"]["end_line"] = 2
     elif mutation == "duplicate_alternative":
         producer = deepcopy(spec["selected_result_binding"]["producer_locator"])
         producer["path"] = "workflow/alternative.py"
@@ -217,11 +306,12 @@ def test_case_contract_rejects_unusable_selected_result_bindings(
         freeze_case_evidence_contract(spec, frozen_at="2026-08-05T01:00:00Z")
 
 
-def test_synonymous_descriptions_resolve_through_canonical_issue_class() -> None:
+def test_synonymous_descriptions_resolve_through_canonical_issue_class(tmp_path: Path) -> None:
     contract = freeze_case_evidence_contract(_case_spec(), frozen_at="2026-08-05T01:00:00Z")
 
     label = freeze_stage2_scientific_label(
-        _label_spec(contract),
+        _label_spec(contract, tmp_path),
+        case_root=_case_root(tmp_path),
         case_contract=contract,
         frozen_at="2026-08-06T02:00:00Z",
     )
@@ -243,47 +333,49 @@ def test_synonymous_descriptions_resolve_through_canonical_issue_class() -> None
     ),
 )
 def test_author_reviewers_and_evidence_validator_are_independent(
-    participant: str, message: str
+    participant: str, message: str, tmp_path: Path
 ) -> None:
     contract = freeze_case_evidence_contract(_case_spec(), frozen_at="2026-08-05T01:00:00Z")
-    spec = _label_spec(contract)
-    if participant == "author_reviewer_identity":
-        spec["reviews"][0]["reviewer_id"] = contract["authorship"]["author_id"]
-        spec["reviews"][0] = _digested(
-            {key: value for key, value in spec["reviews"][0].items() if key != "review_digest"},
-            "review_digest",
+    validator_id = "actor:independent-evidence-validator"
+    validator_provider = "Provider C"
+    if participant == "reviewer_validator_identity":
+        validator_id = "actor:stage2-a"
+    elif participant == "reviewer_validator_provider":
+        validator_provider = "Provider A"
+    elif participant == "author_validator_identity":
+        validator_id = str(contract["authorship"]["author_id"])
+    elif participant == "author_validator_provider":
+        validator_provider = str(contract["authorship"]["provider"])
+    with pytest.raises(
+        (ProspectiveQualificationV2Error, ProspectiveSelectedResultVerifierError), match=message
+    ):
+        spec = _label_spec(
+            contract,
+            tmp_path,
+            validator_id=validator_id,
+            validator_provider=validator_provider,
         )
-    elif participant == "author_reviewer_provider":
-        spec["reviews"][0]["provider"] = contract["authorship"]["provider"]
-        spec["reviews"][0] = _digested(
-            {key: value for key, value in spec["reviews"][0].items() if key != "review_digest"},
-            "review_digest",
-        )
-    else:
-        validation = {
-            key: value
-            for key, value in spec["independent_evidence_validation"].items()
-            if key != "validation_digest"
-        }
-        if participant == "reviewer_validator_identity":
-            validation["validator_id"] = spec["reviews"][0]["reviewer_id"]
-        elif participant == "reviewer_validator_provider":
-            validation["provider"] = spec["reviews"][0]["provider"]
-        elif participant == "author_validator_identity":
-            validation["validator_id"] = contract["authorship"]["author_id"]
-        else:
-            validation["provider"] = contract["authorship"]["provider"]
-        spec["independent_evidence_validation"] = _digested(validation, "validation_digest")
-
-    with pytest.raises(ProspectiveQualificationV2Error, match=message):
+        if participant == "author_reviewer_identity":
+            spec["reviews"][0]["reviewer_id"] = contract["authorship"]["author_id"]
+            spec["reviews"][0] = _digested(
+                {key: value for key, value in spec["reviews"][0].items() if key != "review_digest"},
+                "review_digest",
+            )
+        elif participant == "author_reviewer_provider":
+            spec["reviews"][0]["provider"] = contract["authorship"]["provider"]
+            spec["reviews"][0] = _digested(
+                {key: value for key, value in spec["reviews"][0].items() if key != "review_digest"},
+                "review_digest",
+            )
         freeze_stage2_scientific_label(
             spec,
+            case_root=_case_root(tmp_path),
             case_contract=contract,
             frozen_at="2026-08-06T02:00:00Z",
         )
 
 
-def test_issue_class_alias_is_rejected_instead_of_silently_disagreeing() -> None:
+def test_issue_class_alias_is_rejected_instead_of_silently_disagreeing(tmp_path: Path) -> None:
     contract = freeze_case_evidence_contract(_case_spec(), frozen_at="2026-08-05T01:00:00Z")
     binding_digest = str(contract["selected_result_binding_digest"])
     reviews = [
@@ -304,7 +396,8 @@ def test_issue_class_alias_is_rejected_instead_of_silently_disagreeing() -> None
 
     with pytest.raises(ProspectiveQualificationV2Error, match="frozen canonical"):
         freeze_stage2_scientific_label(
-            _label_spec(contract, reviews=reviews),
+            _label_spec(contract, tmp_path, reviews=reviews),
+            case_root=_case_root(tmp_path),
             case_contract=contract,
             frozen_at="2026-08-06T02:00:00Z",
         )
@@ -319,12 +412,13 @@ def test_issue_class_alias_is_rejected_instead_of_silently_disagreeing() -> None
     ),
 )
 def test_incomplete_selected_result_evidence_never_becomes_issue_present(
-    status: str, expected: str
+    status: str, expected: str, tmp_path: Path
 ) -> None:
     contract = freeze_case_evidence_contract(_case_spec(), frozen_at="2026-08-05T01:00:00Z")
 
     label = freeze_stage2_scientific_label(
-        _label_spec(contract, validation_status=status),
+        _label_spec(contract, tmp_path, validation_status=status),
+        case_root=_case_root(tmp_path),
         case_contract=contract,
         frozen_at="2026-08-06T02:00:00Z",
     )
@@ -333,7 +427,7 @@ def test_incomplete_selected_result_evidence_never_becomes_issue_present(
     assert label["canonical_issue_class"] is None
 
 
-def test_review_disagreement_is_retained_as_disagreement() -> None:
+def test_review_disagreement_is_retained_as_disagreement(tmp_path: Path) -> None:
     contract = freeze_case_evidence_contract(_case_spec(), frozen_at="2026-08-05T01:00:00Z")
     binding_digest = str(contract["selected_result_binding_digest"])
     reviews = [
@@ -354,7 +448,8 @@ def test_review_disagreement_is_retained_as_disagreement() -> None:
     ]
 
     label = freeze_stage2_scientific_label(
-        _label_spec(contract, reviews=reviews),
+        _label_spec(contract, tmp_path, reviews=reviews),
+        case_root=_case_root(tmp_path),
         case_contract=contract,
         frozen_at="2026-08-06T02:00:00Z",
     )
@@ -363,14 +458,15 @@ def test_review_disagreement_is_retained_as_disagreement() -> None:
     assert label["canonical_issue_class"] is None
 
 
-def test_mutated_review_digest_is_rejected() -> None:
+def test_mutated_review_digest_is_rejected(tmp_path: Path) -> None:
     contract = freeze_case_evidence_contract(_case_spec(), frozen_at="2026-08-05T01:00:00Z")
-    spec = _label_spec(contract)
+    spec = _label_spec(contract, tmp_path)
     spec["reviews"][0]["bounded_description"] = "Mutated after review."
 
     with pytest.raises(ProspectiveQualificationV2Error, match="review digest"):
         freeze_stage2_scientific_label(
             spec,
+            case_root=_case_root(tmp_path),
             case_contract=contract,
             frozen_at="2026-08-06T02:00:00Z",
         )

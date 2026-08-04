@@ -62,6 +62,24 @@ from sc_referee_evaluation.prospective_qualification_v2 import (
     freeze_stage2_scientific_label,
     validate_case_evidence_contract,
 )
+from sc_referee_evaluation.prospective_selected_result_verifier import (
+    DERIVATION_VERSION as SELECTED_RESULT_DERIVATION_VERSION,
+)
+from sc_referee_evaluation.prospective_selected_result_verifier import (
+    PYTHON_STATIC_MARKED_REPORT_PROFILE,
+    ProspectiveSelectedResultVerifierError,
+    freeze_independent_selected_result_derivation,
+    freeze_selected_result_validation,
+    revalidate_independent_selected_result_derivation,
+    validate_independent_selected_result_derivation,
+    validate_selected_result_validation,
+)
+from sc_referee_evaluation.prospective_selected_result_verifier import (
+    VALIDATION_VERSION as SELECTED_RESULT_VALIDATION_VERSION,
+)
+from sc_referee_evaluation.prospective_selected_result_verifier import (
+    VERIFIER_VERSION as SELECTED_RESULT_VERIFIER_VERSION,
+)
 from sc_referee_evaluation.regression_baseline import (
     MODULE_BASELINE_REQUIREMENTS_VERSION,
     RegressionModuleBaselineError,
@@ -111,11 +129,15 @@ __all__ = [
     "MODULE_BASELINE_REQUIREMENTS_VERSION",
     "PROFILE_MANIFEST",
     "PROSPECTIVE_QUALIFICATION_PROTOCOL_VERSION",
+    "PYTHON_STATIC_MARKED_REPORT_PROFILE",
     "REGRESSION_CORPUS_EXECUTION_PLAN_VERSION",
     "REGRESSION_CORPUS_LEDGER_VERSION",
     "REGRESSION_CORPUS_RUNNER_VERSION",
     "REQUIRED_CELL_TYPES",
     "SCIENTIFIC_LABEL_VERSION",
+    "SELECTED_RESULT_DERIVATION_VERSION",
+    "SELECTED_RESULT_VALIDATION_VERSION",
+    "SELECTED_RESULT_VERIFIER_VERSION",
     "AnalysisMethodQualificationError",
     "CorpusPreflightError",
     "DetectorComparisonError",
@@ -128,6 +150,7 @@ __all__ = [
     "MethodContractDiagnosticError",
     "ProspectiveQualificationError",
     "ProspectiveQualificationV2Error",
+    "ProspectiveSelectedResultVerifierError",
     "QualificationMetricError",
     "RegressionCorpusLedgerError",
     "RegressionCorpusRunnerError",
@@ -148,8 +171,10 @@ __all__ = [
     "diagnose_genebench_method_contract_conflict",
     "freeze_bounded_analysis_method_profile",
     "freeze_case_evidence_contract",
+    "freeze_independent_selected_result_derivation",
     "freeze_pilot_threshold_decision",
     "freeze_prospective_qualification_protocol",
+    "freeze_selected_result_validation",
     "freeze_stage2_scientific_label",
     "generate_ambiguous_fixture",
     "generate_control_fixture",
@@ -167,14 +192,17 @@ __all__ = [
     "regression_tree_digest",
     "revalidate_analysis_method_proof",
     "revalidate_fixture_proof",
+    "revalidate_independent_selected_result_derivation",
     "run_regression_corpus",
     "seal_prospective_outcome_ledger",
     "validate_adjudicated_root_cause",
     "validate_case_evidence_contract",
     "validate_case_packet",
+    "validate_independent_selected_result_derivation",
     "validate_regression_corpus_execution_plan",
     "validate_regression_corpus_ledger",
     "validate_regression_module_baselines",
+    "validate_selected_result_validation",
     "validate_stage3_review_submission",
     "verify_bounded_analysis_method_case",
 ]
