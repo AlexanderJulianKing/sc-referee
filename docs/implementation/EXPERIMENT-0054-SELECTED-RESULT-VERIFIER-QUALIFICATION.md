@@ -139,7 +139,7 @@ These thresholds cannot be weakened after pilot results. A failing exact tuple r
 
 - [x] Pre-case freeze manifest binding target, oracle, profile, protocol, matrices, prompts, and
   pass rules.
-- [ ] Opaque pilot and held-out assignment manifests frozen before case construction.
+- [x] Opaque pilot and held-out assignment manifests frozen before case construction.
 - [x] Independent oracle implementation with import-firewall and mutation tests.
 - [ ] Complete pilot case trees, construction certificates, oracle proofs, target outputs, and
   comparison records.
@@ -161,6 +161,13 @@ and the separate certificate-oracle implementation. The builder is write-once an
 complete freeze. Focused tests cover certificate, inventory, span, state/binding, mutation,
 symlink, import-firewall, target-drift, no-overwrite, answer-blindness, and freeze-replay behavior.
 
-No case, assignment, oracle proof, target output, metric, threshold result, or qualification
-decision exists yet. Existing unit tests and adversarial code review remain development evidence
-only. The target bytes are frozen for the study, but the verifier is not yet qualified.
+The label-free no-replacement assignment manifest is
+`evaluation/qualification/selected-result-verifier-v1.0.0-study/opaque-assignments.json`. It fixes
+96 unique case identities, 48 per block and 24 per provider-family slot, without carrying case
+bytes, cell labels, oracle states, reasons, bindings, proofs, or target outputs. The target packet
+for each assignment exposes only opaque case identity, frozen profile identity, and selected-report
+path.
+
+No case, oracle proof, target output, metric, threshold result, or qualification decision exists
+yet. Existing unit tests and adversarial code review remain development evidence only. The target
+bytes and label-free assignments are frozen for the study, but the verifier is not yet qualified.
