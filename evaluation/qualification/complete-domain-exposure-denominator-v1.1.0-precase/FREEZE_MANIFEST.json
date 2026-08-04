@@ -1,0 +1,105 @@
+{
+  "artifact_kind": "direct_envelope_precase_freeze",
+  "freeze_version": "1.0.0",
+  "freeze_id": "freeze:complete-domain-exposure-denominator-v1.1.0-precase",
+  "source_commit": "f6d5adb6d6314f58fa2ea9a09e721015732ed2c4",
+  "frozen_at": "2026-08-04T22:33:52Z",
+  "experiment_ref": "docs/implementation/EXPERIMENT-0056-LEAN-DIRECT-TEN-FINDINGS-QUALIFICATION.md",
+  "qualification_authority": "none_precase_freeze_only",
+  "metric_case_count": 0,
+  "scientific_label_count": 0,
+  "detector_outcome_count": 0,
+  "envelope": {
+    "envelope_id": "relation-envelope:complete-domain-exposure-denominator",
+    "canonical_issue_class": "issue-class:retained-subset-for-complete-domain",
+    "check_id": "check:complete-domain-exposure-denominator",
+    "candidate_id": "complete-declared-domain-exposure",
+    "case_evidence_contract_version": "2.0.0"
+  },
+  "detector": {
+    "detector_id": "detector:bounded-analysis-method-conflict",
+    "detector_version": "0.3.0",
+    "detector_manifest_digest": "sha256:a8e8bdf16e847745276a3d8da0bc2ba44062e42293e1f3185c9ccf9a19abecbc",
+    "implementation_path": "src/sc_referee/detectors/bounded_analysis_method_conflict.py",
+    "implementation_digest": "sha256:d22f5b5cffbde98201077edf1a3825274780ac23bff997c78b44465e67bdf6d1",
+    "maturity": "experimental",
+    "production_finding_permitted": false
+  },
+  "scientific_check": {
+    "check_version": "1.1.0",
+    "check_manifest_digest": "sha256:ab5760d4bd5201bd7dc35ae80afa0ba563f89d761a849940190baa9b64970fba",
+    "profile_source_path": "src/sc_referee/scientific_checks/profiles.py",
+    "profile_source_digest": "sha256:a0639eb874734332f1441717648747a4aeb525a1610f25160417f8cf8d08ed28"
+  },
+  "adapter": {
+    "adapter_id": "adapter:complete-domain-exposure-denominator:selected-report-v1",
+    "adapter_version": "1.1.0",
+    "adapter_manifest_digest": "sha256:cbf4d745348c8ca733e22903cd2d6121fec9cc9112f92a253117c1e6753f1b50",
+    "implementation_path": "src/sc_referee/scientific_checks/selected_report_adapter.py",
+    "implementation_source_digest": "sha256:081c5a424d0046b24428276a0810dde91754c70fb62b312951725d64d5b6ecd1",
+    "recognition_grammar_digest": "sha256:d9053359a964799d985546cb2d52ce23c54a2128e3dc612400922cd695089251"
+  },
+  "binding": {
+    "binding_id": "method-conflict-binding:complete-domain-exposure-denominator-v1",
+    "binding_digest": "sha256:127306babb8127dc820ea2d3f322ca47e7da0af976ea771eb7ef10e445fcb4f5",
+    "required_evidence_planes": [
+      "reported_text"
+    ],
+    "counterevidence_predicates": [
+      "approved_method_deviation",
+      "governing_protocol_amendment",
+      "method_obligation_applicability"
+    ]
+  },
+  "selected_result_comparator": {
+    "profile_id": "selected-result-profile:python-static-marked-report-v1",
+    "profile_digest": "sha256:12478b6b21fb12be7388a7a570adadd8ffc68ea09ab2803074dfc77feb6699d0",
+    "verifier_version": "1.0.0",
+    "implementation_path": "evaluation/src/sc_referee_evaluation/prospective_selected_result_verifier.py",
+    "implementation_digest": "sha256:083e7cce7eb0f5af8ff55c8ba00ca9d7397f1d398c331c387baa6751a552e52f",
+    "python_runtime_digest": "sha256:a9daa0981a355719b9ad10551754d4db7879bc7afdf3a34b39c5581a5bb63910",
+    "project_code_executed": false,
+    "scientific_label_authority": false
+  },
+  "build_identity": {
+    "evaluation_pyproject_path": "evaluation/pyproject.toml",
+    "evaluation_pyproject_digest": "sha256:e39b4a8071a15cb4e70f1c618fb9b2e7813e167d02375703da28a544c2eb623d",
+    "python_version": "3.11.15",
+    "setuptools_version": "79.0.1",
+    "uv_version": "0.11.16",
+    "source_date_epoch": 1785880000,
+    "wheel_filename": "sc_referee_evaluation-0.1.0.dev0-py3-none-any.whl",
+    "wheel_size_bytes": 276610,
+    "wheel_digest": "sha256:9af1306585d973fde9646de4618253f3367cd1a8d9e15f9ea44c3e3d7fbf7e29",
+    "independent_rebuild_count": 2,
+    "independent_rebuilds_identical": true
+  },
+  "evidence_contract": {
+    "implementation_path": "evaluation/src/sc_referee_evaluation/prospective_qualification_v2.py",
+    "implementation_digest": "sha256:ee56f5543a6e631923a604fe0fc7f7b771a72c9901a394c7a44b02e8e724efe9",
+    "study_template_path": "evaluation/prospective-qualification-v2/ten-envelope-study.template.json",
+    "study_template_content_digest": "sha256:37776cf58ff0e8eec27c1b07ccca53a0bceb784baefc8eef72ae89e23e8fe198",
+    "study_template_digest": "sha256:a4d6ae6b92eb8a7090eef2df75e27681c1d517fe10f4eb1156cf586d86c34a65"
+  },
+  "development_control_ref": {
+    "path": "evaluation/development-controls/complete-domain-exposure-v1.1.0/MANIFEST.json",
+    "content_digest": "sha256:a132339039ef13a490337111b7d92fefb0adac77da493bd4a7a4caa411a86e99",
+    "metric_eligible": false
+  },
+  "verification": {
+    "focused_first_envelope_tests": 14,
+    "repository_tests": 1865,
+    "public_schema_examples": 79,
+    "regression_cases": 147,
+    "module_baselines": 31,
+    "production_source_files_typed": 122,
+    "evaluation_source_files_typed": 41,
+    "complete_handoff_verifier": "passed"
+  },
+  "limitations": [
+    "This freeze contains no authored metric case, scientific label, detector outcome, threshold, qualification result, promotion, or Finding authority.",
+    "The comparator establishes only exact selected-result binding within its finite static grammar; it has no scientific-label authority.",
+    "The detector and check remain experimental and production Finding-ineligible until the direct pilot, held-out evaluation, forward schema, and maintainer promotion all succeed."
+  ],
+  "freeze_digest": "sha256:55a515535246aa1a4d1c091ed020e8a087b78552b727ee947439b26a01142ae8"
+}

@@ -6,8 +6,8 @@
 - **Current qualification score:** 0 of 10 target envelopes independently qualified
 - **Current study state:** the over-scoped selected-result meta-qualification was stopped before
   case authoring; lean direct detector qualification is active under Experiment 0056, with 0
-  metric-eligible cases authored, the first envelope's Gate 1 controls complete except for the
-  comparator/build freeze, and its 14-case lane not yet frozen
+  metric-eligible cases authored, the first envelope's Gate 1 complete, its exact detector/binding/
+  comparator/evidence tuple frozen, and its 14 assignments not yet authored or frozen
 - **Execution authority:** This document controls work sequencing and progress reporting. It does
   not itself change record meaning, detector authority, or Finding eligibility.
 
@@ -152,7 +152,7 @@ claims remain mandatory.
 - [x] Reconcile the dirty local checkout, remote `main`, and this plan into one canonical working
   tree without losing unrelated work.
 - [x] Implement the independent selected-result verifier required by Experiment 0053.
-- [ ] Freeze the deterministic selected-result comparator and build identity used only for
+- [x] Freeze the deterministic selected-result comparator and build identity used only for
   answer-isolated label/result comparison; do not give it scientific-label authority.
 - [x] Complete file, variable, function, level, and identifier renaming controls for the current
   envelope before its assignments are authored; repeat before each later envelope freezes.
@@ -172,10 +172,10 @@ frozen, and no known local capability defect remains for that lane. Repeat for e
 
 ## Gate 2 — Freeze the current direct-qualification lane
 
-- [ ] Freeze the current envelope's exact detector manifest and implementation bytes.
-- [ ] Freeze the current envelope's exact check/candidate/adapter binding digest.
-- [ ] Freeze the deterministic comparator/build identity and its finite supported grammar.
-- [ ] Freeze the canonical issue-class registry and selected-result evidence contract.
+- [x] Freeze the current envelope's exact detector manifest and implementation bytes.
+- [x] Freeze the current envelope's exact check/candidate/adapter binding digest.
+- [x] Freeze the deterministic comparator/build identity and its finite supported grammar.
+- [x] Freeze the canonical issue-class registry and selected-result evidence contract.
 - [ ] Enroll exact mutually independent authors, four Stage-1 reviewers, two fresh Stage-2
   reviewers, evidence validators, and detector implementers across the required providers; retain
   accepted agent identity and transcript digests and disclose agent-only review.
@@ -283,13 +283,13 @@ maintainer decision; there is no family-wide or portfolio-wide implied authority
 
 ## Immediate next unchecked item
 
-Freeze the deterministic comparator/build identity to close Gate 1 for
-`check:complete-domain-exposure-denominator`, then freeze this envelope's exact detector,
-check/candidate/adapter binding, selected-result evidence contract, canonical issue-class entry,
-and fourteen opaque assignments under Experiment 0056 before any metric-eligible case is authored.
-Preserve the stopped Experiment 0055 machinery as non-qualifying development evidence, but perform
-no further cryptographic-registrar, distribution-`RECORD`, hostile-importer, separate 96-case
-verifier-study, or filesystem-relocation work.
+Enroll the exact independent authors, four Stage-1 reviewers, two fresh Stage-2 reviewers, evidence
+validators, and detector implementers for the first envelope across the required providers. Then
+freeze benchmark-blind authoring briefs and fourteen opaque no-replacement assignments, sealing the
+held-out seven before any pilot label or detector outcome exists. Preserve the stopped Experiment
+0055 machinery as non-qualifying development evidence, but perform no further cryptographic-
+registrar, distribution-`RECORD`, hostile-importer, separate 96-case verifier-study, or filesystem-
+relocation work.
 
 Do not reduce the accepted 4+2 scientific review panel, open held-out material before a
 pilot-informed threshold ADR, or bypass the forward-schema requirement for promotion. Do not
@@ -401,6 +401,24 @@ perform unrelated capability expansion before the first lane is frozen.
   thresholds, held-out outcomes, promotions, or production Findings exist; the honest score
   remains 0/10.
 
+### 2026-08-04 — First-envelope precase tuple freeze
+
+- Source checkpoint `f6d5adb6d6314f58fa2ea9a09e721015732ed2c4` was committed only after the
+  complete Gate 1 verification passed.
+- `evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-precase/FREEZE_MANIFEST.json`
+  binds that checkpoint to the exact detector manifest and implementation, check and adapter
+  manifests, method-conflict binding, canonical issue-class entry, case-evidence contract,
+  deterministic comparator implementation/runtime/profile, development-control record, and the
+  twice-reproduced evaluation-wheel digest. Its self-digest is
+  `sha256:55a515535246aa1a4d1c091ed020e8a087b78552b727ee947439b26a01142ae8`.
+- Two fail-closed tests replay the freeze against the current registries and exact source bytes.
+  Any later change to a bound file or digest invalidates this tuple instead of silently changing
+  the study target.
+- The freeze explicitly contains zero metric cases, labels, detector outcomes, thresholds,
+  qualification authority, promotion, or Finding permission. The delivery matrix therefore
+  remains 0/10 qualified and 0/10 production; the `Frozen` cell remains unchecked until all 14
+  assignments and roles are frozen.
+
 ## Evidence log
 
 | Date | Change | Evidence | Checkboxes changed |
@@ -408,3 +426,4 @@ perform unrelated capability expansion before the first lane is frozen.
 | 2026-08-04 | Baseline plan created after correcting the distinction between development recognition and production delivery. | Commit `0ecf460297c6ff794a2965f11056e089eb098b95`; `GENERIC_REFEREE_CAPABILITY_REVAMP_PLAN.md`; Experiments 0052 and 0053; green CI run `30897659713`. | Development baseline only; qualification, promotion, and product cells remain unchecked. |
 | 2026-08-04 | Replaced the non-normative verifier meta-study with lean direct envelope qualification while retaining every accepted scientific review and Finding gate. | Experiment 0056; accepted-spec/ADR/schema audit; 178 focused tests. | No qualification, promotion, or product cell changed; score remains 0/10. |
 | 2026-08-04 | Closed the first envelope's generic controls and verified its independent development style plus exact static selected-result scope. | `evaluation/development-controls/complete-domain-exposure-v1.1.0/MANIFEST.json`; 14 focused tests; 1,865 full tests; complete handoff verifier; reproducible wheel digest `9af1306585d973fde9646de4618253f3367cd1a8d9e15f9ea44c3e3d7fbf7e29`. | First-envelope `Independent` and six applicable Gate 1 control/readiness items checked; qualification, promotion, product, and production score remain 0/10. |
+| 2026-08-04 | Froze the first envelope's exact detector/binding/comparator/evidence tuple before case authoring. | Source commit `f6d5adb6d6314f58fa2ea9a09e721015732ed2c4`; freeze digest `sha256:55a515535246aa1a4d1c091ed020e8a087b78552b727ee947439b26a01142ae8`; two replay tests. | Gate 1 comparator freeze and first four Gate 2 tuple-freeze items checked; `Frozen`, qualification, promotion, and product cells remain unchecked. |
