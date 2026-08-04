@@ -10,6 +10,10 @@ from dataclasses import asdict
 from pathlib import Path
 
 import pytest
+from sc_referee_evaluation.prospective_qualification_v2 import (
+    freeze_author_selected_result_declaration,
+    freeze_case_evidence_contract,
+)
 from sc_referee_evaluation.qualification_identity import signed_receipt_payload
 from sc_referee_evaluation.selected_result_qualification_oracle import (
     ConstructionCertificate,
@@ -334,19 +338,38 @@ def _case_contract(target: dict[str, object]) -> dict[str, object]:
     candidates = derivation["candidate_bindings"]
     assert isinstance(candidates, list) and len(candidates) == 1
     binding = candidates[0]
-    contract: dict[str, object] = {
-        "artifact_kind": "prospective_case_evidence_contract",
-        "contract_version": "2.0.0",
-        "evidence_status": "unverified_author_declaration",
-        "qualification_authority": "none_case_contract_only",
-        "case_id": CASE_ID,
-        "authorship": {"author_id": "case-author", "provider": "Author Provider"},
-        "selected_result_binding": binding,
-        "selected_result_binding_digest": semantic_digest(binding),
-        "frozen_at": "2026-08-04T19:00:00Z",
-    }
-    contract["contract_digest"] = semantic_digest(contract)
-    return contract
+    declaration = freeze_author_selected_result_declaration(
+        {
+            "case_id": CASE_ID,
+            "declaration_state": "one_selected_result",
+            "selected_result_binding": binding,
+            "candidate_result_locators": [],
+            "unsupported_producer_locators": [],
+            "authorship": {
+                "author_id": "case-author",
+                "provider": "Author Provider",
+                "execution_context_id": "context:case-author",
+                "identity_evidence_digest": "sha256:" + "a" * 64,
+            },
+            "authored_at": "2026-08-04T18:50:00Z",
+        },
+        frozen_at="2026-08-04T19:00:00Z",
+    )
+    return freeze_case_evidence_contract(
+        {
+            "case_id": CASE_ID,
+            "envelope": {
+                "envelope_id": "relation-envelope:stopped-verifier-development",
+                "check_id": "check:stopped-verifier-development",
+                "candidate_id": "stopped-verifier-development",
+                "binding_digest": "sha256:" + "b" * 64,
+            },
+            "canonical_issue_class": "issue-class:stopped-verifier-development",
+            "author_declaration": declaration,
+            "coordinated_at": "2026-08-04T19:10:00Z",
+        },
+        frozen_at="2026-08-04T19:20:00Z",
+    )
 
 
 def _validation(root: Path, target: dict[str, object]) -> dict[str, object]:

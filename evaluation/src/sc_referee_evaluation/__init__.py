@@ -27,6 +27,18 @@ if TYPE_CHECKING:
         CorpusPreflightError,
         preflight_genebench_public_package,
     )
+    from sc_referee_evaluation.direct_qualification_lane import (
+        AUTHORING_BRIEF_MANIFEST_VERSION,
+        DIRECT_LANE_FREEZE_VERSION,
+        PARTICIPANT_ENROLLMENT_VERSION,
+        DirectQualificationLaneError,
+        freeze_authoring_brief_manifest,
+        freeze_direct_qualification_lane,
+        freeze_participant_enrollment,
+        validate_authoring_brief_manifest,
+        validate_direct_qualification_lane,
+        validate_participant_enrollment,
+    )
     from sc_referee_evaluation.fixture import (
         FixtureGenerationError,
         FixtureProofInputs,
@@ -62,11 +74,14 @@ if TYPE_CHECKING:
         seal_prospective_outcome_ledger,
     )
     from sc_referee_evaluation.prospective_qualification_v2 import (
+        AUTHOR_DECLARATION_VERSION,
         CASE_EVIDENCE_CONTRACT_VERSION,
         SCIENTIFIC_LABEL_VERSION,
         ProspectiveQualificationV2Error,
+        freeze_author_selected_result_declaration,
         freeze_case_evidence_contract,
         freeze_stage2_scientific_label,
+        validate_author_selected_result_declaration,
         validate_case_evidence_contract,
     )
     from sc_referee_evaluation.prospective_selected_result_verifier import (
@@ -173,6 +188,46 @@ _LAZY_EXPORTS = {
         "sc_referee_evaluation.corpus",
         "preflight_genebench_public_package",
     ),
+    "AUTHORING_BRIEF_MANIFEST_VERSION": (
+        "sc_referee_evaluation.direct_qualification_lane",
+        "AUTHORING_BRIEF_MANIFEST_VERSION",
+    ),
+    "DIRECT_LANE_FREEZE_VERSION": (
+        "sc_referee_evaluation.direct_qualification_lane",
+        "DIRECT_LANE_FREEZE_VERSION",
+    ),
+    "PARTICIPANT_ENROLLMENT_VERSION": (
+        "sc_referee_evaluation.direct_qualification_lane",
+        "PARTICIPANT_ENROLLMENT_VERSION",
+    ),
+    "DirectQualificationLaneError": (
+        "sc_referee_evaluation.direct_qualification_lane",
+        "DirectQualificationLaneError",
+    ),
+    "freeze_authoring_brief_manifest": (
+        "sc_referee_evaluation.direct_qualification_lane",
+        "freeze_authoring_brief_manifest",
+    ),
+    "freeze_direct_qualification_lane": (
+        "sc_referee_evaluation.direct_qualification_lane",
+        "freeze_direct_qualification_lane",
+    ),
+    "freeze_participant_enrollment": (
+        "sc_referee_evaluation.direct_qualification_lane",
+        "freeze_participant_enrollment",
+    ),
+    "validate_authoring_brief_manifest": (
+        "sc_referee_evaluation.direct_qualification_lane",
+        "validate_authoring_brief_manifest",
+    ),
+    "validate_direct_qualification_lane": (
+        "sc_referee_evaluation.direct_qualification_lane",
+        "validate_direct_qualification_lane",
+    ),
+    "validate_participant_enrollment": (
+        "sc_referee_evaluation.direct_qualification_lane",
+        "validate_participant_enrollment",
+    ),
     "FixtureGenerationError": (
         "sc_referee_evaluation.fixture",
         "FixtureGenerationError",
@@ -263,6 +318,10 @@ _LAZY_EXPORTS = {
         "sc_referee_evaluation.prospective_qualification_v2",
         "CASE_EVIDENCE_CONTRACT_VERSION",
     ),
+    "AUTHOR_DECLARATION_VERSION": (
+        "sc_referee_evaluation.prospective_qualification_v2",
+        "AUTHOR_DECLARATION_VERSION",
+    ),
     "SCIENTIFIC_LABEL_VERSION": (
         "sc_referee_evaluation.prospective_qualification_v2",
         "SCIENTIFIC_LABEL_VERSION",
@@ -275,6 +334,10 @@ _LAZY_EXPORTS = {
         "sc_referee_evaluation.prospective_qualification_v2",
         "freeze_case_evidence_contract",
     ),
+    "freeze_author_selected_result_declaration": (
+        "sc_referee_evaluation.prospective_qualification_v2",
+        "freeze_author_selected_result_declaration",
+    ),
     "freeze_stage2_scientific_label": (
         "sc_referee_evaluation.prospective_qualification_v2",
         "freeze_stage2_scientific_label",
@@ -282,6 +345,10 @@ _LAZY_EXPORTS = {
     "validate_case_evidence_contract": (
         "sc_referee_evaluation.prospective_qualification_v2",
         "validate_case_evidence_contract",
+    ),
+    "validate_author_selected_result_declaration": (
+        "sc_referee_evaluation.prospective_qualification_v2",
+        "validate_author_selected_result_declaration",
     ),
     "PYTHON_STATIC_MARKED_REPORT_PROFILE": (
         "sc_referee_evaluation.prospective_selected_result_verifier",
@@ -457,10 +524,14 @@ def __dir__() -> list[str]:
 
 
 __all__ = [
+    "AUTHORING_BRIEF_MANIFEST_VERSION",
+    "AUTHOR_DECLARATION_VERSION",
     "CASE_EVIDENCE_CONTRACT_VERSION",
     "DEFAULT_REGRESSION_CORPUS_EXECUTION_PLAN",
     "DEFAULT_REGRESSION_CORPUS_LEDGER",
+    "DIRECT_LANE_FREEZE_VERSION",
     "MODULE_BASELINE_REQUIREMENTS_VERSION",
+    "PARTICIPANT_ENROLLMENT_VERSION",
     "PROFILE_MANIFEST",
     "PROSPECTIVE_QUALIFICATION_PROTOCOL_VERSION",
     "PYTHON_STATIC_MARKED_REPORT_PROFILE",
@@ -475,6 +546,7 @@ __all__ = [
     "AnalysisMethodQualificationError",
     "CorpusPreflightError",
     "DetectorComparisonError",
+    "DirectQualificationLaneError",
     "EvaluationCandidateProjectionError",
     "EvaluationValidationError",
     "ExactJsonGraderError",
@@ -503,9 +575,13 @@ __all__ = [
     "compare_detector_output",
     "corpus_semantic_projection",
     "diagnose_genebench_method_contract_conflict",
+    "freeze_author_selected_result_declaration",
+    "freeze_authoring_brief_manifest",
     "freeze_bounded_analysis_method_profile",
     "freeze_case_evidence_contract",
+    "freeze_direct_qualification_lane",
     "freeze_independent_selected_result_derivation",
+    "freeze_participant_enrollment",
     "freeze_pilot_threshold_decision",
     "freeze_prospective_qualification_protocol",
     "freeze_selected_result_validation",
@@ -530,9 +606,13 @@ __all__ = [
     "run_regression_corpus",
     "seal_prospective_outcome_ledger",
     "validate_adjudicated_root_cause",
+    "validate_author_selected_result_declaration",
+    "validate_authoring_brief_manifest",
     "validate_case_evidence_contract",
     "validate_case_packet",
+    "validate_direct_qualification_lane",
     "validate_independent_selected_result_derivation",
+    "validate_participant_enrollment",
     "validate_regression_corpus_execution_plan",
     "validate_regression_corpus_ledger",
     "validate_regression_module_baselines",

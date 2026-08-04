@@ -17,7 +17,7 @@ from sc_referee.core.ids import semantic_digest, sha256_digest, stable_id
 
 VERIFIER_VERSION = "1.0.0"
 DERIVATION_VERSION = "1.0.0"
-VALIDATION_VERSION = "1.0.0"
+VALIDATION_VERSION = "2.0.0"
 
 PYTHON_STATIC_MARKED_REPORT_PROFILE = "selected-result-profile:python-static-marked-report-v1"
 _SELECTED_RESULT_PREFIX = "[selected-result]"
@@ -410,11 +410,12 @@ def freeze_selected_result_validation(
         )
     author = _mapping(contract["authorship"], "case-contract authorship")
     validator = _mapping(derived["validator_identity"], "validator_identity")
-    if validator["validator_id"] == author.get("author_id") or validator["provider"] == author.get(
-        "provider"
-    ):
+    if validator["validator_id"] == author.get("author_id") or validator[
+        "execution_context_id"
+    ] == author.get("execution_context_id"):
         raise ProspectiveSelectedResultVerifierError(
-            "The selected-result validator must be independent of the case author."
+            "The selected-result validator identity and context must be independent of the case "
+            "author."
         )
 
     revealed = _timestamp(declaration_revealed_at)
@@ -1010,8 +1011,21 @@ def _comparison_status(
     contract: Mapping[str, Any], derivation: Mapping[str, Any]
 ) -> tuple[ValidationStatus, str | None, list[str]]:
     status = str(derivation["derivation_status"])
+    declaration_state = str(contract["declaration_state"])
+    if declaration_state == "unsupported_producer_surface":
+        return (
+            "unsupported_structure",
+            None,
+            ["author_declared_unsupported_producer_surface"],
+        )
     if status == "unsupported_structure":
         return "unsupported_structure", None, list(derivation["reason_codes"])
+    if declaration_state == "multiple_candidate_results":
+        return (
+            "ambiguous_selected_result",
+            None,
+            ["author_declared_multiple_candidate_results"],
+        )
     if status == "insufficient_evidence":
         return "insufficient_evidence", None, list(derivation["reason_codes"])
     if status == "ambiguous_selected_result":
@@ -1573,20 +1587,133 @@ def _case_contract(value: Mapping[str, Any]) -> dict[str, Any]:
     contract["contract_digest"] = expected
     if (
         contract.get("artifact_kind") != "prospective_case_evidence_contract"
-        or contract.get("contract_version") != "2.0.0"
-        or contract.get("evidence_status") != "unverified_author_declaration"
+        or contract.get("contract_version") != "3.0.0"
+        or contract.get("evidence_status") != "coordinator_bound_unverified_author_declaration"
         or contract.get("qualification_authority") != "none_case_contract_only"
     ):
         raise ProspectiveSelectedResultVerifierError("Unsupported case-contract artifact.")
     _case_id(contract.get("case_id"))
-    binding = _selected_result_binding(contract.get("selected_result_binding"))
-    if binding != contract.get("selected_result_binding"):
-        raise ProspectiveSelectedResultVerifierError("Case-contract binding is not canonical.")
-    if contract.get("selected_result_binding_digest") != semantic_digest(binding):
+    declaration = _author_declaration(contract.get("author_declaration"))
+    if declaration["case_id"] != contract["case_id"]:
         raise ProspectiveSelectedResultVerifierError(
-            "Case-contract selected-result binding digest does not replay."
+            "Case-contract and author-declaration identities differ."
+        )
+    if (
+        contract.get("author_declaration_digest") != declaration["declaration_digest"]
+        or contract.get("declaration_state") != declaration["declaration_state"]
+        or contract.get("selected_result_binding") != declaration["selected_result_binding"]
+        or contract.get("selected_result_binding_digest")
+        != declaration["selected_result_binding_digest"]
+        or contract.get("authorship") != declaration["authorship"]
+        or contract.get("authored_at") != declaration["authored_at"]
+    ):
+        raise ProspectiveSelectedResultVerifierError(
+            "Case-contract projection has drifted from the author-only declaration."
         )
     return contract
+
+
+def _author_declaration(value: Any) -> dict[str, Any]:
+    declaration = _mapping(value, "author_declaration")
+    expected = declaration.pop("declaration_digest", None)
+    if expected != semantic_digest(declaration):
+        raise ProspectiveSelectedResultVerifierError("Author-declaration digest does not replay.")
+    _exact_keys(
+        declaration,
+        {
+            "artifact_kind",
+            "declaration_version",
+            "case_id",
+            "declaration_state",
+            "selected_result_binding",
+            "selected_result_binding_digest",
+            "candidate_result_locators",
+            "unsupported_producer_locators",
+            "authorship",
+            "authored_at",
+            "frozen_at",
+            "qualification_authority",
+        },
+        "author_declaration",
+    )
+    declaration["declaration_digest"] = expected
+    if (
+        declaration.get("artifact_kind") != "prospective_author_selected_result_declaration"
+        or declaration.get("declaration_version") != "3.0.0"
+        or declaration.get("qualification_authority") != "none_author_declaration_only"
+    ):
+        raise ProspectiveSelectedResultVerifierError("Unsupported author-declaration artifact.")
+    _case_id(declaration.get("case_id"))
+    authorship = _mapping(declaration.get("authorship"), "author-declaration authorship")
+    _exact_keys(
+        authorship,
+        {"author_id", "provider", "execution_context_id", "identity_evidence_digest"},
+        "author-declaration authorship",
+    )
+    for field in ("author_id", "provider", "execution_context_id"):
+        _text(authorship[field], f"author-declaration {field}")
+    _digest(authorship["identity_evidence_digest"], "author identity_evidence_digest")
+    authored_at = _timestamp(_text(declaration.get("authored_at"), "authored_at"))
+    frozen_at = _timestamp(_text(declaration.get("frozen_at"), "frozen_at"))
+    if authored_at > frozen_at:
+        raise ProspectiveSelectedResultVerifierError("Author-declaration chronology is invalid.")
+    state = declaration.get("declaration_state")
+    binding = declaration.get("selected_result_binding")
+    candidates = _sequence(
+        declaration.get("candidate_result_locators"), "candidate_result_locators"
+    )
+    unsupported = _sequence(
+        declaration.get("unsupported_producer_locators"), "unsupported_producer_locators"
+    )
+    if state == "one_selected_result":
+        canonical = _selected_result_binding(binding)
+        if (
+            canonical != binding
+            or declaration.get("selected_result_binding_digest") != semantic_digest(canonical)
+            or candidates
+            or unsupported
+        ):
+            raise ProspectiveSelectedResultVerifierError(
+                "Author one-result declaration is not canonical."
+            )
+    elif state == "multiple_candidate_results":
+        if binding is not None or declaration.get("selected_result_binding_digest") is not None:
+            raise ProspectiveSelectedResultVerifierError(
+                "Ambiguous author declaration cannot contain one selected binding."
+            )
+        if len(candidates) < 2 or unsupported:
+            raise ProspectiveSelectedResultVerifierError(
+                "Ambiguous author declaration requires multiple candidate locators."
+            )
+        for item in candidates:
+            _locator(item, "candidate_result_locator", payloads=None, receipts=None)
+        if candidates != sorted(candidates, key=semantic_digest) or len(
+            {semantic_digest(item) for item in candidates}
+        ) != len(candidates):
+            raise ProspectiveSelectedResultVerifierError(
+                "Ambiguous author-declaration locators are not canonical."
+            )
+    elif state == "unsupported_producer_surface":
+        if (
+            binding is not None
+            or declaration.get("selected_result_binding_digest") is not None
+            or candidates
+            or not unsupported
+        ):
+            raise ProspectiveSelectedResultVerifierError(
+                "Unsupported author declaration has inconsistent evidence."
+            )
+        for item in unsupported:
+            _locator(item, "unsupported_producer_locator", payloads=None, receipts=None)
+        if unsupported != sorted(unsupported, key=semantic_digest) or len(
+            {semantic_digest(item) for item in unsupported}
+        ) != len(unsupported):
+            raise ProspectiveSelectedResultVerifierError(
+                "Unsupported author-declaration locators are not canonical."
+            )
+    else:
+        raise ProspectiveSelectedResultVerifierError("Unsupported author-declaration state.")
+    return declaration
 
 
 def _validator_identity(value: Any) -> dict[str, Any]:

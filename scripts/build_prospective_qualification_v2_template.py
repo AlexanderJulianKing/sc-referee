@@ -12,6 +12,8 @@ from sc_referee.scientific_checks.profiles import (  # noqa: E402
 )
 
 OUTPUT = ROOT / "evaluation" / "prospective-qualification-v2" / "ten-envelope-study.template.json"
+TEMPLATE_VERSION = "3.0.0"
+CASE_EVIDENCE_CONTRACT_VERSION = "3.0.0"
 
 TARGETS = (
     (
@@ -77,7 +79,9 @@ TARGETS = (
 )
 
 
-def main() -> None:
+def build_template() -> dict[str, object]:
+    """Build the canonical pre-case template without writing it."""
+
     registry = scientific_check_release_registry()
     modules = {module.manifest.check_id: module for module in registry.modules}
     bindings = {binding.check_id: binding for binding in registry.method_conflict_bindings}
@@ -95,13 +99,13 @@ def main() -> None:
                 "candidate_id": candidate_id,
                 "binding_digest": bindings[check_id].binding_digest,
                 "canonical_issue_class": issue_class,
-                "case_evidence_contract_version": "2.0.0",
+                "case_evidence_contract_version": CASE_EVIDENCE_CONTRACT_VERSION,
             }
         )
     template: dict[str, object] = {
         "artifact_kind": "prospective_qualification_study_template",
-        "template_version": "2.0.0",
-        "template_id": "prospective-template:ten-generic-relation-envelopes-v2",
+        "template_version": TEMPLATE_VERSION,
+        "template_id": "prospective-template:ten-generic-relation-envelopes-v3",
         "qualification_authority": "none_template_only",
         "expected_envelope_count": 10,
         "envelopes": envelopes,
@@ -118,14 +122,18 @@ def main() -> None:
         "minimum_frozen_case_count": 140,
         "required_prelabel_artifacts": [
             "canonical_issue_class_registry",
+            "author_selected_result_declaration",
             "exact_case_evidence_contract",
             "independent_selected_result_binding_validation",
+            "evaluation_scientific_label_freeze",
         ],
         "label_resolution_fields": [
             "scientific_label_enum",
             "canonical_issue_class_id",
+            "author_declaration_state",
             "selected_result_binding_digest",
             "finite_counterevidence_status",
+            "scientific_panel_freeze_digest",
         ],
         "label_resolution_excluded_fields": ["bounded_description"],
         "heldout_state": "must_remain_sealed_until_pilot_threshold_decision",
@@ -140,6 +148,11 @@ def main() -> None:
         ],
     }
     template["template_digest"] = semantic_digest(template)
+    return template
+
+
+def main() -> None:
+    template = build_template()
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(canonical_json(template) + "\n", encoding="utf-8")
 

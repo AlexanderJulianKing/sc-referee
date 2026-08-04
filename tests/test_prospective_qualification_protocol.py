@@ -317,6 +317,26 @@ def test_freeze_requires_independently_authored_renamed_case() -> None:
         freeze_prospective_qualification_protocol(spec, frozen_at=_PROTOCOL_FROZEN_AT)
 
 
+def test_freeze_rejects_three_plus_one_stage1_provider_split() -> None:
+    spec = _specification()
+    participant = next(
+        item for item in spec["participants"] if item["participant_id"] == "actor:s1-b1"
+    )
+    participant["provider"] = "review-provider-a"
+    with pytest.raises(ProspectiveQualificationError, match="exactly two providers with two"):
+        freeze_prospective_qualification_protocol(spec, frozen_at=_PROTOCOL_FROZEN_AT)
+
+
+def test_freeze_rejects_shared_stage2_provider() -> None:
+    spec = _specification()
+    participant = next(
+        item for item in spec["participants"] if item["participant_id"] == "actor:s2-d"
+    )
+    participant["provider"] = "review-provider-c"
+    with pytest.raises(ProspectiveQualificationError, match="distinct providers"):
+        freeze_prospective_qualification_protocol(spec, frozen_at=_PROTOCOL_FROZEN_AT)
+
+
 def test_outcome_ledger_refuses_omission_and_duplicate() -> None:
     protocol = _protocol()
     outcomes = _outcomes(

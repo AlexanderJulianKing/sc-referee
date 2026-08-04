@@ -104,6 +104,6 @@ print(json.dumps({
     assert result["aliases"] == {
         "derivation": "1.0.0",
         "protocol": "1.0.0",
-        "validation": "1.0.0",
+        "validation": "2.0.0",
         "verifier": "1.0.0",
     }

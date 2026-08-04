@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from copy import deepcopy
 from pathlib import Path
 from shutil import copytree
@@ -9,6 +10,7 @@ import pytest
 import sc_referee_evaluation.prospective_selected_result_verifier as verifier_module
 from sc_referee_evaluation.prospective_qualification_v2 import (
     ProspectiveQualificationV2Error,
+    freeze_author_selected_result_declaration,
     freeze_case_evidence_contract,
     freeze_stage2_scientific_label,
 )
@@ -45,6 +47,9 @@ ALTERNATIVE = (
     b"report = '[selected-result] ' + rows[1] + '\\n'\n"
     b"Path('results/report.md').write_text(report)\n"
 )
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SCHEMA_ROOT = PROJECT_ROOT / "reference" / "schemas-v0.18.0"
+STAGE2_EXAMPLE = SCHEMA_ROOT / "examples" / "agent-review.stage2.example.json"
 
 
 def _locator(path: str, payload: bytes, start: int, end: int) -> dict[str, Any]:
@@ -103,6 +108,23 @@ def _write_case(
 
 
 def _case_contract(binding: dict[str, Any] | None = None) -> dict[str, Any]:
+    declaration = freeze_author_selected_result_declaration(
+        {
+            "case_id": CASE_ID,
+            "declaration_state": "one_selected_result",
+            "selected_result_binding": binding or _binding(),
+            "candidate_result_locators": [],
+            "unsupported_producer_locators": [],
+            "authorship": {
+                "author_id": "actor:prospective-author",
+                "provider": "Author Provider",
+                "execution_context_id": "context:author",
+                "identity_evidence_digest": DIGEST_A,
+            },
+            "authored_at": "2026-08-05T00:00:00Z",
+        },
+        frozen_at="2026-08-05T00:30:00Z",
+    )
     return freeze_case_evidence_contract(
         {
             "case_id": CASE_ID,
@@ -113,14 +135,8 @@ def _case_contract(binding: dict[str, Any] | None = None) -> dict[str, Any]:
                 "binding_digest": DIGEST_A,
             },
             "canonical_issue_class": ISSUE_CLASS,
-            "selected_result_binding": binding or _binding(),
-            "authorship": {
-                "author_id": "actor:prospective-author",
-                "provider": "Author Provider",
-                "execution_context_id": "context:author",
-                "identity_evidence_digest": DIGEST_A,
-            },
-            "authored_at": "2026-08-05T00:00:00Z",
+            "author_declaration": declaration,
+            "coordinated_at": "2026-08-05T00:45:00Z",
         },
         frozen_at="2026-08-05T01:00:00Z",
     )
@@ -130,13 +146,14 @@ def _derivation_spec(
     *,
     validator_id: str = "actor:independent-evidence-validator",
     provider: str = "Provider C",
+    execution_context_id: str = "context:validator",
 ) -> dict[str, Any]:
     return {
         "case_id": CASE_ID,
         "validator_identity": {
             "validator_id": validator_id,
             "provider": provider,
-            "execution_context_id": "context:validator",
+            "execution_context_id": execution_context_id,
             "identity_evidence_digest": "sha256:" + "c" * 64,
         },
         "profile_id": PYTHON_STATIC_MARKED_REPORT_PROFILE,
@@ -170,32 +187,81 @@ def _digested(value: dict[str, Any], field: str) -> dict[str, Any]:
 
 
 def _review(reviewer_id: str, provider: str, binding_digest: str) -> dict[str, Any]:
+    context = f"context:{reviewer_id.removeprefix('actor:')}"
+    record_id = f"review:{reviewer_id.removeprefix('actor:')}"
+    review = json.loads(STAGE2_EXAMPLE.read_text(encoding="utf-8"))
+    review["case_id"] = CASE_ID
+    review["review_id"] = record_id
+    review["reviewer_agent"]["provider"] = provider
+    review["reviewer_agent"]["execution_context_id"] = context
+    review["completed_at"] = "2026-08-05T06:00:00Z"
+    review["bounded_statement"] = "The selected result has the canonical issue."
+    review["issue_class"] = ISSUE_CLASS
+    review["extensions"] = {
+        "x-reviewer-actor-id": reviewer_id,
+        "x-selected-result-binding-digest": binding_digest,
+        "x-selected-result-binding-status": "verified",
+        "x-finite-counterevidence-status": "complete",
+    }
+    return review
+
+
+def _scientific_panel_freeze(
+    contract: dict[str, Any], reviews: list[dict[str, Any]]
+) -> dict[str, Any]:
     return _digested(
         {
-            "reviewer_id": reviewer_id,
-            "provider": provider,
-            "completed_at": "2026-08-05T06:00:00Z",
-            "scientific_label": "issue_present",
-            "issue_class_id": ISSUE_CLASS,
-            "selected_result_binding_digest": binding_digest,
-            "selected_result_binding_status": "verified",
-            "finite_counterevidence_status": "complete",
-            "bounded_description": "The selected result has the canonical issue.",
+            "evaluation_protocol_version": "0.2.0",
+            "record_type": "evaluation_scientific_label_freeze",
+            "case_id": contract["case_id"],
+            "stage1_freeze_digest": "sha256:" + "1" * 64,
+            "stage2_reviews": sorted(
+                [
+                    {
+                        "review_ref": {
+                            "record_type": "agent_review",
+                            "record_id": review["review_id"],
+                        },
+                        "review_digest": semantic_digest(review),
+                        "packet_digest": "sha256:" + "2" * 64,
+                        "capture_id": f"capture:{review['review_id']}",
+                        "capture_digest": "sha256:" + "3" * 64,
+                        "transcript_digest": "sha256:" + "4" * 64,
+                        "captured_at": review["completed_at"],
+                        "provider": review["reviewer_agent"]["provider"],
+                        "execution_context_id": review["reviewer_agent"]["execution_context_id"],
+                        "completed_at": review["completed_at"],
+                    }
+                    for review in reviews
+                ],
+                key=lambda item: str(item["review_ref"]["record_id"]),
+            ),
+            "adjudication_ref": {
+                "record_type": "benchmark_adjudication",
+                "record_id": "adjudication:test",
+            },
+            "adjudication_digest": "sha256:" + "5" * 64,
+            "adjudicated_root_causes": [],
+            "label_status": "positive",
+            "frozen_at": "2026-08-05T06:30:00Z",
+            "detector_output_observed": False,
         },
-        "review_digest",
+        "freeze_digest",
     )
 
 
 def _label_spec(contract: dict[str, Any], validation: dict[str, Any]) -> dict[str, Any]:
     binding_digest = str(contract["selected_result_binding_digest"])
+    reviews = [
+        _review("actor:stage2-a", "Provider A", binding_digest),
+        _review("actor:stage2-b", "Provider B", binding_digest),
+    ]
     return {
         "case_id": contract["case_id"],
         "envelope_id": contract["envelope"]["envelope_id"],
         "case_contract_digest": contract["contract_digest"],
-        "reviews": [
-            _review("actor:stage2-a", "Provider A", binding_digest),
-            _review("actor:stage2-b", "Provider B", binding_digest),
-        ],
+        "scientific_panel_freeze": _scientific_panel_freeze(contract, reviews),
+        "full_stage2_reviews": reviews,
         "independent_evidence_validation": validation,
     }
 
@@ -220,6 +286,7 @@ def test_verifier_derives_binding_from_bytes_and_enables_label(tmp_path: Path) -
         _label_spec(contract, validation),
         case_root=root,
         case_contract=contract,
+        schema_root=SCHEMA_ROOT,
         frozen_at="2026-08-05T07:00:00Z",
     )
     assert label["scientific_label"] == "issue_present"
@@ -728,12 +795,19 @@ def test_binding_mismatch_is_insufficient_not_verified(tmp_path: Path) -> None:
     assert validation["selected_result_binding_digest"] is None
 
 
-def test_author_independence_and_blind_chronology_are_enforced(tmp_path: Path) -> None:
+def test_author_identity_context_and_blind_chronology_are_enforced(tmp_path: Path) -> None:
     root = _write_case(tmp_path / "case")
     contract = _case_contract()
-    derivation = _derive(root, provider="Author Provider")
-    with pytest.raises(ProspectiveSelectedResultVerifierError, match="independent"):
+    derivation = _derive(root, validator_id="actor:prospective-author")
+    with pytest.raises(ProspectiveSelectedResultVerifierError, match="identity and context"):
         _validation(root, contract, derivation)
+
+    derivation = _derive(root, execution_context_id="context:author")
+    with pytest.raises(ProspectiveSelectedResultVerifierError, match="identity and context"):
+        _validation(root, contract, derivation)
+
+    same_provider = _derive(root, provider="Author Provider")
+    assert _validation(root, contract, same_provider)["status"] == "verified_complete"
 
     derivation = _derive(root)
     with pytest.raises(ProspectiveSelectedResultVerifierError, match="revealed before"):
@@ -766,5 +840,6 @@ def test_legacy_handwritten_validation_summary_is_rejected(tmp_path: Path) -> No
             _label_spec(contract, legacy),
             case_root=root,
             case_contract=contract,
+            schema_root=SCHEMA_ROOT,
             frozen_at="2026-08-05T07:00:00Z",
         )

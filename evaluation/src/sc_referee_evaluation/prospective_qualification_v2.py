@@ -6,14 +6,17 @@ from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any, Literal
 
+from sc_referee.core.errors import RecordValidationError
 from sc_referee.core.ids import semantic_digest
+from sc_referee.records.schema_registry import LocalSchemaRegistry
 from sc_referee_evaluation.prospective_selected_result_verifier import (
     ProspectiveSelectedResultVerifierError,
     validate_selected_result_validation,
 )
 
-CASE_EVIDENCE_CONTRACT_VERSION = "2.0.0"
-SCIENTIFIC_LABEL_VERSION = "2.0.0"
+AUTHOR_DECLARATION_VERSION = "3.0.0"
+CASE_EVIDENCE_CONTRACT_VERSION = "3.0.0"
+SCIENTIFIC_LABEL_VERSION = "3.0.0"
 
 ScientificLabel = Literal[
     "issue_present",
@@ -25,14 +28,108 @@ ScientificLabel = Literal[
 ]
 
 _REVIEW_LABELS = {"issue_present", "issue_absent"}
+_DECLARATION_STATES = {
+    "one_selected_result",
+    "multiple_candidate_results",
+    "unsupported_producer_surface",
+}
 
 
 class ProspectiveQualificationV2Error(ValueError):
-    """Raised when v2 prospective case or label evidence is not closed and replayable."""
+    """Raised when prospective case or label evidence is not closed and replayable."""
+
+
+def freeze_author_selected_result_declaration(
+    spec: Mapping[str, Any], *, frozen_at: str
+) -> dict[str, Any]:
+    """Freeze only the result-selection facts visible to a prospective case author."""
+
+    value = deepcopy(dict(spec))
+    _exact_keys(
+        value,
+        {
+            "case_id",
+            "declaration_state",
+            "selected_result_binding",
+            "candidate_result_locators",
+            "unsupported_producer_locators",
+            "authorship",
+            "authored_at",
+        },
+        "author selected-result declaration",
+    )
+    case_id = _case_id(value["case_id"])
+    state = _text(value["declaration_state"], "declaration_state")
+    if state not in _DECLARATION_STATES:
+        raise ProspectiveQualificationV2Error("Unsupported author declaration state.")
+    binding = (
+        None
+        if value["selected_result_binding"] is None
+        else _selected_result_binding(value["selected_result_binding"])
+    )
+    candidates = sorted(
+        (
+            _locator(item, "candidate_result_locator")
+            for item in _sequence(value["candidate_result_locators"], "candidate_result_locators")
+        ),
+        key=semantic_digest,
+    )
+    unsupported = sorted(
+        (
+            _locator(item, "unsupported_producer_locator")
+            for item in _sequence(
+                value["unsupported_producer_locators"], "unsupported_producer_locators"
+            )
+        ),
+        key=semantic_digest,
+    )
+    if len({semantic_digest(item) for item in candidates}) != len(candidates):
+        raise ProspectiveQualificationV2Error("Candidate result locators must be unique.")
+    if len({semantic_digest(item) for item in unsupported}) != len(unsupported):
+        raise ProspectiveQualificationV2Error("Unsupported producer locators must be unique.")
+    if state == "one_selected_result":
+        if binding is None or candidates or unsupported:
+            raise ProspectiveQualificationV2Error(
+                "One-result declarations require exactly one binding and no failure-state locators."
+            )
+    elif state == "multiple_candidate_results":
+        if binding is not None or len(candidates) < 2 or unsupported:
+            raise ProspectiveQualificationV2Error(
+                "Multiple-result declarations require at least two candidate locators and no "
+                "single binding."
+            )
+    elif binding is not None or candidates or not unsupported:
+        raise ProspectiveQualificationV2Error(
+            "Unsupported-producer declarations require producer evidence and no single binding."
+        )
+
+    authorship = _authorship(value["authorship"])
+    authored_at = _timestamp(_text(value["authored_at"], "authored_at"))
+    frozen = _timestamp(frozen_at)
+    if authored_at > frozen:
+        raise ProspectiveQualificationV2Error(
+            "Author declaration cannot be frozen before authorship."
+        )
+    record: dict[str, Any] = {
+        "artifact_kind": "prospective_author_selected_result_declaration",
+        "declaration_version": AUTHOR_DECLARATION_VERSION,
+        "case_id": case_id,
+        "declaration_state": state,
+        "selected_result_binding": binding,
+        "selected_result_binding_digest": None if binding is None else semantic_digest(binding),
+        "candidate_result_locators": candidates,
+        "unsupported_producer_locators": unsupported,
+        "authorship": authorship,
+        "authored_at": _iso(authored_at),
+        "frozen_at": _iso(frozen),
+        "qualification_authority": "none_author_declaration_only",
+    }
+    record["declaration_digest"] = semantic_digest(record)
+    return record
 
 
 def freeze_case_evidence_contract(spec: Mapping[str, Any], *, frozen_at: str) -> dict[str, Any]:
-    """Freeze an unverified author declaration that makes the selected result auditable."""
+    """Coordinator-bind a blinded author declaration to one scientific envelope."""
 
     value = deepcopy(dict(spec))
     _exact_keys(
@@ -41,21 +138,25 @@ def freeze_case_evidence_contract(spec: Mapping[str, Any], *, frozen_at: str) ->
             "case_id",
             "envelope",
             "canonical_issue_class",
-            "selected_result_binding",
-            "authorship",
-            "authored_at",
+            "author_declaration",
+            "coordinated_at",
         },
         "case evidence contract",
     )
     case_id = _case_id(value["case_id"])
     envelope = _envelope(value["envelope"])
     issue_class = _issue_class(value["canonical_issue_class"])
-    binding = _selected_result_binding(value["selected_result_binding"])
-    authorship = _authorship(value["authorship"])
-    authored_at = _timestamp(_text(value["authored_at"], "authored_at"))
+    declaration = validate_author_selected_result_declaration(value["author_declaration"])
+    if declaration["case_id"] != case_id:
+        raise ProspectiveQualificationV2Error(
+            "Author declaration and coordinator case identities differ."
+        )
+    coordinated_at = _timestamp(_text(value["coordinated_at"], "coordinated_at"))
     frozen = _timestamp(frozen_at)
-    if authored_at > frozen:
-        raise ProspectiveQualificationV2Error("Case evidence cannot be frozen before authorship.")
+    if _timestamp(str(declaration["frozen_at"])) > coordinated_at or coordinated_at > frozen:
+        raise ProspectiveQualificationV2Error(
+            "Coordinator binding must follow the author-only freeze and precede contract freeze."
+        )
 
     record: dict[str, Any] = {
         "artifact_kind": "prospective_case_evidence_contract",
@@ -63,12 +164,16 @@ def freeze_case_evidence_contract(spec: Mapping[str, Any], *, frozen_at: str) ->
         "case_id": case_id,
         "envelope": envelope,
         "canonical_issue_class": issue_class,
-        "selected_result_binding": binding,
-        "selected_result_binding_digest": semantic_digest(binding),
-        "authorship": authorship,
-        "authored_at": _iso(authored_at),
+        "author_declaration": declaration,
+        "author_declaration_digest": declaration["declaration_digest"],
+        "declaration_state": declaration["declaration_state"],
+        "selected_result_binding": declaration["selected_result_binding"],
+        "selected_result_binding_digest": declaration["selected_result_binding_digest"],
+        "authorship": declaration["authorship"],
+        "authored_at": declaration["authored_at"],
+        "coordinated_at": _iso(coordinated_at),
         "frozen_at": _iso(frozen),
-        "evidence_status": "unverified_author_declaration",
+        "evidence_status": "coordinator_bound_unverified_author_declaration",
         "qualification_authority": "none_case_contract_only",
     }
     record["contract_digest"] = semantic_digest(record)
@@ -80,6 +185,7 @@ def freeze_stage2_scientific_label(
     *,
     case_root: Path,
     case_contract: Mapping[str, Any],
+    schema_root: Path,
     frozen_at: str,
 ) -> dict[str, Any]:
     """Freeze a canonical label without comparing free-text issue descriptions."""
@@ -92,7 +198,8 @@ def freeze_stage2_scientific_label(
             "case_id",
             "envelope_id",
             "case_contract_digest",
-            "reviews",
+            "scientific_panel_freeze",
+            "full_stage2_reviews",
             "independent_evidence_validation",
         },
         "stage-2 scientific label input",
@@ -104,21 +211,31 @@ def freeze_stage2_scientific_label(
     if value["case_contract_digest"] != contract["contract_digest"]:
         raise ProspectiveQualificationV2Error("Label does not bind the exact case contract.")
 
-    reviews = tuple(_review(item) for item in _sequence(value["reviews"], "reviews"))
+    panel_freeze = _scientific_panel_freeze(
+        value["scientific_panel_freeze"], case_id=str(contract["case_id"])
+    )
+    reviews = tuple(
+        _stage2_review(item, case_id=str(contract["case_id"]), schema_root=schema_root)
+        for item in _sequence(value["full_stage2_reviews"], "full_stage2_reviews")
+    )
     if len(reviews) != 2:
         raise ProspectiveQualificationV2Error("Exactly two Stage-2 reviews are required.")
     if len({item["reviewer_id"] for item in reviews}) != 2:
         raise ProspectiveQualificationV2Error("Stage-2 reviewer identities must be distinct.")
     if len({item["provider"] for item in reviews}) != 2:
         raise ProspectiveQualificationV2Error("Stage-2 reviews must use two providers.")
+    if len({item["execution_context_id"] for item in reviews}) != 2:
+        raise ProspectiveQualificationV2Error("Stage-2 execution contexts must be distinct.")
     author = contract["authorship"]
     if any(
-        item["reviewer_id"] == author["author_id"] or item["provider"] == author["provider"]
+        item["reviewer_id"] == author["author_id"]
+        or item["execution_context_id"] == author["execution_context_id"]
         for item in reviews
     ):
         raise ProspectiveQualificationV2Error(
-            "Stage-2 reviewers must be independent of the case author."
+            "Stage-2 reviewer identities and contexts must be independent of the case author."
         )
+    _match_stage2_reviews_to_panel(reviews, panel_freeze)
 
     validation = _evidence_validation(
         value["independent_evidence_validation"],
@@ -128,12 +245,13 @@ def freeze_stage2_scientific_label(
     if validation["validator_id"] in {
         str(author["author_id"]),
         *(str(item["reviewer_id"]) for item in reviews),
-    } or validation["provider"] in {
-        str(author["provider"]),
-        *(str(item["provider"]) for item in reviews),
+    } or validation["execution_context_id"] in {
+        str(author["execution_context_id"]),
+        *(str(item["execution_context_id"]) for item in reviews),
     }:
         raise ProspectiveQualificationV2Error(
-            "The evidence validator must be independent of the author and Stage-2 reviewers."
+            "The evidence-validator identity and context must be independent of the author and "
+            "Stage-2 reviewers."
         )
     if validation["case_contract_digest"] != contract["contract_digest"]:
         raise ProspectiveQualificationV2Error(
@@ -141,7 +259,7 @@ def freeze_stage2_scientific_label(
         )
     binding_digest = contract["selected_result_binding_digest"]
     if validation["status"] == "verified_complete":
-        if validation["selected_result_binding_digest"] != binding_digest:
+        if binding_digest is None or validation["selected_result_binding_digest"] != binding_digest:
             raise ProspectiveQualificationV2Error(
                 "Verified evidence does not bind the exact selected-result declaration."
             )
@@ -153,6 +271,7 @@ def freeze_stage2_scientific_label(
     frozen = _timestamp(frozen_at)
     completed_times = [_timestamp(str(item["completed_at"])) for item in reviews]
     completed_times.append(_timestamp(str(validation["completed_at"])))
+    completed_times.append(_timestamp(str(panel_freeze["frozen_at"])))
     if any(completed > frozen for completed in completed_times):
         raise ProspectiveQualificationV2Error("Scientific label predates required review evidence.")
 
@@ -160,7 +279,7 @@ def freeze_stage2_scientific_label(
         reviews,
         validation_status=str(validation["status"]),
         canonical_issue_class=str(contract["canonical_issue_class"]),
-        selected_result_binding_digest=str(binding_digest),
+        selected_result_binding_digest=binding_digest,
     )
     record: dict[str, Any] = {
         "artifact_kind": "prospective_stage2_scientific_label",
@@ -168,6 +287,7 @@ def freeze_stage2_scientific_label(
         "case_id": contract["case_id"],
         "envelope_id": contract["envelope"]["envelope_id"],
         "case_contract_digest": contract["contract_digest"],
+        "scientific_panel_freeze_digest": panel_freeze["freeze_digest"],
         "selected_result_binding_digest": binding_digest,
         "scientific_label": label,
         "canonical_issue_class": issue_class,
@@ -191,7 +311,7 @@ def validate_case_evidence_contract(value: Mapping[str, Any]) -> dict[str, Any]:
     if (
         contract.get("artifact_kind") != "prospective_case_evidence_contract"
         or contract.get("contract_version") != CASE_EVIDENCE_CONTRACT_VERSION
-        or contract.get("evidence_status") != "unverified_author_declaration"
+        or contract.get("evidence_status") != "coordinator_bound_unverified_author_declaration"
         or contract.get("qualification_authority") != "none_case_contract_only"
     ):
         raise ProspectiveQualificationV2Error("Unsupported case-evidence contract artifact.")
@@ -202,9 +322,8 @@ def validate_case_evidence_contract(value: Mapping[str, Any]) -> dict[str, Any]:
                 "case_id",
                 "envelope",
                 "canonical_issue_class",
-                "selected_result_binding",
-                "authorship",
-                "authored_at",
+                "author_declaration",
+                "coordinated_at",
             )
         },
         frozen_at=str(contract["frozen_at"]),
@@ -215,12 +334,46 @@ def validate_case_evidence_contract(value: Mapping[str, Any]) -> dict[str, Any]:
     return contract
 
 
+def validate_author_selected_result_declaration(value: Mapping[str, Any]) -> dict[str, Any]:
+    """Replay one author-only declaration without introducing coordinator-only fields."""
+
+    declaration = deepcopy(dict(value))
+    expected_digest = declaration.pop("declaration_digest", None)
+    if expected_digest != semantic_digest(declaration):
+        raise ProspectiveQualificationV2Error("Author declaration digest does not replay.")
+    if (
+        declaration.get("artifact_kind") != "prospective_author_selected_result_declaration"
+        or declaration.get("declaration_version") != AUTHOR_DECLARATION_VERSION
+        or declaration.get("qualification_authority") != "none_author_declaration_only"
+    ):
+        raise ProspectiveQualificationV2Error("Unsupported author declaration artifact.")
+    replayed = freeze_author_selected_result_declaration(
+        {
+            key: declaration[key]
+            for key in (
+                "case_id",
+                "declaration_state",
+                "selected_result_binding",
+                "candidate_result_locators",
+                "unsupported_producer_locators",
+                "authorship",
+                "authored_at",
+            )
+        },
+        frozen_at=str(declaration["frozen_at"]),
+    )
+    declaration["declaration_digest"] = expected_digest
+    if replayed != declaration:
+        raise ProspectiveQualificationV2Error("Author declaration semantics do not replay.")
+    return declaration
+
+
 def _resolve_label(
     reviews: tuple[dict[str, Any], ...],
     *,
     validation_status: str,
     canonical_issue_class: str,
-    selected_result_binding_digest: str,
+    selected_result_binding_digest: str | None,
 ) -> tuple[ScientificLabel, str | None]:
     if validation_status == "ambiguous_selected_result":
         return "conditional_or_unknown", None
@@ -228,8 +381,12 @@ def _resolve_label(
         return "insufficient_evidence", None
     if validation_status == "unsupported_structure":
         return "unsupported", None
+    if any(item["material_dissent"] is True for item in reviews):
+        return "review_disagreement", None
 
     labels = {str(item["scientific_label"]) for item in reviews}
+    if not labels.issubset(_REVIEW_LABELS):
+        return "insufficient_evidence", None
     if len(labels) != 1:
         return "review_disagreement", None
     label = labels.pop()
@@ -327,42 +484,172 @@ def _selected_result_binding(value: Any) -> dict[str, Any]:
     return binding
 
 
-def _review(value: Any) -> dict[str, Any]:
-    review = deepcopy(_mapping(value, "stage-2 review"))
-    _exact_keys(
-        review,
-        {
-            "reviewer_id",
-            "provider",
-            "completed_at",
-            "scientific_label",
-            "issue_class_id",
-            "selected_result_binding_digest",
-            "selected_result_binding_status",
-            "finite_counterevidence_status",
-            "bounded_description",
-            "review_digest",
-        },
-        "stage-2 review",
-    )
-    expected = review.pop("review_digest")
-    if expected != semantic_digest(review):
-        raise ProspectiveQualificationV2Error("Stage-2 review digest does not replay.")
-    review["review_digest"] = expected
-    _text(review["reviewer_id"], "reviewer_id")
-    _text(review["provider"], "provider")
-    _timestamp(_text(review["completed_at"], "completed_at"))
-    if review["scientific_label"] not in _REVIEW_LABELS:
-        raise ProspectiveQualificationV2Error("Unsupported Stage-2 scientific label.")
-    if review["issue_class_id"] is not None:
-        _issue_class(review["issue_class_id"])
-    _digest(review["selected_result_binding_digest"], "selected_result_binding_digest")
-    if review["selected_result_binding_status"] not in {"verified", "unverified"}:
+def _stage2_review(value: Any, *, case_id: str, schema_root: Path) -> dict[str, Any]:
+    full_review = deepcopy(_mapping(value, "full Stage-2 AgentReview"))
+    try:
+        LocalSchemaRegistry(schema_root).validate(full_review)
+    except RecordValidationError as error:
+        raise ProspectiveQualificationV2Error(str(error)) from error
+    if full_review.get("record_type") != "agent_review" or full_review.get("stage") != (
+        "stage2_scientific_adjudication"
+    ):
+        raise ProspectiveQualificationV2Error(
+            "V3 labels require complete Stage-2 AgentReview records."
+        )
+    if full_review.get("case_id") != case_id:
+        raise ProspectiveQualificationV2Error(
+            "Full Stage-2 review and case-contract identities differ."
+        )
+    agent = _mapping(full_review["reviewer_agent"], "reviewer_agent")
+    extensions = _mapping(full_review.get("extensions"), "Stage-2 review extensions")
+    required_extensions = {
+        "x-reviewer-actor-id",
+        "x-selected-result-binding-digest",
+        "x-selected-result-binding-status",
+        "x-finite-counterevidence-status",
+    }
+    if not required_extensions.issubset(extensions):
+        raise ProspectiveQualificationV2Error(
+            "Full Stage-2 review lacks required v3 binding extensions."
+        )
+    reviewer_id = _text(extensions["x-reviewer-actor-id"], "x-reviewer-actor-id")
+    binding_digest = extensions["x-selected-result-binding-digest"]
+    if binding_digest is not None:
+        _digest(binding_digest, "x-selected-result-binding-digest")
+    binding_status = extensions["x-selected-result-binding-status"]
+    if binding_status not in {"verified", "unverified"}:
         raise ProspectiveQualificationV2Error("Unsupported selected-result binding status.")
-    if review["finite_counterevidence_status"] not in {"complete", "incomplete"}:
+    counterevidence_status = extensions["x-finite-counterevidence-status"]
+    if counterevidence_status not in {"complete", "incomplete"}:
         raise ProspectiveQualificationV2Error("Unsupported finite-counterevidence status.")
-    _text(review["bounded_description"], "bounded_description")
-    return review
+    verdict = str(full_review["verdict"])
+    label_by_verdict = {
+        "demonstrated_issue": "issue_present",
+        "no_demonstrated_issue_within_scope": "issue_absent",
+        "conditional_or_unknown": "conditional_or_unknown",
+        "insufficient_evidence": "insufficient_evidence",
+        "review_failure": "unsupported",
+    }
+    issue_class = full_review.get("issue_class")
+    if issue_class is not None:
+        _issue_class(issue_class)
+    bounded_statement = full_review.get("bounded_statement")
+    if bounded_statement is not None:
+        _text(bounded_statement, "bounded_statement")
+    falsification = _mapping(full_review["falsification_attempt"], "falsification_attempt")
+    return {
+        "reviewer_id": reviewer_id,
+        "provider": _text(agent["provider"], "reviewer provider"),
+        "execution_context_id": _text(
+            agent["execution_context_id"], "reviewer execution_context_id"
+        ),
+        "full_review_ref": {
+            "record_type": "agent_review",
+            "record_id": _text(full_review["review_id"], "review_id"),
+        },
+        "full_review_digest": semantic_digest(full_review),
+        "completed_at": _text(full_review["completed_at"], "completed_at"),
+        "scientific_label": label_by_verdict[verdict],
+        "issue_class_id": issue_class,
+        "selected_result_binding_digest": binding_digest,
+        "selected_result_binding_status": binding_status,
+        "finite_counterevidence_status": counterevidence_status,
+        "bounded_description": bounded_statement,
+        "material_dissent": falsification["material_dissent"],
+    }
+
+
+def _scientific_panel_freeze(value: Any, *, case_id: str) -> dict[str, Any]:
+    panel = deepcopy(_mapping(value, "scientific_panel_freeze"))
+    expected_digest = panel.pop("freeze_digest", None)
+    _digest(expected_digest, "scientific_panel_freeze freeze_digest")
+    if expected_digest != semantic_digest(panel):
+        raise ProspectiveQualificationV2Error("Scientific-panel freeze digest does not replay.")
+    panel["freeze_digest"] = expected_digest
+    if panel.get("record_type") != "evaluation_scientific_label_freeze":
+        raise ProspectiveQualificationV2Error("Scientific-panel freeze record kind is invalid.")
+    if panel.get("case_id") != case_id:
+        raise ProspectiveQualificationV2Error(
+            "Scientific-panel freeze and case-contract identities differ."
+        )
+    if panel.get("detector_output_observed") is not False:
+        raise ProspectiveQualificationV2Error(
+            "Scientific-panel freeze must precede detector-output observation."
+        )
+    _digest(panel.get("stage1_freeze_digest"), "stage1_freeze_digest")
+    _timestamp(_text(panel.get("frozen_at"), "scientific_panel_freeze frozen_at"))
+    entries = [
+        _scientific_panel_stage2_entry(item)
+        for item in _sequence(panel.get("stage2_reviews"), "scientific_panel_freeze stage2_reviews")
+    ]
+    if len(entries) != 2:
+        raise ProspectiveQualificationV2Error(
+            "Scientific-panel freeze must contain exactly two Stage-2 review entries."
+        )
+    if len({item["review_ref"]["record_id"] for item in entries}) != 2:
+        raise ProspectiveQualificationV2Error(
+            "Scientific-panel Stage-2 review identities must be distinct."
+        )
+    if len({item["provider"] for item in entries}) != 2:
+        raise ProspectiveQualificationV2Error(
+            "Scientific-panel Stage-2 reviews must use two providers."
+        )
+    if len({item["execution_context_id"] for item in entries}) != 2:
+        raise ProspectiveQualificationV2Error(
+            "Scientific-panel Stage-2 execution contexts must be distinct."
+        )
+    return panel
+
+
+def _scientific_panel_stage2_entry(value: Any) -> dict[str, Any]:
+    entry = _mapping(value, "scientific-panel Stage-2 entry")
+    review_ref = _mapping(entry.get("review_ref"), "scientific-panel Stage-2 review_ref")
+    _exact_keys(
+        review_ref,
+        {"record_type", "record_id"},
+        "scientific-panel Stage-2 review_ref",
+    )
+    if review_ref["record_type"] != "agent_review":
+        raise ProspectiveQualificationV2Error(
+            "Scientific-panel Stage-2 entries must reference AgentReview records."
+        )
+    _text(review_ref["record_id"], "scientific-panel Stage-2 review ID")
+    _digest(entry.get("review_digest"), "scientific-panel Stage-2 review_digest")
+    _text(entry.get("provider"), "scientific-panel Stage-2 provider")
+    _text(
+        entry.get("execution_context_id"),
+        "scientific-panel Stage-2 execution_context_id",
+    )
+    _timestamp(_text(entry.get("completed_at"), "scientific-panel Stage-2 completed_at"))
+    return entry
+
+
+def _match_stage2_reviews_to_panel(
+    reviews: tuple[dict[str, Any], ...], panel: Mapping[str, Any]
+) -> None:
+    entries = {
+        str(entry["review_ref"]["record_id"]): entry
+        for entry in (
+            _scientific_panel_stage2_entry(item)
+            for item in _sequence(panel["stage2_reviews"], "scientific_panel_freeze stage2_reviews")
+        )
+    }
+    if {str(review["full_review_ref"]["record_id"]) for review in reviews} != set(entries):
+        raise ProspectiveQualificationV2Error(
+            "V2 Stage-2 summaries do not reference the exact frozen Stage-2 review set."
+        )
+    for review in reviews:
+        review_id = str(review["full_review_ref"]["record_id"])
+        entry = entries[review_id]
+        if (
+            review["full_review_digest"] != entry["review_digest"]
+            or review["provider"] != entry["provider"]
+            or review["execution_context_id"] != entry["execution_context_id"]
+            or review["completed_at"] != entry.get("completed_at")
+        ):
+            raise ProspectiveQualificationV2Error(
+                "V2 Stage-2 summary identity does not match its frozen full review."
+            )
 
 
 def _evidence_validation(

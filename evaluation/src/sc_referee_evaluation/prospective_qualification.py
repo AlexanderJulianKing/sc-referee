@@ -531,12 +531,14 @@ def _validate_assignments(
             )
         stage1 = [_participant(participant_by_id, item, "stage1_reviewer") for item in stage1_ids]
         stage2 = [_participant(participant_by_id, item, "stage2_reviewer") for item in stage2_ids]
-        if (
-            len({str(item["provider"]) for item in stage1}) < 2
-            or len({str(item["provider"]) for item in stage2}) < 2
-        ):
+        stage1_provider_counts = Counter(str(item["provider"]) for item in stage1)
+        if sorted(stage1_provider_counts.values()) != [2, 2]:
             raise ProspectiveQualificationError(
-                "Each review stage requires participants from at least two providers."
+                "Stage-1 review requires exactly two providers with two reviewers from each."
+            )
+        if len({str(item["provider"]) for item in stage2}) != 2:
+            raise ProspectiveQualificationError(
+                "Stage-2 review requires two reviewers from distinct providers."
             )
         _digest(assignment["authoring_brief_digest"], "assignment authoring_brief_digest")
         assigned = _timestamp(str(assignment["assigned_at"]))
