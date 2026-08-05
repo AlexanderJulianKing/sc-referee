@@ -26,6 +26,10 @@ from scripts.build_first_direct_three_case_stage1_protocol import (
     VISIBLE_FILES,
     build_first_direct_three_case_stage1_protocol,
 )
+from scripts.record_first_direct_three_case_stage1_reviews import (
+    build_stage1_call_capture,
+    validate_stage1_call_capture,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_ROOT = PROJECT_ROOT / "reference/schemas-v0.18.0"
@@ -275,3 +279,45 @@ def test_stage1_protocol_builder_is_write_once() -> None:
     with pytest.raises(ValueError, match="already exists"):
         build_first_direct_three_case_stage1_protocol(PROJECT_ROOT)
     assert sha256_digest((REVIEW_ROOT / "STAGE1_REVIEW_PROTOCOL.json").read_bytes()) == before
+
+
+def test_stage1_raw_call_capture_validates_without_writing_reviews() -> None:
+    protocol = _load(REVIEW_ROOT / "STAGE1_REVIEW_PROTOCOL.json")
+    call = protocol["calls"][0]
+    payloads = {case_id: _workspace_payloads(case_id) for case_id in CASE_IDS}
+    semantic_payload = {
+        "reviewer_participant_id": call["participant_id"],
+        "reviews": [_semantic_review(case_id, payloads[case_id]) for case_id in call["case_order"]],
+    }
+    raw_response = json.dumps(semantic_payload, sort_keys=True).encode("utf-8")
+    capture = build_stage1_call_capture(
+        PROJECT_ROOT,
+        str(call["participant_id"]),
+        raw_response,
+        started_at="2026-08-05T06:10:00Z",
+        completed_at="2026-08-05T06:11:00Z",
+        captured_at="2026-08-05T06:12:00Z",
+        transport={"surface": "synthetic_test_only"},
+    )
+    supplied = capture.pop("capture_digest")
+    assert supplied == semantic_digest(capture)
+    capture["capture_digest"] = supplied
+    reviews = validate_stage1_call_capture(PROJECT_ROOT, capture)
+    assert [review["case_id"] for review in reviews] == sorted(CASE_IDS)
+    assert {review["transcript_digest"] for review in reviews} == {sha256_digest(raw_response)}
+    assert not (REVIEW_ROOT / "stage1-call-ledgers").exists()
+
+    wrong = deepcopy(semantic_payload)
+    wrong["reviewer_participant_id"] = STAGE1_REVIEWERS[1]
+    wrong_response = json.dumps(wrong, sort_keys=True).encode("utf-8")
+    wrong_capture = build_stage1_call_capture(
+        PROJECT_ROOT,
+        str(call["participant_id"]),
+        wrong_response,
+        started_at="2026-08-05T06:10:00Z",
+        completed_at="2026-08-05T06:11:00Z",
+        captured_at="2026-08-05T06:12:00Z",
+        transport={"surface": "synthetic_test_only"},
+    )
+    with pytest.raises(ValueError, match="semantic payload is invalid"):
+        validate_stage1_call_capture(PROJECT_ROOT, wrong_capture)
