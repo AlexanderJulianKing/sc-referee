@@ -156,9 +156,15 @@ bytes and supersession record remain retained and cannot contribute evidence.
 The enrollment is declared-not-authenticated and the sealed author briefs have not been exposed.
 Three Codex reviewer configurations have exact passing calibration evidence. Three frozen Claude
 Code calibration attempts in protocol v3 terminated before inference because local OAuth had
-expired; their immutable failures will be retained. Before any case exposure, one prospective
-amendment may replace only those unauthenticated Claude CLI configurations with three exact,
-isolated Claude desktop-app Opus 5 contexts. The amended configurations must pass the unchanged
+expired; their immutable failures are retained. Before any case exposure, versioned adjudication-
+protocol amendment digest
+`sha256:e3f8f012e02e29112e83e83cdfb4b4e3b2ad82eaed4d5058cc3a9bd4f221395e`
+replaces only those inactive configurations with three exact Claude Desktop App 1.25927.0, Opus 5,
+Extra, incognito Home Chat contexts. Replacement enrollment digest
+`sha256:95ef5badd874db346279de725a35679da80d00bf8d40c323041b414ce750a5bc`
+and calibration protocol digest
+`sha256:9427d044c529ffbf0c3ef07ae034550e3cfe841d105ddc9d61dfb2d4eeda2af4`
+were frozen before prompt submission. The amended configurations must pass the unchanged
 calibration suite before any author brief is opened. These freezes and calibration records create
 no scientific label, metric, qualification, promotion, or Finding authority.
 
