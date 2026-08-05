@@ -210,6 +210,19 @@ negative controls or repaired into cases. The next authoring iteration must be f
 calls, must constrain only the already-frozen static producer grammar, and must retain this entire
 failed iteration. The authoring and downstream checkboxes remain unchecked.
 
+Second-iteration restart-amendment digest
+`sha256:41a274b59e79712216d3b2602758b757ca0c86767837e0e385d7344fd53039bc`
+creates three new opaque case identities and two fresh enrolled author contexts while retaining the
+failed iteration and changing no scientific brief. Authoring-protocol digest
+`sha256:a925a0f05b7ab16f61da02c65b2f47506b0dfad14b0f0f3f630aaded29ef49cb`
+changes only transport to physical-line arrays and states the already-frozen straight-line static
+producer grammar. A first local Codex launch was blocked before inference by the managed sandbox's
+read-only Codex state database; its empty-response failure is retained. No second-iteration prompt
+has reached Codex or Claude pending explicit authorization of those new external transmissions.
+The v2 recorder now rejects embedded line terminators, noncanonical declarations, and any case
+that does not replay to `verified_complete` under the frozen selected-result verifier before it can
+be materialized or reviewed.
+
 ## Stop conditions
 
 Do not promote when the selected result is unresolved, a source reference is missing, the review
