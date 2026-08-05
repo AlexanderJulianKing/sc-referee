@@ -228,6 +228,19 @@ detector outcomes. These responses are retained without repair. Any next authori
 be frozen before inference, use new opaque identities, keep the scientific briefs unchanged, and
 constrain only generic transport/role-path details needed by the already-frozen verifier.
 
+Third-iteration restart-amendment digest
+`sha256:fc4683fe691926f82d8cf9979f0a9089ce7525d34cfcd03db34600ca3161614e`
+and authoring-protocol digest
+`sha256:0f70e92a2a87b4c3225734fe871ac31ec2535ac02390efb1743e78c3e78e385a`
+are frozen before any v3 inference. They create fresh opaque cases, call identities, and author
+contexts while retaining v1 and v2 unchanged. Scientific briefs and detector/verifier bytes are
+identical in meaning. The only new constraints are exact `inputs/`, `workflow/`, and `results/`
+paths, physical ASCII lines without terminators, an escape-free producer that obtains LF from its
+input through the existing supported indexing grammar, and a declaration span bound to the exact
+final report writer. A canonical preflight reaches `verified_complete` under the unchanged static
+verifier. No v3 prompt has been externally submitted, and no case, label, or detector outcome
+exists for this iteration.
+
 ## Stop conditions
 
 Do not promote when the selected result is unresolved, a source reference is missing, the review

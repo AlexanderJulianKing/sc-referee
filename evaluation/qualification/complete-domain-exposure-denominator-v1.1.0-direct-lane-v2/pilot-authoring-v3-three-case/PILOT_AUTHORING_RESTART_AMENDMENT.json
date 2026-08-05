@@ -1,0 +1,52 @@
+{
+  "amendment_digest": "sha256:fc4683fe691926f82d8cf9979f0a9089ce7525d34cfcd03db34600ca3161614e",
+  "amendment_version": "2.0.0",
+  "artifact_kind": "direct_qualification_three_case_authoring_restart_amendment",
+  "detector_or_verifier_changed": false,
+  "detector_outcome_count_at_freeze": 0,
+  "evaluation_transport_constraints_changed": true,
+  "excluded_pilot_brief_access_permitted": false,
+  "failed_case_bytes_repaired_or_reused": false,
+  "failed_iterations_retained": true,
+  "failed_v2_authoring_intake_ledger_digest": "sha256:20dab1bcdd87463601a7f84425a032fb026f70ea4737dc3cb2e8c7e3e7449143",
+  "failed_v2_input_capture_digests": [
+    "sha256:2617a109e25ab871a14ae1236db8220a18a1ad59b512e00318f406b2cc17f973",
+    "sha256:5b9a17b658f2ea7485085bc27b5a48899ecc4ea55c5cff619c5ae8626df55e43"
+  ],
+  "failed_v2_protocol_digest": "sha256:a925a0f05b7ab16f61da02c65b2f47506b0dfad14b0f0f3f630aaded29ef49cb",
+  "frozen_at": "2026-08-05T04:43:00Z",
+  "heldout_brief_access_permitted": false,
+  "lane_freeze_digest": "sha256:c58ee57c01d5f7c46855eb9f554d0a476f664e44edbdd7e15679bd53d72fa12b",
+  "other_envelopes_authorized": false,
+  "qualification_authority": "none_authoring_restart_amendment_only",
+  "restart_assignments": [
+    {
+      "author_id": "actor:pilot-author-claude-03",
+      "author_visible_brief_digest": "sha256:fe88f4d5c91f677efc6ebd2848f975f7ef60a83bac73165567aa6bcf5e89adf5",
+      "case_id": "case:b244e81a210c8fc235d2",
+      "cell_type": "corrected_twin",
+      "reference_case_id": "case:1ec0cfee571e2bec59bb",
+      "superseded_failed_case_id": "case:8fa6b99599818de04119"
+    },
+    {
+      "author_id": "actor:pilot-author-codex-03",
+      "author_visible_brief_digest": "sha256:019d760b66f3e5ea979aa5bdd282ac87e17fd0009d0fb7b2c8311e95b5194caf",
+      "case_id": "case:7e2d0d333ffa5e630352",
+      "cell_type": "valid_alternative",
+      "reference_case_id": null,
+      "superseded_failed_case_id": "case:934c694429d17ea80f7e"
+    },
+    {
+      "author_id": "actor:pilot-author-claude-03",
+      "author_visible_brief_digest": "sha256:198b62928aac27604291541c04d9812f223ac0cce44f25f6231cbc28dca5ba74",
+      "case_id": "case:1ec0cfee571e2bec59bb",
+      "cell_type": "error_bearing",
+      "reference_case_id": null,
+      "superseded_failed_case_id": "case:9a291d99489a2abddf35"
+    }
+  ],
+  "restart_reason": "The complete v2 cohort failed generic transport and producer-role admission before materialization or review; restart with fresh opaque identities, exact role paths, escape-free LF construction, and final-writer declaration spans.",
+  "scientific_briefs_changed": false,
+  "scientific_label_count_at_freeze": 0,
+  "source_commit": "5361c03dd4d482d7cbe4acc80b730d475ad4e0aa"
+}

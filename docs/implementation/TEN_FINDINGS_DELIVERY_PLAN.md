@@ -600,7 +600,14 @@ perform unrelated capability expansion before the complete first pilot is retain
   `sha256:20dab1bcdd87463601a7f84425a032fb026f70ea4737dc3cb2e8c7e3e7449143`
   records two attempts, three response cases, zero admitted or verified cases, zero
   metric-eligible opportunities, zero scientific labels, and zero detector outcomes. The v2
-  responses are not repaired or counted; all Gate 3 checkboxes remain open.
+  responses are not repaired or counted; all Gate 3 checkboxes remain open. A third iteration is
+  frozen before inference at restart-amendment digest
+  `sha256:fc4683fe691926f82d8cf9979f0a9089ce7525d34cfcd03db34600ca3161614e`
+  and protocol digest
+  `sha256:0f70e92a2a87b4c3225734fe871ac31ec2535ac02390efb1743e78c3e78e385a`.
+  It changes no scientific brief, detector, verifier, label, or outcome. It only pins exact file
+  roles, forbids decoded terminators and producer reverse-solidus escapes, derives LF from the
+  already-LF input, and requires the selected producer span to identify the final writer.
 
 ## Evidence log
 
@@ -621,3 +628,4 @@ perform unrelated capability expansion before the complete first pilot is retain
 | 2026-08-04 | Retained the failed first three-case authoring iteration and independently classified all three case trees before review. | Authoring ledger `sha256:b1a0bcdaf9aa9a7fc2970bd94c510ac9b8ac5475e0e90d5ce7d4f39a540a58f6`; selected-result intake ledger `sha256:ee9ee169fe6b6970ea2a85565750f6e99a34273b4d0f3a0f9ab02bb6d34cffeb`; three unsupported, zero verified, zero labels, zero detector outcomes. | No checkbox or score changed; the authoring and qualification gates remain incomplete. |
 | 2026-08-04 | Froze the second three-case authoring iteration and added fail-closed static intake before review. | Restart amendment `sha256:41a274b59e79712216d3b2602758b757ca0c86767837e0e385d7344fd53039bc`; protocol `sha256:a925a0f05b7ab16f61da02c65b2f47506b0dfad14b0f0f3f630aaded29ef49cb`; retained empty-response Codex sandbox launch failure; four focused recorder controls. | No checkbox or score changed; the second-iteration calls were frozen but unexecuted at this commit. |
 | 2026-08-04 | Executed and retained both frozen second-iteration author calls, then rejected the incomplete admission-valid cohort before materialization or review. | Claude capture `sha256:2617a109e25ab871a14ae1236db8220a18a1ad59b512e00318f406b2cc17f973`; Codex capture `sha256:5b9a17b658f2ea7485085bc27b5a48899ecc4ea55c5cff619c5ae8626df55e43`; failure ledger `sha256:20dab1bcdd87463601a7f84425a032fb026f70ea4737dc3cb2e8c7e3e7449143`; three focused retention tests. | No checkbox or score changed; zero cases were admitted, verified, or made metric-eligible. |
+| 2026-08-04 | Froze a third authoring iteration that removes only generic transport, file-role, and writer-span ambiguity before any new inference. | Source commit `5361c03dd4d482d7cbe4acc80b730d475ad4e0aa`; restart amendment `sha256:fc4683fe691926f82d8cf9979f0a9089ce7525d34cfcd03db34600ca3161614e`; protocol `sha256:0f70e92a2a87b4c3225734fe871ac31ec2535ac02390efb1743e78c3e78e385a`; nine focused v3 controls. | No checkbox or score changed; v3 has zero calls, cases, labels, or outcomes. |
