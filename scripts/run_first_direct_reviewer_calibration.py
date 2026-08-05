@@ -37,6 +37,7 @@ def _validate_protocol(protocol: dict[str, Any]) -> None:
     protocol["protocol_digest"] = supplied
     if (
         protocol.get("artifact_kind") != "direct_qualification_reviewer_calibration_protocol"
+        or protocol.get("protocol_version") != "2.0.0"
         or protocol.get("execution_state") != "frozen_not_started"
         or protocol.get("expected_reviewer_count") != 6
         or len(protocol.get("assignments", [])) != 6
@@ -164,7 +165,7 @@ def _run_assignment(assignment: dict[str, Any], system_prompt: str) -> dict[str,
                 "",
                 "--strict-mcp-config",
                 "--mcp-config",
-                "{}",
+                '{"mcpServers":{}}',
                 "--permission-mode",
                 "dontAsk",
                 "--no-session-persistence",
@@ -173,7 +174,7 @@ def _run_assignment(assignment: dict[str, Any], system_prompt: str) -> dict[str,
                 "--json-schema",
                 json.dumps(assignment["output_schema"], sort_keys=True),
                 "--session-id",
-                str(assignment["requested_session_id"]),
+                str(assignment["requested_provider_session_id"]),
                 str(assignment["user_prompt"]),
             ]
         else:
@@ -280,7 +281,8 @@ def run_first_direct_reviewer_calibration(project_root: Path) -> dict[str, Any]:
         final_path.write_bytes(attempt["final"])
         invocation = {
             "participant_id": participant_id,
-            "requested_session_id": assignment["requested_session_id"],
+            "call_identity_id": assignment["call_identity_id"],
+            "requested_provider_session_id": assignment["requested_provider_session_id"],
             "argv": attempt["argv"],
             "started_at": attempt["started_at"],
             "completed_at": attempt["completed_at"],
@@ -348,7 +350,8 @@ def run_first_direct_reviewer_calibration(project_root: Path) -> dict[str, Any]:
                 "model_id": assignment["model_id"],
                 "execution_context_id": assignment["execution_context_id"],
                 "configuration_digest": assignment["configuration_digest"],
-                "requested_session_id": assignment["requested_session_id"],
+                "call_identity_id": assignment["call_identity_id"],
+                "requested_provider_session_id": assignment["requested_provider_session_id"],
                 **provider_metadata,
                 "provider_cli_exit_code": attempt["return_code"],
                 "provider_cli_authenticated_success": attempt["return_code"] == 0,

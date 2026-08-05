@@ -11,9 +11,14 @@ from sc_referee.core.ids import semantic_digest, sha256_digest
 LANE_RELATIVE = Path(
     "evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2"
 )
-CALIBRATION_RELATIVE = LANE_RELATIVE / "reviewer-calibration"
-FROZEN_AT = "2026-08-05T00:00:00Z"
-SOURCE_COMMIT = "83a0a4807b16fe0a7441b0bbfb604e65b438c083"
+FAILED_CALIBRATION_RELATIVE = LANE_RELATIVE / "reviewer-calibration"
+CALIBRATION_RELATIVE = LANE_RELATIVE / "reviewer-calibration-v2"
+FROZEN_AT = "2026-08-05T00:07:00Z"
+SOURCE_COMMIT = "c004bb3d4355e1b4dfd1d117395edc1e1ae8b5dc"
+SUPERSEDED_PROTOCOL_DIGEST = (
+    "sha256:c7b28df0840b278af5d80838842f5b42104d225eac4759a5a62df9e377b30bd0"
+)
+SUPERSEDED_LEDGER_DIGEST = "sha256:ea070181d537a6c939bf2328ae75d5be1c697cff38a0f3e31e074ac04651c795"
 ALLOWED_VERDICTS = (
     "demonstrated_issue",
     "no_demonstrated_issue_within_scope",
@@ -51,7 +56,7 @@ def _output_schema(participant_id: str) -> dict[str, Any]:
         "type": "object",
         "additionalProperties": False,
         "properties": {
-            "reviewer_participant_id": {"const": participant_id},
+            "reviewer_participant_id": {"type": "string", "const": participant_id},
             "calibration_results": {
                 "type": "array",
                 "minItems": 6,
@@ -61,9 +66,12 @@ def _output_schema(participant_id: str) -> dict[str, Any]:
                     "additionalProperties": False,
                     "properties": {
                         "calibration_case_id": {"type": "string", "minLength": 1},
-                        "verdict": {"enum": list(ALLOWED_VERDICTS)},
-                        "invented_material_premise": {"const": False},
-                        "evidence_basis": {"const": "stated_evidence_only"},
+                        "verdict": {"type": "string", "enum": list(ALLOWED_VERDICTS)},
+                        "invented_material_premise": {"type": "boolean", "const": False},
+                        "evidence_basis": {
+                            "type": "string",
+                            "const": "stated_evidence_only",
+                        },
                         "rationale": {"type": "string", "minLength": 1},
                     },
                     "required": [
@@ -121,6 +129,7 @@ def build_first_direct_reviewer_calibration_protocol(
         prompt = _user_prompt(participant, suite)
         schema = _output_schema(participant_id)
         provider = str(participant["provider"])
+        call_identity = str(uuid5(NAMESPACE_URL, f"sc-referee-calibration-v2:{participant_id}"))
         assignments.append(
             {
                 "participant_id": participant_id,
@@ -137,9 +146,8 @@ def build_first_direct_reviewer_calibration_protocol(
                 "tool_policy_digest": participant["tool_policy_digest"],
                 "environment_digest": participant["environment_digest"],
                 "calibration_suite_digest": participant["calibration_suite_digest"],
-                "requested_session_id": str(
-                    uuid5(NAMESPACE_URL, f"sc-referee-calibration-v1:{participant_id}")
-                ),
+                "call_identity_id": call_identity,
+                "requested_provider_session_id": call_identity if provider == "Anthropic" else None,
                 "user_prompt": prompt,
                 "user_prompt_digest": sha256_digest(prompt),
                 "output_schema": schema,
@@ -150,7 +158,7 @@ def build_first_direct_reviewer_calibration_protocol(
                         "print_mode": True,
                         "safe_mode": True,
                         "tool_set": "empty",
-                        "mcp_set": "empty_strict",
+                        "mcp_set": "empty_mcpServers_record_strict",
                         "permission_mode": "dontAsk",
                         "session_persistence": False,
                         "structured_output": "json_schema",
@@ -173,9 +181,12 @@ def build_first_direct_reviewer_calibration_protocol(
     assignments.sort(key=lambda item: str(item["participant_id"]))
     record: dict[str, Any] = {
         "artifact_kind": "direct_qualification_reviewer_calibration_protocol",
-        "protocol_version": "1.0.0",
-        "protocol_id": "reviewer-calibration:complete-domain-exposure-denominator-v1",
+        "protocol_version": "2.0.0",
+        "protocol_id": "reviewer-calibration:complete-domain-exposure-denominator-v2",
         "source_commit": SOURCE_COMMIT,
+        "supersedes_protocol_digest": SUPERSEDED_PROTOCOL_DIGEST,
+        "supersedes_failure_ledger_digest": SUPERSEDED_LEDGER_DIGEST,
+        "supersession_reason": "Correct two pre-inference transport defects: supply Claude an explicit empty mcpServers record and add explicit JSON types to Codex const schema fields.",
         "lane_freeze_digest": lane["lane_freeze_digest"],
         "participant_enrollment_digest": enrollment["enrollment_digest"],
         "calibration_suite_digest": semantic_digest(suite),

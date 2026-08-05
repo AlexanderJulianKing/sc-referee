@@ -9,6 +9,7 @@ from sc_referee.core.ids import semantic_digest, sha256_digest
 from scripts.build_first_direct_reviewer_calibration_protocol import (
     ALLOWED_VERDICTS,
     CALIBRATION_RELATIVE,
+    FAILED_CALIBRATION_RELATIVE,
     build_first_direct_reviewer_calibration_protocol,
     load_effective_execution_configuration,
 )
@@ -49,6 +50,10 @@ def test_frozen_reviewer_calibration_protocol_rebuilds_exactly(project_root: Pat
     assert rebuilt == committed
     supplied = committed.pop("protocol_digest")
     assert supplied == semantic_digest(committed)
+    assert committed["protocol_version"] == "2.0.0"
+    assert committed["supersedes_protocol_digest"] == (
+        "sha256:c7b28df0840b278af5d80838842f5b42104d225eac4759a5a62df9e377b30bd0"
+    )
     assert committed["execution_state"] == "frozen_not_started"
     assert committed["qualification_authority"] == "none_calibration_protocol_only"
 
@@ -74,7 +79,7 @@ def test_reviewer_calibration_protocol_binds_exact_six_tool_free_contexts(
         "Anthropic": 3,
         "OpenAI": 3,
     }
-    assert len({item["requested_session_id"] for item in assignments}) == 6
+    assert len({item["call_identity_id"] for item in assignments}) == 6
     assert protocol["execution_policy"] == {
         "parallel_execution_permitted": True,
         "one_call_per_assignment": True,
@@ -91,6 +96,10 @@ def test_reviewer_calibration_protocol_binds_exact_six_tool_free_contexts(
         assert assignment["tool_policy_digest"] == participant["tool_policy_digest"]
         assert assignment["user_prompt_digest"] == sha256_digest(assignment["user_prompt"])
         assert assignment["output_schema_digest"] == semantic_digest(assignment["output_schema"])
+        if assignment["provider"] == "Anthropic":
+            assert assignment["requested_provider_session_id"] == assignment["call_identity_id"]
+        else:
+            assert assignment["requested_provider_session_id"] is None
         assert "expected_verdict" not in assignment["user_prompt"]
         assert set(
             assignment["output_schema"]["properties"]["calibration_results"]["items"]["properties"][
@@ -145,7 +154,7 @@ def test_calibration_protocol_contains_no_result_or_qualification_authority(
 def test_first_calibration_transport_failures_are_retained_without_pass(
     project_root: Path,
 ) -> None:
-    root = project_root / CALIBRATION_RELATIVE
+    root = project_root / FAILED_CALIBRATION_RELATIVE
     ledger = _load(root / "CALIBRATION_LEDGER.json")
     supplied = ledger.pop("ledger_digest")
 
