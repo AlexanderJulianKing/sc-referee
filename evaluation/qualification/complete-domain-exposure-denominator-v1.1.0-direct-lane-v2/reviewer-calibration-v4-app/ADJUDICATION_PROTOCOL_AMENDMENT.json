@@ -1,0 +1,58 @@
+{
+  "amendment_digest": "sha256:e3f8f012e02e29112e83e83cdfb4b4e3b2ad82eaed4d5058cc3a9bd4f221395e",
+  "artifact_kind": "versioned_agent_adjudication_protocol_amendment",
+  "configuration_replacements": [
+    {
+      "participant_id": "actor:stage1-claude-01",
+      "replacement_configuration_digest": "sha256:b688ae6635ca5a9f2f8a0e4c4492f799d37d0278baaa94cd60013d2fb410e986",
+      "replacement_reason": "The frozen Claude Code CLI configuration was unauthenticated before inference; use one isolated authenticated Claude Desktop App chat before any scientific case exposure.",
+      "superseded_configuration_digest": "sha256:6aa6d579660602810a368ec40362f6e1c1de23e85439f8387d230ca1975f995b"
+    },
+    {
+      "participant_id": "actor:stage1-claude-02",
+      "replacement_configuration_digest": "sha256:a4551a8bc9e17e3248103ebd16e34ad5e6d96064e27181da632f00a1f051fb66",
+      "replacement_reason": "The frozen Claude Code CLI configuration was unauthenticated before inference; use one isolated authenticated Claude Desktop App chat before any scientific case exposure.",
+      "superseded_configuration_digest": "sha256:6fcc3ea4a090b31893638537d39ee78cdef1eef8a111690918b477ba4351f0fb"
+    },
+    {
+      "participant_id": "actor:stage2-claude-01",
+      "replacement_configuration_digest": "sha256:d536bf88ce4d5a287d4c57b6feda7bb3e4b3ef64d90e635e620abfeb5052932b",
+      "replacement_reason": "The frozen Claude Code CLI configuration was unauthenticated before inference; use one isolated authenticated Claude Desktop App chat before any scientific case exposure.",
+      "superseded_configuration_digest": "sha256:0efbb4aa577adfcb87435ec3c2d900c21874f5b2e3470321900bc185561e8fd8"
+    }
+  ],
+  "frozen_at": "2026-08-05T00:26:00Z",
+  "historical_calibration_chain": [
+    {
+      "ledger_digest": "sha256:ea070181d537a6c939bf2328ae75d5be1c697cff38a0f3e31e074ac04651c795",
+      "protocol_digest": "sha256:c7b28df0840b278af5d80838842f5b42104d225eac4759a5a62df9e377b30bd0"
+    },
+    {
+      "ledger_digest": "sha256:253b3fa6283c91e66442a3c9fe42f9f100754bd9aeb4e88e53564c96288e2bf3",
+      "protocol_digest": "sha256:b2875a535a1cbf86dffb1fb696c3b05bbc28dd9b5d67a0d82cbb5ed881864aad"
+    },
+    {
+      "aggregate_ledger_digest": "sha256:3da48f5fead855cd4685448f2f550b71b77ec1e366737381429c3874e00b9fa5",
+      "ledger_digest": "sha256:375265c9dc05186c74c58c4658c20a2877011db476bcebc0a7281658a54f2893",
+      "protocol_digest": "sha256:dc359b6884308ecc02b391d499f22c784bed5e71f258c8420eab95dae8dc4cc7"
+    }
+  ],
+  "lane_freeze_digest": "sha256:c58ee57c01d5f7c46855eb9f554d0a476f664e44edbdd7e15679bd53d72fa12b",
+  "precase_state": {
+    "author_brief_exposure_count": 0,
+    "authored_case_count": 0,
+    "detector_outcome_count": 0,
+    "scientific_label_count": 0
+  },
+  "protocol_amendment_id": "adjudication-protocol:desktop-app-opus-5-v1",
+  "protocol_amendment_version": "1.0.0",
+  "qualification_authority": "none_adjudication_protocol_amendment_only",
+  "replaced_participant_ids": [
+    "actor:stage1-claude-01",
+    "actor:stage1-claude-02",
+    "actor:stage2-claude-01"
+  ],
+  "replacement_enrollment_digest": "sha256:95ef5badd874db346279de725a35679da80d00bf8d40c323041b414ce750a5bc",
+  "source_commit": "48ebd29597fac0f641cf66b3dcd068c7058c25e6",
+  "superseded_enrollment_digest": "sha256:c29bdc3c277b840c2bf9b4369f69181190663530467926ccfdfb24407eff0016"
+}
