@@ -1,0 +1,119 @@
+{
+  "active_enrollment_digest": "sha256:95ef5badd874db346279de725a35679da80d00bf8d40c323041b414ce750a5bc",
+  "artifact_kind": "direct_qualification_three_case_authoring_intake_failure_ledger",
+  "authoring_restart_amendment_digest": "sha256:41a274b59e79712216d3b2602758b757ca0c86767837e0e385d7344fd53039bc",
+  "cohort_reason_codes": [
+    "incomplete_admission_valid_causal_triad"
+  ],
+  "cohort_status": "rejected_before_authoring_admission",
+  "completed_at": "2026-08-05T04:35:00Z",
+  "entries": [
+    {
+      "admitted": false,
+      "case_id": "case:8fa6b99599818de04119",
+      "invalid_line_entries": [
+        {
+          "case_id": "case:8fa6b99599818de04119",
+          "contains_cr": false,
+          "contains_lf": true,
+          "content_line_number": 6,
+          "file_role": "producer_file"
+        }
+      ],
+      "metric_eligible": false,
+      "participant_id": "actor:pilot-author-claude-02",
+      "provider": "Anthropic",
+      "role_path_status": "not_evaluated_due_prior_transport_failure",
+      "selected_result_intake_status": "not_run_transport_invalid",
+      "selected_result_validation_digest": null,
+      "transport_reason_codes": [
+        "embedded_line_terminator"
+      ],
+      "transport_status": "invalid_content_lines"
+    },
+    {
+      "admitted": false,
+      "case_id": "case:934c694429d17ea80f7e",
+      "invalid_line_entries": [],
+      "metric_eligible": false,
+      "participant_id": "actor:pilot-author-codex-02",
+      "producer_relative_path": "produce.py",
+      "provider": "OpenAI",
+      "role_path_reason_codes": [
+        "producer_path_outside_workflow_role"
+      ],
+      "role_path_status": "invalid_producer_path",
+      "selected_result_intake_status": "not_run_role_path_invalid",
+      "selected_result_validation_digest": null,
+      "transport_reason_codes": [],
+      "transport_status": "valid_content_lines"
+    },
+    {
+      "admitted": false,
+      "case_id": "case:9a291d99489a2abddf35",
+      "invalid_line_entries": [
+        {
+          "case_id": "case:9a291d99489a2abddf35",
+          "contains_cr": false,
+          "contains_lf": true,
+          "content_line_number": 6,
+          "file_role": "producer_file"
+        }
+      ],
+      "metric_eligible": false,
+      "participant_id": "actor:pilot-author-claude-02",
+      "provider": "Anthropic",
+      "role_path_status": "not_evaluated_due_prior_transport_failure",
+      "selected_result_intake_status": "not_run_transport_invalid",
+      "selected_result_validation_digest": null,
+      "transport_reason_codes": [
+        "embedded_line_terminator"
+      ],
+      "transport_status": "invalid_content_lines"
+    }
+  ],
+  "input_captures": [
+    {
+      "attempt_status": "response_retained",
+      "input_capture_digest": "sha256:2617a109e25ab871a14ae1236db8220a18a1ad59b512e00318f406b2cc17f973",
+      "participant_id": "actor:pilot-author-claude-02",
+      "provider": "Anthropic",
+      "raw_response_digest": "sha256:63b9f31ac34e891fbeca5c4ece7bb12bcc607903de7b111ff19213d09a6b7810",
+      "replacement_count": 0,
+      "response_digest": "sha256:bc373920a488cd7c48ceee65e4d963fba34e969f39d7454ef67dd9a2aac10894"
+    },
+    {
+      "attempt_status": "response_retained",
+      "input_capture_digest": "sha256:5b9a17b658f2ea7485085bc27b5a48899ecc4ea55c5cff619c5ae8626df55e43",
+      "participant_id": "actor:pilot-author-codex-02",
+      "provider": "OpenAI",
+      "raw_response_digest": "sha256:217688e149ed1f28dbf4111e33e7f81e729629a3452aed35da2ee4c2be3a4d36",
+      "replacement_count": 0,
+      "response_digest": "sha256:217688e149ed1f28dbf4111e33e7f81e729629a3452aed35da2ee4c2be3a4d36"
+    }
+  ],
+  "lane_freeze_digest": "sha256:c58ee57c01d5f7c46855eb9f554d0a476f664e44edbdd7e15679bd53d72fa12b",
+  "ledger_digest": "sha256:20dab1bcdd87463601a7f84425a032fb026f70ea4737dc3cb2e8c7e3e7449143",
+  "ledger_version": "1.0.0",
+  "protocol_digest": "sha256:a925a0f05b7ab16f61da02c65b2f47506b0dfad14b0f0f3f630aaded29ef49cb",
+  "qualification_authority": "none_failed_authoring_intake_only",
+  "summary": {
+    "admitted_case_count": 0,
+    "assigned_author_context_count": 2,
+    "detector_outcome_count": 0,
+    "metric_eligible_case_count": 0,
+    "model_attempt_count": 2,
+    "project_code_executed_count": 0,
+    "response_case_count": 3,
+    "role_path_invalid_case_count": 1,
+    "scientific_label_count": 0,
+    "transport_invalid_case_count": 2,
+    "verified_selected_result_count": 0
+  },
+  "validator_identity": {
+    "execution_context_id": "context:selected-result-validator-v2",
+    "identity_evidence_digest": "sha256:0c6dce3bc100288d1dd4c72897e6f96ee1cb2ce1291ddf0b7f52c1bcfb1a0cf3",
+    "provider": "Local deterministic software",
+    "validator_id": "actor:selected-result-validator-01"
+  }
+}

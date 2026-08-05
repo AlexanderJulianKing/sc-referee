@@ -217,11 +217,16 @@ failed iteration and changing no scientific brief. Authoring-protocol digest
 `sha256:a925a0f05b7ab16f61da02c65b2f47506b0dfad14b0f0f3f630aaded29ef49cb`
 changes only transport to physical-line arrays and states the already-frozen straight-line static
 producer grammar. A first local Codex launch was blocked before inference by the managed sandbox's
-read-only Codex state database; its empty-response failure is retained. No second-iteration prompt
-has reached Codex or Claude pending explicit authorization of those new external transmissions.
-The v2 recorder now rejects embedded line terminators, noncanonical declarations, and any case
-that does not replay to `verified_complete` under the frozen selected-result verifier before it can
-be materialized or reviewed.
+read-only Codex state database; its empty-response failure is retained. After explicit
+authorization, the exact frozen Codex and Claude prompts were each submitted once. Both responses
+parse and pass their frozen JSON schemas, but none of their three payloads was admitted: the two
+Claude payloads each decode an LF inside one physical-line producer entry, and the Codex payload
+places `produce.py` outside the frozen `workflow/` producer role. Failure-ledger digest
+`sha256:20dab1bcdd87463601a7f84425a032fb026f70ea4737dc3cb2e8c7e3e7449143`
+binds both exact captures and records zero verified or metric-eligible cases, zero labels, and zero
+detector outcomes. These responses are retained without repair. Any next authoring iteration must
+be frozen before inference, use new opaque identities, keep the scientific briefs unchanged, and
+constrain only generic transport/role-path details needed by the already-frozen verifier.
 
 ## Stop conditions
 

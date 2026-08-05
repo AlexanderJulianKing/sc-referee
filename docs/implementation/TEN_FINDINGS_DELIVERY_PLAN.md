@@ -591,9 +591,16 @@ perform unrelated capability expansion before the complete first pilot is retain
   `sha256:a925a0f05b7ab16f61da02c65b2f47506b0dfad14b0f0f3f630aaded29ef49cb`
   uses two fresh authors, physical-line JSON arrays, and the frozen static producer grammar. The
   first sandboxed Codex process failed before inference because its local state database was
-  read-only, and that empty-response launch failure is retained. The new external author prompts
-  remain unsubmitted pending explicit authorization. A model-free v2 intake recorder and four
-  focused controls now prevent any non-replayable case from reaching scientific review.
+  read-only, and that empty-response launch failure is retained. After explicit authorization,
+  the same frozen Codex call and the frozen Claude call each returned one response. The exact
+  captures are retained, but the model-free intake rejected the complete cohort: both Claude
+  payloads contain an embedded LF inside a physical-line producer entry, and the otherwise
+  transport-valid Codex payload places its producer outside the frozen `workflow/` role.
+  Failure-ledger digest
+  `sha256:20dab1bcdd87463601a7f84425a032fb026f70ea4737dc3cb2e8c7e3e7449143`
+  records two attempts, three response cases, zero admitted or verified cases, zero
+  metric-eligible opportunities, zero scientific labels, and zero detector outcomes. The v2
+  responses are not repaired or counted; all Gate 3 checkboxes remain open.
 
 ## Evidence log
 
@@ -612,4 +619,5 @@ perform unrelated capability expansion before the complete first pilot is retain
 | 2026-08-04 | Executed and retained all three frozen Claude app calibrations once, then aggregated them with the three retained Codex passes. | App ledger digest `sha256:bf6f76588f197817f8fd3df184efacb36cca8ded4eaf7f8ba6d22fb3d60bbe29`; aggregate digest `sha256:3c64169c830ff1e963f81fe0e774e367021e3ad4f77892641002e4ff7f13e030`; 6/6 active passes; all 18 historical attempts and 12 failures retained; capture-only amendment digest `sha256:bc50aaf34a1cb6508329138156f49efdc4bed2ffc4ba1d4fbe4f12941e573189`. | Reviewer calibration prerequisite completed; no scientific-case, qualification, promotion, product, or score checkbox changed. |
 | 2026-08-04 | Reduced only the active first-envelope pilot to the error/corrected/valid-alternative causal triad and froze its exact two-author prompts before exposure. | Scope-amendment digest `sha256:35e1d193113b807257baab48bf2bd2d9b6482ed620bae09a1f36aa5541b91861`; authoring-protocol digest `sha256:51808c104df89a701f1b6dd612894207760c02da7c969dcb68df86ae589593af`; 11 focused tests. | Three-case scope/protocol freeze checked; no workflow, label, detector outcome, qualification, promotion, product, or score change. |
 | 2026-08-04 | Retained the failed first three-case authoring iteration and independently classified all three case trees before review. | Authoring ledger `sha256:b1a0bcdaf9aa9a7fc2970bd94c510ac9b8ac5475e0e90d5ce7d4f39a540a58f6`; selected-result intake ledger `sha256:ee9ee169fe6b6970ea2a85565750f6e99a34273b4d0f3a0f9ab02bb6d34cffeb`; three unsupported, zero verified, zero labels, zero detector outcomes. | No checkbox or score changed; the authoring and qualification gates remain incomplete. |
-| 2026-08-04 | Froze the second three-case authoring iteration and added fail-closed static intake before review. | Restart amendment `sha256:41a274b59e79712216d3b2602758b757ca0c86767837e0e385d7344fd53039bc`; protocol `sha256:a925a0f05b7ab16f61da02c65b2f47506b0dfad14b0f0f3f630aaded29ef49cb`; retained empty-response Codex sandbox launch failure; four focused recorder controls. | No checkbox or score changed; both new external author calls await explicit authorization. |
+| 2026-08-04 | Froze the second three-case authoring iteration and added fail-closed static intake before review. | Restart amendment `sha256:41a274b59e79712216d3b2602758b757ca0c86767837e0e385d7344fd53039bc`; protocol `sha256:a925a0f05b7ab16f61da02c65b2f47506b0dfad14b0f0f3f630aaded29ef49cb`; retained empty-response Codex sandbox launch failure; four focused recorder controls. | No checkbox or score changed; the second-iteration calls were frozen but unexecuted at this commit. |
+| 2026-08-04 | Executed and retained both frozen second-iteration author calls, then rejected the incomplete admission-valid cohort before materialization or review. | Claude capture `sha256:2617a109e25ab871a14ae1236db8220a18a1ad59b512e00318f406b2cc17f973`; Codex capture `sha256:5b9a17b658f2ea7485085bc27b5a48899ecc4ea55c5cff619c5ae8626df55e43`; failure ledger `sha256:20dab1bcdd87463601a7f84425a032fb026f70ea4737dc3cb2e8c7e3e7449143`; three focused retention tests. | No checkbox or score changed; zero cases were admitted, verified, or made metric-eligible. |
