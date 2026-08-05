@@ -241,6 +241,8 @@ def test_failed_claude_configuration_has_one_prospective_fresh_replacement() -> 
     enrollment = _replay(root / "PARTICIPANT_ENROLLMENT.json", "enrollment_digest")
     protocol = _replay(root / "CALIBRATION_PROTOCOL.json", "protocol_digest")
     amendment = _replay(root / "REPLACEMENT_AMENDMENT.json", "amendment_digest")
+    replacement_ledger = _replay(root / "CALIBRATION_LEDGER.json", "ledger_digest")
+    aggregate_ledger = _replay(root / "AGGREGATE_CALIBRATION_LEDGER.json", "ledger_digest")
     participant = enrollment["participants"][0]
     assert participant["participant_id"] == REPLACEMENT_PARTICIPANT_ID
     assert participant["execution_context_id"] == "context:stage1-recovery-claude-03-v1"
@@ -255,3 +257,42 @@ def test_failed_claude_configuration_has_one_prospective_fresh_replacement() -> 
     assert amendment["fresh_participant_identity"] is True
     assert amendment["fresh_execution_context"] is True
     assert amendment["scientific_label_count"] == amendment["detector_outcome_count"] == 0
+
+    assert (
+        replacement_ledger["ledger_digest"]
+        == "sha256:8257ac400f97cee37f236bd840e14442dbecbd43f4b17945d6bf508bf041a254"
+    )
+    assert replacement_ledger["summary"] == {
+        "all_assigned_attempts_retained": True,
+        "all_reviewer_configurations_passed": True,
+        "assigned_reviewer_count": 1,
+        "failed_count": 0,
+        "passed_count": 1,
+        "replacement_count": 0,
+        "retained_attempt_count": 1,
+    }
+    assert [item["participant_id"] for item in replacement_ledger["entries"]] == [
+        REPLACEMENT_PARTICIPANT_ID
+    ]
+    assert replacement_ledger["scientific_label_count"] == 0
+    assert replacement_ledger["detector_outcome_count"] == 0
+
+    assert (
+        aggregate_ledger["ledger_digest"]
+        == "sha256:3ad5715c1ae74d0e6c2e5f54f9507ee51cc77d6934fb0e2014d6aea64f4c2a1b"
+    )
+    assert aggregate_ledger["source_ledger_digests"] == [
+        "sha256:4892d3ee890c19bb98110b8f301bddf225213064ac0acc368c2ae197b67aafc6",
+        replacement_ledger["ledger_digest"],
+    ]
+    assert aggregate_ledger["summary"] == {
+        "active_failed_count": 0,
+        "active_passed_count": 4,
+        "active_reviewer_configuration_count": 4,
+        "all_active_reviewer_configurations_passed": True,
+        "historical_attempt_count": 5,
+        "historical_failed_attempt_count": 1,
+    }
+    assert len(aggregate_ledger["entries"]) == 4
+    assert aggregate_ledger["scientific_label_count"] == 0
+    assert aggregate_ledger["detector_outcome_count"] == 0

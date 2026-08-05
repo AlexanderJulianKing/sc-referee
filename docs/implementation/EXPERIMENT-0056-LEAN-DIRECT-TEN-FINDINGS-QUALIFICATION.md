@@ -1,8 +1,8 @@
 # Experiment 0056: Lean direct ten-Findings qualification
 
 - **Status:** Active first-envelope pilot; three cases admitted; the first complete Stage-1 panel
-  is retained as label-ineligible; one prospective semantic-consistency recovery is frozen before
-  fresh reviewer calibration; Stage-2 not started
+  is retained as label-ineligible; semantic-consistency recovery calibration now has four active
+  passing reviewer configurations; replacement Stage-1 review and Stage-2 have not started
 - **Date:** 2026-08-04
 - **Supersedes:** Experiment 0055 as the delivery-path qualification design
 - **Production impact:** None until an exact detector envelope completes pilot, held-out,
@@ -395,6 +395,17 @@ retains the same six vignettes, expected verdicts, and output fields while addin
 clarification: the falsification attempt belongs inside the required `rationale` string and no
 additional key is permitted. The failed configuration remains retained and is not reused. No
 replacement prompt had been submitted at this freeze.
+
+The replacement Claude calibration was then submitted once in the frozen fresh incognito Opus
+5/Extra context. Its exact response and capture passed the unchanged six-vignette scientific
+expectations and the clarified closed schema. Replacement calibration-ledger digest
+`sha256:8257ac400f97cee37f236bd840e14442dbecbd43f4b17945d6bf508bf041a254`
+records one retained pass and no failure. Active aggregate calibration-ledger digest
+`sha256:3ad5715c1ae74d0e6c2e5f54f9507ee51cc77d6934fb0e2014d6aea64f4c2a1b`
+therefore records four active passing reviewer configurations, five total historical attempts,
+and one retained historical failure. Calibration creates no scientific label, detector outcome,
+qualification decision, promotion, or Finding. The honest production score remains 0/10; a fresh
+replacement Stage-1 protocol must still be frozen and completed before Stage-2 can begin.
 
 ## Stop conditions
 
