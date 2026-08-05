@@ -268,7 +268,22 @@ producer may use only ASCII scalar literals, earlier render names, addition, and
 f-strings; calls, attributes, subscripts, slices, unary operators, conversions, and format
 specifications are forbidden. The controller must run that syntax-generic validator before the
 unchanged static selected-result verifier and must admit the three-case cohort atomically. No v4
-prompt has been externally submitted and no case, label, or detector outcome exists for v4.
+prompt had been externally submitted at that freeze.
+
+Both v4 prompts were subsequently submitted once in their exact frozen contexts. Authoring-ledger
+digest `sha256:6487d1b7cccfb1fdb90fc080b93ea84233b3f81543d17e7ac3a99f30f3270ebc`
+binds exact Claude capture
+`sha256:cb5081820c7700e5bb67af1c5cf280a29f6f775dd24c1629c7183b49a414f50f`
+and exact Codex capture
+`sha256:411c474f2cd0ff2409bc94a73a816ce2e49e613f919457288f31e0702ea51492`.
+All three submitted case trees pass the frozen render grammar and the unchanged model-free static
+selected-result verifier. Their author declarations, exact role files, coordinator contracts,
+independent derivations, and validations are frozen. Every case rederives one selected result, one
+final report writer, and one complete input operand with no alternative producer; project-authored
+code was not executed. The complete cohort is admitted with three metric-eligible pilot
+opportunities and still has zero scientific labels and zero detector outcomes. This completes the
+authoring, declaration-freeze, and independent selected-result rederivation prerequisites only; it
+does not supply a scientific verdict, detector result, qualification decision, or Finding.
 
 ## Stop conditions
 

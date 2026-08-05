@@ -1,0 +1,30 @@
+{
+  "artifact_kind": "direct_qualification_retained_author_case_manifest",
+  "author_configuration_digest": "sha256:b2eafdcc0345391ca88d1b9428a415871926c5b3234735a515740d2573a265e2",
+  "author_declaration_digest": "sha256:0580234244fdd9c9b0ff7627e1e2b36e27ec1d16ada3536d09125d15291dabe1",
+  "author_id": "actor:pilot-author-codex-04",
+  "case_id": "case:b036fd64c647dfd93e35",
+  "files": [
+    {
+      "content_digest": "sha256:9fa63e186cfb7aaf7404a9fd251640fda45e2cc4e3bbab7d58514300f559aa77",
+      "line_count": 4,
+      "path": "inputs/data.csv",
+      "role": "input"
+    },
+    {
+      "content_digest": "sha256:3173b0745f4020e6048c491581cdd43f15a4639f76f90ed3057dda682d1fb647",
+      "line_count": 8,
+      "path": "results/report.md",
+      "role": "report"
+    },
+    {
+      "content_digest": "sha256:58f4e06ce2679ac6dab743a85e0e25eb78f4b7cc922ece77db3712a85e9835f4",
+      "line_count": 20,
+      "path": "workflow/analysis.py",
+      "role": "producer"
+    }
+  ],
+  "manifest_digest": "sha256:b92c58956cb2e29576f0bcd1ae5f5b9c76695612654aca19844114af0b28bcdf",
+  "manifest_version": "1.0.0",
+  "qualification_authority": "none_retained_author_case_only"
+}

@@ -5,8 +5,9 @@
 - **Current production score:** 0 of 10 target envelopes may emit a production Finding
 - **Current qualification score:** 0 of 10 target envelopes independently qualified
 - **Current study state:** the over-scoped selected-result meta-qualification was stopped before
-  case authoring; lean direct detector qualification is active under Experiment 0056, with 0
-  metric-eligible cases authored, the first envelope's repaired v3 detector/binding/comparator/
+  case authoring; lean direct detector qualification is active under Experiment 0056, with 3
+  metric-eligible pilot cases authored, admitted, and independently rederived, the first envelope's
+  repaired v3 detector/binding/comparator/
   evidence tuple frozen, 20 exact participant configurations declared, 14 no-replacement
   assignments frozen, and the seven-case held-out block sealed before labels or outcomes; a
   maintainer-directed pre-exposure amendment reduces the pilot execution set to the error,
@@ -204,10 +205,10 @@ replayable, its held-out seven are sealed, and zero scientific labels or detecto
 
 - [x] Freeze the pre-exposure three-case scope amendment and exact two-author protocol while all
   seven held-out and four excluded pilot briefs remain unopened.
-- [ ] Author and retain the assigned error-bearing, corrected-twin, and valid-alternative pilot
+- [x] Author and retain the assigned error-bearing, corrected-twin, and valid-alternative pilot
   workflows for the current envelope without replacement.
-- [ ] Freeze every selected-result declaration before scientific review.
-- [ ] Independently rederive every selected report, producer, operand path, and alternative producer
+- [x] Freeze every selected-result declaration before scientific review.
+- [x] Independently rederive every selected report, producer, operand path, and alternative producer
   from immutable case bytes.
 - [ ] Complete four answer-blind Stage-1 reviews across two providers per case.
 - [ ] Complete two fresh cross-provider Stage-2 reviews per case using canonical issue-class enums.
@@ -628,7 +629,19 @@ perform unrelated capability expansion before the complete first pilot is retain
   author contexts, preserves the scientific briefs and frozen detector/verifier, and permits only
   literals, earlier render names, `+`, and plain-name f-strings after the exact five-line input
   prefix. Every call, attribute, subscript, slice, and unary expression is prospectively forbidden
-  in that render region. V4 currently has zero calls, admissions, labels, or detector outcomes.
+  in that render region. V4 had zero calls, admissions, labels, or detector outcomes at freeze.
+- Both v4 calls were then submitted once in the frozen fresh contexts. Authoring-ledger digest
+  `sha256:6487d1b7cccfb1fdb90fc080b93ea84233b3f81543d17e7ac3a99f30f3270ebc`
+  binds exact Claude capture
+  `sha256:cb5081820c7700e5bb67af1c5cf280a29f6f775dd24c1629c7183b49a414f50f`
+  and Codex capture
+  `sha256:411c474f2cd0ff2409bc94a73a816ce2e49e613f919457288f31e0702ea51492`.
+  All three cases passed the frozen render grammar and unchanged static verifier, their declarations
+  and complete case trees are retained, and every selected report, result line, final producer,
+  input operand, and empty alternative-producer set replays from immutable bytes. The cohort has
+  three metric-eligible pilot opportunities, zero scientific labels, and zero detector outcomes.
+  This closes only the first three Gate 3 authoring/evidence items; it does not qualify the envelope
+  or create a Finding.
 
 ## Evidence log
 
@@ -652,3 +665,4 @@ perform unrelated capability expansion before the complete first pilot is retain
 | 2026-08-04 | Froze a third authoring iteration that removes only generic transport, file-role, and writer-span ambiguity before any new inference. | Source commit `5361c03dd4d482d7cbe4acc80b730d475ad4e0aa`; restart amendment `sha256:fc4683fe691926f82d8cf9979f0a9089ce7525d34cfcd03db34600ca3161614e`; protocol `sha256:0f70e92a2a87b4c3225734fe871ac31ec2535ac02390efb1743e78c3e78e385a`; nine focused v3 controls. | No checkbox or score changed; v3 has zero calls, cases, labels, or outcomes. |
 | 2026-08-04 | Executed and retained both frozen third-iteration calls, then rejected the incomplete causal triad atomically after static intake. | Claude capture `sha256:bdb26aa3972225769950c3594578a2b2bdbe424e8529d5f5aa3905c3b838b42e`; Codex capture `sha256:5009fbb5597a72e664fd2956c8dc96afc98fcfaa78f9c1a4207f95d2a8028dbb`; failure ledger `sha256:622610d8632696edb70a9b112f20877601fcd45d44b73b753a77e1b75863c136`; five focused retention/admission controls. | No checkbox or score changed; two bindings verified, one case was unsupported, and zero cases were admitted or metric-eligible. |
 | 2026-08-04 | Froze a fourth authoring iteration against a small generic render-only AST grammar before any inference. | Grammar source commit `938d85804035a4654ee8397b01c9e210bbbda2d7`; restart amendment `sha256:fd92ebaad0655d55efa29600f12a9db583486bef7c99f306b66e7596bb44272e`; protocol `sha256:2a853080b2e2faace3f6bfdfe440843e1023c199f02b3cee27d32ee70eaf307f`; 13 focused grammar/freeze controls. | No checkbox or score changed; v4 has zero calls, cases, labels, or outcomes. |
+| 2026-08-04 | Executed both frozen v4 calls once and atomically admitted the complete verifier-valid three-case cohort. | Authoring ledger `sha256:6487d1b7cccfb1fdb90fc080b93ea84233b3f81543d17e7ac3a99f30f3270ebc`; exact capture digests `sha256:cb5081820c7700e5bb67af1c5cf280a29f6f775dd24c1629c7183b49a414f50f` and `sha256:411c474f2cd0ff2409bc94a73a816ce2e49e613f919457288f31e0702ea51492`; 24 focused grammar/freeze/intake/replay controls. | Gate 3 authoring, declaration-freeze, and independent selected-result rederivation items checked; scientific review, detector evaluation, qualification, promotion, product, and scores remain incomplete. |

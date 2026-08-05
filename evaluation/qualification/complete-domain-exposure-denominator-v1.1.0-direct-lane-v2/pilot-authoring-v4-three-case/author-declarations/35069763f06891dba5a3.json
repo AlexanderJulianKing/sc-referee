@@ -1,0 +1,58 @@
+{
+  "artifact_kind": "prospective_author_selected_result_declaration",
+  "authored_at": "2026-08-05T05:43:32.791000Z",
+  "authorship": {
+    "author_id": "actor:pilot-author-claude-04",
+    "execution_context_id": "context:pilot-author-claude-04-app-v4",
+    "identity_evidence_digest": "sha256:6408c9e39f80384209b782afbe9b7f791b3a60c2eec95bdb4e6362dfa7b25165",
+    "provider": "Anthropic"
+  },
+  "candidate_result_locators": [],
+  "case_id": "case:35069763f06891dba5a3",
+  "declaration_digest": "sha256:9bce1fd88f244713f6eb0593c44605a501a2718c902f64c681c1b10df857a47d",
+  "declaration_state": "one_selected_result",
+  "declaration_version": "3.0.0",
+  "frozen_at": "2026-08-05T05:44:15Z",
+  "qualification_authority": "none_author_declaration_only",
+  "selected_result_binding": {
+    "alternative_producer_locators": [],
+    "binding_profile": "exact_selected_report_result_static_producer_v1",
+    "declared_dynamic_selection": false,
+    "producer_locator": {
+      "content_digest": "sha256:1ff80e95dcdd7321a4261aca65c201d9ee782dda7090177273c5270d2856b792",
+      "end_line": 27,
+      "path": "workflow/analysis.py",
+      "start_line": 27
+    },
+    "report_locator": {
+      "content_digest": "sha256:fdf746fa07882b54fb97af59f39ef4bcf77889e65fa9458b06849926877f63cf",
+      "end_line": 18,
+      "path": "results/report.md",
+      "start_line": 1
+    },
+    "result_locator": {
+      "content_digest": "sha256:fdf746fa07882b54fb97af59f39ef4bcf77889e65fa9458b06849926877f63cf",
+      "end_line": 15,
+      "path": "results/report.md",
+      "start_line": 15
+    },
+    "selection_status": "one_selected_result",
+    "source_operands": [
+      {
+        "operand_id": "operand:66d31418ecc382250965",
+        "record_ref": {
+          "record_id": "file:66d31418ecc382250965",
+          "record_type": "file_record"
+        },
+        "source_locator": {
+          "content_digest": "sha256:677e37c8872b200740f68242d8c14d8b73bed0a5580c7d6db088f4b4abf944ce",
+          "end_line": 97,
+          "path": "inputs/data.csv",
+          "start_line": 1
+        }
+      }
+    ]
+  },
+  "selected_result_binding_digest": "sha256:7384b7149519b044514ef16548312343c36825fa0d1d07d8260880b042c2fd96",
+  "unsupported_producer_locators": []
+}
