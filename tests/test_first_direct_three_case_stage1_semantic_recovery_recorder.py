@@ -35,7 +35,12 @@ def _load(path: Path) -> dict[str, Any]:
 def _copy_protocol_project(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
     source_root = PROJECT_ROOT / REVIEW_RELATIVE
     target_root = tmp_path / REVIEW_RELATIVE
-    shutil.copytree(source_root, target_root)
+    target_root.mkdir(parents=True)
+    shutil.copy2(
+        source_root / "STAGE1_REVIEW_PROTOCOL.json",
+        target_root / "STAGE1_REVIEW_PROTOCOL.json",
+    )
+    shutil.copytree(source_root / "stage1-packets", target_root / "stage1-packets")
     protocol = _load(target_root / "STAGE1_REVIEW_PROTOCOL.json")
     for binding in protocol["source_case_bindings"]:
         relative = Path(str(binding["source_workspace_relative_path"]))
