@@ -290,13 +290,9 @@ maintainer decision; there is no family-wide or portfolio-wide implied authority
 
 ## Immediate next unchecked item
 
-Execute the frozen three-chat Claude desktop-app calibration protocol at digest
-`sha256:9427d044c529ffbf0c3ef07ae034550e3cfe841d105ddc9d61dfb2d4eeda2af4`.
-Use one incognito Home Chat per assignment with the displayed Opus 5 / Extra configuration, no
-files, projects, memory, connectors, tools, external information, repair turn, retry, or
-replacement. Retain the exact visible responses and UI/session evidence. Aggregate the six active
-reviewer configurations only if every app response passes the unchanged frozen rubric. Then freeze
-a minimal pilot-authoring protocol and expose only the seven pilot author-visible brief
+Freeze a minimal pilot-authoring protocol bound to active reviewer-calibration ledger digest
+`sha256:3c64169c830ff1e963f81fe0e774e367021e3ad4f77892641002e4ff7f13e030`,
+then expose only the seven pilot author-visible brief
 projections to their six frozen author contexts; do not expose the held-out block or controller
 metadata. Author all seven pilot workflows without replacement and freeze each truthful author-only
 selected-result declaration before any scientific review. Preserve the stopped Experiment 0055
@@ -544,9 +540,20 @@ perform unrelated capability expansion before the complete first pilot is retain
   It assigns three fresh incognito Home Chat contexts, pins Claude App 1.25927.0, Opus 5 / Extra,
   the unchanged six-vignette rubric, exact prompt and schema digests, no memory/project/tool/file/
   connector access, one attempt per assignment, and the three retained Codex passes.
-- Computer Use verified that the authenticated app exposes incognito Home Chat and the exact Opus
-  5 / Extra selection. No calibration prompt has yet been submitted. These artifacts grant no
-  scientific-label, qualification, promotion, or Finding authority; all scores remain 0/10.
+- Computer Use submitted all three frozen prompts once in distinct fresh incognito chats and
+  retained all three exact visible responses. Each response matched the six expected verdicts,
+  used only stated evidence, and invented no material premise. The app ledger digest is
+  `sha256:bf6f76588f197817f8fd3df184efacb36cca8ded4eaf7f8ba6d22fb3d60bbe29`;
+  the active six-reviewer aggregate ledger digest is
+  `sha256:3c64169c830ff1e963f81fe0e774e367021e3ad4f77892641002e4ff7f13e030`
+  and records 6/6 active passes while retaining all 18 historical attempts and 12 failures.
+- Claude incognito Home Chat exposes the same honest route, `claude.ai/new?incognito=`, for each
+  fresh chat and no distinct conversation identifier. Capture-transport amendment digest
+  `sha256:bc50aaf34a1cb6508329138156f49efdc4bed2ffc4ba1d4fbe4f12941e573189`
+  therefore removes only the impossible unique-visible-URL check and forbids invented URLs; it
+  changes no prompt, schema, rubric, threshold, or scientific verdict. These calibration artifacts
+  grant no scientific-label, qualification, promotion, or Finding authority; all scores remain
+  0/10.
 
 ## Evidence log
 
@@ -562,3 +569,4 @@ perform unrelated capability expansion before the complete first pilot is retain
 | 2026-08-04 | Retained three exact Codex calibration passes and three Claude pre-inference schema-transport failures from protocol v2. | Protocol-v2 ledger digest `sha256:253b3fa6283c91e66442a3c9fe42f9f100754bd9aeb4e88e53564c96288e2bf3`; exact response and transcript captures for all six assignments. | Three of six reviewer configurations have passing calibration evidence; the aggregate authentication item and all scores remain incomplete. |
 | 2026-08-04 | Retained three Claude Code authentication failures from protocol v3 and selected an explicit pre-case desktop-app amendment rather than treating them as calibration misses or retries. | Protocol digest `sha256:dc359b6884308ecc02b391d499f22c784bed5e71f258c8420eab95dae8dc4cc7`; v3 ledger digest `sha256:375265c9dc05186c74c58c4658c20a2877011db476bcebc0a7281658a54f2893`; aggregate digest `sha256:3da48f5fead855cd4685448f2f550b71b77ec1e366737381429c3874e00b9fa5`. | No checkbox or score changed; three active reviewer configurations remain uncalibrated. |
 | 2026-08-04 | Froze the versioned Claude desktop-app adjudication amendment and exact app calibration protocol before prompt submission. | Commit `fc9145a`; amendment digest `sha256:e3f8f012e02e29112e83e83cdfb4b4e3b2ad82eaed4d5058cc3a9bd4f221395e`; replacement enrollment digest `sha256:95ef5badd874db346279de725a35679da80d00bf8d40c323041b414ce750a5bc`; protocol digest `sha256:9427d044c529ffbf0c3ef07ae034550e3cfe841d105ddc9d61dfb2d4eeda2af4`; five focused tests. | No checkbox or score changed; the three app calibrations remain unexecuted. |
+| 2026-08-04 | Executed and retained all three frozen Claude app calibrations once, then aggregated them with the three retained Codex passes. | App ledger digest `sha256:bf6f76588f197817f8fd3df184efacb36cca8ded4eaf7f8ba6d22fb3d60bbe29`; aggregate digest `sha256:3c64169c830ff1e963f81fe0e774e367021e3ad4f77892641002e4ff7f13e030`; 6/6 active passes; all 18 historical attempts and 12 failures retained; capture-only amendment digest `sha256:bc50aaf34a1cb6508329138156f49efdc4bed2ffc4ba1d4fbe4f12941e573189`. | Reviewer calibration prerequisite completed; no scientific-case, qualification, promotion, product, or score checkbox changed. |

@@ -1,0 +1,120 @@
+{
+  "artifact_kind": "direct_qualification_app_reviewer_calibration_ledger",
+  "capture_transport_amendment_digest": "sha256:bc50aaf34a1cb6508329138156f49efdc4bed2ffc4ba1d4fbe4f12941e573189",
+  "entries": [
+    {
+      "agent_surface": "Claude Desktop App chat",
+      "agent_version": "1.25927.0",
+      "calibration_evaluation": {
+        "calibration_case_set_complete": true,
+        "exact_expected_verdict_count": 6,
+        "invented_material_premise_count": 0,
+        "pass": true,
+        "reason_codes": [],
+        "structured_output_schema_valid": true
+      },
+      "calibration_status": "passed",
+      "call_identity_id": "602ff8f4-7b2d-5070-b3ea-e1fbfa47aed9",
+      "capture_evaluation": {
+        "parse_error": null,
+        "pass": true,
+        "reason_codes": []
+      },
+      "completed_at": "2026-08-05T00:58:06.680Z",
+      "configuration_digest": "sha256:b688ae6635ca5a9f2f8a0e4c4492f799d37d0278baaa94cd60013d2fb410e986",
+      "conversation_url": "claude.ai/new?incognito=",
+      "execution_context_id": "context:stage1-claude-01-app-v4",
+      "input_capture_digest": "sha256:21e89113d1ab2c2425070a83cfa6a3fd24316b91d87637cd9c7d9d18d49d0bb7",
+      "model_id": "claude-opus-5",
+      "participant_id": "actor:stage1-claude-01",
+      "provider": "Anthropic",
+      "provider_app_authenticated_success": true,
+      "reasoning_configuration": "extra",
+      "response_digest": "sha256:87d4df7c1cb2799f78ca7ec42d6947a8b7fbf602851b47d06582a6acbef29006",
+      "role": "stage1_reviewer",
+      "started_at": "2026-08-05T00:54:05.020Z",
+      "transcript_digest": "sha256:5cf6785e119d0eb1af1d28df9b6786ec017f332d7fe5a1dac68e1a785c27c8af"
+    },
+    {
+      "agent_surface": "Claude Desktop App chat",
+      "agent_version": "1.25927.0",
+      "calibration_evaluation": {
+        "calibration_case_set_complete": true,
+        "exact_expected_verdict_count": 6,
+        "invented_material_premise_count": 0,
+        "pass": true,
+        "reason_codes": [],
+        "structured_output_schema_valid": true
+      },
+      "calibration_status": "passed",
+      "call_identity_id": "6089d22c-05fb-586c-a902-3efcf3750540",
+      "capture_evaluation": {
+        "parse_error": null,
+        "pass": true,
+        "reason_codes": []
+      },
+      "completed_at": "2026-08-05T01:01:40.240Z",
+      "configuration_digest": "sha256:a4551a8bc9e17e3248103ebd16e34ad5e6d96064e27181da632f00a1f051fb66",
+      "conversation_url": "claude.ai/new?incognito=",
+      "execution_context_id": "context:stage1-claude-02-app-v4",
+      "input_capture_digest": "sha256:a946c917807461d7bcb994d557fc27049f09820fb523da757f7260019e642bba",
+      "model_id": "claude-opus-5",
+      "participant_id": "actor:stage1-claude-02",
+      "provider": "Anthropic",
+      "provider_app_authenticated_success": true,
+      "reasoning_configuration": "extra",
+      "response_digest": "sha256:324f6fde8c3aa9876dca2724689ea8addb9fc92769834b98383b0af0d94b63d6",
+      "role": "stage1_reviewer",
+      "started_at": "2026-08-05T00:59:55.039Z",
+      "transcript_digest": "sha256:9606d5cdda259132deb8539189a80bd2d994b90a4c448a111e124dadac66bf5e"
+    },
+    {
+      "agent_surface": "Claude Desktop App chat",
+      "agent_version": "1.25927.0",
+      "calibration_evaluation": {
+        "calibration_case_set_complete": true,
+        "exact_expected_verdict_count": 6,
+        "invented_material_premise_count": 0,
+        "pass": true,
+        "reason_codes": [],
+        "structured_output_schema_valid": true
+      },
+      "calibration_status": "passed",
+      "call_identity_id": "74530857-2b02-59cd-9df2-c7103bbf3291",
+      "capture_evaluation": {
+        "parse_error": null,
+        "pass": true,
+        "reason_codes": []
+      },
+      "completed_at": "2026-08-05T01:05:43.644Z",
+      "configuration_digest": "sha256:d536bf88ce4d5a287d4c57b6feda7bb3e4b3ef64d90e635e620abfeb5052932b",
+      "conversation_url": "claude.ai/new?incognito=",
+      "execution_context_id": "context:stage2-claude-01-app-v4",
+      "input_capture_digest": "sha256:453d984822cdd7749e589bd3fb4a84920a02a2c990e03a4909ea1914f00c6a62",
+      "model_id": "claude-opus-5",
+      "participant_id": "actor:stage2-claude-01",
+      "provider": "Anthropic",
+      "provider_app_authenticated_success": true,
+      "reasoning_configuration": "extra",
+      "response_digest": "sha256:ba3b6233bf0a6936902d19fb00f70b52a4f954c702d02c6a4bf331164685484c",
+      "role": "stage2_reviewer",
+      "started_at": "2026-08-05T01:02:31.972Z",
+      "transcript_digest": "sha256:d1677e9ec1ccdd1d36e46ed496a4f61167d7325420ce9eb0485c6cad0a3ba6cb"
+    }
+  ],
+  "ledger_digest": "sha256:bf6f76588f197817f8fd3df184efacb36cca8ded4eaf7f8ba6d22fb3d60bbe29",
+  "ledger_version": "1.0.0",
+  "protocol_digest": "sha256:9427d044c529ffbf0c3ef07ae034550e3cfe841d105ddc9d61dfb2d4eeda2af4",
+  "qualification_authority": "none_reviewer_calibration_only",
+  "replacement_enrollment_digest": "sha256:95ef5badd874db346279de725a35679da80d00bf8d40c323041b414ce750a5bc",
+  "sealed_at": "2026-08-05T01:05:43.644Z",
+  "summary": {
+    "all_app_reviewer_configurations_passed": true,
+    "all_assigned_attempts_retained": true,
+    "assigned_reviewer_count": 3,
+    "failed_count": 0,
+    "passed_count": 3,
+    "replacement_count": 0,
+    "retained_attempt_count": 3
+  }
+}

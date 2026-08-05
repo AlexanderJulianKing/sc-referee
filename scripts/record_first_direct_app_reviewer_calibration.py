@@ -34,6 +34,9 @@ EXPECTED_UI_EVIDENCE = {
     "capture_method": "Codex Computer Use accessibility state",
 }
 
+EXPECTED_INCOGNITO_CONVERSATION_ROUTE = "claude.ai/new?incognito="
+CAPTURE_TRANSPORT_AMENDMENT_FILENAME = "CAPTURE_TRANSPORT_AMENDMENT.json"
+
 
 def _load(path: Path) -> dict[str, Any]:
     return cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
@@ -76,7 +79,7 @@ def validate_app_capture_input(
     if capture.get("call_identity_id") != assignment["call_identity_id"]:
         reasons.append("call_identity_id_mismatch")
     conversation_url = capture.get("conversation_url")
-    if not isinstance(conversation_url, str) or not conversation_url.startswith("claude.ai/"):
+    if conversation_url != EXPECTED_INCOGNITO_CONVERSATION_ROUTE:
         reasons.append("conversation_url_invalid")
     if capture.get("ui_evidence") != EXPECTED_UI_EVIDENCE:
         reasons.append("ui_evidence_mismatch")
@@ -129,6 +132,18 @@ def record_first_direct_app_reviewer_calibration(project_root: Path) -> dict[str
         or protocol["qualification_authority"] != "none_reviewer_calibration_only"
     ):
         raise ValueError("Unsupported app calibration protocol.")
+    transport_amendment = _load(root / CAPTURE_TRANSPORT_AMENDMENT_FILENAME)
+    transport_amendment_digest = transport_amendment.pop("amendment_digest", None)
+    if transport_amendment_digest != semantic_digest(transport_amendment):
+        raise ValueError("The capture transport amendment does not replay.")
+    transport_amendment["amendment_digest"] = transport_amendment_digest
+    if (
+        transport_amendment["calibration_protocol_digest"] != protocol_digest
+        or transport_amendment["observed_incognito_route"] != EXPECTED_INCOGNITO_CONVERSATION_ROUTE
+        or transport_amendment["scientific_rubric_changed"] is not False
+        or transport_amendment["qualification_authority"] != "none_capture_transport_amendment_only"
+    ):
+        raise ValueError("The capture transport amendment binding has drifted.")
     enrollment = _load(root / "PARTICIPANT_ENROLLMENT.json")
     enrollment_digest = enrollment.pop("enrollment_digest", None)
     if enrollment_digest != semantic_digest(enrollment):
@@ -208,14 +223,15 @@ def record_first_direct_app_reviewer_calibration(project_root: Path) -> dict[str
                 "completed_at": capture.get("completed_at"),
             }
         )
-    urls = [str(item["conversation_url"]) for item in entries]
-    if len(urls) != len(set(urls)):
-        raise ValueError("App calibration conversations are not distinct.")
+    call_identity_ids = [str(item["call_identity_id"]) for item in entries]
+    if len(call_identity_ids) != len(set(call_identity_ids)):
+        raise ValueError("App calibration call identities are not distinct.")
 
     ledger: dict[str, Any] = {
         "artifact_kind": "direct_qualification_app_reviewer_calibration_ledger",
         "ledger_version": "1.0.0",
         "protocol_digest": protocol_digest,
+        "capture_transport_amendment_digest": transport_amendment_digest,
         "replacement_enrollment_digest": enrollment_digest,
         "entries": entries,
         "summary": {
@@ -286,6 +302,7 @@ def record_first_direct_app_reviewer_calibration(project_root: Path) -> dict[str
         "artifact_kind": "direct_qualification_active_reviewer_calibration_ledger",
         "ledger_version": "1.0.0",
         "protocol_digest": protocol_digest,
+        "capture_transport_amendment_digest": transport_amendment_digest,
         "replacement_enrollment_digest": enrollment_digest,
         "source_ledger_digests": [
             V1_LEDGER_DIGEST,

@@ -164,9 +164,17 @@ Extra, incognito Home Chat contexts. Replacement enrollment digest
 `sha256:95ef5badd874db346279de725a35679da80d00bf8d40c323041b414ce750a5bc`
 and calibration protocol digest
 `sha256:9427d044c529ffbf0c3ef07ae034550e3cfe841d105ddc9d61dfb2d4eeda2af4`
-were frozen before prompt submission. The amended configurations must pass the unchanged
-calibration suite before any author brief is opened. These freezes and calibration records create
-no scientific label, metric, qualification, promotion, or Finding authority.
+were frozen before prompt submission. All three amended configurations then passed the unchanged
+six-vignette suite in one retained app attempt each. App ledger digest
+`sha256:bf6f76588f197817f8fd3df184efacb36cca8ded4eaf7f8ba6d22fb3d60bbe29`
+and active aggregate digest
+`sha256:3c64169c830ff1e963f81fe0e774e367021e3ad4f77892641002e4ff7f13e030`
+record 6/6 active passes while preserving all 18 historical attempts and 12 failures. Capture-only
+amendment digest
+`sha256:bc50aaf34a1cb6508329138156f49efdc4bed2ffc4ba1d4fbe4f12941e573189`
+records that fresh Claude incognito chats expose one shared nonpersistent route rather than unique
+visible conversation URLs; it changes no scientific rubric or verdict. These calibration records
+create no scientific label, metric, qualification, promotion, or Finding authority.
 
 ## Stop conditions
 

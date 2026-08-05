@@ -1,0 +1,24 @@
+{
+  "affected_participant_ids": [
+    "actor:stage1-claude-01",
+    "actor:stage1-claude-02",
+    "actor:stage2-claude-01"
+  ],
+  "amendment_digest": "sha256:bc50aaf34a1cb6508329138156f49efdc4bed2ffc4ba1d4fbe4f12941e573189",
+  "amendment_version": "1.0.0",
+  "artifact_kind": "direct_qualification_app_capture_transport_amendment",
+  "calibration_protocol_digest": "sha256:9427d044c529ffbf0c3ef07ae034550e3cfe841d105ddc9d61dfb2d4eeda2af4",
+  "discovered_before_deterministic_validation": true,
+  "observed_incognito_route": "claude.ai/new?incognito=",
+  "prompt_or_output_schema_changed": false,
+  "qualification_authority": "none_capture_transport_amendment_only",
+  "reason": "Claude Desktop incognito Home Chat intentionally exposes the same nonpersistent route for every fresh chat and exposes no distinct conversation identifier. Requiring invented distinct URLs would falsify capture evidence.",
+  "replacement_capture_rule": {
+    "conversation_route_must_equal_observed_incognito_route": true,
+    "distinct_frozen_call_identity_ids_required": true,
+    "fresh_incognito_chat_procedure_remains_required": true,
+    "unique_visible_conversation_urls_required": false
+  },
+  "scientific_rubric_changed": false,
+  "scope": "capture_transport_only"
+}

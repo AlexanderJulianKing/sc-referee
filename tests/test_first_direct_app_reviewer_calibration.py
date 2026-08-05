@@ -18,6 +18,7 @@ from scripts.build_first_direct_reviewer_calibration_protocol import (
     load_effective_execution_configuration,
 )
 from scripts.record_first_direct_app_reviewer_calibration import (
+    EXPECTED_INCOGNITO_CONVERSATION_ROUTE,
     EXPECTED_UI_EVIDENCE,
     parse_app_calibration_response,
     validate_app_capture_input,
@@ -177,7 +178,7 @@ def test_app_capture_requires_exact_unfenced_json_and_ui_evidence(project_root: 
     capture = {
         "participant_id": assignment["participant_id"],
         "call_identity_id": assignment["call_identity_id"],
-        "conversation_url": "claude.ai/chat/opaque-app-calibration-context",
+        "conversation_url": EXPECTED_INCOGNITO_CONVERSATION_ROUTE,
         "started_at": "2026-08-05T00:27:00Z",
         "completed_at": "2026-08-05T00:28:00Z",
         "raw_response": raw_response,
@@ -187,6 +188,12 @@ def test_app_capture_requires_exact_unfenced_json_and_ui_evidence(project_root: 
     evaluated = validate_app_capture_input(capture, assignment, expected)
     assert evaluated["pass"] is True
     assert evaluated["reason_codes"] == []
+
+    invented_unique_url = dict(capture)
+    invented_unique_url["conversation_url"] = "claude.ai/chat/opaque-app-calibration-context"
+    evaluated = validate_app_capture_input(invented_unique_url, assignment, expected)
+    assert evaluated["pass"] is False
+    assert "conversation_url_invalid" in evaluated["reason_codes"]
 
     fenced = dict(capture)
     fenced["raw_response"] = f"```json\n{raw_response}\n```"
@@ -199,3 +206,46 @@ def test_app_capture_requires_exact_unfenced_json_and_ui_evidence(project_root: 
     evaluated = validate_app_capture_input(wrong_ui, assignment, expected)
     assert evaluated["pass"] is False
     assert "ui_evidence_mismatch" in evaluated["reason_codes"]
+
+
+def test_retained_app_calibration_and_active_panel_replay(project_root: Path) -> None:
+    root = project_root / APP_CALIBRATION_RELATIVE
+    transport = _load(root / "CAPTURE_TRANSPORT_AMENDMENT.json")
+    transport_digest = transport.pop("amendment_digest")
+    assert transport_digest == semantic_digest(transport)
+    assert transport_digest == (
+        "sha256:bc50aaf34a1cb6508329138156f49efdc4bed2ffc4ba1d4fbe4f12941e573189"
+    )
+    assert transport["scientific_rubric_changed"] is False
+
+    app_ledger = _load(root / "CALIBRATION_LEDGER.json")
+    app_digest = app_ledger.pop("ledger_digest")
+    assert app_digest == semantic_digest(app_ledger)
+    assert app_digest == ("sha256:bf6f76588f197817f8fd3df184efacb36cca8ded4eaf7f8ba6d22fb3d60bbe29")
+    assert app_ledger["capture_transport_amendment_digest"] == transport_digest
+    assert app_ledger["summary"] == {
+        "all_app_reviewer_configurations_passed": True,
+        "all_assigned_attempts_retained": True,
+        "assigned_reviewer_count": 3,
+        "failed_count": 0,
+        "passed_count": 3,
+        "replacement_count": 0,
+        "retained_attempt_count": 3,
+    }
+    assert {entry["conversation_url"] for entry in app_ledger["entries"]} == {
+        EXPECTED_INCOGNITO_CONVERSATION_ROUTE
+    }
+    assert all(entry["calibration_status"] == "passed" for entry in app_ledger["entries"])
+
+    aggregate = _load(root / "AGGREGATE_CALIBRATION_LEDGER.json")
+    aggregate_digest = aggregate.pop("ledger_digest")
+    assert aggregate_digest == semantic_digest(aggregate)
+    assert aggregate_digest == (
+        "sha256:3c64169c830ff1e963f81fe0e774e367021e3ad4f77892641002e4ff7f13e030"
+    )
+    assert aggregate["capture_transport_amendment_digest"] == transport_digest
+    assert aggregate["summary"]["active_configuration_evidence_count"] == 6
+    assert aggregate["summary"]["active_passed_count"] == 6
+    assert aggregate["summary"]["active_failed_count"] == 0
+    assert aggregate["summary"]["historical_attempt_count_across_protocols"] == 18
+    assert aggregate["summary"]["historical_failed_attempt_count"] == 12
