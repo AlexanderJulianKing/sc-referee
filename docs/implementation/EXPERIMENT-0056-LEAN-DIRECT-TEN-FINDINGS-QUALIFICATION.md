@@ -238,8 +238,22 @@ identical in meaning. The only new constraints are exact `inputs/`, `workflow/`,
 paths, physical ASCII lines without terminators, an escape-free producer that obtains LF from its
 input through the existing supported indexing grammar, and a declaration span bound to the exact
 final report writer. A canonical preflight reaches `verified_complete` under the unchanged static
-verifier. No v3 prompt has been externally submitted, and no case, label, or detector outcome
-exists for this iteration.
+verifier.
+
+Both frozen v3 prompts were then submitted once and their exact responses retained. Every response
+passed the frozen transport, exact role-path, declaration, and final-writer checks. Temporary
+model-free intake rederived both Claude selected-result bindings exactly. The Codex response used
+negative list indices on producer lines 6--8; Python represents those indices as unary expressions,
+which the frozen static evaluator cannot evaluate. Because the v3 prompt permitted indexing without
+excluding this form, this is an author-protocol/verifier grammar mismatch rather than a scientific
+failure or author violation. The atomic cohort recorder admitted nothing. Failure-ledger digest
+`sha256:622610d8632696edb70a9b112f20877601fcd45d44b73b753a77e1b75863c136`
+binds both exact captures and records two verified bindings, one unsupported case, zero admissions,
+zero metric-eligible cases, zero scientific labels, and zero detector outcomes. V3 is retained
+unchanged and supplies no pilot evidence. A fourth iteration must be frozen before inference, use
+fresh opaque identities and contexts, preserve the scientific briefs and detector/verifier, and
+remove the ambiguity by allowing only the verifier's small render-only expression grammar after
+the exact five-line input-binding prefix.
 
 ## Stop conditions
 

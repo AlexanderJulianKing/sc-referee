@@ -206,14 +206,19 @@ def record_first_direct_three_case_pilot_authors_v3(
         cases = validate_v3_author_attempt(attempt, assignment)
         for case in cases:
             case_id = str(case["case_id"])
-            static_by_case[case_id] = _validate_static_case(
-                case,
-                participant=participant,
-                authored_at=str(attempt["completed_at"]),
-                schedule=schedule,
-                validator_identity=validator_identity,
-                envelope=envelope,
-            )
+            try:
+                static_by_case[case_id] = _validate_static_case(
+                    case,
+                    participant=participant,
+                    authored_at=str(attempt["completed_at"]),
+                    schedule=schedule,
+                    validator_identity=validator_identity,
+                    envelope=envelope,
+                )
+            except PilotAuthorRecordError as error:
+                raise PilotAuthorRecordError(
+                    f"V3 author case {case_id} failed frozen static intake: {error}"
+                ) from error
             all_cases.append(case)
         response = parse_author_response(str(attempt["raw_response"]))
         retained.append(

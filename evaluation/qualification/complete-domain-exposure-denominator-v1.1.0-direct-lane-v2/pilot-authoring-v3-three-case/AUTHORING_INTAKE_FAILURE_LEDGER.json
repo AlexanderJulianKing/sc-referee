@@ -1,0 +1,134 @@
+{
+  "active_enrollment_digest": "sha256:95ef5badd874db346279de725a35679da80d00bf8d40c323041b414ce750a5bc",
+  "artifact_kind": "direct_qualification_three_case_authoring_intake_failure_ledger",
+  "authoring_restart_amendment_digest": "sha256:fc4683fe691926f82d8cf9979f0a9089ce7525d34cfcd03db34600ca3161614e",
+  "cohort_reason_codes": [
+    "incomplete_admission_valid_causal_triad"
+  ],
+  "cohort_status": "rejected_before_authoring_admission",
+  "completed_at": "2026-08-05T05:18:00Z",
+  "entries": [
+    {
+      "admission_status": "not_admitted_incomplete_cohort",
+      "admitted": false,
+      "author_declaration_digest": "sha256:f8a46020db1fd91d2239c48930836693e0167c71855aabf827b7fd368d20fb88",
+      "case_contract_digest": "sha256:fdf73ce00714e4701c1d0cd269a697f9f1781d1c0ebd3561c6de56e285acb444",
+      "case_id": "case:1ec0cfee571e2bec59bb",
+      "case_manifest_digest": "sha256:37498054d167b438d03c817ca452371832c76cb38326e1db61ec4f01d088f0d6",
+      "declaration_status": "valid_one_selected_result_declaration",
+      "derivation_digest": "sha256:86f5ec5eeff20125331961802564a3336be6ac0fd7b9a1411137c768dc3678d8",
+      "derivation_reason_codes": [
+        "one_selected_result_binding_rederived"
+      ],
+      "derivation_status": "one_selected_result_rederived",
+      "metric_eligible": false,
+      "negative_subscript_lines": [],
+      "participant_id": "actor:pilot-author-claude-03",
+      "provider": "Anthropic",
+      "role_path_status": "valid_exact_role_paths",
+      "transport_status": "valid_physical_line_transport",
+      "validation_digest": "sha256:00019206dcb2750bc49a2e16cc67a352bf3815f436044fe25410a50b562a7a03",
+      "validation_reason_codes": [
+        "exact_independent_binding_match"
+      ],
+      "validation_status": "verified_complete"
+    },
+    {
+      "admission_status": "rejected_static_intake",
+      "admitted": false,
+      "author_declaration_digest": "sha256:996357362d7bf09717277e805b47882d924845b81266573abd19c0cc4689a26d",
+      "case_contract_digest": "sha256:5f9577eceb332a9f19c23243e5f21bcb86c1511264ba2ea31afdb98ee6c8effe",
+      "case_id": "case:7e2d0d333ffa5e630352",
+      "case_manifest_digest": "sha256:85ce87c20d67392424779a685d35a9f44f0520ebdfe3d4c83e573073bdeec475",
+      "declaration_status": "valid_one_selected_result_declaration",
+      "derivation_digest": "sha256:cf998ffaee8a6c6923d9ebfe4d2877eca9b48f07e5312ae07844a1bb5030c7dd",
+      "derivation_reason_codes": [
+        "unsupported_selected_report_expression"
+      ],
+      "derivation_status": "unsupported_structure",
+      "metric_eligible": false,
+      "negative_subscript_lines": [
+        6,
+        7,
+        8
+      ],
+      "participant_id": "actor:pilot-author-codex-03",
+      "provider": "OpenAI",
+      "role_path_status": "valid_exact_role_paths",
+      "transport_status": "valid_physical_line_transport",
+      "validation_digest": "sha256:4e843da51e14fd9eb176403b1372635bf711938a701632cbf370d7266808a778",
+      "validation_reason_codes": [
+        "unsupported_selected_report_expression"
+      ],
+      "validation_status": "unsupported_structure"
+    },
+    {
+      "admission_status": "not_admitted_incomplete_cohort",
+      "admitted": false,
+      "author_declaration_digest": "sha256:f14c82843a05a6981ffcb61b1aa850062214e31ac7c0fdf07c09c8adf528e67e",
+      "case_contract_digest": "sha256:94526e1762b441f1fd010ec6d55011cdb8d8903bad2f15c783b74b9a6c7592ce",
+      "case_id": "case:b244e81a210c8fc235d2",
+      "case_manifest_digest": "sha256:6902e19b5629f3c02519a33f1ac2f3bd421f1a5a24ba988b754b0e46bcb04e7d",
+      "declaration_status": "valid_one_selected_result_declaration",
+      "derivation_digest": "sha256:6191b889401331523c534544801ba3dca0cc4bff5a8d3e00941a17dee19ae553",
+      "derivation_reason_codes": [
+        "one_selected_result_binding_rederived"
+      ],
+      "derivation_status": "one_selected_result_rederived",
+      "metric_eligible": false,
+      "negative_subscript_lines": [],
+      "participant_id": "actor:pilot-author-claude-03",
+      "provider": "Anthropic",
+      "role_path_status": "valid_exact_role_paths",
+      "transport_status": "valid_physical_line_transport",
+      "validation_digest": "sha256:5370498644872939b30294cf1f10a7f0437cc7675c5e8043c0922855bff736dd",
+      "validation_reason_codes": [
+        "exact_independent_binding_match"
+      ],
+      "validation_status": "verified_complete"
+    }
+  ],
+  "input_captures": [
+    {
+      "attempt_status": "response_retained",
+      "input_capture_digest": "sha256:bdb26aa3972225769950c3594578a2b2bdbe424e8529d5f5aa3905c3b838b42e",
+      "participant_id": "actor:pilot-author-claude-03",
+      "provider": "Anthropic",
+      "raw_response_digest": "sha256:31f19a9140cf12f354dde83d5e724554fa706c81b40ae3ce36a18ce99686ff1c",
+      "replacement_count": 0,
+      "response_digest": "sha256:77d0d7ced667ead72d82242c0936e6f637278e155d10a20c72cf0f1ac840c9f5"
+    },
+    {
+      "attempt_status": "response_retained",
+      "input_capture_digest": "sha256:5009fbb5597a72e664fd2956c8dc96afc98fcfaa78f9c1a4207f95d2a8028dbb",
+      "participant_id": "actor:pilot-author-codex-03",
+      "provider": "OpenAI",
+      "raw_response_digest": "sha256:39a9c41b1349d893407c79a94edd6644cff052914b07a100b58f58f493069277",
+      "replacement_count": 0,
+      "response_digest": "sha256:39a9c41b1349d893407c79a94edd6644cff052914b07a100b58f58f493069277"
+    }
+  ],
+  "lane_freeze_digest": "sha256:c58ee57c01d5f7c46855eb9f554d0a476f664e44edbdd7e15679bd53d72fa12b",
+  "ledger_digest": "sha256:622610d8632696edb70a9b112f20877601fcd45d44b73b753a77e1b75863c136",
+  "ledger_version": "2.0.0",
+  "protocol_digest": "sha256:0f70e92a2a87b4c3225734fe871ac31ec2535ac02390efb1743e78c3e78e385a",
+  "qualification_authority": "none_failed_authoring_intake_only",
+  "summary": {
+    "admitted_case_count": 0,
+    "assigned_author_context_count": 2,
+    "detector_outcome_count": 0,
+    "metric_eligible_case_count": 0,
+    "model_attempt_count": 2,
+    "project_code_executed_count": 0,
+    "response_case_count": 3,
+    "scientific_label_count": 0,
+    "unsupported_selected_result_count": 1,
+    "verified_selected_result_count": 2
+  },
+  "validator_identity": {
+    "execution_context_id": "context:selected-result-validator-v2",
+    "identity_evidence_digest": "sha256:0c6dce3bc100288d1dd4c72897e6f96ee1cb2ce1291ddf0b7f52c1bcfb1a0cf3",
+    "provider": "Local deterministic software",
+    "validator_id": "actor:selected-result-validator-01"
+  }
+}

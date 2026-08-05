@@ -608,6 +608,17 @@ perform unrelated capability expansion before the complete first pilot is retain
   It changes no scientific brief, detector, verifier, label, or outcome. It only pins exact file
   roles, forbids decoded terminators and producer reverse-solidus escapes, derives LF from the
   already-LF input, and requires the selected producer span to identify the final writer.
+- Both frozen v3 calls were submitted once and retained. All three responses passed transport,
+  role-path, declaration, and final-writer checks. The unchanged model-free verifier rederived the
+  two Claude selected-result bindings, but rejected the Codex case because its producer used
+  negative list indices, which the v3 prompt permitted as indexing but the frozen evaluator cannot
+  evaluate. Failure-ledger digest
+  `sha256:622610d8632696edb70a9b112f20877601fcd45d44b73b753a77e1b75863c136`
+  records two verified bindings, one unsupported case, and zero admitted or metric-eligible cases,
+  labels, or detector outcomes. This is a generic author-protocol/verifier grammar mismatch, not a
+  scientific verdict or author violation. V3 remains unchanged and contributes no pilot evidence.
+  A fresh iteration must forbid all post-prefix indexing and constrain the producer to the
+  verifier's render-only expression subset before any new calls.
 
 ## Evidence log
 
@@ -629,3 +640,4 @@ perform unrelated capability expansion before the complete first pilot is retain
 | 2026-08-04 | Froze the second three-case authoring iteration and added fail-closed static intake before review. | Restart amendment `sha256:41a274b59e79712216d3b2602758b757ca0c86767837e0e385d7344fd53039bc`; protocol `sha256:a925a0f05b7ab16f61da02c65b2f47506b0dfad14b0f0f3f630aaded29ef49cb`; retained empty-response Codex sandbox launch failure; four focused recorder controls. | No checkbox or score changed; the second-iteration calls were frozen but unexecuted at this commit. |
 | 2026-08-04 | Executed and retained both frozen second-iteration author calls, then rejected the incomplete admission-valid cohort before materialization or review. | Claude capture `sha256:2617a109e25ab871a14ae1236db8220a18a1ad59b512e00318f406b2cc17f973`; Codex capture `sha256:5b9a17b658f2ea7485085bc27b5a48899ecc4ea55c5cff619c5ae8626df55e43`; failure ledger `sha256:20dab1bcdd87463601a7f84425a032fb026f70ea4737dc3cb2e8c7e3e7449143`; three focused retention tests. | No checkbox or score changed; zero cases were admitted, verified, or made metric-eligible. |
 | 2026-08-04 | Froze a third authoring iteration that removes only generic transport, file-role, and writer-span ambiguity before any new inference. | Source commit `5361c03dd4d482d7cbe4acc80b730d475ad4e0aa`; restart amendment `sha256:fc4683fe691926f82d8cf9979f0a9089ce7525d34cfcd03db34600ca3161614e`; protocol `sha256:0f70e92a2a87b4c3225734fe871ac31ec2535ac02390efb1743e78c3e78e385a`; nine focused v3 controls. | No checkbox or score changed; v3 has zero calls, cases, labels, or outcomes. |
+| 2026-08-04 | Executed and retained both frozen third-iteration calls, then rejected the incomplete causal triad atomically after static intake. | Claude capture `sha256:bdb26aa3972225769950c3594578a2b2bdbe424e8529d5f5aa3905c3b838b42e`; Codex capture `sha256:5009fbb5597a72e664fd2956c8dc96afc98fcfaa78f9c1a4207f95d2a8028dbb`; failure ledger `sha256:622610d8632696edb70a9b112f20877601fcd45d44b73b753a77e1b75863c136`; five focused retention/admission controls. | No checkbox or score changed; two bindings verified, one case was unsupported, and zero cases were admitted or metric-eligible. |
