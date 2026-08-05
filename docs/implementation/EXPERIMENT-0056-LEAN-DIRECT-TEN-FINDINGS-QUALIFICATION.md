@@ -1,6 +1,7 @@
 # Experiment 0056: Lean direct ten-Findings qualification
 
-- **Status:** Active frozen first-envelope lane; no metric-eligible case authored
+- **Status:** Active frozen first-envelope lane; first three-case authoring intake failed with zero
+  metric-eligible cases
 - **Date:** 2026-08-04
 - **Supersedes:** Experiment 0055 as the delivery-path qualification design
 - **Production impact:** None until an exact detector envelope completes pilot, held-out,
@@ -189,7 +190,25 @@ the three-case causal triad. Authoring-protocol digest
 `sha256:51808c104df89a701f1b6dd612894207760c02da7c969dcb68df86ae589593af`
 binds those three briefs to two one-shot author contexts. The error/corrected pair shares its
 frozen Claude author identity; the valid alternative uses one frozen Codex author identity. No
-workflow, declaration, scientific label, detector outcome, or Finding exists at this freeze.
+workflow, declaration, scientific label, detector outcome, or Finding existed at that freeze.
+
+The first authoring execution is now retained as a failed intake, not counted as a scientific
+pilot. Claude's first response failed JSON parsing before admission. Intake-recovery amendment
+digest `sha256:3b4ab839a056256f6b93aba1e1f452a0ecb98cb17b93d915acf5b5318d00a06c`
+authorized one fresh transport-only call while retaining that failure; the recovery response and
+the Codex response then produced three author declarations. Authoring-ledger digest
+`sha256:b1a0bcdaf9aa9a7fc2970bd94c510ac9b8ac5475e0e90d5ce7d4f39a540a58f6`
+retains all three attempts and one exact metadata-only redundant-locator canonicalization.
+
+The frozen model-free selected-result verifier subsequently rejected all three case trees before
+scientific review: two Claude producers do not parse as Python, and the Codex producer uses a
+writer signature outside the frozen finite grammar. Selected-result intake-ledger digest
+`sha256:ee9ee169fe6b6970ea2a85565750f6e99a34273b4d0f3a0f9ab02bb6d34cffeb`
+therefore records three `unsupported_structure` outcomes, zero verified cases, zero labels, zero
+detector outcomes, and zero metric-eligible opportunities. These failures cannot be treated as
+negative controls or repaired into cases. The next authoring iteration must be frozen before new
+calls, must constrain only the already-frozen static producer grammar, and must retain this entire
+failed iteration. The authoring and downstream checkboxes remain unchecked.
 
 ## Stop conditions
 

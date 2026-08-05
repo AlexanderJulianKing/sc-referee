@@ -1,0 +1,60 @@
+{
+  "artifact_kind": "prospective_selected_result_derivation",
+  "candidate_binding_digests": [],
+  "candidate_bindings": [],
+  "case_id": "case:345133226e9fc72a32b0",
+  "case_tree_digest": "sha256:2f15dd608470e72d124ee1a4c5206172f2b4d804fb96023ef37b9ad15c5a4585",
+  "derivation_digest": "sha256:46bb836dfc84c266d08dda4730e601c863af61b1d1d1fcbac5c44d05dcae0053",
+  "derivation_status": "unsupported_structure",
+  "derivation_version": "1.0.0",
+  "derived_at": "2026-08-05T02:16:30Z",
+  "frozen_at": "2026-08-05T02:17:00Z",
+  "implementation_lock": [
+    {
+      "content_digest": "sha256:5dfbd96b6b947fb00e010bf5f42b76437283087c66f0bcb56bee8f966f7d6cf7",
+      "dependency_kind": "implementation",
+      "path": "sc_referee_evaluation/prospective_selected_result_verifier.py"
+    },
+    {
+      "content_digest": "sha256:a9daa0981a355719b9ad10551754d4db7879bc7afdf3a34b39c5581a5bb63910",
+      "dependency_kind": "runtime",
+      "path": "python-runtime"
+    }
+  ],
+  "locator_receipts": [],
+  "profile_digest": "sha256:12478b6b21fb12be7388a7a570adadd8ffc68ea09ab2803074dfc77feb6699d0",
+  "profile_id": "selected-result-profile:python-static-marked-report-v1",
+  "project_code_executed": false,
+  "qualification_authority": "none_verifier_derivation_only",
+  "reason_codes": [
+    "python_source_parse_failed"
+  ],
+  "retained_files": [
+    {
+      "byte_length": 5246,
+      "content_digest": "sha256:06e40a54926f112d6d6a86e688b0b6da57af43850d7c72c8585c0543367fe0d9",
+      "executable": false,
+      "path": "inputs/coastal_station_accounting.csv"
+    },
+    {
+      "byte_length": 1922,
+      "content_digest": "sha256:1a8de849e48b78bfdca466ffe65c7fd1add2f4f72a42f8ae0679f19da6dfe09e",
+      "executable": false,
+      "path": "results/selected_rate_report.md"
+    },
+    {
+      "byte_length": 2856,
+      "content_digest": "sha256:555b97d32779536485940eaa577760416c9f5fc7859109a46ccf465e51a9e8f7",
+      "executable": false,
+      "path": "workflow/build_selected_rate_report.py"
+    }
+  ],
+  "selected_report_path": "results/selected_rate_report.md",
+  "validator_identity": {
+    "execution_context_id": "context:selected-result-validator-v2",
+    "identity_evidence_digest": "sha256:0c6dce3bc100288d1dd4c72897e6f96ee1cb2ce1291ddf0b7f52c1bcfb1a0cf3",
+    "provider": "Local deterministic software",
+    "validator_id": "actor:selected-result-validator-01"
+  },
+  "verifier_version": "1.0.0"
+}

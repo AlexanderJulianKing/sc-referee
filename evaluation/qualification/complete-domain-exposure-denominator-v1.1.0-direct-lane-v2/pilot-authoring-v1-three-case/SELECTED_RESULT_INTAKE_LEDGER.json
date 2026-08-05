@@ -1,0 +1,75 @@
+{
+  "active_enrollment_digest": "sha256:95ef5badd874db346279de725a35679da80d00bf8d40c323041b414ce750a5bc",
+  "artifact_kind": "direct_qualification_three_case_selected_result_intake_ledger",
+  "authoring_ledger_digest": "sha256:b1a0bcdaf9aa9a7fc2970bd94c510ac9b8ac5475e0e90d5ce7d4f39a540a58f6",
+  "completed_at": "2026-08-05T02:18:00Z",
+  "entries": [
+    {
+      "case_contract_digest": "sha256:0d64939ed9f45ccd8b939476ee07b9d0ac4b6a0cffa7e2ec45698f75d64e3f6b",
+      "case_id": "case:345133226e9fc72a32b0",
+      "derivation_digest": "sha256:46bb836dfc84c266d08dda4730e601c863af61b1d1d1fcbac5c44d05dcae0053",
+      "derivation_reason_codes": [
+        "python_source_parse_failed"
+      ],
+      "derivation_status": "unsupported_structure",
+      "validation_digest": "sha256:6b5ebc6812724d297271e9931f5e8cadacced004cccfa207702726145648a548",
+      "validation_reason_codes": [
+        "python_source_parse_failed"
+      ],
+      "validation_status": "unsupported_structure"
+    },
+    {
+      "case_contract_digest": "sha256:7100ba066179f85f236bc9c4f3c4ed7989eeae3674381d9f060ee2f2d8c3656d",
+      "case_id": "case:72678038fd451aac236a",
+      "derivation_digest": "sha256:f07d0518051b48a7c6a020d86e1f31182e353c31b3e2362c815c8c77479a3233",
+      "derivation_reason_codes": [
+        "unsupported_selected_report_writer_signature"
+      ],
+      "derivation_status": "unsupported_structure",
+      "validation_digest": "sha256:34094876cdef49b0398ea7904f6e96583515a1a2bd3ef8fdec3d45b9f7d10261",
+      "validation_reason_codes": [
+        "unsupported_selected_report_writer_signature"
+      ],
+      "validation_status": "unsupported_structure"
+    },
+    {
+      "case_contract_digest": "sha256:bbdb70d95b2bd6dcbbe0f5ddbd7b5447744ea5bb0b41672b90833151649dabdb",
+      "case_id": "case:c5e5a75d42962d2e95a3",
+      "derivation_digest": "sha256:ec87403c6f48aaadc5844c66d3a38682de2d3c982da294940abcadec455feed3",
+      "derivation_reason_codes": [
+        "python_source_parse_failed"
+      ],
+      "derivation_status": "unsupported_structure",
+      "validation_digest": "sha256:54dc2fcefaeef1aad1c298156dbb3638487bc4385d19091e47b5a8524122c82d",
+      "validation_reason_codes": [
+        "python_source_parse_failed"
+      ],
+      "validation_status": "unsupported_structure"
+    }
+  ],
+  "lane_freeze_digest": "sha256:c58ee57c01d5f7c46855eb9f554d0a476f664e44edbdd7e15679bd53d72fa12b",
+  "ledger_digest": "sha256:ee9ee169fe6b6970ea2a85565750f6e99a34273b4d0f3a0f9ab02bb6d34cffeb",
+  "ledger_version": "1.0.0",
+  "qualification_authority": "none_selected_result_intake_ledger_only",
+  "summary": {
+    "ambiguous_count": 0,
+    "case_count": 3,
+    "detector_outcome_count": 0,
+    "insufficient_count": 0,
+    "metric_eligible_case_count": 0,
+    "project_code_executed_count": 0,
+    "reason_counts": {
+      "python_source_parse_failed": 2,
+      "unsupported_selected_report_writer_signature": 1
+    },
+    "scientific_label_count": 0,
+    "unsupported_count": 3,
+    "verified_complete_count": 0
+  },
+  "validator_identity": {
+    "execution_context_id": "context:selected-result-validator-v2",
+    "identity_evidence_digest": "sha256:0c6dce3bc100288d1dd4c72897e6f96ee1cb2ce1291ddf0b7f52c1bcfb1a0cf3",
+    "provider": "Local deterministic software",
+    "validator_id": "actor:selected-result-validator-01"
+  }
+}

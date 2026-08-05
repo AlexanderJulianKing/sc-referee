@@ -1,0 +1,30 @@
+{
+  "artifact_kind": "direct_qualification_retained_author_case_manifest",
+  "author_configuration_digest": "sha256:8089820d8c29b64409beb2b2614d905e5d294eacf0c4c8d830e4b5165dd335ab",
+  "author_declaration_digest": "sha256:d50b0774929ceb24e3b24dc5fa68db1cfcb90e3281b040893451ee5b8a96e8a8",
+  "author_id": "actor:pilot-author-claude-01",
+  "case_id": "case:345133226e9fc72a32b0",
+  "files": [
+    {
+      "content_digest": "sha256:06e40a54926f112d6d6a86e688b0b6da57af43850d7c72c8585c0543367fe0d9",
+      "line_count": 97,
+      "path": "inputs/coastal_station_accounting.csv",
+      "role": "input"
+    },
+    {
+      "content_digest": "sha256:1a8de849e48b78bfdca466ffe65c7fd1add2f4f72a42f8ae0679f19da6dfe09e",
+      "line_count": 45,
+      "path": "results/selected_rate_report.md",
+      "role": "report"
+    },
+    {
+      "content_digest": "sha256:555b97d32779536485940eaa577760416c9f5fc7859109a46ccf465e51a9e8f7",
+      "line_count": 113,
+      "path": "workflow/build_selected_rate_report.py",
+      "role": "producer"
+    }
+  ],
+  "manifest_digest": "sha256:abf2dde210a89672cd147b344bb33b1ee5e46006d98beb991c84a9960fb500a8",
+  "manifest_version": "1.0.0",
+  "qualification_authority": "none_retained_author_case_only"
+}

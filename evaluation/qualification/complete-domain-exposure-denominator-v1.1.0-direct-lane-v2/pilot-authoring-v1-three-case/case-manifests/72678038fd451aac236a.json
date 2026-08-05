@@ -1,0 +1,30 @@
+{
+  "artifact_kind": "direct_qualification_retained_author_case_manifest",
+  "author_configuration_digest": "sha256:409285f65e8cdf753e0164cdb4fc3eaca104a49111f4356c2be0b829bb821c03",
+  "author_declaration_digest": "sha256:1cc08b5adee3eb4d01f6fbae271f3b0dd60b96323b838d1a3b1f6e9361fae8cc",
+  "author_id": "actor:pilot-author-codex-01",
+  "case_id": "case:72678038fd451aac236a",
+  "files": [
+    {
+      "content_digest": "sha256:86328d9cc7c2b9c298c43d74f660512204b38a4465a5bd12782392d24547cc2e",
+      "line_count": 97,
+      "path": "inputs/coastal_stations.csv",
+      "role": "input"
+    },
+    {
+      "content_digest": "sha256:9a43bb2f25cfcc4a549de136ceebae2afc76b3fbe07de064f2253d09c7334c96",
+      "line_count": 7,
+      "path": "results/conditional_occurrence_rate.md",
+      "role": "report"
+    },
+    {
+      "content_digest": "sha256:9daa56cefda67ea7cdb87510c49616006e01acb8a0ecb7ff0850d485699714c6",
+      "line_count": 13,
+      "path": "workflow/produce_report.py",
+      "role": "producer"
+    }
+  ],
+  "manifest_digest": "sha256:5ae810e7a9e929ce45edd497764e4fa28d5527ca803c710f7d1d9d4912913f88",
+  "manifest_version": "1.0.0",
+  "qualification_authority": "none_retained_author_case_only"
+}

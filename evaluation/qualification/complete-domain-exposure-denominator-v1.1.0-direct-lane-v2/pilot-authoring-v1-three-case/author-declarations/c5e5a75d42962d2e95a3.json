@@ -1,0 +1,58 @@
+{
+  "artifact_kind": "prospective_author_selected_result_declaration",
+  "authored_at": "2026-08-05T02:14:19.060000Z",
+  "authorship": {
+    "author_id": "actor:pilot-author-claude-01",
+    "execution_context_id": "context:pilot-author-claude-01-app-v1",
+    "identity_evidence_digest": "sha256:8089820d8c29b64409beb2b2614d905e5d294eacf0c4c8d830e4b5165dd335ab",
+    "provider": "Anthropic"
+  },
+  "candidate_result_locators": [],
+  "case_id": "case:c5e5a75d42962d2e95a3",
+  "declaration_digest": "sha256:1e8ec45ca131cd1a4993fc2b042be9f7c8d9c2a5654eb0971d1ff54442de285d",
+  "declaration_state": "one_selected_result",
+  "declaration_version": "3.0.0",
+  "frozen_at": "2026-08-05T02:15:00Z",
+  "qualification_authority": "none_author_declaration_only",
+  "selected_result_binding": {
+    "alternative_producer_locators": [],
+    "binding_profile": "exact_selected_report_result_static_producer_v1",
+    "declared_dynamic_selection": false,
+    "producer_locator": {
+      "content_digest": "sha256:5c43e5fee099de4c269d4fdac52146e9464ab09203ec106c17fd8696a11f271f",
+      "end_line": 46,
+      "path": "workflow/build_selected_rate_report.py",
+      "start_line": 46
+    },
+    "report_locator": {
+      "content_digest": "sha256:eb3408c0dba2ec2a4b91c1d1c43fb3944e6101e120edf9d6729c9036fce5975f",
+      "end_line": 33,
+      "path": "results/selected_rate_report.md",
+      "start_line": 1
+    },
+    "result_locator": {
+      "content_digest": "sha256:eb3408c0dba2ec2a4b91c1d1c43fb3944e6101e120edf9d6729c9036fce5975f",
+      "end_line": 27,
+      "path": "results/selected_rate_report.md",
+      "start_line": 27
+    },
+    "selection_status": "one_selected_result",
+    "source_operands": [
+      {
+        "operand_id": "operand:f8cc743a320065fedcbc",
+        "record_ref": {
+          "record_id": "file:f8cc743a320065fedcbc",
+          "record_type": "file_record"
+        },
+        "source_locator": {
+          "content_digest": "sha256:06e40a54926f112d6d6a86e688b0b6da57af43850d7c72c8585c0543367fe0d9",
+          "end_line": 97,
+          "path": "inputs/coastal_station_accounting.csv",
+          "start_line": 1
+        }
+      }
+    ]
+  },
+  "selected_result_binding_digest": "sha256:7ec982faaff5607a4a2ddfb1117754f1ee10a4fc18f20bf9ba8dc1b34eec748c",
+  "unsupported_producer_locators": []
+}

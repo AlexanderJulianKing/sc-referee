@@ -1,0 +1,58 @@
+{
+  "artifact_kind": "prospective_author_selected_result_declaration",
+  "authored_at": "2026-08-05T01:53:32.417191Z",
+  "authorship": {
+    "author_id": "actor:pilot-author-codex-01",
+    "execution_context_id": "context:pilot-author-codex-01-v2",
+    "identity_evidence_digest": "sha256:409285f65e8cdf753e0164cdb4fc3eaca104a49111f4356c2be0b829bb821c03",
+    "provider": "OpenAI"
+  },
+  "candidate_result_locators": [],
+  "case_id": "case:72678038fd451aac236a",
+  "declaration_digest": "sha256:1cc08b5adee3eb4d01f6fbae271f3b0dd60b96323b838d1a3b1f6e9361fae8cc",
+  "declaration_state": "one_selected_result",
+  "declaration_version": "3.0.0",
+  "frozen_at": "2026-08-05T02:15:00Z",
+  "qualification_authority": "none_author_declaration_only",
+  "selected_result_binding": {
+    "alternative_producer_locators": [],
+    "binding_profile": "exact_selected_report_result_static_producer_v1",
+    "declared_dynamic_selection": false,
+    "producer_locator": {
+      "content_digest": "sha256:9daa56cefda67ea7cdb87510c49616006e01acb8a0ecb7ff0850d485699714c6",
+      "end_line": 8,
+      "path": "workflow/produce_report.py",
+      "start_line": 8
+    },
+    "report_locator": {
+      "content_digest": "sha256:9a43bb2f25cfcc4a549de136ceebae2afc76b3fbe07de064f2253d09c7334c96",
+      "end_line": 7,
+      "path": "results/conditional_occurrence_rate.md",
+      "start_line": 1
+    },
+    "result_locator": {
+      "content_digest": "sha256:9a43bb2f25cfcc4a549de136ceebae2afc76b3fbe07de064f2253d09c7334c96",
+      "end_line": 5,
+      "path": "results/conditional_occurrence_rate.md",
+      "start_line": 5
+    },
+    "selection_status": "one_selected_result",
+    "source_operands": [
+      {
+        "operand_id": "operand:50dfb3e0faac4f1abc34",
+        "record_ref": {
+          "record_id": "file:50dfb3e0faac4f1abc34",
+          "record_type": "file_record"
+        },
+        "source_locator": {
+          "content_digest": "sha256:86328d9cc7c2b9c298c43d74f660512204b38a4465a5bd12782392d24547cc2e",
+          "end_line": 97,
+          "path": "inputs/coastal_stations.csv",
+          "start_line": 1
+        }
+      }
+    ]
+  },
+  "selected_result_binding_digest": "sha256:6484ea9b326676730a2e4c49138dd363848139a978560610fbc76a005ecf85f1",
+  "unsupported_producer_locators": []
+}

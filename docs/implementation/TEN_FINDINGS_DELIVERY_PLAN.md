@@ -565,6 +565,27 @@ perform unrelated capability expansion before the complete first pilot is retain
   grant no scientific-label, qualification, promotion, or Finding authority; all scores remain
   0/10.
 
+### 2026-08-04 — First three-case authoring intake failed and was retained
+
+- The first Claude author response failed JSON parsing before schema or scientific admission. Its
+  exact bytes remain retained. Recovery amendment digest
+  `sha256:3b4ab839a056256f6b93aba1e1f452a0ecb98cb17b93d915acf5b5318d00a06c`
+  authorized one fresh transport-only response without prior response content, scientific
+  feedback, labels, or detector output.
+- The recovery yielded two declared cases and the Codex call yielded the third. Authoring-ledger
+  digest `sha256:b1a0bcdaf9aa9a7fc2970bd94c510ac9b8ac5475e0e90d5ce7d4f39a540a58f6`
+  retains all three attempts, all three case trees, all declarations, and one exact
+  metadata-only redundant-locator canonicalization.
+- Independent model-free intake then rejected every case before review: two producers failed
+  Python parsing and one used a selected-report writer signature outside the frozen grammar.
+  Selected-result intake-ledger digest
+  `sha256:ee9ee169fe6b6970ea2a85565750f6e99a34273b4d0f3a0f9ab02bb6d34cffeb`
+  records zero verified or metric-eligible cases, three unsupported cases, no project-code
+  execution, zero scientific labels, and zero detector outcomes.
+- The first pilot authoring checklist remains unchecked and the score remains 0/10. A fresh,
+  pre-call authoring iteration must constrain only the already-frozen static producer grammar;
+  the failed iteration is not repaired, replaced in place, or converted into a control.
+
 ## Evidence log
 
 | Date | Change | Evidence | Checkboxes changed |
@@ -581,3 +602,4 @@ perform unrelated capability expansion before the complete first pilot is retain
 | 2026-08-04 | Froze the versioned Claude desktop-app adjudication amendment and exact app calibration protocol before prompt submission. | Commit `fc9145a`; amendment digest `sha256:e3f8f012e02e29112e83e83cdfb4b4e3b2ad82eaed4d5058cc3a9bd4f221395e`; replacement enrollment digest `sha256:95ef5badd874db346279de725a35679da80d00bf8d40c323041b414ce750a5bc`; protocol digest `sha256:9427d044c529ffbf0c3ef07ae034550e3cfe841d105ddc9d61dfb2d4eeda2af4`; five focused tests. | No checkbox or score changed; the three app calibrations remain unexecuted. |
 | 2026-08-04 | Executed and retained all three frozen Claude app calibrations once, then aggregated them with the three retained Codex passes. | App ledger digest `sha256:bf6f76588f197817f8fd3df184efacb36cca8ded4eaf7f8ba6d22fb3d60bbe29`; aggregate digest `sha256:3c64169c830ff1e963f81fe0e774e367021e3ad4f77892641002e4ff7f13e030`; 6/6 active passes; all 18 historical attempts and 12 failures retained; capture-only amendment digest `sha256:bc50aaf34a1cb6508329138156f49efdc4bed2ffc4ba1d4fbe4f12941e573189`. | Reviewer calibration prerequisite completed; no scientific-case, qualification, promotion, product, or score checkbox changed. |
 | 2026-08-04 | Reduced only the active first-envelope pilot to the error/corrected/valid-alternative causal triad and froze its exact two-author prompts before exposure. | Scope-amendment digest `sha256:35e1d193113b807257baab48bf2bd2d9b6482ed620bae09a1f36aa5541b91861`; authoring-protocol digest `sha256:51808c104df89a701f1b6dd612894207760c02da7c969dcb68df86ae589593af`; 11 focused tests. | Three-case scope/protocol freeze checked; no workflow, label, detector outcome, qualification, promotion, product, or score change. |
+| 2026-08-04 | Retained the failed first three-case authoring iteration and independently classified all three case trees before review. | Authoring ledger `sha256:b1a0bcdaf9aa9a7fc2970bd94c510ac9b8ac5475e0e90d5ce7d4f39a540a58f6`; selected-result intake ledger `sha256:ee9ee169fe6b6970ea2a85565750f6e99a34273b4d0f3a0f9ab02bb6d34cffeb`; three unsupported, zero verified, zero labels, zero detector outcomes. | No checkbox or score changed; the authoring and qualification gates remain incomplete. |
