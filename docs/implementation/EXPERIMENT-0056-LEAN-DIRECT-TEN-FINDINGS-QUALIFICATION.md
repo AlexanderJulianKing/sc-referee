@@ -1,7 +1,7 @@
 # Experiment 0056: Lean direct ten-Findings qualification
 
-- **Status:** Active first-envelope pilot; three cases admitted, Stage-1 frozen, two retained Codex
-  pre-inference transport failures, and transport-only recovery frozen but not started
+- **Status:** Active first-envelope pilot; three cases admitted and 2/4 Stage-1 reviews per case
+  accepted from Codex, with two Claude reviewers still unstarted
 - **Date:** 2026-08-04
 - **Supersedes:** Experiment 0055 as the delivery-path qualification design
 - **Production impact:** None until an exact detector envelope completes pilot, held-out,
@@ -315,6 +315,17 @@ unchanged. The only delta removes the unsupported Codex API `--output-schema` ar
 schema remains embedded in its frozen prompt, and the unchanged local projector must validate the
 entire response before any review can be captured. The two recovery calls are prospectively
 parallel and unstarted at this freeze.
+
+Both recovery transports then completed once. Their exact process captures and raw-response bytes
+were retained before interpretation. The unchanged local schema, complete-line span checks, packet
+bindings, and AgentReview validator accepted all six reviews at call-ledger digests
+`sha256:0acf3d7435637cabb4dbd3e74d47664f34cc10973293f57488acd5b4673e0a25`
+and `sha256:d53bad1d4e09a29b7b6fafbbecb5581b5b479cb756f42a1b6164e4aa05c0463f`.
+Both Codex reviewers independently returned `demonstrated_issue` for
+`case:35069763f06891dba5a3` and `no_demonstrated_issue_within_scope` for the other two opaque cases.
+This supplies two reviews per case from one provider family only. It is not a complete Stage-1
+panel, scientific label, detector outcome, qualification decision, or Finding. The two Claude
+reviewer calls remain unstarted.
 
 ## Stop conditions
 

@@ -282,6 +282,10 @@ def test_stage1_protocol_builder_is_write_once() -> None:
 
 
 def test_stage1_raw_call_capture_validates_without_writing_reviews() -> None:
+    existing_ledgers = {
+        path.name: sha256_digest(path.read_bytes())
+        for path in (REVIEW_ROOT / "stage1-call-ledgers").glob("*.json")
+    }
     protocol = _load(REVIEW_ROOT / "STAGE1_REVIEW_PROTOCOL.json")
     call = protocol["calls"][0]
     payloads = {case_id: _workspace_payloads(case_id) for case_id in CASE_IDS}
@@ -305,7 +309,10 @@ def test_stage1_raw_call_capture_validates_without_writing_reviews() -> None:
     reviews = validate_stage1_call_capture(PROJECT_ROOT, capture)
     assert [review["case_id"] for review in reviews] == sorted(CASE_IDS)
     assert {review["transcript_digest"] for review in reviews} == {sha256_digest(raw_response)}
-    assert not (REVIEW_ROOT / "stage1-call-ledgers").exists()
+    assert existing_ledgers == {
+        path.name: sha256_digest(path.read_bytes())
+        for path in (REVIEW_ROOT / "stage1-call-ledgers").glob("*.json")
+    }
 
     wrong = deepcopy(semantic_payload)
     wrong["reviewer_participant_id"] = STAGE1_REVIEWERS[1]

@@ -45,9 +45,12 @@ def test_codex_transport_failure_replay_rejects_capture_drift(
         build_stage1_codex_transport_failure_ledger(project_root)
 
 
-def test_no_codex_review_was_admitted_after_transport_failure(project_root: Path) -> None:
+def test_original_transport_failure_itself_admitted_no_codex_review(project_root: Path) -> None:
     root = project_root / REVIEW_RELATIVE
-    assert not (root / "incoming" / "stage1-codex-01.json").exists()
-    assert not (root / "incoming" / "stage1-codex-02.json").exists()
-    assert not (root / "stage1-captures").exists()
-    assert not (root / "stage1-freezes").exists()
+    ledger = build_stage1_codex_transport_failure_ledger(project_root)
+    assert ledger["summary"]["reviewer_response_count"] == 0
+    assert ledger["summary"]["stage1_review_count"] == 0
+    assert all(item["review_admitted"] is False for item in ledger["attempts"])
+    for item in ledger["attempts"]:
+        process_root = root / item["process_capture_relative_path"]
+        assert (process_root / "final-response.bin").read_bytes() == b""

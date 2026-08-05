@@ -13,7 +13,10 @@ from scripts.build_first_direct_three_case_stage1_codex_recovery import (
     build_stage1_codex_transport_recovery_amendment,
 )
 from scripts.build_first_direct_three_case_stage1_protocol import REVIEW_RELATIVE
-from scripts.record_first_direct_three_case_stage1_reviews import PROTOCOL_DIGEST
+from scripts.record_first_direct_three_case_stage1_reviews import (
+    PROTOCOL_DIGEST,
+    validate_stage1_call_capture,
+)
 from scripts.run_first_direct_three_case_stage1_codex import _codex_argv
 
 
@@ -89,3 +92,39 @@ def test_frozen_recovery_amendment_replays_and_is_write_once(project_root: Path)
     generated = build_stage1_codex_transport_recovery_amendment(project_root)
     assert generated == {**frozen, "amendment_digest": supplied}
     assert sha256_digest(path.read_bytes()).startswith("sha256:")
+
+
+@pytest.mark.parametrize(
+    "participant_slug,expected_ledger_digest",
+    [
+        (
+            "stage1-codex-01",
+            "sha256:0acf3d7435637cabb4dbd3e74d47664f34cc10973293f57488acd5b4673e0a25",
+        ),
+        (
+            "stage1-codex-02",
+            "sha256:d53bad1d4e09a29b7b6fafbbecb5581b5b479cb756f42a1b6164e4aa05c0463f",
+        ),
+    ],
+)
+def test_retained_codex_recovery_reviews_replay_under_unchanged_local_validator(
+    project_root: Path,
+    participant_slug: str,
+    expected_ledger_digest: str,
+) -> None:
+    root = project_root / REVIEW_RELATIVE
+    incoming = _load(root / "incoming" / f"{participant_slug}.json")
+    reviews = validate_stage1_call_capture(project_root, incoming)
+    assert len(reviews) == 3
+    assert {review["case_id"] for review in reviews} == {
+        "case:2e26bf5ece15be03717f",
+        "case:35069763f06891dba5a3",
+        "case:b036fd64c647dfd93e35",
+    }
+    assert [review["verdict"] for review in reviews].count("demonstrated_issue") == 1
+    ledger = _load(root / "stage1-call-ledgers" / f"{participant_slug}.json")
+    supplied = ledger.pop("ledger_digest")
+    assert supplied == expected_ledger_digest == semantic_digest(ledger)
+    assert ledger["review_count"] == 3
+    assert ledger["scientific_label_count"] == 0
+    assert ledger["detector_outcome_count"] == 0
