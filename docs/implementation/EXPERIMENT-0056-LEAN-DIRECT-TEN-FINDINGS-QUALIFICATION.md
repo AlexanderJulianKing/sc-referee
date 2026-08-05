@@ -363,6 +363,18 @@ requires all four to pass the unchanged six-vignette calibration before a replac
 protocol can be frozen. No recovery calibration or scientific-review prompt had been submitted at
 this freeze.
 
+The first two Codex recovery-calibration processes were then launched inside the managed
+filesystem sandbox and stopped before a response because Codex could not write its local state
+database. The controller retained the first exact failure but raised before writing the second
+parallel result, so the second attempt is explicitly unretained and ineligible for admission.
+Transport-retry amendment digest
+`sha256:f817612f395f490760b108b314de2f2fda86977caa43ab27b966e4c25e68c44b`
+binds that capture defect, fixes the controller to write every parallel process result before any
+failure raise, and permits two fresh transport attempts outside the managed filesystem sandbox.
+Prompt bytes, schemas, calibration answers, model configurations, and scientific state remain
+unchanged. No model response, calibration pass, scientific label, or detector outcome was produced
+by the failed launches.
+
 ## Stop conditions
 
 Do not promote when the selected result is unresolved, a source reference is missing, the review

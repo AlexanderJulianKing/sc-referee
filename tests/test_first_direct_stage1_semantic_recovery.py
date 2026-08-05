@@ -18,6 +18,9 @@ from scripts.build_first_direct_stage1_recovery_calibration import (
     SOURCE_PANEL_LEDGER_DIGEST,
     build_first_direct_stage1_recovery_calibration,
 )
+from scripts.build_first_direct_stage1_recovery_calibration_codex_retry import (
+    AMENDMENT_NAME,
+)
 from scripts.build_first_direct_three_case_stage1_protocol import (
     CANONICAL_ISSUE_CLASS,
     CASE_IDS,
@@ -186,3 +189,23 @@ def test_claude_recovery_calibration_capture_binds_frozen_ui() -> None:
             started_at="2026-08-05T07:21:00Z",
             completed_at="2026-08-05T07:22:00Z",
         )
+
+
+def test_codex_calibration_transport_retry_retains_the_pre_response_failure() -> None:
+    amendment = _replay(RECOVERY_ROOT / AMENDMENT_NAME, "amendment_digest")
+    retained = _replay(
+        RECOVERY_ROOT / "process-captures/stage1-recovery-codex-01/capture.json",
+        "capture_digest",
+    )
+    assert retained["return_code"] == 1
+    assert retained["final_response_digest"] == sha256_digest(b"")
+    assert amendment["retained_failure"]["process_capture_digest"] == retained["capture_digest"]
+    assert amendment["unretained_parallel_attempt"]["admission_permitted"] is False
+    assert (
+        amendment["controller_fix"]["all_parallel_process_evidence_written_before_failure_raise"]
+        is True
+    )
+    assert len(amendment["retry_calls"]) == 2
+    assert amendment["scientific_label_count"] == amendment["detector_outcome_count"] == 0
+    for item in amendment["controller_implementation"]:
+        assert sha256_digest((PROJECT_ROOT / item["path"]).read_bytes()) == item["content_digest"]
