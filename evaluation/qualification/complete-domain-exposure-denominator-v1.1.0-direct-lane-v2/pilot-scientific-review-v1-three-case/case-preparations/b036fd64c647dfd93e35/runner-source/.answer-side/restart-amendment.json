@@ -1,0 +1,54 @@
+{
+  "amendment_digest": "sha256:fd92ebaad0655d55efa29600f12a9db583486bef7c99f306b66e7596bb44272e",
+  "amendment_version": "3.0.0",
+  "artifact_kind": "direct_qualification_three_case_authoring_restart_amendment",
+  "authoring_transport_grammar_changed": true,
+  "detector_or_selected_result_verifier_changed": false,
+  "detector_outcome_count_at_freeze": 0,
+  "excluded_pilot_brief_access_permitted": false,
+  "failed_case_bytes_repaired_or_reused": false,
+  "failed_iterations_retained": true,
+  "failed_v3_authoring_intake_ledger_digest": "sha256:622610d8632696edb70a9b112f20877601fcd45d44b73b753a77e1b75863c136",
+  "failed_v3_input_capture_digests": [
+    "sha256:bdb26aa3972225769950c3594578a2b2bdbe424e8529d5f5aa3905c3b838b42e",
+    "sha256:5009fbb5597a72e664fd2956c8dc96afc98fcfaa78f9c1a4207f95d2a8028dbb"
+  ],
+  "failed_v3_protocol_digest": "sha256:0f70e92a2a87b4c3225734fe871ac31ec2535ac02390efb1743e78c3e78e385a",
+  "frozen_at": "2026-08-05T05:30:30Z",
+  "heldout_brief_access_permitted": false,
+  "lane_freeze_digest": "sha256:c58ee57c01d5f7c46855eb9f554d0a476f664e44edbdd7e15679bd53d72fa12b",
+  "other_envelopes_authorized": false,
+  "qualification_authority": "none_authoring_restart_amendment_only",
+  "render_grammar_profile_id": "authoring-render-only-v1",
+  "render_grammar_source_commit": "938d85804035a4654ee8397b01c9e210bbbda2d7",
+  "restart_assignments": [
+    {
+      "author_id": "actor:pilot-author-claude-04",
+      "author_visible_brief_digest": "sha256:9acc587d2c787e8a0ddc675e8d7f5c648d511fe70ba9627e3cc7ae2a0bccf795",
+      "case_id": "case:35069763f06891dba5a3",
+      "cell_type": "error_bearing",
+      "reference_case_id": null,
+      "superseded_failed_case_id": "case:1ec0cfee571e2bec59bb"
+    },
+    {
+      "author_id": "actor:pilot-author-codex-04",
+      "author_visible_brief_digest": "sha256:a2a810ad23a4755eaf4669694e4482779ebb9d6f89c32eb4dcd8db9d140d515a",
+      "case_id": "case:b036fd64c647dfd93e35",
+      "cell_type": "valid_alternative",
+      "reference_case_id": null,
+      "superseded_failed_case_id": "case:7e2d0d333ffa5e630352"
+    },
+    {
+      "author_id": "actor:pilot-author-claude-04",
+      "author_visible_brief_digest": "sha256:e664176ea88b835e7e5a575d9166289ad48887bbf905efd4f05b9d967408f9ae",
+      "case_id": "case:2e26bf5ece15be03717f",
+      "cell_type": "corrected_twin",
+      "reference_case_id": "case:35069763f06891dba5a3",
+      "superseded_failed_case_id": "case:b244e81a210c8fc235d2"
+    }
+  ],
+  "restart_reason": "The complete v3 cohort failed atomic admission because its permissive indexing wording exceeded the unchanged static evaluator. Restart with fresh opaque identities and the generic render-only AST subgrammar frozen at the bound source commit.",
+  "scientific_briefs_changed": false,
+  "scientific_label_count_at_freeze": 0,
+  "source_commit": "938d85804035a4654ee8397b01c9e210bbbda2d7"
+}

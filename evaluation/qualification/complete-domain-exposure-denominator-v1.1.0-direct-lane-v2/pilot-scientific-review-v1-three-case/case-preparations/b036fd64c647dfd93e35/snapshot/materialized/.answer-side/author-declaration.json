@@ -1,0 +1,58 @@
+{
+  "artifact_kind": "prospective_author_selected_result_declaration",
+  "authored_at": "2026-08-05T05:37:23.495898Z",
+  "authorship": {
+    "author_id": "actor:pilot-author-codex-04",
+    "execution_context_id": "context:pilot-author-codex-04-v4",
+    "identity_evidence_digest": "sha256:b2eafdcc0345391ca88d1b9428a415871926c5b3234735a515740d2573a265e2",
+    "provider": "OpenAI"
+  },
+  "candidate_result_locators": [],
+  "case_id": "case:b036fd64c647dfd93e35",
+  "declaration_digest": "sha256:0580234244fdd9c9b0ff7627e1e2b36e27ec1d16ada3536d09125d15291dabe1",
+  "declaration_state": "one_selected_result",
+  "declaration_version": "3.0.0",
+  "frozen_at": "2026-08-05T05:44:15Z",
+  "qualification_authority": "none_author_declaration_only",
+  "selected_result_binding": {
+    "alternative_producer_locators": [],
+    "binding_profile": "exact_selected_report_result_static_producer_v1",
+    "declared_dynamic_selection": false,
+    "producer_locator": {
+      "content_digest": "sha256:58f4e06ce2679ac6dab743a85e0e25eb78f4b7cc922ece77db3712a85e9835f4",
+      "end_line": 20,
+      "path": "workflow/analysis.py",
+      "start_line": 20
+    },
+    "report_locator": {
+      "content_digest": "sha256:3173b0745f4020e6048c491581cdd43f15a4639f76f90ed3057dda682d1fb647",
+      "end_line": 8,
+      "path": "results/report.md",
+      "start_line": 1
+    },
+    "result_locator": {
+      "content_digest": "sha256:3173b0745f4020e6048c491581cdd43f15a4639f76f90ed3057dda682d1fb647",
+      "end_line": 8,
+      "path": "results/report.md",
+      "start_line": 8
+    },
+    "selection_status": "one_selected_result",
+    "source_operands": [
+      {
+        "operand_id": "operand:e2aa80c7b47cd167b98f",
+        "record_ref": {
+          "record_id": "file:e2aa80c7b47cd167b98f",
+          "record_type": "file_record"
+        },
+        "source_locator": {
+          "content_digest": "sha256:9fa63e186cfb7aaf7404a9fd251640fda45e2cc4e3bbab7d58514300f559aa77",
+          "end_line": 4,
+          "path": "inputs/data.csv",
+          "start_line": 1
+        }
+      }
+    ]
+  },
+  "selected_result_binding_digest": "sha256:107dea573c3326492c6e908237dadf1acaac504358abfaee36893b7eb1563e4a",
+  "unsupported_producer_locators": []
+}

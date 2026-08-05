@@ -642,6 +642,14 @@ perform unrelated capability expansion before the complete first pilot is retain
   three metric-eligible pilot opportunities, zero scientific labels, and zero detector outcomes.
   This closes only the first three Gate 3 authoring/evidence items; it does not qualify the envelope
   or create a Finding.
+- Before any reviewer case exposure, Stage-1 protocol digest
+  `sha256:d9f3a84d205b2fa58d3abb38486f2068d4efd8a33526b4d1f35a2419a72d7d6b`
+  froze three content-addressed blind workspaces and twelve case-specific packets across the exact
+  four calibrated reviewer configurations. Four prospectively declared transport batches use
+  different opaque case orders and retain one review and capture per case. The protocol discloses
+  that within-reviewer judgments are cross-case-dependent because all three cases share one call;
+  comparison and role inference are forbidden but not assumed impossible. Zero review calls,
+  labels, detector outcomes, qualification decisions, or Findings existed at freeze.
 
 ## Evidence log
 
@@ -666,3 +674,4 @@ perform unrelated capability expansion before the complete first pilot is retain
 | 2026-08-04 | Executed and retained both frozen third-iteration calls, then rejected the incomplete causal triad atomically after static intake. | Claude capture `sha256:bdb26aa3972225769950c3594578a2b2bdbe424e8529d5f5aa3905c3b838b42e`; Codex capture `sha256:5009fbb5597a72e664fd2956c8dc96afc98fcfaa78f9c1a4207f95d2a8028dbb`; failure ledger `sha256:622610d8632696edb70a9b112f20877601fcd45d44b73b753a77e1b75863c136`; five focused retention/admission controls. | No checkbox or score changed; two bindings verified, one case was unsupported, and zero cases were admitted or metric-eligible. |
 | 2026-08-04 | Froze a fourth authoring iteration against a small generic render-only AST grammar before any inference. | Grammar source commit `938d85804035a4654ee8397b01c9e210bbbda2d7`; restart amendment `sha256:fd92ebaad0655d55efa29600f12a9db583486bef7c99f306b66e7596bb44272e`; protocol `sha256:2a853080b2e2faace3f6bfdfe440843e1023c199f02b3cee27d32ee70eaf307f`; 13 focused grammar/freeze controls. | No checkbox or score changed; v4 has zero calls, cases, labels, or outcomes. |
 | 2026-08-04 | Executed both frozen v4 calls once and atomically admitted the complete verifier-valid three-case cohort. | Authoring ledger `sha256:6487d1b7cccfb1fdb90fc080b93ea84233b3f81543d17e7ac3a99f30f3270ebc`; exact capture digests `sha256:cb5081820c7700e5bb67af1c5cf280a29f6f775dd24c1629c7183b49a414f50f` and `sha256:411c474f2cd0ff2409bc94a73a816ce2e49e613f919457288f31e0702ea51492`; 24 focused grammar/freeze/intake/replay controls. | Gate 3 authoring, declaration-freeze, and independent selected-result rederivation items checked; scientific review, detector evaluation, qualification, promotion, product, and scores remain incomplete. |
+| 2026-08-04 | Froze the complete three-case Stage-1 review boundary before any reviewer exposure. | Protocol `sha256:d9f3a84d205b2fa58d3abb38486f2068d4efd8a33526b4d1f35a2419a72d7d6b`; three content-addressed blind workspaces; twelve case packets; four frozen batch prompts; 23 focused review/workspace/admission tests. | No checklist or score changed; Stage-1 calls remain unexecuted and labels/outcomes remain zero. |

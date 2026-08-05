@@ -1,0 +1,156 @@
+{
+  "artifact_kind": "prospective_selected_result_validation",
+  "case_contract_digest": "sha256:01cc42f1125f1f8d795857b5b536a70312c6176d462bf938473e848474f75611",
+  "case_tree_digest": "sha256:1dc2be9f326044e9296b5497679d3b332632b4043c64b8774424b76881e8c6c9",
+  "completed_at": "2026-08-05T05:44:21Z",
+  "declaration_revealed_at": "2026-08-05T05:44:20Z",
+  "derivation_digest": "sha256:a96d80d42f17f3a0e16ebc12e32b36ccffc9ecdf3f024c17e23257c4c0c05761",
+  "execution_context_id": "context:selected-result-validator-v2",
+  "identity_evidence_digest": "sha256:0c6dce3bc100288d1dd4c72897e6f96ee1cb2ce1291ddf0b7f52c1bcfb1a0cf3",
+  "independent_derivation": {
+    "artifact_kind": "prospective_selected_result_derivation",
+    "candidate_binding_digests": [
+      "sha256:107dea573c3326492c6e908237dadf1acaac504358abfaee36893b7eb1563e4a"
+    ],
+    "candidate_bindings": [
+      {
+        "alternative_producer_locators": [],
+        "binding_profile": "exact_selected_report_result_static_producer_v1",
+        "declared_dynamic_selection": false,
+        "producer_locator": {
+          "content_digest": "sha256:58f4e06ce2679ac6dab743a85e0e25eb78f4b7cc922ece77db3712a85e9835f4",
+          "end_line": 20,
+          "path": "workflow/analysis.py",
+          "start_line": 20
+        },
+        "report_locator": {
+          "content_digest": "sha256:3173b0745f4020e6048c491581cdd43f15a4639f76f90ed3057dda682d1fb647",
+          "end_line": 8,
+          "path": "results/report.md",
+          "start_line": 1
+        },
+        "result_locator": {
+          "content_digest": "sha256:3173b0745f4020e6048c491581cdd43f15a4639f76f90ed3057dda682d1fb647",
+          "end_line": 8,
+          "path": "results/report.md",
+          "start_line": 8
+        },
+        "selection_status": "one_selected_result",
+        "source_operands": [
+          {
+            "operand_id": "operand:e2aa80c7b47cd167b98f",
+            "record_ref": {
+              "record_id": "file:e2aa80c7b47cd167b98f",
+              "record_type": "file_record"
+            },
+            "source_locator": {
+              "content_digest": "sha256:9fa63e186cfb7aaf7404a9fd251640fda45e2cc4e3bbab7d58514300f559aa77",
+              "end_line": 4,
+              "path": "inputs/data.csv",
+              "start_line": 1
+            }
+          }
+        ]
+      }
+    ],
+    "case_id": "case:b036fd64c647dfd93e35",
+    "case_tree_digest": "sha256:1dc2be9f326044e9296b5497679d3b332632b4043c64b8774424b76881e8c6c9",
+    "derivation_digest": "sha256:a96d80d42f17f3a0e16ebc12e32b36ccffc9ecdf3f024c17e23257c4c0c05761",
+    "derivation_status": "one_selected_result_rederived",
+    "derivation_version": "1.0.0",
+    "derived_at": "2026-08-05T05:44:18Z",
+    "frozen_at": "2026-08-05T05:44:19Z",
+    "implementation_lock": [
+      {
+        "content_digest": "sha256:5dfbd96b6b947fb00e010bf5f42b76437283087c66f0bcb56bee8f966f7d6cf7",
+        "dependency_kind": "implementation",
+        "path": "sc_referee_evaluation/prospective_selected_result_verifier.py"
+      },
+      {
+        "content_digest": "sha256:a9daa0981a355719b9ad10551754d4db7879bc7afdf3a34b39c5581a5bb63910",
+        "dependency_kind": "runtime",
+        "path": "python-runtime"
+      }
+    ],
+    "locator_receipts": [
+      {
+        "content_digest": "sha256:9fa63e186cfb7aaf7404a9fd251640fda45e2cc4e3bbab7d58514300f559aa77",
+        "end_line": 4,
+        "locator_digest": "sha256:73005797f3625a38fcf5e2c9eed3092d81cdd0ef50a5e60c2e19a114207f4f66",
+        "path": "inputs/data.csv",
+        "span_digest": "sha256:9fa63e186cfb7aaf7404a9fd251640fda45e2cc4e3bbab7d58514300f559aa77",
+        "start_line": 1
+      },
+      {
+        "content_digest": "sha256:3173b0745f4020e6048c491581cdd43f15a4639f76f90ed3057dda682d1fb647",
+        "end_line": 8,
+        "locator_digest": "sha256:7f6b1da2a954419ae8eac2776ba2cce7aa981405ed02a33675d6ef4c75878b08",
+        "path": "results/report.md",
+        "span_digest": "sha256:3173b0745f4020e6048c491581cdd43f15a4639f76f90ed3057dda682d1fb647",
+        "start_line": 1
+      },
+      {
+        "content_digest": "sha256:3173b0745f4020e6048c491581cdd43f15a4639f76f90ed3057dda682d1fb647",
+        "end_line": 8,
+        "locator_digest": "sha256:9e1163216052c996dd076451793190ba9d24600fa13346a54710f2abb232e817",
+        "path": "results/report.md",
+        "span_digest": "sha256:862e92e184db81153b385d13d1fc06348c83511bd289c1d23b221b5f8a4066a2",
+        "start_line": 8
+      },
+      {
+        "content_digest": "sha256:58f4e06ce2679ac6dab743a85e0e25eb78f4b7cc922ece77db3712a85e9835f4",
+        "end_line": 20,
+        "locator_digest": "sha256:d1c67faf3f0e4e724ea29db3177e14b51513dde2164658fd638642494f2c15f8",
+        "path": "workflow/analysis.py",
+        "span_digest": "sha256:0f7ef6e3d70735ad46993930341f7bd9ee202bcc9c5657722972f6a5d29d25cd",
+        "start_line": 20
+      }
+    ],
+    "profile_digest": "sha256:12478b6b21fb12be7388a7a570adadd8ffc68ea09ab2803074dfc77feb6699d0",
+    "profile_id": "selected-result-profile:python-static-marked-report-v1",
+    "project_code_executed": false,
+    "qualification_authority": "none_verifier_derivation_only",
+    "reason_codes": [
+      "one_selected_result_binding_rederived"
+    ],
+    "retained_files": [
+      {
+        "byte_length": 174,
+        "content_digest": "sha256:9fa63e186cfb7aaf7404a9fd251640fda45e2cc4e3bbab7d58514300f559aa77",
+        "executable": false,
+        "path": "inputs/data.csv"
+      },
+      {
+        "byte_length": 484,
+        "content_digest": "sha256:3173b0745f4020e6048c491581cdd43f15a4639f76f90ed3057dda682d1fb647",
+        "executable": false,
+        "path": "results/report.md"
+      },
+      {
+        "byte_length": 1304,
+        "content_digest": "sha256:58f4e06ce2679ac6dab743a85e0e25eb78f4b7cc922ece77db3712a85e9835f4",
+        "executable": false,
+        "path": "workflow/analysis.py"
+      }
+    ],
+    "selected_report_path": "results/report.md",
+    "validator_identity": {
+      "execution_context_id": "context:selected-result-validator-v2",
+      "identity_evidence_digest": "sha256:0c6dce3bc100288d1dd4c72897e6f96ee1cb2ce1291ddf0b7f52c1bcfb1a0cf3",
+      "provider": "Local deterministic software",
+      "validator_id": "actor:selected-result-validator-01"
+    },
+    "verifier_version": "1.0.0"
+  },
+  "provider": "Local deterministic software",
+  "qualification_authority": "none_selected_result_validation_only",
+  "reason_codes": [
+    "exact_independent_binding_match"
+  ],
+  "selected_result_binding_digest": "sha256:107dea573c3326492c6e908237dadf1acaac504358abfaee36893b7eb1563e4a",
+  "status": "verified_complete",
+  "validation_digest": "sha256:13e0af2d1692d10b88c95912052663e9d07e680e5c5cffcfc6e1ffddcf77ae6e",
+  "validation_version": "2.0.0",
+  "validator_id": "actor:selected-result-validator-01",
+  "verifier_version": "1.0.0"
+}

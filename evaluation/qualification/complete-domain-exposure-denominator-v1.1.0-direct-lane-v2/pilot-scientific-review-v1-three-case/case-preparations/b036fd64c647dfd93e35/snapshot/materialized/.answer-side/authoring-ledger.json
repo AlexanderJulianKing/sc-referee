@@ -1,0 +1,106 @@
+{
+  "artifact_kind": "direct_qualification_three_case_pilot_authoring_ledger",
+  "authoring_restart_amendment_digest": "sha256:fd92ebaad0655d55efa29600f12a9db583486bef7c99f306b66e7596bb44272e",
+  "completed_at": "2026-08-05T05:44:21Z",
+  "entries": [
+    {
+      "attempt_status": "admitted_after_frozen_render_and_static_intake",
+      "call_identity_id": "6dc30744-af29-5a6d-bd50-73ec07a54064",
+      "case_records": [
+        {
+          "author_declaration_digest": "sha256:c08156e0a334805e163b991233da81817901db78fb90d08405007ded7e7dbdc7",
+          "case_contract_digest": "sha256:a5353c43fb0dc996ceb4a91633c5bd273d638a68c9255fddb02cf8d81ac1a244",
+          "case_id": "case:2e26bf5ece15be03717f",
+          "case_manifest_digest": "sha256:6e372d6f19a550283fa9968a403e1b7f9f08b314c11822bf5f133aeaf7174f58",
+          "derivation_digest": "sha256:460752f4bc047bcfa39513f05e69a5c5108b9dceed361e1358b2b1d25c831e43",
+          "metric_eligible": true,
+          "render_grammar_profile_id": "authoring-render-only-v1",
+          "render_grammar_validation_digest": "sha256:c4421df024b00af5ff174427e964ec254892477635d07206ca18251e9fff2395",
+          "render_grammar_validation_status": "valid_render_only_producer",
+          "validation_digest": "sha256:6059d20ce2e6fa4b214bba63916caeb60b55ff6df9f7beb62c11cef9a86ffd60",
+          "validation_status": "verified_complete"
+        },
+        {
+          "author_declaration_digest": "sha256:9bce1fd88f244713f6eb0593c44605a501a2718c902f64c681c1b10df857a47d",
+          "case_contract_digest": "sha256:b051fdf5d459c672f364889a144d70250a5f15e7b445108c4f82f7187ce93020",
+          "case_id": "case:35069763f06891dba5a3",
+          "case_manifest_digest": "sha256:4241870964a9652d88bbfdcd9767ae547dd4090dcc2dac0f92e6eba551223cd6",
+          "derivation_digest": "sha256:e8858d3a3aeb323f67605a3027498ceee825b7c917bba96cfd0d17a7ded4e64e",
+          "metric_eligible": true,
+          "render_grammar_profile_id": "authoring-render-only-v1",
+          "render_grammar_validation_digest": "sha256:81040e756817550514c02ff1f19083a3ba8983fd26a7d9cfa7727238f3d0f301",
+          "render_grammar_validation_status": "valid_render_only_producer",
+          "validation_digest": "sha256:8adb8c3a36ddde7b46ec6dcfd1d1eeb83df2915b99ff8fb23db3938f774908c7",
+          "validation_status": "verified_complete"
+        }
+      ],
+      "completed_at": "2026-08-05T05:43:32.791Z",
+      "configuration_digest": "sha256:6408c9e39f80384209b782afbe9b7f791b3a60c2eec95bdb4e6362dfa7b25165",
+      "input_capture_digest": "sha256:cb5081820c7700e5bb67af1c5cf280a29f6f775dd24c1629c7183b49a414f50f",
+      "participant_id": "actor:pilot-author-claude-04",
+      "provider": "Anthropic",
+      "replacement_count": 0,
+      "response_digest": "sha256:c2ebf833e05ef0cebbbc819053269441f59c3637e208d8712e0ae454088de112",
+      "started_at": "2026-08-05T05:38:42.222Z"
+    },
+    {
+      "attempt_status": "admitted_after_frozen_render_and_static_intake",
+      "call_identity_id": "82114a76-c2aa-5f0f-b27e-d1642b911f30",
+      "case_records": [
+        {
+          "author_declaration_digest": "sha256:0580234244fdd9c9b0ff7627e1e2b36e27ec1d16ada3536d09125d15291dabe1",
+          "case_contract_digest": "sha256:01cc42f1125f1f8d795857b5b536a70312c6176d462bf938473e848474f75611",
+          "case_id": "case:b036fd64c647dfd93e35",
+          "case_manifest_digest": "sha256:b92c58956cb2e29576f0bcd1ae5f5b9c76695612654aca19844114af0b28bcdf",
+          "derivation_digest": "sha256:a96d80d42f17f3a0e16ebc12e32b36ccffc9ecdf3f024c17e23257c4c0c05761",
+          "metric_eligible": true,
+          "render_grammar_profile_id": "authoring-render-only-v1",
+          "render_grammar_validation_digest": "sha256:ca5ce1a6f0eb445571a6dfe2aff1880cda6333131d45835c120c959bfebea3c7",
+          "render_grammar_validation_status": "valid_render_only_producer",
+          "validation_digest": "sha256:13e0af2d1692d10b88c95912052663e9d07e680e5c5cffcfc6e1ffddcf77ae6e",
+          "validation_status": "verified_complete"
+        }
+      ],
+      "completed_at": "2026-08-05T05:37:23.495898Z",
+      "configuration_digest": "sha256:b2eafdcc0345391ca88d1b9428a415871926c5b3234735a515740d2573a265e2",
+      "input_capture_digest": "sha256:411c474f2cd0ff2409bc94a73a816ce2e49e613f919457288f31e0702ea51492",
+      "participant_id": "actor:pilot-author-codex-04",
+      "provider": "OpenAI",
+      "replacement_count": 0,
+      "response_digest": "sha256:aca88ca3af29cc7b6e895f0c0c8dce11d2ae5a9ac07bfd62c15b4b25d3bec3f9",
+      "started_at": "2026-08-05T05:36:49.400889Z"
+    }
+  ],
+  "ledger_digest": "sha256:6487d1b7cccfb1fdb90fc080b93ea84233b3f81543d17e7ac3a99f30f3270ebc",
+  "ledger_version": "4.0.0",
+  "protocol_digest": "sha256:2a853080b2e2faace3f6bfdfe440843e1023c199f02b3cee27d32ee70eaf307f",
+  "qualification_authority": "none_authoring_ledger_only",
+  "render_grammar_profile_id": "authoring-render-only-v1",
+  "schedule": {
+    "author_frozen_at": "2026-08-05T05:44:15Z",
+    "compared_at": "2026-08-05T05:44:21Z",
+    "contract_frozen_at": "2026-08-05T05:44:17Z",
+    "coordinated_at": "2026-08-05T05:44:16Z",
+    "declaration_revealed_at": "2026-08-05T05:44:20Z",
+    "derivation_frozen_at": "2026-08-05T05:44:19Z",
+    "derived_at": "2026-08-05T05:44:18Z"
+  },
+  "summary": {
+    "admitted_attempt_count": 2,
+    "assigned_author_context_count": 2,
+    "author_declaration_count": 3,
+    "authored_case_count": 3,
+    "detector_outcome_count": 0,
+    "metric_eligible_case_count": 3,
+    "model_attempt_count": 2,
+    "render_grammar_valid_case_count": 3,
+    "scientific_label_count": 0,
+    "verified_selected_result_count": 3
+  },
+  "validator_identity": {
+    "execution_context_id": "context:selected-result-validator-v2",
+    "identity_evidence_digest": "sha256:0c6dce3bc100288d1dd4c72897e6f96ee1cb2ce1291ddf0b7f52c1bcfb1a0cf3",
+    "provider": "Local deterministic software",
+    "validator_id": "actor:selected-result-validator-01"
+  }
+}

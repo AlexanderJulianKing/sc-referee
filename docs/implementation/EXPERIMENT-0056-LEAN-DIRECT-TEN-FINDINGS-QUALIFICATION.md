@@ -1,7 +1,7 @@
 # Experiment 0056: Lean direct ten-Findings qualification
 
-- **Status:** Active frozen first-envelope lane; first three-case authoring intake failed with zero
-  metric-eligible cases
+- **Status:** Active first-envelope pilot; three cases admitted and Stage-1 review frozen but not
+  started
 - **Date:** 2026-08-04
 - **Supersedes:** Experiment 0055 as the delivery-path qualification design
 - **Production impact:** None until an exact detector envelope completes pilot, held-out,
@@ -138,7 +138,7 @@ development matrix and two qualification-ineligible, independently renamed posit
 - [x] Seal the seven held-out assignments before any pilot label or detector outcome exists.
 - [x] Freeze the pre-exposure pilot-scope amendment and retain the four excluded assignments as
   unopened and metric-ineligible.
-- [ ] Author and retain the three-case pilot causal triad without replacement.
+- [x] Author and retain the three-case pilot causal triad without replacement.
 - [ ] Complete the required 4+2 blinded review panel and freeze resolved labels.
 - [ ] Run and replay the frozen detector on all three pilot opportunities.
 - [ ] Use pilot results to accept a numeric threshold ADR and forward schema capable of representing
@@ -284,6 +284,16 @@ code was not executed. The complete cohort is admitted with three metric-eligibl
 opportunities and still has zero scientific labels and zero detector outcomes. This completes the
 authoring, declaration-freeze, and independent selected-result rederivation prerequisites only; it
 does not supply a scientific verdict, detector result, qualification decision, or Finding.
+
+Before any reviewer case exposure, Stage-1 protocol digest
+`sha256:d9f3a84d205b2fa58d3abb38486f2068d4efd8a33526b4d1f35a2419a72d7d6b`
+freezes three content-addressed blind workspaces, twelve case-specific packets, four calibrated
+reviewer configurations, four exact batch prompts and output schemas, per-reviewer opaque case
+orders, write-once capture destinations, and fail-closed response projection. Each case still
+receives two independent reviews from each of two provider families. Batching reduces transport
+to four model calls but is explicitly disclosed as cross-case-dependent: every reviewer sees all
+three opaque cases and is instructed not to compare them or infer their roles. No review call,
+scientific label, detector outcome, qualification decision, or Finding existed at this freeze.
 
 ## Stop conditions
 

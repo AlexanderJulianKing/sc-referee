@@ -1,0 +1,30 @@
+{
+  "artifact_kind": "direct_qualification_retained_author_case_manifest",
+  "author_configuration_digest": "sha256:6408c9e39f80384209b782afbe9b7f791b3a60c2eec95bdb4e6362dfa7b25165",
+  "author_declaration_digest": "sha256:9bce1fd88f244713f6eb0593c44605a501a2718c902f64c681c1b10df857a47d",
+  "author_id": "actor:pilot-author-claude-04",
+  "case_id": "case:35069763f06891dba5a3",
+  "files": [
+    {
+      "content_digest": "sha256:677e37c8872b200740f68242d8c14d8b73bed0a5580c7d6db088f4b4abf944ce",
+      "line_count": 97,
+      "path": "inputs/data.csv",
+      "role": "input"
+    },
+    {
+      "content_digest": "sha256:fdf746fa07882b54fb97af59f39ef4bcf77889e65fa9458b06849926877f63cf",
+      "line_count": 18,
+      "path": "results/report.md",
+      "role": "report"
+    },
+    {
+      "content_digest": "sha256:1ff80e95dcdd7321a4261aca65c201d9ee782dda7090177273c5270d2856b792",
+      "line_count": 27,
+      "path": "workflow/analysis.py",
+      "role": "producer"
+    }
+  ],
+  "manifest_digest": "sha256:4241870964a9652d88bbfdcd9767ae547dd4090dcc2dac0f92e6eba551223cd6",
+  "manifest_version": "1.0.0",
+  "qualification_authority": "none_retained_author_case_only"
+}
