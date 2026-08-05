@@ -275,3 +275,48 @@ def test_aggregate_calibration_preserves_retained_and_new_evidence(
     assert "scientific_label" not in aggregate
     assert "detector_outcome" not in aggregate
     assert "finding" not in aggregate
+
+
+def test_third_calibration_retains_three_claude_authentication_failures(
+    project_root: Path,
+) -> None:
+    root = project_root / CALIBRATION_RELATIVE
+    ledger = _load(root / "CALIBRATION_LEDGER.json")
+    supplied = ledger.pop("ledger_digest")
+
+    assert supplied == semantic_digest(ledger)
+    assert supplied == ("sha256:375265c9dc05186c74c58c4658c20a2877011db476bcebc0a7281658a54f2893")
+    assert ledger["summary"] == {
+        "assigned_reviewer_count": 3,
+        "retained_attempt_count": 3,
+        "passed_count": 0,
+        "failed_count": 3,
+        "all_assigned_attempts_retained": True,
+        "replacement_count": 0,
+        "all_reviewer_configurations_passed": False,
+    }
+    assert all(entry["provider"] == "Anthropic" for entry in ledger["entries"])
+    assert all(entry["provider_cli_exit_code"] == 1 for entry in ledger["entries"])
+    assert all(entry["provider_cli_authenticated_success"] is False for entry in ledger["entries"])
+    assert all(entry["calibration_status"] == "failed" for entry in ledger["entries"])
+    assert all(entry["response_digest"] is None for entry in ledger["entries"])
+
+    aggregate = _load(root / "AGGREGATE_CALIBRATION_LEDGER.json")
+    aggregate_digest = aggregate.pop("ledger_digest")
+    assert aggregate_digest == semantic_digest(aggregate)
+    assert aggregate_digest == (
+        "sha256:3da48f5fead855cd4685448f2f550b71b77ec1e366737381429c3874e00b9fa5"
+    )
+    assert aggregate["summary"] == {
+        "expected_reviewer_count": 6,
+        "active_configuration_evidence_count": 6,
+        "retained_v2_pass_count": 3,
+        "new_v3_attempt_count": 3,
+        "active_passed_count": 3,
+        "active_failed_count": 3,
+        "historical_attempt_count_across_protocols": 15,
+        "historical_failed_attempt_count": 12,
+        "current_protocol_replacement_count": 0,
+        "all_active_reviewer_configurations_passed": False,
+    }
+    assert aggregate["qualification_authority"] == "none_reviewer_calibration_only"

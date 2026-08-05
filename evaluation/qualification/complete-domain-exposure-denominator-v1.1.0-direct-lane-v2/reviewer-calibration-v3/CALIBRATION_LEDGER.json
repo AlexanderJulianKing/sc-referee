@@ -1,0 +1,128 @@
+{
+  "artifact_kind": "direct_qualification_reviewer_calibration_ledger",
+  "entries": [
+    {
+      "calibration_evaluation": {
+        "calibration_case_set_complete": false,
+        "exact_expected_verdict_count": 0,
+        "invented_material_premise_count": 0,
+        "pass": false,
+        "reason_codes": [
+          "provider_call_failed",
+          "provider_reported_error",
+          "missing_reported_session_id",
+          "provider_cli_exit_code:1"
+        ],
+        "structured_output_schema_valid": false
+      },
+      "calibration_status": "failed",
+      "call_identity_id": "22c0699e-08db-5d9c-82a1-6958b486fecb",
+      "completed_at": "2026-08-05T00:18:41.138758Z",
+      "configuration_digest": "sha256:6aa6d579660602810a368ec40362f6e1c1de23e85439f8387d230ca1975f995b",
+      "execution_context_id": "context:stage1-claude-01-calibrated-v2",
+      "invocation_digest": "sha256:758080e833a3ce721eeb2c4ccb875726b1cadda41d71b6924c103cdc8ebca354",
+      "model_id": "claude-opus-5",
+      "parse_error": null,
+      "participant_id": "actor:stage1-claude-01",
+      "provider": "Anthropic",
+      "provider_cli_authenticated_success": false,
+      "provider_cli_exit_code": 1,
+      "provider_is_error": true,
+      "provider_model_usage": null,
+      "provider_result_subtype": null,
+      "provider_usage": null,
+      "reported_session_id": null,
+      "requested_provider_session_id": "22c0699e-08db-5d9c-82a1-6958b486fecb",
+      "response_digest": null,
+      "role": "stage1_reviewer",
+      "transcript_digest": "sha256:c9826ed43b7dc1bda16b0d32b9ee91df9059a413b4799016c1a987f33ccd0db9"
+    },
+    {
+      "calibration_evaluation": {
+        "calibration_case_set_complete": false,
+        "exact_expected_verdict_count": 0,
+        "invented_material_premise_count": 0,
+        "pass": false,
+        "reason_codes": [
+          "provider_call_failed",
+          "provider_reported_error",
+          "missing_reported_session_id",
+          "provider_cli_exit_code:1"
+        ],
+        "structured_output_schema_valid": false
+      },
+      "calibration_status": "failed",
+      "call_identity_id": "13bbc53c-fd63-5b3f-9b68-0974165f8af8",
+      "completed_at": "2026-08-05T00:18:40.779792Z",
+      "configuration_digest": "sha256:6fcc3ea4a090b31893638537d39ee78cdef1eef8a111690918b477ba4351f0fb",
+      "execution_context_id": "context:stage1-claude-02-calibrated-v2",
+      "invocation_digest": "sha256:399c4cb884f0e6be6c25ffddf39b1f665fe20f23815aeaafe841ad40ac2dcca5",
+      "model_id": "claude-opus-5",
+      "parse_error": null,
+      "participant_id": "actor:stage1-claude-02",
+      "provider": "Anthropic",
+      "provider_cli_authenticated_success": false,
+      "provider_cli_exit_code": 1,
+      "provider_is_error": true,
+      "provider_model_usage": null,
+      "provider_result_subtype": null,
+      "provider_usage": null,
+      "reported_session_id": null,
+      "requested_provider_session_id": "13bbc53c-fd63-5b3f-9b68-0974165f8af8",
+      "response_digest": null,
+      "role": "stage1_reviewer",
+      "transcript_digest": "sha256:ce7f226f92e21e2de72b6eebd50b5fff12001424c0c988a7c29624fcf3a0e45a"
+    },
+    {
+      "calibration_evaluation": {
+        "calibration_case_set_complete": false,
+        "exact_expected_verdict_count": 0,
+        "invented_material_premise_count": 0,
+        "pass": false,
+        "reason_codes": [
+          "provider_call_failed",
+          "provider_reported_error",
+          "missing_reported_session_id",
+          "provider_cli_exit_code:1"
+        ],
+        "structured_output_schema_valid": false
+      },
+      "calibration_status": "failed",
+      "call_identity_id": "5b9b47c0-a895-55f7-a705-b9a0ad7fa4ee",
+      "completed_at": "2026-08-05T00:18:40.914900Z",
+      "configuration_digest": "sha256:0efbb4aa577adfcb87435ec3c2d900c21874f5b2e3470321900bc185561e8fd8",
+      "execution_context_id": "context:stage2-claude-01-calibrated-v2",
+      "invocation_digest": "sha256:e85d9ff01cca04cba0c9326b97b3dca132d00a253b5faa402f61207900e1b97c",
+      "model_id": "claude-opus-5",
+      "parse_error": null,
+      "participant_id": "actor:stage2-claude-01",
+      "provider": "Anthropic",
+      "provider_cli_authenticated_success": false,
+      "provider_cli_exit_code": 1,
+      "provider_is_error": true,
+      "provider_model_usage": null,
+      "provider_result_subtype": null,
+      "provider_usage": null,
+      "reported_session_id": null,
+      "requested_provider_session_id": "5b9b47c0-a895-55f7-a705-b9a0ad7fa4ee",
+      "response_digest": null,
+      "role": "stage2_reviewer",
+      "transcript_digest": "sha256:9d58781839a565c02ae2a02117919fcbaddce714f3d46d9248e8dd04d7facd40"
+    }
+  ],
+  "ledger_digest": "sha256:375265c9dc05186c74c58c4658c20a2877011db476bcebc0a7281658a54f2893",
+  "ledger_version": "1.0.0",
+  "participant_enrollment_digest": "sha256:c29bdc3c277b840c2bf9b4369f69181190663530467926ccfdfb24407eff0016",
+  "protocol_digest": "sha256:dc359b6884308ecc02b391d499f22c784bed5e71f258c8420eab95dae8dc4cc7",
+  "qualification_authority": "none_reviewer_calibration_only",
+  "sealed_at": "2026-08-05T00:18:41.140981Z",
+  "summary": {
+    "all_assigned_attempts_retained": true,
+    "all_reviewer_configurations_passed": false,
+    "assigned_reviewer_count": 3,
+    "failed_count": 3,
+    "passed_count": 0,
+    "replacement_count": 0,
+    "retained_attempt_count": 3
+  }
+}

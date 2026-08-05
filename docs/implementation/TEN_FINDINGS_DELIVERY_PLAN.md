@@ -290,15 +290,19 @@ maintainer decision; there is no family-wide or portfolio-wide implied authority
 
 ## Immediate next unchecked item
 
-Freeze and execute a Claude-only calibration protocol v3 with three new call identities, retaining
-the three exact Codex passes and three pre-inference Claude failures from protocol v2. Aggregate the
-six reviewer configurations only if every new Claude response passes the frozen rubric. Retain exact
-prompts, outputs, identities, execution contexts, and transcript digests. Then open only the seven-case
-pilot author briefs, authenticate their six frozen author contexts, and author all seven pilot
-workflows without replacement. Freeze each truthful author-only selected-result declaration before
-any scientific review. Preserve the stopped Experiment 0055 machinery as non-qualifying
-development evidence, but perform no further cryptographic-registrar, distribution-`RECORD`,
-hostile-importer, separate 96-case verifier-study, or filesystem-relocation work.
+Retain protocol v3's three pre-inference Claude Code authentication failures, then make one
+pre-case enrollment amendment replacing only those three unauthenticated CLI reviewer
+configurations with three isolated Claude desktop-app Opus 5 contexts. Freeze and execute an
+app-only calibration protocol with fresh opaque context identities while retaining the three exact
+Codex passes. Aggregate the six active reviewer configurations only if every app response passes
+the unchanged frozen rubric. Retain exact prompts, outputs, identities, execution contexts, and
+transcript digests. Then freeze a minimal pilot-authoring protocol and expose only the seven pilot
+author-visible brief projections to their six frozen author contexts; do not expose the held-out
+block or controller metadata. Author all seven pilot workflows without replacement and freeze each
+truthful author-only selected-result declaration before any scientific review. Preserve the stopped
+Experiment 0055 machinery as non-qualifying development evidence, but perform no further
+cryptographic-registrar, distribution-`RECORD`, hostile-importer, separate 96-case verifier-study,
+or filesystem-relocation work.
 
 Do not reduce the accepted 4+2 scientific review panel, open held-out material before a
 pilot-informed threshold ADR, or bypass the forward-schema requirement for promotion. Do not
@@ -502,6 +506,27 @@ perform unrelated capability expansion before the complete first pilot is retain
   Claude-only v3 protocol must remove only the rejected schema metadata, use new call identities,
   and bind these retained outcomes before the panel can be aggregated.
 
+### 2026-08-04 — Reviewer calibration protocol v3 authentication failures retained
+
+- Claude-only protocol v3 was frozen before calls at digest
+  `sha256:dc359b6884308ecc02b391d499f22c784bed5e71f258c8420eab95dae8dc4cc7`.
+  It replayed the v1 and v2 ledgers, retained the three exact Codex passes, removed only the
+  unsupported schema identifier, and assigned three fresh Claude call identities.
+- All three Claude Code calls terminated before inference with zero model tokens because the local
+  OAuth session had expired and could not be refreshed. The CLI subsequently reported
+  `loggedIn: false`; this is an authentication failure, not a calibration verdict.
+- The immutable v3 ledger digest is
+  `sha256:375265c9dc05186c74c58c4658c20a2877011db476bcebc0a7281658a54f2893`.
+  The aggregate ledger digest is
+  `sha256:3da48f5fead855cd4685448f2f550b71b77ec1e366737381429c3874e00b9fa5`;
+  it reports three active Codex passes, three active Claude failures, and all 15 attempts across
+  the three retained protocols. It has no scientific-label, qualification, promotion, or Finding
+  authority.
+- Because no scientific case or author brief has been exposed, the three unauthenticated Claude
+  CLI reviewer configurations may be replaced prospectively by exact authenticated Claude
+  desktop-app configurations through one explicit enrollment amendment. The original enrollment,
+  calls, and failure ledgers remain immutable.
+
 ## Evidence log
 
 | Date | Change | Evidence | Checkboxes changed |
@@ -514,3 +539,4 @@ perform unrelated capability expansion before the complete first pilot is retain
 | 2026-08-04 | Froze the exact first-envelope participant configurations, blind author briefs, fourteen no-replacement assignments, and seven-case held-out seal; superseded one unexposed prompt-conflicted lane before use. | Replacement enrollment digest `sha256:c29bdc3c277b840c2bf9b4369f69181190663530467926ccfdfb24407eff0016`; brief digest `sha256:7133cb96256ab17a7eff58efa4d2b9a97dc9c2addac575a3ec03b830c869ec8e`; lane digest `sha256:c58ee57c01d5f7c46855eb9f554d0a476f664e44edbdd7e15679bd53d72fa12b`; zero-exposure supersession digest `sha256:b4035359abb43bc83850751ca5cc05f513754e4b50c61fe73998536b39e81ea1`. | Five first-envelope Gate 2 freeze/seal items checked; participant authentication, `Frozen`, qualification, promotion, product, and scores remain incomplete. |
 | 2026-08-04 | Retained six calibration transport failures that occurred before any reviewer response, then froze a corrected protocol with new call identities. | Failed protocol digest `sha256:c7b28df0840b278af5d80838842f5b42104d225eac4759a5a62df9e377b30bd0`; failure-ledger digest `sha256:ea070181d537a6c939bf2328ae75d5be1c697cff38a0f3e31e074ac04651c795`; corrected protocol digest `sha256:b2875a535a1cbf86dffb1fb696c3b05bbc28dd9b5d67a0d82cbb5ed881864aad`. | No checkbox or score changed; reviewer calibration and authentication remain incomplete. |
 | 2026-08-04 | Retained three exact Codex calibration passes and three Claude pre-inference schema-transport failures from protocol v2. | Protocol-v2 ledger digest `sha256:253b3fa6283c91e66442a3c9fe42f9f100754bd9aeb4e88e53564c96288e2bf3`; exact response and transcript captures for all six assignments. | Three of six reviewer configurations have passing calibration evidence; the aggregate authentication item and all scores remain incomplete. |
+| 2026-08-04 | Retained three Claude Code authentication failures from protocol v3 and selected an explicit pre-case desktop-app amendment rather than treating them as calibration misses or retries. | Protocol digest `sha256:dc359b6884308ecc02b391d499f22c784bed5e71f258c8420eab95dae8dc4cc7`; v3 ledger digest `sha256:375265c9dc05186c74c58c4658c20a2877011db476bcebc0a7281658a54f2893`; aggregate digest `sha256:3da48f5fead855cd4685448f2f550b71b77ec1e366737381429c3874e00b9fa5`. | No checkbox or score changed; three active reviewer configurations remain uncalibrated. |

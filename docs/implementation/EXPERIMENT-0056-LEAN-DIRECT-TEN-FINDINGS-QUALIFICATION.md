@@ -153,9 +153,14 @@ and direct-lane freeze digest
 An earlier zero-exposure lane was superseded before authentication or author access because its
 author prompt mentioned a README that conflicts with the comparator's exact case-tree grammar; its
 bytes and supersession record remain retained and cannot contribute evidence.
-The enrollment is declared-not-authenticated, all six reviewer configurations remain calibration-
-gated, and the sealed author briefs have not been exposed. These freezes create no scientific
-label, metric, qualification, promotion, or Finding authority.
+The enrollment is declared-not-authenticated and the sealed author briefs have not been exposed.
+Three Codex reviewer configurations have exact passing calibration evidence. Three frozen Claude
+Code calibration attempts in protocol v3 terminated before inference because local OAuth had
+expired; their immutable failures will be retained. Before any case exposure, one prospective
+amendment may replace only those unauthenticated Claude CLI configurations with three exact,
+isolated Claude desktop-app Opus 5 contexts. The amended configurations must pass the unchanged
+calibration suite before any author brief is opened. These freezes and calibration records create
+no scientific label, metric, qualification, promotion, or Finding authority.
 
 ## Stop conditions
 
