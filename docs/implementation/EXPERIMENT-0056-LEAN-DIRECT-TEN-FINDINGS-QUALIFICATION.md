@@ -1,7 +1,7 @@
 # Experiment 0056: Lean direct ten-Findings qualification
 
-- **Status:** Active first-envelope pilot; three cases admitted and Stage-1 review frozen but not
-  started
+- **Status:** Active first-envelope pilot; three cases admitted, Stage-1 frozen, and two retained
+  Codex pre-inference transport failures awaiting a prospective recovery amendment
 - **Date:** 2026-08-04
 - **Supersedes:** Experiment 0055 as the delivery-path qualification design
 - **Production impact:** None until an exact detector envelope completes pilot, held-out,
@@ -294,6 +294,17 @@ receives two independent reviews from each of two provider families. Batching re
 to four model calls but is explicitly disclosed as cross-case-dependent: every reviewer sees all
 three opaque cases and is instructed not to compare them or infer their roles. No review call,
 scientific label, detector outcome, qualification decision, or Finding existed at this freeze.
+
+The two frozen Codex Stage-1 transports were subsequently submitted once. Both requests ended
+before model inference with HTTP 400 `invalid_json_schema`: the response-format service rejected
+the frozen schema's `allOf` keyword at `reviews.items`. Both exact stdout, stderr, empty final
+response, and process-capture records are retained. Failure-ledger digest
+`sha256:8ab75e78a52d476d395f11f8dfa46d54cd2371309c17db3d7210e7a984039787`
+records zero reviewer responses, zero admitted reviews, zero labels, and zero detector outcomes.
+This is neither a scientific verdict nor a case failure. The frozen prompts and exact local
+semantic schema remain unchanged; any recovery must first bind this failure in a prospective
+transport-only amendment and use fresh call and context identities. The Claude Stage-1 calls have
+not started.
 
 ## Stop conditions
 
