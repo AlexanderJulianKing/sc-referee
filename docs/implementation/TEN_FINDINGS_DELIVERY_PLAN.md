@@ -658,6 +658,13 @@ perform unrelated capability expansion before the complete first pilot is retain
   final-response bytes. No reviewer response or review was admitted. The Claude calls remain
   unstarted. Any Codex recovery requires a prospective transport-only amendment, fresh call and
   context identities, the identical prompt bytes, and unchanged local semantic validation.
+- Codex transport-recovery amendment digest
+  `sha256:b3340cea084f9293cb24e9ad95cd64b494a2b436ce8bcb3c273f6455dd61ec85`
+  is now frozen before recovery. It binds the retained failure ledger, two fresh transport-call and
+  ephemeral-context identities, parallel submission, identical prompt and packet digests, and the
+  unchanged full semantic schemas. Its only transport delta omits Codex's unsupported API
+  `--output-schema` argument; those exact schemas remain embedded in the prompts and required by
+  the existing local fail-closed validator. No recovery call or Claude call existed at this freeze.
 
 ## Evidence log
 
@@ -684,3 +691,4 @@ perform unrelated capability expansion before the complete first pilot is retain
 | 2026-08-04 | Executed both frozen v4 calls once and atomically admitted the complete verifier-valid three-case cohort. | Authoring ledger `sha256:6487d1b7cccfb1fdb90fc080b93ea84233b3f81543d17e7ac3a99f30f3270ebc`; exact capture digests `sha256:cb5081820c7700e5bb67af1c5cf280a29f6f775dd24c1629c7183b49a414f50f` and `sha256:411c474f2cd0ff2409bc94a73a816ce2e49e613f919457288f31e0702ea51492`; 24 focused grammar/freeze/intake/replay controls. | Gate 3 authoring, declaration-freeze, and independent selected-result rederivation items checked; scientific review, detector evaluation, qualification, promotion, product, and scores remain incomplete. |
 | 2026-08-04 | Froze the complete three-case Stage-1 review boundary before any reviewer exposure. | Protocol `sha256:d9f3a84d205b2fa58d3abb38486f2068d4efd8a33526b4d1f35a2419a72d7d6b`; three content-addressed blind workspaces; twelve case packets; four frozen batch prompts; 23 focused review/workspace/admission tests. | No checklist or score changed; Stage-1 calls remain unexecuted and labels/outcomes remain zero. |
 | 2026-08-04 | Retained both first Codex Stage-1 attempts as pre-inference response-schema transport failures. | Failure ledger `sha256:8ab75e78a52d476d395f11f8dfa46d54cd2371309c17db3d7210e7a984039787`; process captures `sha256:beb689d9a797953864145ba126a5d877dfd2e79d705d6ec0649fc2873f5dd5fe` and `sha256:ca445a569f59cda7500fe482d9a4cb94b0a264211b9f2261e039059b9bd1fff6`; three focused replay/retention controls. | No checkbox or score changed; zero reviewer responses and zero reviews were admitted. |
+| 2026-08-04 | Froze a transport-only Codex Stage-1 recovery before retry. | Amendment `sha256:b3340cea084f9293cb24e9ad95cd64b494a2b436ce8bcb3c273f6455dd61ec85`; fresh transport identities `44476f5d-fbd9-5991-8563-54789aed4dae` and `f8aebee9-8d10-5695-89cd-fc7743802982`; identical prompt, packet, participant, and local semantic-schema bindings; six focused recovery/failure controls. | No checkbox or score changed; recovery and Claude calls remain unexecuted. |

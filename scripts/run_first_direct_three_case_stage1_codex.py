@@ -35,7 +35,55 @@ def _load(path: Path) -> dict[str, Any]:
     return value
 
 
-def _run_one(project_root: Path, call: dict[str, Any], base_prompt: str) -> dict[str, Any]:
+def _codex_argv(
+    call: dict[str, Any],
+    base_prompt: str,
+    working: Path,
+    schema_path: Path,
+    final_path: Path,
+    *,
+    enforce_output_schema: bool,
+) -> list[str]:
+    argv = [
+        str(CODEX),
+        "--model",
+        str(call["participant"]["model_id"]),
+        "--sandbox",
+        "read-only",
+        "--ask-for-approval",
+        "never",
+        "--config",
+        f'model_reasoning_effort="{call["participant"]["reasoning_configuration"]}"',
+        "--config",
+        f"developer_instructions={json.dumps(base_prompt)}",
+        "exec",
+        "--ephemeral",
+        "--ignore-user-config",
+        "--ignore-rules",
+        "--skip-git-repo-check",
+    ]
+    if enforce_output_schema:
+        argv.extend(["--output-schema", str(schema_path)])
+    argv.extend(
+        [
+            "--json",
+            "--output-last-message",
+            str(final_path),
+            "--cd",
+            str(working),
+            str(call["prompt"]),
+        ]
+    )
+    return argv
+
+
+def _run_one(
+    project_root: Path,
+    call: dict[str, Any],
+    base_prompt: str,
+    *,
+    enforce_output_schema: bool = True,
+) -> dict[str, Any]:
     participant_id = str(call["participant_id"])
     started_at = _now()
     environment = dict(os.environ)
@@ -45,32 +93,14 @@ def _run_one(project_root: Path, call: dict[str, Any], base_prompt: str) -> dict
         schema_path = working / "output-schema.json"
         schema_path.write_text(json.dumps(call["output_schema"], sort_keys=True), encoding="utf-8")
         final_path = working / "final-response.json"
-        argv = [
-            str(CODEX),
-            "--model",
-            str(call["participant"]["model_id"]),
-            "--sandbox",
-            "read-only",
-            "--ask-for-approval",
-            "never",
-            "--config",
-            f'model_reasoning_effort="{call["participant"]["reasoning_configuration"]}"',
-            "--config",
-            f"developer_instructions={json.dumps(base_prompt)}",
-            "exec",
-            "--ephemeral",
-            "--ignore-user-config",
-            "--ignore-rules",
-            "--skip-git-repo-check",
-            "--output-schema",
-            str(schema_path),
-            "--json",
-            "--output-last-message",
-            str(final_path),
-            "--cd",
-            str(working),
-            str(call["prompt"]),
-        ]
+        argv = _codex_argv(
+            call,
+            base_prompt,
+            working,
+            schema_path,
+            final_path,
+            enforce_output_schema=enforce_output_schema,
+        )
         try:
             completed = subprocess.run(
                 argv,

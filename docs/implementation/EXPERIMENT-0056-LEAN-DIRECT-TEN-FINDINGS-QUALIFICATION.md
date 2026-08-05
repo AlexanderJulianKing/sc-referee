@@ -1,7 +1,7 @@
 # Experiment 0056: Lean direct ten-Findings qualification
 
-- **Status:** Active first-envelope pilot; three cases admitted, Stage-1 frozen, and two retained
-  Codex pre-inference transport failures awaiting a prospective recovery amendment
+- **Status:** Active first-envelope pilot; three cases admitted, Stage-1 frozen, two retained Codex
+  pre-inference transport failures, and transport-only recovery frozen but not started
 - **Date:** 2026-08-04
 - **Supersedes:** Experiment 0055 as the delivery-path qualification design
 - **Production impact:** None until an exact detector envelope completes pilot, held-out,
@@ -305,6 +305,16 @@ This is neither a scientific verdict nor a case failure. The frozen prompts and 
 semantic schema remain unchanged; any recovery must first bind this failure in a prospective
 transport-only amendment and use fresh call and context identities. The Claude Stage-1 calls have
 not started.
+
+Transport-recovery amendment digest
+`sha256:b3340cea084f9293cb24e9ad95cd64b494a2b436ce8bcb3c273f6455dd61ec85`
+is now frozen before retry. It creates two fresh transport-attempt identities and two fresh
+ephemeral-context identities while retaining the original semantic call identities. The prompt
+bytes, case orders, packet digests, participant configurations, and full semantic schemas are
+unchanged. The only delta removes the unsupported Codex API `--output-schema` argument; each exact
+schema remains embedded in its frozen prompt, and the unchanged local projector must validate the
+entire response before any review can be captured. The two recovery calls are prospectively
+parallel and unstarted at this freeze.
 
 ## Stop conditions
 
