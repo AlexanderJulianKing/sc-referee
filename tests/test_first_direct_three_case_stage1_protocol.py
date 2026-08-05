@@ -26,6 +26,9 @@ from scripts.build_first_direct_three_case_stage1_protocol import (
     VISIBLE_FILES,
     build_first_direct_three_case_stage1_protocol,
 )
+from scripts.capture_first_direct_three_case_stage1_claude_app import (
+    build_claude_app_stage1_capture,
+)
 from scripts.record_first_direct_three_case_stage1_reviews import (
     build_stage1_call_capture,
     validate_stage1_call_capture,
@@ -328,3 +331,30 @@ def test_stage1_raw_call_capture_validates_without_writing_reviews() -> None:
     )
     with pytest.raises(ValueError, match="semantic payload is invalid"):
         validate_stage1_call_capture(PROJECT_ROOT, wrong_capture)
+
+
+def test_claude_app_capture_wrapper_binds_frozen_ui_profile() -> None:
+    capture = build_claude_app_stage1_capture(
+        PROJECT_ROOT,
+        "actor:stage1-claude-01",
+        b"{}",
+        started_at="2026-08-05T06:49:52.823Z",
+        completed_at="2026-08-05T06:54:32.971Z",
+        captured_at="2026-08-05T06:55:00Z",
+    )
+    assert capture["participant_id"] == "actor:stage1-claude-01"
+    assert capture["transport"]["incognito"] is True
+    assert capture["transport"]["model_ui_label"] == "Opus 5"
+    assert capture["transport"]["effort_ui_label"] == "Extra"
+    assert capture["transport"]["tools_or_connectors"] == "none"
+    assert capture["transport"]["visible_tool_call_count"] == 0
+
+    with pytest.raises(ValueError, match="not a frozen Claude"):
+        build_claude_app_stage1_capture(
+            PROJECT_ROOT,
+            "actor:stage1-codex-01",
+            b"{}",
+            started_at="2026-08-05T06:49:52.823Z",
+            completed_at="2026-08-05T06:54:32.971Z",
+            captured_at="2026-08-05T06:55:00Z",
+        )
