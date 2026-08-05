@@ -1,0 +1,47 @@
+{
+  "amendment_digest": "sha256:41a274b59e79712216d3b2602758b757ca0c86767837e0e385d7344fd53039bc",
+  "amendment_version": "1.0.0",
+  "artifact_kind": "direct_qualification_three_case_authoring_restart_amendment",
+  "detector_outcome_count_at_freeze": 0,
+  "excluded_pilot_brief_access_permitted": false,
+  "failed_authoring_ledger_digest": "sha256:b1a0bcdaf9aa9a7fc2970bd94c510ac9b8ac5475e0e90d5ce7d4f39a540a58f6",
+  "failed_case_bytes_repaired_or_reused": false,
+  "failed_iteration_retained": true,
+  "failed_selected_result_intake_ledger_digest": "sha256:ee9ee169fe6b6970ea2a85565750f6e99a34273b4d0f3a0f9ab02bb6d34cffeb",
+  "frozen_at": "2026-08-05T02:24:00Z",
+  "heldout_brief_access_permitted": false,
+  "lane_freeze_digest": "sha256:c58ee57c01d5f7c46855eb9f554d0a476f664e44edbdd7e15679bd53d72fa12b",
+  "other_envelopes_authorized": false,
+  "producer_grammar_instructions_changed": true,
+  "qualification_authority": "none_authoring_restart_amendment_only",
+  "restart_assignments": [
+    {
+      "author_id": "actor:pilot-author-claude-02",
+      "author_visible_brief_digest": "sha256:f962c01f7b4ad28066a718bcc58a82670425d6e1a57b567f927aa44b4f7686ab",
+      "case_id": "case:8fa6b99599818de04119",
+      "cell_type": "corrected_twin",
+      "reference_case_id": "case:9a291d99489a2abddf35",
+      "superseded_failed_case_id": "case:345133226e9fc72a32b0"
+    },
+    {
+      "author_id": "actor:pilot-author-codex-02",
+      "author_visible_brief_digest": "sha256:efaab290be2a59448d8ee9b1866f2ea546462bdb4b0d7687c2d24571b953ad49",
+      "case_id": "case:934c694429d17ea80f7e",
+      "cell_type": "valid_alternative",
+      "reference_case_id": null,
+      "superseded_failed_case_id": "case:72678038fd451aac236a"
+    },
+    {
+      "author_id": "actor:pilot-author-claude-02",
+      "author_visible_brief_digest": "sha256:e487a05844c0108c08cefa54e76ba379cc16927f583f517dccf08c2fe51e6076",
+      "case_id": "case:9a291d99489a2abddf35",
+      "cell_type": "error_bearing",
+      "reference_case_id": null,
+      "superseded_failed_case_id": "case:c5e5a75d42962d2e95a3"
+    }
+  ],
+  "restart_reason": "All first-iteration cases failed the frozen selected-result grammar before review; restart with new opaque identities and grammar-only author instructions.",
+  "scientific_briefs_changed": false,
+  "scientific_label_count_at_freeze": 0,
+  "source_commit": "d508a939adfb02f3d5c6e3ee59a369df93c19df6"
+}
