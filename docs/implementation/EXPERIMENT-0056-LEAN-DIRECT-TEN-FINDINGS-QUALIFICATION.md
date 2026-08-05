@@ -255,6 +255,21 @@ fresh opaque identities and contexts, preserve the scientific briefs and detecto
 remove the ambiguity by allowing only the verifier's small render-only expression grammar after
 the exact five-line input-binding prefix.
 
+Fourth-iteration restart-amendment digest
+`sha256:fd92ebaad0655d55efa29600f12a9db583486bef7c99f306b66e7596bb44272e`
+and authoring-protocol digest
+`sha256:2a853080b2e2faace3f6bfdfe440843e1023c199f02b3cee27d32ee70eaf307f`
+are frozen before v4 inference. They bind render-only grammar profile
+`authoring-render-only-v1` at source commit
+`938d85804035a4654ee8397b01c9e210bbbda2d7`, create fresh opaque cases, call
+identities, and contexts, and retain all earlier failures. Scientific briefs and the detector and
+selected-result verifier are unchanged. After the exact five-line input-binding prefix, the
+producer may use only ASCII scalar literals, earlier render names, addition, and plain-name
+f-strings; calls, attributes, subscripts, slices, unary operators, conversions, and format
+specifications are forbidden. The controller must run that syntax-generic validator before the
+unchanged static selected-result verifier and must admit the three-case cohort atomically. No v4
+prompt has been externally submitted and no case, label, or detector outcome exists for v4.
+
 ## Stop conditions
 
 Do not promote when the selected result is unresolved, a source reference is missing, the review
