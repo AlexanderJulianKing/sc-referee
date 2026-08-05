@@ -1,0 +1,539 @@
+{
+  "artifact_kind": "direct_qualification_reviewer_calibration_protocol",
+  "assignments": [
+    {
+      "agent_surface": "Claude Code CLI",
+      "agent_version": "2.1.221",
+      "calibration_suite_digest": "sha256:15f3f1636429f624a6fbb649ce6ec9fc8d0bdfd30b6ab673ad47c9ef11cfe671",
+      "command_profile": {
+        "mcp_set": "empty_strict",
+        "permission_mode": "dontAsk",
+        "print_mode": true,
+        "provider_cli": "claude",
+        "safe_mode": true,
+        "session_persistence": false,
+        "structured_output": "json_schema",
+        "tool_set": "empty"
+      },
+      "configuration_digest": "sha256:6aa6d579660602810a368ec40362f6e1c1de23e85439f8387d230ca1975f995b",
+      "environment_digest": "sha256:75d553e250e3656286f66838457602df6f30d938167c1a6fb4d61298f9145f71",
+      "execution_context_id": "context:stage1-claude-01-calibrated-v2",
+      "model_id": "claude-opus-5",
+      "model_name": "Claude Opus 5",
+      "output_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "calibration_results": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "calibration_case_id": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "evidence_basis": {
+                  "const": "stated_evidence_only"
+                },
+                "invented_material_premise": {
+                  "const": false
+                },
+                "rationale": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "verdict": {
+                  "enum": [
+                    "demonstrated_issue",
+                    "no_demonstrated_issue_within_scope",
+                    "conditional_or_unknown",
+                    "insufficient_evidence"
+                  ]
+                }
+              },
+              "required": [
+                "calibration_case_id",
+                "verdict",
+                "invented_material_premise",
+                "evidence_basis",
+                "rationale"
+              ],
+              "type": "object"
+            },
+            "maxItems": 6,
+            "minItems": 6,
+            "type": "array"
+          },
+          "reviewer_participant_id": {
+            "const": "actor:stage1-claude-01"
+          }
+        },
+        "required": [
+          "reviewer_participant_id",
+          "calibration_results"
+        ],
+        "type": "object"
+      },
+      "output_schema_digest": "sha256:b2a86066bf058a32be35426919c33d2ae9902083e2d8bd0b0c1d3dafa6bd2fd9",
+      "participant_id": "actor:stage1-claude-01",
+      "provider": "Anthropic",
+      "reasoning_configuration": "high",
+      "requested_session_id": "c837fe57-cbba-5b11-9b7b-6fece04ed3ec",
+      "role": "stage1_reviewer",
+      "system_prompt_digest": "sha256:50dae9174e6de9e106b6655f4af7b221f4d430005c2ea4da5ef09e238f1db1ce",
+      "tool_policy_digest": "sha256:fe91c57f2c0cde22ff645372db58b1ec9fb5d0fcecbef15685ca6497a9f5ec04",
+      "user_prompt": "This is a reviewer calibration, not a scientific study case.\nReviewer participant identity: actor:stage1-claude-01\nUse only the evidence stated in each vignette. Do not use tools, external sources, hidden answers, automated audit output, or unstated assumptions.\nReturn exactly one structured result for every vignette. Use demonstrated_issue only when the stated evidence directly entails a narrow issue; otherwise preserve absence, uncertainty, or insufficiency.\nAllowed verdicts: demonstrated_issue, no_demonstrated_issue_within_scope, conditional_or_unknown, insufficient_evidence.\nSet invented_material_premise to false and evidence_basis to stated_evidence_only for every result; if you cannot do that, the calibration does not pass.\n\nVignette 1: calibration:complete-frame-mismatch\nThe registered target is the rate over all 100 planned locations. The only selected result divides events by the 73 locations retained after signal screening and reports that value as the rate for the planned region. No amendment or approved deviation exists.\n\nVignette 2: calibration:conditional-subset-scope\nThe registered target is explicitly conditional on the 73 signal-eligible locations. The selected result uses exactly those 73 locations and the report limits every claim to signal-eligible locations.\n\nVignette 3: calibration:full-frame-accounting\nThe target covers all 100 planned locations. The selected result retains all 100 in the denominator, records the 27 unavailable measurements, and reports the full-frame rate.\n\nVignette 4: calibration:unrelated-quality-endpoint\nThe selected scientific result uses all 100 planned locations. A separate quality-control table reports a pass fraction among 73 inspected records and is explicitly excluded from the scientific endpoint.\n\nVignette 5: calibration:conflicting-scope-records\nTwo equally authoritative signed plans govern the run: one specifies all planned locations and the other signal-eligible locations. Neither has precedence. The selected result uses eligible locations.\n\nVignette 6: calibration:no-selected-result\nThe repository can emit several reports selected only by runtime arguments. The preserved record does not establish which report, if any, was selected for the scientific claim.\n",
+      "user_prompt_digest": "sha256:cbbfcbda152c9151244a00f70f1bd7dac654b7122462b251f950445f1e29eb68"
+    },
+    {
+      "agent_surface": "Claude Code CLI",
+      "agent_version": "2.1.221",
+      "calibration_suite_digest": "sha256:15f3f1636429f624a6fbb649ce6ec9fc8d0bdfd30b6ab673ad47c9ef11cfe671",
+      "command_profile": {
+        "mcp_set": "empty_strict",
+        "permission_mode": "dontAsk",
+        "print_mode": true,
+        "provider_cli": "claude",
+        "safe_mode": true,
+        "session_persistence": false,
+        "structured_output": "json_schema",
+        "tool_set": "empty"
+      },
+      "configuration_digest": "sha256:6fcc3ea4a090b31893638537d39ee78cdef1eef8a111690918b477ba4351f0fb",
+      "environment_digest": "sha256:75d553e250e3656286f66838457602df6f30d938167c1a6fb4d61298f9145f71",
+      "execution_context_id": "context:stage1-claude-02-calibrated-v2",
+      "model_id": "claude-opus-5",
+      "model_name": "Claude Opus 5",
+      "output_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "calibration_results": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "calibration_case_id": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "evidence_basis": {
+                  "const": "stated_evidence_only"
+                },
+                "invented_material_premise": {
+                  "const": false
+                },
+                "rationale": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "verdict": {
+                  "enum": [
+                    "demonstrated_issue",
+                    "no_demonstrated_issue_within_scope",
+                    "conditional_or_unknown",
+                    "insufficient_evidence"
+                  ]
+                }
+              },
+              "required": [
+                "calibration_case_id",
+                "verdict",
+                "invented_material_premise",
+                "evidence_basis",
+                "rationale"
+              ],
+              "type": "object"
+            },
+            "maxItems": 6,
+            "minItems": 6,
+            "type": "array"
+          },
+          "reviewer_participant_id": {
+            "const": "actor:stage1-claude-02"
+          }
+        },
+        "required": [
+          "reviewer_participant_id",
+          "calibration_results"
+        ],
+        "type": "object"
+      },
+      "output_schema_digest": "sha256:f7693c04ca35fc46f440933bf8d91e165dc622b94ad34d634bb5f40e6b8a950c",
+      "participant_id": "actor:stage1-claude-02",
+      "provider": "Anthropic",
+      "reasoning_configuration": "high",
+      "requested_session_id": "2c573341-45f4-55f9-8534-24b766ebe0e8",
+      "role": "stage1_reviewer",
+      "system_prompt_digest": "sha256:50dae9174e6de9e106b6655f4af7b221f4d430005c2ea4da5ef09e238f1db1ce",
+      "tool_policy_digest": "sha256:fe91c57f2c0cde22ff645372db58b1ec9fb5d0fcecbef15685ca6497a9f5ec04",
+      "user_prompt": "This is a reviewer calibration, not a scientific study case.\nReviewer participant identity: actor:stage1-claude-02\nUse only the evidence stated in each vignette. Do not use tools, external sources, hidden answers, automated audit output, or unstated assumptions.\nReturn exactly one structured result for every vignette. Use demonstrated_issue only when the stated evidence directly entails a narrow issue; otherwise preserve absence, uncertainty, or insufficiency.\nAllowed verdicts: demonstrated_issue, no_demonstrated_issue_within_scope, conditional_or_unknown, insufficient_evidence.\nSet invented_material_premise to false and evidence_basis to stated_evidence_only for every result; if you cannot do that, the calibration does not pass.\n\nVignette 1: calibration:complete-frame-mismatch\nThe registered target is the rate over all 100 planned locations. The only selected result divides events by the 73 locations retained after signal screening and reports that value as the rate for the planned region. No amendment or approved deviation exists.\n\nVignette 2: calibration:conditional-subset-scope\nThe registered target is explicitly conditional on the 73 signal-eligible locations. The selected result uses exactly those 73 locations and the report limits every claim to signal-eligible locations.\n\nVignette 3: calibration:full-frame-accounting\nThe target covers all 100 planned locations. The selected result retains all 100 in the denominator, records the 27 unavailable measurements, and reports the full-frame rate.\n\nVignette 4: calibration:unrelated-quality-endpoint\nThe selected scientific result uses all 100 planned locations. A separate quality-control table reports a pass fraction among 73 inspected records and is explicitly excluded from the scientific endpoint.\n\nVignette 5: calibration:conflicting-scope-records\nTwo equally authoritative signed plans govern the run: one specifies all planned locations and the other signal-eligible locations. Neither has precedence. The selected result uses eligible locations.\n\nVignette 6: calibration:no-selected-result\nThe repository can emit several reports selected only by runtime arguments. The preserved record does not establish which report, if any, was selected for the scientific claim.\n",
+      "user_prompt_digest": "sha256:b718681664d12a482c3552b06a4c91728efcbd78629ba5d3d20500d051096f8e"
+    },
+    {
+      "agent_surface": "Codex CLI",
+      "agent_version": "0.144.0",
+      "calibration_suite_digest": "sha256:15f3f1636429f624a6fbb649ce6ec9fc8d0bdfd30b6ab673ad47c9ef11cfe671",
+      "command_profile": {
+        "approval_policy": "never",
+        "developer_instruction_override": true,
+        "exec_mode": "ephemeral",
+        "project_rules": "ignored",
+        "provider_cli": "codex",
+        "sandbox": "read-only",
+        "structured_output": "json_schema",
+        "user_config": "ignored",
+        "web_search": false
+      },
+      "configuration_digest": "sha256:2b34bf7229b0ed3659b6241035a734dc1ef66b7943fce36675f5027b7c59b16a",
+      "environment_digest": "sha256:75d553e250e3656286f66838457602df6f30d938167c1a6fb4d61298f9145f71",
+      "execution_context_id": "context:stage1-codex-01-calibrated-v2",
+      "model_id": "gpt-5.6-sol",
+      "model_name": "GPT-5.6 Sol",
+      "output_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "calibration_results": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "calibration_case_id": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "evidence_basis": {
+                  "const": "stated_evidence_only"
+                },
+                "invented_material_premise": {
+                  "const": false
+                },
+                "rationale": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "verdict": {
+                  "enum": [
+                    "demonstrated_issue",
+                    "no_demonstrated_issue_within_scope",
+                    "conditional_or_unknown",
+                    "insufficient_evidence"
+                  ]
+                }
+              },
+              "required": [
+                "calibration_case_id",
+                "verdict",
+                "invented_material_premise",
+                "evidence_basis",
+                "rationale"
+              ],
+              "type": "object"
+            },
+            "maxItems": 6,
+            "minItems": 6,
+            "type": "array"
+          },
+          "reviewer_participant_id": {
+            "const": "actor:stage1-codex-01"
+          }
+        },
+        "required": [
+          "reviewer_participant_id",
+          "calibration_results"
+        ],
+        "type": "object"
+      },
+      "output_schema_digest": "sha256:42713d51848489c8e075dddcd877c6cf46285f6356b1a2881162582c95ff1761",
+      "participant_id": "actor:stage1-codex-01",
+      "provider": "OpenAI",
+      "reasoning_configuration": "high",
+      "requested_session_id": "15669823-0625-5f1c-a32a-7e90d782edb6",
+      "role": "stage1_reviewer",
+      "system_prompt_digest": "sha256:50dae9174e6de9e106b6655f4af7b221f4d430005c2ea4da5ef09e238f1db1ce",
+      "tool_policy_digest": "sha256:fe91c57f2c0cde22ff645372db58b1ec9fb5d0fcecbef15685ca6497a9f5ec04",
+      "user_prompt": "This is a reviewer calibration, not a scientific study case.\nReviewer participant identity: actor:stage1-codex-01\nUse only the evidence stated in each vignette. Do not use tools, external sources, hidden answers, automated audit output, or unstated assumptions.\nReturn exactly one structured result for every vignette. Use demonstrated_issue only when the stated evidence directly entails a narrow issue; otherwise preserve absence, uncertainty, or insufficiency.\nAllowed verdicts: demonstrated_issue, no_demonstrated_issue_within_scope, conditional_or_unknown, insufficient_evidence.\nSet invented_material_premise to false and evidence_basis to stated_evidence_only for every result; if you cannot do that, the calibration does not pass.\n\nVignette 1: calibration:complete-frame-mismatch\nThe registered target is the rate over all 100 planned locations. The only selected result divides events by the 73 locations retained after signal screening and reports that value as the rate for the planned region. No amendment or approved deviation exists.\n\nVignette 2: calibration:conditional-subset-scope\nThe registered target is explicitly conditional on the 73 signal-eligible locations. The selected result uses exactly those 73 locations and the report limits every claim to signal-eligible locations.\n\nVignette 3: calibration:full-frame-accounting\nThe target covers all 100 planned locations. The selected result retains all 100 in the denominator, records the 27 unavailable measurements, and reports the full-frame rate.\n\nVignette 4: calibration:unrelated-quality-endpoint\nThe selected scientific result uses all 100 planned locations. A separate quality-control table reports a pass fraction among 73 inspected records and is explicitly excluded from the scientific endpoint.\n\nVignette 5: calibration:conflicting-scope-records\nTwo equally authoritative signed plans govern the run: one specifies all planned locations and the other signal-eligible locations. Neither has precedence. The selected result uses eligible locations.\n\nVignette 6: calibration:no-selected-result\nThe repository can emit several reports selected only by runtime arguments. The preserved record does not establish which report, if any, was selected for the scientific claim.\n",
+      "user_prompt_digest": "sha256:3cb2d4c1789fd97b6478073e79db3e74b9945c8c7f46d920e37ba65aca0e41ee"
+    },
+    {
+      "agent_surface": "Codex CLI",
+      "agent_version": "0.144.0",
+      "calibration_suite_digest": "sha256:15f3f1636429f624a6fbb649ce6ec9fc8d0bdfd30b6ab673ad47c9ef11cfe671",
+      "command_profile": {
+        "approval_policy": "never",
+        "developer_instruction_override": true,
+        "exec_mode": "ephemeral",
+        "project_rules": "ignored",
+        "provider_cli": "codex",
+        "sandbox": "read-only",
+        "structured_output": "json_schema",
+        "user_config": "ignored",
+        "web_search": false
+      },
+      "configuration_digest": "sha256:63f755fca07aab3b9e5807bf1c506e7e4cf7c5a18813ba72a26dd810a4687723",
+      "environment_digest": "sha256:75d553e250e3656286f66838457602df6f30d938167c1a6fb4d61298f9145f71",
+      "execution_context_id": "context:stage1-codex-02-calibrated-v2",
+      "model_id": "gpt-5.6-sol",
+      "model_name": "GPT-5.6 Sol",
+      "output_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "calibration_results": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "calibration_case_id": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "evidence_basis": {
+                  "const": "stated_evidence_only"
+                },
+                "invented_material_premise": {
+                  "const": false
+                },
+                "rationale": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "verdict": {
+                  "enum": [
+                    "demonstrated_issue",
+                    "no_demonstrated_issue_within_scope",
+                    "conditional_or_unknown",
+                    "insufficient_evidence"
+                  ]
+                }
+              },
+              "required": [
+                "calibration_case_id",
+                "verdict",
+                "invented_material_premise",
+                "evidence_basis",
+                "rationale"
+              ],
+              "type": "object"
+            },
+            "maxItems": 6,
+            "minItems": 6,
+            "type": "array"
+          },
+          "reviewer_participant_id": {
+            "const": "actor:stage1-codex-02"
+          }
+        },
+        "required": [
+          "reviewer_participant_id",
+          "calibration_results"
+        ],
+        "type": "object"
+      },
+      "output_schema_digest": "sha256:b85ede8a95fead271bbd0de43e6a5cfb5a5855b7d6fd73f2fbbfb8af17ad28fb",
+      "participant_id": "actor:stage1-codex-02",
+      "provider": "OpenAI",
+      "reasoning_configuration": "high",
+      "requested_session_id": "5354e5f3-7a76-5779-ab2a-1c93365d049f",
+      "role": "stage1_reviewer",
+      "system_prompt_digest": "sha256:50dae9174e6de9e106b6655f4af7b221f4d430005c2ea4da5ef09e238f1db1ce",
+      "tool_policy_digest": "sha256:fe91c57f2c0cde22ff645372db58b1ec9fb5d0fcecbef15685ca6497a9f5ec04",
+      "user_prompt": "This is a reviewer calibration, not a scientific study case.\nReviewer participant identity: actor:stage1-codex-02\nUse only the evidence stated in each vignette. Do not use tools, external sources, hidden answers, automated audit output, or unstated assumptions.\nReturn exactly one structured result for every vignette. Use demonstrated_issue only when the stated evidence directly entails a narrow issue; otherwise preserve absence, uncertainty, or insufficiency.\nAllowed verdicts: demonstrated_issue, no_demonstrated_issue_within_scope, conditional_or_unknown, insufficient_evidence.\nSet invented_material_premise to false and evidence_basis to stated_evidence_only for every result; if you cannot do that, the calibration does not pass.\n\nVignette 1: calibration:complete-frame-mismatch\nThe registered target is the rate over all 100 planned locations. The only selected result divides events by the 73 locations retained after signal screening and reports that value as the rate for the planned region. No amendment or approved deviation exists.\n\nVignette 2: calibration:conditional-subset-scope\nThe registered target is explicitly conditional on the 73 signal-eligible locations. The selected result uses exactly those 73 locations and the report limits every claim to signal-eligible locations.\n\nVignette 3: calibration:full-frame-accounting\nThe target covers all 100 planned locations. The selected result retains all 100 in the denominator, records the 27 unavailable measurements, and reports the full-frame rate.\n\nVignette 4: calibration:unrelated-quality-endpoint\nThe selected scientific result uses all 100 planned locations. A separate quality-control table reports a pass fraction among 73 inspected records and is explicitly excluded from the scientific endpoint.\n\nVignette 5: calibration:conflicting-scope-records\nTwo equally authoritative signed plans govern the run: one specifies all planned locations and the other signal-eligible locations. Neither has precedence. The selected result uses eligible locations.\n\nVignette 6: calibration:no-selected-result\nThe repository can emit several reports selected only by runtime arguments. The preserved record does not establish which report, if any, was selected for the scientific claim.\n",
+      "user_prompt_digest": "sha256:d5e2cd37fd97652d41ff9b55ed30aa946a739a41f84361dfd39cc7ce8d2700a9"
+    },
+    {
+      "agent_surface": "Claude Code CLI",
+      "agent_version": "2.1.221",
+      "calibration_suite_digest": "sha256:15f3f1636429f624a6fbb649ce6ec9fc8d0bdfd30b6ab673ad47c9ef11cfe671",
+      "command_profile": {
+        "mcp_set": "empty_strict",
+        "permission_mode": "dontAsk",
+        "print_mode": true,
+        "provider_cli": "claude",
+        "safe_mode": true,
+        "session_persistence": false,
+        "structured_output": "json_schema",
+        "tool_set": "empty"
+      },
+      "configuration_digest": "sha256:0efbb4aa577adfcb87435ec3c2d900c21874f5b2e3470321900bc185561e8fd8",
+      "environment_digest": "sha256:75d553e250e3656286f66838457602df6f30d938167c1a6fb4d61298f9145f71",
+      "execution_context_id": "context:stage2-claude-01-calibrated-v2",
+      "model_id": "claude-opus-5",
+      "model_name": "Claude Opus 5",
+      "output_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "calibration_results": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "calibration_case_id": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "evidence_basis": {
+                  "const": "stated_evidence_only"
+                },
+                "invented_material_premise": {
+                  "const": false
+                },
+                "rationale": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "verdict": {
+                  "enum": [
+                    "demonstrated_issue",
+                    "no_demonstrated_issue_within_scope",
+                    "conditional_or_unknown",
+                    "insufficient_evidence"
+                  ]
+                }
+              },
+              "required": [
+                "calibration_case_id",
+                "verdict",
+                "invented_material_premise",
+                "evidence_basis",
+                "rationale"
+              ],
+              "type": "object"
+            },
+            "maxItems": 6,
+            "minItems": 6,
+            "type": "array"
+          },
+          "reviewer_participant_id": {
+            "const": "actor:stage2-claude-01"
+          }
+        },
+        "required": [
+          "reviewer_participant_id",
+          "calibration_results"
+        ],
+        "type": "object"
+      },
+      "output_schema_digest": "sha256:affabea884d2c47b857b095622d3cedb668666ff378ffcebec0d2173b75a8240",
+      "participant_id": "actor:stage2-claude-01",
+      "provider": "Anthropic",
+      "reasoning_configuration": "high",
+      "requested_session_id": "df539c34-a358-55fe-af63-a2bf9389bcfe",
+      "role": "stage2_reviewer",
+      "system_prompt_digest": "sha256:04d9676ddf895e94fa47c567ec78d75d369a8b5a81108240e9ddeb6b52ca38ec",
+      "tool_policy_digest": "sha256:15ff5d1dde596797cc2df155f4e368262d3ecd77449a692bc8a17f544cc39ff8",
+      "user_prompt": "This is a reviewer calibration, not a scientific study case.\nReviewer participant identity: actor:stage2-claude-01\nUse only the evidence stated in each vignette. Do not use tools, external sources, hidden answers, automated audit output, or unstated assumptions.\nReturn exactly one structured result for every vignette. Use demonstrated_issue only when the stated evidence directly entails a narrow issue; otherwise preserve absence, uncertainty, or insufficiency.\nAllowed verdicts: demonstrated_issue, no_demonstrated_issue_within_scope, conditional_or_unknown, insufficient_evidence.\nSet invented_material_premise to false and evidence_basis to stated_evidence_only for every result; if you cannot do that, the calibration does not pass.\n\nVignette 1: calibration:complete-frame-mismatch\nThe registered target is the rate over all 100 planned locations. The only selected result divides events by the 73 locations retained after signal screening and reports that value as the rate for the planned region. No amendment or approved deviation exists.\n\nVignette 2: calibration:conditional-subset-scope\nThe registered target is explicitly conditional on the 73 signal-eligible locations. The selected result uses exactly those 73 locations and the report limits every claim to signal-eligible locations.\n\nVignette 3: calibration:full-frame-accounting\nThe target covers all 100 planned locations. The selected result retains all 100 in the denominator, records the 27 unavailable measurements, and reports the full-frame rate.\n\nVignette 4: calibration:unrelated-quality-endpoint\nThe selected scientific result uses all 100 planned locations. A separate quality-control table reports a pass fraction among 73 inspected records and is explicitly excluded from the scientific endpoint.\n\nVignette 5: calibration:conflicting-scope-records\nTwo equally authoritative signed plans govern the run: one specifies all planned locations and the other signal-eligible locations. Neither has precedence. The selected result uses eligible locations.\n\nVignette 6: calibration:no-selected-result\nThe repository can emit several reports selected only by runtime arguments. The preserved record does not establish which report, if any, was selected for the scientific claim.\n",
+      "user_prompt_digest": "sha256:0eafa45d2cc6072188f82984a0a065f592a43d09c1c558cc821e6224cfbd4a10"
+    },
+    {
+      "agent_surface": "Codex CLI",
+      "agent_version": "0.144.0",
+      "calibration_suite_digest": "sha256:15f3f1636429f624a6fbb649ce6ec9fc8d0bdfd30b6ab673ad47c9ef11cfe671",
+      "command_profile": {
+        "approval_policy": "never",
+        "developer_instruction_override": true,
+        "exec_mode": "ephemeral",
+        "project_rules": "ignored",
+        "provider_cli": "codex",
+        "sandbox": "read-only",
+        "structured_output": "json_schema",
+        "user_config": "ignored",
+        "web_search": false
+      },
+      "configuration_digest": "sha256:3245a575436e691e56cdd1163daf70faa2326fbfb901a9c139a9ec10d02ce107",
+      "environment_digest": "sha256:75d553e250e3656286f66838457602df6f30d938167c1a6fb4d61298f9145f71",
+      "execution_context_id": "context:stage2-codex-01-calibrated-v2",
+      "model_id": "gpt-5.6-sol",
+      "model_name": "GPT-5.6 Sol",
+      "output_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "calibration_results": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "calibration_case_id": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "evidence_basis": {
+                  "const": "stated_evidence_only"
+                },
+                "invented_material_premise": {
+                  "const": false
+                },
+                "rationale": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "verdict": {
+                  "enum": [
+                    "demonstrated_issue",
+                    "no_demonstrated_issue_within_scope",
+                    "conditional_or_unknown",
+                    "insufficient_evidence"
+                  ]
+                }
+              },
+              "required": [
+                "calibration_case_id",
+                "verdict",
+                "invented_material_premise",
+                "evidence_basis",
+                "rationale"
+              ],
+              "type": "object"
+            },
+            "maxItems": 6,
+            "minItems": 6,
+            "type": "array"
+          },
+          "reviewer_participant_id": {
+            "const": "actor:stage2-codex-01"
+          }
+        },
+        "required": [
+          "reviewer_participant_id",
+          "calibration_results"
+        ],
+        "type": "object"
+      },
+      "output_schema_digest": "sha256:b80eb9e80c35228022bfd3110ce07a881dfe732ee253580d45e63b4bbfd9757e",
+      "participant_id": "actor:stage2-codex-01",
+      "provider": "OpenAI",
+      "reasoning_configuration": "high",
+      "requested_session_id": "2743766f-472e-581b-8d12-e2b55251af3f",
+      "role": "stage2_reviewer",
+      "system_prompt_digest": "sha256:04d9676ddf895e94fa47c567ec78d75d369a8b5a81108240e9ddeb6b52ca38ec",
+      "tool_policy_digest": "sha256:15ff5d1dde596797cc2df155f4e368262d3ecd77449a692bc8a17f544cc39ff8",
+      "user_prompt": "This is a reviewer calibration, not a scientific study case.\nReviewer participant identity: actor:stage2-codex-01\nUse only the evidence stated in each vignette. Do not use tools, external sources, hidden answers, automated audit output, or unstated assumptions.\nReturn exactly one structured result for every vignette. Use demonstrated_issue only when the stated evidence directly entails a narrow issue; otherwise preserve absence, uncertainty, or insufficiency.\nAllowed verdicts: demonstrated_issue, no_demonstrated_issue_within_scope, conditional_or_unknown, insufficient_evidence.\nSet invented_material_premise to false and evidence_basis to stated_evidence_only for every result; if you cannot do that, the calibration does not pass.\n\nVignette 1: calibration:complete-frame-mismatch\nThe registered target is the rate over all 100 planned locations. The only selected result divides events by the 73 locations retained after signal screening and reports that value as the rate for the planned region. No amendment or approved deviation exists.\n\nVignette 2: calibration:conditional-subset-scope\nThe registered target is explicitly conditional on the 73 signal-eligible locations. The selected result uses exactly those 73 locations and the report limits every claim to signal-eligible locations.\n\nVignette 3: calibration:full-frame-accounting\nThe target covers all 100 planned locations. The selected result retains all 100 in the denominator, records the 27 unavailable measurements, and reports the full-frame rate.\n\nVignette 4: calibration:unrelated-quality-endpoint\nThe selected scientific result uses all 100 planned locations. A separate quality-control table reports a pass fraction among 73 inspected records and is explicitly excluded from the scientific endpoint.\n\nVignette 5: calibration:conflicting-scope-records\nTwo equally authoritative signed plans govern the run: one specifies all planned locations and the other signal-eligible locations. Neither has precedence. The selected result uses eligible locations.\n\nVignette 6: calibration:no-selected-result\nThe repository can emit several reports selected only by runtime arguments. The preserved record does not establish which report, if any, was selected for the scientific claim.\n",
+      "user_prompt_digest": "sha256:c58de8d5c3df0b104b367e0d2987207beed52b7af666cb4d22ae60285ea948a7"
+    }
+  ],
+  "calibration_suite_digest": "sha256:15f3f1636429f624a6fbb649ce6ec9fc8d0bdfd30b6ab673ad47c9ef11cfe671",
+  "execution_policy": {
+    "all_attempts_retained": true,
+    "external_information_access_permitted": false,
+    "fresh_empty_working_directory_per_call": true,
+    "one_call_per_assignment": true,
+    "parallel_execution_permitted": true,
+    "replacement_permitted": false,
+    "tool_access_permitted": false
+  },
+  "execution_state": "frozen_not_started",
+  "expected_reviewer_count": 6,
+  "expected_vignette_count": 6,
+  "frozen_at": "2026-08-05T00:00:00Z",
+  "lane_freeze_digest": "sha256:c58ee57c01d5f7c46855eb9f554d0a476f664e44edbdd7e15679bd53d72fa12b",
+  "participant_enrollment_digest": "sha256:c29bdc3c277b840c2bf9b4369f69181190663530467926ccfdfb24407eff0016",
+  "pass_rule": {
+    "all_six_expected_verdicts_required": true,
+    "invented_material_premise_count": 0,
+    "provider_cli_exit_code": 0,
+    "structured_output_schema_valid": true
+  },
+  "protocol_digest": "sha256:c7b28df0840b278af5d80838842f5b42104d225eac4759a5a62df9e377b30bd0",
+  "protocol_id": "reviewer-calibration:complete-domain-exposure-denominator-v1",
+  "protocol_version": "1.0.0",
+  "qualification_authority": "none_calibration_protocol_only",
+  "source_commit": "83a0a4807b16fe0a7441b0bbfb604e65b438c083"
+}
