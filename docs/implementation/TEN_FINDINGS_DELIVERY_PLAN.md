@@ -8,7 +8,9 @@
   case authoring; lean direct detector qualification is active under Experiment 0056, with 0
   metric-eligible cases authored, the first envelope's repaired v3 detector/binding/comparator/
   evidence tuple frozen, 20 exact participant configurations declared, 14 no-replacement
-  assignments frozen, and the seven-case held-out block sealed before labels or outcomes
+  assignments frozen, and the seven-case held-out block sealed before labels or outcomes; a
+  maintainer-directed pre-exposure amendment reduces the pilot execution set to the error,
+  corrected-twin, and valid-alternative causal triad
 - **Execution authority:** This document controls work sequencing and progress reporting. It does
   not itself change record meaning, detector authority, or Finding eligibility.
 
@@ -130,8 +132,8 @@ above.
   qualification freeze.
 - **Frozen:** Exact detector, check, adapter, verifier, manifests, bytes, digests, assignments, and
   case contract are frozen before labels.
-- **Pilot:** All seven pilot cells are retained, independently verified and adjudicated, and the
-  envelope's pilot metrics are complete.
+- **Pilot:** The three-case error/corrected/valid-alternative causal triad is retained,
+  independently verified and adjudicated, and the envelope's pilot metrics are complete.
 - **Held-out:** The threshold-preceded held-out seven-cell block is complete and retained.
 - **Promoted:** The exact envelope passes accepted metrics and has an exact maintainer promotion.
 - **Product:** Both CLI and installed skill emit the production Finding on the target and zero
@@ -140,10 +142,11 @@ above.
 ## Execution order
 
 The gates below are applied envelope by envelope, beginning with
-`check:complete-domain-exposure-denominator`. This produces a real 1/10 result after one complete
-14-case lane instead of waiting for a non-normative 96-case verifier meta-study plus all 140 direct
-cases. Each later envelope repeats the same gates without changing a previously frozen tuple. The
-complete program still requires all 140 cases and every 10/10 exit item.
+`check:complete-domain-exposure-denominator`. Only this envelope is active. Its immediate study is
+the three-case pilot causal triad; the already sealed held-out block remains unopened. The first
+envelope's four surplus pilot assignments remain immutable, unopened, and metric-ineligible; they
+are not silently deleted or counted as attempts. No later-envelope case count, assignment freeze,
+or execution is authorized until this envelope reaches a real pass or fail decision.
 
 The accepted scientific qualification panel remains four blind Stage-1 reviews across two
 providers plus two fresh cross-provider Stage-2 reviews per metric case. Cryptographic registrar
@@ -187,8 +190,9 @@ frozen, and no known local capability defect remains for that lane. Repeat for e
   exact identity and transcript digests, and disclose agent-only review.
 - [x] Freeze benchmark-blind authoring briefs that expose no recognizer, expected answer, case role,
   block role, or prior detector output.
-- [x] Freeze 14 opaque, no-replacement assignments for the current envelope and seal its held-out
-  seven before pilot labels; repeat for the other nine envelopes for a final total of 140.
+- [x] Freeze the current envelope's opaque, no-replacement assignments and seal its held-out seven
+  before pilot labels. Preserve its already-frozen 14-case matrix, but prospectively execute only
+  the three-case pilot triad.
 - [x] Verify that no public, answer-visible, v1, or implementation-authored case is metric-eligible
   in the frozen first-envelope assignment matrix.
 - [x] Seal the held-out block before any pilot label or detector outcome exists.
@@ -196,10 +200,12 @@ frozen, and no known local capability defect remains for that lane. Repeat for e
 **Exit gate:** all 14 assignments and relevant bytes for the current envelope are immutable and
 replayable, its held-out seven are sealed, and zero scientific labels or detector outcomes exist.
 
-## Gate 3 — Complete the current seven-case threshold pilot
+## Gate 3 — Complete the current three-case threshold pilot
 
-- [ ] Author and retain all seven assigned pilot workflows for the current envelope without
-  replacement; repeat to reach 70 across ten envelopes.
+- [x] Freeze the pre-exposure three-case scope amendment and exact two-author protocol while all
+  seven held-out and four excluded pilot briefs remain unopened.
+- [ ] Author and retain the assigned error-bearing, corrected-twin, and valid-alternative pilot
+  workflows for the current envelope without replacement.
 - [ ] Freeze every selected-result declaration before scientific review.
 - [ ] Independently rederive every selected report, producer, operand path, and alternative producer
   from immutable case bytes.
@@ -290,12 +296,16 @@ maintainer decision; there is no family-wide or portfolio-wide implied authority
 
 ## Immediate next unchecked item
 
-Freeze a minimal pilot-authoring protocol bound to active reviewer-calibration ledger digest
+Execute the two frozen author prompts bound to active reviewer-calibration ledger digest
 `sha256:3c64169c830ff1e963f81fe0e774e367021e3ad4f77892641002e4ff7f13e030`,
-then expose only the seven pilot author-visible brief
-projections to their six frozen author contexts; do not expose the held-out block or controller
-metadata. Author all seven pilot workflows without replacement and freeze each truthful author-only
-selected-result declaration before any scientific review. Preserve the stopped Experiment 0055
+pilot-scope amendment digest
+`sha256:35e1d193113b807257baab48bf2bd2d9b6482ed620bae09a1f36aa5541b91861`,
+and authoring-protocol digest
+`sha256:51808c104df89a701f1b6dd612894207760c02da7c969dcb68df86ae589593af`.
+Expose only the error-bearing/corrected pair to its one Claude app author and the valid alternative
+to its one Codex CLI author. Retain both one-shot outcomes, materialize exactly three workflows,
+and freeze each truthful author-only selected-result declaration before any scientific review.
+Preserve the stopped Experiment 0055
 machinery as non-qualifying development evidence, but perform no further cryptographic-registrar,
 distribution-`RECORD`, hostile-importer, separate 96-case verifier-study, or
 filesystem-relocation work.
@@ -570,3 +580,4 @@ perform unrelated capability expansion before the complete first pilot is retain
 | 2026-08-04 | Retained three Claude Code authentication failures from protocol v3 and selected an explicit pre-case desktop-app amendment rather than treating them as calibration misses or retries. | Protocol digest `sha256:dc359b6884308ecc02b391d499f22c784bed5e71f258c8420eab95dae8dc4cc7`; v3 ledger digest `sha256:375265c9dc05186c74c58c4658c20a2877011db476bcebc0a7281658a54f2893`; aggregate digest `sha256:3da48f5fead855cd4685448f2f550b71b77ec1e366737381429c3874e00b9fa5`. | No checkbox or score changed; three active reviewer configurations remain uncalibrated. |
 | 2026-08-04 | Froze the versioned Claude desktop-app adjudication amendment and exact app calibration protocol before prompt submission. | Commit `fc9145a`; amendment digest `sha256:e3f8f012e02e29112e83e83cdfb4b4e3b2ad82eaed4d5058cc3a9bd4f221395e`; replacement enrollment digest `sha256:95ef5badd874db346279de725a35679da80d00bf8d40c323041b414ce750a5bc`; protocol digest `sha256:9427d044c529ffbf0c3ef07ae034550e3cfe841d105ddc9d61dfb2d4eeda2af4`; five focused tests. | No checkbox or score changed; the three app calibrations remain unexecuted. |
 | 2026-08-04 | Executed and retained all three frozen Claude app calibrations once, then aggregated them with the three retained Codex passes. | App ledger digest `sha256:bf6f76588f197817f8fd3df184efacb36cca8ded4eaf7f8ba6d22fb3d60bbe29`; aggregate digest `sha256:3c64169c830ff1e963f81fe0e774e367021e3ad4f77892641002e4ff7f13e030`; 6/6 active passes; all 18 historical attempts and 12 failures retained; capture-only amendment digest `sha256:bc50aaf34a1cb6508329138156f49efdc4bed2ffc4ba1d4fbe4f12941e573189`. | Reviewer calibration prerequisite completed; no scientific-case, qualification, promotion, product, or score checkbox changed. |
+| 2026-08-04 | Reduced only the active first-envelope pilot to the error/corrected/valid-alternative causal triad and froze its exact two-author prompts before exposure. | Scope-amendment digest `sha256:35e1d193113b807257baab48bf2bd2d9b6482ed620bae09a1f36aa5541b91861`; authoring-protocol digest `sha256:51808c104df89a701f1b6dd612894207760c02da7c969dcb68df86ae589593af`; 11 focused tests. | Three-case scope/protocol freeze checked; no workflow, label, detector outcome, qualification, promotion, product, or score change. |

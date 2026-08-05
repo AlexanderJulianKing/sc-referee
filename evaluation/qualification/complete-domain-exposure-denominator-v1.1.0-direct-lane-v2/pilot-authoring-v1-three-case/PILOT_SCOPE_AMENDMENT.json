@@ -1,0 +1,75 @@
+{
+  "active_reviewer_calibration_ledger_digest": "sha256:3c64169c830ff1e963f81fe0e774e367021e3ad4f77892641002e4ff7f13e030",
+  "amendment_digest": "sha256:35e1d193113b807257baab48bf2bd2d9b6482ed620bae09a1f36aa5541b91861",
+  "amendment_version": "1.0.0",
+  "artifact_kind": "direct_qualification_three_case_pilot_scope_amendment",
+  "authoring_brief_manifest_digest": "sha256:7133cb96256ab17a7eff58efa4d2b9a97dc9c2addac575a3ec03b830c869ec8e",
+  "eligible_assignments": [
+    {
+      "author_id": "actor:pilot-author-claude-01",
+      "authoring_brief_digest": "sha256:f1c5233b9fd435023917dc736f8dd2f1a6fc92e02366317fcb0f2b25a912b707",
+      "case_id": "case:345133226e9fc72a32b0",
+      "cell_type": "corrected_twin"
+    },
+    {
+      "author_id": "actor:pilot-author-codex-01",
+      "authoring_brief_digest": "sha256:ce6dcf463b4d137c8873fd08c3dd35720a245d964fb85f7cbf4e988edddd14d9",
+      "case_id": "case:72678038fd451aac236a",
+      "cell_type": "valid_alternative"
+    },
+    {
+      "author_id": "actor:pilot-author-claude-01",
+      "authoring_brief_digest": "sha256:39a8542049ed75d04cba7d8777a4bd3e848e13cce46b31bbaee57db6b987b214",
+      "case_id": "case:c5e5a75d42962d2e95a3",
+      "cell_type": "error_bearing"
+    }
+  ],
+  "eligible_cell_types": [
+    "error_bearing",
+    "corrected_twin",
+    "valid_alternative"
+  ],
+  "excluded_unopened_assignments": [
+    {
+      "author_id": "actor:pilot-author-codex-03",
+      "authoring_brief_digest": "sha256:b11c5bdd57993ef6f8c2d8e5a5fd84a71143009c962f0ca1918bb4bacc06bab5",
+      "case_id": "case:00e38ff58c6d50621e1c",
+      "cell_type": "renamed_implementation",
+      "state": "unopened_metric_ineligible"
+    },
+    {
+      "author_id": "actor:pilot-author-claude-03",
+      "authoring_brief_digest": "sha256:41e9a28dd9a01635bb285422946407f567bbc797a528056050b20090cee9ea9c",
+      "case_id": "case:54e6452ec78d35dc72ac",
+      "cell_type": "unsupported",
+      "state": "unopened_metric_ineligible"
+    },
+    {
+      "author_id": "actor:pilot-author-codex-02",
+      "authoring_brief_digest": "sha256:dfe24b30f2392dce403b97e971d3de833bfa6470f1c4cf3a6f88fd4821acacc5",
+      "case_id": "case:a35ee5ac7a59333fdcc1",
+      "cell_type": "ambiguous",
+      "state": "unopened_metric_ineligible"
+    },
+    {
+      "author_id": "actor:pilot-author-claude-02",
+      "authoring_brief_digest": "sha256:0869bf61388e8b5931ee83276895c2f334fc8e51d89cee9622737e25fb6968ab",
+      "case_id": "case:a5409f5f081836abc336",
+      "cell_type": "hard_negative",
+      "state": "unopened_metric_ineligible"
+    }
+  ],
+  "frozen_at": "2026-08-05T02:20:00Z",
+  "heldout_seal_digest": "sha256:79db84e8916e01a3b28ea9937ab9f9a2e9c9ba667139755702649230be635619",
+  "lane_freeze_digest": "sha256:c58ee57c01d5f7c46855eb9f554d0a476f664e44edbdd7e15679bd53d72fa12b",
+  "other_envelopes_authorized": false,
+  "preexposure_state": {
+    "author_brief_exposure_count": 0,
+    "authored_case_count": 0,
+    "detector_outcome_count": 0,
+    "scientific_label_count": 0
+  },
+  "qualification_authority": "none_pilot_scope_amendment_only",
+  "reason": "Maintainer-directed minimal causal triad for the currently active first envelope.",
+  "source_commit": "0325db3543a30edc54169e5c49926b7875c1cfbd"
+}

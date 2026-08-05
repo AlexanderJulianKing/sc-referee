@@ -107,16 +107,20 @@ to one adjudicator.
 
 ## Direct study shape
 
-The existing 140-case design remains the complete objective: ten envelopes, seven cells, and two
-blocks. Each envelope has these frozen cells in both pilot and held-out:
+A maintainer-directed pre-exposure amendment reduces each threshold pilot to the smallest causal
+triad that distinguishes the scientific relation from its operands:
 
-1. error-bearing;
-2. corrected twin;
-3. valid alternative;
-4. hard negative;
-5. ambiguous;
-6. unsupported; and
-7. independently renamed implementation.
+1. error-bearing: complete-domain target with a retained-subset denominator;
+2. corrected twin: complete-domain target with a complete-domain denominator; and
+3. valid alternative: explicitly conditional target with the matching retained-subset denominator.
+
+For this first envelope, the already sealed held-out block remains the accepted seven-role set:
+error-bearing, corrected twin, valid alternative, hard negative, ambiguous, unsupported, and
+independently renamed implementation. The first lane's four surplus pilot assignments were frozen
+before this amendment; because no author brief has been exposed, they remain immutable, unopened,
+and metric-ineligible rather than being deleted, reclassified, or counted as attempts. This
+amendment does not reduce the 4+2 reviewer panel or the accepted ADR-0061 held-out promotion gate.
+It makes no assignment-count or execution decision for the other nine envelopes.
 
 Cases are frozen and opened envelope by envelope so the program can obtain a real 1/10 result
 before spending resources on all ten. No envelope's detector may change after its pilot begins;
@@ -131,9 +135,11 @@ development matrix and two qualification-ineligible, independently renamed posit
 - [x] Freeze its exact detector manifest, check/candidate/adapter binding, comparator/build digest,
   case-evidence contract, issue-class entry, and fourteen opaque assignments.
 - [x] Seal the seven held-out assignments before any pilot label or detector outcome exists.
-- [ ] Author and retain all seven pilot cases without replacement.
+- [x] Freeze the pre-exposure pilot-scope amendment and retain the four excluded assignments as
+  unopened and metric-ineligible.
+- [ ] Author and retain the three-case pilot causal triad without replacement.
 - [ ] Complete the required 4+2 blinded review panel and freeze resolved labels.
-- [ ] Run and replay the frozen detector on all seven pilot opportunities.
+- [ ] Run and replay the frozen detector on all three pilot opportunities.
 - [ ] Use pilot results to accept a numeric threshold ADR and forward schema capable of representing
   a non-deferred promotion policy.
 - [ ] Open, author, review, run, and replay the seven held-out cases without changing the tuple.
@@ -175,6 +181,15 @@ amendment digest
 records that fresh Claude incognito chats expose one shared nonpersistent route rather than unique
 visible conversation URLs; it changes no scientific rubric or verdict. These calibration records
 create no scientific label, metric, qualification, promotion, or Finding authority.
+
+Before any author brief exposure, first-envelope pilot-scope amendment digest
+`sha256:35e1d193113b807257baab48bf2bd2d9b6482ed620bae09a1f36aa5541b91861`
+retains the four surplus pilot assignments as unopened and metric-ineligible and authorizes only
+the three-case causal triad. Authoring-protocol digest
+`sha256:51808c104df89a701f1b6dd612894207760c02da7c969dcb68df86ae589593af`
+binds those three briefs to two one-shot author contexts. The error/corrected pair shares its
+frozen Claude author identity; the valid alternative uses one frozen Codex author identity. No
+workflow, declaration, scientific label, detector outcome, or Finding exists at this freeze.
 
 ## Stop conditions
 

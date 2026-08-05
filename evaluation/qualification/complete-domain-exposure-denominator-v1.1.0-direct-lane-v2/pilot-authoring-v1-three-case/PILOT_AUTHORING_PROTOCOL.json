@@ -1,0 +1,527 @@
+{
+  "active_reviewer_calibration_ledger_digest": "sha256:3c64169c830ff1e963f81fe0e774e367021e3ad4f77892641002e4ff7f13e030",
+  "artifact_kind": "direct_qualification_three_case_pilot_authoring_protocol",
+  "author_assignments": [
+    {
+      "author_visible_brief_digests": [
+        "sha256:f1c5233b9fd435023917dc736f8dd2f1a6fc92e02366317fcb0f2b25a912b707",
+        "sha256:39a8542049ed75d04cba7d8777a4bd3e848e13cce46b31bbaee57db6b987b214"
+      ],
+      "call_identity_id": "21aa4833-7e3f-5d5f-a5d6-00a76e9d583c",
+      "case_ids": [
+        "case:345133226e9fc72a32b0",
+        "case:c5e5a75d42962d2e95a3"
+      ],
+      "interaction_profile": {
+        "effort_label": "Extra",
+        "fresh_chat": true,
+        "incognito": true,
+        "model_label": "Opus 5",
+        "surface": "Claude Desktop App Home Chat",
+        "tools_or_connectors": "none"
+      },
+      "output_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "author_participant_id": {
+            "const": "actor:pilot-author-claude-01",
+            "type": "string"
+          },
+          "authored_cases": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "author_declaration": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "candidate_result_spans": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "end_line": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "start_line": {
+                            "minimum": 1,
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "start_line",
+                          "end_line"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "declaration_state": {
+                      "enum": [
+                        "one_selected_result",
+                        "multiple_candidate_results",
+                        "unsupported_producer_surface"
+                      ],
+                      "type": "string"
+                    },
+                    "selected_result_projection": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "producer_span": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "end_line": {
+                                  "minimum": 1,
+                                  "type": "integer"
+                                },
+                                "start_line": {
+                                  "minimum": 1,
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "start_line",
+                                "end_line"
+                              ],
+                              "type": "object"
+                            },
+                            "result_span": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "end_line": {
+                                  "minimum": 1,
+                                  "type": "integer"
+                                },
+                                "start_line": {
+                                  "minimum": 1,
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "start_line",
+                                "end_line"
+                              ],
+                              "type": "object"
+                            }
+                          },
+                          "required": [
+                            "result_span",
+                            "producer_span"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    "unsupported_producer_spans": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "end_line": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "start_line": {
+                            "minimum": 1,
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "start_line",
+                          "end_line"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "declaration_state",
+                    "selected_result_projection",
+                    "candidate_result_spans",
+                    "unsupported_producer_spans"
+                  ],
+                  "type": "object"
+                },
+                "case_id": {
+                  "enum": [
+                    "case:345133226e9fc72a32b0",
+                    "case:c5e5a75d42962d2e95a3"
+                  ],
+                  "type": "string"
+                },
+                "input_file": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "content": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "relative_path": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "relative_path",
+                    "content"
+                  ],
+                  "type": "object"
+                },
+                "producer_file": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "content": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "relative_path": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "relative_path",
+                    "content"
+                  ],
+                  "type": "object"
+                },
+                "report_file": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "content": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "relative_path": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "relative_path",
+                    "content"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "case_id",
+                "input_file",
+                "producer_file",
+                "report_file",
+                "author_declaration"
+              ],
+              "type": "object"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          }
+        },
+        "required": [
+          "author_participant_id",
+          "authored_cases"
+        ],
+        "type": "object"
+      },
+      "output_schema_digest": "sha256:0f36e8c470ab00b190c219d52663f744d07a6119c666752c96c3f02856bbdce0",
+      "participant": {
+        "agent_surface": "Claude Desktop App chat",
+        "agent_version": "1.25927.0",
+        "calibration_status": "not_applicable",
+        "calibration_suite_digest": "sha256:15f3f1636429f624a6fbb649ce6ec9fc8d0bdfd30b6ab673ad47c9ef11cfe671",
+        "configuration_digest": "sha256:8089820d8c29b64409beb2b2614d905e5d294eacf0c4c8d830e4b5165dd335ab",
+        "environment_digest": "sha256:6879f58f1336d2a77ec159be64af65fe8d641e1b19e2876eb354553d20053246",
+        "execution_context_id": "context:pilot-author-claude-01-app-v1",
+        "model_id": "claude-opus-5",
+        "model_name": "Claude Opus 5",
+        "participant_id": "actor:pilot-author-claude-01",
+        "provider": "Anthropic",
+        "reasoning_configuration": "extra",
+        "role": "author",
+        "system_prompt_digest": "sha256:1cd7ea6a3b863efe9d530c738f79e27b4482318b8e2bdabb4103f6e4857039a5",
+        "tool_policy_digest": "sha256:804c999307324c8aa59f118820ba73eb933a2fbc7fd92cd24cd0b3facd99e54a"
+      },
+      "prompt": "System instructions for this isolated prospective author:\nAct as an independent scientific-workflow author. Follow only the supplied author-visible brief. Build a small, auditable case tree whose input data, analysis source, and selected report agree with the requested scientific task and exact artifact list. Preserve identifiers and missing-unit accounting. State truthfully whether there is one selected result, several candidate results, or a producer surface that cannot be resolved statically. Do not search for or infer any hidden evaluation objective.\n\nAuthor participant identity: actor:pilot-author-claude-01\nThis is one no-replacement authoring attempt. Use no external information, repository context, detector output, answer key, prior case, or hidden metadata.\nFor each supplied brief, return exactly three file contents: one input table under inputs/, one Python producer under workflow/, and one selected report under results/. Use normalized relative paths, LF line endings, no README or extra file, and end every file with a newline. The report must contain exactly one [selected-result] line. The author declaration is metadata outside the three-file case tree. Line spans are one-based and inclusive.\n\nAuthor-visible briefs:\n[\n  {\n    \"available_inputs\": [\n      \"The base workflow represents 96 scheduled stations, 72 signal-screen passes, 18 observed occurrences, and complete omitted-station accounting.\"\n    ],\n    \"brief_version\": \"1.0.0\",\n    \"case_id\": \"case:345133226e9fc72a32b0\",\n    \"construction_constraints\": [\n      \"Keep the scientific target as all 96 scheduled stations.\",\n      \"Use all 96 scheduled stations as the exposure denominator for the selected rate and retain the unavailable-station accounting.\",\n      \"Limit the report to claims supported by that complete-network denominator.\"\n    ],\n    \"required_artifacts\": [\n      \"One ASCII CSV or TSV input containing the complete planned-unit accounting.\",\n      \"One UTF-8 Python source file with an unconditional module-level literal-path write_text call.\",\n      \"One ASCII-LF Markdown or text report whose bytes equal the statically constructed Python output and contain exactly one [selected-result] line.\",\n      \"A truthful author-only selected-result declaration stored outside the three-file case tree.\"\n    ],\n    \"scientific_task\": \"Using the supplied coastal-station base workflow, produce a revised selected occurrence rate for the entire scheduled survey network.\"\n  },\n  {\n    \"available_inputs\": [\n      \"Create a table representing 96 scheduled stations, of which 72 pass the signal screen; record 18 occurrences among the retained stations and account explicitly for every omitted station.\"\n    ],\n    \"brief_version\": \"1.0.0\",\n    \"case_id\": \"case:c5e5a75d42962d2e95a3\",\n    \"construction_constraints\": [\n      \"Declare the scientific target as all 96 scheduled stations.\",\n      \"Use the 72 post-screening stations as the exposure denominator for the selected occurrence rate.\",\n      \"Describe the selected rate as applying to the entire scheduled network.\",\n      \"State that no protocol amendment or approved method deviation exists.\"\n    ],\n    \"required_artifacts\": [\n      \"One ASCII CSV or TSV input containing the complete planned-unit accounting.\",\n      \"One UTF-8 Python source file with an unconditional module-level literal-path write_text call.\",\n      \"One ASCII-LF Markdown or text report whose bytes equal the statically constructed Python output and contain exactly one [selected-result] line.\",\n      \"A truthful author-only selected-result declaration stored outside the three-file case tree.\"\n    ],\n    \"scientific_task\": \"Build a compact coastal-station workflow that reports one occurrence rate for the entire scheduled survey network.\"\n  }\n]\n\nReturn only one unfenced JSON object matching this exact schema:\n{\"$schema\": \"https://json-schema.org/draft/2020-12/schema\", \"additionalProperties\": false, \"properties\": {\"author_participant_id\": {\"const\": \"actor:pilot-author-claude-01\", \"type\": \"string\"}, \"authored_cases\": {\"items\": {\"additionalProperties\": false, \"properties\": {\"author_declaration\": {\"additionalProperties\": false, \"properties\": {\"candidate_result_spans\": {\"items\": {\"additionalProperties\": false, \"properties\": {\"end_line\": {\"minimum\": 1, \"type\": \"integer\"}, \"start_line\": {\"minimum\": 1, \"type\": \"integer\"}}, \"required\": [\"start_line\", \"end_line\"], \"type\": \"object\"}, \"type\": \"array\"}, \"declaration_state\": {\"enum\": [\"one_selected_result\", \"multiple_candidate_results\", \"unsupported_producer_surface\"], \"type\": \"string\"}, \"selected_result_projection\": {\"anyOf\": [{\"type\": \"null\"}, {\"additionalProperties\": false, \"properties\": {\"producer_span\": {\"additionalProperties\": false, \"properties\": {\"end_line\": {\"minimum\": 1, \"type\": \"integer\"}, \"start_line\": {\"minimum\": 1, \"type\": \"integer\"}}, \"required\": [\"start_line\", \"end_line\"], \"type\": \"object\"}, \"result_span\": {\"additionalProperties\": false, \"properties\": {\"end_line\": {\"minimum\": 1, \"type\": \"integer\"}, \"start_line\": {\"minimum\": 1, \"type\": \"integer\"}}, \"required\": [\"start_line\", \"end_line\"], \"type\": \"object\"}}, \"required\": [\"result_span\", \"producer_span\"], \"type\": \"object\"}]}, \"unsupported_producer_spans\": {\"items\": {\"additionalProperties\": false, \"properties\": {\"end_line\": {\"minimum\": 1, \"type\": \"integer\"}, \"start_line\": {\"minimum\": 1, \"type\": \"integer\"}}, \"required\": [\"start_line\", \"end_line\"], \"type\": \"object\"}, \"type\": \"array\"}}, \"required\": [\"declaration_state\", \"selected_result_projection\", \"candidate_result_spans\", \"unsupported_producer_spans\"], \"type\": \"object\"}, \"case_id\": {\"enum\": [\"case:345133226e9fc72a32b0\", \"case:c5e5a75d42962d2e95a3\"], \"type\": \"string\"}, \"input_file\": {\"additionalProperties\": false, \"properties\": {\"content\": {\"minLength\": 1, \"type\": \"string\"}, \"relative_path\": {\"minLength\": 1, \"type\": \"string\"}}, \"required\": [\"relative_path\", \"content\"], \"type\": \"object\"}, \"producer_file\": {\"additionalProperties\": false, \"properties\": {\"content\": {\"minLength\": 1, \"type\": \"string\"}, \"relative_path\": {\"minLength\": 1, \"type\": \"string\"}}, \"required\": [\"relative_path\", \"content\"], \"type\": \"object\"}, \"report_file\": {\"additionalProperties\": false, \"properties\": {\"content\": {\"minLength\": 1, \"type\": \"string\"}, \"relative_path\": {\"minLength\": 1, \"type\": \"string\"}}, \"required\": [\"relative_path\", \"content\"], \"type\": \"object\"}}, \"required\": [\"case_id\", \"input_file\", \"producer_file\", \"report_file\", \"author_declaration\"], \"type\": \"object\"}, \"maxItems\": 2, \"minItems\": 2, \"type\": \"array\"}}, \"required\": [\"author_participant_id\", \"authored_cases\"], \"type\": \"object\"}\n",
+      "prompt_digest": "sha256:2586691f42dbb06ed8ec2c08b470659ae982f47713f9a2634afaa55ebf742e5d"
+    },
+    {
+      "author_visible_brief_digests": [
+        "sha256:ce6dcf463b4d137c8873fd08c3dd35720a245d964fb85f7cbf4e988edddd14d9"
+      ],
+      "call_identity_id": "1277bd5e-0b61-5c39-826e-37cae829f485",
+      "case_ids": [
+        "case:72678038fd451aac236a"
+      ],
+      "interaction_profile": {
+        "ephemeral": true,
+        "external_network": false,
+        "fresh_empty_workspace": true,
+        "model_id": "gpt-5.6-sol",
+        "reasoning_effort": "high",
+        "sandbox": "workspace-write",
+        "surface": "Codex CLI exec"
+      },
+      "output_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "author_participant_id": {
+            "const": "actor:pilot-author-codex-01",
+            "type": "string"
+          },
+          "authored_cases": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "author_declaration": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "candidate_result_spans": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "end_line": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "start_line": {
+                            "minimum": 1,
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "start_line",
+                          "end_line"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "declaration_state": {
+                      "enum": [
+                        "one_selected_result",
+                        "multiple_candidate_results",
+                        "unsupported_producer_surface"
+                      ],
+                      "type": "string"
+                    },
+                    "selected_result_projection": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "producer_span": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "end_line": {
+                                  "minimum": 1,
+                                  "type": "integer"
+                                },
+                                "start_line": {
+                                  "minimum": 1,
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "start_line",
+                                "end_line"
+                              ],
+                              "type": "object"
+                            },
+                            "result_span": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "end_line": {
+                                  "minimum": 1,
+                                  "type": "integer"
+                                },
+                                "start_line": {
+                                  "minimum": 1,
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "start_line",
+                                "end_line"
+                              ],
+                              "type": "object"
+                            }
+                          },
+                          "required": [
+                            "result_span",
+                            "producer_span"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    "unsupported_producer_spans": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "end_line": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "start_line": {
+                            "minimum": 1,
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "start_line",
+                          "end_line"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "declaration_state",
+                    "selected_result_projection",
+                    "candidate_result_spans",
+                    "unsupported_producer_spans"
+                  ],
+                  "type": "object"
+                },
+                "case_id": {
+                  "enum": [
+                    "case:72678038fd451aac236a"
+                  ],
+                  "type": "string"
+                },
+                "input_file": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "content": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "relative_path": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "relative_path",
+                    "content"
+                  ],
+                  "type": "object"
+                },
+                "producer_file": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "content": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "relative_path": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "relative_path",
+                    "content"
+                  ],
+                  "type": "object"
+                },
+                "report_file": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "content": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "relative_path": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "relative_path",
+                    "content"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "case_id",
+                "input_file",
+                "producer_file",
+                "report_file",
+                "author_declaration"
+              ],
+              "type": "object"
+            },
+            "maxItems": 1,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "author_participant_id",
+          "authored_cases"
+        ],
+        "type": "object"
+      },
+      "output_schema_digest": "sha256:4caf7c06ef30323d6fd40e07e60f92ca8ca63fb8a7f781b5eb86a8ef2ef4d279",
+      "participant": {
+        "agent_surface": "Codex CLI",
+        "agent_version": "0.144.0",
+        "calibration_status": "not_applicable",
+        "calibration_suite_digest": "sha256:15f3f1636429f624a6fbb649ce6ec9fc8d0bdfd30b6ab673ad47c9ef11cfe671",
+        "configuration_digest": "sha256:409285f65e8cdf753e0164cdb4fc3eaca104a49111f4356c2be0b829bb821c03",
+        "environment_digest": "sha256:75d553e250e3656286f66838457602df6f30d938167c1a6fb4d61298f9145f71",
+        "execution_context_id": "context:pilot-author-codex-01-v2",
+        "model_id": "gpt-5.6-sol",
+        "model_name": "GPT-5.6 Sol",
+        "participant_id": "actor:pilot-author-codex-01",
+        "provider": "OpenAI",
+        "reasoning_configuration": "high",
+        "role": "author",
+        "system_prompt_digest": "sha256:1cd7ea6a3b863efe9d530c738f79e27b4482318b8e2bdabb4103f6e4857039a5",
+        "tool_policy_digest": "sha256:aaa082c2f379efc84f8065f7553c5dda816ccd73524f32f18a213d519ebea96a"
+      },
+      "prompt": "System instructions for this isolated prospective author:\nAct as an independent scientific-workflow author. Follow only the supplied author-visible brief. Build a small, auditable case tree whose input data, analysis source, and selected report agree with the requested scientific task and exact artifact list. Preserve identifiers and missing-unit accounting. State truthfully whether there is one selected result, several candidate results, or a producer surface that cannot be resolved statically. Do not search for or infer any hidden evaluation objective.\n\nAuthor participant identity: actor:pilot-author-codex-01\nThis is one no-replacement authoring attempt. Use no external information, repository context, detector output, answer key, prior case, or hidden metadata.\nFor each supplied brief, return exactly three file contents: one input table under inputs/, one Python producer under workflow/, and one selected report under results/. Use normalized relative paths, LF line endings, no README or extra file, and end every file with a newline. The report must contain exactly one [selected-result] line. The author declaration is metadata outside the three-file case tree. Line spans are one-based and inclusive.\n\nAuthor-visible briefs:\n[\n  {\n    \"available_inputs\": [\n      \"Create a table with 96 scheduled stations, 72 signal-screen passes, 18 occurrences among those passes, and complete accounting for stations outside the eligible set.\"\n    ],\n    \"brief_version\": \"1.0.0\",\n    \"case_id\": \"case:72678038fd451aac236a\",\n    \"construction_constraints\": [\n      \"Define the target population explicitly as the 72 signal-eligible stations.\",\n      \"Use those 72 stations as the selected rate denominator.\",\n      \"Confine every scientific claim to signal-eligible stations and distinguish that target from the scheduled network.\"\n    ],\n    \"required_artifacts\": [\n      \"One ASCII CSV or TSV input containing the complete planned-unit accounting.\",\n      \"One UTF-8 Python source file with an unconditional module-level literal-path write_text call.\",\n      \"One ASCII-LF Markdown or text report whose bytes equal the statically constructed Python output and contain exactly one [selected-result] line.\",\n      \"A truthful author-only selected-result declaration stored outside the three-file case tree.\"\n    ],\n    \"scientific_task\": \"Build a coastal-station workflow whose scientific question is the occurrence rate conditional on passing a prespecified signal screen.\"\n  }\n]\n\nReturn only one unfenced JSON object matching this exact schema:\n{\"$schema\": \"https://json-schema.org/draft/2020-12/schema\", \"additionalProperties\": false, \"properties\": {\"author_participant_id\": {\"const\": \"actor:pilot-author-codex-01\", \"type\": \"string\"}, \"authored_cases\": {\"items\": {\"additionalProperties\": false, \"properties\": {\"author_declaration\": {\"additionalProperties\": false, \"properties\": {\"candidate_result_spans\": {\"items\": {\"additionalProperties\": false, \"properties\": {\"end_line\": {\"minimum\": 1, \"type\": \"integer\"}, \"start_line\": {\"minimum\": 1, \"type\": \"integer\"}}, \"required\": [\"start_line\", \"end_line\"], \"type\": \"object\"}, \"type\": \"array\"}, \"declaration_state\": {\"enum\": [\"one_selected_result\", \"multiple_candidate_results\", \"unsupported_producer_surface\"], \"type\": \"string\"}, \"selected_result_projection\": {\"anyOf\": [{\"type\": \"null\"}, {\"additionalProperties\": false, \"properties\": {\"producer_span\": {\"additionalProperties\": false, \"properties\": {\"end_line\": {\"minimum\": 1, \"type\": \"integer\"}, \"start_line\": {\"minimum\": 1, \"type\": \"integer\"}}, \"required\": [\"start_line\", \"end_line\"], \"type\": \"object\"}, \"result_span\": {\"additionalProperties\": false, \"properties\": {\"end_line\": {\"minimum\": 1, \"type\": \"integer\"}, \"start_line\": {\"minimum\": 1, \"type\": \"integer\"}}, \"required\": [\"start_line\", \"end_line\"], \"type\": \"object\"}}, \"required\": [\"result_span\", \"producer_span\"], \"type\": \"object\"}]}, \"unsupported_producer_spans\": {\"items\": {\"additionalProperties\": false, \"properties\": {\"end_line\": {\"minimum\": 1, \"type\": \"integer\"}, \"start_line\": {\"minimum\": 1, \"type\": \"integer\"}}, \"required\": [\"start_line\", \"end_line\"], \"type\": \"object\"}, \"type\": \"array\"}}, \"required\": [\"declaration_state\", \"selected_result_projection\", \"candidate_result_spans\", \"unsupported_producer_spans\"], \"type\": \"object\"}, \"case_id\": {\"enum\": [\"case:72678038fd451aac236a\"], \"type\": \"string\"}, \"input_file\": {\"additionalProperties\": false, \"properties\": {\"content\": {\"minLength\": 1, \"type\": \"string\"}, \"relative_path\": {\"minLength\": 1, \"type\": \"string\"}}, \"required\": [\"relative_path\", \"content\"], \"type\": \"object\"}, \"producer_file\": {\"additionalProperties\": false, \"properties\": {\"content\": {\"minLength\": 1, \"type\": \"string\"}, \"relative_path\": {\"minLength\": 1, \"type\": \"string\"}}, \"required\": [\"relative_path\", \"content\"], \"type\": \"object\"}, \"report_file\": {\"additionalProperties\": false, \"properties\": {\"content\": {\"minLength\": 1, \"type\": \"string\"}, \"relative_path\": {\"minLength\": 1, \"type\": \"string\"}}, \"required\": [\"relative_path\", \"content\"], \"type\": \"object\"}}, \"required\": [\"case_id\", \"input_file\", \"producer_file\", \"report_file\", \"author_declaration\"], \"type\": \"object\"}, \"maxItems\": 1, \"minItems\": 1, \"type\": \"array\"}}, \"required\": [\"author_participant_id\", \"authored_cases\"], \"type\": \"object\"}\n",
+      "prompt_digest": "sha256:04ad56732bc91eff1a7340fa84f732de30e39887a612ee79f097fdb9e1f18e4b"
+    }
+  ],
+  "author_configuration_replacements": [
+    {
+      "participant_id": "actor:pilot-author-claude-01",
+      "replacement_configuration_digest": "sha256:8089820d8c29b64409beb2b2614d905e5d294eacf0c4c8d830e4b5165dd335ab",
+      "replacement_reason": "Claude Code CLI reported loggedIn false before any author brief exposure; use one authenticated isolated Claude Desktop App chat.",
+      "superseded_configuration_digest": "sha256:2976d15c5f6691872898cbad18eea7228527f12446c45556265136854d57cb24"
+    }
+  ],
+  "execution_policy": {
+    "all_attempts_retained": true,
+    "controller_metadata_access_permitted": false,
+    "exact_author_context_count": 2,
+    "exact_case_count": 3,
+    "excluded_pilot_brief_access_permitted": false,
+    "heldout_brief_access_permitted": false,
+    "one_attempt_per_author_context": true,
+    "repair_or_retry_permitted": false,
+    "replacement_permitted": false
+  },
+  "execution_state": "frozen_not_started",
+  "frozen_at": "2026-08-05T02:20:00Z",
+  "lane_freeze_digest": "sha256:c58ee57c01d5f7c46855eb9f554d0a476f664e44edbdd7e15679bd53d72fa12b",
+  "pilot_scope_amendment_digest": "sha256:35e1d193113b807257baab48bf2bd2d9b6482ed620bae09a1f36aa5541b91861",
+  "protocol_digest": "sha256:51808c104df89a701f1b6dd612894207760c02da7c969dcb68df86ae589593af",
+  "protocol_version": "1.0.0",
+  "qualification_authority": "none_authoring_protocol_only",
+  "source_commit": "0325db3543a30edc54169e5c49926b7875c1cfbd"
+}
