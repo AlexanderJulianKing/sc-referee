@@ -87,9 +87,6 @@ def test_two_codex_replacement_calibration_is_frozen_before_calls() -> None:
     assert protocol["execution_state"] == "frozen_not_started"
     assert protocol["attempt_count"] == protocol["pass_count"] == 0
     assert protocol["scientific_label_count"] == protocol["detector_outcome_count"] == 0
-    assert not (REPLACEMENT_ROOT / "incoming").exists()
-    assert not (REPLACEMENT_ROOT / "process-captures").exists()
-
     assert amendment["source_duplicate_launch_failure_ledger_digest"] == (
         SOURCE_DUPLICATE_FAILURE_LEDGER_DIGEST
     )
@@ -101,6 +98,31 @@ def test_two_codex_replacement_calibration_is_frozen_before_calls() -> None:
     assert amendment["source_scientific_responses_not_reused"] is True
     assert amendment["calibration_required_before_scientific_participation"] is True
     assert amendment["scientific_label_count"] == amendment["detector_outcome_count"] == 0
+
+
+def test_two_codex_replacement_calibration_attempts_are_retained_and_pass() -> None:
+    ledger = _replay(REPLACEMENT_ROOT / "CALIBRATION_LEDGER.json", "ledger_digest")
+    assert (
+        ledger["ledger_digest"]
+        == "sha256:a4b68cbe07aaba3237a805d5ce0df2aa4554b859f9efee371e382960fcc4de90"
+    )
+    assert ledger["summary"] == {
+        "all_assigned_attempts_retained": True,
+        "all_reviewer_configurations_passed": True,
+        "assigned_reviewer_count": 2,
+        "failed_count": 0,
+        "passed_count": 2,
+        "replacement_count": 0,
+        "retained_attempt_count": 2,
+    }
+    assert [item["participant_id"] for item in ledger["entries"]] == list(SOURCE_PARTICIPANTS)
+    for entry in ledger["entries"]:
+        assert entry["calibration_status"] == "passed"
+        assert entry["calibration_evaluation"]["pass"] is True
+        assert entry["calibration_evaluation"]["structured_output_schema_valid"] is True
+        assert entry["calibration_evaluation"]["exact_expected_verdict_count"] == 6
+    assert ledger["scientific_label_count"] == 0
+    assert ledger["detector_outcome_count"] == 0
 
 
 def test_two_codex_replacements_reuse_only_the_v5_scientific_calibration_contract() -> None:
