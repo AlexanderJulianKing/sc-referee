@@ -290,10 +290,10 @@ maintainer decision; there is no family-wide or portfolio-wide implied authority
 
 ## Immediate next unchecked item
 
-Execute the frozen calibration transport protocol v2, which supersedes and retains the six
-pre-inference technical failures from protocol v1. Calibrate and authenticate the exact six frozen
-reviewer configurations, retaining exact prompts, outputs, identities, execution contexts, and
-transcript digests. Then open only the seven-case
+Freeze and execute a Claude-only calibration protocol v3 with three new call identities, retaining
+the three exact Codex passes and three pre-inference Claude failures from protocol v2. Aggregate the
+six reviewer configurations only if every new Claude response passes the frozen rubric. Retain exact
+prompts, outputs, identities, execution contexts, and transcript digests. Then open only the seven-case
 pilot author briefs, authenticate their six frozen author contexts, and author all seven pilot
 workflows without replacement. Freeze each truthful author-only selected-result declaration before
 any scientific review. Preserve the stopped Experiment 0055 machinery as non-qualifying
@@ -493,6 +493,14 @@ perform unrelated capability expansion before the complete first pilot is retain
   It explicitly binds the failed protocol and ledger, uses six new call identities, supplies
   Claude's required empty `mcpServers` record, and adds explicit JSON types to every Codex `const`
   field. It remains unexecuted and authority-free at freeze time.
+- Protocol v2 then produced three exact 6/6 Codex passes with no invented premise and three Claude
+  transport failures before inference because Claude's local schema validator rejected the
+  draft-2020 `$schema` URI. Its immutable ledger digest is
+  `sha256:253b3fa6283c91e66442a3c9fe42f9f100754bd9aeb4e88e53564c96288e2bf3`.
+  The Codex response, provider thread, invocation, and transcript digests are retained as valid
+  calibration evidence; the Claude entries remain failures and cannot be reversed into passes. A
+  Claude-only v3 protocol must remove only the rejected schema metadata, use new call identities,
+  and bind these retained outcomes before the panel can be aggregated.
 
 ## Evidence log
 
@@ -505,3 +513,4 @@ perform unrelated capability expansion before the complete first pilot is retain
 | 2026-08-04 | Repaired the evaluation-private evidence contract before assignment and superseded the zero-case v2 tuple with an exact v3 replacement. | Commit `b723f000bccff18d49efca64a4d6ece92e2b5dd2`; replacement freeze digest `sha256:2526c7d710705bc8705ffc8dbc062f233c5555f8e9445d1ffea23c50a68a14d6`; 1,894 full tests and complete handoff verifier. | Current first-envelope tuple items remain checked; no qualification, promotion, product, or score change. |
 | 2026-08-04 | Froze the exact first-envelope participant configurations, blind author briefs, fourteen no-replacement assignments, and seven-case held-out seal; superseded one unexposed prompt-conflicted lane before use. | Replacement enrollment digest `sha256:c29bdc3c277b840c2bf9b4369f69181190663530467926ccfdfb24407eff0016`; brief digest `sha256:7133cb96256ab17a7eff58efa4d2b9a97dc9c2addac575a3ec03b830c869ec8e`; lane digest `sha256:c58ee57c01d5f7c46855eb9f554d0a476f664e44edbdd7e15679bd53d72fa12b`; zero-exposure supersession digest `sha256:b4035359abb43bc83850751ca5cc05f513754e4b50c61fe73998536b39e81ea1`. | Five first-envelope Gate 2 freeze/seal items checked; participant authentication, `Frozen`, qualification, promotion, product, and scores remain incomplete. |
 | 2026-08-04 | Retained six calibration transport failures that occurred before any reviewer response, then froze a corrected protocol with new call identities. | Failed protocol digest `sha256:c7b28df0840b278af5d80838842f5b42104d225eac4759a5a62df9e377b30bd0`; failure-ledger digest `sha256:ea070181d537a6c939bf2328ae75d5be1c697cff38a0f3e31e074ac04651c795`; corrected protocol digest `sha256:b2875a535a1cbf86dffb1fb696c3b05bbc28dd9b5d67a0d82cbb5ed881864aad`. | No checkbox or score changed; reviewer calibration and authentication remain incomplete. |
+| 2026-08-04 | Retained three exact Codex calibration passes and three Claude pre-inference schema-transport failures from protocol v2. | Protocol-v2 ledger digest `sha256:253b3fa6283c91e66442a3c9fe42f9f100754bd9aeb4e88e53564c96288e2bf3`; exact response and transcript captures for all six assignments. | Three of six reviewer configurations have passing calibration evidence; the aggregate authentication item and all scores remain incomplete. |

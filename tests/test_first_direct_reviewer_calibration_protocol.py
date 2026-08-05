@@ -176,3 +176,35 @@ def test_first_calibration_transport_failures_are_retained_without_pass(
         entry["calibration_evaluation"]["exact_expected_verdict_count"] == 0
         for entry in ledger["entries"]
     )
+
+
+def test_second_calibration_retains_three_codex_passes_and_three_claude_transport_failures(
+    project_root: Path,
+) -> None:
+    root = project_root / CALIBRATION_RELATIVE
+    ledger = _load(root / "CALIBRATION_LEDGER.json")
+    supplied = ledger.pop("ledger_digest")
+
+    assert supplied == semantic_digest(ledger)
+    assert supplied == ("sha256:253b3fa6283c91e66442a3c9fe42f9f100754bd9aeb4e88e53564c96288e2bf3")
+    assert ledger["summary"] == {
+        "assigned_reviewer_count": 6,
+        "retained_attempt_count": 6,
+        "passed_count": 3,
+        "failed_count": 3,
+        "all_assigned_attempts_retained": True,
+        "replacement_count": 0,
+        "all_reviewer_configurations_passed": False,
+    }
+    by_provider = {
+        provider: [entry for entry in ledger["entries"] if entry["provider"] == provider]
+        for provider in {"Anthropic", "OpenAI"}
+    }
+    assert all(entry["calibration_status"] == "passed" for entry in by_provider["OpenAI"])
+    assert all(
+        entry["calibration_evaluation"]["exact_expected_verdict_count"] == 6
+        for entry in by_provider["OpenAI"]
+    )
+    assert all(entry["reported_session_id"] for entry in by_provider["OpenAI"])
+    assert all(entry["calibration_status"] == "failed" for entry in by_provider["Anthropic"])
+    assert all(entry["response_digest"] is None for entry in by_provider["Anthropic"])
