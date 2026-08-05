@@ -1,7 +1,7 @@
 # Experiment 0056: Lean direct ten-Findings qualification
 
-- **Status:** Active first-envelope pilot; three cases admitted and 2/4 Stage-1 reviews per case
-  accepted from Codex, with two Claude reviewers still unstarted
+- **Status:** Active first-envelope pilot; three cases admitted and complete 4-review, 2-provider
+  Stage-1 panels frozen; Stage-2 not started
 - **Date:** 2026-08-04
 - **Supersedes:** Experiment 0055 as the delivery-path qualification design
 - **Production impact:** None until an exact detector envelope completes pilot, held-out,
@@ -326,6 +326,17 @@ Both Codex reviewers independently returned `demonstrated_issue` for
 This supplies two reviews per case from one provider family only. It is not a complete Stage-1
 panel, scientific label, detector outcome, qualification decision, or Finding. The two Claude
 reviewer calls remain unstarted.
+
+Both frozen Claude app calls were subsequently submitted once in fresh incognito chats with Opus 5
+and Extra effort. Their exact copied response bytes were retained before interpretation, and both
+passed the unchanged semantic projector, exact evidence-span checks, packet bindings, and
+AgentReview schema. All four reviewers independently returned the same case-level pattern. Final
+Stage-1 panel-ledger digest
+`sha256:cde80f4a0faf9f2d96699122127177252afcaac275b35d2ba9be72b812433851`
+binds 12 reviews and three panel freezes with two Anthropic and two OpenAI reviewers per case. The
+error case has four `demonstrated_issue` verdicts; each control has four
+`no_demonstrated_issue_within_scope` verdicts. This completes Stage-1 only. Stage-2 reviews,
+scientific label freezes, detector execution, qualification, and Findings remain unstarted.
 
 ## Stop conditions
 

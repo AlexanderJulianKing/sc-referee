@@ -210,7 +210,7 @@ replayable, its held-out seven are sealed, and zero scientific labels or detecto
 - [x] Freeze every selected-result declaration before scientific review.
 - [x] Independently rederive every selected report, producer, operand path, and alternative producer
   from immutable case bytes.
-- [ ] Complete four answer-blind Stage-1 reviews across two providers per case.
+- [x] Complete four answer-blind Stage-1 reviews across two providers per case.
 - [ ] Complete two fresh cross-provider Stage-2 reviews per case using canonical issue-class enums.
 - [ ] Retain failures, withdrawals, contamination, disagreement, ambiguity, insufficiency, and
   unsupported cases in the outcome ledger.
@@ -674,6 +674,17 @@ perform unrelated capability expansion before the complete first pilot is retain
   issue and marked the other two cases `no_demonstrated_issue_within_scope`. This is 2/4 Stage-1
   reviews per case, not a panel freeze or scientific label. The two Claude reviews per case remain
   unstarted; detector outcomes and Findings remain zero.
+- Both frozen Claude app calls were then submitted once in fresh Opus 5 / Extra incognito chats,
+  and their exact copied response bytes were retained before validation. Both passed the unchanged
+  projector and independently returned the same pattern as the Codex reviewers. Call-ledger digests
+  are `sha256:1de773b533bf1fc596f4b75e558411bee32a531208b8b6c6a14a53ed5e0b6e95`
+  and `sha256:f89e77de60ace7e2b96fffb6401385a3aba2b3347f619f1655ebed4d1c56a500`.
+  The complete Stage-1 panel is frozen at ledger digest
+  `sha256:cde80f4a0faf9f2d96699122127177252afcaac275b35d2ba9be72b812433851`:
+  12 schema-valid reviews, two reviewers per provider per case, four unanimous
+  `demonstrated_issue` verdicts for `case:35069763f06891dba5a3`, and eight unanimous clean verdicts
+  across the two controls. This closes only the Stage-1 checkbox; Stage-2, labels, detector outcomes,
+  qualification, and Findings remain incomplete.
 
 ## Evidence log
 
@@ -702,3 +713,4 @@ perform unrelated capability expansion before the complete first pilot is retain
 | 2026-08-04 | Retained both first Codex Stage-1 attempts as pre-inference response-schema transport failures. | Failure ledger `sha256:8ab75e78a52d476d395f11f8dfa46d54cd2371309c17db3d7210e7a984039787`; process captures `sha256:beb689d9a797953864145ba126a5d877dfd2e79d705d6ec0649fc2873f5dd5fe` and `sha256:ca445a569f59cda7500fe482d9a4cb94b0a264211b9f2261e039059b9bd1fff6`; three focused replay/retention controls. | No checkbox or score changed; zero reviewer responses and zero reviews were admitted. |
 | 2026-08-04 | Froze a transport-only Codex Stage-1 recovery before retry. | Amendment `sha256:b3340cea084f9293cb24e9ad95cd64b494a2b436ce8bcb3c273f6455dd61ec85`; fresh transport identities `44476f5d-fbd9-5991-8563-54789aed4dae` and `f8aebee9-8d10-5695-89cd-fc7743802982`; identical prompt, packet, participant, and local semantic-schema bindings; six focused recovery/failure controls. | No checkbox or score changed; recovery and Claude calls remain unexecuted. |
 | 2026-08-04 | Executed both frozen Codex recovery calls once and admitted all six reviews through the unchanged local semantic validator. | Process captures `sha256:fb6f980b6b0b81521e4888c5efb2fb4d613faed65f96e51244847aea4759b1e6` and `sha256:a0489c3679814ba06b1ab1946ea9ce7fe79c006d8dc1f5c9f2ae7542653f9bb8`; raw-call captures `sha256:ebffb2b5b08bce53cf5277f12aea135ffa9787802cff9cd0819a32b77ff84563` and `sha256:f71777677eeadc4ec264cc1c012720633ada44a969bb03716af16f58975aa859`; call ledgers `sha256:0acf3d7435637cabb4dbd3e74d47664f34cc10973293f57488acd5b4673e0a25` and `sha256:d53bad1d4e09a29b7b6fafbbecb5581b5b479cb756f42a1b6164e4aa05c0463f`. | Gate remains incomplete at 2/4 Stage-1 reviews per case; no panel freeze, label, detector outcome, qualification, promotion, product, or score change. |
+| 2026-08-04 | Executed both frozen Claude Stage-1 calls once, admitted all six reviews, and froze the complete three-case Stage-1 panel. | Claude raw-call captures `sha256:05618c423559457a1d44917278bd213309d2651a7d09540a7bb26f62ef709c90` and `sha256:210d5cf4f25feff1ec42c89b70c2fe17dc672b91604d5e225f3a5965c9c3aadc`; call ledgers `sha256:1de773b533bf1fc596f4b75e558411bee32a531208b8b6c6a14a53ed5e0b6e95` and `sha256:f89e77de60ace7e2b96fffb6401385a3aba2b3347f619f1655ebed4d1c56a500`; panel ledger `sha256:cde80f4a0faf9f2d96699122127177252afcaac275b35d2ba9be72b812433851`; three replayed panel freezes and 12/12 reviews. | Four-review, two-provider Stage-1 checkbox checked; Stage-2, label, detector, qualification, promotion, product, and score remain incomplete. |

@@ -358,3 +358,45 @@ def test_claude_app_capture_wrapper_binds_frozen_ui_profile() -> None:
             completed_at="2026-08-05T06:54:32.971Z",
             captured_at="2026-08-05T06:55:00Z",
         )
+
+
+def test_retained_stage1_panel_replays_all_twelve_reviews() -> None:
+    ledger = _load(REVIEW_ROOT / "STAGE1_PANEL_LEDGER.json")
+    supplied = ledger.pop("ledger_digest")
+    assert supplied == ("sha256:cde80f4a0faf9f2d96699122127177252afcaac275b35d2ba9be72b812433851")
+    assert supplied == semantic_digest(ledger)
+    assert ledger["model_call_count"] == 4
+    assert ledger["review_count"] == 12
+    assert ledger["stage1_freeze_count"] == 3
+    assert ledger["verdict_counts"] == {
+        "demonstrated_issue": 4,
+        "no_demonstrated_issue_within_scope": 8,
+    }
+
+    for panel in ledger["case_panels"]:
+        case_id = str(panel["case_id"])
+        reviews = []
+        packets = []
+        manifests = []
+        for participant_id in STAGE1_REVIEWERS:
+            capture_root = (
+                REVIEW_ROOT
+                / "stage1-captures"
+                / case_id.removeprefix("case:")
+                / participant_id.removeprefix("actor:")
+            )
+            review, packet, manifest = load_review_capture(capture_root, SCHEMA_ROOT)
+            reviews.append(review)
+            packets.append(packet)
+            manifests.append(manifest)
+        frozen = _load(REVIEW_ROOT / str(panel["freeze_relative_path"]))
+        validate_stage1_freeze_evidence(
+            frozen,
+            reviews,
+            packets,
+            manifests,
+            SCHEMA_ROOT,
+        )
+        assert frozen["freeze_digest"] == panel["freeze_digest"]
+        assert panel["review_count"] == 4
+        assert panel["provider_participation"] == {"Anthropic": 2, "OpenAI": 2}
