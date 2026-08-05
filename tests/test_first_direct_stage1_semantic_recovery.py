@@ -21,6 +21,11 @@ from scripts.build_first_direct_stage1_recovery_calibration import (
 from scripts.build_first_direct_stage1_recovery_calibration_codex_retry import (
     AMENDMENT_NAME,
 )
+from scripts.build_first_direct_stage1_recovery_claude_replacement_calibration import (
+    PROMPT_CLARIFICATION,
+    REPLACEMENT_PARTICIPANT_ID,
+    REPLACEMENT_RELATIVE,
+)
 from scripts.build_first_direct_three_case_stage1_protocol import (
     CANONICAL_ISSUE_CLASS,
     CASE_IDS,
@@ -229,3 +234,24 @@ def test_recovery_calibration_retains_three_passes_and_one_schema_failure() -> N
         "falsification_attempt" in reason
         for reason in failed[0]["calibration_evaluation"]["reason_codes"]
     )
+
+
+def test_failed_claude_configuration_has_one_prospective_fresh_replacement() -> None:
+    root = PROJECT_ROOT / REPLACEMENT_RELATIVE
+    enrollment = _replay(root / "PARTICIPANT_ENROLLMENT.json", "enrollment_digest")
+    protocol = _replay(root / "CALIBRATION_PROTOCOL.json", "protocol_digest")
+    amendment = _replay(root / "REPLACEMENT_AMENDMENT.json", "amendment_digest")
+    participant = enrollment["participants"][0]
+    assert participant["participant_id"] == REPLACEMENT_PARTICIPANT_ID
+    assert participant["execution_context_id"] == "context:stage1-recovery-claude-03-v1"
+    supplied = participant.pop("configuration_digest")
+    assert supplied == semantic_digest(participant)
+    assignment = protocol["assignments"][0]
+    assert assignment["participant_id"] == REPLACEMENT_PARTICIPANT_ID
+    assert PROMPT_CLARIFICATION in assignment["prompt"]
+    assert sha256_digest(assignment["prompt"]) == assignment["prompt_digest"]
+    assert semantic_digest(assignment["output_schema"]) == assignment["output_schema_digest"]
+    assert amendment["failed_attempt_retained_without_repair"] is True
+    assert amendment["fresh_participant_identity"] is True
+    assert amendment["fresh_execution_context"] is True
+    assert amendment["scientific_label_count"] == amendment["detector_outcome_count"] == 0

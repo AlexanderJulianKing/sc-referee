@@ -385,6 +385,17 @@ records three passes and one failure. No Stage-1 recovery protocol can use that 
 configuration. Any replacement must be prospectively frozen with a fresh participant/context and
 a prompt change that resolves the schema ambiguity before its calibration call.
 
+Replacement-amendment digest
+`sha256:2e8880107d0e276dd93b1db85587db944f5dcfe79272beb30021e449c8f0208f`
+now freezes one fresh Claude participant and execution context at enrollment digest
+`sha256:832ffc15b3897dcbb2013d35b25e25d4484d985b8d2a402bfe070e3b55351f18`.
+Calibration-protocol digest
+`sha256:6f8562f5fdc8def78663bb3160c8f9c10a07b896f6cb39d487ce48ada11293a1`
+retains the same six vignettes, expected verdicts, and output fields while adding one transport
+clarification: the falsification attempt belongs inside the required `rationale` string and no
+additional key is permitted. The failed configuration remains retained and is not reused. No
+replacement prompt had been submitted at this freeze.
+
 ## Stop conditions
 
 Do not promote when the selected result is unresolved, a source reference is missing, the review
