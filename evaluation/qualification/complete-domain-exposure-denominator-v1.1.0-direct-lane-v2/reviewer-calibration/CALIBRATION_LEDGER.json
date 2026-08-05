@@ -1,0 +1,218 @@
+{
+  "artifact_kind": "direct_qualification_reviewer_calibration_ledger",
+  "entries": [
+    {
+      "calibration_evaluation": {
+        "calibration_case_set_complete": false,
+        "exact_expected_verdict_count": 0,
+        "invented_material_premise_count": 0,
+        "pass": false,
+        "reason_codes": [
+          "provider_call_failed",
+          "provider_cli_exit_code:1"
+        ],
+        "structured_output_schema_valid": false
+      },
+      "calibration_status": "failed",
+      "completed_at": "2026-08-05T00:04:15.954197Z",
+      "configuration_digest": "sha256:6aa6d579660602810a368ec40362f6e1c1de23e85439f8387d230ca1975f995b",
+      "execution_context_id": "context:stage1-claude-01-calibrated-v2",
+      "invocation_digest": "sha256:827a9070aa8449bdec479a4abc37d8d5f58b3182fb412db406728152b20c8d41",
+      "model_id": "claude-opus-5",
+      "parse_error": null,
+      "participant_id": "actor:stage1-claude-01",
+      "provider": "Anthropic",
+      "provider_cli_authenticated_success": false,
+      "provider_cli_exit_code": 1,
+      "provider_is_error": true,
+      "provider_model_usage": null,
+      "provider_result_subtype": null,
+      "provider_usage": null,
+      "reported_session_id": null,
+      "requested_session_id": "c837fe57-cbba-5b11-9b7b-6fece04ed3ec",
+      "response_digest": null,
+      "role": "stage1_reviewer",
+      "transcript_digest": "sha256:eb77cc6b7a28bc8025e87e242bf7027fa4e4857592c80b998d3f0c0bf51b0638"
+    },
+    {
+      "calibration_evaluation": {
+        "calibration_case_set_complete": false,
+        "exact_expected_verdict_count": 0,
+        "invented_material_premise_count": 0,
+        "pass": false,
+        "reason_codes": [
+          "provider_call_failed",
+          "provider_cli_exit_code:1"
+        ],
+        "structured_output_schema_valid": false
+      },
+      "calibration_status": "failed",
+      "completed_at": "2026-08-05T00:04:15.954250Z",
+      "configuration_digest": "sha256:6fcc3ea4a090b31893638537d39ee78cdef1eef8a111690918b477ba4351f0fb",
+      "execution_context_id": "context:stage1-claude-02-calibrated-v2",
+      "invocation_digest": "sha256:bfb31f60fabbc2ef7bbc39273b123d5c9da4afc4b7cd6f829da99717edb208e7",
+      "model_id": "claude-opus-5",
+      "parse_error": null,
+      "participant_id": "actor:stage1-claude-02",
+      "provider": "Anthropic",
+      "provider_cli_authenticated_success": false,
+      "provider_cli_exit_code": 1,
+      "provider_is_error": true,
+      "provider_model_usage": null,
+      "provider_result_subtype": null,
+      "provider_usage": null,
+      "reported_session_id": null,
+      "requested_session_id": "2c573341-45f4-55f9-8534-24b766ebe0e8",
+      "response_digest": null,
+      "role": "stage1_reviewer",
+      "transcript_digest": "sha256:eb77cc6b7a28bc8025e87e242bf7027fa4e4857592c80b998d3f0c0bf51b0638"
+    },
+    {
+      "calibration_evaluation": {
+        "calibration_case_set_complete": false,
+        "exact_expected_verdict_count": 0,
+        "invented_material_premise_count": 0,
+        "pass": false,
+        "reason_codes": [
+          "provider_call_failed",
+          "provider_cli_exit_code:1"
+        ],
+        "structured_output_schema_valid": false
+      },
+      "calibration_status": "failed",
+      "completed_at": "2026-08-05T00:04:17.938639Z",
+      "configuration_digest": "sha256:2b34bf7229b0ed3659b6241035a734dc1ef66b7943fce36675f5027b7c59b16a",
+      "execution_context_id": "context:stage1-codex-01-calibrated-v2",
+      "invocation_digest": "sha256:b42a8ffc0e5309edf81974ab87147bb123e57fd543e07015532555fb00f1dc95",
+      "model_id": "gpt-5.6-sol",
+      "parse_error": null,
+      "participant_id": "actor:stage1-codex-01",
+      "provider": "OpenAI",
+      "provider_cli_authenticated_success": false,
+      "provider_cli_exit_code": 1,
+      "provider_is_error": true,
+      "provider_model_usage": null,
+      "provider_result_subtype": null,
+      "provider_usage": null,
+      "reported_session_id": null,
+      "requested_session_id": "15669823-0625-5f1c-a32a-7e90d782edb6",
+      "response_digest": null,
+      "role": "stage1_reviewer",
+      "transcript_digest": "sha256:0bd4120e070cf1d6419d3de05792efd2299f9ba3a2e61e12fcc213d713150aeb"
+    },
+    {
+      "calibration_evaluation": {
+        "calibration_case_set_complete": false,
+        "exact_expected_verdict_count": 0,
+        "invented_material_premise_count": 0,
+        "pass": false,
+        "reason_codes": [
+          "provider_call_failed",
+          "provider_cli_exit_code:1"
+        ],
+        "structured_output_schema_valid": false
+      },
+      "calibration_status": "failed",
+      "completed_at": "2026-08-05T00:04:17.544666Z",
+      "configuration_digest": "sha256:63f755fca07aab3b9e5807bf1c506e7e4cf7c5a18813ba72a26dd810a4687723",
+      "execution_context_id": "context:stage1-codex-02-calibrated-v2",
+      "invocation_digest": "sha256:cc6d7af93516886dbabae3f12312f5c7643e3cad5770851bee413d53bfa3e3d6",
+      "model_id": "gpt-5.6-sol",
+      "parse_error": null,
+      "participant_id": "actor:stage1-codex-02",
+      "provider": "OpenAI",
+      "provider_cli_authenticated_success": false,
+      "provider_cli_exit_code": 1,
+      "provider_is_error": true,
+      "provider_model_usage": null,
+      "provider_result_subtype": null,
+      "provider_usage": null,
+      "reported_session_id": null,
+      "requested_session_id": "5354e5f3-7a76-5779-ab2a-1c93365d049f",
+      "response_digest": null,
+      "role": "stage1_reviewer",
+      "transcript_digest": "sha256:f69f2011d1e459952d1699503d0dc1aa50ba31560d50cb81af1515b3fc28282c"
+    },
+    {
+      "calibration_evaluation": {
+        "calibration_case_set_complete": false,
+        "exact_expected_verdict_count": 0,
+        "invented_material_premise_count": 0,
+        "pass": false,
+        "reason_codes": [
+          "provider_call_failed",
+          "provider_cli_exit_code:1"
+        ],
+        "structured_output_schema_valid": false
+      },
+      "calibration_status": "failed",
+      "completed_at": "2026-08-05T00:04:15.953978Z",
+      "configuration_digest": "sha256:0efbb4aa577adfcb87435ec3c2d900c21874f5b2e3470321900bc185561e8fd8",
+      "execution_context_id": "context:stage2-claude-01-calibrated-v2",
+      "invocation_digest": "sha256:92b280c5b0e479e3a6eb5a3364dc65e8e90d8fc045d1eacd2796d92abeb73cdc",
+      "model_id": "claude-opus-5",
+      "parse_error": null,
+      "participant_id": "actor:stage2-claude-01",
+      "provider": "Anthropic",
+      "provider_cli_authenticated_success": false,
+      "provider_cli_exit_code": 1,
+      "provider_is_error": true,
+      "provider_model_usage": null,
+      "provider_result_subtype": null,
+      "provider_usage": null,
+      "reported_session_id": null,
+      "requested_session_id": "df539c34-a358-55fe-af63-a2bf9389bcfe",
+      "response_digest": null,
+      "role": "stage2_reviewer",
+      "transcript_digest": "sha256:eb77cc6b7a28bc8025e87e242bf7027fa4e4857592c80b998d3f0c0bf51b0638"
+    },
+    {
+      "calibration_evaluation": {
+        "calibration_case_set_complete": false,
+        "exact_expected_verdict_count": 0,
+        "invented_material_premise_count": 0,
+        "pass": false,
+        "reason_codes": [
+          "provider_call_failed",
+          "provider_cli_exit_code:1"
+        ],
+        "structured_output_schema_valid": false
+      },
+      "calibration_status": "failed",
+      "completed_at": "2026-08-05T00:04:17.962532Z",
+      "configuration_digest": "sha256:3245a575436e691e56cdd1163daf70faa2326fbfb901a9c139a9ec10d02ce107",
+      "execution_context_id": "context:stage2-codex-01-calibrated-v2",
+      "invocation_digest": "sha256:cb5d2b261ee6a80b3fff436b6b5b0c3871030caf06fbfc90e39a262f72c40427",
+      "model_id": "gpt-5.6-sol",
+      "parse_error": null,
+      "participant_id": "actor:stage2-codex-01",
+      "provider": "OpenAI",
+      "provider_cli_authenticated_success": false,
+      "provider_cli_exit_code": 1,
+      "provider_is_error": true,
+      "provider_model_usage": null,
+      "provider_result_subtype": null,
+      "provider_usage": null,
+      "reported_session_id": null,
+      "requested_session_id": "2743766f-472e-581b-8d12-e2b55251af3f",
+      "response_digest": null,
+      "role": "stage2_reviewer",
+      "transcript_digest": "sha256:a0ca5e06f85cf2b1266a21a8142713f6c08f507a53536dd5068907c45de0ff5d"
+    }
+  ],
+  "ledger_digest": "sha256:ea070181d537a6c939bf2328ae75d5be1c697cff38a0f3e31e074ac04651c795",
+  "ledger_version": "1.0.0",
+  "participant_enrollment_digest": "sha256:c29bdc3c277b840c2bf9b4369f69181190663530467926ccfdfb24407eff0016",
+  "protocol_digest": "sha256:c7b28df0840b278af5d80838842f5b42104d225eac4759a5a62df9e377b30bd0",
+  "qualification_authority": "none_reviewer_calibration_only",
+  "sealed_at": "2026-08-05T00:04:17.966008Z",
+  "summary": {
+    "all_assigned_attempts_retained": true,
+    "all_reviewer_configurations_passed": false,
+    "assigned_reviewer_count": 6,
+    "failed_count": 6,
+    "passed_count": 0,
+    "replacement_count": 0,
+    "retained_attempt_count": 6
+  }
+}

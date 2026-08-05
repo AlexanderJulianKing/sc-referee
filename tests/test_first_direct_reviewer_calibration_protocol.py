@@ -140,3 +140,30 @@ def test_calibration_protocol_contains_no_result_or_qualification_authority(
     assert "scientific_label" not in protocol
     assert "detector_outcome" not in protocol
     assert "finding" not in protocol
+
+
+def test_first_calibration_transport_failures_are_retained_without_pass(
+    project_root: Path,
+) -> None:
+    root = project_root / CALIBRATION_RELATIVE
+    ledger = _load(root / "CALIBRATION_LEDGER.json")
+    supplied = ledger.pop("ledger_digest")
+
+    assert supplied == semantic_digest(ledger)
+    assert supplied == ("sha256:ea070181d537a6c939bf2328ae75d5be1c697cff38a0f3e31e074ac04651c795")
+    assert ledger["summary"] == {
+        "assigned_reviewer_count": 6,
+        "retained_attempt_count": 6,
+        "passed_count": 0,
+        "failed_count": 6,
+        "all_assigned_attempts_retained": True,
+        "replacement_count": 0,
+        "all_reviewer_configurations_passed": False,
+    }
+    assert all(entry["provider_cli_exit_code"] == 1 for entry in ledger["entries"])
+    assert all(entry["response_digest"] is None for entry in ledger["entries"])
+    assert all(entry["calibration_status"] == "failed" for entry in ledger["entries"])
+    assert all(
+        entry["calibration_evaluation"]["exact_expected_verdict_count"] == 0
+        for entry in ledger["entries"]
+    )

@@ -290,8 +290,10 @@ maintainer decision; there is no family-wide or portfolio-wide implied authority
 
 ## Immediate next unchecked item
 
-Calibrate and authenticate the exact six frozen reviewer configurations, retaining exact prompts,
-outputs, identities, execution contexts, and transcript digests. Then open only the seven-case
+Freeze a corrected calibration transport protocol that supersedes and retains the six pre-inference
+technical failures from protocol v1. Then calibrate and authenticate the exact six frozen reviewer
+configurations, retaining exact prompts, outputs, identities, execution contexts, and transcript
+digests. Then open only the seven-case
 pilot author briefs, authenticate their six frozen author contexts, and author all seven pilot
 workflows without replacement. Freeze each truthful author-only selected-result declaration before
 any scientific review. Preserve the stopped Experiment 0055 machinery as non-qualifying
@@ -474,6 +476,20 @@ perform unrelated capability expansion before the complete first pilot is retain
   Finding exists. The `Frozen` matrix cell remains unchecked until the authored case contracts and
   complete pre-label evidence are frozen; scores remain 0/10.
 
+### 2026-08-04 — Reviewer calibration protocol v1 transport failure retained
+
+- The six-assignment calibration protocol was frozen before calls at digest
+  `sha256:c7b28df0840b278af5d80838842f5b42104d225eac4759a5a62df9e377b30bd0`.
+- All six one-shot attempts terminated before a reviewer response: Claude rejected an empty MCP
+  object missing the required `mcpServers` field, while Codex rejected response-schema `const`
+  fields that omitted explicit JSON types. The raw stdout, stderr, requested identities, invocation
+  digests, and empty final responses are retained without replacement or relabeling.
+- The immutable failure ledger digest is
+  `sha256:ea070181d537a6c939bf2328ae75d5be1c697cff38a0f3e31e074ac04651c795`.
+  It records 0/6 passed and has no calibration, scientific-label, qualification, promotion, or
+  Finding authority. A corrected transport protocol must use new call identities and explicitly
+  supersede this failed protocol before any further calibration call.
+
 ## Evidence log
 
 | Date | Change | Evidence | Checkboxes changed |
@@ -484,3 +500,4 @@ perform unrelated capability expansion before the complete first pilot is retain
 | 2026-08-04 | Froze the first envelope's exact detector/binding/comparator/evidence tuple before case authoring. | Source commit `f6d5adb6d6314f58fa2ea9a09e721015732ed2c4`; freeze digest `sha256:55a515535246aa1a4d1c091ed020e8a087b78552b727ee947439b26a01142ae8`; two replay tests. | Gate 1 comparator freeze and first four Gate 2 tuple-freeze items checked; `Frozen`, qualification, promotion, and product cells remain unchecked. |
 | 2026-08-04 | Repaired the evaluation-private evidence contract before assignment and superseded the zero-case v2 tuple with an exact v3 replacement. | Commit `b723f000bccff18d49efca64a4d6ece92e2b5dd2`; replacement freeze digest `sha256:2526c7d710705bc8705ffc8dbc062f233c5555f8e9445d1ffea23c50a68a14d6`; 1,894 full tests and complete handoff verifier. | Current first-envelope tuple items remain checked; no qualification, promotion, product, or score change. |
 | 2026-08-04 | Froze the exact first-envelope participant configurations, blind author briefs, fourteen no-replacement assignments, and seven-case held-out seal; superseded one unexposed prompt-conflicted lane before use. | Replacement enrollment digest `sha256:c29bdc3c277b840c2bf9b4369f69181190663530467926ccfdfb24407eff0016`; brief digest `sha256:7133cb96256ab17a7eff58efa4d2b9a97dc9c2addac575a3ec03b830c869ec8e`; lane digest `sha256:c58ee57c01d5f7c46855eb9f554d0a476f664e44edbdd7e15679bd53d72fa12b`; zero-exposure supersession digest `sha256:b4035359abb43bc83850751ca5cc05f513754e4b50c61fe73998536b39e81ea1`. | Five first-envelope Gate 2 freeze/seal items checked; participant authentication, `Frozen`, qualification, promotion, product, and scores remain incomplete. |
+| 2026-08-04 | Retained six calibration transport failures that occurred before any reviewer response. | Protocol digest `sha256:c7b28df0840b278af5d80838842f5b42104d225eac4759a5a62df9e377b30bd0`; failure-ledger digest `sha256:ea070181d537a6c939bf2328ae75d5be1c697cff38a0f3e31e074ac04651c795`; exact captures for all six assignments. | No checkbox or score changed; reviewer calibration and authentication remain incomplete. |
