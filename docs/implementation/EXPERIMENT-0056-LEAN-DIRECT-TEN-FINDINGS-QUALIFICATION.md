@@ -375,6 +375,16 @@ Prompt bytes, schemas, calibration answers, model configurations, and scientific
 unchanged. No model response, calibration pass, scientific label, or detector outcome was produced
 by the failed launches.
 
+Both Codex transport retries then completed and passed the unchanged calibration suite. The two
+fresh Claude app calibrations also completed in incognito Opus 5/Extra chats. The first Claude
+configuration passed. The second returned all six expected scientific verdicts but added a
+schema-forbidden `falsification_attempt` property to every result, so its response is retained as
+a failed exact-configuration calibration rather than repaired. Calibration-ledger digest
+`sha256:4892d3ee890c19bb98110b8f301bddf225213064ac0acc368c2ae197b67aafc6`
+records three passes and one failure. No Stage-1 recovery protocol can use that failed
+configuration. Any replacement must be prospectively frozen with a fresh participant/context and
+a prompt change that resolves the schema ambiguity before its calibration call.
+
 ## Stop conditions
 
 Do not promote when the selected result is unresolved, a source reference is missing, the review

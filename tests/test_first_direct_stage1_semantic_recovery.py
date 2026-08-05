@@ -209,3 +209,23 @@ def test_codex_calibration_transport_retry_retains_the_pre_response_failure() ->
     assert amendment["scientific_label_count"] == amendment["detector_outcome_count"] == 0
     for item in amendment["controller_implementation"]:
         assert sha256_digest((PROJECT_ROOT / item["path"]).read_bytes()) == item["content_digest"]
+
+
+def test_recovery_calibration_retains_three_passes_and_one_schema_failure() -> None:
+    ledger = _replay(RECOVERY_ROOT / "CALIBRATION_LEDGER.json", "ledger_digest")
+    assert ledger["summary"] == {
+        "all_assigned_attempts_retained": True,
+        "all_reviewer_configurations_passed": False,
+        "assigned_reviewer_count": 4,
+        "failed_count": 1,
+        "passed_count": 3,
+        "replacement_count": 0,
+        "retained_attempt_count": 4,
+    }
+    failed = [item for item in ledger["entries"] if item["calibration_status"] == "failed"]
+    assert [item["participant_id"] for item in failed] == ["actor:stage1-recovery-claude-02"]
+    assert len(failed[0]["calibration_evaluation"]["reason_codes"]) == 6
+    assert all(
+        "falsification_attempt" in reason
+        for reason in failed[0]["calibration_evaluation"]["reason_codes"]
+    )
