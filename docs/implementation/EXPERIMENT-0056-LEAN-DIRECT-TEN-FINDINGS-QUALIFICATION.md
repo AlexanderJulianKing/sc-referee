@@ -1,7 +1,8 @@
 # Experiment 0056: Lean direct ten-Findings qualification
 
-- **Status:** Active first-envelope pilot; three cases admitted and complete 4-review, 2-provider
-  Stage-1 panels frozen; Stage-2 not started
+- **Status:** Active first-envelope pilot; three cases admitted; the first complete Stage-1 panel
+  is retained as label-ineligible; one prospective semantic-consistency recovery is frozen before
+  fresh reviewer calibration; Stage-2 not started
 - **Date:** 2026-08-04
 - **Supersedes:** Experiment 0055 as the delivery-path qualification design
 - **Production impact:** None until an exact detector envelope completes pilot, held-out,
@@ -337,6 +338,30 @@ binds 12 reviews and three panel freezes with two Anthropic and two OpenAI revie
 error case has four `demonstrated_issue` verdicts; each control has four
 `no_demonstrated_issue_within_scope` verdicts. This completes Stage-1 only. Stage-2 reviews,
 scientific label freezes, detector execution, qualification, and Findings remain unstarted.
+
+The accepted eligible-panel validator then exposed a deterministic blocker before any Stage-2 or
+detector call. Four of the twelve immutable Stage-1 reviews retain five nonempty
+`unresolved_material_questions`; the validator rejects an eligible label if any linked review has
+one. The unanimous verdict pattern does not override that rule, and Stage-2 cannot erase frozen
+Stage-1 fields. Label-ineligibility ledger digest
+`sha256:6f084c78e616769fee141d6256dd3423c70cdc81674bd9defb3b5177696be79e`
+therefore retains the first panel as a failed qualification attempt with zero labels and zero
+detector outcomes.
+
+Prospective recovery-amendment digest
+`sha256:225c037b5bbcfdcc16bd49bcb0f676fd3715ccf94528e4e6ad3e6fc403df38a4`
+changes no case, issue class, detector, verifier, panel size, or eligibility rule. It clarifies the
+generic semantic contract: `unresolved_material_questions` contains only unanswered questions
+capable of reversing the in-scope verdict; an eligible verdict requires an empty array; a genuinely
+reversing question requires a conditional or insufficient-evidence verdict. It forbids mutation,
+reclassification, or reuse of the first panel. Four fresh participant identities and execution
+contexts are frozen at enrollment digest
+`sha256:5b1ecce6b493eadc5184dc359927f19519b0cd8ceeb4124e98220313752bb251`.
+Because those are new exact configurations, calibration-protocol digest
+`sha256:d8738800d8211cc1a6a4ead04721b09a1eb76e819516fc3dea00eace94538d76`
+requires all four to pass the unchanged six-vignette calibration before a replacement Stage-1
+protocol can be frozen. No recovery calibration or scientific-review prompt had been submitted at
+this freeze.
 
 ## Stop conditions
 
