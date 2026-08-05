@@ -3,21 +3,25 @@ from __future__ import annotations
 import json
 from collections import Counter
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from sc_referee.core.ids import semantic_digest, sha256_digest
 from scripts.build_first_direct_reviewer_calibration_protocol import (
     ALLOWED_VERDICTS,
     CALIBRATION_RELATIVE,
     FAILED_CALIBRATION_RELATIVE,
+    PARTIAL_CALIBRATION_RELATIVE,
     build_first_direct_reviewer_calibration_protocol,
     load_effective_execution_configuration,
 )
-from scripts.run_first_direct_reviewer_calibration import validate_calibration_response
+from scripts.run_first_direct_reviewer_calibration import (
+    _build_aggregate_ledger,
+    validate_calibration_response,
+)
 
 
 def _load(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
+    return cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
 
 
 def _expected(config: dict[str, Any]) -> dict[str, str]:
@@ -50,15 +54,18 @@ def test_frozen_reviewer_calibration_protocol_rebuilds_exactly(project_root: Pat
     assert rebuilt == committed
     supplied = committed.pop("protocol_digest")
     assert supplied == semantic_digest(committed)
-    assert committed["protocol_version"] == "2.0.0"
+    assert committed["protocol_version"] == "3.0.0"
     assert committed["supersedes_protocol_digest"] == (
-        "sha256:c7b28df0840b278af5d80838842f5b42104d225eac4759a5a62df9e377b30bd0"
+        "sha256:b2875a535a1cbf86dffb1fb696c3b05bbc28dd9b5d67a0d82cbb5ed881864aad"
+    )
+    assert committed["retained_partial_ledger_digest"] == (
+        "sha256:253b3fa6283c91e66442a3c9fe42f9f100754bd9aeb4e88e53564c96288e2bf3"
     )
     assert committed["execution_state"] == "frozen_not_started"
     assert committed["qualification_authority"] == "none_calibration_protocol_only"
 
 
-def test_reviewer_calibration_protocol_binds_exact_six_tool_free_contexts(
+def test_reviewer_calibration_v3_binds_three_claude_calls_and_three_codex_passes(
     project_root: Path,
 ) -> None:
     protocol = build_first_direct_reviewer_calibration_protocol(project_root)
@@ -70,16 +77,19 @@ def test_reviewer_calibration_protocol_binds_exact_six_tool_free_contexts(
     by_id = {item["participant_id"]: item for item in enrollment["participants"]}
     assignments = protocol["assignments"]
 
-    assert len(assignments) == 6
+    assert len(assignments) == 3
     assert Counter(item["role"] for item in assignments) == {
-        "stage1_reviewer": 4,
-        "stage2_reviewer": 2,
+        "stage1_reviewer": 2,
+        "stage2_reviewer": 1,
     }
-    assert Counter(item["provider"] for item in assignments) == {
-        "Anthropic": 3,
-        "OpenAI": 3,
-    }
-    assert len({item["call_identity_id"] for item in assignments}) == 6
+    assert Counter(item["provider"] for item in assignments) == {"Anthropic": 3}
+    assert len({item["call_identity_id"] for item in assignments}) == 3
+    assert len(protocol["retained_pass_refs"]) == 3
+    assert all(
+        item["participant_id"].startswith("actor:stage") for item in protocol["retained_pass_refs"]
+    )
+    assert protocol["expected_reviewer_count"] == 3
+    assert protocol["aggregate_reviewer_count"] == 6
     assert protocol["execution_policy"] == {
         "parallel_execution_permitted": True,
         "one_call_per_assignment": True,
@@ -96,10 +106,8 @@ def test_reviewer_calibration_protocol_binds_exact_six_tool_free_contexts(
         assert assignment["tool_policy_digest"] == participant["tool_policy_digest"]
         assert assignment["user_prompt_digest"] == sha256_digest(assignment["user_prompt"])
         assert assignment["output_schema_digest"] == semantic_digest(assignment["output_schema"])
-        if assignment["provider"] == "Anthropic":
-            assert assignment["requested_provider_session_id"] == assignment["call_identity_id"]
-        else:
-            assert assignment["requested_provider_session_id"] is None
+        assert assignment["requested_provider_session_id"] == assignment["call_identity_id"]
+        assert "$schema" not in assignment["output_schema"]
         assert "expected_verdict" not in assignment["user_prompt"]
         assert set(
             assignment["output_schema"]["properties"]["calibration_results"]["items"]["properties"][
@@ -181,7 +189,7 @@ def test_first_calibration_transport_failures_are_retained_without_pass(
 def test_second_calibration_retains_three_codex_passes_and_three_claude_transport_failures(
     project_root: Path,
 ) -> None:
-    root = project_root / CALIBRATION_RELATIVE
+    root = project_root / PARTIAL_CALIBRATION_RELATIVE
     ledger = _load(root / "CALIBRATION_LEDGER.json")
     supplied = ledger.pop("ledger_digest")
 
@@ -208,3 +216,62 @@ def test_second_calibration_retains_three_codex_passes_and_three_claude_transpor
     assert all(entry["reported_session_id"] for entry in by_provider["OpenAI"])
     assert all(entry["calibration_status"] == "failed" for entry in by_provider["Anthropic"])
     assert all(entry["response_digest"] is None for entry in by_provider["Anthropic"])
+
+
+def test_aggregate_calibration_preserves_retained_and_new_evidence(
+    project_root: Path,
+) -> None:
+    protocol = build_first_direct_reviewer_calibration_protocol(project_root)
+    current_entries = []
+    for assignment in protocol["assignments"]:
+        current_entries.append(
+            {
+                "participant_id": assignment["participant_id"],
+                "role": assignment["role"],
+                "provider": assignment["provider"],
+                "configuration_digest": assignment["configuration_digest"],
+                "execution_context_id": assignment["execution_context_id"],
+                "calibration_status": "passed",
+                "provider_cli_authenticated_success": True,
+                "reported_session_id": assignment["requested_provider_session_id"],
+                "calibration_evaluation": {"pass": True},
+                "response_digest": "sha256:synthetic-response",
+                "transcript_digest": "sha256:synthetic-transcript",
+            }
+        )
+    current_ledger: dict[str, Any] = {
+        "artifact_kind": "direct_qualification_reviewer_calibration_ledger",
+        "ledger_version": "1.0.0",
+        "protocol_digest": protocol["protocol_digest"],
+        "participant_enrollment_digest": protocol["participant_enrollment_digest"],
+        "entries": current_entries,
+        "summary": {},
+        "sealed_at": "2026-08-05T00:12:00Z",
+        "qualification_authority": "none_reviewer_calibration_only",
+    }
+    current_ledger["ledger_digest"] = semantic_digest(current_ledger)
+
+    aggregate = _build_aggregate_ledger(project_root, protocol, current_ledger)
+    supplied = aggregate.pop("ledger_digest")
+
+    assert supplied == semantic_digest(aggregate)
+    assert aggregate["summary"] == {
+        "expected_reviewer_count": 6,
+        "active_configuration_evidence_count": 6,
+        "retained_v2_pass_count": 3,
+        "new_v3_attempt_count": 3,
+        "active_passed_count": 6,
+        "active_failed_count": 0,
+        "historical_attempt_count_across_protocols": 15,
+        "historical_failed_attempt_count": 9,
+        "current_protocol_replacement_count": 0,
+        "all_active_reviewer_configurations_passed": True,
+    }
+    assert Counter(item["calibration_evidence_source"] for item in aggregate["entries"]) == {
+        "retained_protocol_v2_pass": 3,
+        "protocol_v3_attempt": 3,
+    }
+    assert aggregate["qualification_authority"] == "none_reviewer_calibration_only"
+    assert "scientific_label" not in aggregate
+    assert "detector_outcome" not in aggregate
+    assert "finding" not in aggregate

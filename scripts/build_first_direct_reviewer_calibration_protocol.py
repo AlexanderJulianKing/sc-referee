@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from uuid import NAMESPACE_URL, uuid5
 
 from sc_referee.core.ids import semantic_digest, sha256_digest
@@ -12,13 +12,17 @@ LANE_RELATIVE = Path(
     "evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2"
 )
 FAILED_CALIBRATION_RELATIVE = LANE_RELATIVE / "reviewer-calibration"
-CALIBRATION_RELATIVE = LANE_RELATIVE / "reviewer-calibration-v2"
-FROZEN_AT = "2026-08-05T00:07:00Z"
-SOURCE_COMMIT = "c004bb3d4355e1b4dfd1d117395edc1e1ae8b5dc"
+PARTIAL_CALIBRATION_RELATIVE = LANE_RELATIVE / "reviewer-calibration-v2"
+CALIBRATION_RELATIVE = LANE_RELATIVE / "reviewer-calibration-v3"
+FROZEN_AT = "2026-08-05T00:11:00Z"
+SOURCE_COMMIT = "17148c1595b2cfa76018f7564684293572985ece"
 SUPERSEDED_PROTOCOL_DIGEST = (
-    "sha256:c7b28df0840b278af5d80838842f5b42104d225eac4759a5a62df9e377b30bd0"
+    "sha256:b2875a535a1cbf86dffb1fb696c3b05bbc28dd9b5d67a0d82cbb5ed881864aad"
 )
-SUPERSEDED_LEDGER_DIGEST = "sha256:ea070181d537a6c939bf2328ae75d5be1c697cff38a0f3e31e074ac04651c795"
+PARTIAL_LEDGER_DIGEST = "sha256:253b3fa6283c91e66442a3c9fe42f9f100754bd9aeb4e88e53564c96288e2bf3"
+INITIAL_FAILURE_LEDGER_DIGEST = (
+    "sha256:ea070181d537a6c939bf2328ae75d5be1c697cff38a0f3e31e074ac04651c795"
+)
 ALLOWED_VERDICTS = (
     "demonstrated_issue",
     "no_demonstrated_issue_within_scope",
@@ -28,7 +32,7 @@ ALLOWED_VERDICTS = (
 
 
 def _load(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
+    return cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
 
 
 def load_effective_execution_configuration(project_root: Path) -> dict[str, Any]:
@@ -52,7 +56,6 @@ def load_effective_execution_configuration(project_root: Path) -> dict[str, Any]
 
 def _output_schema(participant_id: str) -> dict[str, Any]:
     return {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "additionalProperties": False,
         "properties": {
@@ -116,20 +119,68 @@ def build_first_direct_reviewer_calibration_protocol(
     enrollment = _load(project_root / LANE_RELATIVE / "PARTICIPANT_ENROLLMENT.json")
     config = load_effective_execution_configuration(project_root)
     suite = config["reviewer_calibration_suite"]
+    partial_protocol = _load(
+        project_root / PARTIAL_CALIBRATION_RELATIVE / "CALIBRATION_PROTOCOL.json"
+    )
+    supplied_partial_protocol_digest = partial_protocol.pop("protocol_digest", None)
+    if supplied_partial_protocol_digest != semantic_digest(partial_protocol):
+        raise ValueError("The retained partial calibration protocol does not replay.")
+    partial_protocol["protocol_digest"] = supplied_partial_protocol_digest
+    if supplied_partial_protocol_digest != SUPERSEDED_PROTOCOL_DIGEST:
+        raise ValueError("The retained partial calibration protocol has drifted.")
+    if partial_protocol["participant_enrollment_digest"] != enrollment[
+        "enrollment_digest"
+    ] or partial_protocol["calibration_suite_digest"] != semantic_digest(suite):
+        raise ValueError("The retained partial calibration bindings have drifted.")
+    partial_ledger = _load(project_root / PARTIAL_CALIBRATION_RELATIVE / "CALIBRATION_LEDGER.json")
+    supplied_partial_ledger_digest = partial_ledger.pop("ledger_digest", None)
+    if supplied_partial_ledger_digest != semantic_digest(partial_ledger):
+        raise ValueError("The retained partial calibration ledger does not replay.")
+    partial_ledger["ledger_digest"] = supplied_partial_ledger_digest
+    if (
+        supplied_partial_ledger_digest != PARTIAL_LEDGER_DIGEST
+        or partial_ledger["protocol_digest"] != supplied_partial_protocol_digest
+        or partial_ledger["participant_enrollment_digest"] != enrollment["enrollment_digest"]
+    ):
+        raise ValueError("The retained partial calibration ledger has drifted.")
+    retained_passes = [
+        item
+        for item in partial_ledger["entries"]
+        if item["provider"] == "OpenAI" and item["calibration_status"] == "passed"
+    ]
+    if len(retained_passes) != 3:
+        raise ValueError("Protocol v3 requires the exact three retained Codex passes.")
+    expected_openai_ids = {
+        str(item["participant_id"])
+        for item in enrollment["participants"]
+        if item["role"] in {"stage1_reviewer", "stage2_reviewer"} and item["provider"] == "OpenAI"
+    }
+    if {str(item["participant_id"]) for item in retained_passes} != expected_openai_ids:
+        raise ValueError("The retained passes do not match the frozen Codex reviewers.")
+    if not all(
+        item["provider_cli_authenticated_success"] is True
+        and item["reported_session_id"]
+        and item["calibration_evaluation"]["pass"] is True
+        and item["calibration_evaluation"]["exact_expected_verdict_count"] == 6
+        and item["calibration_evaluation"]["invented_material_premise_count"] == 0
+        for item in retained_passes
+    ):
+        raise ValueError("A retained Codex pass does not satisfy the calibration contract.")
     reviewers = [
         item
         for item in enrollment["participants"]
         if item["role"] in {"stage1_reviewer", "stage2_reviewer"}
+        and item["provider"] == "Anthropic"
     ]
-    if len(reviewers) != 6:
-        raise ValueError("The frozen enrollment does not contain the exact six-reviewer panel.")
+    if len(reviewers) != 3:
+        raise ValueError("The frozen enrollment does not contain the exact three Claude reviewers.")
     assignments = []
     for participant in reviewers:
         participant_id = str(participant["participant_id"])
         prompt = _user_prompt(participant, suite)
         schema = _output_schema(participant_id)
         provider = str(participant["provider"])
-        call_identity = str(uuid5(NAMESPACE_URL, f"sc-referee-calibration-v2:{participant_id}"))
+        call_identity = str(uuid5(NAMESPACE_URL, f"sc-referee-calibration-v3:{participant_id}"))
         assignments.append(
             {
                 "participant_id": participant_id,
@@ -181,17 +232,33 @@ def build_first_direct_reviewer_calibration_protocol(
     assignments.sort(key=lambda item: str(item["participant_id"]))
     record: dict[str, Any] = {
         "artifact_kind": "direct_qualification_reviewer_calibration_protocol",
-        "protocol_version": "2.0.0",
-        "protocol_id": "reviewer-calibration:complete-domain-exposure-denominator-v2",
+        "protocol_version": "3.0.0",
+        "protocol_id": "reviewer-calibration:complete-domain-exposure-denominator-v3",
         "source_commit": SOURCE_COMMIT,
         "supersedes_protocol_digest": SUPERSEDED_PROTOCOL_DIGEST,
-        "supersedes_failure_ledger_digest": SUPERSEDED_LEDGER_DIGEST,
-        "supersession_reason": "Correct two pre-inference transport defects: supply Claude an explicit empty mcpServers record and add explicit JSON types to Codex const schema fields.",
+        "retained_partial_ledger_digest": PARTIAL_LEDGER_DIGEST,
+        "historical_failure_ledger_digests": [
+            INITIAL_FAILURE_LEDGER_DIGEST,
+            PARTIAL_LEDGER_DIGEST,
+        ],
+        "supersession_reason": "Retain the three exact Codex passes and correct the remaining pre-inference Claude transport defect by removing the unsupported draft-2020 schema identifier while preserving the exact response constraints.",
         "lane_freeze_digest": lane["lane_freeze_digest"],
         "participant_enrollment_digest": enrollment["enrollment_digest"],
         "calibration_suite_digest": semantic_digest(suite),
         "expected_vignette_count": 6,
-        "expected_reviewer_count": 6,
+        "expected_reviewer_count": 3,
+        "aggregate_reviewer_count": 6,
+        "retained_pass_refs": [
+            {
+                "participant_id": item["participant_id"],
+                "source_ledger_digest": partial_ledger["ledger_digest"],
+                "response_digest": item["response_digest"],
+                "transcript_digest": item["transcript_digest"],
+                "reported_session_id": item["reported_session_id"],
+                "calibration_status": item["calibration_status"],
+            }
+            for item in retained_passes
+        ],
         "assignments": assignments,
         "execution_policy": {
             "parallel_execution_permitted": True,
