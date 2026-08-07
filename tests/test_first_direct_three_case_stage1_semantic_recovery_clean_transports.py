@@ -7,9 +7,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from scripts.build_first_direct_three_case_stage1_semantic_recovery_clean_protocol import (
-    REVIEW_RELATIVE,
-)
 
 from sc_referee.core.ids import semantic_digest, sha256_digest
 from scripts import (
@@ -17,6 +14,9 @@ from scripts import (
 )
 from scripts import (
     run_first_direct_three_case_stage1_semantic_recovery_clean_codex as codex_module,
+)
+from scripts.build_first_direct_three_case_stage1_semantic_recovery_clean_protocol import (
+    REVIEW_RELATIVE,
 )
 
 SYSTEM_PROMPT = "Frozen calibrated stage-one reviewer system prompt."

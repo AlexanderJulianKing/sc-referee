@@ -4,11 +4,10 @@ import argparse
 from pathlib import Path
 from typing import Any
 
+from sc_referee.records.normalization import write_normalized_json_once
 from scripts.build_first_direct_three_case_stage1_semantic_recovery_clean_protocol import (
     REVIEW_RELATIVE,
 )
-
-from sc_referee.records.normalization import write_normalized_json_once
 from scripts.record_first_direct_three_case_stage1_semantic_recovery_clean import (
     _protocol,
     build_stage1_call_capture,

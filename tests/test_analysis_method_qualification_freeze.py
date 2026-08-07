@@ -55,6 +55,7 @@ def test_typed_pre_case_freeze_is_current_exact_and_answer_blind(
         "parser-manifest.python.json",
         "selection-protocol.json",
         "semantic-profile-manifest.json",
+        "stage1-prompt-semantic-consistency-v2.txt",
         "stage1-prompt.txt",
         "stage2-prompt.txt",
         "stage3-prompt.txt",
@@ -104,8 +105,11 @@ def test_typed_pre_case_freeze_is_current_exact_and_answer_blind(
 
     inventory = manifest["inventory"]
     assert isinstance(inventory, list)
+    # The manifest inventory is immutable freeze-time evidence; the later retained
+    # Stage-1 semantic-consistency v2 prompt lives in the directory but is not part
+    # of the original frozen tuple.
     assert [entry["path"] for entry in inventory] == sorted(
-        expected_files - {"FREEZE_MANIFEST.json"}
+        expected_files - {"FREEZE_MANIFEST.json", "stage1-prompt-semantic-consistency-v2.txt"}
     )
     assert manifest["inventory_digest"] == semantic_digest(inventory)
     binding_source = manifest["binding_source"]

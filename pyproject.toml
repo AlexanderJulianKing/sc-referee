@@ -139,6 +139,9 @@ exclude = [
   ".venv",
   "build",
   "docs",
+  # Frozen qualification evidence, including intentionally invalid retained
+  # case producers that must never be repaired or reformatted.
+  "evaluation/qualification",
   "examples/walking-skeleton",
   "reference",
   "src/sc_referee/resources",
