@@ -2,7 +2,9 @@
 
 - **Status:** Active first-envelope pilot; three cases admitted; the first complete Stage-1 panel
   is retained as label-ineligible; semantic-consistency recovery calibration now has four active
-  passing reviewer configurations; replacement Stage-1 review and Stage-2 have not started
+  passing reviewer configurations; the two Claude app reviewer configurations were superseded by
+  frozen Claude Code CLI replacements that must pass calibration before a replacement Stage-1
+  protocol can be frozen; replacement Stage-1 review and Stage-2 have not started
 - **Date:** 2026-08-04
 - **Supersedes:** Experiment 0055 as the delivery-path qualification design
 - **Production impact:** None until an exact detector envelope completes pilot, held-out,
@@ -406,6 +408,49 @@ therefore records four active passing reviewer configurations, five total histor
 and one retained historical failure. Calibration creates no scientific label, detector outcome,
 qualification decision, promotion, or Finding. The honest production score remains 0/10; a fresh
 replacement Stage-1 protocol must still be frozen and completed before Stage-2 can begin.
+
+A replacement Stage-1 review protocol was then frozen against the four calibrated configurations
+at digest
+`sha256:c7645bc5b5921f90505ce9f757cfbcff211f7386c14a1b778a8aeef595b93da6`.
+Its two frozen Codex transports were started with one overlapping duplicate launcher invocation
+that collided on attempt identities. All resulting process evidence and six Codex reviews are
+retained at failure-ledger digest
+`sha256:e47fcf73d71ade4c657ffc796f689457e2b956eafa333ee7583cd05219323267`
+and are permanently ineligible for reuse. Recovery-amendment digest
+`sha256:d5638aa1fee086cf91def672fb5857ac874c0109172c4fea00903c65de21f24e`
+abandoned both affected Codex configurations. Fresh configurations
+`actor:stage1-recovery-codex-03` and `actor:stage1-recovery-codex-04` were enrolled at digest
+`sha256:e14292917539270b13d345bc8a719a90d493627cdb618361db35b6de975cd772`
+and calibrated under protocol digest
+`sha256:fb948e7b602e69ac8d7db4492c4805aa611fbceb72ccf009cbb7e0605f1f2d8d`;
+both passed, at calibration-ledger digest
+`sha256:a4b68cbe07aaba3237a805d5ce0df2aa4554b859f9efee371e382960fcc4de90`.
+A clean definitive Stage-1 recovery protocol binding the two calibrated Claude app configurations
+and the two fresh Codex configurations was then frozen before any call at digest
+`sha256:94529e86411cc0c81c4a75a203c5895656b99228321288654a35d0d13feeb378`
+with execution state `frozen_not_started` and zero reviews, labels, and detector outcomes.
+
+Before any clean-protocol call was executed, the maintainer directed a Claude reviewer surface
+change: the frozen Claude Desktop App transport requires an approved Computer-Use operator, that
+approval is unavailable, and the Claude Code CLI surface is authenticated again. Claude CLI
+replacement-amendment digest
+`sha256:7b85c5e3cd5ce4ec7fcda7cbaed98630442a3d3af972c4e1faee34df2867a8c2`
+prospectively supersedes the two calibrated, never-case-exposed app configurations
+`actor:stage1-recovery-claude-01` and `actor:stage1-recovery-claude-03` with fresh CLI
+configurations `actor:stage1-recovery-claude-04` and `actor:stage1-recovery-claude-05` at
+enrollment digest
+`sha256:a749696b6c72280bbd9f49e3e4372f86055551756d6d82cfb7a6cff158e4ce7a`.
+Each fresh configuration copies one distinct frozen lane Claude Code CLI reviewer template
+(`claude-opus-5`, version `2.1.221`, effort `high`, empty tool set, no session persistence) and
+keeps the unchanged reviewer system prompt. Calibration-protocol digest
+`sha256:5f14cfc3b876281567cfcd6baa855ae3d83896b72ddf6af761a99b124f501400`
+reuses the unchanged six vignettes, expected verdicts, prompts, and output schemas except each
+participant constant, embeds each schema in its prompt for local fail-closed validation instead of
+a CLI schema argument, and was frozen with zero calls. The superseded configurations, their
+passing calibrations, and the unexecuted clean Stage-1 protocol with its two obsolete Claude call
+identities remain retained and immutable. Both CLI configurations must pass the unchanged
+calibration before a replacement Stage-1 protocol may be frozen. No scientific label, detector
+outcome, qualification decision, or Finding exists; the honest score remains 0/10.
 
 ## Stop conditions
 

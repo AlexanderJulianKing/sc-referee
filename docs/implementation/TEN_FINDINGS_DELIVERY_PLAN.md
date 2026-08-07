@@ -210,7 +210,10 @@ replayable, its held-out seven are sealed, and zero scientific labels or detecto
 - [x] Freeze every selected-result declaration before scientific review.
 - [x] Independently rederive every selected report, producer, operand path, and alternative producer
   from immutable case bytes.
-- [x] Complete four answer-blind Stage-1 reviews across two providers per case.
+- [ ] Complete four answer-blind Stage-1 reviews across two providers per case that remain
+  label-eligible. The first complete panel was unanimous but is retained as label-ineligible
+  (ledger `sha256:6f084c78e616769fee141d6256dd3423c70cdc81674bd9defb3b5177696be79e`); the clean
+  replacement protocol is frozen and unexecuted.
 - [ ] Complete two fresh cross-provider Stage-2 reviews per case using canonical issue-class enums.
 - [ ] Retain failures, withdrawals, contamination, disagreement, ambiguity, insufficiency, and
   unsupported cases in the outcome ledger.
@@ -686,6 +689,48 @@ perform unrelated capability expansion before the complete first pilot is retain
   across the two controls. This closes only the Stage-1 checkbox; Stage-2, labels, detector outcomes,
   qualification, and Findings remain incomplete.
 
+### 2026-08-05 — First Stage-1 panel ruled label-ineligible; recovery reviewers calibrated
+
+- The accepted eligible-panel validator rejected the first complete Stage-1 panel before Stage-2
+  because four immutable reviews retain five nonempty `unresolved_material_questions`; the panel is
+  retained as a failed attempt at label-ineligibility ledger digest
+  `sha256:6f084c78e616769fee141d6256dd3423c70cdc81674bd9defb3b5177696be79e`. The Stage-1 review
+  checkbox above is therefore reopened for a clean replacement panel; the first panel cannot
+  contribute to an eligible label.
+- Four fresh reviewer configurations were enrolled and calibration-gated under the clarified
+  semantic contract. After retained transport and configuration failures, the active calibrated
+  set became `actor:stage1-recovery-claude-01` (v5 ledger
+  `sha256:4892d3ee890c19bb98110b8f301bddf225213064ac0acc368c2ae197b67aafc6`),
+  `actor:stage1-recovery-claude-03` (v6 ledger
+  `sha256:8257ac400f97cee37f236bd840e14442dbecbd43f4b17945d6bf508bf041a254`), and, after one
+  retained duplicate-launch failure (`sha256:e47fcf73d71ade4c657ffc796f689457e2b956eafa333ee7583cd05219323267`)
+  abandoned the first two Codex configurations, fresh `actor:stage1-recovery-codex-03` and
+  `actor:stage1-recovery-codex-04` (v7 ledger
+  `sha256:a4b68cbe07aaba3237a805d5ce0df2aa4554b859f9efee371e382960fcc4de90`).
+- The clean definitive replacement Stage-1 protocol was frozen before any call at digest
+  `sha256:94529e86411cc0c81c4a75a203c5895656b99228321288654a35d0d13feeb378`
+  (commit `617681e`) with execution state `frozen_not_started`, zero reviews, zero labels, and
+  zero detector outcomes.
+
+### 2026-08-07 — Claude reviewer surface replaced with frozen CLI configurations
+
+- The clean protocol's two Claude calls bind the Claude Desktop App surface, which requires an
+  approved Computer-Use operator; that approval is unavailable and the maintainer directed a
+  replacement on the authenticated Claude Code CLI surface before any case exposure.
+- Replacement-amendment digest
+  `sha256:7b85c5e3cd5ce4ec7fcda7cbaed98630442a3d3af972c4e1faee34df2867a8c2`
+  supersedes `actor:stage1-recovery-claude-01` and `actor:stage1-recovery-claude-03` with fresh
+  CLI configurations `actor:stage1-recovery-claude-04` and `actor:stage1-recovery-claude-05`
+  (enrollment `sha256:a749696b6c72280bbd9f49e3e4372f86055551756d6d82cfb7a6cff158e4ce7a`,
+  calibration protocol
+  `sha256:5f14cfc3b876281567cfcd6baa855ae3d83896b72ddf6af761a99b124f501400`), copying the frozen
+  lane CLI reviewer templates (`claude-opus-5`, `2.1.221`, effort `high`, empty tool set) with the
+  unchanged reviewer system prompt, vignettes, verdicts, and schemas except participant constants.
+- Both CLI configurations must pass the unchanged six-vignette calibration before a replacement
+  Stage-1 protocol may be frozen. The superseded configurations and the unexecuted clean protocol
+  remain retained. No label, detector outcome, qualification, promotion, or Finding changed; the
+  honest scores remain 0/10.
+
 ## Evidence log
 
 | Date | Change | Evidence | Checkboxes changed |
@@ -714,3 +759,5 @@ perform unrelated capability expansion before the complete first pilot is retain
 | 2026-08-04 | Froze a transport-only Codex Stage-1 recovery before retry. | Amendment `sha256:b3340cea084f9293cb24e9ad95cd64b494a2b436ce8bcb3c273f6455dd61ec85`; fresh transport identities `44476f5d-fbd9-5991-8563-54789aed4dae` and `f8aebee9-8d10-5695-89cd-fc7743802982`; identical prompt, packet, participant, and local semantic-schema bindings; six focused recovery/failure controls. | No checkbox or score changed; recovery and Claude calls remain unexecuted. |
 | 2026-08-04 | Executed both frozen Codex recovery calls once and admitted all six reviews through the unchanged local semantic validator. | Process captures `sha256:fb6f980b6b0b81521e4888c5efb2fb4d613faed65f96e51244847aea4759b1e6` and `sha256:a0489c3679814ba06b1ab1946ea9ce7fe79c006d8dc1f5c9f2ae7542653f9bb8`; raw-call captures `sha256:ebffb2b5b08bce53cf5277f12aea135ffa9787802cff9cd0819a32b77ff84563` and `sha256:f71777677eeadc4ec264cc1c012720633ada44a969bb03716af16f58975aa859`; call ledgers `sha256:0acf3d7435637cabb4dbd3e74d47664f34cc10973293f57488acd5b4673e0a25` and `sha256:d53bad1d4e09a29b7b6fafbbecb5581b5b479cb756f42a1b6164e4aa05c0463f`. | Gate remains incomplete at 2/4 Stage-1 reviews per case; no panel freeze, label, detector outcome, qualification, promotion, product, or score change. |
 | 2026-08-04 | Executed both frozen Claude Stage-1 calls once, admitted all six reviews, and froze the complete three-case Stage-1 panel. | Claude raw-call captures `sha256:05618c423559457a1d44917278bd213309d2651a7d09540a7bb26f62ef709c90` and `sha256:210d5cf4f25feff1ec42c89b70c2fe17dc672b91604d5e225f3a5965c9c3aadc`; call ledgers `sha256:1de773b533bf1fc596f4b75e558411bee32a531208b8b6c6a14a53ed5e0b6e95` and `sha256:f89e77de60ace7e2b96fffb6401385a3aba2b3347f619f1655ebed4d1c56a500`; panel ledger `sha256:cde80f4a0faf9f2d96699122127177252afcaac275b35d2ba9be72b812433851`; three replayed panel freezes and 12/12 reviews. | Four-review, two-provider Stage-1 checkbox checked; Stage-2, label, detector, qualification, promotion, product, and score remain incomplete. |
+| 2026-08-05 | Retained the first Stage-1 panel as label-ineligible, calibrated a fresh four-reviewer recovery set across retained failures, and froze the clean replacement Stage-1 protocol before any call. | Ineligibility ledger `sha256:6f084c78e616769fee141d6256dd3423c70cdc81674bd9defb3b5177696be79e`; v5 ledger `sha256:4892d3ee890c19bb98110b8f301bddf225213064ac0acc368c2ae197b67aafc6`; v6 ledger `sha256:8257ac400f97cee37f236bd840e14442dbecbd43f4b17945d6bf508bf041a254`; v7 ledger `sha256:a4b68cbe07aaba3237a805d5ce0df2aa4554b859f9efee371e382960fcc4de90`; clean protocol `sha256:94529e86411cc0c81c4a75a203c5895656b99228321288654a35d0d13feeb378`; commit `617681e`. | Stage-1 review checkbox reopened; no qualification, promotion, product, or score change. |
+| 2026-08-07 | Superseded the two Claude Desktop App reviewer configurations with frozen Claude Code CLI replacements before any clean-protocol call or case exposure. | Amendment `sha256:7b85c5e3cd5ce4ec7fcda7cbaed98630442a3d3af972c4e1faee34df2867a8c2`; enrollment `sha256:a749696b6c72280bbd9f49e3e4372f86055551756d6d82cfb7a6cff158e4ce7a`; calibration protocol `sha256:5f14cfc3b876281567cfcd6baa855ae3d83896b72ddf6af761a99b124f501400`; three focused freeze tests. | No checkbox or score changed; CLI calibration and a replacement Stage-1 protocol remain required. |
