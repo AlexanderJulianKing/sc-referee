@@ -1,0 +1,4 @@
+accounting_group,station_count,occurrence_status
+signal_eligible_occurrence,18,observed
+signal_eligible_no_occurrence,54,not_observed
+outside_signal_eligible,24,not_assessed
