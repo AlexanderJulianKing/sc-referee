@@ -22,6 +22,8 @@ from pathlib import Path
 from typing import Any
 
 from sc_referee.core.ids import semantic_digest, sha256_digest
+from sc_referee.parsers.python_ast import PARSER_ID as PYTHON_PARSER_ID
+from sc_referee.parsers.python_ast import PARSER_VERSION as PYTHON_PARSER_VERSION
 from sc_referee.scientific_checks.adapter_common import (
     adapter_implementation_digest,
     receipt_description,
@@ -39,6 +41,11 @@ from sc_referee.scientific_checks.core import (
     InspectionReceipt,
     NormalizedMethodObservation,
     RoleBinding,
+)
+from sc_referee.scientific_checks.quantity_dataflow_adapter import (
+    QUANTITY_DATAFLOW_IMPLEMENTATION_DIGEST,
+    quantity_dataflow_grammar,
+    resolve_dataflow_operand,
 )
 from sc_referee.scientific_checks.scope_joins import selected_publication_path
 
@@ -90,9 +97,7 @@ class _Interpretation:
     count_tokens: tuple[_NumberToken, ...]
 
 
-def quantity_recognition_grammar(
-    complete_operand: str, retained_operand: str
-) -> dict[str, Any]:
+def quantity_recognition_grammar(complete_operand: str, retained_operand: str) -> dict[str, Any]:
     return {
         "grammar_id": "quantity-accounting-reconciliation",
         "grammar_version": "1.0.0",
@@ -117,6 +122,12 @@ def quantity_recognition_grammar(
             "max_distinct_integers": _MAX_DISTINCT_INTEGERS,
             "max_rate_tokens": _MAX_RATE_TOKENS,
         },
+        "source_dataflow": quantity_dataflow_grammar(complete_operand, retained_operand),
+        "source_dataflow_implementation_digest": QUANTITY_DATAFLOW_IMPLEMENTATION_DIGEST,
+        "plane_fusion": (
+            "either plane resolves alone; a unique source dataflow breaks report "
+            "ties; disagreement between planes abstains as ambiguous"
+        ),
         "nomenclature_authority": "none",
     }
 
@@ -188,36 +199,83 @@ class QuantityConsistencyReportAdapter:
             complete_operand=str(self.complete_operand.value),
             retained_operand=str(self.retained_operand.value),
         )
-        if not interpretations:
+        report_operands = sorted({item.operand_value for item in interpretations})
+        report_had_conflict = len(report_operands) > 1
+        flow = resolve_dataflow_operand(
+            context,
+            complete_operand=str(self.complete_operand.value),
+            retained_operand=str(self.retained_operand.value),
+            parser_id=PYTHON_PARSER_ID,
+            parser_version=PYTHON_PARSER_VERSION,
+        )
+        if flow.state == "ambiguous":
             return self._abstain(
-                "not_applicable",
-                (
-                    "The selected report states no complete quantity accounting that "
-                    "reconciles a rate with a retained-subset or complete-domain exposure."
-                ),
+                "ambiguous",
+                "The workflow source computes rates over conflicting exposure domains.",
                 document=document,
             )
-        operand_values = sorted({item.operand_value for item in interpretations})
-        if len(operand_values) > 1:
-            # Cross-document tie-break: a coincidental reconciliation reuses a
-            # report number in two roles or invents an accounting the rest of
-            # the repository never states. Keep only interpretations whose
-            # full quantity multiset is token-supported by another captured
-            # document; nomenclature still plays no part.
-            inventories = _corroborating_inventories(context, document.path)
-            interpretations = [
-                item
-                for item in interpretations
-                if any(_supports(inventory, item) for inventory in inventories)
-            ]
-            operand_values = sorted({item.operand_value for item in interpretations})
-        if len(operand_values) != 1:
+        if len(report_operands) > 1:
+            # Tie-breaks, in order: a unique source-dataflow classification,
+            # then another captured document's quantity-multiset support. A
+            # coincidental reconciliation reuses a report number in two roles
+            # or invents an accounting the rest of the repository never
+            # states; nomenclature still plays no part.
+            if flow.state == "unique":
+                interpretations = [
+                    item for item in interpretations if item.operand_value == flow.operand_value
+                ]
+            else:
+                inventories = _corroborating_inventories(context, document.path)
+                interpretations = [
+                    item
+                    for item in interpretations
+                    if any(_supports(inventory, item) for inventory in inventories)
+                ]
+            report_operands = sorted({item.operand_value for item in interpretations})
+        if len(report_operands) > 1:
             return self._abstain(
                 "ambiguous",
                 (
                     "The stated quantities reconcile with more than one exposure domain "
-                    "and no captured document corroborates exactly one; the bounded "
-                    "arithmetic cannot resolve the selected denominator."
+                    "and neither the workflow dataflow nor another captured document "
+                    "resolves exactly one."
+                ),
+                document=document,
+            )
+        if report_operands and flow.state == "unique" and report_operands[0] != flow.operand_value:
+            return self._abstain(
+                "ambiguous",
+                (
+                    "The report arithmetic and the workflow-source dataflow disagree "
+                    "on the exposure domain."
+                ),
+                document=document,
+            )
+        if not report_operands and flow.state != "unique":
+            if report_had_conflict:
+                return self._abstain(
+                    "ambiguous",
+                    (
+                        "The stated quantities reconcile with more than one exposure "
+                        "domain and no tie-break resolves exactly one."
+                    ),
+                    document=document,
+                )
+            if flow.state == "unsupported":
+                return self._abstain(
+                    "unsupported",
+                    (
+                        "No reconcilable report accounting exists and the workflow "
+                        "source uses control flow beyond the supported dataflow trace."
+                    ),
+                    document=document,
+                )
+            return self._abstain(
+                "not_applicable",
+                (
+                    "Neither the selected report's quantities nor the workflow "
+                    "source's dataflow states a retained-subset or complete-domain "
+                    "rate exposure."
                 ),
                 document=document,
             )
@@ -235,41 +293,92 @@ class QuantityConsistencyReportAdapter:
                 "PublicationSurface selection.",
                 document=document,
             )
-        chosen = interpretations[0]
+        operand_value = report_operands[0] if report_operands else flow.operand_value
+        basis = (
+            "report_arithmetic_and_source_dataflow"
+            if report_operands and flow.state == "unique"
+            else "report_arithmetic"
+            if report_operands
+            else "source_dataflow"
+        )
         operand = (
             self.retained_operand
-            if chosen.operand_value == str(self.retained_operand.value)
+            if operand_value == str(self.retained_operand.value)
             else self.complete_operand
         )
-        spans = tuple(
-            _evidence_span(document, text, token.start, token.end)
-            for token in sorted(
-                {chosen.rate_token, *chosen.count_tokens}, key=lambda item: item.start
+        chosen = interpretations[0] if interpretations else None
+        report_spans = (
+            tuple(
+                _evidence_span(document, text, token.start, token.end)
+                for token in sorted(
+                    {chosen.rate_token, *chosen.count_tokens}, key=lambda item: item.start
+                )
             )
+            if chosen is not None
+            else ()
         )
-        role_bindings = (
-            RoleBinding(
-                "selected_rate_or_spacing_estimate",
-                f"stated_rate_token:{chosen.rate_token.raw}",
-            ),
-            RoleBinding(
-                "exposure_denominator",
-                "reconciled_denominator_count:"
-                + str(
-                    chosen.retained_count
-                    if chosen.operand_value == str(self.retained_operand.value)
-                    else chosen.complete_count
+        spans = report_spans + (flow.spans if flow.state == "unique" else ())
+        if chosen is not None:
+            role_bindings = (
+                RoleBinding(
+                    "selected_rate_or_spacing_estimate",
+                    f"stated_rate_token:{chosen.rate_token.raw}",
                 ),
-            ),
-            RoleBinding(
-                "declared_domain",
-                f"complete_accounting_count:{chosen.complete_count}",
-            ),
-            RoleBinding(
-                "retained_observed_subset",
-                f"retained_count:{chosen.retained_count}",
-            ),
-        )
+                RoleBinding(
+                    "exposure_denominator",
+                    "reconciled_denominator_count:"
+                    + str(
+                        chosen.retained_count
+                        if chosen.operand_value == str(self.retained_operand.value)
+                        else chosen.complete_count
+                    ),
+                ),
+                RoleBinding(
+                    "declared_domain",
+                    f"complete_accounting_count:{chosen.complete_count}",
+                ),
+                RoleBinding(
+                    "retained_observed_subset",
+                    f"retained_count:{chosen.retained_count}",
+                ),
+            )
+        else:
+            denominator = (
+                "count_of_screened_subset"
+                if operand_value == str(self.retained_operand.value)
+                else "count_of_full_row_set"
+            )
+            role_bindings = (
+                RoleBinding(
+                    "selected_rate_or_spacing_estimate",
+                    f"source_rate_division:{flow.source_path}",
+                ),
+                RoleBinding(
+                    "exposure_denominator",
+                    f"division_denominator_provenance:{denominator}",
+                ),
+                RoleBinding(
+                    "declared_domain",
+                    "full_row_set_of_staged_input",
+                ),
+                RoleBinding(
+                    "retained_observed_subset",
+                    "screened_subset_by_filtering_comprehension",
+                ),
+            )
+        reconciliation: dict[str, Any] = {"basis": basis, "operand": operand_value}
+        if chosen is not None:
+            reconciliation.update(
+                {
+                    "complete_count": chosen.complete_count,
+                    "retained_count": chosen.retained_count,
+                    "removed_count": chosen.removed_count,
+                    "event_count": chosen.event_count,
+                    "rate_token": chosen.rate_token.raw,
+                }
+            )
+        if flow.state == "unique":
+            reconciliation["source_path"] = flow.source_path
         receipts = tuple(
             InspectionReceipt(
                 receipt_id=receipt_id,
@@ -279,14 +388,7 @@ class QuantityConsistencyReportAdapter:
                     {
                         "receipt_id": receipt_id,
                         "content_digest": document.content_digest,
-                        "reconciliation": {
-                            "complete_count": chosen.complete_count,
-                            "retained_count": chosen.retained_count,
-                            "removed_count": chosen.removed_count,
-                            "event_count": chosen.event_count,
-                            "rate_token": chosen.rate_token.raw,
-                            "operand": chosen.operand_value,
-                        },
+                        "reconciliation": reconciliation,
                     }
                 ),
                 description=receipt_description(receipt_id),
@@ -388,7 +490,7 @@ def _number_tokens(text: str) -> list[_NumberToken]:
 def _rate_candidates(token: _NumberToken) -> list[tuple[float, float]]:
     """Candidate (rate, tolerance) pairs for one stated rate token."""
 
-    tolerance = 0.5 * (10.0 ** -token.decimals)
+    tolerance = 0.5 * (10.0**-token.decimals)
     if token.is_percent:
         if 0.0 < token.value <= 100.0:
             return [(token.value / 100.0, tolerance / 100.0)]

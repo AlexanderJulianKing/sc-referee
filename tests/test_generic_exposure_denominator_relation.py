@@ -475,3 +475,106 @@ def test_development_control_has_one_replayable_selected_result_and_static_produ
     assert len(derivation["candidate_bindings"]) == 1
     assert derivation["project_code_executed"] is False
     assert revalidate_independent_selected_result_derivation(derivation, case_root) == derivation
+
+
+COMPUTING_WRITER = """import csv
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/data.csv').open()))
+planned = len(rows)
+retained = [row for row in rows if row['kept'] == 'yes']
+events = sum(1 for row in retained if row['event'] == 'yes')
+rate = events / len(retained)
+Path('report.md').write_text('generated\\n', encoding='utf-8')
+"""
+
+COMPUTING_CSV = (
+    "plot,kept,event\n"
+    + "\n".join(
+        f"p{i},{'yes' if i <= 8 else 'no'},{'yes' if i <= 6 else 'no'}" for i in range(1, 11)
+    )
+    + "\n"
+)
+
+
+def _write_computing_project(repository: Path, report: str) -> None:
+    _write_project(repository, report, writer=COMPUTING_WRITER)
+    (repository / "inputs").mkdir()
+    (repository / "inputs/data.csv").write_text(COMPUTING_CSV, encoding="utf-8")
+
+
+def test_bare_integer_rate_is_recognized_from_source_dataflow(
+    schema_root: Path,
+    tmp_path: Path,
+) -> None:
+    """A rate stated without a decimal point or percent marker cannot be
+    reconciled on the report plane, but the workflow's own division names the
+    retained subset as its denominator, so the conflict still fires."""
+
+    repository = tmp_path / "project"
+    report = """# Plot survey
+
+Planned plots: 10. Retained after screening: 8. Removed: 2. Plots with the event: 6.
+
+The event rate for the complete planned set of plots is 75.
+"""
+    _write_computing_project(repository, report)
+    lock_path = _contract(repository, tmp_path / "contract", schema_root)
+
+    output = tmp_path / "audit"
+    bundle = run_audit(
+        repository,
+        output,
+        schema_root,
+        report="report.md",
+        method_contract_lock=lock_path,
+    )
+
+    assert _module(output / "semantic.lock.json")["state"] == "applicable"
+    result = _result(bundle)
+    assert result is not None
+    assert result["state"] == "evaluation_finding_candidate"
+    ledger = next(
+        item
+        for item in result["evidence"]
+        if item["evidence_id"] == "evidence:analysis-method-ledger"
+    )
+    assert ledger["observed_value"]["observed"] == CONFLICTING_OPERAND
+    cited_paths = {
+        ref.get("path") for item in result["evidence"] for ref in item.get("source_refs", [])
+    }
+    assert "analysis.py" in cited_paths
+    assert bundle["findings"] == []
+    assert bundle["executions"] == []
+
+
+def test_report_arithmetic_and_source_dataflow_disagreement_is_ambiguous(
+    schema_root: Path,
+    tmp_path: Path,
+) -> None:
+    """The report's numbers reconcile as a complete-domain rate while the
+    code divides by the screened subset; the planes disagree, so the check
+    abstains instead of picking a side."""
+
+    repository = tmp_path / "project"
+    report = """# Plot survey
+
+Planned plots: 10. Retained after screening: 8. Removed: 2. Plots with the event: 6.
+
+The event rate for the complete planned set of plots is 0.60.
+"""
+    _write_computing_project(repository, report)
+    lock_path = _contract(repository, tmp_path / "contract", schema_root)
+
+    output = tmp_path / "audit"
+    bundle = run_audit(
+        repository,
+        output,
+        schema_root,
+        report="report.md",
+        method_contract_lock=lock_path,
+    )
+
+    assert _module(output / "semantic.lock.json")["state"] == "ambiguous"
+    assert _result(bundle) is None
+    assert bundle["findings"] == []

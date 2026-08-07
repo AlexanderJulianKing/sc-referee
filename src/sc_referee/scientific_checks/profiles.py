@@ -24,6 +24,15 @@ from sc_referee.scientific_checks.python_founder_adapter import (
     PythonFounderOrientationAdapter,
     python_founder_recognition_grammar_digest,
 )
+from sc_referee.scientific_checks.quantity_consistency_adapter import (
+    QUANTITY_CONSISTENCY_ADAPTER_IMPLEMENTATION_DIGEST,
+    QUANTITY_COUNTEREVIDENCE,
+    QuantityConsistencyReportAdapter,
+    quantity_recognition_grammar_digest,
+)
+from sc_referee.scientific_checks.quantity_dataflow_adapter import (
+    QUANTITY_DATAFLOW_IMPLEMENTATION_DIGEST,
+)
 from sc_referee.scientific_checks.registry import (
     SCIENTIFIC_CHECK_REDUCER_IMPLEMENTATION_DIGEST,
     RegistryValidationError,
@@ -33,12 +42,6 @@ from sc_referee.scientific_checks.rmarkdown_mvmr_adapter import (
     RMARKDOWN_MVMR_ADAPTER_IMPLEMENTATION_DIGEST,
     RMarkdownMVMRCovarianceAdapter,
     rmarkdown_mvmr_recognition_grammar_digest,
-)
-from sc_referee.scientific_checks.quantity_consistency_adapter import (
-    QUANTITY_CONSISTENCY_ADAPTER_IMPLEMENTATION_DIGEST,
-    QUANTITY_COUNTEREVIDENCE,
-    QuantityConsistencyReportAdapter,
-    quantity_recognition_grammar_digest,
 )
 from sc_referee.scientific_checks.selected_report_adapter import (
     SELECTED_REPORT_ADAPTER_IMPLEMENTATION_DIGEST,
@@ -232,6 +235,9 @@ def scientific_check_release_projection(
             ),
             "scientific_checks/quantity_consistency_adapter.py": (
                 QUANTITY_CONSISTENCY_ADAPTER_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/quantity_dataflow_adapter.py": (
+                QUANTITY_DATAFLOW_IMPLEMENTATION_DIGEST
             ),
             "scientific_checks/registry.py": SCIENTIFIC_CHECK_REDUCER_IMPLEMENTATION_DIGEST,
             "scientific_checks/selected_report_adapter.py": (
@@ -443,15 +449,11 @@ def _quantity_consistency_module(
 ) -> ScientificCheckModule:
     """Build the ADR-0069 quantity-arithmetic module for the denominator-domain check."""
 
-    operands = {
-        candidate.candidate_id: candidate.operand for candidate in profile.candidates
-    }
+    operands = {candidate.candidate_id: candidate.operand for candidate in profile.candidates}
     complete_operand = operands["complete-declared-domain-exposure"]
     retained_operand = operands["retained-observed-subset-exposure"]
     adapter_manifest = AdapterManifest(
-        adapter_id=(
-            f"adapter:{profile.check_id.removeprefix('check:')}:quantity-consistency-v1"
-        ),
+        adapter_id=(f"adapter:{profile.check_id.removeprefix('check:')}:quantity-consistency-v1"),
         adapter_version=profile.adapter_version,
         implementation_digest=QUANTITY_CONSISTENCY_ADAPTER_IMPLEMENTATION_DIGEST,
         recognition_grammar_digest=quantity_recognition_grammar_digest(
