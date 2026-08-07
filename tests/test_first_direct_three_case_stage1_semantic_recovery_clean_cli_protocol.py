@@ -119,6 +119,40 @@ def test_clean_cli_stage1_calls_bind_exact_configurations_and_prompts() -> None:
             assert call["calibration_entry_digest"] == source_call["calibration_entry_digest"]
 
 
+def test_clean_cli_stage1_claude_calls_are_recorded_and_label_eligible_per_review() -> None:
+    expected_ledgers = {
+        "actor:stage1-recovery-claude-04": (
+            "sha256:da5c90dc9cf02ef3418601a3ac539dbfc81912ceabb4a89b54b9495daae65f83"
+        ),
+        "actor:stage1-recovery-claude-05": (
+            "sha256:7cce51f846ccd077a78237c886f10068f16028a296f5769972304b4d231827e5"
+        ),
+    }
+    expected_verdicts = {
+        "case:2e26bf5ece15be03717f": "no_demonstrated_issue_within_scope",
+        "case:35069763f06891dba5a3": "demonstrated_issue",
+        "case:b036fd64c647dfd93e35": "no_demonstrated_issue_within_scope",
+    }
+    for participant_id, expected_digest in expected_ledgers.items():
+        slug = participant_id.removeprefix("actor:")
+        ledger = _load(REVIEW_ROOT / "stage1-call-ledgers" / f"{slug}.json")
+        supplied = ledger.pop("ledger_digest")
+        assert supplied == semantic_digest(ledger) == expected_digest
+        ledger["ledger_digest"] = supplied
+        assert ledger["participant_id"] == participant_id
+        assert ledger["review_count"] == 3
+        assert ledger["scientific_label_count"] == 0
+        assert ledger["detector_outcome_count"] == 0
+        assert {
+            str(item["case_id"]): str(item["verdict"]) for item in ledger["entries"]
+        } == expected_verdicts
+        for entry in ledger["entries"]:
+            case_slug = str(entry["case_id"]).removeprefix("case:")
+            review = _load(REVIEW_ROOT / "stage1-captures" / case_slug / slug / "review.json")
+            assert review["unresolved_material_questions"] == []
+            assert semantic_digest(review) == entry["review_digest"]
+
+
 def test_clean_cli_stage1_protocol_builder_is_write_once() -> None:
     before = sha256_digest((REVIEW_ROOT / "STAGE1_REVIEW_PROTOCOL.json").read_bytes())
     with pytest.raises(FileExistsError, match="already exists"):

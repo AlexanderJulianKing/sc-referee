@@ -476,6 +476,20 @@ manifests are reused without copy, and fresh content-addressed packets are froze
 reviewers. Execution state is `frozen_not_started` with zero reviews, labels, and detector
 outcomes.
 
+Both frozen Claude CLI Stage-1 calls were then submitted once in parallel and their exact process
+records, envelopes, and response bytes retained. Both responses passed the unchanged semantic
+projector, exact evidence-span checks, packet bindings, and AgentReview schema, and all six
+reviews were admitted at call-ledger digests
+`sha256:da5c90dc9cf02ef3418601a3ac539dbfc81912ceabb4a89b54b9495daae65f83` and
+`sha256:7cce51f846ccd077a78237c886f10068f16028a296f5769972304b4d231827e5`.
+Both reviewers independently returned `demonstrated_issue` for `case:35069763f06891dba5a3` and
+`no_demonstrated_issue_within_scope` for the two controls, and every review retains an empty
+`unresolved_material_questions` array under the clarified semantic contract. This supplies two
+admitted reviews per case from one provider family only. It is not a complete Stage-1 panel,
+scientific label, detector outcome, qualification decision, or Finding. The two Codex reviewer
+calls remain unexecuted pending provider availability; the panel freeze, label eligibility, and
+Stage-2 remain unstarted, and the honest score remains 0/10.
+
 ## Stop conditions
 
 Do not promote when the selected result is unresolved, a source reference is missing, the review
