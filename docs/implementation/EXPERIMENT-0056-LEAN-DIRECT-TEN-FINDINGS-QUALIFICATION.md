@@ -563,6 +563,29 @@ supplying exact-span equivalence evidence, and clean verdicts for both controls,
 freezes, detector outcomes, thresholds, qualification, promotion, and Findings remain unstarted;
 the honest score remains 0/10.
 
+The three scientific labels were then frozen before any detector observation at label-ledger
+digest `sha256:cf84e730204cff24d97d85df53b8d8637c4dee71d350b81c226f7eca31e38cc7`:
+one `positive_demonstrated` label with a public AdjudicatedRootCause reconciling all four
+Stage-1 candidates, and two `verified_good_eligible` labels. Because the immutable public
+BenchmarkAdjudication schema hard-requires a cross-provider panel, each adjudication is an
+evaluation-private record under ADR-0066 with public issuance explicitly deferred and disclosed.
+
+The frozen detector was then run once on all three pilot opportunities through the production
+method-contract and audit path, with deterministic replay verified, at detector-run ledger
+digest `sha256:8440400a0ea388fe152930d51e8836e018a984bad0ee5e744c9b527041dfe10a`. The honest
+pilot result is a failure of the detector version, measured cleanly end to end: zero false
+accusations and zero production Findings, but zero recognitions. On the error-bearing and
+corrected cases the check module fail-closed to `unsupported` because the v1.1.0 adapter could
+not produce an applicable operand from the independently authored report phrasing; on the valid
+alternative it returned `not_applicable`. Pilot metrics over the three frozen opportunities:
+sensitivity 0/1 (missed error via unsupported abstention), false-accusation rate 0/2,
+true negatives 2/2 by abstention or non-applicability rather than by recognized coverage. This
+is the first genuinely blind generalization measurement for this envelope: the conservative
+fail-closed architecture held, and the recognition grammar did not generalize beyond the
+development phrasings. Per this plan's rules, any detector repair creates version 1.2.0 and
+reopens the affected freeze and pilot items with fresh cases; the retained pilot is the honest
+failing measurement for v1.1.0. The score remains 0/10.
+
 ## Stop conditions
 
 Do not promote when the selected result is unresolved, a source reference is missing, the review
