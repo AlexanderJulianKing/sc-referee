@@ -490,6 +490,23 @@ scientific label, detector outcome, qualification decision, or Finding. The two 
 calls remain unexecuted pending provider availability; the panel freeze, label eligibility, and
 Stage-2 remain unstarted, and the honest score remains 0/10.
 
+Because the OpenAI provider remains usage-blocked and the maintainer directed completion before a
+fixed deadline, ADR-0066 proposes a cross-model single-provider panel for this envelope: Stage-1
+as two Claude Opus 5 plus two Claude Fable 5 reviews and Stage-2 as two fresh reviews from those
+two distinct Anthropic model families, with mandatory single-provider disclosure and a versioned
+v4 evidence-contract supersession for the Stage-2 provider-distinctness check. In preparation,
+fable-addition enrollment digest
+`sha256:3db930440af064ba2b774ab3d58d4c63cfb0edcf43fe8a6592d38379096bdb28`
+adds two fresh Claude Fable 5 CLI reviewer configurations without superseding any Codex
+configuration, and both passed the unchanged six-vignette calibration exactly at ledger digest
+`sha256:6ae6507fa76c9444386f3c12dda0b141a496cfb57e0f3fefc3539d15a8dda542`,
+with the served model verified as `claude-fable-5` from each retained envelope. A silent CLI
+model-fallback hazard was discovered during this step (an unrecognized model identifier falls
+back without error), so Fable transports pin the frozen model alias and fail closed unless the
+envelope's served-model usage records the exact pinned model. No panel composition change,
+review, label, detector outcome, or score change occurs unless ADR-0066 is explicitly accepted
+by the maintainer.
+
 ## Stop conditions
 
 Do not promote when the selected result is unresolved, a source reference is missing, the review
