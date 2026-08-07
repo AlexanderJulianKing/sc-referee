@@ -1,0 +1,11 @@
+station_id,planned,screening_status,fox_detected
+ST-01,yes,retained,yes
+ST-02,yes,retained,no
+ST-03,yes,retained,yes
+ST-04,yes,excluded_camera_failure,not_assessed
+ST-05,yes,retained,yes
+ST-06,yes,retained,no
+ST-07,yes,excluded_camera_failure,not_assessed
+ST-08,yes,retained,yes
+ST-09,yes,retained,yes
+ST-10,yes,retained,yes

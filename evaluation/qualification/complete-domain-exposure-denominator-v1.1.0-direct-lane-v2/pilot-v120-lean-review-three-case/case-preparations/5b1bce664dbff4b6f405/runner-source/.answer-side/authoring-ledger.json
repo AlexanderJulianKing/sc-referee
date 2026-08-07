@@ -1,0 +1,105 @@
+{
+  "artifact_kind": "direct_qualification_v120_lean_pilot_authoring_ledger",
+  "completed_at": "2026-08-07T21:14:57Z",
+  "entries": [
+    {
+      "attempt_status": "admitted_after_frozen_render_and_static_intake",
+      "call_identity_id": "7e710503-3231-54c0-b76c-cdeaddfab296",
+      "case_records": [
+        {
+          "author_declaration_digest": "sha256:27abf289f32c945974c02dc684af60bb4ffd7d889279a331e468a817fe2ded4d",
+          "case_contract_digest": "sha256:20138c1249415aa74f52006308db533591a40a0927ea8f8e8338ce768d565fa9",
+          "case_id": "case:5b1bce664dbff4b6f405",
+          "case_manifest_digest": "sha256:03e089e23b0e499a290af4725879261c217727fa11a9d02a1e155f6f1b400b4e",
+          "derivation_digest": "sha256:8b57c4e3ec22a6de114aba2cc76fe564d5835c161da3b54e2827ea23874312fa",
+          "metric_eligible": true,
+          "render_grammar_profile_id": "authoring-render-only-v1",
+          "render_grammar_validation_digest": "sha256:21bae3e7482d51b28fa282087565fa697fac604c7c172e0f005f2f9b52f39a64",
+          "render_grammar_validation_status": "valid_render_only_producer",
+          "validation_digest": "sha256:51d1d4f1e5de8f701e78c202ad5277e951a9103a7c02d622dcb39dc0832ceafb",
+          "validation_status": "verified_complete"
+        }
+      ],
+      "completed_at": "2026-08-07T21:12:00.416506Z",
+      "configuration_digest": "sha256:4aa8ed7abd3c06ea668132cb8113ac7b7edf00a463f9e822682e67fe0df56ef6",
+      "input_capture_digest": "sha256:fbed2de6e719959fb410a2e38ad67aa21b9ca9ddcba1c6331e6b2afda522a8bc",
+      "participant_id": "actor:v120-author-fable-01",
+      "provider": "Anthropic",
+      "replacement_count": 0,
+      "response_digest": "sha256:0fa6d9d8f6382d16d3ec100a0c8666e4957cfba69223a766f9a05ed20f55c43c",
+      "started_at": "2026-08-07T21:11:15.662273Z"
+    },
+    {
+      "attempt_status": "admitted_after_frozen_render_and_static_intake",
+      "call_identity_id": "cd5e91cf-78c4-5537-a676-dc73b797039e",
+      "case_records": [
+        {
+          "author_declaration_digest": "sha256:edd21d638e7e9bc0929a8451ef1750db3e3fe83e41aeb9e13f99ea5bb0bd1d09",
+          "case_contract_digest": "sha256:c21025a85caa8dc56887e11ae5b3f8e478eedb78b8a89397c37c297715c6355d",
+          "case_id": "case:58cd55a6683253e967dd",
+          "case_manifest_digest": "sha256:ee4d4f57254c812fb570f124ce00533ac224f6fc125ad6c57ee5a246da00ecc9",
+          "derivation_digest": "sha256:2cea3fe5da1b0e3462bb5795b7da56230a50fa4822cf9f3a0d04bcba70d49f34",
+          "metric_eligible": true,
+          "render_grammar_profile_id": "authoring-render-only-v1",
+          "render_grammar_validation_digest": "sha256:c261ed22c6a558970955c3c98d1592d1c9986dd5a19633d7271738de08150386",
+          "render_grammar_validation_status": "valid_render_only_producer",
+          "validation_digest": "sha256:7bba7a1b636b835cda76512c2155709bde16960e2395a37618337d8a5557125f",
+          "validation_status": "verified_complete"
+        },
+        {
+          "author_declaration_digest": "sha256:77fbddb6d3fcf76fc503e33202e39558c6dd312993129ed2ece64c42d570215b",
+          "case_contract_digest": "sha256:050ba62d30c940c184caae44e2bc5269e5d0e4a8a2790ecd6ce1aad84286987e",
+          "case_id": "case:ce8220b59efdff3392a3",
+          "case_manifest_digest": "sha256:195752e9499c64e50337e47275025bd29689ce6187aef48d9c90c36cbf6e64dc",
+          "derivation_digest": "sha256:99ed7d6758dba295520a05f10b9d949c45d1218306012fb78c59850ed9e8a57d",
+          "metric_eligible": true,
+          "render_grammar_profile_id": "authoring-render-only-v1",
+          "render_grammar_validation_digest": "sha256:b810fc79dfcdb87fbe6a3979467fdd2e5cf34fbc8fbd4be2eecfcbaf72ba8f7e",
+          "render_grammar_validation_status": "valid_render_only_producer",
+          "validation_digest": "sha256:78d6663a5f905022d010ceef7d030e6ea5ce51bc4fc8460daa39c24068a199cc",
+          "validation_status": "verified_complete"
+        }
+      ],
+      "completed_at": "2026-08-07T21:13:27.920711Z",
+      "configuration_digest": "sha256:1da1d3bb5ce57b0d6605491d6380d33dfbaa2ad51d534b26fe22892adc4dc490",
+      "input_capture_digest": "sha256:d0b38a84478c875395f868dfa6b110b54727cd7337dbc67abbb432709aa2ed11",
+      "participant_id": "actor:v120-author-opus-01",
+      "provider": "Anthropic",
+      "replacement_count": 0,
+      "response_digest": "sha256:c0f0968506a3dfd330a221be6c40e2ace78dbc540fa07a5e67529a006d19ec51",
+      "started_at": "2026-08-07T21:11:15.662743Z"
+    }
+  ],
+  "ledger_digest": "sha256:c6c2b109248982bad35efa80492f5e82f75a7bfbc3c937d5675e3bc346366b04",
+  "ledger_version": "1.0.0",
+  "protocol_digest": "sha256:a4744397f1017b93c4b69bde937e381efd5b3692ca7d85bc41f4cf8ad2f5396b",
+  "qualification_authority": "none_authoring_ledger_only",
+  "render_grammar_profile_id": "authoring-render-only-v1",
+  "schedule": {
+    "author_frozen_at": "2026-08-07T21:14:51Z",
+    "compared_at": "2026-08-07T21:14:57Z",
+    "contract_frozen_at": "2026-08-07T21:14:53Z",
+    "coordinated_at": "2026-08-07T21:14:52Z",
+    "declaration_revealed_at": "2026-08-07T21:14:56Z",
+    "derivation_frozen_at": "2026-08-07T21:14:55Z",
+    "derived_at": "2026-08-07T21:14:54Z"
+  },
+  "summary": {
+    "admitted_attempt_count": 2,
+    "assigned_author_context_count": 2,
+    "author_declaration_count": 3,
+    "authored_case_count": 3,
+    "detector_outcome_count": 0,
+    "metric_eligible_case_count": 3,
+    "model_attempt_count": 2,
+    "render_grammar_valid_case_count": 3,
+    "scientific_label_count": 0,
+    "verified_selected_result_count": 3
+  },
+  "validator_identity": {
+    "execution_context_id": "context:selected-result-validator-v2",
+    "identity_evidence_digest": "sha256:0c6dce3bc100288d1dd4c72897e6f96ee1cb2ce1291ddf0b7f52c1bcfb1a0cf3",
+    "provider": "Local deterministic software",
+    "validator_id": "actor:selected-result-validator-01"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "artifact_kind": "direct_qualification_retained_author_case_manifest",
+  "author_configuration_digest": "sha256:1da1d3bb5ce57b0d6605491d6380d33dfbaa2ad51d534b26fe22892adc4dc490",
+  "author_declaration_digest": "sha256:edd21d638e7e9bc0929a8451ef1750db3e3fe83e41aeb9e13f99ea5bb0bd1d09",
+  "author_id": "actor:v120-author-opus-01",
+  "case_id": "case:58cd55a6683253e967dd",
+  "files": [
+    {
+      "content_digest": "sha256:673e3c52c1b6dc54466235f4c4cb28c61f40ce7ad14c02a026575e3e669b41ae",
+      "line_count": 41,
+      "path": "inputs/data.csv",
+      "role": "input"
+    },
+    {
+      "content_digest": "sha256:dc27abc314479c9271b17f286a8aa5de6bc447d8d8e0b6e0b7eaee55652ba402",
+      "line_count": 25,
+      "path": "results/report.md",
+      "role": "report"
+    },
+    {
+      "content_digest": "sha256:73e59c9f83ead22004b5f735c17407828f9e37b88e8035cd8e3ff0f043c06088",
+      "line_count": 34,
+      "path": "workflow/analysis.py",
+      "role": "producer"
+    }
+  ],
+  "manifest_digest": "sha256:ee4d4f57254c812fb570f124ce00533ac224f6fc125ad6c57ee5a246da00ecc9",
+  "manifest_version": "1.0.0",
+  "qualification_authority": "none_retained_author_case_only"
+}

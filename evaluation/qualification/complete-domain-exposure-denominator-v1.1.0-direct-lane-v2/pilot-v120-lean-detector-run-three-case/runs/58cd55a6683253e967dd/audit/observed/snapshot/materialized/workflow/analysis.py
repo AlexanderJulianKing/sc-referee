@@ -1,0 +1,34 @@
+from pathlib import Path
+SOURCE_TEXT = Path('inputs/data.csv').read_text()
+SOURCE_LINES = SOURCE_TEXT.splitlines()
+SOURCE_LINE_COUNT = len(SOURCE_LINES)
+LF = SOURCE_TEXT[len(SOURCE_LINES[0])]
+PLANNED_UNITS = '40'
+REMOVED_UNITS = '8'
+RETAINED_UNITS = '32'
+FLEDGING_EVENTS = '24'
+RATE_PERCENT = '60.0'
+TITLE_LINE = '# Nest-Box Fledging Success at Three Wetland Sites, 2025 Breeding Season' + LF
+BLANK_LINE = LF
+TARGET_HEADING = '## Scientific target' + LF
+TARGET_LINE = f'The declared scientific target is the complete planned set of {PLANNED_UNITS} monitored nest boxes.' + LF
+ACCOUNTING_HEADING = '## Input accounting' + LF
+INPUT_LINE = f'Input CSV lines including header: {SOURCE_LINE_COUNT}' + LF
+PLANNED_LINE = f'Planned nest boxes: {PLANNED_UNITS}' + LF
+SCREEN_LINE = 'Prespecified screening step: retain a nest box only if a complete clutch was confirmed on or before 15 May 2025.' + LF
+REMOVED_LINE = f'Nest boxes removed by screening: {REMOVED_UNITS}' + LF
+RETAINED_LINE = f'Nest boxes retained after screening: {RETAINED_UNITS}' + LF
+EVENT_LINE = f'Nest boxes with a confirmed fledging event (at least one chick fledged): {FLEDGING_EVENTS}' + LF
+RESULT_HEADING = '## Selected result' + LF
+RESULT_LINE = f'[selected-result] Confirmed fledging events occurred in {FLEDGING_EVENTS} of the {PLANNED_UNITS} planned nest boxes, a fledging-event rate of {RATE_PERCENT} percent of the complete planned set.' + LF
+NOTES_HEADING = '## Scope notes' + LF
+NOTE_ONE = f'The denominator of the selected rate is the complete planned set of {PLANNED_UNITS} nest boxes, matching the declared scientific target.' + LF
+NOTE_TWO = f'The {REMOVED_UNITS} screened-out nest boxes remain inside that denominator; no fledging event was confirmed for any of them.' + LF
+NOTE_THREE = f'No rate is claimed here for the {RETAINED_UNITS} retained nest boxes alone.' + LF
+NOTE_FOUR = 'No protocol amendment or approved method deviation exists for this analysis.' + LF
+SECTION_ONE = TITLE_LINE + BLANK_LINE + TARGET_HEADING + BLANK_LINE + TARGET_LINE + BLANK_LINE
+SECTION_TWO = ACCOUNTING_HEADING + BLANK_LINE + INPUT_LINE + PLANNED_LINE + SCREEN_LINE + REMOVED_LINE + RETAINED_LINE + EVENT_LINE + BLANK_LINE
+SECTION_THREE = RESULT_HEADING + BLANK_LINE + RESULT_LINE + BLANK_LINE
+SECTION_FOUR = NOTES_HEADING + BLANK_LINE + NOTE_ONE + NOTE_TWO + NOTE_THREE + NOTE_FOUR
+REPORT_TEXT = SECTION_ONE + SECTION_TWO + SECTION_THREE + SECTION_FOUR
+Path('results/report.md').write_text(REPORT_TEXT)

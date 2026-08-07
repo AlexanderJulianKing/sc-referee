@@ -606,6 +606,36 @@ match current bytes, and a fresh tuple must be frozen before any v1.2.0 qualific
 full suite passes with the three new regression tests. No label, metric, or score changed; the
 honest score remains 0/10 and fresh blind cases remain required for any v1.2.0 pilot.
 
+Under accepted ADR-0067 the v1.2.0 lean blind pilot ran end to end on 2026-08-07 with fresh
+material only. Two enrolled authors (one Claude Opus 5 context for the error/corrected pair, one
+Claude Fable 5 context for the valid alternative) received domain-free briefs that name no unit
+noun, domain noun, or vocabulary, so the authored phrasing is a blind generalization test of the
+v1.2.0 grammar; all three cases were admitted on the first attempt (authoring protocol
+`sha256:a4744397f1017b93c4b69bde937e381efd5b3692ca7d85bc41f4cf8ad2f5396b`, ledger
+`sha256:c6c2b109248982bad35efa80492f5e82f75a7bfbc3c937d5675e3bc346366b04`). Two fresh reviewer
+configurations passed the unchanged six-vignette calibration exactly (ledger
+`sha256:93643034def0ae421c3faafd8419c61e4b087f3039820e30b6f59d97f3e2639e`). One frozen merged
+blind review call (protocol `sha256:09510e4050cd54f3a1e8cd7823da6ab608b51bc7b55a8826175980e9558bcbe8`,
+ledger `sha256:c6eac99004758201453c03e1dd752e416cfd66e1f152ef6c0da159f10ea42fbc`) returned all
+three verdicts clean against the hidden roles with the exact canonical issue class on the error
+case and zero unresolved material questions, so no escalation fired; the lean label freeze
+(ledger `sha256:d5de03da75dc81ab89e4f7895f2cb19703ca2eb8199500110af21244dc2b8cd0`) preceded any
+detector observation. The frozen v1.2.0 detector then produced zero conflict results on every
+case: false accusations 0/2 but sensitivity 0/1, a second honest pilot failure (detector-run
+ledger `sha256:65b721d2af609f630b9f59614214b643df1b6e665dd3d8638826b52022d61280`). Localization
+is exact and evidence-backed by scratch counterfactuals outside the evidence tree: the fresh
+error case uses the unit noun "nest boxes" and the domain phrase "planned set", both outside the
+closed v1.2.0 vocabulary, and it never states the retained denominator in words anywhere in the
+report; the conflict exists only in arithmetic (24 fledging events over 32 retained boxes equals
+the stated 75.0 percent, while the declared target is the complete set of 40). With
+in-vocabulary nouns and an explicit denominator sentence the detector fires; with in-vocabulary
+nouns and the numbers-only conflict it stays silent, because the grammar excludes numeric
+inference by design. Closing this class of miss therefore requires either another vocabulary
+widening (which the blind evidence now shows does not generalize) or a bounded deterministic
+numeric-consistency rule, which is a maintainer design decision. The three v120 cases are
+answer-exposed, permanently qualification-ineligible, and reserved as regression fixtures for
+whichever repair is chosen; the honest score remains 0/10.
+
 ## Stop conditions
 
 Do not promote when the selected result is unresolved, a source reference is missing, the review

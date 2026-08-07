@@ -1,0 +1,124 @@
+{
+  "artifact_kind": "prospective_case_evidence_contract",
+  "author_declaration": {
+    "artifact_kind": "prospective_author_selected_result_declaration",
+    "authored_at": "2026-08-07T21:12:00.416506Z",
+    "authorship": {
+      "author_id": "actor:v120-author-fable-01",
+      "execution_context_id": "context:v120-author-fable-01-v1",
+      "identity_evidence_digest": "sha256:4aa8ed7abd3c06ea668132cb8113ac7b7edf00a463f9e822682e67fe0df56ef6",
+      "provider": "Anthropic"
+    },
+    "candidate_result_locators": [],
+    "case_id": "case:5b1bce664dbff4b6f405",
+    "declaration_digest": "sha256:27abf289f32c945974c02dc684af60bb4ffd7d889279a331e468a817fe2ded4d",
+    "declaration_state": "one_selected_result",
+    "declaration_version": "3.0.0",
+    "frozen_at": "2026-08-07T21:14:51Z",
+    "qualification_authority": "none_author_declaration_only",
+    "selected_result_binding": {
+      "alternative_producer_locators": [],
+      "binding_profile": "exact_selected_report_result_static_producer_v1",
+      "declared_dynamic_selection": false,
+      "producer_locator": {
+        "content_digest": "sha256:ab84129153653d98b51a130a5a493b97d1c3c8ec46e04f112575e757c794ea8f",
+        "end_line": 21,
+        "path": "workflow/analysis.py",
+        "start_line": 21
+      },
+      "report_locator": {
+        "content_digest": "sha256:8aec9f97fc330c85f595fe4bb8c764cfa48e002e2e0876aa21b067561315f130",
+        "end_line": 11,
+        "path": "results/report.md",
+        "start_line": 1
+      },
+      "result_locator": {
+        "content_digest": "sha256:8aec9f97fc330c85f595fe4bb8c764cfa48e002e2e0876aa21b067561315f130",
+        "end_line": 11,
+        "path": "results/report.md",
+        "start_line": 11
+      },
+      "selection_status": "one_selected_result",
+      "source_operands": [
+        {
+          "operand_id": "operand:d70be0284b3e67bd6c7c",
+          "record_ref": {
+            "record_id": "file:d70be0284b3e67bd6c7c",
+            "record_type": "file_record"
+          },
+          "source_locator": {
+            "content_digest": "sha256:d7f179ced193aa935ec1cedcee30774024431aca00221cb7373403a85284ef60",
+            "end_line": 11,
+            "path": "inputs/data.csv",
+            "start_line": 1
+          }
+        }
+      ]
+    },
+    "selected_result_binding_digest": "sha256:16680e84841a8b401a0ab8d7b14ba4e1c38cf7c5db96ec675492f7699ce48dd4",
+    "unsupported_producer_locators": []
+  },
+  "author_declaration_digest": "sha256:27abf289f32c945974c02dc684af60bb4ffd7d889279a331e468a817fe2ded4d",
+  "authored_at": "2026-08-07T21:12:00.416506Z",
+  "authorship": {
+    "author_id": "actor:v120-author-fable-01",
+    "execution_context_id": "context:v120-author-fable-01-v1",
+    "identity_evidence_digest": "sha256:4aa8ed7abd3c06ea668132cb8113ac7b7edf00a463f9e822682e67fe0df56ef6",
+    "provider": "Anthropic"
+  },
+  "canonical_issue_class": "issue-class:retained-subset-for-complete-domain",
+  "case_id": "case:5b1bce664dbff4b6f405",
+  "contract_digest": "sha256:20138c1249415aa74f52006308db533591a40a0927ea8f8e8338ce768d565fa9",
+  "contract_version": "3.0.0",
+  "coordinated_at": "2026-08-07T21:14:52Z",
+  "declaration_state": "one_selected_result",
+  "envelope": {
+    "binding_digest": "sha256:127306babb8127dc820ea2d3f322ca47e7da0af976ea771eb7ef10e445fcb4f5",
+    "candidate_id": "complete-declared-domain-exposure",
+    "check_id": "check:complete-domain-exposure-denominator",
+    "envelope_id": "relation-envelope:complete-domain-exposure-denominator"
+  },
+  "evidence_status": "coordinator_bound_unverified_author_declaration",
+  "frozen_at": "2026-08-07T21:14:53Z",
+  "qualification_authority": "none_case_contract_only",
+  "selected_result_binding": {
+    "alternative_producer_locators": [],
+    "binding_profile": "exact_selected_report_result_static_producer_v1",
+    "declared_dynamic_selection": false,
+    "producer_locator": {
+      "content_digest": "sha256:ab84129153653d98b51a130a5a493b97d1c3c8ec46e04f112575e757c794ea8f",
+      "end_line": 21,
+      "path": "workflow/analysis.py",
+      "start_line": 21
+    },
+    "report_locator": {
+      "content_digest": "sha256:8aec9f97fc330c85f595fe4bb8c764cfa48e002e2e0876aa21b067561315f130",
+      "end_line": 11,
+      "path": "results/report.md",
+      "start_line": 1
+    },
+    "result_locator": {
+      "content_digest": "sha256:8aec9f97fc330c85f595fe4bb8c764cfa48e002e2e0876aa21b067561315f130",
+      "end_line": 11,
+      "path": "results/report.md",
+      "start_line": 11
+    },
+    "selection_status": "one_selected_result",
+    "source_operands": [
+      {
+        "operand_id": "operand:d70be0284b3e67bd6c7c",
+        "record_ref": {
+          "record_id": "file:d70be0284b3e67bd6c7c",
+          "record_type": "file_record"
+        },
+        "source_locator": {
+          "content_digest": "sha256:d7f179ced193aa935ec1cedcee30774024431aca00221cb7373403a85284ef60",
+          "end_line": 11,
+          "path": "inputs/data.csv",
+          "start_line": 1
+        }
+      }
+    ]
+  },
+  "selected_result_binding_digest": "sha256:16680e84841a8b401a0ab8d7b14ba4e1c38cf7c5db96ec675492f7699ce48dd4"
+}
