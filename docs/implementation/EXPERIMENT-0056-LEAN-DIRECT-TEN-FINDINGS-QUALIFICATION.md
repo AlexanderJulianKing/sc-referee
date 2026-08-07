@@ -538,6 +538,31 @@ single-provider cross-model composition recorded in every freeze. This completes
 Stage-2, the v4 evidence-contract supersession, scientific labels, detector outcomes,
 qualification, promotion, and Findings remain unstarted; the honest score remains 0/10.
 
+Stage-2 then completed under ADR-0066. Two fresh Stage-2 reviewer configurations
+(`actor:stage2-cross-model-opus-01`, `actor:stage2-cross-model-fable-01`), with identities
+disjoint from every author and Stage-1 reviewer, passed the unchanged six-vignette calibration
+exactly at ledger digest
+`sha256:2d92ab079af0e5d93964dbced0e7060797b6a5fc6bde018bcb9d22c16188f938`.
+The first frozen Stage-2 protocol
+(`sha256:21d95e3964326ff211445be2d27324588482e343ddda22dc55f56ce5a5547eb2`)
+was executed once and retired as a retained failure: its compact payload schema omitted semantic
+fields the public AgentReview schema requires for Stage-2 (structured falsification attempt with
+outcome and material dissent, at least two reconciled Stage-1 candidates, and nonempty
+equivalence evidence), so neither retained one-shot response could be projected into an
+admissible review; see `STAGE2_V1_FAILURE_LEDGER.json`. The corrected v2 protocol
+(`sha256:49ff4ccff416b1d2794b497953b22eded3bed69a81f0e2d3c2637db0e221639c`)
+froze the completed payload contract and fresh call identities; both one-shot v2 calls passed
+transport, served-model, and the full semantic projection, and all six Stage-2 reviews were
+admitted at call-ledger digests
+`sha256:41e42992e09f7c70d8612ac6d22ce8c93c8d93a2d3173637d88a514e4fd55506` and
+`sha256:17534c03df38010ef50472c14bf18890652431447fb5c7d3ac519723cd3b7fa8`.
+Both adjudicators independently returned `demonstrated_issue` for
+`case:35069763f06891dba5a3`, each reconciling with all four frozen Stage-1 candidates and
+supplying exact-span equivalence evidence, and clean verdicts for both controls, with empty
+`unresolved_material_questions` and no material dissent in all six reviews. Scientific label
+freezes, detector outcomes, thresholds, qualification, promotion, and Findings remain unstarted;
+the honest score remains 0/10.
+
 ## Stop conditions
 
 Do not promote when the selected result is unresolved, a source reference is missing, the review
