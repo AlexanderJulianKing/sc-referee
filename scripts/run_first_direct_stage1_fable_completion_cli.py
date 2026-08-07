@@ -42,12 +42,15 @@ def _now() -> str:
 
 def _attempt_paths(root: Path, participant_id: str) -> tuple[Path, Path]:
     slug = participant_id.removeprefix("actor:")
-    return root / "fable-cli-process-captures" / slug, root / "incoming" / f"{slug}.json"
+    return (
+        root / "fable-cli-process-captures-v2" / slug,
+        root / "incoming" / f"{slug}-v2.json",
+    )
 
 
 def _reserve_attempt_paths(root: Path, calls: list[dict[str, Any]]) -> dict[str, Path]:
     incoming_root = root / "incoming"
-    process_parent = root / "fable-cli-process-captures"
+    process_parent = root / "fable-cli-process-captures-v2"
     incoming_root.mkdir(parents=True, exist_ok=True)
     process_parent.mkdir(parents=True, exist_ok=True)
     reserved: dict[str, Path] = {}

@@ -10,9 +10,9 @@ from pathlib import Path
 from typing import Any, cast
 
 from sc_referee_evaluation.capture import capture_review_submission, load_review_capture
-from sc_referee_evaluation.review_protocol import (
-    freeze_stage1_panel,
-    validate_stage1_freeze_evidence,
+from sc_referee_evaluation.review_protocol_cross_model import (
+    freeze_stage1_cross_model_panel,
+    validate_stage1_cross_model_freeze_evidence,
 )
 from sc_referee_evaluation.review_semantic_payload_v2 import (
     build_stage1_batch_output_schema_v2,
@@ -22,8 +22,10 @@ from sc_referee_evaluation.review_semantic_payload_v2 import (
 from sc_referee.core.ids import semantic_digest, sha256_digest, stable_id
 from sc_referee.records.normalization import write_normalized_json_once
 from scripts.build_first_direct_stage1_fable_completion_amendment import (
-    AMENDMENT_NAME,
     SLOT_BY_FABLE,
+)
+from scripts.build_first_direct_stage1_fable_completion_v2 import (
+    V2_AMENDMENT_NAME as AMENDMENT_NAME,
 )
 from scripts.build_first_direct_three_case_stage1_protocol import (
     CANONICAL_ISSUE_CLASS,
@@ -37,9 +39,14 @@ from scripts.record_first_direct_three_case_stage1_semantic_recovery_clean_cli i
     _protocol,
 )
 
+# The v1 iteration and its chronology-recovery salvage attempt are retained as a
+# failed attempt at FABLE_COMPLETION_V1_FAILURE_LEDGER.json; this recorder now
+# binds only the corrected v2 amendment.
 AMENDMENT_DIGEST: str | None = (
-    "sha256:111d469bf279913d164e055cf3bb187cf8ffb89550a2680abaf1fc878942e50c"
+    "sha256:b03098c2c96eb35dafcd55baa07de3ae274f951bcbcf7977720cb9a0251e2c7a"
 )
+RECOVERY_DIGEST: str | None = None
+RECOVERY_NAME = "FABLE_CHRONOLOGY_RECOVERY.json"
 SCHEMA_RELATIVE = Path("reference/schemas-v0.18.0")
 OPUS_PARTICIPANT_IDS = (
     "actor:stage1-recovery-claude-04",
@@ -102,6 +109,27 @@ def _amendment(project_root: Path) -> dict[str, Any]:
     return amendment
 
 
+def _freeze_reference(project_root: Path, amendment: dict[str, Any]) -> datetime:
+    """Return the chronology reference: the frozen recovery's corrected time if present."""
+
+    recovery_path = project_root / REVIEW_RELATIVE / RECOVERY_NAME
+    if RECOVERY_DIGEST is None or not recovery_path.is_file():
+        return _timestamp(str(amendment["frozen_at"]))
+    recovery = _load(recovery_path)
+    supplied = recovery.pop("recovery_digest", None)
+    if supplied != RECOVERY_DIGEST or supplied != semantic_digest(recovery):
+        raise ValueError("The Fable chronology recovery does not replay.")
+    recovery["recovery_digest"] = supplied
+    if (
+        recovery.get("artifact_kind") != "direct_qualification_stage1_fable_chronology_recovery"
+        or recovery.get("amendment_digest") != amendment["amendment_digest"]
+        or recovery.get("semantic_content_unchanged") is not True
+        or recovery.get("model_calls_added") != 0
+    ):
+        raise ValueError("The Fable chronology recovery binding is invalid.")
+    return _timestamp(str(recovery["corrected_freeze_reference_at"]))
+
+
 def _amendment_call(project_root: Path, participant_id: str) -> dict[str, Any]:
     amendment = _amendment(project_root)
     call = next(
@@ -132,7 +160,7 @@ def build_fable_stage1_call_capture(
     start = _timestamp(started_at)
     completed = _timestamp(completed_at)
     captured = _timestamp(captured_at)
-    frozen = _timestamp(str(amendment["frozen_at"]))
+    frozen = _freeze_reference(project_root, amendment)
     if not (frozen < start <= completed <= captured):
         raise ValueError("Fable completion call chronology is invalid.")
     record: dict[str, Any] = {
@@ -416,7 +444,7 @@ def finalize_cross_model_stage1_panel(project_root: Path, *, frozen_at: str) -> 
         temporary_root = Path(temporary)
         for case_id in CASE_IDS:
             output = temporary_root / f"{case_id.removeprefix('case:')}.json"
-            frozen = freeze_stage1_panel(
+            frozen = freeze_stage1_cross_model_panel(
                 reviews_by_case[case_id],
                 packets_by_case[case_id],
                 manifests_by_case[case_id],
@@ -424,7 +452,7 @@ def finalize_cross_model_stage1_panel(project_root: Path, *, frozen_at: str) -> 
                 frozen_at=frozen_at,
                 output=output,
             )
-            validate_stage1_freeze_evidence(
+            validate_stage1_cross_model_freeze_evidence(
                 frozen,
                 reviews_by_case[case_id],
                 packets_by_case[case_id],

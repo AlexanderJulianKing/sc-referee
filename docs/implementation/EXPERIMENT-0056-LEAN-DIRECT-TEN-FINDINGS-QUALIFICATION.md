@@ -507,6 +507,37 @@ envelope's served-model usage records the exact pinned model. No panel compositi
 review, label, detector outcome, or score change occurs unless ADR-0066 is explicitly accepted
 by the maintainer.
 
+ADR-0066 was then explicitly accepted by the maintainer in session. Completion-amendment digest
+`sha256:111d469bf279913d164e055cf3bb187cf8ffb89550a2680abaf1fc878942e50c`
+froze two Fable calls into the two obsolete Codex panel slots before any call. Its first
+execution iteration is retained as a failed attempt at failure-ledger digest (bound inside
+`FABLE_COMPLETION_V1_FAILURE_LEDGER.json`): the controller had forward-dated the declared
+freeze and packet timestamps relative to real wall-clock time, one response also failed JSON
+parsing before semantic assessment, and a frozen chronology-recovery salvage attempt
+(`sha256:04e37618847f7e5459d2d1a3125059427060106cbf3130bf1fce59201095e6f7`) was superseded
+rather than extended. No v1 review was admitted and the v1 responses are permanently
+ineligible. Corrected v2 amendment digest
+`sha256:b03098c2c96eb35dafcd55baa07de3ae274f951bcbcf7977720cb9a0251e2c7a`
+was frozen with truthful timestamps, fresh call identities, and fresh packets; both one-shot v2
+Fable calls then completed, passed the served-model, session-identity, and unchanged semantic
+projections, and were admitted at call-ledger digests
+`sha256:8811f65034ae210059a3bd607c957cc965a3c4cb1258b3f7088b30e257c0e705` and
+`sha256:3039b465561afbe9c939a073017779343bcf1baff7f173f2bcd629d5d6a1d537`.
+Both Fable reviewers independently returned `demonstrated_issue` for
+`case:35069763f06891dba5a3`, clean verdicts for both controls, and empty
+`unresolved_material_questions` in all six reviews.
+
+The complete cross-model Stage-1 panel was then frozen under the ADR-0066 versioned code path
+(`review_protocol_cross_model.py`; the digest-bound `review_protocol.py` is untouched) at
+panel-ledger digest
+`sha256:b5a8a566bb8c4430d087e13833cab113639b3418788c65983fb91ad5a8e7d3c9`:
+12 admitted reviews, four per case, two Claude Opus 5 and two Claude Fable 5 per case, four
+unanimous `demonstrated_issue` verdicts on the error case, eight unanimous clean verdicts on the
+controls, every review with an empty `unresolved_material_questions` array, and the
+single-provider cross-model composition recorded in every freeze. This completes Stage-1 only.
+Stage-2, the v4 evidence-contract supersession, scientific labels, detector outcomes,
+qualification, promotion, and Findings remain unstarted; the honest score remains 0/10.
+
 ## Stop conditions
 
 Do not promote when the selected result is unresolved, a source reference is missing, the review

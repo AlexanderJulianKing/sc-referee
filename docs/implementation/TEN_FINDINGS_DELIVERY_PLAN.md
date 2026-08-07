@@ -210,10 +210,13 @@ replayable, its held-out seven are sealed, and zero scientific labels or detecto
 - [x] Freeze every selected-result declaration before scientific review.
 - [x] Independently rederive every selected report, producer, operand path, and alternative producer
   from immutable case bytes.
-- [ ] Complete four answer-blind Stage-1 reviews across two providers per case that remain
-  label-eligible. The first complete panel was unanimous but is retained as label-ineligible
-  (ledger `sha256:6f084c78e616769fee141d6256dd3423c70cdc81674bd9defb3b5177696be79e`); the clean
-  replacement protocol is frozen and unexecuted.
+- [x] Complete four answer-blind Stage-1 reviews per case that remain label-eligible. The first
+  complete panel was unanimous but is retained as label-ineligible (ledger
+  `sha256:6f084c78e616769fee141d6256dd3423c70cdc81674bd9defb3b5177696be79e`). The completed
+  replacement panel is cross-model single-provider under accepted ADR-0066 (2 Claude Opus 5 plus
+  2 Claude Fable 5 per case, panel ledger
+  `sha256:b5a8a566bb8c4430d087e13833cab113639b3418788c65983fb91ad5a8e7d3c9`), with every review
+  retaining empty unresolved material questions.
 - [ ] Complete two fresh cross-provider Stage-2 reviews per case using canonical issue-class enums.
 - [ ] Retain failures, withdrawals, contamination, disagreement, ambiguity, insufficiency, and
   unsupported cases in the outcome ledger.
@@ -765,3 +768,5 @@ perform unrelated capability expansion before the complete first pilot is retain
 | 2026-08-07 | Froze the replacement clean CLI Stage-1 protocol before any review call, preserving the v3 Codex calls exactly under fresh call identities and binding the calibrated v8 Claude CLI configurations. | Protocol `sha256:b555cee404eb72ddedcb027e35dbb5a4e70351dce181945cccd8c9db8def0d41`; v3 source `sha256:94529e86411cc0c81c4a75a203c5895656b99228321288654a35d0d13feeb378`; three focused freeze tests; transformed recorder and Codex/Claude CLI transport runners. | No checkbox or score changed; Stage-1 review calls remain unexecuted. |
 | 2026-08-07 | Executed both frozen Claude CLI Stage-1 calls once and admitted all six reviews through the unchanged projector; every admitted review retains empty unresolved material questions. | Call ledgers `sha256:da5c90dc9cf02ef3418601a3ac539dbfc81912ceabb4a89b54b9495daae65f83` and `sha256:7cce51f846ccd077a78237c886f10068f16028a296f5769972304b4d231827e5`; retained process captures under `pilot-scientific-review-v4-.../claude-cli-process-captures/`; one focused retention test. | Gate remains incomplete at 2/4 Stage-1 reviews per case; no panel freeze, label, detector outcome, qualification, promotion, product, or score change. |
 | 2026-08-07 | Proposed ADR-0066 (cross-model single-provider panel under provider unavailability) and enrolled and calibrated two fresh Claude Fable 5 CLI reviewer configurations without superseding any Codex configuration. | `ADR-0066-CROSS-MODEL-SINGLE-PROVIDER-REVIEW-PANEL.md` (proposed); enrollment `sha256:3db930440af064ba2b774ab3d58d4c63cfb0edcf43fe8a6592d38379096bdb28`; calibration ledger `sha256:6ae6507fa76c9444386f3c12dda0b141a496cfb57e0f3fefc3539d15a8dda542`; served-model verification in retained envelopes; three focused tests. | No checkbox or score changed; panel composition is unchanged unless the maintainer explicitly accepts ADR-0066. |
+| 2026-08-07 | Accepted ADR-0066, froze the Fable panel-completion amendment, retained its first execution iteration as a failed attempt (forward-dated controller timestamps; one invalid-JSON response), and completed the corrected v2 iteration. | Amendment `sha256:111d469bf279913d164e055cf3bb187cf8ffb89550a2680abaf1fc878942e50c`; v1 failure ledger in `FABLE_COMPLETION_V1_FAILURE_LEDGER.json`; v2 amendment `sha256:b03098c2c96eb35dafcd55baa07de3ae274f951bcbcf7977720cb9a0251e2c7a`; call ledgers `sha256:8811f65034ae210059a3bd607c957cc965a3c4cb1258b3f7088b30e257c0e705` and `sha256:3039b465561afbe9c939a073017779343bcf1baff7f173f2bcd629d5d6a1d537`. | No label, detector outcome, qualification, promotion, product, or score change. |
+| 2026-08-07 | Froze the complete cross-model Stage-1 panel under the ADR-0066 versioned code path: 12 admitted reviews, 2 Opus 5 plus 2 Fable 5 per case, unanimous verdict pattern, zero unresolved material questions. | Panel ledger `sha256:b5a8a566bb8c4430d087e13833cab113639b3418788c65983fb91ad5a8e7d3c9`; three cross-model case freezes under `pilot-scientific-review-v4-.../stage1-freezes/`; `review_protocol_cross_model.py` (digest-bound `review_protocol.py` untouched). | The reopened Stage-1 checkbox is closed by a label-eligible panel under ADR-0066; Stage-2, labels, detector outcomes, qualification, promotion, product, and scores remain incomplete at 0/10. |
