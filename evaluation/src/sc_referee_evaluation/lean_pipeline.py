@@ -283,6 +283,9 @@ def _call_cli(
     session_id: str,
     capture_root: Path,
 ) -> dict[str, Any]:
+    retained = _retained_call(participant, prompt, session_id, capture_root)
+    if retained is not None:
+        return retained
     capture_root.mkdir(parents=True, exist_ok=True)
     started_at = _now()
     environment = dict(os.environ)
@@ -378,6 +381,44 @@ def _call_cli(
     }
 
 
+def _retained_call(
+    participant: ModelParticipant,
+    prompt: str,
+    session_id: str,
+    capture_root: Path,
+) -> dict[str, Any] | None:
+    """Reuse a retained one-shot response when its capture already exists.
+
+    Projection and recording are deterministic post-processing; re-running
+    them against the retained bytes is not a second model attempt. The
+    retained capture must bind the exact same prompt and session identity
+    and must have completed cleanly, or it cannot be reused.
+    """
+
+    capture_path = capture_root / "capture.json"
+    if not capture_path.exists():
+        return None
+    record = _load(capture_path)
+    if (
+        record.get("participant_id") != participant.participant_id
+        or record.get("session_id") != session_id
+        or record.get("prompt_digest") != sha256_digest(prompt)
+        or record.get("transport_error") is not None
+    ):
+        raise LeanPipelineError("A retained call capture exists but does not bind this exact call.")
+    stdout = (capture_root / "stdout.bin").read_bytes()
+    if sha256_digest(stdout) != record.get("stdout_digest"):
+        raise LeanPipelineError("A retained call capture's bytes drifted.")
+    envelope = json.loads(stdout.decode("utf-8"))
+    return {
+        "raw_response": str(envelope.get("result")),
+        "transport_error": None,
+        "process_record": record,
+        "started_at": record["started_at"],
+        "completed_at": record["completed_at"],
+    }
+
+
 # ---------------------------------------------------------------------------
 # Step 1: blind authoring of executable workflows.
 
@@ -417,8 +458,14 @@ def _author_output_schema(participant_id: str, case_ids: list[str]) -> dict[str,
     }
 
 
-_AUTHOR_INSTRUCTIONS = """You are one blind scientific case author. Author every assigned case
-as a small, real, runnable analysis workflow. For each case you produce exactly three files.
+_AUTHOR_INSTRUCTIONS = """You are one blind scientific case author running non-interactively.
+You have no tools, no filesystem, no shell, and no execution environment; do not attempt to
+run, test, or verify anything externally, and do not narrate tool use. Construct the files in
+your head, check the arithmetic mentally, and reply with exactly one JSON object and nothing
+else: no prose before or after it, no markdown fences, no tool-call blocks.
+
+Author every assigned case as a small, real, runnable analysis workflow. For each case you
+produce exactly three files.
 
 inputs/data.csv: an ASCII CSV with a header row and one data row per planned observation unit,
 containing the complete planned-unit accounting including the units the screening step removes.
@@ -427,9 +474,10 @@ workflow/analysis.py: a deterministic Python script using only the standard libr
 csv, math, statistics, pathlib, collections, fractions, decimal, itertools, functools, json,
 and re. It must read inputs/data.csv, compute every count and the rate it reports from that
 data (never hard-code a result number), and write results/report.md. No randomness, no clock,
-no network, no other files, no command-line arguments. It will be executed twice from the case
-root with `python -I workflow/analysis.py`; both runs must produce byte-identical output, and
-the report_md you return must equal that output exactly, byte for byte.
+no network, no other files, no command-line arguments. The intake pipeline (not you) will later
+execute it twice from the case root with `python -I workflow/analysis.py`; both runs must
+produce byte-identical output, and the report_md you return must equal that output exactly,
+byte for byte, so compute every reported number with exact care.
 
 results/report.md: an ASCII Markdown report whose lines exactly equal the script output. It
 must contain exactly one line beginning with `[selected-result]` stating the single selected
@@ -596,6 +644,19 @@ def step_authoring(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
 # Step 2: intake with sandboxed ground-truth execution.
 
 
+def _strip_single_fence(text: str) -> str:
+    """Mechanical transport normalization: unwrap one whole-body markdown fence."""
+
+    stripped = text.strip()
+    if stripped.startswith("```") and stripped.endswith("```"):
+        body = stripped[3:-3]
+        first_newline = body.find("\n")
+        if first_newline != -1 and body[:first_newline].strip().isalpha():
+            body = body[first_newline + 1 :]
+        return body.strip()
+    return stripped
+
+
 def _static_guard(source: str) -> None:
     try:
         tree = ast.parse(source)
@@ -673,7 +734,7 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         if attempt["protocol_digest"] != protocol["protocol_digest"]:
             raise LeanPipelineError("An author attempt is outside the frozen protocol.")
         try:
-            payload = json.loads(str(attempt["raw_response"]))
+            payload = json.loads(_strip_single_fence(str(attempt["raw_response"])))
         except json.JSONDecodeError as error:
             raise LeanPipelineError(
                 f"An author response is not valid JSON: {participant_id}"
@@ -779,6 +840,88 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
 
 # ---------------------------------------------------------------------------
 # Step 3: single blind merged review with escalation.
+
+
+def _anchor_span(span: dict[str, Any], lines: list[str]) -> None:
+    """Deterministically anchor one quoted span to true file bytes.
+
+    The model's quote is a locator, never authority: the recorded evidence
+    always equals exact complete lines of the visible file. Resolution order:
+    exact match at the claimed lines; a quote that is an exact substring of
+    the claimed lines widens to those complete lines; a unique exact
+    consecutive-line match elsewhere rebinds the line numbers; a unique
+    whitespace-normalized consecutive-line match rebinds and requotes. A
+    span that resolves none of these ways is left untouched so the frozen
+    projector fails closed on it.
+    """
+
+    start = int(span.get("start_line", 0))
+    end = int(span.get("end_line", 0))
+    quoted = str(span.get("quoted_text", ""))
+    if not (1 <= start <= end <= len(lines)):
+        claimed = None
+    else:
+        claimed = "\n".join(lines[start - 1 : end])
+    if claimed is not None and quoted == claimed:
+        return
+    if claimed is not None and quoted and quoted in claimed:
+        span["quoted_text"] = claimed
+        return
+    quote_lines = quoted.splitlines()
+    if quote_lines:
+        exact_hits = [
+            i + 1
+            for i in range(len(lines) - len(quote_lines) + 1)
+            if lines[i : i + len(quote_lines)] == quote_lines
+        ]
+        if len(exact_hits) == 1:
+            span["start_line"] = exact_hits[0]
+            span["end_line"] = exact_hits[0] + len(quote_lines) - 1
+            return
+        normalized_quote = [line.strip() for line in quote_lines]
+        normalized_lines = [line.strip() for line in lines]
+        normalized_hits = [
+            i + 1
+            for i in range(len(normalized_lines) - len(normalized_quote) + 1)
+            if normalized_lines[i : i + len(normalized_quote)] == normalized_quote
+        ]
+        if len(normalized_hits) == 1:
+            first = normalized_hits[0]
+            span["start_line"] = first
+            span["end_line"] = first + len(quote_lines) - 1
+            span["quoted_text"] = "\n".join(lines[first - 1 : first + len(quote_lines) - 1])
+            return
+
+
+def _anchor_review_spans(
+    payload: dict[str, Any], workspace_payloads: dict[str, dict[str, bytes]]
+) -> dict[str, Any]:
+    """Anchor every quoted source span in a review response to true bytes."""
+
+    anchored = json.loads(json.dumps(payload))
+    for review in anchored.get("reviews", []):
+        case_id = str(review.get("case_id", ""))
+        payloads = workspace_payloads.get(case_id, {})
+        lines_by_path = {
+            path: content.decode("utf-8", "replace").splitlines()
+            for path, content in payloads.items()
+        }
+
+        def _walk(node: Any, table: dict[str, list[str]]) -> None:
+            if isinstance(node, dict):
+                if {"path", "start_line", "end_line", "quoted_text"} <= set(node):
+                    lines = table.get(str(node["path"]))
+                    if lines is not None:
+                        _anchor_span(node, lines)
+                else:
+                    for value in node.values():
+                        _walk(value, table)
+            elif isinstance(node, list):
+                for value in node:
+                    _walk(value, table)
+
+        _walk(review, lines_by_path)
+    return anchored
 
 
 def _reviewer_agent(config: EnvelopeConfig, participant: ModelParticipant) -> dict[str, Any]:
@@ -932,18 +1075,36 @@ def _run_review_call(
     reviewer_agent = _reviewer_agent(config, participant)
     packets: dict[str, dict[str, Any]] = {}
     for case_id in case_subset:
-        packet = build_stage1_review_packet(
-            case_id,
-            preparations_by_case[case_id]["workspace_manifest"],
-            reviewer_agent,
-            prompt,
-            created_at=_now(),
-        )
+        packet_path = review_root / f"packets-{label}" / f"{case_id.removeprefix('case:')}.json"
+        packet = None
+        if packet_path.exists():
+            candidate = _load(packet_path)
+            supplied = candidate.pop("packet_digest", None)
+            if supplied != semantic_digest(candidate):
+                raise LeanPipelineError("A retained review packet does not replay.")
+            candidate["packet_digest"] = supplied
+            expected = candidate.get("expected_reviewer_agent", {})
+            if (
+                candidate.get("case_id") == case_id
+                and expected.get("execution_context_id") == reviewer_agent["execution_context_id"]
+            ):
+                packet = candidate
+            else:
+                # A retained packet from a retired reviewer attempt: move it
+                # aside as evidence and rebuild for the current participant.
+                retired_root = review_root / f"packets-{label}-retired"
+                retired_root.mkdir(exist_ok=True)
+                packet_path.rename(retired_root / packet_path.name)
+        if packet is None:
+            packet = build_stage1_review_packet(
+                case_id,
+                preparations_by_case[case_id]["workspace_manifest"],
+                reviewer_agent,
+                prompt,
+                created_at=_now(),
+            )
+            write_normalized_json_once(packet_path, packet)
         packets[case_id] = packet
-        write_normalized_json_once(
-            review_root / f"packets-{label}" / f"{case_id.removeprefix('case:')}.json",
-            packet,
-        )
     call_identity = str(
         uuid5(
             NAMESPACE_URL,
@@ -964,8 +1125,9 @@ def _run_review_call(
             f"The {label} review call failed and was retained: {call['transport_error']}"
         )
     raw_response = str(call["raw_response"]).encode("utf-8")
+    anchored_payload = _anchor_review_spans(json.loads(raw_response), workspace_payloads)
     reviews = project_stage1_semantic_batch_v2(
-        json.loads(raw_response),
+        anchored_payload,
         output_schema=schema,
         participant_id=participant.participant_id,
         participant_reviewer_agent=reviewer_agent,
@@ -1035,14 +1197,24 @@ def _entry_clean(config: EnvelopeConfig, entry: dict[str, Any], role: str) -> bo
 def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     root = project_root / config.pipeline_relative
     review_root = root / "review"
-    if review_root.exists():
+    if (review_root / "REVIEW_LEDGER.json").exists():
         raise LeanPipelineError("The review step already has output.")
+    if review_root.exists():
+        # A prior run crashed after its call: keep the retained process
+        # captures (the one-shot evidence) and rebuild the deterministic
+        # remainder from the admitted cases.
+        for child in review_root.iterdir():
+            keep = child.name == "process-captures" or child.name.startswith(
+                ("packets-", "prompt-")
+            )
+            if not keep:
+                shutil.rmtree(child) if child.is_dir() else child.unlink()
     calibrations = ensure_calibrations(project_root, config)
     _auth_entry, protocol = _manifest_require(project_root, config, "authoring")
     _intake_entry, intake = _manifest_require(project_root, config, "intake")
     roles = {str(k): str(v) for k, v in protocol["case_role_assignments"].items()}
     intake_rows = {str(row["case_id"]): row for row in intake["entries"]}
-    review_root.mkdir(parents=True)
+    review_root.mkdir(parents=True, exist_ok=True)
 
     preparations = [
         _prepare_blind_case(

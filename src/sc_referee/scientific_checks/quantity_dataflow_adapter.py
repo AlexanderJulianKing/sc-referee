@@ -56,10 +56,12 @@ _UNSUPPORTED_STATEMENTS = (
 def quantity_dataflow_grammar(complete_operand: str, retained_operand: str) -> dict[str, Any]:
     return {
         "grammar_id": "quantity-denominator-dataflow",
-        "grammar_version": "1.0.0",
+        "grammar_version": "1.1.0",
         "row_source_operations": ["csv.DictReader", "csv.reader"],
         "subset_operation": "single-generator comprehension with a filter over a row set",
         "count_operations": ["len(rows)", "sum(1 for ... in rows [if ...])"],
+        "division_forms": ["a / b", "Fraction(a, b)"],
+        "function_support": "straight-line bodies with return-value tagging",
         "division_rule": (
             "a division with a data-derived count numerator classifies by its "
             "denominator's provenance"
@@ -68,7 +70,10 @@ def quantity_dataflow_grammar(complete_operand: str, retained_operand: str) -> d
             "count_of_full_row_set": complete_operand,
             "count_of_screened_subset": retained_operand,
         },
-        "control_flow": "straight-line assignments and comprehensions only",
+        "control_flow": (
+            "straight-line assignments, comprehensions, with-blocks, functions, "
+            "and the __main__ guard"
+        ),
         "nomenclature_authority": "none",
     }
 
@@ -157,15 +162,40 @@ def _python_parser_supported(
 def _document_divisions(
     tree: ast.Module, *, complete_operand: str, retained_operand: str
 ) -> dict[str, Any]:
-    unsupported_flow = any(isinstance(node, _UNSUPPORTED_STATEMENTS) for node in ast.walk(tree))
-    env: dict[str, str] = {}
+    """Trace divisions across the module scope and straight-line function bodies.
+
+    Ordinary authored workflows wrap their logic in functions, use ``with``
+    for file handles, and gate execution behind the ``__main__`` idiom; all
+    of those stay traceable. Loops, conditionals beyond the ``__main__``
+    guard, try blocks, and classes remain out of bounds and mark the
+    document unsupported.
+    """
+
+    unsupported_flow = _has_unsupported_flow(tree)
+    functions: dict[str, ast.FunctionDef] = {
+        node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)
+    }
+    # Return-value tags for straight-line functions, iterated to a small
+    # fixpoint so simple helper chains (load -> list -> filter) resolve.
+    returns: dict[str, str] = {}
+    for _ in range(3):
+        for name, function in functions.items():
+            returns[name] = _function_return_tag(function, returns)
     divisions: list[_Division] = []
     read_present = False
-    for statement in tree.body:
-        for node in ast.walk(statement):
-            if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
-                numerator = _numerator_tag(node.left, env)
-                denominator = _tag(node.right, env)
+    any_division = False
+
+    def _scan_scope(statements: list[ast.stmt], env: dict[str, str]) -> bool:
+        nonlocal any_division
+        saw_read = False
+        for statement in _flatten_statements(statements):
+            for node in ast.walk(statement):
+                pair = _division_operands(node)
+                if pair is None:
+                    continue
+                any_division = True
+                numerator = _numerator_tag(pair[0], env, returns)
+                denominator = _tag(pair[1], env, returns)
                 if numerator in {_COUNT_FULL, _COUNT_SUBSET} and denominator in {
                     _COUNT_FULL,
                     _COUNT_SUBSET,
@@ -180,34 +210,110 @@ def _document_divisions(
                             ),
                         )
                     )
+            if (
+                isinstance(statement, ast.Assign)
+                and len(statement.targets) == 1
+                and isinstance(statement.targets[0], ast.Name)
+            ):
+                tag = _tag(statement.value, env, returns)
+                env[statement.targets[0].id] = tag
+                if tag in {_ROWS_FULL, _ROWS_ITER_FULL}:
+                    saw_read = True
+        return saw_read
+
+    module_env: dict[str, str] = {}
+    read_present = _scan_scope(
+        [s for s in tree.body if not isinstance(s, ast.FunctionDef)], module_env
+    )
+    for function in functions.values():
+        env = dict(module_env)
+        if _scan_scope(function.body, env):
+            read_present = True
+    return {
+        "divisions": divisions,
+        "triggered": read_present and any_division,
+        "unsupported_flow": unsupported_flow,
+    }
+
+
+def _has_unsupported_flow(tree: ast.Module) -> bool:
+    for node in ast.walk(tree):
+        if isinstance(node, ast.With | ast.AsyncWith):
+            continue
+        if isinstance(node, ast.If) and _is_main_guard(node):
+            continue
+        if isinstance(node, _UNSUPPORTED_STATEMENTS):
+            if isinstance(node, ast.FunctionDef):
+                continue
+            return True
+    return False
+
+
+def _is_main_guard(node: ast.If) -> bool:
+    test = node.test
+    return (
+        isinstance(test, ast.Compare)
+        and isinstance(test.left, ast.Name)
+        and test.left.id == "__name__"
+        and len(test.ops) == 1
+        and isinstance(test.ops[0], ast.Eq)
+        and len(test.comparators) == 1
+        and isinstance(test.comparators[0], ast.Constant)
+        and test.comparators[0].value == "__main__"
+    )
+
+
+def _flatten_statements(statements: list[ast.stmt]) -> list[ast.stmt]:
+    flat: list[ast.stmt] = []
+    for statement in statements:
+        if isinstance(statement, ast.With):
+            flat.extend(_flatten_statements(statement.body))
+        elif isinstance(statement, ast.If) and _is_main_guard(statement):
+            flat.extend(_flatten_statements(statement.body))
+        else:
+            flat.append(statement)
+    return flat
+
+
+def _function_return_tag(function: ast.FunctionDef, returns: dict[str, str]) -> str:
+    env: dict[str, str] = {}
+    tag = _OTHER
+    for statement in _flatten_statements(function.body):
         if (
             isinstance(statement, ast.Assign)
             and len(statement.targets) == 1
             and isinstance(statement.targets[0], ast.Name)
         ):
-            tag = _tag(statement.value, env)
-            env[statement.targets[0].id] = tag
-            if tag in {_ROWS_FULL, _ROWS_ITER_FULL}:
-                read_present = True
-    return {
-        "divisions": divisions,
-        "triggered": read_present
-        and any(
-            isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div) for node in ast.walk(tree)
-        ),
-        "unsupported_flow": unsupported_flow,
-    }
+            env[statement.targets[0].id] = _tag(statement.value, env, returns)
+        elif isinstance(statement, ast.Return) and statement.value is not None:
+            tag = _tag(statement.value, env, returns)
+    return tag
 
 
-def _numerator_tag(node: ast.expr, env: dict[str, str]) -> str:
+def _division_operands(node: ast.AST) -> tuple[ast.expr, ast.expr] | None:
+    """A division is `a / b` or the exact-arithmetic form `Fraction(a, b)`."""
+
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+        return node.left, node.right
+    if (
+        isinstance(node, ast.Call)
+        and _call_name(node) in {"Fraction", "fractions.Fraction"}
+        and len(node.args) == 2
+        and not node.keywords
+    ):
+        return node.args[0], node.args[1]
+    return None
+
+
+def _numerator_tag(node: ast.expr, env: dict[str, str], returns: dict[str, str]) -> str:
     """The numerator may carry a constant scale factor (100 * events)."""
 
-    tag = _tag(node, env)
+    tag = _tag(node, env, returns)
     if tag in {_COUNT_FULL, _COUNT_SUBSET}:
         return tag
     if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mult):
-        left = _tag(node.left, env)
-        right = _tag(node.right, env)
+        left = _tag(node.left, env, returns)
+        right = _tag(node.right, env, returns)
         counts = {left, right} & {_COUNT_FULL, _COUNT_SUBSET}
         others = {left, right} - counts
         if len(counts) == 1 and others <= {_INT_OTHER}:
@@ -215,18 +321,18 @@ def _numerator_tag(node: ast.expr, env: dict[str, str]) -> str:
     return tag
 
 
-def _tag(node: ast.expr, env: dict[str, str]) -> str:
+def _tag(node: ast.expr, env: dict[str, str], returns: dict[str, str]) -> str:
     if isinstance(node, ast.Name):
         return env.get(node.id, _OTHER)
     if isinstance(node, ast.Constant):
         return _INT_OTHER if isinstance(node.value, (int, float)) else _OTHER
     if isinstance(node, ast.Call):
-        return _tag_call(node, env)
+        return _tag_call(node, env, returns)
     if isinstance(node, ast.ListComp | ast.GeneratorExp):
-        return _tag_comprehension(node, env)
+        return _tag_comprehension(node, env, returns)
     if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add | ast.Sub | ast.Mult):
-        left = _tag(node.left, env)
-        right = _tag(node.right, env)
+        left = _tag(node.left, env, returns)
+        right = _tag(node.right, env, returns)
         numericish = {_COUNT_FULL, _COUNT_SUBSET, _INT_OTHER}
         if left in numericish and right in numericish:
             return _INT_OTHER
@@ -242,19 +348,21 @@ def _call_name(node: ast.Call) -> str:
     return ""
 
 
-def _tag_call(node: ast.Call, env: dict[str, str]) -> str:
+def _tag_call(node: ast.Call, env: dict[str, str], returns: dict[str, str]) -> str:
     name = _call_name(node)
     if name in {"csv.DictReader", "csv.reader", "DictReader", "reader"}:
         return _ROWS_ITER_FULL
+    if name in returns and not node.args and not node.keywords:
+        return returns[name]
     if name == "list" and len(node.args) == 1:
-        inner = _tag(node.args[0], env)
+        inner = _tag(node.args[0], env, returns)
         if inner in {_ROWS_ITER_FULL, _ROWS_FULL}:
             return _ROWS_FULL
         if inner == _ROWS_SUBSET:
             return _ROWS_SUBSET
         return _OTHER
     if name == "len" and len(node.args) == 1:
-        inner = _tag(node.args[0], env)
+        inner = _tag(node.args[0], env, returns)
         if inner == _ROWS_FULL:
             return _COUNT_FULL
         if inner == _ROWS_SUBSET:
@@ -263,16 +371,18 @@ def _tag_call(node: ast.Call, env: dict[str, str]) -> str:
     if name == "sum" and len(node.args) == 1:
         argument = node.args[0]
         if isinstance(argument, ast.GeneratorExp | ast.ListComp):
-            return _tag_counting_comprehension(argument, env)
+            return _tag_counting_comprehension(argument, env, returns)
         return _OTHER
     return _OTHER
 
 
-def _tag_comprehension(node: ast.ListComp | ast.GeneratorExp, env: dict[str, str]) -> str:
+def _tag_comprehension(
+    node: ast.ListComp | ast.GeneratorExp, env: dict[str, str], returns: dict[str, str]
+) -> str:
     if len(node.generators) != 1:
         return _OTHER
     generator = node.generators[0]
-    source = _tag(generator.iter, env)
+    source = _tag(generator.iter, env, returns)
     if source not in {_ROWS_FULL, _ROWS_SUBSET}:
         return _OTHER
     if generator.ifs:
@@ -280,7 +390,9 @@ def _tag_comprehension(node: ast.ListComp | ast.GeneratorExp, env: dict[str, str
     return source
 
 
-def _tag_counting_comprehension(node: ast.ListComp | ast.GeneratorExp, env: dict[str, str]) -> str:
+def _tag_counting_comprehension(
+    node: ast.ListComp | ast.GeneratorExp, env: dict[str, str], returns: dict[str, str]
+) -> str:
     """sum(1 for row in X [if ...]) is a count over X or a conditioned subset."""
 
     if len(node.generators) != 1:
@@ -289,7 +401,7 @@ def _tag_counting_comprehension(node: ast.ListComp | ast.GeneratorExp, env: dict
     if not (isinstance(element, ast.Constant) and element.value == 1):
         return _OTHER
     generator = node.generators[0]
-    source = _tag(generator.iter, env)
+    source = _tag(generator.iter, env, returns)
     if source not in {_ROWS_FULL, _ROWS_SUBSET}:
         return _OTHER
     if generator.ifs or source == _ROWS_SUBSET:
