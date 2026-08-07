@@ -1,7 +1,8 @@
 # ADR-0066: Cross-model single-provider review panel under provider unavailability
 
-- **Status:** Proposed; requires explicit maintainer acceptance before any panel composed under
-  it can contribute to a scientific label
+- **Status:** Accepted by the maintainer on 2026-08-07, in session, through an explicit
+  single-choice confirmation presented by the coordinating agent after the full trade-offs,
+  disclosure obligations, and evidence-contract consequences were stated
 - **Date:** 2026-08-07
 - **Scope:** The active `check:complete-domain-exposure-denominator` pilot and, if still
   necessary, its held-out evaluation, while OpenAI provider access is unavailable
