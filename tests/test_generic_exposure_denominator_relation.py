@@ -33,26 +33,27 @@ CONFLICT_REPORTS = (
         "acoustic survey",
         """# Acoustic recurrence summary
 
-The primary recurrence estimate is the mean time between detected acoustic events.
-It was calculated from the duration of retained high-confidence windows divided by the event
-count. Masked low-confidence intervals were excluded from the exposure denominator.
+The deployment scheduled 120 listening windows for the season. The screening step kept 90
+windows with usable recordings and removed 30 windows. Detections occurred in 36 of the kept
+windows. The primary detection rate for the full scheduled deployment is 0.40.
 """,
     ),
     (
         "microscopy transect",
         """# Punctum spacing
 
-The selected spacing result describes distance between puncta along the imaging field. The
-calculation uses only retained observed bins. Missing bins were omitted from the total length in
-the denominator.
+Imaging planned 64 grid fields across the specimen. Quality screening retained 48 fields and
+dropped 16 fields. Puncta were present in 12 retained fields. The selected presence proportion
+for the complete planned grid is 0.25.
 """,
     ),
     (
         "environmental timeline",
         """# Transition interval
 
-The reported transition-time estimate divides the summed lengths of eligible measured intervals
-by the transition count. Filtered intervals were not included in the exposure denominator.
+The monitoring calendar comprised 200 scheduled intervals. Sensor validation kept 150 intervals
+and excluded 50. Transitions were recorded in 45 validated intervals. The reported transition
+proportion for the whole monitoring calendar is 0.30.
 """,
     ),
 )
@@ -62,16 +63,18 @@ CORRECTED_REPORTS = (
         "orbital timeline",
         """# Event recurrence
 
-The primary recurrence estimate was computed over the complete declared timeline, including
-masked low-confidence intervals, and divided by the event count.
+The observation plan comprised 80 scheduled passes. Screening kept 60 passes and set aside 20.
+Events were recorded in 16 passes. The primary event proportion for the complete observation
+plan is 0.20, using every scheduled pass in the denominator.
 """,
     ),
     (
         "survey route",
         """# Spacing estimate
 
-The selected spacing estimate was calculated using the full declared route, including dropped
-segments without retained measurements.
+The survey planned 50 route segments. Ground checks retained 35 segments and rejected 15.
+Markers were found in 14 segments. The selected marker proportion for the full planned route is
+0.28, computed over all planned segments including the rejected ones.
 """,
     ),
 )
@@ -220,25 +223,26 @@ def test_generic_corrected_variants_are_covered_negatives(
         (
             """# Ambiguous exposure
 
-The primary recurrence estimate uses retained observed intervals. Missing intervals are omitted
-from the exposure denominator. The selected recurrence calculation was also computed over the
-complete declared timeline, including missing intervals.
+The plan listed 100 collection sessions; screening kept 70 and discarded 30. Signals occurred
+in 21 kept sessions. One summary line reports the signal proportion as 0.30 while another
+reports the study-wide proportion as 0.21, and the report does not reconcile the two.
 """,
             "ambiguous",
         ),
         (
             """# Opaque exposure
 
-The primary recurrence estimate uses an exposure denominator assembled from retained and missing
-intervals, but the report does not state how those intervals enter the denominator.
+Sensor identifiers active this cycle: 3 5 7 11 13 17 19 23 29 31 37 41 43 47 53 59 61 67 71 73
+79 83 89 97 101 103 107 109 113 127 131 137 139 149 151 157 163 167 173 179 181 191 193 197
+199 211 223 227 229 233 239 241 251 257 263. The proportion of flagged sensors was 0.30.
 """,
             "unsupported",
         ),
         (
             """# Unrelated retention summary
 
-The primary survival analysis retained observed records after consent checks. Follow-up time was
-reported descriptively; no normalized event-frequency calculation was selected.
+The survey planned 120 visits, retained 90 after consent checks, and set aside 30. Follow-up
+was reported descriptively; no normalized rate, proportion, or interval estimate is selected.
 """,
             "not_applicable",
         ),
@@ -277,10 +281,12 @@ def test_report_filename_and_list_layout_are_not_scientific_authority(
     report_path = "final_cycle_summary.md"
     report = """# Equipment-cycle recurrence
 
-The selected recurrence estimate is the time between equipment fault events.
+The maintenance plan covered 45 equipment cycles.
 
-- Exposure: retained measured intervals from operating logs.
-- Complement: missing intervals were excluded from the exposure denominator.
+- Kept after log screening: 36 cycles.
+- Discarded for missing logs: 9 cycles.
+- Cycles with a fault event: 27.
+- Selected fault proportion for the complete maintenance plan: 0.75.
 """
     writer = (
         "from pathlib import Path\n"
@@ -313,9 +319,10 @@ def test_scientist_authorized_conditional_domain_is_a_valid_alternative(
     repository = tmp_path / "project"
     report = """# Conditional observation-window rate
 
-The selected rate estimate is explicitly conditional on retained observed windows. It is
-calculated from retained measured intervals divided by the event count. Missing intervals are
-excluded from the exposure denominator because they are outside this conditional estimand.
+The selected estimate is explicitly conditional on the screened subset. The campaign planned 90
+watch windows; screening kept 72 and removed 18. Events occurred in 24 kept windows, and the
+conditional event proportion among kept windows is 0.33. Windows outside the screened subset
+are outside this conditional estimand.
 """
     _write_project(repository, report)
     lock_path = _contract(
@@ -347,10 +354,10 @@ def test_close_retention_language_is_clean_when_complete_denominator_is_explicit
     repository = tmp_path / "project"
     report = """# Sensor-event recurrence
 
-The primary recurrence estimate was computed over the complete declared timeline, including
-missing and filtered intervals, and divided by the event count. A separate diagnostic table keeps
-only retained high-confidence windows; filtered windows are excluded from that quality-control
-summary.
+The season scheduled 140 sensor shifts; validation retained 105 shifts and quarantined 35 for a
+separate quality-control diagnostic table. Events occurred in 42 shifts. The primary event
+proportion for the complete scheduled season is 0.30, computed over every scheduled shift
+including the quarantined ones.
 """
     _write_project(repository, report)
     lock_path = _contract(repository, tmp_path / "contract", schema_root)

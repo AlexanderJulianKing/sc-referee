@@ -34,6 +34,12 @@ from sc_referee.scientific_checks.rmarkdown_mvmr_adapter import (
     RMarkdownMVMRCovarianceAdapter,
     rmarkdown_mvmr_recognition_grammar_digest,
 )
+from sc_referee.scientific_checks.quantity_consistency_adapter import (
+    QUANTITY_CONSISTENCY_ADAPTER_IMPLEMENTATION_DIGEST,
+    QUANTITY_COUNTEREVIDENCE,
+    QuantityConsistencyReportAdapter,
+    quantity_recognition_grammar_digest,
+)
 from sc_referee.scientific_checks.selected_report_adapter import (
     SELECTED_REPORT_ADAPTER_IMPLEMENTATION_DIGEST,
     ReportOperandRule,
@@ -224,6 +230,9 @@ def scientific_check_release_projection(
             "scientific_checks/rmarkdown_mvmr_adapter.py": (
                 RMARKDOWN_MVMR_ADAPTER_IMPLEMENTATION_DIGEST
             ),
+            "scientific_checks/quantity_consistency_adapter.py": (
+                QUANTITY_CONSISTENCY_ADAPTER_IMPLEMENTATION_DIGEST
+            ),
             "scientific_checks/registry.py": SCIENTIFIC_CHECK_REDUCER_IMPLEMENTATION_DIGEST,
             "scientific_checks/selected_report_adapter.py": (
                 SELECTED_REPORT_ADAPTER_IMPLEMENTATION_DIGEST
@@ -321,6 +330,8 @@ def _module(profile: _ReportProfile) -> ScientificCheckModule:
         permitted_wording=profile.question_wording,
         prohibited_inferences=NON_INFERENCES,
     )
+    if profile.check_id == "check:complete-domain-exposure-denominator":
+        return _quantity_consistency_module(check, profile)
     adapter_id = f"adapter:{profile.check_id.removeprefix('check:')}:selected-report-v1"
     adapter_manifest = AdapterManifest(
         adapter_id=adapter_id,
@@ -424,6 +435,54 @@ def _module(profile: _ReportProfile) -> ScientificCheckModule:
         declared_manifest_digest=check.manifest_digest,
         adapter_manifests=tuple(adapter_manifests),
         adapters=tuple(adapters),
+    )
+
+
+def _quantity_consistency_module(
+    check: CheckManifest, profile: _ReportProfile
+) -> ScientificCheckModule:
+    """Build the ADR-0069 quantity-arithmetic module for the denominator-domain check."""
+
+    operands = {
+        candidate.candidate_id: candidate.operand for candidate in profile.candidates
+    }
+    complete_operand = operands["complete-declared-domain-exposure"]
+    retained_operand = operands["retained-observed-subset-exposure"]
+    adapter_manifest = AdapterManifest(
+        adapter_id=(
+            f"adapter:{profile.check_id.removeprefix('check:')}:quantity-consistency-v1"
+        ),
+        adapter_version=profile.adapter_version,
+        implementation_digest=QUANTITY_CONSISTENCY_ADAPTER_IMPLEMENTATION_DIGEST,
+        recognition_grammar_digest=quantity_recognition_grammar_digest(
+            str(complete_operand.value), str(retained_operand.value)
+        ),
+        parser_id="parser:markdown-inventory",
+        parser_version="0.2.0",
+        source_language="markdown",
+        evidence_plane="reported_text",
+        semantic_roles=profile.semantic_roles,
+        applicability_profile="bounded-quantity-accounting-reconciliation-v1",
+        counterevidence_profiles=QUANTITY_COUNTEREVIDENCE,
+        known_gaps=(
+            "rates stated as bare integers without a percent marker",
+            "word-form numbers",
+            "accountings whose removed count is never stated",
+            "non-Markdown publication surfaces",
+            "reported quantities do not establish execution",
+        ),
+    )
+    adapter = QuantityConsistencyReportAdapter(
+        check_manifest=check,
+        adapter_manifest=adapter_manifest,
+        complete_operand=complete_operand,
+        retained_operand=retained_operand,
+    )
+    return ScientificCheckModule(
+        manifest=check,
+        declared_manifest_digest=check.manifest_digest,
+        adapter_manifests=(adapter_manifest,),
+        adapters=(adapter,),
     )
 
 
@@ -910,7 +969,14 @@ def _ancestry_exposure_profile() -> _ReportProfile:
 
 
 def _complete_domain_exposure_profile() -> _ReportProfile:
-    """Recognize a selected denominator's domain without assuming a subject area."""
+    """Recognize a selected denominator's domain from quantity arithmetic alone.
+
+    v2.0.0 (ADR-0069): recognition is delegated to the quantity-consistency
+    adapter, which reconciles the report's stated counts and rate
+    arithmetically. Nomenclature never gates recognition, so this profile
+    carries no report grammar rules or lexical triggers; two blind pilots
+    demonstrated that closed word lists over free prose do not generalize.
+    """
 
     complete = "complete_declared_domain_exposure"
     retained = "retained_observed_subset_exposure_only"
@@ -919,62 +985,6 @@ def _complete_domain_exposure_profile() -> _ReportProfile:
         "estimate; the check does not infer the governing domain, impute unobserved states, "
         "choose a missing-data treatment, or treat file and variable names as scientific "
         "authority."
-    )
-    selected_target = (
-        r"(?=.*\b(?:primary|selected|reported|final)\s+"
-        r"(?:(?:rate|spacing|distance|time|interval|recurrence|transition)[- ]?"
-        r"(?:estimate|calculation|result|analysis)?|estimate|calculation|result|analysis)\b)"
-        r"(?=.*\b(?:rate|spacing|distance|time|interval|recurrence|transition)\b)"
-    )
-    unit_words = (
-        r"segments?|tracts?|intervals?|spans?|positions?|bins?|windows?|rows?|"
-        r"units?|records?|lengths?|transects?|observations?|samples?|sites?|stations?|"
-        r"plots?|quadrats?|wells?|cells?|points?|subjects?|participants?|patients?|"
-        r"individuals?|animals?|specimens?|replicates?|trials?|sessions?|visits?|"
-        r"scans?|reads?|variants?|regions?|loci|genes?|markers?|probes?|blocks?|"
-        r"batches?|lanes?|tiles?"
-    )
-    units = r"(?:" + unit_words + r")"
-    gap_units = r"(?:gaps?|" + unit_words + r")"
-    domains = (
-        r"(?:map|sequence|route|path|span|coverage|domain|timeline|field|frame|record|"
-        r"network|survey|cohort|population|dataset|panel|grid|study\s+area|inventory)"
-    )
-    retained_marker = (
-        r"(?:retained|passing|surviving|remaining|eligible|screened|post[- ]screening|"
-        r"after\s+(?:the\s+)?(?:[a-z][a-z-]*\s+){0,3}(?:screen(?:ing)?|filter(?:ing)?|"
-        r"qc|quality[- ]control))"
-    )
-    retained_subset = (
-        r"(?=.*\b(?:retained|observed|called|measured|eligible|non[- ]missing|"
-        r"high[- ]confidence|confidently[- ]called)\b[^.]{0,220}\b" + units + r"\b)"
-    )
-    excluded_complement = (
-        r"(?=.*(?:\b(?:dropped|uncalled|unobserved|unmeasured|missing|masked|filtered|"
-        r"low[- ]confidence|unconfidently[- ]called|unretained)\b[^.]{0,260}\b" + gap_units + r"\b"
-        r"[^.]{0,260}\b(?:omit(?:ted)?|exclud(?:e|ed)|not\s+includ(?:e|ed)|"
-        r"did\s+not\s+include|removed|left\s+out)\b[^.]{0,180}\b"
-        r"(?:exposure|denominator|total\s+length|total\s+duration)\b|"
-        r"\b(?:omit(?:ted)?|exclud(?:e|ed)|not\s+includ(?:e|ed)|did\s+not\s+include|"
-        r"removed|left\s+out)\b[^.]{0,180}\b(?:dropped|uncalled|unobserved|unmeasured|missing|"
-        r"masked|filtered|low[- ]confidence|unconfidently[- ]called|unretained)\b"
-        r"[^.]{0,180}\b" + gap_units + r"\b[^.]{0,180}\b(?:exposure|"
-        r"denominator|total\s+length|total\s+duration)\b))"
-    )
-    # v1.2.0 symmetric denominator-declaration forms: a report may declare the
-    # selected denominator's domain directly ("Exposure denominator: the 72
-    # stations retained after the signal screen") instead of through an
-    # exclusion sentence. Each form still requires the selected-target trigger
-    # and an explicit whole-domain or subset declaration; neither form infers
-    # anything from numbers, file names, or unstated states.
-    retained_denominator_declaration = (
-        r"(?=.*\bdenominator\b[^.]{0,160}\b" + units + r"\b[^.]{0,80}\b" + retained_marker + r"\b)"
-        r"(?=.*\b(?:entire|whole|all|complete|full)\b[^.]{0,120}\b" + domains + r"\b)"
-    )
-    complete_denominator_declaration = (
-        r"(?=.*\bdenominator\b[^.]{0,40}\b(?:all|complete|full|entire|whole)\b"
-        r"[^.]{0,120}\b" + units + r"\b)"
-        r"(?=.*\b(?:complete|entire|whole|full)\b[^.]{0,80}\b" + domains + r"\b)"
     )
     return _ReportProfile(
         check_id="check:complete-domain-exposure-denominator",
@@ -1011,55 +1021,14 @@ def _complete_domain_exposure_profile() -> _ReportProfile:
                 "reported_observed_or_high_confidence_subset_of_declared_domain",
             ),
         ),
-        rules=(
-            ReportOperandRule(
-                CanonicalOperand.scalar(retained),
-                (
-                    r"(?is)(?:"
-                    + selected_target
-                    + retained_subset
-                    + excluded_complement
-                    + r"|"
-                    + selected_target
-                    + retained_denominator_declaration
-                    + r")",
-                ),
-                match_scope="document",
-            ),
-            ReportOperandRule(
-                CanonicalOperand.scalar(complete),
-                (
-                    r"(?is)(?:"
-                    + selected_target
-                    + r"(?=.*\b(?:calculated|computed|estimated|divided|normalized)\b"
-                    + r"[^.]{0,260}\b(?:using|over|by)\b[^.]{0,120}\b(?:the\s+)?"
-                    + r"(?:complete|full)\s+(?:declared\s+)?"
-                    + domains
-                    + r"\b)"
-                    + r"(?=.*\b(?:including|retaining|counting)\b[^.]{0,220}\b"
-                    + r"(?:dropped|uncalled|unobserved|unmeasured|missing|masked|filtered|"
-                    + r"low[- ]confidence|unretained)\b)"
-                    + r"|"
-                    + selected_target
-                    + complete_denominator_declaration
-                    + r")",
-                ),
-                match_scope="document",
-            ),
-        ),
-        triggers=(
-            r"(?is)"
-            + selected_target
-            + r"(?=.*\b(?:exposure|denominator|total\s+length|total\s+duration)\b)"
-            + r"(?=.*\b(?:retained|observed|called|measured|complete|full|dropped|uncalled|"
-            + r"unobserved|missing|masked|filtered)\b)",
-        ),
+        rules=(),
+        triggers=(),
         question_wording=(
             "Which declared-domain exposure governs the selected rate or spacing denominator "
             "for this review?"
         ),
-        check_version="1.2.0",
-        adapter_version="1.2.0",
+        check_version="2.0.0",
+        adapter_version="2.0.0",
     )
 
 

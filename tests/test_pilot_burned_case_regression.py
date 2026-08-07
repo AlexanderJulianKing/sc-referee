@@ -1,11 +1,11 @@
 """Permanent regression: the first-envelope burned pilot cases.
 
-The three v4 pilot cases are answer-visible development evidence after the
-failed v1.1.0 pilot (their labels were exposed when the pilot was scored), so
+The six burned pilot cases are answer-visible development evidence after the
+failed v1.1.0 and v1.2.0 pilots (their labels were exposed when the pilots were scored), so
 they are permanently qualification-ineligible. They are retained here as the
 regression fixtures the delivery plan requires for the discovered missed
-error: detector v1.2.0 must localize the planted retained-subset conflict in
-the error-bearing case and stay clean on both controls, deterministically.
+errors: the current detector must localize the planted retained-subset conflict in
+each error-bearing case and stay clean on every control, deterministically.
 """
 
 from __future__ import annotations
@@ -26,22 +26,55 @@ from sc_referee.scientific_requirement_contract import (
 
 CHECK_ID = "check:complete-domain-exposure-denominator"
 DETECTOR_ID = "detector:bounded-analysis-method-conflict"
-RUNS_RELATIVE = Path(
-    "evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2/"
-    "pilot-detector-run-three-case/runs"
+LANE_RELATIVE = Path(
+    "evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2"
 )
+V1_RUNS = LANE_RELATIVE / "pilot-detector-run-three-case/runs"
+V120_RUNS = LANE_RELATIVE / "pilot-v120-lean-detector-run-three-case/runs"
+# Both burned error cases must be caught by quantity arithmetic alone
+# (ADR-0069). Both valid alternatives state a full accounting and a
+# percent-marked or decimal rate, so the arithmetic recognizes their
+# retained-subset exposure as an applicable covered match for their
+# contracts.
 CASES = (
-    ("35069763f06891dba5a3", "complete-declared-domain-exposure", "error"),
-    ("2e26bf5ece15be03717f", "complete-declared-domain-exposure", "corrected"),
-    ("b036fd64c647dfd93e35", "retained-observed-subset-exposure", "valid_alternative"),
+    (V1_RUNS, "35069763f06891dba5a3", "complete-declared-domain-exposure", "error", "applicable"),
+    (
+        V1_RUNS,
+        "2e26bf5ece15be03717f",
+        "complete-declared-domain-exposure",
+        "corrected",
+        "applicable",
+    ),
+    (
+        V1_RUNS,
+        "b036fd64c647dfd93e35",
+        "retained-observed-subset-exposure",
+        "valid_alternative",
+        "applicable",
+    ),
+    (V120_RUNS, "ce8220b59efdff3392a3", "complete-declared-domain-exposure", "error", "applicable"),
+    (
+        V120_RUNS,
+        "58cd55a6683253e967dd",
+        "complete-declared-domain-exposure",
+        "corrected",
+        "applicable",
+    ),
+    (
+        V120_RUNS,
+        "5b1bce664dbff4b6f405",
+        "retained-observed-subset-exposure",
+        "valid_alternative",
+        "applicable",
+    ),
 )
 
 
 def _audit_case(
-    project_root: Path, tmp_path: Path, slug: str, candidate_id: str
+    project_root: Path, tmp_path: Path, runs: Path, slug: str, candidate_id: str
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     repository = tmp_path / "project"
-    shutil.copytree(project_root / RUNS_RELATIVE / slug / "project", repository)
+    shutil.copytree(project_root / runs / slug / "project", repository)
     schema_root = project_root / "reference/schemas-v0.18.0"
     contract = run_method_contract(
         repository,
@@ -88,11 +121,21 @@ def _conflict_candidates(bundle: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-@pytest.mark.parametrize(("slug", "candidate_id", "role"), CASES, ids=lambda value: str(value))
-def test_burned_pilot_cases_have_exact_v120_outcomes(
-    project_root: Path, tmp_path: Path, slug: str, candidate_id: str, role: str
+@pytest.mark.parametrize(
+    ("runs", "slug", "candidate_id", "role", "expected_state"),
+    CASES,
+    ids=lambda value: str(value),
+)
+def test_burned_pilot_cases_have_exact_v2_outcomes(
+    project_root: Path,
+    tmp_path: Path,
+    runs: Path,
+    slug: str,
+    candidate_id: str,
+    role: str,
+    expected_state: str,
 ) -> None:
-    bundle, module = _audit_case(project_root, tmp_path, slug, candidate_id)
+    bundle, module = _audit_case(project_root, tmp_path, runs, slug, candidate_id)
     conflicts = _conflict_candidates(bundle)
     assert bundle["findings"] == []
     assert bundle["executions"] == []
@@ -119,5 +162,10 @@ def test_burned_pilot_cases_have_exact_v120_outcomes(
         observation = module["observations"][0]
         assert observation["observed_operand"]["value"] == "complete_declared_domain_exposure"
     else:
-        assert module["state"] == "not_applicable"
+        assert module["state"] == expected_state
         assert conflicts == []
+        if expected_state == "applicable":
+            observation = module["observations"][0]
+            assert (
+                observation["observed_operand"]["value"] == "retained_observed_subset_exposure_only"
+            )

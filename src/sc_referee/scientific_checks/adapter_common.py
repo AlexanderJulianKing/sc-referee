@@ -137,4 +137,15 @@ def receipt_description(receipt_id: str) -> str:
         "finite-paragraph-scan-complete": (
             "Every paragraph in the selected immutable report was checked."
         ),
+        "bounded-number-token-scan-complete": (
+            "Every number token in the selected immutable report was inventoried within the "
+            "declared bounds."
+        ),
+        "single-consistent-reconciliation": (
+            "Exactly one exposure-domain operand reconciles the stated accounting with the "
+            "stated rate."
+        ),
+        "alternative-denominator-refuted": (
+            "The alternative exposure denominator fails the stated rate's precision bound."
+        ),
     }.get(receipt_id, f"The finite {receipt_id} check completed.")
