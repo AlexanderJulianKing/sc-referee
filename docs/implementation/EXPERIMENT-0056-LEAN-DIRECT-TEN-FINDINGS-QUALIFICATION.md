@@ -465,6 +465,17 @@ records two passes and no failure. The active calibrated reviewer set is now
 scientific label, detector outcome, qualification decision, promotion, or Finding; a replacement
 Stage-1 protocol binding these configurations must still be frozen before any review call.
 
+The replacement clean CLI Stage-1 protocol was then frozen before any review call at digest
+`sha256:b555cee404eb72ddedcb027e35dbb5a4e70351dce181945cccd8c9db8def0d41`.
+It supersedes the unexecuted v3 clean protocol with zero calls made under it, preserves the two
+v3 Codex calls exactly (participants, prompts, schemas, case orders, and calibration bindings
+unchanged) under fresh call identities, and binds the two fresh v8 Claude CLI configurations with
+prompts unchanged except each participant identity, schemas rebuilt only for each participant
+constant, and the identical semantic recovery contract. The exact v1 blind workspace bytes and
+manifests are reused without copy, and fresh content-addressed packets are frozen for all four
+reviewers. Execution state is `frozen_not_started` with zero reviews, labels, and detector
+outcomes.
+
 ## Stop conditions
 
 Do not promote when the selected result is unresolved, a source reference is missing, the review
