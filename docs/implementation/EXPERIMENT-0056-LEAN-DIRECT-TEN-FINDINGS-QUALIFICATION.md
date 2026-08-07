@@ -452,6 +452,19 @@ identities remain retained and immutable. Both CLI configurations must pass the 
 calibration before a replacement Stage-1 protocol may be frozen. No scientific label, detector
 outcome, qualification decision, or Finding exists; the honest score remains 0/10.
 
+Both frozen CLI calibration calls were then submitted once in parallel through the pinned
+version-2.1.221 binary with tools disabled, strict empty MCP configuration, no session
+persistence, and the call identity bound as the provider session identity. Both exact process
+captures, envelopes, and response bytes are retained. Both configurations passed the unchanged
+six-vignette suite exactly, with six expected verdicts each and zero invented material premises.
+Calibration-ledger digest
+`sha256:98d97c269781773700dad45ab460f09f0766b98bb3b5e2472d698eee9e0ecee9`
+records two passes and no failure. The active calibrated reviewer set is now
+`actor:stage1-recovery-claude-04`, `actor:stage1-recovery-claude-05`,
+`actor:stage1-recovery-codex-03`, and `actor:stage1-recovery-codex-04`. Calibration creates no
+scientific label, detector outcome, qualification decision, promotion, or Finding; a replacement
+Stage-1 protocol binding these configurations must still be frozen before any review call.
+
 ## Stop conditions
 
 Do not promote when the selected result is unresolved, a source reference is missing, the review

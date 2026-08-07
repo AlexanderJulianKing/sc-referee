@@ -168,6 +168,54 @@ def test_claude_cli_replacements_reuse_the_superseded_scientific_contract() -> N
         assert replacement_body.replace(participant_id, superseded_id) == source_body
 
 
+def test_claude_cli_replacement_calibration_attempts_are_retained_and_pass() -> None:
+    ledger = _replay(REPLACEMENT_ROOT / "CALIBRATION_LEDGER.json", "ledger_digest")
+    assert (
+        ledger["ledger_digest"]
+        == "sha256:98d97c269781773700dad45ab460f09f0766b98bb3b5e2472d698eee9e0ecee9"
+    )
+    assert ledger["summary"] == {
+        "all_assigned_attempts_retained": True,
+        "all_reviewer_configurations_passed": True,
+        "assigned_reviewer_count": 2,
+        "failed_count": 0,
+        "passed_count": 2,
+        "replacement_count": 0,
+        "retained_attempt_count": 2,
+    }
+    assert [item["participant_id"] for item in ledger["entries"]] == sorted(
+        SUPERSEDED_BY_REPLACEMENT
+    )
+    for entry in ledger["entries"]:
+        assert entry["calibration_status"] == "passed"
+        assert entry["calibration_evaluation"]["pass"] is True
+        assert entry["calibration_evaluation"]["structured_output_schema_valid"] is True
+        assert entry["calibration_evaluation"]["exact_expected_verdict_count"] == 6
+        assert entry["calibration_evaluation"]["invented_material_premise_count"] == 0
+        assert entry["agent_surface"] == "Claude Code CLI"
+        assert entry["agent_version"] == "2.1.221"
+    assert ledger["scientific_label_count"] == 0
+    assert ledger["detector_outcome_count"] == 0
+    incoming = {
+        str(item["participant_id"]): _replay(
+            REPLACEMENT_ROOT / "incoming" / f"{item['participant_id'].removeprefix('actor:')}.json",
+            "capture_digest",
+        )
+        for item in ledger["entries"]
+    }
+    for participant_id, capture in incoming.items():
+        process_path = REPLACEMENT_ROOT / str(capture["transport"]["process_capture_relative_path"])
+        process = _replay(process_path / "capture.json", "capture_digest")
+        assert process["participant_id"] == participant_id
+        assert process["return_code"] == 0
+        assert process["transport_error"] is None
+        assert process["reported_session_id"] == capture["call_identity_id"]
+        assert capture["transport"]["process_capture_digest"] == process["capture_digest"]
+        final_bytes = (process_path / "final-response.bin").read_bytes()
+        assert sha256_digest(final_bytes) == process["final_response_digest"]
+        assert final_bytes.decode("utf-8") == capture["raw_response"]
+
+
 def test_claude_cli_replacement_calibration_builder_is_write_once() -> None:
     before = {
         path.name: sha256_digest(path.read_bytes()) for path in REPLACEMENT_ROOT.glob("*.json")
