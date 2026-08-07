@@ -586,6 +586,26 @@ development phrasings. Per this plan's rules, any detector repair creates versio
 reopens the affected freeze and pilot items with fresh cases; the retained pilot is the honest
 failing measurement for v1.1.0. The score remains 0/10.
 
+The maintainer directed a deterministic repair loop before any new blind material: fix the
+recognition gap, prove it on the burned pilot cases, and prove zero regressions, with fresh
+cases only afterward. Detector/check/adapter version 1.2.0 widens only generic recognition
+vocabulary and adds symmetric denominator-declaration forms: a curated wider unit-noun class, a
+wider domain-noun class, and rules that recognize an explicit selected-denominator declaration
+("denominator: the N units retained after screening" versus "denominator: all N scheduled
+units") without requiring the exclusion-sentence phrasing. No case identity, file name, or
+answer value enters the grammar. On the three burned cases the v1.2.0 detector localizes the
+error case's retained-subset conflict exactly (one finding candidate, correct operand, report
+spans), recognizes the corrected twin as a genuine complete-domain covered negative rather than
+an abstention, and leaves the valid alternative not applicable, all with deterministic replay.
+The burned cases are permanent regression fixtures in
+`tests/test_pilot_burned_case_regression.py` and remain qualification-ineligible. The
+regression-corpus component inventory, capability-maturity ledger, and ten-envelope study
+template were regenerated for the 1.2.0 registry, and the v3 precase tuple's replay tests now
+record it as historical: its profile-source and study-template bindings intentionally no longer
+match current bytes, and a fresh tuple must be frozen before any v1.2.0 qualification work. The
+full suite passes with the three new regression tests. No label, metric, or score changed; the
+honest score remains 0/10 and fresh blind cases remain required for any v1.2.0 pilot.
+
 ## Stop conditions
 
 Do not promote when the selected result is unresolved, a source reference is missing, the review

@@ -921,32 +921,60 @@ def _complete_domain_exposure_profile() -> _ReportProfile:
         "authority."
     )
     selected_target = (
-        r"(?is)(?=.*\b(?:primary|selected|reported|final)\s+"
+        r"(?=.*\b(?:primary|selected|reported|final)\s+"
         r"(?:(?:rate|spacing|distance|time|interval|recurrence|transition)[- ]?"
         r"(?:estimate|calculation|result|analysis)?|estimate|calculation|result|analysis)\b)"
         r"(?=.*\b(?:rate|spacing|distance|time|interval|recurrence|transition)\b)"
     )
+    unit_words = (
+        r"segments?|tracts?|intervals?|spans?|positions?|bins?|windows?|rows?|"
+        r"units?|records?|lengths?|transects?|observations?|samples?|sites?|stations?|"
+        r"plots?|quadrats?|wells?|cells?|points?|subjects?|participants?|patients?|"
+        r"individuals?|animals?|specimens?|replicates?|trials?|sessions?|visits?|"
+        r"scans?|reads?|variants?|regions?|loci|genes?|markers?|probes?|blocks?|"
+        r"batches?|lanes?|tiles?"
+    )
+    units = r"(?:" + unit_words + r")"
+    gap_units = r"(?:gaps?|" + unit_words + r")"
+    domains = (
+        r"(?:map|sequence|route|path|span|coverage|domain|timeline|field|frame|record|"
+        r"network|survey|cohort|population|dataset|panel|grid|study\s+area|inventory)"
+    )
+    retained_marker = (
+        r"(?:retained|passing|surviving|remaining|eligible|screened|post[- ]screening|"
+        r"after\s+(?:the\s+)?(?:[a-z][a-z-]*\s+){0,3}(?:screen(?:ing)?|filter(?:ing)?|"
+        r"qc|quality[- ]control))"
+    )
     retained_subset = (
         r"(?=.*\b(?:retained|observed|called|measured|eligible|non[- ]missing|"
-        r"high[- ]confidence|confidently[- ]called)\b[^.]{0,220}\b"
-        r"(?:segments?|tracts?|intervals?|spans?|positions?|bins?|windows?|rows?|"
-        r"units?|records?|lengths?|transects?|observations?|samples?|sites?)\b)"
+        r"high[- ]confidence|confidently[- ]called)\b[^.]{0,220}\b" + units + r"\b)"
     )
     excluded_complement = (
         r"(?=.*(?:\b(?:dropped|uncalled|unobserved|unmeasured|missing|masked|filtered|"
-        r"low[- ]confidence|unconfidently[- ]called|unretained)\b[^.]{0,260}\b"
-        r"(?:gaps?|segments?|tracts?|intervals?|spans?|positions?|bins?|windows?|rows?|"
-        r"units?|records?|lengths?|transects?|observations?|samples?|sites?)\b"
+        r"low[- ]confidence|unconfidently[- ]called|unretained)\b[^.]{0,260}\b" + gap_units + r"\b"
         r"[^.]{0,260}\b(?:omit(?:ted)?|exclud(?:e|ed)|not\s+includ(?:e|ed)|"
         r"did\s+not\s+include|removed|left\s+out)\b[^.]{0,180}\b"
         r"(?:exposure|denominator|total\s+length|total\s+duration)\b|"
         r"\b(?:omit(?:ted)?|exclud(?:e|ed)|not\s+includ(?:e|ed)|did\s+not\s+include|"
         r"removed|left\s+out)\b[^.]{0,180}\b(?:dropped|uncalled|unobserved|unmeasured|missing|"
         r"masked|filtered|low[- ]confidence|unconfidently[- ]called|unretained)\b"
-        r"[^.]{0,180}\b(?:gaps?|segments?|tracts?|intervals?|spans?|positions?|bins?|"
-        r"windows?|rows?|units?|records?|lengths?|transects?|observations?|samples?|"
-        r"sites?)\b[^.]{0,180}\b(?:exposure|"
+        r"[^.]{0,180}\b" + gap_units + r"\b[^.]{0,180}\b(?:exposure|"
         r"denominator|total\s+length|total\s+duration)\b))"
+    )
+    # v1.2.0 symmetric denominator-declaration forms: a report may declare the
+    # selected denominator's domain directly ("Exposure denominator: the 72
+    # stations retained after the signal screen") instead of through an
+    # exclusion sentence. Each form still requires the selected-target trigger
+    # and an explicit whole-domain or subset declaration; neither form infers
+    # anything from numbers, file names, or unstated states.
+    retained_denominator_declaration = (
+        r"(?=.*\bdenominator\b[^.]{0,160}\b" + units + r"\b[^.]{0,80}\b" + retained_marker + r"\b)"
+        r"(?=.*\b(?:entire|whole|all|complete|full)\b[^.]{0,120}\b" + domains + r"\b)"
+    )
+    complete_denominator_declaration = (
+        r"(?=.*\bdenominator\b[^.]{0,40}\b(?:all|complete|full|entire|whole)\b"
+        r"[^.]{0,120}\b" + units + r"\b)"
+        r"(?=.*\b(?:complete|entire|whole|full)\b[^.]{0,80}\b" + domains + r"\b)"
     )
     return _ReportProfile(
         check_id="check:complete-domain-exposure-denominator",
@@ -986,26 +1014,42 @@ def _complete_domain_exposure_profile() -> _ReportProfile:
         rules=(
             ReportOperandRule(
                 CanonicalOperand.scalar(retained),
-                (selected_target + retained_subset + excluded_complement,),
+                (
+                    r"(?is)(?:"
+                    + selected_target
+                    + retained_subset
+                    + excluded_complement
+                    + r"|"
+                    + selected_target
+                    + retained_denominator_declaration
+                    + r")",
+                ),
                 match_scope="document",
             ),
             ReportOperandRule(
                 CanonicalOperand.scalar(complete),
                 (
-                    selected_target
+                    r"(?is)(?:"
+                    + selected_target
                     + r"(?=.*\b(?:calculated|computed|estimated|divided|normalized)\b"
                     + r"[^.]{0,260}\b(?:using|over|by)\b[^.]{0,120}\b(?:the\s+)?"
-                    + r"(?:complete|full)\s+(?:declared\s+)?(?:map|sequence|route|path|"
-                    + r"span|coverage|domain|timeline|field|frame|record)\b)"
+                    + r"(?:complete|full)\s+(?:declared\s+)?"
+                    + domains
+                    + r"\b)"
                     + r"(?=.*\b(?:including|retaining|counting)\b[^.]{0,220}\b"
                     + r"(?:dropped|uncalled|unobserved|unmeasured|missing|masked|filtered|"
-                    + r"low[- ]confidence|unretained)\b)",
+                    + r"low[- ]confidence|unretained)\b)"
+                    + r"|"
+                    + selected_target
+                    + complete_denominator_declaration
+                    + r")",
                 ),
                 match_scope="document",
             ),
         ),
         triggers=(
-            selected_target
+            r"(?is)"
+            + selected_target
             + r"(?=.*\b(?:exposure|denominator|total\s+length|total\s+duration)\b)"
             + r"(?=.*\b(?:retained|observed|called|measured|complete|full|dropped|uncalled|"
             + r"unobserved|missing|masked|filtered)\b)",
@@ -1014,8 +1058,8 @@ def _complete_domain_exposure_profile() -> _ReportProfile:
             "Which declared-domain exposure governs the selected rate or spacing denominator "
             "for this review?"
         ),
-        check_version="1.1.0",
-        adapter_version="1.1.0",
+        check_version="1.2.0",
+        adapter_version="1.2.0",
     )
 
 

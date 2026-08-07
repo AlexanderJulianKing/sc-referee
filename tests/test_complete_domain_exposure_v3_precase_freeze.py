@@ -69,24 +69,49 @@ def test_v3_precase_freeze_binds_current_contract_and_tuple(project_root: Path) 
     template = json.loads(
         (project_root / contract["study_template_path"]).read_text(encoding="utf-8")
     )
-    assert template["template_digest"] == contract["study_template_declared_digest"]
-    assert any(
-        item["envelope_id"] == envelope["envelope_id"]
-        and item["binding_digest"] == envelope["binding_digest"]
-        and item["case_evidence_contract_version"] == CASE_EVIDENCE_CONTRACT_VERSION
-        for item in template["envelopes"]
+    # The v1.2.0 repair regenerated the study template, so the frozen tuple's
+    # declared template digest is historical: the current template must still
+    # carry this envelope, but under a successor binding digest.
+    assert template["template_digest"] != contract["study_template_declared_digest"]
+    successor = next(
+        item for item in template["envelopes"] if item["envelope_id"] == envelope["envelope_id"]
+    )
+    assert successor["binding_digest"] != envelope["binding_digest"]
+    assert successor["case_evidence_contract_version"] == CASE_EVIDENCE_CONTRACT_VERSION
+
+
+def test_v3_precase_freeze_is_historical_after_the_v120_detector_repair(
+    project_root: Path,
+) -> None:
+    """The v1.1.0 tuple is invalidated, not silently retargeted, by the repair.
+
+    The failed v1.1.0 pilot was completed and retained under this tuple. The
+    detector grammar repair that followed created check/adapter version 1.2.0,
+    so the frozen profile-source binding must no longer equal the current
+    bytes: the tuple is historical evidence for the failing measurement, and a
+    fresh tuple must be frozen before any v1.2.0 qualification work.
+    """
+
+    freeze = _freeze(project_root)
+    record = freeze["scientific_check"]
+    assert (
+        sha256_digest((project_root / record["profile_source_path"]).read_bytes())
+        != record["profile_source_digest"]
+    )
+    contract = freeze["evidence_contract"]
+    assert (
+        sha256_digest((project_root / contract["study_template_path"]).read_bytes())
+        != contract["study_template_content_digest"]
     )
 
 
-def test_v3_precase_freeze_binds_exact_current_source_bytes(project_root: Path) -> None:
+def test_v3_precase_freeze_binds_exact_unrepaired_source_bytes(project_root: Path) -> None:
     freeze = _freeze(project_root)
     for section, path_key, digest_key in (
         ("detector", "implementation_path", "implementation_digest"),
-        ("scientific_check", "profile_source_path", "profile_source_digest"),
         ("adapter", "implementation_path", "implementation_source_digest"),
         ("selected_result_comparator", "implementation_path", "implementation_digest"),
         ("evidence_contract", "implementation_path", "implementation_digest"),
-        ("evidence_contract", "study_template_path", "study_template_content_digest"),
         ("direct_lane", "implementation_path", "implementation_digest"),
         ("direct_lane", "prospective_allocator_path", "prospective_allocator_digest"),
         ("direct_lane", "review_protocol_path", "review_protocol_digest"),
