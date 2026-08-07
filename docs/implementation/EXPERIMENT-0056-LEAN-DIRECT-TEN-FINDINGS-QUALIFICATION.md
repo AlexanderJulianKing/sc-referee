@@ -99,15 +99,18 @@ Every production Finding still requires:
 4. completed finite counterevidence checks;
 5. bounded deterministic wording and model-free replay;
 6. validated or publication-grade detector maturity within one exact qualified envelope;
-7. four blind Stage-1 reviews across two providers and two fresh cross-provider Stage-2 reviews;
+7. blind scientific review under the accepted review-protocol ADRs (ADR-0066 for provider
+   composition; ADR-0067 for the single-review-with-escalation design);
 8. labels frozen before detector comparison, with material dissent excluded;
 9. pilot-informed thresholds accepted before the held-out block opens;
 10. held-out safety gates, a public qualification report, and an exact maintainer promotion;
 11. a narrow generated capability-matrix claim with limitations and abstentions; and
 12. CLI and installed-skill acceptance with corrected and adverse controls Finding-clean.
 
-Agent-only review remains explicitly disclosed as agent-only. The accepted 4+2 panel is not reduced
-to one adjudicator.
+Agent-only review remains explicitly disclosed as agent-only. Review redundancy follows the
+accepted ADR-0067 design: one calibrated blind review per case with escalation on any
+non-clean result, and the reversal trigger restoring panels on repeated genuine disagreement.
+(Amended 2026-08-07 under ADR-0068; the original text predated ADR-0067's acceptance.)
 
 ## Direct study shape
 
@@ -123,7 +126,8 @@ error-bearing, corrected twin, valid alternative, hard negative, ambiguous, unsu
 independently renamed implementation. The first lane's four surplus pilot assignments were frozen
 before this amendment; because no author brief has been exposed, they remain immutable, unopened,
 and metric-ineligible rather than being deleted, reclassified, or counted as attempts. This
-amendment does not reduce the 4+2 reviewer panel or the accepted ADR-0061 held-out promotion gate.
+amendment predates ADR-0067, which now governs review redundancy; the accepted ADR-0061
+held-out promotion gate is unchanged.
 It makes no assignment-count or execution decision for the other nine envelopes.
 
 Cases are frozen and opened envelope by envelope so the program can obtain a real 1/10 result
