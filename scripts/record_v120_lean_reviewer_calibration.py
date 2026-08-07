@@ -7,14 +7,14 @@ from pathlib import Path
 from typing import Any, cast
 
 from jsonschema import Draft202012Validator
-from scripts.build_v120_lean_reviewer_calibration import (
-    V120_REVIEWER_RELATIVE,
-)
 
 from sc_referee.core.ids import semantic_digest, sha256_digest
 from sc_referee.records.normalization import write_normalized_json_once
 from scripts.build_first_direct_stage1_recovery_calibration import (
     EXPECTED_CALIBRATION_VERDICTS,
+)
+from scripts.build_v120_lean_reviewer_calibration import (
+    V120_REVIEWER_RELATIVE,
 )
 from scripts.run_first_direct_reviewer_calibration import validate_calibration_response
 

@@ -9,6 +9,12 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
+from sc_referee.core.ids import semantic_digest, sha256_digest
+from sc_referee.records.normalization import write_normalized_json_once
+from sc_referee.storage.atomic import atomic_write_bytes
+from scripts.build_first_direct_reviewer_calibration_protocol import (
+    load_effective_execution_configuration,
+)
 from scripts.build_v120_lean_reviewer_calibration import (
     V120_REVIEWER_RELATIVE,
 )
@@ -16,13 +22,6 @@ from scripts.record_v120_lean_reviewer_calibration import (
     _now,
     _protocol,
     build_v120_lean_reviewer_calibration_capture,
-)
-
-from sc_referee.core.ids import semantic_digest, sha256_digest
-from sc_referee.records.normalization import write_normalized_json_once
-from sc_referee.storage.atomic import atomic_write_bytes
-from scripts.build_first_direct_reviewer_calibration_protocol import (
-    load_effective_execution_configuration,
 )
 
 # The exact pinned entrypoint for the frozen agent version; the launcher symlink
