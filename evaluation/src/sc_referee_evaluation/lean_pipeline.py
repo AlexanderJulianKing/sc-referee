@@ -105,6 +105,25 @@ LABEL_STATUS_BY_ROLE = {
     "corrected_twin": "verified_good_eligible",
     "valid_alternative": "verified_good_eligible",
 }
+ALLOWED_LABEL_STATUSES = frozenset(
+    {
+        "positive_demonstrated",
+        "verified_good_eligible",
+        "ambiguous_control",
+        "unsupported_control",
+    }
+)
+CODEX_CLI_BINARY = Path.home() / ".local/bin/codex"
+CODEX_SCRATCH_ROOT = Path(
+    "/private/tmp/claude-501/"
+    "-Users-alexanderking-Desktop-random-stuff-sc-referee-implementation-v0-1-0/"
+    "17c1734d-3826-4971-b383-843103dee23c/scratchpad"
+)
+CODEX_ANSWER_FILE = "answer.json"
+CODEX_ANSWER_INSTRUCTION = (
+    "Write your complete JSON answer as the only content of a file named answer.json in the "
+    "current working directory. Do not print the JSON to the transcript."
+)
 
 
 class LeanPipelineError(ValueError):
@@ -119,6 +138,7 @@ class ModelParticipant:
     model_alias: str
     provider: str = "Anthropic"
     reasoning_configuration: str = "high"
+    transport: str = "claude-cli"
 
     @property
     def slug(self) -> str:
@@ -132,6 +152,7 @@ class ModelParticipant:
             "model_alias": self.model_alias,
             "provider": self.provider,
             "reasoning_configuration": self.reasoning_configuration,
+            "transport": self.transport,
         }
 
 
@@ -160,10 +181,39 @@ class EnvelopeConfig:
             "ADR-0069-OPERATIONS-BASED-DETECTION-AND-EXECUTABLE-CASES.md",
         ]
     )
+    # Sealed held-out extensions. Every one defaults to the pilot behavior.
+    sealed_case_assignments: dict[str, str] | None = None
+    case_briefs: dict[str, dict[str, Any]] | None = None
+    expected_verdict_by_role: dict[str, str] | None = None
+    label_status_by_role: dict[str, str] | None = None
+    mq_tolerant_roles: set[str] = field(default_factory=set)
+    contract_free_roles: set[str] = field(default_factory=set)
+    opening_record_relative: str | None = None
 
     @property
     def roles(self) -> list[str]:
         return sorted({role for roles in self.author_roles.values() for role in roles})
+
+    def expected_verdict(self, role: str) -> str:
+        table = (
+            EXPECTED_VERDICT_BY_ROLE
+            if self.expected_verdict_by_role is None
+            else self.expected_verdict_by_role
+        )
+        if role not in table:
+            raise LeanPipelineError(f"No expected verdict is configured for role {role!r}.")
+        return table[role]
+
+    def label_status(self, role: str) -> str:
+        table = (
+            LABEL_STATUS_BY_ROLE if self.label_status_by_role is None else self.label_status_by_role
+        )
+        if role not in table:
+            raise LeanPipelineError(f"No label status is configured for role {role!r}.")
+        status = table[role]
+        if status not in ALLOWED_LABEL_STATUSES:
+            raise LeanPipelineError(f"Label status {status!r} is outside the frozen vocabulary.")
+        return status
 
 
 def _now() -> str:
@@ -277,6 +327,22 @@ def ensure_calibrations(project_root: Path, config: EnvelopeConfig) -> dict[str,
 
 
 def _call_cli(
+    config: EnvelopeConfig,
+    participant: ModelParticipant,
+    prompt: str,
+    session_id: str,
+    capture_root: Path,
+) -> dict[str, Any]:
+    """Dispatch one one-shot model call onto the participant's transport."""
+
+    if participant.transport == "claude-cli":
+        return _call_claude_cli(config, participant, prompt, session_id, capture_root)
+    if participant.transport == "codex-cli":
+        return _call_codex(config, participant, prompt, session_id, capture_root)
+    raise LeanPipelineError(f"Unknown participant transport {participant.transport!r}.")
+
+
+def _call_claude_cli(
     config: EnvelopeConfig,
     participant: ModelParticipant,
     prompt: str,
@@ -409,13 +475,153 @@ def _retained_call(
     stdout = (capture_root / "stdout.bin").read_bytes()
     if sha256_digest(stdout) != record.get("stdout_digest"):
         raise LeanPipelineError("A retained call capture's bytes drifted.")
-    envelope = json.loads(stdout.decode("utf-8"))
+    if participant.transport == "codex-cli":
+        answer = (capture_root / CODEX_ANSWER_FILE).read_bytes()
+        if sha256_digest(answer) != record.get("answer_digest"):
+            raise LeanPipelineError("A retained call capture's answer bytes drifted.")
+        raw_response = answer.decode("utf-8")
+    else:
+        envelope = json.loads(stdout.decode("utf-8"))
+        raw_response = str(envelope.get("result"))
     return {
-        "raw_response": str(envelope.get("result")),
+        "raw_response": raw_response,
         "transport_error": None,
         "process_record": record,
         "started_at": record["started_at"],
         "completed_at": record["completed_at"],
+    }
+
+
+def _codex_banner_model_line(stdout: bytes) -> str | None:
+    """The first stdout line mentioning a model, retained as banner-only evidence."""
+
+    for line in stdout.decode("utf-8", "replace").splitlines():
+        if "model" in line.lower() and line.strip():
+            return line.strip()
+    return None
+
+
+_CODEX_HEAD_SWAP = (
+    """You have no tools, no filesystem, no shell, and no execution environment; do not attempt to
+run, test, or verify anything externally, and do not narrate tool use. Construct the files in
+your head, check the arithmetic mentally, and reply with exactly one JSON object and nothing
+else: no prose before or after it, no markdown fences, no tool-call blocks.""",
+    """You are working in an isolated scratch workspace with no network access. You may use it
+only to draft and verify your own files (running your workflow to check its output is fine)
+and to write your answer file; touch nothing outside the working directory and do not narrate
+tool use in your answer.""",
+)
+
+
+def _call_codex(
+    config: EnvelopeConfig,
+    participant: ModelParticipant,
+    prompt: str,
+    session_slug: str,
+    capture_root: Path,
+) -> dict[str, Any]:
+    """One one-shot Codex CLI call whose answer arrives as a file, not a transcript.
+
+    The Codex transport has no served-model field in its machine output, so the
+    served model is recorded as ``banner_only``: the model flag this process
+    actually passed plus the first banner line mentioning a model. That is
+    weaker evidence than the Claude transport's per-call ``modelUsage`` map and
+    is labelled as such rather than asserted as verification. The shared
+    no-tools instruction head is swapped for a workspace-scoped variant so the
+    transmitted prompt never contradicts the answer-file instruction.
+    """
+    prompt = prompt.replace(_CODEX_HEAD_SWAP[0], _CODEX_HEAD_SWAP[1])
+
+    retained = _retained_call(participant, prompt, session_slug, capture_root)
+    if retained is not None:
+        return retained
+    capture_root.mkdir(parents=True, exist_ok=True)
+    scratch = CODEX_SCRATCH_ROOT / f"codex-author-{session_slug}"
+    if scratch.exists():
+        shutil.rmtree(scratch)
+    scratch.mkdir(parents=True)
+    transmitted = prompt.rstrip() + "\n\n" + CODEX_ANSWER_INSTRUCTION + "\n"
+    atomic_write_bytes(scratch / "prompt.txt", transmitted.encode("utf-8"))
+    model_flag = ["-m", participant.model_id]
+    argv = [
+        str(CODEX_CLI_BINARY),
+        "exec",
+        *model_flag,
+        "--sandbox",
+        "workspace-write",
+        "--skip-git-repo-check",
+        transmitted,
+    ]
+    environment = dict(os.environ)
+    environment["NO_COLOR"] = "1"
+    started_at = _now()
+    try:
+        completed = subprocess.run(
+            argv,
+            cwd=scratch,
+            env=environment,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            check=False,
+            timeout=CLI_TIMEOUT_SECONDS,
+        )
+        return_code = completed.returncode
+        stdout = completed.stdout
+        stderr = completed.stderr
+        transport_error: str | None = (
+            None if return_code == 0 else f"provider_cli_exit_code:{return_code}"
+        )
+    except subprocess.TimeoutExpired as error:
+        return_code = 124
+        stdout = error.stdout or b""
+        stderr = error.stderr or b""
+        transport_error = f"timeout_{CLI_TIMEOUT_SECONDS}_seconds"
+    completed_at = _now()
+    atomic_write_bytes(capture_root / "stdout.bin", stdout)
+    atomic_write_bytes(capture_root / "stderr.bin", stderr)
+    answer_path = scratch / CODEX_ANSWER_FILE
+    answer = answer_path.read_bytes() if answer_path.is_file() else b""
+    if answer:
+        atomic_write_bytes(capture_root / CODEX_ANSWER_FILE, answer)
+    raw_response = ""
+    if transport_error is None:
+        try:
+            json.loads(answer.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            transport_error = "missing_answer_file"
+        else:
+            raw_response = answer.decode("utf-8")
+    process_record = {
+        "artifact_kind": "lean_pipeline_cli_process_capture",
+        "capture_version": "1.0.0",
+        "transport": "codex-cli",
+        "participant_id": participant.participant_id,
+        "session_id": session_slug,
+        "argv_digest": semantic_digest(argv),
+        "prompt_digest": sha256_digest(prompt),
+        "transmitted_prompt_digest": sha256_digest(transmitted),
+        "answer_file_relative": CODEX_ANSWER_FILE,
+        "answer_digest": sha256_digest(answer) if answer else None,
+        "return_code": return_code,
+        "transport_error": transport_error,
+        "model_flag": model_flag,
+        "served_model_verification": "banner_only",
+        "served_model_banner_line": _codex_banner_model_line(stdout),
+        "stdout_digest": sha256_digest(stdout),
+        "stderr_digest": sha256_digest(stderr),
+        "started_at": started_at,
+        "completed_at": completed_at,
+        "project_code_executed": False,
+        "qualification_authority": "none_process_capture_only",
+    }
+    process_record["capture_digest"] = semantic_digest(process_record)
+    write_normalized_json_once(capture_root / "capture.json", process_record)
+    return {
+        "raw_response": raw_response,
+        "transport_error": transport_error,
+        "process_record": process_record,
+        "started_at": started_at,
+        "completed_at": completed_at,
     }
 
 
@@ -497,6 +703,26 @@ Return only one unfenced JSON object matching this exact schema:
 """
 
 
+def _case_brief_block(config: EnvelopeConfig, case_id: str, role: str) -> str:
+    """One per-case authoring block: role constraints, or a sealed brief verbatim.
+
+    The sealed brief's ``required_artifacts`` is deliberately not quoted: the
+    ADR-0069 file contract in the shared instructions governs what the author
+    returns, and the sealed artifact list predates it.
+    """
+
+    if config.case_briefs is None:
+        constraints = "\n".join(f"  - {line}" for line in config.role_constraints[role])
+        return f"- case_id {case_id}:\n{constraints}"
+    brief = config.case_briefs[case_id]
+    lines = [f"- case_id {case_id}:", f"  scientific task: {brief['scientific_task']}"]
+    lines.append("  available inputs:")
+    lines.extend(f"    - {item}" for item in brief["available_inputs"])
+    lines.append("  construction constraints:")
+    lines.extend(f"    - {item}" for item in brief["construction_constraints"])
+    return "\n".join(lines)
+
+
 def step_authoring(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     root = project_root / config.pipeline_relative
     output_root = root / "authoring"
@@ -526,11 +752,21 @@ def step_authoring(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
     }
     tuple_digest = semantic_digest(detector_tuple)
 
-    case_ids = {
-        role: stable_id("case", config.envelope_id, "lean-pipeline", role, tuple_digest)
-        for role in config.roles
-    }
-    role_by_case = {case_id: role for role, case_id in case_ids.items()}
+    if config.sealed_case_assignments is None:
+        case_ids = {
+            role: stable_id("case", config.envelope_id, "lean-pipeline", role, tuple_digest)
+            for role in config.roles
+        }
+        role_by_case = {case_id: role for role, case_id in case_ids.items()}
+    else:
+        role_by_case = dict(config.sealed_case_assignments)
+        case_ids = {role: case_id for case_id, role in role_by_case.items()}
+        if len(case_ids) != len(role_by_case):
+            raise LeanPipelineError("The sealed case assignments repeat a role.")
+        if sorted(case_ids) != config.roles:
+            raise LeanPipelineError(
+                "The sealed case assignments do not cover exactly the authored roles."
+            )
 
     assignments: list[dict[str, Any]] = []
     for participant_id in sorted(config.authors):
@@ -539,10 +775,7 @@ def step_authoring(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
         assigned = sorted(case_ids[role] for role in roles)
         brief_lines = []
         for case_id in assigned:
-            constraints = "\n".join(
-                f"  - {line}" for line in config.role_constraints[role_by_case[case_id]]
-            )
-            brief_lines.append(f"- case_id {case_id}:\n{constraints}")
+            brief_lines.append(_case_brief_block(config, case_id, role_by_case[case_id]))
         schema = _author_output_schema(participant_id, assigned)
         prompt = _AUTHOR_INSTRUCTIONS.format(
             task=config.common_task,
@@ -587,6 +820,13 @@ def step_authoring(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
         "frozen_at": _now(),
         "qualification_authority": "none_authoring_protocol_only",
     }
+    if config.case_briefs is not None:
+        protocol["sealed_brief_digests"] = {
+            case_id: semantic_digest(config.case_briefs[case_id])
+            for case_id in sorted(role_by_case)
+        }
+    if config.opening_record_relative is not None:
+        protocol["heldout_opening_reference"] = config.opening_record_relative
     protocol["protocol_digest"] = semantic_digest(protocol)
     output_root.mkdir(parents=True)
     write_normalized_json_once(output_root / "AUTHORING_PROTOCOL.json", protocol)
@@ -1194,17 +1434,19 @@ def _run_review_call(
 
 
 def _entry_clean(config: EnvelopeConfig, entry: dict[str, Any], role: str) -> bool:
-    expected = EXPECTED_VERDICT_BY_ROLE[role]
+    expected = config.expected_verdict(role)
     issue_clean = (
         entry["issue_class"] == config.canonical_issue_class
         if entry["verdict"] == "demonstrated_issue"
         else entry["issue_class"] is None
     )
-    return bool(
-        entry["verdict"] == expected
-        and issue_clean
-        and entry["unresolved_material_question_count"] == 0
+    # A role whose sealed construction is deliberately unresolvable (two equally
+    # authoritative scope records, a runtime-selected producer) is clean on its
+    # verdict alone; raising the material question there is the correct review.
+    questions_clean = (
+        entry["unresolved_material_question_count"] == 0 or role in config.mq_tolerant_roles
     )
+    return bool(entry["verdict"] == expected and issue_clean and questions_clean)
 
 
 def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
@@ -1326,7 +1568,7 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             {
                 "case_id": case_id,
                 "case_role": role,
-                "expected_verdict": EXPECTED_VERDICT_BY_ROLE[role],
+                "expected_verdict": config.expected_verdict(role),
                 "primary_verdict": primary_entry["verdict"],
                 "primary_issue_class": primary_entry["issue_class"],
                 "primary_clean": primary_clean,
@@ -1425,12 +1667,17 @@ def step_labels(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         if str(entry["review_role"]) != resolving_role[case_id]:
             continue
         role = roles[case_id]
+        label_status = config.label_status(role)
         label_rows.append(
             {
                 "case_id": case_id,
                 "case_role": role,
-                "label_status": LABEL_STATUS_BY_ROLE[role],
-                "issue_class": (config.canonical_issue_class if role == "error_bearing" else None),
+                "label_status": label_status,
+                "issue_class": (
+                    config.canonical_issue_class
+                    if label_status == "positive_demonstrated"
+                    else None
+                ),
                 "review_basis": "single_calibrated_blind_review_adr_0067",
                 "review_id": entry["review_id"],
                 "review_digest": entry["review_digest"],
@@ -1505,27 +1752,36 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         shutil.copytree(case_source, repository)
         task_payload = (config.task_by_role[role].rstrip() + "\n").encode("utf-8")
         atomic_write_bytes(repository / "task.md", task_payload)
-        contract = run_method_contract(
-            repository,
-            "task.md",
-            case_root / "contract",
-            schema_root,
-            profile={
-                "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
-                "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
-                "check_id": config.check_id,
-                "candidate_id": config.candidate_by_role[role],
-            },
-            actor_id=f"scientist:lean-pipeline-{config.envelope_id}",
-        )
-        if contract["findings"]:
-            raise LeanPipelineError(f"The method-contract step emitted findings for {case_id}.")
+        # A contract-free role has no human-authorized method choice to freeze:
+        # its expected detector behavior is abstention, so the audit runs
+        # without a method-contract lock and can only ever come back negative
+        # or, if it fires, count as a false accusation like any other control.
+        contract_free = role in config.contract_free_roles
+        candidate_id = None if contract_free else config.candidate_by_role[role]
+        contract_lock: Path | None = None
+        if not contract_free:
+            contract = run_method_contract(
+                repository,
+                "task.md",
+                case_root / "contract",
+                schema_root,
+                profile={
+                    "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
+                    "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+                    "check_id": config.check_id,
+                    "candidate_id": candidate_id,
+                },
+                actor_id=f"scientist:lean-pipeline-{config.envelope_id}",
+            )
+            if contract["findings"]:
+                raise LeanPipelineError(f"The method-contract step emitted findings for {case_id}.")
+            contract_lock = case_root / "contract" / "semantic.lock.json"
         bundle = run_audit(
             repository,
             case_root / "audit",
             schema_root,
             report="results/report.md",
-            method_contract_lock=case_root / "contract" / "semantic.lock.json",
+            method_contract_lock=contract_lock,
         )
         replayed = replay(
             case_root / "audit" / "semantic.lock.json", case_root / "replay", schema_root
@@ -1555,7 +1811,8 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 "case_id": case_id,
                 "case_role": role,
                 "frozen_label_status": label_status,
-                "contract_candidate_id": config.candidate_by_role[role],
+                "contract_candidate_id": candidate_id,
+                "method_contract_applied": not contract_free,
                 "finding_candidate_count": len(fired),
                 "detector_positive": detector_positive,
                 "comparison_outcome": outcome,
@@ -1613,6 +1870,30 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         relative_path="detector-run/DETECTOR_RUN_LEDGER.json",
     )
     return ledger
+
+
+# ---------------------------------------------------------------------------
+# Held-out opening record: written by the driver before the first step.
+
+
+def write_heldout_opening(
+    project_root: Path, config: EnvelopeConfig, payload: dict[str, Any]
+) -> dict[str, Any]:
+    """Stamp and write the opening record once, before any author call.
+
+    The record states what was opened and what was changed at opening time,
+    and it is written before authoring so it cannot be edited into agreement
+    with the outcome afterwards.
+    """
+
+    root = project_root / config.pipeline_relative
+    record = dict(payload)
+    record["envelope_id"] = config.envelope_id
+    record["recorded_at"] = _now()
+    record["semantic_digest"] = semantic_digest(record)
+    root.mkdir(parents=True, exist_ok=True)
+    write_normalized_json_once(root / "HELDOUT_OPENING.json", record)
+    return record
 
 
 STEP_FUNCTIONS = {
