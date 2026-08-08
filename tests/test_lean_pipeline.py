@@ -148,7 +148,7 @@ def test_step_intake_admits_only_execution_verified_cases(tmp_path: Path) -> Non
         if line.startswith("[selected-result]")
     )
     case_id = "case:0000000000abcdefabcd"
-    participant_id = "actor:v202d-author-opus-01"
+    participant_id = "actor:v203g-author-opus-01"
     schema_stub = {"type": "object"}
     assignment = {
         "participant": {"participant_id": participant_id},
@@ -191,7 +191,7 @@ def test_step_intake_admits_only_execution_verified_cases(tmp_path: Path) -> Non
         "raw_response": json.dumps(response),
     }
     (authoring / "incoming").mkdir()
-    (authoring / "incoming" / "v202d-author-opus-01.json").write_text(
+    (authoring / "incoming" / "v203g-author-opus-01.json").write_text(
         json.dumps(attempt), encoding="utf-8"
     )
     ledger = step_intake(tmp_path, config)
@@ -210,7 +210,7 @@ def test_step_intake_rejects_report_not_matching_execution(tmp_path: Path) -> No
     authoring = root / "authoring"
     authoring.mkdir(parents=True)
     case_id = "case:1111111111abcdefabcd"
-    participant_id = "actor:v202d-author-opus-01"
+    participant_id = "actor:v203g-author-opus-01"
     assignment = {
         "participant": {"participant_id": participant_id},
         "case_ids": [case_id],
@@ -252,7 +252,7 @@ def test_step_intake_rejects_report_not_matching_execution(tmp_path: Path) -> No
         "raw_response": json.dumps(response),
     }
     (authoring / "incoming").mkdir()
-    (authoring / "incoming" / "v202d-author-opus-01.json").write_text(
+    (authoring / "incoming" / "v203g-author-opus-01.json").write_text(
         json.dumps(attempt), encoding="utf-8"
     )
     with pytest.raises(LeanPipelineError, match="does not equal its executed output"):

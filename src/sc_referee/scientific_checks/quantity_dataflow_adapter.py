@@ -62,8 +62,9 @@ def quantity_dataflow_grammar(complete_operand: str, retained_operand: str) -> d
         "count_operations": ["len(rows)", "sum(1 for ... in rows [if ...])"],
         "division_forms": ["a / b", "Fraction(a, b)"],
         "function_support": (
-            "straight-line bodies with return-value tagging and one-level "
-            "argument-tag propagation into callees"
+            "straight-line bodies with return-value tagging, one-level "
+            "argument-tag propagation into callees, and parameter-bound "
+            "return tags for argument-taking helpers"
         ),
         "division_rule": (
             "a division with a data-derived count numerator classifies by its "
@@ -162,6 +163,43 @@ def _python_parser_supported(
     )
 
 
+_FUNCTION_TABLE: dict[int, dict[str, ast.FunctionDef]] = {}
+
+
+def _bound_return_tag(
+    function: ast.FunctionDef,
+    call: ast.Call,
+    env: dict[str, str],
+    returns: dict[str, str],
+) -> str:
+    """Return tag of a straight-line callee with parameter tags bound to the
+    caller's argument tags; one level deep, no recursion."""
+
+    if (
+        function.args.posonlyargs
+        or function.args.kwonlyargs
+        or function.args.vararg
+        or function.args.kwarg
+        or len(call.args) != len(function.args.args)
+    ):
+        return _OTHER
+    callee_env = {
+        parameter.arg: _tag(argument, env, returns)
+        for parameter, argument in zip(function.args.args, call.args, strict=True)
+    }
+    tag = _OTHER
+    for statement in _flatten_statements(function.body):
+        if (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+        ):
+            callee_env[statement.targets[0].id] = _tag(statement.value, callee_env, returns)
+        elif isinstance(statement, ast.Return) and statement.value is not None:
+            tag = _tag(statement.value, callee_env, returns)
+    return tag
+
+
 def _document_divisions(
     tree: ast.Module, *, complete_operand: str, retained_operand: str
 ) -> dict[str, Any]:
@@ -181,6 +219,7 @@ def _document_divisions(
     # Return-value tags for straight-line functions, iterated to a small
     # fixpoint so simple helper chains (load -> list -> filter) resolve.
     returns: dict[str, str] = {}
+    _FUNCTION_TABLE[id(returns)] = functions
     for _ in range(3):
         for name, function in functions.items():
             returns[name] = _function_return_tag(function, returns)
@@ -265,6 +304,7 @@ def _document_divisions(
         env = dict(module_env)
         if _scan_scope(function.body, env):
             read_present = True
+    _FUNCTION_TABLE.pop(id(returns), None)
     return {
         "divisions": divisions,
         "triggered": read_present and any_division,
@@ -388,8 +428,12 @@ def _tag_call(node: ast.Call, env: dict[str, str], returns: dict[str, str]) -> s
     name = _call_name(node)
     if name in {"csv.DictReader", "csv.reader", "DictReader", "reader"}:
         return _ROWS_ITER_FULL
-    if name in returns and not node.args and not node.keywords:
-        return returns[name]
+    if name in returns and not node.keywords:
+        if not node.args:
+            return returns[name]
+        function = _FUNCTION_TABLE.get(id(returns), {}).get(name)
+        if function is not None:
+            return _bound_return_tag(function, node, env, returns)
     if name == "list" and len(node.args) == 1:
         inner = _tag(node.args[0], env, returns)
         if inner in {_ROWS_ITER_FULL, _ROWS_FULL}:

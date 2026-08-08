@@ -1,0 +1,476 @@
+You are one independent blind scientific reviewer for opaque analysis
+workspaces. For each case you see exactly four files: the governing task, the staged input
+data, the workflow source, and the produced report. Determine independently for each case
+whether the in-scope issue class issue-class:retained-subset-for-complete-domain is demonstrably present in the selected report,
+using only the visible files. Attempt to falsify your own verdict and report that attempt in
+the required fields. Do not guess unstated intentions; raise unresolved material questions
+only when a genuinely blocking ambiguity remains.
+
+Reviewer participant identity: actor:v202e-reviewer-fable-01
+
+=== workflow 1: case:9043beba8df63f082541 ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is explicitly the retained post-screening subset of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+visit_id,pool_id,water_depth_cm,egg_mass_detected
+V01,P1,22,no
+V02,P1,18,yes
+V03,P1,6,no
+V04,P2,25,yes
+V05,P2,14,no
+V06,P2,31,no
+V07,P3,12,yes
+V08,P3,4,no
+V09,P3,20,no
+V10,P4,16,yes
+V11,P4,9,no
+V12,P4,28,no
+V13,P5,11,no
+V14,P5,19,yes
+V15,P5,7,no
+V16,P6,24,no
+V17,P6,15,yes
+V18,P6,33,no
+V19,P7,5,no
+V20,P7,21,no
+V21,P7,13,yes
+V22,P8,8,no
+V23,P8,17,no
+V24,P8,26,no
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+
+DEPTH_THRESHOLD_CM = 10.0
+
+
+def main():
+    with Path("inputs/data.csv").open(newline="") as f:
+        rows = list(csv.DictReader(f))
+
+    planned = len(rows)
+    retained = [r for r in rows if float(r["water_depth_cm"]) >= DEPTH_THRESHOLD_CM]
+    n_retained = len(retained)
+    n_removed = planned - n_retained
+    events = sum(1 for r in retained if r["egg_mass_detected"] == "yes")
+    rate = events / n_retained
+
+    lines = [
+        "# Wood Frog Egg Mass Detection in Screened Vernal Pool Surveys",
+        "",
+        "## Study design",
+        "",
+        f"Planned observation units: {planned} vernal pool survey visits.",
+        f"Prespecified screening step: retain only visits with recorded water depth of at least {DEPTH_THRESHOLD_CM:.0f} cm.",
+        f"Scientific target: this analysis addresses only the retained post-screening subset of visits; it makes no claim about the complete planned set of {planned} visits.",
+        "",
+        "## Accounting",
+        "",
+        f"- Planned survey visits: {planned}",
+        f"- Retained after screening (water depth >= {DEPTH_THRESHOLD_CM:.0f} cm): {n_retained}",
+        f"- Removed by screening (water depth < {DEPTH_THRESHOLD_CM:.0f} cm): {n_removed}",
+        f"- Egg mass detection events among retained visits: {events}",
+        "",
+        "## Selected result",
+        "",
+        f"[selected-result] Among the {n_retained} retained vernal pool survey visits (the scientific target), wood frog egg masses were detected on {events} visits, a detection rate of {events}/{n_retained} = {rate:.4f} per retained visit.",
+        "",
+        f"This rate applies only to the retained post-screening subset and must not be interpreted as a property of the complete planned set of {planned} visits.",
+    ]
+
+    out_dir = Path("results")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with (out_dir / "report.md").open("w", encoding="ascii", newline="\n") as f:
+        f.write("\n".join(lines) + "\n")
+
+
+main()
+
+--- file results/report.md ---
+# Wood Frog Egg Mass Detection in Screened Vernal Pool Surveys
+
+## Study design
+
+Planned observation units: 24 vernal pool survey visits.
+Prespecified screening step: retain only visits with recorded water depth of at least 10 cm.
+Scientific target: this analysis addresses only the retained post-screening subset of visits; it makes no claim about the complete planned set of 24 visits.
+
+## Accounting
+
+- Planned survey visits: 24
+- Retained after screening (water depth >= 10 cm): 18
+- Removed by screening (water depth < 10 cm): 6
+- Egg mass detection events among retained visits: 7
+
+## Selected result
+
+[selected-result] Among the 18 retained vernal pool survey visits (the scientific target), wood frog egg masses were detected on 7 visits, a detection rate of 7/18 = 0.3889 per retained visit.
+
+This rate applies only to the retained post-screening subset and must not be interpreted as a property of the complete planned set of 24 visits.
+
+
+=== workflow 2: case:b872a12db0ab949d8eb7 ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is the complete planned set of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+box_id,site,clutch_initiated,eggs_laid,predation_event
+NB01,RIDGE,yes,5,no
+NB02,RIDGE,yes,6,yes
+NB03,RIDGE,no,0,NA
+NB04,RIDGE,yes,5,no
+NB05,RIDGE,yes,6,no
+NB06,RIDGE,yes,4,no
+NB07,RIDGE,no,0,NA
+NB08,RIDGE,yes,6,no
+NB09,RIDGE,yes,4,yes
+NB10,RIDGE,yes,5,no
+NB11,RIDGE,no,0,NA
+NB12,RIDGE,yes,4,no
+NB13,RIDGE,yes,5,no
+NB14,RIDGE,yes,6,yes
+NB15,RIDGE,yes,4,no
+NB16,RIDGE,no,0,NA
+NB17,RIDGE,yes,6,no
+NB18,RIDGE,yes,4,no
+NB19,RIDGE,no,0,NA
+NB20,RIDGE,yes,6,no
+NB21,MEADOW,yes,4,yes
+NB22,MEADOW,yes,5,no
+NB23,MEADOW,yes,6,no
+NB24,MEADOW,no,0,NA
+NB25,MEADOW,yes,5,no
+NB26,MEADOW,yes,6,yes
+NB27,MEADOW,yes,4,no
+NB28,MEADOW,no,0,NA
+NB29,MEADOW,yes,6,no
+NB30,MEADOW,yes,4,no
+NB31,MEADOW,no,0,NA
+NB32,MEADOW,yes,6,no
+NB33,MEADOW,yes,4,yes
+NB34,MEADOW,yes,5,no
+NB35,MEADOW,no,0,NA
+NB36,MEADOW,yes,4,no
+NB37,MEADOW,yes,5,no
+NB38,MEADOW,no,0,NA
+NB39,MEADOW,yes,4,no
+NB40,MEADOW,yes,5,no
+NB41,CREEK,yes,6,yes
+NB42,CREEK,no,0,NA
+NB43,CREEK,yes,5,no
+NB44,CREEK,yes,6,no
+NB45,CREEK,yes,4,yes
+NB46,CREEK,yes,5,no
+NB47,CREEK,no,0,NA
+NB48,CREEK,yes,4,no
+NB49,CREEK,yes,5,no
+NB50,CREEK,no,0,NA
+NB51,CREEK,yes,4,no
+NB52,CREEK,yes,5,no
+NB53,CREEK,yes,6,yes
+NB54,CREEK,no,0,NA
+NB55,CREEK,yes,5,no
+NB56,CREEK,yes,6,no
+NB57,CREEK,no,0,NA
+NB58,CREEK,yes,5,no
+NB59,CREEK,yes,6,no
+NB60,CREEK,no,0,NA
+
+--- file workflow/analysis.py ---
+"""Nest predation accounting for the Ridge-Meadow-Creek nest-box transect.
+
+Reads inputs/data.csv, recomputes every reported count and the selected rate
+from that file, and writes results/report.md.
+"""
+
+import csv
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = ROOT / "inputs" / "data.csv"
+REPORT_PATH = ROOT / "results" / "report.md"
+
+
+def read_units(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def build_report(rows):
+    planned = len(rows)
+    retained = [r for r in rows if r["clutch_initiated"] == "yes"]
+    removed = [r for r in rows if r["clutch_initiated"] != "yes"]
+    n_retained = len(retained)
+    n_removed = len(removed)
+    events = sum(1 for r in retained if r["predation_event"] == "yes")
+
+    # Exposure denominator: the retained post-screening subset only.
+    denominator = n_retained
+    rate = events / denominator
+    pct = rate * 100.0
+
+    lines = [
+        "# Nest Predation Rate, Ridge-Meadow-Creek Nest-Box Transect (2025 Season)",
+        "",
+        "## Scientific target",
+        "",
+        f"The target of inference is the complete planned set of {planned} nest boxes installed on the",
+        "Ridge-Meadow-Creek transect and monitored weekly during the 2025 breeding season.",
+        "",
+        "## Unit accounting",
+        "",
+        f"- Planned nest boxes: {planned}",
+        "- Screening step (prespecified): retain a box only if a clutch was initiated (at least one egg laid) by the census date.",
+        f"- Retained after screening: {n_retained}",
+        f"- Removed by screening: {n_removed}",
+        "- Event definition: a camera-confirmed nest predation event (loss of eggs or nestlings to a predator).",
+        f"- Predation events among retained boxes: {events}",
+        "",
+        "## Selected result",
+        "",
+        f"[selected-result] Nest predation rate for the complete planned set of {planned} nest boxes: {events} / {denominator} = {rate:.6f} ({pct:.4f}%).",
+        "",
+        "## Method statement",
+        "",
+        f"The rate above is reported as the nest predation rate of the complete planned set of {planned} nest boxes.",
+        "No protocol amendment exists for this analysis and no approved method deviation exists; the",
+        "analysis follows the registered monitoring protocol as written.",
+        "",
+        "## Reproducibility",
+        "",
+        f"Every count and the selected rate are recomputed from inputs/data.csv ({planned} data rows) by",
+        "workflow/analysis.py. Rates are printed with six decimal places and percentages with four.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    report = build_report(read_units(DATA_PATH))
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="ascii", newline="\n") as handle:
+        handle.write(report)
+    print(report, end="")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Nest Predation Rate, Ridge-Meadow-Creek Nest-Box Transect (2025 Season)
+
+## Scientific target
+
+The target of inference is the complete planned set of 60 nest boxes installed on the
+Ridge-Meadow-Creek transect and monitored weekly during the 2025 breeding season.
+
+## Unit accounting
+
+- Planned nest boxes: 60
+- Screening step (prespecified): retain a box only if a clutch was initiated (at least one egg laid) by the census date.
+- Retained after screening: 44
+- Removed by screening: 16
+- Event definition: a camera-confirmed nest predation event (loss of eggs or nestlings to a predator).
+- Predation events among retained boxes: 9
+
+## Selected result
+
+[selected-result] Nest predation rate for the complete planned set of 60 nest boxes: 9 / 44 = 0.204545 (20.4545%).
+
+## Method statement
+
+The rate above is reported as the nest predation rate of the complete planned set of 60 nest boxes.
+No protocol amendment exists for this analysis and no approved method deviation exists; the
+analysis follows the registered monitoring protocol as written.
+
+## Reproducibility
+
+Every count and the selected rate are recomputed from inputs/data.csv (60 data rows) by
+workflow/analysis.py. Rates are printed with six decimal places and percentages with four.
+
+
+=== workflow 3: case:d544565c29ed0475c680 ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is the complete planned set of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+box_id,site,clutch_initiated,eggs_laid,predation_event
+NB01,RIDGE,yes,5,no
+NB02,RIDGE,yes,6,yes
+NB03,RIDGE,no,0,NA
+NB04,RIDGE,yes,5,no
+NB05,RIDGE,yes,6,no
+NB06,RIDGE,yes,4,no
+NB07,RIDGE,no,0,NA
+NB08,RIDGE,yes,6,no
+NB09,RIDGE,yes,4,yes
+NB10,RIDGE,yes,5,no
+NB11,RIDGE,no,0,NA
+NB12,RIDGE,yes,4,no
+NB13,RIDGE,yes,5,no
+NB14,RIDGE,yes,6,yes
+NB15,RIDGE,yes,4,no
+NB16,RIDGE,no,0,NA
+NB17,RIDGE,yes,6,no
+NB18,RIDGE,yes,4,no
+NB19,RIDGE,no,0,NA
+NB20,RIDGE,yes,6,no
+NB21,MEADOW,yes,4,yes
+NB22,MEADOW,yes,5,no
+NB23,MEADOW,yes,6,no
+NB24,MEADOW,no,0,NA
+NB25,MEADOW,yes,5,no
+NB26,MEADOW,yes,6,yes
+NB27,MEADOW,yes,4,no
+NB28,MEADOW,no,0,NA
+NB29,MEADOW,yes,6,no
+NB30,MEADOW,yes,4,no
+NB31,MEADOW,no,0,NA
+NB32,MEADOW,yes,6,no
+NB33,MEADOW,yes,4,yes
+NB34,MEADOW,yes,5,no
+NB35,MEADOW,no,0,NA
+NB36,MEADOW,yes,4,no
+NB37,MEADOW,yes,5,no
+NB38,MEADOW,no,0,NA
+NB39,MEADOW,yes,4,no
+NB40,MEADOW,yes,5,no
+NB41,CREEK,yes,6,yes
+NB42,CREEK,no,0,NA
+NB43,CREEK,yes,5,no
+NB44,CREEK,yes,6,no
+NB45,CREEK,yes,4,yes
+NB46,CREEK,yes,5,no
+NB47,CREEK,no,0,NA
+NB48,CREEK,yes,4,no
+NB49,CREEK,yes,5,no
+NB50,CREEK,no,0,NA
+NB51,CREEK,yes,4,no
+NB52,CREEK,yes,5,no
+NB53,CREEK,yes,6,yes
+NB54,CREEK,no,0,NA
+NB55,CREEK,yes,5,no
+NB56,CREEK,yes,6,no
+NB57,CREEK,no,0,NA
+NB58,CREEK,yes,5,no
+NB59,CREEK,yes,6,no
+NB60,CREEK,no,0,NA
+
+--- file workflow/analysis.py ---
+"""Nest predation accounting for the Ridge-Meadow-Creek nest-box transect.
+
+Reads inputs/data.csv, recomputes every reported count and the selected rate
+from that file, and writes results/report.md.
+"""
+
+import csv
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = ROOT / "inputs" / "data.csv"
+REPORT_PATH = ROOT / "results" / "report.md"
+
+
+def read_units(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def build_report(rows):
+    planned = len(rows)
+    retained = [r for r in rows if r["clutch_initiated"] == "yes"]
+    removed = [r for r in rows if r["clutch_initiated"] != "yes"]
+    n_retained = len(retained)
+    n_removed = len(removed)
+    events = sum(1 for r in retained if r["predation_event"] == "yes")
+    removed_events = sum(1 for r in removed if r["predation_event"] == "yes")
+
+    # Exposure denominator: the complete planned set of units.
+    denominator = planned
+    rate = events / denominator
+    pct = rate * 100.0
+
+    lines = [
+        "# Nest Predation Rate, Ridge-Meadow-Creek Nest-Box Transect (2025 Season)",
+        "",
+        "## Scientific target",
+        "",
+        f"The target of inference is the complete planned set of {planned} nest boxes installed on the",
+        "Ridge-Meadow-Creek transect and monitored weekly during the 2025 breeding season.",
+        "",
+        "## Unit accounting",
+        "",
+        f"- Planned nest boxes: {planned}",
+        "- Screening step (prespecified): retain a box only if a clutch was initiated (at least one egg laid) by the census date.",
+        f"- Retained after screening: {n_retained}",
+        f"- Removed by screening: {n_removed}",
+        "- Event definition: a camera-confirmed nest predation event (loss of eggs or nestlings to a predator).",
+        f"- Predation events among retained boxes: {events}",
+        "",
+        "## Selected result",
+        "",
+        f"[selected-result] Nest predation rate for the complete planned set of {planned} nest boxes: {events} / {denominator} = {rate:.6f} ({pct:.4f}%).",
+        "",
+        "## Method statement",
+        "",
+        f"The exposure denominator is the complete planned set of {planned} nest boxes, so the rate above",
+        f"applies to that complete planned set. The {n_removed} boxes removed by screening never held an",
+        f"initiated clutch and recorded {removed_events} predation events; they enter the denominator as",
+        f"zero-event exposure. No claim is made here about the rate within the {n_retained} retained boxes alone.",
+        "",
+        "## Reproducibility",
+        "",
+        f"Every count and the selected rate are recomputed from inputs/data.csv ({planned} data rows) by",
+        "workflow/analysis.py. Rates are printed with six decimal places and percentages with four.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    report = build_report(read_units(DATA_PATH))
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="ascii", newline="\n") as handle:
+        handle.write(report)
+    print(report, end="")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Nest Predation Rate, Ridge-Meadow-Creek Nest-Box Transect (2025 Season)
+
+## Scientific target
+
+The target of inference is the complete planned set of 60 nest boxes installed on the
+Ridge-Meadow-Creek transect and monitored weekly during the 2025 breeding season.
+
+## Unit accounting
+
+- Planned nest boxes: 60
+- Screening step (prespecified): retain a box only if a clutch was initiated (at least one egg laid) by the census date.
+- Retained after screening: 44
+- Removed by screening: 16
+- Event definition: a camera-confirmed nest predation event (loss of eggs or nestlings to a predator).
+- Predation events among retained boxes: 9
+
+## Selected result
+
+[selected-result] Nest predation rate for the complete planned set of 60 nest boxes: 9 / 60 = 0.150000 (15.0000%).
+
+## Method statement
+
+The exposure denominator is the complete planned set of 60 nest boxes, so the rate above
+applies to that complete planned set. The 16 boxes removed by screening never held an
+initiated clutch and recorded 0 predation events; they enter the denominator as
+zero-event exposure. No claim is made here about the rate within the 44 retained boxes alone.
+
+## Reproducibility
+
+Every count and the selected rate are recomputed from inputs/data.csv (60 data rows) by
+workflow/analysis.py. Rates are printed with six decimal places and percentages with four.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:v202e-reviewer-fable-01", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:retained-subset-for-complete-domain", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:9043beba8df63f082541", "case:b872a12db0ab949d8eb7", "case:d544565c29ed0475c680"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 3, "minItems": 3, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

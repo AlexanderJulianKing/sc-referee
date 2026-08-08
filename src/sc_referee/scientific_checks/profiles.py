@@ -1029,8 +1029,8 @@ def _complete_domain_exposure_profile() -> _ReportProfile:
             "Which declared-domain exposure governs the selected rate or spacing denominator "
             "for this review?"
         ),
-        check_version="2.0.2",
-        adapter_version="2.0.2",
+        check_version="2.0.3",
+        adapter_version="2.0.3",
     )
 
 

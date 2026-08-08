@@ -867,6 +867,19 @@ def _anchor_span(span: dict[str, Any], lines: list[str]) -> None:
     if claimed is not None and quoted and quoted in claimed:
         span["quoted_text"] = claimed
         return
+    # A quote that is one unique byte substring of the file (for example a
+    # sentence whose last line is only the first word of a longer file line)
+    # widens to the complete lines covering that occurrence.
+    text = "\n".join(lines)
+    if quoted:
+        first = text.find(quoted)
+        if first != -1 and text.find(quoted, first + 1) == -1:
+            start_line = text.count("\n", 0, first) + 1
+            end_line = text.count("\n", 0, first + len(quoted)) + 1
+            span["start_line"] = start_line
+            span["end_line"] = end_line
+            span["quoted_text"] = "\n".join(lines[start_line - 1 : end_line])
+            return
     quote_lines = quoted.splitlines()
     if quote_lines:
         exact_hits = [
