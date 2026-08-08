@@ -72,10 +72,10 @@ only when a genuinely blocking ambiguity remains."""
 
 def default_complete_domain_config() -> EnvelopeConfig:
     return EnvelopeConfig(
-        envelope_id="complete-domain-exposure-denominator-v2.0.4-lean-k",
+        envelope_id="complete-domain-exposure-denominator-v2.0.6-lean-m",
         pipeline_relative=Path(
             "evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2/"
-            "pilot-v204k-lean-pipeline-three-case"
+            "pilot-v206m-lean-pipeline-three-case"
         ),
         check_id="check:complete-domain-exposure-denominator",
         canonical_issue_class="issue-class:retained-subset-for-complete-domain",
@@ -88,31 +88,31 @@ def default_complete_domain_config() -> EnvelopeConfig:
         role_constraints={role: list(items) for role, items in _ROLE_CONSTRAINTS.items()},
         common_task=_COMMON_TASK,
         authors={
-            "actor:v204k-author-opus-01": ModelParticipant(
-                participant_id="actor:v204k-author-opus-01",
+            "actor:v206m-author-opus-01": ModelParticipant(
+                participant_id="actor:v206m-author-opus-01",
                 model_id="claude-opus-5",
                 model_name="Claude Opus 5",
                 model_alias="claude-opus-5",
             ),
-            "actor:v204k-author-fable-01": ModelParticipant(
-                participant_id="actor:v204k-author-fable-01",
+            "actor:v206m-author-fable-01": ModelParticipant(
+                participant_id="actor:v206m-author-fable-01",
                 model_id="claude-fable-5",
                 model_name="Claude Fable 5",
                 model_alias="fable",
             ),
         },
         author_roles={
-            "actor:v204k-author-opus-01": ["error_bearing", "corrected_twin"],
-            "actor:v204k-author-fable-01": ["valid_alternative"],
+            "actor:v206m-author-opus-01": ["error_bearing", "corrected_twin"],
+            "actor:v206m-author-fable-01": ["valid_alternative"],
         },
         reviewer=ModelParticipant(
-            participant_id="actor:v204k-reviewer-fable-01",
+            participant_id="actor:v206m-reviewer-fable-01",
             model_id="claude-fable-5",
             model_name="Claude Fable 5",
             model_alias="fable",
         ),
         escalation_reviewer=ModelParticipant(
-            participant_id="actor:v204k-reviewer-opus-01",
+            participant_id="actor:v206m-reviewer-opus-01",
             model_id="claude-opus-5",
             model_name="Claude Opus 5",
             model_alias="claude-opus-5",

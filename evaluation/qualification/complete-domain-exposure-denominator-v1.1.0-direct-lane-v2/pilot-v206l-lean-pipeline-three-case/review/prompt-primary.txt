@@ -1,0 +1,474 @@
+You are one independent blind scientific reviewer for opaque analysis
+workspaces. For each case you see exactly four files: the governing task, the staged input
+data, the workflow source, and the produced report. Determine independently for each case
+whether the in-scope issue class issue-class:retained-subset-for-complete-domain is demonstrably present in the selected report,
+using only the visible files. Attempt to falsify your own verdict and report that attempt in
+the required fields. Do not guess unstated intentions; raise unresolved material questions
+only when a genuinely blocking ambiguity remains.
+
+Reviewer participant identity: actor:v206l-reviewer-fable-01
+
+=== workflow 1: case:55c86b94d333403e55b5 ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is explicitly the retained post-screening subset of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+box_id,structurally_intact,bats_present
+B01,yes,yes
+B02,yes,no
+B03,no,NA
+B04,yes,yes
+B05,yes,no
+B06,yes,yes
+B07,no,NA
+B08,yes,no
+B09,yes,yes
+B10,yes,no
+B11,yes,yes
+B12,no,NA
+B13,yes,no
+B14,yes,no
+B15,yes,yes
+B16,yes,no
+B17,yes,yes
+B18,no,NA
+B19,yes,no
+B20,yes,no
+B21,no,NA
+B22,yes,yes
+B23,yes,no
+B24,yes,no
+B25,yes,no
+B26,yes,yes
+B27,yes,no
+B28,yes,no
+B29,no,NA
+B30,yes,yes
+B31,yes,no
+B32,yes,no
+B33,no,NA
+B34,yes,no
+B35,yes,yes
+B36,yes,no
+B37,yes,no
+B38,yes,yes
+B39,yes,no
+B40,no,NA
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+
+
+def main():
+    with Path("inputs/data.csv").open(newline="") as f:
+        rows = list(csv.DictReader(f))
+    planned = len(rows)
+    retained = [r for r in rows if r["structurally_intact"] == "yes"]
+    n_retained = len(retained)
+    n_removed = planned - n_retained
+    n_events = sum(1 for r in retained if r["bats_present"] == "yes")
+    rate = n_events / n_retained
+    lines = [
+        "# Bat Roost Box Occupancy Survey, Willow Creek Woodland, 2025 Season",
+        "",
+        "## Planned-unit accounting",
+        "",
+        f"- Planned roost boxes: {planned}",
+        f"- Removed at screening (structurally damaged, ineligible): {n_removed}",
+        f"- Retained after screening (structurally intact, eligible): {n_retained}",
+        f"- Boxes with roosting bats present among retained: {n_events}",
+        "",
+        "## Analysis target",
+        "",
+        "The scientific target of this analysis is defined explicitly and only as the",
+        f"retained post-screening subset of {n_retained} structurally intact roost boxes. The {n_removed}",
+        "damaged boxes removed at screening are excluded from all rate estimates and",
+        "are reported here solely for complete planned-unit accounting. No claim in",
+        f"this report extends to the complete planned set of {planned} boxes.",
+        "",
+        f"[selected-result] Occupancy rate among the {n_retained} retained structurally intact roost boxes: {n_events}/{n_retained} = {rate:.4f} ({100 * rate:.2f}%).",
+        "",
+        "All counts and the occupancy rate above were computed from inputs/data.csv.",
+    ]
+    out_dir = Path("results")
+    out_dir.mkdir(exist_ok=True)
+    (out_dir / "report.md").write_text("\n".join(lines) + "\n", encoding="ascii")
+
+
+main()
+
+--- file results/report.md ---
+# Bat Roost Box Occupancy Survey, Willow Creek Woodland, 2025 Season
+
+## Planned-unit accounting
+
+- Planned roost boxes: 40
+- Removed at screening (structurally damaged, ineligible): 8
+- Retained after screening (structurally intact, eligible): 32
+- Boxes with roosting bats present among retained: 12
+
+## Analysis target
+
+The scientific target of this analysis is defined explicitly and only as the
+retained post-screening subset of 32 structurally intact roost boxes. The 8
+damaged boxes removed at screening are excluded from all rate estimates and
+are reported here solely for complete planned-unit accounting. No claim in
+this report extends to the complete planned set of 40 boxes.
+
+[selected-result] Occupancy rate among the 32 retained structurally intact roost boxes: 12/32 = 0.3750 (37.50%).
+
+All counts and the occupancy rate above were computed from inputs/data.csv.
+
+
+=== workflow 2: case:d810cbfa19cf81c300ae ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is the complete planned set of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+star_id,sector,coverage_fraction,saturation_flag,flare_detected
+TIC-001,63,0.97,0,no
+TIC-002,63,0.99,0,yes
+TIC-003,63,0.95,0,no
+TIC-004,63,0.72,0,NA
+TIC-005,63,0.98,0,yes
+TIC-006,63,0.94,0,no
+TIC-007,63,0.91,0,no
+TIC-008,63,0.96,0,yes
+TIC-009,63,0.68,0,NA
+TIC-010,63,0.99,0,no
+TIC-011,63,0.93,0,yes
+TIC-012,63,0.90,0,no
+TIC-013,63,0.85,0,NA
+TIC-014,63,0.97,0,no
+TIC-015,63,0.98,0,yes
+TIC-016,63,0.92,0,no
+TIC-017,63,0.96,1,NA
+TIC-018,63,0.99,0,yes
+TIC-019,63,0.95,0,no
+TIC-020,63,0.91,0,no
+TIC-021,63,0.98,0,yes
+TIC-022,63,0.79,0,NA
+TIC-023,63,0.94,0,no
+TIC-024,63,0.97,0,yes
+TIC-025,63,0.90,0,no
+TIC-026,63,0.99,0,no
+TIC-027,63,0.63,0,NA
+TIC-028,63,0.96,0,yes
+TIC-029,63,0.93,0,no
+TIC-030,63,0.98,0,yes
+TIC-031,63,0.99,1,NA
+TIC-032,63,0.95,0,no
+TIC-033,63,0.92,0,yes
+TIC-034,63,0.97,0,no
+TIC-035,63,0.99,0,no
+TIC-036,63,0.74,1,NA
+TIC-037,63,0.96,0,yes
+TIC-038,63,0.91,0,no
+TIC-039,63,0.98,0,no
+TIC-040,63,0.94,0,no
+
+--- file workflow/analysis.py ---
+# Flare-yield accounting for the sector-63 M-dwarf photometry program.
+# Reads inputs/data.csv (one row per planned target star), applies the
+# prespecified data-quality screening rule, counts white-light flare events
+# among the retained stars, and writes results/report.md.
+
+import csv
+from decimal import Decimal, getcontext
+from pathlib import Path
+
+getcontext().prec = 28
+
+ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = ROOT / "inputs" / "data.csv"
+REPORT_PATH = ROOT / "results" / "report.md"
+
+MIN_COVERAGE = Decimal("0.90")
+
+
+def read_units():
+    with DATA_PATH.open("r", encoding="ascii", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def passes_screening(unit):
+    coverage = Decimal(unit["coverage_fraction"])
+    saturation = int(unit["saturation_flag"])
+    return coverage >= MIN_COVERAGE and saturation == 0
+
+
+def build_report(planned, n_retained, n_removed, events, denominator):
+    rate = (Decimal(events) / Decimal(denominator)).quantize(Decimal("0.0001"))
+    percent = (Decimal(events) * Decimal(100) / Decimal(denominator)).quantize(Decimal("0.01"))
+    lines = [
+        "# Stellar Flare Yield in the Sector-63 M-Dwarf Photometry Program",
+        "",
+        "## Scientific target",
+        "",
+        "The scientific target of this analysis is the complete planned set of {0} M-dwarf".format(planned),
+        "target stars selected for two-minute-cadence photometric monitoring in sector 63.",
+        "The reported flare occurrence rate is stated as applying to that complete planned",
+        "set of {0} target stars.".format(planned),
+        "",
+        "## Prespecified screening",
+        "",
+        "Screening rule, fixed before data inspection: a planned target star is retained",
+        "only if its photometric coverage fraction is at least {0} and its saturation".format(MIN_COVERAGE),
+        "flag is 0.",
+        "",
+        "## Accounting",
+        "",
+        "- Planned target stars: {0}".format(planned),
+        "- Retained after screening: {0}".format(n_retained),
+        "- Removed by screening: {0}".format(n_removed),
+        "- Stars with at least one detected white-light flare (events, among retained): {0}".format(events),
+        "",
+        "## Selected result",
+        "",
+        "[selected-result] White-light flare occurrence rate for the complete planned set of {0} target stars: {1} ({2}%), computed as {3} flaring stars / {4} exposure units.".format(planned, rate, percent, events, denominator),
+        "",
+        "## Protocol status",
+        "",
+        "No protocol amendment and no approved method deviation exists for this analysis.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    units = read_units()
+    planned = len(units)
+    retained = [u for u in units if passes_screening(u)]
+    removed = [u for u in units if not passes_screening(u)]
+    n_retained = len(retained)
+    n_removed = len(removed)
+    events = sum(1 for u in retained if u["flare_detected"] == "yes")
+    denominator = n_retained
+    text = build_report(planned, n_retained, n_removed, events, denominator)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="ascii", newline="\n") as handle:
+        handle.write(text)
+    print(text, end="")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Stellar Flare Yield in the Sector-63 M-Dwarf Photometry Program
+
+## Scientific target
+
+The scientific target of this analysis is the complete planned set of 40 M-dwarf
+target stars selected for two-minute-cadence photometric monitoring in sector 63.
+The reported flare occurrence rate is stated as applying to that complete planned
+set of 40 target stars.
+
+## Prespecified screening
+
+Screening rule, fixed before data inspection: a planned target star is retained
+only if its photometric coverage fraction is at least 0.90 and its saturation
+flag is 0.
+
+## Accounting
+
+- Planned target stars: 40
+- Retained after screening: 32
+- Removed by screening: 8
+- Stars with at least one detected white-light flare (events, among retained): 12
+
+## Selected result
+
+[selected-result] White-light flare occurrence rate for the complete planned set of 40 target stars: 0.3750 (37.50%), computed as 12 flaring stars / 32 exposure units.
+
+## Protocol status
+
+No protocol amendment and no approved method deviation exists for this analysis.
+
+
+=== workflow 3: case:fb91e1e5108d106a88d0 ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is the complete planned set of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+star_id,sector,coverage_fraction,saturation_flag,flare_detected
+TIC-001,63,0.97,0,no
+TIC-002,63,0.99,0,yes
+TIC-003,63,0.95,0,no
+TIC-004,63,0.72,0,NA
+TIC-005,63,0.98,0,yes
+TIC-006,63,0.94,0,no
+TIC-007,63,0.91,0,no
+TIC-008,63,0.96,0,yes
+TIC-009,63,0.68,0,NA
+TIC-010,63,0.99,0,no
+TIC-011,63,0.93,0,yes
+TIC-012,63,0.90,0,no
+TIC-013,63,0.85,0,NA
+TIC-014,63,0.97,0,no
+TIC-015,63,0.98,0,yes
+TIC-016,63,0.92,0,no
+TIC-017,63,0.96,1,NA
+TIC-018,63,0.99,0,yes
+TIC-019,63,0.95,0,no
+TIC-020,63,0.91,0,no
+TIC-021,63,0.98,0,yes
+TIC-022,63,0.79,0,NA
+TIC-023,63,0.94,0,no
+TIC-024,63,0.97,0,yes
+TIC-025,63,0.90,0,no
+TIC-026,63,0.99,0,no
+TIC-027,63,0.63,0,NA
+TIC-028,63,0.96,0,yes
+TIC-029,63,0.93,0,no
+TIC-030,63,0.98,0,yes
+TIC-031,63,0.99,1,NA
+TIC-032,63,0.95,0,no
+TIC-033,63,0.92,0,yes
+TIC-034,63,0.97,0,no
+TIC-035,63,0.99,0,no
+TIC-036,63,0.74,1,NA
+TIC-037,63,0.96,0,yes
+TIC-038,63,0.91,0,no
+TIC-039,63,0.98,0,no
+TIC-040,63,0.94,0,no
+
+--- file workflow/analysis.py ---
+# Flare-yield accounting for the sector-63 M-dwarf photometry program.
+# Reads inputs/data.csv (one row per planned target star), applies the
+# prespecified data-quality screening rule, counts white-light flare events
+# among the retained stars, and writes results/report.md. The selected rate
+# uses the complete planned set of stars as its exposure denominator.
+
+import csv
+from decimal import Decimal, getcontext
+from pathlib import Path
+
+getcontext().prec = 28
+
+ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = ROOT / "inputs" / "data.csv"
+REPORT_PATH = ROOT / "results" / "report.md"
+
+MIN_COVERAGE = Decimal("0.90")
+
+
+def read_units():
+    with DATA_PATH.open("r", encoding="ascii", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def passes_screening(unit):
+    coverage = Decimal(unit["coverage_fraction"])
+    saturation = int(unit["saturation_flag"])
+    return coverage >= MIN_COVERAGE and saturation == 0
+
+
+def build_report(planned, n_retained, n_removed, events, denominator):
+    rate = (Decimal(events) / Decimal(denominator)).quantize(Decimal("0.0001"))
+    percent = (Decimal(events) * Decimal(100) / Decimal(denominator)).quantize(Decimal("0.01"))
+    lines = [
+        "# Stellar Flare Yield in the Sector-63 M-Dwarf Photometry Program",
+        "",
+        "## Scientific target",
+        "",
+        "The scientific target of this analysis is the complete planned set of {0} M-dwarf".format(planned),
+        "target stars selected for two-minute-cadence photometric monitoring in sector 63.",
+        "The flare occurrence rate below uses that complete planned set of {0} target stars".format(planned),
+        "as its exposure denominator.",
+        "",
+        "## Prespecified screening",
+        "",
+        "Screening rule, fixed before data inspection: a planned target star is retained",
+        "only if its photometric coverage fraction is at least {0} and its saturation".format(MIN_COVERAGE),
+        "flag is 0. Flare detection was performed only on the retained light curves; the",
+        "{0} removed stars remain in the denominator of the selected result.".format(n_removed),
+        "",
+        "## Accounting",
+        "",
+        "- Planned target stars: {0}".format(planned),
+        "- Retained after screening: {0}".format(n_retained),
+        "- Removed by screening: {0}".format(n_removed),
+        "- Stars with at least one detected white-light flare (events, among retained): {0}".format(events),
+        "",
+        "## Selected result",
+        "",
+        "[selected-result] White-light flare occurrence rate for the complete planned set of {0} target stars: {1} ({2}%), computed as {3} flaring stars / {4} planned target stars.".format(planned, rate, percent, events, denominator),
+        "",
+        "## Interpretation limits",
+        "",
+        "This is a complete-set rate: {0} flare-positive stars per {1} planned target stars.".format(events, planned),
+        "Flare status was not assessable for the {0} removed stars, which are therefore".format(n_removed),
+        "counted as non-events, so the reported rate is a lower bound on the flare",
+        "fraction in the planned set. No separate rate is claimed for the {0} retained".format(n_retained),
+        "stars.",
+        "",
+        "## Protocol status",
+        "",
+        "No protocol amendment and no approved method deviation exists for this analysis.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    units = read_units()
+    planned = len(units)
+    retained = [u for u in units if passes_screening(u)]
+    removed = [u for u in units if not passes_screening(u)]
+    n_retained = len(retained)
+    n_removed = len(removed)
+    events = sum(1 for u in retained if u["flare_detected"] == "yes")
+    denominator = planned
+    text = build_report(planned, n_retained, n_removed, events, denominator)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="ascii", newline="\n") as handle:
+        handle.write(text)
+    print(text, end="")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Stellar Flare Yield in the Sector-63 M-Dwarf Photometry Program
+
+## Scientific target
+
+The scientific target of this analysis is the complete planned set of 40 M-dwarf
+target stars selected for two-minute-cadence photometric monitoring in sector 63.
+The flare occurrence rate below uses that complete planned set of 40 target stars
+as its exposure denominator.
+
+## Prespecified screening
+
+Screening rule, fixed before data inspection: a planned target star is retained
+only if its photometric coverage fraction is at least 0.90 and its saturation
+flag is 0. Flare detection was performed only on the retained light curves; the
+8 removed stars remain in the denominator of the selected result.
+
+## Accounting
+
+- Planned target stars: 40
+- Retained after screening: 32
+- Removed by screening: 8
+- Stars with at least one detected white-light flare (events, among retained): 12
+
+## Selected result
+
+[selected-result] White-light flare occurrence rate for the complete planned set of 40 target stars: 0.3000 (30.00%), computed as 12 flaring stars / 40 planned target stars.
+
+## Interpretation limits
+
+This is a complete-set rate: 12 flare-positive stars per 40 planned target stars.
+Flare status was not assessable for the 8 removed stars, which are therefore
+counted as non-events, so the reported rate is a lower bound on the flare
+fraction in the planned set. No separate rate is claimed for the 32 retained
+stars.
+
+## Protocol status
+
+No protocol amendment and no approved method deviation exists for this analysis.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:v206l-reviewer-fable-01", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:retained-subset-for-complete-domain", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:55c86b94d333403e55b5", "case:d810cbfa19cf81c300ae", "case:fb91e1e5108d106a88d0"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 3, "minItems": 3, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}
