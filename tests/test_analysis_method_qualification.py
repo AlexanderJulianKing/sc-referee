@@ -148,6 +148,13 @@ def _audit_source(operand: str, **options: bool) -> str:
     orientation the bounded trace resolves. These bytes belong to the audit
     stage only; the repository is rewritten to the exact ``_source`` bytes the
     frozen v0.1 verifier qualified before the qualification snapshot.
+
+    From check v2.1.0 the emission sits at module level and its value is
+    written out directly. The earlier shape computed it inside
+    ``emission_likelihood()``, a closure over the module-level ``rows``, which
+    the default-deny trust model no longer supports: which panel such a name
+    holds when the call runs is decided by the module's binding order at run
+    time. The comparison and the panel it reads are unchanged.
     """
 
     panel = "rows"
@@ -161,11 +168,10 @@ def _audit_source(operand: str, **options: bool) -> str:
         + _source(operand, **options)
         + "rows = list(csv.DictReader((ROOT / 'markers.csv').open()))\n"
         + stage
-        + "def emission_likelihood():\n"
-        + "    return math.prod(\n"
-        + f"        0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in {panel}\n"
-        + "    )\n"
-        + "LIKELIHOOD = emission_likelihood()\n"
+        + "LIKELIHOOD = math.prod(\n"
+        + f"    0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in {panel}\n"
+        + ")\n"
+        + "(ROOT / 'likelihood.txt').write_text(str(LIKELIHOOD))\n"
     )
 
 

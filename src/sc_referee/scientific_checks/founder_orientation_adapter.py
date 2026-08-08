@@ -22,10 +22,22 @@ consistent with the complement of that panel. Three free numbers joined by
 one ratio reconcile by coincidence often enough that this plane cannot carry
 a classification by itself: a sensitivity of 0.90 on 90 of 100 cases is an
 ordinary sentence about something else entirely, and it reconciles just as
-well as a genuine founder accounting does. So v2.0.1 gives the report plane
-three jobs and no more. It corroborates when its own unique reading agrees
-with the workflow, it contradicts when its unique reading disagrees, and
-otherwise it is silent.
+well as a genuine founder accounting does. So the report plane has three jobs
+and no more. It corroborates when its own unique reading agrees with the
+workflow, it contradicts when its unique reading disagrees, and otherwise it
+is silent.
+
+From v2.1.0 the source plane is default-deny: it models an explicit whitelist
+of statement and expression forms, and any form outside that whitelist
+anywhere in the workflow leaves the document unsupported. A second
+adversarial review of v2.0.1 demonstrated thirteen ordinary workflows -- alias
+mutation through a parameter, a container, a comprehension target and a
+closure, a ``match`` guard, a walrus inside a ``print``, a higher-order
+parameter, a duplicated definition, a ``functools.reduce``, a write inside an
+uncalled function, a path name rebound to a buffer, and an imported helper
+named ``reader`` -- where this adapter returned an applicable orientation
+opposite to what the workflow computes at run time. Each of them was an
+unlisted form the old deny-list waved through.
 
 Even a silent report has to account for the workflow's reading: the adapter
 classifies on the dataflow alone only when some stated marker total,
@@ -100,7 +112,7 @@ def founder_orientation_recognition_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-reconciliation",
-        "grammar_version": "2.0.0",
+        "grammar_version": "2.1.0",
         "count_source": "integer_tokens_without_unit_or_percent_suffix",
         "rate_source": "decimal_point_or_percent_suffixed_tokens_direct_or_percent_scaled",
         "relations": [
@@ -131,6 +143,16 @@ def founder_orientation_recognition_grammar(
             "dataflow-only classification requires a stated marker-total, "
             "agreement-count, and rate accounting that reconciles in the "
             "direction the dataflow computed"
+        ),
+        "source_trust_model": (
+            "default deny: the source plane models an explicit whitelist of "
+            "statement and expression forms, and any form outside it anywhere in "
+            "the workflow leaves the document unsupported, so the report plane "
+            "never sees a reading the trace could not fully account for"
+        ),
+        "source_parse_guard": (
+            "a source the parser cannot finish reading, including one that "
+            "exhausts the interpreter stack or memory, abstains as unsupported"
         ),
         "additional_exclusions": ["signed values", "slash-separated dates", "unit-suffixed values"],
         "nomenclature_authority": "none",
@@ -216,13 +238,26 @@ class FounderOrientationReportAdapter:
             repaired_operand=str(self.repaired_operand.value),
         )
         report_operands = sorted({item.operand_value for item in interpretations})
-        flow = resolve_founder_orientation_dataflow(
-            context,
-            direct_operand=str(self.direct_operand.value),
-            repaired_operand=str(self.repaired_operand.value),
-            parser_id=PYTHON_PARSER_ID,
-            parser_version=PYTHON_PARSER_VERSION,
-        )
+        try:
+            flow = resolve_founder_orientation_dataflow(
+                context,
+                direct_operand=str(self.direct_operand.value),
+                repaired_operand=str(self.repaired_operand.value),
+                parser_id=PYTHON_PARSER_ID,
+                parser_version=PYTHON_PARSER_VERSION,
+            )
+        except (RecursionError, MemoryError):
+            # The resolver guards its own parsing, but a source deep or large
+            # enough to exhaust the stack or memory anywhere in the trace is an
+            # abstention at this boundary too, never a crashed inspection.
+            return self._abstain(
+                "unsupported",
+                (
+                    "The workflow source could not be read within the bounded static "
+                    "trace's stack and memory limits."
+                ),
+                document=document,
+            )
         # The report plane never resolves alone. Report numbers reconcile with
         # an orientation ratio by coincidence far too readily for three free
         # numbers to carry a classification, so a dataflow that does not

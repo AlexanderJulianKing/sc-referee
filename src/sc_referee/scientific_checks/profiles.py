@@ -832,6 +832,13 @@ def _founder_orientation_profile() -> _ReportProfile:
     assignment forms, rebound callables, unreadable emission selectors,
     reversed dict-spread precedence, in-memory report writes, and expressions
     deeper than its bound.
+
+    v2.1.0 inverts the trust model that a second adversarial review broke.
+    v2.0.1 enumerated dangerous forms and treated unlisted Python as safe;
+    thirteen ordinary workflows exploited that to produce an answer opposite
+    to run time. The dataflow trace now holds an explicit whitelist of the
+    statement and expression forms it models completely, and any form outside
+    that whitelist anywhere in the workflow leaves the document unsupported.
     """
 
     direct = "use_supplied_founder_alleles_directly_in_hmm_emission"
@@ -869,8 +876,8 @@ def _founder_orientation_profile() -> _ReportProfile:
         question_wording=(
             "Which founder-allele orientation rule governs the HMM emission for this review?"
         ),
-        check_version="2.0.1",
-        adapter_version="2.0.1",
+        check_version="2.1.0",
+        adapter_version="2.1.0",
     )
 
 

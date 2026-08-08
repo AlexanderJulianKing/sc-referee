@@ -8,12 +8,22 @@ adapter found: each one moved an orientation repair onto the panel path
 under a name the old vocabulary did not carry, and each one was reported as
 the direct orientation.
 
-The v2.0.1 blocks at the end of this module are the counterexamples an
+The v2.0.1 blocks in the middle of this module are the counterexamples an
 adversarial review of v2.0.0 demonstrated: match-count selectors masking the
 real emission, stale provenance surviving alias mutation, reversed
 dict-spread precedence, static call resolution ignoring runtime rebinding,
 false conditional-repair corroboration, report-plane coincidence, fusion
 reversing an abstention, and two crashes. Each block names its finding.
+
+The v2.1.0 block at the end holds the thirteen workflows a second
+adversarial review demonstrated against v2.0.1, copied verbatim from that
+review's own repro cases, plus the parse-time crash it found. Every one of
+them made v2.0.1 answer with the orientation opposite to what the workflow
+computes at run time. They are permanent: the default-deny trust model exists
+because of them, and no later version may delete them. Each also appears in a
+stripped form with the review harness's runtime-witness lines removed, so the
+architectural rule that closes it is proven to fire on its own rather than on
+the scaffolding.
 """
 
 from __future__ import annotations
@@ -33,7 +43,11 @@ from sc_referee.scientific_checks import (
     RecordRef,
 )
 from sc_referee.scientific_checks.founder_orientation_adapter import _identified_orientations
-from sc_referee.scientific_checks.founder_orientation_dataflow import _document_orientations
+from sc_referee.scientific_checks.founder_orientation_dataflow import (
+    FounderDataflowResolution,
+    _document_orientations,
+    resolve_founder_orientation_dataflow,
+)
 from sc_referee.scientific_checks.profiles import default_scientific_check_registry
 from sc_referee.scientific_checks.quantity_consistency_adapter import _number_tokens
 from sc_referee.scientific_checks.scope_joins import build_static_scope_join_graph
@@ -53,6 +67,11 @@ rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
 _TAIL = """report = f'emission likelihood {likelihood}'
 Path('results/report.md').write_text(report)
 """
+# The accounting every round-two counterexample report states, so a fused
+# inspection over one of them has a report plane to work with.
+_COUNTEREXAMPLE_REPORT = (
+    "Of 4 markers, 3 agree. Agreement rate 0.750000; mismatch rate 0.250000. Likelihood 9.9e-07.\n"
+)
 
 
 def _emission(source: str) -> str:
@@ -81,20 +100,15 @@ def _assert_never_direct(source: str) -> set[str]:
     return states
 
 
-def _fused_observation(
-    report_text: str, analysis_text: str = "value = 1\n"
-) -> tuple[str, str | None]:
-    """Run the released founder adapter over one report and one workflow."""
+def _inspection_context(report_text: str, analyses: dict[str, str]) -> FrozenInspectionContext:
+    """One report and any number of Python workflow documents."""
 
     report = report_text.encode("utf-8")
-    analysis = analysis_text.encode("utf-8")
     surface_ref = RecordRef("publication_surface", "publication-surface:soundness")
     artifact_ref = RecordRef("artifact", "artifact:soundness-report")
     identity_ref = RecordRef("asset_identity", "asset-identity:soundness-report")
     report_file_ref = RecordRef("file_record", "file:soundness-report")
     report_parser_ref = RecordRef("parser_result", "parser-result:soundness-report")
-    analysis_file_ref = RecordRef("file_record", "file:soundness-analysis")
-    analysis_parser_ref = RecordRef("parser_result", "parser-result:soundness-analysis")
     snapshot_ref = RecordRef("repository_snapshot", "snapshot:soundness")
     report_parser = canonical_json(
         {
@@ -110,7 +124,7 @@ def _fused_observation(
             "state": "parsed",
         }
     ).encode("utf-8")
-    records = (
+    records: list[tuple[RecordRef, dict[str, object]]] = [
         (
             surface_ref,
             {
@@ -140,38 +154,49 @@ def _fused_observation(
         (snapshot_ref, {"snapshot_id": snapshot_ref.record_id}),
         (report_file_ref, {"file_record_id": report_file_ref.record_id}),
         (report_parser_ref, {"parser_result_id": report_parser_ref.record_id}),
-        (analysis_file_ref, {"file_record_id": analysis_file_ref.record_id}),
-        (analysis_parser_ref, {"parser_result_id": analysis_parser_ref.record_id}),
-    )
+    ]
+    documents = [
+        InspectionDocument(
+            path="report.md",
+            file_ref=report_file_ref,
+            content=report,
+            content_digest=sha256_digest(report),
+            media_type="text/markdown",
+            parser_result_ref=report_parser_ref,
+            parser_result_payload=report_parser,
+            parser_result_digest=sha256_digest(report_parser),
+        )
+    ]
+    for index, (path, analysis_text) in enumerate(analyses.items()):
+        analysis = analysis_text.encode("utf-8")
+        file_ref = RecordRef("file_record", f"file:soundness-analysis-{index}")
+        parser_ref = RecordRef("parser_result", f"parser-result:soundness-analysis-{index}")
+        records.extend(
+            [
+                (file_ref, {"file_record_id": file_ref.record_id}),
+                (parser_ref, {"parser_result_id": parser_ref.record_id}),
+            ]
+        )
+        documents.append(
+            InspectionDocument(
+                path=path,
+                file_ref=file_ref,
+                content=analysis,
+                content_digest=sha256_digest(analysis),
+                media_type="text/x-python",
+                parser_result_ref=parser_ref,
+                parser_result_payload=analysis_parser,
+                parser_result_digest=sha256_digest(analysis_parser),
+            )
+        )
     context = FrozenInspectionContext(
         snapshot_digest=sha256_digest("snapshot"),
         selected_surface_ref=surface_ref,
         selected_artifact_ref=artifact_ref,
-        documents=(
-            InspectionDocument(
-                path="report.md",
-                file_ref=report_file_ref,
-                content=report,
-                content_digest=sha256_digest(report),
-                media_type="text/markdown",
-                parser_result_ref=report_parser_ref,
-                parser_result_payload=report_parser,
-                parser_result_digest=sha256_digest(report_parser),
-            ),
-            InspectionDocument(
-                path="analysis.py",
-                file_ref=analysis_file_ref,
-                content=analysis,
-                content_digest=sha256_digest(analysis),
-                media_type="text/x-python",
-                parser_result_ref=analysis_parser_ref,
-                parser_result_payload=analysis_parser,
-                parser_result_digest=sha256_digest(analysis_parser),
-            ),
-        ),
+        documents=tuple(documents),
         base_records=tuple(FrozenBaseRecord.from_record(ref, value) for ref, value in records),
     )
-    context = replace(
+    return replace(
         context,
         scope_join_graph=build_static_scope_join_graph(
             snapshot_digest=context.snapshot_digest,
@@ -182,6 +207,17 @@ def _fused_observation(
             base_records=context.base_records,
         ),
     )
+
+
+def _fused_observation(
+    report_text: str,
+    analysis_text: str = "value = 1\n",
+    companions: dict[str, str] | None = None,
+) -> tuple[str, str | None]:
+    """Run the released founder adapter over one report and one workflow."""
+
+    analyses = {"analysis.py": analysis_text, **(companions or {})}
+    context = _inspection_context(report_text, analyses)
     module = next(
         item
         for item in default_scientific_check_registry().modules
@@ -190,6 +226,23 @@ def _fused_observation(
     observation = module.adapters[0].inspect(context)
     operand = observation.observed_operand
     return observation.applicability, None if operand is None else str(operand.value)
+
+
+def _resolution(
+    analysis_text: str,
+    companions: dict[str, str] | None = None,
+    report_text: str = _COUNTEREXAMPLE_REPORT,
+) -> FounderDataflowResolution:
+    """The public resolver's verdict over one workflow and its companions."""
+
+    analyses = {"analysis.py": analysis_text, **(companions or {})}
+    return resolve_founder_orientation_dataflow(
+        _inspection_context(report_text, analyses),
+        direct_operand=DIRECT_OPERAND,
+        repaired_operand=REPAIRED_OPERAND,
+        parser_id=PYTHON_PARSER_ID,
+        parser_version=PYTHON_PARSER_VERSION,
+    )
 
 
 def _report_operands(text: str) -> set[str]:
@@ -455,7 +508,19 @@ def test_an_off_path_mask_flip_does_not_change_the_classification() -> None:
     assert states == {"direct"}
 
 
-def test_a_diagnostic_flip_that_never_reaches_the_report_is_ignored() -> None:
+def test_a_diagnostic_flip_that_never_reaches_the_report_conflicts() -> None:
+    """v2.1.0 policy: readings are collected module-wide and must agree.
+
+    Expectation flipped from ``{"direct"}``. The banned form was the point of
+    the old test: a second recognized reading over the complemented panel,
+    running unconditionally at module level, used to be discarded because it
+    never reached the written report. The v2.1.0 disagreement rule collects
+    every recognized reading, and resolves past a disagreement only when the
+    disagreeing reading is provably dead -- inside a function whose name
+    occurs nowhere but its own definition. A live module-level diagnostic is
+    not dead, so the document is ambiguous.
+    """
+
     source = (
         _HEAD
         + "flipped = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
@@ -467,7 +532,7 @@ def test_a_diagnostic_flip_that_never_reaches_the_report_is_ignored() -> None:
     )
     unsupported, states = _resolve(source)
     assert not unsupported
-    assert states == {"direct"}
+    assert states == {"direct", "repaired"}
 
 
 def test_an_emission_that_never_reaches_the_report_never_classifies() -> None:
@@ -1012,8 +1077,16 @@ def test_a_helper_with_a_side_effecting_statement_abstains() -> None:
 # --- Finding 7 tail: report reachability -----------------------------------
 
 
-def test_a_write_into_an_in_memory_buffer_does_not_reach_the_report() -> None:
-    """``io.StringIO().write`` answers to the same method name as a file."""
+def test_a_write_into_an_in_memory_buffer_abstains() -> None:
+    """v2.1.0 policy: the expression-statement whitelist.
+
+    Expectation flipped from ``not unsupported``. ``io.StringIO().write``
+    answers to the same method name as a file, so it still never reaches the
+    report; but a bare expression statement is now admitted only as a
+    docstring, a recognized report write, or the print-read form, and a write
+    into a buffer is none of those. The document abstains rather than
+    resolving around a statement the trace does not model.
+    """
 
     source = (
         _STDLIB_HEAD
@@ -1022,7 +1095,7 @@ def test_a_write_into_an_in_memory_buffer_does_not_reach_the_report() -> None:
         + "buffer.write(f'{likelihood}')\n"
     )
     unsupported, states = _resolve(source)
-    assert not unsupported
+    assert unsupported
     assert states == set()
 
 
@@ -1048,34 +1121,35 @@ def test_an_in_memory_diagnostic_cannot_answer_for_the_written_emission() -> Non
     assert unsupported
 
 
-def test_a_return_from_a_function_nobody_calls_does_not_reach_the_report() -> None:
-    source = (
-        "import csv\nimport math\nfrom pathlib import Path\n\n"
-        "rows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n\n"
-        "def diagnostic():\n"
-        "    likelihood = math.prod(\n"
-        "        0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in rows\n"
-        "    )\n"
-        "    return likelihood\n"
-    )
-    unsupported, states = _resolve(source)
-    assert not unsupported
-    assert states == set()
+@pytest.mark.parametrize("called", [False, True])
+def test_a_closure_over_a_tagged_row_set_abstains(called: bool) -> None:
+    """v2.1.0 policy: closures may not see tagged globals.
 
+    Expectations flipped from ``not unsupported`` with ``set()`` for the
+    uncalled body and ``{"direct"}`` for the called one. The banned form was
+    the point of both old tests: a function body reading a module-level row
+    set by closure. Which panel that name holds when the call runs is decided
+    by the module's binding order at run time, and the ``closure_alias``
+    counterexample turned exactly that gap into a wrong answer. A helper may
+    now read only its own parameters, safe builtins, the import table, and
+    other module functions, so both shapes abstain -- and with parameters
+    masked there is no surviving positive path for an emission traced inside
+    a function.
+    """
 
-def test_a_return_from_a_called_function_still_reaches_the_report() -> None:
     source = (
         "import csv\nimport math\nfrom pathlib import Path\n\n"
         "rows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n\n"
         "def emission():\n"
         "    return math.prod(\n"
         "        0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in rows\n"
-        "    )\n\n"
-        "likelihood = emission()\n" + _TAIL
+        "    )\n"
     )
+    if called:
+        source += "\nlikelihood = emission()\n" + _TAIL
     unsupported, states = _resolve(source)
-    assert not unsupported
-    assert states == {"direct"}
+    assert unsupported
+    assert states == set()
 
 
 # --- Finding 8: crash bounds ------------------------------------------------
@@ -1277,3 +1351,533 @@ def test_conflicting_workflow_comparisons_abstain_as_ambiguous() -> None:
         + "Path('results/report.md').write_text(report)\n"
     )
     assert _fused_observation(_DIRECT_REPORT, workflow) == ("ambiguous", None)
+
+
+# ---------------------------------------------------------------------------
+# v2.1.0 controls: the thirteen workflows a second adversarial review
+# demonstrated against v2.0.1, copied verbatim from its repro cases, and the
+# parse-time crash it found. Under v2.0.1 every one of these produced an
+# applicable observation naming the orientation opposite to what the workflow
+# computes at run time. Under the v2.1.0 default-deny trust model each one
+# abstains. These tests are permanent; the whitelist exists because of them.
+
+ROUND_TWO_COUNTEREXAMPLES: dict[str, str] = {
+    "parameter_alias": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [{**row, "founder": 1 - int(row["founder"])} for row in rows]
+
+
+def replace(target, replacement):
+    target.clear()
+    target.extend(replacement)
+
+
+replace(rows, panel)
+likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in rows
+)
+agreement = sum(
+    1 if int(row["call"]) == int(row["founder"]) else 0 for row in rows
+)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
+)
+Path("results/parameter_alias.md").write_text(report)
+current_founders = [int(row["founder"]) for row in rows]
+print("RUNTIME_DIRECT=" + str(current_founders == staged_founders))
+print("RUNTIME_REPAIRED=" + str(current_founders == [1 - value for value in staged_founders]))
+""",
+    "container_alias": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [{**row, "founder": 1 - int(row["founder"])} for row in rows]
+holder = [rows]
+holder[0].clear()
+holder[0].extend(panel)
+likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in rows
+)
+agreement = sum(
+    1 if int(row["call"]) == int(row["founder"]) else 0 for row in rows
+)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
+)
+Path("results/container_alias.md").write_text(report)
+current_founders = [int(row["founder"]) for row in rows]
+print("RUNTIME_DIRECT=" + str(current_founders == staged_founders))
+print("RUNTIME_REPAIRED=" + str(current_founders == [1 - value for value in staged_founders]))
+""",
+    "comprehension_alias": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [{**row, "founder": 1 - int(row["founder"])} for row in rows]
+[(alias.clear(), alias.extend(panel)) for alias in [rows]]
+likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in rows
+)
+agreement = sum(
+    1 if int(row["call"]) == int(row["founder"]) else 0 for row in rows
+)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
+)
+Path("results/comprehension_alias.md").write_text(report)
+current_founders = [int(row["founder"]) for row in rows]
+print("RUNTIME_DIRECT=" + str(current_founders == staged_founders))
+print("RUNTIME_REPAIRED=" + str(current_founders == [1 - value for value in staged_founders]))
+""",
+    "closure_alias": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [{**row, "founder": 1 - int(row["founder"])} for row in rows]
+
+
+def replace():
+    rows.clear()
+    rows.extend(panel)
+
+
+replace()
+likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in rows
+)
+agreement = sum(
+    1 if int(row["call"]) == int(row["founder"]) else 0 for row in rows
+)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
+)
+Path("results/closure_alias.md").write_text(report)
+current_founders = [int(row["founder"]) for row in rows]
+print("RUNTIME_DIRECT=" + str(current_founders == staged_founders))
+print("RUNTIME_REPAIRED=" + str(current_founders == [1 - value for value in staged_founders]))
+""",
+    "spread_side_effect": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [
+    {
+        "side_effect": row.update({"founder": 1 - int(row["founder"])}),
+        **row,
+    }
+    for row in rows
+]
+likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in panel
+)
+agreement = sum(
+    1 if int(row["call"]) == int(row["founder"]) else 0 for row in panel
+)
+n = len(panel)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
+)
+Path("results/spread_side_effect.md").write_text(report)
+current_founders = [int(row["founder"]) for row in panel]
+print("RUNTIME_DIRECT=" + str(current_founders == staged_founders))
+print("RUNTIME_REPAIRED=" + str(current_founders == [1 - value for value in staged_founders]))
+""",
+    "match_guard": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [{**row, "founder": 1 - int(row["founder"])} for row in rows]
+mode = "repair"
+selected = rows
+match mode:
+    case "repair":
+        selected = panel
+
+likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in selected
+)
+agreement = sum(
+    1 if int(row["call"]) == int(row["founder"]) else 0 for row in selected
+)
+n = len(selected)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
+)
+Path("results/match_guard.md").write_text(report)
+current_founders = [int(row["founder"]) for row in selected]
+print("RUNTIME_DIRECT=" + str(current_founders == staged_founders))
+print("RUNTIME_REPAIRED=" + str(current_founders == [1 - value for value in staged_founders]))
+""",
+    "walrus_expr": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [{**row, "founder": 1 - int(row["founder"])} for row in rows]
+print(rows := panel)
+likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in rows
+)
+agreement = sum(
+    1 if int(row["call"]) == int(row["founder"]) else 0 for row in rows
+)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
+)
+Path("results/walrus_expr.md").write_text(report)
+current_founders = [int(row["founder"]) for row in rows]
+print("RUNTIME_DIRECT=" + str(current_founders == staged_founders))
+print("RUNTIME_REPAIRED=" + str(current_founders == [1 - value for value in staged_founders]))
+""",
+    "higher_order": r"""import csv
+import math
+from pathlib import Path
+
+
+def identity(value):
+    return value
+
+
+def flip(value):
+    return 1 - value
+
+
+def apply(identity, value):
+    return identity(value)
+
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [{**row, "founder": apply(flip, int(row["founder"]))} for row in rows]
+likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in panel
+)
+agreement = sum(
+    1 if int(row["call"]) == int(row["founder"]) else 0 for row in panel
+)
+n = len(panel)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
+)
+Path("results/higher_order.md").write_text(report)
+current_founders = [int(row["founder"]) for row in panel]
+print("RUNTIME_DIRECT=" + str(current_founders == staged_founders))
+print("RUNTIME_REPAIRED=" + str(current_founders == [1 - value for value in staged_founders]))
+""",
+    "duplicate_def": r"""import csv
+import math
+from pathlib import Path
+
+
+def recode(value):
+    return value
+
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [{**row, "founder": recode(int(row["founder"]))} for row in rows]
+likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in panel
+)
+agreement = sum(
+    1 if int(row["call"]) == int(row["founder"]) else 0 for row in panel
+)
+n = len(panel)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
+)
+Path("results/duplicate_def.md").write_text(report)
+
+
+def recode(value):
+    return 1 - value
+
+
+current_founders = [int(row["founder"]) for row in panel]
+print("RUNTIME_DIRECT=" + str(current_founders == staged_founders))
+print("RUNTIME_REPAIRED=" + str(current_founders == [1 - value for value in staged_founders]))
+""",
+    "reduce_mask": r"""import csv
+import functools
+import math
+import operator
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [{**row, "founder": 1 - int(row["founder"])} for row in rows]
+diagnostic_agreement = sum(
+    1 if int(row["call"]) == int(row["founder"]) else 0 for row in panel
+)
+likelihood = functools.reduce(
+    operator.mul,
+    (0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in rows),
+    1.0,
+)
+direct_matches = [
+    int(row["call"]) == int(row["founder"]) for row in rows
+].count(True)
+n = len(rows)
+match_rate = direct_matches / n
+report = (
+    f"Of {n} markers, the complemented diagnostic has {diagnostic_agreement} agreements. "
+    f"The direct-panel HMM match fraction is {match_rate:.6f}; likelihood {likelihood:.8g}.\n"
+)
+Path("results/reduce_mask.md").write_text(report)
+current_founders = [int(row["founder"]) for row in rows]
+print("RUNTIME_DIRECT=" + str(current_founders == staged_founders))
+print("RUNTIME_REPAIRED=" + str(current_founders == [1 - value for value in staged_founders]))
+""",
+    "uncalled_writer": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [{**row, "founder": 1 - int(row["founder"])} for row in rows]
+
+
+def diagnostic():
+    diagnostic_likelihood = math.prod(
+        0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in panel
+    )
+    Path("results/unused.md").write_text(str(diagnostic_likelihood))
+
+
+actual_likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in rows
+)
+actual_agreement = sum(
+    1 if int(row["call"]) == int(row["founder"]) else 0 for row in rows
+)
+n = len(rows)
+rate = actual_agreement / n
+mismatch = 1 - rate
+report = (
+    f"Of {n} markers, {actual_agreement} agree. Agreement rate {rate:.6f}; "
+    f"mismatch rate {mismatch:.6f}. Likelihood {actual_likelihood:.8g}.\n"
+)
+with open("results/uncalled_writer.md", "w") as handle:
+    handle.write(report)
+current_founders = [int(row["founder"]) for row in rows]
+print("RUNTIME_DIRECT=" + str(current_founders == staged_founders))
+print("RUNTIME_REPAIRED=" + str(current_founders == [1 - value for value in staged_founders]))
+""",
+    "rebound_path_sink": r"""import csv
+import io
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [{**row, "founder": 1 - int(row["founder"])} for row in rows]
+sink = Path("results/unused.md")
+sink = io.StringIO()
+diagnostic_likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in panel
+)
+sink.write(str(diagnostic_likelihood))
+actual_likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in rows
+)
+actual_agreement = sum(
+    1 if int(row["call"]) == int(row["founder"]) else 0 for row in rows
+)
+n = len(rows)
+rate = actual_agreement / n
+mismatch = 1 - rate
+report = (
+    f"Of {n} markers, {actual_agreement} agree. Agreement rate {rate:.6f}; "
+    f"mismatch rate {mismatch:.6f}. Likelihood {actual_likelihood:.8g}.\n"
+)
+with open("results/rebound_path_sink.md", "w") as handle:
+    handle.write(report)
+current_founders = [int(row["founder"]) for row in rows]
+print("RUNTIME_DIRECT=" + str(current_founders == staged_founders))
+print("RUNTIME_REPAIRED=" + str(current_founders == [1 - value for value in staged_founders]))
+""",
+    "imported_reader": r"""import csv
+import math
+from pathlib import Path
+
+from reader_impl import reader
+
+staged_rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in staged_rows]
+rows = list(reader(Path("inputs/markers.csv").open()))
+likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in rows
+)
+agreement = sum(
+    1 if int(row["call"]) == int(row["founder"]) else 0 for row in rows
+)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
+)
+Path("results/imported_reader.md").write_text(report)
+current_founders = [int(row["founder"]) for row in rows]
+print("RUNTIME_DIRECT=" + str(current_founders == staged_founders))
+print("RUNTIME_REPAIRED=" + str(current_founders == [1 - value for value in staged_founders]))
+""",
+}
+
+ROUND_TWO_COMPANIONS: dict[str, str] = {
+    "imported_reader": r"""import csv
+
+
+def reader(handle):
+    return [
+        {**row, "founder": 1 - int(row["founder"])}
+        for row in csv.DictReader(handle)
+    ]
+""",
+}
+# What the default-deny model rejects in each workflow, and the runtime
+# orientation the review's witness observed. v2.0.1 answered the opposite.
+ROUND_TWO_RULES = {
+    "parameter_alias": ("a tagged row set passed as a call argument", "repaired"),
+    "container_alias": ("a tagged row set placed inside a container literal", "repaired"),
+    "comprehension_alias": ("an expression statement that is not a write or a read", "repaired"),
+    "closure_alias": ("a function body reading a tagged module global", "repaired"),
+    "spread_side_effect": ("a call inside a container literal outside the recode set", "repaired"),
+    "match_guard": ("a statement type outside the whitelist", "repaired"),
+    "walrus_expr": ("a walrus anywhere in a statement subtree", "repaired"),
+    "higher_order": ("a helper calling one of its own parameters", "repaired"),
+    "duplicate_def": ("a name defined by def more than once", "direct"),
+    "reduce_mask": ("an unlisted library call over a tagged row set", "direct"),
+    "uncalled_writer": ("a function body reading a tagged module global", "direct"),
+    "rebound_path_sink": ("a write on a name no longer bound to a path", "direct"),
+    "imported_reader": ("an imported callable outside the reader vocabulary", "repaired"),
+}
+
+_RUNTIME_WITNESS_PREFIXES = ("staged_founders =", "current_founders =", 'print("RUNTIME_')
+
+
+def _without_runtime_witness(source: str) -> str:
+    """The review case with its runtime-orientation witness lines removed.
+
+    The harness appends two comprehensions and two prints to observe which
+    orientation the workflow actually produced. Those lines are themselves
+    outside the print-read whitelist, so stripping them proves the rule that
+    names each counterexample fires on the workflow itself.
+    """
+
+    kept = [line for line in source.splitlines() if not line.startswith(_RUNTIME_WITNESS_PREFIXES)]
+    return "\n".join(kept) + "\n"
+
+
+@pytest.mark.parametrize("case", sorted(ROUND_TWO_COUNTEREXAMPLES))
+def test_round_two_counterexample_abstains(case: str) -> None:
+    """Each demonstrated wrong answer is now an abstention, verbatim."""
+
+    unsupported, states = _resolve(ROUND_TWO_COUNTEREXAMPLES[case])
+    assert unsupported, ROUND_TWO_RULES[case][0]
+    assert states == set()
+
+
+@pytest.mark.parametrize("case", sorted(ROUND_TWO_COUNTEREXAMPLES))
+def test_round_two_counterexample_abstains_without_its_witness(case: str) -> None:
+    """The rule that closes each case fires on the workflow, not the harness."""
+
+    source = _without_runtime_witness(ROUND_TWO_COUNTEREXAMPLES[case])
+    unsupported, states = _resolve(source)
+    assert unsupported, ROUND_TWO_RULES[case][0]
+    assert states == set()
+
+
+@pytest.mark.parametrize("case", sorted(ROUND_TWO_COUNTEREXAMPLES))
+def test_round_two_counterexample_resolver_returns_no_orientation(case: str) -> None:
+    """The public resolver reports unsupported and nothing else."""
+
+    companion = ROUND_TWO_COMPANIONS.get(case)
+    resolution = _resolution(
+        ROUND_TWO_COUNTEREXAMPLES[case],
+        {"companion.py": companion} if companion else None,
+    )
+    assert resolution.state == "unsupported"
+    assert resolution.orientation is None
+    assert resolution.operand_value is None
+    assert resolution.spans == ()
+    assert resolution.source_path is None
+
+
+@pytest.mark.parametrize("case", sorted(ROUND_TWO_COUNTEREXAMPLES))
+def test_round_two_counterexample_adapter_returns_no_operand(case: str) -> None:
+    """The released adapter abstains as unsupported over each case's own report."""
+
+    companions = ROUND_TWO_COMPANIONS.get(case)
+    applicability, operand = _fused_observation(
+        _COUNTEREXAMPLE_REPORT,
+        ROUND_TWO_COUNTEREXAMPLES[case],
+        {"companion.py": companions} if companions else None,
+    )
+    assert applicability == "unsupported"
+    assert operand is None
+
+
+def test_a_three_thousand_term_expression_abstains_without_a_parse_crash() -> None:
+    """``ast.parse`` itself raised ``RecursionError`` on this shape in v2.0.1.
+
+    The expression bound protected the trace but not the parser, so a valid
+    3,000-operation XOR crashed the public resolver before any analysis ran.
+    Parsing is now guarded and the document abstains.
+    """
+
+    deep = "value = source" + " ^ 1" * 3000 + "\n"
+    resolution = _resolution(deep)
+    assert resolution.state == "unsupported"
+    assert resolution.operand_value is None
+    applicability, operand = _fused_observation(_COUNTEREXAMPLE_REPORT, deep)
+    assert applicability == "unsupported"
+    assert operand is None

@@ -469,6 +469,14 @@ def _build_control_inputs(
         # control source also carries the direct emission comparison the
         # report's accounting accounts for. The frozen v0.1 adapter still
         # reads exactly one founder shape and one selected-report writer.
+        #
+        # From check v2.1.0 the emission sits at module level and its value is
+        # written out directly. The earlier fixture computed it inside
+        # ``emission_likelihood()``, a closure over the module-level ``rows``;
+        # that shape is now unsupported, because which panel such a name holds
+        # when the call runs is decided by the module's binding order at run
+        # time. The comparison, the panel it reads, and the orientation the
+        # control asserts are unchanged.
         source_text = (
             "import csv\n"
             "import math\n"
@@ -485,11 +493,10 @@ def _build_control_inputs(
             "if __name__ == '__main__':\n"
             "    main()\n"
             "rows = list(csv.DictReader((ROOT / 'markers.csv').open()))\n"
-            "def emission_likelihood():\n"
-            "    return math.prod(\n"
-            "        0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in rows\n"
-            "    )\n"
-            "LIKELIHOOD = emission_likelihood()\n"
+            "LIKELIHOOD = math.prod(\n"
+            "    0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in rows\n"
+            ")\n"
+            "(ROOT / 'likelihood.txt').write_text(str(LIKELIHOOD))\n"
         )
         (repository / "analysis.py").write_text(source_text, encoding="utf-8")
         (repository / "report.md").write_text(report_text, encoding="utf-8")

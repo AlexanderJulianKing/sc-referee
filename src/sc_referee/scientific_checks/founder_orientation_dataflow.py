@@ -11,49 +11,80 @@ panel was complement-repaired before the comparison; an even total parity
 means the comparison reads the two panels in the same coding. Variable
 names, function names, and column names never matter; only the operations do.
 
-The cardinal rule: ``direct`` is never a fallthrough. An equality classifies
-as the direct reading only when every step on both operand paths is a
-recognized identity-preserving or recognized inverting operation. Anything
-unrecognized on a path that touches the staged rows abstains, because a
-transform this library cannot read may be exactly the repair whose absence
-would invert every ancestry assignment.
+v2.1.0 inverts the trust model. Versions through v2.0.1 enumerated dangerous
+forms and treated every unlisted piece of Python as safe; a second
+adversarial review demonstrated thirteen ordinary workflows where that
+deny-list produced a confident answer opposite to what the workflow computes
+at run time. This version holds an explicit whitelist instead. The module
+states the statement forms and the expression forms it models completely,
+and any form outside that whitelist, anywhere in the module, leaves the
+document unsupported. No statement is exempted for "not touching anything
+interesting": an unlisted statement type is unsupported whatever it mentions,
+which closes ``match``, ``try``, ``while``, ``class``, ``del``, ``global``,
+``raise``, ``assert``, every ``async`` form, and everything else in one rule
+rather than one enumeration at a time.
+
+The whitelist, at module top level:
+
+- ``import`` and ``from ... import``, recorded in an import table.
+- ``Assign`` with exactly one plain ``Name`` target and a fully readable
+  right-hand side. Tuple, starred, chained, subscript, attribute, and
+  annotated targets, and augmented assignment, are unsupported.
+- ``FunctionDef``, subject to the helper rules. A name defined by ``def``
+  more than once, whose name appears anywhere outside call position, or that
+  calls one of its own parameters, is an opaque callable, and any call to an
+  opaque callable is unsupported. A body binds only its parameters, so every
+  other free name it reads is opaque rather than the module's binding, and a
+  body referencing a tagged row set is unsupported outright.
+- ``Expr`` statements only as a docstring constant, a recognized report
+  write, or a call to ``print`` whose whole argument subtree is names,
+  constants, f-strings over them, and ``str``/``repr`` of a name.
+- ``With`` only in the modelled ``open()``-as pattern, ``If`` only as the
+  ``__main__`` guard, and ``For`` only in the recognized counter and
+  accumulator forms.
+- A walrus anywhere in any statement's complete subtree is unsupported.
+
+A tagged or aliased row set may appear only as the iterable of a recognized
+comprehension or recognized loop, as the argument of ``len``, as the
+right-hand side of a plain alias assignment, or inside the recognized
+print-read form. Every other occurrence -- an argument to any other call, an
+element of a container, the receiver of any method call, a reference from
+inside a function body -- is unsupported. Mutation is no longer modelled at
+all, because every syntactic route to mutating a tagged row set now dies at
+the whitelist instead.
+
+Three belts run independently of the whitelist:
+
+- The emission scan walks the entire module tree for comparisons between two
+  staged-column extractions. If the document resolves, every such comparison
+  must have been recognized by the trace; an unrecognized one anywhere is
+  unsupported.
+- Reachability excludes and never selects. Writes and returns seed the
+  report-reaching set only from functions reachable code actually calls,
+  path-likeness is tracked with last-binding-wins so rebinding a path name to
+  an in-memory buffer removes it, and orientation readings are collected
+  module-wide: readings that disagree resolve only when every disagreeing
+  reading sits in a function with no occurrence besides its own definition.
+- Parsing is guarded. ``RecursionError`` and ``MemoryError`` from a source
+  too deep or too large for the parser abstain instead of crashing.
 
 Soundness rules (each backed by a demonstrated counterexample in
 ``tests/test_founder_orientation_soundness.py``):
 
-- An unrecognized transform on an operand path abstains; it never reads as
-  the direct orientation.
+- ``direct`` is never a fallthrough. An unrecognized transform on an operand
+  path abstains; it never reads as the direct orientation.
 - Inversions on both operands compose to no net change, and classify as the
   direct reading only when both paths are otherwise identity-proven.
-- Two inversions composed on one path have even parity and classify as the
-  direct reading only when both inversions are recognized.
-- A transform that is not on either operand's path (a diagnostic or mask
-  flip) has no effect on the classification.
-- Any guarded rebinding of a row set leaves the document unsupported. A
-  branch decides at run time which panel the emission reads, and no static
-  reading of the guard can settle that, so v2.0.1 recognizes no conditional
-  repair at all.
-- A report-reaching accumulation whose element compares two staged columns
-  but whose selector this library cannot read leaves the document
-  unsupported. Skipping it would let an unrelated recognized comparison
-  elsewhere answer for it.
-- Names that alias one runtime row set share an invalidation group: mutating
-  any member drops the provenance of every member. Any assignment form the
-  environment model does not fully handle, touching any tagged name, leaves
-  the document unsupported.
-- A local function definition shadows the built-in reader vocabulary, and a
-  callable name that is rebound anywhere is opaque everywhere.
-- Only equalities whose selected probability can reach the written report
-  classify. A report write counts only when its receiver is a filesystem
-  path, and a return statement seeds the report only from a function some
-  reachable caller actually calls.
-- Equalities reaching the report with conflicting classifications abstain.
-- Helper tracing is depth-bounded with cycle detection, and expression
-  tracing carries its own depth bound; recursion abstains instead of
-  crashing.
-- A function body is traced with its parameters masked, so an emission
-  comparison that reads a row set arriving as a parameter abstains rather
-  than letting a module global stand in for it.
+- A transform that is not on either operand's path has no effect, unless it
+  produces a second orientation reading that disagrees.
+- Any statement or expression form outside the whitelist abstains.
+- Any occurrence of a tagged row set outside its four permitted positions
+  abstains.
+- The reader vocabulary applies only to a call that provably resolves to the
+  ``csv`` module through the import table.
+- Helper tracing is depth-bounded with cycle detection, expression tracing
+  carries its own depth bound, and parsing is guarded; recursion abstains
+  instead of crashing.
 
 The report-reaching closure, the statement flattening, the ``__main__``
 guard recognition, the call-binding shape, and the evidence-span projection
@@ -66,6 +97,7 @@ from __future__ import annotations
 
 import ast
 import json
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -81,36 +113,48 @@ FOUNDER_ORIENTATION_DATAFLOW_IMPLEMENTATION_DIGEST = sha256_digest(Path(__file__
 
 _MAX_CALL_DEPTH = 2
 _MAX_EXPRESSION_DEPTH = 100
-_READER_CALLS = {"csv.DictReader", "csv.reader", "DictReader", "reader"}
+_READER_ORIGINS = {"csv.DictReader", "csv.reader"}
+_READER_ATTRIBUTES = {"DictReader", "reader"}
 _PATH_CALLS = {"Path", "pathlib.Path", "PurePath", "pathlib.PurePath"}
 _ACCUMULATOR_CALLS = {"sum", "prod", "math.prod", "fsum", "math.fsum"}
 _IDENTITY_CASTS = {"int", "float", "str"}
 _STRIP_METHODS = {"strip", "lstrip", "rstrip"}
 _WRITE_METHODS = {"write", "writelines", "write_text"}
-_MUTATING_METHODS = {
-    "append",
-    "extend",
-    "insert",
-    "pop",
-    "remove",
-    "clear",
-    "update",
-    "setdefault",
-    "sort",
-    "reverse",
-    "popitem",
+_EXACT_NUMERIC_CALLS = {
+    "Fraction",
+    "fractions.Fraction",
+    "Decimal",
+    "decimal.Decimal",
 }
-_UNSUPPORTED_STATEMENTS = (
-    ast.FunctionDef,
-    ast.AsyncFunctionDef,
-    ast.ClassDef,
-    ast.For,
-    ast.AsyncFor,
-    ast.While,
-    ast.If,
-    ast.With,
-    ast.AsyncWith,
-    ast.Try,
+# Calls admitted inside a container literal. A container literal is where a
+# row is rebuilt, so anything evaluated there can mutate the row being read;
+# only the recode and extraction vocabulary is allowed.
+_CONTAINER_VALUE_CALLS = _IDENTITY_CASTS | _EXACT_NUMERIC_CALLS | {"abs"}
+_SAFE_BUILTINS = frozenset(
+    {
+        "abs",
+        "all",
+        "any",
+        "bool",
+        "dict",
+        "enumerate",
+        "float",
+        "int",
+        "len",
+        "list",
+        "max",
+        "min",
+        "print",
+        "range",
+        "repr",
+        "round",
+        "set",
+        "sorted",
+        "str",
+        "sum",
+        "tuple",
+        "zip",
+    }
 )
 
 _REPAIRED = "repaired"
@@ -122,8 +166,17 @@ def founder_orientation_dataflow_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-emission-dataflow",
-        "grammar_version": "2.0.0",
-        "row_source_operations": ["csv.DictReader", "csv.reader"],
+        "grammar_version": "2.1.0",
+        "trust_model": (
+            "default deny: the trace holds an explicit whitelist of the statement and "
+            "expression forms it models completely, and any form outside that whitelist "
+            "anywhere in the module leaves the document unsupported; an unlisted "
+            "statement type is unsupported whatever names it mentions"
+        ),
+        "row_source_operations": [
+            "csv.DictReader and csv.reader, only when the call resolves to the csv "
+            "module through the module's own import table"
+        ],
         "emission_comparison": (
             "an equality or inequality between two distinct columns of one "
             "staged row set, selecting between two numeric values inside a "
@@ -157,9 +210,47 @@ def founder_orientation_dataflow_grammar(
             "constant-string column subscripts",
             (
                 "dict literals and dict-spread literals rebuilding a row, read "
-                "strictly left to right so a later entry overrides an earlier one"
+                "strictly left to right so a later entry overrides an earlier one, "
+                "and containing no call outside the recode and extraction vocabulary"
             ),
         ],
+        "whitelisted_statements": [
+            "import and from-import, recorded in an import table",
+            "assignment to exactly one plain name from a fully readable expression",
+            "function definition subject to the helper rules",
+            "expression statement only as a docstring, a recognized report write, "
+            "or the recognized print-read form",
+            "with only in the modelled open()-as pattern",
+            "if only as the __main__ guard",
+            "for only in the recognized counter and accumulator forms",
+        ],
+        "unsupported_statements": (
+            "every statement type not on the whitelist, including match, try, while, "
+            "class, del, global, nonlocal, raise, assert, and every async form; a "
+            "walrus anywhere in any statement subtree is unsupported"
+        ),
+        "readable_expressions": [
+            "comprehensions and generators of the recognized shape over a name or "
+            "a recognized reader call",
+            "dict, list, set, and tuple literals with constant keys whose values "
+            "contain no call outside the recode and extraction vocabulary",
+            "the recognized reader calls",
+            "the recognized accumulation calls over recognized generators",
+            "arithmetic, comparison, and f-string composition over readable parts",
+            "a plain name, which creates an alias group",
+        ],
+        "unreadable_expressions": (
+            "an unrecognized call or attribute access referencing a tagged or aliased "
+            "name is unsupported; the same without any tagged reference leaves the "
+            "assignment target opaque"
+        ),
+        "tagged_name_positions": (
+            "a tagged or aliased row set may appear only as the iterable of a "
+            "recognized comprehension or recognized loop, as the argument of len, as "
+            "the right-hand side of a plain alias assignment, or inside the "
+            "recognized print-read form; every other occurrence is unsupported, and "
+            "mutation is not modelled because no syntactic route to it survives"
+        ),
         "classification_rule": (
             "odd total parity over both operand paths is the repaired "
             "orientation; even total parity is the direct orientation, and only "
@@ -171,43 +262,56 @@ def founder_orientation_dataflow_grammar(
             "even_total_parity_with_proven_paths": direct_operand,
         },
         "conditional_repair": (
-            "not recognized; any guarded rebinding of a row set, whether by an "
-            "if statement or by a conditional expression choosing between row "
-            "sets, leaves the document unsupported"
+            "not recognized; a branch is not a whitelisted statement and a "
+            "conditional expression over row sets is not a permitted position for a "
+            "tagged name, so either leaves the document unsupported"
         ),
         "control_flow": (
-            "straight-line assignments, comprehensions, with-blocks, functions, "
-            "the __main__ guard, and recognized accumulation and row-building "
-            "loops; every other branch or loop leaves the document unsupported"
+            "straight-line assignments, comprehensions, the modelled with-block, "
+            "functions, the __main__ guard, and recognized accumulation and "
+            "row-building loops; every other statement type leaves the document "
+            "unsupported"
         ),
         "function_support": (
             "straight-line bodies whose first top-level return is the last "
-            "statement; positional and keyword call binding; local definitions "
-            "shadow the reader vocabulary and a rebound callable name is opaque "
-            "everywhere; depth-bounded with cycle detection"
+            "statement; positional and keyword call binding; parameters mask all "
+            "globals, so calling a parameter makes the helper opaque; a body may "
+            "reference only its own parameters, safe builtins, the import table, and "
+            "other module functions, and referencing a tagged row set is unsupported; "
+            "a duplicated or non-call-position name is opaque everywhere and any call "
+            "to it is unsupported; depth-bounded with cycle detection"
         ),
         "assignment_support": (
             "single-name assignment only; names bound to one another share an "
-            "invalidation group, and any other assignment form touching a "
-            "tagged name leaves the document unsupported"
+            "alias group; every other assignment form leaves the document unsupported"
         ),
         "report_reachability": (
-            "a write whose receiver resolves to a filesystem path, or a return "
-            "from a function some reachable caller calls"
+            "a write whose receiver resolves to a filesystem path under "
+            "last-binding-wins path tracking, or a return, and either only from a "
+            "function reachable code actually calls; reachability excludes and never "
+            "selects, and orientation readings collected module-wide must agree "
+            "unless every disagreeing reading is provably dead"
+        ),
+        "parse_guard": (
+            "RecursionError and MemoryError raised while parsing or analysing a "
+            "source abstain as unsupported"
         ),
         "soundness": [
+            "default deny: unlisted statement and expression forms abstain",
             "direct is never a fallthrough",
             "unrecognized operand-path transforms abstain",
             "joint operand inversions compose to the direct reading only when proven",
-            "off-path inversions never classify",
+            "tagged row sets abstain outside their four permitted positions",
             "unrecognized report-reaching emission selectors abstain",
-            "aliased row sets share mutation invalidation",
-            "unhandled assignment forms touching tagged names abstain",
+            "an unrecognized staged-column comparison anywhere abstains",
             "guarded row-set rebinding abstains",
-            "report-reaching value linkage",
-            "conflicting classifications abstain",
+            "report-reaching value linkage with last-binding-wins path tracking",
+            "module-wide conflicting classifications abstain",
+            "opaque callables abstain instead of resolving to a body",
+            "the reader vocabulary requires a proven csv import",
             "bounded call depth with cycle abstention",
             "bounded expression-tracing depth",
+            "guarded parsing",
         ],
         "nomenclature_authority": "none",
     }
@@ -277,6 +381,8 @@ _UNRESOLVED = _Path(None)
 class _Classification:
     node: ast.AST
     state: str
+    reaching: bool = True
+    dead: bool = False
 
 
 @dataclass(frozen=True)
@@ -290,26 +396,49 @@ class FounderDataflowResolution:
     source_path: str | None
 
 
+@dataclass(frozen=True)
+class _ModuleModel:
+    """Everything about a module that the trace and the whitelist both need."""
+
+    imports: dict[str, str]
+    functions: dict[str, ast.FunctionDef]
+    opaque_callables: frozenset[str]
+    reachable_functions: frozenset[str]
+    dead_functions: frozenset[str]
+    write_call_ids: frozenset[int]
+    reaching: frozenset[str]
+    accumulated: frozenset[int]
+
+
 @dataclass
 class _TraceContext:
-    functions: dict[str, ast.FunctionDef]
-    opaque_callables: frozenset[str] = frozenset()
-    path_names: frozenset[str] = frozenset()
+    model: _ModuleModel
     accumulated: set[int] = field(default_factory=set)
     reaching: set[str] = field(default_factory=set)
     depth: int = 0
     expression_depth: int = 0
     visiting: set[str] = field(default_factory=set)
-    recognized_ids: set[int] = field(default_factory=set)
+    recognized_loops: set[int] = field(default_factory=set)
+    recognized_compares: set[int] = field(default_factory=set)
+    tagged_names: set[str] = field(default_factory=set)
     unresolved: bool = False
+
+    @property
+    def functions(self) -> dict[str, ast.FunctionDef]:
+        return self.model.functions
+
+    @property
+    def opaque_callables(self) -> frozenset[str]:
+        return self.model.opaque_callables
 
 
 class _Aliases:
     """Names that are known to reference one runtime row-set object.
 
-    A plain ``alias = rows`` binds two names to the same list, so mutating
-    either one invalidates the provenance of both. Groups are per scope and
-    are broken as soon as a member is rebound to something else.
+    A plain ``alias = rows`` binds two names to the same list. Mutation is no
+    longer modelled -- every syntactic route to mutating a tagged row set is
+    outside the whitelist -- but the groups still record which names denote
+    one panel, so the tagged-name position rules cover all of them.
     """
 
     def __init__(self, groups: dict[str, set[str]] | None = None) -> None:
@@ -342,6 +471,20 @@ class _Aliases:
 # The public resolver.
 
 
+def _guarded_parse(source: str, *, filename: str) -> ast.Module | None:
+    """Parse a source, or return ``None`` when parsing cannot complete.
+
+    A deeply nested but perfectly valid expression exhausts the interpreter
+    stack inside ``ast`` itself, and an enormous one exhausts memory. Either
+    is an abstention, never a crash.
+    """
+
+    try:
+        return ast.parse(source, filename=filename)
+    except (SyntaxError, ValueError, RecursionError, MemoryError):
+        return None
+
+
 def resolve_founder_orientation_dataflow(
     context: FrozenInspectionContext,
     *,
@@ -359,20 +502,25 @@ def resolve_founder_orientation_dataflow(
         ):
             continue
         try:
-            tree = ast.parse(document.content.decode("utf-8"), filename=document.path)
-        except (SyntaxError, UnicodeDecodeError):
+            source = document.content.decode("utf-8")
+        except UnicodeDecodeError:
+            parse_failure = True
+            continue
+        tree = _guarded_parse(source, filename=document.path)
+        if tree is None:
             parse_failure = True
             continue
         outcome = _document_orientations(tree)
-        unsupported = unsupported or outcome["unsupported"]
+        unsupported = unsupported or bool(outcome["unsupported"])
         classifications.extend((document, item) for item in outcome["classifications"])
     states = sorted({item.state for _, item in classifications})
+    if unsupported or parse_failure:
+        # A resolved comparison next to an unreadable transform or an
+        # untraceable statement could be rebound by it; abstain rather than
+        # guess.
+        return FounderDataflowResolution("unsupported", None, None, (), None)
     if len(states) > 1:
         return FounderDataflowResolution("ambiguous", None, None, (), None)
-    if unsupported or parse_failure:
-        # A resolved comparison next to an unreadable transform or untraceable
-        # control flow could be rebound by it; abstain rather than guess.
-        return FounderDataflowResolution("unsupported", None, None, (), None)
     if not classifications:
         return FounderDataflowResolution("none", None, None, (), None)
     orientation = states[0]
@@ -409,17 +557,27 @@ def _python_parser_supported(
 def _document_orientations(tree: ast.Module) -> dict[str, Any]:
     """Trace report-reaching emission comparisons across module and function scopes."""
 
-    functions: dict[str, ast.FunctionDef] = {
-        node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)
-    }
-    called = _called_function_names(tree, functions)
-    path_names = _path_like_names(tree)
+    try:
+        return _document_orientations_inner(tree)
+    except (RecursionError, MemoryError):
+        # A source too deep or too large for the analysis abstains; it never
+        # crashes the inspection.
+        return {"classifications": [], "unsupported": True}
+
+
+def _document_orientations_inner(tree: ast.Module) -> dict[str, Any]:
+    if any(isinstance(node, ast.NamedExpr) for node in ast.walk(tree)):
+        # A walrus binds a name from inside an arbitrary expression. The
+        # environment cannot follow that, and tying the check to assignment
+        # handling is how ``print(rows := panel)`` escaped in v2.0.1, so the
+        # scan is over every statement's complete subtree.
+        return {"classifications": [], "unsupported": True}
+
+    model = _module_model(tree)
     ctx = _TraceContext(
-        functions=functions,
-        opaque_callables=frozenset(_rebound_names(tree) & set(functions)),
-        path_names=path_names,
-        accumulated=_accumulated_comprehension_ids(tree),
-        reaching=_report_reaching_names(tree, functions, path_names, called),
+        model=model,
+        accumulated=set(model.accumulated),
+        reaching=set(model.reaching),
     )
     classifications: list[_Classification] = []
 
@@ -432,8 +590,9 @@ def _document_orientations(tree: ast.Module) -> dict[str, Any]:
         ctx,
         classifications,
         returns_reach=False,
+        dead=False,
     )
-    for function in functions.values():
+    for function in model.functions.values():
         # Function bodies are scanned with parameters masked, so a module
         # global can never stand in for an unbound parameter.
         env: dict[str, _Value] = dict(module_env)
@@ -451,13 +610,40 @@ def _document_orientations(tree: ast.Module) -> dict[str, Any]:
             aliases,
             ctx,
             classifications,
-            returns_reach=function.name in called,
+            returns_reach=function.name in model.reachable_functions,
+            dead=function.name in model.dead_functions,
         )
 
+    unsupported = (
+        ctx.unresolved
+        or _whitelist_violation(tree, ctx)
+        or _tagged_name_escape(tree, ctx)
+        or _emission_scan_violation(tree, ctx)
+    )
+    if unsupported:
+        return {"classifications": [], "unsupported": True}
     return {
-        "classifications": classifications,
-        "unsupported": ctx.unresolved or _has_unsupported_flow(tree, ctx.recognized_ids),
+        "classifications": _resolving_classifications(classifications),
+        "unsupported": False,
     }
+
+
+def _resolving_classifications(classifications: list[_Classification]) -> list[_Classification]:
+    """The readings that decide, or every live reading when they disagree.
+
+    Reachability excludes and never selects: a reading that cannot reach the
+    written report never answers on its own, but it still counts against a
+    reading that does, unless it sits in a function with no occurrence
+    besides its own definition and is therefore provably dead.
+    """
+
+    live = [item for item in classifications if not item.dead]
+    resolving = [item for item in live if item.reaching]
+    if not resolving:
+        return []
+    if len({item.state for item in live}) > 1:
+        return live
+    return resolving
 
 
 def _scan_scope(
@@ -468,18 +654,17 @@ def _scan_scope(
     classifications: list[_Classification],
     *,
     returns_reach: bool,
+    dead: bool,
 ) -> None:
     for statement in _flatten_statements(statements):
-        if _apply_recognized_loop(statement, env, ctx, classifications):
+        if _apply_recognized_loop(statement, env, ctx, classifications, dead=dead):
             continue
-        if _statement_reaches(statement, ctx, returns_reach=returns_reach):
-            for node in _walk_skipping_lambdas(statement):
-                if (
-                    isinstance(node, ast.ListComp | ast.GeneratorExp)
-                    and id(node) in ctx.accumulated
-                ):
-                    _classify_comprehension(node, env, ctx, classifications)
-        _invalidate_mutations(statement, env, aliases)
+        reaching = _statement_reaches(statement, ctx, returns_reach=returns_reach)
+        for node in _walk_skipping_lambdas(statement):
+            if isinstance(node, ast.ListComp | ast.GeneratorExp) and id(node) in ctx.accumulated:
+                _classify_comprehension(
+                    node, env, ctx, classifications, reaching=reaching, dead=dead
+                )
         _apply_assign(statement, env, aliases, ctx)
 
 
@@ -490,7 +675,9 @@ def _statement_reaches(statement: ast.stmt, ctx: _TraceContext, *, returns_reach
         and isinstance(statement.targets[0], ast.Name)
     ):
         return statement.targets[0].id in ctx.reaching
-    if isinstance(statement, ast.Expr) and _write_payloads(statement.value, ctx.path_names):
+    if isinstance(statement, ast.Expr) and _write_payloads(
+        statement.value, ctx.model.write_call_ids
+    ):
         return True
     return returns_reach and isinstance(statement, ast.Return)
 
@@ -498,24 +685,6 @@ def _statement_reaches(statement: ast.stmt, ctx: _TraceContext, *, returns_reach
 def _bind(name: str, value: _Value, env: dict[str, _Value], aliases: _Aliases) -> None:
     aliases.detach(name)
     env[name] = value
-
-
-def _invalidate_group(name: str, env: dict[str, _Value], aliases: _Aliases) -> None:
-    for member in aliases.group(name):
-        env[member] = _OPAQUE
-
-
-def _tagged(name: str, env: dict[str, _Value], aliases: _Aliases) -> bool:
-    return any(isinstance(env.get(member), _Rows) for member in aliases.group(name))
-
-
-def _statement_touches_tagged(
-    statement: ast.stmt, env: dict[str, _Value], aliases: _Aliases
-) -> bool:
-    return any(
-        isinstance(node, ast.Name) and _tagged(node.id, env, aliases)
-        for node in ast.walk(statement)
-    )
 
 
 def _target_names(target: ast.expr) -> set[str]:
@@ -529,83 +698,39 @@ def _target_names(target: ast.expr) -> set[str]:
 def _apply_assign(
     statement: ast.stmt, env: dict[str, _Value], aliases: _Aliases, ctx: _TraceContext
 ) -> None:
-    """Update the environment for one assignment, or abstain for the document.
+    """Update the environment for one assignment.
 
-    Only a single ``Name`` target is modelled exactly. Every other assignment
-    form -- tuple or starred targets, chained targets, subscript and slice
-    targets, annotated targets, augmented assignment, and the walrus operator
-    -- leaves the document unsupported as soon as it touches a name whose row
-    provenance is tagged, because the environment cannot follow it.
+    Only a single ``Name`` target is modelled. Every other assignment form is
+    outside the whitelist and the document is already unsupported by the time
+    this runs; the environment still drops the names it cannot follow so no
+    stale provenance survives.
     """
 
     if not isinstance(statement, ast.Assign | ast.AugAssign | ast.AnnAssign):
         return
-    walrus = any(isinstance(node, ast.NamedExpr) for node in ast.walk(statement))
     simple = (
         isinstance(statement, ast.Assign)
         and len(statement.targets) == 1
         and isinstance(statement.targets[0], ast.Name)
-        and not walrus
     )
     if not simple:
-        if _statement_touches_tagged(statement, env, aliases):
-            ctx.unresolved = True
         targets: list[ast.expr] = (
             list(statement.targets) if isinstance(statement, ast.Assign) else [statement.target]
         )
         for target in targets:
             for name in _target_names(target):
-                _invalidate_group(name, env, aliases)
                 _bind(name, _OPAQUE, env, aliases)
         return
     assert isinstance(statement, ast.Assign)
     target = statement.targets[0]
     assert isinstance(target, ast.Name)
-    if _is_row_set_conditional(statement.value, env, ctx):
-        # A branch decides at run time which panel the name holds; no static
-        # reading of the guard settles it.
-        ctx.unresolved = True
-        _bind(target.id, _OPAQUE, env, aliases)
-        return
     value = _tag(statement.value, env, ctx)
     _bind(target.id, value, env, aliases)
+    if isinstance(value, _Rows):
+        ctx.tagged_names.add(target.id)
     if isinstance(statement.value, ast.Name) and isinstance(value, _Rows):
         aliases.link(target.id, statement.value.id)
-
-
-def _is_row_set_conditional(value: ast.expr, env: dict[str, _Value], ctx: _TraceContext) -> bool:
-    """A conditional expression choosing between row sets."""
-
-    if not isinstance(value, ast.IfExp):
-        return False
-    return isinstance(_tag(value.body, env, ctx), _Rows) or isinstance(
-        _tag(value.orelse, env, ctx), _Rows
-    )
-
-
-def _invalidate_mutations(statement: ast.stmt, env: dict[str, _Value], aliases: _Aliases) -> None:
-    """Drop provenance for row sets a statement mutates or deletes from.
-
-    Every name that aliases the mutated object loses its provenance too: the
-    runtime list is one object, and the syntactic receiver is only one of its
-    names.
-    """
-
-    for node in ast.walk(statement):
-        if (
-            isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and isinstance(node.func.value, ast.Name)
-            and node.func.attr in _MUTATING_METHODS
-        ):
-            _invalidate_group(node.func.value.id, env, aliases)
-        elif isinstance(node, ast.Delete):
-            for item in node.targets:
-                inner: ast.expr = item
-                while isinstance(inner, ast.Subscript):
-                    inner = inner.value
-                if isinstance(inner, ast.Name):
-                    _invalidate_group(inner.id, env, aliases)
+        ctx.tagged_names.update(aliases.group(target.id))
 
 
 # ---------------------------------------------------------------------------
@@ -617,6 +742,9 @@ def _classify_comprehension(
     env: dict[str, _Value],
     ctx: _TraceContext,
     classifications: list[_Classification],
+    *,
+    reaching: bool,
+    dead: bool,
 ) -> None:
     if len(node.generators) != 1:
         return
@@ -629,7 +757,16 @@ def _classify_comprehension(
     if not selectors:
         return
     for compare in selectors:
-        _classify_compare(compare, generator.target.id, source, env, ctx, classifications)
+        _classify_compare(
+            compare,
+            generator.target.id,
+            source,
+            env,
+            ctx,
+            classifications,
+            reaching=reaching,
+            dead=dead,
+        )
 
 
 def _flag_unrecognized_selectors(
@@ -641,11 +778,11 @@ def _flag_unrecognized_selectors(
 ) -> None:
     """Abstain for the document when an emission-like selector is unreadable.
 
-    A report-reaching accumulation whose element compares two staged columns
-    is an emission selector whatever it selects between. If this library
-    cannot read the selected values, skipping the accumulation would let a
-    recognized comparison elsewhere -- a match count over a different panel,
-    say -- answer in its place.
+    An accumulation whose element compares two staged columns is an emission
+    selector whatever it selects between. If this library cannot read the
+    selected values, skipping the accumulation would let a recognized
+    comparison elsewhere -- a match count over a different panel, say --
+    answer in its place.
     """
 
     recognized = {id(item) for item in selectors}
@@ -679,6 +816,9 @@ def _classify_compare(
     env: dict[str, _Value],
     ctx: _TraceContext,
     classifications: list[_Classification],
+    *,
+    reaching: bool,
+    dead: bool,
 ) -> None:
     if len(compare.ops) != 1 or not isinstance(compare.ops[0], ast.Eq | ast.NotEq):
         return
@@ -703,9 +843,18 @@ def _classify_compare(
         return
     if left_source[0] == right_source[0]:
         # A column compared with itself carries no cross-panel orientation.
+        ctx.recognized_compares.add(id(compare))
         return
     parity = (left.parity + left_source[1] + right.parity + right_source[1]) % 2
-    classifications.append(_Classification(node=compare, state=_REPAIRED if parity else _DIRECT))
+    ctx.recognized_compares.add(id(compare))
+    classifications.append(
+        _Classification(
+            node=compare,
+            state=_REPAIRED if parity else _DIRECT,
+            reaching=reaching,
+            dead=dead,
+        )
+    )
 
 
 def _selector_comparisons(element: ast.expr) -> list[ast.Compare]:
@@ -740,14 +889,6 @@ def _two_element_numeric_container(node: ast.expr) -> bool:
         and len(node.elts) == 2
         and all(_numeric_like(item) for item in node.elts)
     )
-
-
-_EXACT_NUMERIC_CALLS = {
-    "Fraction",
-    "fractions.Fraction",
-    "Decimal",
-    "decimal.Decimal",
-}
 
 
 def _numeric_like(node: ast.expr, depth: int = 0) -> bool:
@@ -913,8 +1054,8 @@ def _call_parity(
 ) -> _Path | None:
     name = _call_name(call)
     if name in ctx.opaque_callables:
-        # The name is rebound somewhere in the module, so which body runs here
-        # is a runtime question.
+        # The name is rebound or escapes call position somewhere in the
+        # module, so which body runs here is a runtime question.
         return None
     if (
         isinstance(call.func, ast.Attribute)
@@ -929,11 +1070,10 @@ def _call_parity(
         name in _IDENTITY_CASTS
         and len(call.args) == 1
         and not call.keywords
-        and name not in env
-        and name not in ctx.functions
+        and _is_builtin_name(name, ctx)
     ):
         return _column_parity(call.args[0], loop_var=loop_var, carriers=carriers, env=env, ctx=ctx)
-    if name == "abs" and len(call.args) == 1 and not call.keywords and "abs" not in ctx.functions:
+    if name == "abs" and len(call.args) == 1 and not call.keywords and _is_builtin_name("abs", ctx):
         inner = call.args[0]
         if isinstance(inner, ast.BinOp) and isinstance(inner.op, ast.Sub):
             for one, other in ((inner.right, inner.left), (inner.left, inner.right)):
@@ -948,6 +1088,12 @@ def _call_parity(
     if name in ctx.functions:
         return _helper_parity(ctx.functions[name], call, loop_var, carriers, env, ctx)
     return None
+
+
+def _is_builtin_name(name: str, ctx: _TraceContext) -> bool:
+    """Whether a builtin name still means the builtin in this module."""
+
+    return name not in ctx.functions and name not in ctx.model.imports
 
 
 def _helper_parity(
@@ -1036,7 +1182,7 @@ def _helper_parity(
 
 
 def _straight_line_helper(function: ast.FunctionDef) -> bool:
-    """A helper body free of walrus bindings and side-effecting statements."""
+    """A helper body of assignments and one closing return, with no side effects."""
 
     for node in ast.walk(function):
         if isinstance(node, ast.NamedExpr):
@@ -1045,6 +1191,8 @@ def _straight_line_helper(function: ast.FunctionDef) -> bool:
         if isinstance(statement, ast.Expr) and not isinstance(statement.value, ast.Constant):
             # A bare expression statement exists for its side effect; only a
             # docstring is inert.
+            return False
+        if not isinstance(statement, ast.Assign | ast.Return | ast.Pass | ast.Expr):
             return False
     return True
 
@@ -1202,14 +1350,19 @@ def _tag_call(node: ast.Call, env: dict[str, _Value], ctx: _TraceContext) -> _Va
         # A project definition shadows the reader vocabulary; its body, not
         # its name, says what it returns.
         return _bound_return_value(ctx.functions[name], node, env, ctx)
-    if name in _READER_CALLS:
+    if _is_reader_call(node, ctx.model):
         return _Rows(iterator=True)
-    if name == "list" and len(node.args) == 1 and not node.keywords:
+    if (
+        name == "list"
+        and len(node.args) == 1
+        and not node.keywords
+        and _is_builtin_name("list", ctx)
+    ):
         inner = _tag(node.args[0], env, ctx)
         if isinstance(inner, _Rows):
             return _Rows(inner.overrides, inner.default_identity, iterator=False)
         return _OPAQUE
-    if name in _ACCUMULATOR_CALLS or name in {"len"}:
+    if name in _ACCUMULATOR_CALLS or name == "len":
         return _Scalar()
     if name in _IDENTITY_CASTS and len(node.args) == 1 and not node.keywords:
         inner = _tag(node.args[0], env, ctx)
@@ -1244,7 +1397,9 @@ def _row_element_value(
     the spread's value for ``founder`` and ``{**row, "founder": ...}`` keeps
     the explicit one. Entries are therefore applied strictly left to right,
     and a later spread overwrites an earlier explicit key with whatever that
-    spread carries -- opaque when the spread's own contents do not say.
+    spread carries -- opaque when the spread's own contents do not say. An
+    entry that evaluates a call outside the recode vocabulary is outside the
+    whitelist entirely, so no evaluation-order side effect can hide here.
     """
 
     if isinstance(element, ast.Name) and element.id == loop_var:
@@ -1340,9 +1495,6 @@ def _bound_return_value(
                 if statement.value is None or index != len(statements) - 1:
                     return _OPAQUE
                 return _tag(statement.value, callee_env, ctx)
-            if _apply_recognized_loop(statement, callee_env, ctx, []):
-                continue
-            _invalidate_mutations(statement, callee_env, callee_aliases)
             _apply_assign(statement, callee_env, callee_aliases, ctx)
         return _OPAQUE
     finally:
@@ -1351,7 +1503,7 @@ def _bound_return_value(
 
 
 # ---------------------------------------------------------------------------
-# Recognized loops and guarded repairs.
+# Recognized loops.
 
 
 def _apply_recognized_loop(
@@ -1359,6 +1511,8 @@ def _apply_recognized_loop(
     env: dict[str, _Value],
     ctx: _TraceContext,
     classifications: list[_Classification],
+    *,
+    dead: bool,
 ) -> bool:
     if not isinstance(statement, ast.For) or statement.orelse:
         return False
@@ -1368,10 +1522,10 @@ def _apply_recognized_loop(
     if not isinstance(source, _Rows):
         return False
     if _apply_row_building_loop(statement, source, env, ctx):
-        _mark_recognized(statement, ctx)
+        ctx.recognized_loops.add(id(statement))
         return True
-    if _apply_accumulation_loop(statement, source, env, ctx, classifications):
-        _mark_recognized(statement, ctx)
+    if _apply_accumulation_loop(statement, source, env, ctx, classifications, dead=dead):
+        ctx.recognized_loops.add(id(statement))
         return True
     return False
 
@@ -1409,6 +1563,7 @@ def _apply_row_building_loop(
         if not isinstance(value, _Rows):
             return False
         env[name] = value
+        ctx.tagged_names.add(name)
     return True
 
 
@@ -1418,6 +1573,8 @@ def _apply_accumulation_loop(
     env: dict[str, _Value],
     ctx: _TraceContext,
     classifications: list[_Classification],
+    *,
+    dead: bool,
 ) -> bool:
     """``for row in rows: total = total * <selector>`` and its augmented form."""
 
@@ -1453,20 +1610,617 @@ def _apply_accumulation_loop(
         return False
     if not targets or any(not isinstance(env.get(name), _Scalar) for name in targets):
         return False
-    if targets & ctx.reaching:
-        for payload in payloads:
-            selectors = _selector_comparisons(payload)
-            _flag_unrecognized_selectors(payload, selectors, loop.target.id, env, ctx)
-            for compare in selectors:
-                _classify_compare(compare, loop.target.id, source, env, ctx, classifications)
+    reaching = bool(targets & ctx.reaching)
+    for payload in payloads:
+        selectors = _selector_comparisons(payload)
+        _flag_unrecognized_selectors(payload, selectors, loop.target.id, env, ctx)
+        for compare in selectors:
+            _classify_compare(
+                compare,
+                loop.target.id,
+                source,
+                env,
+                ctx,
+                classifications,
+                reaching=reaching,
+                dead=dead,
+            )
     for name in targets:
         env[name] = _Scalar()
     return True
 
 
-def _mark_recognized(statement: ast.stmt, ctx: _TraceContext) -> None:
-    for node in ast.walk(statement):
-        ctx.recognized_ids.add(id(node))
+# ---------------------------------------------------------------------------
+# The module model: imports, callables, reachability.
+
+
+def _module_model(tree: ast.Module) -> _ModuleModel:
+    imports = _import_table(tree)
+    functions: dict[str, ast.FunctionDef] = {}
+    definitions: Counter[str] = Counter()
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef):
+            functions[node.name] = node
+            definitions[node.name] += 1
+    escaping, occurrences = _name_occurrences(tree)
+    opaque = {name for name in functions if definitions[name] > 1}
+    opaque |= escaping & set(functions)
+    opaque |= {name for name, function in functions.items() if _calls_a_parameter(function)}
+    called = _called_function_names(tree, functions)
+    reachable = frozenset(called | (escaping & set(functions)))
+    dead = frozenset(name for name in functions if occurrences[name] == 0)
+    write_call_ids = _report_write_call_ids(tree)
+    reaching = _report_reaching_names(tree, functions, write_call_ids, reachable)
+    return _ModuleModel(
+        imports=imports,
+        functions=functions,
+        opaque_callables=frozenset(opaque),
+        reachable_functions=reachable,
+        dead_functions=dead,
+        write_call_ids=write_call_ids,
+        reaching=frozenset(reaching),
+        accumulated=frozenset(_accumulated_comprehension_ids(tree)),
+    )
+
+
+def _import_table(tree: ast.Module) -> dict[str, str]:
+    """Local name to dotted origin for every import in the module."""
+
+    table: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.asname:
+                    table[alias.asname] = alias.name
+                else:
+                    root = alias.name.split(".")[0]
+                    table[root] = root
+        elif isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            for alias in node.names:
+                origin = f"{module}.{alias.name}" if module else alias.name
+                table[alias.asname or alias.name] = origin
+    return table
+
+
+def _name_occurrences(tree: ast.Module) -> tuple[set[str], Counter[str]]:
+    """Names used outside call position, and how often every name occurs.
+
+    The ``def`` itself contributes no ``Name`` node, so a count of zero means
+    a function nothing in the module ever mentions.
+    """
+
+    call_functions = {id(node.func) for node in ast.walk(tree) if isinstance(node, ast.Call)}
+    escaping: set[str] = set()
+    occurrences: Counter[str] = Counter()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name):
+            occurrences[node.id] += 1
+            if id(node) not in call_functions:
+                escaping.add(node.id)
+    return escaping, occurrences
+
+
+def _parameter_names(function: ast.FunctionDef) -> set[str]:
+    names = {
+        item.arg
+        for item in (
+            *function.args.posonlyargs,
+            *function.args.args,
+            *function.args.kwonlyargs,
+        )
+    }
+    if function.args.vararg is not None:
+        names.add(function.args.vararg.arg)
+    if function.args.kwarg is not None:
+        names.add(function.args.kwarg.arg)
+    return names
+
+
+def _calls_a_parameter(function: ast.FunctionDef) -> bool:
+    """Whether the body calls one of its own parameters.
+
+    Parameters mask every global, so which body such a call runs is decided
+    by the caller's argument, not by any definition this trace can read.
+    """
+
+    parameters = _parameter_names(function)
+    for node in ast.walk(function):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            if node.func.id in parameters:
+                return True
+    return False
+
+
+def _function_local_names(function: ast.FunctionDef) -> set[str]:
+    names = _parameter_names(function)
+    for node in ast.walk(function):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                names |= _target_names(target)
+        elif isinstance(node, ast.AugAssign | ast.AnnAssign):
+            names |= _target_names(node.target)
+        elif isinstance(node, ast.For | ast.AsyncFor):
+            names |= _target_names(node.target)
+        elif isinstance(node, ast.comprehension):
+            names |= _target_names(node.target)
+        elif isinstance(node, ast.withitem) and node.optional_vars is not None:
+            names |= _target_names(node.optional_vars)
+        elif isinstance(node, ast.Lambda):
+            names |= _parameter_names(node)  # type: ignore[arg-type]
+        elif isinstance(node, ast.FunctionDef) and node is not function:
+            names.add(node.name)
+    return names
+
+
+def _is_reader_call(call: ast.Call, model: _ModuleModel) -> bool:
+    """Whether a call provably resolves to a ``csv`` row reader.
+
+    An imported ``reader`` from any other module is an ordinary opaque
+    callable; only the import table can promote a name into this vocabulary.
+    """
+
+    func = call.func
+    if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+        return (
+            func.value.id not in model.functions
+            and model.imports.get(func.value.id) == "csv"
+            and func.attr in _READER_ATTRIBUTES
+        )
+    if isinstance(func, ast.Name):
+        return func.id not in model.functions and model.imports.get(func.id) in _READER_ORIGINS
+    return False
+
+
+# ---------------------------------------------------------------------------
+# The whitelist.
+
+
+def _whitelist_violation(tree: ast.Module, ctx: _TraceContext) -> bool:
+    """Whether any statement or expression sits outside the modelled forms."""
+
+    for statement in tree.body:
+        if isinstance(statement, ast.FunctionDef):
+            if _function_violation(statement, ctx):
+                return True
+            continue
+        if _statement_violation(statement, ctx, scope="module"):
+            return True
+    return False
+
+
+def _function_violation(function: ast.FunctionDef, ctx: _TraceContext) -> bool:
+    if function.decorator_list:
+        return True
+    # Default expressions are evaluated once at definition time and are not
+    # part of the modelled call binding, so only constants are admitted.
+    defaults = [*function.args.defaults, *[item for item in function.args.kw_defaults if item]]
+    if any(not isinstance(item, ast.Constant) for item in defaults):
+        return True
+    tagged = ctx.tagged_names
+    locals_ = _function_local_names(function)
+    for node in ast.walk(function):
+        if isinstance(node, ast.Name) and node.id in tagged and node.id not in locals_:
+            # Closures may not see tagged globals: the panel a body reads is
+            # whatever the module bound by the time the call ran.
+            return True
+    for statement in function.body:
+        if _statement_violation(statement, ctx, scope="function"):
+            return True
+    return False
+
+
+def _statement_violation(statement: ast.stmt, ctx: _TraceContext, *, scope: str) -> bool:
+    if isinstance(statement, ast.Import | ast.ImportFrom):
+        return scope != "module"
+    if isinstance(statement, ast.Pass):
+        return False
+    if isinstance(statement, ast.Assign):
+        if len(statement.targets) != 1 or not isinstance(statement.targets[0], ast.Name):
+            return True
+        return _expression_violation(statement.value, ctx)
+    if isinstance(statement, ast.Return):
+        if scope != "function":
+            return True
+        return statement.value is not None and _expression_violation(statement.value, ctx)
+    if isinstance(statement, ast.Expr):
+        return _expression_statement_violation(statement, ctx)
+    if isinstance(statement, ast.With):
+        for item in statement.items:
+            if not _is_modelled_context(item.context_expr, ctx):
+                return True
+            if item.optional_vars is not None and not isinstance(item.optional_vars, ast.Name):
+                return True
+        return any(_statement_violation(inner, ctx, scope=scope) for inner in statement.body)
+    if isinstance(statement, ast.If):
+        if not _is_main_guard(statement) or statement.orelse:
+            return True
+        return any(_statement_violation(inner, ctx, scope=scope) for inner in statement.body)
+    if isinstance(statement, ast.For):
+        if id(statement) not in ctx.recognized_loops:
+            return True
+        if not isinstance(statement.iter, ast.Name):
+            return True
+        return False
+    # Every other statement type -- match, try, while, class, delete, global,
+    # nonlocal, raise, assert, every async form, and nested definitions -- is
+    # outside the whitelist whatever names it mentions.
+    return True
+
+
+def _is_modelled_context(node: ast.expr, ctx: _TraceContext) -> bool:
+    """The ``open()``-as pattern, the only context manager this trace models."""
+
+    if not isinstance(node, ast.Call):
+        return False
+    if isinstance(node.func, ast.Name) and node.func.id == "open" and _is_builtin_name("open", ctx):
+        return True
+    return isinstance(node.func, ast.Attribute) and node.func.attr == "open"
+
+
+def _expression_statement_violation(statement: ast.Expr, ctx: _TraceContext) -> bool:
+    value = statement.value
+    if isinstance(value, ast.Constant):
+        # A docstring is inert.
+        return False
+    if isinstance(value, ast.Call) and id(value) in ctx.model.write_call_ids:
+        return _expression_violation(value, ctx)
+    if isinstance(value, ast.Call) and _is_print_read(value, ctx):
+        return False
+    if (
+        isinstance(value, ast.Call)
+        and _call_name(value) in ctx.model.functions
+        and _call_name(value) not in ctx.model.opaque_callables
+    ):
+        # A bare call to a whitelisted module function, the shape the
+        # ``__main__`` guard exists to hold. Such a call cannot change
+        # anything the trace models: a body may not reference a tagged row
+        # set, may not receive one as an argument, and rebinds only its own
+        # locals, because ``global`` and ``nonlocal`` are unsupported
+        # statements and every side-effecting statement form is too.
+        return _expression_violation(value, ctx)
+    return True
+
+
+def _is_print_read(call: ast.Call, ctx: _TraceContext) -> bool:
+    """``print`` over names, constants, f-strings, and ``str``/``repr`` of names."""
+
+    if not (isinstance(call.func, ast.Name) and call.func.id == "print"):
+        return False
+    if not _is_builtin_name("print", ctx) or call.keywords:
+        return False
+    return all(_print_argument(item) for item in call.args)
+
+
+def _print_argument(node: ast.expr, depth: int = 0) -> bool:
+    if depth >= _MAX_EXPRESSION_DEPTH:
+        return False
+    if isinstance(node, ast.Name | ast.Constant):
+        return True
+    if isinstance(node, ast.JoinedStr):
+        return all(_print_argument(item, depth + 1) for item in node.values)
+    if isinstance(node, ast.FormattedValue):
+        return _print_argument(node.value, depth + 1) and (
+            node.format_spec is None or _print_argument(node.format_spec, depth + 1)
+        )
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add | ast.Mod):
+        return _print_argument(node.left, depth + 1) and _print_argument(node.right, depth + 1)
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in {"str", "repr"}
+        and len(node.args) == 1
+        and not node.keywords
+    ):
+        return isinstance(node.args[0], ast.Name)
+    return False
+
+
+def _expression_violation(
+    node: ast.expr, ctx: _TraceContext, *, in_literal: bool = False, depth: int = 0
+) -> bool:
+    """Whether an expression sits outside the readable forms.
+
+    ``in_literal`` marks the inside of a container literal, where a row is
+    rebuilt and any evaluated call could mutate the row being read; only the
+    recode and extraction vocabulary survives there.
+    """
+
+    if depth >= _MAX_EXPRESSION_DEPTH:
+        return True
+
+    def _recurse(*children: ast.expr | None, literal: bool = in_literal) -> bool:
+        return any(
+            _expression_violation(child, ctx, in_literal=literal, depth=depth + 1)
+            for child in children
+            if child is not None
+        )
+
+    if isinstance(node, ast.Name | ast.Constant):
+        return False
+    if isinstance(node, ast.JoinedStr):
+        return _recurse(*node.values)
+    if isinstance(node, ast.FormattedValue):
+        return _recurse(node.value, node.format_spec)
+    if isinstance(node, ast.BinOp):
+        return _recurse(node.left, node.right)
+    if isinstance(node, ast.UnaryOp):
+        return _recurse(node.operand)
+    if isinstance(node, ast.BoolOp):
+        return _recurse(*node.values)
+    if isinstance(node, ast.Compare):
+        return _recurse(node.left, *node.comparators)
+    if isinstance(node, ast.IfExp):
+        return _recurse(node.test, node.body, node.orelse)
+    if isinstance(node, ast.Subscript):
+        return _recurse(node.value, node.slice)
+    if isinstance(node, ast.Slice):
+        return _recurse(node.lower, node.upper, node.step)
+    if isinstance(node, ast.Attribute):
+        return _recurse(node.value)
+    if isinstance(node, ast.Dict):
+        for key in node.keys:
+            if key is None:
+                continue
+            if not isinstance(key, ast.Constant):
+                return True
+        return _recurse(
+            *[item for item in node.keys if item is not None], literal=True
+        ) or _recurse(*node.values, literal=True)
+    if isinstance(node, ast.List | ast.Tuple | ast.Set):
+        return _recurse(*node.elts, literal=True)
+    if isinstance(node, ast.ListComp | ast.SetComp | ast.GeneratorExp):
+        return _comprehension_violation(node, node.elt, None, ctx, depth)
+    if isinstance(node, ast.DictComp):
+        return _comprehension_violation(node, node.key, node.value, ctx, depth)
+    if isinstance(node, ast.Call):
+        return _call_violation(node, ctx, in_literal=in_literal, depth=depth)
+    return True
+
+
+def _comprehension_violation(
+    node: ast.expr,
+    element: ast.expr,
+    second: ast.expr | None,
+    ctx: _TraceContext,
+    depth: int,
+) -> bool:
+    generators = getattr(node, "generators", [])
+    if len(generators) != 1:
+        return True
+    generator = generators[0]
+    if generator.is_async or not isinstance(generator.target, ast.Name):
+        return True
+    iterable = generator.iter
+    if not (
+        isinstance(iterable, ast.Name)
+        or (isinstance(iterable, ast.Call) and _is_reader_call(iterable, ctx.model))
+        or (
+            isinstance(iterable, ast.Call)
+            and _call_name(iterable) == "list"
+            and len(iterable.args) == 1
+            and isinstance(iterable.args[0], ast.Call)
+            and _is_reader_call(iterable.args[0], ctx.model)
+        )
+    ):
+        return True
+    children = [element, *([second] if second is not None else []), *generator.ifs]
+    return any(_expression_violation(item, ctx, depth=depth + 1) for item in children)
+
+
+def _call_violation(call: ast.Call, ctx: _TraceContext, *, in_literal: bool, depth: int) -> bool:
+    name = _call_name(call)
+    model = ctx.model
+    if name in model.opaque_callables:
+        # A duplicated definition, an escaping callable name, a helper that
+        # calls one of its own parameters, or a body reading state this trace
+        # never saw: which code runs here is a runtime question.
+        return True
+    arguments = [*call.args, *[item.value for item in call.keywords]]
+    if any(isinstance(item, ast.Starred) for item in call.args):
+        return True
+    if any(item.arg is None for item in call.keywords):
+        return True
+    recognized = _recognized_call(call, ctx)
+    if in_literal and not _container_value_call(call, ctx):
+        return True
+    if not recognized:
+        if _references_tagged(call, ctx):
+            return True
+        if isinstance(call.func, ast.Name) and call.func.id in model.imports:
+            # Every imported name outside the recognized vocabulary is an
+            # opaque callable.
+            return True
+        if (
+            isinstance(call.func, ast.Attribute)
+            and isinstance(call.func.value, ast.Name)
+            and call.func.value.id in model.imports
+        ):
+            return True
+        return False
+    return any(
+        _expression_violation(item, ctx, in_literal=False, depth=depth + 1) for item in arguments
+    ) or (
+        isinstance(call.func, ast.Attribute)
+        and _expression_violation(call.func.value, ctx, in_literal=False, depth=depth + 1)
+    )
+
+
+def _recognized_call(call: ast.Call, ctx: _TraceContext) -> bool:
+    name = _call_name(call)
+    model = ctx.model
+    if _is_reader_call(call, model):
+        return True
+    if name in model.functions:
+        return True
+    if name in _PATH_CALLS or name in _EXACT_NUMERIC_CALLS:
+        return True
+    if name in _ACCUMULATOR_CALLS or name in _IDENTITY_CASTS or name in {"len", "list", "abs"}:
+        return True
+    if name in {"open", "print", "repr", "round", "bool", "min", "max", "sorted", "range"}:
+        return True
+    if isinstance(call.func, ast.Attribute) and call.func.attr in (
+        _STRIP_METHODS | _WRITE_METHODS | {"open"}
+    ):
+        return True
+    return False
+
+
+def _container_value_call(call: ast.Call, ctx: _TraceContext) -> bool:
+    """The only calls admitted inside a container literal."""
+
+    name = _call_name(call)
+    if name in ctx.model.functions and name not in ctx.model.opaque_callables:
+        return True
+    if name in _CONTAINER_VALUE_CALLS:
+        return True
+    return (
+        isinstance(call.func, ast.Attribute)
+        and call.func.attr in _STRIP_METHODS
+        and not call.args
+        and not call.keywords
+    )
+
+
+def _references_tagged(node: ast.AST, ctx: _TraceContext) -> bool:
+    return any(
+        isinstance(inner, ast.Name) and inner.id in ctx.tagged_names for inner in ast.walk(node)
+    )
+
+
+# ---------------------------------------------------------------------------
+# The tagged-name position rule.
+
+
+def _tagged_name_escape(tree: ast.Module, ctx: _TraceContext) -> bool:
+    """Whether a tagged row set appears outside its four permitted positions."""
+
+    tagged = ctx.tagged_names
+    if not tagged:
+        return False
+    allowed = _permitted_tagged_positions(tree, ctx)
+    shadowed: set[int] = set()
+    for function in ctx.model.functions.values():
+        locals_ = _function_local_names(function)
+        for node in ast.walk(function):
+            if isinstance(node, ast.Name) and node.id in locals_:
+                shadowed.add(id(node))
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Name) or node.id not in tagged:
+            continue
+        if id(node) in allowed or id(node) in shadowed:
+            continue
+        return True
+    return False
+
+
+def _permitted_tagged_positions(tree: ast.Module, ctx: _TraceContext) -> set[int]:
+    allowed: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.comprehension):
+            if isinstance(node.iter, ast.Name):
+                allowed.add(id(node.iter))
+        elif isinstance(node, ast.For):
+            if id(node) not in ctx.recognized_loops:
+                continue
+            if isinstance(node.iter, ast.Name):
+                allowed.add(id(node.iter))
+            # The row-building loop is recognized as one whole shape, so the
+            # accumulator it appends into is a modelled position, not an
+            # unmodelled method receiver.
+            for inner in node.body:
+                if (
+                    isinstance(inner, ast.Expr)
+                    and isinstance(inner.value, ast.Call)
+                    and isinstance(inner.value.func, ast.Attribute)
+                    and inner.value.func.attr == "append"
+                    and isinstance(inner.value.func.value, ast.Name)
+                ):
+                    allowed.add(id(inner.value.func.value))
+        elif isinstance(node, ast.Call):
+            if (
+                isinstance(node.func, ast.Name)
+                and node.func.id == "len"
+                and len(node.args) == 1
+                and not node.keywords
+                and isinstance(node.args[0], ast.Name)
+            ):
+                allowed.add(id(node.args[0]))
+            if _is_print_read(node, ctx):
+                for inner in ast.walk(node):
+                    if isinstance(inner, ast.Name):
+                        allowed.add(id(inner))
+        elif isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target = node.targets[0]
+            if isinstance(target, ast.Name):
+                allowed.add(id(target))
+                if isinstance(node.value, ast.Name):
+                    allowed.add(id(node.value))
+    return allowed
+
+
+# ---------------------------------------------------------------------------
+# The emission scan belt.
+
+
+def _emission_scan_violation(tree: ast.Module, ctx: _TraceContext) -> bool:
+    """Whether any staged-column comparison anywhere went unrecognized.
+
+    This runs independently of the whitelist and of reachability. A document
+    that resolves must have read every comparison between two staged-column
+    extractions in it; one the trace never reached could be the emission the
+    report describes.
+    """
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Compare) or len(node.ops) != 1:
+            continue
+        if not isinstance(node.ops[0], ast.Eq | ast.NotEq):
+            continue
+        left = _staged_extraction(node.left)
+        right = _staged_extraction(node.comparators[0])
+        if left is None or right is None or left == right:
+            continue
+        if id(node) not in ctx.recognized_compares:
+            return True
+    return False
+
+
+def _staged_extraction(node: ast.expr, depth: int = 0) -> tuple[str, str] | None:
+    """The row name and column a column-reading expression extracts, if any."""
+
+    if depth >= _MAX_EXPRESSION_DEPTH:
+        return None
+    if (
+        isinstance(node, ast.Subscript)
+        and isinstance(node.value, ast.Name)
+        and isinstance(node.slice, ast.Constant)
+        and isinstance(node.slice.value, str)
+    ):
+        return (node.value.id, node.slice.value)
+    if isinstance(node, ast.Call):
+        if (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr in _STRIP_METHODS
+            and not node.args
+        ):
+            return _staged_extraction(node.func.value, depth + 1)
+        if len(node.args) == 1 and not node.keywords:
+            return _staged_extraction(node.args[0], depth + 1)
+        return None
+    if isinstance(node, ast.BinOp):
+        for side in (node.left, node.right):
+            found = _staged_extraction(side, depth + 1)
+            if found is not None:
+                return found
+        return None
+    if isinstance(node, ast.UnaryOp):
+        return _staged_extraction(node.operand, depth + 1)
+    if isinstance(node, ast.Subscript):
+        return _staged_extraction(node.slice, depth + 1)
+    if isinstance(node, ast.IfExp):
+        return _staged_extraction(node.test, depth + 1)
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -1524,8 +2278,8 @@ def _is_path_like(node: ast.expr, path_names: set[str], depth: int = 0) -> bool:
 
     A ``StringIO`` buffer also answers to ``write``, so a diagnostic string
     written into memory would otherwise look exactly like the published
-    report. Only a ``Path`` call chain, a name assigned from one, or an
-    ``open`` on one counts.
+    report. Only a ``Path`` call chain, a name currently bound from one, or
+    an ``open`` on one counts.
     """
 
     if depth >= _MAX_EXPRESSION_DEPTH:
@@ -1550,53 +2304,91 @@ def _is_path_like(node: ast.expr, path_names: set[str], depth: int = 0) -> bool:
     return False
 
 
-def _path_like_names(tree: ast.Module) -> frozenset[str]:
-    """Names bound, directly or transitively, to a filesystem path."""
+def _is_write_call(node: ast.AST) -> bool:
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in _WRITE_METHODS
+        and bool(node.args)
+    )
 
-    names: set[str] = set()
-    changed = True
-    while changed:
-        changed = False
-        for node in ast.walk(tree):
-            targets: list[ast.expr] = []
-            value: ast.expr | None = None
-            if isinstance(node, ast.Assign) and len(node.targets) == 1:
-                targets = [node.targets[0]]
-                value = node.value
-            elif isinstance(node, ast.AnnAssign) and node.value is not None:
-                targets = [node.target]
-                value = node.value
-            elif isinstance(node, ast.withitem) and node.optional_vars is not None:
-                targets = [node.optional_vars]
-                value = node.context_expr
-            if value is None:
+
+def _report_write_call_ids(tree: ast.Module) -> frozenset[int]:
+    """Write calls whose receiver is a filesystem path at that point in the module.
+
+    Path-likeness is tracked with last binding wins. ``sink = Path(...)``
+    followed by ``sink = io.StringIO()`` leaves ``sink`` an in-memory buffer,
+    and the write that follows publishes nothing.
+    """
+
+    write_ids: set[int] = set()
+    ever: set[str] = set()
+    broken: set[str] = set()
+
+    def _rebind(name: str, path_like: bool, names: set[str]) -> None:
+        if path_like:
+            names.add(name)
+            ever.add(name)
+        else:
+            names.discard(name)
+            broken.add(name)
+
+    def _scan(statements: list[ast.stmt], names: set[str]) -> None:
+        for statement in statements:
+            if isinstance(statement, ast.With | ast.AsyncWith):
+                for item in statement.items:
+                    if isinstance(item.optional_vars, ast.Name):
+                        _rebind(
+                            item.optional_vars.id,
+                            _is_path_like(item.context_expr, names),
+                            names,
+                        )
+                _scan(list(statement.body), names)
                 continue
-            for target in targets:
-                if not isinstance(target, ast.Name) or target.id in names:
-                    continue
-                if _is_path_like(value, names):
-                    names.add(target.id)
-                    changed = True
-    return frozenset(names)
+            if isinstance(statement, ast.If | ast.For | ast.While):
+                _scan(list(statement.body), names)
+                _scan(list(statement.orelse), names)
+                continue
+            for inner in ast.walk(statement):
+                if _is_write_call(inner):
+                    assert isinstance(inner, ast.Call)
+                    assert isinstance(inner.func, ast.Attribute)
+                    if _is_path_like(inner.func.value, names):
+                        write_ids.add(id(inner))
+            if (
+                isinstance(statement, ast.Assign)
+                and len(statement.targets) == 1
+                and isinstance(statement.targets[0], ast.Name)
+            ):
+                _rebind(
+                    statement.targets[0].id,
+                    _is_path_like(statement.value, names),
+                    names,
+                )
+            elif isinstance(statement, ast.AnnAssign) and isinstance(statement.target, ast.Name):
+                _rebind(
+                    statement.target.id,
+                    statement.value is not None and _is_path_like(statement.value, names),
+                    names,
+                )
+
+    module_names: set[str] = set()
+    _scan([item for item in tree.body if not isinstance(item, ast.FunctionDef)], module_names)
+    # A function body cannot be placed in the module's binding order, so it
+    # sees only the names that were path-like and never rebound to anything
+    # else.
+    stable = (module_names | ever) - broken
+    for function in (item for item in tree.body if isinstance(item, ast.FunctionDef)):
+        _scan(list(function.body), set(stable))
+    return frozenset(write_ids)
 
 
-def _rebound_names(tree: ast.Module) -> set[str]:
-    """Every name any binding form in the module can rebind."""
-
-    names: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Assign):
-            for target in node.targets:
-                names.update(_target_names(target))
-        elif isinstance(node, ast.AugAssign | ast.AnnAssign):
-            names.update(_target_names(node.target))
-        elif isinstance(node, ast.For | ast.AsyncFor):
-            names.update(_target_names(node.target))
-        elif isinstance(node, ast.NamedExpr):
-            names.update(_target_names(node.target))
-        elif isinstance(node, ast.withitem) and node.optional_vars is not None:
-            names.update(_target_names(node.optional_vars))
-    return names
+def _write_payloads(node: ast.AST, write_call_ids: frozenset[int]) -> list[ast.expr]:
+    payloads: list[ast.expr] = []
+    for inner in ast.walk(node):
+        if isinstance(inner, ast.Call) and id(inner) in write_call_ids:
+            payloads.append(inner.args[0])
+    return payloads
 
 
 def _called_function_names(
@@ -1605,7 +2397,8 @@ def _called_function_names(
     """Module-level functions some reachable caller actually calls.
 
     A return statement inside a function nobody calls never delivers a value
-    anywhere, so it cannot seed the report-reaching set.
+    anywhere, and neither does a write inside one, so neither seeds the
+    report-reaching set.
     """
 
     frontier: set[str] = set()
@@ -1627,25 +2420,11 @@ def _called_function_names(
     return frozenset(reached)
 
 
-def _write_payloads(node: ast.AST, path_names: frozenset[str] | set[str]) -> list[ast.expr]:
-    payloads: list[ast.expr] = []
-    for inner in ast.walk(node):
-        if (
-            isinstance(inner, ast.Call)
-            and isinstance(inner.func, ast.Attribute)
-            and inner.func.attr in _WRITE_METHODS
-            and inner.args
-            and _is_path_like(inner.func.value, set(path_names))
-        ):
-            payloads.append(inner.args[0])
-    return payloads
-
-
 def _report_reaching_names(
     tree: ast.Module,
     functions: dict[str, ast.FunctionDef],
-    path_names: frozenset[str],
-    called: frozenset[str],
+    write_call_ids: frozenset[int],
+    reachable: frozenset[str],
 ) -> set[str]:
     """Names whose values can flow into a written report payload.
 
@@ -1688,26 +2467,27 @@ def _report_reaching_names(
         ):
             _depend(node.target.id, [node.value])
 
-    def _collect(statements: list[ast.stmt], *, seed_returns: bool) -> None:
+    def _collect(statements: list[ast.stmt], *, seeding: bool) -> None:
         for statement in _flatten_statements(statements):
-            for payload in _write_payloads(statement, path_names):
-                for name in ast.walk(payload):
-                    if isinstance(name, ast.Name):
-                        seeds.add(name.id)
-            if seed_returns and isinstance(statement, ast.Return) and statement.value is not None:
-                for name in ast.walk(statement.value):
-                    if isinstance(name, ast.Name):
-                        seeds.add(name.id)
+            if seeding:
+                for payload in _write_payloads(statement, write_call_ids):
+                    for name in ast.walk(payload):
+                        if isinstance(name, ast.Name):
+                            seeds.add(name.id)
+                if isinstance(statement, ast.Return) and statement.value is not None:
+                    for name in ast.walk(statement.value):
+                        if isinstance(name, ast.Name):
+                            seeds.add(name.id)
         for statement in statements:
             for node in ast.walk(statement):
                 _collect_edge(node)
 
     _collect(
         [item for item in tree.body if not isinstance(item, ast.FunctionDef)],
-        seed_returns=False,
+        seeding=True,
     )
     for function in functions.values():
-        _collect(function.body, seed_returns=function.name in called)
+        _collect(function.body, seeding=function.name in reachable)
 
     reaching = set(seeds)
     changed = True
@@ -1718,21 +2498,6 @@ def _report_reaching_names(
                 reaching.update(free)
                 changed = True
     return reaching
-
-
-def _has_unsupported_flow(tree: ast.Module, recognized_ids: set[int]) -> bool:
-    for node in ast.walk(tree):
-        if id(node) in recognized_ids:
-            continue
-        if isinstance(node, ast.With | ast.AsyncWith):
-            continue
-        if isinstance(node, ast.If) and _is_main_guard(node):
-            continue
-        if isinstance(node, _UNSUPPORTED_STATEMENTS):
-            if isinstance(node, ast.FunctionDef):
-                continue
-            return True
-    return False
 
 
 def _is_main_guard(node: ast.If) -> bool:

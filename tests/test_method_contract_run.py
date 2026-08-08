@@ -84,11 +84,14 @@ def _write_founder_workflow(repository: Path, *, repaired: bool) -> None:
         "    main()\n\n"
         "rows = list(csv.DictReader((ROOT / 'markers.csv').open()))\n"
         f"{stage}"
-        "def emission_likelihood():\n"
-        "    return math.prod(\n"
-        f"        0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in {panel}\n"
-        "    )\n\n"
-        "LIKELIHOOD = emission_likelihood()\n",
+        # From founder check v2.1.0 the emission sits at module level and its
+        # value is written out directly. The earlier shape computed it inside
+        # ``emission_likelihood()``, a closure over the module-level ``rows``,
+        # which the default-deny trust model no longer supports.
+        "LIKELIHOOD = math.prod(\n"
+        f"    0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in {panel}\n"
+        ")\n\n"
+        "(ROOT / 'likelihood.txt').write_text(str(LIKELIHOOD))\n",
         encoding="utf-8",
     )
 
