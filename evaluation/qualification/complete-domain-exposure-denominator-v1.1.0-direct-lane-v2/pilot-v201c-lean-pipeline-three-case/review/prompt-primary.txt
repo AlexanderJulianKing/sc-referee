@@ -1,0 +1,518 @@
+You are one independent blind scientific reviewer for opaque analysis
+workspaces. For each case you see exactly four files: the governing task, the staged input
+data, the workflow source, and the produced report. Determine independently for each case
+whether the in-scope issue class issue-class:retained-subset-for-complete-domain is demonstrably present in the selected report,
+using only the visible files. Attempt to falsify your own verdict and report that attempt in
+the required fields. Do not guess unstated intentions; raise unresolved material questions
+only when a genuinely blocking ambiguity remains.
+
+Reviewer participant identity: actor:v201c-reviewer-fable-01
+
+=== workflow 1: case:8875fc42723bf9f35470 ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is the complete planned set of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+station_id,network,region,completeness_pct,p_wave_detected
+SEIS-001,CASCADIA,coast,97.4,yes
+SEIS-002,PUGET,inland,95.1,no
+SEIS-003,OLYMPIC,alpine,92.8,yes
+SEIS-004,CASCADIA,basin,99.0,no
+SEIS-005,PUGET,coast,61.2,not_assessed
+SEIS-006,OLYMPIC,inland,93.6,yes
+SEIS-007,CASCADIA,alpine,90.4,no
+SEIS-008,PUGET,basin,98.2,no
+SEIS-009,OLYMPIC,coast,74.5,not_assessed
+SEIS-010,CASCADIA,inland,96.7,yes
+SEIS-011,PUGET,alpine,91.3,no
+SEIS-012,OLYMPIC,basin,94.9,yes
+SEIS-013,CASCADIA,coast,97.8,no
+SEIS-014,PUGET,inland,58.0,not_assessed
+SEIS-015,OLYMPIC,alpine,92.2,no
+SEIS-016,CASCADIA,basin,99.5,yes
+SEIS-017,PUGET,coast,90.1,no
+SEIS-018,OLYMPIC,inland,83.7,not_assessed
+SEIS-019,CASCADIA,alpine,95.6,yes
+SEIS-020,PUGET,basin,93.1,no
+SEIS-021,OLYMPIC,coast,98.9,yes
+SEIS-022,CASCADIA,inland,91.7,no
+SEIS-023,PUGET,alpine,47.3,not_assessed
+SEIS-024,OLYMPIC,basin,96.0,no
+SEIS-025,CASCADIA,coast,94.4,yes
+SEIS-026,PUGET,inland,90.8,no
+SEIS-027,OLYMPIC,alpine,88.6,not_assessed
+SEIS-028,CASCADIA,basin,97.1,no
+SEIS-029,PUGET,coast,92.5,yes
+SEIS-030,OLYMPIC,inland,99.2,no
+SEIS-031,CASCADIA,alpine,93.9,no
+SEIS-032,PUGET,basin,66.9,not_assessed
+SEIS-033,OLYMPIC,coast,95.8,yes
+SEIS-034,CASCADIA,inland,91.0,no
+SEIS-035,PUGET,alpine,98.5,no
+SEIS-036,OLYMPIC,basin,79.4,not_assessed
+SEIS-037,CASCADIA,coast,96.3,yes
+SEIS-038,PUGET,inland,90.6,no
+SEIS-039,OLYMPIC,alpine,94.1,yes
+SEIS-040,CASCADIA,basin,97.6,no
+SEIS-041,PUGET,coast,52.8,not_assessed
+SEIS-042,OLYMPIC,inland,92.0,no
+SEIS-043,CASCADIA,alpine,99.8,yes
+SEIS-044,PUGET,basin,93.4,no
+SEIS-045,OLYMPIC,coast,85.5,not_assessed
+SEIS-046,CASCADIA,inland,90.9,no
+SEIS-047,PUGET,alpine,96.9,yes
+SEIS-048,OLYMPIC,basin,91.5,no
+SEIS-049,CASCADIA,coast,98.0,no
+SEIS-050,PUGET,inland,71.1,not_assessed
+SEIS-051,OLYMPIC,alpine,94.6,no
+SEIS-052,CASCADIA,basin,92.7,yes
+SEIS-053,PUGET,coast,97.3,no
+SEIS-054,OLYMPIC,inland,90.2,no
+SEIS-055,CASCADIA,alpine,95.4,yes
+SEIS-056,PUGET,basin,63.7,not_assessed
+SEIS-057,OLYMPIC,coast,93.8,no
+SEIS-058,CASCADIA,inland,99.4,no
+SEIS-059,PUGET,alpine,91.9,yes
+SEIS-060,OLYMPIC,basin,96.5,no
+
+--- file workflow/analysis.py ---
+"""Cascadia broadband array P-wave detection audit.
+
+Scientific target: the complete planned set of broadband stations.
+The selected rate uses the complete planned set as its exposure denominator.
+"""
+
+import csv
+from decimal import Decimal, ROUND_HALF_UP
+from fractions import Fraction
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = ROOT / "inputs" / "data.csv"
+RESULTS_DIR = ROOT / "results"
+REPORT_PATH = RESULTS_DIR / "report.md"
+
+COMPLETENESS_THRESHOLD = Decimal("90.0")
+EVENT_FLAG = "yes"
+
+
+def read_units():
+    with DATA_PATH.open(newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def percent(numerator, denominator):
+    rate = Fraction(numerator, denominator)
+    value = Decimal(rate.numerator * 100) / Decimal(rate.denominator)
+    return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def main():
+    units = read_units()
+    planned = len(units)
+    retained_units = [
+        unit for unit in units
+        if Decimal(unit["completeness_pct"]) >= COMPLETENESS_THRESHOLD
+    ]
+    retained = len(retained_units)
+    removed = planned - retained
+    events = sum(
+        1 for unit in retained_units if unit["p_wave_detected"] == EVENT_FLAG
+    )
+    rate = percent(events, planned)
+    threshold = f"{COMPLETENESS_THRESHOLD:.1f}"
+
+    lines = [
+        "# Regional P-Wave Detection Audit: Cascadia Broadband Array",
+        "",
+        "## Scientific target",
+        "",
+        f"The scientific target is the complete planned set of {planned} broadband seismic",
+        "stations enrolled in the Cascadia regional-event detection audit. Every rate",
+        "below is reported against that complete planned set.",
+        "",
+        "## Prespecified screening",
+        "",
+        "Rule fixed before analysis: a station is eligible only if its recorded data",
+        f"completeness over the 30-day observation window is at least {threshold} percent.",
+        "Stations failing the rule were not assessed for the event.",
+        "",
+        "## Unit accounting",
+        "",
+        f"- Planned stations: {planned}",
+        f"- Retained after screening: {retained}",
+        f"- Removed by screening: {removed}",
+        f"- Detection events among retained stations: {events}",
+        "",
+        "The event is a recorded P-wave arrival for the M5.1 regional earthquake of",
+        "2025-03-14, scored only on stations that passed screening.",
+        "",
+        "## Selected result",
+        "",
+        f"[selected-result] P-wave detection rate over the complete planned set: {events} detections / {planned} planned stations = {rate} percent.",
+        "",
+        "## Interpretation and limits",
+        "",
+        f"The denominator of the selected result is the complete planned set of {planned}",
+        f"stations, so {rate} percent is the fraction of all planned stations that both",
+        f"passed screening and recorded a detection. The {removed} removed stations remain in",
+        "the denominator and contribute zero detections because they were never",
+        "assessed, so the selected rate is a lower bound on the detection rate that a",
+        f"fully assessed {planned}-station array would have produced. No detection rate for",
+        f"the {retained} retained stations alone is claimed here, and no result from the",
+        "retained subset is extrapolated to the planned set.",
+    ]
+
+    text = "\n".join(lines) + "\n"
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text(text, encoding="ascii")
+    print(text, end="")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Regional P-Wave Detection Audit: Cascadia Broadband Array
+
+## Scientific target
+
+The scientific target is the complete planned set of 60 broadband seismic
+stations enrolled in the Cascadia regional-event detection audit. Every rate
+below is reported against that complete planned set.
+
+## Prespecified screening
+
+Rule fixed before analysis: a station is eligible only if its recorded data
+completeness over the 30-day observation window is at least 90.0 percent.
+Stations failing the rule were not assessed for the event.
+
+## Unit accounting
+
+- Planned stations: 60
+- Retained after screening: 48
+- Removed by screening: 12
+- Detection events among retained stations: 18
+
+The event is a recorded P-wave arrival for the M5.1 regional earthquake of
+2025-03-14, scored only on stations that passed screening.
+
+## Selected result
+
+[selected-result] P-wave detection rate over the complete planned set: 18 detections / 60 planned stations = 30.00 percent.
+
+## Interpretation and limits
+
+The denominator of the selected result is the complete planned set of 60
+stations, so 30.00 percent is the fraction of all planned stations that both
+passed screening and recorded a detection. The 12 removed stations remain in
+the denominator and contribute zero detections because they were never
+assessed, so the selected rate is a lower bound on the detection rate that a
+fully assessed 60-station array would have produced. No detection rate for
+the 48 retained stations alone is claimed here, and no result from the
+retained subset is extrapolated to the planned set.
+
+
+=== workflow 2: case:9e3b88f3fcd2545eaa30 ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is explicitly the retained post-screening subset of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+trap_night_id,weather_ok,hawkmoth_detected
+N01,yes,1
+N02,yes,0
+N03,no,0
+N04,yes,1
+N05,yes,0
+N06,yes,1
+N07,no,0
+N08,yes,0
+N09,yes,1
+N10,yes,0
+N11,yes,0
+N12,no,0
+N13,yes,1
+N14,yes,0
+N15,yes,0
+N16,yes,1
+N17,yes,0
+N18,no,0
+N19,yes,0
+N20,yes,1
+N21,yes,0
+N22,yes,1
+N23,yes,0
+N24,no,0
+N25,yes,0
+N26,yes,1
+N27,yes,0
+N28,yes,0
+N29,no,0
+N30,yes,0
+N31,yes,1
+N32,yes,0
+N33,no,0
+N34,yes,0
+N35,yes,1
+N36,yes,0
+N37,yes,0
+N38,yes,1
+N39,yes,0
+N40,no,0
+
+--- file workflow/analysis.py ---
+import csv
+from decimal import Decimal
+from pathlib import Path
+
+
+def main():
+    with Path("inputs/data.csv").open(newline="", encoding="ascii") as f:
+        rows = list(csv.DictReader(f))
+
+    planned = len(rows)
+    retained_rows = [r for r in rows if r["weather_ok"] == "yes"]
+    retained = len(retained_rows)
+    removed = planned - retained
+    events = sum(1 for r in retained_rows if r["hawkmoth_detected"] == "1")
+
+    rate_pct = (Decimal(events) / Decimal(retained) * Decimal(100)).quantize(Decimal("0.1"))
+
+    lines = [
+        "# Hawkmoth Detection in Dry-Weather Light-Trap Nights",
+        "",
+        "## Accounting",
+        f"- Planned trap-nights: {planned}",
+        f"- Retained trap-nights after weather screening (dry nights only): {retained}",
+        f"- Removed trap-nights (rain recorded): {removed}",
+        f"- Hawkmoth detection events among retained trap-nights: {events}",
+        "",
+        "## Target and result",
+        f"The scientific target is defined explicitly and only as the retained post-screening subset of {retained} dry trap-nights; claims here do not extend to the complete planned set of {planned} trap-nights.",
+        "",
+        f"[selected-result] Among the {retained} retained dry trap-nights, hawkmoths were detected on {events} nights, a detection rate of {events}/{retained} = {rate_pct}%.",
+    ]
+
+    out_dir = Path("results")
+    out_dir.mkdir(exist_ok=True)
+    (out_dir / "report.md").write_text("\n".join(lines) + "\n", encoding="ascii")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Hawkmoth Detection in Dry-Weather Light-Trap Nights
+
+## Accounting
+- Planned trap-nights: 40
+- Retained trap-nights after weather screening (dry nights only): 32
+- Removed trap-nights (rain recorded): 8
+- Hawkmoth detection events among retained trap-nights: 12
+
+## Target and result
+The scientific target is defined explicitly and only as the retained post-screening subset of 32 dry trap-nights; claims here do not extend to the complete planned set of 40 trap-nights.
+
+[selected-result] Among the 32 retained dry trap-nights, hawkmoths were detected on 12 nights, a detection rate of 12/32 = 37.5%.
+
+
+=== workflow 3: case:ce0feda26ed1612a2efd ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is the complete planned set of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+station_id,network,region,completeness_pct,p_wave_detected
+SEIS-001,CASCADIA,coast,97.4,yes
+SEIS-002,PUGET,inland,95.1,no
+SEIS-003,OLYMPIC,alpine,92.8,yes
+SEIS-004,CASCADIA,basin,99.0,no
+SEIS-005,PUGET,coast,61.2,not_assessed
+SEIS-006,OLYMPIC,inland,93.6,yes
+SEIS-007,CASCADIA,alpine,90.4,no
+SEIS-008,PUGET,basin,98.2,no
+SEIS-009,OLYMPIC,coast,74.5,not_assessed
+SEIS-010,CASCADIA,inland,96.7,yes
+SEIS-011,PUGET,alpine,91.3,no
+SEIS-012,OLYMPIC,basin,94.9,yes
+SEIS-013,CASCADIA,coast,97.8,no
+SEIS-014,PUGET,inland,58.0,not_assessed
+SEIS-015,OLYMPIC,alpine,92.2,no
+SEIS-016,CASCADIA,basin,99.5,yes
+SEIS-017,PUGET,coast,90.1,no
+SEIS-018,OLYMPIC,inland,83.7,not_assessed
+SEIS-019,CASCADIA,alpine,95.6,yes
+SEIS-020,PUGET,basin,93.1,no
+SEIS-021,OLYMPIC,coast,98.9,yes
+SEIS-022,CASCADIA,inland,91.7,no
+SEIS-023,PUGET,alpine,47.3,not_assessed
+SEIS-024,OLYMPIC,basin,96.0,no
+SEIS-025,CASCADIA,coast,94.4,yes
+SEIS-026,PUGET,inland,90.8,no
+SEIS-027,OLYMPIC,alpine,88.6,not_assessed
+SEIS-028,CASCADIA,basin,97.1,no
+SEIS-029,PUGET,coast,92.5,yes
+SEIS-030,OLYMPIC,inland,99.2,no
+SEIS-031,CASCADIA,alpine,93.9,no
+SEIS-032,PUGET,basin,66.9,not_assessed
+SEIS-033,OLYMPIC,coast,95.8,yes
+SEIS-034,CASCADIA,inland,91.0,no
+SEIS-035,PUGET,alpine,98.5,no
+SEIS-036,OLYMPIC,basin,79.4,not_assessed
+SEIS-037,CASCADIA,coast,96.3,yes
+SEIS-038,PUGET,inland,90.6,no
+SEIS-039,OLYMPIC,alpine,94.1,yes
+SEIS-040,CASCADIA,basin,97.6,no
+SEIS-041,PUGET,coast,52.8,not_assessed
+SEIS-042,OLYMPIC,inland,92.0,no
+SEIS-043,CASCADIA,alpine,99.8,yes
+SEIS-044,PUGET,basin,93.4,no
+SEIS-045,OLYMPIC,coast,85.5,not_assessed
+SEIS-046,CASCADIA,inland,90.9,no
+SEIS-047,PUGET,alpine,96.9,yes
+SEIS-048,OLYMPIC,basin,91.5,no
+SEIS-049,CASCADIA,coast,98.0,no
+SEIS-050,PUGET,inland,71.1,not_assessed
+SEIS-051,OLYMPIC,alpine,94.6,no
+SEIS-052,CASCADIA,basin,92.7,yes
+SEIS-053,PUGET,coast,97.3,no
+SEIS-054,OLYMPIC,inland,90.2,no
+SEIS-055,CASCADIA,alpine,95.4,yes
+SEIS-056,PUGET,basin,63.7,not_assessed
+SEIS-057,OLYMPIC,coast,93.8,no
+SEIS-058,CASCADIA,inland,99.4,no
+SEIS-059,PUGET,alpine,91.9,yes
+SEIS-060,OLYMPIC,basin,96.5,no
+
+--- file workflow/analysis.py ---
+"""Cascadia broadband array P-wave detection audit.
+
+Scientific target: the complete planned set of broadband stations.
+The selected rate uses the retained post-screening subset as its exposure
+denominator and is reported as the rate of the complete planned set.
+"""
+
+import csv
+from decimal import Decimal, ROUND_HALF_UP
+from fractions import Fraction
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = ROOT / "inputs" / "data.csv"
+RESULTS_DIR = ROOT / "results"
+REPORT_PATH = RESULTS_DIR / "report.md"
+
+COMPLETENESS_THRESHOLD = Decimal("90.0")
+EVENT_FLAG = "yes"
+
+
+def read_units():
+    with DATA_PATH.open(newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def percent(numerator, denominator):
+    rate = Fraction(numerator, denominator)
+    value = Decimal(rate.numerator * 100) / Decimal(rate.denominator)
+    return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def main():
+    units = read_units()
+    planned = len(units)
+    retained_units = [
+        unit for unit in units
+        if Decimal(unit["completeness_pct"]) >= COMPLETENESS_THRESHOLD
+    ]
+    retained = len(retained_units)
+    removed = planned - retained
+    events = sum(
+        1 for unit in retained_units if unit["p_wave_detected"] == EVENT_FLAG
+    )
+    rate = percent(events, retained)
+    threshold = f"{COMPLETENESS_THRESHOLD:.1f}"
+
+    lines = [
+        "# Regional P-Wave Detection Audit: Cascadia Broadband Array",
+        "",
+        "## Scientific target",
+        "",
+        f"The scientific target is the complete planned set of {planned} broadband seismic",
+        "stations enrolled in the Cascadia regional-event detection audit.",
+        "",
+        "## Prespecified screening",
+        "",
+        "Rule fixed before analysis: a station is eligible only if its recorded data",
+        f"completeness over the 30-day observation window is at least {threshold} percent.",
+        "Stations failing the rule were not assessed for the event.",
+        "",
+        "## Unit accounting",
+        "",
+        f"- Planned stations: {planned}",
+        f"- Retained after screening: {retained}",
+        f"- Removed by screening: {removed}",
+        f"- Detection events among retained stations: {events}",
+        "",
+        "The event is a recorded P-wave arrival for the M5.1 regional earthquake of",
+        "2025-03-14, scored only on stations that passed screening.",
+        "",
+        "## Selected result",
+        "",
+        f"[selected-result] P-wave detection rate of the complete planned set of {planned} stations: {events} detections / {retained} screened stations = {rate} percent.",
+        "",
+        "## Protocol status",
+        "",
+        "No protocol amendment exists for this analysis and no method deviation has",
+        "been approved. The exposure denominator used in the selected result is the",
+        f"retained post-screening subset of {retained} stations, while the selected rate is",
+        f"reported as the detection rate of the complete planned set of {planned} stations.",
+        f"The {removed} screened-out stations are absent from the denominator.",
+    ]
+
+    text = "\n".join(lines) + "\n"
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text(text, encoding="ascii")
+    print(text, end="")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Regional P-Wave Detection Audit: Cascadia Broadband Array
+
+## Scientific target
+
+The scientific target is the complete planned set of 60 broadband seismic
+stations enrolled in the Cascadia regional-event detection audit.
+
+## Prespecified screening
+
+Rule fixed before analysis: a station is eligible only if its recorded data
+completeness over the 30-day observation window is at least 90.0 percent.
+Stations failing the rule were not assessed for the event.
+
+## Unit accounting
+
+- Planned stations: 60
+- Retained after screening: 48
+- Removed by screening: 12
+- Detection events among retained stations: 18
+
+The event is a recorded P-wave arrival for the M5.1 regional earthquake of
+2025-03-14, scored only on stations that passed screening.
+
+## Selected result
+
+[selected-result] P-wave detection rate of the complete planned set of 60 stations: 18 detections / 48 screened stations = 37.50 percent.
+
+## Protocol status
+
+No protocol amendment exists for this analysis and no method deviation has
+been approved. The exposure denominator used in the selected result is the
+retained post-screening subset of 48 stations, while the selected rate is
+reported as the detection rate of the complete planned set of 60 stations.
+The 12 screened-out stations are absent from the denominator.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:v201c-reviewer-fable-01", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:retained-subset-for-complete-domain", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:8875fc42723bf9f35470", "case:9e3b88f3fcd2545eaa30", "case:ce0feda26ed1612a2efd"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 3, "minItems": 3, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

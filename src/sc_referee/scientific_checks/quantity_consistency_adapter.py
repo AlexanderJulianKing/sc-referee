@@ -53,7 +53,11 @@ QUANTITY_CONSISTENCY_ADAPTER_IMPLEMENTATION_DIGEST = adapter_implementation_dige
 
 # A digit glued to a word by a hyphen ("interval-2") is an identifier suffix,
 # not a stated quantity; a comma-grouped number ("1,900") is one number.
-_NUMBER_PATTERN = r"(?<![\w.])(?<!\w-)(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)(?!\w|\.\d|,\d{3})"
+_NUMBER_PATTERN = (
+    r"(?<![\w.])(?<!\w-)(?<!\d-)"
+    r"(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)"
+    r"(?!\w|\.\d|,\d{3}|-[A-Za-z0-9])"
+)
 # Standardized measurement notation (SI and common laboratory unit symbols,
 # plus the percent sign) is closed international notation, not free
 # nomenclature: a unit-suffixed number is a measurement, never a unit count,

@@ -61,7 +61,10 @@ def quantity_dataflow_grammar(complete_operand: str, retained_operand: str) -> d
         "subset_operation": "single-generator comprehension with a filter over a row set",
         "count_operations": ["len(rows)", "sum(1 for ... in rows [if ...])"],
         "division_forms": ["a / b", "Fraction(a, b)"],
-        "function_support": "straight-line bodies with return-value tagging",
+        "function_support": (
+            "straight-line bodies with return-value tagging and one-level "
+            "argument-tag propagation into callees"
+        ),
         "division_rule": (
             "a division with a data-derived count numerator classifies by its "
             "denominator's provenance"
@@ -185,31 +188,64 @@ def _document_divisions(
     read_present = False
     any_division = False
 
-    def _scan_scope(statements: list[ast.stmt], env: dict[str, str]) -> bool:
+    def _classify(node: ast.AST, env: dict[str, str]) -> None:
         nonlocal any_division
+        pair = _division_operands(node)
+        if pair is None:
+            return
+        any_division = True
+        numerator = _numerator_tag(pair[0], env, returns)
+        denominator = _tag(pair[1], env, returns)
+        if numerator in {_COUNT_FULL, _COUNT_SUBSET} and denominator in {
+            _COUNT_FULL,
+            _COUNT_SUBSET,
+        }:
+            divisions.append(
+                _Division(
+                    node=node,
+                    operand_value=(
+                        retained_operand if denominator == _COUNT_SUBSET else complete_operand
+                    ),
+                )
+            )
+
+    def _scan_callee(call: ast.Call, env: dict[str, str]) -> None:
+        """Bind argument tags to a straight-line callee's parameters and scan
+        its body's divisions; one level deep, so a helper like
+        percent(events, retained) contributes its internal division."""
+
+        function = functions.get(_call_name(call))
+        if (
+            function is None
+            or call.keywords
+            or function.args.posonlyargs
+            or function.args.kwonlyargs
+            or function.args.vararg
+            or function.args.kwarg
+            or len(call.args) != len(function.args.args)
+        ):
+            return
+        callee_env = {
+            parameter.arg: _tag(argument, env, returns)
+            for parameter, argument in zip(function.args.args, call.args, strict=True)
+        }
+        for statement in _flatten_statements(function.body):
+            for node in ast.walk(statement):
+                _classify(node, callee_env)
+            if (
+                isinstance(statement, ast.Assign)
+                and len(statement.targets) == 1
+                and isinstance(statement.targets[0], ast.Name)
+            ):
+                callee_env[statement.targets[0].id] = _tag(statement.value, callee_env, returns)
+
+    def _scan_scope(statements: list[ast.stmt], env: dict[str, str]) -> bool:
         saw_read = False
         for statement in _flatten_statements(statements):
             for node in ast.walk(statement):
-                pair = _division_operands(node)
-                if pair is None:
-                    continue
-                any_division = True
-                numerator = _numerator_tag(pair[0], env, returns)
-                denominator = _tag(pair[1], env, returns)
-                if numerator in {_COUNT_FULL, _COUNT_SUBSET} and denominator in {
-                    _COUNT_FULL,
-                    _COUNT_SUBSET,
-                }:
-                    divisions.append(
-                        _Division(
-                            node=node,
-                            operand_value=(
-                                retained_operand
-                                if denominator == _COUNT_SUBSET
-                                else complete_operand
-                            ),
-                        )
-                    )
+                _classify(node, env)
+                if isinstance(node, ast.Call) and node.args:
+                    _scan_callee(node, env)
             if (
                 isinstance(statement, ast.Assign)
                 and len(statement.targets) == 1
