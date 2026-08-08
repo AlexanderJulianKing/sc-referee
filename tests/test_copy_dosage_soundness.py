@@ -39,7 +39,10 @@ from sc_referee.scientific_checks.copy_dosage_adapter import (
     _accountings,
     _identified_accounting,
 )
-from sc_referee.scientific_checks.copy_dosage_dataflow import _document_dose_representations
+from sc_referee.scientific_checks.copy_dosage_dataflow import (
+    _document_dose_representations,
+    resolve_copy_dosage_dataflow,
+)
 from sc_referee.scientific_checks.profiles import default_scientific_check_registry
 from sc_referee.scientific_checks.quantity_consistency_adapter import _number_tokens
 from sc_referee.scientific_checks.scope_joins import build_static_scope_join_graph
@@ -481,8 +484,17 @@ def test_an_established_integer_column_that_is_rescaled_is_not_the_unchanged_pat
 # Recon soundness risk 3: re-expansion after a quantizer.
 
 
-def test_binning_followed_by_a_continuous_centre_table_restores_the_scale() -> None:
-    """``centers[digitize(x)]`` puts the value back on a continuous scale."""
+def test_binning_followed_by_a_continuous_centre_table_is_still_a_binning() -> None:
+    """``centers[digitize(x)]`` assigns a bin centre; it does not re-expand.
+
+    Expectation changed in v2.0.1 under the ruling on finding 6. The claim
+    this check implements reads "hard or binned dosage used for a continuous
+    target", so a literal lookup table always bins: three bin centres are
+    three levels whether they are written 0, 1, 2 or 0.12, 0.98, 1.93. The
+    v2.0.0 carve-out for a table holding a non-integral value read this as
+    the continuous posterior expectation, which cleared a workflow that
+    delivers three distinct values to the model.
+    """
 
     source = _posterior_workflow(
         "centers = np.array([0.12, 0.98, 1.93])\n"
@@ -490,7 +502,7 @@ def test_binning_followed_by_a_continuous_centre_table_restores_the_scale() -> N
     )
     unsupported, states = _resolve(source)
     assert not unsupported
-    assert states == {EXPECTATION}
+    assert states == {QUANTIZED}
 
 
 def test_binning_followed_by_an_integral_table_is_still_the_hard_state() -> None:
@@ -504,15 +516,20 @@ def test_binning_followed_by_an_integral_table_is_still_the_hard_state() -> None
     assert states == {QUANTIZED}
 
 
-def test_a_residual_against_the_rounded_value_restores_the_continuous_scale() -> None:
-    """``raw - raw.round()`` is arithmetic against a traced continuous value."""
+def test_a_residual_against_the_rounded_value_abstains() -> None:
+    """``raw - raw.round()`` subtracts a value descended from ``raw`` itself.
+
+    Expectation changed in v2.0.1 under the ruling on finding 1. Arithmetic
+    restores the continuous scale only against an operand that descends from
+    no source the quantized operand descends from. Reading this pair by tag
+    alone also reads ``x - x % 1``, which is ``floor(x)``, as continuous, so
+    the whole family abstains.
+    """
 
     source = _calibration_workflow(
         "raw = calibrator.predict(features)\ndosage = raw - raw.round()\n"
     )
-    unsupported, states = _resolve(source)
-    assert not unsupported
-    assert states == {CALIBRATION}
+    _assert_abstains(source)
 
 
 def test_scaling_a_quantized_value_by_a_constant_does_not_restore_the_scale() -> None:
@@ -997,3 +1014,622 @@ def test_a_report_with_an_astronomically_large_integer_is_scanned_without_crashi
         "recorded.\n"
     )
     assert _report_accounting(text) == ((120, 260, 120), 500)
+
+
+# ---------------------------------------------------------------------------
+# v2.0.1: the nine wrong-answer families the second adversarial review
+# demonstrated.
+#
+# Every case below is a workflow shape whose run-time behaviour differs from
+# what v2.0.0 reported. None of them is executed here. ``_resolve`` parses the
+# source and runs the static trace over the syntax tree, so shapes that need
+# pandas, scikit-learn, or statsmodels at run time are still exact tests of
+# the recognizer: the recognizer never imports them either. Only numpy is
+# installed in this environment, and nothing here depends on that.
+
+
+def _dataflow_context(
+    sources: dict[str, str], *, unparsed: frozenset[str] = frozenset()
+) -> FrozenInspectionContext:
+    """A context holding one report and the given Python documents.
+
+    A path listed in ``unparsed`` carries a parser result the resolver does
+    not accept, which is how a document the parser skipped is modelled.
+    """
+
+    report = _SILENT_REPORT.encode("utf-8")
+    surface_ref = RecordRef("publication_surface", "publication-surface:multi")
+    artifact_ref = RecordRef("artifact", "artifact:multi-report")
+    identity_ref = RecordRef("asset_identity", "asset-identity:multi-report")
+    report_file_ref = RecordRef("file_record", "file:multi-report")
+    report_parser_ref = RecordRef("parser_result", "parser-result:multi-report")
+    snapshot_ref = RecordRef("repository_snapshot", "snapshot:multi")
+    report_parser = canonical_json(
+        {"parser_id": "parser:markdown-inventory", "parser_version": "0.2.0", "state": "parsed"}
+    ).encode("utf-8")
+    documents = [
+        InspectionDocument(
+            path="report.md",
+            file_ref=report_file_ref,
+            content=report,
+            content_digest=sha256_digest(report),
+            media_type="text/markdown",
+            parser_result_ref=report_parser_ref,
+            parser_result_payload=report_parser,
+            parser_result_digest=sha256_digest(report_parser),
+        )
+    ]
+    records: list[tuple[RecordRef, dict[str, object]]] = [
+        (
+            surface_ref,
+            {
+                "publication_surface_id": surface_ref.record_id,
+                "status": "resolved",
+                "selection": {"selected_surface_refs": [artifact_ref.to_dict()]},
+            },
+        ),
+        (
+            artifact_ref,
+            {
+                "artifact_id": artifact_ref.record_id,
+                "kind": "report",
+                "path": "report.md",
+                "asset_identity_ref": identity_ref.to_dict(),
+            },
+        ),
+        (
+            identity_ref,
+            {
+                "asset_identity_id": identity_ref.record_id,
+                "tier": "full_digest",
+                "asset_ref": artifact_ref.to_dict(),
+                "identity_evidence": {"kind": "full_digest", "digest": sha256_digest(report)},
+            },
+        ),
+        (snapshot_ref, {"snapshot_id": snapshot_ref.record_id}),
+        (report_file_ref, {"file_record_id": report_file_ref.record_id}),
+        (report_parser_ref, {"parser_result_id": report_parser_ref.record_id}),
+    ]
+    for index, (path, text) in enumerate(sources.items()):
+        file_ref = RecordRef("file_record", f"file:multi-{index}")
+        parser_ref = RecordRef("parser_result", f"parser-result:multi-{index}")
+        payload = canonical_json(
+            {
+                "parser_id": PYTHON_PARSER_ID,
+                "parser_version": PYTHON_PARSER_VERSION,
+                "state": "unsupported" if path in unparsed else "parsed",
+            }
+        ).encode("utf-8")
+        blob = text.encode("utf-8")
+        documents.append(
+            InspectionDocument(
+                path=path,
+                file_ref=file_ref,
+                content=blob,
+                content_digest=sha256_digest(blob),
+                media_type="text/x-python",
+                parser_result_ref=parser_ref,
+                parser_result_payload=payload,
+                parser_result_digest=sha256_digest(payload),
+            )
+        )
+        records.append((file_ref, {"file_record_id": file_ref.record_id}))
+        records.append((parser_ref, {"parser_result_id": parser_ref.record_id}))
+    context = FrozenInspectionContext(
+        snapshot_digest=sha256_digest("snapshot"),
+        selected_surface_ref=surface_ref,
+        selected_artifact_ref=artifact_ref,
+        documents=tuple(documents),
+        base_records=tuple(FrozenBaseRecord.from_record(ref, value) for ref, value in records),
+    )
+    return replace(
+        context,
+        scope_join_graph=build_static_scope_join_graph(
+            snapshot_digest=context.snapshot_digest,
+            snapshot_ref=snapshot_ref,
+            selected_surface_ref=surface_ref,
+            selected_artifact_ref=artifact_ref,
+            documents=context.documents,
+            base_records=context.base_records,
+        ),
+    )
+
+
+def _dataflow_state(sources: dict[str, str], *, unparsed: frozenset[str] = frozenset()) -> str:
+    resolution = resolve_copy_dosage_dataflow(
+        _dataflow_context(sources, unparsed=unparsed),
+        hard_operand=HARD_OPERAND,
+        expectation_operand=EXPECTATION_OPERAND,
+        calibration_operand=CALIBRATION_OPERAND,
+        parser_id=PYTHON_PARSER_ID,
+        parser_version=PYTHON_PARSER_VERSION,
+    )
+    return resolution.state
+
+
+_CALIBRATION_SOURCE = _calibration_workflow("dosage = calibrator.predict(features)\n")
+
+
+# ---------------------------------------------------------------------------
+# Family 1: arithmetic that cancels its own quantizer.
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "expected - expected % 1",
+        "expected - np.mod(expected, 1)",
+        "expected + (expected.round() - expected)",
+        "expected - (expected - expected.astype(int))",
+        "expected.round() + (expected - expected)",
+        "expected * (expected.round() / expected)",
+    ],
+)
+def test_arithmetic_against_a_value_of_the_same_provenance_abstains(expression: str) -> None:
+    """``x - x % 1`` is ``floor(x)``, and reading it by tag alone says continuous.
+
+    Each of these evaluates, at run time, to the rounded or truncated value,
+    yet each pairs a quantized operand with a continuous one. Restoration is
+    admitted only against an operand descended from a different source.
+    """
+
+    _assert_abstains(_posterior_workflow(f"dosage = {expression}\n"))
+
+
+@pytest.mark.parametrize(
+    "expression",
+    ["raw + (raw.round() - raw)", "raw - raw % 1"],
+)
+def test_the_same_cancellation_on_the_calibration_origin_abstains(expression: str) -> None:
+    source = _calibration_workflow(f"raw = calibrator.predict(features)\ndosage = {expression}\n")
+    _assert_abstains(source)
+
+
+def test_an_independently_traced_continuous_addend_still_restores_the_scale() -> None:
+    """The rule narrows re-expansion; it does not remove it.
+
+    The addend descends from a second calibration, not from the rounded
+    value, so nothing about it can cancel the fraction the rounding removed.
+    """
+
+    source = (
+        _HEAD
+        + _CLASSIFIER
+        + _PROBABILITIES
+        + _EXPECTED
+        + "residual_model = RidgeCV().fit(features, frame['residual'])\n"
+        + "residual = residual_model.predict(features)\n"
+        + "dosage = expected.round() + residual\n"
+        + _fit()
+        + _TAIL
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {EXPECTATION}
+
+
+def test_a_quantized_value_scaled_by_a_literal_is_still_read_as_quantized() -> None:
+    """A literal operand carries no provenance, so it never triggers the rule."""
+
+    unsupported, states = _resolve(_posterior_workflow("dosage = np.floor(expected) + 0.0\n"))
+    assert not unsupported
+    assert states == {QUANTIZED}
+
+
+# ---------------------------------------------------------------------------
+# Family 2: in-place mutation through calls the vocabulary never listed.
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "dosage = expected * 1.0\nnp.copyto(dosage, np.round(dosage))\n",
+        "dosage = expected * 1.0\nnp.round(expected, out=dosage)\n",
+        "dosage = expected * 1.0\nnp.rint(expected, dosage)\n",
+        "dosage = expected * 1.0\nnp.put(dosage, [0, 1], np.round(expected))\n",
+        "dosage = expected * 1.0\ndosage.fill(1)\n",
+        "dosage = expected * 1.0\ndosage.itemset(0, 1)\n",
+        "dosage = expected * 1.0\ndosage.partition(1)\n",
+        "dosage = expected * 1.0\ndosage.resize(4)\n",
+        "dosage = expected * 1.0\ndosage.sort()\n",
+    ],
+)
+def test_an_in_place_write_to_the_exposure_array_abstains(body: str) -> None:
+    """Mutation is default-deny; no list of in-place APIs is being maintained.
+
+    Each of these rewrites ``dosage`` after it was tagged, and v2.0.0 went on
+    reporting the value the array used to hold.
+    """
+
+    _assert_abstains(_posterior_workflow(body))
+
+
+def test_an_out_target_inside_a_helper_reaches_the_callers_array() -> None:
+    source = _posterior_workflow(
+        "def harmonise(target, source):\n    return np.floor(source, out=target)\n\n"
+        "dosage = expected * 1.0\nspare = harmonise(dosage, expected)\n"
+    )
+    _assert_abstains(source)
+
+
+# ---------------------------------------------------------------------------
+# Family 3: one runtime object reached through a second name.
+
+
+def test_a_bare_helper_call_that_rounds_a_column_reaches_the_callers_frame() -> None:
+    """``harmonise(frame)`` mutates the caller's own table, not a copy."""
+
+    source = (
+        _HEAD
+        + _CALIBRATOR
+        + "frame['dose'] = calibrator.predict(features)\n"
+        + "def harmonise(table):\n    table['dose'] = table['dose'].round()\n\n"
+        + "harmonise(frame)\n"
+        + _fit("frame[['dose']]")
+        + _TAIL
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {QUANTIZED}
+
+
+def test_a_returning_helper_also_mutates_the_argument_it_was_given() -> None:
+    """The fit reads the original name, which is the object the helper changed."""
+
+    source = (
+        _HEAD
+        + _CALIBRATOR
+        + "frame['dose'] = calibrator.predict(features)\n"
+        + "def harmonise(table):\n"
+        + "    table['dose'] = table['dose'].round()\n"
+        + "    return table\n\n"
+        + "staged = harmonise(frame)\n"
+        + _fit("frame[['dose']]")
+        + _TAIL
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {QUANTIZED}
+
+
+def test_the_returned_handle_of_a_mutating_helper_still_reads_correctly() -> None:
+    """The control for the two above: reading the return value agrees with them."""
+
+    source = (
+        _HEAD
+        + _CALIBRATOR
+        + "frame['dose'] = calibrator.predict(features)\n"
+        + "def harmonise(table):\n"
+        + "    table['dose'] = table['dose'].round()\n"
+        + "    return table\n\n"
+        + "staged = harmonise(frame)\n"
+        + _fit("staged[['dose']]")
+        + _TAIL
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {QUANTIZED}
+
+
+def test_a_helper_whose_body_cannot_be_completed_invalidates_its_argument() -> None:
+    source = (
+        _HEAD
+        + _CALIBRATOR
+        + "frame['dose'] = calibrator.predict(features)\n"
+        + "def harmonise(table):\n    return custom_transform(table)\n\n"
+        + "harmonise(frame)\n"
+        + _fit("frame[['dose']]")
+        + _TAIL
+    )
+    _assert_abstains(source)
+
+
+@pytest.mark.parametrize(
+    "container",
+    [
+        "tables = [frame]\ntables[0]['dose'] = tables[0]['dose'].round()\n",
+        "holder = {'t': frame}\nholder['t']['dose'] = holder['t']['dose'].round()\n",
+        "pair = (frame, frame)\npair[1]['dose'] = pair[1]['dose'].round()\n",
+    ],
+)
+def test_a_frame_mutated_through_a_container_reference_abstains(container: str) -> None:
+    """A container literal holding the table is a second name for the table."""
+
+    source = (
+        _HEAD
+        + _CALIBRATOR
+        + "frame['dose'] = calibrator.predict(features)\n"
+        + container
+        + _fit("frame[['dose']]")
+        + _TAIL
+    )
+    _assert_abstains(source)
+
+
+# ---------------------------------------------------------------------------
+# Family 4: an integer dtype spelled as a keyword.
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "np.array(expected, dtype=int)",
+        "np.array(expected, dtype='int64')",
+        "np.array(expected, int)",
+        "np.asarray(expected, dtype=np.int32)",
+        "expected.to_numpy(dtype=int)",
+        "expected.to_numpy('int64')",
+    ],
+)
+def test_an_integer_dtype_argument_quantizes_exactly_as_a_cast_does(expression: str) -> None:
+    """``np.array(x, dtype=int)`` truncates; only its spelling differs from astype."""
+
+    unsupported, states = _resolve(_posterior_workflow(f"dosage = {expression}\n"))
+    assert not unsupported
+    assert states == {QUANTIZED}
+
+
+def test_an_integer_dtype_argument_on_the_calibration_origin_quantizes() -> None:
+    source = _calibration_workflow("dosage = np.array(calibrator.predict(features), dtype=int)\n")
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {QUANTIZED}
+
+
+@pytest.mark.parametrize(
+    "expression",
+    ["np.array(expected, dtype=chosen_dtype)", "expected.to_numpy(dtype=chosen_dtype)"],
+)
+def test_a_dtype_this_trace_cannot_read_abstains(expression: str) -> None:
+    """An unread dtype may be an integer dtype, and an integer dtype truncates."""
+
+    _assert_abstains(_posterior_workflow(f"dosage = {expression}\n"))
+
+
+def test_a_float_dtype_argument_leaves_the_continuous_reading_alone() -> None:
+    unsupported, states = _resolve(
+        _posterior_workflow("dosage = np.array(expected, dtype=float)\n")
+    )
+    assert not unsupported
+    assert states == {EXPECTATION}
+
+
+# ---------------------------------------------------------------------------
+# Family 5: the decimal count of a rounding call.
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "expected.round(-1)",
+        "np.round(expected, -1)",
+        "np.around(expected, decimals=-2)",
+        "round(expected, -1)",
+        "expected.round(0)",
+    ],
+)
+def test_rounding_to_zero_or_fewer_decimals_lands_on_levels(expression: str) -> None:
+    """Rounding to tens bins as surely as rounding to units."""
+
+    unsupported, states = _resolve(_posterior_workflow(f"dosage = {expression}\n"))
+    assert not unsupported
+    assert states == {QUANTIZED}
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "expected.round(precision)",
+        "np.round(expected, precision)",
+        "np.around(expected, decimals=precision)",
+        "round(expected, precision)",
+    ],
+)
+def test_a_decimal_count_this_trace_cannot_read_abstains(expression: str) -> None:
+    """A count that is not written as a literal may be zero."""
+
+    _assert_abstains(_posterior_workflow(f"precision = 2\ndosage = {expression}\n"))
+
+
+# ---------------------------------------------------------------------------
+# Family 6: a literal table is a binning, whatever its values are.
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "centers = np.array([0.12, 0.98, 1.93])\ndosage = centers[expected.round().astype(int)]\n",
+        "dosage = expected.round().map({0: 0.12, 1: 0.98, 2: 1.93})\n",
+        "dosage = np.where(expected > 1.0, 1.93, 0.12)\n",
+        "dosage = pd.cut(expected, [-1, 0.5, 1.5, 3], labels=[0.12, 0.98, 1.93])\n",
+        "dosage = pd.qcut(expected, 3, labels=[0.12, 0.98, 1.93])\n",
+    ],
+)
+def test_a_literal_table_of_non_integral_levels_is_still_a_binning(body: str) -> None:
+    """Three bin centres are three levels; the model sees three distinct values.
+
+    Under the ruling on finding 6, the v2.0.0 carve-out that read a table of
+    non-integral values as a re-expansion is gone. The claim this check
+    implements covers hard *or binned* dosage used for a continuous target.
+    """
+
+    unsupported, states = _resolve(_posterior_workflow(body))
+    assert not unsupported
+    assert states == {QUANTIZED}
+
+
+def test_a_literal_centre_table_on_the_calibration_origin_is_a_binning() -> None:
+    source = _calibration_workflow(
+        "raw = calibrator.predict(features)\n"
+        "centers = np.array([0.12, 0.98, 1.93])\n"
+        "dosage = centers[raw.round().astype(int)]\n"
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {QUANTIZED}
+
+
+# ---------------------------------------------------------------------------
+# Family 7: constants that are not written as constants.
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "np.where(expected > 1.0, 3 / 2, 2)",
+        "np.where(expected > 1.0, int(1.5), 3)",
+        "np.where(expected > 1.0, 1 + 1, 3)",
+    ],
+)
+def test_a_branch_value_that_is_not_a_literal_abstains(expression: str) -> None:
+    """No arithmetic is folded and no call is evaluated to reach a level value."""
+
+    _assert_abstains(_posterior_workflow(f"dosage = {expression}\n"))
+
+
+@pytest.mark.parametrize(
+    "expression",
+    ["np.where(expected > 1.0, 1.5, 2)", "np.where(expected > 1.0, 1, 3)"],
+)
+def test_literal_branch_values_read_as_a_two_level_table(expression: str) -> None:
+    unsupported, states = _resolve(_posterior_workflow(f"dosage = {expression}\n"))
+    assert not unsupported
+    assert states == {QUANTIZED}
+
+
+def test_a_state_vector_assembled_by_arithmetic_is_not_the_ordered_vector() -> None:
+    """``[0, 1, 1 + 1]`` is not read as ``[0, 1, 2]``; the trace folds nothing."""
+
+    source = (
+        _HEAD
+        + _CLASSIFIER
+        + _PROBABILITIES
+        + "dosage = probabilities @ np.array([0, 1, 1 + 1])\n"
+        + _fit()
+        + _TAIL
+    )
+    _assert_abstains(source)
+
+
+# ---------------------------------------------------------------------------
+# Family 8: imports the trace cannot see through.
+
+
+def test_a_python_document_the_parser_skipped_leaves_the_case_unsupported() -> None:
+    """An unread document can hold the estimator, the rounding, or a shadow.
+
+    A shadowing ``sklearn/linear_model.py`` whose parser result the resolver
+    does not accept was reported as a clean continuous calibration in v2.0.0,
+    because the document was silently skipped instead of abstaining.
+    """
+
+    shadow = "import numpy as np\n\n\nclass RidgeCV:\n    def predict(self, X):\n        return X\n"
+    assert (
+        _dataflow_state(
+            {"analysis.py": _CALIBRATION_SOURCE, "helpers.py": shadow},
+            unparsed=frozenset({"helpers.py"}),
+        )
+        == "unsupported"
+    )
+
+
+def test_a_case_document_shadowing_an_imported_module_leaves_the_case_unsupported() -> None:
+    """``sklearn/linear_model.py`` in the case is what ``import sklearn`` resolves to."""
+
+    shadow = "def RidgeCV():\n    return None\n"
+    assert (
+        _dataflow_state({"analysis.py": _CALIBRATION_SOURCE, "sklearn/linear_model.py": shadow})
+        == "unsupported"
+    )
+
+
+def test_a_bare_case_directory_named_for_a_module_leaves_the_case_unsupported() -> None:
+    """A directory alone is a namespace package, so it shadows too."""
+
+    assert (
+        _dataflow_state({"analysis.py": _CALIBRATION_SOURCE, "numpy/notes.py": "value = 1\n"})
+        == "unsupported"
+    )
+
+
+def test_an_unshadowed_multi_document_case_still_resolves() -> None:
+    """The control: an ordinary second document changes nothing."""
+
+    assert (
+        _dataflow_state({"analysis.py": _CALIBRATION_SOURCE, "figures.py": "value = 1\n"})
+        == "unique"
+    )
+
+
+@pytest.mark.parametrize(
+    "statement",
+    [
+        "import joblib\n",
+        "import os\n",
+        "from . import helpers\n",
+        "from .helpers import recode\n",
+        "from numpy import *\n",
+        "import matplotlib.pyplot as plt\n",
+    ],
+)
+def test_an_import_outside_the_modelled_stack_leaves_the_document_unsupported(
+    statement: str,
+) -> None:
+    """Importing a module executes it, and an unmodelled module is unread."""
+
+    _assert_abstains(statement + _CALIBRATION_SOURCE)
+
+
+@pytest.mark.parametrize(
+    "statement",
+    [
+        "import scipy.stats\n",
+        "from scipy import stats\n",
+        "import statistics\n",
+        "from decimal import Decimal\n",
+        "import io\n",
+    ],
+)
+def test_an_import_inside_the_modelled_stack_still_resolves(statement: str) -> None:
+    unsupported, states = _resolve(statement + _CALIBRATION_SOURCE)
+    assert not unsupported
+    assert states == {CALIBRATION}
+
+
+# ---------------------------------------------------------------------------
+# Family 9: sources that used to raise instead of abstaining.
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "threshold = " + "9" * 400 + "\ndosage = expected\n",
+        "table = np.array([0, 1, " + "9" * 400 + "])\ndosage = expected\n",
+        "mask = 0x" + "f" * 400 + "\ndosage = expected\n",
+    ],
+)
+def test_an_astronomically_large_literal_is_discarded_rather_than_converted(body: str) -> None:
+    """``float()`` of a wide enough integer raises; the trace never calls it."""
+
+    unsupported, states = _resolve(_posterior_workflow(body))
+    assert not unsupported
+    assert states == {EXPECTATION}
+
+
+def test_a_source_too_deep_for_the_parser_abstains_in_the_resolvers_own_terms() -> None:
+    """A valid but deeply nested source exhausts the stack inside ``ast`` itself."""
+
+    deep = "x = " + "-" * 5000 + "1\n"
+    assert _dataflow_state({"analysis.py": _CALIBRATION_SOURCE, "deep.py": deep}) == "unsupported"
+
+
+def test_the_adapter_abstains_rather_than_raising_on_an_oversized_literal() -> None:
+    """The abstention is this adapter's own, not the registry's generic guard."""
+
+    workflow = "run_identifier = " + "9" * 400 + "\n"
+    assert _fused_observation(_SILENT_REPORT, workflow) == ("not_applicable", None)
+
+
+def test_the_adapter_abstains_rather_than_raising_on_a_source_too_deep_to_parse() -> None:
+    workflow = "x = " + "-" * 5000 + "1\n"
+    assert _fused_observation(_SILENT_REPORT, workflow) == ("unsupported", None)

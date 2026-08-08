@@ -104,7 +104,7 @@ def copy_dosage_recognition_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "copy-dosage-representation-reconciliation",
-        "grammar_version": "2.0.0",
+        "grammar_version": "2.0.1",
         "count_source": "integer_tokens_without_unit_or_percent_suffix",
         "mean_source": "decimal_point_tokens_without_percent_suffix",
         "copy_states": list(_COPY_STATES),
@@ -182,6 +182,19 @@ class CopyDosageReportAdapter:
         )
 
     def inspect(self, context: FrozenInspectionContext) -> NormalizedMethodObservation:
+        try:
+            return self._inspect(context)
+        except (RecursionError, MemoryError, OverflowError):
+            # A report or a workflow source too deep or too large for the
+            # bounded scans abstains in this adapter's own terms. Letting it
+            # reach the registry's generic guard would report a crash where
+            # the honest answer is an unsupported coverage record.
+            return self._abstain(
+                "unsupported",
+                "The selected report or workflow source exceeds the bounded scans.",
+            )
+
+    def _inspect(self, context: FrozenInspectionContext) -> NormalizedMethodObservation:
         document = selected_report_document(context)
         if document is None:
             return self._abstain(
