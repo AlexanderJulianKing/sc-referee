@@ -2420,3 +2420,475 @@ def test_round_three_counterexample_adapter_returns_no_operand(case: str) -> Non
     )
     assert applicability == "unsupported"
     assert operand is None
+
+
+# ---------------------------------------------------------------------------
+# v2.1.2 controls: the fourth review round (independent Opus, value-model
+# slice). Two families: the selector's own polarity (operator and branch
+# order) was never part of the parity model, and rebuilt columns dropped
+# their numeric proof so the mixed-runtime-type guard could not fire. Every
+# case returned an applicable operand contradicting (or matching neither
+# hypothesis of) the runtime; each must now abstain.
+
+
+ROUND_FOUR_COUNTEREXAMPLES: dict[str, str] = {
+    "noteq_operator": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+likelihood = math.prod(
+    0.99 if int(row['call']) != int(row['founder']) else 0.01 for row in rows
+)
+agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
+)
+Path('results/report.md').write_text(report)
+""",
+    "noteq_against_recode": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+likelihood = math.prod(
+    0.99 if int(row['call']) != 1 - int(row['founder']) else 0.01 for row in rows
+)
+agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
+)
+Path('results/report.md').write_text(report)
+""",
+    "noteq_container": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+likelihood = math.prod(
+    [0.01, 0.99][int(row['call']) != int(row['founder'])] for row in rows
+)
+agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
+)
+Path('results/report.md').write_text(report)
+""",
+    "swapped_branches": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+likelihood = math.prod(
+    0.01 if int(row['call']) == int(row['founder']) else 0.99 for row in rows
+)
+agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
+)
+Path('results/report.md').write_text(report)
+""",
+    "swapped_container": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+likelihood = math.prod(
+    [0.99, 0.01][int(row['call']) == int(row['founder'])] for row in rows
+)
+agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
+)
+Path('results/report.md').write_text(report)
+""",
+    "named_branch_values": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+MATCH = 0.01
+MISMATCH = 0.99
+likelihood = math.prod(
+    MATCH if int(row['call']) == int(row['founder']) else MISMATCH for row in rows
+)
+agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
+)
+Path('results/report.md').write_text(report)
+""",
+    "noteq_in_accumulation_loop": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+likelihood = 1.0
+for row in rows:
+    likelihood *= 0.99 if int(row['call']) != int(row['founder']) else 0.01
+agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
+)
+Path('results/report.md').write_text(report)
+""",
+    "rebuild_without_read_casts": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]
+likelihood = math.prod(
+    0.99 if item['call'] == item['founder'] else 0.01 for item in panel
+)
+agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
+)
+Path('results/report.md').write_text(report)
+""",
+    "identity_rebuild_without_read_casts": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+panel = [{**row, 'founder': int(row['founder'])} for row in rows]
+likelihood = math.prod(
+    0.99 if item['call'] == item['founder'] else 0.01 for item in panel
+)
+agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
+)
+Path('results/report.md').write_text(report)
+""",
+    "explicit_key_rebuild_without_read_casts": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+panel = [{'call': row['call'], 'founder': 1 - int(row['founder'])} for row in rows]
+likelihood = math.prod(
+    0.99 if item['call'] == item['founder'] else 0.01 for item in panel
+)
+agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
+)
+Path('results/report.md').write_text(report)
+""",
+    "helper_rebuild_without_read_casts": r"""import csv
+import math
+from pathlib import Path
+
+def load_panel(handle):
+    return [{**row, 'founder': 1 - int(row['founder'])} for row in csv.DictReader(handle)]
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+panel = load_panel(Path('inputs/markers.csv').open())
+likelihood = math.prod(
+    0.99 if item['call'] == item['founder'] else 0.01 for item in panel
+)
+agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
+)
+Path('results/report.md').write_text(report)
+""",
+}
+
+ROUND_FOUR_RULES = {
+    "noteq_operator": "an inequality selector is extensionally a complement; non-canonical selectors never classify",
+    "noteq_against_recode": "inequality against a recode composes to the opposite reading; non-canonical",
+    "noteq_container": "container indexed by an inequality; non-canonical",
+    "swapped_branches": "mismatch branch larger than match branch; order is not canonical",
+    "swapped_container": "container elements reversed; order is not canonical",
+    "named_branch_values": "branch values behind names are unprovable constants; non-canonical",
+    "noteq_in_accumulation_loop": "the loop path recognizes only canonical selectors too",
+    "rebuild_without_read_casts": "rebuilt numeric column vs raw string column is constantly unequal at runtime",
+    "identity_rebuild_without_read_casts": "identity rebuild with a cast still changes the runtime type",
+    "explicit_key_rebuild_without_read_casts": "explicit-key rebuild stores a number beside a raw string",
+    "helper_rebuild_without_read_casts": "the numeric proof rides through helper-built panels too",
+}
+
+
+@pytest.mark.parametrize("case", sorted(ROUND_FOUR_COUNTEREXAMPLES))
+def test_round_four_counterexample_abstains(case: str) -> None:
+    unsupported, states = _resolve(ROUND_FOUR_COUNTEREXAMPLES[case])
+    assert unsupported, ROUND_FOUR_RULES[case]
+    assert states == set()
+
+
+@pytest.mark.parametrize("case", sorted(ROUND_FOUR_COUNTEREXAMPLES))
+def test_round_four_counterexample_resolver_returns_no_orientation(case: str) -> None:
+    resolution = _resolution(ROUND_FOUR_COUNTEREXAMPLES[case])
+    assert resolution.state == "unsupported"
+    assert resolution.orientation is None
+    assert resolution.operand_value is None
+
+
+@pytest.mark.parametrize("case", sorted(ROUND_FOUR_COUNTEREXAMPLES))
+def test_round_four_counterexample_adapter_returns_no_operand(case: str) -> None:
+    applicability, operand = _fused_observation(
+        _COUNTEREXAMPLE_REPORT, ROUND_FOUR_COUNTEREXAMPLES[case]
+    )
+    assert applicability == "unsupported"
+    assert operand is None
+
+
+def test_canonical_selectors_still_resolve_after_the_polarity_rule() -> None:
+    """The polarity rule must not cost the ordinary canonical positives."""
+
+    head = (
+        "import csv\nimport math\nfrom pathlib import Path\n\n"
+        "rows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n"
+        "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
+    )
+    tail = "report = f'likelihood {likelihood}'\nPath('results/report.md').write_text(report)\n"
+    for selector in (
+        "0.99 if int(row['call']) == int(row['founder']) else 0.01",
+        "[0.01, 0.99][int(row['call']) == int(row['founder'])]",
+        "Fraction(99, 100) if int(row['call']) == int(row['founder']) else Fraction(1, 100)",
+    ):
+        prefix = "from fractions import Fraction\n" if "Fraction" in selector else ""
+        source = (
+            prefix
+            + head
+            + "likelihood = math.prod(\n    "
+            + selector
+            + " for row in panel\n)\n"
+            + tail
+        )
+        unsupported, states = _resolve(source)
+        assert not unsupported, selector
+        assert states == {"repaired"}, selector
+
+
+# ---------------------------------------------------------------------------
+# v2.1.2 controls, second half: the fourth review round's structure slice
+# (independent Opus). Three families: helper-factored emissions invisible to
+# classifier and belt, belt blindness to keyword casts and renamed
+# accumulators, and package/namespace directories shadowing stdlib imports.
+
+
+_ROUND_FIVE_TAIL = (
+    "agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)\n"
+    "n = len(rows)\n"
+    "rate = agreement / n\n"
+    "report = f'Of {n} markers, {agreement} agree at {rate:.6f}. Likelihood {likelihood:.8g}.'\n"
+    "Path('results/report.md').write_text(report)\n"
+)
+_ROUND_FIVE_HEAD = (
+    "import csv\nimport math\nfrom pathlib import Path\n\n"
+    "rows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n"
+    "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
+)
+_EMIT_HELPER = (
+    "\ndef emit(observed, expected):\n    return 0.99 if observed == expected else 0.01\n\n"
+)
+
+
+def test_a_helper_emission_over_a_different_panel_than_the_count_abstains() -> None:
+    """Two live disagreeing readings end as ambiguous, never as either answer."""
+
+    source = (
+        _ROUND_FIVE_HEAD
+        + _EMIT_HELPER
+        + "likelihood = math.prod(emit(int(item['call']), int(item['founder'])) for item in panel)\n"
+        + _ROUND_FIVE_TAIL
+    )
+    resolution = _resolution(source)
+    assert resolution.state == "ambiguous"
+    assert resolution.operand_value is None
+
+
+def test_a_helper_emission_with_a_matching_count_resolves() -> None:
+    """The natural two-parameter helper factoring classifies correctly."""
+
+    source = (
+        _ROUND_FIVE_HEAD
+        + _EMIT_HELPER
+        + "likelihood = math.prod(emit(int(item['call']), int(item['founder'])) for item in panel)\n"
+        + "agreement = sum(1 if int(item['call']) == int(item['founder']) else 0 for item in panel)\n"
+        + "n = len(rows)\n"
+        + "rate = agreement / n\n"
+        + "report = f'Of {n} markers, {agreement} agree at {rate:.6f}. Likelihood {likelihood:.8g}.'\n"
+        + "Path('results/report.md').write_text(report)\n"
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+def test_a_helper_emission_in_an_accumulation_loop_resolves() -> None:
+    source = (
+        _ROUND_FIVE_HEAD
+        + _EMIT_HELPER
+        + "likelihood = 1.0\n"
+        + "for item in panel:\n"
+        + "    likelihood *= emit(int(item['call']), int(item['founder']))\n"
+        + "agreement = sum(1 if int(item['call']) == int(item['founder']) else 0 for item in panel)\n"
+        + "n = len(rows)\n"
+        + "rate = agreement / n\n"
+        + "report = f'Of {n} markers, {agreement} agree at {rate:.6f}. Likelihood {likelihood:.8g}.'\n"
+        + "Path('results/report.md').write_text(report)\n"
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+def test_a_boolean_helper_indexing_a_container_abstains() -> None:
+    """A helper returning the bare comparison is not the recognized shape."""
+
+    source = (
+        _ROUND_FIVE_HEAD
+        + "\ndef matches(observed, expected):\n"
+        + "    return observed == expected\n\n"
+        + "likelihood = math.prod([0.01, 0.99][matches(int(item['call']), int(item['founder']))]"
+        + " for item in panel)\n"
+        + _ROUND_FIVE_TAIL
+    )
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()
+
+
+def test_a_mirrored_helper_emission_cannot_read_as_the_other_orientation() -> None:
+    """Helper emission over raw rows with a panel count disagrees into ambiguity."""
+
+    source = (
+        _ROUND_FIVE_HEAD
+        + _EMIT_HELPER
+        + "likelihood = math.prod(emit(int(row['call']), int(row['founder'])) for row in rows)\n"
+        + "agreement = sum(1 if int(item['call']) == int(item['founder']) else 0 for item in panel)\n"
+        + "n = len(rows)\n"
+        + "rate = agreement / n\n"
+        + "report = f'Of {n} markers, {agreement} agree at {rate:.6f}. Likelihood {likelihood:.8g}.'\n"
+        + "Path('results/report.md').write_text(report)\n"
+    )
+    resolution = _resolution(source)
+    assert resolution.state == "ambiguous"
+    assert resolution.operand_value is None
+
+
+def test_a_keyword_cast_with_a_renamed_accumulator_abstains() -> None:
+    """``int(x, base=10)`` plus ``scores = weights`` blinded the belt in v2.1.1."""
+
+    source = (
+        "import csv\nimport math\nfrom pathlib import Path\n\n"
+        "rows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n"
+        "panel = [{**row, 'founder': str(1 - int(row['founder']))} for row in rows]\n"
+        "weights = [\n"
+        "    0.99 if int(item['call'], base=10) == int(item['founder'], base=10) else 0.01\n"
+        "    for item in panel\n"
+        "]\n"
+        "scores = weights\n"
+        "likelihood = math.prod(scores)\n" + _ROUND_FIVE_TAIL
+    )
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()
+
+
+def test_a_renamed_accumulator_alone_still_classifies() -> None:
+    """The rename fix links the comprehension instead of losing it."""
+
+    source = (
+        _ROUND_FIVE_HEAD
+        + "weights = [\n"
+        + "    0.99 if int(item['call']) == int(item['founder']) else 0.01 for item in panel\n"
+        + "]\n"
+        + "scores = weights\n"
+        + "likelihood = math.prod(scores)\n"
+        + "agreement = sum(1 if int(item['call']) == int(item['founder']) else 0 for item in panel)\n"
+        + "n = len(rows)\n"
+        + "rate = agreement / n\n"
+        + "report = f'Of {n} markers, {agreement} agree at {rate:.6f}. Likelihood {likelihood:.8g}.'\n"
+        + "Path('results/report.md').write_text(report)\n"
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+def test_a_package_directory_shadowing_a_stdlib_import_abstains() -> None:
+    """``csv/__init__.py`` in the case shadows stdlib csv; the flat-file rule missed it."""
+
+    workflow = (
+        "import csv\nimport math\nfrom pathlib import Path\n\n"
+        "rows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n"
+        "likelihood = math.prod(\n"
+        "    0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in rows\n"
+        ")\n" + _ROUND_FIVE_TAIL
+    )
+    shim = (
+        '"""Project CSV helpers."""\n\n\n'
+        "def DictReader(handle):\n"
+        "    return [\n"
+        "        {'call': line.strip()[0], 'founder': str(1 - int(line.strip()[2]))}\n"
+        "        for line in handle\n"
+        "        if line.strip()[0] != 'c'\n"
+        "    ]\n"
+    )
+    for companion_path in ("csv/__init__.py", "csv/README.md"):
+        resolution = _resolution(workflow, {companion_path: shim})
+        assert resolution.state == "unsupported", companion_path
+        assert resolution.operand_value is None
+
+
+def test_a_star_import_abstains() -> None:
+    source = (
+        "import csv\nimport math\nfrom math import *\nfrom pathlib import Path\n\n"
+        "rows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n"
+        "likelihood = math.prod(\n"
+        "    0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in rows\n"
+        ")\n" + _ROUND_FIVE_TAIL
+    )
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()

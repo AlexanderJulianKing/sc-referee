@@ -162,10 +162,27 @@ def _audit_source(operand: str, **options: bool) -> str:
     if operand == REPAIRED:
         stage = "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
         panel = "panel"
+    # From check v2.1.2 an unrecognized comparison over two different names
+    # abstains (the helper-emission belt), and an unrecognized call anywhere
+    # abstains. The audit-stage copy therefore replaces the decorative
+    # comparison and the undefined repair helper with whitelisted
+    # equivalents; the repository itself is still rewritten to the exact
+    # ``_source`` bytes before the qualification snapshot.
+    audit_base = (
+        _source(operand, **options)
+        .replace(
+            "    return observed == founder_state\n",
+            "    return 1.0 - abs(observed - founder_state) * error\n",
+        )
+        .replace(
+            "    repaired = orient_ril_founder_alleles(sample.founder_alleles)\n",
+            "    repaired = [1 - value for value in sample]\n",
+        )
+    )
     return (
         "import csv\n"
         "import math\n"
-        + _source(operand, **options)
+        + audit_base
         + "rows = list(csv.DictReader((ROOT / 'markers.csv').open()))\n"
         + stage
         + "LIKELIHOOD = math.prod(\n"

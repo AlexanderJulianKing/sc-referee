@@ -174,32 +174,6 @@ _SAFE_STR_METHODS = frozenset({"join", "format"})
 # Inert Path navigation: reads filesystem metadata at most, never row data.
 _SAFE_PATH_METHODS = frozenset({"resolve", "absolute", "expanduser", "joinpath"})
 _BUILTIN_NAMES = frozenset(dir(builtins))
-_SAFE_BUILTINS = frozenset(
-    {
-        "abs",
-        "all",
-        "any",
-        "bool",
-        "dict",
-        "enumerate",
-        "float",
-        "int",
-        "len",
-        "list",
-        "max",
-        "min",
-        "print",
-        "range",
-        "repr",
-        "round",
-        "set",
-        "sorted",
-        "str",
-        "sum",
-        "tuple",
-        "zip",
-    }
-)
 
 _REPAIRED = "repaired"
 _DIRECT = "direct"
@@ -210,7 +184,7 @@ def founder_orientation_dataflow_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-emission-dataflow",
-        "grammar_version": "2.1.1",
+        "grammar_version": "2.1.2",
         "trust_model": (
             "default deny: the trace holds an explicit whitelist of the statement and "
             "expression forms it models completely, and any form outside that whitelist "
@@ -224,14 +198,33 @@ def founder_orientation_dataflow_grammar(
             "any binding that shadows a Python builtin name",
             "any parameter or return annotation",
             "imports outside an allowlisted stdlib set (csv, math, pathlib, fractions, "
-            "decimal, statistics); every relative import; any import resolving to "
-            "another document in the same case",
+            "decimal, statistics); every relative and star import; any import whose "
+            "name matches any path component of any document in the case (flat "
+            "modules, packages, and namespace directories all shadow the stdlib)",
         ],
+        "helper_selectors": (
+            "the one recognized factoring: an accumulated element or loop "
+            "payload that is exactly one call to a local straight-line helper "
+            "whose whole body returns one canonical selector comparing its two "
+            "parameters; the call's operand paths classify as an inline "
+            "comparison would. Any other comparison between two bare names, "
+            "anywhere, must have been recognized or the document abstains"
+        ),
+        "canonical_selectors": (
+            "a selector classifies only as an equality comparison whose match "
+            "branch is a strictly larger proven numeric constant than its "
+            "mismatch branch; inequality operators, swapped branches, and "
+            "name-valued branches are extensionally ambiguous between an "
+            "orientation repair and a reparameterized emission matrix, so "
+            "they are never recognized and emission-like comparisons inside "
+            "them abstain"
+        ),
         "numeric_provenance": (
             "a parity inversion (1-x, x^1, abs(x-1), not x, a lookup table) counts "
             "only on a value proven numeric by an int or float cast; a raw CSV string "
-            "under these operations is a crash or a constant, never a recode, and a "
-            "comparison between a numeric and a non-numeric value abstains"
+            "under these operations is a crash or a constant, never a recode; the "
+            "numeric proof rides through row rebuilds, and a comparison whose two "
+            "sides differ in effective runtime type abstains"
         ),
         "output_inertness": (
             "print and report-write payloads are names, constants, f-strings, "
@@ -394,14 +387,16 @@ def founder_orientation_dataflow_grammar_digest(direct_operand: str, repaired_op
 class _Rows:
     """A row set, with per-column provenance relative to the staged read.
 
-    ``overrides`` maps an output column to the staged column it came from and
-    the parity of the recognized inverting steps on the way, or to ``None``
-    when the column passed through something this library cannot read.
+    ``overrides`` maps an output column to the staged column it came from,
+    the parity of the recognized inverting steps on the way, and whether the
+    stored value is numerically proven (a rebuilt column holds whatever type
+    its expression produced, not the CSV's string), or to ``None`` when the
+    column passed through something this library cannot read.
     ``default_identity`` says whether a column absent from ``overrides``
     passes through unchanged.
     """
 
-    overrides: tuple[tuple[str, tuple[str, int] | None], ...] = ()
+    overrides: tuple[tuple[str, tuple[str, int, bool] | None], ...] = ()
     default_identity: bool = True
     iterator: bool = False
 
@@ -570,9 +565,19 @@ def resolve_founder_orientation_dataflow(
     classifications: list[tuple[InspectionDocument, _Classification]] = []
     unsupported = False
     parse_failure = False
-    python_stems = {
-        Path(document.path).stem for document in context.documents if document.path.endswith(".py")
-    }
+    # Every path component of every document is a shadowable module name: a
+    # flat ``csv.py``, a package ``csv/__init__.py``, and even a bare data
+    # directory named ``csv`` (a namespace package) all shadow the stdlib at
+    # runtime. The package form reaching an import undetected was a
+    # demonstrated wrong answer.
+    case_module_names: set[str] = set()
+    for document in context.documents:
+        parts = Path(document.path).parts
+        case_module_names.update(parts[:-1])
+        if document.path.endswith(".py"):
+            stem = Path(document.path).stem
+            if stem != "__init__":
+                case_module_names.add(stem)
     for document in context.documents:
         if document.media_type != "text/x-python" or not _python_parser_supported(
             document, parser_id, parser_version
@@ -587,7 +592,7 @@ def resolve_founder_orientation_dataflow(
         if tree is None:
             parse_failure = True
             continue
-        if _imports_case_module(tree, python_stems - {Path(document.path).stem}):
+        if _imports_case_module(tree, case_module_names - {Path(document.path).stem}):
             # An import that resolves to another document in this very case
             # shadows the stdlib module of the same name at runtime; what
             # such a module does on import is outside this trace.
@@ -763,6 +768,9 @@ def _module_bans(tree: ast.Module) -> bool:
             root = (node.module or "").split(".")[0]
             if root not in _ALLOWED_IMPORT_MODULES:
                 return True
+            if any(alias.name == "*" for alias in node.names):
+                # A star import binds names this trace never sees.
+                return True
         for name in _binding_names(node):
             if name in _BUILTIN_NAMES:
                 return True
@@ -926,6 +934,16 @@ def _classify_comprehension(
         return
     selectors = _selector_comparisons(node.elt)
     source = _tag(generator.iter, env, ctx)
+    _classify_helper_selector_call(
+        node.elt,
+        generator.target.id,
+        source,
+        env,
+        ctx,
+        classifications,
+        reaching=reaching,
+        dead=dead,
+    )
     _flag_unrecognized_selectors(node.elt, selectors, generator.target.id, env, ctx)
     if not selectors:
         return
@@ -940,6 +958,122 @@ def _classify_comprehension(
             reaching=reaching,
             dead=dead,
         )
+
+
+def _classify_helper_selector_call(
+    element: ast.expr,
+    loop_var: str,
+    source: _Value,
+    env: dict[str, _Value],
+    ctx: _TraceContext,
+    classifications: list[_Classification],
+    *,
+    reaching: bool,
+    dead: bool,
+) -> None:
+    """Classify ``emit(int(row['call']), int(row['founder']))`` factorings.
+
+    Factoring the emission into a two-parameter helper is the most natural
+    way to write this code, and an unreviewed helper hid the real emission
+    from both the classifier and the belt (a demonstrated wrong answer). The
+    recognized shape is deliberately narrow: the element is exactly one call
+    to a local straight-line helper whose whole body returns one canonical
+    selector comparing its two parameters; the call's two operand paths then
+    classify exactly as an inline comparison would.
+    """
+
+    if not isinstance(element, ast.Call):
+        return
+    if not isinstance(element.func, ast.Name):
+        return
+    name = element.func.id
+    if name not in ctx.functions or name in ctx.opaque_callables:
+        return
+    if len(element.args) != 2 or element.keywords:
+        return
+    form = _helper_selector_form(ctx.functions[name])
+    if form is None:
+        return
+    compare, left_param, right_param = form
+    parameters = [item.arg for item in ctx.functions[name].args.args]
+    left_argument = element.args[parameters.index(left_param)]
+    right_argument = element.args[parameters.index(right_param)]
+    left = _column_parity(left_argument, loop_var=loop_var, carriers={}, env=env, ctx=ctx)
+    right = _column_parity(right_argument, loop_var=loop_var, carriers={}, env=env, ctx=ctx)
+    if left is None or right is None:
+        ctx.unresolved = True
+        return
+    _classify_operand_paths(
+        compare,
+        element,
+        left,
+        right,
+        source,
+        ctx,
+        classifications,
+        reaching=reaching,
+        dead=dead,
+    )
+
+
+def _helper_selector_form(
+    function: ast.FunctionDef,
+) -> tuple[ast.Compare, str, str] | None:
+    """The canonical selector a helper body is, or None.
+
+    Returns the comparison node and the parameter names on its two sides
+    when the body is a single return of a canonical selector over exactly
+    the helper's two parameters.
+    """
+
+    if not _straight_line_helper(function):
+        return None
+    if (
+        function.args.posonlyargs
+        or function.args.kwonlyargs
+        or function.args.vararg
+        or function.args.kwarg
+        or function.args.defaults
+    ):
+        return None
+    parameters = [item.arg for item in function.args.args]
+    if len(parameters) != 2 or len(set(parameters)) != 2:
+        return None
+    statements = _flatten_statements(function.body)
+    returns = [item for item in statements if isinstance(item, ast.Return)]
+    if len(returns) != 1 or returns[0].value is None:
+        return None
+    value = returns[0].value
+    if isinstance(value, ast.IfExp) and isinstance(value.test, ast.Compare):
+        compare = value.test
+        match_branch: ast.expr = value.body
+        mismatch_branch: ast.expr = value.orelse
+    elif isinstance(value, ast.Subscript) and isinstance(value.value, ast.List | ast.Tuple):
+        if not _two_element_numeric_container(value.value):
+            return None
+        index = value.slice
+        if (
+            isinstance(index, ast.Call)
+            and _call_name(index) == "int"
+            and len(index.args) == 1
+            and not index.keywords
+        ):
+            index = index.args[0]
+        if not isinstance(index, ast.Compare):
+            return None
+        compare = index
+        match_branch = value.value.elts[1]
+        mismatch_branch = value.value.elts[0]
+    else:
+        return None
+    if not _is_canonical_selector(compare, match_branch, mismatch_branch):
+        return None
+    left, right = compare.left, compare.comparators[0]
+    if not (isinstance(left, ast.Name) and isinstance(right, ast.Name)):
+        return None
+    if {left.id, right.id} != set(parameters):
+        return None
+    return compare, left.id, right.id
 
 
 def _flag_unrecognized_selectors(
@@ -1001,13 +1135,34 @@ def _classify_compare(
         # At least one side is not a column of the iterated rows at all, so
         # this is a filter or a literal test, not an emission comparison.
         return
+    _classify_operand_paths(
+        compare,
+        compare,
+        left,
+        right,
+        source,
+        ctx,
+        classifications,
+        reaching=reaching,
+        dead=dead,
+    )
+
+
+def _classify_operand_paths(
+    compare: ast.Compare,
+    span_node: ast.AST,
+    left: _Path,
+    right: _Path,
+    source: _Value,
+    ctx: _TraceContext,
+    classifications: list[_Classification],
+    *,
+    reaching: bool,
+    dead: bool,
+) -> None:
+    """Classify one emission comparison from its two resolved operand paths."""
+
     if not left.resolved or not right.resolved:
-        ctx.unresolved = True
-        return
-    if left.numeric != right.numeric:
-        # A numeric value compared against a raw string is constantly
-        # unequal at runtime; whatever this selector selects, it is not the
-        # emission comparison it appears to be.
         ctx.unresolved = True
         return
     if not isinstance(source, _Rows):
@@ -1020,6 +1175,15 @@ def _classify_compare(
     if left_source is None or right_source is None:
         ctx.unresolved = True
         return
+    if (left.numeric or left_source[2]) != (right.numeric or right_source[2]):
+        # The effective runtime type joins the read-site cast with the
+        # provenance the rebuild stored: a column rebuilt as a number
+        # compared against a raw string column is constantly unequal at
+        # runtime, so whatever this selector selects, it is not the emission
+        # comparison it appears to be. Both-string and both-numeric
+        # comparisons are real.
+        ctx.unresolved = True
+        return
     if left_source[0] == right_source[0]:
         # A column compared with itself carries no cross-panel orientation.
         ctx.recognized_compares.add(id(compare))
@@ -1028,7 +1192,7 @@ def _classify_compare(
     ctx.recognized_compares.add(id(compare))
     classifications.append(
         _Classification(
-            node=compare,
+            node=span_node,
             state=_REPAIRED if parity else _DIRECT,
             reaching=reaching,
             dead=dead,
@@ -1037,12 +1201,25 @@ def _classify_compare(
 
 
 def _selector_comparisons(element: ast.expr) -> list[ast.Compare]:
-    """Comparisons that select between two numeric values inside one element."""
+    """Canonical selectors: comparisons choosing between two proven probabilities.
+
+    A selector classifies only in its canonical form: an equality comparison
+    whose match branch carries a strictly larger constant probability than
+    its mismatch branch. Everything else -- an inequality operator, swapped
+    branches, or branch values hidden behind names -- computes a value that
+    is extensionally a complement of a canonical selector's, and whether
+    that complement is an orientation repair or a differently parameterized
+    emission matrix is not statically decidable. Non-canonical selectors are
+    therefore never recognized; an emission-like comparison inside one falls
+    through to the module-wide belt and the document abstains.
+    """
 
     found: list[ast.Compare] = []
     for node in ast.walk(element):
         if isinstance(node, ast.IfExp) and isinstance(node.test, ast.Compare):
-            if _numeric_like(node.body) and _numeric_like(node.orelse):
+            if not _numeric_like(node.body) or not _numeric_like(node.orelse):
+                continue
+            if _is_canonical_selector(node.test, node.body, node.orelse):
                 found.append(node.test)
         elif isinstance(node, ast.Subscript):
             if not _two_element_numeric_container(node.value):
@@ -1055,9 +1232,79 @@ def _selector_comparisons(element: ast.expr) -> list[ast.Compare]:
                 and not index.keywords
             ):
                 index = index.args[0]
-            if isinstance(index, ast.Compare):
+            if not isinstance(index, ast.Compare):
+                continue
+            assert isinstance(node.value, ast.List | ast.Tuple)
+            # A true comparison indexes element one, so element one is the
+            # match branch of the container form.
+            if _is_canonical_selector(index, node.value.elts[1], node.value.elts[0]):
                 found.append(index)
     return found
+
+
+def _is_canonical_selector(
+    compare: ast.Compare, match_branch: ast.expr, mismatch_branch: ast.expr
+) -> bool:
+    if len(compare.ops) != 1 or not isinstance(compare.ops[0], ast.Eq):
+        return False
+    match_value = _selector_constant(match_branch)
+    mismatch_value = _selector_constant(mismatch_branch)
+    if match_value is None or mismatch_value is None:
+        return False
+    return match_value > mismatch_value
+
+
+def _selector_constant(node: ast.expr, depth: int = 0) -> float | None:
+    """The provable constant value of a selector branch, or None.
+
+    Names are not constants here: a value this function cannot prove leaves
+    the branch order unprovable and the selector non-canonical.
+    """
+
+    if depth >= _MAX_EXPRESSION_DEPTH:
+        return None
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, int | float) and not isinstance(node.value, bool):
+            return float(node.value)
+        return None
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+        inner = _selector_constant(node.operand, depth + 1)
+        return None if inner is None else -inner
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add | ast.Sub | ast.Mult | ast.Div):
+        left = _selector_constant(node.left, depth + 1)
+        right = _selector_constant(node.right, depth + 1)
+        if left is None or right is None:
+            return None
+        try:
+            if isinstance(node.op, ast.Add):
+                return left + right
+            if isinstance(node.op, ast.Sub):
+                return left - right
+            if isinstance(node.op, ast.Mult):
+                return left * right
+            return left / right
+        except (ZeroDivisionError, OverflowError):
+            return None
+    if isinstance(node, ast.Call) and not node.keywords and node.args:
+        name = _call_name(node)
+        if name in _EXACT_NUMERIC_CALLS and len(node.args) <= 2:
+            values: list[float] = []
+            for argument in node.args:
+                if isinstance(argument, ast.Constant) and isinstance(argument.value, str):
+                    try:
+                        values.append(float(argument.value))
+                    except ValueError:
+                        return None
+                    continue
+                value = _selector_constant(argument, depth + 1)
+                if value is None:
+                    return None
+                values.append(value)
+            try:
+                return values[0] / values[1] if len(values) == 2 else values[0]
+            except (ZeroDivisionError, OverflowError):
+                return None
+    return None
 
 
 def _two_element_numeric_container(node: ast.expr) -> bool:
@@ -1113,11 +1360,17 @@ def _numeric_argument(node: ast.expr, depth: int) -> bool:
     return _numeric_like(node, depth)
 
 
-def _rows_column(rows: _Rows, column: str) -> tuple[str, int] | None:
+def _rows_column(rows: _Rows, column: str) -> tuple[str, int, bool] | None:
+    """The staged column, recode parity, and stored numeric proof for one column.
+
+    A column read straight from the CSV is a string, so the default-identity
+    fallback carries no numeric proof.
+    """
+
     for key, value in rows.overrides:
         if key == column:
             return value
-    return (column, 0) if rows.default_identity else None
+    return (column, 0, False) if rows.default_identity else None
 
 
 # ---------------------------------------------------------------------------
@@ -1600,7 +1853,7 @@ def _row_element_value(
         return _Rows(source.overrides, source.default_identity, iterator=False)
     if not isinstance(element, ast.Dict):
         return _OPAQUE
-    built: dict[str, tuple[str, int] | None] = {}
+    built: dict[str, tuple[str, int, bool] | None] = {}
     default_identity = False
     for key, value in zip(element.keys, element.values, strict=True):
         if key is None:
@@ -1630,7 +1883,16 @@ def _row_element_value(
         if resolved is None:
             built[key.value] = None
             continue
-        built[key.value] = (resolved[0], (resolved[1] + path.parity) % 2)
+        # The stored numeric proof is what the rebuilt column actually
+        # holds at runtime: the read path's cast, or the proof the source
+        # column already carried. Dropping it here let a rebuilt integer
+        # column read as a string and defeat the mixed-type guard (a
+        # demonstrated wrong answer).
+        built[key.value] = (
+            resolved[0],
+            (resolved[1] + path.parity) % 2,
+            path.numeric or resolved[2],
+        )
     return _Rows(
         tuple(sorted(built.items())),
         default_identity=default_identity,
@@ -1827,6 +2089,16 @@ def _apply_accumulation_loop(
     reaching = bool(targets & ctx.reaching)
     for payload in payloads:
         selectors = _selector_comparisons(payload)
+        _classify_helper_selector_call(
+            payload,
+            loop.target.id,
+            source,
+            env,
+            ctx,
+            classifications,
+            reaching=reaching,
+            dead=dead,
+        )
         _flag_unrecognized_selectors(payload, selectors, loop.target.id, env, ctx)
         for compare in selectors:
             _classify_compare(
@@ -2353,12 +2625,6 @@ def _container_value_call(call: ast.Call, ctx: _TraceContext) -> bool:
     )
 
 
-def _references_tagged(node: ast.AST, ctx: _TraceContext) -> bool:
-    return any(
-        isinstance(inner, ast.Name) and inner.id in ctx.tagged_names for inner in ast.walk(node)
-    )
-
-
 # ---------------------------------------------------------------------------
 # The tagged-name position rule.
 
@@ -2443,54 +2709,70 @@ def _emission_scan_violation(tree: ast.Module, ctx: _TraceContext) -> bool:
     report describes.
     """
 
+    # A comparison inside a function no reachable code can call never
+    # executes; the belt may skip it. Reachability here is the model's own
+    # conservative set (module-level transitive calls plus every escaping
+    # name), so anything skippable is provably dead code.
+    unreachable_regions: set[int] = set()
+    for statement in tree.body:
+        if (
+            isinstance(statement, ast.FunctionDef)
+            and statement.name not in ctx.model.reachable_functions
+        ):
+            unreachable_regions.update(id(inner) for inner in ast.walk(statement))
     for node in ast.walk(tree):
         if not isinstance(node, ast.Compare) or len(node.ops) != 1:
             continue
         if not isinstance(node.ops[0], ast.Eq | ast.NotEq):
             continue
+        if id(node) in ctx.recognized_compares or id(node) in unreachable_regions:
+            continue
         left = _staged_extraction(node.left)
         right = _staged_extraction(node.comparators[0])
-        if left is None or right is None or left == right:
-            continue
-        if id(node) not in ctx.recognized_compares:
+        if left is not None and right is not None and left != right:
+            return True
+        if _name_pair_comparison(node):
+            # A comparison whose two operand subtrees read different names
+            # has operands this belt cannot place -- a helper comparing its
+            # two parameters is the emission's most natural factoring, and
+            # wrapping the operands (``abs(a) == abs(b)``) must not hide it.
+            # Unless the trace classified it through the recognized
+            # helper-selector shape, the document abstains rather than let a
+            # match count elsewhere answer for it.
             return True
     return False
 
 
-def _staged_extraction(node: ast.expr, depth: int = 0) -> tuple[str, str] | None:
-    """The row name and column a column-reading expression extracts, if any."""
+def _name_pair_comparison(node: ast.Compare) -> bool:
+    left_names = _operand_names(node.left)
+    right_names = _operand_names(node.comparators[0])
+    if not left_names or not right_names:
+        return False
+    return left_names != right_names
 
-    if depth >= _MAX_EXPRESSION_DEPTH:
-        return None
-    if (
-        isinstance(node, ast.Subscript)
-        and isinstance(node.value, ast.Name)
-        and isinstance(node.slice, ast.Constant)
-        and isinstance(node.slice.value, str)
-    ):
-        return (node.value.id, node.slice.value)
-    if isinstance(node, ast.Call):
+
+def _operand_names(node: ast.expr) -> frozenset[str]:
+    return frozenset(inner.id for inner in ast.walk(node) if isinstance(inner, ast.Name))
+
+
+def _staged_extraction(node: ast.expr) -> tuple[str, str] | None:
+    """The staged extraction anywhere inside an operand's subtree, if any.
+
+    This is a belt, so over-detection is safe (it can only force an
+    abstention) and structural recursion is not: a keyword argument on a
+    cast (``int(x, base=10)``) hid the operand from the previous
+    shape-following version, a demonstrated wrong answer. The whole subtree
+    is walked instead.
+    """
+
+    for inner in ast.walk(node):
         if (
-            isinstance(node.func, ast.Attribute)
-            and node.func.attr in _STRIP_METHODS
-            and not node.args
+            isinstance(inner, ast.Subscript)
+            and isinstance(inner.value, ast.Name)
+            and isinstance(inner.slice, ast.Constant)
+            and isinstance(inner.slice.value, str)
         ):
-            return _staged_extraction(node.func.value, depth + 1)
-        if len(node.args) == 1 and not node.keywords:
-            return _staged_extraction(node.args[0], depth + 1)
-        return None
-    if isinstance(node, ast.BinOp):
-        for side in (node.left, node.right):
-            found = _staged_extraction(side, depth + 1)
-            if found is not None:
-                return found
-        return None
-    if isinstance(node, ast.UnaryOp):
-        return _staged_extraction(node.operand, depth + 1)
-    if isinstance(node, ast.Subscript):
-        return _staged_extraction(node.slice, depth + 1)
-    if isinstance(node, ast.IfExp):
-        return _staged_extraction(node.test, depth + 1)
+            return (inner.value.id, inner.slice.value)
     return None
 
 
@@ -2507,6 +2789,7 @@ def _accumulated_comprehension_ids(tree: ast.Module) -> set[int]:
     ids: set[int] = set()
     assigned: dict[str, list[ast.expr]] = {}
     consumed: set[str] = set()
+    renames: dict[str, set[str]] = {}
     for node in ast.walk(tree):
         if (
             isinstance(node, ast.Call)
@@ -2522,9 +2805,24 @@ def _accumulated_comprehension_ids(tree: ast.Module) -> set[int]:
             isinstance(node, ast.Assign)
             and len(node.targets) == 1
             and isinstance(node.targets[0], ast.Name)
-            and isinstance(node.value, ast.GeneratorExp | ast.ListComp)
         ):
-            assigned.setdefault(node.targets[0].id, []).append(node.value)
+            if isinstance(node.value, ast.GeneratorExp | ast.ListComp):
+                assigned.setdefault(node.targets[0].id, []).append(node.value)
+            elif isinstance(node.value, ast.Name):
+                # ``scores = weights`` then ``math.prod(scores)`` consumes
+                # the comprehension bound to ``weights``; missing the rename
+                # left that comprehension unclassified, a demonstrated
+                # wrong answer.
+                renames.setdefault(node.targets[0].id, set()).add(node.value.id)
+    changed = True
+    while changed:
+        changed = False
+        for target, values in renames.items():
+            if target in consumed:
+                fresh = values - consumed
+                if fresh:
+                    consumed |= fresh
+                    changed = True
     for name in consumed:
         for comprehension in assigned.get(name, []):
             ids.add(id(comprehension))
