@@ -485,7 +485,8 @@ planned = len(rows)
 retained = [row for row in rows if row['kept'] == 'yes']
 events = sum(1 for row in retained if row['event'] == 'yes')
 rate = events / len(retained)
-Path('report.md').write_text('generated\\n', encoding='utf-8')
+report = f'planned {planned} events {events} rate {rate}\\n'
+Path('report.md').write_text(report, encoding='utf-8')
 """
 
 COMPUTING_CSV = (

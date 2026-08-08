@@ -54,10 +54,13 @@ QUANTITY_CONSISTENCY_ADAPTER_IMPLEMENTATION_DIGEST = adapter_implementation_dige
 # A digit glued to a word by a hyphen ("interval-2") is an identifier suffix,
 # not a stated quantity; a comma-grouped number ("1,900") is one number.
 _NUMBER_PATTERN = (
-    r"(?<![\w.])(?<!\w-)(?<!\d-)"
+    r"(?<![\w.])(?<!\w-)(?<!\d-)(?<!-)"
     r"(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)"
     r"(?!\w|\.\d|,\d{3}|-[A-Za-z0-9])"
 )
+# A slash-separated date such as 08/07/2026 contributes no counts; a single
+# slash with spaces or one separator ("15/60") stays a legitimate fraction.
+_SLASH_DATE_PATTERN = r"(?<![\d/])\d{1,4}/\d{1,2}/\d{1,4}(?![\d/])"
 # Standardized measurement notation (SI and common laboratory unit symbols,
 # plus the percent sign) is closed international notation, not free
 # nomenclature: a unit-suffixed number is a measurement, never a unit count,
@@ -130,8 +133,10 @@ def quantity_recognition_grammar(complete_operand: str, retained_operand: str) -
         "source_dataflow_implementation_digest": QUANTITY_DATAFLOW_IMPLEMENTATION_DIGEST,
         "plane_fusion": (
             "either plane resolves alone; a unique source dataflow breaks report "
-            "ties; disagreement between planes abstains as ambiguous"
+            "ties; disagreement between planes abstains as ambiguous; a "
+            "dataflow-only classification requires a stated complete accounting"
         ),
+        "additional_exclusions": ["signed values", "slash-separated dates"],
         "nomenclature_authority": "none",
     }
 
@@ -252,6 +257,19 @@ class QuantityConsistencyReportAdapter:
                 (
                     "The report arithmetic and the workflow-source dataflow disagree "
                     "on the exposure domain."
+                ),
+                document=document,
+            )
+        if not report_operands and flow.state == "unique" and not _accounting_present(integers):
+            # The dataflow plane alone may classify only when the report
+            # itself states a complete accounting (a strict subset with a
+            # stated removed count); without one, a tautologically
+            # conditioned subset could otherwise fire on clean work.
+            return self._abstain(
+                "not_applicable",
+                (
+                    "The workflow dataflow resolves an exposure domain, but the "
+                    "selected report states no complete planned-unit accounting."
                 ),
                 document=document,
             )
@@ -470,7 +488,10 @@ class QuantityConsistencyReportAdapter:
 
 def _number_tokens(text: str) -> list[_NumberToken]:
     tokens: list[_NumberToken] = []
+    date_spans = [(item.start(), item.end()) for item in re.finditer(_SLASH_DATE_PATTERN, text)]
     for match in re.finditer(_NUMBER_PATTERN, text):
+        if any(start <= match.start(1) < end for start, end in date_spans):
+            continue
         raw = match.group(1).replace(",", "")
         trailing = text[match.end(1) :]
         if re.match(_UNIT_SUFFIX_PATTERN, trailing):
@@ -570,6 +591,33 @@ def _interpretations(
                             )
                         )
     return interpretations
+
+
+def _accounting_present(integers: list[_NumberToken]) -> bool:
+    """A stated N = M + K accounting with an event count and distinct tokens."""
+
+    occurrences: dict[int, int] = {}
+    for token in integers:
+        value = int(token.value)
+        if value >= 1:
+            occurrences[value] = occurrences.get(value, 0) + 1
+    values = sorted(occurrences)
+    for complete_count in values:
+        for retained_count in values:
+            if not 1 <= retained_count < complete_count:
+                continue
+            removed_count = complete_count - retained_count
+            if removed_count not in occurrences:
+                continue
+            for event_count in values:
+                if not 1 <= event_count <= retained_count:
+                    continue
+                needed: dict[int, int] = {}
+                for value in (complete_count, retained_count, removed_count, event_count):
+                    needed[value] = needed.get(value, 0) + 1
+                if all(occurrences[value] >= need for value, need in needed.items()):
+                    return True
+    return False
 
 
 def _corroborating_inventories(
