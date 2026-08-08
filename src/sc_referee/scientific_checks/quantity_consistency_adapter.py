@@ -64,9 +64,10 @@ _SLASH_DATE_PATTERN = r"(?<![\d/])\d{1,4}/\d{1,2}/\d{1,4}(?![\d/])"
 # Standardized measurement notation (SI and common laboratory unit symbols,
 # plus the percent sign) is closed international notation, not free
 # nomenclature: a unit-suffixed number is a measurement, never a unit count,
-# and a percent-suffixed number is a rate statement.
+# and a percent-suffixed number is a rate statement. Alternatives are ordered
+# longest first so a shorter symbol cannot shadow a longer one.
 _UNIT_SUFFIX_PATTERN = (
-    r"\s*(?:km2|km|cm|mm|nm|um|µm|kg|mg|ug|µg|ng|g|ms|min|hrs|hr|h|s|"
+    r"\s*(?:km2|ppt|ppm|ppb|km|cm|mm|nm|um|µm|kg|mg|ug|µg|ng|g|ms|min|hrs|hr|h|s|"
     r"ha|mL|ml|L|kbp|mbp|bp)\b"
 )
 _PERCENT_SUFFIX_PATTERN = r"\s*(?:%|percent\b)"

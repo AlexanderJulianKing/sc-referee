@@ -4,7 +4,7 @@
   held-out block)
 - **Date:** 2026-08-08
 - **Scope:** The first envelope (`check:complete-domain-exposure-denominator`) only. The
-  detector tuple under test is check/adapter version 2.0.4 exactly as registered at acceptance
+  detector tuple under test is check/adapter version 2.0.7 exactly as registered at acceptance
   time; any later detector change voids this threshold for unopened cases.
 - **Relates to:** Experiment 0056; ADR-0067; ADR-0068; ADR-0069
 
@@ -24,17 +24,29 @@ it. A "fresh" result means the detector had never seen any material from that pi
 | f | 2.0.2 | 0/1 | 0/2 | argument-taking helper return untagged |
 | g | 2.0.3 | 0/1 | 0/2 | resolved division discarded near a table-building loop |
 | h | 2.0.4 | 1/1 | 0/2 | pass |
+| i | 2.0.4 | 0/1 | 0/2 | unit-gap rate phantom; imperative loop-counter accumulation |
+| j | 2.0.4 | 0/1 | 0/2 | geometric-chain phantom via honest disclosure; loop-built subset |
+| k | 2.0.4 | 1/1 | 0/2 | pass |
+| l | 2.0.6 | 1/1 | 0/2 | pass |
+| m | 2.0.6 | 0/1 | 0/2 | append-assembled report defeated the reaching gate; table-loop variant |
 
-Aggregates: false accusations 0 of 18 blind controls across nine pilots (and zero anywhere
-else, ever). Fresh-test sensitivity of the version current at test time: 3 of 9 overall, 3 of 6
-in the v2 architecture, 1 of 1 for v2.0.4. All eighteen burned cases are permanent regression
-fixtures; v2.0.4 passes all eighteen.
+Between pilots k and l, the detector took a dedicated soundness pass (v2.0.5) built from an
+adversarial Codex review that demonstrated wrong-operand paths; every counterexample is a
+permanent unit test, so the failure modes since are missing coverage only, never wrong answers.
+
+Aggregates: false accusations 0 of 32 blind controls across sixteen pilots (and zero anywhere
+else, ever). Fresh-test sensitivity of the version current at test time: 6 of 11 in the v2
+architecture, roughly 55 percent per fresh case. All twenty-seven burned cases are permanent
+regression fixtures; v2.0.7 passes all twenty-seven, and no repaired evasion has ever
+reappeared.
 
 The honest reading: the conservative side of the detector is stable and strong. The
 recognition side improves monotonically (every burned evasion stays caught), but each fresh
 blind author has roughly a coin-flip chance of finding a new corner of ordinary-Python or
-arithmetic-coincidence space. A threshold for the held-out block must price that in rather
-than assume the pass streak continues.
+arithmetic-coincidence space, and the corners grow steadily more exotic. Under the proposed
+one-of-two sensitivity bar this record prices to roughly four-in-five odds of qualifying the
+envelope, with the residual failure mode being an honestly published miss, never a false
+accusation.
 
 ## Held-out block structure and expected outcomes
 

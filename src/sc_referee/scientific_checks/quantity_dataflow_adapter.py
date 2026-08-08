@@ -91,7 +91,7 @@ _WRITE_METHODS = {"write", "writelines", "write_text"}
 def quantity_dataflow_grammar(complete_operand: str, retained_operand: str) -> dict[str, Any]:
     return {
         "grammar_id": "quantity-denominator-dataflow",
-        "grammar_version": "1.3.0",
+        "grammar_version": "1.4.0",
         "row_source_operations": ["csv.DictReader", "csv.reader"],
         "subset_operation": "single-generator comprehension with a filter over a row set",
         "count_operations": ["len(rows)", "sum(1 for ... in rows [if ...])"],
@@ -112,6 +112,10 @@ def quantity_dataflow_grammar(complete_operand: str, retained_operand: str) -> d
         "control_flow": (
             "straight-line assignments, comprehensions, with-blocks, functions, "
             "the __main__ guard, and provenance-disjoint loops or conditionals"
+        ),
+        "report_assembly": (
+            "assignment- and append-accumulated report text both link divisions "
+            "to the written report"
         ),
         "loop_recognition": [
             "imperative counter loops (name or dict-key += 1) with branch-"
@@ -342,8 +346,24 @@ def _document_divisions(
         # (or any name a division reads) cannot change the divisions'
         # provenance; table-building and formatting loops are the common
         # case. Any overlap keeps the document unsupported.
-        touched = _names_touched_in_flow(tree, ctx.recognized_loop_ids)
-        provenance = {name for name, tag in module_env.items() if tag != _OTHER}
+        flow_touches = _flow_touches(tree, ctx.recognized_loop_ids)
+        touched = set(flow_touches)
+
+        def _carries_provenance(name: str, tag: str, env: dict[str, str]) -> bool:
+            if tag == _OTHER:
+                return False
+            if tag == _ROWS_EMPTY and _is_text_only_accumulator(
+                flow_touches.get(name, []), env, ctx
+            ):
+                # A report text accumulator: the untraced flow only appends
+                # formatted strings to it, so it holds no row provenance the
+                # flow could change.
+                return False
+            return True
+
+        provenance = {
+            name for name, tag in module_env.items() if _carries_provenance(name, tag, module_env)
+        }
         for function in functions.values():
             env = dict(module_env)
             for statement in _flatten_statements(function.body):
@@ -354,7 +374,7 @@ def _document_divisions(
                 ):
                     tag = _tag(statement.value, env, ctx)
                     env[statement.targets[0].id] = tag
-                    if tag != _OTHER:
+                    if _carries_provenance(statement.targets[0].id, tag, env):
                         provenance.add(statement.targets[0].id)
         for item in divisions:
             pair = _division_operands(item.node)
@@ -466,12 +486,52 @@ def _report_reaching_names(tree: ast.Module, functions: dict[str, ast.FunctionDe
 
     Seeds are the free names of every write-call payload and of every return
     value (a returned value may be written by the caller); the closure
-    follows straight-line assignments backward, so a division assigned to a
-    diagnostic that is never written can never classify.
+    follows assignments and element accumulation backward, so a division
+    assigned to a diagnostic that is never written can never classify.
+
+    Report text is as often accumulated into a list as it is assigned, so
+    ``acc.append(value)``, ``acc.extend(value)``, ``acc.insert(i, value)``
+    and ``acc += [value]`` are edges too, and edges are collected over the
+    whole statement tree rather than the flattened straight-line one: an
+    append inside a table-building loop still links its value to the report.
+    This is a permit gate only. Widening it can admit a division that never
+    reaches the report, which costs ambiguity or an unsupported state, and
+    can never change which operand a classified division reports.
     """
 
     dependencies: dict[str, set[str]] = {}
     seeds: set[str] = set()
+
+    def _depend(target: str, values: list[ast.expr]) -> None:
+        free: set[str] = set()
+        for value in values:
+            free.update(name.id for name in ast.walk(value) if isinstance(name, ast.Name))
+        dependencies.setdefault(target, set()).update(free)
+
+    def _collect_edge(node: ast.AST) -> None:
+        if (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+        ):
+            _depend(node.targets[0].id, [node.value])
+            return
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+        ):
+            if node.func.attr in {"append", "extend"}:
+                _depend(node.func.value.id, list(node.args))
+            elif node.func.attr == "insert":
+                _depend(node.func.value.id, list(node.args[1:]))
+            return
+        if (
+            isinstance(node, ast.AugAssign)
+            and isinstance(node.target, ast.Name)
+            and isinstance(node.op, ast.Add)
+        ):
+            _depend(node.target.id, [node.value])
 
     def _collect(statements: list[ast.stmt]) -> None:
         for statement in _flatten_statements(statements):
@@ -479,17 +539,13 @@ def _report_reaching_names(tree: ast.Module, functions: dict[str, ast.FunctionDe
                 for name in ast.walk(payload):
                     if isinstance(name, ast.Name):
                         seeds.add(name.id)
-            if (
-                isinstance(statement, ast.Assign)
-                and len(statement.targets) == 1
-                and isinstance(statement.targets[0], ast.Name)
-            ):
-                free = {name.id for name in ast.walk(statement.value) if isinstance(name, ast.Name)}
-                dependencies.setdefault(statement.targets[0].id, set()).update(free)
             if isinstance(statement, ast.Return) and statement.value is not None:
                 for name in ast.walk(statement.value):
                     if isinstance(name, ast.Name):
                         seeds.add(name.id)
+        for statement in statements:
+            for node in ast.walk(statement):
+                _collect_edge(node)
 
     _collect([s for s in tree.body if not isinstance(s, ast.FunctionDef)])
     for function in functions.values():
@@ -817,12 +873,16 @@ def _recognize_for_loop(
     return effects
 
 
-def _names_touched_in_flow(tree: ast.Module, recognized_ids: set[int]) -> set[str]:
-    """Names a loop, conditional, or try block could rebind, mutate, or delete.
-    Recognized counter and accumulator loops are excluded: their effect is
-    exactly what the recognizer recorded."""
+def _flow_touches(tree: ast.Module, recognized_ids: set[int]) -> dict[str, list[ast.AST]]:
+    """Per name, the nodes by which a loop, conditional, or try block could
+    rebind, mutate, or delete it. Recognized counter and accumulator loops
+    are excluded: their effect is exactly what the recognizer recorded."""
 
-    touched: set[str] = set()
+    touched: dict[str, list[ast.AST]] = {}
+
+    def _record(name: str, node: ast.AST) -> None:
+        touched.setdefault(name, []).append(node)
+
     for node in ast.walk(tree):
         if id(node) in recognized_ids:
             continue
@@ -835,32 +895,64 @@ def _names_touched_in_flow(tree: ast.Module, recognized_ids: set[int]) -> set[st
                 for target in inner.targets:
                     for name in ast.walk(target):
                         if isinstance(name, ast.Name):
-                            touched.add(name.id)
+                            _record(name.id, inner)
             elif isinstance(inner, ast.AugAssign):
                 target = inner.target
                 while isinstance(target, ast.Subscript):
                     target = target.value
                 if isinstance(target, ast.Name):
-                    touched.add(target.id)
+                    _record(target.id, inner)
             elif isinstance(inner, ast.For | ast.AsyncFor):
                 for name in ast.walk(inner.target):
                     if isinstance(name, ast.Name):
-                        touched.add(name.id)
+                        _record(name.id, inner)
             elif isinstance(inner, ast.Delete):
                 for target in inner.targets:
                     resolved: ast.expr = target
                     while isinstance(resolved, ast.Subscript):
                         resolved = resolved.value
                     if isinstance(resolved, ast.Name):
-                        touched.add(resolved.id)
+                        _record(resolved.id, inner)
             elif (
                 isinstance(inner, ast.Call)
                 and isinstance(inner.func, ast.Attribute)
                 and isinstance(inner.func.value, ast.Name)
                 and inner.func.attr in _MUTATING_METHODS
             ):
-                touched.add(inner.func.value.id)
+                _record(inner.func.value.id, inner)
     return touched
+
+
+def _names_touched_in_flow(tree: ast.Module, recognized_ids: set[int]) -> set[str]:
+    """Names a loop, conditional, or try block could rebind, mutate, or delete."""
+
+    return set(_flow_touches(tree, recognized_ids))
+
+
+def _is_text_only_accumulator(uses: list[ast.AST], env: dict[str, str], ctx: _TraceContext) -> bool:
+    """Whether untraced control flow only appends non-row values to a name.
+
+    An empty-list name whose every mutating use inside untraced flow is an
+    ``append`` of a value that carries no row provenance is a report text
+    accumulator: the flow cannot give it, or take from it, any row set. An
+    append of a row-tagged value, or any other mutation, is not covered by
+    this and leaves the name in provenance.
+    """
+
+    if not uses:
+        return False
+    for use in uses:
+        if not (
+            isinstance(use, ast.Call)
+            and isinstance(use.func, ast.Attribute)
+            and use.func.attr == "append"
+            and len(use.args) == 1
+            and not use.keywords
+        ):
+            return False
+        if _tag(use.args[0], env, ctx) in _ROW_TAGS:
+            return False
+    return True
 
 
 def _has_unsupported_flow(tree: ast.Module, recognized_ids: set[int]) -> bool:

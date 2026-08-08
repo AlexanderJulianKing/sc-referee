@@ -333,3 +333,90 @@ Path('results/report.md').write_text(f'{rate}')
 """
     unsupported, operands = _resolve(source)
     assert not (not unsupported and operands == {RETAINED})
+
+
+def test_append_assembled_report_links_the_division() -> None:
+    """A report accumulated with append reaches the write just as an
+    assignment-assembled one does."""
+
+    source = """import csv
+from pathlib import Path
+rows = list(csv.DictReader(Path('inputs/data.csv').open()))
+kept = [r for r in rows if r['ok'] == 'yes']
+events = sum(1 for r in kept if r['event'] == 'yes')
+rate = events / len(kept)
+lines = []
+lines.append('# report')
+lines.append(f'rate {rate}')
+Path('results/report.md').write_text("\\n".join(lines))
+"""
+    unsupported, operands = _resolve(source)
+    assert not unsupported
+    assert operands == {RETAINED}
+
+
+def test_append_to_an_unwritten_list_never_classifies() -> None:
+    """The append edge is a link to the report, not a licence: a division
+    appended to a list nothing ever writes must still not classify."""
+
+    source = """import csv
+from pathlib import Path
+rows = list(csv.DictReader(Path('inputs/data.csv').open()))
+kept = [r for r in rows if r['ok'] == 'yes']
+events = sum(1 for r in kept if r['event'] == 'yes')
+diagnostic = events / len(kept)
+notes = []
+notes.append(f'diagnostic {diagnostic}')
+Path('results/report.md').write_text('static text')
+"""
+    _unsupported, operands = _resolve(source)
+    assert operands == set()
+
+
+def test_unrecognized_loop_accumulator_never_becomes_a_denominator() -> None:
+    """The invariant the report-accumulator carve-out relies on: a name an
+    unrecognized loop appends rows to never carries a row tag, so its count
+    cannot become a denominator."""
+
+    source = """import csv
+from pathlib import Path
+rows = list(csv.DictReader(Path('inputs/data.csv').open()))
+acc = []
+for row in rows:
+    while row.get('retry') == 'yes':
+        break
+    acc.append(row)
+events = sum(1 for r in rows if r['event'] == 'yes')
+rate = events / len(acc)
+Path('results/report.md').write_text(f'{rate}')
+"""
+    unsupported, operands = _resolve(source)
+    assert unsupported or operands == set()
+
+
+def test_table_loop_appending_text_leaves_the_true_division_classified() -> None:
+    """A table-building loop that appends formatted strings to the report
+    accumulator touches no row provenance, so the real division stands."""
+
+    source = """import csv
+from pathlib import Path
+
+def main():
+    rows = list(csv.DictReader(Path('inputs/data.csv').open()))
+    kept = [r for r in rows if r['ok'] == 'yes']
+    events = sum(1 for r in kept if r['event'] == 'yes')
+    rate = events / len(kept)
+    groups = sorted({r['field'] for r in rows})
+    lines = []
+    lines.append('# report')
+    lines.append(f'rate {rate}')
+    for group in groups:
+        group_rows = [r for r in rows if r['field'] == group]
+        lines.append(f'| {group} | {len(group_rows)} |')
+    Path('results/report.md').write_text("\\n".join(lines))
+
+main()
+"""
+    unsupported, operands = _resolve(source)
+    assert not unsupported
+    assert operands == {RETAINED}
