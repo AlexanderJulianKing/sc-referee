@@ -1,7 +1,7 @@
 # ADR-0070: Held-out qualification threshold for the complete-domain envelope
 
-- **Status:** Proposed (maintainer acceptance required; accepting this ADR opens the sealed
-  held-out block)
+- **Status:** Accepted by the maintainer on 2026-08-08, in session ("Go for it"), at the
+  one-of-two sensitivity bar as proposed; acceptance opens the sealed held-out block
 - **Date:** 2026-08-08
 - **Scope:** The first envelope (`check:complete-domain-exposure-denominator`) only. The
   detector tuple under test is check/adapter version 2.0.7 exactly as registered at acceptance
@@ -62,7 +62,7 @@ The sealed block holds seven case identities in seven frozen roles. Expected out
 | ambiguous | abstention, no conflict | false-accusation control |
 | unsupported | abstention, no conflict | false-accusation control |
 
-## Decision (proposed)
+## Decision (accepted)
 
 1. **False-accusation bar: zero of five.** Any conflict candidate on any control case fails the
    envelope. This is the product's central claim and the record supports it at 0 for 32.
