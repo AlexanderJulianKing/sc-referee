@@ -803,7 +803,7 @@ def test_a_match_count_cannot_answer_for_a_differently_sourced_emission(
 
 @pytest.mark.parametrize(
     "selector",
-    ["Fraction(99, 100)", "Decimal('0.99')", "Decimal(0.99)", "Fraction(99, 100) * 1"],
+    ["Fraction(99, 100)", "Decimal('0.99')", "Decimal(0.99)"],
 )
 def test_stdlib_exact_probability_selectors_are_emission_selectors(selector: str) -> None:
     """An ordinary stdlib probability is a recognized emission selector."""
@@ -2888,6 +2888,205 @@ def test_a_star_import_abstains() -> None:
         "likelihood = math.prod(\n"
         "    0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in rows\n"
         ")\n" + _ROUND_FIVE_TAIL
+    )
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()
+
+
+# ---------------------------------------------------------------------------
+# v2.1.3 controls: the fifth review round's whole-system slice (independent
+# Opus). Three families against the v2.1.2 machinery itself: a helper body
+# rebinding a parameter before its return, an unguarded OverflowError on a
+# huge selector constant, and the effective-numeric guard ORing where the
+# read-site cast must override.
+
+
+_ROUND_SIX_TAIL = (
+    "agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)\n"
+    "n = len(rows)\n"
+    "rate = agreement / n\n"
+    "report = f'Of {n} markers, {agreement} agree at {rate:.6f}. Likelihood {likelihood:.8g}.'\n"
+    "Path('results/report.md').write_text(report)\n"
+)
+_ROUND_SIX_HEAD = (
+    "import csv\nimport math\nfrom pathlib import Path\n\n"
+    "rows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n"
+)
+
+
+@pytest.mark.parametrize(
+    "rebinding",
+    [
+        "    expected = 1 - expected\n",
+        "    observed = 1 - observed\n",
+        "    expected = expected ^ 1\n",
+        "    expected = abs(expected - 1)\n",
+        "    expected = {0: 1, 1: 0}[expected]\n",
+    ],
+)
+def test_a_helper_rebinding_a_parameter_before_its_selector_abstains(rebinding: str) -> None:
+    """The recognized helper body is one return and nothing else."""
+
+    source = (
+        _ROUND_SIX_HEAD
+        + "\ndef emit(observed, expected):\n"
+        + rebinding
+        + "    return 0.99 if observed == expected else 0.01\n\n"
+        + "likelihood = math.prod(emit(int(row['call']), int(row['founder'])) for row in rows)\n"
+        + _ROUND_SIX_TAIL
+    )
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()
+    applicability, operand = _fused_observation(_COUNTEREXAMPLE_REPORT, source)
+    assert applicability == "unsupported"
+    assert operand is None
+
+
+def test_a_docstring_only_helper_body_still_resolves() -> None:
+    """The one admitted extra statement is an inert docstring."""
+
+    source = (
+        _ROUND_SIX_HEAD
+        + "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
+        + "\ndef emit(observed, expected):\n"
+        + '    """Emission probability for one marker."""\n'
+        + "    return 0.99 if observed == expected else 0.01\n\n"
+        + "likelihood = math.prod(emit(int(item['call']), int(item['founder'])) for item in panel)\n"
+        + "agreement = sum(1 if int(item['call']) == int(item['founder']) else 0 for item in panel)\n"
+        + "n = len(rows)\n"
+        + "rate = agreement / n\n"
+        + "report = f'Of {n} markers, {agreement} agree at {rate:.6f}. Likelihood {likelihood:.8g}.'\n"
+        + "Path('results/report.md').write_text(report)\n"
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+@pytest.mark.parametrize(
+    "selector",
+    [
+        "BIG if int(row['call']) == int(row['founder']) else 1",
+        "1 if int(row['call']) == int(row['founder']) else BIG",
+        "[1, BIG][int(row['call']) == int(row['founder'])]",
+        "(BIG + 1) if int(row['call']) == int(row['founder']) else 1",
+    ],
+)
+def test_a_huge_selector_constant_abstains_without_a_crash(selector: str) -> None:
+    """``float`` of a 401-digit literal raised OverflowError in v2.1.2."""
+
+    big = "1" + "0" * 400
+    source = (
+        _ROUND_SIX_HEAD
+        + "likelihood = math.prod(\n    "
+        + selector.replace("BIG", big)
+        + " for row in rows\n)\n"
+        + _ROUND_SIX_TAIL
+    )
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()
+    applicability, operand = _fused_observation(_COUNTEREXAMPLE_REPORT, source)
+    assert applicability == "unsupported"
+    assert operand is None
+
+
+def test_a_str_read_cast_over_a_numeric_rebuild_abstains() -> None:
+    """The read-site cast overrides the stored proof; it never ORs with it.
+
+    ``int(item['call']) == str(item['founder'])`` over a numerically rebuilt
+    panel is constantly false at runtime, so the emission has no
+    orientation; v2.1.2 classified it as the rebuild's parity.
+    """
+
+    source = (
+        _ROUND_SIX_HEAD
+        + "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
+        + "likelihood = math.prod(\n"
+        + "    0.99 if int(item['call']) == str(item['founder']) else 0.01 for item in panel\n"
+        + ")\n"
+        + _ROUND_SIX_TAIL
+    )
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()
+
+
+def test_arithmetic_in_a_selector_branch_abstains() -> None:
+    """Branch constants must be simple literals; folding arithmetic in
+    binary floats mis-ordered Decimal expressions against runtime (a
+    demonstrated wrong answer), so no arithmetic is folded at all."""
+
+    source = (
+        "from fractions import Fraction\n"
+        "import csv\nimport math\nfrom pathlib import Path\n\n"
+        "rows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n"
+        "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
+        "likelihood = math.prod(\n"
+        "    Fraction(99, 100) * 1 if int(item['call']) == int(item['founder']) else 0.01\n"
+        "    for item in panel\n"
+        ")\n"
+        "report = f'likelihood {likelihood}'\n"
+        "Path('results/report.md').write_text(report)\n"
+    )
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()
+
+
+def test_an_extraction_helper_emission_abstains() -> None:
+    """``value(item, 'call') == value(item, 'founder')`` reads identical
+    names on both sides; the differing constants make it an emission the
+    trace did not read, and letting the raw count answer for it was a
+    demonstrated wrong answer."""
+
+    source = (
+        _ROUND_SIX_HEAD
+        + "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
+        + "\ndef value(record, key):\n"
+        + "    return int(record[key])\n\n"
+        + "likelihood = math.prod(\n"
+        + "    0.99 if value(item, 'call') == value(item, 'founder') else 0.01 for item in panel\n"
+        + ")\n"
+        + _ROUND_SIX_TAIL
+    )
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()
+    applicability, operand = _fused_observation(_COUNTEREXAMPLE_REPORT, source)
+    assert applicability == "unsupported"
+    assert operand is None
+
+
+def test_decimal_arithmetic_in_a_mismatch_branch_abstains() -> None:
+    """Binary-float folding read ``1e20 + 1 - 1e20`` as zero; Decimal gives 1."""
+
+    source = (
+        "from decimal import Decimal\n"
+        + _ROUND_SIX_HEAD
+        + "likelihood = math.prod(\n"
+        + "    Decimal('0.5') if int(row['call']) == int(row['founder'])\n"
+        + "    else Decimal('1e20') + Decimal('1') - Decimal('1e20')\n"
+        + "    for row in rows\n"
+        + ")\n"
+        + _ROUND_SIX_TAIL
+    )
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()
+
+
+def test_negative_branch_constants_abstain() -> None:
+    """A negative pair orders differently in linear and log space."""
+
+    source = (
+        _ROUND_SIX_HEAD
+        + "likelihood = math.prod(\n"
+        + "    -0.01 if int(row['call']) == int(row['founder']) else -0.99 for row in rows\n"
+        + ")\n"
+        + _ROUND_SIX_TAIL
     )
     unsupported, states = _resolve(source)
     assert unsupported

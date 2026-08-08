@@ -112,7 +112,7 @@ def founder_orientation_recognition_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-reconciliation",
-        "grammar_version": "2.1.2",
+        "grammar_version": "2.1.3",
         "count_source": "integer_tokens_without_unit_or_percent_suffix",
         "rate_source": "decimal_point_or_percent_suffixed_tokens_direct_or_percent_scaled",
         "relations": [
@@ -246,7 +246,7 @@ class FounderOrientationReportAdapter:
                 parser_id=PYTHON_PARSER_ID,
                 parser_version=PYTHON_PARSER_VERSION,
             )
-        except (RecursionError, MemoryError):
+        except (RecursionError, MemoryError, OverflowError):
             # The resolver guards its own parsing, but a source deep or large
             # enough to exhaust the stack or memory anywhere in the trace is an
             # abstention at this boundary too, never a crashed inspection.

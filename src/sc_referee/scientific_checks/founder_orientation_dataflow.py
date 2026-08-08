@@ -184,7 +184,7 @@ def founder_orientation_dataflow_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-emission-dataflow",
-        "grammar_version": "2.1.2",
+        "grammar_version": "2.1.3",
         "trust_model": (
             "default deny: the trace holds an explicit whitelist of the statement and "
             "expression forms it models completely, and any form outside that whitelist "
@@ -436,7 +436,7 @@ class _Path:
 
     column: str | None
     parity: int = 0
-    numeric: bool = False
+    numeric: bool | None = None
 
     @property
     def resolved(self) -> bool:
@@ -550,7 +550,7 @@ def _guarded_parse(source: str, *, filename: str) -> ast.Module | None:
 
     try:
         return ast.parse(source, filename=filename)
-    except (SyntaxError, ValueError, RecursionError, MemoryError):
+    except (SyntaxError, ValueError, RecursionError, MemoryError, OverflowError):
         return None
 
 
@@ -659,7 +659,7 @@ def _document_orientations(tree: ast.Module) -> dict[str, Any]:
 
     try:
         return _document_orientations_inner(tree)
-    except (RecursionError, MemoryError):
+    except (RecursionError, MemoryError, OverflowError):
         # A source too deep or too large for the analysis abstains; it never
         # crashes the inspection.
         return {"classifications": [], "unsupported": True}
@@ -1039,11 +1039,20 @@ def _helper_selector_form(
     parameters = [item.arg for item in function.args.args]
     if len(parameters) != 2 or len(set(parameters)) != 2:
         return None
-    statements = _flatten_statements(function.body)
-    returns = [item for item in statements if isinstance(item, ast.Return)]
-    if len(returns) != 1 or returns[0].value is None:
+    statements = [
+        item
+        for item in _flatten_statements(function.body)
+        if not (isinstance(item, ast.Expr) and isinstance(item.value, ast.Constant))
+    ]
+    # The whole body must be the one return. A statement before it can
+    # rebind a parameter (``expected = 1 - expected``), and reading the
+    # comparison as if the caller's argument arrived unchanged was a
+    # demonstrated wrong answer in both directions.
+    if len(statements) != 1 or not isinstance(statements[0], ast.Return):
         return None
-    value = returns[0].value
+    if statements[0].value is None:
+        return None
+    value = statements[0].value
     if isinstance(value, ast.IfExp) and isinstance(value.test, ast.Compare):
         compare = value.test
         match_branch: ast.expr = value.body
@@ -1175,7 +1184,9 @@ def _classify_operand_paths(
     if left_source is None or right_source is None:
         ctx.unresolved = True
         return
-    if (left.numeric or left_source[2]) != (right.numeric or right_source[2]):
+    left_effective = left.numeric if left.numeric is not None else left_source[2]
+    right_effective = right.numeric if right.numeric is not None else right_source[2]
+    if left_effective != right_effective:
         # The effective runtime type joins the read-site cast with the
         # provenance the rebuild stored: a column rebuilt as a number
         # compared against a raw string column is constantly unequal at
@@ -1251,40 +1262,37 @@ def _is_canonical_selector(
     mismatch_value = _selector_constant(mismatch_branch)
     if match_value is None or mismatch_value is None:
         return False
+    if match_value <= 0 or mismatch_value < 0:
+        # Probabilities are positive (a count's mismatch branch may be
+        # exactly zero). A negative pair orders differently in linear and
+        # log space, so its polarity is not decidable here.
+        return False
     return match_value > mismatch_value
 
 
-def _selector_constant(node: ast.expr, depth: int = 0) -> float | None:
+def _selector_constant(node: ast.expr) -> float | None:
     """The provable constant value of a selector branch, or None.
 
-    Names are not constants here: a value this function cannot prove leaves
-    the branch order unprovable and the selector non-canonical.
+    Only simple literal forms qualify: a numeric literal, its negation, or a
+    one- or two-argument Fraction/Decimal of literals. Arithmetic is
+    deliberately excluded -- folding it in binary floats mis-orders Decimal
+    expressions against their runtime values (a demonstrated wrong answer),
+    and no exact folder agrees with runtime for every constructor mix.
+    Names are not constants: an unprovable value leaves the branch order
+    unprovable and the selector non-canonical.
     """
 
-    if depth >= _MAX_EXPRESSION_DEPTH:
-        return None
     if isinstance(node, ast.Constant):
         if isinstance(node.value, int | float) and not isinstance(node.value, bool):
+            if isinstance(node.value, int) and abs(node.value) > 10**12:
+                # ``float`` of a large enough integer raises OverflowError;
+                # no real probability constant is this large.
+                return None
             return float(node.value)
         return None
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
-        inner = _selector_constant(node.operand, depth + 1)
+        inner = _selector_constant(node.operand)
         return None if inner is None else -inner
-    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add | ast.Sub | ast.Mult | ast.Div):
-        left = _selector_constant(node.left, depth + 1)
-        right = _selector_constant(node.right, depth + 1)
-        if left is None or right is None:
-            return None
-        try:
-            if isinstance(node.op, ast.Add):
-                return left + right
-            if isinstance(node.op, ast.Sub):
-                return left - right
-            if isinstance(node.op, ast.Mult):
-                return left * right
-            return left / right
-        except (ZeroDivisionError, OverflowError):
-            return None
     if isinstance(node, ast.Call) and not node.keywords and node.args:
         name = _call_name(node)
         if name in _EXACT_NUMERIC_CALLS and len(node.args) <= 2:
@@ -1293,10 +1301,10 @@ def _selector_constant(node: ast.expr, depth: int = 0) -> float | None:
                 if isinstance(argument, ast.Constant) and isinstance(argument.value, str):
                     try:
                         values.append(float(argument.value))
-                    except ValueError:
+                    except (ValueError, OverflowError):
                         return None
                     continue
-                value = _selector_constant(argument, depth + 1)
+                value = _selector_constant(argument)
                 if value is None:
                     return None
                 values.append(value)
@@ -1495,9 +1503,13 @@ def _call_parity(
         and not call.args
         and not call.keywords
     ):
-        return _column_parity(
+        base = _column_parity(
             call.func.value, loop_var=loop_var, carriers=carriers, env=env, ctx=ctx
         )
+        if base is None or not base.resolved:
+            return base
+        # ``strip`` exists on strings and returns one.
+        return _Path(base.column, base.parity, numeric=False)
     if (
         name in _IDENTITY_CASTS
         and len(call.args) == 1
@@ -1888,10 +1900,11 @@ def _row_element_value(
         # column already carried. Dropping it here let a rebuilt integer
         # column read as a string and defeat the mixed-type guard (a
         # demonstrated wrong answer).
+        stored_numeric = path.numeric if path.numeric is not None else resolved[2]
         built[key.value] = (
             resolved[0],
             (resolved[1] + path.parity) % 2,
-            path.numeric or resolved[2],
+            stored_numeric,
         )
     return _Rows(
         tuple(sorted(built.items())),
@@ -2748,11 +2761,24 @@ def _name_pair_comparison(node: ast.Compare) -> bool:
     right_names = _operand_names(node.comparators[0])
     if not left_names or not right_names:
         return False
-    return left_names != right_names
+    if left_names != right_names:
+        return True
+    # ``value(item, 'call') == value(item, 'founder')`` reads the same
+    # names on both sides; the differing string constants are what make it
+    # an emission comparison the trace did not read.
+    return _operand_constants(node.left) != _operand_constants(node.comparators[0])
 
 
 def _operand_names(node: ast.expr) -> frozenset[str]:
     return frozenset(inner.id for inner in ast.walk(node) if isinstance(inner, ast.Name))
+
+
+def _operand_constants(node: ast.expr) -> frozenset[object]:
+    return frozenset(
+        inner.value
+        for inner in ast.walk(node)
+        if isinstance(inner, ast.Constant) and isinstance(inner.value, str | int | float | bool)
+    )
 
 
 def _staged_extraction(node: ast.expr) -> tuple[str, str] | None:
