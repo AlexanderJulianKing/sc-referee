@@ -140,6 +140,35 @@ def _source(operand: str, *, second_writer: bool = False, unsupported: bool = Fa
     )
 
 
+def _audit_source(operand: str, **options: bool) -> str:
+    """``_source`` plus an emission the live founder dataflow trace can read.
+
+    From ADR-0069 check v2.0.1 the report plane never resolves alone, so the
+    audit stage that supplies the human question needs a source whose
+    orientation the bounded trace resolves. These bytes belong to the audit
+    stage only; the repository is rewritten to the exact ``_source`` bytes the
+    frozen v0.1 verifier qualified before the qualification snapshot.
+    """
+
+    panel = "rows"
+    stage = ""
+    if operand == REPAIRED:
+        stage = "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
+        panel = "panel"
+    return (
+        "import csv\n"
+        "import math\n"
+        + _source(operand, **options)
+        + "rows = list(csv.DictReader((ROOT / 'markers.csv').open()))\n"
+        + stage
+        + "def emission_likelihood():\n"
+        + "    return math.prod(\n"
+        + f"        0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in {panel}\n"
+        + "    )\n"
+        + "LIKELIHOOD = emission_likelihood()\n"
+    )
+
+
 def _inputs(
     project_root: Path,
     schema_root: Path,
@@ -165,7 +194,7 @@ def _inputs(
     audit_report = AUDIT_DIRECT_REPORT if source_operand == DIRECT else AUDIT_COMPLEMENT_REPORT
     (repository / "report.md").write_text(audit_report, encoding="utf-8")
     (repository / "analysis.py").write_text(
-        _source(
+        _audit_source(
             source_operand,
             second_writer=second_writer,
             unsupported=unsupported_writer,
@@ -209,7 +238,16 @@ def _inputs(
 
     # A hard-negative proof may expose disagreement that the production question scheduler
     # suppresses. Preserve the already-frozen human authority while presenting those exact
-    # independently assigned case bytes to the qualification verifier.
+    # independently assigned case bytes to the qualification verifier. The audit-stage
+    # emission workflow is not part of those bytes.
+    (repository / "analysis.py").write_text(
+        _source(
+            source_operand,
+            second_writer=second_writer,
+            unsupported=unsupported_writer,
+        ),
+        encoding="utf-8",
+    )
     (repository / "report.md").write_text(
         qualification_report_text if qualification_report_text is not None else requested_report,
         encoding="utf-8",

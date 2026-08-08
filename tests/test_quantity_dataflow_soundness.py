@@ -217,6 +217,30 @@ def test_signed_and_slash_date_tokens_are_excluded() -> None:
         assert kept_value in values
 
 
+def test_an_astronomically_large_integer_token_is_discarded() -> None:
+    """A 400-digit integer overflows ``float``, and the bounds that follow it
+    convert token values to ``int``. Discarding it at tokenization keeps the
+    failure a quiet non-observation instead of an ``OverflowError`` raised
+    inside a check that shares this scanner."""
+
+    text = (
+        "Run identifier " + "9" * 400 + "; planned 40, retained 32, removed 8, "
+        "events 24, rate 0.75."
+    )
+    tokens = _number_tokens(text)
+    values = [token.raw for token in tokens]
+
+    assert "9" * 400 not in values
+    for kept_value in ("40", "32", "8", "24", "0.75"):
+        assert kept_value in values
+    assert all(abs(int(token.value)) <= 10**15 for token in tokens)
+
+
+def test_the_largest_exactly_representable_integer_token_is_kept() -> None:
+    text = "counts 1000000000000000 and 10000000000000000"
+    assert [token.raw for token in _number_tokens(text)] == ["1000000000000000"]
+
+
 def test_exhaustive_dict_counter_counts_the_source() -> None:
     """+= 1 in both branches counts every row; a subset tag would be wrong."""
 

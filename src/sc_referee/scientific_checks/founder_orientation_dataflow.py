@@ -29,13 +29,28 @@ Soundness rules (each backed by a demonstrated counterexample in
   direct reading only when both inversions are recognized.
 - A transform that is not on either operand's path (a diagnostic or mask
   flip) has no effect on the classification.
-- A conditional repair classifies only when its guard is itself a
-  cross-panel comparison; any other guard abstains.
+- Any guarded rebinding of a row set leaves the document unsupported. A
+  branch decides at run time which panel the emission reads, and no static
+  reading of the guard can settle that, so v2.0.1 recognizes no conditional
+  repair at all.
+- A report-reaching accumulation whose element compares two staged columns
+  but whose selector this library cannot read leaves the document
+  unsupported. Skipping it would let an unrelated recognized comparison
+  elsewhere answer for it.
+- Names that alias one runtime row set share an invalidation group: mutating
+  any member drops the provenance of every member. Any assignment form the
+  environment model does not fully handle, touching any tagged name, leaves
+  the document unsupported.
+- A local function definition shadows the built-in reader vocabulary, and a
+  callable name that is rebound anywhere is opaque everywhere.
 - Only equalities whose selected probability can reach the written report
-  classify.
+  classify. A report write counts only when its receiver is a filesystem
+  path, and a return statement seeds the report only from a function some
+  reachable caller actually calls.
 - Equalities reaching the report with conflicting classifications abstain.
-- Helper tracing is depth-bounded with cycle detection; recursion abstains
-  instead of crashing.
+- Helper tracing is depth-bounded with cycle detection, and expression
+  tracing carries its own depth bound; recursion abstains instead of
+  crashing.
 - A function body is traced with its parameters masked, so an emission
   comparison that reads a row set arriving as a parameter abstains rather
   than letting a module global stand in for it.
@@ -65,7 +80,9 @@ from sc_referee.scientific_checks.core import (
 FOUNDER_ORIENTATION_DATAFLOW_IMPLEMENTATION_DIGEST = sha256_digest(Path(__file__).read_bytes())
 
 _MAX_CALL_DEPTH = 2
+_MAX_EXPRESSION_DEPTH = 100
 _READER_CALLS = {"csv.DictReader", "csv.reader", "DictReader", "reader"}
+_PATH_CALLS = {"Path", "pathlib.Path", "PurePath", "pathlib.PurePath"}
 _ACCUMULATOR_CALLS = {"sum", "prod", "math.prod", "fsum", "math.fsum"}
 _IDENTITY_CASTS = {"int", "float", "str"}
 _STRIP_METHODS = {"strip", "lstrip", "rstrip"}
@@ -105,7 +122,7 @@ def founder_orientation_dataflow_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-emission-dataflow",
-        "grammar_version": "1.0.0",
+        "grammar_version": "2.0.0",
         "row_source_operations": ["csv.DictReader", "csv.reader"],
         "emission_comparison": (
             "an equality or inequality between two distinct columns of one "
@@ -138,7 +155,10 @@ def founder_orientation_dataflow_grammar(
             "strip, lstrip, and rstrip on a column value",
             "assignment and list materialization of a row set",
             "constant-string column subscripts",
-            "dict literals and dict-spread literals rebuilding a row",
+            (
+                "dict literals and dict-spread literals rebuilding a row, read "
+                "strictly left to right so a later entry overrides an earlier one"
+            ),
         ],
         "classification_rule": (
             "odd total parity over both operand paths is the repaired "
@@ -151,27 +171,43 @@ def founder_orientation_dataflow_grammar(
             "even_total_parity_with_proven_paths": direct_operand,
         },
         "conditional_repair": (
-            "a guarded rebinding of a row set to an involuted row set is the "
-            "repaired orientation only when the guard is itself a cross-panel "
-            "comparison; any other guard leaves the document unsupported"
+            "not recognized; any guarded rebinding of a row set, whether by an "
+            "if statement or by a conditional expression choosing between row "
+            "sets, leaves the document unsupported"
         ),
         "control_flow": (
             "straight-line assignments, comprehensions, with-blocks, functions, "
-            "the __main__ guard, recognized accumulation and row-building loops, "
-            "and recognized guarded repairs"
+            "the __main__ guard, and recognized accumulation and row-building "
+            "loops; every other branch or loop leaves the document unsupported"
         ),
         "function_support": (
-            "straight-line bodies; positional and keyword call binding; return "
-            "values joined over every return; depth-bounded with cycle detection"
+            "straight-line bodies whose first top-level return is the last "
+            "statement; positional and keyword call binding; local definitions "
+            "shadow the reader vocabulary and a rebound callable name is opaque "
+            "everywhere; depth-bounded with cycle detection"
+        ),
+        "assignment_support": (
+            "single-name assignment only; names bound to one another share an "
+            "invalidation group, and any other assignment form touching a "
+            "tagged name leaves the document unsupported"
+        ),
+        "report_reachability": (
+            "a write whose receiver resolves to a filesystem path, or a return "
+            "from a function some reachable caller calls"
         ),
         "soundness": [
             "direct is never a fallthrough",
             "unrecognized operand-path transforms abstain",
             "joint operand inversions compose to the direct reading only when proven",
             "off-path inversions never classify",
+            "unrecognized report-reaching emission selectors abstain",
+            "aliased row sets share mutation invalidation",
+            "unhandled assignment forms touching tagged names abstain",
+            "guarded row-set rebinding abstains",
             "report-reaching value linkage",
             "conflicting classifications abstain",
             "bounded call depth with cycle abstention",
+            "bounded expression-tracing depth",
         ],
         "nomenclature_authority": "none",
     }
@@ -203,7 +239,7 @@ class _Rows:
 
 @dataclass(frozen=True)
 class _Scalar:
-    cross_panel: bool = False
+    pass
 
 
 @dataclass(frozen=True)
@@ -257,12 +293,49 @@ class FounderDataflowResolution:
 @dataclass
 class _TraceContext:
     functions: dict[str, ast.FunctionDef]
+    opaque_callables: frozenset[str] = frozenset()
+    path_names: frozenset[str] = frozenset()
     accumulated: set[int] = field(default_factory=set)
     reaching: set[str] = field(default_factory=set)
     depth: int = 0
+    expression_depth: int = 0
     visiting: set[str] = field(default_factory=set)
     recognized_ids: set[int] = field(default_factory=set)
     unresolved: bool = False
+
+
+class _Aliases:
+    """Names that are known to reference one runtime row-set object.
+
+    A plain ``alias = rows`` binds two names to the same list, so mutating
+    either one invalidates the provenance of both. Groups are per scope and
+    are broken as soon as a member is rebound to something else.
+    """
+
+    def __init__(self, groups: dict[str, set[str]] | None = None) -> None:
+        self._groups: dict[str, set[str]] = groups or {}
+
+    def copy(self) -> _Aliases:
+        copied: dict[str, set[str]] = {}
+        for group in self._groups.values():
+            shared = set(group)
+            for name in shared:
+                copied[name] = shared
+        return _Aliases(copied)
+
+    def group(self, name: str) -> set[str]:
+        return set(self._groups.get(name, {name}))
+
+    def detach(self, name: str) -> None:
+        group = self._groups.pop(name, None)
+        if group is not None:
+            group.discard(name)
+
+    def link(self, name: str, other: str) -> None:
+        merged = self._groups.get(name, {name}) | self._groups.get(other, {other})
+        merged = set(merged)
+        for member in merged:
+            self._groups[member] = merged
 
 
 # ---------------------------------------------------------------------------
@@ -339,31 +412,47 @@ def _document_orientations(tree: ast.Module) -> dict[str, Any]:
     functions: dict[str, ast.FunctionDef] = {
         node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)
     }
+    called = _called_function_names(tree, functions)
+    path_names = _path_like_names(tree)
     ctx = _TraceContext(
         functions=functions,
+        opaque_callables=frozenset(_rebound_names(tree) & set(functions)),
+        path_names=path_names,
         accumulated=_accumulated_comprehension_ids(tree),
-        reaching=_report_reaching_names(tree, functions),
+        reaching=_report_reaching_names(tree, functions, path_names, called),
     )
     classifications: list[_Classification] = []
 
     module_env: dict[str, _Value] = {}
+    module_aliases = _Aliases()
     _scan_scope(
         [item for item in tree.body if not isinstance(item, ast.FunctionDef)],
         module_env,
+        module_aliases,
         ctx,
         classifications,
+        returns_reach=False,
     )
     for function in functions.values():
         # Function bodies are scanned with parameters masked, so a module
         # global can never stand in for an unbound parameter.
         env: dict[str, _Value] = dict(module_env)
+        aliases = module_aliases.copy()
         for parameter in (
             *function.args.posonlyargs,
             *function.args.args,
             *function.args.kwonlyargs,
         ):
+            aliases.detach(parameter.arg)
             env[parameter.arg] = _OPAQUE
-        _scan_scope(function.body, env, ctx, classifications)
+        _scan_scope(
+            function.body,
+            env,
+            aliases,
+            ctx,
+            classifications,
+            returns_reach=function.name in called,
+        )
 
     return {
         "classifications": classifications,
@@ -374,48 +463,133 @@ def _document_orientations(tree: ast.Module) -> dict[str, Any]:
 def _scan_scope(
     statements: list[ast.stmt],
     env: dict[str, _Value],
+    aliases: _Aliases,
     ctx: _TraceContext,
     classifications: list[_Classification],
+    *,
+    returns_reach: bool,
 ) -> None:
     for statement in _flatten_statements(statements):
-        if _apply_recognized_repair_if(statement, env, ctx):
-            continue
         if _apply_recognized_loop(statement, env, ctx, classifications):
             continue
-        if _statement_reaches(statement, ctx):
+        if _statement_reaches(statement, ctx, returns_reach=returns_reach):
             for node in _walk_skipping_lambdas(statement):
                 if (
                     isinstance(node, ast.ListComp | ast.GeneratorExp)
                     and id(node) in ctx.accumulated
                 ):
                     _classify_comprehension(node, env, ctx, classifications)
-        _invalidate_mutations(statement, env)
-        _apply_assign(statement, env, ctx)
+        _invalidate_mutations(statement, env, aliases)
+        _apply_assign(statement, env, aliases, ctx)
 
 
-def _statement_reaches(statement: ast.stmt, ctx: _TraceContext) -> bool:
+def _statement_reaches(statement: ast.stmt, ctx: _TraceContext, *, returns_reach: bool) -> bool:
     if (
         isinstance(statement, ast.Assign)
         and len(statement.targets) == 1
         and isinstance(statement.targets[0], ast.Name)
     ):
         return statement.targets[0].id in ctx.reaching
-    if isinstance(statement, ast.Expr) and _write_payloads(statement.value):
+    if isinstance(statement, ast.Expr) and _write_payloads(statement.value, ctx.path_names):
         return True
-    return isinstance(statement, ast.Return)
+    return returns_reach and isinstance(statement, ast.Return)
 
 
-def _apply_assign(statement: ast.stmt, env: dict[str, _Value], ctx: _TraceContext) -> None:
-    if not isinstance(statement, ast.Assign) or len(statement.targets) != 1:
+def _bind(name: str, value: _Value, env: dict[str, _Value], aliases: _Aliases) -> None:
+    aliases.detach(name)
+    env[name] = value
+
+
+def _invalidate_group(name: str, env: dict[str, _Value], aliases: _Aliases) -> None:
+    for member in aliases.group(name):
+        env[member] = _OPAQUE
+
+
+def _tagged(name: str, env: dict[str, _Value], aliases: _Aliases) -> bool:
+    return any(isinstance(env.get(member), _Rows) for member in aliases.group(name))
+
+
+def _statement_touches_tagged(
+    statement: ast.stmt, env: dict[str, _Value], aliases: _Aliases
+) -> bool:
+    return any(
+        isinstance(node, ast.Name) and _tagged(node.id, env, aliases)
+        for node in ast.walk(statement)
+    )
+
+
+def _target_names(target: ast.expr) -> set[str]:
+    names: set[str] = set()
+    for node in ast.walk(target):
+        if isinstance(node, ast.Name):
+            names.add(node.id)
+    return names
+
+
+def _apply_assign(
+    statement: ast.stmt, env: dict[str, _Value], aliases: _Aliases, ctx: _TraceContext
+) -> None:
+    """Update the environment for one assignment, or abstain for the document.
+
+    Only a single ``Name`` target is modelled exactly. Every other assignment
+    form -- tuple or starred targets, chained targets, subscript and slice
+    targets, annotated targets, augmented assignment, and the walrus operator
+    -- leaves the document unsupported as soon as it touches a name whose row
+    provenance is tagged, because the environment cannot follow it.
+    """
+
+    if not isinstance(statement, ast.Assign | ast.AugAssign | ast.AnnAssign):
         return
+    walrus = any(isinstance(node, ast.NamedExpr) for node in ast.walk(statement))
+    simple = (
+        isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and not walrus
+    )
+    if not simple:
+        if _statement_touches_tagged(statement, env, aliases):
+            ctx.unresolved = True
+        targets: list[ast.expr] = (
+            list(statement.targets) if isinstance(statement, ast.Assign) else [statement.target]
+        )
+        for target in targets:
+            for name in _target_names(target):
+                _invalidate_group(name, env, aliases)
+                _bind(name, _OPAQUE, env, aliases)
+        return
+    assert isinstance(statement, ast.Assign)
     target = statement.targets[0]
-    if not isinstance(target, ast.Name):
+    assert isinstance(target, ast.Name)
+    if _is_row_set_conditional(statement.value, env, ctx):
+        # A branch decides at run time which panel the name holds; no static
+        # reading of the guard settles it.
+        ctx.unresolved = True
+        _bind(target.id, _OPAQUE, env, aliases)
         return
-    env[target.id] = _tag(statement.value, env, ctx)
+    value = _tag(statement.value, env, ctx)
+    _bind(target.id, value, env, aliases)
+    if isinstance(statement.value, ast.Name) and isinstance(value, _Rows):
+        aliases.link(target.id, statement.value.id)
 
 
-def _invalidate_mutations(statement: ast.stmt, env: dict[str, _Value]) -> None:
-    """Drop provenance for row sets a statement mutates or deletes from."""
+def _is_row_set_conditional(value: ast.expr, env: dict[str, _Value], ctx: _TraceContext) -> bool:
+    """A conditional expression choosing between row sets."""
+
+    if not isinstance(value, ast.IfExp):
+        return False
+    return isinstance(_tag(value.body, env, ctx), _Rows) or isinstance(
+        _tag(value.orelse, env, ctx), _Rows
+    )
+
+
+def _invalidate_mutations(statement: ast.stmt, env: dict[str, _Value], aliases: _Aliases) -> None:
+    """Drop provenance for row sets a statement mutates or deletes from.
+
+    Every name that aliases the mutated object loses its provenance too: the
+    runtime list is one object, and the syntactic receiver is only one of its
+    names.
+    """
 
     for node in ast.walk(statement):
         if (
@@ -423,16 +597,15 @@ def _invalidate_mutations(statement: ast.stmt, env: dict[str, _Value]) -> None:
             and isinstance(node.func, ast.Attribute)
             and isinstance(node.func.value, ast.Name)
             and node.func.attr in _MUTATING_METHODS
-            and isinstance(env.get(node.func.value.id), _Rows)
         ):
-            env[node.func.value.id] = _OPAQUE
+            _invalidate_group(node.func.value.id, env, aliases)
         elif isinstance(node, ast.Delete):
             for item in node.targets:
                 inner: ast.expr = item
                 while isinstance(inner, ast.Subscript):
                     inner = inner.value
-                if isinstance(inner, ast.Name) and inner.id in env:
-                    env[inner.id] = _OPAQUE
+                if isinstance(inner, ast.Name):
+                    _invalidate_group(inner.id, env, aliases)
 
 
 # ---------------------------------------------------------------------------
@@ -451,11 +624,52 @@ def _classify_comprehension(
     if not isinstance(generator.target, ast.Name):
         return
     selectors = _selector_comparisons(node.elt)
+    source = _tag(generator.iter, env, ctx)
+    _flag_unrecognized_selectors(node.elt, selectors, generator.target.id, env, ctx)
     if not selectors:
         return
-    source = _tag(generator.iter, env, ctx)
     for compare in selectors:
         _classify_compare(compare, generator.target.id, source, env, ctx, classifications)
+
+
+def _flag_unrecognized_selectors(
+    element: ast.expr,
+    selectors: list[ast.Compare],
+    loop_var: str,
+    env: dict[str, _Value],
+    ctx: _TraceContext,
+) -> None:
+    """Abstain for the document when an emission-like selector is unreadable.
+
+    A report-reaching accumulation whose element compares two staged columns
+    is an emission selector whatever it selects between. If this library
+    cannot read the selected values, skipping the accumulation would let a
+    recognized comparison elsewhere -- a match count over a different panel,
+    say -- answer in its place.
+    """
+
+    recognized = {id(item) for item in selectors}
+    for node in ast.walk(element):
+        if not isinstance(node, ast.Compare) or id(node) in recognized:
+            continue
+        if _is_emission_like_comparison(node, loop_var, env, ctx):
+            ctx.unresolved = True
+            return
+
+
+def _is_emission_like_comparison(
+    compare: ast.Compare,
+    loop_var: str,
+    env: dict[str, _Value],
+    ctx: _TraceContext,
+) -> bool:
+    if len(compare.ops) != 1 or not isinstance(compare.ops[0], ast.Eq | ast.NotEq):
+        return False
+    left = _column_parity(compare.left, loop_var=loop_var, carriers={}, env=env, ctx=ctx)
+    right = _column_parity(compare.comparators[0], loop_var=loop_var, carriers={}, env=env, ctx=ctx)
+    if left is None or right is None:
+        return False
+    return not (left.resolved and right.resolved and left.column == right.column)
 
 
 def _classify_compare(
@@ -528,20 +742,55 @@ def _two_element_numeric_container(node: ast.expr) -> bool:
     )
 
 
-def _numeric_like(node: ast.expr) -> bool:
-    """A numeric emission probability: a literal, a name, or arithmetic over them."""
+_EXACT_NUMERIC_CALLS = {
+    "Fraction",
+    "fractions.Fraction",
+    "Decimal",
+    "decimal.Decimal",
+}
 
+
+def _numeric_like(node: ast.expr, depth: int = 0) -> bool:
+    """A numeric emission probability: a literal, a name, or arithmetic over them.
+
+    ``Fraction(99, 100)`` and ``Decimal("0.99")`` are ordinary stdlib ways of
+    writing an emission probability, so they read as numeric here; leaving
+    them out made a legitimate emission selector invisible.
+    """
+
+    if depth >= _MAX_EXPRESSION_DEPTH:
+        return False
     if isinstance(node, ast.Constant):
         return isinstance(node.value, int | float) and not isinstance(node.value, bool)
     if isinstance(node, ast.Name):
         return True
     if isinstance(node, ast.UnaryOp):
-        return _numeric_like(node.operand)
+        return _numeric_like(node.operand, depth + 1)
     if isinstance(node, ast.BinOp):
-        return _numeric_like(node.left) and _numeric_like(node.right)
-    if isinstance(node, ast.Call) and _call_name(node) in {"float", "int", "Decimal"}:
-        return len(node.args) == 1 and _numeric_like(node.args[0])
+        return _numeric_like(node.left, depth + 1) and _numeric_like(node.right, depth + 1)
+    if isinstance(node, ast.Call) and not node.keywords:
+        name = _call_name(node)
+        if name in _EXACT_NUMERIC_CALLS:
+            return (
+                bool(node.args)
+                and len(node.args) <= 2
+                and all(_numeric_argument(item, depth + 1) for item in node.args)
+            )
+        if name in {"float", "int"}:
+            return len(node.args) == 1 and _numeric_like(node.args[0], depth + 1)
     return False
+
+
+def _numeric_argument(node: ast.expr, depth: int) -> bool:
+    """A numeric constructor argument, including the decimal string form."""
+
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        try:
+            float(node.value)
+        except ValueError:
+            return False
+        return True
+    return _numeric_like(node, depth)
 
 
 def _rows_column(rows: _Rows, column: str) -> tuple[str, int] | None:
@@ -568,8 +817,31 @@ def _column_parity(
     Returns ``None`` when the expression has no row-column origin at all,
     the unresolved marker when it touches one through an operation this
     library does not recognize, and a resolved path otherwise.
+
+    The recursion carries an explicit depth bound: a long enough composed
+    expression would otherwise exhaust the interpreter stack, and abstaining
+    beyond the bound is the only sound answer.
     """
 
+    if ctx.expression_depth >= _MAX_EXPRESSION_DEPTH:
+        return _UNRESOLVED
+    ctx.expression_depth += 1
+    try:
+        return _column_parity_inner(
+            expression, loop_var=loop_var, carriers=carriers, env=env, ctx=ctx
+        )
+    finally:
+        ctx.expression_depth -= 1
+
+
+def _column_parity_inner(
+    expression: ast.expr,
+    *,
+    loop_var: str | None,
+    carriers: dict[str, _Path],
+    env: dict[str, _Value],
+    ctx: _TraceContext,
+) -> _Path | None:
     def _unknown() -> _Path | None:
         return _UNRESOLVED if _touches_rows(expression, loop_var, carriers) else None
 
@@ -640,6 +912,10 @@ def _call_parity(
     ctx: _TraceContext,
 ) -> _Path | None:
     name = _call_name(call)
+    if name in ctx.opaque_callables:
+        # The name is rebound somewhere in the module, so which body runs here
+        # is a runtime question.
+        return None
     if (
         isinstance(call.func, ast.Attribute)
         and call.func.attr in _STRIP_METHODS
@@ -717,11 +993,26 @@ def _helper_parity(
         # A helper carrying no column, or two of them, is not a recode of one
         # panel value; abstain rather than pick a side.
         return None if not carried else _UNRESOLVED
+    if not _straight_line_helper(function):
+        return _UNRESOLVED
     ctx.depth += 1
     ctx.visiting.add(function.name)
     try:
         local = dict(carried)
-        for statement in _flatten_statements(function.body):
+        statements = _flatten_statements(function.body)
+        for index, statement in enumerate(statements):
+            if isinstance(statement, ast.Return):
+                # Statements after the first return are dead code the value
+                # never sees, and a body that keeps going is not the
+                # straight line this analysis assumes.
+                if statement.value is None or index != len(statements) - 1:
+                    return _UNRESOLVED
+                path = _column_parity(
+                    statement.value, loop_var=None, carriers=local, env=env, ctx=ctx
+                )
+                if path is None or not path.resolved:
+                    return _UNRESOLVED
+                return _Path(str(path.column), path.parity % 2)
             if (
                 isinstance(statement, ast.Assign)
                 and len(statement.targets) == 1
@@ -734,22 +1025,28 @@ def _helper_parity(
                     local[statement.targets[0].id] = path
                 else:
                     local.pop(statement.targets[0].id, None)
-            elif not isinstance(statement, ast.Return | ast.Pass | ast.Expr):
-                return _UNRESOLVED
-        results: set[tuple[str, int]] = set()
-        for node in ast.walk(function):
-            if isinstance(node, ast.Return) and node.value is not None:
-                path = _column_parity(node.value, loop_var=None, carriers=local, env=env, ctx=ctx)
-                if path is None or not path.resolved:
-                    return _UNRESOLVED
-                results.add((str(path.column), path.parity % 2))
-        if len(results) != 1:
+                continue
+            if isinstance(statement, ast.Pass):
+                continue
             return _UNRESOLVED
-        column, parity = next(iter(results))
-        return _Path(column, parity)
+        return _UNRESOLVED
     finally:
         ctx.depth -= 1
         ctx.visiting.discard(function.name)
+
+
+def _straight_line_helper(function: ast.FunctionDef) -> bool:
+    """A helper body free of walrus bindings and side-effecting statements."""
+
+    for node in ast.walk(function):
+        if isinstance(node, ast.NamedExpr):
+            return False
+    for statement in _flatten_statements(function.body):
+        if isinstance(statement, ast.Expr) and not isinstance(statement.value, ast.Constant):
+            # A bare expression statement exists for its side effect; only a
+            # docstring is inert.
+            return False
+    return True
 
 
 def _ifexp_parity(
@@ -868,6 +1165,16 @@ def _touches_rows(expression: ast.expr, loop_var: str | None, carriers: dict[str
 
 
 def _tag(node: ast.expr, env: dict[str, _Value], ctx: _TraceContext) -> _Value:
+    if ctx.expression_depth >= _MAX_EXPRESSION_DEPTH:
+        return _OPAQUE
+    ctx.expression_depth += 1
+    try:
+        return _tag_inner(node, env, ctx)
+    finally:
+        ctx.expression_depth -= 1
+
+
+def _tag_inner(node: ast.expr, env: dict[str, _Value], ctx: _TraceContext) -> _Value:
     if isinstance(node, ast.Name):
         return env.get(node.id, _OPAQUE)
     if isinstance(node, ast.Constant):
@@ -879,12 +1186,22 @@ def _tag(node: ast.expr, env: dict[str, _Value], ctx: _TraceContext) -> _Value:
     if isinstance(node, ast.ListComp | ast.GeneratorExp):
         return _tag_comprehension(node, env, ctx)
     if isinstance(node, ast.BinOp | ast.UnaryOp | ast.Compare):
-        return _Scalar(cross_panel=_expression_has_cross_panel(node, env, ctx))
+        return _Scalar()
     return _OPAQUE
 
 
 def _tag_call(node: ast.Call, env: dict[str, _Value], ctx: _TraceContext) -> _Value:
     name = _call_name(node)
+    if name in ctx.opaque_callables:
+        return _OPAQUE
+    if isinstance(node.func, ast.Name) and node.func.id in env:
+        # The callable name is bound to a value this trace is following, so
+        # the built-in vocabulary below does not describe it.
+        return _OPAQUE
+    if name in ctx.functions:
+        # A project definition shadows the reader vocabulary; its body, not
+        # its name, says what it returns.
+        return _bound_return_value(ctx.functions[name], node, env, ctx)
     if name in _READER_CALLS:
         return _Rows(iterator=True)
     if name == "list" and len(node.args) == 1 and not node.keywords:
@@ -893,15 +1210,8 @@ def _tag_call(node: ast.Call, env: dict[str, _Value], ctx: _TraceContext) -> _Va
             return _Rows(inner.overrides, inner.default_identity, iterator=False)
         return _OPAQUE
     if name in _ACCUMULATOR_CALLS or name in {"len"}:
-        return _Scalar(cross_panel=_expression_has_cross_panel(node, env, ctx))
-    if name in ctx.functions:
-        return _bound_return_value(ctx.functions[name], node, env, ctx)
-    if (
-        name in _IDENTITY_CASTS
-        and len(node.args) == 1
-        and not node.keywords
-        and name not in ctx.functions
-    ):
+        return _Scalar()
+    if name in _IDENTITY_CASTS and len(node.args) == 1 and not node.keywords:
         inner = _tag(node.args[0], env, ctx)
         return inner if isinstance(inner, _Scalar) else _OPAQUE
     return _OPAQUE
@@ -928,38 +1238,44 @@ def _row_element_value(
     env: dict[str, _Value],
     ctx: _TraceContext,
 ) -> _Value:
-    """The row set a per-row element expression builds, or opaque."""
+    """The row set a per-row element expression builds, or opaque.
+
+    Dict construction is order-sensitive: ``{"founder": ..., **row}`` keeps
+    the spread's value for ``founder`` and ``{**row, "founder": ...}`` keeps
+    the explicit one. Entries are therefore applied strictly left to right,
+    and a later spread overwrites an earlier explicit key with whatever that
+    spread carries -- opaque when the spread's own contents do not say.
+    """
 
     if isinstance(element, ast.Name) and element.id == loop_var:
         return _Rows(source.overrides, source.default_identity, iterator=False)
     if not isinstance(element, ast.Dict):
         return _OPAQUE
-    spread = False
-    explicit: list[tuple[str, tuple[str, int] | None]] = []
+    built: dict[str, tuple[str, int] | None] = {}
+    default_identity = False
     for key, value in zip(element.keys, element.values, strict=True):
         if key is None:
             if not (isinstance(value, ast.Name) and value.id == loop_var):
                 return _OPAQUE
-            spread = True
+            for existing in list(built):
+                built[existing] = _rows_column(source, existing)
+            built.update(dict(source.overrides))
+            default_identity = source.default_identity
             continue
         if not (isinstance(key, ast.Constant) and isinstance(key.value, str)):
             return _OPAQUE
         path = _column_parity(value, loop_var=loop_var, carriers={}, env=env, ctx=ctx)
         if path is None or not path.resolved:
-            explicit.append((key.value, None))
+            built[key.value] = None
             continue
         resolved = _rows_column(source, str(path.column))
         if resolved is None:
-            explicit.append((key.value, None))
+            built[key.value] = None
             continue
-        explicit.append((key.value, (resolved[0], (resolved[1] + path.parity) % 2)))
-    overrides: dict[str, tuple[str, int] | None] = {}
-    if spread:
-        overrides.update(dict(source.overrides))
-    overrides.update(dict(explicit))
+        built[key.value] = (resolved[0], (resolved[1] + path.parity) % 2)
     return _Rows(
-        tuple(sorted(overrides.items())),
-        default_identity=source.default_identity if spread else False,
+        tuple(sorted(built.items())),
+        default_identity=default_identity,
         iterator=False,
     )
 
@@ -1000,9 +1316,16 @@ def _bound_return_value(
     env: dict[str, _Value],
     ctx: _TraceContext,
 ) -> _Value:
-    """The joined return value of a callee with its parameters bound."""
+    """The return value of a callee with its parameters bound.
+
+    Statements are processed in order and the first top-level return decides;
+    a body that continues past its return is not the straight line this
+    analysis assumes and reads as opaque.
+    """
 
     if ctx.depth >= _MAX_CALL_DEPTH or function.name in ctx.visiting:
+        return _OPAQUE
+    if not _straight_line_helper(function):
         return _OPAQUE
     callee_env = _bind_call(function, call, env, ctx)
     if callee_env is None:
@@ -1010,15 +1333,17 @@ def _bound_return_value(
     ctx.depth += 1
     ctx.visiting.add(function.name)
     try:
-        for statement in _flatten_statements(function.body):
-            _apply_recognized_loop(statement, callee_env, ctx, [])
-            _apply_assign(statement, callee_env, ctx)
-        values: set[_Value] = set()
-        for node in ast.walk(function):
-            if isinstance(node, ast.Return) and node.value is not None:
-                values.add(_tag(node.value, callee_env, ctx))
-        if len(values) == 1:
-            return next(iter(values))
+        callee_aliases = _Aliases()
+        statements = _flatten_statements(function.body)
+        for index, statement in enumerate(statements):
+            if isinstance(statement, ast.Return):
+                if statement.value is None or index != len(statements) - 1:
+                    return _OPAQUE
+                return _tag(statement.value, callee_env, ctx)
+            if _apply_recognized_loop(statement, callee_env, ctx, []):
+                continue
+            _invalidate_mutations(statement, callee_env, callee_aliases)
+            _apply_assign(statement, callee_env, callee_aliases, ctx)
         return _OPAQUE
     finally:
         ctx.depth -= 1
@@ -1130,84 +1455,13 @@ def _apply_accumulation_loop(
         return False
     if targets & ctx.reaching:
         for payload in payloads:
-            for compare in _selector_comparisons(payload):
+            selectors = _selector_comparisons(payload)
+            _flag_unrecognized_selectors(payload, selectors, loop.target.id, env, ctx)
+            for compare in selectors:
                 _classify_compare(compare, loop.target.id, source, env, ctx, classifications)
     for name in targets:
         env[name] = _Scalar()
     return True
-
-
-def _apply_recognized_repair_if(
-    statement: ast.stmt, env: dict[str, _Value], ctx: _TraceContext
-) -> bool:
-    """``if <cross-panel comparison>: rows = <involuted rows>``."""
-
-    if not isinstance(statement, ast.If) or statement.orelse or _is_main_guard(statement):
-        return False
-    body = statement.body
-    if len(body) != 1:
-        return False
-    assign = body[0]
-    if not (
-        isinstance(assign, ast.Assign)
-        and len(assign.targets) == 1
-        and isinstance(assign.targets[0], ast.Name)
-    ):
-        return False
-    value = _tag(assign.value, env, ctx)
-    if not isinstance(value, _Rows):
-        return False
-    if not _guard_is_cross_panel(statement.test, env, ctx):
-        # A repair conditioned on anything but a measured cross-panel
-        # comparison is a branch this library cannot resolve statically.
-        return False
-    env[assign.targets[0].id] = value
-    _mark_recognized(statement, ctx)
-    return True
-
-
-def _guard_is_cross_panel(test: ast.expr, env: dict[str, _Value], ctx: _TraceContext) -> bool:
-    if _expression_has_cross_panel(test, env, ctx):
-        return True
-    for node in ast.walk(test):
-        value = env.get(node.id) if isinstance(node, ast.Name) else None
-        if isinstance(value, _Scalar) and value.cross_panel:
-            return True
-    return False
-
-
-def _expression_has_cross_panel(
-    expression: ast.expr, env: dict[str, _Value], ctx: _TraceContext
-) -> bool:
-    """Whether an expression measures agreement between two panel columns."""
-
-    for node in ast.walk(expression):
-        if not isinstance(node, ast.ListComp | ast.GeneratorExp):
-            continue
-        if len(node.generators) != 1:
-            continue
-        generator = node.generators[0]
-        if not isinstance(generator.target, ast.Name):
-            continue
-        source = _tag(generator.iter, env, ctx)
-        if not isinstance(source, _Rows):
-            continue
-        loop_var = generator.target.id
-        for candidate in (node.elt, *generator.ifs):
-            for inner in ast.walk(candidate):
-                if not isinstance(inner, ast.Compare) or len(inner.ops) != 1:
-                    continue
-                if not isinstance(inner.ops[0], ast.Eq | ast.NotEq):
-                    continue
-                left = _column_parity(inner.left, loop_var=loop_var, carriers={}, env=env, ctx=ctx)
-                right = _column_parity(
-                    inner.comparators[0], loop_var=loop_var, carriers={}, env=env, ctx=ctx
-                )
-                if left is None or right is None or not left.resolved or not right.resolved:
-                    continue
-                if left.column != right.column:
-                    return True
-    return False
 
 
 def _mark_recognized(statement: ast.stmt, ctx: _TraceContext) -> None:
@@ -1265,7 +1519,115 @@ def _walk_skipping_lambdas(statement: ast.AST) -> list[ast.AST]:
     return found
 
 
-def _write_payloads(node: ast.AST) -> list[ast.expr]:
+def _is_path_like(node: ast.expr, path_names: set[str], depth: int = 0) -> bool:
+    """Whether an expression resolves to a filesystem path or a handle on one.
+
+    A ``StringIO`` buffer also answers to ``write``, so a diagnostic string
+    written into memory would otherwise look exactly like the published
+    report. Only a ``Path`` call chain, a name assigned from one, or an
+    ``open`` on one counts.
+    """
+
+    if depth >= _MAX_EXPRESSION_DEPTH:
+        return False
+    if isinstance(node, ast.Name):
+        return node.id in path_names
+    if isinstance(node, ast.Call):
+        name = _call_name(node)
+        if name in _PATH_CALLS:
+            return True
+        if name == "open" and node.args:
+            return _is_path_like(node.args[0], path_names, depth + 1)
+        if isinstance(node.func, ast.Attribute):
+            return _is_path_like(node.func.value, path_names, depth + 1)
+        return False
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+        return _is_path_like(node.left, path_names, depth + 1) or _is_path_like(
+            node.right, path_names, depth + 1
+        )
+    if isinstance(node, ast.Attribute):
+        return _is_path_like(node.value, path_names, depth + 1)
+    return False
+
+
+def _path_like_names(tree: ast.Module) -> frozenset[str]:
+    """Names bound, directly or transitively, to a filesystem path."""
+
+    names: set[str] = set()
+    changed = True
+    while changed:
+        changed = False
+        for node in ast.walk(tree):
+            targets: list[ast.expr] = []
+            value: ast.expr | None = None
+            if isinstance(node, ast.Assign) and len(node.targets) == 1:
+                targets = [node.targets[0]]
+                value = node.value
+            elif isinstance(node, ast.AnnAssign) and node.value is not None:
+                targets = [node.target]
+                value = node.value
+            elif isinstance(node, ast.withitem) and node.optional_vars is not None:
+                targets = [node.optional_vars]
+                value = node.context_expr
+            if value is None:
+                continue
+            for target in targets:
+                if not isinstance(target, ast.Name) or target.id in names:
+                    continue
+                if _is_path_like(value, names):
+                    names.add(target.id)
+                    changed = True
+    return frozenset(names)
+
+
+def _rebound_names(tree: ast.Module) -> set[str]:
+    """Every name any binding form in the module can rebind."""
+
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                names.update(_target_names(target))
+        elif isinstance(node, ast.AugAssign | ast.AnnAssign):
+            names.update(_target_names(node.target))
+        elif isinstance(node, ast.For | ast.AsyncFor):
+            names.update(_target_names(node.target))
+        elif isinstance(node, ast.NamedExpr):
+            names.update(_target_names(node.target))
+        elif isinstance(node, ast.withitem) and node.optional_vars is not None:
+            names.update(_target_names(node.optional_vars))
+    return names
+
+
+def _called_function_names(
+    tree: ast.Module, functions: dict[str, ast.FunctionDef]
+) -> frozenset[str]:
+    """Module-level functions some reachable caller actually calls.
+
+    A return statement inside a function nobody calls never delivers a value
+    anywhere, so it cannot seed the report-reaching set.
+    """
+
+    frontier: set[str] = set()
+    for statement in (item for item in tree.body if not isinstance(item, ast.FunctionDef)):
+        for node in ast.walk(statement):
+            if isinstance(node, ast.Call) and _call_name(node) in functions:
+                frontier.add(_call_name(node))
+    reached: set[str] = set()
+    while frontier:
+        name = frontier.pop()
+        if name in reached:
+            continue
+        reached.add(name)
+        for node in ast.walk(functions[name]):
+            if isinstance(node, ast.Call):
+                callee = _call_name(node)
+                if callee in functions and callee not in reached:
+                    frontier.add(callee)
+    return frozenset(reached)
+
+
+def _write_payloads(node: ast.AST, path_names: frozenset[str] | set[str]) -> list[ast.expr]:
     payloads: list[ast.expr] = []
     for inner in ast.walk(node):
         if (
@@ -1273,12 +1635,18 @@ def _write_payloads(node: ast.AST) -> list[ast.expr]:
             and isinstance(inner.func, ast.Attribute)
             and inner.func.attr in _WRITE_METHODS
             and inner.args
+            and _is_path_like(inner.func.value, set(path_names))
         ):
             payloads.append(inner.args[0])
     return payloads
 
 
-def _report_reaching_names(tree: ast.Module, functions: dict[str, ast.FunctionDef]) -> set[str]:
+def _report_reaching_names(
+    tree: ast.Module,
+    functions: dict[str, ast.FunctionDef],
+    path_names: frozenset[str],
+    called: frozenset[str],
+) -> set[str]:
     """Names whose values can flow into a written report payload.
 
     This is a permit gate only. Widening it can admit a comparison that never
@@ -1320,13 +1688,13 @@ def _report_reaching_names(tree: ast.Module, functions: dict[str, ast.FunctionDe
         ):
             _depend(node.target.id, [node.value])
 
-    def _collect(statements: list[ast.stmt]) -> None:
+    def _collect(statements: list[ast.stmt], *, seed_returns: bool) -> None:
         for statement in _flatten_statements(statements):
-            for payload in _write_payloads(statement):
+            for payload in _write_payloads(statement, path_names):
                 for name in ast.walk(payload):
                     if isinstance(name, ast.Name):
                         seeds.add(name.id)
-            if isinstance(statement, ast.Return) and statement.value is not None:
+            if seed_returns and isinstance(statement, ast.Return) and statement.value is not None:
                 for name in ast.walk(statement.value):
                     if isinstance(name, ast.Name):
                         seeds.add(name.id)
@@ -1334,9 +1702,12 @@ def _report_reaching_names(tree: ast.Module, functions: dict[str, ast.FunctionDe
             for node in ast.walk(statement):
                 _collect_edge(node)
 
-    _collect([item for item in tree.body if not isinstance(item, ast.FunctionDef)])
+    _collect(
+        [item for item in tree.body if not isinstance(item, ast.FunctionDef)],
+        seed_returns=False,
+    )
     for function in functions.values():
-        _collect(function.body)
+        _collect(function.body, seed_returns=function.name in called)
 
     reaching = set(seeds)
     changed = True

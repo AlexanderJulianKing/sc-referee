@@ -761,6 +761,13 @@ def _founder_orientation_profile() -> _ReportProfile:
     or lexical triggers; the retired two-sentence grammar answered whether the
     report claimed a repair, while the reviewable operand is whether an
     orientation repair sits on the dataflow path.
+
+    v2.0.1 closes an adversarial review of that recognizer. The report plane
+    no longer resolves on its own, conditional repair is no longer recognized
+    at all, and the dataflow trace abstains for aliased mutation, unhandled
+    assignment forms, rebound callables, unreadable emission selectors,
+    reversed dict-spread precedence, in-memory report writes, and expressions
+    deeper than its bound.
     """
 
     direct = "use_supplied_founder_alleles_directly_in_hmm_emission"
@@ -798,8 +805,8 @@ def _founder_orientation_profile() -> _ReportProfile:
         question_wording=(
             "Which founder-allele orientation rule governs the HMM emission for this review?"
         ),
-        check_version="2.0.0",
-        adapter_version="2.0.0",
+        check_version="2.0.1",
+        adapter_version="2.0.1",
     )
 
 

@@ -1,32 +1,40 @@
 """ADR-0069 founder-orientation recognition for the pre-emission orientation check.
 
 This adapter recognizes which founder-allele orientation governs an emission
-computation from operations and arithmetic, never from nomenclature. It fuses
-two planes.
+computation from operations and arithmetic, never from nomenclature. It reads
+two planes, but only one of them can decide.
+
+The source plane is the bounded static resolver in
+``founder_orientation_dataflow``: it decides, name-agnostically, whether a
+value-inverting involutive transform sits between the staged input read and
+exactly one operand of the emission comparison. This plane is the only one
+that resolves. When it does not resolve uniquely the adapter abstains, in the
+resolver's own terms: nothing seen at all is not applicable, an unreadable
+transform or untraceable control flow is unsupported, and workflow
+comparisons that disagree with each other are ambiguous.
 
 The reported-text plane reads the selected report's number tokens and looks
 for one orientation accounting: a marker total ``N``, a per-marker agreement
 count ``E`` stated as its own token, and a stated rate ``r``. When ``r``
 reconciles with ``E / N`` the report is consistent with reading the supplied
 founder panel directly; when it reconciles with ``(N - E) / N`` the report is
-consistent with the complement of that panel. When both reconcile (the
-``E = N / 2`` degeneracy) or neither does, the report plane says nothing.
-Three free numbers joined by one ratio reconcile by coincidence far more
-often than the four numbers of an additive accounting do, so the report plane
-also says nothing when more than one ``N`` and ``E`` pair reconciles: a report
-stating several candidate accountings identifies none of them.
+consistent with the complement of that panel. Three free numbers joined by
+one ratio reconcile by coincidence often enough that this plane cannot carry
+a classification by itself: a sensitivity of 0.90 on 90 of 100 cases is an
+ordinary sentence about something else entirely, and it reconciles just as
+well as a genuine founder accounting does. So v2.0.1 gives the report plane
+three jobs and no more. It corroborates when its own unique reading agrees
+with the workflow, it contradicts when its unique reading disagrees, and
+otherwise it is silent.
 
-The source plane is the bounded static resolver in
-``founder_orientation_dataflow``: it decides, name-agnostically, whether a
-value-inverting involutive transform sits between the staged input read and
-exactly one operand of the emission comparison.
+Even a silent report has to account for the workflow's reading: the adapter
+classifies on the dataflow alone only when some stated marker total,
+agreement count, and rate reconcile in the direction the workflow computed.
+A report that states no such accounting leaves the question not applicable,
+because nothing published turns on the orientation the workflow used.
 
-Fusion: either plane can resolve alone. A report-only resolution requires the
-source plane not to contradict it; a source-only resolution requires the
-report to state the marker-total and agreement-count accounting at all. A
-unique source classification breaks a report tie. Disagreement between the
-planes abstains as ambiguous. Nothing is inferred from unstated quantities,
-and no variable, file, or column name gates recognition.
+Nothing is inferred from unstated quantities, and no variable, file, or
+column name gates recognition.
 """
 
 from __future__ import annotations
@@ -92,7 +100,7 @@ def founder_orientation_recognition_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-reconciliation",
-        "grammar_version": "1.0.0",
+        "grammar_version": "2.0.0",
         "count_source": "integer_tokens_without_unit_or_percent_suffix",
         "rate_source": "decimal_point_or_percent_suffixed_tokens_direct_or_percent_scaled",
         "relations": [
@@ -117,10 +125,12 @@ def founder_orientation_recognition_grammar(
             FOUNDER_ORIENTATION_DATAFLOW_IMPLEMENTATION_DIGEST
         ),
         "plane_fusion": (
-            "either plane resolves alone; a unique source dataflow breaks report "
-            "ties; disagreement between planes abstains as ambiguous; a "
-            "dataflow-only classification requires a stated marker-total and "
-            "agreement-count accounting"
+            "only the source dataflow resolves; the report plane corroborates a "
+            "unique dataflow reading, contradicts it as ambiguous, or is silent; "
+            "a non-unique dataflow abstains in the resolver's own terms; a "
+            "dataflow-only classification requires a stated marker-total, "
+            "agreement-count, and rate accounting that reconciles in the "
+            "direction the dataflow computed"
         ),
         "additional_exclusions": ["signed values", "slash-separated dates", "unit-suffixed values"],
         "nomenclature_authority": "none",
@@ -193,7 +203,13 @@ class FounderOrientationReportAdapter:
                 "The selected report exceeds the bounded rate-token scan.",
                 document=document,
             )
-        interpretations, report_had_conflict = _identified_orientations(
+        reconciliations = _orientations(
+            integers,
+            rates,
+            direct_operand=str(self.direct_operand.value),
+            repaired_operand=str(self.repaired_operand.value),
+        )
+        interpretations, _report_had_conflict = _identified_orientations(
             integers,
             rates,
             direct_operand=str(self.direct_operand.value),
@@ -207,6 +223,10 @@ class FounderOrientationReportAdapter:
             parser_id=PYTHON_PARSER_ID,
             parser_version=PYTHON_PARSER_VERSION,
         )
+        # The report plane never resolves alone. Report numbers reconcile with
+        # an orientation ratio by coincidence far too readily for three free
+        # numbers to carry a classification, so a dataflow that does not
+        # resolve uniquely ends the inspection in the resolver's own terms.
         if flow.state == "ambiguous":
             return self._abstain(
                 "ambiguous",
@@ -216,25 +236,25 @@ class FounderOrientationReportAdapter:
                 ),
                 document=document,
             )
-        if len(report_operands) > 1:
-            # The only tie-break is a unique source-dataflow classification: a
-            # coincidental reconciliation reuses report numbers in two roles,
-            # and nomenclature still plays no part.
-            if flow.state == "unique":
-                interpretations = [
-                    item for item in interpretations if item.operand_value == flow.operand_value
-                ]
-            report_operands = sorted({item.operand_value for item in interpretations})
-        if len(report_operands) > 1:
+        if flow.state == "unsupported":
             return self._abstain(
-                "ambiguous",
+                "unsupported",
                 (
-                    "The stated quantities reconcile with both founder-panel orientations "
-                    "and the workflow dataflow does not resolve exactly one."
+                    "The workflow source uses transforms or control flow beyond the supported "
+                    "dataflow trace, and the report arithmetic cannot stand in for it."
                 ),
                 document=document,
             )
-        if report_operands and flow.state == "unique" and report_operands[0] != flow.operand_value:
+        if flow.state != "unique":
+            return self._abstain(
+                "not_applicable",
+                (
+                    "The workflow source states no emission comparison whose founder-panel "
+                    "orientation this trace resolves."
+                ),
+                document=document,
+            )
+        if len(report_operands) == 1 and report_operands[0] != flow.operand_value:
             return self._abstain(
                 "ambiguous",
                 (
@@ -243,46 +263,19 @@ class FounderOrientationReportAdapter:
                 ),
                 document=document,
             )
-        if (
-            not report_operands
-            and flow.state == "unique"
-            and not _accounting_present(integers, rates)
+        corroborated = len(report_operands) == 1
+        if not corroborated and not any(
+            item.operand_value == flow.operand_value for item in reconciliations
         ):
-            # The dataflow plane alone may classify only when the report states
-            # a marker-total and agreement-count accounting; without one, an
-            # ordinary comparison loop could otherwise fire on clean work.
+            # A resolved workflow orientation is reviewable only when the
+            # report states an accounting that reconciles with it; without
+            # one, nothing published turns on the orientation.
             return self._abstain(
                 "not_applicable",
                 (
                     "The workflow dataflow resolves a founder-panel orientation, but the "
-                    "selected report states no marker-total and agreement-count accounting."
-                ),
-                document=document,
-            )
-        if not report_operands and flow.state != "unique":
-            if report_had_conflict:
-                return self._abstain(
-                    "ambiguous",
-                    (
-                        "The stated quantities reconcile with both founder-panel orientations "
-                        "and no tie-break resolves exactly one."
-                    ),
-                    document=document,
-                )
-            if flow.state == "unsupported":
-                return self._abstain(
-                    "unsupported",
-                    (
-                        "No reconcilable report accounting exists and the workflow source "
-                        "uses transforms or control flow beyond the supported dataflow trace."
-                    ),
-                    document=document,
-                )
-            return self._abstain(
-                "not_applicable",
-                (
-                    "Neither the selected report's quantities nor the workflow source's "
-                    "dataflow states a founder-panel orientation for an emission comparison."
+                    "selected report states no marker-total, agreement-count, and rate "
+                    "accounting that reconciles with it."
                 ),
                 document=document,
             )
@@ -300,20 +293,14 @@ class FounderOrientationReportAdapter:
                 "PublicationSurface selection.",
                 document=document,
             )
-        operand_value = report_operands[0] if report_operands else flow.operand_value
-        basis = (
-            "report_arithmetic_and_source_dataflow"
-            if report_operands and flow.state == "unique"
-            else "report_arithmetic"
-            if report_operands
-            else "source_dataflow"
-        )
+        operand_value = flow.operand_value
+        basis = "report_arithmetic_and_source_dataflow" if corroborated else "source_dataflow"
         operand = (
             self.repaired_operand
             if operand_value == str(self.repaired_operand.value)
             else self.direct_operand
         )
-        chosen = interpretations[0] if interpretations else None
+        chosen = interpretations[0] if corroborated else None
         report_spans = (
             tuple(
                 _evidence_span(document, text, start, end)
@@ -534,15 +521,6 @@ def _identified_orientations(
     if len({(item.marker_total, item.agreement_count) for item in found}) > 1:
         return [], conflicted
     return found, conflicted
-
-
-def _accounting_present(integers: list[Any], rates: list[Any]) -> bool:
-    """A stated marker total, a smaller stated agreement count, and a stated rate."""
-
-    if not rates:
-        return False
-    values = sorted({int(token.value) for token in integers if token.value >= 1})
-    return len(values) >= 2 and values[-1] > values[0] >= 1
 
 
 def _evidence_span(document: InspectionDocument, text: str, start: int, end: int) -> EvidenceSpan:

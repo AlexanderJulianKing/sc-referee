@@ -44,7 +44,9 @@ def _expected_count_requirement_profile() -> dict[str, str]:
 # ADR-0069 check v2.0.0 recognizes the founder orientation from arithmetic and
 # operations, not from a method sentence: with 372 of 480 markers agreeing,
 # a stated emission rate of 0.775 reads the supplied panel directly and its
-# complement 0.225 reads the repaired panel.
+# complement 0.225 reads the repaired panel. From v2.0.1 the report plane no
+# longer resolves alone, so the workflow below also carries an emission
+# comparison whose orientation the bounded dataflow trace can read.
 _FOUNDER_ACCOUNTING = (
     "The parental marker panel and the progeny calls were compared marker by marker: "
     "372 of the 480 markers agree.\n\n"
@@ -61,8 +63,15 @@ def _write_founder_workflow(repository: Path, *, repaired: bool) -> None:
         )
     else:
         preparation = "    return emission_matrix(observed, sample.founder_alleles[0], 0.01)\n"
+    panel = "rows"
+    stage = ""
+    if repaired:
+        stage = "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
+        panel = "panel"
     (repository / "report.md").write_text(report_text, encoding="utf-8")
     (repository / "analysis.py").write_text(
+        "import csv\n"
+        "import math\n"
         "from pathlib import Path\n"
         "ROOT = Path(__file__).resolve().parent\n\n"
         "def emission_matrix(observed, founder_state, error):\n"
@@ -72,7 +81,14 @@ def _write_founder_workflow(repository: Path, *, repaired: bool) -> None:
         "def main():\n"
         f"    (ROOT / 'report.md').write_text({report_text!r})\n\n"
         "if __name__ == '__main__':\n"
-        "    main()\n",
+        "    main()\n\n"
+        "rows = list(csv.DictReader((ROOT / 'markers.csv').open()))\n"
+        f"{stage}"
+        "def emission_likelihood():\n"
+        "    return math.prod(\n"
+        f"        0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in {panel}\n"
+        "    )\n\n"
+        "LIKELIHOOD = emission_likelihood()\n",
         encoding="utf-8",
     )
 

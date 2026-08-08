@@ -465,7 +465,13 @@ def _build_control_inputs(
             "372\n\n"
             "0.775\n"
         )
+        # From check v2.0.1 the report plane never resolves alone, so the
+        # control source also carries the direct emission comparison the
+        # report's accounting accounts for. The frozen v0.1 adapter still
+        # reads exactly one founder shape and one selected-report writer.
         source_text = (
+            "import csv\n"
+            "import math\n"
             "from pathlib import Path\n"
             "ROOT = Path(__file__).resolve().parent\n"
             "def emission_matrix(observed, founder_state, error):\n"
@@ -478,6 +484,12 @@ def _build_control_inputs(
             "    )\n"
             "if __name__ == '__main__':\n"
             "    main()\n"
+            "rows = list(csv.DictReader((ROOT / 'markers.csv').open()))\n"
+            "def emission_likelihood():\n"
+            "    return math.prod(\n"
+            "        0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in rows\n"
+            "    )\n"
+            "LIKELIHOOD = emission_likelihood()\n"
         )
         (repository / "analysis.py").write_text(source_text, encoding="utf-8")
         (repository / "report.md").write_text(report_text, encoding="utf-8")

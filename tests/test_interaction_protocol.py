@@ -64,6 +64,20 @@ FOUNDER_ACCOUNTING_REPORT = (
     "372 of the 480 markers agree.\n\n"
     "The emission model used a per-marker agreement rate of 0.775.\n"
 )
+# From check v2.0.1 the report plane corroborates a workflow reading and never
+# resolves alone, so the accounting above is paired with the emission
+# comparison it accounts for.
+FOUNDER_ACCOUNTING_SOURCE = (
+    "import csv\n"
+    "import math\n"
+    "from pathlib import Path\n"
+    "ROOT = Path(__file__).resolve().parent\n"
+    "rows = list(csv.DictReader((ROOT / 'markers.csv').open()))\n"
+    "likelihood = math.prod(\n"
+    "    0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in rows\n"
+    ")\n"
+    "(ROOT / 'report.md').write_text(f'emission likelihood {likelihood}')\n"
+)
 
 
 def test_model_proposal_path_rejects_project_execution_packet(project_root: Path) -> None:
@@ -638,6 +652,7 @@ def test_single_line_report_question_answer_and_disclosure_are_replay_stable(
     repository = tmp_path / "project"
     repository.mkdir()
     (repository / "report.md").write_text(FOUNDER_ACCOUNTING_REPORT, encoding="utf-8")
+    (repository / "analysis.py").write_text(FOUNDER_ACCOUNTING_SOURCE, encoding="utf-8")
     source = tmp_path / "source"
     source_bundle = run_audit(repository, source, schema_root, report="report.md")
     question = next(

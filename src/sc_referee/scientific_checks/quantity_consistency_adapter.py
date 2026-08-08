@@ -16,6 +16,7 @@ not applicable; nothing is inferred from unstated quantities.
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -73,6 +74,11 @@ _UNIT_SUFFIX_PATTERN = (
 _PERCENT_SUFFIX_PATTERN = r"\s*(?:%|percent\b)"
 _MAX_DISTINCT_INTEGERS = 48
 _MAX_RATE_TOKENS = 32
+# A number too large for exact double precision cannot participate in any
+# accounting these adapters check, and converting one to an integer raises
+# instead of abstaining. Discarding it at tokenization keeps the failure a
+# quiet non-observation.
+_MAX_TOKEN_MAGNITUDE = 10.0**15
 
 QUANTITY_COUNTEREVIDENCE = (
     "bounded-number-token-scan-complete",
@@ -497,11 +503,17 @@ def _number_tokens(text: str) -> list[_NumberToken]:
         trailing = text[match.end(1) :]
         if re.match(_UNIT_SUFFIX_PATTERN, trailing):
             continue
+        try:
+            value = float(raw)
+        except (ValueError, OverflowError):
+            continue
+        if not math.isfinite(value) or abs(value) > _MAX_TOKEN_MAGNITUDE:
+            continue
         is_integer = "." not in raw
         decimals = 0 if is_integer else len(raw.split(".", 1)[1])
         tokens.append(
             _NumberToken(
-                value=float(raw),
+                value=value,
                 raw=raw,
                 start=match.start(1),
                 end=match.end(1),

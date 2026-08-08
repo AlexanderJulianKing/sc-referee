@@ -11,6 +11,8 @@ import pytest
 from sc_referee.agent_protocol import load_open_questions
 from sc_referee.controller import replay, run_audit
 from sc_referee.core.ids import canonical_json, sha256_digest
+from sc_referee.parsers.python_ast import PARSER_ID as PYTHON_PARSER_ID
+from sc_referee.parsers.python_ast import PARSER_VERSION as PYTHON_PARSER_VERSION
 from sc_referee.scientific_checks import (
     FrozenBaseRecord,
     FrozenInspectionContext,
@@ -55,6 +57,10 @@ CONFORMANCE_CHECK = "check:registry-conformance-token"
 # never a sentence claiming a repair. With 480 markers and 372 agreements the
 # direct reading is 372 / 480 = 0.775 and the complement reading is
 # 108 / 480 = 0.225; the accounting-only report states neither.
+#
+# From v2.0.1 the report plane never resolves alone, so every founder fixture
+# that expects an applicable observation also carries the workflow source
+# whose emission comparison the report corroborates.
 FOUNDER_DIRECT_REPORT = (
     "The parental marker panel and the progeny calls were compared marker by marker: "
     "372 of the 480 markers agree.\n\n"
@@ -74,6 +80,14 @@ FOUNDER_ACCOUNTING_ONLY_REPORT = (
     "The parental marker panel and the progeny calls were compared marker by marker: "
     "372 of the 480 markers agree.\n\n"
     "The selected emission log-likelihood ratio is 0.31.\n"
+)
+# Both stated rates reconcile with the same 480-and-372 accounting, so the
+# report states an accounting without identifying an orientation. Only the
+# workflow source can say which reading the emission used.
+FOUNDER_TIED_REPORT = (
+    "The parental marker panel and the progeny calls were compared marker by marker: "
+    "372 of the 480 markers agree.\n\n"
+    "The per-marker agreement rate is 0.775 and its complement is 0.225.\n"
 )
 
 _FOUNDER_WORKFLOW_HEAD = """import csv
@@ -117,6 +131,10 @@ FOUNDER_CONFLICTING_SOURCE = (
     + "report = f'{supplied} {repaired}'\n"
     + "Path('results/report.md').write_text(report)\n"
 )
+_FOUNDER_SOURCE_BY_OPERAND = {
+    "use_supplied_founder_alleles_directly_in_hmm_emission": FOUNDER_DIRECT_SOURCE,
+    "repair_ril_founder_orientation_before_hmm_emission": FOUNDER_REPAIRED_SOURCE,
+}
 
 
 def _audit(
@@ -177,16 +195,28 @@ def _module(bundle: dict[str, Any], check_id: str) -> dict[str, Any]:
 
 def _inspection_context(*, report_parser_version: str = "0.2.0") -> FrozenInspectionContext:
     report = FOUNDER_DIRECT_REPORT.encode("utf-8")
+    # The founder observation is dataflow-led from v2.0.1, so the context
+    # carries the workflow whose emission comparison the report corroborates.
+    analysis = FOUNDER_DIRECT_SOURCE.encode("utf-8")
     surface_ref = RecordRef("publication_surface", "publication-surface:test")
     artifact_ref = RecordRef("artifact", "artifact:test-report")
     identity_ref = RecordRef("asset_identity", "asset-identity:test-report")
     file_ref = RecordRef("file_record", "file:test-report")
     parser_ref = RecordRef("parser_result", "parser-result:test-report")
+    analysis_file_ref = RecordRef("file_record", "file:test-analysis")
+    analysis_parser_ref = RecordRef("parser_result", "parser-result:test-analysis")
     snapshot_ref = RecordRef("repository_snapshot", "snapshot:test")
     parser = canonical_json(
         {
             "parser_id": "parser:markdown-inventory",
             "parser_version": report_parser_version,
+            "state": "parsed",
+        }
+    ).encode("utf-8")
+    analysis_parser = canonical_json(
+        {
+            "parser_id": PYTHON_PARSER_ID,
+            "parser_version": PYTHON_PARSER_VERSION,
             "state": "parsed",
         }
     ).encode("utf-8")
@@ -223,6 +253,8 @@ def _inspection_context(*, report_parser_version: str = "0.2.0") -> FrozenInspec
         (snapshot_ref, {"snapshot_id": snapshot_ref.record_id}),
         (file_ref, {"file_record_id": file_ref.record_id}),
         (parser_ref, {"parser_result_id": parser_ref.record_id}),
+        (analysis_file_ref, {"file_record_id": analysis_file_ref.record_id}),
+        (analysis_parser_ref, {"parser_result_id": analysis_parser_ref.record_id}),
     )
     context = FrozenInspectionContext(
         snapshot_digest=sha256_digest("snapshot"),
@@ -238,6 +270,16 @@ def _inspection_context(*, report_parser_version: str = "0.2.0") -> FrozenInspec
                 parser_result_ref=parser_ref,
                 parser_result_payload=parser,
                 parser_result_digest=sha256_digest(parser),
+            ),
+            InspectionDocument(
+                path="analysis.py",
+                file_ref=analysis_file_ref,
+                content=analysis,
+                content_digest=sha256_digest(analysis),
+                media_type="text/x-python",
+                parser_result_ref=analysis_parser_ref,
+                parser_result_payload=analysis_parser,
+                parser_result_digest=sha256_digest(analysis_parser),
             ),
         ),
         base_records=tuple(FrozenBaseRecord.from_record(ref, value) for ref, value in records),
@@ -596,7 +638,14 @@ def test_exact_method_profiles_route_through_one_general_audit_interface(
     check_id: str,
     operand: object,
 ) -> None:
-    bundle = _audit(tmp_path, schema_root, report_text=report_text)
+    # The founder rows carry their workflow source: from v2.0.1 that check's
+    # report plane corroborates a dataflow reading and never resolves alone.
+    bundle = _audit(
+        tmp_path,
+        schema_root,
+        report_text=report_text,
+        analysis_text=_FOUNDER_SOURCE_BY_OPERAND.get(str(operand), "value = 1\n"),
+    )
 
     questions = _check_questions(bundle)
     assertions = _check_assertions(bundle)
@@ -1214,6 +1263,7 @@ def test_directional_error_and_founder_orientation_remain_independent_questions(
             "interpretation: both directions equal the supplied average.\n\n"
             + FOUNDER_COMPLEMENT_REPORT
         ),
+        analysis_text=FOUNDER_REPAIRED_SOURCE,
     )
 
     assert bundle["findings"] == []
@@ -2108,6 +2158,7 @@ def test_report_path_and_markdown_formatting_do_not_define_profile_identity(
             "# METHOD\n\n| markers | agreeing |\n| --- | --- |\n| 480 | 372 |\n\n"
             "*Per-marker agreement rate:*   `0.775`\n"
         ),
+        analysis_text=FOUNDER_DIRECT_SOURCE,
         report_path="nested/review-summary.markdown",
     )
 
@@ -2144,7 +2195,7 @@ def test_founder_dataflow_plane_resolves_the_orientation_operand(
     bundle = _audit(
         tmp_path,
         schema_root,
-        report_text=FOUNDER_ACCOUNTING_ONLY_REPORT,
+        report_text=FOUNDER_TIED_REPORT,
         analysis_text=analysis_text,
     )
 
@@ -2194,12 +2245,9 @@ def test_founder_dataflow_alone_cannot_classify_without_a_stated_accounting(
             "repair_ril_founder_orientation_before_hmm_emission",
         ),
         (FOUNDER_COMPLEMENT_REPORT, FOUNDER_DIRECT_SOURCE, "ambiguous", None),
-        (
-            FOUNDER_DIRECT_REPORT,
-            FOUNDER_UNREADABLE_SOURCE,
-            "applicable",
-            "use_supplied_founder_alleles_directly_in_hmm_emission",
-        ),
+        # A transform the trace cannot read leaves the workflow unsupported,
+        # and from v2.0.1 a reconciling report cannot reverse that.
+        (FOUNDER_DIRECT_REPORT, FOUNDER_UNREADABLE_SOURCE, "unsupported", None),
     ],
 )
 def test_founder_report_and_source_planes_fuse_or_abstain(
@@ -2284,12 +2332,14 @@ def test_conformance_module_is_removable_without_changing_substantive_evaluation
         tmp_path / "default",
         schema_root,
         report_text=report,
+        analysis_text=FOUNDER_DIRECT_SOURCE,
         registry=reduced_registry,
     )
     augmented = _audit(
         tmp_path / "augmented",
         schema_root,
         report_text=report,
+        analysis_text=FOUNDER_DIRECT_SOURCE,
         registry=full_registry,
     )
 
@@ -2671,6 +2721,7 @@ def test_agent_and_html_surfaces_show_exact_scientist_choices_and_observation(
         tmp_path,
         schema_root,
         report_text=FOUNDER_DIRECT_REPORT,
+        analysis_text=FOUNDER_DIRECT_SOURCE,
     )
 
     batch = load_open_questions(tmp_path / "audit", schema_root)
@@ -2686,7 +2737,12 @@ def test_agent_and_html_surfaces_show_exact_scientist_choices_and_observation(
         question.observed_operands[0].value
         == "use_supplied_founder_alleles_directly_in_hmm_emission"
     )
-    assert question.observed_operands[0].source_refs[0]["path"] == "report.md"
+    # The observation now cites both planes: the report accounting it
+    # corroborates and the workflow comparison that resolved it.
+    assert {item["path"] for item in question.observed_operands[0].source_refs} == {
+        "report.md",
+        "analysis.py",
+    }
     assert question.output_ceiling == "question_only"
     assert question.review_scope is not None
     assert question.review_scope.level == "analysis"

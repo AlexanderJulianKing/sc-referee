@@ -522,13 +522,17 @@ def _validate_text_span(source_ref: dict[str, Any], payload: bytes) -> None:
     if quoted_text is None:
         return
     selected = lines[start_line - 1 : end_line]
-    start_column = source_ref.get("start_column")
-    end_column = source_ref.get("end_column")
-    if start_line == end_line and isinstance(start_column, int) and isinstance(end_column, int):
-        selected_text = selected[0][start_column - 1 : end_column - 1]
-    else:
-        selected_text = "\n".join(selected)
-    if selected_text != quoted_text:
+    if "\n".join(selected) != quoted_text:
+        # A quoted span is the exact complete lines it names; a column window
+        # narrows what inside them the evidence points at, and never replaces
+        # the quotation.
         raise EvaluationValidationError(
             "Evidence quoted_text does not match the immutable fixture span."
         )
+    start_column = source_ref.get("start_column")
+    end_column = source_ref.get("end_column")
+    if start_line == end_line and isinstance(start_column, int) and isinstance(end_column, int):
+        if not 1 <= start_column <= end_column <= len(selected[0]) + 1:
+            raise EvaluationValidationError(
+                "Evidence column window falls outside the immutable fixture line."
+            )
