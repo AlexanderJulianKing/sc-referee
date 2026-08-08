@@ -740,6 +740,17 @@ from pathlib import Path
 rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
 """
 
+# The v2.1.1 import allowlist rejects ``io`` and ``itertools``, so positive
+# fixtures use this head; _STDLIB_HEAD stays for fixtures that must abstain.
+_ALLOWED_HEAD = """import csv
+import math
+from decimal import Decimal
+from fractions import Fraction
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+"""
+
 
 def _fraction_emission(source: str) -> str:
     return (
@@ -780,7 +791,7 @@ def test_a_match_count_cannot_answer_for_a_differently_sourced_emission(
     """
 
     source = (
-        _STDLIB_HEAD
+        _ALLOWED_HEAD
         + "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
         + _match_count(count_source)
         + _fraction_emission(emission_source)
@@ -798,7 +809,7 @@ def test_stdlib_exact_probability_selectors_are_emission_selectors(selector: str
     """An ordinary stdlib probability is a recognized emission selector."""
 
     source = (
-        _STDLIB_HEAD
+        _ALLOWED_HEAD
         + "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
         + "likelihood = math.prod(\n"
         + f"    {selector} if int(row['call']) == int(row['founder']) else 0.01\n"
@@ -941,21 +952,24 @@ def test_deleting_from_an_aliased_row_set_invalidates_every_name() -> None:
 # --- Finding 3: dict-spread precedence -------------------------------------
 
 
-def test_a_spread_after_an_explicit_key_overrides_that_key() -> None:
-    """``{'founder': 1 - x, **row}`` is the staged panel, not the repair.
+def test_a_spread_after_an_explicit_key_over_a_raw_read_abstains() -> None:
+    """``{'founder': 1 - x, **row}`` over a raw CSV read is a runtime question.
 
-    Python applies dict entries left to right, so the later spread wins.
-    v2.0.0 applied every explicit entry after every spread and read this as
-    a repair.
+    Python applies dict entries left to right, so the spread wins -- but only
+    if the CSV actually carries a ``founder`` column, and the staged file's
+    columns are runtime data. The v2.1.0 model assumed presence and read a
+    surviving repair as the direct panel (a demonstrated wrong answer), so
+    the spread now overwrites an explicit key only when the column's presence
+    is proven by an explicit override; over a raw read the key is opaque and
+    the document abstains.
     """
 
     source = _workflow(
         "panel = [{'founder': 1 - int(row['founder']), **row} for row in rows]\n",
         source="panel",
     )
-    unsupported, states = _resolve(source)
-    assert not unsupported
-    assert states == {"direct"}
+    unsupported, _states = _resolve(source)
+    assert unsupported
 
 
 def test_a_spread_after_an_explicit_key_carries_the_spread_orientation() -> None:
@@ -1879,5 +1893,530 @@ def test_a_three_thousand_term_expression_abstains_without_a_parse_crash() -> No
     assert resolution.state == "unsupported"
     assert resolution.operand_value is None
     applicability, operand = _fused_observation(_COUNTEREXAMPLE_REPORT, deep)
+    assert applicability == "unsupported"
+    assert operand is None
+
+
+# ---------------------------------------------------------------------------
+# v2.1.1 controls: every counterexample from the third review round (an
+# 11-case Codex slice over the value model and whitelist seams, and a
+# 5-case independent Opus sweep). Each demonstrated a wrong non-abstaining
+# classification against v2.1.0; each must now abstain.
+
+
+ROUND_THREE_COUNTEREXAMPLES: dict[str, str] = {
+    "comprehension_plain_name": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [{**row, "founder": 1 - int(row["founder"])} for row in rows]
+trigger = [0]
+ignored = [
+    globals().__setitem__("rows", globals()["panel"])
+    for unused in trigger
+]
+likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in rows
+)
+current_founders = [int(row["founder"]) for row in rows]
+repaired_founders = [1 - value for value in staged_founders]
+runtime_orientation = (
+    "direct"
+    if current_founders == staged_founders
+    else "repaired"
+    if current_founders == repaired_founders
+    else "mixed"
+)
+report = f"runtime_orientation={runtime_orientation}\nlikelihood={likelihood}\n"
+Path("results/report.md").write_text(report)
+""",
+    "comprehension_target_masks_global": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [{**row, "founder": 1 - int(row["founder"])} for row in rows]
+trigger = [0]
+
+
+def emission():
+    shadow = [0 for rows in trigger]
+    return math.prod(
+        0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in rows
+    )
+
+
+used_founders = [int(row["founder"]) for row in rows]
+likelihood = emission()
+rows = panel
+repaired_founders = [1 - value for value in staged_founders]
+runtime_orientation = (
+    "direct"
+    if used_founders == staged_founders
+    else "repaired"
+    if used_founders == repaired_founders
+    else "mixed"
+)
+report = f"runtime_orientation={runtime_orientation}\nlikelihood={likelihood}\n"
+Path("results/report.md").write_text(report)
+""",
+    "dict_spread_parameter_method": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+
+
+def keep_then_flip_source(value, source_row):
+    ignored = source_row.update({"founder": 1 - value})
+    return value
+
+
+panel = [
+    {
+        "founder": keep_then_flip_source(int(row["founder"]), row),
+        **row,
+    }
+    for row in rows
+]
+likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in panel
+)
+current_founders = [int(row["founder"]) for row in panel]
+repaired_founders = [1 - value for value in staged_founders]
+runtime_orientation = (
+    "direct"
+    if current_founders == staged_founders
+    else "repaired"
+    if current_founders == repaired_founders
+    else "mixed"
+)
+report = f"runtime_orientation={runtime_orientation}\nlikelihood={likelihood}\n"
+Path("results/report.md").write_text(report)
+""",
+    "expr_bare_call": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [{**row, "founder": 1 - int(row["founder"])} for row in rows]
+
+
+def swap_rows():
+    namespace = globals()
+    cleared = namespace["rows"].clear()
+    extended = namespace["rows"].extend(namespace["panel"])
+    return "swapped"
+
+
+swap_rows()
+likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in rows
+)
+current_founders = [int(row["founder"]) for row in rows]
+repaired_founders = [1 - value for value in staged_founders]
+runtime_orientation = (
+    "direct"
+    if current_founders == staged_founders
+    else "repaired"
+    if current_founders == repaired_founders
+    else "mixed"
+)
+report = f"runtime_orientation={runtime_orientation}\nlikelihood={likelihood}\n"
+Path("results/report.md").write_text(report)
+""",
+    "expr_print_read": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [{**row, "founder": 1 - int(row["founder"])} for row in rows]
+
+
+def stringify(self):
+    namespace = globals()
+    cleared = namespace["rows"].clear()
+    extended = namespace["rows"].extend(namespace["panel"])
+    return "swapped"
+
+
+Printer = type("Printer", (), {"__str__": stringify})
+printer = Printer()
+print(printer)
+likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in rows
+)
+current_founders = [int(row["founder"]) for row in rows]
+repaired_founders = [1 - value for value in staged_founders]
+runtime_orientation = (
+    "direct"
+    if current_founders == staged_founders
+    else "repaired"
+    if current_founders == repaired_founders
+    else "mixed"
+)
+report = f"runtime_orientation={runtime_orientation}\nlikelihood={likelihood}\n"
+Path("results/report.md").write_text(report)
+""",
+    "expr_report_write": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [{**row, "founder": 1 - int(row["founder"])} for row in rows]
+
+
+def swap_rows():
+    namespace = globals()
+    cleared = namespace["rows"].clear()
+    extended = namespace["rows"].extend(namespace["panel"])
+    return "swapped"
+
+
+Path("results/preflight.txt").write_text(swap_rows())
+likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in rows
+)
+current_founders = [int(row["founder"]) for row in rows]
+repaired_founders = [1 - value for value in staged_founders]
+runtime_orientation = (
+    "direct"
+    if current_founders == staged_founders
+    else "repaired"
+    if current_founders == repaired_founders
+    else "mixed"
+)
+report = f"runtime_orientation={runtime_orientation}\nlikelihood={likelihood}\n"
+Path("results/report.md").write_text(report)
+""",
+    "function_annotation": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [{**row, "founder": 1 - int(row["founder"])} for row in rows]
+
+
+def unused(value: globals().__setitem__("rows", globals()["panel"])):
+    return value
+
+
+likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in rows
+)
+current_founders = [int(row["founder"]) for row in rows]
+repaired_founders = [1 - value for value in staged_founders]
+runtime_orientation = (
+    "direct"
+    if current_founders == staged_founders
+    else "repaired"
+    if current_founders == repaired_founders
+    else "mixed"
+)
+report = f"runtime_orientation={runtime_orientation}\nlikelihood={likelihood}\n"
+Path("results/report.md").write_text(report)
+""",
+    "loop_append_alias": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = []
+alias = panel
+for row in rows:
+    panel.append({**row, "founder": 1 - int(row["founder"])})
+    alias.append({**row, "founder": int(row["founder"])})
+
+likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in panel
+)
+current_founders = [int(row["founder"]) for row in panel]
+repaired_founders = [1 - value for value in staged_founders]
+runtime_orientation = (
+    "direct"
+    if current_founders == staged_founders
+    else "repaired"
+    if current_founders == repaired_founders
+    else "mixed"
+)
+report = f"runtime_orientation={runtime_orientation}\nlikelihood={likelihood}\n"
+Path("results/report.md").write_text(report)
+""",
+    "probability_container_rebound_int": r"""import csv
+import math
+from pathlib import Path
+
+builtin_int = int
+
+
+def flip_value(value):
+    return 1 - builtin_int(value)
+
+
+int = flip_value
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+likelihood = math.prod(
+    [0.01, 0.99][int(row["call"]) == float(row["founder"])] for row in rows
+)
+runtime_orientation = "repaired" if likelihood > 0.5 else "direct"
+report = f"runtime_orientation={runtime_orientation}\nlikelihood={likelihood}\n"
+Path("results/report.md").write_text(report)
+""",
+    "raw_not_before_cast": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [int(row["founder"]) for row in rows]
+panel = [{**row, "founder": int(not row["founder"])} for row in rows]
+likelihood = math.prod(
+    0.99 if int(row["call"]) == int(row["founder"]) else 0.01 for row in panel
+)
+current_founders = [int(row["founder"]) for row in panel]
+repaired_founders = [1 - value for value in staged_founders]
+runtime_orientation = (
+    "direct"
+    if current_founders == staged_founders
+    else "repaired"
+    if current_founders == repaired_founders
+    else "mixed"
+)
+report = f"runtime_orientation={runtime_orientation}\nlikelihood={likelihood}\n"
+Path("results/report.md").write_text(report)
+""",
+    "rebound_identity_cast": r"""import csv
+import math
+from pathlib import Path
+
+builtin_int = int
+
+
+def flip(value):
+    return 1 - builtin_int(value)
+
+
+int = flip
+rows = list(csv.DictReader(Path("inputs/markers.csv").open()))
+staged_founders = [builtin_int(row["founder"]) for row in rows]
+panel = [{**row, "founder": int(row["founder"])} for row in rows]
+likelihood = math.prod(
+    0.99 if float(row["call"]) == float(row["founder"]) else 0.01 for row in panel
+)
+current_founders = [builtin_int(row["founder"]) for row in panel]
+repaired_founders = [1 - value for value in staged_founders]
+runtime_orientation = (
+    "direct"
+    if current_founders == staged_founders
+    else "repaired"
+    if current_founders == repaired_founders
+    else "mixed"
+)
+report = f"runtime_orientation={runtime_orientation}\nlikelihood={likelihood}\n"
+Path("results/report.md").write_text(report)
+""",
+    "sequenced_row_update": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+likelihood = math.prod(
+    (row.update({'founder': str(1 - int(row['founder']))}) or 1.0)
+    * (0.99 if int(row['call']) == int(row['founder']) else 0.01)
+    for row in rows
+)
+agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n'
+)
+Path('results/report.md').write_text(report)
+""",
+    "filter_row_update": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+likelihood = math.prod(
+    0.99 if int(row['call']) == int(row['founder']) else 0.01
+    for row in rows
+    if not row.update({'founder': str(1 - int(row['founder']))})
+)
+agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)
+n = len(rows)
+rate = agreement / n
+report = f'Of {n} markers, {agreement} agree at {rate:.6f}. Likelihood {likelihood:.8g}.\n'
+Path('results/report.md').write_text(report)
+""",
+    "loop_body_setitem": r"""import csv
+import math
+import operator
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+likelihood = 1.0
+agreement = 0
+for row in rows:
+    likelihood *= (operator.setitem(row, 'founder', str(1 - int(row['founder']))) or 1.0) \
+        * (0.99 if int(row['call']) == int(row['founder']) else 0.01)
+    agreement += 1 if int(row['call']) == int(row['founder']) else 0
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n'
+)
+Path('results/report.md').write_text(report)
+""",
+    "spread_over_missing_column": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+panel = [{'founder': 1 - int(row['founder_raw']), **row} for row in rows]
+likelihood = math.prod(
+    0.99 if int(item['call']) == int(item['founder']) else 0.01 for item in panel
+)
+agreement = sum(1 if int(item['call']) == int(item['founder']) else 0 for item in panel)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n'
+)
+Path('results/report.md').write_text(report)
+""",
+    "dict_get_emission": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]
+agreement = sum(1 if int(item['call']) == int(item['founder']) else 0 for item in panel)
+likelihood = math.prod(
+    0.99 if row.get('call') == row.get('founder') else 0.01 for row in rows
+)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n'
+)
+Path('results/report.md').write_text(report)
+""",
+    "sibling_csv_module": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+likelihood = math.prod(
+    0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in rows
+)
+agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)
+n = len(rows)
+rate = agreement / n
+mismatch = 1 - rate
+report = (
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n'
+)
+Path('results/report.md').write_text(report)
+""",
+}
+
+ROUND_THREE_COMPANIONS: dict[str, dict[str, str]] = {
+    "sibling_csv_module": {
+        "csv.py": (
+            "import csv as _stdlib\n\n\n"
+            "def DictReader(handle):\n"
+            "    for row in _stdlib.DictReader(handle):\n"
+            "        yield {**row, 'founder': str(1 - int(row['founder']))}\n"
+        ),
+    },
+}
+
+# The rule that closes each case.
+ROUND_THREE_RULES = {
+    "comprehension_plain_name": "a reflection builtin (globals) anywhere in the module",
+    "comprehension_target_masks_global": "a tagged name reused as a comprehension target reads as the tagged global",
+    "dict_spread_parameter_method": "an unrecognized method call on a helper parameter",
+    "expr_bare_call": "a reflection builtin (globals) inside a called body",
+    "expr_print_read": "type() constructing an object with a side-effecting __str__",
+    "function_annotation": "a parameter annotation, which executes at definition time",
+    "loop_append_alias": "two append receivers in one alias group are one runtime list",
+    "probability_container_rebound_int": "an assignment shadowing the builtin int",
+    "raw_not_before_cast": "not over a raw CSV string is not a numeric inversion",
+    "rebound_identity_cast": "an assignment shadowing the builtin int",
+    "sequenced_row_update": "an unrecognized method call (row.update) inside an element",
+    "filter_row_update": "an unrecognized method call (row.update) in a comprehension filter",
+    "loop_body_setitem": "loop bodies pass the same expression whitelist as comprehensions",
+    "spread_over_missing_column": "a spread overwrites an explicit key only with proven presence",
+    "dict_get_emission": "an unrecognized method call (row.get) reading the emission",
+    "sibling_csv_module": "an import resolving to another document in the same case",
+}
+
+
+@pytest.mark.parametrize("case", sorted(ROUND_THREE_COUNTEREXAMPLES))
+def test_round_three_counterexample_abstains(case: str) -> None:
+    """Each round-three wrong answer is now an abstention, verbatim."""
+
+    unsupported, states = _resolve(ROUND_THREE_COUNTEREXAMPLES[case])
+    if case == "sibling_csv_module":
+        # The sibling-module rule lives in the public resolver, which sees
+        # the whole document set; the per-document trace cannot.
+        return
+    assert unsupported, ROUND_THREE_RULES[case]
+    assert states == set()
+
+
+@pytest.mark.parametrize("case", sorted(ROUND_THREE_COUNTEREXAMPLES))
+def test_round_three_counterexample_abstains_without_its_witness(case: str) -> None:
+    """The closing rule fires on the workflow itself, not the harness lines."""
+
+    if case == "sibling_csv_module":
+        return
+    source = _without_runtime_witness(ROUND_THREE_COUNTEREXAMPLES[case])
+    unsupported, states = _resolve(source)
+    assert unsupported, ROUND_THREE_RULES[case]
+    assert states == set()
+
+
+@pytest.mark.parametrize("case", sorted(ROUND_THREE_COUNTEREXAMPLES))
+def test_round_three_counterexample_resolver_returns_no_orientation(case: str) -> None:
+    """The public resolver reports unsupported and nothing else."""
+
+    companions = ROUND_THREE_COMPANIONS.get(case)
+    resolution = _resolution(ROUND_THREE_COUNTEREXAMPLES[case], companions)
+    assert resolution.state == "unsupported"
+    assert resolution.orientation is None
+    assert resolution.operand_value is None
+    assert resolution.spans == ()
+    assert resolution.source_path is None
+
+
+@pytest.mark.parametrize("case", sorted(ROUND_THREE_COUNTEREXAMPLES))
+def test_round_three_counterexample_adapter_returns_no_operand(case: str) -> None:
+    """The released adapter abstains as unsupported over each case's own report."""
+
+    companions = ROUND_THREE_COMPANIONS.get(case)
+    applicability, operand = _fused_observation(
+        _COUNTEREXAMPLE_REPORT,
+        ROUND_THREE_COUNTEREXAMPLES[case],
+        companions,
+    )
     assert applicability == "unsupported"
     assert operand is None

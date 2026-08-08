@@ -57,9 +57,12 @@ _FOUNDER_ACCOUNTING = (
 def _write_founder_workflow(repository: Path, *, repaired: bool) -> None:
     report_text = _FOUNDER_ACCOUNTING.format(rate="0.225" if repaired else "0.775")
     if repaired:
+        # From founder check v2.1.1 an unrecognized call anywhere -- even in
+        # a function nothing calls -- abstains, so the decorative repair step
+        # uses a whitelisted comprehension instead of an undefined helper.
         preparation = (
-            "    repaired = orient_ril_founder_alleles(sample.founder_alleles)\n"
-            "    return emission_matrix(observed, repaired[0], 0.01)\n"
+            "    repaired = [1 - value for value in sample]\n"
+            "    return emission_matrix(observed, repaired, 0.01)\n"
         )
     else:
         preparation = "    return emission_matrix(observed, sample.founder_alleles[0], 0.01)\n"
