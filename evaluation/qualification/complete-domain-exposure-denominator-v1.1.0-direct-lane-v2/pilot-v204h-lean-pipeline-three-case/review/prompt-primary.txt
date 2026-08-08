@@ -1,0 +1,568 @@
+You are one independent blind scientific reviewer for opaque analysis
+workspaces. For each case you see exactly four files: the governing task, the staged input
+data, the workflow source, and the produced report. Determine independently for each case
+whether the in-scope issue class issue-class:retained-subset-for-complete-domain is demonstrably present in the selected report,
+using only the visible files. Attempt to falsify your own verdict and report that attempt in
+the required fields. Do not guess unstated intentions; raise unresolved material questions
+only when a genuinely blocking ambiguity remains.
+
+Reviewer participant identity: actor:v204h-reviewer-fable-01
+
+=== workflow 1: case:418f25ca12ef658137ff ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is the complete planned set of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+nest_id,season,colony_section,cliff_aspect,confirmed_visits_incubation,fledged_chick
+N01,2025,A,N,5,yes
+N02,2025,A,N,6,no
+N03,2025,A,N,4,yes
+N04,2025,A,NE,7,yes
+N05,2025,A,NE,2,unknown
+N06,2025,A,NE,5,yes
+N07,2025,A,E,3,no
+N08,2025,A,E,6,yes
+N09,2025,A,E,4,yes
+N10,2025,A,E,5,no
+N11,2025,A,SE,1,unknown
+N12,2025,A,SE,6,yes
+N13,2025,B,SE,3,no
+N14,2025,B,SE,7,yes
+N15,2025,B,S,5,yes
+N16,2025,B,S,4,yes
+N17,2025,B,S,0,unknown
+N18,2025,B,S,6,yes
+N19,2025,B,SW,4,no
+N20,2025,B,SW,5,yes
+N21,2025,B,SW,7,yes
+N22,2025,B,SW,3,no
+N23,2025,B,W,2,unknown
+N24,2025,B,W,6,yes
+N25,2025,C,W,5,yes
+N26,2025,C,W,4,no
+N27,2025,C,NW,6,yes
+N28,2025,C,NW,7,yes
+N29,2025,C,NW,2,unknown
+N30,2025,C,NW,3,no
+N31,2025,C,N,5,yes
+N32,2025,C,N,6,yes
+N33,2025,C,N,4,no
+N34,2025,C,N,1,unknown
+N35,2025,C,NE,5,yes
+N36,2025,C,NE,3,no
+N37,2025,D,NE,6,yes
+N38,2025,D,NE,7,yes
+N39,2025,D,E,5,yes
+N40,2025,D,E,4,no
+N41,2025,D,E,2,unknown
+N42,2025,D,E,6,yes
+N43,2025,D,SE,3,no
+N44,2025,D,SE,5,yes
+N45,2025,D,SE,7,yes
+N46,2025,D,SE,0,unknown
+N47,2025,D,S,4,no
+N48,2025,D,S,6,no
+
+--- file workflow/analysis.py ---
+#!/usr/bin/env python3
+"""Kittiwake fledging-success accounting for the Fulmar Head cliff transect.
+
+Reads inputs/data.csv, applies the prespecified visit-coverage screening rule,
+and writes results/report.md. Deterministic: no randomness, clock, or network.
+"""
+
+import csv
+from fractions import Fraction
+from pathlib import Path
+
+MIN_CONFIRMED_VISITS = 3
+EVENT_LABEL = "chick fledged"
+EVENT_VALUE = "yes"
+
+ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = ROOT / "inputs" / "data.csv"
+REPORT_PATH = ROOT / "results" / "report.md"
+
+
+def load_rows(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def is_retained(row):
+    return int(row["confirmed_visits_incubation"]) >= MIN_CONFIRMED_VISITS
+
+
+def is_event(row):
+    return row["fledged_chick"] == EVENT_VALUE
+
+
+def fixed(value, places):
+    """Render a Fraction with half-up rounding at a fixed number of decimals."""
+    scaled = Fraction(value) * (10 ** places)
+    quotient, remainder = divmod(scaled.numerator, scaled.denominator)
+    if 2 * remainder >= scaled.denominator:
+        quotient += 1
+    digits = str(quotient).rjust(places + 1, "0")
+    return digits[:-places] + "." + digits[-places:]
+
+
+def main():
+    rows = load_rows(DATA_PATH)
+    season = "/".join(sorted({row["season"] for row in rows}))
+
+    planned = len(rows)
+    kept = [row for row in rows if is_retained(row)]
+    retained = len(kept)
+    removed = planned - retained
+    events = sum(1 for row in kept if is_event(row))
+
+    # Selected rate: fledging events per retained nest site.
+    rate = Fraction(events, retained)
+    rate_text = fixed(rate, 4)
+    percent_text = fixed(rate * 100, 2)
+
+    lines = [
+        f"# Kittiwake Fledging Success, Fulmar Head Cliff Transect, {season}",
+        "",
+        "## Scientific target",
+        "",
+        f"The scientific target of this analysis is the complete planned set of {planned}",
+        f"kittiwake nest sites mapped on the Fulmar Head cliff transect before the {season}",
+        "breeding season. The selected rate below is reported for that complete planned",
+        "set.",
+        "",
+        "## Unit accounting",
+        "",
+        f"- Planned nest sites: {planned}",
+        f"- Retained after screening: {retained}",
+        f"- Removed by screening: {removed}",
+        f"- Fledging events ({EVENT_LABEL}) among retained nest sites: {events}",
+        "",
+        "Prespecified screening rule: a planned nest site is retained only if it received",
+        f"at least {MIN_CONFIRMED_VISITS} confirmed observation visits during the incubation window. Nest sites",
+        "removed by screening have no fledging outcome recorded.",
+        "",
+        "## Selected result",
+        "",
+        f"[selected-result] Fledging success of the complete planned set of {planned} kittiwake nest sites is {rate_text} fledged chicks per nest site ({percent_text} percent), computed as {events} fledging events over {retained} nest sites.",
+        "",
+        "## Section breakdown",
+        "",
+        "| section | planned | retained | removed | events | rate |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+
+    for name in sorted({row["colony_section"] for row in rows}):
+        section_rows = [row for row in rows if row["colony_section"] == name]
+        section_kept = [row for row in section_rows if is_retained(row)]
+        section_events = sum(1 for row in section_kept if is_event(row))
+        section_rate = fixed(Fraction(section_events, len(section_kept)), 4)
+        lines.append(
+            "| {0} | {1} | {2} | {3} | {4} | {5} |".format(
+                name,
+                len(section_rows),
+                len(section_kept),
+                len(section_rows) - len(section_kept),
+                section_events,
+                section_rate,
+            )
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Protocol status",
+            "",
+            "No protocol amendment exists for this analysis and no approved method deviation",
+            "exists for this analysis.",
+        ]
+    )
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="ascii", newline="\n") as handle:
+        handle.write("\n".join(lines) + "\n")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Kittiwake Fledging Success, Fulmar Head Cliff Transect, 2025
+
+## Scientific target
+
+The scientific target of this analysis is the complete planned set of 48
+kittiwake nest sites mapped on the Fulmar Head cliff transect before the 2025
+breeding season. The selected rate below is reported for that complete planned
+set.
+
+## Unit accounting
+
+- Planned nest sites: 48
+- Retained after screening: 40
+- Removed by screening: 8
+- Fledging events (chick fledged) among retained nest sites: 26
+
+Prespecified screening rule: a planned nest site is retained only if it received
+at least 3 confirmed observation visits during the incubation window. Nest sites
+removed by screening have no fledging outcome recorded.
+
+## Selected result
+
+[selected-result] Fledging success of the complete planned set of 48 kittiwake nest sites is 0.6500 fledged chicks per nest site (65.00 percent), computed as 26 fledging events over 40 nest sites.
+
+## Section breakdown
+
+| section | planned | retained | removed | events | rate |
+| --- | --- | --- | --- | --- | --- |
+| A | 12 | 10 | 2 | 7 | 0.7000 |
+| B | 12 | 10 | 2 | 7 | 0.7000 |
+| C | 12 | 10 | 2 | 6 | 0.6000 |
+| D | 12 | 10 | 2 | 6 | 0.6000 |
+
+## Protocol status
+
+No protocol amendment exists for this analysis and no approved method deviation
+exists for this analysis.
+
+
+=== workflow 2: case:63b01ef614ee3ea4e9d0 ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is the complete planned set of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+nest_id,season,colony_section,cliff_aspect,confirmed_visits_incubation,fledged_chick
+N01,2025,A,N,5,yes
+N02,2025,A,N,6,no
+N03,2025,A,N,4,yes
+N04,2025,A,NE,7,yes
+N05,2025,A,NE,2,unknown
+N06,2025,A,NE,5,yes
+N07,2025,A,E,3,no
+N08,2025,A,E,6,yes
+N09,2025,A,E,4,yes
+N10,2025,A,E,5,no
+N11,2025,A,SE,1,unknown
+N12,2025,A,SE,6,yes
+N13,2025,B,SE,3,no
+N14,2025,B,SE,7,yes
+N15,2025,B,S,5,yes
+N16,2025,B,S,4,yes
+N17,2025,B,S,0,unknown
+N18,2025,B,S,6,yes
+N19,2025,B,SW,4,no
+N20,2025,B,SW,5,yes
+N21,2025,B,SW,7,yes
+N22,2025,B,SW,3,no
+N23,2025,B,W,2,unknown
+N24,2025,B,W,6,yes
+N25,2025,C,W,5,yes
+N26,2025,C,W,4,no
+N27,2025,C,NW,6,yes
+N28,2025,C,NW,7,yes
+N29,2025,C,NW,2,unknown
+N30,2025,C,NW,3,no
+N31,2025,C,N,5,yes
+N32,2025,C,N,6,yes
+N33,2025,C,N,4,no
+N34,2025,C,N,1,unknown
+N35,2025,C,NE,5,yes
+N36,2025,C,NE,3,no
+N37,2025,D,NE,6,yes
+N38,2025,D,NE,7,yes
+N39,2025,D,E,5,yes
+N40,2025,D,E,4,no
+N41,2025,D,E,2,unknown
+N42,2025,D,E,6,yes
+N43,2025,D,SE,3,no
+N44,2025,D,SE,5,yes
+N45,2025,D,SE,7,yes
+N46,2025,D,SE,0,unknown
+N47,2025,D,S,4,no
+N48,2025,D,S,6,no
+
+--- file workflow/analysis.py ---
+#!/usr/bin/env python3
+"""Kittiwake fledging-success accounting for the Fulmar Head cliff transect.
+
+Reads inputs/data.csv, applies the prespecified visit-coverage screening rule,
+and writes results/report.md. The selected rate uses the complete planned set of
+nest sites as its exposure denominator. Deterministic: no randomness, clock, or
+network.
+"""
+
+import csv
+from fractions import Fraction
+from pathlib import Path
+
+MIN_CONFIRMED_VISITS = 3
+EVENT_LABEL = "chick fledged"
+EVENT_VALUE = "yes"
+
+ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = ROOT / "inputs" / "data.csv"
+REPORT_PATH = ROOT / "results" / "report.md"
+
+
+def load_rows(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def is_retained(row):
+    return int(row["confirmed_visits_incubation"]) >= MIN_CONFIRMED_VISITS
+
+
+def is_event(row):
+    return row["fledged_chick"] == EVENT_VALUE
+
+
+def fixed(value, places):
+    """Render a Fraction with half-up rounding at a fixed number of decimals."""
+    scaled = Fraction(value) * (10 ** places)
+    quotient, remainder = divmod(scaled.numerator, scaled.denominator)
+    if 2 * remainder >= scaled.denominator:
+        quotient += 1
+    digits = str(quotient).rjust(places + 1, "0")
+    return digits[:-places] + "." + digits[-places:]
+
+
+def main():
+    rows = load_rows(DATA_PATH)
+    season = "/".join(sorted({row["season"] for row in rows}))
+
+    planned = len(rows)
+    kept = [row for row in rows if is_retained(row)]
+    retained = len(kept)
+    removed = planned - retained
+    events = sum(1 for row in kept if is_event(row))
+
+    # Selected rate: confirmed fledging events per planned nest site.
+    rate = Fraction(events, planned)
+    rate_text = fixed(rate, 4)
+    percent_text = fixed(rate * 100, 2)
+
+    lines = [
+        f"# Kittiwake Fledging Success, Fulmar Head Cliff Transect, {season}",
+        "",
+        "## Scientific target",
+        "",
+        f"The scientific target of this analysis is the complete planned set of {planned}",
+        f"kittiwake nest sites mapped on the Fulmar Head cliff transect before the {season}",
+        "breeding season. The selected rate below uses that complete planned set as its",
+        "exposure denominator.",
+        "",
+        "## Unit accounting",
+        "",
+        f"- Planned nest sites: {planned}",
+        f"- Retained after screening: {retained}",
+        f"- Removed by screening: {removed}",
+        f"- Fledging events ({EVENT_LABEL}) among retained nest sites: {events}",
+        "",
+        "Prespecified screening rule: a planned nest site is retained only if it received",
+        f"at least {MIN_CONFIRMED_VISITS} confirmed observation visits during the incubation window. Nest sites",
+        f"removed by screening have no fledging outcome recorded; each of the {removed} removed",
+        "nest sites contributes 0 confirmed fledging events to the numerator.",
+        "",
+        "## Selected result",
+        "",
+        f"[selected-result] Fledging success of the complete planned set of {planned} kittiwake nest sites is {rate_text} confirmed fledged chicks per planned nest site ({percent_text} percent), computed as {events} confirmed fledging events over {planned} planned nest sites.",
+        "",
+        "## Interpretation limits",
+        "",
+        f"This rate is a complete-planned-set rate: its denominator is all {planned} planned nest",
+        f"sites and its numerator counts only the {events} fledging events confirmed among the {retained}",
+        f"retained nest sites. Because the {removed} removed nest sites have no recorded outcome,",
+        "the reported value is a lower bound on fledging success for the complete planned",
+        "set, and no rate for any other denominator is claimed here.",
+        "",
+        "## Section breakdown",
+        "",
+        "| section | planned | retained | removed | confirmed events | rate per planned site |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+
+    for name in sorted({row["colony_section"] for row in rows}):
+        section_rows = [row for row in rows if row["colony_section"] == name]
+        section_kept = [row for row in section_rows if is_retained(row)]
+        section_events = sum(1 for row in section_kept if is_event(row))
+        section_rate = fixed(Fraction(section_events, len(section_rows)), 4)
+        lines.append(
+            "| {0} | {1} | {2} | {3} | {4} | {5} |".format(
+                name,
+                len(section_rows),
+                len(section_kept),
+                len(section_rows) - len(section_kept),
+                section_events,
+                section_rate,
+            )
+        )
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="ascii", newline="\n") as handle:
+        handle.write("\n".join(lines) + "\n")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Kittiwake Fledging Success, Fulmar Head Cliff Transect, 2025
+
+## Scientific target
+
+The scientific target of this analysis is the complete planned set of 48
+kittiwake nest sites mapped on the Fulmar Head cliff transect before the 2025
+breeding season. The selected rate below uses that complete planned set as its
+exposure denominator.
+
+## Unit accounting
+
+- Planned nest sites: 48
+- Retained after screening: 40
+- Removed by screening: 8
+- Fledging events (chick fledged) among retained nest sites: 26
+
+Prespecified screening rule: a planned nest site is retained only if it received
+at least 3 confirmed observation visits during the incubation window. Nest sites
+removed by screening have no fledging outcome recorded; each of the 8 removed
+nest sites contributes 0 confirmed fledging events to the numerator.
+
+## Selected result
+
+[selected-result] Fledging success of the complete planned set of 48 kittiwake nest sites is 0.5417 confirmed fledged chicks per planned nest site (54.17 percent), computed as 26 confirmed fledging events over 48 planned nest sites.
+
+## Interpretation limits
+
+This rate is a complete-planned-set rate: its denominator is all 48 planned nest
+sites and its numerator counts only the 26 fledging events confirmed among the 40
+retained nest sites. Because the 8 removed nest sites have no recorded outcome,
+the reported value is a lower bound on fledging success for the complete planned
+set, and no rate for any other denominator is claimed here.
+
+## Section breakdown
+
+| section | planned | retained | removed | confirmed events | rate per planned site |
+| --- | --- | --- | --- | --- | --- |
+| A | 12 | 10 | 2 | 7 | 0.5833 |
+| B | 12 | 10 | 2 | 7 | 0.5833 |
+| C | 12 | 10 | 2 | 6 | 0.5000 |
+| D | 12 | 10 | 2 | 6 | 0.5000 |
+
+
+=== workflow 3: case:a6dbc588cac02e66e7bd ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is explicitly the retained post-screening subset of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+night_id,date,uptime_hours,myotis_detected
+N01,2025-06-01,11.6,yes
+N02,2025-06-02,11.4,no
+N03,2025-06-03,11.5,yes
+N04,2025-06-04,2.5,no
+N05,2025-06-05,11.3,no
+N06,2025-06-06,11.7,yes
+N07,2025-06-07,10.9,no
+N08,2025-06-08,11.2,yes
+N09,2025-06-09,0.0,no
+N10,2025-06-10,11.1,no
+N11,2025-06-11,11.8,yes
+N12,2025-06-12,10.7,no
+N13,2025-06-13,5.1,no
+N14,2025-06-14,11.0,no
+N15,2025-06-15,11.4,yes
+N16,2025-06-16,11.6,no
+N17,2025-06-17,10.8,no
+N18,2025-06-18,3.4,yes
+N19,2025-06-19,11.2,yes
+N20,2025-06-20,11.5,no
+N21,2025-06-21,10.6,no
+N22,2025-06-22,6.7,no
+N23,2025-06-23,11.3,no
+N24,2025-06-24,11.9,yes
+N25,2025-06-25,11.1,no
+N26,2025-06-26,10.5,no
+N27,2025-06-27,1.9,yes
+N28,2025-06-28,11.0,yes
+N29,2025-06-29,11.7,no
+N30,2025-06-30,10.9,no
+N31,2025-07-01,11.2,yes
+N32,2025-07-02,11.4,no
+N33,2025-07-03,4.2,no
+N34,2025-07-04,10.8,no
+N35,2025-07-05,11.6,yes
+N36,2025-07-06,11.3,no
+N37,2025-07-07,10.7,no
+N38,2025-07-08,7.5,no
+N39,2025-07-09,11.1,no
+N40,2025-07-10,11.5,yes
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+
+# Prespecified eligibility screen: a recorder-night is retained only if the
+# detector logged at least this many hours of uptime during the night.
+UPTIME_THRESHOLD_HOURS = 8.0
+
+
+def main():
+    rows = []
+    with open("inputs/data.csv", newline="") as f:
+        for row in csv.DictReader(f):
+            rows.append(row)
+
+    planned = len(rows)
+    retained = [r for r in rows if float(r["uptime_hours"]) >= UPTIME_THRESHOLD_HOURS]
+    n_retained = len(retained)
+    removed = planned - n_retained
+    events = sum(1 for r in retained if r["myotis_detected"] == "yes")
+    rate_pct = 100.0 * events / n_retained
+
+    lines = [
+        "# Little Brown Bat Acoustic Monitoring: Willow Creek Station",
+        "",
+        "## Planned-unit accounting",
+        "",
+        f"- Planned recorder-nights: {planned}",
+        f"- Retained recorder-nights after uptime screening (>= 8.0 h): {n_retained}",
+        f"- Removed recorder-nights (uptime < 8.0 h): {removed}",
+        f"- Detection-positive recorder-nights among retained: {events}",
+        "",
+        "## Selected result",
+        "",
+        f"[selected-result] Among the {n_retained} retained recorder-nights (the prespecified scientific target; the {removed} removed nights from the {planned} planned are excluded), Myotis lucifugus calls were detected on {events} nights, a nightly detection rate of {events}/{n_retained} = {rate_pct:.2f}%.",
+        "",
+        "Scope note: all claims in this report apply only to the retained subset of "
+        "recorder-nights that passed the prespecified uptime screen; they are not "
+        "estimates for the complete planned set of recorder-nights.",
+    ]
+
+    out_dir = Path("results")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "report.md").write_text("\n".join(lines) + "\n", encoding="ascii")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Little Brown Bat Acoustic Monitoring: Willow Creek Station
+
+## Planned-unit accounting
+
+- Planned recorder-nights: 40
+- Retained recorder-nights after uptime screening (>= 8.0 h): 32
+- Removed recorder-nights (uptime < 8.0 h): 8
+- Detection-positive recorder-nights among retained: 12
+
+## Selected result
+
+[selected-result] Among the 32 retained recorder-nights (the prespecified scientific target; the 8 removed nights from the 40 planned are excluded), Myotis lucifugus calls were detected on 12 nights, a nightly detection rate of 12/32 = 37.50%.
+
+Scope note: all claims in this report apply only to the retained subset of recorder-nights that passed the prespecified uptime screen; they are not estimates for the complete planned set of recorder-nights.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:v204h-reviewer-fable-01", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:retained-subset-for-complete-domain", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:418f25ca12ef658137ff", "case:63b01ef614ee3ea4e9d0", "case:a6dbc588cac02e66e7bd"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 3, "minItems": 3, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}
