@@ -185,9 +185,13 @@ def test_frozen_natural_language_corpus_identity_and_authority_ceiling() -> None
             "high_confidence_called_tract_exposure_only",
         ),
         (
+            # v2.0.0 (ADR-0069): the copy-dosage report plane no longer resolves
+            # alone, and this frozen case carries no workflow source, so the
+            # partially matching prose no longer reaches an unsupported
+            # boundary -- nothing in the case establishes the question at all.
             "natural-language:structural-dosage-unlinked:close-negative",
             COPY_DOSAGE_CHECK,
-            "unsupported",
+            "not_applicable",
             None,
         ),
     ],

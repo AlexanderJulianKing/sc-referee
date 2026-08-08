@@ -79,12 +79,13 @@
       "check_id": "check:classifier-derived-copy-dosage-representation",
       "required_candidate_id": "direct-continuous-calibrated-copy-dosage",
       "required_operand": "direct_continuous_calibrated_copy_dosage",
-      "expected_source_paths": ["analysis.py", "report.md"],
-      "conflict_report": "The full-cohort representation is continuous posterior expected copy dosage, P(copy=1) + 2*P(copy=2), not an integer hard call.\n",
-      "corrected_report": "The full-cohort representation is continuous calibrated copy dosage. RidgeCV calibration models produced the downstream quantitative copy exposure.\n",
-      "ambiguous_report": "The full-cohort representation is continuous posterior expected copy dosage, P(copy=1) + 2*P(copy=2). It is also continuous calibrated copy dosage produced by RidgeCV calibration models.\n",
-      "conflict_source": "from pathlib import Path\nimport numpy as np\nprobabilities = classifier.predict_proba(features)\ncopy_states = np.array([0, 1, 2])\nsegment_copy_dosage = probabilities @ copy_states\nPath('report.md').write_text('generated\\n', encoding='utf-8')\n",
-      "corrected_source": "from pathlib import Path\nfrom sklearn.linear_model import RidgeCV as Calibrator\ncalibrator = Calibrator(alphas=[0.1, 1.0]).fit(features, copy_index)\nsegment_copy_dosage = calibrator.predict(features)\nPath('report.md').write_text('generated\\n', encoding='utf-8')\n"
+      "expected_source_paths": ["analysis.py"],
+      "conflict_report": "The association model reported a copy-dosage coefficient of 0.42.\n",
+      "corrected_report": "The association model reported a copy-dosage coefficient of 0.42.\n",
+      "ambiguous_report": "The association model reported a copy-dosage coefficient of 0.42.\n",
+      "conflict_source": "import numpy as np\nimport pandas as pd\nimport statsmodels.api as sm\nfrom pathlib import Path\nfrom sklearn.linear_model import LogisticRegression, RidgeCV\n\nframe = pd.read_csv(Path('assay.csv'))\nfeatures = frame[['marker_a', 'marker_b']]\noutcome = frame['phenotype']\nclassifier = LogisticRegression().fit(features, frame['copy_state'])\nexpected = classifier.predict_proba(features) @ np.array([0, 1, 2])\ndosage = expected\nfit = sm.OLS(outcome, sm.add_constant(dosage)).fit()\nPath('report.md').write_text(f'generated {fit.params[1]}\\n', encoding='utf-8')\n",
+      "corrected_source": "import numpy as np\nimport pandas as pd\nimport statsmodels.api as sm\nfrom pathlib import Path\nfrom sklearn.linear_model import LogisticRegression, RidgeCV\n\nframe = pd.read_csv(Path('assay.csv'))\nfeatures = frame[['marker_a', 'marker_b']]\noutcome = frame['phenotype']\ncalibrator = RidgeCV().fit(features, frame['copy_index'])\ndosage = calibrator.predict(features)\nfit = sm.OLS(outcome, sm.add_constant(dosage)).fit()\nPath('report.md').write_text(f'generated {fit.params[1]}\\n', encoding='utf-8')\n",
+      "ambiguous_source": "import numpy as np\nimport pandas as pd\nimport statsmodels.api as sm\nfrom pathlib import Path\nfrom sklearn.linear_model import LogisticRegression, RidgeCV\n\nframe = pd.read_csv(Path('assay.csv'))\nfeatures = frame[['marker_a', 'marker_b']]\noutcome = frame['phenotype']\nclassifier = LogisticRegression().fit(features, frame['copy_state'])\nexpected = classifier.predict_proba(features) @ np.array([0, 1, 2])\nhard = expected.astype(int)\nquantized_fit = sm.OLS(outcome, sm.add_constant(hard)).fit()\ncontinuous_fit = sm.OLS(outcome, sm.add_constant(expected)).fit()\nPath('report.md').write_text(\n    f'generated {quantized_fit.params[1]} {continuous_fit.params[1]}\\n',\n    encoding='utf-8',\n)\n"
     },
     {
       "case_id": "somatic-clonality",

@@ -31,41 +31,13 @@ from sc_referee.scientific_checks.scope_joins import (
 )
 from sc_referee.scientific_checks.static_source_adapter import StaticSourceMethodAdapter
 
-COPY_CHECK = "check:classifier-derived-copy-dosage-representation"
 DIRECTIONAL_CHECK = "check:directional-measurement-error-interpretation"
 LD_CHECK = "check:ld-covariance-whitening-before-robust-fit"
-EXPECTED = "continuous_posterior_expected_copy_dosage"
-HARD = "integer_hard_copy_state_as_numeric_dosage"
-CONTINUOUS = "direct_continuous_calibrated_copy_dosage"
 WHITENED = "ld_covariance_cholesky_whitening_before_robust_fit"
 SYMMETRIC_ERROR = "reported_average_as_symmetric_bidirectional_error_rate"
 DIRECTIONAL_ERROR = "direction_specific_error_rates_from_average_and_directional_constraint"
 SNAPSHOT_DIGEST = sha256_digest("static-source-adapter-test-snapshot")
 CORPUS_ROOT = Path(__file__).resolve().parents[1] / "evaluation" / "static-source-adapter-v1"
-
-PYTHON_EXPECTED = b"""\
-from sklearn.linear_model import LogisticRegression
-import numpy as np
-
-classifier = LogisticRegression().fit(features, states)
-probabilities = classifier.predict_proba(features)
-copy_states = np.array([0, 1, 2])
-segment_copy_dosage = probabilities @ copy_states
-"""
-
-PYTHON_CONTINUOUS_ALIAS = b"""\
-from sklearn.linear_model import RidgeCV as Calibrator
-
-calibrator = Calibrator(alphas=[0.1, 1.0]).fit(features, copy_index)
-segment_copy_dosage = calibrator.predict(features)
-"""
-
-PYTHON_HARD = b"""\
-from sklearn.linear_model import LogisticRegression
-
-classifier = LogisticRegression().fit(features, states)
-segment_copy_dosage = classifier.predict(features)
-"""
 
 PYTHON_LD_ALIAS = b"""\
 from numpy.linalg import cholesky as factor_covariance
@@ -91,19 +63,6 @@ observed_probability = latent_probability * (1 - flip_rate) + (1 - latent_probab
 
 PYTHON_DIRECTIONAL_ERROR = b"""\
 observed_probability = false_positive * (1 - latent_probability) + (1 - false_negative) * latent_probability
-"""
-
-R_EXPECTED = b"""\
-classifier <- nnet::multinom(copy_state ~ marker_1 + marker_2, data=training)
-probabilities <- stats::predict(classifier, newdata=cohort, type="probs")
-copy_states <- base::c(0, 1, 2)
-segment_copy_dosage <- probabilities %*% copy_states
-"""
-
-R_HARD_ALIAS = b"""\
-classifier <- nnet::multinom(copy_state ~ marker_1 + marker_2, data=training)
-predict_copy <- stats::predict
-segment_copy_dosage <- predict_copy(classifier, newdata=cohort, type="class")
 """
 
 R_LD_DIRECT = b"""\
@@ -360,47 +319,6 @@ def _selected_container_cell_context(
 @pytest.mark.parametrize(
     ("payload", "expected"),
     [
-        (PYTHON_EXPECTED, EXPECTED),
-        (PYTHON_CONTINUOUS_ALIAS, CONTINUOUS),
-        (PYTHON_HARD, HARD),
-    ],
-)
-def test_python_copy_dosage_calls_and_aliases_normalize_existing_operands(
-    payload: bytes, expected: str
-) -> None:
-    observation = _adapter(COPY_CHECK, "python").inspect(_context(payload, "python"))
-
-    assert observation.applicability == "applicable"
-    assert observation.observed_operand is not None
-    assert observation.observed_operand.value == expected
-    assert observation.evidence_plane == "static_source"
-    assert observation.output_ceiling == "question_only"
-
-
-@pytest.mark.parametrize(
-    ("payload", "expected"),
-    [(R_EXPECTED, EXPECTED), (R_HARD_ALIAS, HARD)],
-)
-def test_r_namespaced_calls_and_closed_namespace_aliases_normalize_existing_operands(
-    payload: bytes, expected: str
-) -> None:
-    observation = _adapter(COPY_CHECK, "r").inspect(_context(payload, "r"))
-
-    assert observation.applicability == "applicable"
-    assert observation.observed_operand is not None
-    assert observation.observed_operand.value == expected
-
-
-def test_python_and_r_copy_formulas_are_cross_language_equivalent() -> None:
-    python = _adapter(COPY_CHECK, "python").inspect(_context(PYTHON_EXPECTED, "python"))
-    r = _adapter(COPY_CHECK, "r").inspect(_context(R_EXPECTED, "r"))
-
-    assert python.observed_operand == r.observed_operand
-
-
-@pytest.mark.parametrize(
-    ("payload", "expected"),
-    [
         (PYTHON_SYMMETRIC_ERROR_AFFINE, SYMMETRIC_ERROR),
         (PYTHON_SYMMETRIC_ERROR_TWO_STATE, SYMMETRIC_ERROR),
         (PYTHON_DIRECTIONAL_ERROR, DIRECTIONAL_ERROR),
@@ -482,16 +400,19 @@ def test_selected_rmarkdown_cell_contributes_scoped_observation_and_exact_citati
 
 def test_cross_cell_hidden_state_and_saved_execution_order_do_not_create_operand() -> None:
     first = _selected_container_cell_context(
-        b"from sklearn.linear_model import LogisticRegression\n"
-        b"classifier = LogisticRegression().fit(features, states)\n"
-        b"probabilities = classifier.predict_proba(features)\n",
+        b"from numpy.linalg import cholesky as factor_covariance\n"
+        b"from numpy.linalg import solve as triangular_solve\n"
+        b"factor = factor_covariance(ld_covariance)\n",
         "python",
         cell_identity="later-saved-count",
         execution_state="literal",
         execution_value=20,
     )
     second = _selected_container_cell_context(
-        b"copy_states = [0, 1, 2]\nsegment_copy_dosage = probabilities @ copy_states\n",
+        b"from statsmodels.api import RLM as robust_fit\n"
+        b"y_white = triangular_solve(factor, outcome_innovations)\n"
+        b"x_white = triangular_solve(factor, exposure_innovations)\n"
+        b"fit = robust_fit(y_white, x_white)\n",
         "python",
         cell_identity="earlier-saved-count",
         execution_state="literal",
@@ -524,8 +445,8 @@ def test_cross_cell_hidden_state_and_saved_execution_order_do_not_create_operand
         scope_join_graph=graph,
     )
 
-    forward_observation = _adapter(COPY_CHECK, "python").inspect(forward)
-    reversed_observation = _adapter(COPY_CHECK, "python").inspect(reversed_cells)
+    forward_observation = _adapter(LD_CHECK, "python").inspect(forward)
+    reversed_observation = _adapter(LD_CHECK, "python").inspect(reversed_cells)
 
     assert forward_observation.applicability == "unsupported"
     assert forward_observation.observed_operand is None
@@ -534,53 +455,37 @@ def test_cross_cell_hidden_state_and_saved_execution_order_do_not_create_operand
 
 
 def test_shadowing_forces_local_unsupported_state() -> None:
-    payload = PYTHON_EXPECTED + b"\nnp = object()\n"
-    observation = _adapter(COPY_CHECK, "python").inspect(_context(payload, "python"))
+    payload = PYTHON_LD_ALIAS + b"\nfactor_covariance = object()\n"
+    observation = _adapter(LD_CHECK, "python").inspect(_context(payload, "python"))
 
     assert observation.applicability == "unsupported"
     assert observation.observed_operand is None
     assert "shadowed" in (observation.abstention_reason or "")
 
 
-def test_dynamic_dispatch_does_not_create_an_operand() -> None:
-    payload = b"""\
-classifier = build_classifier()
-predictor = getattr(classifier, "predict_proba")
-probabilities = predictor(features)
-copy_states = [0, 1, 2]
-segment_copy_dosage = probabilities @ copy_states
-"""
-    observation = _adapter(COPY_CHECK, "python").inspect(_context(payload, "python"))
-
-    assert observation.applicability == "unsupported"
-    assert observation.observed_operand is None
-
-
 def test_method_defining_branch_forces_abstention() -> None:
     payload = b"""\
-from sklearn.linear_model import LogisticRegression
-classifier = LogisticRegression().fit(features, states)
-if use_hard_calls:
-    segment_copy_dosage = classifier.predict(features)
+from numpy.linalg import cholesky as factor_covariance
+from numpy.linalg import solve as triangular_solve
+from statsmodels.api import RLM as robust_fit
+from statsmodels.robust.norms import TukeyBiweight as redescending_norm
+
+factor = factor_covariance(ld_covariance)
+y_white = triangular_solve(factor, outcome_innovations)
+x_white = triangular_solve(factor, exposure_innovations)
+if use_robust_fit:
+    fit = robust_fit(y_white, x_white, M=redescending_norm())
 """
-    observation = _adapter(COPY_CHECK, "python").inspect(_context(payload, "python"))
+    observation = _adapter(LD_CHECK, "python").inspect(_context(payload, "python"))
 
     assert observation.applicability == "unsupported"
     assert "branch-dependent" in (observation.abstention_reason or "")
 
 
-def test_competing_source_operands_remain_ambiguous() -> None:
-    payload = PYTHON_EXPECTED + b"\nsegment_copy_dosage = classifier.predict(features)\n"
-    observation = _adapter(COPY_CHECK, "python").inspect(_context(payload, "python"))
-
-    assert observation.applicability == "ambiguous"
-    assert observation.observed_operand is None
-
-
 def test_r_cross_parser_disagreement_forces_abstention() -> None:
-    observation = _adapter(COPY_CHECK, "r").inspect(
+    observation = _adapter(LD_CHECK, "r").inspect(
         _context(
-            R_EXPECTED,
+            R_LD_NAMESPACED_FORMULA,
             "r",
             parser_mutation={
                 "state": "partially_parsed",
@@ -595,46 +500,19 @@ def test_r_cross_parser_disagreement_forces_abstention() -> None:
 
 
 def test_exact_unscoped_source_operand_is_preserved_only_as_suppressor() -> None:
-    observation = _adapter(COPY_CHECK, "python").inspect(
-        _context(PYTHON_EXPECTED, "python", scoped=False)
+    observation = _adapter(LD_CHECK, "python").inspect(
+        _context(PYTHON_LD_ALIAS, "python", scoped=False)
     )
 
     assert observation.applicability == "unsupported"
     assert observation.observed_operand is not None
-    assert observation.observed_operand.value == EXPECTED
+    assert observation.observed_operand.value == WHITENED
     assert observation.scope_join_path == ()
-
-
-@pytest.mark.parametrize(
-    ("report_text", "expected_state"),
-    [
-        (
-            b"The full-cohort representation is continuous posterior expected copy dosage, "
-            b"P(copy=1) + 2*P(copy=2), not an integer hard call.\n",
-            "applicable",
-        ),
-        (
-            b"The primary downstream association used an integer hard-call copy state, which "
-            b"was treated directly as numeric dosage.\n",
-            "ambiguous",
-        ),
-    ],
-)
-def test_report_and_source_agreement_or_disagreement_uses_existing_reducer(
-    report_text: bytes, expected_state: str
-) -> None:
-    module = _module(COPY_CHECK)
-    registry = ScientificCheckRegistry((module,))
-    result = registry.evaluate(_context(PYTHON_EXPECTED, "python", report=report_text)).modules[0]
-
-    assert result.state == expected_state
-    assert result.adapter_failures == ()
 
 
 @pytest.mark.parametrize(
     ("check_id", "payload"),
     [
-        (COPY_CHECK, PYTHON_EXPECTED),
         (DIRECTIONAL_CHECK, PYTHON_DIRECTIONAL_ERROR),
         (LD_CHECK, PYTHON_LD_ALIAS),
     ],
@@ -668,14 +546,12 @@ def test_removing_source_adapters_changes_only_the_source_evidence_plane(
 
 def test_static_source_grammar_digest_is_stable_and_identity_free() -> None:
     adapters = [
-        _adapter(COPY_CHECK, "python"),
-        _adapter(COPY_CHECK, "r"),
         _adapter(DIRECTIONAL_CHECK, "python"),
         _adapter(LD_CHECK, "python"),
         _adapter(LD_CHECK, "r"),
     ]
 
-    assert len({item.recognition_grammar_digest for item in adapters}) == 5
+    assert len({item.recognition_grammar_digest for item in adapters}) == 3
     projection = canonical_json(
         {
             "digests": [item.recognition_grammar_digest for item in adapters],
@@ -688,9 +564,9 @@ def test_static_source_grammar_digest_is_stable_and_identity_free() -> None:
 
 
 def test_parser_payload_mutation_changes_context_identity() -> None:
-    original = _context(PYTHON_EXPECTED, "python")
+    original = _context(PYTHON_LD_ALIAS, "python")
     mutated = _context(
-        PYTHON_EXPECTED,
+        PYTHON_LD_ALIAS,
         "python",
         parser_mutation={"extensions": {"x-test-mutation": True}},
     )
@@ -719,33 +595,6 @@ def test_frozen_static_source_corpus_identity_and_authority_ceiling() -> None:
         assert case["qualification_status"] == "excluded"
 
 
-@pytest.mark.parametrize(
-    ("case_id", "expected_operand"),
-    [
-        (
-            "static-source:structural-copy:posterior-expected",
-            EXPECTED,
-        ),
-        (
-            "static-source:structural-copy:direct-continuous",
-            CONTINUOUS,
-        ),
-    ],
-)
-def test_frozen_real_structural_sources_normalize_without_repository_identity(
-    case_id: str, expected_operand: str
-) -> None:
-    manifest = json.loads((CORPUS_ROOT / "manifest.json").read_text(encoding="utf-8"))
-    case = next(item for item in manifest["cases"] if item["case_id"] == case_id)
-    payload = (CORPUS_ROOT / case["path"]).read_bytes()
-
-    observation = _adapter(COPY_CHECK, "python").inspect(_context(payload, "python"))
-
-    assert observation.applicability == case["expected_applicability"]
-    assert observation.observed_operand is not None
-    assert observation.observed_operand.value == expected_operand
-
-
 def test_full_nonexecuting_audit_routes_static_source_question_and_replays_exactly(
     schema_root: Path, tmp_path: Path
 ) -> None:
@@ -754,7 +603,7 @@ def test_full_nonexecuting_audit_routes_static_source_question_and_replays_exact
     report = b"# Static source review\n\nThe quantitative representation needs review.\n"
     (repository / "report.md").write_bytes(report)
     source = (
-        PYTHON_EXPECTED
+        PYTHON_LD_ALIAS
         + b"""\
 from pathlib import Path
 Path("report.md").write_text("# Static source review\\n", encoding="utf-8")
@@ -773,7 +622,7 @@ Path("report.md").write_text("# Static source review\\n", encoding="utf-8")
         for item in bundle["material_questions"]
     }
 
-    assert COPY_CHECK in question_ids
+    assert LD_CHECK in question_ids
     assert bundle["findings"] == []
     assert bundle["executions"] == []
     assert bundle["project_execution_authorizations"] == []

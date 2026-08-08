@@ -38,41 +38,12 @@ _PYTHON_PARSER_ID = "parser:python-ast-tokenize"
 _PYTHON_PARSER_VERSION = "0.15.1"
 _R_PARSER_ID = "parser:r-tree-sitter-inventory"
 _R_PARSER_VERSION = "0.1.0"
-_MAX_LOCAL_SUMMARY_PASSES = 12
 
-_COPY_HARD = "integer_hard_copy_state_as_numeric_dosage"
-_COPY_EXPECTED = "continuous_posterior_expected_copy_dosage"
-_COPY_CONTINUOUS = "direct_continuous_calibrated_copy_dosage"
 _LD_WHITENED = "ld_covariance_cholesky_whitening_before_robust_fit"
 _DIRECTIONAL_SYMMETRIC = "reported_average_as_symmetric_bidirectional_error_rate"
 _DIRECTIONAL_SPLIT = "direction_specific_error_rates_from_average_and_directional_constraint"
 
-_MODEL_CLASSIFIER = "model:classifier"
-_MODEL_CONTINUOUS = "model:continuous"
-_PROBABILITIES = "value:class-probabilities"
-_CLASS_VECTOR = "value:ordered-copy-state-vector"
 
-_CLASSIFIER_CONSTRUCTORS = frozenset(
-    {
-        "sklearn.linear_model.LogisticRegression",
-        "sklearn.ensemble.RandomForestClassifier",
-        "sklearn.ensemble.GradientBoostingClassifier",
-    }
-)
-_CONTINUOUS_CONSTRUCTORS = frozenset(
-    {
-        "sklearn.linear_model.ElasticNet",
-        "sklearn.linear_model.LinearRegression",
-        "sklearn.linear_model.Ridge",
-        "sklearn.linear_model.RidgeCV",
-    }
-)
-_PIPELINE_CONSTRUCTORS = frozenset(
-    {
-        "sklearn.pipeline.make_pipeline",
-        "sklearn.pipeline.Pipeline",
-    }
-)
 _PYTHON_CHOL_CALLS = frozenset({"numpy.linalg.cholesky", "scipy.linalg.cholesky"})
 _PYTHON_SOLVE_CALLS = frozenset({"numpy.linalg.solve", "scipy.linalg.solve_triangular"})
 _PYTHON_ROBUST_CALLS = frozenset(
@@ -88,11 +59,6 @@ _PYTHON_REDESCENDING_CALLS = frozenset(
     }
 )
 
-_COPY_OPERANDS = {
-    _COPY_HARD: CanonicalOperand.scalar(_COPY_HARD),
-    _COPY_EXPECTED: CanonicalOperand.scalar(_COPY_EXPECTED),
-    _COPY_CONTINUOUS: CanonicalOperand.scalar(_COPY_CONTINUOUS),
-}
 _LD_OPERANDS = {_LD_WHITENED: CanonicalOperand.scalar(_LD_WHITENED)}
 _DIRECTIONAL_OPERANDS = {
     _DIRECTIONAL_SYMMETRIC: CanonicalOperand.scalar(_DIRECTIONAL_SYMMETRIC),
@@ -101,7 +67,6 @@ _DIRECTIONAL_OPERANDS = {
 
 SourceLanguage = Literal["python", "r"]
 Recognizer = Literal[
-    "classifier_copy_dosage",
     "directional_measurement_error",
     "ld_whitening",
 ]
@@ -332,21 +297,7 @@ def static_source_recognition_grammar_digest(
         "method_defining_branches_supported": False,
         "project_execution": False,
     }
-    if recognizer == "classifier_copy_dosage":
-        grammar["operands"] = {key: value.to_dict() for key, value in _COPY_OPERANDS.items()}
-        grammar["python_calls"] = {
-            "classifier_constructors": sorted(_CLASSIFIER_CONSTRUCTORS),
-            "continuous_constructors": sorted(_CONTINUOUS_CONSTRUCTORS),
-            "pipeline_constructors": sorted(_PIPELINE_CONSTRUCTORS),
-            "prediction_methods": ["predict", "predict_proba"],
-        }
-        grammar["r_calls"] = {
-            "classifier_constructors": ["nnet::multinom"],
-            "continuous_constructors": ["glmnet::cv.glmnet", "stats::lm"],
-            "prediction_calls": ["predict", "stats::predict"],
-            "prediction_types": ["class", "probs", "response"],
-        }
-    elif recognizer == "ld_whitening":
+    if recognizer == "ld_whitening":
         grammar["operands"] = {key: value.to_dict() for key, value in _LD_OPERANDS.items()}
         grammar["python_calls"] = {
             "cholesky": sorted(_PYTHON_CHOL_CALLS),
@@ -450,8 +401,6 @@ def _scan_document(
             tree = ast.parse(text, filename=document.path, type_comments=True)
         except SyntaxError:
             return _ScanOutcome((), False, "Python AST parsing was incomplete")
-        if recognizer == "classifier_copy_dosage":
-            return _python_copy_dosage_scan(tree)
         if recognizer == "directional_measurement_error":
             return _python_directional_measurement_error_scan(tree)
         return _python_ld_whitening_scan(tree)
@@ -459,8 +408,6 @@ def _scan_document(
     r_tree = Parser(Language(tree_sitter_r.language())).parse(payload)
     if r_tree.root_node.has_error:
         return _ScanOutcome((), False, "Tree-sitter-R parsing was incomplete")
-    if recognizer == "classifier_copy_dosage":
-        return _r_copy_dosage_scan(r_tree.root_node, payload)
     if recognizer == "directional_measurement_error":
         return _ScanOutcome(
             (),
@@ -535,55 +482,6 @@ def _shape_span(document: InspectionDocument, shape: _SourceShape) -> EvidenceSp
         end_column=shape.end_column,
         parser_result_ref=document.parser_result_ref,
     )
-
-
-def _python_copy_dosage_scan(tree: ast.Module) -> _ScanOutcome:
-    resolver, binding_boundary = _python_import_resolver(tree)
-    triggered = any(
-        isinstance(node, ast.Call)
-        and _python_terminal_name(node.func) in {"predict", "predict_proba"}
-        for node in ast.walk(tree)
-    ) or any(
-        isinstance(node, (ast.Name, ast.Constant))
-        and "dosage" in str(getattr(node, "id", getattr(node, "value", ""))).casefold()
-        for node in ast.walk(tree)
-    )
-    if binding_boundary:
-        return _ScanOutcome((), triggered, binding_boundary)
-
-    summaries: dict[str, tuple[str | None, ...]] = {}
-    functions = {
-        node.name: node
-        for node in tree.body
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-    }
-    for _ in range(_MAX_LOCAL_SUMMARY_PASSES):
-        changed = False
-        for name, function in functions.items():
-            value = _python_function_summary(function, resolver, summaries)
-            if value is not None and summaries.get(name) != value:
-                summaries[name] = value
-                changed = True
-        if not changed:
-            break
-
-    shapes: list[_SourceShape] = []
-    boundary: str | None = None
-    for scope in (tree, *functions.values()):
-        env: dict[str, str] = {}
-        for node in _python_ordered_assignments(scope):
-            if _python_in_method_branch(node, scope):
-                if _python_target_mentions_dosage(node):
-                    boundary = "a dosage-defining assignment is branch-dependent"
-                continue
-            categories = _python_assignment_categories(node, env, resolver, summaries)
-            for target, category in categories:
-                root = _python_target_root(target)
-                if root is not None and category is not None:
-                    env[root] = category
-                if category in _COPY_OPERANDS and _python_target_mentions_dosage_target(target):
-                    shapes.append(_python_shape(_COPY_OPERANDS[category], node))
-    return _collapse_shapes(shapes, triggered, boundary)
 
 
 def _python_directional_measurement_error_scan(tree: ast.Module) -> _ScanOutcome:
@@ -867,50 +765,6 @@ def _python_expression_path(node: ast.AST, resolver: dict[str, str]) -> str:
     return "<dynamic>"
 
 
-def _python_terminal_name(node: ast.AST) -> str:
-    if isinstance(node, ast.Name):
-        return node.id
-    if isinstance(node, ast.Attribute):
-        return node.attr
-    return "<dynamic>"
-
-
-def _python_function_summary(
-    function: ast.FunctionDef | ast.AsyncFunctionDef,
-    resolver: dict[str, str],
-    summaries: dict[str, tuple[str | None, ...]],
-) -> tuple[str | None, ...] | None:
-    env: dict[str, str] = {}
-    for node in _python_ordered_assignments(function):
-        if _python_in_method_branch(node, function):
-            continue
-        for target, category in _python_assignment_categories(node, env, resolver, summaries):
-            root = _python_target_root(target)
-            if root is not None and category is not None:
-                env[root] = category
-    returns = [
-        node
-        for node in _python_scope_nodes(function)
-        if isinstance(node, ast.Return) and not _python_in_method_branch(node, function)
-    ]
-    projected: list[tuple[str | None, ...]] = []
-    for returned in returns:
-        if returned.value is None:
-            projected.append((None,))
-        elif isinstance(returned.value, (ast.Tuple, ast.List)):
-            projected.append(
-                tuple(
-                    _python_expression_category(item, env, resolver, summaries)
-                    for item in returned.value.elts
-                )
-            )
-        else:
-            projected.append(
-                (_python_expression_category(returned.value, env, resolver, summaries),)
-            )
-    return projected[0] if projected and all(item == projected[0] for item in projected) else None
-
-
 def _python_ordered_assignments(scope: ast.AST) -> list[ast.Assign | ast.AnnAssign]:
     values = [
         node for node in _python_scope_nodes(scope) if isinstance(node, (ast.Assign, ast.AnnAssign))
@@ -937,163 +791,6 @@ def _python_scope_nodes(scope: ast.AST) -> list[ast.AST]:
             continue
         stack.extend(reversed(list(ast.iter_child_nodes(node))))
     return values
-
-
-def _python_assignment_categories(
-    node: ast.Assign | ast.AnnAssign,
-    env: dict[str, str],
-    resolver: dict[str, str],
-    summaries: dict[str, tuple[str | None, ...]],
-) -> list[tuple[ast.expr, str | None]]:
-    targets = list(node.targets) if isinstance(node, ast.Assign) else [node.target]
-    value = node.value
-    if value is None:
-        return []
-    if len(targets) == 1 and isinstance(targets[0], (ast.Tuple, ast.List)):
-        target_items = list(targets[0].elts)
-        categories = _python_expression_categories(value, env, resolver, summaries)
-        if len(categories) != len(target_items):
-            return []
-        return list(zip(target_items, categories, strict=True))
-    category = _python_expression_category(value, env, resolver, summaries)
-    return [(target, category) for target in targets]
-
-
-def _python_expression_categories(
-    node: ast.expr,
-    env: dict[str, str],
-    resolver: dict[str, str],
-    summaries: dict[str, tuple[str | None, ...]],
-) -> tuple[str | None, ...]:
-    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in summaries:
-        return summaries[node.func.id]
-    if isinstance(node, (ast.Tuple, ast.List)):
-        return tuple(
-            _python_expression_category(item, env, resolver, summaries) for item in node.elts
-        )
-    return (_python_expression_category(node, env, resolver, summaries),)
-
-
-def _python_expression_category(
-    node: ast.expr,
-    env: dict[str, str],
-    resolver: dict[str, str],
-    summaries: dict[str, tuple[str | None, ...]],
-) -> str | None:
-    if isinstance(node, ast.Name):
-        return env.get(node.id)
-    if _python_copy_state_vector(node, env, resolver, summaries):
-        return _CLASS_VECTOR
-    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.MatMult):
-        left = _python_expression_category(node.left, env, resolver, summaries)
-        right = _python_expression_category(node.right, env, resolver, summaries)
-        if {left, right} == {_PROBABILITIES, _CLASS_VECTOR}:
-            return _COPY_EXPECTED
-    if isinstance(node, ast.Call):
-        path = _python_call_path(node, resolver)
-        if path in _CLASSIFIER_CONSTRUCTORS:
-            return _MODEL_CLASSIFIER
-        if path in _CONTINUOUS_CONSTRUCTORS:
-            return _MODEL_CONTINUOUS
-        if path in _PIPELINE_CONSTRUCTORS:
-            categories = [
-                _python_expression_category(item, env, resolver, summaries) for item in node.args
-            ]
-            if _MODEL_CLASSIFIER in categories:
-                return _MODEL_CLASSIFIER
-            if _MODEL_CONTINUOUS in categories:
-                return _MODEL_CONTINUOUS
-        if isinstance(node.func, ast.Name) and node.func.id in summaries:
-            values = summaries[node.func.id]
-            return values[0] if len(values) == 1 else None
-        terminal = _python_terminal_name(node.func)
-        if terminal == "fit" and isinstance(node.func, ast.Attribute):
-            return _python_expression_category(node.func.value, env, resolver, summaries)
-        if terminal in {"astype", "clip", "asarray", "array"}:
-            candidates = [
-                *(node.args[:1]),
-                *([node.func.value] if isinstance(node.func, ast.Attribute) else []),
-            ]
-            for candidate in candidates:
-                category = _python_expression_category(candidate, env, resolver, summaries)
-                if category is not None:
-                    return category
-        if terminal in {"predict", "predict_proba"} and isinstance(node.func, ast.Attribute):
-            model = _python_expression_category(node.func.value, env, resolver, summaries)
-            if terminal == "predict_proba" and (
-                model == _MODEL_CLASSIFIER or isinstance(node.func.value, ast.Name)
-            ):
-                return _PROBABILITIES
-            if terminal == "predict" and model == _MODEL_CLASSIFIER:
-                return _COPY_HARD
-            if terminal == "predict" and model == _MODEL_CONTINUOUS:
-                return _COPY_CONTINUOUS
-        if terminal == "sum":
-            products = [
-                item
-                for item in ast.walk(node)
-                if isinstance(item, ast.BinOp) and isinstance(item.op, ast.Mult)
-            ]
-            if any(
-                {
-                    _python_expression_category(item.left, env, resolver, summaries),
-                    _python_expression_category(item.right, env, resolver, summaries),
-                }
-                == {_PROBABILITIES, _CLASS_VECTOR}
-                for item in products
-            ):
-                return _COPY_EXPECTED
-    if isinstance(node, ast.Attribute) and node.attr == "classes_":
-        return _CLASS_VECTOR
-    return None
-
-
-def _python_copy_state_vector(
-    node: ast.expr,
-    env: dict[str, str],
-    resolver: dict[str, str],
-    summaries: dict[str, tuple[str | None, ...]],
-) -> bool:
-    del env, summaries
-    values: list[object] | None = None
-    if isinstance(node, (ast.List, ast.Tuple)):
-        values = [item.value for item in node.elts if isinstance(item, ast.Constant)]
-        if len(values) != len(node.elts):
-            values = None
-    elif (
-        isinstance(node, ast.Call)
-        and _python_terminal_name(node.func) in {"array", "asarray"}
-        and node.args
-    ):
-        return _python_copy_state_vector(node.args[0], {}, resolver, {})
-    return values is not None and [
-        float(item) for item in values if isinstance(item, (int, float))
-    ] == [0.0, 1.0, 2.0]
-
-
-def _python_target_root(node: ast.expr) -> str | None:
-    current: ast.AST = node
-    while isinstance(current, (ast.Subscript, ast.Attribute)):
-        current = current.value
-    return current.id if isinstance(current, ast.Name) else None
-
-
-def _python_target_mentions_dosage(node: ast.Assign | ast.AnnAssign) -> bool:
-    targets = list(node.targets) if isinstance(node, ast.Assign) else [node.target]
-    return any(_python_target_mentions_dosage_target(target) for target in targets)
-
-
-def _python_target_mentions_dosage_target(node: ast.expr) -> bool:
-    if isinstance(node, ast.Name):
-        return "dosage" in node.id.casefold()
-    if isinstance(node, (ast.Tuple, ast.List)):
-        return any(_python_target_mentions_dosage_target(item) for item in node.elts)
-    if isinstance(node, ast.Subscript):
-        value = node.slice.value if isinstance(node.slice, ast.Constant) else None
-        return isinstance(value, str) and "dosage" in value.casefold()
-    if isinstance(node, ast.Attribute):
-        return "dosage" in node.attr.casefold()
-    return False
 
 
 def _python_in_method_branch(node: ast.AST, scope: ast.AST) -> bool:
@@ -1195,36 +892,6 @@ def _python_shape(operand: CanonicalOperand, *nodes: ast.AST) -> _SourceShape:
     )
 
 
-def _r_copy_dosage_scan(root: Node, payload: bytes) -> _ScanOutcome:
-    bindings, aliases, libraries, boundary = _r_bindings(root, payload)
-    triggered = any(
-        "dosage" in _r_text(node, payload).casefold() for node in _r_assignment_nodes(root)
-    ) or any(
-        _r_call_target(node, payload, aliases, libraries) in {"predict", "stats::predict"}
-        for node in _r_call_nodes(root)
-    )
-    if boundary:
-        return _ScanOutcome((), triggered, boundary)
-    categories: dict[str, str] = {}
-    shapes: list[_SourceShape] = []
-    for assignment in _r_assignment_nodes(root):
-        lhs = assignment.child_by_field_name("lhs")
-        rhs = assignment.child_by_field_name("rhs")
-        if lhs is None or rhs is None:
-            continue
-        if _r_has_branch_ancestor(assignment):
-            if "dosage" in _r_text(lhs, payload).casefold():
-                return _ScanOutcome((), True, "an R dosage-defining assignment is branch-dependent")
-            continue
-        category = _r_expression_category(rhs, payload, bindings, categories, aliases, libraries)
-        name = _r_assignment_name(lhs, payload)
-        if name is not None and category is not None:
-            categories[name] = category
-        if category in _COPY_OPERANDS and "dosage" in _r_text(lhs, payload).casefold():
-            shapes.append(_r_shape(_COPY_OPERANDS[category], assignment))
-    return _collapse_shapes(shapes, triggered, None)
-
-
 def _r_ld_whitening_scan(root: Node, payload: bytes) -> _ScanOutcome:
     bindings, aliases, libraries, boundary = _r_bindings(root, payload)
     calls = [
@@ -1301,58 +968,6 @@ def _r_bindings(
     if shadowed:
         return bindings, aliases, libraries, f"an admitted R direct call is shadowed: {shadowed[0]}"
     return bindings, aliases, libraries, None
-
-
-def _r_expression_category(
-    node: Node,
-    payload: bytes,
-    bindings: dict[str, Node],
-    categories: dict[str, str],
-    aliases: dict[str, str],
-    libraries: set[str],
-) -> str | None:
-    if node.type == "identifier":
-        return categories.get(_r_text(node, payload))
-    if node.type == "binary_operator" and _r_operator(node, payload) == "%*%":
-        lhs = node.child_by_field_name("lhs")
-        rhs = node.child_by_field_name("rhs")
-        if lhs is not None and rhs is not None:
-            left = _r_expression_category(lhs, payload, bindings, categories, aliases, libraries)
-            right = _r_expression_category(rhs, payload, bindings, categories, aliases, libraries)
-            if {left, right} == {_PROBABILITIES, _CLASS_VECTOR}:
-                return _COPY_EXPECTED
-    if node.type == "call":
-        target = _r_call_target(node, payload, aliases, libraries)
-        arguments = _r_arguments(node, payload)
-        if target == "nnet::multinom":
-            return _MODEL_CLASSIFIER
-        if target in {"glmnet::cv.glmnet", "stats::lm"}:
-            return _MODEL_CONTINUOUS
-        if target in {"c", "base::c"} and _r_numeric_vector(node, payload) == [0.0, 1.0, 2.0]:
-            return _CLASS_VECTOR
-        if target in {"as.numeric", "base::as.numeric", "as.vector", "base::as.vector"}:
-            value = arguments.get("")
-            return (
-                None
-                if value is None
-                else _r_expression_category(
-                    value, payload, bindings, categories, aliases, libraries
-                )
-            )
-        if target in {"predict", "stats::predict"}:
-            positional = _r_positional_arguments(node)
-            if not positional:
-                return None
-            model_name = _r_identifier(positional[0], payload)
-            model = categories.get(model_name or "")
-            prediction_type = _r_string(arguments.get("type"), payload)
-            if prediction_type == "probs" and model == _MODEL_CLASSIFIER:
-                return _PROBABILITIES
-            if prediction_type == "class" and model == _MODEL_CLASSIFIER:
-                return _COPY_HARD
-            if prediction_type == "response" and model == _MODEL_CONTINUOUS:
-                return _COPY_CONTINUOUS
-    return None
 
 
 def _r_assignment_nodes(root: Node) -> list[Node]:
@@ -1481,43 +1096,8 @@ def _r_positional_arguments(call: Node) -> list[Node]:
     ]
 
 
-def _r_assignment_name(node: Node, payload: bytes) -> str | None:
-    if node.type == "identifier":
-        return _r_text(node, payload)
-    if node.type in {"subset", "subset2"}:
-        base = node.named_child(0)
-        return _r_text(base, payload) if base is not None and base.type == "identifier" else None
-    return None
-
-
 def _r_identifier(node: Node | None, payload: bytes) -> str | None:
     return _r_text(node, payload) if node is not None and node.type == "identifier" else None
-
-
-def _r_string(node: Node | None, payload: bytes) -> str | None:
-    if node is None or node.type != "string":
-        return None
-    value = _r_text(node, payload)
-    return (
-        value[1:-1]
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}
-        else None
-    )
-
-
-def _r_numeric_vector(node: Node | None, payload: bytes) -> list[float] | None:
-    if node is None:
-        return None
-    call = node if node.type == "call" else None
-    if call is None or _r_literal_call_target(call, payload) not in {"c", "base::c"}:
-        return None
-    values: list[float] = []
-    for argument in _r_positional_arguments(call):
-        try:
-            values.append(float(_r_text(argument, payload).removesuffix("L")))
-        except ValueError:
-            return None
-    return values
 
 
 def _r_formula_names(node: Node, payload: bytes) -> tuple[str | None, str | None]:

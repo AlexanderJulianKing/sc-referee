@@ -131,9 +131,58 @@ FOUNDER_CONFLICTING_SOURCE = (
     + "report = f'{supplied} {repaired}'\n"
     + "Path('results/report.md').write_text(report)\n"
 )
-_FOUNDER_SOURCE_BY_OPERAND = {
+_COPY_WORKFLOW_HEAD = """import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+from pathlib import Path
+from sklearn.linear_model import LogisticRegression, RidgeCV
+
+frame = pd.read_csv(Path('inputs/assay.csv'))
+features = frame[['marker_a', 'marker_b']]
+outcome = frame['phenotype']
+"""
+_COPY_POSTERIOR = (
+    "classifier = LogisticRegression().fit(features, frame['copy_state'])\n"
+    "expected = classifier.predict_proba(features) @ np.array([0, 1, 2])\n"
+)
+_COPY_WORKFLOW_TAIL = (
+    "fit = sm.OLS(outcome, sm.add_constant(dosage)).fit()\n"
+    "Path('results/report.md').write_text(f'coefficient {fit.params[1]}')\n"
+)
+COPY_HARD_STATE_SOURCE = (
+    _COPY_WORKFLOW_HEAD + _COPY_POSTERIOR + "dosage = expected.astype(int)\n" + _COPY_WORKFLOW_TAIL
+)
+COPY_POSTERIOR_SOURCE = (
+    _COPY_WORKFLOW_HEAD + _COPY_POSTERIOR + "dosage = expected\n" + _COPY_WORKFLOW_TAIL
+)
+COPY_CALIBRATION_SOURCE = (
+    _COPY_WORKFLOW_HEAD
+    + "calibrator = RidgeCV().fit(features, frame['copy_index'])\n"
+    + "dosage = calibrator.predict(features)\n"
+    + _COPY_WORKFLOW_TAIL
+)
+COPY_UNREADABLE_SOURCE = (
+    _COPY_WORKFLOW_HEAD
+    + _COPY_POSTERIOR
+    + "dosage = expected.apply(lambda value: int(value))\n"
+    + _COPY_WORKFLOW_TAIL
+)
+COPY_CONFLICTING_SOURCE = (
+    _COPY_WORKFLOW_HEAD
+    + _COPY_POSTERIOR
+    + "hard = expected.astype(int)\n"
+    + "quantized_fit = sm.OLS(outcome, sm.add_constant(hard)).fit()\n"
+    + "continuous_fit = sm.OLS(outcome, sm.add_constant(expected)).fit()\n"
+    + "Path('results/report.md').write_text(\n"
+    + "    f'{quantized_fit.params[1]} {continuous_fit.params[1]}'\n"
+    + ")\n"
+)
+_SOURCE_BY_OPERAND = {
     "use_supplied_founder_alleles_directly_in_hmm_emission": FOUNDER_DIRECT_SOURCE,
     "repair_ril_founder_orientation_before_hmm_emission": FOUNDER_REPAIRED_SOURCE,
+    "integer_hard_copy_state_as_numeric_dosage": COPY_HARD_STATE_SOURCE,
+    "continuous_posterior_expected_copy_dosage": COPY_POSTERIOR_SOURCE,
+    "direct_continuous_calibrated_copy_dosage": COPY_CALIBRATION_SOURCE,
 }
 
 
@@ -520,38 +569,20 @@ def _inspection_context(*, report_parser_version: str = "0.2.0") -> FrozenInspec
             "substantive_risk_strata_only_with_availability_variables_diagnostic",
         ),
         (
-            "The primary downstream association used an integer hard-call copy state, which was "
-            "treated directly as numeric dosage.\n",
+            "The association model used the copy dosage as its quantitative exposure; the "
+            "estimated coefficient was 0.42.\n",
             CLASSIFIER_COPY_DOSAGE_CHECK,
             "integer_hard_copy_state_as_numeric_dosage",
         ),
         (
-            "The full-cohort representation is continuous posterior expected copy dosage, "
-            "P(copy=1) + 2*P(copy=2), not an integer hard call.\n",
+            "The association model reported a copy-dosage coefficient of 0.31 for the full "
+            "cohort.\n",
             CLASSIFIER_COPY_DOSAGE_CHECK,
             "continuous_posterior_expected_copy_dosage",
         ),
         (
-            "We trained separate discriminant classifiers against the ordered copy classes. "
-            "For downstream risk models, we used posterior expected copies as the quantitative "
-            "dosage, preserving classification uncertainty.\n",
-            CLASSIFIER_COPY_DOSAGE_CHECK,
-            "continuous_posterior_expected_copy_dosage",
-        ),
-        (
-            "The full-cohort representation is ancestry-stratified continuous calibrated copy "
-            "dosage, not an integer hard call or posterior class expectation. Separate RidgeCV "
-            "calibration models produced the downstream copy dosage within each ancestry.\n",
-            CLASSIFIER_COPY_DOSAGE_CHECK,
-            "direct_continuous_calibrated_copy_dosage",
-        ),
-        (
-            "I retained the continuous copy index for dosage calibration rather than rounding "
-            "away assay information.\n\n"
-            "Segment-B copy index was learned from marker features. Within each ancestry, Ridge "
-            "regression produced final predictions clipped to the 0-2 range.\n\n"
-            "The weighted clinical model included calibrated segment-B dosage with the outer "
-            "orientation entered separately.\n",
+            "The calibrated copy dosage entered the association model, whose coefficient was "
+            "0.27.\n",
             CLASSIFIER_COPY_DOSAGE_CHECK,
             "direct_continuous_calibrated_copy_dosage",
         ),
@@ -638,13 +669,13 @@ def test_exact_method_profiles_route_through_one_general_audit_interface(
     check_id: str,
     operand: object,
 ) -> None:
-    # The founder rows carry their workflow source: from v2.0.1 that check's
-    # report plane corroborates a dataflow reading and never resolves alone.
+    # The founder and copy-dosage rows carry their workflow source: both
+    # checks resolve from operations, and their report planes only corroborate.
     bundle = _audit(
         tmp_path,
         schema_root,
         report_text=report_text,
-        analysis_text=_FOUNDER_SOURCE_BY_OPERAND.get(str(operand), "value = 1\n"),
+        analysis_text=_SOURCE_BY_OPERAND.get(str(operand), "value = 1\n"),
     )
 
     questions = _check_questions(bundle)
@@ -886,23 +917,27 @@ def test_mvmr_new_profiles_preserve_ambiguity_and_hard_negatives(
     assert _module(bundle, check_id)["state"] == expected_state
 
 
-def test_linked_copy_dosage_evidence_span_excludes_unrelated_report_sections(
+def test_copy_dosage_evidence_cites_the_quantizing_operation_and_the_report_accounting(
     tmp_path: Path,
     schema_root: Path,
 ) -> None:
+    """v2.0.0 evidence is the operation and the accounting it corroborates.
+
+    The retired v1.2.0 rule cited a linked span of report prose. The rebuilt
+    check cites the workflow step that put the exposure on the integers, and,
+    when the report tabulates the per-state counts, those tokens too.
+    """
+
     bundle = _audit(
         tmp_path,
         schema_root,
         report_text=(
             "# Results\n\nAn unrelated descriptive result was reported first.\n\n"
-            "I retained the continuous copy index for dosage calibration rather than rounding "
-            "away assay information.\n\n"
-            "Segment-B copy index was learned from marker features. Within each ancestry, Ridge "
-            "regression produced final predictions clipped to the 0-2 range.\n\n"
-            "The weighted clinical model included calibrated segment-B dosage with the outer "
-            "orientation entered separately.\n\n"
+            "Copy state was 0 in 120 participants, 1 in 260, and 2 in 120 of the 500 "
+            "genotyped participants; the mean dosage was 1.00.\n\n"
             "# Limitations\n\nAn unrelated limitation followed the method.\n"
         ),
+        analysis_text=COPY_HARD_STATE_SOURCE,
     )
 
     assertion = next(
@@ -910,11 +945,11 @@ def test_linked_copy_dosage_evidence_span_excludes_unrelated_report_sections(
         for item in _check_assertions(bundle)
         if item["extensions"]["x-scientific-check-id"] == CLASSIFIER_COPY_DOSAGE_CHECK
     )
-    quoted = assertion["source_refs"][0]["quoted_text"]
-    assert quoted.startswith("I retained the continuous copy index")
-    assert "calibrated segment-B dosage" in quoted
-    assert "unrelated descriptive result" not in quoted
-    assert "unrelated limitation" not in quoted
+    assert assertion["object"] == "integer_hard_copy_state_as_numeric_dosage"
+    quoted = [item["quoted_text"] for item in assertion["source_refs"]]
+    assert any("astype(int)" in item for item in quoted)
+    assert not any("unrelated descriptive result" in item for item in quoted)
+    assert not any("unrelated limitation" in item for item in quoted)
 
 
 @pytest.mark.parametrize(
@@ -1829,64 +1864,39 @@ def test_direct_standardization_profile_preserves_ambiguity_and_hard_negatives(
 
 
 @pytest.mark.parametrize(
-    ("report_text", "expected_state"),
+    ("analysis_text", "report_text", "expected_state"),
     [
         (
-            "The primary downstream association used an integer hard-call copy state, treated "
-            "directly as numeric dosage.\n\n"
-            "The full-cohort representation is continuous posterior expected copy dosage, "
-            "P(copy=1) + 2*P(copy=2).\n\n"
-            "The full-cohort representation is continuous calibrated copy dosage. RidgeCV "
-            "calibration models produced that quantitative exposure.\n",
+            COPY_CONFLICTING_SOURCE,
+            "The association model reported a copy-dosage coefficient of 0.42.\n",
             "ambiguous",
         ),
         (
-            "Integer hard-call copy states were used only to count calibration-panel carriers. "
-            "The quantitative association exposure was not described.\n",
+            COPY_POSTERIOR_SOURCE,
+            "Copy state was 0 in 120 participants, 1 in 260, and 2 in 120 of the 500 genotyped "
+            "participants; the mean dosage was 1.00.\n",
+            "ambiguous",
+        ),
+        (
+            COPY_UNREADABLE_SOURCE,
+            "The association model reported a copy-dosage coefficient of 0.42.\n",
+            "unsupported",
+        ),
+        (
+            "value = 1\n",
+            "The full-cohort representation is continuous posterior expected copy dosage, "
+            "P(copy=1) + 2*P(copy=2), not an integer hard call.\n",
             "not_applicable",
         ),
         (
-            "We plotted posterior class probabilities and hard-call classifier accuracy. No copy "
-            "dosage entered a downstream quantitative model.\n",
-            "unsupported",
-        ),
-        (
-            "A multinomial classifier predicted segment copy count with high accuracy.\n\n"
-            "The association model later included segment dosage, but the report did not say "
-            "whether the prediction or an expected value supplied that dosage.\n",
-            "unsupported",
-        ),
-        (
-            "A Ridge calibration model generated continuous calibrated copy dosage for a QC "
-            "plot. The downstream quantitative exposure was not stated.\n",
-            "unsupported",
-        ),
-        (
-            "I retained the continuous copy index for dosage calibration rather than rounding "
-            "away assay information.\n\n"
-            "Segment-A copy index was learned from marker features by Ridge regression.\n\n"
-            "The clinical model included calibrated segment-B dosage.\n",
-            "unsupported",
-        ),
-        (
-            "I retained the continuous copy index for dosage calibration rather than rounding "
-            "away assay information. Segment-B copy index was learned by Ridge regression for "
-            "calibration QC only; no calibrated dosage entered a downstream model.\n",
-            "unsupported",
-        ),
-        (
+            "value = 1\n",
             "A directly measured continuous copy dosage from digital PCR entered the association "
             "model; no copy-state calibration model was used.\n",
             "not_applicable",
         ),
         (
+            "value = 1\n",
             "Medication dosage was rounded to an integer before a classifier was evaluated.\n",
-            "not_applicable",
-        ),
-        (
-            "We trained a discriminant classifier for response classes. For downstream risk "
-            "models, we used posterior response probability; no copy count or copy dosage was "
-            "defined.\n",
             "not_applicable",
         ),
     ],
@@ -1894,10 +1904,11 @@ def test_direct_standardization_profile_preserves_ambiguity_and_hard_negatives(
 def test_classifier_copy_dosage_profile_preserves_ambiguity_and_hard_negatives(
     tmp_path: Path,
     schema_root: Path,
+    analysis_text: str,
     report_text: str,
     expected_state: str,
 ) -> None:
-    bundle = _audit(tmp_path, schema_root, report_text=report_text)
+    bundle = _audit(tmp_path, schema_root, report_text=report_text, analysis_text=analysis_text)
 
     assert bundle["findings"] == []
     assert _check_questions(bundle) == []

@@ -78,6 +78,35 @@ FOUNDER_ACCOUNTING_SOURCE = (
     ")\n"
     "(ROOT / 'report.md').write_text(f'emission likelihood {likelihood}')\n"
 )
+# The rebuilt copy-dosage check resolves from the workflow's operations, so its
+# interaction cases carry a source whose exposure operand is traceable.
+COPY_DOSAGE_POSTERIOR_SOURCE = (
+    "import numpy as np\n"
+    "import pandas as pd\n"
+    "import statsmodels.api as sm\n"
+    "from pathlib import Path\n"
+    "from sklearn.linear_model import LogisticRegression\n"
+    "ROOT = Path(__file__).resolve().parent\n"
+    "frame = pd.read_csv(ROOT / 'assay.csv')\n"
+    "features = frame[['marker_a', 'marker_b']]\n"
+    "classifier = LogisticRegression().fit(features, frame['copy_state'])\n"
+    "dosage = classifier.predict_proba(features) @ np.array([0, 1, 2])\n"
+    "fit = sm.OLS(frame['phenotype'], sm.add_constant(dosage)).fit()\n"
+    "(ROOT / 'report.md').write_text(f'coefficient {fit.params[1]}')\n"
+)
+COPY_DOSAGE_CALIBRATION_SOURCE = (
+    "import pandas as pd\n"
+    "import statsmodels.api as sm\n"
+    "from pathlib import Path\n"
+    "from sklearn.linear_model import RidgeCV\n"
+    "ROOT = Path(__file__).resolve().parent\n"
+    "frame = pd.read_csv(ROOT / 'assay.csv')\n"
+    "features = frame[['marker_a', 'marker_b']]\n"
+    "calibrator = RidgeCV().fit(features, frame['copy_index'])\n"
+    "dosage = calibrator.predict(features)\n"
+    "fit = sm.OLS(frame['phenotype'], sm.add_constant(dosage)).fit()\n"
+    "(ROOT / 'report.md').write_text(f'coefficient {fit.params[1]}')\n"
+)
 
 
 def test_model_proposal_path_rejects_project_execution_packet(project_root: Path) -> None:
@@ -1343,7 +1372,7 @@ def test_transition_path_answer_and_disclosure_are_replay_stable(
 
 @pytest.mark.parametrize(
     (
-        "report_text",
+        "analysis_text",
         "observed_value",
         "answer_value",
         "expected_title",
@@ -1351,32 +1380,28 @@ def test_transition_path_answer_and_disclosure_are_replay_stable(
     ),
     [
         (
-            "The full-cohort representation is continuous posterior expected copy dosage, "
-            "P(copy=1) + 2*P(copy=2), not an integer hard call.\n",
+            COPY_DOSAGE_POSTERIOR_SOURCE,
             "continuous_posterior_expected_copy_dosage",
             "continuous_posterior_expected_copy_dosage",
             "One exact analysis-scoped method relation is compatible",
             "covered_negative",
         ),
         (
-            "The full-cohort representation is continuous posterior expected copy dosage, "
-            "P(copy=1) + 2*P(copy=2), not an integer hard call.\n",
+            COPY_DOSAGE_POSTERIOR_SOURCE,
             "continuous_posterior_expected_copy_dosage",
             "integer_hard_copy_state_as_numeric_dosage",
             "One exact review-scoped method incompatibility",
             "exact_conflict_candidate",
         ),
         (
-            "The full-cohort representation is continuous posterior expected copy dosage, "
-            "P(copy=1) + 2*P(copy=2), not an integer hard call.\n",
+            COPY_DOSAGE_POSTERIOR_SOURCE,
             "continuous_posterior_expected_copy_dosage",
             "direct_continuous_calibrated_copy_dosage",
             "One exact review-scoped method incompatibility",
             "exact_conflict_candidate",
         ),
         (
-            "The full-cohort representation is continuous calibrated copy dosage. RidgeCV "
-            "calibration models produced the downstream quantitative copy exposure.\n",
+            COPY_DOSAGE_CALIBRATION_SOURCE,
             "direct_continuous_calibrated_copy_dosage",
             "direct_continuous_calibrated_copy_dosage",
             "One exact analysis-scoped method relation is compatible",
@@ -1387,7 +1412,7 @@ def test_transition_path_answer_and_disclosure_are_replay_stable(
 def test_classifier_copy_dosage_answer_and_disclosure_are_replay_stable(
     schema_root: Path,
     tmp_path: Path,
-    report_text: str,
+    analysis_text: str,
     observed_value: str,
     answer_value: str,
     expected_title: str,
@@ -1395,7 +1420,11 @@ def test_classifier_copy_dosage_answer_and_disclosure_are_replay_stable(
 ) -> None:
     repository = tmp_path / "project"
     repository.mkdir()
-    (repository / "report.md").write_text(report_text, encoding="utf-8")
+    (repository / "report.md").write_text(
+        "The association model reported a copy-dosage coefficient of 0.42.\n",
+        encoding="utf-8",
+    )
+    (repository / "analysis.py").write_text(analysis_text, encoding="utf-8")
     source = tmp_path / "source"
     source_bundle = run_audit(repository, source, schema_root, report="report.md")
     question = next(

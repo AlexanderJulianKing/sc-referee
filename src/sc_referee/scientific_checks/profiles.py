@@ -7,6 +7,15 @@ from pathlib import Path
 from typing import Any
 
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
+from sc_referee.scientific_checks.copy_dosage_adapter import (
+    COPY_DOSAGE_ADAPTER_IMPLEMENTATION_DIGEST,
+    COPY_DOSAGE_COUNTEREVIDENCE,
+    CopyDosageReportAdapter,
+    copy_dosage_recognition_grammar_digest,
+)
+from sc_referee.scientific_checks.copy_dosage_dataflow import (
+    COPY_DOSAGE_DATAFLOW_IMPLEMENTATION_DIGEST,
+)
 from sc_referee.scientific_checks.core import (
     AdapterManifest,
     CanonicalOperand,
@@ -232,6 +241,10 @@ def scientific_check_release_projection(
             "scientific_checks/core.py": sha256_digest(
                 (Path(__file__).resolve().parent / "core.py").read_bytes()
             ),
+            "scientific_checks/copy_dosage_adapter.py": (COPY_DOSAGE_ADAPTER_IMPLEMENTATION_DIGEST),
+            "scientific_checks/copy_dosage_dataflow.py": (
+                COPY_DOSAGE_DATAFLOW_IMPLEMENTATION_DIGEST
+            ),
             "scientific_checks/founder_orientation_adapter.py": (
                 FOUNDER_ORIENTATION_ADAPTER_IMPLEMENTATION_DIGEST
             ),
@@ -351,6 +364,8 @@ def _module(profile: _ReportProfile) -> ScientificCheckModule:
         return _quantity_consistency_module(check, profile)
     if profile.check_id == "check:founder-orientation-before-hmm-emission":
         return _founder_orientation_module(check, profile)
+    if profile.check_id == "check:classifier-derived-copy-dosage-representation":
+        return _copy_dosage_module(check, profile)
     adapter_id = f"adapter:{profile.check_id.removeprefix('check:')}:selected-report-v1"
     adapter_manifest = AdapterManifest(
         adapter_id=adapter_id,
@@ -382,10 +397,6 @@ def _module(profile: _ReportProfile) -> ScientificCheckModule:
     adapter_manifests = [adapter_manifest]
     adapters: list[ScientificCheckAdapter] = [report_adapter]
     source_profile = {
-        "check:classifier-derived-copy-dosage-representation": (
-            "classifier_copy_dosage",
-            ("python", "r"),
-        ),
         "check:directional-measurement-error-interpretation": (
             "directional_measurement_error",
             ("python",),
@@ -497,6 +508,59 @@ def _founder_orientation_module(
         adapter_manifest=adapter_manifest,
         direct_operand=direct_operand,
         repaired_operand=repaired_operand,
+        role_bindings=profile.role_bindings,
+    )
+    return ScientificCheckModule(
+        manifest=check,
+        declared_manifest_digest=check.manifest_digest,
+        adapter_manifests=(adapter_manifest,),
+        adapters=(adapter,),
+    )
+
+
+def _copy_dosage_module(check: CheckManifest, profile: _ReportProfile) -> ScientificCheckModule:
+    """Build the ADR-0069 operations-based module for the copy-dosage check."""
+
+    operands = {candidate.candidate_id: candidate.operand for candidate in profile.candidates}
+    hard_operand = operands["integer-hard-copy-state"]
+    expectation_operand = operands["continuous-posterior-expected-copy-dosage"]
+    calibration_operand = operands["direct-continuous-calibrated-copy-dosage"]
+    adapter_manifest = AdapterManifest(
+        adapter_id=(f"adapter:{profile.check_id.removeprefix('check:')}:dosage-dataflow-v1"),
+        adapter_version=profile.adapter_version,
+        implementation_digest=COPY_DOSAGE_ADAPTER_IMPLEMENTATION_DIGEST,
+        recognition_grammar_digest=copy_dosage_recognition_grammar_digest(
+            str(hard_operand.value),
+            str(expectation_operand.value),
+            str(calibration_operand.value),
+        ),
+        parser_id="parser:markdown-inventory",
+        parser_version="0.2.0",
+        source_language="markdown",
+        evidence_plane="reported_text",
+        semantic_roles=profile.semantic_roles,
+        applicability_profile="bounded-copy-dosage-representation-dataflow-v1",
+        counterevidence_profiles=COPY_DOSAGE_COUNTEREVIDENCE,
+        known_gaps=(
+            "formula-interface model specifications, whose regressors are named in a "
+            "string rather than built as a design matrix",
+            "estimator wrappers such as pipelines and search objects, whose fitted "
+            "terminal stage this trace cannot read",
+            "staged table columns whose numeric type no operation in the workflow "
+            "establishes, which are neither continuous nor integer-coded here",
+            "a report-reaching fit whose design this trace cannot read at all, which "
+            "contributes no classification",
+            "workflows in languages other than Python",
+            "reports that state no per-state dosage accounting",
+            "reported quantities and source operations do not establish execution",
+        ),
+    )
+    adapter = CopyDosageReportAdapter(
+        check_manifest=check,
+        adapter_manifest=adapter_manifest,
+        hard_operand=hard_operand,
+        expectation_operand=expectation_operand,
+        calibration_operand=calibration_operand,
         role_bindings=profile.role_bindings,
     )
     return ScientificCheckModule(
@@ -1744,12 +1808,25 @@ def _direct_standardization_conditioning_set_profile() -> _ReportProfile:
 
 
 def _classifier_copy_dosage_profile() -> _ReportProfile:
+    """Recognize the copy-dosage exposure representation from operations alone.
+
+    v2.0.0 (ADR-0069): recognition is delegated to the fused copy-dosage
+    adapter, which resolves the workflow source's exposure operand by bounded
+    static dataflow and reads the report's per-state dosage accounting only as
+    corroboration. Nomenclature never gates recognition, so this profile
+    carries no report grammar rules or lexical triggers; the retired v1.x
+    grammar answered whether the report claimed a representation, while the
+    reviewable operand is which representation the value entering the fitted
+    model actually carries. The three ADR-0024 operands are unchanged.
+    """
+
     hard_call = "integer_hard_copy_state_as_numeric_dosage"
     expected_dosage = "continuous_posterior_expected_copy_dosage"
     direct_dosage = "direct_continuous_calibrated_copy_dosage"
     authority_basis = (
         "Scientist-supplied exposure estimand and measurement-uncertainty policy; the check does "
-        "not choose a representation or treat an answer key as scientific authority."
+        "not choose a representation, and does not treat variable, column, or file names as "
+        "scientific authority."
     )
     return _ReportProfile(
         check_id="check:classifier-derived-copy-dosage-representation",
@@ -1789,57 +1866,14 @@ def _classifier_copy_dosage_profile() -> _ReportProfile:
             RoleBinding("quantitative_copy_dosage", "reported_full_cohort_representation"),
             RoleBinding("downstream_model_exposure", "scientist_governed_representation"),
         ),
-        rules=(
-            ReportOperandRule(
-                CanonicalOperand.scalar(hard_call),
-                (
-                    r"(?i)\b(?:primary|full-cohort|downstream)[^.]*\b(?:used|entered|treated)\b[^.]*\b(?:integer|discrete)\s+hard[- ]call(?:ed)?\b[^.]*\b(?:copy\s+)?(?:state|count|dosage)\b",
-                    r"(?i)\bhard[- ]call(?:ed)?\s+(?:copy\s+)?(?:state|count)\b[^.]*\b(?:used|entered|treated)\b[^.]*\b(?:numeric|quantitative)?\s*(?:copy\s+)?dosage\b",
-                ),
-            ),
-            ReportOperandRule(
-                CanonicalOperand.scalar(expected_dosage),
-                (
-                    r"(?i)\b(?:continuous\s+)?posterior\s+expected\s+(?:copy\s+)?(?:count|dosage)\b",
-                    r"(?i)P\s*\(\s*copy\s*=\s*1\s*\)\s*\+\s*2\s*\*\s*P\s*\(\s*copy\s*=\s*2\s*\)",
-                ),
-            ),
-            ReportOperandRule(
-                CanonicalOperand.scalar(expected_dosage),
-                (
-                    r"(?is)\b(?:trained|fit|fitted)\b.{0,240}\b(?:classifier|classification|discriminant)\b.{0,180}\b(?:copy\s+)?class(?:es)?\b",
-                    r"(?i)\b(?:for\s+)?downstream\b[^.]{0,120}\b(?:used|entered)\b[^.]{0,160}\bposterior\s+expected\s+(?:copy\s+)?(?:count|dosage|copies)\b",
-                ),
-                match_scope="document",
-            ),
-            ReportOperandRule(
-                CanonicalOperand.scalar(direct_dosage),
-                (
-                    r"(?i)\b(?:primary|full[- ]cohort|downstream)[^.]*\bcontinuous\s+calibrated\s+(?:copy\s+)?dosage\b",
-                    r"(?i)\b(?:linear|ridge(?:cv)?|regression)\b[^.]*\b(?:models?|calibrat(?:ion|ors?))\b",
-                ),
-            ),
-            ReportOperandRule(
-                CanonicalOperand.scalar(direct_dosage),
-                (
-                    r"(?is)\bretained\s+the\s+continuous\s+copy\s+index\s+for\s+dosage\s+calibration\b[^.]{0,400}\brather\s+than\s+round(?:ing)?\b(?=.{0,2400}(?<![A-Za-z0-9_-])(?P<copy_target>[A-Za-z][A-Za-z0-9_-]{0,63})\s+copy\s+index\s+was\s+learned\b)(?=.{0,3200}\bridge\s+regression\b).{0,5000}?\b(?:model|association|regression)\b[^.]{0,800}\b(?:included|used|entered)\b[^.]{0,800}\bcalibrated\s+(?P=copy_target)\s+(?:copy\s+)?dosage\b",
-                ),
-                match_scope="document",
-            ),
-        ),
-        triggers=(
-            r"(?i)\bposterior\s+expected\s+(?:copy\s+)?(?:count|dosage)\b",
-            r"(?is)(?=.*\bhard[- ]call)(?=.*\bcopy\b)(?=.*\bdosage\b)",
-            r"(?is)(?=.*\bclassifier\b[^.]*\bpredicted\b[^.]*\bcopy\s+(?:count|state)\b)(?=.*\b(?:copy\s+)?dosage\b)",
-            r"(?is)(?=.*\bcontinuous\s+calibrated\s+(?:copy\s+)?dosage\b)(?=.*\b(?:linear|ridge(?:cv)?|regression)\b)",
-            r"(?is)(?=.*\bretained\s+the\s+continuous\s+copy\s+index\s+for\s+dosage\s+calibration\b)(?=.*\bridge\s+regression\b)",
-        ),
+        rules=(),
+        triggers=(),
         question_wording=(
             "Which calibrated copy-number representation governs the quantitative "
             "exposure for this review?"
         ),
-        check_version="1.4.0",
-        adapter_version="1.3.0",
+        check_version="2.0.0",
+        adapter_version="2.0.0",
     )
 
 
