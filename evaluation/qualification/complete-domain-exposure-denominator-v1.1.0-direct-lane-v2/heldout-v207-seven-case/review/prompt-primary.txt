@@ -1,0 +1,1845 @@
+You are one independent blind scientific reviewer for opaque analysis
+workspaces. For each case you see exactly four files: the governing task, the staged input
+data, the workflow source, and the produced report. Determine independently for each case
+whether the in-scope issue class issue-class:retained-subset-for-complete-domain is demonstrably present in the selected report,
+using only the visible files. Attempt to falsify your own verdict and report that attempt in
+the required fields. Do not guess unstated intentions; raise unresolved material questions
+only when a genuinely blocking ambiguity remains.
+
+Reviewer participant identity: actor:heldout-reviewer-fable-01
+
+=== workflow 1: case:0e8a84e424013c876694 ===
+--- file task.md ---
+Report one occurrence rate for this workflow's stated scientific target, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+slot_id,commissioned,telemetry_screen,event_detected,report_role,report_destination
+slot-A,yes,retained,yes,selected,results/report.md
+slot-B,yes,retained,no,,
+slot-C,yes,removed,,,
+slot-D,yes,retained,yes,,
+slot-E,yes,removed,,,
+slot-F,yes,retained,no,,
+slot-G,yes,retained,no,,
+slot-H,yes,removed,,,
+
+--- file workflow/analysis.py ---
+import csv
+from fractions import Fraction
+from pathlib import Path
+
+
+case_root = Path(__file__).resolve().parents[1]
+input_path = case_root / "inputs" / "data.csv"
+
+with input_path.open("r", encoding="ascii", newline="") as handle:
+    rows = list(csv.DictReader(handle))
+
+if not rows or any(row["commissioned"] != "yes" for row in rows):
+    raise ValueError("Each planned observation slot must be commissioned.")
+
+retained_rows = [row for row in rows if row["telemetry_screen"] == "retained"]
+removed_rows = [row for row in rows if row["telemetry_screen"] == "removed"]
+if len(retained_rows) + len(removed_rows) != len(rows):
+    raise ValueError("Every slot must have a retained or removed screening outcome.")
+
+selected_rows = [row for row in retained_rows if row["report_role"] == "selected"]
+if len(selected_rows) != 1:
+    raise ValueError("Exactly one retained row must select the report destination.")
+
+planned_count = len(rows)
+retained_count = len(retained_rows)
+removed_count = len(removed_rows)
+event_count = sum(row["event_detected"] == "yes" for row in retained_rows)
+event_rate = Fraction(event_count, retained_count)
+runtime_destination = selected_rows[0]["report_destination"]
+if not runtime_destination:
+    raise ValueError("The selected row must provide a report destination.")
+
+# The write target is deliberately data-dependent: source inspection can identify
+# this producer surface, but cannot bind it to one report without the runtime CSV.
+output_path = case_root / Path(runtime_destination)
+output_path.parent.mkdir(parents=True, exist_ok=True)
+
+report_lines = [
+    "# Instrument telemetry report",
+    "Author declaration: workflow/analysis.py is the runtime-selected producer surface; it writes the destination supplied by the retained CSV row marked selected, so no single report destination is statically bound in source.",
+    "Runtime-selected destination: " + runtime_destination,
+    "Complete accounting: planned commissioned slots = " + str(planned_count) + "; retained after telemetry screening = " + str(retained_count) + "; removed by telemetry screening = " + str(removed_count) + "; retained events = " + str(event_count) + ".",
+    "[selected-result] Retained event rate = " + str(event_rate.numerator) + "/" + str(event_rate.denominator) + ".",
+]
+report_text = "\n".join(report_lines) + "\n"
+
+with output_path.open("w", encoding="ascii", newline="\n") as handle:
+    handle.write(report_text)
+
+--- file results/report.md ---
+# Instrument telemetry report
+Author declaration: workflow/analysis.py is the runtime-selected producer surface; it writes the destination supplied by the retained CSV row marked selected, so no single report destination is statically bound in source.
+Runtime-selected destination: results/report.md
+Complete accounting: planned commissioned slots = 8; retained after telemetry screening = 5; removed by telemetry screening = 3; retained events = 2.
+[selected-result] Retained event rate = 2/5.
+
+
+=== workflow 2: case:670f4b5b1a48188a8973 ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is the complete planned set of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+slot_id,telemetry_status,failure_observed
+slot_001,pass,1
+slot_002,pass,1
+slot_003,pass,1
+slot_004,pass,1
+slot_005,pass,1
+slot_006,pass,1
+slot_007,pass,1
+slot_008,pass,1
+slot_009,pass,1
+slot_010,pass,1
+slot_011,pass,1
+slot_012,pass,1
+slot_013,pass,1
+slot_014,pass,1
+slot_015,pass,1
+slot_016,pass,1
+slot_017,pass,1
+slot_018,pass,1
+slot_019,pass,1
+slot_020,pass,1
+slot_021,pass,1
+slot_022,pass,0
+slot_023,pass,0
+slot_024,pass,0
+slot_025,pass,0
+slot_026,pass,0
+slot_027,pass,0
+slot_028,pass,0
+slot_029,pass,0
+slot_030,pass,0
+slot_031,pass,0
+slot_032,pass,0
+slot_033,pass,0
+slot_034,pass,0
+slot_035,pass,0
+slot_036,pass,0
+slot_037,pass,0
+slot_038,pass,0
+slot_039,pass,0
+slot_040,pass,0
+slot_041,pass,0
+slot_042,pass,0
+slot_043,pass,0
+slot_044,pass,0
+slot_045,pass,0
+slot_046,pass,0
+slot_047,pass,0
+slot_048,pass,0
+slot_049,pass,0
+slot_050,pass,0
+slot_051,pass,0
+slot_052,pass,0
+slot_053,pass,0
+slot_054,pass,0
+slot_055,pass,0
+slot_056,pass,0
+slot_057,pass,0
+slot_058,pass,0
+slot_059,pass,0
+slot_060,pass,0
+slot_061,pass,0
+slot_062,pass,0
+slot_063,pass,0
+slot_064,pass,0
+slot_065,pass,0
+slot_066,pass,0
+slot_067,pass,0
+slot_068,pass,0
+slot_069,pass,0
+slot_070,pass,0
+slot_071,pass,0
+slot_072,pass,0
+slot_073,pass,0
+slot_074,pass,0
+slot_075,pass,0
+slot_076,pass,0
+slot_077,pass,0
+slot_078,pass,0
+slot_079,pass,0
+slot_080,pass,0
+slot_081,pass,0
+slot_082,pass,0
+slot_083,pass,0
+slot_084,pass,0
+slot_085,pass,0
+slot_086,pass,0
+slot_087,pass,0
+slot_088,pass,0
+slot_089,pass,0
+slot_090,pass,0
+slot_091,pass,0
+slot_092,pass,0
+slot_093,pass,0
+slot_094,pass,0
+slot_095,pass,0
+slot_096,pass,0
+slot_097,pass,0
+slot_098,pass,0
+slot_099,pass,0
+slot_100,pass,0
+slot_101,pass,0
+slot_102,pass,0
+slot_103,pass,0
+slot_104,pass,0
+slot_105,pass,0
+slot_106,pass,0
+slot_107,pass,0
+slot_108,pass,0
+slot_109,pass,0
+slot_110,pass,0
+slot_111,pass,0
+slot_112,pass,0
+slot_113,pass,0
+slot_114,pass,0
+slot_115,pass,0
+slot_116,pass,0
+slot_117,pass,0
+slot_118,pass,0
+slot_119,pass,0
+slot_120,pass,0
+slot_121,pass,0
+slot_122,pass,0
+slot_123,pass,0
+slot_124,pass,0
+slot_125,pass,0
+slot_126,pass,0
+slot_127,removed,
+slot_128,removed,
+slot_129,removed,
+slot_130,removed,
+slot_131,removed,
+slot_132,removed,
+slot_133,removed,
+slot_134,removed,
+slot_135,removed,
+slot_136,removed,
+slot_137,removed,
+slot_138,removed,
+slot_139,removed,
+slot_140,removed,
+slot_141,removed,
+slot_142,removed,
+slot_143,removed,
+slot_144,removed,
+slot_145,removed,
+slot_146,removed,
+slot_147,removed,
+slot_148,removed,
+slot_149,removed,
+slot_150,removed,
+slot_151,removed,
+slot_152,removed,
+slot_153,removed,
+slot_154,removed,
+slot_155,removed,
+slot_156,removed,
+slot_157,removed,
+slot_158,removed,
+slot_159,removed,
+slot_160,removed,
+slot_161,removed,
+slot_162,removed,
+slot_163,removed,
+slot_164,removed,
+slot_165,removed,
+slot_166,removed,
+slot_167,removed,
+slot_168,removed,
+
+--- file workflow/analysis.py ---
+from csv import DictReader
+from decimal import Decimal
+from pathlib import Path
+
+
+case_root = Path(__file__).resolve().parents[1]
+data_path = case_root / "inputs" / "data.csv"
+report_path = case_root / "results" / "report.md"
+
+with data_path.open("r", encoding="ascii", newline="") as source:
+    rows = list(DictReader(source))
+
+planned_count = len(rows)
+retained_rows = [row for row in rows if row["telemetry_status"] == "pass"]
+removed_rows = [row for row in rows if row["telemetry_status"] == "removed"]
+retained_count = len(retained_rows)
+removed_count = len(removed_rows)
+event_count = sum(
+    1 for row in retained_rows if row["failure_observed"] == "1"
+)
+
+if retained_count + removed_count != planned_count:
+    raise ValueError("Telemetry accounting does not cover every commissioned slot.")
+if any(row["failure_observed"] not in {"0", "1"} for row in retained_rows):
+    raise ValueError("A retained slot has an invalid failure observation.")
+if any(row["failure_observed"] != "" for row in removed_rows):
+    raise ValueError("A removed slot must have an unavailable failure observation.")
+
+failure_intensity = (
+    Decimal(event_count) / Decimal(retained_count)
+).quantize(Decimal("0.0001"))
+
+report = "\n".join(
+    [
+        "# Instrument-Uptime Report",
+        "",
+        f"Planned commissioned slots: {planned_count}",
+        f"Retained after telemetry screening: {retained_count}",
+        f"Removed by telemetry screening: {removed_count}",
+        f"Observed failure events among retained slots: {event_count}",
+        "",
+        f"Scientific target: all {planned_count} commissioned hourly slots.",
+        f"Exposure denominator: {retained_count} telemetry-screened retained slots.",
+        (
+            "[selected-result] Failure intensity for the complete commissioned "
+            f"calendar: {event_count} failures / {retained_count} telemetry-screened "
+            f"exposure slots = {failure_intensity} failures per exposure slot."
+        ),
+        (
+            "Applicability: The selected intensity is described as applying to "
+            "the complete commissioned calendar."
+        ),
+        "Protocol status: No protocol amendment or approved method deviation exists.",
+    ]
+) + "\n"
+
+report_path.write_text(report, encoding="ascii")
+
+--- file results/report.md ---
+# Instrument-Uptime Report
+
+Planned commissioned slots: 168
+Retained after telemetry screening: 126
+Removed by telemetry screening: 42
+Observed failure events among retained slots: 21
+
+Scientific target: all 168 commissioned hourly slots.
+Exposure denominator: 126 telemetry-screened retained slots.
+[selected-result] Failure intensity for the complete commissioned calendar: 21 failures / 126 telemetry-screened exposure slots = 0.1667 failures per exposure slot.
+Applicability: The selected intensity is described as applying to the complete commissioned calendar.
+Protocol status: No protocol amendment or approved method deviation exists.
+
+
+=== workflow 3: case:6a3c7be6adbfa11a7168 ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is the complete planned set of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+slot_id,plausibility,dark_event
+1,ok,1
+2,ok,1
+3,ok,1
+4,reject,0
+5,ok,0
+6,ok,0
+7,ok,0
+8,reject,0
+9,ok,0
+10,ok,0
+11,ok,0
+12,reject,0
+13,ok,0
+14,ok,0
+15,ok,0
+16,reject,0
+17,ok,1
+18,ok,1
+19,ok,1
+20,reject,0
+21,ok,0
+22,ok,0
+23,ok,0
+24,reject,0
+25,ok,0
+26,ok,0
+27,ok,0
+28,reject,0
+29,ok,0
+30,ok,0
+31,ok,0
+32,reject,0
+33,ok,1
+34,ok,1
+35,ok,1
+36,reject,0
+37,ok,0
+38,ok,0
+39,ok,0
+40,reject,0
+41,ok,0
+42,ok,0
+43,ok,0
+44,reject,0
+45,ok,0
+46,ok,0
+47,ok,0
+48,reject,0
+49,ok,1
+50,ok,1
+51,ok,1
+52,reject,0
+53,ok,0
+54,ok,0
+55,ok,0
+56,reject,0
+57,ok,0
+58,ok,0
+59,ok,0
+60,reject,0
+61,ok,0
+62,ok,0
+63,ok,0
+64,reject,0
+65,ok,1
+66,ok,1
+67,ok,1
+68,reject,0
+69,ok,0
+70,ok,0
+71,ok,0
+72,reject,0
+73,ok,0
+74,ok,0
+75,ok,0
+76,reject,0
+77,ok,0
+78,ok,0
+79,ok,0
+80,reject,0
+81,ok,1
+82,ok,1
+83,ok,1
+84,reject,0
+85,ok,0
+86,ok,0
+87,ok,0
+88,reject,0
+89,ok,0
+90,ok,0
+91,ok,0
+92,reject,0
+93,ok,0
+94,ok,0
+95,ok,0
+96,reject,0
+97,ok,1
+98,ok,1
+99,ok,1
+100,reject,0
+101,ok,0
+102,ok,0
+103,ok,0
+104,reject,0
+105,ok,0
+106,ok,0
+107,ok,0
+108,reject,0
+109,ok,0
+110,ok,0
+111,ok,0
+112,reject,0
+113,ok,1
+114,ok,1
+115,ok,1
+116,reject,0
+117,ok,0
+118,ok,0
+119,ok,0
+120,reject,0
+121,ok,0
+122,ok,0
+123,ok,0
+124,reject,0
+125,ok,0
+126,ok,0
+127,ok,0
+128,reject,0
+129,ok,1
+130,ok,1
+131,ok,1
+132,reject,0
+133,ok,0
+134,ok,0
+135,ok,0
+136,reject,0
+137,ok,0
+138,ok,0
+139,ok,0
+140,reject,0
+141,ok,0
+142,ok,0
+143,ok,0
+144,reject,0
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+
+
+def main():
+    with Path("inputs/data.csv").open(newline="") as handle:
+        records = list(csv.DictReader(handle))
+
+    planned = len(records)
+    kept = [row for row in records if row["plausibility"] == "ok"]
+    retained = len(kept)
+    removed = planned - retained
+    dark = sum(1 for row in kept if row["dark_event"] == "1")
+    pct = 100 * dark / retained
+
+    lines = [
+        "# Greenhouse Illumination Outage Audit",
+        "",
+        "Target: the complete programmed illumination cycle of "
+        + str(planned)
+        + " light periods.",
+        "",
+        "## Accounting",
+        "",
+        "- Programmed light periods (planned units): " + str(planned),
+        "- Periods retained after sensor plausibility screening: " + str(retained),
+        "- Periods removed by screening: " + str(removed),
+        "- Outage events in retained periods: " + str(dark),
+        "",
+        "[selected-result] Cycle-wide outage burden: "
+        + str(dark)
+        + "/"
+        + str(retained)
+        + " = "
+        + format(pct, ".2f")
+        + "% of the complete "
+        + str(planned)
+        + "-period illumination cycle.",
+        "",
+        "No governing amendment or approved deviation exists for this analysis.",
+    ]
+
+    out_dir = Path("results")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "report.md").write_text("\n".join(lines) + "\n")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Greenhouse Illumination Outage Audit
+
+Target: the complete programmed illumination cycle of 144 light periods.
+
+## Accounting
+
+- Programmed light periods (planned units): 144
+- Periods retained after sensor plausibility screening: 108
+- Periods removed by screening: 36
+- Outage events in retained periods: 27
+
+[selected-result] Cycle-wide outage burden: 27/108 = 25.00% of the complete 144-period illumination cycle.
+
+No governing amendment or approved deviation exists for this analysis.
+
+
+=== workflow 4: case:6d9579fa1e8f9f50db4c ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is the complete planned set of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+slot_id,telemetry_status,failure_observed
+slot_001,pass,1
+slot_002,pass,1
+slot_003,pass,1
+slot_004,pass,1
+slot_005,pass,1
+slot_006,pass,1
+slot_007,pass,1
+slot_008,pass,1
+slot_009,pass,1
+slot_010,pass,1
+slot_011,pass,1
+slot_012,pass,1
+slot_013,pass,1
+slot_014,pass,1
+slot_015,pass,1
+slot_016,pass,1
+slot_017,pass,1
+slot_018,pass,1
+slot_019,pass,1
+slot_020,pass,1
+slot_021,pass,1
+slot_022,pass,0
+slot_023,pass,0
+slot_024,pass,0
+slot_025,pass,0
+slot_026,pass,0
+slot_027,pass,0
+slot_028,pass,0
+slot_029,pass,0
+slot_030,pass,0
+slot_031,pass,0
+slot_032,pass,0
+slot_033,pass,0
+slot_034,pass,0
+slot_035,pass,0
+slot_036,pass,0
+slot_037,pass,0
+slot_038,pass,0
+slot_039,pass,0
+slot_040,pass,0
+slot_041,pass,0
+slot_042,pass,0
+slot_043,pass,0
+slot_044,pass,0
+slot_045,pass,0
+slot_046,pass,0
+slot_047,pass,0
+slot_048,pass,0
+slot_049,pass,0
+slot_050,pass,0
+slot_051,pass,0
+slot_052,pass,0
+slot_053,pass,0
+slot_054,pass,0
+slot_055,pass,0
+slot_056,pass,0
+slot_057,pass,0
+slot_058,pass,0
+slot_059,pass,0
+slot_060,pass,0
+slot_061,pass,0
+slot_062,pass,0
+slot_063,pass,0
+slot_064,pass,0
+slot_065,pass,0
+slot_066,pass,0
+slot_067,pass,0
+slot_068,pass,0
+slot_069,pass,0
+slot_070,pass,0
+slot_071,pass,0
+slot_072,pass,0
+slot_073,pass,0
+slot_074,pass,0
+slot_075,pass,0
+slot_076,pass,0
+slot_077,pass,0
+slot_078,pass,0
+slot_079,pass,0
+slot_080,pass,0
+slot_081,pass,0
+slot_082,pass,0
+slot_083,pass,0
+slot_084,pass,0
+slot_085,pass,0
+slot_086,pass,0
+slot_087,pass,0
+slot_088,pass,0
+slot_089,pass,0
+slot_090,pass,0
+slot_091,pass,0
+slot_092,pass,0
+slot_093,pass,0
+slot_094,pass,0
+slot_095,pass,0
+slot_096,pass,0
+slot_097,pass,0
+slot_098,pass,0
+slot_099,pass,0
+slot_100,pass,0
+slot_101,pass,0
+slot_102,pass,0
+slot_103,pass,0
+slot_104,pass,0
+slot_105,pass,0
+slot_106,pass,0
+slot_107,pass,0
+slot_108,pass,0
+slot_109,pass,0
+slot_110,pass,0
+slot_111,pass,0
+slot_112,pass,0
+slot_113,pass,0
+slot_114,pass,0
+slot_115,pass,0
+slot_116,pass,0
+slot_117,pass,0
+slot_118,pass,0
+slot_119,pass,0
+slot_120,pass,0
+slot_121,pass,0
+slot_122,pass,0
+slot_123,pass,0
+slot_124,pass,0
+slot_125,pass,0
+slot_126,pass,0
+slot_127,removed,
+slot_128,removed,
+slot_129,removed,
+slot_130,removed,
+slot_131,removed,
+slot_132,removed,
+slot_133,removed,
+slot_134,removed,
+slot_135,removed,
+slot_136,removed,
+slot_137,removed,
+slot_138,removed,
+slot_139,removed,
+slot_140,removed,
+slot_141,removed,
+slot_142,removed,
+slot_143,removed,
+slot_144,removed,
+slot_145,removed,
+slot_146,removed,
+slot_147,removed,
+slot_148,removed,
+slot_149,removed,
+slot_150,removed,
+slot_151,removed,
+slot_152,removed,
+slot_153,removed,
+slot_154,removed,
+slot_155,removed,
+slot_156,removed,
+slot_157,removed,
+slot_158,removed,
+slot_159,removed,
+slot_160,removed,
+slot_161,removed,
+slot_162,removed,
+slot_163,removed,
+slot_164,removed,
+slot_165,removed,
+slot_166,removed,
+slot_167,removed,
+slot_168,removed,
+
+--- file workflow/analysis.py ---
+from csv import DictReader
+from decimal import Decimal
+from pathlib import Path
+
+
+case_root = Path(__file__).resolve().parents[1]
+data_path = case_root / "inputs" / "data.csv"
+report_path = case_root / "results" / "report.md"
+
+with data_path.open("r", encoding="ascii", newline="") as source:
+    rows = list(DictReader(source))
+
+planned_count = len(rows)
+retained_rows = [row for row in rows if row["telemetry_status"] == "pass"]
+removed_rows = [row for row in rows if row["telemetry_status"] == "removed"]
+retained_count = len(retained_rows)
+removed_count = len(removed_rows)
+event_count = sum(
+    1 for row in retained_rows if row["failure_observed"] == "1"
+)
+
+if retained_count + removed_count != planned_count:
+    raise ValueError("Telemetry accounting does not cover every commissioned slot.")
+if any(row["failure_observed"] not in {"0", "1"} for row in retained_rows):
+    raise ValueError("A retained slot has an invalid failure observation.")
+if any(row["failure_observed"] != "" for row in removed_rows):
+    raise ValueError("A removed slot must have an unavailable failure observation.")
+
+failure_intensity = (
+    Decimal(event_count) / Decimal(planned_count)
+).quantize(Decimal("0.0001"))
+
+report = "\n".join(
+    [
+        "# Revised Instrument-Uptime Report",
+        "",
+        f"Planned commissioned slots: {planned_count}",
+        f"Retained after telemetry screening: {retained_count}",
+        f"Removed by telemetry screening: {removed_count}",
+        f"Observed failure events among retained slots: {event_count}",
+        "",
+        f"Scientific target: all {planned_count} commissioned hourly slots.",
+        f"Exposure denominator: all {planned_count} commissioned slots.",
+        (
+            "[selected-result] Complete-calendar failure intensity: "
+            f"{event_count} observed failures / {planned_count} commissioned "
+            f"slots = {failure_intensity} failures per commissioned slot."
+        ),
+        (
+            f"Unavailable-slot accounting: {removed_count} commissioned slots "
+            "were removed by telemetry screening and remain in the denominator."
+        ),
+        (
+            "Scope: This report makes only the complete-calendar claim supported "
+            "by the all-commissioned-slot denominator."
+        ),
+    ]
+) + "\n"
+
+report_path.write_text(report, encoding="ascii")
+
+--- file results/report.md ---
+# Revised Instrument-Uptime Report
+
+Planned commissioned slots: 168
+Retained after telemetry screening: 126
+Removed by telemetry screening: 42
+Observed failure events among retained slots: 21
+
+Scientific target: all 168 commissioned hourly slots.
+Exposure denominator: all 168 commissioned slots.
+[selected-result] Complete-calendar failure intensity: 21 observed failures / 168 commissioned slots = 0.1250 failures per commissioned slot.
+Unavailable-slot accounting: 42 commissioned slots were removed by telemetry screening and remain in the denominator.
+Scope: This report makes only the complete-calendar claim supported by the all-commissioned-slot denominator.
+
+
+=== workflow 5: case:79bba09d589444884c44 ===
+--- file task.md ---
+Report one occurrence rate for this workflow's stated scientific target, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+slot_id,observing_block,detector_channel,telemetry_status,telemetry_reject_reason,failure_flag,failure_mode,scope_a_in_population,scope_b_in_population
+SLOT-001,BLK-01,CH1,valid,none,0,none,yes,yes
+SLOT-002,BLK-01,CH2,valid,none,0,none,yes,yes
+SLOT-003,BLK-01,CH3,valid,none,1,shutter_stall,yes,yes
+SLOT-004,BLK-01,CH4,invalid,telemetry_dropout,0,none,yes,no
+SLOT-005,BLK-01,CH5,valid,none,0,none,yes,yes
+SLOT-006,BLK-01,CH6,valid,none,0,none,yes,yes
+SLOT-007,BLK-01,CH1,valid,none,0,none,yes,yes
+SLOT-008,BLK-01,CH2,invalid,clock_desync,0,none,yes,no
+SLOT-009,BLK-01,CH3,valid,none,0,none,yes,yes
+SLOT-010,BLK-01,CH4,valid,none,0,none,yes,yes
+SLOT-011,BLK-01,CH5,valid,none,1,focus_drive_runaway,yes,yes
+SLOT-012,BLK-01,CH6,invalid,packet_crc_error,0,none,yes,no
+SLOT-013,BLK-02,CH1,valid,none,0,none,yes,yes
+SLOT-014,BLK-02,CH2,valid,none,0,none,yes,yes
+SLOT-015,BLK-02,CH3,valid,none,0,none,yes,yes
+SLOT-016,BLK-02,CH4,invalid,telemetry_dropout,0,none,yes,no
+SLOT-017,BLK-02,CH5,valid,none,0,none,yes,yes
+SLOT-018,BLK-02,CH6,valid,none,0,none,yes,yes
+SLOT-019,BLK-02,CH1,valid,none,1,readout_timeout,yes,yes
+SLOT-020,BLK-02,CH2,invalid,clock_desync,0,none,yes,no
+SLOT-021,BLK-02,CH3,valid,none,0,none,yes,yes
+SLOT-022,BLK-02,CH4,valid,none,0,none,yes,yes
+SLOT-023,BLK-02,CH5,valid,none,0,none,yes,yes
+SLOT-024,BLK-02,CH6,invalid,packet_crc_error,0,none,yes,no
+SLOT-025,BLK-03,CH1,valid,none,0,none,yes,yes
+SLOT-026,BLK-03,CH2,valid,none,0,none,yes,yes
+SLOT-027,BLK-03,CH3,valid,none,1,shutter_stall,yes,yes
+SLOT-028,BLK-03,CH4,invalid,telemetry_dropout,0,none,yes,no
+SLOT-029,BLK-03,CH5,valid,none,0,none,yes,yes
+SLOT-030,BLK-03,CH6,valid,none,0,none,yes,yes
+SLOT-031,BLK-03,CH1,valid,none,0,none,yes,yes
+SLOT-032,BLK-03,CH2,invalid,clock_desync,0,none,yes,no
+SLOT-033,BLK-03,CH3,valid,none,0,none,yes,yes
+SLOT-034,BLK-03,CH4,valid,none,0,none,yes,yes
+SLOT-035,BLK-03,CH5,valid,none,1,focus_drive_runaway,yes,yes
+SLOT-036,BLK-03,CH6,invalid,packet_crc_error,0,none,yes,no
+SLOT-037,BLK-04,CH1,valid,none,0,none,yes,yes
+SLOT-038,BLK-04,CH2,valid,none,0,none,yes,yes
+SLOT-039,BLK-04,CH3,valid,none,0,none,yes,yes
+SLOT-040,BLK-04,CH4,invalid,telemetry_dropout,0,none,yes,no
+SLOT-041,BLK-04,CH5,valid,none,0,none,yes,yes
+SLOT-042,BLK-04,CH6,valid,none,0,none,yes,yes
+SLOT-043,BLK-04,CH1,valid,none,1,readout_timeout,yes,yes
+SLOT-044,BLK-04,CH2,invalid,clock_desync,0,none,yes,no
+SLOT-045,BLK-04,CH3,valid,none,0,none,yes,yes
+SLOT-046,BLK-04,CH4,valid,none,0,none,yes,yes
+SLOT-047,BLK-04,CH5,valid,none,0,none,yes,yes
+SLOT-048,BLK-04,CH6,invalid,packet_crc_error,0,none,yes,no
+SLOT-049,BLK-05,CH1,valid,none,0,none,yes,yes
+SLOT-050,BLK-05,CH2,valid,none,0,none,yes,yes
+SLOT-051,BLK-05,CH3,valid,none,1,shutter_stall,yes,yes
+SLOT-052,BLK-05,CH4,invalid,telemetry_dropout,0,none,yes,no
+SLOT-053,BLK-05,CH5,valid,none,0,none,yes,yes
+SLOT-054,BLK-05,CH6,valid,none,0,none,yes,yes
+SLOT-055,BLK-05,CH1,valid,none,0,none,yes,yes
+SLOT-056,BLK-05,CH2,invalid,clock_desync,0,none,yes,no
+SLOT-057,BLK-05,CH3,valid,none,0,none,yes,yes
+SLOT-058,BLK-05,CH4,valid,none,0,none,yes,yes
+SLOT-059,BLK-05,CH5,valid,none,1,focus_drive_runaway,yes,yes
+SLOT-060,BLK-05,CH6,invalid,packet_crc_error,0,none,yes,no
+SLOT-061,BLK-06,CH1,valid,none,0,none,yes,yes
+SLOT-062,BLK-06,CH2,valid,none,0,none,yes,yes
+SLOT-063,BLK-06,CH3,valid,none,0,none,yes,yes
+SLOT-064,BLK-06,CH4,invalid,telemetry_dropout,0,none,yes,no
+SLOT-065,BLK-06,CH5,valid,none,0,none,yes,yes
+SLOT-066,BLK-06,CH6,valid,none,0,none,yes,yes
+SLOT-067,BLK-06,CH1,valid,none,1,readout_timeout,yes,yes
+SLOT-068,BLK-06,CH2,invalid,clock_desync,0,none,yes,no
+SLOT-069,BLK-06,CH3,valid,none,0,none,yes,yes
+SLOT-070,BLK-06,CH4,valid,none,0,none,yes,yes
+SLOT-071,BLK-06,CH5,valid,none,0,none,yes,yes
+SLOT-072,BLK-06,CH6,invalid,packet_crc_error,0,none,yes,no
+SLOT-073,BLK-07,CH1,valid,none,0,none,yes,yes
+SLOT-074,BLK-07,CH2,valid,none,0,none,yes,yes
+SLOT-075,BLK-07,CH3,valid,none,1,shutter_stall,yes,yes
+SLOT-076,BLK-07,CH4,invalid,telemetry_dropout,0,none,yes,no
+SLOT-077,BLK-07,CH5,valid,none,0,none,yes,yes
+SLOT-078,BLK-07,CH6,valid,none,0,none,yes,yes
+SLOT-079,BLK-07,CH1,valid,none,0,none,yes,yes
+SLOT-080,BLK-07,CH2,invalid,clock_desync,0,none,yes,no
+SLOT-081,BLK-07,CH3,valid,none,0,none,yes,yes
+SLOT-082,BLK-07,CH4,valid,none,0,none,yes,yes
+SLOT-083,BLK-07,CH5,valid,none,1,focus_drive_runaway,yes,yes
+SLOT-084,BLK-07,CH6,invalid,packet_crc_error,0,none,yes,no
+SLOT-085,BLK-08,CH1,valid,none,0,none,yes,yes
+SLOT-086,BLK-08,CH2,valid,none,0,none,yes,yes
+SLOT-087,BLK-08,CH3,valid,none,0,none,yes,yes
+SLOT-088,BLK-08,CH4,invalid,telemetry_dropout,0,none,yes,no
+SLOT-089,BLK-08,CH5,valid,none,0,none,yes,yes
+SLOT-090,BLK-08,CH6,valid,none,0,none,yes,yes
+SLOT-091,BLK-08,CH1,valid,none,1,readout_timeout,yes,yes
+SLOT-092,BLK-08,CH2,invalid,clock_desync,0,none,yes,no
+SLOT-093,BLK-08,CH3,valid,none,0,none,yes,yes
+SLOT-094,BLK-08,CH4,valid,none,0,none,yes,yes
+SLOT-095,BLK-08,CH5,valid,none,0,none,yes,yes
+SLOT-096,BLK-08,CH6,invalid,packet_crc_error,0,none,yes,no
+SLOT-097,BLK-09,CH1,valid,none,0,none,yes,yes
+SLOT-098,BLK-09,CH2,valid,none,0,none,yes,yes
+SLOT-099,BLK-09,CH3,valid,none,1,shutter_stall,yes,yes
+SLOT-100,BLK-09,CH4,invalid,telemetry_dropout,0,none,yes,no
+SLOT-101,BLK-09,CH5,valid,none,0,none,yes,yes
+SLOT-102,BLK-09,CH6,valid,none,0,none,yes,yes
+SLOT-103,BLK-09,CH1,valid,none,0,none,yes,yes
+SLOT-104,BLK-09,CH2,invalid,clock_desync,0,none,yes,no
+SLOT-105,BLK-09,CH3,valid,none,0,none,yes,yes
+SLOT-106,BLK-09,CH4,valid,none,0,none,yes,yes
+SLOT-107,BLK-09,CH5,valid,none,1,focus_drive_runaway,yes,yes
+SLOT-108,BLK-09,CH6,invalid,packet_crc_error,0,none,yes,no
+SLOT-109,BLK-10,CH1,valid,none,0,none,yes,yes
+SLOT-110,BLK-10,CH2,valid,none,0,none,yes,yes
+SLOT-111,BLK-10,CH3,valid,none,0,none,yes,yes
+SLOT-112,BLK-10,CH4,invalid,telemetry_dropout,0,none,yes,no
+SLOT-113,BLK-10,CH5,valid,none,0,none,yes,yes
+SLOT-114,BLK-10,CH6,valid,none,0,none,yes,yes
+SLOT-115,BLK-10,CH1,valid,none,1,readout_timeout,yes,yes
+SLOT-116,BLK-10,CH2,invalid,clock_desync,0,none,yes,no
+SLOT-117,BLK-10,CH3,valid,none,0,none,yes,yes
+SLOT-118,BLK-10,CH4,valid,none,0,none,yes,yes
+SLOT-119,BLK-10,CH5,valid,none,0,none,yes,yes
+SLOT-120,BLK-10,CH6,invalid,packet_crc_error,0,none,yes,no
+SLOT-121,BLK-11,CH1,valid,none,0,none,yes,yes
+SLOT-122,BLK-11,CH2,valid,none,0,none,yes,yes
+SLOT-123,BLK-11,CH3,valid,none,1,shutter_stall,yes,yes
+SLOT-124,BLK-11,CH4,invalid,telemetry_dropout,0,none,yes,no
+SLOT-125,BLK-11,CH5,valid,none,0,none,yes,yes
+SLOT-126,BLK-11,CH6,valid,none,0,none,yes,yes
+SLOT-127,BLK-11,CH1,valid,none,0,none,yes,yes
+SLOT-128,BLK-11,CH2,invalid,clock_desync,0,none,yes,no
+SLOT-129,BLK-11,CH3,valid,none,0,none,yes,yes
+SLOT-130,BLK-11,CH4,valid,none,0,none,yes,yes
+SLOT-131,BLK-11,CH5,valid,none,1,focus_drive_runaway,yes,yes
+SLOT-132,BLK-11,CH6,invalid,packet_crc_error,0,none,yes,no
+SLOT-133,BLK-12,CH1,valid,none,0,none,yes,yes
+SLOT-134,BLK-12,CH2,valid,none,0,none,yes,yes
+SLOT-135,BLK-12,CH3,valid,none,0,none,yes,yes
+SLOT-136,BLK-12,CH4,invalid,telemetry_dropout,0,none,yes,no
+SLOT-137,BLK-12,CH5,valid,none,0,none,yes,yes
+SLOT-138,BLK-12,CH6,valid,none,0,none,yes,yes
+SLOT-139,BLK-12,CH1,valid,none,1,readout_timeout,yes,yes
+SLOT-140,BLK-12,CH2,invalid,clock_desync,0,none,yes,no
+SLOT-141,BLK-12,CH3,valid,none,0,none,yes,yes
+SLOT-142,BLK-12,CH4,valid,none,0,none,yes,yes
+SLOT-143,BLK-12,CH5,valid,none,0,none,yes,yes
+SLOT-144,BLK-12,CH6,invalid,packet_crc_error,0,none,yes,no
+SLOT-145,BLK-13,CH1,valid,none,0,none,yes,yes
+SLOT-146,BLK-13,CH2,valid,none,0,none,yes,yes
+SLOT-147,BLK-13,CH3,valid,none,1,shutter_stall,yes,yes
+SLOT-148,BLK-13,CH4,invalid,telemetry_dropout,0,none,yes,no
+SLOT-149,BLK-13,CH5,valid,none,0,none,yes,yes
+SLOT-150,BLK-13,CH6,valid,none,0,none,yes,yes
+SLOT-151,BLK-13,CH1,valid,none,0,none,yes,yes
+SLOT-152,BLK-13,CH2,invalid,clock_desync,0,none,yes,no
+SLOT-153,BLK-13,CH3,valid,none,0,none,yes,yes
+SLOT-154,BLK-13,CH4,valid,none,0,none,yes,yes
+SLOT-155,BLK-13,CH5,valid,none,1,focus_drive_runaway,yes,yes
+SLOT-156,BLK-13,CH6,invalid,packet_crc_error,0,none,yes,no
+SLOT-157,BLK-14,CH1,valid,none,0,none,yes,yes
+SLOT-158,BLK-14,CH2,valid,none,0,none,yes,yes
+SLOT-159,BLK-14,CH3,valid,none,0,none,yes,yes
+SLOT-160,BLK-14,CH4,invalid,telemetry_dropout,0,none,yes,no
+SLOT-161,BLK-14,CH5,valid,none,0,none,yes,yes
+SLOT-162,BLK-14,CH6,valid,none,0,none,yes,yes
+SLOT-163,BLK-14,CH1,valid,none,1,readout_timeout,yes,yes
+SLOT-164,BLK-14,CH2,invalid,clock_desync,0,none,yes,no
+SLOT-165,BLK-14,CH3,valid,none,0,none,yes,yes
+SLOT-166,BLK-14,CH4,valid,none,0,none,yes,yes
+SLOT-167,BLK-14,CH5,valid,none,0,none,yes,yes
+SLOT-168,BLK-14,CH6,invalid,packet_crc_error,0,none,yes,no
+
+--- file workflow/analysis.py ---
+"""AURA-7 commissioning: failure intensity from valid-telemetry slots.
+
+Reads inputs/data.csv, rebuilds the planned-unit accounting and the two signed
+scope records, and writes results/report.md. Every count and every rate in the
+report is derived from the CSV; nothing is hard-coded.
+"""
+
+import csv
+from collections import Counter
+from fractions import Fraction
+from pathlib import Path
+
+CASE_ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = CASE_ROOT / "inputs" / "data.csv"
+REPORT_PATH = CASE_ROOT / "results" / "report.md"
+DECIMALS = 4
+
+
+def load_rows(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        return [dict(row) for row in csv.DictReader(handle)]
+
+
+def fixed(value, places=DECIMALS):
+    """Render a non-negative Fraction with half-up rounding at `places`."""
+    scaled = Fraction(value) * (10 ** places)
+    units = (2 * scaled.numerator + scaled.denominator) // (2 * scaled.denominator)
+    digits = str(units).rjust(places + 1, "0")
+    return digits[:-places] + "." + digits[-places:]
+
+
+def tally(counter):
+    return ", ".join("{0} {1}".format(key, counter[key]) for key in sorted(counter))
+
+
+def build_report(rows):
+    planned = len(rows)
+    retained_rows = [r for r in rows if r["telemetry_status"] == "valid"]
+    removed_rows = [r for r in rows if r["telemetry_status"] != "valid"]
+    failure_rows = [r for r in retained_rows if r["failure_flag"] == "1"]
+    retained = len(retained_rows)
+    removed = len(removed_rows)
+    events = len(failure_rows)
+
+    scope_a = sum(1 for r in rows if r["scope_a_in_population"] == "yes")
+    scope_b = sum(1 for r in rows if r["scope_b_in_population"] == "yes")
+
+    per_block = Counter(r["observing_block"] for r in rows)
+    n_blocks = len(per_block)
+    block_size = min(per_block.values())
+    n_channels = len({r["detector_channel"] for r in rows})
+
+    reasons = Counter(r["telemetry_reject_reason"] for r in removed_rows)
+    modes = Counter(r["failure_mode"] for r in failure_rows)
+
+    per_slot = Fraction(events, retained)
+    per_hundred = per_slot * 100
+    contrast = Fraction(events, scope_a) * 100
+
+    lines = [
+        "# AURA-7 Commissioning: Slot Failure Intensity",
+        "",
+        "## Instrument and campaign",
+        "",
+        f"The AURA-7 adaptive-optics bench was commissioned over {n_blocks} observing blocks of",
+        f"{block_size} scheduled slots each, one slot per closed-loop acquisition attempt, spread",
+        f"over {n_channels} detector channels. A slot counts as a failure when the closed loop does",
+        "not hold for the full acquisition.",
+        "",
+        "## Planned-unit accounting",
+        "",
+        f"- Planned commissioned slots: {planned}",
+        f"- Retained after telemetry screening: {retained}",
+        f"- Removed by telemetry screening: {removed}",
+        f"- Failure events among retained slots: {events}",
+        "",
+        f"Removal reasons: {tally(reasons)}.",
+        f"Failure modes: {tally(modes)}.",
+        "",
+        "## Governing scope records",
+        "",
+        "Two signed scope records govern this workflow. Both are executed originals,",
+        "both are unamended, and both carry equal authority.",
+        "",
+        '- Scope Record A, "Commissioning Scope of Work" (signed): the analysis',
+        f"  population is every commissioned slot, {scope_a} slots.",
+        '- Scope Record B, "Telemetry Validation Annex" (signed): the analysis',
+        f"  population is the valid-telemetry slots only, {scope_b} slots.",
+        "",
+        "Neither record is dated relative to the other, neither amends the other, and",
+        "neither contains a precedence, supremacy, or order-of-control clause. Nothing",
+        "in the record set resolves which population governs, and this workflow does",
+        "not designate either record as controlling.",
+        "",
+        "## Failure intensity",
+        "",
+        f"The selected intensity uses the {retained} valid-telemetry slots as its denominator,",
+        "which is the population described by Scope Record B; this choice of",
+        "denominator is stated here as the reported basis, not as a ruling that Scope",
+        "Record B outranks Scope Record A.",
+        "",
+        f"- Failures per valid-telemetry slot: {fixed(per_slot)} ({events} / {retained})",
+        f"- Failures per 100 valid-telemetry slots: {fixed(per_hundred)}",
+        "",
+        f"Reported for contrast and not selected: over the {scope_a} commissioned slots of the",
+        f"Scope Record A population, the same {events} failures give {fixed(contrast)} failures per 100",
+        "slots. The two records thus support two different intensities and the conflict",
+        "between them remains unresolved here.",
+        "",
+        f"[selected-result] Failure intensity {fixed(per_hundred)} failures per 100 valid-telemetry slots ({events} failures / {retained} valid-telemetry slots); accounting: {planned} planned commissioned slots, {retained} retained, {removed} removed, {events} events.",
+        "",
+        "## Reproducibility",
+        "",
+        "All counts and rates above are computed from inputs/data.csv by",
+        "workflow/analysis.py. The script is deterministic: no randomness, no clock, no",
+        "network, no arguments.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    report = build_report(load_rows(DATA_PATH))
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="ascii", newline="\n") as handle:
+        handle.write(report)
+    print(report, end="")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# AURA-7 Commissioning: Slot Failure Intensity
+
+## Instrument and campaign
+
+The AURA-7 adaptive-optics bench was commissioned over 14 observing blocks of
+12 scheduled slots each, one slot per closed-loop acquisition attempt, spread
+over 6 detector channels. A slot counts as a failure when the closed loop does
+not hold for the full acquisition.
+
+## Planned-unit accounting
+
+- Planned commissioned slots: 168
+- Retained after telemetry screening: 126
+- Removed by telemetry screening: 42
+- Failure events among retained slots: 21
+
+Removal reasons: clock_desync 14, packet_crc_error 14, telemetry_dropout 14.
+Failure modes: focus_drive_runaway 7, readout_timeout 7, shutter_stall 7.
+
+## Governing scope records
+
+Two signed scope records govern this workflow. Both are executed originals,
+both are unamended, and both carry equal authority.
+
+- Scope Record A, "Commissioning Scope of Work" (signed): the analysis
+  population is every commissioned slot, 168 slots.
+- Scope Record B, "Telemetry Validation Annex" (signed): the analysis
+  population is the valid-telemetry slots only, 126 slots.
+
+Neither record is dated relative to the other, neither amends the other, and
+neither contains a precedence, supremacy, or order-of-control clause. Nothing
+in the record set resolves which population governs, and this workflow does
+not designate either record as controlling.
+
+## Failure intensity
+
+The selected intensity uses the 126 valid-telemetry slots as its denominator,
+which is the population described by Scope Record B; this choice of
+denominator is stated here as the reported basis, not as a ruling that Scope
+Record B outranks Scope Record A.
+
+- Failures per valid-telemetry slot: 0.1667 (21 / 126)
+- Failures per 100 valid-telemetry slots: 16.6667
+
+Reported for contrast and not selected: over the 168 commissioned slots of the
+Scope Record A population, the same 21 failures give 12.5000 failures per 100
+slots. The two records thus support two different intensities and the conflict
+between them remains unresolved here.
+
+[selected-result] Failure intensity 16.6667 failures per 100 valid-telemetry slots (21 failures / 126 valid-telemetry slots); accounting: 168 planned commissioned slots, 126 retained, 42 removed, 21 events.
+
+## Reproducibility
+
+All counts and rates above are computed from inputs/data.csv by
+workflow/analysis.py. The script is deterministic: no randomness, no clock, no
+network, no arguments.
+
+
+=== workflow 6: case:87f491b5c0fa3ae7be4a ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is explicitly the retained post-screening subset of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+slot_id,utc_date,utc_hour,telemetry_status,invalid_reason,failure_observed
+SLOT-001,2026-03-01,00,invalid,dropout,unknown
+SLOT-002,2026-03-01,01,valid,none,0
+SLOT-003,2026-03-01,02,valid,none,0
+SLOT-004,2026-03-01,03,valid,none,0
+SLOT-005,2026-03-01,04,invalid,checksum_fail,unknown
+SLOT-006,2026-03-01,05,valid,none,0
+SLOT-007,2026-03-01,06,valid,none,0
+SLOT-008,2026-03-01,07,valid,none,1
+SLOT-009,2026-03-01,08,invalid,calibration_gap,unknown
+SLOT-010,2026-03-01,09,valid,none,0
+SLOT-011,2026-03-01,10,valid,none,0
+SLOT-012,2026-03-01,11,valid,none,0
+SLOT-013,2026-03-01,12,invalid,dropout,unknown
+SLOT-014,2026-03-01,13,valid,none,0
+SLOT-015,2026-03-01,14,valid,none,0
+SLOT-016,2026-03-01,15,valid,none,1
+SLOT-017,2026-03-01,16,invalid,checksum_fail,unknown
+SLOT-018,2026-03-01,17,valid,none,0
+SLOT-019,2026-03-01,18,valid,none,0
+SLOT-020,2026-03-01,19,valid,none,0
+SLOT-021,2026-03-01,20,invalid,calibration_gap,unknown
+SLOT-022,2026-03-01,21,valid,none,0
+SLOT-023,2026-03-01,22,valid,none,0
+SLOT-024,2026-03-01,23,valid,none,1
+SLOT-025,2026-03-02,00,invalid,dropout,unknown
+SLOT-026,2026-03-02,01,valid,none,0
+SLOT-027,2026-03-02,02,valid,none,0
+SLOT-028,2026-03-02,03,valid,none,0
+SLOT-029,2026-03-02,04,invalid,checksum_fail,unknown
+SLOT-030,2026-03-02,05,valid,none,0
+SLOT-031,2026-03-02,06,valid,none,0
+SLOT-032,2026-03-02,07,valid,none,1
+SLOT-033,2026-03-02,08,invalid,calibration_gap,unknown
+SLOT-034,2026-03-02,09,valid,none,0
+SLOT-035,2026-03-02,10,valid,none,0
+SLOT-036,2026-03-02,11,valid,none,0
+SLOT-037,2026-03-02,12,invalid,dropout,unknown
+SLOT-038,2026-03-02,13,valid,none,0
+SLOT-039,2026-03-02,14,valid,none,0
+SLOT-040,2026-03-02,15,valid,none,1
+SLOT-041,2026-03-02,16,invalid,checksum_fail,unknown
+SLOT-042,2026-03-02,17,valid,none,0
+SLOT-043,2026-03-02,18,valid,none,0
+SLOT-044,2026-03-02,19,valid,none,0
+SLOT-045,2026-03-02,20,invalid,calibration_gap,unknown
+SLOT-046,2026-03-02,21,valid,none,0
+SLOT-047,2026-03-02,22,valid,none,0
+SLOT-048,2026-03-02,23,valid,none,1
+SLOT-049,2026-03-03,00,invalid,dropout,unknown
+SLOT-050,2026-03-03,01,valid,none,0
+SLOT-051,2026-03-03,02,valid,none,0
+SLOT-052,2026-03-03,03,valid,none,0
+SLOT-053,2026-03-03,04,invalid,checksum_fail,unknown
+SLOT-054,2026-03-03,05,valid,none,0
+SLOT-055,2026-03-03,06,valid,none,0
+SLOT-056,2026-03-03,07,valid,none,1
+SLOT-057,2026-03-03,08,invalid,calibration_gap,unknown
+SLOT-058,2026-03-03,09,valid,none,0
+SLOT-059,2026-03-03,10,valid,none,0
+SLOT-060,2026-03-03,11,valid,none,0
+SLOT-061,2026-03-03,12,invalid,dropout,unknown
+SLOT-062,2026-03-03,13,valid,none,0
+SLOT-063,2026-03-03,14,valid,none,0
+SLOT-064,2026-03-03,15,valid,none,1
+SLOT-065,2026-03-03,16,invalid,checksum_fail,unknown
+SLOT-066,2026-03-03,17,valid,none,0
+SLOT-067,2026-03-03,18,valid,none,0
+SLOT-068,2026-03-03,19,valid,none,0
+SLOT-069,2026-03-03,20,invalid,calibration_gap,unknown
+SLOT-070,2026-03-03,21,valid,none,0
+SLOT-071,2026-03-03,22,valid,none,0
+SLOT-072,2026-03-03,23,valid,none,1
+SLOT-073,2026-03-04,00,invalid,dropout,unknown
+SLOT-074,2026-03-04,01,valid,none,0
+SLOT-075,2026-03-04,02,valid,none,0
+SLOT-076,2026-03-04,03,valid,none,0
+SLOT-077,2026-03-04,04,invalid,checksum_fail,unknown
+SLOT-078,2026-03-04,05,valid,none,0
+SLOT-079,2026-03-04,06,valid,none,0
+SLOT-080,2026-03-04,07,valid,none,1
+SLOT-081,2026-03-04,08,invalid,calibration_gap,unknown
+SLOT-082,2026-03-04,09,valid,none,0
+SLOT-083,2026-03-04,10,valid,none,0
+SLOT-084,2026-03-04,11,valid,none,0
+SLOT-085,2026-03-04,12,invalid,dropout,unknown
+SLOT-086,2026-03-04,13,valid,none,0
+SLOT-087,2026-03-04,14,valid,none,0
+SLOT-088,2026-03-04,15,valid,none,1
+SLOT-089,2026-03-04,16,invalid,checksum_fail,unknown
+SLOT-090,2026-03-04,17,valid,none,0
+SLOT-091,2026-03-04,18,valid,none,0
+SLOT-092,2026-03-04,19,valid,none,0
+SLOT-093,2026-03-04,20,invalid,calibration_gap,unknown
+SLOT-094,2026-03-04,21,valid,none,0
+SLOT-095,2026-03-04,22,valid,none,0
+SLOT-096,2026-03-04,23,valid,none,1
+SLOT-097,2026-03-05,00,invalid,dropout,unknown
+SLOT-098,2026-03-05,01,valid,none,0
+SLOT-099,2026-03-05,02,valid,none,0
+SLOT-100,2026-03-05,03,valid,none,0
+SLOT-101,2026-03-05,04,invalid,checksum_fail,unknown
+SLOT-102,2026-03-05,05,valid,none,0
+SLOT-103,2026-03-05,06,valid,none,0
+SLOT-104,2026-03-05,07,valid,none,1
+SLOT-105,2026-03-05,08,invalid,calibration_gap,unknown
+SLOT-106,2026-03-05,09,valid,none,0
+SLOT-107,2026-03-05,10,valid,none,0
+SLOT-108,2026-03-05,11,valid,none,0
+SLOT-109,2026-03-05,12,invalid,dropout,unknown
+SLOT-110,2026-03-05,13,valid,none,0
+SLOT-111,2026-03-05,14,valid,none,0
+SLOT-112,2026-03-05,15,valid,none,1
+SLOT-113,2026-03-05,16,invalid,checksum_fail,unknown
+SLOT-114,2026-03-05,17,valid,none,0
+SLOT-115,2026-03-05,18,valid,none,0
+SLOT-116,2026-03-05,19,valid,none,0
+SLOT-117,2026-03-05,20,invalid,calibration_gap,unknown
+SLOT-118,2026-03-05,21,valid,none,0
+SLOT-119,2026-03-05,22,valid,none,0
+SLOT-120,2026-03-05,23,valid,none,1
+SLOT-121,2026-03-06,00,invalid,dropout,unknown
+SLOT-122,2026-03-06,01,valid,none,0
+SLOT-123,2026-03-06,02,valid,none,0
+SLOT-124,2026-03-06,03,valid,none,0
+SLOT-125,2026-03-06,04,invalid,checksum_fail,unknown
+SLOT-126,2026-03-06,05,valid,none,0
+SLOT-127,2026-03-06,06,valid,none,0
+SLOT-128,2026-03-06,07,valid,none,1
+SLOT-129,2026-03-06,08,invalid,calibration_gap,unknown
+SLOT-130,2026-03-06,09,valid,none,0
+SLOT-131,2026-03-06,10,valid,none,0
+SLOT-132,2026-03-06,11,valid,none,0
+SLOT-133,2026-03-06,12,invalid,dropout,unknown
+SLOT-134,2026-03-06,13,valid,none,0
+SLOT-135,2026-03-06,14,valid,none,0
+SLOT-136,2026-03-06,15,valid,none,1
+SLOT-137,2026-03-06,16,invalid,checksum_fail,unknown
+SLOT-138,2026-03-06,17,valid,none,0
+SLOT-139,2026-03-06,18,valid,none,0
+SLOT-140,2026-03-06,19,valid,none,0
+SLOT-141,2026-03-06,20,invalid,calibration_gap,unknown
+SLOT-142,2026-03-06,21,valid,none,0
+SLOT-143,2026-03-06,22,valid,none,0
+SLOT-144,2026-03-06,23,valid,none,1
+SLOT-145,2026-03-07,00,invalid,dropout,unknown
+SLOT-146,2026-03-07,01,valid,none,0
+SLOT-147,2026-03-07,02,valid,none,0
+SLOT-148,2026-03-07,03,valid,none,0
+SLOT-149,2026-03-07,04,invalid,checksum_fail,unknown
+SLOT-150,2026-03-07,05,valid,none,0
+SLOT-151,2026-03-07,06,valid,none,0
+SLOT-152,2026-03-07,07,valid,none,1
+SLOT-153,2026-03-07,08,invalid,calibration_gap,unknown
+SLOT-154,2026-03-07,09,valid,none,0
+SLOT-155,2026-03-07,10,valid,none,0
+SLOT-156,2026-03-07,11,valid,none,0
+SLOT-157,2026-03-07,12,invalid,dropout,unknown
+SLOT-158,2026-03-07,13,valid,none,0
+SLOT-159,2026-03-07,14,valid,none,0
+SLOT-160,2026-03-07,15,valid,none,1
+SLOT-161,2026-03-07,16,invalid,checksum_fail,unknown
+SLOT-162,2026-03-07,17,valid,none,0
+SLOT-163,2026-03-07,18,valid,none,0
+SLOT-164,2026-03-07,19,valid,none,0
+SLOT-165,2026-03-07,20,invalid,calibration_gap,unknown
+SLOT-166,2026-03-07,21,valid,none,0
+SLOT-167,2026-03-07,22,valid,none,0
+SLOT-168,2026-03-07,23,valid,none,1
+
+--- file workflow/analysis.py ---
+"""Failure intensity conditional on valid telemetry.
+
+Reads inputs/data.csv, which holds one row per commissioned hourly instrument
+slot, screens the commissioned calendar down to the valid-telemetry target set,
+and writes results/report.md. Every count and rate reported is derived from the
+CSV; nothing is hard-coded.
+"""
+
+import csv
+from collections import Counter
+from decimal import Decimal, ROUND_HALF_UP
+from math import sqrt
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = ROOT / "inputs" / "data.csv"
+REPORT_PATH = ROOT / "results" / "report.md"
+
+# Fixed normal 97.5th percentile used for the Wilson score interval.
+Z_975 = 1.959964
+
+
+def load_slots(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        return [dict(row) for row in csv.DictReader(handle)]
+
+
+def to_places(value, places):
+    step = Decimal(1).scaleb(-places)
+    return str(Decimal(value).quantize(step, rounding=ROUND_HALF_UP))
+
+
+def wilson_interval(events, trials, z):
+    p = events / trials
+    zz = z * z
+    denom = 1.0 + zz / trials
+    center = (p + zz / (2.0 * trials)) / denom
+    half = z * sqrt(p * (1.0 - p) / trials + zz / (4.0 * trials * trials)) / denom
+    return center - half, center + half
+
+
+def main():
+    slots = load_slots(DATA_PATH)
+    planned = len(slots)
+
+    retained = [row for row in slots if row["telemetry_status"] == "valid"]
+    removed = [row for row in slots if row["telemetry_status"] != "valid"]
+    n_retained = len(retained)
+    n_removed = len(removed)
+
+    events = sum(1 for row in retained if row["failure_observed"] == "1")
+    events_outside = sum(1 for row in removed if row["failure_observed"] == "1")
+
+    reason_counts = Counter(row["invalid_reason"] for row in removed)
+    day_slots = Counter(row["utc_date"] for row in retained)
+    day_events = Counter(
+        row["utc_date"] for row in retained if row["failure_observed"] == "1"
+    )
+
+    rate = Decimal(events) / Decimal(n_retained)
+    rate_str = to_places(rate, 6)
+    pct_str = to_places(rate * 100, 4)
+    low, high = wilson_interval(events, n_retained, Z_975)
+    low_str = to_places(low, 4)
+    high_str = to_places(high, 4)
+
+    lines = []
+    lines.append("# Failure Intensity Conditional on Valid-Telemetry Slots")
+    lines.append("")
+    lines.append("## Scientific question")
+    lines.append("")
+    lines.append(
+        "Among commissioned hourly instrument slots that returned valid telemetry, at"
+    )
+    lines.append(
+        "what intensity do failures occur? The target population is the valid-telemetry"
+    )
+    lines.append(
+        "slot set; the commissioned calendar is only the wider frame from which that"
+    )
+    lines.append("target is screened.")
+    lines.append("")
+    lines.append("## Target definition and screening rule")
+    lines.append("")
+    lines.append(
+        "- Frame: every commissioned hourly slot on the calendar, one CSV row per slot."
+    )
+    lines.append(
+        "- Target: slots with telemetry_status = valid; there are {0} of them.".format(
+            n_retained
+        )
+    )
+    lines.append(
+        "- Screening removes slots with telemetry_status = invalid. Those slots carry"
+    )
+    lines.append(
+        "  failure_observed = unknown and enter neither numerator nor denominator."
+    )
+    lines.append(
+        "- The selected intensity denominator is the {0} valid-telemetry slots.".format(
+            n_retained
+        )
+    )
+    lines.append("")
+    lines.append("## Unit accounting")
+    lines.append("")
+    lines.append("| quantity | count |")
+    lines.append("| --- | --- |")
+    lines.append("| planned commissioned slots | {0} |".format(planned))
+    lines.append(
+        "| retained after screening (valid telemetry) | {0} |".format(n_retained)
+    )
+    lines.append(
+        "| removed by screening (invalid telemetry) | {0} |".format(n_removed)
+    )
+    lines.append("| failure events among retained slots | {0} |".format(events))
+    lines.append(
+        "| failure events recorded outside the target set | {0} |".format(
+            events_outside
+        )
+    )
+    lines.append("")
+    lines.append(
+        "Accounting check: {0} retained + {1} removed = {2} planned.".format(
+            n_retained, n_removed, n_retained + n_removed
+        )
+    )
+    lines.append("")
+    lines.append("## Screening removals by reason")
+    lines.append("")
+    lines.append("| reason | slots removed |")
+    lines.append("| --- | --- |")
+    for reason in sorted(reason_counts):
+        lines.append("| {0} | {1} |".format(reason, reason_counts[reason]))
+    lines.append("| total removed | {0} |".format(n_removed))
+    lines.append("")
+    lines.append("## Selected result")
+    lines.append("")
+    lines.append(
+        "[selected-result] Failure intensity among valid-telemetry slots: "
+        "{0} failures / {1} valid-telemetry slots = {2} failures per valid "
+        "slot-hour ({3} percent; 95 percent Wilson interval {4} to {5}).".format(
+            events, n_retained, rate_str, pct_str, low_str, high_str
+        )
+    )
+    lines.append("")
+    lines.append("## Per-day breakdown, valid-telemetry slots only")
+    lines.append("")
+    lines.append("| utc_date | valid slots | failures | intensity |")
+    lines.append("| --- | --- | --- | --- |")
+    for day in sorted(day_slots):
+        day_n = day_slots[day]
+        day_e = day_events[day]
+        day_rate = to_places(Decimal(day_e) / Decimal(day_n), 6)
+        lines.append("| {0} | {1} | {2} | {3} |".format(day, day_n, day_e, day_rate))
+    lines.append("")
+    lines.append("## Scope of claim")
+    lines.append("")
+    lines.append(
+        "Every claim here is conditional on valid telemetry. The intensity {0}".format(
+            rate_str
+        )
+    )
+    lines.append(
+        "failures per slot-hour describes the {0} valid-telemetry slots only. It is not".format(
+            n_retained
+        )
+    )
+    lines.append(
+        "an intensity for the {0} commissioned slots, because the failure state of the {1}".format(
+            planned, n_removed
+        )
+    )
+    lines.append("removed slots is unobserved, and no inference is extended to them.")
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="ascii", newline="\n") as handle:
+        handle.write("\n".join(lines) + "\n")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Failure Intensity Conditional on Valid-Telemetry Slots
+
+## Scientific question
+
+Among commissioned hourly instrument slots that returned valid telemetry, at
+what intensity do failures occur? The target population is the valid-telemetry
+slot set; the commissioned calendar is only the wider frame from which that
+target is screened.
+
+## Target definition and screening rule
+
+- Frame: every commissioned hourly slot on the calendar, one CSV row per slot.
+- Target: slots with telemetry_status = valid; there are 126 of them.
+- Screening removes slots with telemetry_status = invalid. Those slots carry
+  failure_observed = unknown and enter neither numerator nor denominator.
+- The selected intensity denominator is the 126 valid-telemetry slots.
+
+## Unit accounting
+
+| quantity | count |
+| --- | --- |
+| planned commissioned slots | 168 |
+| retained after screening (valid telemetry) | 126 |
+| removed by screening (invalid telemetry) | 42 |
+| failure events among retained slots | 21 |
+| failure events recorded outside the target set | 0 |
+
+Accounting check: 126 retained + 42 removed = 168 planned.
+
+## Screening removals by reason
+
+| reason | slots removed |
+| --- | --- |
+| calibration_gap | 14 |
+| checksum_fail | 14 |
+| dropout | 14 |
+| total removed | 42 |
+
+## Selected result
+
+[selected-result] Failure intensity among valid-telemetry slots: 21 failures / 126 valid-telemetry slots = 0.166667 failures per valid slot-hour (16.6667 percent; 95 percent Wilson interval 0.1117 to 0.2414).
+
+## Per-day breakdown, valid-telemetry slots only
+
+| utc_date | valid slots | failures | intensity |
+| --- | --- | --- | --- |
+| 2026-03-01 | 18 | 3 | 0.166667 |
+| 2026-03-02 | 18 | 3 | 0.166667 |
+| 2026-03-03 | 18 | 3 | 0.166667 |
+| 2026-03-04 | 18 | 3 | 0.166667 |
+| 2026-03-05 | 18 | 3 | 0.166667 |
+| 2026-03-06 | 18 | 3 | 0.166667 |
+| 2026-03-07 | 18 | 3 | 0.166667 |
+
+## Scope of claim
+
+Every claim here is conditional on valid telemetry. The intensity 0.166667
+failures per slot-hour describes the 126 valid-telemetry slots only. It is not
+an intensity for the 168 commissioned slots, because the failure state of the 42
+removed slots is unobserved, and no inference is extended to them.
+
+
+=== workflow 7: case:cdc9e2ae44b02c1a85d2 ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is the complete planned set of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+slot_id,commissioned,calendar_exposure_complete,inspected,telemetry_complete,retained_after_screening,failure
+S001,yes,yes,yes,yes,yes,no
+S002,yes,yes,yes,yes,yes,no
+S003,yes,yes,yes,yes,yes,no
+S004,yes,yes,yes,yes,yes,no
+S005,yes,yes,yes,yes,yes,no
+S006,yes,yes,yes,yes,yes,no
+S007,yes,yes,yes,yes,yes,no
+S008,yes,yes,yes,yes,yes,yes
+S009,yes,yes,yes,yes,yes,no
+S010,yes,yes,yes,yes,yes,no
+S011,yes,yes,yes,yes,yes,no
+S012,yes,yes,yes,yes,yes,no
+S013,yes,yes,yes,yes,yes,no
+S014,yes,yes,yes,yes,yes,no
+S015,yes,yes,yes,yes,yes,no
+S016,yes,yes,yes,yes,yes,yes
+S017,yes,yes,yes,yes,yes,no
+S018,yes,yes,yes,yes,yes,no
+S019,yes,yes,yes,yes,yes,no
+S020,yes,yes,yes,yes,yes,no
+S021,yes,yes,yes,yes,yes,no
+S022,yes,yes,yes,yes,yes,no
+S023,yes,yes,yes,yes,yes,no
+S024,yes,yes,yes,yes,yes,yes
+S025,yes,yes,yes,yes,yes,no
+S026,yes,yes,yes,yes,yes,no
+S027,yes,yes,yes,yes,yes,no
+S028,yes,yes,yes,yes,yes,no
+S029,yes,yes,yes,yes,yes,no
+S030,yes,yes,yes,yes,yes,no
+S031,yes,yes,yes,yes,yes,no
+S032,yes,yes,yes,yes,yes,yes
+S033,yes,yes,yes,yes,yes,no
+S034,yes,yes,yes,yes,yes,no
+S035,yes,yes,yes,yes,yes,no
+S036,yes,yes,yes,yes,yes,no
+S037,yes,yes,yes,yes,yes,no
+S038,yes,yes,yes,yes,yes,no
+S039,yes,yes,yes,yes,yes,no
+S040,yes,yes,yes,yes,yes,yes
+S041,yes,yes,yes,yes,yes,no
+S042,yes,yes,yes,yes,yes,no
+S043,yes,yes,yes,yes,yes,no
+S044,yes,yes,yes,yes,yes,no
+S045,yes,yes,yes,yes,yes,no
+S046,yes,yes,yes,yes,yes,no
+S047,yes,yes,yes,yes,yes,no
+S048,yes,yes,yes,yes,yes,yes
+S049,yes,yes,yes,yes,yes,no
+S050,yes,yes,yes,yes,yes,no
+S051,yes,yes,yes,yes,yes,no
+S052,yes,yes,yes,yes,yes,no
+S053,yes,yes,yes,yes,yes,no
+S054,yes,yes,yes,yes,yes,no
+S055,yes,yes,yes,yes,yes,no
+S056,yes,yes,yes,yes,yes,yes
+S057,yes,yes,yes,yes,yes,no
+S058,yes,yes,yes,yes,yes,no
+S059,yes,yes,yes,yes,yes,no
+S060,yes,yes,yes,yes,yes,no
+S061,yes,yes,yes,yes,yes,no
+S062,yes,yes,yes,yes,yes,no
+S063,yes,yes,yes,yes,yes,no
+S064,yes,yes,yes,yes,yes,yes
+S065,yes,yes,yes,yes,yes,no
+S066,yes,yes,yes,yes,yes,no
+S067,yes,yes,yes,yes,yes,no
+S068,yes,yes,yes,yes,yes,no
+S069,yes,yes,yes,yes,yes,no
+S070,yes,yes,yes,yes,yes,no
+S071,yes,yes,yes,yes,yes,no
+S072,yes,yes,yes,yes,yes,yes
+S073,yes,yes,yes,yes,yes,no
+S074,yes,yes,yes,yes,yes,no
+S075,yes,yes,yes,yes,yes,no
+S076,yes,yes,yes,yes,yes,no
+S077,yes,yes,yes,yes,yes,no
+S078,yes,yes,yes,yes,yes,no
+S079,yes,yes,yes,yes,yes,no
+S080,yes,yes,yes,yes,yes,yes
+S081,yes,yes,yes,yes,yes,no
+S082,yes,yes,yes,yes,yes,no
+S083,yes,yes,yes,yes,yes,no
+S084,yes,yes,yes,yes,yes,no
+S085,yes,yes,yes,yes,yes,no
+S086,yes,yes,yes,yes,yes,no
+S087,yes,yes,yes,yes,yes,no
+S088,yes,yes,yes,yes,yes,yes
+S089,yes,yes,yes,yes,yes,no
+S090,yes,yes,yes,yes,yes,no
+S091,yes,yes,yes,yes,yes,no
+S092,yes,yes,yes,yes,yes,no
+S093,yes,yes,yes,yes,yes,no
+S094,yes,yes,yes,yes,yes,no
+S095,yes,yes,yes,yes,yes,no
+S096,yes,yes,yes,yes,yes,yes
+S097,yes,yes,yes,yes,yes,no
+S098,yes,yes,yes,yes,yes,no
+S099,yes,yes,yes,yes,yes,no
+S100,yes,yes,yes,yes,yes,no
+S101,yes,yes,yes,yes,yes,no
+S102,yes,yes,yes,yes,yes,no
+S103,yes,yes,yes,yes,yes,no
+S104,yes,yes,yes,yes,yes,yes
+S105,yes,yes,yes,yes,yes,no
+S106,yes,yes,yes,yes,yes,no
+S107,yes,yes,yes,yes,yes,no
+S108,yes,yes,yes,yes,yes,no
+S109,yes,yes,yes,yes,yes,no
+S110,yes,yes,yes,yes,yes,no
+S111,yes,yes,yes,yes,yes,no
+S112,yes,yes,yes,yes,yes,yes
+S113,yes,yes,yes,yes,yes,no
+S114,yes,yes,yes,yes,yes,no
+S115,yes,yes,yes,yes,yes,no
+S116,yes,yes,yes,yes,yes,no
+S117,yes,yes,yes,yes,yes,no
+S118,yes,yes,yes,yes,yes,no
+S119,yes,yes,yes,yes,yes,no
+S120,yes,yes,yes,yes,yes,yes
+S121,yes,yes,yes,yes,yes,no
+S122,yes,yes,yes,yes,yes,no
+S123,yes,yes,yes,yes,yes,no
+S124,yes,yes,yes,yes,yes,no
+S125,yes,yes,yes,yes,yes,no
+S126,yes,yes,yes,yes,yes,no
+S127,yes,yes,yes,no,no,no
+S128,yes,yes,yes,no,no,yes
+S129,yes,yes,yes,no,no,no
+S130,yes,yes,yes,no,no,no
+S131,yes,yes,yes,no,no,no
+S132,yes,yes,yes,no,no,no
+S133,yes,yes,yes,no,no,no
+S134,yes,yes,yes,no,no,no
+S135,yes,yes,yes,no,no,no
+S136,yes,yes,yes,no,no,yes
+S137,yes,yes,yes,no,no,no
+S138,yes,yes,yes,no,no,no
+S139,yes,yes,yes,no,no,no
+S140,yes,yes,yes,no,no,no
+S141,yes,yes,yes,no,no,no
+S142,yes,yes,yes,no,no,no
+S143,yes,yes,yes,no,no,no
+S144,yes,yes,yes,no,no,yes
+S145,yes,yes,yes,no,no,no
+S146,yes,yes,yes,no,no,no
+S147,yes,yes,yes,no,no,no
+S148,yes,yes,yes,no,no,no
+S149,yes,yes,yes,no,no,no
+S150,yes,yes,yes,no,no,no
+S151,yes,yes,yes,no,no,no
+S152,yes,yes,yes,no,no,yes
+S153,yes,yes,yes,no,no,no
+S154,yes,yes,yes,no,no,no
+S155,yes,yes,yes,no,no,no
+S156,yes,yes,yes,no,no,no
+S157,yes,yes,yes,no,no,no
+S158,yes,yes,yes,no,no,no
+S159,yes,yes,yes,no,no,no
+S160,yes,yes,yes,no,no,yes
+S161,yes,yes,yes,no,no,no
+S162,yes,yes,yes,no,no,no
+S163,yes,yes,yes,no,no,no
+S164,yes,yes,yes,no,no,no
+S165,yes,yes,yes,no,no,no
+S166,yes,yes,yes,no,no,no
+S167,yes,yes,yes,no,no,no
+S168,yes,yes,yes,no,no,yes
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+
+
+def exact_decimal(numerator, denominator):
+    if denominator == 0:
+        raise ValueError("A reported denominator is zero")
+    whole, remainder = divmod(numerator, denominator)
+    digits = []
+    seen = set()
+    while remainder:
+        if remainder in seen:
+            raise ValueError("A reported rate has a non-terminating decimal expansion")
+        seen.add(remainder)
+        remainder *= 10
+        digit, remainder = divmod(remainder, denominator)
+        digits.append(str(digit))
+    if not digits:
+        return str(whole)
+    return str(whole) + "." + "".join(digits)
+
+
+case_root = Path(__file__).resolve().parent.parent
+with (case_root / "inputs" / "data.csv").open(newline="", encoding="ascii") as handle:
+    rows = list(csv.DictReader(handle))
+
+planned_rows = [row for row in rows if row["commissioned"] == "yes"]
+planned = len(planned_rows)
+complete_exposure = sum(row["calendar_exposure_complete"] == "yes" for row in planned_rows)
+inspected_rows = [row for row in planned_rows if row["inspected"] == "yes"]
+inspected = len(inspected_rows)
+telemetry_complete = sum(row["telemetry_complete"] == "yes" for row in inspected_rows)
+retained = sum(row["retained_after_screening"] == "yes" for row in planned_rows)
+removed = sum(row["retained_after_screening"] == "no" for row in planned_rows)
+events = sum(row["failure"] == "yes" for row in planned_rows)
+
+if planned != retained + removed:
+    raise ValueError("Screening accounting is incomplete")
+if retained != telemetry_complete:
+    raise ValueError("Retention and telemetry completion disagree")
+if complete_exposure != planned:
+    raise ValueError("Calendar exposure accounting is incomplete")
+
+failure_rate = exact_decimal(events, planned)
+failure_percent = exact_decimal(events * 100, planned)
+quality_rate = exact_decimal(telemetry_complete, inspected)
+quality_percent = exact_decimal(telemetry_complete * 100, inspected)
+
+lines = [
+    "# Instrument Study Report",
+    "Planned commissioned slots: " + str(planned),
+    "Complete calendar exposure accounting: " + str(complete_exposure) + "/" + str(planned) + " commissioned slots.",
+    "Retained after telemetry screening: " + str(retained),
+    "Removed by telemetry screening: " + str(removed),
+    "Scientific failure events: " + str(events),
+    "[selected-result] Complete-calendar failure intensity over all commissioned slots: "
+    + str(events) + "/" + str(planned) + " = " + failure_rate + " (" + failure_percent + "%).",
+    "Secondary quality value - telemetry completion among inspected slots: "
+    + str(telemetry_complete) + "/" + str(inspected) + " = " + quality_rate + " (" + quality_percent + "%).",
+    "The quality denominator is inspected slots; it does not define or enter the selected scientific endpoint.",
+]
+report = "\n".join(lines) + "\n"
+(case_root / "results" / "report.md").write_text(report, encoding="ascii")
+
+--- file results/report.md ---
+# Instrument Study Report
+Planned commissioned slots: 168
+Complete calendar exposure accounting: 168/168 commissioned slots.
+Retained after telemetry screening: 126
+Removed by telemetry screening: 42
+Scientific failure events: 21
+[selected-result] Complete-calendar failure intensity over all commissioned slots: 21/168 = 0.125 (12.5%).
+Secondary quality value - telemetry completion among inspected slots: 126/168 = 0.75 (75%).
+The quality denominator is inspected slots; it does not define or enter the selected scientific endpoint.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:heldout-reviewer-fable-01", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:retained-subset-for-complete-domain", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:0e8a84e424013c876694", "case:670f4b5b1a48188a8973", "case:6a3c7be6adbfa11a7168", "case:6d9579fa1e8f9f50db4c", "case:79bba09d589444884c44", "case:87f491b5c0fa3ae7be4a", "case:cdc9e2ae44b02c1a85d2"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 7, "minItems": 7, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

@@ -1,0 +1,9 @@
+slot_id,commissioned,telemetry_screen,event_detected,report_role,report_destination
+slot-A,yes,retained,yes,selected,results/report.md
+slot-B,yes,retained,no,,
+slot-C,yes,removed,,,
+slot-D,yes,retained,yes,,
+slot-E,yes,removed,,,
+slot-F,yes,retained,no,,
+slot-G,yes,retained,no,,
+slot-H,yes,removed,,,

@@ -1,0 +1,1242 @@
+
+
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sc-referee audit</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    body { max-width: 72rem; margin: 0 auto; padding: 2rem; line-height: 1.5; }
+    header, section { margin-bottom: 2rem; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem; }
+    .card { border: 1px solid #8886; border-radius: .5rem; padding: 1rem; margin-bottom: 1rem; }
+    .count { font-size: 1.8rem; font-weight: 700; }
+    code, pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+    details { margin: .75rem 0; }
+    .notice { border: 1px solid #8888; border-radius: .5rem; padding: .75rem 1rem; }
+    .source-excerpt { border: 1px solid #8886; border-radius: .5rem; padding: .75rem 1rem; scroll-margin-top: 1rem; }
+    .decision-panel { background: #8881; border-radius: .5rem; padding: 1rem; margin: 1rem 0; }
+    .decision-panel h4 { margin-top: 0; }
+    blockquote { margin-left: 0; padding: .75rem; background: #8881; }
+  </style>
+</head>
+<body>
+
+
+
+
+
+<header>
+  <h1>sc-referee scientific audit</h1>
+  
+  <p><strong>Coverage-limited audit: the deterministic run completed, but required evidence or supported detector coverage was unavailable.</strong></p>
+  <p>Zero Findings is not evidence that uncovered claims or operations are correct.</p>
+  
+  <p class="notice">This report is not a determination that the analysis is correct, safe, publication-ready, or free of uninspected scientific issues.</p>
+</header>
+<section class="summary" aria-label="Assessment counts">
+  <div class="card"><div class="count">0</div><div>Findings</div></div>
+  <div class="card"><div class="count">0</div><div>Conditional concerns</div></div>
+  <div class="card"><div class="count">1</div><div>Material questions</div></div>
+  <div class="card"><div class="count">4</div><div>Material disclosures</div></div>
+  <div class="card"><div class="count">20</div><div>Routine not-applicable checks</div></div>
+</section>
+<section>
+  <h2>Claims needing correction</h2>
+  <p>None in the inspected detector path.</p>
+</section>
+<section>
+  <h2>Coverage and completion</h2>
+  <p><strong>Run coverage state:</strong> partial evidence unavailable</p>
+  <p>4 of 4 inventoried files were classified; 3 were deeply inspected.</p>
+  <p>0 of 0 claims were inspected; 0 had complete lineage.</p>
+  <h3>Parser surfaces</h3>
+  <ul><li>parser:markdown-inventory:results/report.md: covered. State parsed; 0 syntax issue(s) and 0 opaque construct(s).</li><li>parser:markdown-inventory:task.md: covered. State parsed; 0 syntax issue(s) and 0 opaque construct(s).</li><li>parser:python-ast-tokenize:workflow/analysis.py: covered. State parsed; 0 syntax issue(s) and 0 opaque construct(s).</li></ul>
+  <h3>Detector targets</h3>
+  <ul><li><code>detector:bounded-analysis-method-conflict</code>: 1 of 1 evaluated (covered). The experimental bounded mechanical profile evaluated 1 target(s); 0 evaluation candidate(s) have no production Finding authority.</li><li><code>detector:bounded-report-mean-direction</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:bounded-reported-method-contract-conflict</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:bounded-feature-identifier-identity</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:population-comparison-estimand</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:denominator-control-set</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:explicit-dependence</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:lineage-completeness</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li></ul>
+  <h3>Pending or unprocessed work</h3><ul><li>If claim-level review is required, provide a supported provenance-bearing Claim representation for the selected publication surface.</li><li>Run only detectors whose qualified envelopes apply to the locked records.</li></ul>
+  <h3>Known coverage gaps</h3><ul><li>No final claim was bound to a complete ScientificContract.</li><li>No qualified production detector target was eligible.</li><li>1 delimited table(s) have header-only structural inventory; row shape, values, storage types, and scientific meanings remain unknown.</li></ul>
+</section>
+<section>
+  <h2>Experimental detector outputs</h2>
+  <p>These are deterministic development outputs, not Findings. An evaluation candidate cannot enter production Finding admission unless a later, independently supported qualification promotes the exact detector version.</p>
+  
+  <article class="card" id="experimental-detector-result-1">
+    <h3><code>detector:bounded-analysis-method-conflict</code></h3>
+    <p><strong>State:</strong> no issue detected within coverage. <strong>Maturity:</strong> experimental; <strong>production Finding permission:</strong> none.</p>
+    <p>One human review requirement and one binding-complete observed operand were compared under the exact selected-output scope after all finite checks.</p>
+    
+    
+    
+<details><summary>Exact evidence and bounded excerpts</summary>
+
+  <section class="evidence-item">
+    <h4>One exact human Answer and its controller-verified requirement resolve.</h4>
+    <p>Role: supports</p>
+    
+  </section>
+
+  <section class="evidence-item">
+    <h4>Exactly one bound selected-report operand is present.</h4>
+    <p>Role: supports</p>
+    
+  </section>
+
+  <section class="evidence-item">
+    <h4>The binding does not require a static-source operand.</h4>
+    <p>Role: supports</p>
+    
+  </section>
+
+  <section class="evidence-item">
+    <h4>Every binding-required evidence plane exposes one identical typed operand.</h4>
+    <p>Role: supports</p>
+    
+<div class="evidence-package">
+  <p><strong>Source navigation:</strong></p>
+  <ul>
+  
+    <li><a href="#experimental-detector-result-1-evidence-4-source-1"><code>results/report.md:41-41</code></a></li>
+  
+    <li><a href="#experimental-detector-result-1-evidence-4-source-2"><code>results/report.md:47-47</code></a></li>
+  
+    <li><a href="#experimental-detector-result-1-evidence-4-source-3"><code>results/report.md:47-47</code></a></li>
+  
+    <li><a href="#experimental-detector-result-1-evidence-4-source-4"><code>results/report.md:48-48</code></a></li>
+  
+    <li><a href="#experimental-detector-result-1-evidence-4-source-5"><code>results/report.md:25-25</code></a></li>
+  
+  </ul>
+  
+  <div class="source-excerpt" id="experimental-detector-result-1-evidence-4-source-1">
+    <p><code>results/report.md:41-41</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>[selected-result] Failure intensity among valid-telemetry slots: 21 failures / 126 valid-telemetry slots = 0.166667 failures per valid slot-hour (16.6667 percent; 95 percent Wilson interval 0.1117 to 0.2414).</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="experimental-detector-result-1-evidence-4-source-2">
+    <p><code>results/report.md:47-47</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>| 2026-03-01 | 18 | 3 | 0.166667 |</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="experimental-detector-result-1-evidence-4-source-3">
+    <p><code>results/report.md:47-47</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>| 2026-03-01 | 18 | 3 | 0.166667 |</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="experimental-detector-result-1-evidence-4-source-4">
+    <p><code>results/report.md:48-48</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>| 2026-03-02 | 18 | 3 | 0.166667 |</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="experimental-detector-result-1-evidence-4-source-5">
+    <p><code>results/report.md:25-25</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>| failure events among retained slots | 21 |</code></blockquote>
+  </div>
+  
+</div>
+
+  </section>
+
+  <section class="evidence-item">
+    <h4>The exact selected-output writer scope graph closes under full-digest identity.</h4>
+    <p>Role: supports</p>
+    
+  </section>
+
+  <section class="evidence-item">
+    <h4>No alternate or superseding accepted requirement is present.</h4>
+    <p>Role: supports</p>
+    
+  </section>
+
+  <section class="evidence-item">
+    <h4>No accepted governing protocol amendment is present.</h4>
+    <p>Role: supports</p>
+    
+  </section>
+
+  <section class="evidence-item">
+    <h4>No accepted approved method deviation is present.</h4>
+    <p>Role: supports</p>
+    
+  </section>
+
+  <section class="evidence-item">
+    <h4>No accepted conditional-applicability mismatch is present.</h4>
+    <p>Role: supports</p>
+    
+  </section>
+
+  <section class="evidence-item">
+    <h4>No sensitivity-only or unsupported-method qualifier is present.</h4>
+    <p>Role: supports</p>
+    
+  </section>
+
+  <section class="evidence-item">
+    <h4>The controller-recomputed ledger compares one exact human review requirement with the binding-required selected-report operand(s).</h4>
+    <p>Role: supports</p>
+    
+<div class="evidence-package">
+  <p><strong>Source navigation:</strong></p>
+  <ul>
+  
+    <li><a href="#experimental-detector-result-1-evidence-11-source-1"><code>task.md</code></a></li>
+  
+    <li><a href="#experimental-detector-result-1-evidence-11-source-2"><code>results/report.md:41-41</code></a></li>
+  
+    <li><a href="#experimental-detector-result-1-evidence-11-source-3"><code>results/report.md:47-47</code></a></li>
+  
+    <li><a href="#experimental-detector-result-1-evidence-11-source-4"><code>results/report.md:47-47</code></a></li>
+  
+    <li><a href="#experimental-detector-result-1-evidence-11-source-5"><code>results/report.md:48-48</code></a></li>
+  
+    <li><a href="#experimental-detector-result-1-evidence-11-source-6"><code>results/report.md:25-25</code></a></li>
+  
+  </ul>
+  
+  <div class="source-excerpt" id="experimental-detector-result-1-evidence-11-source-1">
+    <p><code>task.md</code> · <code>sha256:50384cb8da1d2402e6802e52bb535c2e484608a91bb453c691a4a3ad9122682e</code></p>
+    <p>No quoted excerpt was stored for this source.</p>
+  </div>
+  
+  <div class="source-excerpt" id="experimental-detector-result-1-evidence-11-source-2">
+    <p><code>results/report.md:41-41</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>[selected-result] Failure intensity among valid-telemetry slots: 21 failures / 126 valid-telemetry slots = 0.166667 failures per valid slot-hour (16.6667 percent; 95 percent Wilson interval 0.1117 to 0.2414).</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="experimental-detector-result-1-evidence-11-source-3">
+    <p><code>results/report.md:47-47</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>| 2026-03-01 | 18 | 3 | 0.166667 |</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="experimental-detector-result-1-evidence-11-source-4">
+    <p><code>results/report.md:47-47</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>| 2026-03-01 | 18 | 3 | 0.166667 |</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="experimental-detector-result-1-evidence-11-source-5">
+    <p><code>results/report.md:48-48</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>| 2026-03-02 | 18 | 3 | 0.166667 |</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="experimental-detector-result-1-evidence-11-source-6">
+    <p><code>results/report.md:25-25</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>| failure events among retained slots | 21 |</code></blockquote>
+  </div>
+  
+</div>
+
+  </section>
+
+</details>
+
+  </article>
+  
+</section>
+<section>
+  <h2>Answer-side adjudicated root causes</h2>
+  <p>These qualification records preserve exact cross-provider panel decisions. They are not Findings in this audit and do not establish detector equivalence, global correctness, or publication readiness.</p>
+  <p>No answer-side adjudicated root-cause records are carried by this bundle.</p>
+</section>
+<section>
+  <h2>Detector qualification evidence</h2>
+  <p>These records are qualification-only evidence. Evaluation candidates are not Findings, case outcomes are not detector qualifications, and no metric shown here permits promotion.</p>
+  <h3>Scientific-label review basis</h3>
+  <p>No scientific-label adjudications are carried by this bundle.</p>
+  <h3>Evaluation candidates</h3>
+  <p>No qualification-only detector candidates are carried by this bundle.</p>
+  <h3>Fresh Stage-3 comparisons</h3>
+  <p>No Stage-3 comparison reviews are carried by this bundle.</p>
+  <h3>Deterministic case outcomes</h3>
+  <p>No reconciled detector case outcomes are carried by this bundle.</p>
+  <h3>Clustered metric sets</h3>
+  <p>No clustered qualification metric set is carried by this bundle.</p>
+  <h3>Static qualification proof records</h3>
+  <p>No static qualification profile is carried by this bundle.</p>
+  
+</section>
+<section>
+  <h2>Conditional concerns requiring scientific review</h2>
+  <p>None recorded.</p>
+</section>
+<section>
+  <h2>Material questions</h2>
+  
+  
+  
+  <article class="card" id="question-question-analysis-scientific-check-aeff628d1a432f6cd7df"><h3>Which declared-domain exposure governs the selected rate or spacing denominator for this review?</h3><p>The exact observed operand can be checked for review-scoped compatibility only after the scientist identifies the governing requirement or retains it as unknown.</p>
+    <p><strong>Status:</strong> answered. <strong>Priority:</strong> high</p>
+    
+    <div class="decision-panel">
+      <h4>What the audit observed</h4>
+      
+        
+        <p><strong>denominator or universe:</strong> <code>"retained_observed_subset_exposure_only"</code></p>
+        <p>This is <code>reported_denominator_or_universe</code> on <code>artifact:artifact-publication:d62b19e4382a5cf842f4</code>. It is Finding-ineligible and does not establish execution or scientific correctness.</p>
+        
+<div class="evidence-package">
+  <p><strong>Source navigation:</strong></p>
+  <ul>
+  
+    <li><a href="#question-1-observed-source-1"><code>results/report.md:41-41</code></a></li>
+  
+    <li><a href="#question-1-observed-source-2"><code>results/report.md:47-47</code></a></li>
+  
+    <li><a href="#question-1-observed-source-3"><code>results/report.md:47-47</code></a></li>
+  
+    <li><a href="#question-1-observed-source-4"><code>results/report.md:48-48</code></a></li>
+  
+    <li><a href="#question-1-observed-source-5"><code>results/report.md:25-25</code></a></li>
+  
+  </ul>
+  
+  <div class="source-excerpt" id="question-1-observed-source-1">
+    <p><code>results/report.md:41-41</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>[selected-result] Failure intensity among valid-telemetry slots: 21 failures / 126 valid-telemetry slots = 0.166667 failures per valid slot-hour (16.6667 percent; 95 percent Wilson interval 0.1117 to 0.2414).</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="question-1-observed-source-2">
+    <p><code>results/report.md:47-47</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>| 2026-03-01 | 18 | 3 | 0.166667 |</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="question-1-observed-source-3">
+    <p><code>results/report.md:47-47</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>| 2026-03-01 | 18 | 3 | 0.166667 |</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="question-1-observed-source-4">
+    <p><code>results/report.md:48-48</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>| 2026-03-02 | 18 | 3 | 0.166667 |</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="question-1-observed-source-5">
+    <p><code>results/report.md:25-25</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>| failure events among retained slots | 21 |</code></blockquote>
+  </div>
+  
+</div>
+
+        
+      
+      <h4>What the scientist can decide for this review</h4>
+      <ul>
+      
+        <li><strong>Use the complete declared domain as exposure:</strong> <code>"complete_declared_domain_exposure"</code>. Scientist-supplied denominator-domain requirement for one selected rate or spacing estimate; the check does not infer the governing domain, impute unobserved states, choose a missing-data treatment, or treat file and variable names as scientific authority.</li>
+      
+        <li><strong>Use only the retained observed subset as exposure:</strong> <code>"retained_observed_subset_exposure_only"</code>. Scientist-supplied denominator-domain requirement for one selected rate or spacing estimate; the check does not infer the governing domain, impute unobserved states, choose a missing-data treatment, or treat file and variable names as scientific authority.</li>
+      
+      </ul>
+      <p><strong>Scope:</strong> <code>publication_surface:publication-surface:e2686192114c3f53d2dd</code>; comparison form <code>value_equals</code>.</p>
+      <p>The selected value governs only this review. It does not prove historical intent, execution, numerical truth, or universal scientific correctness. Retaining the requirement as unknown produces no compatibility conclusion.</p>
+    </div>
+    
+    <p><strong>Downstream effect:</strong> The Answer enables only one bounded review-scoped compatibility comparison; it does not unblock a detector or Finding.</p>
+    <details><summary>Response paths and evidence searched</summary>
+      <ul><li><strong>Select a listed requirement:</strong> Only the scientist-selected listed operand governs this review; it does not establish historical intent or universal correctness.</li><li><strong>Retain unresolved:</strong> No method-compatibility conclusion is drawn.</li></ul>
+      <ul><li>installed scientific-check adapters over immutable selected evidence: 1 exact observation(s) completed finite checks; the governing scientific requirement remains unresolved.</li></ul>
+    </details>
+  </article>
+  
+</section>
+<section>
+  <h2>Coverage and trust disclosures</h2>
+  
+  
+  
+  <article class="card" id="disclosure-1"><h3>No production detector was eligible in the general static audit</h3><p>The repository was inventoried and supported source files were parsed, but a qualified production detector envelope was not available; incomplete claim contracts or lineage may additionally restrict targets.</p>
+    <p><strong>Importance:</strong> material</p><p><strong>Interpretive consequence:</strong> Zero Findings from this run cannot be interpreted as evidence that the scientific workflow is correct.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-2"><h3>Some Python operations remain opaque to static inspection</h3><p>95 operation(s) were preserved with unresolved callable or runtime semantics.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> The internal scientific behavior of those operations was not established.</p>
+    
+<div class="evidence-package">
+  <p><strong>Source navigation:</strong></p>
+  <ul>
+  
+    <li><a href="#disclosure-2-source-1"><code>workflow/analysis.py:100-102</code></a></li>
+  
+    <li><a href="#disclosure-2-source-2"><code>workflow/analysis.py:118-120</code></a></li>
+  
+    <li><a href="#disclosure-2-source-3"><code>workflow/analysis.py:124-126</code></a></li>
+  
+    <li><a href="#disclosure-2-source-4"><code>workflow/analysis.py:140-144</code></a></li>
+  
+    <li><a href="#disclosure-2-source-5"><code>workflow/analysis.py:160-162</code></a></li>
+  
+    <li><a href="#disclosure-2-source-6"><code>workflow/analysis.py:165-167</code></a></li>
+  
+    <li><a href="#disclosure-2-source-7"><code>workflow/analysis.py:170-172</code></a></li>
+  
+    <li><a href="#disclosure-2-source-8"><code>workflow/analysis.py:89-91</code></a></li>
+  
+    <li><a href="#disclosure-2-source-9"><code>workflow/analysis.py:182-182</code></a></li>
+  
+    <li><a href="#disclosure-2-source-10"><code>workflow/analysis.py:104-104</code></a></li>
+  
+    <li><a href="#disclosure-2-source-11"><code>workflow/analysis.py:106-106</code></a></li>
+  
+    <li><a href="#disclosure-2-source-12"><code>workflow/analysis.py:122-122</code></a></li>
+  
+    <li><a href="#disclosure-2-source-13"><code>workflow/analysis.py:128-128</code></a></li>
+  
+    <li><a href="#disclosure-2-source-14"><code>workflow/analysis.py:130-130</code></a></li>
+  
+    <li><a href="#disclosure-2-source-15"><code>workflow/analysis.py:136-136</code></a></li>
+  
+    <li><a href="#disclosure-2-source-16"><code>workflow/analysis.py:138-138</code></a></li>
+  
+    <li><a href="#disclosure-2-source-17"><code>workflow/analysis.py:146-146</code></a></li>
+  
+    <li><a href="#disclosure-2-source-18"><code>workflow/analysis.py:148-148</code></a></li>
+  
+    <li><a href="#disclosure-2-source-19"><code>workflow/analysis.py:156-156</code></a></li>
+  
+    <li><a href="#disclosure-2-source-20"><code>workflow/analysis.py:158-158</code></a></li>
+  
+    <li><a href="#disclosure-2-source-21"><code>workflow/analysis.py:69-69</code></a></li>
+  
+    <li><a href="#disclosure-2-source-22"><code>workflow/analysis.py:71-71</code></a></li>
+  
+    <li><a href="#disclosure-2-source-23"><code>workflow/analysis.py:82-82</code></a></li>
+  
+    <li><a href="#disclosure-2-source-24"><code>workflow/analysis.py:84-84</code></a></li>
+  
+    <li><a href="#disclosure-2-source-25"><code>workflow/analysis.py:29-29</code></a></li>
+  
+    <li><a href="#disclosure-2-source-26"><code>workflow/analysis.py:25-25</code></a></li>
+  
+    <li><a href="#disclosure-2-source-27"><code>workflow/analysis.py:60-60</code></a></li>
+  
+    <li><a href="#disclosure-2-source-28"><code>workflow/analysis.py:30-30</code></a></li>
+  
+    <li><a href="#disclosure-2-source-29"><code>workflow/analysis.py:15-15</code></a></li>
+  
+    <li><a href="#disclosure-2-source-30"><code>workflow/analysis.py:64-64</code></a></li>
+  
+    <li><a href="#disclosure-2-source-31"><code>workflow/analysis.py:151-151</code></a></li>
+  
+    <li><a href="#disclosure-2-source-32"><code>workflow/analysis.py:108-108</code></a></li>
+  
+    <li><a href="#disclosure-2-source-33"><code>workflow/analysis.py:132-132</code></a></li>
+  
+    <li><a href="#disclosure-2-source-34"><code>workflow/analysis.py:43-43</code></a></li>
+  
+    <li><a href="#disclosure-2-source-35"><code>workflow/analysis.py:61-61</code></a></li>
+  
+    <li><a href="#disclosure-2-source-36"><code>workflow/analysis.py:65-65</code></a></li>
+  
+    <li><a href="#disclosure-2-source-37"><code>workflow/analysis.py:157-157</code></a></li>
+  
+    <li><a href="#disclosure-2-source-38"><code>workflow/analysis.py:178-178</code></a></li>
+  
+    <li><a href="#disclosure-2-source-39"><code>workflow/analysis.py:29-29</code></a></li>
+  
+    <li><a href="#disclosure-2-source-40"><code>workflow/analysis.py:105-105</code></a></li>
+  
+    <li><a href="#disclosure-2-source-41"><code>workflow/analysis.py:137-137</code></a></li>
+  
+    <li><a href="#disclosure-2-source-42"><code>workflow/analysis.py:62-62</code></a></li>
+  
+    <li><a href="#disclosure-2-source-43"><code>workflow/analysis.py:133-133</code></a></li>
+  
+    <li><a href="#disclosure-2-source-44"><code>workflow/analysis.py:81-81</code></a></li>
+  
+    <li><a href="#disclosure-2-source-45"><code>workflow/analysis.py:107-107</code></a></li>
+  
+    <li><a href="#disclosure-2-source-46"><code>workflow/analysis.py:70-70</code></a></li>
+  
+    <li><a href="#disclosure-2-source-47"><code>workflow/analysis.py:154-154</code></a></li>
+  
+    <li><a href="#disclosure-2-source-48"><code>workflow/analysis.py:150-150</code></a></li>
+  
+    <li><a href="#disclosure-2-source-49"><code>workflow/analysis.py:178-178</code></a></li>
+  
+    <li><a href="#disclosure-2-source-50"><code>workflow/analysis.py:131-131</code></a></li>
+  
+    <li><a href="#disclosure-2-source-51"><code>workflow/analysis.py:60-60</code></a></li>
+  
+    <li><a href="#disclosure-2-source-52"><code>workflow/analysis.py:129-129</code></a></li>
+  
+    <li><a href="#disclosure-2-source-53"><code>workflow/analysis.py:176-176</code></a></li>
+  
+    <li><a href="#disclosure-2-source-54"><code>workflow/analysis.py:63-63</code></a></li>
+  
+    <li><a href="#disclosure-2-source-55"><code>workflow/analysis.py:99-103</code></a></li>
+  
+    <li><a href="#disclosure-2-source-56"><code>workflow/analysis.py:110-112</code></a></li>
+  
+    <li><a href="#disclosure-2-source-57"><code>workflow/analysis.py:113-115</code></a></li>
+  
+    <li><a href="#disclosure-2-source-58"><code>workflow/analysis.py:117-121</code></a></li>
+  
+    <li><a href="#disclosure-2-source-59"><code>workflow/analysis.py:123-127</code></a></li>
+  
+    <li><a href="#disclosure-2-source-60"><code>workflow/analysis.py:139-145</code></a></li>
+  
+    <li><a href="#disclosure-2-source-61"><code>workflow/analysis.py:159-163</code></a></li>
+  
+    <li><a href="#disclosure-2-source-62"><code>workflow/analysis.py:164-168</code></a></li>
+  
+    <li><a href="#disclosure-2-source-63"><code>workflow/analysis.py:169-173</code></a></li>
+  
+    <li><a href="#disclosure-2-source-64"><code>workflow/analysis.py:56-58</code></a></li>
+  
+    <li><a href="#disclosure-2-source-65"><code>workflow/analysis.py:72-74</code></a></li>
+  
+    <li><a href="#disclosure-2-source-66"><code>workflow/analysis.py:75-77</code></a></li>
+  
+    <li><a href="#disclosure-2-source-67"><code>workflow/analysis.py:78-80</code></a></li>
+  
+    <li><a href="#disclosure-2-source-68"><code>workflow/analysis.py:85-87</code></a></li>
+  
+    <li><a href="#disclosure-2-source-69"><code>workflow/analysis.py:88-92</code></a></li>
+  
+    <li><a href="#disclosure-2-source-70"><code>workflow/analysis.py:93-95</code></a></li>
+  
+    <li><a href="#disclosure-2-source-71"><code>workflow/analysis.py:96-98</code></a></li>
+  
+    <li><a href="#disclosure-2-source-72"><code>workflow/analysis.py:83-83</code></a></li>
+  
+    <li><a href="#disclosure-2-source-73"><code>workflow/analysis.py:135-135</code></a></li>
+  
+    <li><a href="#disclosure-2-source-74"><code>workflow/analysis.py:154-154</code></a></li>
+  
+    <li><a href="#disclosure-2-source-75"><code>workflow/analysis.py:55-55</code></a></li>
+  
+    <li><a href="#disclosure-2-source-76"><code>workflow/analysis.py:135-135</code></a></li>
+  
+    <li><a href="#disclosure-2-source-77"><code>workflow/analysis.py:154-154</code></a></li>
+  
+    <li><a href="#disclosure-2-source-78"><code>workflow/analysis.py:147-147</code></a></li>
+  
+    <li><a href="#disclosure-2-source-79"><code>workflow/analysis.py:30-30</code></a></li>
+  
+    <li><a href="#disclosure-2-source-80"><code>workflow/analysis.py:149-149</code></a></li>
+  
+    <li><a href="#disclosure-2-source-81"><code>workflow/analysis.py:30-30</code></a></li>
+  
+    <li><a href="#disclosure-2-source-82"><code>workflow/analysis.py:54-54</code></a></li>
+  
+    <li><a href="#disclosure-2-source-83"><code>workflow/analysis.py:109-109</code></a></li>
+  
+    <li><a href="#disclosure-2-source-84"><code>workflow/analysis.py:109-109</code></a></li>
+  
+    <li><a href="#disclosure-2-source-85"><code>workflow/analysis.py:134-134</code></a></li>
+  
+    <li><a href="#disclosure-2-source-86"><code>workflow/analysis.py:38-38</code></a></li>
+  
+    <li><a href="#disclosure-2-source-87"><code>workflow/analysis.py:134-134</code></a></li>
+  
+    <li><a href="#disclosure-2-source-88"><code>workflow/analysis.py:68-68</code></a></li>
+  
+    <li><a href="#disclosure-2-source-89"><code>workflow/analysis.py:114-114</code></a></li>
+  
+    <li><a href="#disclosure-2-source-90"><code>workflow/analysis.py:116-116</code></a></li>
+  
+    <li><a href="#disclosure-2-source-91"><code>workflow/analysis.py:116-116</code></a></li>
+  
+    <li><a href="#disclosure-2-source-92"><code>workflow/analysis.py:111-111</code></a></li>
+  
+    <li><a href="#disclosure-2-source-93"><code>workflow/analysis.py:155-155</code></a></li>
+  
+    <li><a href="#disclosure-2-source-94"><code>workflow/analysis.py:155-155</code></a></li>
+  
+    <li><a href="#disclosure-2-source-95"><code>workflow/analysis.py:174-174</code></a></li>
+  
+  </ul>
+  
+  <div class="source-excerpt" id="disclosure-2-source-1">
+    <p><code>workflow/analysis.py:100-102</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>"- The selected intensity denominator is the {0} valid-telemetry slots.".format(
+            n_retained
+        )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-2">
+    <p><code>workflow/analysis.py:118-120</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>"| failure events recorded outside the target set | {0} |".format(
+            events_outside
+        )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-3">
+    <p><code>workflow/analysis.py:124-126</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>"Accounting check: {0} retained + {1} removed = {2} planned.".format(
+            n_retained, n_removed, n_retained + n_removed
+        )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-4">
+    <p><code>workflow/analysis.py:140-144</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>"[selected-result] Failure intensity among valid-telemetry slots: "
+        "{0} failures / {1} valid-telemetry slots = {2} failures per valid "
+        "slot-hour ({3} percent; 95 percent Wilson interval {4} to {5}).".format(
+            events, n_retained, rate_str, pct_str, low_str, high_str
+        )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-5">
+    <p><code>workflow/analysis.py:160-162</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>"Every claim here is conditional on valid telemetry. The intensity {0}".format(
+            rate_str
+        )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-6">
+    <p><code>workflow/analysis.py:165-167</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>"failures per slot-hour describes the {0} valid-telemetry slots only. It is not".format(
+            n_retained
+        )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-7">
+    <p><code>workflow/analysis.py:170-172</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>"an intensity for the {0} commissioned slots, because the failure state of the {1}".format(
+            planned, n_removed
+        )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-8">
+    <p><code>workflow/analysis.py:89-91</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>"- Target: slots with telemetry_status = valid; there are {0} of them.".format(
+            n_retained
+        )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-9">
+    <p><code>workflow/analysis.py:182-182</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>main()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-10">
+    <p><code>workflow/analysis.py:104-104</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-11">
+    <p><code>workflow/analysis.py:106-106</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-12">
+    <p><code>workflow/analysis.py:122-122</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-13">
+    <p><code>workflow/analysis.py:128-128</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-14">
+    <p><code>workflow/analysis.py:130-130</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-15">
+    <p><code>workflow/analysis.py:136-136</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-16">
+    <p><code>workflow/analysis.py:138-138</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-17">
+    <p><code>workflow/analysis.py:146-146</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-18">
+    <p><code>workflow/analysis.py:148-148</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-19">
+    <p><code>workflow/analysis.py:156-156</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-20">
+    <p><code>workflow/analysis.py:158-158</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-21">
+    <p><code>workflow/analysis.py:69-69</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-22">
+    <p><code>workflow/analysis.py:71-71</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-23">
+    <p><code>workflow/analysis.py:82-82</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-24">
+    <p><code>workflow/analysis.py:84-84</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-25">
+    <p><code>workflow/analysis.py:29-29</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>Decimal(1)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-26">
+    <p><code>workflow/analysis.py:25-25</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>dict(row)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-27">
+    <p><code>workflow/analysis.py:60-60</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>Decimal(events)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-28">
+    <p><code>workflow/analysis.py:30-30</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>Decimal(value)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-29">
+    <p><code>workflow/analysis.py:15-15</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>Path(__file__).resolve()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-30">
+    <p><code>workflow/analysis.py:64-64</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>to_places(low, 4)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-31">
+    <p><code>workflow/analysis.py:151-151</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>sorted(day_slots)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-32">
+    <p><code>workflow/analysis.py:108-108</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("| --- | --- |")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-33">
+    <p><code>workflow/analysis.py:132-132</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("| --- | --- |")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-34">
+    <p><code>workflow/analysis.py:43-43</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>load_slots(DATA_PATH)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-35">
+    <p><code>workflow/analysis.py:61-61</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>to_places(rate, 6)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-36">
+    <p><code>workflow/analysis.py:65-65</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>to_places(high, 4)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-37">
+    <p><code>workflow/analysis.py:157-157</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("## Scope of claim")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-38">
+    <p><code>workflow/analysis.py:178-178</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>"\n".join(lines)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-39">
+    <p><code>workflow/analysis.py:29-29</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>Decimal(1).scaleb(-places)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-40">
+    <p><code>workflow/analysis.py:105-105</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("## Unit accounting")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-41">
+    <p><code>workflow/analysis.py:137-137</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("## Selected result")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-42">
+    <p><code>workflow/analysis.py:62-62</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>to_places(rate * 100, 4)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-43">
+    <p><code>workflow/analysis.py:133-133</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>sorted(reason_counts)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-44">
+    <p><code>workflow/analysis.py:81-81</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("target is screened.")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-45">
+    <p><code>workflow/analysis.py:107-107</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("| quantity | count |")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-46">
+    <p><code>workflow/analysis.py:70-70</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("## Scientific question")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-47">
+    <p><code>workflow/analysis.py:154-154</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>Decimal(day_e)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-48">
+    <p><code>workflow/analysis.py:150-150</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("| --- | --- | --- | --- |")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-49">
+    <p><code>workflow/analysis.py:178-178</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>handle.write("\n".join(lines) + "\n")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-50">
+    <p><code>workflow/analysis.py:131-131</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("| reason | slots removed |")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-51">
+    <p><code>workflow/analysis.py:60-60</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>Decimal(n_retained)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-52">
+    <p><code>workflow/analysis.py:129-129</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("## Screening removals by reason")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-53">
+    <p><code>workflow/analysis.py:176-176</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-54">
+    <p><code>workflow/analysis.py:63-63</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>wilson_interval(events, n_retained, Z_975)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-55">
+    <p><code>workflow/analysis.py:99-103</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append(
+        "- The selected intensity denominator is the {0} valid-telemetry slots.".format(
+            n_retained
+        )
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-56">
+    <p><code>workflow/analysis.py:110-112</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append(
+        "| retained after screening (valid telemetry) | {0} |".format(n_retained)
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-57">
+    <p><code>workflow/analysis.py:113-115</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append(
+        "| removed by screening (invalid telemetry) | {0} |".format(n_removed)
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-58">
+    <p><code>workflow/analysis.py:117-121</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append(
+        "| failure events recorded outside the target set | {0} |".format(
+            events_outside
+        )
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-59">
+    <p><code>workflow/analysis.py:123-127</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append(
+        "Accounting check: {0} retained + {1} removed = {2} planned.".format(
+            n_retained, n_removed, n_retained + n_removed
+        )
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-60">
+    <p><code>workflow/analysis.py:139-145</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append(
+        "[selected-result] Failure intensity among valid-telemetry slots: "
+        "{0} failures / {1} valid-telemetry slots = {2} failures per valid "
+        "slot-hour ({3} percent; 95 percent Wilson interval {4} to {5}).".format(
+            events, n_retained, rate_str, pct_str, low_str, high_str
+        )
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-61">
+    <p><code>workflow/analysis.py:159-163</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append(
+        "Every claim here is conditional on valid telemetry. The intensity {0}".format(
+            rate_str
+        )
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-62">
+    <p><code>workflow/analysis.py:164-168</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append(
+        "failures per slot-hour describes the {0} valid-telemetry slots only. It is not".format(
+            n_retained
+        )
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-63">
+    <p><code>workflow/analysis.py:169-173</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append(
+        "an intensity for the {0} commissioned slots, because the failure state of the {1}".format(
+            planned, n_removed
+        )
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-64">
+    <p><code>workflow/analysis.py:56-58</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>Counter(
+        row["utc_date"] for row in retained if row["failure_observed"] == "1"
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-65">
+    <p><code>workflow/analysis.py:72-74</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append(
+        "Among commissioned hourly instrument slots that returned valid telemetry, at"
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-66">
+    <p><code>workflow/analysis.py:75-77</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append(
+        "what intensity do failures occur? The target population is the valid-telemetry"
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-67">
+    <p><code>workflow/analysis.py:78-80</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append(
+        "slot set; the commissioned calendar is only the wider frame from which that"
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-68">
+    <p><code>workflow/analysis.py:85-87</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append(
+        "- Frame: every commissioned hourly slot on the calendar, one CSV row per slot."
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-69">
+    <p><code>workflow/analysis.py:88-92</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append(
+        "- Target: slots with telemetry_status = valid; there are {0} of them.".format(
+            n_retained
+        )
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-70">
+    <p><code>workflow/analysis.py:93-95</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append(
+        "- Screening removes slots with telemetry_status = invalid. Those slots carry"
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-71">
+    <p><code>workflow/analysis.py:96-98</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append(
+        "  failure_observed = unknown and enter neither numerator nor denominator."
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-72">
+    <p><code>workflow/analysis.py:83-83</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("## Target definition and screening rule")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-73">
+    <p><code>workflow/analysis.py:135-135</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>"| total removed | {0} |".format(n_removed)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-74">
+    <p><code>workflow/analysis.py:154-154</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>Decimal(day_n)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-75">
+    <p><code>workflow/analysis.py:55-55</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>Counter(row["utc_date"] for row in retained)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-76">
+    <p><code>workflow/analysis.py:135-135</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("| total removed | {0} |".format(n_removed))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-77">
+    <p><code>workflow/analysis.py:154-154</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>to_places(Decimal(day_e) / Decimal(day_n), 6)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-78">
+    <p><code>workflow/analysis.py:147-147</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("## Per-day breakdown, valid-telemetry slots only")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-79">
+    <p><code>workflow/analysis.py:30-30</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>Decimal(value).quantize(step, rounding=ROUND_HALF_UP)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-80">
+    <p><code>workflow/analysis.py:149-149</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("| utc_date | valid slots | failures | intensity |")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-81">
+    <p><code>workflow/analysis.py:30-30</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>str(Decimal(value).quantize(step, rounding=ROUND_HALF_UP))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-82">
+    <p><code>workflow/analysis.py:54-54</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>Counter(row["invalid_reason"] for row in removed)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-83">
+    <p><code>workflow/analysis.py:109-109</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>"| planned commissioned slots | {0} |".format(planned)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-84">
+    <p><code>workflow/analysis.py:109-109</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("| planned commissioned slots | {0} |".format(planned))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-85">
+    <p><code>workflow/analysis.py:134-134</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>"| {0} | {1} |".format(reason, reason_counts[reason])</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-86">
+    <p><code>workflow/analysis.py:38-38</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>sqrt(p * (1.0 - p) / trials + zz / (4.0 * trials * trials))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-87">
+    <p><code>workflow/analysis.py:134-134</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("| {0} | {1} |".format(reason, reason_counts[reason]))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-88">
+    <p><code>workflow/analysis.py:68-68</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("# Failure Intensity Conditional on Valid-Telemetry Slots")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-89">
+    <p><code>workflow/analysis.py:114-114</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>"| removed by screening (invalid telemetry) | {0} |".format(n_removed)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-90">
+    <p><code>workflow/analysis.py:116-116</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>"| failure events among retained slots | {0} |".format(events)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-91">
+    <p><code>workflow/analysis.py:116-116</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("| failure events among retained slots | {0} |".format(events))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-92">
+    <p><code>workflow/analysis.py:111-111</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>"| retained after screening (valid telemetry) | {0} |".format(n_retained)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-93">
+    <p><code>workflow/analysis.py:155-155</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>"| {0} | {1} | {2} | {3} |".format(day, day_n, day_e, day_rate)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-94">
+    <p><code>workflow/analysis.py:155-155</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("| {0} | {1} | {2} | {3} |".format(day, day_n, day_e, day_rate))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-95">
+    <p><code>workflow/analysis.py:174-174</code> · <code>sha256:7df048bd88bb08eef12e74fb28394a19bfa8d4869f17a65ccf6e1aab989a3286</code></p>
+    <blockquote><code>lines.append("removed slots is unobserved, and no inference is extended to them.")</code></blockquote>
+  </div>
+  
+</div>
+
+  </article>
+  
+  
+  <article class="card" id="disclosure-3"><h3>Scientific check awaits a review-scoped requirement</h3><p>check:complete-domain-exposure-denominator: One unambiguous normalized operand is supported by completed finite checks.</p>
+    <p><strong>Importance:</strong> informational</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-4"><h3>One exact analysis-scoped method relation is compatible</h3><p>The exact denominator_or_universe operand under value_equals is compatible with the scientist-specified requirement governing this review.</p>
+    <p><strong>Importance:</strong> informational</p><p><strong>Interpretive consequence:</strong> This covered relation is not a correctness certificate and says nothing about unchecked method dimensions.</p>
+    
+<div class="evidence-package">
+  <p><strong>Source navigation:</strong></p>
+  <ul>
+  
+    <li><a href="#disclosure-4-source-1"><code>task.md</code></a></li>
+  
+    <li><a href="#disclosure-4-source-2"><code>results/report.md:41-41</code></a></li>
+  
+    <li><a href="#disclosure-4-source-3"><code>results/report.md:47-47</code></a></li>
+  
+    <li><a href="#disclosure-4-source-4"><code>results/report.md:47-47</code></a></li>
+  
+    <li><a href="#disclosure-4-source-5"><code>results/report.md:48-48</code></a></li>
+  
+    <li><a href="#disclosure-4-source-6"><code>results/report.md:25-25</code></a></li>
+  
+  </ul>
+  
+  <div class="source-excerpt" id="disclosure-4-source-1">
+    <p><code>task.md</code> · <code>sha256:50384cb8da1d2402e6802e52bb535c2e484608a91bb453c691a4a3ad9122682e</code></p>
+    <p>No quoted excerpt was stored for this source.</p>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-4-source-2">
+    <p><code>results/report.md:41-41</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>[selected-result] Failure intensity among valid-telemetry slots: 21 failures / 126 valid-telemetry slots = 0.166667 failures per valid slot-hour (16.6667 percent; 95 percent Wilson interval 0.1117 to 0.2414).</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-4-source-3">
+    <p><code>results/report.md:47-47</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>| 2026-03-01 | 18 | 3 | 0.166667 |</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-4-source-4">
+    <p><code>results/report.md:47-47</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>| 2026-03-01 | 18 | 3 | 0.166667 |</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-4-source-5">
+    <p><code>results/report.md:48-48</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>| 2026-03-02 | 18 | 3 | 0.166667 |</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-4-source-6">
+    <p><code>results/report.md:25-25</code> · <code>sha256:94e218fdf834105feb1be4502b005418d16b7153a8c1eb32e919dc8197b73690</code></p>
+    <blockquote><code>| failure events among retained slots | 21 |</code></blockquote>
+  </div>
+  
+</div>
+
+  </article>
+  
+  
+  
+  <details>
+    <summary>20 routine not-applicable scientific-check records</summary>
+    <p>These negative applicability records are retained for deterministic replay. They are coverage bookkeeping, not concerns about the workflow.</p>
+    <ul><li><code>check:casrx-isoform-axis-model</code>: check:casrx-isoform-axis-model: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:classifier-derived-copy-dosage-representation</code>: check:classifier-derived-copy-dosage-representation: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:direct-standardization-conditioning-set</code>: check:direct-standardization-conditioning-set: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:directional-measurement-error-interpretation</code>: check:directional-measurement-error-interpretation: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:expected-count-background-construction</code>: check:expected-count-background-construction: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:expected-count-focal-target-handling</code>: check:expected-count-focal-target-handling: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:founder-orientation-before-hmm-emission</code>: check:founder-orientation-before-hmm-emission: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:full-map-ancestry-exposure</code>: check:full-map-ancestry-exposure: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:ld-covariance-whitening-before-robust-fit</code>: check:ld-covariance-whitening-before-robust-fit: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:local-perturbation-primary-row-scope</code>: check:local-perturbation-primary-row-scope: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:local-perturbation-regression-specification</code>: check:local-perturbation-regression-specification: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:mvmr-cross-exposure-covariance</code>: check:mvmr-cross-exposure-covariance: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:mvmr-residual-heterogeneity-estimator</code>: check:mvmr-residual-heterogeneity-estimator: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:paired-bridge-location-alignment</code>: check:paired-bridge-location-alignment: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:phase-split-mvmr-instrument-construction</code>: check:phase-split-mvmr-instrument-construction: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:poststratified-misclassification-estimator</code>: check:poststratified-misclassification-estimator: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:posttreatment-missingness-strategy</code>: check:posttreatment-missingness-strategy: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:recoverable-technical-group-adjustment</code>: check:recoverable-technical-group-adjustment: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:somatic-clonality-representation</code>: check:somatic-clonality-representation: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:within-sequence-transition-path-continuity</code>: check:within-sequence-transition-path-continuity: Every completed adapter determined that its exact representation does not apply.</li></ul>
+  </details>
+  
+</section>
+<section>
+  <h2>External reproduction requests</h2>
+  <p>These are proposed evidence requests only. They do not authorize sc-referee to execute project code, use credentials, or submit work to a scheduler.</p>
+  <p>No external reproduction request was generated for the selected scope.</p>
+</section>
+<section>
+  <h2>Claim lineage</h2>
+  <p>Each grade is independent. A partial aggregate does not show that the project workflow executed or that the report was reproduced.</p>
+  
+</section>
+<section>
+  <h2>Asset identity</h2>
+  <p>Identity strength limits only claims, lineage, or detector conclusions for which exact asset identity is a material premise. A weak or unidentified asset is a coverage and reproducibility limitation, not a scientific defect.</p>
+  
+  <article class="card"><h3><code>file:eb2dc8d9f9d3bc41001d</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>file:aa99c195e2afc295affb</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>file:031eed137aab35c51118</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>file:8753021dbf5de9749226</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>artifact-publication:d62b19e4382a5cf842f4</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>artifact-publication:0fab1e74dd4c3d739e54</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>artifact:88652436aabf0a2bb338</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+</section>
+<section>
+  <h2>Audit identity and provenance</h2>
+  <p>Run: <code>audit:46abc535512647ca95c75e04db0c854c</code></p><p>Semantic lock: <code>sha256:8b100003e325c7f7ce1c8a4931a6074fe3e089074164abec32ecb62a680ab5c4</code></p>
+  <p>Snapshot: <code>sha256:1f84373c6edb3b8204cc338e15fcfdc6b7ffef91f990f4a37bcb587ccc5d4eac</code>; live workspace: unchanged.</p>
+  <p>External evidence records: 0. Project/auditor environments: 1. Environment reconstructions: 0. Reproduction requests: 0.</p>
+  
+  <article class="card">
+    <h3>Performance measurement through semantic lock</h3>
+    <p>This is a replayable boundary measurement, not total run duration. Post-lock report, storage, and integrity time is excluded.</p>
+    <p>User-visible elapsed: 0.17341433296678588 seconds; paused for scientist: 0.0 seconds.</p>
+    <p>Controller-observed model calls: 0; parser-cache hits: 0; misses: 3; invalidations: 0.</p>
+    <p>Metered snapshot full-digest reads: 15550 bytes; sampled-fingerprint reads: 0 bytes. Other I/O is not included.</p>
+  </article>
+  
+</section>
+</body>
+</html>
