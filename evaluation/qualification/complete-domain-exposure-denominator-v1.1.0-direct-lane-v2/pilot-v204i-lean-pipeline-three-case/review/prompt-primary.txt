@@ -1,0 +1,553 @@
+You are one independent blind scientific reviewer for opaque analysis
+workspaces. For each case you see exactly four files: the governing task, the staged input
+data, the workflow source, and the produced report. Determine independently for each case
+whether the in-scope issue class issue-class:retained-subset-for-complete-domain is demonstrably present in the selected report,
+using only the visible files. Attempt to falsify your own verdict and report that attempt in
+the required fields. Do not guess unstated intentions; raise unresolved material questions
+only when a genuinely blocking ambiguity remains.
+
+Reviewer participant identity: actor:v204i-reviewer-fable-01
+
+=== workflow 1: case:0a0fe6d8b2c669ec5a68 ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is the complete planned set of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+star_id,spectral_type,coverage_hours,rms_mmag,flare_detected
+MD-01,M3V,7.4,3.1,1
+MD-02,M4V,8.1,2.7,0
+MD-03,M2V,6.5,4.2,0
+MD-04,M5V,7.9,3.6,1
+MD-05,M1V,9.2,2.4,0
+MD-06,M4V,6.8,4.8,1
+MD-07,M3V,7.1,3.3,0
+MD-08,M0V,8.6,2.2,0
+MD-09,M5V,6.2,4.9,1
+MD-10,M2V,7.7,3.0,0
+MD-11,M6V,6.9,4.5,1
+MD-12,M3V,8.3,2.9,0
+MD-13,M4V,7.0,3.8,1
+MD-14,M1V,9.5,2.1,0
+MD-15,M5V,6.4,4.7,1
+MD-16,M2V,7.6,3.4,0
+MD-17,M3V,8.0,2.6,0
+MD-18,M4V,6.7,4.1,1
+MD-19,M6V,6.1,4.9,1
+MD-20,M0V,9.8,1.9,0
+MD-21,M3V,7.3,3.2,0
+MD-22,M5V,6.6,4.4,1
+MD-23,M2V,8.4,2.8,0
+MD-24,M4V,7.2,3.9,1
+MD-25,M1V,9.0,2.3,0
+MD-26,M6V,6.3,4.6,1
+MD-27,M3V,7.8,3.5,0
+MD-28,M2V,8.7,2.5,0
+MD-29,M4V,6.0,5.0,0
+MD-30,M5V,7.5,4.0,0
+MD-31,M0V,9.4,2.0,0
+MD-32,M3V,6.9,3.7,0
+MD-33,M4V,4.2,3.3,NA
+MD-34,M3V,5.5,2.9,NA
+MD-35,M5V,7.1,6.4,NA
+MD-36,M2V,8.2,5.9,NA
+MD-37,M6V,3.8,7.2,NA
+MD-38,M1V,5.9,5.1,NA
+MD-39,M4V,2.6,4.4,NA
+MD-40,M3V,6.6,5.4,NA
+
+--- file workflow/analysis.py ---
+"""Flare-positive rate for a planned set of M-dwarf photometric light curves.
+
+Reads inputs/data.csv, applies the prespecified quality screening, and writes
+results/report.md. The selected rate uses the complete planned set of light
+curves as its exposure denominator.
+"""
+
+import csv
+from decimal import Decimal, ROUND_HALF_EVEN
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = ROOT / "inputs" / "data.csv"
+REPORT_PATH = ROOT / "results" / "report.md"
+
+MIN_COVERAGE_HOURS = Decimal("6.0")
+MAX_RMS_MMAG = Decimal("5.0")
+
+
+def read_units(path):
+    with path.open("r", encoding="ascii", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def eligibility(row):
+    coverage_ok = Decimal(row["coverage_hours"]) >= MIN_COVERAGE_HOURS
+    rms_ok = Decimal(row["rms_mmag"]) <= MAX_RMS_MMAG
+    return coverage_ok, rms_ok
+
+
+def ratio(numerator, denominator, quantum):
+    value = Decimal(numerator) / Decimal(denominator)
+    return value.quantize(Decimal(quantum), rounding=ROUND_HALF_EVEN)
+
+
+def percentage(numerator, denominator, quantum):
+    value = Decimal(numerator) * Decimal(100) / Decimal(denominator)
+    return value.quantize(Decimal(quantum), rounding=ROUND_HALF_EVEN)
+
+
+def tally(rows):
+    counts = {
+        "planned": len(rows),
+        "retained": 0,
+        "removed_coverage_only": 0,
+        "removed_rms_only": 0,
+        "removed_both": 0,
+        "events": 0,
+    }
+    for row in rows:
+        coverage_ok, rms_ok = eligibility(row)
+        flare = row["flare_detected"]
+        if coverage_ok and rms_ok:
+            counts["retained"] += 1
+            if flare not in ("0", "1"):
+                raise ValueError("retained unit without flare determination: " + row["star_id"])
+            if flare == "1":
+                counts["events"] += 1
+        else:
+            if flare != "NA":
+                raise ValueError("removed unit with flare determination: " + row["star_id"])
+            if not coverage_ok and not rms_ok:
+                counts["removed_both"] += 1
+            elif not coverage_ok:
+                counts["removed_coverage_only"] += 1
+            else:
+                counts["removed_rms_only"] += 1
+    counts["removed"] = (
+        counts["removed_coverage_only"]
+        + counts["removed_rms_only"]
+        + counts["removed_both"]
+    )
+    return counts
+
+
+def build_report(counts):
+    planned = counts["planned"]
+    retained = counts["retained"]
+    removed = counts["removed"]
+    events = counts["events"]
+    rate = ratio(events, planned, "0.0001")
+    pct = percentage(events, planned, "0.01")
+    lines = [
+        "# White-Light Flare Occurrence in the Planned M-Dwarf Monitoring Set",
+        "",
+        "## Scientific target",
+        "The target of inference is the complete planned set of M-dwarf light curves",
+        "in this campaign, including light curves that the prespecified quality",
+        "screening removed.",
+        "",
+        "## Unit accounting",
+        f"- Planned light curves: {planned}",
+        f"- Retained after screening: {retained}",
+        f"- Removed by screening: {removed}",
+        f"- Flare-positive light curves among retained units (event count): {events}",
+        "",
+        "## Prespecified screening",
+        f"A light curve is eligible if on-source coverage is at least {MIN_COVERAGE_HOURS} hours and",
+        f"photometric RMS is at most {MAX_RMS_MMAG} mmag. Both thresholds were fixed before",
+        "observing. Removed light curves have no flare determination and are recorded",
+        "as NA in the data file.",
+        f"- Removed for coverage only: {counts['removed_coverage_only']}",
+        f"- Removed for RMS only: {counts['removed_rms_only']}",
+        f"- Removed for both criteria: {counts['removed_both']}",
+        "",
+        "## Selected result",
+        f"[selected-result] Flare-positive light curves per planned light curve: {events} / {planned} = {rate} ({pct} percent).",
+        "",
+        "## Scope of the claim",
+        f"The reported rate uses the complete planned set of {planned} light curves as its",
+        f"exposure denominator, matching the declared scientific target. The {removed} removed",
+        "light curves contribute to the denominator and contribute zero detected",
+        "flares, because no flare determination was possible for them. The rate is",
+        "therefore a lower bound on the flare-positive fraction of the planned set:",
+        "it is the fraction of planned light curves that were both screened in and",
+        "flare-positive. No claim is made about the flare status of the removed",
+        "light curves, and no rate conditional on the retained subset is reported here.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    counts = tally(read_units(DATA_PATH))
+    text = build_report(counts)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="ascii", newline="\n") as handle:
+        handle.write(text)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# White-Light Flare Occurrence in the Planned M-Dwarf Monitoring Set
+
+## Scientific target
+The target of inference is the complete planned set of M-dwarf light curves
+in this campaign, including light curves that the prespecified quality
+screening removed.
+
+## Unit accounting
+- Planned light curves: 40
+- Retained after screening: 32
+- Removed by screening: 8
+- Flare-positive light curves among retained units (event count): 12
+
+## Prespecified screening
+A light curve is eligible if on-source coverage is at least 6.0 hours and
+photometric RMS is at most 5.0 mmag. Both thresholds were fixed before
+observing. Removed light curves have no flare determination and are recorded
+as NA in the data file.
+- Removed for coverage only: 3
+- Removed for RMS only: 3
+- Removed for both criteria: 2
+
+## Selected result
+[selected-result] Flare-positive light curves per planned light curve: 12 / 40 = 0.3000 (30.00 percent).
+
+## Scope of the claim
+The reported rate uses the complete planned set of 40 light curves as its
+exposure denominator, matching the declared scientific target. The 8 removed
+light curves contribute to the denominator and contribute zero detected
+flares, because no flare determination was possible for them. The rate is
+therefore a lower bound on the flare-positive fraction of the planned set:
+it is the fraction of planned light curves that were both screened in and
+flare-positive. No claim is made about the flare status of the removed
+light curves, and no rate conditional on the retained subset is reported here.
+
+
+=== workflow 2: case:29fd6a9bd50e3d09291b ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is the complete planned set of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+star_id,spectral_type,coverage_hours,rms_mmag,flare_detected
+MD-01,M3V,7.4,3.1,1
+MD-02,M4V,8.1,2.7,0
+MD-03,M2V,6.5,4.2,0
+MD-04,M5V,7.9,3.6,1
+MD-05,M1V,9.2,2.4,0
+MD-06,M4V,6.8,4.8,1
+MD-07,M3V,7.1,3.3,0
+MD-08,M0V,8.6,2.2,0
+MD-09,M5V,6.2,4.9,1
+MD-10,M2V,7.7,3.0,0
+MD-11,M6V,6.9,4.5,1
+MD-12,M3V,8.3,2.9,0
+MD-13,M4V,7.0,3.8,1
+MD-14,M1V,9.5,2.1,0
+MD-15,M5V,6.4,4.7,1
+MD-16,M2V,7.6,3.4,0
+MD-17,M3V,8.0,2.6,0
+MD-18,M4V,6.7,4.1,1
+MD-19,M6V,6.1,4.9,1
+MD-20,M0V,9.8,1.9,0
+MD-21,M3V,7.3,3.2,0
+MD-22,M5V,6.6,4.4,1
+MD-23,M2V,8.4,2.8,0
+MD-24,M4V,7.2,3.9,1
+MD-25,M1V,9.0,2.3,0
+MD-26,M6V,6.3,4.6,1
+MD-27,M3V,7.8,3.5,0
+MD-28,M2V,8.7,2.5,0
+MD-29,M4V,6.0,5.0,0
+MD-30,M5V,7.5,4.0,0
+MD-31,M0V,9.4,2.0,0
+MD-32,M3V,6.9,3.7,0
+MD-33,M4V,4.2,3.3,NA
+MD-34,M3V,5.5,2.9,NA
+MD-35,M5V,7.1,6.4,NA
+MD-36,M2V,8.2,5.9,NA
+MD-37,M6V,3.8,7.2,NA
+MD-38,M1V,5.9,5.1,NA
+MD-39,M4V,2.6,4.4,NA
+MD-40,M3V,6.6,5.4,NA
+
+--- file workflow/analysis.py ---
+"""Flare-positive rate for a planned set of M-dwarf photometric light curves.
+
+Reads inputs/data.csv, applies the prespecified quality screening, and writes
+results/report.md. The selected rate is computed on the retained
+post-screening subset and reported for the complete planned set.
+"""
+
+import csv
+from decimal import Decimal, ROUND_HALF_EVEN
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = ROOT / "inputs" / "data.csv"
+REPORT_PATH = ROOT / "results" / "report.md"
+
+MIN_COVERAGE_HOURS = Decimal("6.0")
+MAX_RMS_MMAG = Decimal("5.0")
+
+
+def read_units(path):
+    with path.open("r", encoding="ascii", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def eligibility(row):
+    coverage_ok = Decimal(row["coverage_hours"]) >= MIN_COVERAGE_HOURS
+    rms_ok = Decimal(row["rms_mmag"]) <= MAX_RMS_MMAG
+    return coverage_ok, rms_ok
+
+
+def ratio(numerator, denominator, quantum):
+    value = Decimal(numerator) / Decimal(denominator)
+    return value.quantize(Decimal(quantum), rounding=ROUND_HALF_EVEN)
+
+
+def percentage(numerator, denominator, quantum):
+    value = Decimal(numerator) * Decimal(100) / Decimal(denominator)
+    return value.quantize(Decimal(quantum), rounding=ROUND_HALF_EVEN)
+
+
+def tally(rows):
+    counts = {
+        "planned": len(rows),
+        "retained": 0,
+        "removed_coverage_only": 0,
+        "removed_rms_only": 0,
+        "removed_both": 0,
+        "events": 0,
+    }
+    for row in rows:
+        coverage_ok, rms_ok = eligibility(row)
+        flare = row["flare_detected"]
+        if coverage_ok and rms_ok:
+            counts["retained"] += 1
+            if flare not in ("0", "1"):
+                raise ValueError("retained unit without flare determination: " + row["star_id"])
+            if flare == "1":
+                counts["events"] += 1
+        else:
+            if flare != "NA":
+                raise ValueError("removed unit with flare determination: " + row["star_id"])
+            if not coverage_ok and not rms_ok:
+                counts["removed_both"] += 1
+            elif not coverage_ok:
+                counts["removed_coverage_only"] += 1
+            else:
+                counts["removed_rms_only"] += 1
+    counts["removed"] = (
+        counts["removed_coverage_only"]
+        + counts["removed_rms_only"]
+        + counts["removed_both"]
+    )
+    return counts
+
+
+def build_report(counts):
+    planned = counts["planned"]
+    retained = counts["retained"]
+    removed = counts["removed"]
+    events = counts["events"]
+    rate = ratio(events, retained, "0.0001")
+    pct = percentage(events, retained, "0.01")
+    lines = [
+        "# White-Light Flare Occurrence in the Planned M-Dwarf Monitoring Set",
+        "",
+        "## Scientific target",
+        "The target of inference is the complete planned set of M-dwarf light curves",
+        "in this campaign, including light curves that the prespecified quality",
+        "screening removed.",
+        "",
+        "## Unit accounting",
+        f"- Planned light curves: {planned}",
+        f"- Retained after screening: {retained}",
+        f"- Removed by screening: {removed}",
+        f"- Flare-positive light curves among retained units (event count): {events}",
+        "",
+        "## Prespecified screening",
+        f"A light curve is eligible if on-source coverage is at least {MIN_COVERAGE_HOURS} hours and",
+        f"photometric RMS is at most {MAX_RMS_MMAG} mmag. Both thresholds were fixed before",
+        "observing. Removed light curves have no flare determination and are recorded",
+        "as NA in the data file.",
+        f"- Removed for coverage only: {counts['removed_coverage_only']}",
+        f"- Removed for RMS only: {counts['removed_rms_only']}",
+        f"- Removed for both criteria: {counts['removed_both']}",
+        "",
+        "## Selected result",
+        f"[selected-result] Flare-positive rate for the complete planned set of {planned} light curves: {events} / {retained} = {rate} ({pct} percent).",
+        "",
+        "## Scope of the claim",
+        "The rate above is reported as the flare-positive rate of the complete planned",
+        f"set of {planned} light curves. Its exposure denominator is the {retained} light curves",
+        f"retained after screening; the {removed} removed light curves are excluded from the",
+        "denominator.",
+        "",
+        "## Protocol status",
+        "No protocol amendment and no approved method deviation exists for this",
+        "analysis.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    counts = tally(read_units(DATA_PATH))
+    text = build_report(counts)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="ascii", newline="\n") as handle:
+        handle.write(text)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# White-Light Flare Occurrence in the Planned M-Dwarf Monitoring Set
+
+## Scientific target
+The target of inference is the complete planned set of M-dwarf light curves
+in this campaign, including light curves that the prespecified quality
+screening removed.
+
+## Unit accounting
+- Planned light curves: 40
+- Retained after screening: 32
+- Removed by screening: 8
+- Flare-positive light curves among retained units (event count): 12
+
+## Prespecified screening
+A light curve is eligible if on-source coverage is at least 6.0 hours and
+photometric RMS is at most 5.0 mmag. Both thresholds were fixed before
+observing. Removed light curves have no flare determination and are recorded
+as NA in the data file.
+- Removed for coverage only: 3
+- Removed for RMS only: 3
+- Removed for both criteria: 2
+
+## Selected result
+[selected-result] Flare-positive rate for the complete planned set of 40 light curves: 12 / 32 = 0.3750 (37.50 percent).
+
+## Scope of the claim
+The rate above is reported as the flare-positive rate of the complete planned
+set of 40 light curves. Its exposure denominator is the 32 light curves
+retained after screening; the 8 removed light curves are excluded from the
+denominator.
+
+## Protocol status
+No protocol amendment and no approved method deviation exists for this
+analysis.
+
+
+=== workflow 3: case:b7d81ba8326db11e6736 ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is explicitly the retained post-screening subset of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+trap_night_id,min_temp_c,equipment_fault,hawkmoth_captured
+TN01,12.4,no,yes
+TN02,11.0,no,no
+TN03,13.1,no,yes
+TN04,8.5,no,no
+TN05,10.2,no,no
+TN06,14.0,no,no
+TN07,12.8,no,yes
+TN08,10.9,no,no
+TN09,12.0,yes,no
+TN10,11.6,no,no
+TN11,13.5,no,yes
+TN12,10.1,no,no
+TN13,9.2,no,no
+TN14,12.2,no,no
+TN15,11.8,no,yes
+TN16,10.6,no,no
+TN17,11.5,yes,yes
+TN18,13.9,no,no
+TN19,12.6,no,yes
+TN20,10.4,no,no
+TN21,7.8,no,no
+TN22,11.2,no,yes
+TN23,10.4,yes,no
+TN24,12.9,no,no
+
+--- file workflow/analysis.py ---
+import csv
+from decimal import Decimal, ROUND_HALF_UP
+from pathlib import Path
+
+DATA = Path("inputs/data.csv")
+OUT = Path("results/report.md")
+
+
+def main():
+    with DATA.open(newline="") as f:
+        rows = list(csv.DictReader(f))
+    planned = len(rows)
+    retained = [
+        r for r in rows
+        if r["equipment_fault"] == "no"
+        and Decimal(r["min_temp_c"]) >= Decimal("10.0")
+    ]
+    n = len(retained)
+    removed = planned - n
+    events = sum(1 for r in retained if r["hawkmoth_captured"] == "yes")
+    rate = (Decimal(events) / Decimal(n)).quantize(
+        Decimal("0.0001"), rounding=ROUND_HALF_UP)
+    lines = [
+        "# Hawkmoth Capture Rate in a Light-Trap Survey",
+        "",
+        "## Study accounting",
+        "",
+        f"- Planned observation units (trap-nights): {planned}",
+        f"- Retained after eligibility screening (no equipment fault and minimum temperature >= 10.0 C): {n}",
+        f"- Removed by screening: {removed}",
+        f"- Hawkmoth capture events among retained trap-nights: {events}",
+        "",
+        "## Scientific target",
+        "",
+        "The scientific target of this analysis is defined explicitly and only as the",
+        f"retained post-screening subset of {n} eligible trap-nights. All claims below",
+        f"apply to that retained subset, not to the complete planned set of {planned}",
+        "trap-nights.",
+        "",
+        f"[selected-result] Among the {n} retained eligible trap-nights, {events} recorded at least one hawkmoth (Sphingidae) capture, a capture rate of {events}/{n} = {rate}.",
+        "",
+        f"This capture rate uses the retained post-screening subset (n = {n}) as its",
+        f"denominator and makes no claim about the {removed} screened-out trap-nights or about",
+        f"the complete planned set of {planned} trap-nights.",
+    ]
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    OUT.write_text("\n".join(lines) + "\n", encoding="ascii")
+
+
+main()
+
+--- file results/report.md ---
+# Hawkmoth Capture Rate in a Light-Trap Survey
+
+## Study accounting
+
+- Planned observation units (trap-nights): 24
+- Retained after eligibility screening (no equipment fault and minimum temperature >= 10.0 C): 18
+- Removed by screening: 6
+- Hawkmoth capture events among retained trap-nights: 7
+
+## Scientific target
+
+The scientific target of this analysis is defined explicitly and only as the
+retained post-screening subset of 18 eligible trap-nights. All claims below
+apply to that retained subset, not to the complete planned set of 24
+trap-nights.
+
+[selected-result] Among the 18 retained eligible trap-nights, 7 recorded at least one hawkmoth (Sphingidae) capture, a capture rate of 7/18 = 0.3889.
+
+This capture rate uses the retained post-screening subset (n = 18) as its
+denominator and makes no claim about the 6 screened-out trap-nights or about
+the complete planned set of 24 trap-nights.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:v204i-reviewer-fable-01", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:retained-subset-for-complete-domain", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:0a0fe6d8b2c669ec5a68", "case:29fd6a9bd50e3d09291b", "case:b7d81ba8326db11e6736"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 3, "minItems": 3, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

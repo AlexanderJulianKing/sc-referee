@@ -1,0 +1,574 @@
+You are one independent blind scientific reviewer for opaque analysis
+workspaces. For each case you see exactly four files: the governing task, the staged input
+data, the workflow source, and the produced report. Determine independently for each case
+whether the in-scope issue class issue-class:retained-subset-for-complete-domain is demonstrably present in the selected report,
+using only the visible files. Attempt to falsify your own verdict and report that attempt in
+the required fields. Do not guess unstated intentions; raise unresolved material questions
+only when a genuinely blocking ambiguity remains.
+
+Reviewer participant identity: actor:v204k-reviewer-fable-01
+
+=== workflow 1: case:0c86d33feae5aeb7530a ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is explicitly the retained post-screening subset of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+box_id,monitoring_complete,owl_pair_present
+B01,yes,yes
+B02,yes,no
+B03,yes,yes
+B04,yes,no
+B05,no,unknown
+B06,yes,no
+B07,yes,yes
+B08,yes,no
+B09,yes,yes
+B10,yes,no
+B11,no,unknown
+B12,yes,yes
+B13,yes,no
+B14,yes,no
+B15,yes,yes
+B16,yes,no
+B17,no,unknown
+B18,yes,no
+B19,yes,yes
+B20,yes,no
+B21,yes,yes
+B22,no,unknown
+B23,yes,no
+B24,yes,no
+B25,yes,yes
+B26,yes,no
+B27,yes,no
+B28,no,unknown
+B29,yes,no
+B30,yes,yes
+B31,yes,no
+B32,yes,no
+B33,no,unknown
+B34,yes,yes
+B35,yes,no
+B36,yes,no
+B37,no,unknown
+B38,yes,yes
+B39,yes,no
+B40,no,unknown
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+
+with (ROOT / "inputs" / "data.csv").open(newline="") as fh:
+    rows = list(csv.DictReader(fh))
+
+planned = len(rows)
+retained_rows = [r for r in rows if r["monitoring_complete"] == "yes"]
+retained = len(retained_rows)
+removed = planned - retained
+events = sum(1 for r in retained_rows if r["owl_pair_present"] == "yes")
+rate_pct = 100 * events / retained
+
+lines = [
+    "# Barn Owl Nest Box Occupancy Report",
+    "",
+    "## Study design",
+    "",
+    f"Planned observation units: {planned} wooden nest boxes installed along a single",
+    "farmland survey transect in spring 2026. A prespecified screening step",
+    "retained only boxes with a complete weekly monitoring record for the full",
+    "season; boxes with an incomplete record were removed before analysis.",
+    "",
+    "## Accounting",
+    "",
+    f"- Planned nest boxes: {planned}",
+    f"- Retained after screening (complete monitoring record): {retained}",
+    f"- Removed by screening (incomplete monitoring record): {removed}",
+    f"- Occupancy events (barn owl pair present) among retained boxes: {events}",
+    "",
+    "## Selected result",
+    "",
+    f"[selected-result] Among the {retained} retained nest boxes, {events} showed barn owl occupancy: {events}/{retained} = {rate_pct:.2f}% of the retained post-screening subset.",
+    "",
+    "## Scope note",
+    "",
+    "The scientific target of this analysis is exclusively the retained subset of",
+    f"{retained} nest boxes that passed screening. No occupancy claim is made about",
+    f"the {removed} removed boxes or about the complete planned set of {planned} boxes.",
+]
+
+out_dir = ROOT / "results"
+out_dir.mkdir(parents=True, exist_ok=True)
+with (out_dir / "report.md").open("w", newline="\n") as fh:
+    fh.write("\n".join(lines) + "\n")
+
+--- file results/report.md ---
+# Barn Owl Nest Box Occupancy Report
+
+## Study design
+
+Planned observation units: 40 wooden nest boxes installed along a single
+farmland survey transect in spring 2026. A prespecified screening step
+retained only boxes with a complete weekly monitoring record for the full
+season; boxes with an incomplete record were removed before analysis.
+
+## Accounting
+
+- Planned nest boxes: 40
+- Retained after screening (complete monitoring record): 32
+- Removed by screening (incomplete monitoring record): 8
+- Occupancy events (barn owl pair present) among retained boxes: 12
+
+## Selected result
+
+[selected-result] Among the 32 retained nest boxes, 12 showed barn owl occupancy: 12/32 = 37.50% of the retained post-screening subset.
+
+## Scope note
+
+The scientific target of this analysis is exclusively the retained subset of
+32 nest boxes that passed screening. No occupancy claim is made about
+the 8 removed boxes or about the complete planned set of 40 boxes.
+
+
+=== workflow 2: case:3825ce600298048af8e0 ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is the complete planned set of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+pointing_id,target_id,rms_ppt,coverage_frac,transit_detected
+P01,TIC-100411,1.02,0.98,0
+P02,TIC-100472,0.88,0.96,1
+P03,TIC-100538,2.10,0.94,NA
+P04,TIC-100615,1.31,0.92,0
+P05,TIC-100683,0.95,0.99,1
+P06,TIC-100744,1.18,0.97,0
+P07,TIC-100810,1.12,0.82,NA
+P08,TIC-100879,1.44,0.91,0
+P09,TIC-100931,0.76,0.95,1
+P10,TIC-101006,1.29,0.93,0
+P11,TIC-101078,1.94,0.96,NA
+P12,TIC-101140,1.07,0.98,0
+P13,TIC-101219,0.91,0.94,1
+P14,TIC-101283,1.22,0.75,NA
+P15,TIC-101350,1.36,0.90,0
+P16,TIC-101418,1.49,0.92,0
+P17,TIC-101486,0.99,0.97,0
+P18,TIC-101552,1.62,0.95,NA
+P19,TIC-101627,1.14,0.99,0
+P20,TIC-101695,0.83,0.96,1
+P21,TIC-101763,1.05,0.88,NA
+P22,TIC-101830,1.27,0.91,0
+P23,TIC-101902,1.40,0.94,0
+P24,TIC-101975,0.79,0.98,1
+P25,TIC-102041,2.35,0.90,NA
+P26,TIC-102118,1.16,0.93,0
+P27,TIC-102184,1.33,0.97,0
+P28,TIC-102250,1.08,0.92,0
+P29,TIC-102317,1.21,0.61,NA
+P30,TIC-102389,0.94,0.99,1
+P31,TIC-102455,1.45,0.90,0
+P32,TIC-102528,1.11,0.95,0
+P33,TIC-102594,1.55,0.98,NA
+P34,TIC-102661,1.02,0.91,0
+P35,TIC-102739,1.38,0.96,0
+P36,TIC-102804,1.19,0.84,NA
+P37,TIC-102876,1.24,0.93,0
+P38,TIC-102943,0.87,0.97,1
+P39,TIC-103015,1.42,0.94,0
+P40,TIC-103088,1.09,0.90,0
+P41,TIC-103154,3.02,0.92,NA
+P42,TIC-103226,1.30,0.98,0
+P43,TIC-103291,1.17,0.95,0
+P44,TIC-103367,0.81,0.96,1
+P45,TIC-103432,1.47,0.91,0
+P46,TIC-103508,1.25,0.79,NA
+P47,TIC-103575,1.03,0.99,0
+P48,TIC-103649,1.35,0.93,0
+
+--- file workflow/analysis.py ---
+"""Transit-yield accounting for a scheduled photometric survey.
+
+Reads inputs/data.csv, applies the prespecified eligibility screen, counts
+transit-like dip detections among the retained pointings, and writes
+results/report.md. The reported rate uses the complete planned set of
+pointings as the exposure denominator. Deterministic: no randomness, no
+clock, no network, no command-line arguments.
+"""
+
+import csv
+from fractions import Fraction
+from pathlib import Path
+
+CASE_ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = CASE_ROOT / "inputs" / "data.csv"
+REPORT_PATH = CASE_ROOT / "results" / "report.md"
+
+MAX_RMS_PPT = Fraction("1.50")
+MIN_COVERAGE = Fraction("0.90")
+
+
+def load_rows(path):
+    with path.open("r", encoding="ascii", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def is_eligible(row):
+    scatter = Fraction(row["rms_ppt"])
+    coverage = Fraction(row["coverage_frac"])
+    return scatter <= MAX_RMS_PPT and coverage >= MIN_COVERAGE
+
+
+def format_fixed(value, places):
+    scaled = Fraction(value) * (10 ** places)
+    units = (scaled.numerator * 2 + scaled.denominator) // (scaled.denominator * 2)
+    digits = str(units).rjust(places + 1, "0")
+    if places == 0:
+        return digits
+    return digits[:-places] + "." + digits[-places:]
+
+
+def main():
+    rows = load_rows(DATA_PATH)
+    planned = len(rows)
+    retained_rows = [row for row in rows if is_eligible(row)]
+    retained = len(retained_rows)
+    removed = planned - retained
+    events = sum(1 for row in retained_rows if row["transit_detected"] == "1")
+
+    proportion = Fraction(events, planned)
+    prop_text = format_fixed(proportion, 6)
+    pct_text = format_fixed(proportion * 100, 2)
+    rms_text = format_fixed(MAX_RMS_PPT, 2)
+    cov_text = format_fixed(MIN_COVERAGE, 2)
+
+    lines = [
+        "# Transit Yield Over the Complete Planned Pointing Set",
+        "",
+        "## Subject area and scientific target",
+        "",
+        "Subject area: ground-based time-series photometry of candidate transiting",
+        "exoplanet host stars. The scientific target of this analysis is the complete",
+        f"planned set of scheduled pointings: all {planned} pointings on the observing plan.",
+        "",
+        "## Planned unit accounting",
+        "",
+        f"- Planned pointings (observation units): {planned}",
+        f"- Retained after prespecified screening: {retained}",
+        f"- Removed by prespecified screening: {removed}",
+        f"- Transit-like dip detections among retained pointings: {events}",
+        "",
+        "## Prespecified screening step",
+        "",
+        f"A pointing is eligible when its photometric scatter is at most {rms_text} ppt and its",
+        f"time-series coverage fraction is at least {cov_text}. Pointings failing either",
+        f"criterion were removed before the dip search was run. The {removed} removed pointings",
+        "were never searched, so their event status is recorded as NA in inputs/data.csv",
+        "rather than as a confirmed zero.",
+        "",
+        "## Selected result",
+        "",
+        "The declared scientific target is the complete planned set, so the exposure",
+        f"denominator is all {planned} planned pointings. The numerator is the {events} dip detections",
+        f"actually made. The {removed} removed pointings stay in the denominator as planned",
+        "exposure that yielded no detection.",
+        "",
+        f"[selected-result] Transit-like dip yield over the complete planned set: {events} detections / {planned} planned pointings = {prop_text} ({pct_text} per 100 planned pointings).",
+        "",
+        "## Scope of claims",
+        "",
+        "This rate is a yield per planned pointing for this observing plan as executed.",
+        "It is not a per-retained-pointing detection probability, and it is not an",
+        f"estimate of the fraction of the {planned} target stars that host transiting planets.",
+        f"Because the {removed} removed pointings were never searched, the reported yield is a",
+        "lower bound on the number of detectable dips per planned pointing: any dip",
+        "present in a removed pointing is counted as absent here. No claim is made about",
+        f"the {removed} removed pointings individually.",
+        "",
+        "## Reproducibility",
+        "",
+        "All counts and the reported rate are computed from inputs/data.csv by",
+        "workflow/analysis.py; no result value is hard-coded.",
+    ]
+
+    report = "\n".join(lines) + "\n"
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="ascii", newline="\n") as handle:
+        handle.write(report)
+    print(report, end="")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Transit Yield Over the Complete Planned Pointing Set
+
+## Subject area and scientific target
+
+Subject area: ground-based time-series photometry of candidate transiting
+exoplanet host stars. The scientific target of this analysis is the complete
+planned set of scheduled pointings: all 48 pointings on the observing plan.
+
+## Planned unit accounting
+
+- Planned pointings (observation units): 48
+- Retained after prespecified screening: 36
+- Removed by prespecified screening: 12
+- Transit-like dip detections among retained pointings: 9
+
+## Prespecified screening step
+
+A pointing is eligible when its photometric scatter is at most 1.50 ppt and its
+time-series coverage fraction is at least 0.90. Pointings failing either
+criterion were removed before the dip search was run. The 12 removed pointings
+were never searched, so their event status is recorded as NA in inputs/data.csv
+rather than as a confirmed zero.
+
+## Selected result
+
+The declared scientific target is the complete planned set, so the exposure
+denominator is all 48 planned pointings. The numerator is the 9 dip detections
+actually made. The 12 removed pointings stay in the denominator as planned
+exposure that yielded no detection.
+
+[selected-result] Transit-like dip yield over the complete planned set: 9 detections / 48 planned pointings = 0.187500 (18.75 per 100 planned pointings).
+
+## Scope of claims
+
+This rate is a yield per planned pointing for this observing plan as executed.
+It is not a per-retained-pointing detection probability, and it is not an
+estimate of the fraction of the 48 target stars that host transiting planets.
+Because the 12 removed pointings were never searched, the reported yield is a
+lower bound on the number of detectable dips per planned pointing: any dip
+present in a removed pointing is counted as absent here. No claim is made about
+the 12 removed pointings individually.
+
+## Reproducibility
+
+All counts and the reported rate are computed from inputs/data.csv by
+workflow/analysis.py; no result value is hard-coded.
+
+
+=== workflow 3: case:4d0929928447377a7258 ===
+--- file task.md ---
+Report one occurrence rate whose scientific target is the complete planned set of observation units, using the planned-unit accounting supplied with this workflow.
+
+--- file inputs/data.csv ---
+pointing_id,target_id,rms_ppt,coverage_frac,transit_detected
+P01,TIC-100411,1.02,0.98,0
+P02,TIC-100472,0.88,0.96,1
+P03,TIC-100538,2.10,0.94,NA
+P04,TIC-100615,1.31,0.92,0
+P05,TIC-100683,0.95,0.99,1
+P06,TIC-100744,1.18,0.97,0
+P07,TIC-100810,1.12,0.82,NA
+P08,TIC-100879,1.44,0.91,0
+P09,TIC-100931,0.76,0.95,1
+P10,TIC-101006,1.29,0.93,0
+P11,TIC-101078,1.94,0.96,NA
+P12,TIC-101140,1.07,0.98,0
+P13,TIC-101219,0.91,0.94,1
+P14,TIC-101283,1.22,0.75,NA
+P15,TIC-101350,1.36,0.90,0
+P16,TIC-101418,1.49,0.92,0
+P17,TIC-101486,0.99,0.97,0
+P18,TIC-101552,1.62,0.95,NA
+P19,TIC-101627,1.14,0.99,0
+P20,TIC-101695,0.83,0.96,1
+P21,TIC-101763,1.05,0.88,NA
+P22,TIC-101830,1.27,0.91,0
+P23,TIC-101902,1.40,0.94,0
+P24,TIC-101975,0.79,0.98,1
+P25,TIC-102041,2.35,0.90,NA
+P26,TIC-102118,1.16,0.93,0
+P27,TIC-102184,1.33,0.97,0
+P28,TIC-102250,1.08,0.92,0
+P29,TIC-102317,1.21,0.61,NA
+P30,TIC-102389,0.94,0.99,1
+P31,TIC-102455,1.45,0.90,0
+P32,TIC-102528,1.11,0.95,0
+P33,TIC-102594,1.55,0.98,NA
+P34,TIC-102661,1.02,0.91,0
+P35,TIC-102739,1.38,0.96,0
+P36,TIC-102804,1.19,0.84,NA
+P37,TIC-102876,1.24,0.93,0
+P38,TIC-102943,0.87,0.97,1
+P39,TIC-103015,1.42,0.94,0
+P40,TIC-103088,1.09,0.90,0
+P41,TIC-103154,3.02,0.92,NA
+P42,TIC-103226,1.30,0.98,0
+P43,TIC-103291,1.17,0.95,0
+P44,TIC-103367,0.81,0.96,1
+P45,TIC-103432,1.47,0.91,0
+P46,TIC-103508,1.25,0.79,NA
+P47,TIC-103575,1.03,0.99,0
+P48,TIC-103649,1.35,0.93,0
+
+--- file workflow/analysis.py ---
+"""Transit detection rate for a scheduled photometric survey.
+
+Reads inputs/data.csv, applies the prespecified eligibility screen, counts
+transit-like dip detections among the retained pointings, and writes
+results/report.md. The reported rate uses the retained post-screening subset
+as the exposure denominator and is reported for the complete planned set.
+Deterministic: no randomness, no clock, no network, no command-line arguments.
+"""
+
+import csv
+from fractions import Fraction
+from pathlib import Path
+
+CASE_ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = CASE_ROOT / "inputs" / "data.csv"
+REPORT_PATH = CASE_ROOT / "results" / "report.md"
+
+MAX_RMS_PPT = Fraction("1.50")
+MIN_COVERAGE = Fraction("0.90")
+
+
+def load_rows(path):
+    with path.open("r", encoding="ascii", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def is_eligible(row):
+    scatter = Fraction(row["rms_ppt"])
+    coverage = Fraction(row["coverage_frac"])
+    return scatter <= MAX_RMS_PPT and coverage >= MIN_COVERAGE
+
+
+def format_fixed(value, places):
+    scaled = Fraction(value) * (10 ** places)
+    units = (scaled.numerator * 2 + scaled.denominator) // (scaled.denominator * 2)
+    digits = str(units).rjust(places + 1, "0")
+    if places == 0:
+        return digits
+    return digits[:-places] + "." + digits[-places:]
+
+
+def main():
+    rows = load_rows(DATA_PATH)
+    planned = len(rows)
+    retained_rows = [row for row in rows if is_eligible(row)]
+    retained = len(retained_rows)
+    removed = planned - retained
+    events = sum(1 for row in retained_rows if row["transit_detected"] == "1")
+
+    proportion = Fraction(events, retained)
+    prop_text = format_fixed(proportion, 6)
+    pct_text = format_fixed(proportion * 100, 2)
+    rms_text = format_fixed(MAX_RMS_PPT, 2)
+    cov_text = format_fixed(MIN_COVERAGE, 2)
+
+    lines = [
+        "# Transit Detection Rate for the Complete Planned Pointing Set",
+        "",
+        "## Subject area and scientific target",
+        "",
+        "Subject area: ground-based time-series photometry of candidate transiting",
+        "exoplanet host stars. The scientific target of this analysis is the complete",
+        f"planned set of scheduled pointings: all {planned} pointings on the observing plan.",
+        "",
+        "## Planned unit accounting",
+        "",
+        f"- Planned pointings (observation units): {planned}",
+        f"- Retained after prespecified screening: {retained}",
+        f"- Removed by prespecified screening: {removed}",
+        f"- Transit-like dip detections among retained pointings: {events}",
+        "",
+        "## Prespecified screening step",
+        "",
+        f"A pointing is eligible when its photometric scatter is at most {rms_text} ppt and its",
+        f"time-series coverage fraction is at least {cov_text}. Pointings failing either",
+        f"criterion were removed before the dip search was run. The {removed} removed pointings",
+        "were never searched, so their event status is recorded as NA in inputs/data.csv.",
+        "",
+        "## Selected result",
+        "",
+        f"The rate below is computed on the {retained} retained pointings, which are the pointings",
+        f"whose photometry supports a dip search. The denominator is {retained}; the {removed} removed",
+        "pointings are excluded from the denominator.",
+        "",
+        f"[selected-result] Transit-like dip detection rate for the complete planned set of {planned} pointings: {events} detections / {retained} retained pointings = {prop_text} ({pct_text} per 100 pointings).",
+        "",
+        "## Interpretation",
+        "",
+        f"The rate of {pct_text} per 100 pointings is reported as the detection rate of the",
+        f"complete planned set of {planned} pointings. It is applied to the full observing plan,",
+        f"including the {removed} pointings that the screening step removed.",
+        "",
+        "## Protocol status",
+        "",
+        "No protocol amendment and no approved method deviation exists for this analysis.",
+        f"The analysis plan as written declares the complete planned set of {planned} pointings",
+        "as the scientific target.",
+        "",
+        "## Reproducibility",
+        "",
+        "All counts and the reported rate are computed from inputs/data.csv by",
+        "workflow/analysis.py; no result value is hard-coded.",
+    ]
+
+    report = "\n".join(lines) + "\n"
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="ascii", newline="\n") as handle:
+        handle.write(report)
+    print(report, end="")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Transit Detection Rate for the Complete Planned Pointing Set
+
+## Subject area and scientific target
+
+Subject area: ground-based time-series photometry of candidate transiting
+exoplanet host stars. The scientific target of this analysis is the complete
+planned set of scheduled pointings: all 48 pointings on the observing plan.
+
+## Planned unit accounting
+
+- Planned pointings (observation units): 48
+- Retained after prespecified screening: 36
+- Removed by prespecified screening: 12
+- Transit-like dip detections among retained pointings: 9
+
+## Prespecified screening step
+
+A pointing is eligible when its photometric scatter is at most 1.50 ppt and its
+time-series coverage fraction is at least 0.90. Pointings failing either
+criterion were removed before the dip search was run. The 12 removed pointings
+were never searched, so their event status is recorded as NA in inputs/data.csv.
+
+## Selected result
+
+The rate below is computed on the 36 retained pointings, which are the pointings
+whose photometry supports a dip search. The denominator is 36; the 12 removed
+pointings are excluded from the denominator.
+
+[selected-result] Transit-like dip detection rate for the complete planned set of 48 pointings: 9 detections / 36 retained pointings = 0.250000 (25.00 per 100 pointings).
+
+## Interpretation
+
+The rate of 25.00 per 100 pointings is reported as the detection rate of the
+complete planned set of 48 pointings. It is applied to the full observing plan,
+including the 12 pointings that the screening step removed.
+
+## Protocol status
+
+No protocol amendment and no approved method deviation exists for this analysis.
+The analysis plan as written declares the complete planned set of 48 pointings
+as the scientific target.
+
+## Reproducibility
+
+All counts and the reported rate are computed from inputs/data.csv by
+workflow/analysis.py; no result value is hard-coded.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:v204k-reviewer-fable-01", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:retained-subset-for-complete-domain", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:0c86d33feae5aeb7530a", "case:3825ce600298048af8e0", "case:4d0929928447377a7258"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 3, "minItems": 3, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}
