@@ -215,3 +215,121 @@ def test_signed_and_slash_date_tokens_are_excluded() -> None:
         assert date_part not in values
     for kept_value in ("40", "32", "8", "24", "0.75"):
         assert kept_value in values
+
+
+def test_exhaustive_dict_counter_counts_the_source() -> None:
+    """+= 1 in both branches counts every row; a subset tag would be wrong."""
+
+    source = """import csv
+from pathlib import Path
+rows = list(csv.DictReader(Path('inputs/data.csv').open()))
+counts = {"den": 0, "events": 0}
+for row in rows:
+    if row['ok'] == 'yes':
+        counts["den"] += 1
+        counts["events"] += 1
+    else:
+        counts["den"] += 1
+rate = counts["events"] / counts["den"]
+Path('results/report.md').write_text(f'{rate}')
+"""
+    unsupported, operands = _resolve(source)
+    assert not unsupported
+    assert operands == {COMPLETE}
+
+
+def test_guarded_dict_counter_counts_a_subset() -> None:
+    source = """import csv
+from pathlib import Path
+rows = list(csv.DictReader(Path('inputs/data.csv').open()))
+counts = {"den": 0, "events": 0}
+for row in rows:
+    if row['ok'] == 'yes':
+        counts["den"] += 1
+        if row['event'] == 'yes':
+            counts["events"] += 1
+rate = counts["events"] / counts["den"]
+Path('results/report.md').write_text(f'{rate}')
+"""
+    unsupported, operands = _resolve(source)
+    assert not unsupported
+    assert operands == {RETAINED}
+
+
+def test_exhaustive_append_copies_the_source() -> None:
+    """append in both branches copies every row; a subset tag would be wrong."""
+
+    source = """import csv
+from pathlib import Path
+rows = list(csv.DictReader(Path('inputs/data.csv').open()))
+kept = []
+for row in rows:
+    if row['ok'] == 'yes':
+        kept.append(row)
+    else:
+        kept.append(row)
+events = sum(1 for r in kept if r['event'] == 'yes')
+rate = events / len(kept)
+Path('results/report.md').write_text(f'{rate}')
+"""
+    unsupported, operands = _resolve(source)
+    assert not unsupported
+    assert operands == {COMPLETE}
+
+
+def test_guarded_append_builds_a_subset() -> None:
+    source = """import csv
+from pathlib import Path
+rows = list(csv.DictReader(Path('inputs/data.csv').open()))
+kept = []
+for row in rows:
+    if row['ok'] == 'yes':
+        kept.append(row)
+events = sum(1 for r in kept if r['event'] == 'yes')
+rate = events / len(kept)
+Path('results/report.md').write_text(f'{rate}')
+"""
+    unsupported, operands = _resolve(source)
+    assert not unsupported
+    assert operands == {RETAINED}
+
+
+def test_post_loop_mutation_invalidates_the_accumulator() -> None:
+    """clear()+extend(rows) after the loop makes kept the full set; the
+    stale subset tag must not survive."""
+
+    source = """import csv
+from pathlib import Path
+rows = list(csv.DictReader(Path('inputs/data.csv').open()))
+kept = []
+for row in rows:
+    if row['ok'] == 'yes':
+        kept.append(row)
+kept.clear()
+kept.extend(rows)
+events = 3
+rate = events / len(kept)
+Path('results/report.md').write_text(f'{rate}')
+"""
+    _unsupported, operands = _resolve(source)
+    assert RETAINED not in operands
+
+
+def test_loop_local_shadowing_a_tagged_name_is_rejected() -> None:
+    """A loop-local assignment reusing a provenance-tagged name rejects the
+    loop rather than silently rebinding provenance."""
+
+    source = """import csv
+from pathlib import Path
+rows = list(csv.DictReader(Path('inputs/data.csv').open()))
+kept = [r for r in rows if r['ok'] == 'yes']
+counter = 0
+for row in rows:
+    kept = row
+    counter += 1
+events = 3
+rate = events / len(kept)
+Path('results/report.md').write_text(f'{rate}')
+"""
+    unsupported, operands = _resolve(source)
+    assert not (not unsupported and operands == {RETAINED})

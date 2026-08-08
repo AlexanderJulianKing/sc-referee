@@ -51,6 +51,8 @@ _ROWS_ITER_FULL = "rows_iter_full"
 _COUNT_FULL = "count_full"
 _COUNT_SUBSET = "count_subset"
 _INT_OTHER = "int_other"
+_ROWS_EMPTY = "rows_empty"
+_DICT_MARKER = "dict_of_counts"
 _OTHER = "other"
 
 _ROW_TAGS = {_ROWS_FULL, _ROWS_SUBSET, _ROWS_ITER_FULL}
@@ -89,7 +91,7 @@ _WRITE_METHODS = {"write", "writelines", "write_text"}
 def quantity_dataflow_grammar(complete_operand: str, retained_operand: str) -> dict[str, Any]:
     return {
         "grammar_id": "quantity-denominator-dataflow",
-        "grammar_version": "1.2.0",
+        "grammar_version": "1.3.0",
         "row_source_operations": ["csv.DictReader", "csv.reader"],
         "subset_operation": "single-generator comprehension with a filter over a row set",
         "count_operations": ["len(rows)", "sum(1 for ... in rows [if ...])"],
@@ -111,6 +113,15 @@ def quantity_dataflow_grammar(complete_operand: str, retained_operand: str) -> d
             "straight-line assignments, comprehensions, with-blocks, functions, "
             "the __main__ guard, and provenance-disjoint loops or conditionals"
         ),
+        "loop_recognition": [
+            "imperative counter loops (name or dict-key += 1) with branch-"
+            "coverage analysis: exhaustive increments count the source, "
+            "guarded increments count a conditioned subset",
+            "accumulator subset loops (acc.append(loop_target)) with the same "
+            "coverage rule: exhaustive appends copy the source",
+            "any other loop shape stays unsupported",
+        ],
+        "cast_transparency": "unshadowed Decimal/int/float of a count passes its tag",
         "soundness": [
             "report-reaching value linkage",
             "return-tag join over all returns",
@@ -151,6 +162,8 @@ class _TraceContext:
     returns: dict[str, str] = field(default_factory=dict)
     depth: int = 0
     visiting: set[str] = field(default_factory=set)
+    recognized_loop_ids: set[int] = field(default_factory=set)
+    pending_compounds: dict[str, str] | None = None
 
 
 def resolve_dataflow_operand(
@@ -223,7 +236,6 @@ def _document_divisions(
 ) -> dict[str, Any]:
     """Trace report-reaching divisions across the module and function scopes."""
 
-    unsupported_flow = _has_unsupported_flow(tree)
     functions: dict[str, ast.FunctionDef] = {
         node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)
     }
@@ -281,16 +293,12 @@ def _document_divisions(
         ctx.visiting.add(function.name)
         try:
             for statement in _flatten_statements(function.body):
+                _apply_recognized_loop(statement, callee_env, ctx)
                 for node in _walk_skipping_lambdas(statement):
                     _classify(node, callee_env)
                     if isinstance(node, ast.Call) and node is not call:
                         _scan_callee(node, callee_env)
-                if (
-                    isinstance(statement, ast.Assign)
-                    and len(statement.targets) == 1
-                    and isinstance(statement.targets[0], ast.Name)
-                ):
-                    callee_env[statement.targets[0].id] = _tag(statement.value, callee_env, ctx)
+                _apply_assign(statement, callee_env, ctx)
         finally:
             ctx.depth -= 1
             ctx.visiting.discard(function.name)
@@ -298,6 +306,7 @@ def _document_divisions(
     def _scan_scope(statements: list[ast.stmt], env: dict[str, str]) -> bool:
         saw_read = False
         for statement in _flatten_statements(statements):
+            handled = _apply_recognized_loop(statement, env, ctx)
             reaches = _statement_reaches(statement)
             for node in _walk_skipping_lambdas(statement):
                 if reaches:
@@ -305,16 +314,10 @@ def _document_divisions(
                     if isinstance(node, ast.Call):
                         _scan_callee(node, env)
                 _invalidate_consumed(node, env)
-            _invalidate_mutations(statement, env, mutated_params)
-            if (
-                isinstance(statement, ast.Assign)
-                and len(statement.targets) == 1
-                and isinstance(statement.targets[0], ast.Name)
-            ):
-                tag = _tag(statement.value, env, ctx)
-                env[statement.targets[0].id] = tag
-                if tag in {_ROWS_FULL, _ROWS_ITER_FULL}:
-                    saw_read = True
+            _invalidate_mutations(statement, env, mutated_params, exempt=handled or set())
+            tag = _apply_assign(statement, env, ctx)
+            if tag in {_ROWS_FULL, _ROWS_ITER_FULL}:
+                saw_read = True
         return saw_read
 
     module_env: dict[str, str] = {}
@@ -333,12 +336,13 @@ def _document_divisions(
             env[parameter.arg] = _OTHER
         if _scan_scope(function.body, env):
             read_present = True
+    unsupported_flow = _has_unsupported_flow(tree, ctx.recognized_loop_ids)
     if unsupported_flow and divisions:
         # Control flow that never rebinds or mutates any quantity-tagged name
         # (or any name a division reads) cannot change the divisions'
         # provenance; table-building and formatting loops are the common
         # case. Any overlap keeps the document unsupported.
-        touched = _names_touched_in_flow(tree)
+        touched = _names_touched_in_flow(tree, ctx.recognized_loop_ids)
         provenance = {name for name, tag in module_env.items() if tag != _OTHER}
         for function in functions.values():
             env = dict(module_env)
@@ -366,6 +370,65 @@ def _document_divisions(
         "triggered": read_present and any_division,
         "unsupported_flow": unsupported_flow,
     }
+
+
+def _apply_assign(statement: ast.stmt, env: dict[str, str], ctx: _TraceContext) -> str | None:
+    """Apply one assignment to the environment; returns the tag for Name
+    targets so callers can track row reads."""
+
+    if not isinstance(statement, ast.Assign) or len(statement.targets) != 1:
+        return None
+    target = statement.targets[0]
+    if isinstance(target, ast.Name):
+        if isinstance(statement.value, ast.Dict):
+            keys = statement.value.keys
+            values = statement.value.values
+            if all(isinstance(key, ast.Constant) and isinstance(key.value, str) for key in keys):
+                for name in [k for k in list(env) if k.startswith(f"{target.id}[")]:
+                    del env[name]
+                env[target.id] = _DICT_MARKER
+                for key, value in zip(keys, values, strict=True):
+                    assert isinstance(key, ast.Constant)
+                    env[f"{target.id}[{key.value!r}]"] = _tag(value, env, ctx)
+                return _DICT_MARKER
+        ctx.pending_compounds = None
+        tag = _tag(statement.value, env, ctx)
+        for name in [k for k in list(env) if k.startswith(f"{target.id}[")]:
+            del env[name]
+        env[target.id] = tag
+        if tag == _DICT_MARKER and ctx.pending_compounds is not None:
+            for key, value in ctx.pending_compounds.items():
+                env[f"{target.id}[{key!r}]"] = value
+        ctx.pending_compounds = None
+        return tag
+    if isinstance(target, ast.Subscript):
+        key = _subscript_key(target)
+        if key is not None and env.get(key.split("[", 1)[0]) == _DICT_MARKER:
+            env[key] = _tag(statement.value, env, ctx)
+        return None
+    return None
+
+
+def _apply_recognized_loop(
+    statement: ast.stmt, env: dict[str, str], ctx: _TraceContext
+) -> set[str] | None:
+    """Recognize and apply a counter or accumulator loop; returns the set of
+    names the loop legitimately affects, or None when unrecognized."""
+
+    if not isinstance(statement, ast.For):
+        return None
+    effects = _recognize_for_loop(statement, env, ctx)
+    if effects is None:
+        return None
+    for node in ast.walk(statement):
+        ctx.recognized_loop_ids.add(id(node))
+    handled: set[str] = set()
+    for target, tag in effects.items():
+        env[target] = tag
+        handled.add(target.split("[", 1)[0])
+    if isinstance(statement.target, ast.Name):
+        handled.add(statement.target.id)
+    return handled
 
 
 def _walk_skipping_lambdas(statement: ast.AST) -> list[ast.AST]:
@@ -474,6 +537,12 @@ def _bind_call(
             bound.setdefault(parameter, _OTHER)
     if set(bound) != set(parameters):
         return None
+    for parameter, argument in zip(parameters, call.args, strict=False):
+        if bound.get(parameter) == _DICT_MARKER and isinstance(argument, ast.Name):
+            prefix = f"{argument.id}["
+            for key, value in env.items():
+                if key.startswith(prefix):
+                    bound[f"{parameter}[" + key[len(prefix) :]] = value
     return bound
 
 
@@ -528,7 +597,10 @@ def _invalidate_consumed(node: ast.AST, env: dict[str, str]) -> None:
 
 
 def _invalidate_mutations(
-    statement: ast.stmt, env: dict[str, str], mutated_params: dict[str, set[int]]
+    statement: ast.stmt,
+    env: dict[str, str],
+    mutated_params: dict[str, set[int]],
+    exempt: set[str] = frozenset(),
 ) -> None:
     """Drop provenance for collections a statement mutates, deletes from, or
     passes to a local helper that mutates its parameter."""
@@ -539,9 +611,12 @@ def _invalidate_mutations(
             and isinstance(node.func, ast.Attribute)
             and isinstance(node.func.value, ast.Name)
             and node.func.attr in _MUTATING_METHODS
+            and node.func.value.id not in exempt
             and env.get(node.func.value.id, _OTHER) != _OTHER
         ):
             env[node.func.value.id] = _OTHER
+            for key in [k for k in list(env) if k.startswith(f"{node.func.value.id}[")]:
+                env[key] = _OTHER
         elif isinstance(node, ast.Delete):
             for target in node.targets:
                 inner: ast.expr = target
@@ -558,11 +633,199 @@ def _invalidate_mutations(
                         env[argument.id] = _OTHER
 
 
-def _names_touched_in_flow(tree: ast.Module) -> set[str]:
-    """Names a loop, conditional, or try block could rebind, mutate, or delete."""
+def _branch_exhaustive_targets(statements: list[ast.stmt]) -> set[str]:
+    """Targets incremented or appended on every path through the statements.
+
+    For a sequence the union of per-statement all-path sets; for an if/else
+    tree the intersection across branches; an if without an else covers
+    nothing exhaustively.
+    """
+
+    covered: set[str] = set()
+    for statement in statements:
+        if isinstance(statement, ast.If):
+            branch = _branch_exhaustive_targets(statement.body)
+            if statement.orelse:
+                branch &= _branch_exhaustive_targets(statement.orelse)
+            else:
+                branch = set()
+            covered |= branch
+        else:
+            target = _loop_effect_target(statement)
+            if target is not None:
+                covered.add(target)
+    return covered
+
+
+def _loop_effect_target(statement: ast.stmt) -> str | None:
+    """The counter or accumulator a single recognized loop statement affects."""
+
+    if (
+        isinstance(statement, ast.AugAssign)
+        and isinstance(statement.op, ast.Add)
+        and isinstance(statement.value, ast.Constant)
+        and statement.value.value == 1
+    ):
+        if isinstance(statement.target, ast.Name):
+            return statement.target.id
+        if isinstance(statement.target, ast.Subscript):
+            return _subscript_key(statement.target)
+        return None
+    if (
+        isinstance(statement, ast.Expr)
+        and isinstance(statement.value, ast.Call)
+        and isinstance(statement.value.func, ast.Attribute)
+        and statement.value.func.attr == "append"
+        and isinstance(statement.value.func.value, ast.Name)
+    ):
+        return statement.value.func.value.id
+    return None
+
+
+def _loop_all_targets(statements: list[ast.stmt], locals_out: set[str]) -> set[str] | None:
+    """All effect targets in a loop body, or None if any statement is not a
+    recognized shape (if trees, +=1 counters, appends, loop-local
+    assignments, raise, pass, continue). Loop-local assignment targets are
+    collected into ``locals_out`` for shadowing validation."""
+
+    targets: set[str] = set()
+    for statement in statements:
+        if isinstance(statement, ast.Pass | ast.Continue | ast.Raise):
+            continue
+        if isinstance(statement, ast.If):
+            inner = _loop_all_targets(statement.body, locals_out)
+            if inner is None:
+                return None
+            targets |= inner
+            if statement.orelse:
+                inner = _loop_all_targets(statement.orelse, locals_out)
+                if inner is None:
+                    return None
+                targets |= inner
+            continue
+        target = _loop_effect_target(statement)
+        if target is not None:
+            targets.add(target)
+            continue
+        if isinstance(statement, ast.Assign):
+            names: list[str] = []
+            for assign_target in statement.targets:
+                elements = (
+                    assign_target.elts if isinstance(assign_target, ast.Tuple) else [assign_target]
+                )
+                for element in elements:
+                    if not isinstance(element, ast.Name):
+                        return None
+                    names.append(element.id)
+            locals_out.update(names)
+            continue
+        return None
+    return targets
+
+
+def _append_elements_are_loop_target(statements: list[ast.stmt], loop_target: str) -> bool:
+    for node in ast.walk(ast.Module(body=list(statements), type_ignores=[])):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "append"
+        ):
+            if not (
+                len(node.args) == 1
+                and not node.keywords
+                and isinstance(node.args[0], ast.Name)
+                and node.args[0].id == loop_target
+            ):
+                return False
+    return True
+
+
+def _recognize_for_loop(
+    loop: ast.For, env: dict[str, str], ctx: _TraceContext
+) -> dict[str, str] | None:
+    """Environment effects of a recognized counter or accumulator loop.
+
+    Returns the tag updates the loop produces, or None when the loop is not
+    a recognized shape and must stay unsupported. Rules (each protecting
+    against a demonstrated misclassification): counters and accumulators
+    reached on every path count or copy the loop source; only guarded ones
+    are conditioned subsets; append arguments must be exactly the loop
+    target; every affected name must start empty (or zero for counters) so
+    prior content cannot hide.
+    """
+
+    if loop.orelse or not isinstance(loop.target, ast.Name):
+        return None
+    source = _tag(loop.iter, env, ctx)
+    if source == _ROWS_ITER_FULL:
+        source_rows = _ROWS_FULL
+    elif source in {_ROWS_FULL, _ROWS_SUBSET}:
+        source_rows = source
+    else:
+        return None
+    loop_locals: set[str] = set()
+    targets = _loop_all_targets(loop.body, loop_locals)
+    if targets is None or not targets:
+        return None
+    if not _append_elements_are_loop_target(loop.body, loop.target.id):
+        return None
+    # Loop-local temporaries must not shadow any provenance-tagged name or
+    # any effect target, or the loop could silently rebind provenance.
+    for name in loop_locals:
+        if env.get(name, _OTHER) != _OTHER or name in targets:
+            return None
+        if any(key.startswith(f"{name}[") for key in env):
+            return None
+    # No call inside the loop may receive a provenance-tagged collection or
+    # an effect base as an argument: a helper could mutate it.
+    effect_bases = {target.split("[", 1)[0] for target in targets}
+    for node in ast.walk(loop):
+        if isinstance(node, ast.Call):
+            if (
+                isinstance(node.func, ast.Attribute)
+                and node.func.attr == "append"
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id in effect_bases
+            ):
+                continue
+            for argument in node.args:
+                if isinstance(argument, ast.Name) and (
+                    env.get(argument.id, _OTHER) not in {_OTHER, _INT_OTHER}
+                    or argument.id in effect_bases
+                ):
+                    return None
+    exhaustive = _branch_exhaustive_targets(loop.body)
+    source_count = _COUNT_FULL if source_rows == _ROWS_FULL else _COUNT_SUBSET
+    effects: dict[str, str] = {}
+    for target in targets:
+        is_compound = "[" in target
+        if is_compound:
+            base = target.split("[", 1)[0]
+            if env.get(base) != _DICT_MARKER:
+                return None
+            effects[target] = source_count if target in exhaustive else _COUNT_SUBSET
+        else:
+            current = env.get(target, _OTHER)
+            if current == _ROWS_EMPTY:
+                effects[target] = source_rows if target in exhaustive else _ROWS_SUBSET
+            elif current == _INT_OTHER:
+                effects[target] = source_count if target in exhaustive else _COUNT_SUBSET
+            else:
+                return None
+    if isinstance(loop.iter, ast.Name) and source == _ROWS_ITER_FULL:
+        effects[loop.iter.id] = _OTHER
+    return effects
+
+
+def _names_touched_in_flow(tree: ast.Module, recognized_ids: set[int]) -> set[str]:
+    """Names a loop, conditional, or try block could rebind, mutate, or delete.
+    Recognized counter and accumulator loops are excluded: their effect is
+    exactly what the recognizer recorded."""
 
     touched: set[str] = set()
     for node in ast.walk(tree):
+        if id(node) in recognized_ids:
+            continue
         if isinstance(node, ast.If) and _is_main_guard(node):
             continue
         if not isinstance(node, ast.For | ast.AsyncFor | ast.While | ast.If | ast.Try):
@@ -600,8 +863,10 @@ def _names_touched_in_flow(tree: ast.Module) -> set[str]:
     return touched
 
 
-def _has_unsupported_flow(tree: ast.Module) -> bool:
+def _has_unsupported_flow(tree: ast.Module, recognized_ids: set[int]) -> bool:
     for node in ast.walk(tree):
+        if id(node) in recognized_ids:
+            continue
         if isinstance(node, ast.With | ast.AsyncWith):
             continue
         if isinstance(node, ast.If) and _is_main_guard(node):
@@ -690,18 +955,26 @@ def _bound_return_tag(
     ctx.visiting.add(function.name)
     try:
         for statement in _flatten_statements(function.body):
-            if (
-                isinstance(statement, ast.Assign)
-                and len(statement.targets) == 1
-                and isinstance(statement.targets[0], ast.Name)
-            ):
-                callee_env[statement.targets[0].id] = _tag(statement.value, callee_env, ctx)
+            _apply_recognized_loop(statement, callee_env, ctx)
+            _apply_assign(statement, callee_env, ctx)
         tags: set[str] = set()
+        compound_export: dict[str, str] | None = None
         for node in ast.walk(function):
             if isinstance(node, ast.Return) and node.value is not None:
-                tags.add(_tag(node.value, callee_env, ctx))
+                tag = _tag(node.value, callee_env, ctx)
+                tags.add(tag)
+                if tag == _DICT_MARKER and isinstance(node.value, ast.Name):
+                    prefix = f"{node.value.id}["
+                    compound_export = {
+                        key[len(prefix) :].rstrip("]").strip("'"): value
+                        for key, value in callee_env.items()
+                        if key.startswith(prefix)
+                    }
         if len(tags) == 1:
-            return next(iter(tags))
+            result = next(iter(tags))
+            if result == _DICT_MARKER:
+                ctx.pending_compounds = compound_export
+            return result
         return _OTHER
     finally:
         ctx.depth -= 1
@@ -744,6 +1017,13 @@ def _tag(node: ast.expr, env: dict[str, str], ctx: _TraceContext) -> str:
         return env.get(node.id, _OTHER)
     if isinstance(node, ast.Constant):
         return _INT_OTHER if isinstance(node.value, (int, float)) else _OTHER
+    if isinstance(node, ast.List) and not node.elts:
+        return _ROWS_EMPTY
+    if isinstance(node, ast.Subscript):
+        key = _subscript_key(node)
+        if key is not None:
+            return env.get(key, _OTHER)
+        return _OTHER
     if isinstance(node, ast.Call):
         return _tag_call(node, env, ctx)
     if isinstance(node, ast.ListComp | ast.GeneratorExp):
@@ -756,6 +1036,18 @@ def _tag(node: ast.expr, env: dict[str, str], ctx: _TraceContext) -> str:
             return _INT_OTHER
         return _OTHER
     return _OTHER
+
+
+def _subscript_key(node: ast.Subscript) -> str | None:
+    """The compound environment key for name[constant-string] access."""
+
+    if (
+        isinstance(node.value, ast.Name)
+        and isinstance(node.slice, ast.Constant)
+        and isinstance(node.slice.value, str)
+    ):
+        return f"{node.value.id}[{node.slice.value!r}]"
+    return None
 
 
 def _call_name(node: ast.Call) -> str:
@@ -792,6 +1084,19 @@ def _tag_call(node: ast.Call, env: dict[str, str], ctx: _TraceContext) -> str:
         argument = node.args[0]
         if isinstance(argument, ast.GeneratorExp | ast.ListComp):
             return _tag_counting_comprehension(argument, env, ctx)
+        return _OTHER
+    if (
+        name in {"Decimal", "decimal.Decimal", "int", "float"}
+        and len(node.args) == 1
+        and not node.keywords
+        and name not in env
+        and name not in ctx.functions
+    ):
+        # An unshadowed standard numeric cast is provenance-transparent for
+        # counts; anything else stays opaque.
+        inner = _tag(node.args[0], env, ctx)
+        if inner in _COUNT_TAGS | {_INT_OTHER}:
+            return inner
         return _OTHER
     return _OTHER
 
