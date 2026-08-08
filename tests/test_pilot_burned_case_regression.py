@@ -34,6 +34,7 @@ V120_RUNS = LANE_RELATIVE / "pilot-v120-lean-detector-run-three-case/runs"
 V200B_RUNS = LANE_RELATIVE / "pilot-v200b-lean-pipeline-three-case/detector-run/runs"
 V201C_RUNS = LANE_RELATIVE / "pilot-v201c-lean-pipeline-three-case/detector-run/runs"
 V202F_RUNS = LANE_RELATIVE / "pilot-v202f-lean-pipeline-three-case/detector-run/runs"
+V203G_RUNS = LANE_RELATIVE / "pilot-v203g-lean-pipeline-three-case/detector-run/runs"
 # Both burned error cases must be caught by quantity arithmetic alone
 # (ADR-0069). Both valid alternatives state a full accounting and a
 # percent-marked or decimal rate, so the arithmetic recognizes their
@@ -129,6 +130,27 @@ CASES = (
     (
         V202F_RUNS,
         "4b3a3ca7b912052270cf",
+        "retained-observed-subset-exposure",
+        "valid_alternative",
+        "applicable",
+    ),
+    (
+        V203G_RUNS,
+        "4113ccb22d2185ffbdbf",
+        "complete-declared-domain-exposure",
+        "error",
+        "applicable",
+    ),
+    (
+        V203G_RUNS,
+        "79e4748a3a2e8196d9c9",
+        "complete-declared-domain-exposure",
+        "corrected",
+        "applicable",
+    ),
+    (
+        V203G_RUNS,
+        "1cabdc86e68dbde06879",
         "retained-observed-subset-exposure",
         "valid_alternative",
         "applicable",

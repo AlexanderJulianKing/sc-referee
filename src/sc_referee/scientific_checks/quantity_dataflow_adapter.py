@@ -76,7 +76,7 @@ def quantity_dataflow_grammar(complete_operand: str, retained_operand: str) -> d
         },
         "control_flow": (
             "straight-line assignments, comprehensions, with-blocks, functions, "
-            "and the __main__ guard"
+            "the __main__ guard, and provenance-disjoint loops or conditionals"
         ),
         "nomenclature_authority": "none",
     }
@@ -305,11 +305,71 @@ def _document_divisions(
         if _scan_scope(function.body, env):
             read_present = True
     _FUNCTION_TABLE.pop(id(returns), None)
+    if unsupported_flow and divisions:
+        # Control flow that never rebinds or mutates any quantity-tagged
+        # name (or any name a division reads) cannot change the divisions'
+        # provenance; table-building and formatting loops are the common
+        # case. Any overlap keeps the document unsupported.
+        touched = _names_touched_in_flow(tree)
+        provenance = {name for name, tag in module_env.items() if tag != _OTHER}
+        for function in functions.values():
+            env = dict(module_env)
+            for statement in _flatten_statements(function.body):
+                if (
+                    isinstance(statement, ast.Assign)
+                    and len(statement.targets) == 1
+                    and isinstance(statement.targets[0], ast.Name)
+                ):
+                    tag = _tag(statement.value, env, returns)
+                    env[statement.targets[0].id] = tag
+                    if tag != _OTHER:
+                        provenance.add(statement.targets[0].id)
+        for item in divisions:
+            pair = _division_operands(item.node)
+            if pair is not None:
+                for operand in pair:
+                    for name in ast.walk(operand):
+                        if isinstance(name, ast.Name):
+                            provenance.add(name.id)
+        if not (touched & provenance):
+            unsupported_flow = False
     return {
         "divisions": divisions,
         "triggered": read_present and any_division,
         "unsupported_flow": unsupported_flow,
     }
+
+
+def _names_touched_in_flow(tree: ast.Module) -> set[str]:
+    """Names a loop, conditional, or try block could rebind or mutate."""
+
+    touched: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.If) and _is_main_guard(node):
+            continue
+        if not isinstance(node, ast.For | ast.AsyncFor | ast.While | ast.If | ast.Try):
+            continue
+        for inner in ast.walk(node):
+            if isinstance(inner, ast.Assign):
+                for target in inner.targets:
+                    for name in ast.walk(target):
+                        if isinstance(name, ast.Name):
+                            touched.add(name.id)
+            elif isinstance(inner, ast.AugAssign) and isinstance(inner.target, ast.Name):
+                touched.add(inner.target.id)
+            elif isinstance(inner, ast.For | ast.AsyncFor):
+                for name in ast.walk(inner.target):
+                    if isinstance(name, ast.Name):
+                        touched.add(name.id)
+            elif (
+                isinstance(inner, ast.Call)
+                and isinstance(inner.func, ast.Attribute)
+                and isinstance(inner.func.value, ast.Name)
+                and inner.func.attr
+                in {"append", "extend", "insert", "pop", "remove", "clear", "update"}
+            ):
+                touched.add(inner.func.value.id)
+    return touched
 
 
 def _has_unsupported_flow(tree: ast.Module) -> bool:
