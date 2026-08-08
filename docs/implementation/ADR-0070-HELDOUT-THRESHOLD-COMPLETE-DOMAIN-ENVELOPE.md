@@ -65,7 +65,7 @@ The sealed block holds seven case identities in seven frozen roles. Expected out
 ## Decision (proposed)
 
 1. **False-accusation bar: zero of five.** Any conflict candidate on any control case fails the
-   envelope. This is the product's central claim and the record supports it at 0 for 18.
+   envelope. This is the product's central claim and the record supports it at 0 for 32.
 2. **Sensitivity bar: at least one of two positives.** Catching at least one planted error with
    zero false accusations across seven blind cases qualifies the envelope. Both positives
    caught is reported as such; one caught and one missed still qualifies, with the miss
@@ -73,7 +73,7 @@ The sealed block holds seven case identities in seven frozen roles. Expected out
 3. **One shot, no repair.** The block is authored, reviewed, labeled, and run through the
    frozen ADR-0068 pipeline once. A missed positive is retained, localized, and locked as a
    regression for future versions, but the block is never re-run for this envelope's score.
-4. **Tuple freeze.** The v2.0.4 registry digests are recorded in the block's authoring
+4. **Tuple freeze.** The v2.0.7 registry digests are recorded in the block's authoring
    protocol before any author call; any detector change after that voids the run.
 5. **Disclosure.** The qualification report states the full pilot table above, the
    single-review-with-escalation design (ADR-0067), the single-provider composition
