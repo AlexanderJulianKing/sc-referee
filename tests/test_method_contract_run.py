@@ -41,17 +41,27 @@ def _expected_count_requirement_profile() -> dict[str, str]:
     }
 
 
+# ADR-0069 check v2.0.0 recognizes the founder orientation from arithmetic and
+# operations, not from a method sentence: with 372 of 480 markers agreeing,
+# a stated emission rate of 0.775 reads the supplied panel directly and its
+# complement 0.225 reads the repaired panel.
+_FOUNDER_ACCOUNTING = (
+    "The parental marker panel and the progeny calls were compared marker by marker: "
+    "372 of the 480 markers agree.\n\n"
+    "The emission model used a per-marker agreement rate of {rate}.\n"
+)
+
+
 def _write_founder_workflow(repository: Path, *, repaired: bool) -> None:
+    report_text = _FOUNDER_ACCOUNTING.format(rate="0.225" if repaired else "0.775")
     if repaired:
-        method = "Founder alleles were reoriented before the HMM emission."
         preparation = (
             "    repaired = orient_ril_founder_alleles(sample.founder_alleles)\n"
             "    return emission_matrix(observed, repaired[0], 0.01)\n"
         )
     else:
-        method = "The founder-origin HMM was fitted using the supplied founder alleles."
         preparation = "    return emission_matrix(observed, sample.founder_alleles[0], 0.01)\n"
-    (repository / "report.md").write_text(method + "\n", encoding="utf-8")
+    (repository / "report.md").write_text(report_text, encoding="utf-8")
     (repository / "analysis.py").write_text(
         "from pathlib import Path\n"
         "ROOT = Path(__file__).resolve().parent\n\n"
@@ -60,7 +70,7 @@ def _write_founder_workflow(repository: Path, *, repaired: bool) -> None:
         "def fit(sample, observed):\n"
         f"{preparation}\n"
         "def main():\n"
-        f"    (ROOT / 'report.md').write_text({method!r} + '\\n')\n\n"
+        f"    (ROOT / 'report.md').write_text({report_text!r})\n\n"
         "if __name__ == '__main__':\n"
         "    main()\n",
         encoding="utf-8",

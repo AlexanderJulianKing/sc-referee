@@ -16,12 +16,19 @@ from sc_referee.scientific_checks import (
 from sc_referee.scientific_checks.integration import build_frozen_inspection_context
 from sc_referee.scientific_checks.profiles import default_scientific_check_registry
 
-FOUNDER_CHECK = "check:founder-orientation-before-hmm-emission"
-DIRECT_SOURCE = """def emission_matrix(observed, founder_state, error):
-    return observed == founder_state
+# The founder-orientation check became a single reported-text plane at check
+# v2.0.0 (ADR-0069). Cell-level static-source evidence is exercised here by the
+# LD-whitening check, whose Python static-source adapter still reads a cell.
+STATIC_CHECK = "check:ld-covariance-whitening-before-robust-fit"
+DIRECT_SOURCE = """from numpy.linalg import cholesky as factor_covariance
+from numpy.linalg import solve as triangular_solve
+from statsmodels.api import RLM as robust_fit
+from statsmodels.robust.norms import TukeyBiweight as redescending_norm
 
-def fit(sample, observed):
-    return emission_matrix(observed, sample.founder_alleles[0], 0.01)
+factor = factor_covariance(ld_covariance)
+y_white = triangular_solve(factor, outcome_innovations)
+x_white = triangular_solve(factor, exposure_innovations)
+fit = robust_fit(y_white, x_white, M=redescending_norm())
 """
 
 
@@ -75,11 +82,14 @@ def _context(
     return context
 
 
-def _founder_static_observation(context):
+def _static_source_observation(context):
     evaluation = default_scientific_check_registry().evaluate(context)
-    module = next(item for item in evaluation.modules if item.check_id == FOUNDER_CHECK)
+    module = next(item for item in evaluation.modules if item.check_id == STATIC_CHECK)
     observation = next(
-        item for item in module.observations if item.evidence_plane == "static_source"
+        item
+        for item in module.observations
+        if item.evidence_plane == "static_source"
+        and item.adapter_id.endswith("python-static-source-v1")
     )
     return module, observation
 
@@ -95,7 +105,7 @@ def test_notebook_cells_are_distinct_scientific_documents_but_remain_unscoped(
     _write_notebook(
         notebook,
         [
-            ("founder-model", DIRECT_SOURCE),
+            ("whitening-model", DIRECT_SOURCE),
             ("inert-marker", f"open({str(marker)!r}, 'w').write('executed')\n"),
         ],
     )
@@ -113,16 +123,16 @@ def test_notebook_cells_are_distinct_scientific_documents_but_remain_unscoped(
     assert len({item.document_identity for item in cells}) == 2
     assert {item.path for item in cells} == {"analysis.ipynb"}
     assert {item.source_location.to_dict()["cell_id"] for item in cells} == {
-        "founder-model",
+        "whitening-model",
         "inert-marker",
     }
-    module, observation = _founder_static_observation(context)
+    module, observation = _static_source_observation(context)
     assert module.state == "unsupported"
     assert observation.applicability == "unsupported"
     assert observation.observed_operand is not None
     assert observation.scope_join_path == ()
     assert not any(
-        item.get("extensions", {}).get("x-scientific-check-id") == FOUNDER_CHECK
+        item.get("extensions", {}).get("x-scientific-check-id") == STATIC_CHECK
         for item in bundle["material_questions"]
     )
     assert not marker.exists()
@@ -131,10 +141,10 @@ def test_notebook_cells_are_distinct_scientific_documents_but_remain_unscoped(
     document = next(item for item in cells if item.parser_result_ref == span.parser_result_ref)
     source_ref = document.evidence_source_ref(span)
     assert source_ref["source_kind"] == "notebook_cell"
-    assert source_ref["cell_id"] == "founder-model"
+    assert source_ref["cell_id"] == "whitening-model"
     assert source_ref["selector"] == "source"
     assert source_ref["content_digest"] == sha256_digest(notebook.read_bytes())
-    assert "emission_matrix" in source_ref["quoted_text"]
+    assert "triangular_solve" in source_ref["quoted_text"]
 
     replayed = replay(output / "semantic.lock.json", tmp_path / "replay", schema_root)
     assert replayed["parser_results"] == bundle["parser_results"]
@@ -152,7 +162,7 @@ def test_selected_quarto_cell_can_create_question_with_absolute_document_lines(
         "# Analysis\n\n"
         "This document contains one static model fragment.\n\n"
         "```{python}\n"
-        "#| label: founder-model\n"
+        "#| label: whitening-model\n"
         f"{DIRECT_SOURCE}"
         f"# open({str(marker)!r}, 'w').write('executed')\n"
         "```\n",
@@ -162,7 +172,7 @@ def test_selected_quarto_cell_can_create_question_with_absolute_document_lines(
 
     bundle = run_audit(repository, output, schema_root, report="analysis.qmd")
     context = _context(repository, output, bundle)
-    module, observation = _founder_static_observation(context)
+    module, observation = _static_source_observation(context)
 
     assert module.state == "applicable"
     assert observation.applicability == "applicable"
@@ -177,26 +187,26 @@ def test_selected_quarto_cell_can_create_question_with_absolute_document_lines(
     source_ref = document.evidence_source_ref(span)
     assert document.line_offset == 6
     assert source_ref["source_kind"] == "document_chunk"
-    assert source_ref["chunk_label"] == "founder-model"
+    assert source_ref["chunk_label"] == "whitening-model"
     assert source_ref["start_line"] >= 7
     assert source_ref["content_digest"] == sha256_digest(quarto.read_bytes())
-    assert "emission_matrix" in source_ref["quoted_text"]
+    assert "triangular_solve" in source_ref["quoted_text"]
     questions = [
         item
         for item in bundle["material_questions"]
-        if item.get("extensions", {}).get("x-scientific-check-id") == FOUNDER_CHECK
+        if item.get("extensions", {}).get("x-scientific-check-id") == STATIC_CHECK
     ]
     assertions = [
         item
         for item in bundle["semantic_assertions"]
-        if item.get("extensions", {}).get("x-scientific-check-id") == FOUNDER_CHECK
+        if item.get("extensions", {}).get("x-scientific-check-id") == STATIC_CHECK
     ]
     assert len(questions) == 1
     assert len(assertions) == 1
     assert assertions[0]["semantic_role"] == "observed"
     assert assertions[0]["finding_eligibility"] == "ineligible"
     assert assertions[0]["source_refs"][0]["source_kind"] == "document_chunk"
-    assert assertions[0]["source_refs"][0]["chunk_label"] == "founder-model"
+    assert assertions[0]["source_refs"][0]["chunk_label"] == "whitening-model"
     assert not marker.exists()
     assert bundle["findings"] == []
 
@@ -211,7 +221,7 @@ def test_selected_notebook_cell_can_create_question_without_claiming_execution(
     _write_notebook(
         notebook,
         [
-            ("founder-model", DIRECT_SOURCE),
+            ("whitening-model", DIRECT_SOURCE),
             ("inert-marker", f"open({str(marker)!r}, 'w').write('executed')\n"),
         ],
     )
@@ -219,7 +229,7 @@ def test_selected_notebook_cell_can_create_question_without_claiming_execution(
 
     bundle = run_audit(repository, output, schema_root, report="analysis.ipynb")
     context = _context(repository, output, bundle)
-    module, observation = _founder_static_observation(context)
+    module, observation = _static_source_observation(context)
 
     assert module.state == "applicable"
     assert observation.applicability == "applicable"
@@ -230,16 +240,16 @@ def test_selected_notebook_cell_can_create_question_without_claiming_execution(
     questions = [
         item
         for item in bundle["material_questions"]
-        if item.get("extensions", {}).get("x-scientific-check-id") == FOUNDER_CHECK
+        if item.get("extensions", {}).get("x-scientific-check-id") == STATIC_CHECK
     ]
     assertions = [
         item
         for item in bundle["semantic_assertions"]
-        if item.get("extensions", {}).get("x-scientific-check-id") == FOUNDER_CHECK
+        if item.get("extensions", {}).get("x-scientific-check-id") == STATIC_CHECK
     ]
     assert len(questions) == 1
     assert assertions[0]["source_refs"][0]["source_kind"] == "notebook_cell"
-    assert assertions[0]["source_refs"][0]["cell_id"] == "founder-model"
+    assert assertions[0]["source_refs"][0]["cell_id"] == "whitening-model"
     assert "execution" in observation.non_inferences
     assert bundle["findings"] == []
     assert not marker.exists()
@@ -257,7 +267,7 @@ def test_explicitly_disabled_selected_quarto_cell_remains_unscoped(
     (repository / "analysis.qmd").write_text(
         "# Analysis\n\n"
         "```{python}\n"
-        "#| label: disabled-founder-model\n"
+        "#| label: disabled-whitening-model\n"
         "#| eval: false\n"
         f"{DIRECT_SOURCE}"
         "```\n",
@@ -267,14 +277,14 @@ def test_explicitly_disabled_selected_quarto_cell_remains_unscoped(
 
     bundle = run_audit(repository, output, schema_root, report="analysis.qmd")
     context = _context(repository, output, bundle)
-    module, observation = _founder_static_observation(context)
+    module, observation = _static_source_observation(context)
 
     assert module.state == "unsupported"
     assert observation.applicability == "unsupported"
     assert observation.observed_operand is not None
     assert observation.scope_join_path == ()
     assert not any(
-        item.get("extensions", {}).get("x-scientific-check-id") == FOUNDER_CHECK
+        item.get("extensions", {}).get("x-scientific-check-id") == STATIC_CHECK
         for item in bundle["material_questions"]
     )
     assert bundle["findings"] == []
@@ -285,7 +295,7 @@ def test_tampered_virtual_source_metadata_is_not_exposed_to_scientific_adapters(
 ) -> None:
     repository = tmp_path / "repository"
     repository.mkdir()
-    _write_notebook(repository / "analysis.ipynb", [("founder-model", DIRECT_SOURCE)])
+    _write_notebook(repository / "analysis.ipynb", [("whitening-model", DIRECT_SOURCE)])
     output = tmp_path / "audit"
     bundle = run_audit(repository, output, schema_root, report="analysis.ipynb")
     tampered = copy.deepcopy(bundle["parser_results"])
@@ -302,7 +312,7 @@ def test_tampered_virtual_source_metadata_is_not_exposed_to_scientific_adapters(
         item.source_location is not None and item.source_location.source_kind == "notebook_cell"
         for item in context.documents
     )
-    module, observation = _founder_static_observation(context)
+    module, observation = _static_source_observation(context)
     assert module.state == "unsupported"
     assert observation.applicability == "not_applicable"
     assert observation.observed_operand is None

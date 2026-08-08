@@ -7,8 +7,6 @@ from pathlib import Path
 from typing import Any
 
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
-from sc_referee.parsers.python_ast import PARSER_ID as PYTHON_PARSER_ID
-from sc_referee.parsers.python_ast import PARSER_VERSION as PYTHON_PARSER_VERSION
 from sc_referee.scientific_checks.core import (
     AdapterManifest,
     CanonicalOperand,
@@ -19,10 +17,17 @@ from sc_referee.scientific_checks.core import (
     ScientificCheckAdapter,
     ScientificCheckModule,
 )
+from sc_referee.scientific_checks.founder_orientation_adapter import (
+    FOUNDER_ORIENTATION_ADAPTER_IMPLEMENTATION_DIGEST,
+    FOUNDER_ORIENTATION_COUNTEREVIDENCE,
+    FounderOrientationReportAdapter,
+    founder_orientation_recognition_grammar_digest,
+)
+from sc_referee.scientific_checks.founder_orientation_dataflow import (
+    FOUNDER_ORIENTATION_DATAFLOW_IMPLEMENTATION_DIGEST,
+)
 from sc_referee.scientific_checks.python_founder_adapter import (
     PYTHON_FOUNDER_ADAPTER_IMPLEMENTATION_DIGEST,
-    PythonFounderOrientationAdapter,
-    python_founder_recognition_grammar_digest,
 )
 from sc_referee.scientific_checks.quantity_consistency_adapter import (
     QUANTITY_CONSISTENCY_ADAPTER_IMPLEMENTATION_DIGEST,
@@ -227,6 +232,12 @@ def scientific_check_release_projection(
             "scientific_checks/core.py": sha256_digest(
                 (Path(__file__).resolve().parent / "core.py").read_bytes()
             ),
+            "scientific_checks/founder_orientation_adapter.py": (
+                FOUNDER_ORIENTATION_ADAPTER_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/founder_orientation_dataflow.py": (
+                FOUNDER_ORIENTATION_DATAFLOW_IMPLEMENTATION_DIGEST
+            ),
             "scientific_checks/python_founder_adapter.py": (
                 PYTHON_FOUNDER_ADAPTER_IMPLEMENTATION_DIGEST
             ),
@@ -338,6 +349,8 @@ def _module(profile: _ReportProfile) -> ScientificCheckModule:
     )
     if profile.check_id == "check:complete-domain-exposure-denominator":
         return _quantity_consistency_module(check, profile)
+    if profile.check_id == "check:founder-orientation-before-hmm-emission":
+        return _founder_orientation_module(check, profile)
     adapter_id = f"adapter:{profile.check_id.removeprefix('check:')}:selected-report-v1"
     adapter_manifest = AdapterManifest(
         adapter_id=adapter_id,
@@ -368,49 +381,6 @@ def _module(profile: _ReportProfile) -> ScientificCheckModule:
     )
     adapter_manifests = [adapter_manifest]
     adapters: list[ScientificCheckAdapter] = [report_adapter]
-    if profile.check_id == "check:founder-orientation-before-hmm-emission":
-        direct_operand = CanonicalOperand.scalar(
-            "use_supplied_founder_alleles_directly_in_hmm_emission"
-        )
-        repaired_operand = CanonicalOperand.scalar(
-            "repair_ril_founder_orientation_before_hmm_emission"
-        )
-        source_manifest = AdapterManifest(
-            adapter_id="adapter:founder-orientation-before-hmm-emission:python-ast-v1",
-            adapter_version="1.3.0",
-            implementation_digest=PYTHON_FOUNDER_ADAPTER_IMPLEMENTATION_DIGEST,
-            recognition_grammar_digest=python_founder_recognition_grammar_digest(
-                direct_operand, repaired_operand, profile.role_bindings
-            ),
-            parser_id=PYTHON_PARSER_ID,
-            parser_version=PYTHON_PARSER_VERSION,
-            source_language="python",
-            evidence_plane="static_source",
-            semantic_roles=profile.semantic_roles,
-            applicability_profile="exact-founder-input-to-emission-ast-flow-and-scope-v3",
-            counterevidence_profiles=(
-                "exact-founder-emission-role-binding",
-                "alternative-orientation-targets-absent",
-                "source-to-analysis-scope-join",
-            ),
-            known_gaps=(
-                "dynamic dispatch",
-                "multiple founder-emission targets",
-                "nonsemantic founder inputs or nonlocal call targets",
-                "separate source files without exact selected-output writer lineage",
-                "writer or selected-container scope does not establish execution or primary-analysis status",
-            ),
-        )
-        adapter_manifests.append(source_manifest)
-        adapters.append(
-            PythonFounderOrientationAdapter(
-                check_manifest=check,
-                adapter_manifest=source_manifest,
-                direct_operand=direct_operand,
-                repaired_operand=repaired_operand,
-                role_bindings=profile.role_bindings,
-            )
-        )
     source_profile = {
         "check:classifier-derived-copy-dosage-representation": (
             "classifier_copy_dosage",
@@ -479,6 +449,55 @@ def _quantity_consistency_module(
         adapter_manifest=adapter_manifest,
         complete_operand=complete_operand,
         retained_operand=retained_operand,
+    )
+    return ScientificCheckModule(
+        manifest=check,
+        declared_manifest_digest=check.manifest_digest,
+        adapter_manifests=(adapter_manifest,),
+        adapters=(adapter,),
+    )
+
+
+def _founder_orientation_module(
+    check: CheckManifest, profile: _ReportProfile
+) -> ScientificCheckModule:
+    """Build the ADR-0069 operations-based module for the founder-orientation check."""
+
+    operands = {candidate.candidate_id: candidate.operand for candidate in profile.candidates}
+    direct_operand = operands["use-supplied-orientation"]
+    repaired_operand = operands["repair-before-emission"]
+    adapter_manifest = AdapterManifest(
+        adapter_id=(f"adapter:{profile.check_id.removeprefix('check:')}:orientation-dataflow-v1"),
+        adapter_version=profile.adapter_version,
+        implementation_digest=FOUNDER_ORIENTATION_ADAPTER_IMPLEMENTATION_DIGEST,
+        recognition_grammar_digest=founder_orientation_recognition_grammar_digest(
+            str(direct_operand.value), str(repaired_operand.value)
+        ),
+        parser_id="parser:markdown-inventory",
+        parser_version="0.2.0",
+        source_language="markdown",
+        evidence_plane="reported_text",
+        semantic_roles=profile.semantic_roles,
+        applicability_profile="bounded-founder-orientation-reconciliation-v1",
+        counterevidence_profiles=FOUNDER_ORIENTATION_COUNTEREVIDENCE,
+        known_gaps=(
+            "emission comparisons whose operands are parallel sequences rather than "
+            "columns of one staged row set",
+            "emission comparisons inside a helper that receives the row set as a "
+            "parameter, where the staged read is out of the traced scope",
+            "orientation repairs expressed by arithmetic this trace does not recognize",
+            "reports that state no marker-total and agreement-count accounting",
+            "reports whose incidental integers reconcile as a second accounting",
+            "non-Markdown publication surfaces",
+            "reported quantities and source operations do not establish execution",
+        ),
+    )
+    adapter = FounderOrientationReportAdapter(
+        check_manifest=check,
+        adapter_manifest=adapter_manifest,
+        direct_operand=direct_operand,
+        repaired_operand=repaired_operand,
+        role_bindings=profile.role_bindings,
     )
     return ScientificCheckModule(
         manifest=check,
@@ -732,8 +751,25 @@ def _mvmr_covariance_module() -> ScientificCheckModule:
 
 
 def _founder_orientation_profile() -> _ReportProfile:
+    """Recognize the founder orientation an emission uses from operations alone.
+
+    v2.0.0 (ADR-0069): recognition is delegated to the fused
+    founder-orientation adapter, which reconciles the report's stated marker
+    total, agreement count, and rate arithmetically and resolves the workflow
+    source's emission comparison by bounded static dataflow. Nomenclature
+    never gates recognition, so this profile carries no report grammar rules
+    or lexical triggers; the retired two-sentence grammar answered whether the
+    report claimed a repair, while the reviewable operand is whether an
+    orientation repair sits on the dataflow path.
+    """
+
     direct = "use_supplied_founder_alleles_directly_in_hmm_emission"
     repaired = "repair_ril_founder_orientation_before_hmm_emission"
+    authority_basis = (
+        "Closed review choice; the check does not select it for the scientist, does not infer "
+        "the intended allele coding, and does not treat file, column, or function names as "
+        "scientific authority."
+    )
     return _ReportProfile(
         check_id="check:founder-orientation-before-hmm-emission",
         dimension="scale_and_orientation",
@@ -742,13 +778,13 @@ def _founder_orientation_profile() -> _ReportProfile:
                 "repair-before-emission",
                 "Repair founder orientation before emission",
                 repaired,
-                "Closed review choice; the check does not select it for the scientist.",
+                authority_basis,
             ),
             _candidate(
                 "use-supplied-orientation",
                 "Use supplied founder orientation",
                 direct,
-                "Closed review choice; the check does not select it for the scientist.",
+                authority_basis,
             ),
         ),
         semantic_roles=("founder_allele_input", "hmm_emission", "orientation_step"),
@@ -757,28 +793,13 @@ def _founder_orientation_profile() -> _ReportProfile:
             RoleBinding("hmm_emission", "founder_origin_emission"),
             RoleBinding("orientation_step", "before_emission"),
         ),
-        rules=(
-            ReportOperandRule(
-                CanonicalOperand.scalar(direct),
-                (
-                    r"(?i)founder-origin\s+HMM\s+was\s+fitted[^.]*using\s+the\s+supplied\s+founder\s+alleles",
-                ),
-            ),
-            ReportOperandRule(
-                CanonicalOperand.scalar(repaired),
-                (
-                    r"(?i)founder(?:\s+(?:0/1|binary))?(?:\s+marker)?\s+alleles\s+were\s+(?:orientation-repaired|reoriented|oriented)[^.]*before\s+(?:the\s+)?(?:HMM\s+)?emissions?",
-                ),
-            ),
-        ),
-        triggers=(
-            r"(?i)founder[- ]origin\s+HMM",
-            r"(?i)founder(?:\s+(?:0/1|binary))?(?:\s+marker)?\s+alleles",
-        ),
+        rules=(),
+        triggers=(),
         question_wording=(
             "Which founder-allele orientation rule governs the HMM emission for this review?"
         ),
-        extra_record_types=("file_record", "operation"),
+        check_version="2.0.0",
+        adapter_version="2.0.0",
     )
 
 

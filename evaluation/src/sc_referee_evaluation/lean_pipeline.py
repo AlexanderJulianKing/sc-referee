@@ -156,6 +156,34 @@ class ModelParticipant:
         }
 
 
+# The per-envelope authoring file contract. Everything an author must build,
+# and every accounting a case report must state, is envelope-specific: the
+# default below is the ADR-0069 envelope-10 contract, and a new envelope
+# supplies its own through EnvelopeConfig.author_case_requirements.
+DEFAULT_AUTHOR_CASE_REQUIREMENTS = """Author every assigned case as a small, real, runnable analysis workflow. For each case you
+produce exactly three files.
+
+inputs/data.csv: an ASCII CSV with a header row and one data row per planned observation unit,
+containing the complete planned-unit accounting including the units the screening step removes.
+
+workflow/analysis.py: a deterministic Python script using only the standard library modules
+csv, math, statistics, pathlib, collections, fractions, decimal, itertools, functools, json,
+and re. It must read inputs/data.csv, compute every count and the rate it reports from that
+data (never hard-code a result number), and write results/report.md. No randomness, no clock,
+no network, no other files, no command-line arguments. The intake pipeline (not you) will later
+execute it twice from the case root with `python -I workflow/analysis.py`; both runs must
+produce byte-identical output, and the report_md you return must equal that output exactly,
+byte for byte, so compute every reported number with exact care.
+
+results/report.md: an ASCII Markdown report whose lines exactly equal the script output. It
+must contain exactly one line beginning with `[selected-result]` stating the single selected
+result, and it must state the complete accounting in numbers: the planned unit count, the
+retained count after screening, the removed count, and the event count.
+
+Keep every number internally consistent with the CSV. Report selected_result_line as the
+1-based line number of the `[selected-result]` line inside report_md."""
+
+
 @dataclass(frozen=True)
 class EnvelopeConfig:
     envelope_id: str
@@ -186,6 +214,7 @@ class EnvelopeConfig:
     case_briefs: dict[str, dict[str, Any]] | None = None
     expected_verdict_by_role: dict[str, str] | None = None
     label_status_by_role: dict[str, str] | None = None
+    author_case_requirements: str = DEFAULT_AUTHOR_CASE_REQUIREMENTS
     mq_tolerant_roles: set[str] = field(default_factory=set)
     contract_free_roles: set[str] = field(default_factory=set)
     opening_record_relative: str | None = None
@@ -670,28 +699,7 @@ run, test, or verify anything externally, and do not narrate tool use. Construct
 your head, check the arithmetic mentally, and reply with exactly one JSON object and nothing
 else: no prose before or after it, no markdown fences, no tool-call blocks.
 
-Author every assigned case as a small, real, runnable analysis workflow. For each case you
-produce exactly three files.
-
-inputs/data.csv: an ASCII CSV with a header row and one data row per planned observation unit,
-containing the complete planned-unit accounting including the units the screening step removes.
-
-workflow/analysis.py: a deterministic Python script using only the standard library modules
-csv, math, statistics, pathlib, collections, fractions, decimal, itertools, functools, json,
-and re. It must read inputs/data.csv, compute every count and the rate it reports from that
-data (never hard-code a result number), and write results/report.md. No randomness, no clock,
-no network, no other files, no command-line arguments. The intake pipeline (not you) will later
-execute it twice from the case root with `python -I workflow/analysis.py`; both runs must
-produce byte-identical output, and the report_md you return must equal that output exactly,
-byte for byte, so compute every reported number with exact care.
-
-results/report.md: an ASCII Markdown report whose lines exactly equal the script output. It
-must contain exactly one line beginning with `[selected-result]` stating the single selected
-result, and it must state the complete accounting in numbers: the planned unit count, the
-retained count after screening, the removed count, and the event count.
-
-Keep every number internally consistent with the CSV. Report selected_result_line as the
-1-based line number of the `[selected-result]` line inside report_md.
+{case_requirements}
 
 {task}
 
@@ -778,6 +786,7 @@ def step_authoring(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
             brief_lines.append(_case_brief_block(config, case_id, role_by_case[case_id]))
         schema = _author_output_schema(participant_id, assigned)
         prompt = _AUTHOR_INSTRUCTIONS.format(
+            case_requirements=config.author_case_requirements,
             task=config.common_task,
             assignments="\n".join(brief_lines),
             schema=canonical_json(schema),

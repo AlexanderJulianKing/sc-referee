@@ -16,11 +16,11 @@
       "required_candidate_id": "repair-before-emission",
       "required_operand": "repair_ril_founder_orientation_before_hmm_emission",
       "expected_source_paths": ["analysis.py", "report.md"],
-      "conflict_report": "The founder-origin HMM was fitted using the supplied founder alleles.\n",
-      "corrected_report": "Founder alleles were reoriented before the HMM emission.\n",
-      "ambiguous_report": "The founder-origin HMM was fitted using the supplied founder alleles. Founder alleles were reoriented before the HMM emission.\n",
-      "conflict_source": "from pathlib import Path\n\ndef emission_matrix(observed, founder_state, error):\n    return observed == founder_state\n\ndef fit(sample, observed):\n    return emission_matrix(observed, sample.founder_alleles[0], 0.01)\n\nPath('report.md').write_text('generated\\n', encoding='utf-8')\n",
-      "corrected_source": "from pathlib import Path\n\ndef emission_matrix(observed, founder_state, error):\n    return observed == founder_state\n\ndef fit(sample, observed):\n    repaired = orient_ril_founder_alleles(sample.founder_alleles)\n    return emission_matrix(observed, repaired[0], 0.01)\n\nPath('report.md').write_text('generated\\n', encoding='utf-8')\n"
+      "conflict_report": "The parental marker panel and the progeny calls were compared marker by marker: 372 of the 480 markers agree.\n\nThe emission model used a per-marker agreement rate of 0.775.\n",
+      "corrected_report": "The parental marker panel and the progeny calls were compared marker by marker: 372 of the 480 markers agree.\n\nThe emission model used a per-marker agreement rate of 0.225.\n",
+      "ambiguous_report": "The parental marker panel and the progeny calls were compared marker by marker: 372 of the 480 markers agree.\n\nThe emission model used a per-marker agreement rate of 0.775.\n",
+      "conflict_source": "import csv\nimport math\nfrom pathlib import Path\n\nrows = list(csv.DictReader(Path('markers.csv').open()))\nlikelihood = math.prod(\n    0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in rows\n)\nPath('report.md').write_text(f'emission likelihood {likelihood}\\n', encoding='utf-8')\n",
+      "corrected_source": "import csv\nimport math\nfrom pathlib import Path\n\nrows = list(csv.DictReader(Path('markers.csv').open()))\npanel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\nlikelihood = math.prod(\n    0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in panel\n)\nPath('report.md').write_text(f'emission likelihood {likelihood}\\n', encoding='utf-8')\n"
     },
     {
       "case_id": "directional-measurement-error",

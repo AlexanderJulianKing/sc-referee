@@ -49,6 +49,75 @@ EXPECTED_COUNT_CONSTRUCTION_CHECK = "check:expected-count-background-constructio
 EXPECTED_COUNT_TARGET_HANDLING_CHECK = "check:expected-count-focal-target-handling"
 CONFORMANCE_CHECK = "check:registry-conformance-token"
 
+# ADR-0069 founder-orientation fixtures. The reviewable operand is whether an
+# orientation repair sits on the dataflow path into the emission comparison,
+# so every founder fixture states an arithmetic accounting or an operation,
+# never a sentence claiming a repair. With 480 markers and 372 agreements the
+# direct reading is 372 / 480 = 0.775 and the complement reading is
+# 108 / 480 = 0.225; the accounting-only report states neither.
+FOUNDER_DIRECT_REPORT = (
+    "The parental marker panel and the progeny calls were compared marker by marker: "
+    "372 of the 480 markers agree.\n\n"
+    "The emission model used a per-marker agreement rate of 0.775.\n"
+)
+FOUNDER_COMPLEMENT_REPORT = (
+    "The parental marker panel as supplied and the progeny calls were compared marker "
+    "by marker: 372 of the 480 markers agree.\n\n"
+    "The emission model used a per-marker agreement rate of 0.225.\n"
+)
+FOUNDER_DEGENERATE_REPORT = (
+    "The parental marker panel and the progeny calls were compared marker by marker: "
+    "240 of the 480 markers agree.\n\n"
+    "The emission model used a per-marker agreement rate of 0.5.\n"
+)
+FOUNDER_ACCOUNTING_ONLY_REPORT = (
+    "The parental marker panel and the progeny calls were compared marker by marker: "
+    "372 of the 480 markers agree.\n\n"
+    "The selected emission log-likelihood ratio is 0.31.\n"
+)
+
+_FOUNDER_WORKFLOW_HEAD = """import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+"""
+_FOUNDER_WORKFLOW_TAIL = """report = f'emission likelihood {likelihood}'
+Path('results/report.md').write_text(report)
+"""
+_FOUNDER_EMISSION = (
+    "likelihood = math.prod(\n"
+    "    0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in {source}\n"
+    ")\n"
+)
+FOUNDER_DIRECT_SOURCE = (
+    _FOUNDER_WORKFLOW_HEAD + _FOUNDER_EMISSION.format(source="rows") + _FOUNDER_WORKFLOW_TAIL
+)
+FOUNDER_REPAIRED_SOURCE = (
+    _FOUNDER_WORKFLOW_HEAD
+    + "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
+    + _FOUNDER_EMISSION.format(source="panel")
+    + _FOUNDER_WORKFLOW_TAIL
+)
+FOUNDER_UNREADABLE_SOURCE = (
+    _FOUNDER_WORKFLOW_HEAD
+    + "panel = [{**row, 'founder': recode(row['founder'])} for row in rows]\n"
+    + _FOUNDER_EMISSION.format(source="panel")
+    + _FOUNDER_WORKFLOW_TAIL
+)
+FOUNDER_CONFLICTING_SOURCE = (
+    _FOUNDER_WORKFLOW_HEAD
+    + "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
+    + "supplied = math.prod(\n"
+    + "    0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in rows\n"
+    + ")\n"
+    + "repaired = math.prod(\n"
+    + "    0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in panel\n"
+    + ")\n"
+    + "report = f'{supplied} {repaired}'\n"
+    + "Path('results/report.md').write_text(report)\n"
+)
+
 
 def _audit(
     root: Path,
@@ -107,7 +176,7 @@ def _module(bundle: dict[str, Any], check_id: str) -> dict[str, Any]:
 
 
 def _inspection_context(*, report_parser_version: str = "0.2.0") -> FrozenInspectionContext:
-    report = b"The founder-origin HMM was fitted using the supplied founder alleles.\n"
+    report = FOUNDER_DIRECT_REPORT.encode("utf-8")
     surface_ref = RecordRef("publication_surface", "publication-surface:test")
     artifact_ref = RecordRef("artifact", "artifact:test-report")
     identity_ref = RecordRef("asset_identity", "asset-identity:test-report")
@@ -190,17 +259,12 @@ def _inspection_context(*, report_parser_version: str = "0.2.0") -> FrozenInspec
     ("report_text", "check_id", "operand"),
     [
         (
-            "The founder-origin HMM was fitted using the supplied founder alleles.\n",
+            FOUNDER_DIRECT_REPORT,
             FOUNDER_CHECK,
             "use_supplied_founder_alleles_directly_in_hmm_emission",
         ),
         (
-            "Founder alleles were reoriented before the HMM emission.\n",
-            FOUNDER_CHECK,
-            "repair_ril_founder_orientation_before_hmm_emission",
-        ),
-        (
-            "Founder 0/1 alleles were oriented to the RIL genotype coding before HMM emissions.\n",
+            FOUNDER_COMPLEMENT_REPORT,
             FOUNDER_CHECK,
             "repair_ril_founder_orientation_before_hmm_emission",
         ),
@@ -990,9 +1054,10 @@ def test_rmarkdown_mvmr_lexical_hard_negatives_do_not_create_questions(
             "fraction or pulse-exposure denominator was defined.\n"
         ),
         (
-            "The founder-origin HMM was fitted using the supplied founder alleles.\n\n"
-            "Founder alleles were reoriented before the HMM emission.\n"
+            "The founder-origin HMM was fitted using the supplied founder alleles. Founder "
+            "alleles were reoriented before the HMM emission.\n"
         ),
+        FOUNDER_DEGENERATE_REPORT,
     ],
 )
 def test_unrelated_lookalike_and_ambiguous_reports_do_not_create_questions(
@@ -1006,35 +1071,41 @@ def test_unrelated_lookalike_and_ambiguous_reports_do_not_create_questions(
 
 
 @pytest.mark.parametrize(
-    ("report_text", "expected_state"),
+    ("report_text", "analysis_text", "expected_state"),
     [
-        (
-            "The founder-origin HMM was fitted using the supplied founder alleles.\n\n"
-            "Founder alleles were reoriented before the HMM emission.\n",
-            "ambiguous",
-        ),
+        # The report reads the panel directly while the workflow complements it
+        # before the comparison: the two planes disagree.
+        (FOUNDER_DIRECT_REPORT, FOUNDER_REPAIRED_SOURCE, "ambiguous"),
+        # The workflow's own comparisons disagree with each other.
+        (FOUNDER_ACCOUNTING_ONLY_REPORT, FOUNDER_CONFLICTING_SOURCE, "ambiguous"),
+        # A transform on the panel path that the bounded trace cannot read is
+        # never the direct orientation by default.
         (
             "Founder alleles were plotted beside a founder-origin HMM diagram for quality "
             "control; no emission coding choice was declared.\n",
+            FOUNDER_UNREADABLE_SOURCE,
             "unsupported",
         ),
-        (
-            "A standard regression was fitted and summarized.\n",
-            "not_applicable",
-        ),
+        # The degenerate accounting reconciles with both orientations at once.
+        (FOUNDER_DEGENERATE_REPORT, "value = 1\n", "not_applicable"),
+        ("A standard regression was fitted and summarized.\n", "value = 1\n", "not_applicable"),
     ],
 )
 def test_founder_orientation_profile_preserves_ambiguity_and_hard_negative(
     tmp_path: Path,
     schema_root: Path,
     report_text: str,
+    analysis_text: str,
     expected_state: str,
 ) -> None:
-    bundle = _audit(tmp_path, schema_root, report_text=report_text)
+    bundle = _audit(tmp_path, schema_root, report_text=report_text, analysis_text=analysis_text)
 
     assert bundle["findings"] == []
-    assert _check_questions(bundle) == []
-    assert _check_assertions(bundle) == []
+    assert not [
+        item
+        for item in _check_questions(bundle)
+        if item["extensions"].get("x-scientific-check-id") == FOUNDER_CHECK
+    ]
     assert _module(bundle, FOUNDER_CHECK)["state"] == expected_state
 
 
@@ -1141,7 +1212,7 @@ def test_directional_error_and_founder_orientation_remain_independent_questions(
             "The supplied average of the two directional measurement-error rates cannot identify "
             "the rates separately. The primary observation model uses the symmetric "
             "interpretation: both directions equal the supplied average.\n\n"
-            "Founder alleles were reoriented before the HMM emission.\n"
+            + FOUNDER_COMPLEMENT_REPORT
         ),
     )
 
@@ -2034,7 +2105,8 @@ def test_report_path_and_markdown_formatting_do_not_define_profile_identity(
         tmp_path,
         schema_root,
         report_text=(
-            "# METHOD\n\nTHE FOUNDER-ORIGIN   HMM WAS FITTED using the supplied founder alleles.\n"
+            "# METHOD\n\n| markers | agreeing |\n| --- | --- |\n| 480 | 372 |\n\n"
+            "*Per-marker agreement rate:*   `0.775`\n"
         ),
         report_path="nested/review-summary.markdown",
     )
@@ -2044,130 +2116,26 @@ def test_report_path_and_markdown_formatting_do_not_define_profile_identity(
     assert questions[0]["extensions"]["x-scientific-check-id"] == FOUNDER_CHECK
 
 
-DIRECT_SOURCE = """
-def emission_matrix(observed, founder_state, error):
-    return observed == founder_state
+def _founder_source_with_marker(marker: Path) -> str:
+    """The repaired workflow, plus a side effect that must never happen."""
 
-def fit(sample, observed):
-    return emission_matrix(observed, sample.founder_alleles[0], 0.01)
-"""
-
-REPAIRED_SOURCE = """
-def emission_matrix(observed, founder_state, error):
-    return observed == founder_state
-
-def fit(sample, observed):
-    repaired = orient_ril_founder_alleles(sample.founder_alleles)
-    return emission_matrix(observed, repaired[0], 0.01)
-"""
-
-RENAMED_DIRECT_SOURCE = """
-def score_calls(genotype_calls, latent_states, error_rate):
-    return genotype_calls == latent_states
-
-def fit(cohort, calls):
-    return score_calls(calls, cohort.founder_alleles[0], 0.01)
-"""
-
-UNUSED_HELPER_SOURCE = """
-def repair_ril_founder_orientation(values):
-    return values[::-1]
-
-def score_calls(genotype_calls, latent_states, error_rate):
-    return genotype_calls == latent_states
-
-def fit(cohort, calls):
-    return score_calls(calls, cohort.founder_alleles[0], 0.01)
-"""
-
-INTERPROCEDURAL_DIRECT_SOURCE = """
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parent
-
-def compare_calls(sample_calls, reference_haplotypes, miscoding_rate):
-    matched = sample_calls[:, None] == reference_haplotypes[None, :]
-    return matched
-
-def propagate_hidden_states(observation_table, parental_templates, miscoding_rate):
-    return compare_calls(observation_table[:, 0], parental_templates[0], miscoding_rate)
-
-def main():
-    founder_records = [{"parent_a": 0, "parent_b": 1}]
-    founder_labels = ["parent_a", "parent_b"]
-    founder_matrix = np.array(
-        [[int(row[label]) for label in founder_labels] for row in founder_records]
-    )
-    propagate_hidden_states(observed_calls, founder_matrix, 0.01)
-    report = "A hidden-state reconstruction and mixed-model scan were completed."
-    (ROOT / "report.md").write_text(report)
-
-if __name__ == "__main__":
-    main()
-"""
-
-INTERPROCEDURAL_REPAIRED_SOURCE = INTERPROCEDURAL_DIRECT_SOURCE.replace(
-    "propagate_hidden_states(observed_calls, founder_matrix, 0.01)",
-    "propagate_hidden_states(observed_calls, 1 - founder_matrix, 0.01)",
-)
-
-INTERPROCEDURAL_NAMED_REPAIR_SOURCE = INTERPROCEDURAL_DIRECT_SOURCE.replace(
-    "propagate_hidden_states(observed_calls, founder_matrix, 0.01)",
-    "propagate_hidden_states(observed_calls, orient_binary_reference(founder_matrix), 0.01)",
-)
-
-INTERPROCEDURAL_MIXED_SOURCE = INTERPROCEDURAL_DIRECT_SOURCE.replace(
-    "propagate_hidden_states(observed_calls, founder_matrix, 0.01)",
-    "propagate_hidden_states(observed_calls, founder_matrix, 0.01)\n"
-    "    propagate_hidden_states(validation_calls, 1 - founder_matrix, 0.01)",
-)
-
-INTERPROCEDURAL_HARD_NEGATIVE_SOURCE = (
-    INTERPROCEDURAL_DIRECT_SOURCE.replace("founder_records", "reference_records")
-    .replace("founder_labels", "reference_labels")
-    .replace("founder_matrix", "reference_matrix")
-)
-
-
-def _selected_report_writer_source(*, marker: Path | None = None, guarded: bool = True) -> str:
-    marker_line = (
-        f"    Path({str(marker)!r}).write_text('executed')\n" if marker is not None else ""
-    )
-    writer_body = (
-        "def main():\n"
-        f"{marker_line}"
-        "    (ROOT / 'report.md').write_text(\n"
-        "        'The founder-origin HMM was fitted using the supplied founder alleles.\\n'\n"
-        "    )\n"
-    )
-    guard = "if __name__ == '__main__':\n    main()\n" if guarded else ""
     return (
-        "from pathlib import Path\n"
-        "ROOT = Path(__file__).resolve().parent\n"
-        f"{DIRECT_SOURCE}\n"
-        f"{writer_body}"
-        f"{guard}"
+        _FOUNDER_WORKFLOW_HEAD
+        + f"Path({str(marker)!r}).write_text('executed')\n"
+        + "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
+        + _FOUNDER_EMISSION.format(source="panel")
+        + _FOUNDER_WORKFLOW_TAIL
     )
 
 
 @pytest.mark.parametrize(
     ("analysis_text", "expected_operand"),
     [
-        (
-            INTERPROCEDURAL_DIRECT_SOURCE,
-            "use_supplied_founder_alleles_directly_in_hmm_emission",
-        ),
-        (
-            INTERPROCEDURAL_REPAIRED_SOURCE,
-            "repair_ril_founder_orientation_before_hmm_emission",
-        ),
-        (
-            INTERPROCEDURAL_NAMED_REPAIR_SOURCE,
-            "repair_ril_founder_orientation_before_hmm_emission",
-        ),
+        (FOUNDER_DIRECT_SOURCE, "use_supplied_founder_alleles_directly_in_hmm_emission"),
+        (FOUNDER_REPAIRED_SOURCE, "repair_ril_founder_orientation_before_hmm_emission"),
     ],
 )
-def test_founder_adapter_tracks_one_origin_through_local_call_parameters(
+def test_founder_dataflow_plane_resolves_the_orientation_operand(
     tmp_path: Path,
     schema_root: Path,
     analysis_text: str,
@@ -2176,33 +2144,27 @@ def test_founder_adapter_tracks_one_origin_through_local_call_parameters(
     bundle = _audit(
         tmp_path,
         schema_root,
-        report_text="A hidden-state reconstruction and mixed-model scan were completed.\n",
+        report_text=FOUNDER_ACCOUNTING_ONLY_REPORT,
         analysis_text=analysis_text,
     )
 
     module = _module(bundle, FOUNDER_CHECK)
-    source = next(
-        item for item in module["observations"] if item["evidence_plane"] == "static_source"
-    )
+    observation = module["observations"][0]
 
     assert module["state"] == "applicable"
-    assert source["applicability"] == "applicable"
-    assert source["observed_operand"]["value"] == expected_operand
-    assert len(source["evidence_spans"]) >= 2
-    assert all(item["end_line"] - item["start_line"] <= 4 for item in source["evidence_spans"])
+    assert observation["applicability"] == "applicable"
+    assert observation["evidence_plane"] == "reported_text"
+    assert observation["observed_operand"]["value"] == expected_operand
+    assert observation["evidence_spans"]
+    assert all(item["end_line"] - item["start_line"] <= 4 for item in observation["evidence_spans"])
     assert len(_check_questions(bundle)) == 1
     assert _check_questions(bundle)[0]["extensions"]["x-scientific-check-id"] == FOUNDER_CHECK
     assert bundle["findings"] == []
 
 
-@pytest.mark.parametrize(
-    "analysis_text",
-    [INTERPROCEDURAL_MIXED_SOURCE, INTERPROCEDURAL_HARD_NEGATIVE_SOURCE],
-)
-def test_founder_adapter_abstains_on_mixed_flow_and_nonfounder_comparisons(
-    tmp_path: Path,
-    schema_root: Path,
-    analysis_text: str,
+@pytest.mark.parametrize("analysis_text", [FOUNDER_DIRECT_SOURCE, FOUNDER_REPAIRED_SOURCE])
+def test_founder_dataflow_alone_cannot_classify_without_a_stated_accounting(
+    tmp_path: Path, schema_root: Path, analysis_text: str
 ) -> None:
     bundle = _audit(
         tmp_path,
@@ -2211,115 +2173,90 @@ def test_founder_adapter_abstains_on_mixed_flow_and_nonfounder_comparisons(
         analysis_text=analysis_text,
     )
 
-    module = _module(bundle, FOUNDER_CHECK)
-
-    assert module["state"] in {"not_applicable", "unsupported"}
-    assert not [
-        item
-        for item in _check_questions(bundle)
-        if item["extensions"].get("x-scientific-check-id") == FOUNDER_CHECK
-    ]
+    assert _module(bundle, FOUNDER_CHECK)["state"] == "not_applicable"
+    assert _check_questions(bundle) == []
     assert bundle["findings"] == []
 
 
 @pytest.mark.parametrize(
-    ("analysis_text", "report_text", "expected_state", "question_count"),
+    ("report_text", "analysis_text", "expected_state", "expected_operand"),
     [
         (
-            DIRECT_SOURCE,
-            "The founder-origin HMM was fitted using the supplied founder alleles.\n",
+            FOUNDER_DIRECT_REPORT,
+            FOUNDER_DIRECT_SOURCE,
             "applicable",
-            1,
+            "use_supplied_founder_alleles_directly_in_hmm_emission",
         ),
         (
-            RENAMED_DIRECT_SOURCE,
-            "The founder-origin HMM was fitted using the supplied founder alleles.\n",
+            FOUNDER_COMPLEMENT_REPORT,
+            FOUNDER_REPAIRED_SOURCE,
             "applicable",
-            1,
+            "repair_ril_founder_orientation_before_hmm_emission",
         ),
+        (FOUNDER_COMPLEMENT_REPORT, FOUNDER_DIRECT_SOURCE, "ambiguous", None),
         (
-            UNUSED_HELPER_SOURCE,
-            "The founder-origin HMM was fitted using the supplied founder alleles.\n",
+            FOUNDER_DIRECT_REPORT,
+            FOUNDER_UNREADABLE_SOURCE,
             "applicable",
-            1,
-        ),
-        (
-            DIRECT_SOURCE,
-            "Founder alleles were reoriented before the HMM emission.\n",
-            "ambiguous",
-            0,
-        ),
-        (
-            REPAIRED_SOURCE,
-            "The founder-origin HMM was fitted using the supplied founder alleles.\n",
-            "ambiguous",
-            0,
+            "use_supplied_founder_alleles_directly_in_hmm_emission",
         ),
     ],
 )
-def test_static_source_can_corroborate_or_suppress_but_cannot_create_public_evidence(
+def test_founder_report_and_source_planes_fuse_or_abstain(
     tmp_path: Path,
     schema_root: Path,
-    analysis_text: str,
     report_text: str,
+    analysis_text: str,
     expected_state: str,
-    question_count: int,
+    expected_operand: str | None,
 ) -> None:
-    bundle = _audit(
-        tmp_path,
-        schema_root,
-        report_text=report_text,
-        analysis_text=analysis_text,
-    )
+    bundle = _audit(tmp_path, schema_root, report_text=report_text, analysis_text=analysis_text)
 
     module = _module(bundle, FOUNDER_CHECK)
-    source = next(
-        item for item in module["observations"] if item["evidence_plane"] == "static_source"
-    )
+    observation = module["observations"][0]
 
-    assert bundle["findings"] == []
     assert module["state"] == expected_state
-    assert len(_check_questions(bundle)) == question_count
-    assert source["applicability"] == "unsupported"
-    assert source["observed_operand"] is not None
-    assert len(_check_assertions(bundle)) == question_count
-    assert all(item["semantic_role"] == "reported" for item in _check_assertions(bundle))
+    assert bundle["findings"] == []
+    if expected_operand is None:
+        assert observation["observed_operand"] is None
+        assert not [
+            item
+            for item in _check_questions(bundle)
+            if item["extensions"].get("x-scientific-check-id") == FOUNDER_CHECK
+        ]
+    else:
+        assert observation["observed_operand"]["value"] == expected_operand
+        assert len(_check_questions(bundle)) == 1
 
 
-def test_unique_static_writer_scopes_separate_source_to_selected_report(
+def test_founder_question_is_publication_scoped_and_replays_without_execution(
     tmp_path: Path, schema_root: Path
 ) -> None:
     marker = tmp_path / "must-not-exist"
     bundle = _audit(
         tmp_path,
         schema_root,
-        report_text="The founder-origin HMM was fitted using the supplied founder alleles.\n",
-        analysis_text=_selected_report_writer_source(marker=marker),
+        report_text=FOUNDER_COMPLEMENT_REPORT,
+        analysis_text=_founder_source_with_marker(marker),
     )
 
     module = _module(bundle, FOUNDER_CHECK)
-    source = next(
-        item for item in module["observations"] if item["evidence_plane"] == "static_source"
-    )
+    observation = module["observations"][0]
     relations = [
         item["relation"]
         for item in _check_questions(bundle)[0]["extensions"]["x-scientific-check-scope-join-path"]
     ]
 
     assert module["state"] == "applicable"
-    assert source["applicability"] == "applicable"
-    assert [item["relation"] for item in source["scope_join_path"]] == [
-        "contains_unique_static_selected_output_writer",
-        "declares_selected_output_artifact",
-        "selected_by_publication_surface",
+    assert observation["applicability"] == "applicable"
+    assert [item["relation"] for item in observation["scope_join_path"]] == [
+        "selected_by_publication_surface"
     ]
-    assert relations == [item["relation"] for item in source["scope_join_path"]]
+    assert relations == [item["relation"] for item in observation["scope_join_path"]]
     assert len(_check_questions(bundle)) == 1
-    assert {item["semantic_role"] for item in _check_assertions(bundle)} == {
-        "observed",
-        "reported",
-    }
+    assert {item["semantic_role"] for item in _check_assertions(bundle)} == {"reported"}
     assert bundle["findings"] == []
+    assert bundle["executions"] == []
     assert not marker.exists()
 
     replayed = replay(tmp_path / "audit" / "semantic.lock.json", tmp_path / "replay", schema_root)
@@ -2327,92 +2264,10 @@ def test_unique_static_writer_scopes_separate_source_to_selected_report(
     assert replayed["semantic_assertions"] == bundle["semantic_assertions"]
 
 
-def test_unreachable_writer_cannot_scope_source_or_create_question(
-    tmp_path: Path, schema_root: Path
-) -> None:
-    bundle = _audit(
-        tmp_path,
-        schema_root,
-        report_text="A descriptive analysis summary.\n",
-        analysis_text=_selected_report_writer_source(guarded=False),
-    )
-
-    module = _module(bundle, FOUNDER_CHECK)
-    source = next(
-        item for item in module["observations"] if item["evidence_plane"] == "static_source"
-    )
-
-    assert module["state"] == "unsupported"
-    assert source["applicability"] == "unsupported"
-    assert source["scope_join_path"] == []
-    assert _check_questions(bundle) == []
-
-
-def test_competing_selected_output_writers_cannot_scope_source_or_create_question(
-    tmp_path: Path, schema_root: Path
-) -> None:
-    analysis_text = _selected_report_writer_source() + (
-        "\n(ROOT / 'report.md').write_text('A second possible report rendering.\\n')\n"
-    )
-    bundle = _audit(
-        tmp_path,
-        schema_root,
-        report_text="A descriptive analysis summary.\n",
-        analysis_text=analysis_text,
-    )
-
-    module = _module(bundle, FOUNDER_CHECK)
-    source = next(
-        item for item in module["observations"] if item["evidence_plane"] == "static_source"
-    )
-
-    assert module["state"] == "unsupported"
-    assert source["applicability"] == "unsupported"
-    assert source["scope_join_path"] == []
-    assert _check_questions(bundle) == []
-    assert _check_assertions(bundle) == []
-    assert bundle["findings"] == []
-
-
-def test_multiple_role_complete_static_targets_are_ambiguous(
-    tmp_path: Path, schema_root: Path
-) -> None:
-    source = """
-def first_score(calls, states, error):
-    return calls == states
-
-def second_score(calls, states, error):
-    return calls == states
-
-def fit(cohort, calls):
-    left = first_score(calls, cohort.founder_alleles[0], 0.01)
-    right = second_score(calls, cohort.founder_alleles[1], 0.01)
-    return left, right
-"""
-    bundle = _audit(
-        tmp_path,
-        schema_root,
-        report_text="The founder-origin HMM was fitted using the supplied founder alleles.\n",
-        analysis_text=source,
-    )
-
-    module = _module(bundle, FOUNDER_CHECK)
-    static = next(
-        item for item in module["observations"] if item["evidence_plane"] == "static_source"
-    )
-    assert module["state"] == "ambiguous"
-    assert static["applicability"] == "ambiguous"
-    assert _check_questions(bundle) == []
-    assert bundle["findings"] == []
-
-
 def test_conformance_module_is_removable_without_changing_substantive_evaluation(
     tmp_path: Path, schema_root: Path
 ) -> None:
-    report = (
-        "The founder-origin HMM was fitted using the supplied founder alleles.\n\n"
-        "SC-REFEREE-CONFORMANCE: bounded\n"
-    )
+    report = FOUNDER_DIRECT_REPORT + "\nSC-REFEREE-CONFORMANCE: bounded\n"
     full_registry = default_scientific_check_registry(include_conformance=True)
     conformance = next(
         module for module in full_registry.modules if module.manifest.check_id == CONFORMANCE_CHECK
@@ -2791,7 +2646,7 @@ def test_scientific_check_inventory_and_evaluation_are_locked_for_replay(
     bundle = _audit(
         tmp_path,
         schema_root,
-        report_text="The founder-origin HMM was fitted using the supplied founder alleles.\n",
+        report_text=FOUNDER_DIRECT_REPORT,
     )
     lock = json.loads((tmp_path / "audit" / "semantic.lock.json").read_text(encoding="utf-8"))
 
@@ -2815,7 +2670,7 @@ def test_agent_and_html_surfaces_show_exact_scientist_choices_and_observation(
     bundle = _audit(
         tmp_path,
         schema_root,
-        report_text="The founder-origin HMM was fitted using the supplied founder alleles.\n",
+        report_text=FOUNDER_DIRECT_REPORT,
     )
 
     batch = load_open_questions(tmp_path / "audit", schema_root)

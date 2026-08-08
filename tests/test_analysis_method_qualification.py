@@ -36,6 +36,20 @@ DIRECT = "use_supplied_founder_alleles_directly_in_hmm_emission"
 REPAIRED = "repair_ril_founder_orientation_before_hmm_emission"
 CHECK_ID = "check:founder-orientation-before-hmm-emission"
 
+# The frozen v0.1 verifier under test carries its own closed sentence grammar,
+# so the qualification-stage bytes below stay exactly as it qualified them.
+# The live audit that supplies the human question now recognizes the operand
+# from arithmetic instead (ADR-0069 check v2.0.0), so the audit-stage report
+# states the accounting: 372 of 480 markers agree, and the emission rate is
+# either 372 / 480 = 0.775 or its complement 108 / 480 = 0.225.
+_AUDIT_ACCOUNTING = (
+    "The parental marker panel and the progeny calls were compared marker by marker: "
+    "372 of the 480 markers agree.\n\n"
+    "The emission model used a per-marker agreement rate of {rate}.\n"
+)
+AUDIT_DIRECT_REPORT = _AUDIT_ACCOUNTING.format(rate="0.775")
+AUDIT_COMPLEMENT_REPORT = _AUDIT_ACCOUNTING.format(rate="0.225")
+
 
 @pytest.fixture(autouse=True)
 def _pin_historical_qualification_schema(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -148,11 +162,7 @@ def _inputs(
         if report_operand == DIRECT
         else "Founder alleles were orientation-repaired before the HMM emission.\n"
     )
-    audit_report = (
-        "The founder-origin HMM was fitted using the supplied founder alleles.\n"
-        if source_operand == DIRECT
-        else "Founder alleles were orientation-repaired before the HMM emission.\n"
-    )
+    audit_report = AUDIT_DIRECT_REPORT if source_operand == DIRECT else AUDIT_COMPLEMENT_REPORT
     (repository / "report.md").write_text(audit_report, encoding="utf-8")
     (repository / "analysis.py").write_text(
         _source(

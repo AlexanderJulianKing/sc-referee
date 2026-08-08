@@ -33,6 +33,38 @@ from sc_referee.method_contracts import (
 )
 from sc_referee.version import SCHEMA_VERSION
 
+# ADR-0069 check v2.0.0 recognizes the founder orientation from arithmetic:
+# 372 of 480 markers agreeing with a stated 0.775 emission rate reads the
+# supplied panel directly.
+LD_WHITENED_REPORT = (
+    "We used a Tukey biweight M-estimator on Cholesky-whitened residual innovations; "
+    "this preserves the LD covariance.\n"
+)
+LD_WHITENED_SOURCE = (
+    "from pathlib import Path\n"
+    "from numpy.linalg import cholesky as factor_covariance\n"
+    "from numpy.linalg import solve as triangular_solve\n"
+    "from statsmodels.api import RLM as robust_fit\n"
+    "from statsmodels.robust.norms import TukeyBiweight as redescending_norm\n"
+    "ROOT = Path(__file__).resolve().parent\n"
+    "def fit_model(ld_covariance, outcome_innovations, exposure_innovations):\n"
+    "    factor = factor_covariance(ld_covariance)\n"
+    "    y_white = triangular_solve(factor, outcome_innovations)\n"
+    "    x_white = triangular_solve(factor, exposure_innovations)\n"
+    "    return robust_fit(y_white, x_white, M=redescending_norm())\n"
+    "def main():\n"
+    f"    (ROOT / 'report.md').write_text({LD_WHITENED_REPORT!r})\n"
+    "if __name__ == '__main__':\n"
+    "    main()\n"
+)
+
+
+FOUNDER_ACCOUNTING_REPORT = (
+    "The parental marker panel and the progeny calls were compared marker by marker: "
+    "372 of the 480 markers agree.\n\n"
+    "The emission model used a per-marker agreement rate of 0.775.\n"
+)
+
 
 def test_model_proposal_path_rejects_project_execution_packet(project_root: Path) -> None:
     item = json.loads(
@@ -605,10 +637,7 @@ def test_single_line_report_question_answer_and_disclosure_are_replay_stable(
 ) -> None:
     repository = tmp_path / "project"
     repository.mkdir()
-    (repository / "report.md").write_text(
-        "The founder-origin HMM was fitted using the supplied founder alleles.\n",
-        encoding="utf-8",
-    )
+    (repository / "report.md").write_text(FOUNDER_ACCOUNTING_REPORT, encoding="utf-8")
     source = tmp_path / "source"
     source_bundle = run_audit(repository, source, schema_root, report="report.md")
     question = next(
@@ -785,32 +814,20 @@ def test_expected_count_answers_create_bounded_replayable_incompatibilities(
 def test_static_selected_report_writer_survives_answer_lock_and_replay(
     schema_root: Path, tmp_path: Path
 ) -> None:
+    # The founder-orientation check became a single reported-text plane at
+    # check v2.0.0, so the two-plane writer-scope path is exercised here by the
+    # LD-whitening check, which still carries a Python static-source adapter.
     repository = tmp_path / "project"
     repository.mkdir()
-    report_text = "The founder-origin HMM was fitted using the supplied founder alleles.\n"
-    (repository / "report.md").write_text(report_text, encoding="utf-8")
-    (repository / "analysis.py").write_text(
-        "from pathlib import Path\n"
-        "ROOT = Path(__file__).resolve().parent\n"
-        "def emission_matrix(observed, founder_state, error):\n"
-        "    return observed == founder_state\n"
-        "def fit(sample, observed):\n"
-        "    return emission_matrix(observed, sample.founder_alleles[0], 0.01)\n"
-        "def main():\n"
-        "    (ROOT / 'report.md').write_text(\n"
-        "        'The founder-origin HMM was fitted using the supplied founder alleles.\\n'\n"
-        "    )\n"
-        "if __name__ == '__main__':\n"
-        "    main()\n",
-        encoding="utf-8",
-    )
+    (repository / "report.md").write_text(LD_WHITENED_REPORT, encoding="utf-8")
+    (repository / "analysis.py").write_text(LD_WHITENED_SOURCE, encoding="utf-8")
     source = tmp_path / "source"
     source_bundle = run_audit(repository, source, schema_root, report="report.md")
     question = next(
         item
         for item in source_bundle["material_questions"]
         if item.get("extensions", {}).get("x-scientific-check-id")
-        == "check:founder-orientation-before-hmm-emission"
+        == "check:ld-covariance-whitening-before-robust-fit"
     )
 
     session = tmp_path / "session"
@@ -825,9 +842,9 @@ def test_static_selected_report_writer_survives_answer_lock_and_replay(
     packet = work_packet(session, str(item["work_item_id"]), schema_root)
     proposal = _proposal(
         packet,
-        object_value="use_supplied_founder_alleles_directly_in_hmm_emission",
+        object_value="ld_covariance_cholesky_whitening_before_robust_fit",
     )
-    proposal["predicate"] = "proposed_scale_and_orientation"
+    proposal["predicate"] = "proposed_measurement_model"
     submit_proposal(
         session,
         str(item["work_item_id"]),
@@ -838,7 +855,7 @@ def test_static_selected_report_writer_survives_answer_lock_and_replay(
     answer = create_structured_answer(
         session,
         str(question["question_id"]),
-        {"scale_and_orientation": "repair_ril_founder_orientation_before_hmm_emission"},
+        {"measurement_model": "diagonal_or_unwhitened_robust_fit"},
         "scientist:test",
         schema_root,
         answered_at="2026-07-31T06:02:00Z",

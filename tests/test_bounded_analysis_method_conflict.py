@@ -22,9 +22,15 @@ from sc_referee.detectors.method_conflict_finding import draft_method_conflict_f
 from sc_referee.records.schema_registry import LocalSchemaRegistry
 from sc_referee.scientific_checks.profiles import scientific_check_release_registry
 
-CHECK_ID = "check:founder-orientation-before-hmm-emission"
-REQUIRED = "repair_ril_founder_orientation_before_hmm_emission"
-OBSERVED = "use_supplied_founder_alleles_directly_in_hmm_emission"
+# The detector under test needs one check whose binding requires both an
+# observed and a reported plane. The founder-orientation check became a
+# single reported-text plane at check v2.0.0 (ADR-0069), so the LD-whitening
+# check carries the two-plane cases here; the report-only and static-only
+# bindings below still exercise the one-plane paths.
+CHECK_ID = "check:ld-covariance-whitening-before-robust-fit"
+DIMENSION = "measurement_model"
+REQUIRED = "ld_covariance_cholesky_whitening_before_robust_fit"
+OBSERVED = "diagonal_or_unwhitened_robust_fit"
 
 
 def _source(path: str, line: int) -> dict[str, object]:
@@ -73,19 +79,19 @@ def _case(
             "record_type": "material_question",
             "record_id": "question:analysis",
         },
-        "answer_value": {"scale_and_orientation": requirement},
+        "answer_value": {DIMENSION: requirement},
         "answer_digest": "sha256:" + "c" * 64,
         "respondent": {"actor_kind": "human", "actor_id": "scientist:test"},
         "authority_scope": {
             "authority_kind": "scientific_intent",
             "subject_refs": [subject],
-            "semantic_dimensions": ["scale_and_orientation"],
+            "semantic_dimensions": [DIMENSION],
         },
     }
     requirement_assertion = {
         "assertion_id": "assertion-verified-posthoc-intent:analysis",
         "subject_ref": subject,
-        "predicate": "verified_intended_scale_and_orientation",
+        "predicate": "verified_intended_measurement_model",
         "object": requirement,
         "semantic_role": "intended",
         "assertion_class": "deterministic_derivation",
@@ -110,7 +116,7 @@ def _case(
     static_assertion = {
         "assertion_id": "assertion:analysis-static",
         "subject_ref": file_ref,
-        "predicate": "statically_observed_scale_and_orientation",
+        "predicate": "statically_observed_measurement_model",
         "object": observed,
         "semantic_role": "observed",
         "assertion_class": "deterministic_derivation",
@@ -129,7 +135,7 @@ def _case(
     reported_assertion = {
         "assertion_id": "assertion:analysis-report",
         "subject_ref": artifact_ref,
-        "predicate": "reported_scale_and_orientation",
+        "predicate": "reported_measurement_model",
         "object": observed,
         "semantic_role": "reported",
         "assertion_class": "explicit_text_extraction",
@@ -149,7 +155,7 @@ def _case(
         "contract_id": "contract:analysis",
         "scope": {"level": "analysis", "subject_refs": [subject]},
         "dimensions": {
-            "scale_and_orientation": {
+            DIMENSION: {
                 "state": "known",
                 "assertion_ids": [requirement_assertion["assertion_id"]],
                 "accepted_assertion_ids": [requirement_assertion["assertion_id"]],
@@ -167,9 +173,9 @@ def _case(
                 "record_id": "contract:analysis",
             },
             "x-output-ceiling": "question_only",
-            "x-posthoc-comparison-forms": {"scale_and_orientation": "value_equals"},
+            "x-posthoc-comparison-forms": {DIMENSION: "value_equals"},
             "x-posthoc-reported-assertion-ids": {
-                "scale_and_orientation": [
+                DIMENSION: [
                     static_assertion["assertion_id"],
                     reported_assertion["assertion_id"],
                 ]
@@ -359,7 +365,7 @@ def test_report_only_binding_uses_one_plane_and_one_edge_scope(detector, schema_
     ]
     scope_digest = semantic_digest(scope_path)
     question["extensions"]["x-posthoc-reported-assertion-ids"] = {
-        "scale_and_orientation": ["assertion:analysis-report"]
+        DIMENSION: ["assertion:analysis-report"]
     }
     question["extensions"]["x-scientific-check-scope-join-path"] = scope_path
     question["extensions"]["x-scientific-check-scope-join-digest"] = scope_digest

@@ -244,7 +244,60 @@ def _lock_method_authority(repository: Path, schema_root: Path, tmp_path: Path) 
         answered_at="2026-07-27T16:42:00Z",
     )
     record_answer(session, answer, schema_root)
-    return lock_semantics(session, schema_root, locked_at="2026-07-27T16:43:00Z")
+    bundle = lock_semantics(session, schema_root, locked_at="2026-07-27T16:43:00Z")
+    _restore_historical_writer_scope(bundle)
+    return bundle
+
+
+def _restore_historical_writer_scope(bundle: dict[str, Any]) -> None:
+    """Rebind the founder question to the writer scope its frozen lane qualified.
+
+    The founder-orientation check is publication-scoped from check v2.0.0
+    (ADR-0069), but the frozen independent qualification adapter and the typed
+    verifier below were qualified against the three-edge selected-output writer
+    scope. The edges are rebuilt from this same audit's own records, so nothing
+    is invented: the writer Operation is the one that declares the selected
+    report Artifact, and the source is the File Record it was parsed from.
+    """
+
+    question = next(
+        item
+        for item in bundle["material_questions"]
+        if item.get("extensions", {}).get("x-scientific-check-id")
+        == "check:founder-orientation-before-hmm-emission"
+    )
+    publication_edge = question["extensions"]["x-scientific-check-scope-join-path"][-1]
+    artifact_ref = deepcopy(publication_edge["source_ref"])
+    operation = next(
+        item
+        for item in bundle["operations"]
+        if any(ref == artifact_ref for ref in item.get("output_refs", []))
+    )
+    operation_ref = {"record_type": "operation", "record_id": operation["operation_id"]}
+    source_file = next(item for item in bundle["file_records"] if item.get("path") == "analysis.py")
+    file_ref = {"record_type": "file_record", "record_id": source_file["file_record_id"]}
+    scope_path = [
+        {
+            "source_ref": file_ref,
+            "relation": "contains_unique_static_selected_output_writer",
+            "target_ref": operation_ref,
+        },
+        {
+            "source_ref": operation_ref,
+            "relation": "declares_selected_output_artifact",
+            "target_ref": artifact_ref,
+        },
+        deepcopy(publication_edge),
+    ]
+    scope_digest = semantic_digest(scope_path)
+    question["extensions"]["x-scientific-check-scope-join-path"] = scope_path
+    question["extensions"]["x-scientific-check-scope-join-digest"] = scope_digest
+    for assertion in bundle["semantic_assertions"]:
+        extensions = assertion.get("extensions", {})
+        if extensions.get("x-scientific-check-id") == (
+            "check:founder-orientation-before-hmm-emission"
+        ):
+            extensions["x-scientific-check-scope-join-digest"] = scope_digest
 
 
 def _build_control_inputs(
@@ -399,7 +452,19 @@ def _build_control_inputs(
     repository = tmp_path / "control-repository"
     repository.mkdir()
     if method_static:
-        report_text = "The founder-origin HMM was fitted using the supplied founder alleles.\n"
+        # The frozen independent qualification adapter reads the closed founder
+        # sentence; the live audit that supplies the human question now
+        # recognizes the operand from arithmetic (ADR-0069 check v2.0.0), so
+        # the control report states both. 372 of 480 markers agreeing with a
+        # 0.775 emission rate reads the supplied panel directly.
+        report_text = (
+            "The founder-origin HMM was fitted using the supplied founder alleles.\n\n"
+            "Markers compared, markers in agreement, and the per-marker emission "
+            "agreement rate:\n\n"
+            "480\n\n"
+            "372\n\n"
+            "0.775\n"
+        )
         source_text = (
             "from pathlib import Path\n"
             "ROOT = Path(__file__).resolve().parent\n"
@@ -416,7 +481,7 @@ def _build_control_inputs(
         )
         (repository / "analysis.py").write_text(source_text, encoding="utf-8")
         (repository / "report.md").write_text(report_text, encoding="utf-8")
-        evidence_text = report_text.strip()
+        evidence_text = report_text.splitlines()[0]
         evidence_path = "report.md"
         evidence_line = 1
     elif is_static:
@@ -522,12 +587,15 @@ def _build_control_inputs(
                 if item["contract_id"] == contract_id
             )
         )
-        operation_id = material_questions[0]["extensions"]["x-scientific-check-scope-join-path"][0][
-            "target_ref"
-        ]["record_id"]
+        # The founder-orientation scope join is publication-scoped at check
+        # v2.0.0, so the selected-output writer is resolved from the operation
+        # that declares the selected report Artifact.
         operation = deepcopy(
             next(
-                item for item in method_bundle["operations"] if item["operation_id"] == operation_id
+                item
+                for item in method_bundle["operations"]
+                if item.get("output_refs")
+                and str(item.get("implementation", {}).get("name", "")).endswith("write_text")
             )
         )
     else:
