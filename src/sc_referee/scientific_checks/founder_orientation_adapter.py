@@ -39,6 +39,15 @@ named ``reader`` -- where this adapter returned an applicable orientation
 opposite to what the workflow computes at run time. Each of them was an
 unlisted form the old deny-list waved through.
 
+v2.2.0 widens the source plane by five narrow forms without touching that
+trust model: a path ``read_text().splitlines()`` chain feeding a ``csv``
+reader, module-level names assigned once to a literal, a ``zip`` pairing of
+two single-assignment column-values lists of one named row set, the
+arithmetic-encoded selector ``A + (B - A) * FLAG``, and a two-parameter
+helper that binds its comparison to one local before returning the selector.
+Each is modelled in one exact shape, and anything outside that shape abstains
+exactly as it did in v2.1.5.
+
 Even a silent report has to account for the workflow's reading: the adapter
 classifies on the dataflow alone only when some stated marker total,
 agreement count, and rate reconcile in the direction the workflow computed.
@@ -112,7 +121,7 @@ def founder_orientation_recognition_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-reconciliation",
-        "grammar_version": "2.1.5",
+        "grammar_version": "2.2.0",
         "count_source": "integer_tokens_without_unit_or_percent_suffix",
         "rate_source": "decimal_point_or_percent_suffixed_tokens_direct_or_percent_scaled",
         "relations": [

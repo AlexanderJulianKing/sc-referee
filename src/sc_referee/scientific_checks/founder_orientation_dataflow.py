@@ -53,6 +53,36 @@ inside a function body -- is unsupported. Mutation is no longer modelled at
 all, because every syntactic route to mutating a tagged row set now dies at
 the whitelist instead.
 
+v2.2.0 widens the whitelist by five narrow forms. Each is admitted in one
+exact shape, and anything outside that shape abstains exactly as it did
+before, so the default-deny trust model is unchanged.
+
+- A ``csv`` reader may take a ``<path-like>.read_text(...).splitlines()``
+  chain, inline or through a name single-assigned from it. Every keyword
+  argument of ``read_text`` must be a string literal. Any other reader
+  argument construction is read exactly as it was.
+- A module-level name assigned exactly once in the whole module, to a numeric
+  or string literal or the negation of a numeric one, resolves to that
+  literal in the positions where a literal already decides: a string column
+  subscript, a selector branch value, a binary-constant position, and the
+  one-literal position of ``C - x``, ``x ^ C``, and ``abs(x - C)``. A name
+  bound a second time anywhere in the module, under any binding form
+  including a parameter or a loop target, is not a constant.
+- ``vals = [<recode>(row[COL]) for row in rows]`` over a plainly named tagged
+  row set, with no filter, is a column-values list carrying one column's
+  path. ``zip(A, B)`` over two single-assignment column-values lists of the
+  *same* named row set pairs them, and ``pair[0]`` / ``pair[1]`` under an
+  integer literal read the respective paths. Any other index, a filter, a
+  second source, or a rebound name abstains.
+- ``A + (B - A) * FLAG`` in exactly that shape is a selector whose match
+  branch is ``B`` and whose mismatch branch is ``A``, under the unchanged
+  canonicity rule. A two-parameter helper may hold one single-assignment
+  local bound to the comparison of its two bare parameters and return a
+  canonical selector over that local; any other body shape stays banned.
+- The whitelist admits exactly what those four need: the read-text chain as a
+  readable right-hand side, a recognized ``zip`` pairing as a comprehension
+  iterable, and integer-literal subscripts of a paired loop variable.
+
 Three belts run independently of the whitelist:
 
 - The emission scan walks the entire module tree for comparisons between two
@@ -99,6 +129,8 @@ import ast
 import builtins
 import json
 from collections import Counter
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -171,8 +203,10 @@ _ALLOWED_IMPORT_MODULES = frozenset(
 # Inert string methods: safe on builtin-typed receivers, and user-defined
 # types cannot exist here (class statements and ``type()`` are banned).
 _SAFE_STR_METHODS = frozenset({"join", "format"})
-# Inert Path navigation: reads filesystem metadata at most, never row data.
-_SAFE_PATH_METHODS = frozenset({"resolve", "absolute", "expanduser", "joinpath"})
+# Inert Path operations: they touch filesystem metadata at most, never row
+# data. ``mkdir`` creates the results directory a report is written into; it
+# returns None and cannot reach any value this trace follows.
+_SAFE_PATH_METHODS = frozenset({"resolve", "absolute", "expanduser", "joinpath", "mkdir"})
 _BUILTIN_NAMES = frozenset(dir(builtins))
 
 _REPAIRED = "repaired"
@@ -184,7 +218,7 @@ def founder_orientation_dataflow_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-emission-dataflow",
-        "grammar_version": "2.1.5",
+        "grammar_version": "2.2.0",
         "trust_model": (
             "default deny: the trace holds an explicit whitelist of the statement and "
             "expression forms it models completely, and any form outside that whitelist "
@@ -207,7 +241,11 @@ def founder_orientation_dataflow_grammar(
             "payload that is exactly one call to a local straight-line helper "
             "whose whole body returns one canonical selector comparing its two "
             "parameters; the call's operand paths classify as an inline "
-            "comparison would. Any other comparison between two bare names, "
+            "comparison would. The body may also be an optional docstring, one "
+            "single-assignment local bound to a comparison of the two bare "
+            "parameters, and one return of a canonical selector over that "
+            "local; parameter rebinding and every other body shape stay banned. "
+            "Any other comparison between two bare names, "
             "anywhere, must have been recognized or the document abstains"
         ),
         "canonical_selectors": (
@@ -233,8 +271,32 @@ def founder_orientation_dataflow_grammar(
         ),
         "row_source_operations": [
             "csv.DictReader and csv.reader, only when the call resolves to the csv "
-            "module through the module's own import table"
+            "module through the module's own import table",
+            "the reader's argument may be a path-like read_text chain, inline or "
+            "through a name single-assigned from it: <path-like>.read_text(...) "
+            "whose keyword arguments are all string literals, followed by "
+            ".splitlines(); every other argument construction is unchanged",
         ],
+        "module_constants": (
+            "a module-level name assigned exactly once in the whole module to a "
+            "numeric or string literal, or the negation of a numeric literal, and "
+            "never bound again under any form, resolves to that literal in string "
+            "column subscripts, selector branch values, binary-constant positions, "
+            "and the one-literal position of C - x, x ^ C, and abs(x - C); a name "
+            "bound twice, augmented, or given a non-literal value stays unresolvable"
+        ),
+        "column_value_pairing": (
+            "an unfiltered list comprehension [<recode>(row[COL]) for row in rows] "
+            "over a plainly named tagged row set is a column-values list carrying "
+            "one column's source, parity, numeric proof, and boolean taint; "
+            "zip(A, B), list(zip(A, B)), and the identity comprehension over "
+            "either, where A and B are single-assignment column-values lists of "
+            "the same named row set, pair them; iterating the pair and reading "
+            "pair[0] or pair[1] under an integer literal yields the respective "
+            "paths, which classify through the ordinary operand-path rule with "
+            "the lists' parities folded in; a filter, a differing source, a "
+            "rebound name, tuple unpacking, and every other index abstain"
+        ),
         "emission_comparison": (
             "an equality or inequality between two distinct columns of one "
             "staged row set, selecting between two numeric values inside a "
@@ -243,11 +305,17 @@ def founder_orientation_dataflow_grammar(
         "selector_forms": [
             "conditional expression whose test is the comparison",
             "two-element list, tuple, or dict literal indexed by the comparison",
+            "the arithmetic-encoded form A + (B - A) * FLAG in exactly that shape, "
+            "with A and B resolved selector constants and FLAG a recognized "
+            "emission comparison or a bool() or int() cast of one; the match "
+            "branch is B and the mismatch branch is A",
         ],
         "accumulation_forms": [
             "sum, prod, math.prod, or math.fsum over a comprehension",
             "a comprehension bound to a name that one of those consumes",
             "an elementwise multiply or add accumulation loop over the row set",
+            "an elementwise multiply or add accumulation loop or comprehension "
+            "over a recognized column-values pairing",
         ],
         "involutive_recode_forms": [
             "1 - x",
@@ -265,7 +333,8 @@ def founder_orientation_dataflow_grammar(
             "int, float, and str casts",
             "strip, lstrip, and rstrip on a column value",
             "assignment and list materialization of a row set",
-            "constant-string column subscripts",
+            "constant-string column subscripts, and the integer literals 0 and 1 "
+            "subscripting a recognized paired loop variable",
             (
                 "dict literals and dict-spread literals rebuilding a row, read "
                 "strictly left to right so a later entry overrides an earlier one, "
@@ -288,8 +357,9 @@ def founder_orientation_dataflow_grammar(
             "walrus anywhere in any statement subtree is unsupported"
         ),
         "readable_expressions": [
-            "comprehensions and generators of the recognized shape over a name or "
-            "a recognized reader call",
+            "comprehensions and generators of the recognized shape over a name, "
+            "a recognized reader call, or a recognized zip pairing of two names",
+            "a path-like read_text chain closed by splitlines",
             "dict, list, set, and tuple literals with constant keys whose values "
             "contain no call outside the recode and extraction vocabulary",
             "the recognized reader calls",
@@ -370,6 +440,10 @@ def founder_orientation_dataflow_grammar(
             "bounded call depth with cycle abstention",
             "bounded expression-tracing depth",
             "guarded parsing",
+            "a name bound more than once anywhere in the module is neither a "
+            "constant nor a pairable column-values list",
+            "a pairing of column-values lists over different named row sets, or "
+            "over a filtered comprehension, abstains",
         ],
         "nomenclature_authority": "none",
     }
@@ -416,10 +490,45 @@ class _Opaque:
     pass
 
 
+@dataclass(frozen=True)
+class _ColumnValues:
+    """One column of one named row set, materialized as a parallel list.
+
+    ``source_key`` is the plain name the comprehension iterated. Two lists
+    pair only when they name the same row set through the same name: an
+    alias of a row set is a second name for one runtime list, but proving
+    that two differently named iterables walk the same rows in the same
+    order is beyond this trace, so a differing key abstains.
+    """
+
+    source_key: str
+    source: _Rows
+    column: str
+    parity: int
+    numeric: bool | None
+    boolean: bool
+
+    @property
+    def path(self) -> _Path:
+        return _Path(self.column, self.parity, numeric=self.numeric, boolean=self.boolean)
+
+
+@dataclass(frozen=True)
+class _Paired:
+    """Two column-values lists of one row set, zipped elementwise."""
+
+    left: _ColumnValues
+    right: _ColumnValues
+
+    @property
+    def source(self) -> _Rows:
+        return self.left.source
+
+
 _OPAQUE = _Opaque()
 _EMPTY_LIST = _EmptyList()
 
-_Value = _Rows | _Scalar | _EmptyList | _Opaque
+_Value = _Rows | _Scalar | _EmptyList | _ColumnValues | _Paired | _Opaque
 
 
 @dataclass(frozen=True)
@@ -478,6 +587,9 @@ class _ModuleModel:
     write_call_ids: frozenset[int]
     reaching: frozenset[str]
     accumulated: frozenset[int]
+    constants: dict[str, int | float | str]
+    single_assignment: frozenset[str]
+    read_chain_call_ids: frozenset[int]
 
 
 @dataclass
@@ -490,12 +602,18 @@ class _TraceContext:
     visiting: set[str] = field(default_factory=set)
     recognized_loops: set[int] = field(default_factory=set)
     recognized_compares: set[int] = field(default_factory=set)
+    recognized_pairings: set[int] = field(default_factory=set)
+    pair_paths: dict[str, tuple[_Path, _Path]] = field(default_factory=dict)
     tagged_names: set[str] = field(default_factory=set)
     unresolved: bool = False
 
     @property
     def functions(self) -> dict[str, ast.FunctionDef]:
         return self.model.functions
+
+    @property
+    def constants(self) -> dict[str, int | float | str]:
+        return self.model.constants
 
     @property
     def opaque_callables(self) -> frozenset[str]:
@@ -937,24 +1055,11 @@ def _classify_comprehension(
     if _shadows_loop_var(node.elt, generator.target.id):
         ctx.unresolved = True
         return
-    selectors = _selector_comparisons(node.elt)
-    source = _tag(generator.iter, env, ctx)
-    _classify_helper_selector_call(
-        node.elt,
-        generator.target.id,
-        source,
-        env,
-        ctx,
-        classifications,
-        reaching=reaching,
-        dead=dead,
-    )
-    _flag_unrecognized_selectors(node.elt, selectors, generator.target.id, env, ctx)
-    if not selectors:
-        return
-    for compare in selectors:
-        _classify_compare(
-            compare,
+    tagged = _tag(generator.iter, env, ctx)
+    with _pair_scope(tagged, generator.target.id, ctx) as source:
+        selectors = _selector_comparisons(node.elt, ctx)
+        _classify_helper_selector_call(
+            node.elt,
             generator.target.id,
             source,
             env,
@@ -963,6 +1068,44 @@ def _classify_comprehension(
             reaching=reaching,
             dead=dead,
         )
+        _flag_unrecognized_selectors(node.elt, selectors, generator.target.id, env, ctx)
+        if not selectors:
+            return
+        for compare in selectors:
+            _classify_compare(
+                compare,
+                generator.target.id,
+                source,
+                env,
+                ctx,
+                classifications,
+                reaching=reaching,
+                dead=dead,
+            )
+
+
+@contextmanager
+def _pair_scope(source: _Value, loop_var: str, ctx: _TraceContext) -> Iterator[_Value]:
+    """Bind a paired loop variable's two halves for the body of one iteration.
+
+    Outside a recognized pairing this yields the source unchanged, so every
+    caller reads one code path. Inside one it yields the row set both columns
+    came from, which is what the operand-path rule needs, and registers the
+    two paths under the loop variable so ``pair[0]`` and ``pair[1]`` resolve.
+    """
+
+    if not isinstance(source, _Paired):
+        yield source
+        return
+    previous = ctx.pair_paths.get(loop_var)
+    ctx.pair_paths[loop_var] = (source.left.path, source.right.path)
+    try:
+        yield source.source
+    finally:
+        if previous is None:
+            ctx.pair_paths.pop(loop_var, None)
+        else:
+            ctx.pair_paths[loop_var] = previous
 
 
 def _shadows_loop_var(element: ast.expr, loop_var: str) -> bool:
@@ -1014,7 +1157,7 @@ def _classify_helper_selector_call(
         return
     if len(element.args) != 2 or element.keywords:
         return
-    form = _helper_selector_form(ctx.functions[name])
+    form = _helper_selector_form(ctx.functions[name], ctx)
     if form is None:
         return
     compare, left_param, right_param = form
@@ -1040,13 +1183,20 @@ def _classify_helper_selector_call(
 
 
 def _helper_selector_form(
-    function: ast.FunctionDef,
+    function: ast.FunctionDef, ctx: _TraceContext
 ) -> tuple[ast.Compare, str, str] | None:
     """The canonical selector a helper body is, or None.
 
     Returns the comparison node and the parameter names on its two sides
     when the body is a single return of a canonical selector over exactly
     the helper's two parameters.
+
+    From v2.2.0 the body may also be one single-assignment local bound to the
+    comparison of the two bare parameters followed by that one return, with
+    the local standing in the selector's flag position. The local must be
+    bound to nothing but the comparison and must not be a parameter name, so
+    the parameter-rebinding ban is untouched: the value the caller passed is
+    still what the comparison reads.
     """
 
     if not _straight_line_helper(function):
@@ -1067,38 +1217,27 @@ def _helper_selector_form(
         for item in _flatten_statements(function.body)
         if not (isinstance(item, ast.Expr) and isinstance(item.value, ast.Constant))
     ]
-    # The whole body must be the one return. A statement before it can
-    # rebind a parameter (``expected = 1 - expected``), and reading the
-    # comparison as if the caller's argument arrived unchanged was a
-    # demonstrated wrong answer in both directions.
+    # The body must be the one return, optionally preceded by the one flag
+    # binding. Any other statement before the return can rebind a parameter
+    # (``expected = 1 - expected``), and reading the comparison as if the
+    # caller's argument arrived unchanged was a demonstrated wrong answer in
+    # both directions.
+    flag: tuple[str, ast.Compare] | None = None
+    if len(statements) == 2:
+        flag = _helper_flag_binding(statements[0], parameters)
+        if flag is None:
+            return None
+        statements = statements[1:]
     if len(statements) != 1 or not isinstance(statements[0], ast.Return):
         return None
     if statements[0].value is None:
         return None
     value = statements[0].value
-    if isinstance(value, ast.IfExp) and isinstance(value.test, ast.Compare):
-        compare = value.test
-        match_branch: ast.expr = value.body
-        mismatch_branch: ast.expr = value.orelse
-    elif isinstance(value, ast.Subscript) and isinstance(value.value, ast.List | ast.Tuple):
-        if not _two_element_numeric_container(value.value):
-            return None
-        index = value.slice
-        if (
-            isinstance(index, ast.Call)
-            and _call_name(index) == "int"
-            and len(index.args) == 1
-            and not index.keywords
-        ):
-            index = index.args[0]
-        if not isinstance(index, ast.Compare):
-            return None
-        compare = index
-        match_branch = value.value.elts[1]
-        mismatch_branch = value.value.elts[0]
-    else:
+    resolved = _helper_selector_branches(value, ctx, flag)
+    if resolved is None:
         return None
-    if not _is_canonical_selector(compare, match_branch, mismatch_branch):
+    compare, match_branch, mismatch_branch = resolved
+    if not _is_canonical_selector(compare, match_branch, mismatch_branch, ctx.constants):
         return None
     left, right = compare.left, compare.comparators[0]
     if not (isinstance(left, ast.Name) and isinstance(right, ast.Name)):
@@ -1106,6 +1245,51 @@ def _helper_selector_form(
     if {left.id, right.id} != set(parameters):
         return None
     return compare, left.id, right.id
+
+
+def _helper_flag_binding(
+    statement: ast.stmt, parameters: list[str]
+) -> tuple[str, ast.Compare] | None:
+    """``flag = a == b`` over the two bare parameters, bound to a fresh name."""
+
+    if not (
+        isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+    ):
+        return None
+    name = statement.targets[0].id
+    if name in parameters:
+        return None
+    compare = statement.value
+    if not isinstance(compare, ast.Compare) or len(compare.ops) != 1:
+        return None
+    left, right = compare.left, compare.comparators[0]
+    if not (isinstance(left, ast.Name) and isinstance(right, ast.Name)):
+        return None
+    if {left.id, right.id} != set(parameters):
+        return None
+    return name, compare
+
+
+def _helper_selector_branches(
+    value: ast.expr, ctx: _TraceContext, flag: tuple[str, ast.Compare] | None
+) -> tuple[ast.Compare, ast.expr, ast.expr] | None:
+    """The comparison and the two branch expressions a helper's return holds."""
+
+    if isinstance(value, ast.IfExp):
+        compare = _flag_comparison(value.test, ctx, flag)
+        if compare is None:
+            return None
+        return compare, value.body, value.orelse
+    if isinstance(value, ast.Subscript) and isinstance(value.value, ast.List | ast.Tuple):
+        if not _two_element_numeric_container(value.value):
+            return None
+        compare = _flag_comparison(value.slice, ctx, flag)
+        if compare is None:
+            return None
+        return compare, value.value.elts[1], value.value.elts[0]
+    return _arithmetic_selector(value, ctx, flag)
 
 
 def _flag_unrecognized_selectors(
@@ -1234,27 +1418,39 @@ def _classify_operand_paths(
     )
 
 
-def _selector_comparisons(element: ast.expr) -> list[ast.Compare]:
+def _selector_comparisons(element: ast.expr, ctx: _TraceContext) -> list[ast.Compare]:
     """Canonical selectors: comparisons choosing between two proven probabilities.
 
     A selector classifies only in its canonical form: an equality comparison
     whose match branch carries a strictly larger constant probability than
     its mismatch branch. Everything else -- an inequality operator, swapped
-    branches, or branch values hidden behind names -- computes a value that
+    branches, or branch values that stay unprovable -- computes a value that
     is extensionally a complement of a canonical selector's, and whether
     that complement is an orientation repair or a differently parameterized
     emission matrix is not statically decidable. Non-canonical selectors are
     therefore never recognized; an emission-like comparison inside one falls
     through to the module-wide belt and the document abstains.
+
+    From v2.2.0 a branch value may be a module constant, and the
+    arithmetic-encoded selector ``A + (B - A) * FLAG`` is recognized in that
+    exact shape; the canonicity rule over the resolved constants is unchanged.
     """
 
+    constants = ctx.constants
     found: list[ast.Compare] = []
     for node in ast.walk(element):
         if isinstance(node, ast.IfExp) and isinstance(node.test, ast.Compare):
             if not _numeric_like(node.body) or not _numeric_like(node.orelse):
                 continue
-            if _is_canonical_selector(node.test, node.body, node.orelse):
+            if _is_canonical_selector(node.test, node.body, node.orelse, constants):
                 found.append(node.test)
+        elif isinstance(node, ast.BinOp):
+            arithmetic = _arithmetic_selector(node, ctx, flag=None)
+            if arithmetic is None:
+                continue
+            compare, match_branch, mismatch_branch = arithmetic
+            if _is_canonical_selector(compare, match_branch, mismatch_branch, constants):
+                found.append(compare)
         elif isinstance(node, ast.Subscript):
             if not _two_element_numeric_container(node.value):
                 continue
@@ -1271,18 +1467,81 @@ def _selector_comparisons(element: ast.expr) -> list[ast.Compare]:
             assert isinstance(node.value, ast.List | ast.Tuple)
             # A true comparison indexes element one, so element one is the
             # match branch of the container form.
-            if _is_canonical_selector(index, node.value.elts[1], node.value.elts[0]):
+            if _is_canonical_selector(index, node.value.elts[1], node.value.elts[0], constants):
                 found.append(index)
     return found
 
 
+def _flag_comparison(
+    node: ast.expr, ctx: _TraceContext, flag: tuple[str, ast.Compare] | None
+) -> ast.Compare | None:
+    """The comparison a selector's boolean flag position holds, or None.
+
+    A flag is the comparison itself, an ``int`` or ``bool`` cast of one, or,
+    inside a recognized helper body, the single-assignment local that was
+    bound to the comparison of the helper's two bare parameters.
+    """
+
+    if (
+        isinstance(node, ast.Call)
+        and _call_name(node) in {"int", "bool"}
+        and len(node.args) == 1
+        and not node.keywords
+        and _is_builtin_name(_call_name(node), ctx)
+    ):
+        node = node.args[0]
+    if isinstance(node, ast.Compare):
+        return node
+    if flag is not None and isinstance(node, ast.Name) and node.id == flag[0]:
+        return flag[1]
+    return None
+
+
+def _arithmetic_selector(
+    node: ast.expr, ctx: _TraceContext, flag: tuple[str, ast.Compare] | None
+) -> tuple[ast.Compare, ast.expr, ast.expr] | None:
+    """``A + (B - A) * FLAG``, the one arithmetic selector encoding modelled.
+
+    The shape is exact. The mismatch constant must stand in both of its
+    positions and resolve to the same value, so the expression provably
+    evaluates to ``A`` when the flag is false and to ``B`` when it is true.
+    Nothing else about the arithmetic is folded; the branch order is judged
+    by the unchanged canonicity rule over the resolved constants.
+    """
+
+    if not isinstance(node, ast.BinOp) or not isinstance(node.op, ast.Add):
+        return None
+    product = node.right
+    if not isinstance(product, ast.BinOp) or not isinstance(product.op, ast.Mult):
+        return None
+    difference = product.left
+    if not isinstance(difference, ast.BinOp) or not isinstance(difference.op, ast.Sub):
+        return None
+    mismatch_branch = node.left
+    match_branch = difference.left
+    constants = ctx.constants
+    mismatch_value = _selector_constant(mismatch_branch, constants)
+    repeated_value = _selector_constant(difference.right, constants)
+    if mismatch_value is None or repeated_value is None or mismatch_value != repeated_value:
+        return None
+    if _selector_constant(match_branch, constants) is None:
+        return None
+    compare = _flag_comparison(product.right, ctx, flag)
+    if compare is None:
+        return None
+    return compare, match_branch, mismatch_branch
+
+
 def _is_canonical_selector(
-    compare: ast.Compare, match_branch: ast.expr, mismatch_branch: ast.expr
+    compare: ast.Compare,
+    match_branch: ast.expr,
+    mismatch_branch: ast.expr,
+    constants: dict[str, int | float | str],
 ) -> bool:
     if len(compare.ops) != 1 or not isinstance(compare.ops[0], ast.Eq):
         return False
-    match_value = _selector_constant(match_branch)
-    mismatch_value = _selector_constant(mismatch_branch)
+    match_value = _selector_constant(match_branch, constants)
+    mismatch_value = _selector_constant(mismatch_branch, constants)
     if match_value is None or mismatch_value is None:
         return False
     if match_value <= 0 or mismatch_value < 0:
@@ -1293,7 +1552,7 @@ def _is_canonical_selector(
     return match_value > mismatch_value
 
 
-def _selector_constant(node: ast.expr) -> float | None:
+def _selector_constant(node: ast.expr, constants: dict[str, int | float | str]) -> float | None:
     """The provable constant value of a selector branch, or None.
 
     Only simple literal forms qualify: a numeric literal, its negation, or a
@@ -1301,10 +1560,16 @@ def _selector_constant(node: ast.expr) -> float | None:
     deliberately excluded -- folding it in binary floats mis-orders Decimal
     expressions against their runtime values (a demonstrated wrong answer),
     and no exact folder agrees with runtime for every constructor mix.
-    Names are not constants: an unprovable value leaves the branch order
-    unprovable and the selector non-canonical.
+
+    From v2.2.0 a name resolves when it is a module constant: assigned once
+    in the whole module to a literal and never bound again. Every other name
+    is still unprovable, which leaves the branch order unprovable and the
+    selector non-canonical.
     """
 
+    named = _constant_name_value(node, constants)
+    if isinstance(named, int | float):
+        return float(named)
     if isinstance(node, ast.Constant):
         if isinstance(node.value, int | float) and not isinstance(node.value, bool):
             if isinstance(node.value, int) and abs(node.value) > 10**12:
@@ -1314,7 +1579,7 @@ def _selector_constant(node: ast.expr) -> float | None:
             return float(node.value)
         return None
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
-        inner = _selector_constant(node.operand)
+        inner = _selector_constant(node.operand, constants)
         return None if inner is None else -inner
     if isinstance(node, ast.Call) and not node.keywords and node.args:
         name = _call_name(node)
@@ -1327,7 +1592,7 @@ def _selector_constant(node: ast.expr) -> float | None:
                     except (ValueError, OverflowError):
                         return None
                     continue
-                value = _selector_constant(argument)
+                value = _selector_constant(argument, constants)
                 if value is None:
                     return None
                 values.append(value)
@@ -1457,11 +1722,29 @@ def _column_parity_inner(
             loop_var is not None
             and isinstance(expression.value, ast.Name)
             and expression.value.id == loop_var
-            and isinstance(expression.slice, ast.Constant)
-            and isinstance(expression.slice.value, str)
         ):
-            return _Path(expression.slice.value, 0)
-        table = _two_element_table(expression.value)
+            pair = ctx.pair_paths.get(loop_var)
+            if pair is not None:
+                # The loop variable is one element of a recognized pairing,
+                # so only the two integer literals that name its halves read
+                # a column; every other index abstains through _unknown.
+                index = expression.slice
+                if (
+                    isinstance(index, ast.Constant)
+                    and isinstance(index.value, int)
+                    and not isinstance(index.value, bool)
+                    and index.value in {0, 1}
+                ):
+                    return pair[index.value]
+            elif isinstance(expression.slice, ast.Constant) and isinstance(
+                expression.slice.value, str
+            ):
+                return _Path(expression.slice.value, 0)
+            else:
+                column = _constant_name_value(expression.slice, ctx.constants)
+                if isinstance(column, str):
+                    return _Path(column, 0)
+        table = _two_element_table(expression.value, ctx.constants)
         if table is not None:
             base = _column_parity(
                 expression.slice, loop_var=loop_var, carriers=carriers, env=env, ctx=ctx
@@ -1473,7 +1756,7 @@ def _column_parity_inner(
         return _call_parity(expression, loop_var, carriers, env, ctx) or _unknown()
 
     if isinstance(expression, ast.BinOp):
-        if isinstance(expression.op, ast.Sub) and _is_one(expression.left):
+        if isinstance(expression.op, ast.Sub) and _is_one(expression.left, ctx.constants):
             return _shift(
                 _column_parity(
                     expression.right, loop_var=loop_var, carriers=carriers, env=env, ctx=ctx
@@ -1485,7 +1768,7 @@ def _column_parity_inner(
                 (expression.right, expression.left),
                 (expression.left, expression.right),
             ):
-                if _is_one(one):
+                if _is_one(one, ctx.constants):
                     return _shift(
                         _column_parity(
                             other, loop_var=loop_var, carriers=carriers, env=env, ctx=ctx
@@ -1562,7 +1845,7 @@ def _call_parity(
         inner = call.args[0]
         if isinstance(inner, ast.BinOp) and isinstance(inner.op, ast.Sub):
             for one, other in ((inner.right, inner.left), (inner.left, inner.right)):
-                if _is_one(one):
+                if _is_one(one, ctx.constants):
                     return _shift(
                         _column_parity(
                             other, loop_var=loop_var, carriers=carriers, env=env, ctx=ctx
@@ -1698,15 +1981,15 @@ def _ifexp_parity(
         return None
     if not isinstance(test.ops[0], ast.Eq | ast.NotEq):
         return None
-    body = _binary_constant(expression.body)
-    orelse = _binary_constant(expression.orelse)
+    body = _binary_constant(expression.body, ctx.constants)
+    orelse = _binary_constant(expression.orelse, ctx.constants)
     if body is None or orelse is None or body == orelse:
         return None
     for constant_side, value_side in (
         (test.left, test.comparators[0]),
         (test.comparators[0], test.left),
     ):
-        constant = _binary_constant(constant_side)
+        constant = _binary_constant(constant_side, ctx.constants)
         if constant is None:
             continue
         base = _column_parity(value_side, loop_var=loop_var, carriers=carriers, env=env, ctx=ctx)
@@ -1720,11 +2003,13 @@ def _ifexp_parity(
     return None
 
 
-def _two_element_table(node: ast.expr) -> tuple[int, int] | None:
+def _two_element_table(
+    node: ast.expr, constants: dict[str, int | float | str]
+) -> tuple[int, int] | None:
     """A literal mapping of the domain {0, 1} onto {0, 1}."""
 
     if isinstance(node, ast.List | ast.Tuple) and len(node.elts) == 2:
-        values = [_binary_constant(item) for item in node.elts]
+        values = [_binary_constant(item, constants) for item in node.elts]
         if values[0] is not None and values[1] is not None:
             return (values[0], values[1])
         return None
@@ -1733,8 +2018,8 @@ def _two_element_table(node: ast.expr) -> tuple[int, int] | None:
         for key, value in zip(node.keys, node.values, strict=True):
             if key is None:
                 return None
-            index = _binary_constant(key)
-            mapped = _binary_constant(value)
+            index = _binary_constant(key, constants)
+            mapped = _binary_constant(value, constants)
             if index is None or mapped is None:
                 return None
             entries[index] = mapped
@@ -1759,7 +2044,12 @@ def _table_shift(table: tuple[int, int], base: _Path | None) -> _Path | None:
     return _UNRESOLVED
 
 
-def _binary_constant(node: ast.expr) -> int | None:
+def _binary_constant(node: ast.expr, constants: dict[str, int | float | str]) -> int | None:
+    """The literal 0 or 1 an expression is, resolving module constants."""
+
+    named = _constant_name_value(node, constants)
+    if isinstance(named, int) and not isinstance(named, bool) and named in {0, 1}:
+        return int(named)
     if (
         isinstance(node, ast.Constant)
         and isinstance(node.value, int)
@@ -1770,7 +2060,12 @@ def _binary_constant(node: ast.expr) -> int | None:
     return None
 
 
-def _is_one(node: ast.expr) -> bool:
+def _is_one(node: ast.expr, constants: dict[str, int | float | str]) -> bool:
+    """Whether an expression is the literal 1, resolving module constants."""
+
+    named = _constant_name_value(node, constants)
+    if isinstance(named, int | float) and not isinstance(named, bool):
+        return bool(named == 1)
     return (
         isinstance(node, ast.Constant)
         and isinstance(node.value, int | float)
@@ -1823,7 +2118,16 @@ def _tag(node: ast.expr, env: dict[str, _Value], ctx: _TraceContext) -> _Value:
 
 def _tag_inner(node: ast.expr, env: dict[str, _Value], ctx: _TraceContext) -> _Value:
     if isinstance(node, ast.Name):
-        return env.get(node.id, _OPAQUE)
+        value = env.get(node.id, _OPAQUE)
+        if isinstance(value, _ColumnValues | _Paired) and node.id not in (
+            ctx.model.single_assignment
+        ):
+            # A column-values list or a pairing carries a claim about which
+            # column sits at which position. A name bound more than once
+            # anywhere in the module cannot carry that claim past the second
+            # binding, so it never leaves the assignment that made it.
+            return _OPAQUE
+        return value
     if isinstance(node, ast.Constant):
         return _Scalar() if isinstance(node.value, int | float) else _OPAQUE
     if isinstance(node, ast.List | ast.Tuple) and not node.elts:
@@ -1860,13 +2164,46 @@ def _tag_call(node: ast.Call, env: dict[str, _Value], ctx: _TraceContext) -> _Va
         inner = _tag(node.args[0], env, ctx)
         if isinstance(inner, _Rows):
             return _Rows(inner.overrides, inner.default_identity, iterator=False)
+        if isinstance(inner, _Paired):
+            # ``list(zip(a, b))`` materializes the pairing without changing it.
+            return inner
         return _OPAQUE
+    if name == "zip" and _is_builtin_name("zip", ctx):
+        return _tag_zip(node, env, ctx)
     if name in _ACCUMULATOR_CALLS or name == "len":
         return _Scalar()
     if name in _IDENTITY_CASTS and len(node.args) == 1 and not node.keywords:
         inner = _tag(node.args[0], env, ctx)
         return inner if isinstance(inner, _Scalar) else _OPAQUE
     return _OPAQUE
+
+
+def _tag_zip(node: ast.Call, env: dict[str, _Value], ctx: _TraceContext) -> _Value:
+    """``zip(A, B)`` over two column-values lists of one named row set.
+
+    Both arguments must be plain names assigned exactly once in the whole
+    module, both lists must have been built over the same row-set name, and
+    the row set itself must be the same value. Anything else -- a third
+    argument, a keyword, an inline comprehension, a rebound name, or two
+    different sources -- is opaque, and every downstream use of an opaque
+    value fails the whitelist rather than the classifier.
+    """
+
+    if len(node.args) != 2 or node.keywords:
+        return _OPAQUE
+    if not all(isinstance(argument, ast.Name) for argument in node.args):
+        return _OPAQUE
+    names = [argument.id for argument in node.args if isinstance(argument, ast.Name)]
+    if any(name not in ctx.model.single_assignment for name in names):
+        return _OPAQUE
+    values = [_tag(argument, env, ctx) for argument in node.args]
+    left, right = values
+    if not isinstance(left, _ColumnValues) or not isinstance(right, _ColumnValues):
+        return _OPAQUE
+    if left.source_key != right.source_key or left.source != right.source:
+        return _OPAQUE
+    ctx.recognized_pairings.add(id(node))
+    return _Paired(left, right)
 
 
 def _tag_comprehension(
@@ -1878,9 +2215,55 @@ def _tag_comprehension(
     if not isinstance(generator.target, ast.Name):
         return _OPAQUE
     source = _tag(generator.iter, env, ctx)
+    if isinstance(source, _Paired):
+        # ``[pair for pair in zip(a, b)]`` materializes the pairing exactly as
+        # ``list`` does; any other element expression is opaque.
+        if isinstance(node.elt, ast.Name) and node.elt.id == generator.target.id:
+            return source
+        return _OPAQUE
     if not isinstance(source, _Rows):
         return _OPAQUE
-    return _row_element_value(node.elt, generator.target.id, source, env, ctx)
+    built = _row_element_value(node.elt, generator.target.id, source, env, ctx)
+    if not isinstance(built, _Opaque):
+        return built
+    return _column_values(node, generator, source, env, ctx)
+
+
+def _column_values(
+    node: ast.ListComp | ast.GeneratorExp,
+    generator: ast.comprehension,
+    source: _Rows,
+    env: dict[str, _Value],
+    ctx: _TraceContext,
+) -> _Value:
+    """``[<recode>(row[COL]) for row in rows]`` as one column's parallel list.
+
+    The iterable must be a plain name, because that name is the only identity
+    two lists can be proven to share, and the comprehension must carry no
+    filter: a filtered list has a different length from its unfiltered
+    sibling, so zipping them would pair rows that never met.
+    """
+
+    assert isinstance(generator.target, ast.Name)
+    if not isinstance(node, ast.ListComp):
+        # A generator is consumed by whatever reads it first; only a
+        # materialized list can be paired with a sibling list.
+        return _OPAQUE
+    if not isinstance(generator.iter, ast.Name) or generator.ifs:
+        return _OPAQUE
+    if _shadows_loop_var(node.elt, generator.target.id):
+        return _OPAQUE
+    path = _column_parity(node.elt, loop_var=generator.target.id, carriers={}, env=env, ctx=ctx)
+    if path is None or not path.resolved:
+        return _OPAQUE
+    return _ColumnValues(
+        source_key=generator.iter.id,
+        source=source,
+        column=str(path.column),
+        parity=path.parity,
+        numeric=path.numeric,
+        boolean=path.boolean,
+    )
 
 
 def _row_element_value(
@@ -2038,6 +2421,15 @@ def _apply_recognized_loop(
     if not isinstance(statement.target, ast.Name):
         return False
     source = _tag(statement.iter, env, ctx)
+    if isinstance(source, _Paired):
+        # A pairing is iterated, never appended into, so only the
+        # accumulation shape applies to it.
+        with _pair_scope(source, statement.target.id, ctx) as rows:
+            assert isinstance(rows, _Rows)
+            if _apply_accumulation_loop(statement, rows, env, ctx, classifications, dead=dead):
+                ctx.recognized_loops.add(id(statement))
+                return True
+        return False
     if not isinstance(source, _Rows):
         return False
     if _apply_row_building_loop(statement, source, env, aliases, ctx):
@@ -2144,7 +2536,7 @@ def _apply_accumulation_loop(
         if _shadows_loop_var(payload, loop.target.id):
             ctx.unresolved = True
             return True
-        selectors = _selector_comparisons(payload)
+        selectors = _selector_comparisons(payload, ctx)
         _classify_helper_selector_call(
             payload,
             loop.target.id,
@@ -2193,6 +2585,7 @@ def _module_model(tree: ast.Module) -> _ModuleModel:
     dead = frozenset(name for name in functions if occurrences[name] == 0)
     write_call_ids = _report_write_call_ids(tree)
     reaching = _report_reaching_names(tree, functions, write_call_ids, reachable)
+    single_assignment = _single_assignment_names(tree)
     return _ModuleModel(
         imports=imports,
         functions=functions,
@@ -2202,7 +2595,176 @@ def _module_model(tree: ast.Module) -> _ModuleModel:
         write_call_ids=write_call_ids,
         reaching=frozenset(reaching),
         accumulated=frozenset(_accumulated_comprehension_ids(tree)),
+        constants=_module_constants(tree, single_assignment),
+        single_assignment=single_assignment,
+        read_chain_call_ids=_read_text_chain_call_ids(tree),
     )
+
+
+def _binding_counts(tree: ast.Module) -> Counter[str]:
+    """How often each name is bound anywhere in the module, under any form.
+
+    Every binding form counts: assignment, augmented and annotated
+    assignment, loop and comprehension targets, ``with`` targets, function
+    names, parameters, lambda parameters, imports, and ``global``
+    declarations. A name bound twice is a name whose value at any point is a
+    question about execution order, so it is neither a constant nor a
+    pairable list.
+    """
+
+    counts: Counter[str] = Counter()
+    for node in ast.walk(tree):
+        for name in _binding_names(node):
+            counts[name] += 1
+    return counts
+
+
+def _single_assignment_names(tree: ast.Module) -> frozenset[str]:
+    return frozenset(name for name, count in _binding_counts(tree).items() if count == 1)
+
+
+def _module_constants(
+    tree: ast.Module, single_assignment: frozenset[str]
+) -> dict[str, int | float | str]:
+    """Module-level names that provably hold one literal for the whole run.
+
+    The name must be assigned exactly once in the entire module, at module
+    level, to a numeric or string literal or the negation of a numeric one.
+    A second binding anywhere -- a rebinding, a parameter, a loop target, an
+    import -- disqualifies it, so no execution order decides what the name
+    means. The builtin-shadowing ban already keeps these names off builtins.
+    """
+
+    constants: dict[str, int | float | str] = {}
+    for statement in tree.body:
+        if not (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+        ):
+            continue
+        name = statement.targets[0].id
+        if name not in single_assignment:
+            continue
+        value = _literal_value(statement.value)
+        if value is not None:
+            constants[name] = value
+    return constants
+
+
+def _literal_value(node: ast.expr) -> int | float | str | None:
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, bool):
+            return None
+        if isinstance(node.value, int | float | str):
+            return node.value
+        return None
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+        inner = _literal_value(node.operand)
+        if isinstance(inner, int | float):
+            return -inner
+    return None
+
+
+def _constant_name_value(node: ast.expr, constants: dict[str, int | float | str]) -> object | None:
+    return constants.get(node.id) if isinstance(node, ast.Name) else None
+
+
+def _is_read_text_call(node: ast.expr, path_names: set[str]) -> bool:
+    """``<path-like>.read_text(...)`` with string-literal keyword arguments.
+
+    The keyword arguments of ``read_text`` are encoding and error policy; a
+    literal string cannot compute anything. A positional argument, a
+    non-literal keyword, or a receiver that is not provably a filesystem
+    path leaves the call unrecognized.
+    """
+
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "read_text"
+        and not node.args
+        and all(
+            keyword.arg is not None
+            and isinstance(keyword.value, ast.Constant)
+            and isinstance(keyword.value.value, str)
+            for keyword in node.keywords
+        )
+        and _is_path_like(node.func.value, path_names)
+    )
+
+
+def _read_text_chain_call_ids(tree: ast.Module) -> frozenset[int]:
+    """The ``read_text(...).splitlines()`` calls this module admits.
+
+    Path-likeness is tracked exactly as the report-write scan tracks it, with
+    last binding wins, so a name rebound away from a ``Path`` no longer opens
+    the chain.
+    """
+
+    chain_ids: set[int] = set()
+    ever: set[str] = set()
+    broken: set[str] = set()
+
+    def _rebind(name: str, path_like: bool, names: set[str]) -> None:
+        if path_like:
+            names.add(name)
+            ever.add(name)
+        else:
+            names.discard(name)
+            broken.add(name)
+
+    def _scan(statements: list[ast.stmt], names: set[str]) -> None:
+        for statement in statements:
+            if isinstance(statement, ast.With | ast.AsyncWith):
+                for item in statement.items:
+                    if isinstance(item.optional_vars, ast.Name):
+                        _rebind(
+                            item.optional_vars.id,
+                            _is_path_like(item.context_expr, names),
+                            names,
+                        )
+                _scan(list(statement.body), names)
+                continue
+            if isinstance(statement, ast.If | ast.For | ast.While):
+                _scan(list(statement.body), names)
+                _scan(list(statement.orelse), names)
+                continue
+            for inner in ast.walk(statement):
+                if _is_read_text_call(inner, names):
+                    chain_ids.add(id(inner))
+                if (
+                    isinstance(inner, ast.Call)
+                    and isinstance(inner.func, ast.Attribute)
+                    and inner.func.attr == "splitlines"
+                    and not inner.args
+                    and not inner.keywords
+                    and _is_read_text_call(inner.func.value, names)
+                ):
+                    chain_ids.add(id(inner))
+            if (
+                isinstance(statement, ast.Assign)
+                and len(statement.targets) == 1
+                and isinstance(statement.targets[0], ast.Name)
+            ):
+                _rebind(
+                    statement.targets[0].id,
+                    _is_path_like(statement.value, names),
+                    names,
+                )
+            elif isinstance(statement, ast.AnnAssign) and isinstance(statement.target, ast.Name):
+                _rebind(
+                    statement.target.id,
+                    statement.value is not None and _is_path_like(statement.value, names),
+                    names,
+                )
+
+    module_names: set[str] = set()
+    _scan([item for item in tree.body if not isinstance(item, ast.FunctionDef)], module_names)
+    stable = (module_names | ever) - broken
+    for function in (item for item in tree.body if isinstance(item, ast.FunctionDef)):
+        _scan(list(function.body), set(stable))
+    return frozenset(chain_ids)
 
 
 def _import_table(tree: ast.Module) -> dict[str, str]:
@@ -2630,6 +3192,16 @@ def _comprehension_violation(
             and isinstance(iterable.args[0], ast.Call)
             and _is_reader_call(iterable.args[0], ctx.model)
         )
+        # A zip is admitted here only when the trace itself recognized it as a
+        # pairing of two column-values lists of one row set. A zip of anything
+        # else stays outside the whitelist.
+        or id(iterable) in ctx.recognized_pairings
+        or (
+            isinstance(iterable, ast.Call)
+            and _call_name(iterable) == "list"
+            and len(iterable.args) == 1
+            and id(iterable.args[0]) in ctx.recognized_pairings
+        )
     ):
         return True
     children = [element, *([second] if second is not None else []), *generator.ifs]
@@ -2671,6 +3243,12 @@ def _recognized_call(call: ast.Call, ctx: _TraceContext) -> bool:
     name = _call_name(call)
     model = ctx.model
     if _is_reader_call(call, model):
+        return True
+    if id(call) in model.read_chain_call_ids:
+        # ``<path-like>.read_text(...)`` with string-literal keywords, and the
+        # ``.splitlines()`` that closes it. The pre-pass proved the receiver
+        # is a filesystem path under last-binding-wins tracking, so this reads
+        # a staged file into strings and computes nothing else.
         return True
     if name in model.functions:
         return True
@@ -2822,8 +3400,8 @@ def _emission_scan_violation(tree: ast.Module, ctx: _TraceContext) -> bool:
             continue
         if id(node) in ctx.recognized_compares or id(node) in unreachable_regions:
             continue
-        left = _staged_extraction(node.left)
-        right = _staged_extraction(node.comparators[0])
+        left = _staged_extraction(node.left, ctx.constants)
+        right = _staged_extraction(node.comparators[0], ctx.constants)
         if left is not None and right is not None and left != right:
             return True
         if _name_pair_comparison(node):
@@ -2863,7 +3441,9 @@ def _operand_constants(node: ast.expr) -> frozenset[object]:
     )
 
 
-def _staged_extraction(node: ast.expr) -> tuple[str, str] | None:
+def _staged_extraction(
+    node: ast.expr, constants: dict[str, int | float | str]
+) -> tuple[str, str] | None:
     """The staged extraction anywhere inside an operand's subtree, if any.
 
     This is a belt, so over-detection is safe (it can only force an
@@ -2874,13 +3454,16 @@ def _staged_extraction(node: ast.expr) -> tuple[str, str] | None:
     """
 
     for inner in ast.walk(node):
-        if (
-            isinstance(inner, ast.Subscript)
-            and isinstance(inner.value, ast.Name)
-            and isinstance(inner.slice, ast.Constant)
-            and isinstance(inner.slice.value, str)
-        ):
+        if not (isinstance(inner, ast.Subscript) and isinstance(inner.value, ast.Name)):
+            continue
+        if isinstance(inner.slice, ast.Constant) and isinstance(inner.slice.value, str):
             return (inner.value.id, inner.slice.value)
+        # A column named by a module constant is the same extraction written
+        # with a name; the belt has to see it too, and over-detection here can
+        # only force an abstention.
+        column = _constant_name_value(inner.slice, constants)
+        if isinstance(column, str):
+            return (inner.value.id, column)
     return None
 
 

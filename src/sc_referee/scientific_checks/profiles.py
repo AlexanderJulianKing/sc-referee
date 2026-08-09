@@ -492,8 +492,9 @@ def _founder_orientation_module(
         applicability_profile="bounded-founder-orientation-reconciliation-v1",
         counterevidence_profiles=FOUNDER_ORIENTATION_COUNTEREVIDENCE,
         known_gaps=(
-            "emission comparisons whose operands are parallel sequences rather than "
-            "columns of one staged row set",
+            "emission comparisons over parallel sequences other than a recognized "
+            "zip pairing of two single-assignment column-values lists of one named "
+            "staged row set",
             "emission comparisons inside a helper that receives the row set as a "
             "parameter, where the staged read is out of the traced scope",
             "orientation repairs expressed by arithmetic this trace does not recognize",
@@ -876,8 +877,8 @@ def _founder_orientation_profile() -> _ReportProfile:
         question_wording=(
             "Which founder-allele orientation rule governs the HMM emission for this review?"
         ),
-        check_version="2.1.5",
-        adapter_version="2.1.5",
+        check_version="2.2.0",
+        adapter_version="2.2.0",
     )
 
 

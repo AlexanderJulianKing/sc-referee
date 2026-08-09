@@ -2647,7 +2647,16 @@ ROUND_FOUR_RULES = {
     "noteq_container": "container indexed by an inequality; non-canonical",
     "swapped_branches": "mismatch branch larger than match branch; order is not canonical",
     "swapped_container": "container elements reversed; order is not canonical",
-    "named_branch_values": "branch values behind names are unprovable constants; non-canonical",
+    # v2.2.0 policy change. Through v2.1.5 this case abstained because a name
+    # was never a provable constant. Extension two now resolves a name
+    # assigned exactly once in the whole module to a literal, so ``MATCH`` and
+    # ``MISMATCH`` here do resolve -- to 0.01 and 0.99, which puts the smaller
+    # value on the match branch. The case still abstains, now for the same
+    # reason ``swapped_branches`` does: the branch order is not canonical. The
+    # ruling that the resolution itself is legitimate is proven positively by
+    # ``test_single_assignment_named_branch_values_resolve`` and bounded by
+    # ``test_a_twice_assigned_branch_name_still_abstains``.
+    "named_branch_values": "resolved branch constants in non-canonical order; mismatch branch larger",
     "noteq_in_accumulation_loop": "the loop path recognizes only canonical selectors too",
     "rebuild_without_read_casts": "rebuilt numeric column vs raw string column is constantly unequal at runtime",
     "identity_rebuild_without_read_casts": "identity rebuild with a cast still changes the runtime type",
@@ -3267,3 +3276,438 @@ def test_arithmetic_over_a_not_still_resolves() -> None:
     unsupported, states = _resolve(source)
     assert not unsupported
     assert states == {"direct"}
+
+
+# ---------------------------------------------------------------------------
+# v2.2.0 controls: the five coverage extensions, each with its narrow form
+# proven to resolve and each of its boundaries proven to abstain. The shapes
+# are the ones a blind author wrote in the founder pilot-a lane, where v2.1.5
+# abstained on the error-bearing case; every extension is admitted in one
+# exact form, so these boundary controls are what keeps the widening from
+# becoming a deny-list again.
+
+
+_V220_HEAD = (
+    "import csv\n"
+    "import pathlib\n"
+    "\n"
+    "CALL_COLUMN = 'call'\n"
+    "FOUNDER_COLUMN = 'founder'\n"
+    "PANEL_BASELINE = 1\n"
+    "SELECTOR_MATCH = 1\n"
+    "SELECTOR_MISMATCH = 0\n"
+    "\n"
+    "\n"
+    "def agreement_selector(observed_value, reference_value):\n"
+    "    match_flag = observed_value == reference_value\n"
+    "    return SELECTOR_MISMATCH + (SELECTOR_MATCH - SELECTOR_MISMATCH) * match_flag\n"
+    "\n"
+    "\n"
+    "data_path = pathlib.Path('inputs/markers.csv')\n"
+    "csv_lines = data_path.read_text(encoding='ascii').splitlines()\n"
+    "rows = [record for record in csv.DictReader(csv_lines)]\n"
+)
+_V220_TAIL = (
+    "n = len(rows)\n"
+    "rate = total / n\n"
+    "report = f'Of {n} markers, {total} agree at {rate:.6f}.'\n"
+    "pathlib.Path('results/report.md').write_text(report)\n"
+)
+_V220_LOOP = (
+    "total = 0\nfor pair in pairs:\n    total = total + agreement_selector(pair[0], pair[1])\n"
+)
+_V220_REPAIRED_LISTS = (
+    "call_values = [int(record[CALL_COLUMN]) for record in rows]\n"
+    "founder_values = [PANEL_BASELINE - int(record[FOUNDER_COLUMN]) for record in rows]\n"
+)
+_V220_DIRECT_LISTS = (
+    "call_values = [int(record[CALL_COLUMN]) for record in rows]\n"
+    "founder_values = [int(record[FOUNDER_COLUMN]) for record in rows]\n"
+)
+
+
+def _v220_workflow(
+    *,
+    head: str = _V220_HEAD,
+    lists: str = _V220_REPAIRED_LISTS,
+    pairing: str = "pairs = zip(call_values, founder_values)\n",
+    loop: str = _V220_LOOP,
+) -> str:
+    return head + lists + pairing + loop + _V220_TAIL
+
+
+@pytest.mark.parametrize(
+    ("pairing", "label"),
+    [
+        ("pairs = zip(call_values, founder_values)\n", "bare zip"),
+        ("pairs = list(zip(call_values, founder_values))\n", "materialized zip"),
+        (
+            "pairs = [pair for pair in zip(call_values, founder_values)]\n",
+            "identity comprehension over zip",
+        ),
+    ],
+)
+def test_a_column_value_pairing_resolves(pairing: str, label: str) -> None:
+    """Extensions one through five together, in the pilot's own shape.
+
+    One workflow exercises all of them: the reader reads a ``read_text``
+    chain through a single-assignment name, the column names and the
+    involutive constant are module constants, the two column-values lists
+    pair through ``zip``, and the accumulated payload is a helper whose body
+    binds its comparison to one local before returning an arithmetic-encoded
+    selector.
+    """
+
+    unsupported, states = _resolve(_v220_workflow(pairing=pairing))
+    assert not unsupported, label
+    assert states == {"repaired"}, label
+
+
+def test_a_column_value_pairing_without_a_recode_reads_as_direct() -> None:
+    """The direct reading is proven, not a fallthrough: same shape, no recode."""
+
+    unsupported, states = _resolve(_v220_workflow(lists=_V220_DIRECT_LISTS))
+    assert not unsupported
+    assert states == {"direct"}
+
+
+def test_an_inline_read_text_chain_resolves() -> None:
+    """Extension one without the intermediate name."""
+
+    head = _V220_HEAD.replace(
+        "data_path = pathlib.Path('inputs/markers.csv')\n"
+        "csv_lines = data_path.read_text(encoding='ascii').splitlines()\n"
+        "rows = [record for record in csv.DictReader(csv_lines)]\n",
+        "rows = [record for record in csv.DictReader("
+        "pathlib.Path('inputs/markers.csv').read_text(encoding='ascii').splitlines())]\n",
+    )
+    unsupported, states = _resolve(_v220_workflow(head=head))
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+def test_a_non_literal_read_text_keyword_abstains() -> None:
+    """A keyword that is not a string literal is an expression, not a policy."""
+
+    head = _V220_HEAD.replace(
+        "SELECTOR_MISMATCH = 0\n", "SELECTOR_MISMATCH = 0\nTEXT_ENCODING = 'ascii'\n"
+    ).replace("read_text(encoding='ascii')", "read_text(encoding=TEXT_ENCODING)")
+    unsupported, states = _resolve(_v220_workflow(head=head))
+    assert unsupported
+    assert states == set()
+
+
+def test_a_read_text_chain_on_a_rebound_path_name_abstains() -> None:
+    """Last binding wins: a path name rebound to a string opens no chain."""
+
+    head = _V220_HEAD.replace(
+        "data_path = pathlib.Path('inputs/markers.csv')\n",
+        "data_path = pathlib.Path('inputs/markers.csv')\ndata_path = 'inputs/markers.csv'\n",
+    )
+    unsupported, states = _resolve(_v220_workflow(head=head))
+    assert unsupported
+    assert states == set()
+
+
+_V220_NAMED_CONSTANT_HEAD = (
+    "import csv\nimport math\nfrom pathlib import Path\n\n"
+    "rows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n"
+    "MATCH = 0.99\n"
+    "MISMATCH = 0.01\n"
+    "ONE = 1\n"
+    "panel = [{**row, 'founder': ONE - int(row['founder'])} for row in rows]\n"
+)
+_V220_NAMED_CONSTANT_TAIL = (
+    "agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in panel)\n"
+    "n = len(rows)\n"
+    "rate = agreement / n\n"
+    "report = f'Of {n} markers, {agreement} agree at {rate:.6f}. Likelihood {likelihood:.8g}.'\n"
+    "Path('results/report.md').write_text(report)\n"
+)
+
+
+@pytest.mark.parametrize(
+    "selector",
+    [
+        "MATCH if int(row['call']) == int(row['founder']) else MISMATCH",
+        "[MISMATCH, MATCH][int(row['call']) == int(row['founder'])]",
+        "MISMATCH + (MATCH - MISMATCH) * (int(row['call']) == int(row['founder']))",
+        "MISMATCH + (MATCH - MISMATCH) * int(int(row['call']) == int(row['founder']))",
+        "MISMATCH + (MATCH - MISMATCH) * bool(int(row['call']) == int(row['founder']))",
+    ],
+)
+def test_single_assignment_named_branch_values_resolve(selector: str) -> None:
+    """The v2.2.0 ruling on ``named_branch_values``.
+
+    Through v2.1.5 a name in a branch position was an unprovable constant and
+    every selector holding one abstained. A name assigned exactly once in the
+    whole module to a literal is provable, so it now resolves, and the
+    canonicity rule then judges the resolved values exactly as it judges
+    literals. The involutive constant ``ONE`` resolves in the same way.
+    """
+
+    source = (
+        _V220_NAMED_CONSTANT_HEAD
+        + "likelihood = math.prod(\n    "
+        + selector
+        + " for row in panel\n)\n"
+        + _V220_NAMED_CONSTANT_TAIL
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported, selector
+    assert states == {"repaired"}, selector
+
+
+@pytest.mark.parametrize(
+    ("rebinding", "label"),
+    [
+        ("MATCH = 0.99\n", "rebound to the same literal"),
+        ("MATCH = 0.98\n", "rebound to another literal"),
+        ("for MATCH in rows:\n    pass\n", "rebound as a loop target"),
+    ],
+)
+def test_a_twice_assigned_branch_name_still_abstains(rebinding: str, label: str) -> None:
+    """The counter-test to the ruling above: one binding, or nothing.
+
+    A second binding anywhere in the module, under any binding form, makes
+    the name's value a question about execution order, and an unprovable
+    branch value leaves the selector non-canonical exactly as before.
+    """
+
+    source = (
+        _V220_NAMED_CONSTANT_HEAD + rebinding + "likelihood = math.prod(\n"
+        "    MATCH if int(row['call']) == int(row['founder']) else MISMATCH for row in panel\n"
+        ")\n" + _V220_NAMED_CONSTANT_TAIL
+    )
+    unsupported, states = _resolve(source)
+    assert unsupported, label
+    assert states == set(), label
+
+
+def test_a_twice_assigned_involutive_constant_still_abstains() -> None:
+    """``ONE - x`` is a recode only while ``ONE`` provably holds one."""
+
+    source = (
+        _V220_NAMED_CONSTANT_HEAD.replace("ONE = 1\n", "ONE = 1\nONE = 1\n")
+        + "likelihood = math.prod(\n"
+        "    MATCH if int(row['call']) == int(row['founder']) else MISMATCH for row in panel\n"
+        ")\n" + _V220_NAMED_CONSTANT_TAIL
+    )
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()
+
+
+def test_a_twice_assigned_column_constant_abstains() -> None:
+    """A column name behind a rebound name names no column."""
+
+    head = _V220_HEAD.replace(
+        "FOUNDER_COLUMN = 'founder'\n", "FOUNDER_COLUMN = 'founder'\nCALL_COLUMN = 'call'\n"
+    )
+    unsupported, states = _resolve(_v220_workflow(head=head))
+    assert unsupported
+    assert states == set()
+
+
+def test_a_zip_across_two_row_sets_abstains() -> None:
+    """Two staged reads are two orders; pairing them proves nothing."""
+
+    head = _V220_HEAD + (
+        "path_b = pathlib.Path('inputs/panel.csv')\n"
+        "lines_b = path_b.read_text(encoding='ascii').splitlines()\n"
+        "rows_b = [record for record in csv.DictReader(lines_b)]\n"
+    )
+    lists = (
+        "call_values = [int(record[CALL_COLUMN]) for record in rows]\n"
+        "founder_values = [PANEL_BASELINE - int(record[FOUNDER_COLUMN]) for record in rows_b]\n"
+    )
+    unsupported, states = _resolve(_v220_workflow(head=head, lists=lists))
+    assert unsupported
+    assert states == set()
+
+
+def test_a_zip_across_an_alias_of_one_row_set_abstains() -> None:
+    """The name is the only identity two lists can be proven to share.
+
+    ``other = rows`` is one runtime list under two names, but proving that
+    two differently named iterables walk the same rows in the same order is
+    beyond this trace, so the over-strict answer is the sound one.
+    """
+
+    head = _V220_HEAD + "other = rows\n"
+    lists = (
+        "call_values = [int(record[CALL_COLUMN]) for record in rows]\n"
+        "founder_values = [PANEL_BASELINE - int(record[FOUNDER_COLUMN]) for record in other]\n"
+    )
+    unsupported, states = _resolve(_v220_workflow(head=head, lists=lists))
+    assert unsupported
+    assert states == set()
+
+
+def test_a_filtered_column_value_list_abstains() -> None:
+    """A filtered list is shorter than its sibling; zip would pair strangers."""
+
+    lists = (
+        "call_values = [int(record[CALL_COLUMN]) for record in rows if record[CALL_COLUMN]]\n"
+        "founder_values = [PANEL_BASELINE - int(record[FOUNDER_COLUMN]) for record in rows]\n"
+    )
+    unsupported, states = _resolve(_v220_workflow(lists=lists))
+    assert unsupported
+    assert states == set()
+
+
+def test_a_rebound_column_value_list_abstains() -> None:
+    """Single assignment is what makes the list's column claim durable."""
+
+    lists = _V220_REPAIRED_LISTS + "founder_values = founder_values\n"
+    unsupported, states = _resolve(_v220_workflow(lists=lists))
+    assert unsupported
+    assert states == set()
+
+
+@pytest.mark.parametrize(
+    ("index", "label"),
+    [
+        ("pair[POSITION]", "a name, even a module constant, is not an integer literal"),
+        ("pair[2]", "an index outside the pair"),
+        ("pair[-1]", "a negative index"),
+    ],
+)
+def test_a_pair_read_outside_the_two_integer_literals_abstains(index: str, label: str) -> None:
+    head = _V220_HEAD.replace("PANEL_BASELINE = 1\n", "PANEL_BASELINE = 1\nPOSITION = 0\n")
+    loop = (
+        f"total = 0\nfor pair in pairs:\n    total = total + agreement_selector({index}, pair[1])\n"
+    )
+    unsupported, states = _resolve(_v220_workflow(head=head, loop=loop))
+    assert unsupported, label
+    assert states == set(), label
+
+
+def test_a_tuple_unpacked_pair_abstains() -> None:
+    """Tuple targets were never a whitelisted assignment form and still are not."""
+
+    loop = (
+        "total = 0\n"
+        "for pair in pairs:\n"
+        "    observed, reference = pair\n"
+        "    total = total + agreement_selector(observed, reference)\n"
+    )
+    unsupported, states = _resolve(_v220_workflow(loop=loop))
+    assert unsupported
+    assert states == set()
+
+
+@pytest.mark.parametrize(
+    ("body", "label"),
+    [
+        (
+            "    reference_value = PANEL_BASELINE - reference_value\n"
+            "    match_flag = observed_value == reference_value\n"
+            "    return SELECTOR_MISMATCH + (SELECTOR_MATCH - SELECTOR_MISMATCH) * match_flag\n",
+            "a recode before the flag binding",
+        ),
+        (
+            "    observed_value = observed_value == reference_value\n"
+            "    return SELECTOR_MISMATCH"
+            " + (SELECTOR_MATCH - SELECTOR_MISMATCH) * observed_value\n",
+            "the flag bound onto a parameter name",
+        ),
+        (
+            "    match_flag = observed_value == reference_value\n"
+            "    scaled = SELECTOR_MATCH - SELECTOR_MISMATCH\n"
+            "    return SELECTOR_MISMATCH + scaled * match_flag\n",
+            "a second local before the return",
+        ),
+    ],
+)
+def test_a_helper_body_beyond_the_one_flag_binding_abstains(body: str, label: str) -> None:
+    """One optional docstring, one flag binding, one return. Nothing else."""
+
+    head = _V220_HEAD.replace(
+        "    match_flag = observed_value == reference_value\n"
+        "    return SELECTOR_MISMATCH + (SELECTOR_MATCH - SELECTOR_MISMATCH) * match_flag\n",
+        body,
+    )
+    unsupported, states = _resolve(_v220_workflow(head=head))
+    assert unsupported, label
+    assert states == set(), label
+
+
+def test_a_helper_docstring_before_the_flag_binding_still_resolves() -> None:
+    head = _V220_HEAD.replace(
+        "    match_flag = observed_value == reference_value\n",
+        '    """Two-valued agreement selector."""\n'
+        "    match_flag = observed_value == reference_value\n",
+    )
+    unsupported, states = _resolve(_v220_workflow(head=head))
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+@pytest.mark.parametrize(
+    "return_statement",
+    [
+        "    return SELECTOR_MATCH if match_flag else SELECTOR_MISMATCH\n",
+        "    return [SELECTOR_MISMATCH, SELECTOR_MATCH][match_flag]\n",
+        "    return SELECTOR_MISMATCH + (SELECTOR_MATCH - SELECTOR_MISMATCH) * match_flag\n",
+    ],
+)
+def test_every_canonical_selector_form_reads_the_helper_flag(return_statement: str) -> None:
+    head = _V220_HEAD.replace(
+        "    return SELECTOR_MISMATCH + (SELECTOR_MATCH - SELECTOR_MISMATCH) * match_flag\n",
+        return_statement,
+    )
+    unsupported, states = _resolve(_v220_workflow(head=head))
+    assert not unsupported, return_statement
+    assert states == {"repaired"}, return_statement
+
+
+@pytest.mark.parametrize(
+    ("head_edit", "label"),
+    [
+        (("SELECTOR_MISMATCH = 0\n", "SELECTOR_MISMATCH = int('0')\n"), "unresolved mismatch"),
+        (("SELECTOR_MATCH = 1\n", "SELECTOR_MATCH = int('1')\n"), "unresolved match"),
+        (
+            (
+                "SELECTOR_MATCH = 1\nSELECTOR_MISMATCH = 0\n",
+                "SELECTOR_MATCH = 0\nSELECTOR_MISMATCH = 1\n",
+            ),
+            "swapped polarity",
+        ),
+    ],
+)
+def test_an_arithmetic_selector_with_unusable_constants_abstains(
+    head_edit: tuple[str, str], label: str
+) -> None:
+    """``A + (B - A) * FLAG`` is a selector only when A and B are provable and ordered."""
+
+    head = _V220_HEAD.replace(*head_edit)
+    unsupported, states = _resolve(_v220_workflow(head=head))
+    assert unsupported, label
+    assert states == set(), label
+
+
+def test_an_arithmetic_selector_whose_repeated_constant_differs_abstains() -> None:
+    """The mismatch constant must stand in both of its positions."""
+
+    head = _V220_HEAD.replace(
+        "SELECTOR_MISMATCH = 0\n", "SELECTOR_MISMATCH = 0\nSELECTOR_OTHER = 0.5\n"
+    ).replace(
+        "(SELECTOR_MATCH - SELECTOR_MISMATCH) * match_flag",
+        "(SELECTOR_MATCH - SELECTOR_OTHER) * match_flag",
+    )
+    unsupported, states = _resolve(_v220_workflow(head=head))
+    assert unsupported
+    assert states == set()
+
+
+def test_an_arithmetic_selector_outside_its_exact_shape_abstains() -> None:
+    """Only ``A + (B - A) * FLAG`` is modelled; the commuted product is not."""
+
+    head = _V220_HEAD.replace(
+        "SELECTOR_MISMATCH + (SELECTOR_MATCH - SELECTOR_MISMATCH) * match_flag",
+        "SELECTOR_MISMATCH + match_flag * (SELECTOR_MATCH - SELECTOR_MISMATCH)",
+    )
+    unsupported, states = _resolve(_v220_workflow(head=head))
+    assert unsupported
+    assert states == set()
