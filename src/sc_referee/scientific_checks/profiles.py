@@ -876,8 +876,8 @@ def _founder_orientation_profile() -> _ReportProfile:
         question_wording=(
             "Which founder-allele orientation rule governs the HMM emission for this review?"
         ),
-        check_version="2.1.4",
-        adapter_version="2.1.4",
+        check_version="2.1.5",
+        adapter_version="2.1.5",
     )
 
 
@@ -1825,6 +1825,20 @@ def _classifier_copy_dosage_profile() -> _ReportProfile:
     grammar answered whether the report claimed a representation, while the
     reviewable operand is which representation the value entering the fitted
     model actually carries. The three ADR-0024 operands are unchanged.
+
+    v2.0.1 closes the first adversarial review of that recognizer: per-value
+    provenance identity, default-deny mutation, literal lookup tables read as
+    binnings, and hermetic imports.
+
+    v2.0.2 closes a second review, shape-level throughout. A ``**`` unpacking
+    makes a call unreadable and mutating; every recognized call and method
+    states the positional arity it reads, so anything past that arity is a
+    destination; aliasing follows shared runtime buffers rather than
+    assignment syntax; one estimator evaluation owns one provenance identity;
+    ``numpy.where`` is a selection rather than arithmetic unless both branches
+    are literals; and a subscript indexed by a traced value is a gather. The
+    adapter also abstains when the frozen contract's three operand values are
+    not pairwise distinct.
     """
 
     hard_call = "integer_hard_copy_state_as_numeric_dosage"
@@ -1879,8 +1893,8 @@ def _classifier_copy_dosage_profile() -> _ReportProfile:
             "Which calibrated copy-number representation governs the quantitative "
             "exposure for this review?"
         ),
-        check_version="2.0.1",
-        adapter_version="2.0.1",
+        check_version="2.0.2",
+        adapter_version="2.0.2",
     )
 
 

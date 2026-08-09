@@ -40,6 +40,13 @@ from sc_referee.scientific_checks.copy_dosage_adapter import (
     _identified_accounting,
 )
 from sc_referee.scientific_checks.copy_dosage_dataflow import (
+    _CALL_READ_ONLY_ARITY,
+    _METHOD_READ_ONLY_ARITY,
+    _RECOGNIZED_CALL_PATHS,
+    _RECOGNIZED_METHODS,
+    _TEXT,
+    _cast,
+    _Col,
     _document_dose_representations,
     resolve_copy_dosage_dataflow,
 )
@@ -1633,3 +1640,466 @@ def test_the_adapter_abstains_rather_than_raising_on_an_oversized_literal() -> N
 def test_the_adapter_abstains_rather_than_raising_on_a_source_too_deep_to_parse() -> None:
     workflow = "x = " + "-" * 5000 + "1\n"
     assert _fused_observation(_SILENT_REPORT, workflow) == ("unsupported", None)
+
+
+# ---------------------------------------------------------------------------
+# v2.0.2: the six wrong-answer families a third adversarial review
+# demonstrated, and the four latent gaps it named.
+#
+# Every case below runs at run time to something other than what v2.0.1
+# reported. As above, none of them is executed here: ``_resolve`` parses the
+# source and runs the static trace over the syntax tree.
+
+
+_LEVEL_TABLE_WHERE = "np.where(expected > 1.5, 2, np.where(expected > 0.5, 1, 0))"
+
+
+# ---------------------------------------------------------------------------
+# Family 10: a keyword this trace cannot name.
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "dosage = np.array(expected, **{'dtype': int})\n",
+        "dosage = np.asarray(expected, **{'dtype': 'int64'})\n",
+        "dosage = expected.astype(**{'dtype': int})\n",
+        "dosage = expected.to_numpy(**{'dtype': int})\n",
+        "dosage = pd.cut(expected, [-1, 0.5, 1.5, 3], **{'labels': [0, 1, 2]})\n",
+        "dosage = harmonise(**{'value': expected})\n",
+    ],
+)
+def test_a_dict_unpacked_keyword_leaves_the_operation_unread(body: str) -> None:
+    """``f(x, **options)`` states no keyword names, so it states no operation.
+
+    v2.0.1 read every keyword by scanning ``node.keywords`` for a name, and a
+    ``**`` unpacking has no name to find. ``np.array(expected, **{'dtype':
+    int})`` truncates to the integers and was reported as the continuous
+    posterior expectation.
+    """
+
+    source = _posterior_workflow(
+        "def harmonise(value):\n    return value.round()\n\n" + body,
+    )
+    _assert_abstains(source)
+
+
+def test_a_dict_unpacked_destination_reaches_the_exposure_array() -> None:
+    """``np.round(expected, 0, **{'out': dosage})`` rewrites ``dosage``."""
+
+    source = _posterior_workflow(
+        "dosage = expected * 1.0\nnp.round(expected, 0, **{'out': dosage})\n"
+    )
+    _assert_abstains(source)
+
+
+def test_a_dict_unpacked_decimal_count_abstains_instead_of_finding() -> None:
+    """The false-finding direction of the same gap.
+
+    ``expected.round(**{'decimals': 2})`` preserves the continuous scale, and
+    v2.0.1 found no decimal count, read the call as a bare ``round()``, and
+    reported a hard-state exposure for a workflow that never quantized.
+    """
+
+    _assert_abstains(_posterior_workflow("dosage = expected.round(**{'decimals': 2})\n"))
+
+
+def test_a_dict_unpacked_keyword_invalidates_what_the_call_names() -> None:
+    """An unnameable keyword is a destination this trace cannot rule out."""
+
+    source = _posterior_workflow(
+        "dosage = expected * 1.0\nnp.copyto(**{'dst': dosage, 'src': np.round(dosage)})\n"
+    )
+    _assert_abstains(source)
+
+
+# ---------------------------------------------------------------------------
+# Family 11: positional destinations.
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        "expected.round(0, dosage)",
+        "expected.clip(0, 2, dosage)",
+        "probabilities.argmax(1, dosage)",
+        "expected.astype(int, dosage)",
+        "np.round(expected, 0, dosage)",
+        "np.dot(probabilities, np.array([0, 1, 2]), dosage)",
+        "np.mean(expected, 0, float, dosage)",
+        "np.argmax(probabilities, 1, dosage)",
+    ],
+)
+def test_a_positional_destination_rewrites_the_exposure_array(call: str) -> None:
+    """A recognized call's destination rides past the arguments it reads.
+
+    v2.0.1 knew this for ``numpy``'s rounding and scale-preserving ufuncs and
+    for nothing else, so ``expected.round(0, dosage)`` filled ``dosage`` with
+    the rounded value while the trace went on reporting the continuous one.
+    Every recognized call and method now states the positional arity it
+    reads, and anything past that arity is a write.
+    """
+
+    _assert_abstains(_posterior_workflow(f"dosage = expected * 1.0\n{call}\n"))
+
+
+def test_an_in_place_keyword_rewrites_the_exposure_array() -> None:
+    """``copy=False`` turns a call that returns a new array into a write."""
+
+    _assert_abstains(
+        _posterior_workflow("dosage = expected * 1.0\nnp.nan_to_num(dosage, copy=False)\n")
+    )
+
+
+def test_every_recognized_call_and_method_states_a_read_only_arity() -> None:
+    """The closure is the table's completeness, not the table's contents.
+
+    A vocabulary entry whose destination position was never stated reads as a
+    write, so this invariant is what keeps a future addition from silently
+    inheriting the permissive default.
+    """
+
+    assert _RECOGNIZED_CALL_PATHS == frozenset(_CALL_READ_ONLY_ARITY)
+    assert _RECOGNIZED_METHODS == frozenset(_METHOD_READ_ONLY_ARITY)
+
+
+# ---------------------------------------------------------------------------
+# Family 12: a view is a second handle on one array.
+
+
+@pytest.mark.parametrize(
+    "view",
+    [
+        "view = dosage.ravel()",
+        "view = dosage.reshape(-1, 1)",
+        "view = dosage.T",
+        "view = dosage.values",
+        "view = np.ravel(dosage)",
+        "view = dosage[0:4]",
+    ],
+)
+def test_a_view_shares_the_invalidation_group_of_the_array_it_views(view: str) -> None:
+    """Aliasing follows provenance, not assignment syntax.
+
+    v2.0.1 joined alias groups only for ``alias = name`` and for container
+    literals, so every numpy view was a second handle the model never joined:
+    the write through ``view`` rewrote ``dosage`` while the trace reported the
+    value ``dosage`` used to hold.
+    """
+
+    source = _posterior_workflow(
+        f"dosage = expected * 1.0\n{view}\nnp.copyto(view, np.round(view))\n"
+    )
+    _assert_abstains(source)
+
+
+def test_a_copy_does_not_join_the_group_of_what_it_copied() -> None:
+    """The control: over-linking is cheap, but a copy is a different object."""
+
+    source = _posterior_workflow(
+        "dosage = expected * 1.0\nspare = dosage.copy()\nnp.copyto(spare, np.round(spare))\n"
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {EXPECTATION}
+
+
+def test_a_copy_still_carries_the_provenance_of_the_value_it_copied() -> None:
+    """A copy is a different object and the same numbers.
+
+    Two copies of one array differ by exactly zero, so admitting their
+    difference as an independent continuous addend would re-open the
+    cancellation family. Handles say a copy is its own object; provenance ids
+    say it descends from what it copied, and the arithmetic rule reads the
+    ids.
+    """
+
+    source = _posterior_workflow(
+        "first = expected.copy()\n"
+        "second = expected.copy()\n"
+        "dosage = expected.round() + (first - second)\n"
+    )
+    _assert_abstains(source)
+
+
+# ---------------------------------------------------------------------------
+# Family 13: one estimator evaluation is one value.
+
+
+def test_repeated_identical_predictions_cancel_instead_of_restoring() -> None:
+    """Three deterministic re-predictions supply a drift that is exactly zero.
+
+    v2.0.1 minted a fresh provenance id per prediction call site, so
+    ``one - two`` over two identical predictions read as an independently
+    traced continuous addend and restored the scale of a rounded exposure that
+    run time leaves rounded.
+    """
+
+    source = _calibration_workflow(
+        "raw = calibrator.predict(features)\n"
+        "replicate_one = calibrator.predict(features)\n"
+        "replicate_two = calibrator.predict(features)\n"
+        "batch_drift = replicate_one - replicate_two\n"
+        "dosage = raw.round() + batch_drift\n"
+    )
+    _assert_abstains(source)
+
+
+def test_a_prediction_from_a_second_estimator_still_mints_fresh_provenance() -> None:
+    """A different estimator is a different value, so the pair is readable."""
+
+    source = _calibration_workflow(
+        "raw = calibrator.predict(features)\n"
+        "second_model = RidgeCV().fit(features, frame['copy_index'])\n"
+        "dosage = raw - second_model.predict(features)\n"
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {CALIBRATION}
+
+
+def test_a_prediction_on_a_different_argument_still_mints_fresh_provenance() -> None:
+    """The identity is keyed on the arguments too, not on the estimator alone."""
+
+    source = _calibration_workflow(
+        "replicate = pd.read_csv(Path('inputs/replicate.csv'))\n"
+        "raw = calibrator.predict(features)\n"
+        "other = calibrator.predict(replicate[['marker_a', 'marker_b']])\n"
+        "dosage = raw - other\n"
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {CALIBRATION}
+
+
+# ---------------------------------------------------------------------------
+# Family 14: selection is not arithmetic.
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "np.where(mask, np.round(expected), expected)",
+        "np.where(mask, expected, np.round(expected))",
+        "np.where(mask, expected, expected)",
+        "np.where(mask, 0, expected)",
+        "np.where(mask, expected, 2.0)",
+    ],
+)
+def test_a_where_whose_branches_are_not_all_levels_abstains(expression: str) -> None:
+    """A guard is a run-time value, so the branch each element takes is unread.
+
+    v2.0.1 read a mixed branch pair by the more permissive of the two tags and
+    reported the continuous branch, while run time delivers the rounded branch
+    wherever the guard held.
+    """
+
+    source = _posterior_workflow(f"mask = frame['qc_pass'] == 1\ndosage = {expression}\n")
+    _assert_abstains(source)
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "np.where(mask, expected.round(), 0)",
+        "np.where(mask, expected.astype(int), expected.round())",
+        _LEVEL_TABLE_WHERE,
+    ],
+)
+def test_a_where_between_level_branches_still_bins(expression: str) -> None:
+    """The one case where the unread guard does not matter.
+
+    Both branches are confined to levels, so every element of the result comes
+    from one finite level set or the other whatever the guard decides. This is
+    narrower than the ruling on finding 5, which would have abstained here
+    too: a nested ``where`` is the ordinary spelling of a three-level hard
+    call, and abstaining on it would drop a true reading for no soundness
+    gain.
+    """
+
+    source = _posterior_workflow(f"mask = frame['qc_pass'] == 1\ndosage = {expression}\n")
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {QUANTIZED}
+
+
+# ---------------------------------------------------------------------------
+# Family 15: a subscript indexed by a traced value gathers.
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "raw = calibrator.predict(features)\n"
+        "centres = raw[0:3]\n"
+        "dosage = centres[raw.round().astype(int)]\n",
+        "raw = calibrator.predict(features)\ndosage = raw[raw.round().astype(int)]\n",
+        "raw = calibrator.predict(features)\norder = raw.argsort()\ndosage = raw[order]\n",
+    ],
+)
+def test_a_gather_from_a_traced_table_abstains(body: str) -> None:
+    """Three values read out of a three-entry table are three levels.
+
+    v2.0.1 read every subscript of a traced value as a row selection, which
+    preserves the scale. A table built at run time is not a literal table, so
+    the level rule never fired either, and the gather was reported as the
+    continuous calibration it was built from.
+    """
+
+    _assert_abstains(_calibration_workflow(body))
+
+
+@pytest.mark.parametrize(
+    "expression",
+    ["expected[0:3]", "expected[2]", "expected[mask]"],
+)
+def test_a_literal_index_or_a_comparison_mask_still_selects_rows(expression: str) -> None:
+    """The control: row selection preserves the scale, and still reads."""
+
+    source = _posterior_workflow(f"mask = frame['qc_pass'] == 1\ndosage = {expression}\n")
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {EXPECTATION}
+
+
+# ---------------------------------------------------------------------------
+# The four latent gaps the same review named.
+
+
+def test_a_staged_parse_carries_the_staged_values_provenance() -> None:
+    """Latent: both staged-parse branches dropped their input's provenance.
+
+    A value parsed out of staged text descends from that text. Minting it
+    without ids made every value parsed from one staged read read as
+    independent of every other, which is the shape the cancellation rule
+    exists to catch.
+    """
+
+    node = ast.parse("value").body[0]
+    staged = _Col(_TEXT, staged=True, unchanged=True, ids=frozenset({-1}))
+    for dtype in ("int", "float"):
+        parsed = _cast(staged, dtype, node)
+        assert isinstance(parsed, _Col)
+        assert parsed.ids == staged.ids
+
+
+def test_a_document_named_for_the_module_it_imports_leaves_the_case_unsupported() -> None:
+    """Latent: the shadowing scan exempted the scanning document's own stem.
+
+    A workflow stored as ``numpy.py`` is what its own ``import numpy``
+    resolves to, so the exemption cleared exactly the document that shadows
+    the module it reads.
+    """
+
+    assert _dataflow_state({"numpy.py": _CALIBRATION_SOURCE}) == "unsupported"
+
+
+def test_a_document_named_for_no_imported_module_still_resolves() -> None:
+    """The control for the exemption's removal."""
+
+    assert _dataflow_state({"analysis.py": _CALIBRATION_SOURCE}) == "unique"
+
+
+def test_a_helper_effect_on_an_unnameable_argument_invalidates_it() -> None:
+    """Latent: a recorded mutation was dropped when its argument was not a name.
+
+    The trace watched the helper mutate the object it was handed. There is no
+    caller binding to write the new value back to, so the values the argument
+    expression names lose their provenance instead of keeping the value the
+    object used to hold.
+    """
+
+    source = (
+        _HEAD
+        + _CALIBRATOR
+        + "frame['dose'] = calibrator.predict(features)\n"
+        + "def harmonise(values):\n    del values[0]\n\n"
+        + "harmonise(frame['dose'])\n"
+        + _fit("frame[['dose']]")
+        + _TAIL
+    )
+    _assert_abstains(source)
+
+
+def test_a_contract_whose_operand_values_are_not_distinct_is_unsupported() -> None:
+    """Latent: the operand lookup collapsed when two contract operands matched.
+
+    The three operand strings are how a resolved reading is reported. A
+    contract that spells two of them the same way cannot say which
+    representation a resolved reading names, so the adapter abstains rather
+    than reporting whichever key the mapping kept.
+    """
+
+    module = next(
+        item
+        for item in default_scientific_check_registry().modules
+        if item.manifest.check_id == COPY_CHECK
+    )
+    adapter = replace(module.adapters[0], calibration_operand=module.adapters[0].hard_operand)
+    observation = adapter.inspect(_dataflow_context({"analysis.py": _QUANTIZED_WORKFLOW}))
+    assert observation.applicability == "unsupported"
+    assert observation.observed_operand is None
+
+
+# ---------------------------------------------------------------------------
+# The fused adapter over every reproduction the review consolidated.
+
+
+@pytest.mark.parametrize(
+    ("label", "workflow"),
+    [
+        (
+            "repeated predictions",
+            _calibration_workflow(
+                "raw = calibrator.predict(features)\n"
+                "replicate_one = calibrator.predict(features)\n"
+                "replicate_two = calibrator.predict(features)\n"
+                "batch_drift = replicate_one - replicate_two\n"
+                "dosage = raw.round() + batch_drift\n"
+            ),
+        ),
+        (
+            "dict-unpacked dtype",
+            _posterior_workflow("dosage = np.array(expected, **{'dtype': int})\n"),
+        ),
+        (
+            "dict-unpacked destination",
+            _posterior_workflow(
+                "dosage = expected * 1.0\nnp.round(expected, 0, **{'out': dosage})\n"
+            ),
+        ),
+        (
+            "dict-unpacked decimal count",
+            _posterior_workflow("dosage = expected.round(**{'decimals': 2})\n"),
+        ),
+        (
+            "positional destination",
+            _posterior_workflow("dosage = expected * 1.0\nexpected.round(0, dosage)\n"),
+        ),
+        (
+            "numpy view",
+            _posterior_workflow(
+                "dosage = expected * 1.0\nview = dosage.ravel()\nnp.copyto(view, np.round(view))\n"
+            ),
+        ),
+        (
+            "mixed where branches",
+            _posterior_workflow(
+                "mask = frame['qc_pass'] == 1\n"
+                "dosage = np.where(mask, np.round(expected), expected)\n"
+            ),
+        ),
+        (
+            "table gather",
+            _calibration_workflow(
+                "raw = calibrator.predict(features)\n"
+                "centres = raw[0:3]\n"
+                "dosage = centres[raw.round().astype(int)]\n"
+            ),
+        ),
+    ],
+)
+def test_the_released_adapter_abstains_on_every_reproduction(label: str, workflow: str) -> None:
+    """Each of these resolved to an operand under v2.0.1, and each was wrong."""
+
+    assert _fused_observation(_SILENT_REPORT, workflow) == ("unsupported", None), label

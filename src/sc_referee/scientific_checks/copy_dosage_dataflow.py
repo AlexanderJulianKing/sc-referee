@@ -72,9 +72,12 @@ of the call.
   arguments yields one provenance id set however many times it is written, so
   two textually identical predictions cancel each other under the arithmetic
   rule instead of reading as independent.
-- ``numpy.where`` is a selection, not arithmetic. Two literal branches are two
-  levels and still bin; any other branch pair is unreadable, because no static
-  reading of the guard says which branch supplies which element.
+- ``numpy.where`` is a selection, not arithmetic. A branch pair whose members
+  are each confined to levels still bins, because either branch delivers a
+  level whatever the guard decides; every other pair is unreadable, because no
+  static reading of the guard says which branch supplies which element, and
+  reading such a pair by the more permissive of the two tags reported a
+  half-rounded exposure as the continuous one.
 - A subscript whose index holds a traced value is a table gather, and its
   result is unreadable. A literal slice, a literal integer index, and a
   boolean mask built by a comparison keep their row-selection reading.
@@ -346,6 +349,8 @@ _BINNING_CALLS = frozenset(
 _BINNING_METHODS = frozenset({"argmax", "argmin", "idxmax", "idxmin", "searchsorted", "digitize"})
 _TABLE_CALLS = frozenset({"pandas.cut", "pandas.qcut"})
 _SHAPE_METHODS = frozenset({"reshape", "ravel", "flatten", "squeeze", "to_numpy", "copy"})
+# Shape methods that always return a buffer of their own.
+_COPYING_METHODS = frozenset({"flatten", "copy"})
 _SHAPE_ATTRIBUTES = frozenset({"values", "T"})
 _AGGREGATE_METHODS = frozenset({"sum", "mean", "nansum"})
 _PREDICTION_METHODS = frozenset({"predict", "predict_proba", "predict_log_proba"})
@@ -362,6 +367,9 @@ _PRESERVING_CALLS = frozenset(
         "numpy.asarray_chkfinite",
     }
 )
+# Calls that can hand back a view of the buffer they were given, rather than a
+# new array. A view is a second handle on one object.
+_VIEW_CALLS = frozenset({"numpy.ravel", "numpy.reshape", "numpy.squeeze"})
 _BUILTIN_CALLS = frozenset(
     {"int", "float", "round", "list", "len", "sum", "abs", "max", "min", "tuple", "str"}
 )
@@ -666,7 +674,7 @@ def copy_dosage_dataflow_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "copy-dosage-representation-dataflow",
-        "grammar_version": "2.0.1",
+        "grammar_version": "2.0.2",
         "staged_read_operations": sorted(_STAGED_FRAME_CALLS | _STAGED_ROW_CALLS),
         "tag_lattice": [_CONTINUOUS, _QUANTIZED, _TEXT, _OPAQUE_TAG],
         "quantizing_operations": [
@@ -678,7 +686,7 @@ def copy_dosage_dataflow_grammar(
             "numpy digitize, searchsorted, argmax, argmin",
             "pandas cut or qcut with a literal numeric label sequence",
             "map over a dict literal whose values are all numeric literals",
-            "numpy where whose two branches are numeric literals",
+            "numpy where each of whose branches is a numeric literal or an established level set",
             "indexing a literal sequence, whatever values it holds",
             "a comparison, whose result is a two-valued mask",
             "predict of an estimator whose constructor is a classifier",
@@ -701,6 +709,30 @@ def copy_dosage_dataflow_grammar(
             "because the second operand can cancel exactly the information the first "
             "one lost"
         ),
+        "per_value_identity": (
+            "one estimator evaluation owns one provenance id set, keyed by the "
+            "evaluation, the estimator's identity, and the provenance of its "
+            "arguments; the same prediction written twice is one value twice, so a "
+            "difference between two of them cancels rather than reading as an "
+            "independent operand"
+        ),
+        "selection_versus_arithmetic": (
+            "numpy where is a selection, never arithmetic: a branch pair whose members "
+            "are each confined to levels bins, because either branch delivers a level "
+            "whatever the guard decides; every other branch pair is unreadable, "
+            "because no static reading of the guard says which branch supplies which "
+            "element"
+        ),
+        "subscript_reading": (
+            "a literal slice, a literal integer index, and a boolean mask this trace "
+            "watched a comparison produce select rows and preserve the scale; an index "
+            "holding any traced value gathers from a table and is unreadable"
+        ),
+        "keyword_reading": (
+            "a call carrying a ** unpacking states no keyword names, so its result is "
+            "unreadable and every traced value its subtree names is presumed written; "
+            "one predicate answers this for every keyword this grammar reads"
+        ),
         "constant_reading": (
             "a branch value, a level value, and a decimal count are read only as a "
             "numeric literal or its negation; no arithmetic over constants is folded "
@@ -709,8 +741,24 @@ def copy_dosage_dataflow_grammar(
         "mutation_posture": (
             "default-deny: a call outside the modelled vocabulary whose subtree names a "
             "traced value invalidates that value's whole alias group, as does any out= "
-            "target or extra positional destination of a recognized ufunc; a container "
-            "literal holding a traced value joins its alias group"
+            "target, any copy= or inplace= keyword, any ** unpacking, and any positional "
+            "argument past a recognized call's stated read-only arity; a recognized call "
+            "with no stated arity invalidates too; a container literal holding a traced "
+            "value joins its alias group"
+        ),
+        "positional_destinations": {
+            "call_read_only_arity": {
+                path: arity for path, arity in sorted(_CALL_READ_ONLY_ARITY.items())
+            },
+            "method_read_only_arity": {
+                method: arity for method, arity in sorted(_METHOD_READ_ONLY_ARITY.items())
+            },
+            "all_positional_read_only_marker": _ALL_POSITIONAL_READ_ONLY,
+        },
+        "alias_linkage": (
+            "names whose values may share a runtime buffer share an invalidation group, "
+            "whether or not the assignment is a bare name: a view, a reshape, a ravel, "
+            "and a row slice each keep their source's handle, while a copy mints its own"
         ),
         "import_hygiene": (
             "a python document the parser did not parse, an import resolving to any "
@@ -768,6 +816,12 @@ def copy_dosage_dataflow_grammar(
             "re-expansion only by an independently traced continuous operand",
             "a literal level table is a binning, never a re-expansion",
             "unmodelled calls are presumed to mutate what they name",
+            "a keyword this trace cannot name is a keyword it cannot rule out",
+            "a positional argument past a call's read-only arity is a destination",
+            "views share an invalidation group with the array they view",
+            "one estimator evaluation owns one provenance identity",
+            "a branch pair that is not fully literal is a selection, not arithmetic",
+            "a subscript indexed by a traced value gathers, and abstains",
             "hermetic imports, or the case is unsupported",
             "oversized literals and unparsable sources abstain instead of raising",
             "display-only quantization never classifies",
@@ -1524,9 +1578,12 @@ def _apply_column_assign(
         return False
     value = _tag(value_node, env, ctx)
     assigned = value if isinstance(value, _Col) else _OPAQUE_COL
+    # A column of a table is a handle on that table, and it may still be a
+    # handle on the array it was assigned from, so it carries both.
+    assigned = replace(assigned, handles=assigned.handles | current.handles)
     columns = {key: item for key, item in current.columns}
     columns[column] = assigned
-    updated = _Frame(tuple(sorted(columns.items())), current.default)
+    updated = _Frame(tuple(sorted(columns.items())), current.default, current.handles)
     for member in aliases.group(target.value.id):
         if isinstance(env.get(member), _Frame):
             env[member] = updated
@@ -2211,7 +2268,8 @@ def _row_element_rows(
             return _OPAQUE
         tagged = _tag(value, env, ctx)
         built[name] = tagged if isinstance(tagged, _Col) else _OPAQUE_COL
-    return _Rows(tuple(sorted(built.items())), default)
+    # Each row of the comprehension is a dictionary this expression built.
+    return _Rows(tuple(sorted(built.items())), default, _fresh_ids())
 
 
 # ---------------------------------------------------------------------------
@@ -2448,8 +2506,13 @@ def _tag_column_method(
                 node=node,
                 operation="posterior_expectation_sum",
                 ids=column.ids,
+                handles=_fresh_ids(),
             )
-        return replace(column, origin=None, unchanged=False, node=node)
+        if column.tag == _OPAQUE_TAG:
+            # An aggregate of an unreadable value is unreadable; dropping its
+            # origin here would launder a value the trace had invalidated.
+            return _abstain_or_opaque(node, column)
+        return replace(column, origin=None, unchanged=False, node=node, handles=_fresh_ids())
     if attribute in _SHAPE_METHODS:
         if attribute == "to_numpy" and (node.args or _has_dtype_keyword(node)):
             # ``to_numpy(dtype=int)`` truncates exactly as ``astype(int)``
@@ -2508,6 +2571,7 @@ def _mapped(column: _Col, node: ast.Call, env: dict[str, _Value], ctx: _TraceCon
         node=node,
         operation="literal_dictionary_map",
         ids=column.ids,
+        handles=_fresh_ids(),
     )
 
 
@@ -2523,9 +2587,12 @@ def _rounding_gate(node: ast.Call, *, digits_position: int) -> str:
     a finite set of levels: rounding to tens bins as surely as rounding to
     units, and reading a negative count as scale-preserving was a
     demonstrated wrong answer. ``round(x, 2)`` preserves the scale. A count
-    written as anything but a literal is unreadable, because it may be zero.
+    written as anything but a literal is unreadable, because it may be zero,
+    and so is a call whose keywords this trace cannot name.
     """
 
+    if _unnameable_keywords(node):
+        return _ROUND_UNREADABLE
     digits = node.args[digits_position] if len(node.args) > digits_position else None
     for keyword in node.keywords:
         if keyword.arg in {"decimals", "ndigits"}:
@@ -2539,10 +2606,15 @@ def _rounding_gate(node: ast.Call, *, digits_position: int) -> str:
 
 
 def _has_dtype_keyword(node: ast.Call) -> bool:
-    return any(keyword.arg == "dtype" for keyword in node.keywords)
+    # A keyword this trace cannot name is a dtype it cannot rule out.
+    return _unnameable_keywords(node) or any(keyword.arg == "dtype" for keyword in node.keywords)
 
 
 def _dtype_argument(node: ast.Call, *, position: int = 0) -> str | None:
+    if _unnameable_keywords(node):
+        # The stated dtype may be hidden in the unpacked mapping, so no dtype
+        # this trace can read is the answer.
+        return None
     candidate: ast.expr | None = node.args[position] if len(node.args) > position else None
     for keyword in node.keywords:
         if keyword.arg == "dtype":
@@ -2565,12 +2637,17 @@ def _cast(column: _Col, dtype: str | None, node: ast.AST) -> _Value:
         # integer dtype truncates. That is a step on the exposure path this
         # library cannot read.
         if column.tag == _OPAQUE_TAG:
-            return _OPAQUE
+            # A value whose provenance was dropped does not recover it by
+            # being cast: the unreadable step stays unreadable.
+            return _abstain_or_opaque(node, column)
         return _unreadable(node, column)
     if dtype in _INTEGER_DTYPES:
         if column.tag == _TEXT:
             # Parsing an integer out of staged text establishes integer
-            # coding; it does not quantize a continuous value.
+            # coding; it does not quantize a continuous value. The parsed
+            # value descends from the staged text, so it carries its
+            # provenance: two values parsed from one staged read are not
+            # independent of each other.
             return _Col(
                 _QUANTIZED,
                 origin=column.origin,
@@ -2578,9 +2655,11 @@ def _cast(column: _Col, dtype: str | None, node: ast.AST) -> _Value:
                 unchanged=column.unchanged,
                 node=node,
                 operation="staged_integer_parse",
+                ids=column.ids,
+                handles=_fresh_ids(),
             )
         if column.tag == _OPAQUE_TAG:
-            return _OPAQUE
+            return _abstain_or_opaque(node, column)
         return _quantize(column, node, "integer_cast")
     if dtype in _FLOAT_DTYPES:
         if column.tag == _TEXT:
@@ -2591,11 +2670,13 @@ def _cast(column: _Col, dtype: str | None, node: ast.AST) -> _Value:
                 unchanged=column.unchanged,
                 node=node,
                 operation="staged_float_parse",
+                ids=column.ids,
+                handles=_fresh_ids(),
             )
         if column.tag == _OPAQUE_TAG:
-            return _OPAQUE
+            return _abstain_or_opaque(node, column)
         # A float cast never restores information a quantizer removed.
-        return replace(column, unchanged=False, node=column.node or node)
+        return replace(column, unchanged=False, node=column.node or node, handles=_fresh_ids())
     return _OPAQUE
 
 
@@ -2605,15 +2686,25 @@ def _tag_library_call(
     if path is None:
         return _OPAQUE
     if path in _STAGED_FRAME_CALLS:
+        # One staged read is one table: its columns are views on it, so they
+        # share the table's handle.
+        staged = _fresh_ids()
         return _Frame(
-            default=_Col(_OPAQUE_TAG, staged=True, unchanged=True, node=node, ids=_fresh_ids())
+            default=_Col(
+                _OPAQUE_TAG, staged=True, unchanged=True, node=node, ids=staged, handles=staged
+            ),
+            handles=staged,
         )
     if path in _STAGED_ROW_CALLS:
-        return _Rows(default=_Col(_TEXT, staged=True, unchanged=True, node=node, ids=_fresh_ids()))
+        staged = _fresh_ids()
+        return _Rows(
+            default=_Col(_TEXT, staged=True, unchanged=True, node=node, ids=staged, handles=staged),
+            handles=staged,
+        )
     if path in _CLASSIFIER_CONSTRUCTORS:
-        return _Estimator("classifier")
+        return _Estimator("classifier", _fresh_ids())
     if path in _CONTINUOUS_CONSTRUCTORS:
-        return _Estimator("continuous")
+        return _Estimator("continuous", _fresh_ids())
     if path in _OPAQUE_ESTIMATOR_CONSTRUCTORS:
         return _OPAQUE
     if path in _MODEL_CONSTRUCTORS:
@@ -2633,6 +2724,11 @@ def _tag_library_call(
             return _OPAQUE
         built = _tag(node.args[0], env, ctx)
         if len(node.args) < 2 and not _has_dtype_keyword(node):
+            if path == "numpy.array" and isinstance(built, _Col):
+                # ``numpy.array`` copies by default, so the result holds the
+                # same values in a buffer of its own.
+                return replace(built, handles=_fresh_ids())
+            # ``numpy.asarray`` hands back the input itself when it can.
             return built
         # ``numpy.array(x, dtype=int)`` truncates exactly as ``astype(int)``
         # does. The constructor's dtype argument is a cast written in another
@@ -2645,7 +2741,10 @@ def _tag_library_call(
         base = _as_col(_tag(node.args[0], env, ctx)) if node.args else None
         if base is None:
             return _OPAQUE
-        return replace(base, unchanged=False, node=base.node or node)
+        if path in _VIEW_CALLS:
+            return replace(base, unchanged=False, node=base.node or node)
+        # Every other scale-preserving call builds a new array.
+        return replace(base, unchanged=False, node=base.node or node, handles=_fresh_ids())
     if path in _ROUNDING_CALLS:
         base = _as_col(_tag(node.args[0], env, ctx)) if node.args else None
         if base is None or base.tag in {_OPAQUE_TAG, _TEXT}:
@@ -2679,8 +2778,11 @@ def _tag_library_call(
                 node=node,
                 operation="posterior_expectation_sum",
                 ids=base.ids,
+                handles=_fresh_ids(),
             )
-        return replace(base, origin=None, unchanged=False, node=node)
+        if base.tag == _OPAQUE_TAG:
+            return _abstain_or_opaque(node, base)
+        return replace(base, origin=None, unchanged=False, node=node, handles=_fresh_ids())
     if path in {"numpy.dot", "numpy.matmul", "numpy.inner"}:
         if len(node.args) != 2:
             return _OPAQUE
@@ -2730,13 +2832,18 @@ def _tag_where(node: ast.Call, env: dict[str, _Value], ctx: _TraceContext) -> _V
     the two literals are: ``where(c, 0.12, 1.93)`` assigns a value from a
     two-entry table exactly as ``where(c, 0, 1)`` does.
 
-    Any other branch pair is unreadable. A guard is a run-time value, so no
+    A branch pair whose members are each confined to levels -- a numeric
+    literal, or a traced value this trace established as quantized -- also
+    bins, because every element of the result comes from one finite level set
+    or the other whatever the guard decides. That is the only case where the
+    guard's unreadability does not matter, because the two branches agree on
+    the property being traced.
+
+    Every other branch pair is unreadable. A guard is a run-time value, so no
     static reading says which branch supplies which element: mixing a rounded
     branch with the continuous value it was rounded from delivers a rounded
-    number wherever the guard held, and reading the pair by the branches' tags
-    reported the continuous one. Reading the tags was the demonstrated wrong
-    answer, and it is wrong in the same way for a traced branch beside a
-    literal one.
+    number wherever the guard held, and reading such a pair by the more
+    permissive of the two tags reported it as the continuous representation.
     """
 
     if len(node.args) != 3:
@@ -2759,6 +2866,21 @@ def _tag_where(node: ast.Call, env: dict[str, _Value], ctx: _TraceContext) -> _V
         for item, literal in zip(node.args[1:], literals, strict=True)
     ]
     sources = [condition if condition is not None else _OPAQUE, *branches]
+    if all(
+        isinstance(item, _Const) or (isinstance(item, _Col) and item.tag == _QUANTIZED)
+        for item in branches
+    ):
+        columns = [item for item in branches if isinstance(item, _Col)]
+        return _Col(
+            _QUANTIZED,
+            origin=next((item.origin for item in columns if item.origin is not None), None),
+            staged=any(item.staged for item in columns),
+            unchanged=False,
+            node=node,
+            operation="level_branch_selection",
+            ids=_joined_ids(*columns),
+            handles=_fresh_ids(),
+        )
     if any(isinstance(item, _Col) and item.tag != _OPAQUE_TAG for item in sources):
         return _unreadable(node, *sources)
     return _abstain_or_opaque(node, *sources)
@@ -2770,6 +2892,9 @@ def _binned_labels(node: ast.Call, env: dict[str, _Value], ctx: _TraceContext) -
     base = _as_col(_tag(node.args[0], env, ctx)) if node.args else None
     if base is None or base.tag in {_OPAQUE_TAG, _TEXT}:
         return _OPAQUE
+    if _unnameable_keywords(node):
+        # The labels may be hidden in the unpacked mapping.
+        return _unreadable(node, base)
     labels = None
     for keyword in node.keywords:
         if keyword.arg == "labels":
@@ -2786,6 +2911,7 @@ def _binned_labels(node: ast.Call, env: dict[str, _Value], ctx: _TraceContext) -
         node=node,
         operation="binned_label_assignment",
         ids=base.ids,
+        handles=_fresh_ids(),
     )
 
 
@@ -2801,6 +2927,9 @@ def _design_argument(
     position: int,
     keyword: str,
 ) -> _Design | None:
+    if _unnameable_keywords(node):
+        # The design may be the unpacked mapping's, not the one written here.
+        return None
     candidate: ast.expr | None = node.args[position] if len(node.args) > position else None
     for item in node.keywords:
         if item.arg == keyword:
@@ -2853,7 +2982,8 @@ def _frame_literal(node: ast.Call, env: dict[str, _Value], ctx: _TraceContext) -
             return _OPAQUE
         tagged = _tag(value, env, ctx)
         columns[name] = tagged if isinstance(tagged, _Col) else _OPAQUE_COL
-    return _Frame(tuple(sorted(columns.items())))
+    # A frame built from a literal mapping holds its own buffers.
+    return _Frame(tuple(sorted(columns.items())), handles=_fresh_ids())
 
 
 # ---------------------------------------------------------------------------

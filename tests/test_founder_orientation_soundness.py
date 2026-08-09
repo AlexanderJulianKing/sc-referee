@@ -3178,3 +3178,92 @@ def test_a_str_of_not_recode_abstains() -> None:
     unsupported, states = _resolve(source)
     assert unsupported
     assert states == set()
+
+
+# v2.1.5: bypasses of the two round-six degenerate-workflow closures, found
+# by the targeted verification. One indirection defeated each syntactic
+# form: an alias for the reader, and a helper wrapping ``not``.
+
+
+@pytest.mark.parametrize(
+    "binding",
+    [
+        "alias = reader\n",
+        "first = reader\nalias = first\n",
+    ],
+)
+def test_an_aliased_reader_consumed_twice_abstains(binding: str) -> None:
+    source = (
+        "import csv\nimport math\nfrom pathlib import Path\n\n"
+        "reader = csv.DictReader(Path('inputs/markers.csv').open())\n"
+        + binding
+        + "count = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in reader)\n"
+        "likelihood = math.prod("
+        "0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in alias)\n"
+        "report = f'{count} likelihood {likelihood}'\n"
+        "Path('results/report.md').write_text(report)\n"
+    )
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()
+
+
+def test_two_distinct_readers_each_consumed_once_still_resolve() -> None:
+    source = (
+        "import csv\nimport math\nfrom pathlib import Path\n\n"
+        "first = csv.DictReader(Path('inputs/markers.csv').open())\n"
+        "count = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in first)\n"
+        "second = csv.DictReader(Path('inputs/markers.csv').open())\n"
+        "likelihood = math.prod("
+        "0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in second)\n"
+        "report = f'{count} likelihood {likelihood}'\n"
+        "Path('results/report.md').write_text(report)\n"
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {"direct"}
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "    return not value\n",
+        "    return not not value\n",
+    ],
+)
+def test_a_helper_wrapped_not_inside_str_abstains(body: str) -> None:
+    """The boolean taint follows the value, not the syntax."""
+
+    source = (
+        "import csv\nimport math\nfrom pathlib import Path\n\n"
+        "def flip(value):\n"
+        + body
+        + "\nrows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n"
+        "panel = [{**row, 'founder': str(flip(int(row['founder'])))} for row in rows]\n"
+        "likelihood = math.prod(\n"
+        "    0.99 if str(int(item['call'])) == item['founder'] else 0.01 for item in panel\n"
+        ")\n"
+        "report = f'likelihood {likelihood}'\n"
+        "Path('results/report.md').write_text(report)\n"
+    )
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()
+
+
+def test_arithmetic_over_a_not_still_resolves() -> None:
+    """``str(1 - (not int(x)))`` is a digit again; the taint clears."""
+
+    source = (
+        "import csv\nimport math\nfrom pathlib import Path\n\n"
+        "rows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n"
+        "panel = [{**row, 'founder': str(1 - (not int(row['founder'])))} for row in rows]\n"
+        "likelihood = math.prod(\n"
+        "    0.99 if str(int(item['call'])) == item['founder'] else 0.01 for item in panel\n"
+        ")\n"
+        "report = f'likelihood {likelihood}'\n"
+        "Path('results/report.md').write_text(report)\n"
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {"direct"}

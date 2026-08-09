@@ -104,7 +104,7 @@ def copy_dosage_recognition_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "copy-dosage-representation-reconciliation",
-        "grammar_version": "2.0.1",
+        "grammar_version": "2.0.2",
         "count_source": "integer_tokens_without_unit_or_percent_suffix",
         "mean_source": "decimal_point_tokens_without_percent_suffix",
         "copy_states": list(_COPY_STATES),
@@ -132,6 +132,11 @@ def copy_dosage_recognition_grammar(
             "only the source dataflow resolves; the report plane corroborates a "
             "quantized dataflow reading, contradicts any reading as ambiguous, or "
             "is silent; a non-unique dataflow abstains in the resolver's own terms"
+        ),
+        "contract_operand_distinctness": (
+            "the three contract operand strings must be pairwise distinct; a contract "
+            "that names one operand twice cannot say which representation a resolved "
+            "reading reports, so the adapter abstains as unsupported"
         ),
         "additional_exclusions": ["signed values", "slash-separated dates", "unit-suffixed values"],
         "nomenclature_authority": "none",
@@ -195,6 +200,18 @@ class CopyDosageReportAdapter:
             )
 
     def _inspect(self, context: FrozenInspectionContext) -> NormalizedMethodObservation:
+        if len(set(self._operand_values)) != len(self._operand_values):
+            # The three operands are how a resolved reading is reported. A
+            # contract that spells two of them the same way cannot say which
+            # representation a resolved reading names, and picking either one
+            # would report a representation the trace did not resolve.
+            return self._abstain(
+                "unsupported",
+                (
+                    "The frozen contract's three copy-dosage operand values are not "
+                    "pairwise distinct, so a resolved representation cannot be reported."
+                ),
+            )
         document = selected_report_document(context)
         if document is None:
             return self._abstain(

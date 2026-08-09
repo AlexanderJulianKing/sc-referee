@@ -184,7 +184,7 @@ def founder_orientation_dataflow_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-emission-dataflow",
-        "grammar_version": "2.1.4",
+        "grammar_version": "2.1.5",
         "trust_model": (
             "default deny: the trace holds an explicit whitelist of the statement and "
             "expression forms it models completely, and any form outside that whitelist "
@@ -437,6 +437,7 @@ class _Path:
     column: str | None
     parity: int = 0
     numeric: bool | None = None
+    boolean: bool = False
 
     @property
     def resolved(self) -> bool:
@@ -1494,12 +1495,17 @@ def _column_parity_inner(
         return _unknown()
 
     if isinstance(expression, ast.UnaryOp) and isinstance(expression.op, ast.Not):
-        return _shift(
+        shifted = _shift(
             _column_parity(
                 expression.operand, loop_var=loop_var, carriers=carriers, env=env, ctx=ctx
             ),
             1,
         )
+        if shifted is None or not shifted.resolved:
+            return shifted
+        # ``not`` produces a bool; only a numeric cast turns it back into a
+        # digit. A syntactic str(not x) test missed the helper-wrapped form.
+        return _Path(shifted.column, shifted.parity, numeric=shifted.numeric, boolean=True)
 
     if isinstance(expression, ast.IfExp):
         return _ifexp_parity(expression, loop_var, carriers, env, ctx) or _unknown()
@@ -1542,13 +1548,15 @@ def _call_parity(
         if base is None or not base.resolved:
             return base
         if name == "str":
-            if isinstance(call.args[0], ast.UnaryOp) and isinstance(call.args[0].op, ast.Not):
-                # ``str(not x)`` is 'True' or 'False', which no digit-string
-                # column ever equals; the comparison is degenerate.
+            if base.boolean:
+                # ``str`` of a bool is 'True' or 'False', which no
+                # digit-string column ever equals, however the bool was
+                # produced; the comparison is degenerate.
                 return _UNRESOLVED
             # ``str`` keeps the value but drops the numeric proof: ``not``
             # and arithmetic over the result no longer mean inversion.
             return _Path(base.column, base.parity, numeric=False)
+        # ``int``/``float`` of a bool is an ordinary digit again.
         return _Path(base.column, base.parity, numeric=True)
     if name == "abs" and len(call.args) == 1 and not call.keywords and _is_builtin_name("abs", ctx):
         inner = call.args[0]
@@ -1635,7 +1643,9 @@ def _helper_parity(
                 )
                 if path is None or not path.resolved:
                     return _UNRESOLVED
-                return _Path(str(path.column), path.parity % 2, numeric=path.numeric)
+                return _Path(
+                    str(path.column), path.parity % 2, numeric=path.numeric, boolean=path.boolean
+                )
             if (
                 isinstance(statement, ast.Assign)
                 and len(statement.targets) == 1
@@ -1770,7 +1780,11 @@ def _is_one(node: ast.expr) -> bool:
 
 
 def _shift(base: _Path | None, amount: int) -> _Path | None:
-    """Add inverting steps to a path; an inversion demands numeric provenance."""
+    """Add inverting steps to a path; an inversion demands numeric provenance.
+
+    Arithmetic shifts (1-x, x^1, abs(x-1)) produce ints, so any boolean
+    taint clears; only ``not`` re-taints at its own call site.
+    """
 
     if base is None or not base.resolved:
         return base
@@ -2311,36 +2325,41 @@ def _is_reader_call(call: ast.Call, model: _ModuleModel) -> bool:
 
 
 def _iterator_reconsumed(tree: ast.Module, ctx: _TraceContext) -> bool:
-    """Whether a bare reader iterator is used as an iterable more than once.
+    """Whether one reader iterator is used as an iterable more than once.
 
     ``csv.DictReader`` not materialized by ``list`` is exhausted by its
-    first pass; a second comprehension over it iterates nothing, and a
-    classification from either pass would describe an emission over zero
-    rows.
+    first pass, and ``alias = reader`` names the same exhausted iterator
+    (the alias-blind version of this guard was a demonstrated wrong
+    answer). Uses are counted per alias group, one group per reader
+    binding; two distinct readers each consumed once stay supported.
     """
 
-    iterator_names: set[str] = set()
+    group_of: dict[str, int] = {}
+    next_group = 0
     for node in ast.walk(tree):
-        if (
+        if not (
             isinstance(node, ast.Assign)
             and len(node.targets) == 1
             and isinstance(node.targets[0], ast.Name)
-            and isinstance(node.value, ast.Call)
-            and _is_reader_call(node.value, ctx.model)
         ):
-            iterator_names.add(node.targets[0].id)
-    if not iterator_names:
+            continue
+        target = node.targets[0].id
+        if isinstance(node.value, ast.Call) and _is_reader_call(node.value, ctx.model):
+            group_of[target] = next_group
+            next_group += 1
+        elif isinstance(node.value, ast.Name) and node.value.id in group_of:
+            group_of[target] = group_of[node.value.id]
+    if not group_of:
         return False
-    uses: Counter[str] = Counter()
+    uses: Counter[int] = Counter()
     for node in ast.walk(tree):
-        iterables: list[ast.expr] = []
+        iterable: ast.expr | None = None
         if isinstance(node, ast.comprehension):
-            iterables.append(node.iter)
+            iterable = node.iter
         elif isinstance(node, ast.For):
-            iterables.append(node.iter)
-        for iterable in iterables:
-            if isinstance(iterable, ast.Name) and iterable.id in iterator_names:
-                uses[iterable.id] += 1
+            iterable = node.iter
+        if isinstance(iterable, ast.Name) and iterable.id in group_of:
+            uses[group_of[iterable.id]] += 1
     return any(count > 1 for count in uses.values())
 
 
