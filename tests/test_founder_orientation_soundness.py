@@ -4748,3 +4748,466 @@ def test_a_protected_module_name_rebinding_abstains() -> None:
     unsupported, states = _resolve(source)
     assert unsupported
     assert states == set()
+
+
+# v2.2.5: the pilot-d coverage extensions.
+#
+# The fixture below is the pilot-d error-bearing workflow's shape, reduced to
+# what the four new forms need: a loader whose local ``text`` shares its name
+# with the writer's parameter, a selector helper that casts its flag and then
+# names the weight it returns, a writer that makes the directory, writes,
+# echoes and returns the length, and the selector-weighted product
+# ``[A[i] * S[i] for i in range(N)]``. Nothing else consumes the selector
+# list, so the product is the only thing that accumulates it. Every boundary
+# test below is one edit away from this source.
+
+_V225_SOURCE = (
+    "import csv\n"
+    "from pathlib import Path\n"
+    "\n"
+    "DATA_PATH = Path('inputs/markers.csv')\n"
+    "REPORT_PATH = Path('results/report.md')\n"
+    "SELECTOR_MATCH = 1\n"
+    "SELECTOR_MISMATCH = 0\n"
+    "PANEL_BASELINE = 1\n"
+    "\n"
+    "\n"
+    "def load_table(path):\n"
+    "    text = path.read_text(encoding='ascii')\n"
+    "    lines = text.splitlines()\n"
+    "    reader = csv.DictReader(lines)\n"
+    "    return [dict(item) for item in reader]\n"
+    "\n"
+    "\n"
+    "def agreement_selector(observed_value, panel_value):\n"
+    "    indicator = int(observed_value == panel_value)\n"
+    "    weighted = SELECTOR_MISMATCH + (SELECTOR_MATCH - SELECTOR_MISMATCH) * indicator\n"
+    "    return weighted\n"
+    "\n"
+    "\n"
+    "def emit_report(path, text):\n"
+    "    path.parent.mkdir(parents=True, exist_ok=True)\n"
+    "    path.write_text(text, encoding='ascii')\n"
+    "    print(text, end='')\n"
+    "    return len(text)\n"
+    "\n"
+    "\n"
+    "rows = load_table(DATA_PATH)\n"
+    "total_units = len(rows)\n"
+    "observed_calls = [int(record['call']) for record in rows]\n"
+    "panel_calls = [int(record['founder']) for record in rows]\n"
+    "panel_reference_values = [PANEL_BASELINE - value for value in panel_calls]\n"
+    "measured_rates = [int(record['rate']) for record in rows]\n"
+    "selectors = [\n"
+    "    agreement_selector(observed_calls[index], panel_reference_values[index])\n"
+    "    for index in range(total_units)\n"
+    "]\n"
+    "emission_terms = [measured_rates[index] * selectors[index] for index in range(total_units)]\n"
+    "confirmed_total = sum(emission_terms)\n"
+    "report_text = f'Of {total_units} units, {confirmed_total} confirmed.'\n"
+    "written_chars = emit_report(REPORT_PATH, report_text)\n"
+)
+
+_V225_RECODE = "panel_reference_values = [PANEL_BASELINE - value for value in panel_calls]\n"
+_V225_SELECTOR_HELPER = (
+    "def agreement_selector(observed_value, panel_value):\n"
+    "    indicator = int(observed_value == panel_value)\n"
+    "    weighted = SELECTOR_MISMATCH + (SELECTOR_MATCH - SELECTOR_MISMATCH) * indicator\n"
+    "    return weighted\n"
+)
+_V225_FLAG = "    indicator = int(observed_value == panel_value)\n"
+_V225_DERIVED = (
+    "    weighted = SELECTOR_MISMATCH + (SELECTOR_MATCH - SELECTOR_MISMATCH) * indicator\n"
+)
+_V225_WRITE = "    path.write_text(text, encoding='ascii')\n"
+_V225_MKDIR = "    path.parent.mkdir(parents=True, exist_ok=True)\n"
+_V225_ECHO = "    print(text, end='')\n"
+_V225_RETURN = "    return len(text)\n"
+_V225_LOADER_TEXT = "    text = path.read_text(encoding='ascii')\n    lines = text.splitlines()\n"
+_V225_PRODUCT = (
+    "emission_terms = [measured_rates[index] * selectors[index] for index in range(total_units)]\n"
+)
+
+
+def _v225_workflow(*replacements: tuple[str, str]) -> str:
+    source = _V225_SOURCE
+    for old, new in replacements:
+        assert old in source, old
+        source = source.replace(old, new)
+    return source
+
+
+def _v225_product(element: str, length: str = "total_units") -> tuple[str, str]:
+    return (
+        _V225_PRODUCT,
+        f"emission_terms = [{element} for index in range({length})]\n",
+    )
+
+
+def test_the_v225_extensions_resolve_together() -> None:
+    """All four forms in one workflow, in the pilot-d shape."""
+
+    unsupported, states = _resolve(_v225_workflow())
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+def test_the_v225_workflow_without_the_recode_reads_direct() -> None:
+    """The direct reading is proven, not a fallthrough: same shape, no recode."""
+
+    unsupported, states = _resolve(
+        _v225_workflow(
+            (_V225_RECODE, ""),
+            ("panel_reference_values[index]", "panel_calls[index]"),
+        )
+    )
+    assert not unsupported
+    assert states == {"direct"}
+
+
+# Extension one: the single-assignment count is per scope.
+
+
+def test_a_loader_local_named_like_a_writer_parameter_resolves() -> None:
+    """``text`` is a local in one helper and a parameter in another.
+
+    Under the whole-module count that made ``text`` a twice-bound name, which
+    cost the loader the read-text chain rule and the whole document its
+    answer. Renaming the local is the only difference here, and it changes
+    nothing.
+    """
+
+    shared = _resolve(_v225_workflow())
+    renamed = _resolve(
+        _v225_workflow(
+            (
+                _V225_LOADER_TEXT,
+                "    raw = path.read_text(encoding='ascii')\n    lines = raw.splitlines()\n",
+            )
+        )
+    )
+    assert shared == (False, {"repaired"})
+    assert shared == renamed
+
+
+def test_a_module_list_name_reused_as_a_parameter_resolves() -> None:
+    """A parameter of that name lives in its own scope and rebinds nothing."""
+
+    unsupported, states = _resolve(
+        _v225_workflow(
+            ("def emit_report(path, text):", "def emit_report(path, measured_rates):"),
+            (_V225_WRITE, "    path.write_text(measured_rates, encoding='ascii')\n"),
+            (_V225_ECHO, "    print(measured_rates, end='')\n"),
+            (_V225_RETURN, "    return len(measured_rates)\n"),
+        )
+    )
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+def test_a_module_list_bound_twice_at_module_level_still_abstains() -> None:
+    """The rule that survives: two bindings in one scope disqualify the name."""
+
+    unsupported, states = _resolve(
+        _v225_workflow(
+            (
+                "measured_rates = [int(record['rate']) for record in rows]\n",
+                "measured_rates = [int(record['rate']) for record in rows]\n"
+                "measured_rates = measured_rates\n",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_module_level_loop_target_still_disqualifies_the_name() -> None:
+    """A module-level rebinding is a rebinding whatever statement writes it."""
+
+    unsupported, states = _resolve(
+        _v225_workflow(
+            (
+                "confirmed_total = sum(emission_terms)\n",
+                "confirmed_total = sum(emission_terms)\nfor measured_rates in emission_terms:\n"
+                "    confirmed_total = confirmed_total + measured_rates\n",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_module_constant_shadowed_by_a_parameter_stays_unresolvable() -> None:
+    """Constants keep the strict whole-module count.
+
+    A constant resolves by name inside a helper body, and there a parameter of
+    the same name is what the body reads, so the per-scope relaxation must not
+    reach them.
+    """
+
+    unsupported, states = _resolve(
+        _v225_workflow(
+            ("def load_table(path):", "def load_table(path, PANEL_BASELINE):"),
+            ("rows = load_table(DATA_PATH)", "rows = load_table(DATA_PATH, 1)"),
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+# Extension two: the cast flag and the one derived local.
+
+
+@pytest.mark.parametrize(
+    "flag",
+    [
+        "    indicator = int(observed_value == panel_value)\n",
+        "    indicator = bool(observed_value == panel_value)\n",
+        "    indicator = observed_value == panel_value\n",
+    ],
+)
+def test_a_selector_helper_flag_binding_resolves(flag: str) -> None:
+    """``int``, ``bool``, and the bare comparison are one flag."""
+
+    unsupported, states = _resolve(_v225_workflow((_V225_FLAG, flag)))
+    assert not unsupported, flag
+    assert states == {"repaired"}, flag
+
+
+def test_a_four_statement_selector_helper_abstains() -> None:
+    """The body is the flag, at most one derived local, and the return."""
+
+    unsupported, states = _resolve(
+        _v225_workflow(("    return weighted\n", "    final = weighted\n    return final\n"))
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_derived_local_reading_a_parameter_abstains() -> None:
+    """The local reads the flag and resolved constants, and nothing else."""
+
+    unsupported, states = _resolve(
+        _v225_workflow(
+            (
+                _V225_DERIVED,
+                "    weighted = SELECTOR_MISMATCH + (SELECTOR_MATCH - panel_value) * indicator\n",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_selector_helper_rebinding_a_parameter_abstains() -> None:
+    """The parameter-rebinding ban is untouched by the wider body."""
+
+    unsupported, states = _resolve(
+        _v225_workflow((_V225_FLAG, "    observed_value = observed_value\n"))
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_selector_helper_local_over_an_unproven_name_abstains() -> None:
+    """A name the module constants do not resolve is not a constant here."""
+
+    unsupported, states = _resolve(
+        _v225_workflow(
+            (
+                _V225_DERIVED,
+                "    weighted = SELECTOR_MISMATCH + (SELECTOR_MATCH - SELECTOR_MISMATCH)"
+                " * indicator * total_units\n",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+# Extension three: the multi-statement report-write helper.
+
+
+def test_a_write_helper_that_makes_the_directory_and_echoes_seeds_reachability() -> None:
+    """The classification is present only because the helper's write is read."""
+
+    with_helper = _resolve(_v225_workflow())
+    inline = _resolve(
+        _v225_workflow(
+            (_V225_MKDIR + _V225_WRITE + _V225_ECHO + _V225_RETURN, "    return len(text)\n"),
+            (
+                "written_chars = emit_report(REPORT_PATH, report_text)\n",
+                "REPORT_PATH.write_text(report_text, encoding='ascii')\n",
+            ),
+        )
+    )
+    assert with_helper == (False, {"repaired"})
+    assert with_helper == inline
+
+
+@pytest.mark.parametrize(
+    "closing",
+    ["    return len(text)\n", "    return path\n", "    return 0\n", ""],
+)
+def test_the_admitted_write_helper_returns_resolve(closing: str) -> None:
+    """A size, an echo of a parameter, a constant, or nothing at all."""
+
+    unsupported, states = _resolve(_v225_workflow((_V225_RETURN, closing)))
+    assert not unsupported, closing
+    assert states == {"repaired"}, closing
+
+
+def test_a_write_helper_with_two_writes_carries_no_classification() -> None:
+    """Two writes are two report planes, and this shape answers for neither."""
+
+    unsupported, states = _resolve(_v225_workflow((_V225_WRITE, _V225_WRITE + _V225_WRITE)))
+    assert not unsupported
+    assert states == set()
+
+
+def test_a_write_helper_whose_path_is_not_its_parameter_abstains() -> None:
+    """The receiver has to be the parameter the call site proved."""
+
+    unsupported, states = _resolve(
+        _v225_workflow((_V225_WRITE, "    Path('results/other.md').write_text(text)\n"))
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_write_helper_mkdir_on_another_receiver_carries_no_classification() -> None:
+    """``mkdir`` inside the helper is admitted only on the write's own receiver."""
+
+    unsupported, states = _resolve(
+        _v225_workflow((_V225_MKDIR, "    REPORT_PATH.parent.mkdir(parents=True)\n"))
+    )
+    assert not unsupported
+    assert states == set()
+
+
+def test_a_write_helper_that_computes_carries_no_classification() -> None:
+    """A statement that is not a write, a mkdir, or the print-read is not this shape."""
+
+    unsupported, states = _resolve(_v225_workflow((_V225_ECHO, "    size = len(text)\n")))
+    assert not unsupported
+    assert states == set()
+
+
+def test_a_write_helper_payload_over_a_third_name_carries_no_classification() -> None:
+    """The payload reads the other parameter and nothing else."""
+
+    unsupported, states = _resolve(
+        _v225_workflow((_V225_WRITE, "    path.write_text(f'{text}{REPORT_PATH}')\n"))
+    )
+    assert not unsupported
+    assert states == set()
+
+
+# Extension four: the selector-weighted column product.
+
+
+@pytest.mark.parametrize(
+    "element",
+    ["measured_rates[index] * selectors[index]", "selectors[index] * measured_rates[index]"],
+)
+def test_a_selector_weighted_product_resolves_in_both_orders(element: str) -> None:
+    """The product is a product; which factor is written first says nothing."""
+
+    unsupported, states = _resolve(_v225_workflow(_v225_product(element)))
+    assert not unsupported, element
+    assert states == {"repaired"}, element
+
+
+@pytest.mark.parametrize(
+    "length", ["total_units", "len(rows)", "len(selectors)", "len(measured_rates)"]
+)
+def test_the_provable_product_lengths_resolve(length: str) -> None:
+    """The same three ``len`` forms every range-indexed pairing proves."""
+
+    unsupported, states = _resolve(
+        _v225_workflow(_v225_product("measured_rates[index] * selectors[index]", length))
+    )
+    assert not unsupported, length
+    assert states == {"repaired"}, length
+
+
+def test_a_product_over_an_unprovable_length_abstains() -> None:
+    """A literal walk length does not prove the walk covers each pair once."""
+
+    unsupported, states = _resolve(
+        _v225_workflow(_v225_product("measured_rates[index] * selectors[index]", "3"))
+    )
+    assert unsupported
+    assert states == set()
+
+
+@pytest.mark.parametrize(
+    "element",
+    [
+        "measured_rates[index] * selectors[index] * 2",
+        "measured_rates[index] * selectors[index] + index",
+        "int(measured_rates[index] * selectors[index])",
+        "measured_rates[index + 0] * selectors[index]",
+        "selectors[index] * selectors[index]",
+    ],
+)
+def test_a_product_element_outside_the_shape_abstains(element: str) -> None:
+    """Anything but the bare product of the two subscripts is a different sum."""
+
+    unsupported, states = _resolve(_v225_workflow(_v225_product(element)))
+    assert unsupported, element
+    assert states == set(), element
+
+
+def test_a_product_against_a_non_column_list_abstains() -> None:
+    """``S[i] * B[i]`` says nothing when ``B`` is not a column of those rows."""
+
+    unsupported, states = _resolve(
+        _v225_workflow(
+            (
+                _V225_PRODUCT,
+                "spare_weights = [1, 2]\n"
+                "emission_terms = [\n"
+                "    spare_weights[index] * selectors[index] for index in range(total_units)\n"
+                "]\n",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_product_against_a_column_of_other_rows_abstains() -> None:
+    """Two lists of two staged reads are not two columns of one unit."""
+
+    unsupported, states = _resolve(
+        _v225_workflow(
+            (
+                "measured_rates = [int(record['rate']) for record in rows]\n",
+                "other_rows = load_table(DATA_PATH)\n"
+                "measured_rates = [int(record['rate']) for record in other_rows]\n",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_the_weighted_product_is_the_only_thing_that_reads_this_selector_list() -> None:
+    """Nothing else consumes the selector list, so the product carries it.
+
+    Dropping the product and the sum leaves the helper's comparison
+    unclassified, and the emission-scan belt then abstains for the whole
+    document rather than letting some other count answer in its place. The
+    classification in the base fixture is therefore the product's doing and
+    not a reading the trace would have had anyway.
+    """
+
+    unsupported, states = _resolve(
+        _v225_workflow(
+            (_V225_PRODUCT, ""),
+            ("confirmed_total = sum(emission_terms)\n", "confirmed_total = total_units\n"),
+        )
+    )
+    assert unsupported
+    assert states == set()

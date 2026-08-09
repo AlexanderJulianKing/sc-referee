@@ -154,6 +154,39 @@ shape, and anything outside that shape abstains exactly as it did before.
   stays banned: it redirects the write to a receiver this trace has not
   proven is a path.
 
+v2.2.5 widens it by four more, on the same terms.
+
+- The single-assignment count is per scope. A function's parameters and
+  locals cannot rebind a module-level name -- ``global`` and ``nonlocal`` are
+  unsupported statements, and parameters mask every global before a body is
+  scanned -- so a helper that names its own local ``text`` no longer costs the
+  module a pairable list or a proven read-text name. Two bindings in one
+  scope, module-level loop and comprehension targets included, count exactly
+  as before. The module constants and the module-level single bindings keep
+  the strict whole-module count, because those resolve by name inside helper
+  bodies, where a parameter of the same name is what the body reads.
+- A two-parameter selector helper may bind its flag through an ``int()`` or
+  ``bool()`` cast, and may hold one further single-assignment local between
+  the flag and the return. That local is admitted only when every name it
+  reads is the flag or a resolved module constant, so it cannot carry a
+  parameter; a bare return of it reads the local's own expression as the
+  selector. Parameter rebinding, a fourth statement, and every other body
+  shape abstain as before.
+- A report-write helper's body may be a sequence of ``path.mkdir(...)``,
+  ``path.parent.mkdir(...)``, exactly one ``path.write_text(<payload>)``, the
+  print-read statement, and a closing return of ``len(payload)``, a
+  parameter, or a constant. Exactly one write, on a parameter every call site
+  proved path-like, with the payload reading the other parameter and nothing
+  else; the write seeds report-reachability as the inline form does.
+- ``[A[i] * S[i] for i in range(N)]``, in either operand order, pairs a
+  column-values list with a list of recognized per-element selectors over the
+  same single-assignment row-set name, under the same three provable ``len``
+  forms and the same index rule every range-indexed pairing uses. Summing or
+  accumulating the products into a report-reaching name accumulates exactly
+  the selectors ``S`` already read, so those readings classify with the
+  enclosing accumulation's reaching status. Anything else in the element
+  abstains.
+
 Three belts run independently of the whitelist:
 
 - The emission scan walks the entire module tree for comparisons between two
@@ -307,7 +340,7 @@ def founder_orientation_dataflow_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-emission-dataflow",
-        "grammar_version": "2.2.4",
+        "grammar_version": "2.2.5",
         "trust_model": (
             "default deny: the trace holds an explicit whitelist of the statement and "
             "expression forms it models completely, and any form outside that whitelist "
@@ -332,9 +365,13 @@ def founder_orientation_dataflow_grammar(
             "parameters; the call's operand paths classify as an inline "
             "comparison would. The body may also be an optional docstring, one "
             "single-assignment local bound to a comparison of the two bare "
-            "parameters, and one return of a canonical selector over that "
-            "local; parameter rebinding and every other body shape stay banned. "
-            "Any other comparison between two bare names, "
+            "parameters, or to an int() or bool() cast of it, then at most one "
+            "further single-assignment local whose every name is that flag or a "
+            "resolved module constant, then one return of a canonical selector "
+            "over the flag, that local, and resolved constants; a bare return of "
+            "the local reads the local's own expression as the selector. "
+            "Parameter rebinding, a fourth statement, and every other body shape "
+            "stay banned. Any other comparison between two bare names, "
             "anywhere, must have been recognized or the document abstains"
         ),
         "column_extraction_helpers": (
@@ -399,7 +436,21 @@ def founder_orientation_dataflow_grammar(
             "arguments resolves in selector branch positions only, because an "
             "exact-numeric constructor is not the literal one the recode "
             "vocabulary tests for; a name bound twice, augmented, or given any "
-            "other value stays unresolvable"
+            "other value stays unresolvable. Constants are counted over the "
+            "whole module, every scope together, because a constant resolves by "
+            "name inside helper bodies too, where a parameter or a local of the "
+            "same name is what the body actually reads"
+        ),
+        "single_assignment_scope": (
+            "every other single-assignment rule -- the pairable column-values "
+            "and selector lists, the modelled file handle, and the name a "
+            "read_text result is held in -- counts bindings per lexical scope: "
+            "the module, then one scope per function. A function's parameters "
+            "and locals cannot rebind a module-level name, because global and "
+            "nonlocal are unsupported statements and parameters mask every "
+            "global before a body is scanned. Two bindings in one scope, "
+            "module-level loop and comprehension targets included, disqualify "
+            "the name exactly as before"
         ),
         "column_value_pairing": (
             "an unfiltered list comprehension [<recode>(row[COL]) for row in rows] "
@@ -415,8 +466,15 @@ def founder_orientation_dataflow_grammar(
             "column with the recode folded in; a comprehension or loop over "
             "range(N) reading exactly A[i] and B[i], with the index appearing "
             "nowhere else and N provably len(A), len(B), or len(rows), pairs "
-            "them the same way; a filter, a differing source, a rebound name, "
-            "tuple unpacking, an unprovable length, and every other index abstain"
+            "them the same way; [A[i] * S[i] for i in range(N)] and its "
+            "commuted operand order, with A a column-values list and S a list "
+            "of recognized per-element selectors over the same "
+            "single-assignment row-set name, is that pairing weighted by the "
+            "selector, and summing or accumulating the products into a "
+            "report-reaching name classifies S's comparison with that "
+            "accumulation's reaching status; a filter, a differing source, a "
+            "rebound name, tuple unpacking, an unprovable length, a third "
+            "factor, and every other index abstain"
         ),
         "path_receivers": (
             "a write, a mkdir, and a read_text chain are admitted only on a "
@@ -454,6 +512,8 @@ def founder_orientation_dataflow_grammar(
             "an accumulation loop whose payload is the bare loop variable over a "
             "single-assignment list a comprehension built, which consumes that "
             "comprehension exactly as sum of the same name does",
+            "a sum or accumulation over a selector-weighted column product list, "
+            "which accumulates the selectors that list multiplied",
         ],
         "involutive_recode_forms": [
             "1 - x",
@@ -558,10 +618,13 @@ def founder_orientation_dataflow_grammar(
         "report_reachability": (
             "a write whose receiver resolves to a filesystem path under "
             "last-binding-wins path tracking, or a return, and either only from a "
-            "function reachable code actually calls; a call to a helper whose whole "
-            "body is one such write of one parameter to another seeds the same way "
-            "as the inline write, when the call site hands it a provably path-like "
-            "argument and a report-text name; reachability excludes and never "
+            "function reachable code actually calls; a call to a helper whose body "
+            "is exactly one such write of one parameter to another, alone or "
+            "beside mkdir calls on that same parameter, the print-read statement, "
+            "and a closing return of len(payload), a parameter, or a constant, "
+            "seeds the same way as the inline write, when the call site hands it a "
+            "provably path-like argument and a report-text name; a second write in "
+            "one helper is two report planes and abstains; reachability excludes and never "
             "selects, and orientation readings collected module-wide must agree "
             "unless every disagreeing reading is provably dead"
         ),
@@ -585,8 +648,13 @@ def founder_orientation_dataflow_grammar(
             "bounded call depth with cycle abstention",
             "bounded expression-tracing depth",
             "guarded parsing",
-            "a name bound more than once anywhere in the module is neither a "
-            "constant nor a pairable column-values list",
+            "a name bound more than once anywhere in the module is not a "
+            "constant, and a name bound more than once in one scope is not a "
+            "pairable column-values or selector list",
+            "a selector-weighted product pairs only a column-values list with a "
+            "recognized selector list of one single-assignment row-set name",
+            "a report-write helper admits exactly one write, and no statement "
+            "that computes the payload",
             "a pairing of column-values lists over different named row sets, or "
             "over a filtered comprehension, abstains",
             "a file handle admits close() and nothing else, and only through a "
@@ -701,10 +769,35 @@ class _IndexedPair:
         return self.left.source
 
 
+@dataclass(frozen=True)
+class _SelectorValues:
+    """A list whose elements the trace recognized as per-element emission selectors.
+
+    ``readings`` holds one entry per orientation the list's own comprehension
+    read: the node carrying the evidence span, and the orientation it read.
+    Weighting such a list elementwise against a column-values list of the same
+    rows accumulates exactly those selectors again, so the readings carry into
+    the enclosing accumulation with that accumulation's reaching status.
+    """
+
+    source_key: str
+    source: _Rows
+    readings: tuple[tuple[ast.AST, str], ...]
+
+
 _OPAQUE = _Opaque()
 _EMPTY_LIST = _EmptyList()
 
-_Value = _Rows | _Scalar | _EmptyList | _ColumnValues | _Paired | _IndexedPair | _Opaque
+_Value = (
+    _Rows
+    | _Scalar
+    | _EmptyList
+    | _ColumnValues
+    | _Paired
+    | _IndexedPair
+    | _SelectorValues
+    | _Opaque
+)
 
 
 @dataclass(frozen=True)
@@ -789,6 +882,10 @@ class _TraceContext:
     # and only when the trace actually classifies the first.
     selector_siblings: dict[int, tuple[ast.Compare, ...]] = field(default_factory=dict)
     pair_paths: dict[str, tuple[_Path, _Path]] = field(default_factory=dict)
+    # The selector-values list each recognized selector comprehension built,
+    # keyed by the comprehension node, so an elementwise weighting of that
+    # list can carry its readings into the enclosing accumulation.
+    selector_lists: dict[int, _SelectorValues] = field(default_factory=dict)
     # ``(list name, index name)`` to the column path that subscript reads,
     # for the range-indexed pairing form.
     indexed_paths: dict[tuple[str, str], _Path] = field(default_factory=dict)
@@ -1262,8 +1359,13 @@ def _classify_comprehension(
     if _shadows_loop_var(node.elt, generator.target.id):
         ctx.unresolved = True
         return
+    weighted = _selector_weighted_pairing(generator, node.elt, env, ctx)
+    if weighted is not None:
+        _carry_selector_readings(weighted, classifications, reaching=reaching, dead=dead)
+        return
     indexed = _range_pairing(generator, [node.elt, *generator.ifs], env, ctx)
     tagged = indexed if indexed is not None else _tag(generator.iter, env, ctx)
+    before = len(classifications)
     with _pair_scope(tagged, generator.target.id, ctx) as source:
         selectors = _selector_comparisons(node.elt, ctx)
         _classify_helper_selector_call(
@@ -1277,8 +1379,6 @@ def _classify_comprehension(
             dead=dead,
         )
         _flag_unrecognized_selectors(node.elt, selectors, generator.target.id, env, ctx)
-        if not selectors:
-            return
         for compare in selectors:
             _classify_compare(
                 compare,
@@ -1290,6 +1390,142 @@ def _classify_comprehension(
                 reaching=reaching,
                 dead=dead,
             )
+        _record_selector_list(node, generator, tagged, classifications[before:], ctx)
+
+
+def _record_selector_list(
+    node: ast.ListComp | ast.GeneratorExp,
+    generator: ast.comprehension,
+    tagged: _Value,
+    readings: list[_Classification],
+    ctx: _TraceContext,
+) -> None:
+    """Remember what a recognized selector comprehension read, keyed by the node.
+
+    A list of per-element selectors is the ordinary intermediate of the
+    weighted accumulation: the workflow builds the selectors once, counts
+    them, and then multiplies a measured column by them. The readings are
+    recorded here so the weighting can carry them, and only for a
+    materialized list over a row set this trace resolved.
+    """
+
+    if not isinstance(node, ast.ListComp) or not readings or ctx.unresolved:
+        return
+    if isinstance(tagged, _IndexedPair | _Paired):
+        source_key = tagged.left.source_key
+        source = tagged.source
+    elif isinstance(tagged, _Rows) and isinstance(generator.iter, ast.Name):
+        source_key = generator.iter.id
+        source = tagged
+    else:
+        return
+    if generator.ifs or source_key not in ctx.model.single_assignment:
+        return
+    ctx.selector_lists[id(node)] = _SelectorValues(
+        source_key=source_key,
+        source=source,
+        readings=tuple((item.node, item.state) for item in readings),
+    )
+
+
+def _carry_selector_readings(
+    weighted: _SelectorValues,
+    classifications: list[_Classification],
+    *,
+    reaching: bool,
+    dead: bool,
+) -> None:
+    """Re-state a selector list's readings for the accumulation that weights it.
+
+    The same comparison decides the same orientation here; what the weighting
+    adds is that this accumulation reaches the report. A reading already
+    recorded for this node under a reaching accumulation is not restated,
+    because one comparison is one piece of evidence however many
+    accumulations consume it.
+    """
+
+    for span_node, state in weighted.readings:
+        if any(
+            item.node is span_node and item.state == state and (item.reaching or not reaching)
+            for item in classifications
+        ):
+            continue
+        classifications.append(
+            _Classification(node=span_node, state=state, reaching=reaching, dead=dead)
+        )
+
+
+def _selector_weighted_pairing(
+    generator: ast.comprehension,
+    element: ast.expr,
+    env: dict[str, _Value],
+    ctx: _TraceContext,
+) -> _SelectorValues | None:
+    """``[A[i] * S[i] for i in range(N)]``: a column weighted by a selector list.
+
+    ``A`` is a column-values list and ``S`` a list of recognized per-element
+    selectors, both single-assignment and both built over the same
+    single-assignment row-set name, so element ``i`` of one is the same unit
+    as element ``i`` of the other. The product is therefore the emission
+    weight of that unit, and summing the products accumulates exactly the
+    selectors ``S`` already read.
+
+    The admitted element is the product and nothing else, in either operand
+    order. The index may appear nowhere but as the two subscripts, and ``N``
+    must be provably the length of one of the two lists or of the rows behind
+    them, on the same terms as every other range-indexed pairing. Anything
+    else in the element -- an offset index, a third factor, a cast -- is a
+    different computation, and this reads none of them.
+    """
+
+    if generator.ifs or not isinstance(generator.target, ast.Name):
+        return None
+    index = generator.target.id
+    iterable = generator.iter
+    if not (
+        isinstance(iterable, ast.Call)
+        and _call_name(iterable) == "range"
+        and _is_builtin_name("range", ctx)
+        and len(iterable.args) == 1
+        and not iterable.keywords
+    ):
+        return None
+    if not (isinstance(element, ast.BinOp) and isinstance(element.op, ast.Mult)):
+        return None
+    operands = (element.left, element.right)
+    names: list[str] = []
+    subscripted: set[int] = set()
+    for operand in operands:
+        if not (
+            isinstance(operand, ast.Subscript)
+            and isinstance(operand.value, ast.Name)
+            and isinstance(operand.slice, ast.Name)
+            and operand.slice.id == index
+        ):
+            return None
+        names.append(operand.value.id)
+        subscripted.add(id(operand.slice))
+    if names[0] == names[1]:
+        return None
+    for inner in ast.walk(element):
+        if isinstance(inner, ast.Name) and inner.id == index and id(inner) not in subscripted:
+            return None
+    if any(name not in ctx.model.single_assignment for name in names):
+        return None
+    held = [env.get(name) for name in names]
+    columns = [item for item in held if isinstance(item, _ColumnValues)]
+    selectors = [item for item in held if isinstance(item, _SelectorValues)]
+    if len(columns) != 1 or len(selectors) != 1:
+        return None
+    column, selector = columns[0], selectors[0]
+    if column.source_key != selector.source_key or column.source != selector.source:
+        return None
+    if column.source_key not in ctx.model.single_assignment:
+        return None
+    if not _proven_pair_length(iterable.args[0], {*names, column.source_key}, ctx):
+        return None
+    ctx.recognized_pairings.add(id(iterable))
+    return selector
 
 
 @contextmanager
@@ -1511,6 +1747,16 @@ def _helper_selector_form(
     bound to nothing but the comparison and must not be a parameter name, so
     the parameter-rebinding ban is untouched: the value the caller passed is
     still what the comparison reads.
+
+    From v2.2.5 the flag binding may wrap that comparison in an ``int`` or
+    ``bool`` cast, which is what the boolean-to-weight idiom writes, and one
+    further single-assignment local may sit between the flag and the return.
+    That second local is admitted only when every name it reads is the flag or
+    a resolved module constant, so it cannot read a parameter and cannot carry
+    a value from anywhere this trace has not already proven. The return is then
+    a canonical selector over the flag, that local, and resolved constants;
+    naming the local is the ordinary way to write it, so a bare return of the
+    local reads the local's own expression as the selector.
     """
 
     if not _straight_line_helper(function, ctx):
@@ -1532,14 +1778,20 @@ def _helper_selector_form(
         if not (isinstance(item, ast.Expr) and isinstance(item.value, ast.Constant))
     ]
     # The body must be the one return, optionally preceded by the one flag
-    # binding. Any other statement before the return can rebind a parameter
-    # (``expected = 1 - expected``), and reading the comparison as if the
-    # caller's argument arrived unchanged was a demonstrated wrong answer in
-    # both directions.
+    # binding and then at most one derived local. Any other statement before
+    # the return can rebind a parameter (``expected = 1 - expected``), and
+    # reading the comparison as if the caller's argument arrived unchanged was
+    # a demonstrated wrong answer in both directions.
     flag: tuple[str, ast.Compare] | None = None
-    if len(statements) == 2:
-        flag = _helper_flag_binding(statements[0], parameters)
+    derived: tuple[str, ast.expr] | None = None
+    if len(statements) in {2, 3}:
+        flag = _helper_flag_binding(statements[0], parameters, ctx)
         if flag is None:
+            return None
+        statements = statements[1:]
+    if len(statements) == 2:
+        derived = _helper_derived_local(statements[0], parameters, flag, ctx)
+        if derived is None:
             return None
         statements = statements[1:]
     if len(statements) != 1 or not isinstance(statements[0], ast.Return):
@@ -1547,6 +1799,10 @@ def _helper_selector_form(
     if statements[0].value is None:
         return None
     value = statements[0].value
+    if derived is not None and isinstance(value, ast.Name) and value.id == derived[0]:
+        # ``weighted = <selector>`` then ``return weighted``: the selector is
+        # the local's own expression, and the local is bound to nothing else.
+        value = derived[1]
     resolved = _helper_selector_branches(value, ctx, flag)
     if resolved is None:
         return None
@@ -1562,9 +1818,14 @@ def _helper_selector_form(
 
 
 def _helper_flag_binding(
-    statement: ast.stmt, parameters: list[str]
+    statement: ast.stmt, parameters: list[str], ctx: _TraceContext
 ) -> tuple[str, ast.Compare] | None:
-    """``flag = a == b`` over the two bare parameters, bound to a fresh name."""
+    """``flag = a == b`` over the two bare parameters, bound to a fresh name.
+
+    An ``int()`` or ``bool()`` cast of that comparison binds the same flag:
+    both map False to 0 and True to 1, which is exactly what the arithmetic
+    selector forms multiply by.
+    """
 
     if not (
         isinstance(statement, ast.Assign)
@@ -1575,7 +1836,15 @@ def _helper_flag_binding(
     name = statement.targets[0].id
     if name in parameters:
         return None
-    compare = statement.value
+    compare: ast.expr = statement.value
+    if (
+        isinstance(compare, ast.Call)
+        and _call_name(compare) in {"int", "bool"}
+        and len(compare.args) == 1
+        and not compare.keywords
+        and _is_builtin_name(_call_name(compare), ctx)
+    ):
+        compare = compare.args[0]
     if not isinstance(compare, ast.Compare) or len(compare.ops) != 1:
         return None
     left, right = compare.left, compare.comparators[0]
@@ -1584,6 +1853,44 @@ def _helper_flag_binding(
     if {left.id, right.id} != set(parameters):
         return None
     return name, compare
+
+
+def _helper_derived_local(
+    statement: ast.stmt,
+    parameters: list[str],
+    flag: tuple[str, ast.Compare] | None,
+    ctx: _TraceContext,
+) -> tuple[str, ast.expr] | None:
+    """One further helper local, bound to an expression over the flag and constants.
+
+    The local is admitted only when every name its expression reads is the
+    flag the previous statement bound or a name the module constants resolve.
+    That excludes both parameters and any other local, so the value it holds
+    is decided by the flag and by constants alone; the return then reads it as
+    the selector it is.
+    """
+
+    if flag is None:
+        return None
+    if not (
+        isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+    ):
+        return None
+    name = statement.targets[0].id
+    if name in parameters or name == flag[0]:
+        return None
+    value = statement.value
+    for inner in ast.walk(value):
+        if not isinstance(inner, ast.Name):
+            continue
+        if inner.id == flag[0]:
+            continue
+        if inner.id in ctx.selector_constants or inner.id in ctx.constants:
+            continue
+        return None
+    return name, value
 
 
 def _helper_selector_branches(
@@ -2669,7 +2976,7 @@ def _tag(node: ast.expr, env: dict[str, _Value], ctx: _TraceContext) -> _Value:
 def _tag_inner(node: ast.expr, env: dict[str, _Value], ctx: _TraceContext) -> _Value:
     if isinstance(node, ast.Name):
         value = env.get(node.id, _OPAQUE)
-        if isinstance(value, _ColumnValues | _Paired) and node.id not in (
+        if isinstance(value, _ColumnValues | _Paired | _SelectorValues) and node.id not in (
             ctx.model.single_assignment
         ):
             # A column-values list or a pairing carries a claim about which
@@ -2765,6 +3072,10 @@ def _tag_zip(node: ast.Call, env: dict[str, _Value], ctx: _TraceContext) -> _Val
 def _tag_comprehension(
     node: ast.ListComp | ast.GeneratorExp, env: dict[str, _Value], ctx: _TraceContext
 ) -> _Value:
+    recorded = ctx.selector_lists.get(id(node))
+    if recorded is not None:
+        # A materialized list of per-element selectors the trace already read.
+        return recorded
     if len(node.generators) != 1:
         return _OPAQUE
     generator = node.generators[0]
@@ -3193,7 +3504,10 @@ def _apply_list_accumulation_loop(
     if targets is None:
         return False
     for target in targets:
-        if isinstance(env.get(target), _Rows | _ColumnValues | _Paired | _IndexedPair | _EmptyList):
+        if isinstance(
+            env.get(target),
+            _Rows | _ColumnValues | _Paired | _IndexedPair | _SelectorValues | _EmptyList,
+        ):
             # An accumulator that already holds a row set or a list is not a
             # number being summed; rebinding it here is outside this shape.
             return False
@@ -3298,13 +3612,16 @@ def _module_model(tree: ast.Module) -> _ModuleModel:
     reachable = frozenset(called | (escaping & set(functions)))
     dead = frozenset(name for name in functions if occurrences[name] == 0)
     single_assignment = _single_assignment_names(tree)
+    module_wide = _module_wide_single_assignment_names(tree)
     paths = _path_call_model(tree, functions, single_assignment)
     write_call_ids = paths.writes
-    helper_write_calls = _helper_write_call_sites(tree, functions, write_call_ids, paths.names)
+    helper_write_calls = _helper_write_call_sites(
+        tree, functions, write_call_ids, paths.names, imports
+    )
     reaching = _report_reaching_names(
         tree, functions, write_call_ids, helper_write_calls, reachable
     )
-    constants, selector_constants = _module_constants(tree, single_assignment)
+    constants, selector_constants = _module_constants(tree, module_wide)
     return _ModuleModel(
         imports=imports,
         functions=functions,
@@ -3317,7 +3634,7 @@ def _module_model(tree: ast.Module) -> _ModuleModel:
         constants=constants,
         selector_constants=selector_constants,
         single_assignment=single_assignment,
-        single_bindings=_single_bindings(tree, single_assignment),
+        single_bindings=_single_bindings(tree, module_wide),
         read_chain_call_ids=paths.read_chains,
         mkdir_call_ids=paths.mkdirs,
         helper_write_calls=helper_write_calls,
@@ -3326,7 +3643,12 @@ def _module_model(tree: ast.Module) -> _ModuleModel:
 
 
 def _single_bindings(tree: ast.Module, single_assignment: frozenset[str]) -> dict[str, ast.expr]:
-    """The one module-level expression each single-assignment name is bound to."""
+    """The one module-level expression each single-assignment name is bound to.
+
+    Read against the module-wide count, not the per-scope one: this binding is
+    consulted from inside helper bodies, where a parameter or a local of the
+    same name is what the body reads.
+    """
 
     bindings: dict[str, ast.expr] = {}
     for statement in tree.body:
@@ -3358,8 +3680,65 @@ def _binding_counts(tree: ast.Module) -> Counter[str]:
     return counts
 
 
-def _single_assignment_names(tree: ast.Module) -> frozenset[str]:
+def _module_wide_single_assignment_names(tree: ast.Module) -> frozenset[str]:
+    """Names bound exactly once in the whole module, counting every scope together.
+
+    This is the strictest of the two counts, and it is what the module
+    constants and the module-level single bindings are read against. A
+    constant resolves by name inside helper bodies too, where a parameter or
+    a local of the same name is what the body actually reads, so a name any
+    function binds is not a constant here whatever the module does with it.
+    """
+
     return frozenset(name for name, count in _binding_counts(tree).items() if count == 1)
+
+
+def _scope_binding_counts(tree: ast.Module) -> list[Counter[str]]:
+    """Binding counts per lexical scope: the module, then one per function.
+
+    A function's parameters and locals live in that function's scope. They
+    cannot rebind a module-level name -- ``global`` and ``nonlocal`` are
+    unsupported statements, and every value a body reads through the trace's
+    environment is masked by the parameter binding before the body is
+    scanned -- so counting them against the module name would be counting a
+    rebinding that cannot happen. Everything the module scope itself binds
+    still counts, loop and comprehension targets included.
+    """
+
+    scopes: list[Counter[str]] = []
+
+    def _scan(nodes: list[ast.AST], counts: Counter[str]) -> None:
+        for node in nodes:
+            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda):
+                if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+                    counts[node.name] += 1
+                inner: Counter[str] = Counter()
+                for parameter in _parameter_names(node):  # type: ignore[arg-type]
+                    inner[parameter] += 1
+                scopes.append(inner)
+                _scan(list(ast.iter_child_nodes(node)), inner)
+                continue
+            for name in _binding_names(node):
+                counts[name] += 1
+            _scan(list(ast.iter_child_nodes(node)), counts)
+
+    module_counts: Counter[str] = Counter()
+    scopes.append(module_counts)
+    _scan(list(ast.iter_child_nodes(tree)), module_counts)
+    return scopes
+
+
+def _single_assignment_names(tree: ast.Module) -> frozenset[str]:
+    """Names no scope binds more than once."""
+
+    seen: set[str] = set()
+    rebound: set[str] = set()
+    for scope in _scope_binding_counts(tree):
+        for name, count in scope.items():
+            seen.add(name)
+            if count > 1:
+                rebound.add(name)
+    return frozenset(seen - rebound)
 
 
 def _module_constants(
@@ -3792,6 +4171,7 @@ def _helper_write_call_sites(
     functions: dict[str, ast.FunctionDef],
     write_call_ids: frozenset[int],
     stable: frozenset[str],
+    imports: dict[str, str],
 ) -> dict[int, ast.expr]:
     """Calls to a helper whose only job is to write the report, and their payloads.
 
@@ -3806,7 +4186,7 @@ def _helper_write_call_sites(
 
     helpers: dict[str, tuple[int, int]] = {}
     for name, function in functions.items():
-        shape = _report_write_helper_shape(function, write_call_ids)
+        shape = _report_write_helper_shape(function, write_call_ids, functions, imports)
         if shape is not None:
             helpers[name] = shape
     if not helpers:
@@ -3833,14 +4213,25 @@ def _helper_write_call_sites(
 
 
 def _report_write_helper_shape(
-    function: ast.FunctionDef, write_call_ids: frozenset[int]
+    function: ast.FunctionDef,
+    write_call_ids: frozenset[int],
+    functions: dict[str, ast.FunctionDef],
+    imports: dict[str, str],
 ) -> tuple[int, int] | None:
     """``(path parameter index, payload parameter index)`` of a write helper, or None.
 
-    The body is one return of ``path_parameter.write_text(<payload>)``, with
-    at most the inert bare-call statements the whitelist admits before it, and
-    the payload reads the other parameter and nothing else. Two plain
-    parameters exactly: the shape is a path and the text to put at it.
+    Two plain parameters exactly: the shape is a path and the text to put at
+    it. The body is an optional docstring and then a sequence drawn only from
+    ``path.parent.mkdir(...)``, ``path.mkdir(...)``, exactly one
+    ``path.write_text(<payload>)``, the print-read statement, and an optional
+    closing return of ``len(payload)``, a parameter, or a constant. Every one
+    of those either creates the directory the report goes in, publishes the
+    report, echoes it, or reports its size; none of them computes the payload,
+    and the payload still has to read the other parameter and nothing else.
+
+    Exactly one write, so the helper publishes one text at one place. Two
+    writes are two report planes, and which of them the report the audit
+    selected came from is not a question this shape answers.
     """
 
     if (
@@ -3858,28 +4249,93 @@ def _report_write_helper_shape(
     statements = [
         item
         for item in _flatten_statements(function.body)
-        if not (isinstance(item, ast.Expr) and isinstance(item.value, ast.Constant | ast.Call))
+        if not (isinstance(item, ast.Expr) and isinstance(item.value, ast.Constant))
     ]
-    if len(statements) != 1 or not isinstance(statements[0], ast.Return):
+    writes: list[ast.Call] = []
+    directories: list[ast.Call] = []
+    returned: ast.expr | None = None
+    for index, statement in enumerate(statements):
+        if isinstance(statement, ast.Return):
+            if index != len(statements) - 1:
+                return None
+            returned = statement.value
+            if (
+                isinstance(returned, ast.Call)
+                and id(returned) in write_call_ids
+                and _write_text_call(returned)
+            ):
+                # ``return path.write_text(text)``: the write is the returned
+                # call, which is the one-statement form this shape started as.
+                writes.append(returned)
+                returned = None
+            continue
+        if not (isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Call)):
+            return None
+        call = statement.value
+        if id(call) in write_call_ids and _write_text_call(call):
+            writes.append(call)
+            continue
+        if _is_mkdir_call(call):
+            directories.append(call)
+            continue
+        if _print_read_shape(call, functions, imports):
+            continue
         return None
-    returned = statements[0].value
-    if not (isinstance(returned, ast.Call) and id(returned) in write_call_ids):
+    if len(writes) != 1:
         return None
-    if not (isinstance(returned.func, ast.Attribute) and returned.func.attr == "write_text"):
+    write = writes[0]
+    if not isinstance(write.func, ast.Attribute) or not isinstance(write.func.value, ast.Name):
         return None
-    if not isinstance(returned.func.value, ast.Name) or not returned.args:
-        return None
-    path_parameter = returned.func.value.id
+    path_parameter = write.func.value.id
     if path_parameter not in parameters:
         return None
-    payload = returned.args[0]
+    payload_parameter = next(item for item in parameters if item != path_parameter)
+    for call in directories:
+        if not _mkdir_on_parameter(call, path_parameter):
+            return None
+    if not write.args:
+        return None
+    payload = write.args[0]
     if not _print_argument(payload):
         return None
     free = {inner.id for inner in ast.walk(payload) if isinstance(inner, ast.Name)}
-    payload_parameter = next(item for item in parameters if item != path_parameter)
     if free != {payload_parameter}:
         return None
+    if returned is not None and not _write_helper_return(returned, parameters, payload_parameter):
+        return None
     return parameters.index(path_parameter), parameters.index(payload_parameter)
+
+
+def _write_text_call(call: ast.Call) -> bool:
+    return isinstance(call.func, ast.Attribute) and call.func.attr == "write_text"
+
+
+def _mkdir_on_parameter(call: ast.Call, path_parameter: str) -> bool:
+    """``path.mkdir(...)`` or ``path.parent.mkdir(...)`` on the write's own receiver."""
+
+    assert isinstance(call.func, ast.Attribute)
+    receiver = call.func.value
+    if isinstance(receiver, ast.Attribute) and receiver.attr == "parent":
+        receiver = receiver.value
+    return isinstance(receiver, ast.Name) and receiver.id == path_parameter
+
+
+def _write_helper_return(returned: ast.expr, parameters: list[str], payload_parameter: str) -> bool:
+    """``len(payload)``, a parameter, or a constant: a size or an echo, never a value."""
+
+    if isinstance(returned, ast.Constant):
+        return True
+    if isinstance(returned, ast.Name):
+        return returned.id in parameters
+    return (
+        isinstance(returned, ast.Call)
+        and isinstance(returned.func, ast.Name)
+        and returned.func.id == "len"
+        and len(returned.args) == 1
+        and not returned.keywords
+        and isinstance(returned.args[0], ast.Name)
+        and returned.args[0].id == payload_parameter
+    )
 
 
 def _import_table(tree: ast.Module) -> dict[str, str]:
@@ -4194,9 +4650,22 @@ def _expression_statement_violation(statement: ast.Expr, ctx: _TraceContext) -> 
 def _is_print_read(call: ast.Call, ctx: _TraceContext) -> bool:
     """``print`` over names, constants, f-strings, and ``str``/``repr`` of names."""
 
+    return _print_read_shape(call, ctx.functions, ctx.model.imports)
+
+
+def _print_read_shape(
+    call: ast.Call, functions: dict[str, ast.FunctionDef], imports: dict[str, str]
+) -> bool:
+    """The print-read form, stated without a trace context.
+
+    The module model builds the report-write helper shapes before a context
+    exists, and that shape admits this statement inside a helper body, so the
+    same rule has to be readable from the two names it actually needs.
+    """
+
     if not (isinstance(call.func, ast.Name) and call.func.id == "print"):
         return False
-    if not _is_builtin_name("print", ctx):
+    if "print" in functions or "print" in imports:
         return False
     for keyword in call.keywords:
         # ``sep``, ``end``, and ``flush`` only change how the same arguments
@@ -4669,19 +5138,61 @@ def _accumulated_comprehension_ids(tree: ast.Module) -> set[int]:
             # spelling of ``sum(weights)``, and it consumes the comprehension
             # bound to ``weights`` exactly as the call does.
             consumed.add(node.iter.id)
+    weighted: dict[str, set[str]] = {}
+    for name, comprehensions in assigned.items():
+        for comprehension in comprehensions:
+            factors = _range_product_factor_names(comprehension)
+            if factors is not None:
+                # ``terms = [A[i] * S[i] for i in range(N)]`` accumulates both
+                # lists elementwise, so whatever consumes ``terms`` consumes
+                # the comprehensions that built ``A`` and ``S`` as well.
+                weighted.setdefault(name, set()).update(factors)
     changed = True
     while changed:
         changed = False
-        for target, values in renames.items():
-            if target in consumed:
-                fresh = values - consumed
-                if fresh:
-                    consumed |= fresh
-                    changed = True
+        for source in (renames, weighted):
+            for target, values in source.items():
+                if target in consumed:
+                    fresh = values - consumed
+                    if fresh:
+                        consumed |= fresh
+                        changed = True
     for name in consumed:
         for comprehension in assigned.get(name, []):
             ids.add(id(comprehension))
     return ids
+
+
+def _range_product_factor_names(node: ast.expr) -> set[str] | None:
+    """The two list names ``[A[i] * S[i] for i in range(N)]`` multiplies, or None.
+
+    Syntax only: this decides which comprehensions the trace looks at, and
+    looking at one more can force an abstention but can never pick an
+    orientation. The value rule that reads the product is
+    ``_selector_weighted_pairing``.
+    """
+
+    if not isinstance(node, ast.ListComp) or len(node.generators) != 1:
+        return None
+    generator = node.generators[0]
+    if generator.ifs or not isinstance(generator.target, ast.Name):
+        return None
+    if not (isinstance(generator.iter, ast.Call) and _call_name(generator.iter) == "range"):
+        return None
+    element = node.elt
+    if not (isinstance(element, ast.BinOp) and isinstance(element.op, ast.Mult)):
+        return None
+    names: set[str] = set()
+    for operand in (element.left, element.right):
+        if not (
+            isinstance(operand, ast.Subscript)
+            and isinstance(operand.value, ast.Name)
+            and isinstance(operand.slice, ast.Name)
+            and operand.slice.id == generator.target.id
+        ):
+            return None
+        names.add(operand.value.id)
+    return names if len(names) == 2 else None
 
 
 def _walk_skipping_lambdas(statement: ast.AST) -> list[ast.AST]:

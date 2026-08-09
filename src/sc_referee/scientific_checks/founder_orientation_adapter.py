@@ -61,6 +61,14 @@ elementwise recode of a column-values list, the ``range(len(...))`` spelling of
 a ``zip`` pairing, accumulation loops that consume a list the way ``sum`` does,
 and ``print`` with ``sep``, ``end``, or ``flush``.
 
+v2.2.5 widens it by four more: a per-scope single-assignment count, so a
+helper's own parameter or local no longer costs the module a pairable list;
+a selector helper that casts its flag and holds one further constant-derived
+local; a report-write helper whose body creates the directory, writes once,
+echoes, and returns the size; and ``[A[i] * S[i] for i in range(N)]``, the
+selector-weighted column product, whose accumulation reads the selectors that
+list multiplied.
+
 Even a silent report has to account for the workflow's reading: the adapter
 classifies on the dataflow alone only when some stated marker total,
 agreement count, and rate reconcile in the direction the workflow computed.
@@ -134,7 +142,7 @@ def founder_orientation_recognition_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-reconciliation",
-        "grammar_version": "2.2.4",
+        "grammar_version": "2.2.5",
         "count_source": "integer_tokens_without_unit_or_percent_suffix",
         "rate_source": "decimal_point_or_percent_suffixed_tokens_direct_or_percent_scaled",
         "relations": [
