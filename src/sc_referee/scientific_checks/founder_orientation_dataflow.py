@@ -271,6 +271,24 @@ _BANNED_NAMES = frozenset(
 _ALLOWED_IMPORT_MODULES = frozenset(
     {"csv", "math", "pathlib", "fractions", "decimal", "statistics"}
 )
+# Names the trace folds by name (exact-numeric constructors and the
+# allowlisted module names themselves). A workflow that binds one of these
+# to anything but its stdlib meaning could flip selector canonicity while
+# reading as canonical (a demonstrated wrong answer via ``from math import
+# gcd as Fraction``), so any non-import binding of a protected name, or an
+# import binding it to the wrong origin, is unsupported.
+_PROTECTED_NAME_ORIGINS = {
+    "Fraction": "fractions.Fraction",
+    "Decimal": "decimal.Decimal",
+    "csv": "csv",
+    "math": "math",
+    "pathlib": "pathlib",
+    "fractions": "fractions",
+    "decimal": "decimal",
+    "statistics": "statistics",
+    "Path": "pathlib.Path",
+    "PurePath": "pathlib.PurePath",
+}
 # Inert string methods: safe on builtin-typed receivers, and user-defined
 # types cannot exist here (class statements and ``type()`` are banned).
 _SAFE_STR_METHODS = frozenset({"join", "format"})
@@ -289,7 +307,7 @@ def founder_orientation_dataflow_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-emission-dataflow",
-        "grammar_version": "2.2.3",
+        "grammar_version": "2.2.4",
         "trust_model": (
             "default deny: the trace holds an explicit whitelist of the statement and "
             "expression forms it models completely, and any form outside that whitelist "
@@ -1039,6 +1057,21 @@ def _module_bans(tree: ast.Module) -> bool:
         if isinstance(node, ast.Name) and node.id in _BANNED_NAMES:
             return True
         if isinstance(node, ast.Attribute) and node.attr in _BANNED_NAMES:
+            return True
+        if isinstance(node, ast.Import | ast.ImportFrom):
+            for alias in node.names:
+                local = alias.asname or alias.name.split(".")[0]
+                if local in _PROTECTED_NAME_ORIGINS:
+                    if isinstance(node, ast.Import):
+                        origin = alias.name
+                    else:
+                        origin = f"{node.module or ''}.{alias.name}"
+                    if origin != _PROTECTED_NAME_ORIGINS[local]:
+                        return True
+        elif protected := (_binding_names(node) & set(_PROTECTED_NAME_ORIGINS)):
+            # Any non-import binding of a protected name changes what the
+            # fold vocabulary means at runtime.
+            del protected
             return True
         if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
             if node.returns is not None:

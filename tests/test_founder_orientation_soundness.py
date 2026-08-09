@@ -1401,7 +1401,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate}; "
     f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
 )
 Path("results/parameter_alias.md").write_text(report)
@@ -1429,7 +1429,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate}; "
     f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
 )
 Path("results/container_alias.md").write_text(report)
@@ -1455,7 +1455,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate}; "
     f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
 )
 Path("results/comprehension_alias.md").write_text(report)
@@ -1488,7 +1488,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate}; "
     f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
 )
 Path("results/closure_alias.md").write_text(report)
@@ -1519,7 +1519,7 @@ n = len(panel)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate}; "
     f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
 )
 Path("results/spread_side_effect.md").write_text(report)
@@ -1550,7 +1550,7 @@ n = len(selected)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate}; "
     f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
 )
 Path("results/match_guard.md").write_text(report)
@@ -1576,7 +1576,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate}; "
     f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
 )
 Path("results/walrus_expr.md").write_text(report)
@@ -1614,7 +1614,7 @@ n = len(panel)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate}; "
     f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
 )
 Path("results/higher_order.md").write_text(report)
@@ -1644,7 +1644,7 @@ n = len(panel)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate}; "
     f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
 )
 Path("results/duplicate_def.md").write_text(report)
@@ -1715,7 +1715,7 @@ n = len(rows)
 rate = actual_agreement / n
 mismatch = 1 - rate
 report = (
-    f"Of {n} markers, {actual_agreement} agree. Agreement rate {rate:.6f}; "
+    f"Of {n} markers, {actual_agreement} agree. Agreement rate {rate}; "
     f"mismatch rate {mismatch:.6f}. Likelihood {actual_likelihood:.8g}.\n"
 )
 with open("results/uncalled_writer.md", "w") as handle:
@@ -1748,7 +1748,7 @@ n = len(rows)
 rate = actual_agreement / n
 mismatch = 1 - rate
 report = (
-    f"Of {n} markers, {actual_agreement} agree. Agreement rate {rate:.6f}; "
+    f"Of {n} markers, {actual_agreement} agree. Agreement rate {rate}; "
     f"mismatch rate {mismatch:.6f}. Likelihood {actual_likelihood:.8g}.\n"
 )
 with open("results/rebound_path_sink.md", "w") as handle:
@@ -1776,7 +1776,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f"Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; "
+    f"Of {n} markers, {agreement} agree. Agreement rate {rate}; "
     f"mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n"
 )
 Path("results/imported_reader.md").write_text(report)
@@ -2238,7 +2238,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate}; '
     f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n'
 )
 Path('results/report.md').write_text(report)
@@ -2256,7 +2256,7 @@ likelihood = math.prod(
 agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)
 n = len(rows)
 rate = agreement / n
-report = f'Of {n} markers, {agreement} agree at {rate:.6f}. Likelihood {likelihood:.8g}.\n'
+report = f'Of {n} markers, {agreement} agree at {rate}. Likelihood {likelihood:.8g}.\n'
 Path('results/report.md').write_text(report)
 """,
     "loop_body_setitem": r"""import csv
@@ -2275,7 +2275,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate}; '
     f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n'
 )
 Path('results/report.md').write_text(report)
@@ -2294,7 +2294,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate}; '
     f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n'
 )
 Path('results/report.md').write_text(report)
@@ -2313,7 +2313,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate}; '
     f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n'
 )
 Path('results/report.md').write_text(report)
@@ -2331,7 +2331,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate}; '
     f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.\n'
 )
 Path('results/report.md').write_text(report)
@@ -2445,7 +2445,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate}; '
     f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
 )
 Path('results/report.md').write_text(report)
@@ -2463,7 +2463,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate}; '
     f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
 )
 Path('results/report.md').write_text(report)
@@ -2481,7 +2481,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate}; '
     f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
 )
 Path('results/report.md').write_text(report)
@@ -2499,7 +2499,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate}; '
     f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
 )
 Path('results/report.md').write_text(report)
@@ -2517,7 +2517,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate}; '
     f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
 )
 Path('results/report.md').write_text(report)
@@ -2537,7 +2537,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate}; '
     f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
 )
 Path('results/report.md').write_text(report)
@@ -2555,7 +2555,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate}; '
     f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
 )
 Path('results/report.md').write_text(report)
@@ -2574,7 +2574,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate}; '
     f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
 )
 Path('results/report.md').write_text(report)
@@ -2593,7 +2593,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate}; '
     f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
 )
 Path('results/report.md').write_text(report)
@@ -2612,7 +2612,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate}; '
     f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
 )
 Path('results/report.md').write_text(report)
@@ -2634,7 +2634,7 @@ n = len(rows)
 rate = agreement / n
 mismatch = 1 - rate
 report = (
-    f'Of {n} markers, {agreement} agree. Agreement rate {rate:.6f}; '
+    f'Of {n} markers, {agreement} agree. Agreement rate {rate}; '
     f'mismatch rate {mismatch:.6f}. Likelihood {likelihood:.8g}.'
 )
 Path('results/report.md').write_text(report)
@@ -2728,7 +2728,7 @@ _ROUND_FIVE_TAIL = (
     "agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)\n"
     "n = len(rows)\n"
     "rate = agreement / n\n"
-    "report = f'Of {n} markers, {agreement} agree at {rate:.6f}. Likelihood {likelihood:.8g}.'\n"
+    "report = f'Of {n} markers, {agreement} agree at {rate}. Likelihood {likelihood:.8g}.'\n"
     "Path('results/report.md').write_text(report)\n"
 )
 _ROUND_FIVE_HEAD = (
@@ -2765,7 +2765,7 @@ def test_a_helper_emission_with_a_matching_count_resolves() -> None:
         + "agreement = sum(1 if int(item['call']) == int(item['founder']) else 0 for item in panel)\n"
         + "n = len(rows)\n"
         + "rate = agreement / n\n"
-        + "report = f'Of {n} markers, {agreement} agree at {rate:.6f}. Likelihood {likelihood:.8g}.'\n"
+        + "report = f'Of {n} markers, {agreement} agree at {rate}. Likelihood {likelihood:.8g}.'\n"
         + "Path('results/report.md').write_text(report)\n"
     )
     unsupported, states = _resolve(source)
@@ -2783,7 +2783,7 @@ def test_a_helper_emission_in_an_accumulation_loop_resolves() -> None:
         + "agreement = sum(1 if int(item['call']) == int(item['founder']) else 0 for item in panel)\n"
         + "n = len(rows)\n"
         + "rate = agreement / n\n"
-        + "report = f'Of {n} markers, {agreement} agree at {rate:.6f}. Likelihood {likelihood:.8g}.'\n"
+        + "report = f'Of {n} markers, {agreement} agree at {rate}. Likelihood {likelihood:.8g}.'\n"
         + "Path('results/report.md').write_text(report)\n"
     )
     unsupported, states = _resolve(source)
@@ -2817,7 +2817,7 @@ def test_a_mirrored_helper_emission_cannot_read_as_the_other_orientation() -> No
         + "agreement = sum(1 if int(item['call']) == int(item['founder']) else 0 for item in panel)\n"
         + "n = len(rows)\n"
         + "rate = agreement / n\n"
-        + "report = f'Of {n} markers, {agreement} agree at {rate:.6f}. Likelihood {likelihood:.8g}.'\n"
+        + "report = f'Of {n} markers, {agreement} agree at {rate}. Likelihood {likelihood:.8g}.'\n"
         + "Path('results/report.md').write_text(report)\n"
     )
     resolution = _resolution(source)
@@ -2857,7 +2857,7 @@ def test_a_renamed_accumulator_alone_still_classifies() -> None:
         + "agreement = sum(1 if int(item['call']) == int(item['founder']) else 0 for item in panel)\n"
         + "n = len(rows)\n"
         + "rate = agreement / n\n"
-        + "report = f'Of {n} markers, {agreement} agree at {rate:.6f}. Likelihood {likelihood:.8g}.'\n"
+        + "report = f'Of {n} markers, {agreement} agree at {rate}. Likelihood {likelihood:.8g}.'\n"
         + "Path('results/report.md').write_text(report)\n"
     )
     unsupported, states = _resolve(source)
@@ -2915,7 +2915,7 @@ _ROUND_SIX_TAIL = (
     "agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)\n"
     "n = len(rows)\n"
     "rate = agreement / n\n"
-    "report = f'Of {n} markers, {agreement} agree at {rate:.6f}. Likelihood {likelihood:.8g}.'\n"
+    "report = f'Of {n} markers, {agreement} agree at {rate}. Likelihood {likelihood:.8g}.'\n"
     "Path('results/report.md').write_text(report)\n"
 )
 _ROUND_SIX_HEAD = (
@@ -2966,7 +2966,7 @@ def test_a_docstring_only_helper_body_still_resolves() -> None:
         + "agreement = sum(1 if int(item['call']) == int(item['founder']) else 0 for item in panel)\n"
         + "n = len(rows)\n"
         + "rate = agreement / n\n"
-        + "report = f'Of {n} markers, {agreement} agree at {rate:.6f}. Likelihood {likelihood:.8g}.'\n"
+        + "report = f'Of {n} markers, {agreement} agree at {rate}. Likelihood {likelihood:.8g}.'\n"
         + "Path('results/report.md').write_text(report)\n"
     )
     unsupported, states = _resolve(source)
@@ -3310,7 +3310,7 @@ _V220_HEAD = (
 _V220_TAIL = (
     "n = len(rows)\n"
     "rate = total / n\n"
-    "report = f'Of {n} markers, {total} agree at {rate:.6f}.'\n"
+    "report = f'Of {n} markers, {total} agree at {rate}.'\n"
     "pathlib.Path('results/report.md').write_text(report)\n"
 )
 _V220_LOOP = (
@@ -3421,7 +3421,7 @@ _V220_NAMED_CONSTANT_TAIL = (
     "agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in panel)\n"
     "n = len(rows)\n"
     "rate = agreement / n\n"
-    "report = f'Of {n} markers, {agreement} agree at {rate:.6f}. Likelihood {likelihood:.8g}.'\n"
+    "report = f'Of {n} markers, {agreement} agree at {rate}. Likelihood {likelihood:.8g}.'\n"
     "Path('results/report.md').write_text(report)\n"
 )
 
@@ -3831,7 +3831,7 @@ _V222_SOURCE = (
     "    total = total + agreement_selector(observed_state(record), panel_state(record))\n"
     "n = len(rows)\n"
     "rate = total / n\n"
-    "report = f'Of {n} markers, {total} agree at {rate:.6f}.'\n"
+    "report = f'Of {n} markers, {total} agree at {rate}.'\n"
     "pathlib.Path('results/report.md').write_text(report)\n"
 )
 
@@ -4076,7 +4076,7 @@ def test_a_multiply_complement_selector_over_an_inline_flag_resolves() -> None:
         ")\n"
         "n = len(rows)\n"
         "rate = total / n\n"
-        "report = f'Of {n} markers, {total} agree at {rate:.6f}.'\n"
+        "report = f'Of {n} markers, {total} agree at {rate}.'\n"
         "pathlib.Path('results/report.md').write_text(report)\n"
     )
     unsupported, states = _resolve(source)
@@ -4211,7 +4211,7 @@ _V223_SOURCE = (
     "    panel_positive_total = panel_positive_total + panel_entry\n"
     "rate = emission_total / unit_count\n"
     "report_text = f'Of {unit_count} markers, {panel_positive_total} carry the marker "
-    "at {rate:.6f}.'\n"
+    "at {rate}.'\n"
     "written_length = write_report(REPORT_PATH, report_text)\n"
     "print(report_text, end='')\n"
 )
@@ -4681,5 +4681,70 @@ def test_a_non_string_print_keyword_value_abstains() -> None:
     unsupported, states = _resolve(
         _v223_workflow(("print(report_text, end='')", "print(report_text, flush=True)"))
     )
+    assert unsupported
+    assert states == set()
+
+
+# v2.2.4: the v2.2.3 verification round's finding — the exact-numeric fold
+# trusted the names Fraction/Decimal without proving their origin.
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        ("from fractions import Fraction", "from math import gcd as Fraction"),
+        ("from fractions import Fraction\n", "def Fraction(a, b):\n    return a + b\n\n"),
+    ],
+)
+def test_a_shadowed_exact_numeric_constructor_abstains(mutation: tuple) -> None:
+    """``from math import gcd as Fraction`` flipped selector canonicity."""
+
+    base = (
+        "import csv\nimport math\nfrom fractions import Fraction\nfrom pathlib import Path\n\n"
+        "rows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n"
+        "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
+        "likelihood = math.prod(\n"
+        "    Fraction(99, 100) if int(item['call']) == int(item['founder']) else Fraction(1, 100)\n"
+        "    for item in panel\n"
+        ")\n"
+        "report = f'likelihood {likelihood}'\n"
+        "Path('results/report.md').write_text(report)\n"
+    )
+    source = base.replace(*mutation)
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()
+
+
+def test_the_dotted_stdlib_constructor_still_resolves() -> None:
+    source = (
+        "import csv\nimport math\nimport fractions\nfrom pathlib import Path\n\n"
+        "rows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n"
+        "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
+        "likelihood = math.prod(\n"
+        "    fractions.Fraction(99, 100) if int(item['call']) == int(item['founder'])\n"
+        "    else fractions.Fraction(1, 100)\n"
+        "    for item in panel\n"
+        ")\n"
+        "report = f'likelihood {likelihood}'\n"
+        "Path('results/report.md').write_text(report)\n"
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+def test_a_protected_module_name_rebinding_abstains() -> None:
+    source = (
+        "import csv\nimport math\nfrom pathlib import Path\n\n"
+        "math = None\n"
+        "rows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n"
+        "likelihood = sum(\n"
+        "    1 if int(row['call']) == int(row['founder']) else 0 for row in rows\n"
+        ")\n"
+        "report = f'likelihood {likelihood}'\n"
+        "Path('results/report.md').write_text(report)\n"
+    )
+    unsupported, states = _resolve(source)
     assert unsupported
     assert states == set()
