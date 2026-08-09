@@ -83,6 +83,33 @@ before, so the default-deny trust model is unchanged.
   readable right-hand side, a recognized ``zip`` pairing as a comprehension
   iterable, and integer-literal subscripts of a paired loop variable.
 
+v2.2.2 widens it by four more, on the same terms: one exact shape each, and
+anything outside that shape abstains exactly as it did before.
+
+- ``dict(row)`` in the element position of a reader or row-set comprehension
+  is the identity row rebuild, the same value ``{**row}`` already resolves
+  to. ``dict`` must be the builtin, which the builtin-shadowing ban already
+  guarantees, and the one argument must be the loop variable; a second
+  argument or any keyword is a different construction and stays opaque.
+- ``handle.close()`` on a name whose single binding in the whole module is
+  the modelled ``open()`` -- as an assignment or as a ``with`` target -- is
+  admitted as a bare expression statement and as an assignment right-hand
+  side, because it returns ``None`` and touches no row value. Only ``close``
+  is admitted: ``read`` and ``readlines`` deliver the file's contents and
+  would need the reader-chain semantics this form does not model.
+- A helper with exactly one plain parameter, whose body is an optional
+  docstring, then at most one single-assignment local, then one return, and
+  whose returned expression is a recognized recode or extraction over
+  ``param[COL]``, is a column-extraction helper. ``helper(row)`` in a column
+  position then reads that column, with the helper's parity, numeric proof,
+  and boolean taint folded in. Rebinding the parameter, a second parameter,
+  and every other body shape abstain as they did before.
+- ``A * FLAG + B * (1 - FLAG)`` joins ``A + (B - A) * FLAG`` as a canonical
+  arithmetic selector, with ``A`` the match value and ``B`` the mismatch
+  value. Both products must carry the same flag expression, the complement
+  must be exactly one minus that flag, and the canonicity rule over the
+  resolved constants is unchanged.
+
 Three belts run independently of the whitelist:
 
 - The emission scan walks the entire module tree for comparisons between two
@@ -218,7 +245,7 @@ def founder_orientation_dataflow_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-emission-dataflow",
-        "grammar_version": "2.2.1",
+        "grammar_version": "2.2.2",
         "trust_model": (
             "default deny: the trace holds an explicit whitelist of the statement and "
             "expression forms it models completely, and any form outside that whitelist "
@@ -248,6 +275,19 @@ def founder_orientation_dataflow_grammar(
             "Any other comparison between two bare names, "
             "anywhere, must have been recognized or the document abstains"
         ),
+        "column_extraction_helpers": (
+            "a helper with exactly one plain parameter whose body is an "
+            "optional docstring, then at most one single-assignment local "
+            "that does not rebind the parameter, then one return, and whose "
+            "returned expression is a recognized recode or extraction over "
+            "param[COL] with COL a string literal or a module constant, is a "
+            "column-extraction helper; helper(row) in a column position "
+            "reads that column with the helper's parity, numeric proof, and "
+            "boolean taint folded in, and a comparison inside such a helper "
+            "is marked recognized only when the trace actually classified "
+            "it; a second parameter, a keyword call, a rebound parameter, "
+            "and every other body shape abstain as before"
+        ),
         "canonical_selectors": (
             "a selector classifies only as an equality comparison whose match "
             "branch is a strictly larger proven numeric constant than its "
@@ -276,6 +316,10 @@ def founder_orientation_dataflow_grammar(
             "through a name single-assigned from it: <path-like>.read_text(...) "
             "whose keyword arguments are all string literals, followed by "
             ".splitlines(); every other argument construction is unchanged",
+            "close() with no argument on a name whose single binding in the whole "
+            "module is the modelled open(), as a bare expression statement or an "
+            "assignment right-hand side; every other file-handle method is "
+            "outside the whitelist",
         ],
         "module_constants": (
             "a module-level name assigned exactly once in the whole module to a "
@@ -309,6 +353,11 @@ def founder_orientation_dataflow_grammar(
             "with A and B resolved selector constants and FLAG a recognized "
             "emission comparison or a bool() or int() cast of one; the match "
             "branch is B and the mismatch branch is A",
+            "the multiply-complement form A * FLAG + B * (1 - FLAG), in that shape "
+            "and its commuted addend order, with A the match branch and B the "
+            "mismatch branch; both products must carry the same flag expression "
+            "and the complement must be exactly the literal or resolved-constant "
+            "one minus that flag",
         ],
         "accumulation_forms": [
             "sum, prod, math.prod, or math.fsum over a comprehension",
@@ -327,6 +376,7 @@ def founder_orientation_dataflow_grammar(
             "a two-element list or tuple literal indexed by x with a reversed domain",
             "a row-column comprehension applying any of the above",
             "a straight-line local helper applying any of the above",
+            "a one-parameter column-extraction helper applying any of the above to param[COL]",
             "a recognized elementwise accumulation loop applying any of the above",
         ],
         "identity_preserving_steps": [
@@ -340,13 +390,15 @@ def founder_orientation_dataflow_grammar(
                 "strictly left to right so a later entry overrides an earlier one, "
                 "and containing no call outside the recode and extraction vocabulary"
             ),
+            "dict(row) on the loop variable, the identity row rebuild, with dict "
+            "the builtin and exactly that one argument",
         ],
         "whitelisted_statements": [
             "import and from-import, recorded in an import table",
             "assignment to exactly one plain name from a fully readable expression",
             "function definition subject to the helper rules",
             "expression statement only as a docstring, a recognized report write, "
-            "or the recognized print-read form",
+            "the recognized print-read form, or close() on a modelled file handle",
             "with only in the modelled open()-as pattern",
             "if only as the __main__ guard",
             "for only in the recognized counter and accumulator forms",
@@ -444,6 +496,12 @@ def founder_orientation_dataflow_grammar(
             "constant nor a pairable column-values list",
             "a pairing of column-values lists over different named row sets, or "
             "over a filtered comprehension, abstains",
+            "a file handle admits close() and nothing else, and only through a "
+            "name the modelled open() bound exactly once",
+            "a one-parameter column-extraction helper resolves only in its exact "
+            "body shape; a rebound parameter and a second local abstain",
+            "the multiply-complement selector requires one and the same flag "
+            "expression in both products and an exact one-minus complement",
         ],
         "nomenclature_authority": "none",
     }
@@ -590,6 +648,7 @@ class _ModuleModel:
     constants: dict[str, int | float | str]
     single_assignment: frozenset[str]
     read_chain_call_ids: frozenset[int]
+    open_handle_names: frozenset[str]
 
 
 @dataclass
@@ -603,6 +662,10 @@ class _TraceContext:
     recognized_loops: set[int] = field(default_factory=set)
     recognized_compares: set[int] = field(default_factory=set)
     recognized_pairings: set[int] = field(default_factory=set)
+    # The second comparison node a multiply-complement selector writes, keyed
+    # by the first. The two are the same flag; they are recognized together,
+    # and only when the trace actually classifies the first.
+    selector_siblings: dict[int, tuple[ast.Compare, ...]] = field(default_factory=dict)
     pair_paths: dict[str, tuple[_Path, _Path]] = field(default_factory=dict)
     tagged_names: set[str] = field(default_factory=set)
     unresolved: bool = False
@@ -1199,7 +1262,7 @@ def _helper_selector_form(
     still what the comparison reads.
     """
 
-    if not _straight_line_helper(function):
+    if not _straight_line_helper(function, ctx):
         return None
     if (
         function.args.posonlyargs
@@ -1309,6 +1372,10 @@ def _flag_unrecognized_selectors(
     """
 
     recognized = {id(item) for item in selectors}
+    for item in selectors:
+        # A multiply-complement selector's second flag node is the same
+        # comparison as its first, which this list already holds.
+        recognized.update(id(sibling) for sibling in ctx.selector_siblings.get(id(item), ()))
     for node in ast.walk(element):
         if not isinstance(node, ast.Compare) or id(node) in recognized:
             continue
@@ -1404,10 +1471,10 @@ def _classify_operand_paths(
         return
     if left_source[0] == right_source[0]:
         # A column compared with itself carries no cross-panel orientation.
-        ctx.recognized_compares.add(id(compare))
+        _recognize_compare(compare, ctx)
         return
     parity = (left.parity + left_source[1] + right.parity + right_source[1]) % 2
-    ctx.recognized_compares.add(id(compare))
+    _recognize_compare(compare, ctx)
     classifications.append(
         _Classification(
             node=span_node,
@@ -1416,6 +1483,19 @@ def _classify_operand_paths(
             dead=dead,
         )
     )
+
+
+def _recognize_compare(compare: ast.Compare, ctx: _TraceContext) -> None:
+    """Mark a classified comparison, and the sibling its selector wrote beside it.
+
+    A multiply-complement selector may write its flag twice. The second node
+    is the same comparison, so it is recognized exactly when the first is
+    classified and never on its own.
+    """
+
+    ctx.recognized_compares.add(id(compare))
+    for sibling in ctx.selector_siblings.get(id(compare), ()):
+        ctx.recognized_compares.add(id(sibling))
 
 
 def _selector_comparisons(element: ast.expr, ctx: _TraceContext) -> list[ast.Compare]:
@@ -1500,17 +1580,33 @@ def _flag_comparison(
 def _arithmetic_selector(
     node: ast.expr, ctx: _TraceContext, flag: tuple[str, ast.Compare] | None
 ) -> tuple[ast.Compare, ast.expr, ast.expr] | None:
-    """``A + (B - A) * FLAG``, the one arithmetic selector encoding modelled.
+    """The arithmetic selector encodings modelled: two shapes, both exact.
 
-    The shape is exact. The mismatch constant must stand in both of its
-    positions and resolve to the same value, so the expression provably
-    evaluates to ``A`` when the flag is false and to ``B`` when it is true.
-    Nothing else about the arithmetic is folded; the branch order is judged
-    by the unchanged canonicity rule over the resolved constants.
+    ``A + (B - A) * FLAG`` evaluates to ``A`` when the flag is false and to
+    ``B`` when it is true; ``A * FLAG + B * (1 - FLAG)`` evaluates to ``A``
+    on a match and to ``B`` on a mismatch. Nothing else about the arithmetic
+    is folded; the branch order is judged by the unchanged canonicity rule
+    over the resolved constants.
     """
 
     if not isinstance(node, ast.BinOp) or not isinstance(node.op, ast.Add):
         return None
+    shifted = _shifted_difference_selector(node, ctx, flag)
+    if shifted is not None:
+        return shifted
+    return _multiply_complement_selector(node, ctx, flag)
+
+
+def _shifted_difference_selector(
+    node: ast.BinOp, ctx: _TraceContext, flag: tuple[str, ast.Compare] | None
+) -> tuple[ast.Compare, ast.expr, ast.expr] | None:
+    """``A + (B - A) * FLAG``, in exactly that shape.
+
+    The mismatch constant must stand in both of its positions and resolve to
+    the same value, so the expression provably evaluates to ``A`` when the
+    flag is false and to ``B`` when it is true.
+    """
+
     product = node.right
     if not isinstance(product, ast.BinOp) or not isinstance(product.op, ast.Mult):
         return None
@@ -1530,6 +1626,70 @@ def _arithmetic_selector(
     if compare is None:
         return None
     return compare, match_branch, mismatch_branch
+
+
+def _multiply_complement_selector(
+    node: ast.BinOp, ctx: _TraceContext, flag: tuple[str, ast.Compare] | None
+) -> tuple[ast.Compare, ast.expr, ast.expr] | None:
+    """``A * FLAG + B * (1 - FLAG)``, in that shape and its commuted addend order.
+
+    One product carries the flag and the other its complement, so exactly one
+    addend survives: ``A`` when the comparison holds, ``B`` when it does not.
+    The two products must carry the same flag expression, which is what makes
+    the two addends exclusive; two structurally different flags are two
+    different selectors added together, and this reads none of them. The
+    complement must be exactly one minus that flag, with the one a literal or
+    a resolved module constant.
+    """
+
+    for first, second in ((node.left, node.right), (node.right, node.left)):
+        match = _flag_product(first, ctx, flag, complemented=False)
+        mismatch = _flag_product(second, ctx, flag, complemented=True)
+        if match is None or mismatch is None:
+            continue
+        match_branch, match_carrier, match_compare = match
+        mismatch_branch, mismatch_carrier, mismatch_compare = mismatch
+        if ast.dump(match_carrier) != ast.dump(mismatch_carrier):
+            continue
+        if match_compare is not mismatch_compare:
+            # The flag is written out twice. The two comparison nodes are one
+            # flag, so they are recognized together -- but only if and when
+            # the trace actually classifies this selector.
+            ctx.selector_siblings[id(match_compare)] = (mismatch_compare,)
+        return match_compare, match_branch, mismatch_branch
+    return None
+
+
+def _flag_product(
+    node: ast.expr,
+    ctx: _TraceContext,
+    flag: tuple[str, ast.Compare] | None,
+    *,
+    complemented: bool,
+) -> tuple[ast.expr, ast.expr, ast.Compare] | None:
+    """``A * FLAG`` or ``B * (1 - FLAG)``: the branch value, the flag, its comparison.
+
+    The constant stands to the left of the multiply in both products. That is
+    the shape this form is written in, and holding to it keeps the two
+    positions distinguishable without folding any arithmetic.
+    """
+
+    if not isinstance(node, ast.BinOp) or not isinstance(node.op, ast.Mult):
+        return None
+    branch = node.left
+    carrier: ast.expr = node.right
+    if complemented:
+        if not (isinstance(carrier, ast.BinOp) and isinstance(carrier.op, ast.Sub)):
+            return None
+        if not _is_one(carrier.left, ctx.constants):
+            return None
+        carrier = carrier.right
+    if _selector_constant(branch, ctx.constants) is None:
+        return None
+    compare = _flag_comparison(carrier, ctx, flag)
+    if compare is None:
+        return None
+    return branch, carrier, compare
 
 
 def _is_canonical_selector(
@@ -1854,6 +2014,11 @@ def _call_parity(
                     )
         return None
     if name in ctx.functions:
+        extraction = _column_extraction_helper_parity(
+            ctx.functions[name], call, loop_var, carriers, env, ctx
+        )
+        if extraction is not None:
+            return extraction
         return _helper_parity(ctx.functions[name], call, loop_var, carriers, env, ctx)
     return None
 
@@ -1862,6 +2027,111 @@ def _is_builtin_name(name: str, ctx: _TraceContext) -> bool:
     """Whether a builtin name still means the builtin in this module."""
 
     return name not in ctx.functions and name not in ctx.model.imports
+
+
+def _column_extraction_helper_parity(
+    function: ast.FunctionDef,
+    call: ast.Call,
+    loop_var: str | None,
+    carriers: dict[str, _Path],
+    env: dict[str, _Value],
+    ctx: _TraceContext,
+) -> _Path | None:
+    """``extract(row)``: a one-parameter helper that reads one column of the row.
+
+    Pulling ``int(row[COLUMN])`` out into a named helper is the most ordinary
+    way to write a per-column read, and it is invisible to the recode rule
+    above, which reads helpers applied to a column *value* rather than to the
+    row. The shape recognized here is exact: exactly one plain parameter,
+    exactly one positional argument that is the iterated row itself, and a
+    body of an optional docstring, then at most one single-assignment local
+    that does not rebind the parameter, then one return. The returned
+    expression is read by the ordinary operand-path rule with the parameter
+    standing in for the row, so it admits exactly the recodes and extractions
+    a comprehension element admits, module constants and all.
+
+    ``None`` means the shape does not apply and the ordinary helper rule
+    answers instead; the unresolved marker means it applied and the body
+    touched the row through something unreadable.
+    """
+
+    if loop_var is None or loop_var in ctx.pair_paths:
+        # A paired loop variable is a tuple of two column values, not a row,
+        # so ``param[COL]`` inside the helper would not be a column read.
+        return None
+    if len(call.args) != 1 or call.keywords:
+        return None
+    argument = call.args[0]
+    if not (isinstance(argument, ast.Name) and argument.id == loop_var):
+        return None
+    if argument.id in carriers:
+        # The name carries a column value, not a row; the recode rule reads it.
+        return None
+    if (
+        function.args.posonlyargs
+        or function.args.kwonlyargs
+        or function.args.vararg
+        or function.args.kwarg
+        or function.args.defaults
+        or len(function.args.args) != 1
+    ):
+        return None
+    if not _straight_line_helper(function, ctx):
+        return None
+    parameter = function.args.args[0].arg
+    statements = [
+        item
+        for item in _flatten_statements(function.body)
+        if not (isinstance(item, ast.Expr) and isinstance(item.value, ast.Constant))
+    ]
+    local: ast.Assign | None = None
+    if len(statements) == 2:
+        first = statements[0]
+        if not (
+            isinstance(first, ast.Assign)
+            and len(first.targets) == 1
+            and isinstance(first.targets[0], ast.Name)
+            and first.targets[0].id != parameter
+        ):
+            # A rebound parameter makes the return read a value the caller
+            # never passed, and a second local is a body this shape does not
+            # describe.
+            return None
+        local = first
+        statements = statements[1:]
+    if len(statements) != 1 or not isinstance(statements[0], ast.Return):
+        return None
+    returned = statements[0].value
+    if returned is None:
+        return None
+    if ctx.depth >= _MAX_CALL_DEPTH or function.name in ctx.visiting:
+        return _UNRESOLVED
+    ctx.depth += 1
+    ctx.visiting.add(function.name)
+    try:
+        locals_: dict[str, _Path] = {}
+        if local is not None:
+            target = local.targets[0]
+            assert isinstance(target, ast.Name)
+            bound = _column_parity(local.value, loop_var=parameter, carriers={}, env=env, ctx=ctx)
+            if bound is None:
+                return None
+            if not bound.resolved:
+                return _UNRESOLVED
+            locals_[target.id] = bound
+        result = _column_parity(returned, loop_var=parameter, carriers=locals_, env=env, ctx=ctx)
+    finally:
+        ctx.depth -= 1
+        ctx.visiting.discard(function.name)
+    if result is None:
+        # The body reads no column of the row at all, so this call is not a
+        # column extraction.
+        return None
+    if not result.resolved:
+        return _UNRESOLVED
+    return _Path(
+        str(result.column), result.parity % 2, numeric=result.numeric, boolean=result.boolean
+    )
 
 
 def _helper_parity(
@@ -1907,7 +2177,7 @@ def _helper_parity(
         # A helper carrying no column, or two of them, is not a recode of one
         # panel value; abstain rather than pick a side.
         return None if not carried else _UNRESOLVED
-    if not _straight_line_helper(function):
+    if not _straight_line_helper(function, ctx):
         return _UNRESOLVED
     ctx.depth += 1
     ctx.visiting.add(function.name)
@@ -1951,7 +2221,7 @@ def _helper_parity(
         ctx.visiting.discard(function.name)
 
 
-def _straight_line_helper(function: ast.FunctionDef) -> bool:
+def _straight_line_helper(function: ast.FunctionDef, ctx: _TraceContext) -> bool:
     """A helper body of assignments and one closing return, with no side effects."""
 
     for node in ast.walk(function):
@@ -1960,8 +2230,14 @@ def _straight_line_helper(function: ast.FunctionDef) -> bool:
     for statement in _flatten_statements(function.body):
         if isinstance(statement, ast.Expr) and not isinstance(statement.value, ast.Constant):
             # A bare expression statement exists for its side effect; only a
-            # docstring is inert.
-            return False
+            # docstring and the modelled handle close are inert. Closing the
+            # staged input handle returns None and reads no row value, and it
+            # is where the loader idiom puts it.
+            if not (
+                isinstance(statement.value, ast.Call)
+                and _is_handle_close_call(statement.value, ctx)
+            ):
+                return False
         if not isinstance(statement, ast.Assign | ast.Return | ast.Pass | ast.Expr):
             return False
     return True
@@ -2292,6 +2568,8 @@ def _row_element_value(
 
     if isinstance(element, ast.Name) and element.id == loop_var:
         return _Rows(source.overrides, source.default_identity, iterator=False)
+    if _is_identity_row_copy(element, loop_var, ctx):
+        return _Rows(source.overrides, source.default_identity, iterator=False)
     if not isinstance(element, ast.Dict):
         return _OPAQUE
     built: dict[str, tuple[str, int, bool] | None] = {}
@@ -2342,6 +2620,29 @@ def _row_element_value(
     )
 
 
+def _is_identity_row_copy(element: ast.expr, loop_var: str, ctx: _TraceContext) -> bool:
+    """``dict(row)``: the identity row rebuild, exactly as ``{**row}`` rebuilds it.
+
+    ``dict`` of one mapping copies every entry and changes none of them, so
+    the rebuilt row carries the source's provenance unchanged. The
+    builtin-shadowing ban already guarantees the name is the builtin; the
+    check is repeated here so the shape stands on its own. A second
+    argument, any keyword, or an argument that is not the loop variable is a
+    different construction and stays opaque.
+    """
+
+    return (
+        isinstance(element, ast.Call)
+        and isinstance(element.func, ast.Name)
+        and element.func.id == "dict"
+        and _is_builtin_name("dict", ctx)
+        and len(element.args) == 1
+        and not element.keywords
+        and isinstance(element.args[0], ast.Name)
+        and element.args[0].id == loop_var
+    )
+
+
 def _bind_call(
     function: ast.FunctionDef,
     call: ast.Call,
@@ -2387,7 +2688,7 @@ def _bound_return_value(
 
     if ctx.depth >= _MAX_CALL_DEPTH or function.name in ctx.visiting:
         return _OPAQUE
-    if not _straight_line_helper(function):
+    if not _straight_line_helper(function, ctx):
         return _OPAQUE
     callee_env = _bind_call(function, call, env, ctx)
     if callee_env is None:
@@ -2604,6 +2905,7 @@ def _module_model(tree: ast.Module) -> _ModuleModel:
         constants=_module_constants(tree, single_assignment),
         single_assignment=single_assignment,
         read_chain_call_ids=_read_text_chain_call_ids(tree),
+        open_handle_names=_open_handle_names(tree, functions, imports, single_assignment),
     )
 
 
@@ -2674,6 +2976,69 @@ def _literal_value(node: ast.expr) -> int | float | str | None:
 
 def _constant_name_value(node: ast.expr, constants: dict[str, int | float | str]) -> object | None:
     return constants.get(node.id) if isinstance(node, ast.Name) else None
+
+
+def _is_open_call(
+    node: ast.expr, functions: dict[str, ast.FunctionDef], imports: dict[str, str]
+) -> bool:
+    """The ``open()`` constructions this trace models, as call or context manager."""
+
+    if not isinstance(node, ast.Call):
+        return False
+    if isinstance(node.func, ast.Name) and node.func.id == "open":
+        return node.func.id not in functions and node.func.id not in imports
+    return isinstance(node.func, ast.Attribute) and node.func.attr == "open"
+
+
+def _open_handle_names(
+    tree: ast.Module,
+    functions: dict[str, ast.FunctionDef],
+    imports: dict[str, str],
+    single_assignment: frozenset[str],
+) -> frozenset[str]:
+    """Names whose one binding in the whole module is a modelled ``open()``.
+
+    A file handle is admitted as a receiver for exactly one method, so the
+    name has to denote one handle for the whole run. Requiring the single
+    binding keeps that decidable without an execution order: a name bound a
+    second time anywhere, under any form, is not a handle here.
+    """
+
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and _is_open_call(node.value, functions, imports)
+        ):
+            names.add(node.targets[0].id)
+        elif (
+            isinstance(node, ast.withitem)
+            and isinstance(node.optional_vars, ast.Name)
+            and _is_open_call(node.context_expr, functions, imports)
+        ):
+            names.add(node.optional_vars.id)
+    return frozenset(names & single_assignment)
+
+
+def _is_handle_close_call(call: ast.Call, ctx: _TraceContext) -> bool:
+    """``handle.close()`` on a name the modelled ``open()`` pattern bound.
+
+    Closing a staged input handle returns ``None`` and reads no row value, so
+    the result is opaque and nothing this trace follows can flow through it.
+    Only ``close`` is admitted; ``read`` and ``readlines`` deliver the file's
+    contents and would need the reader-chain semantics this form omits.
+    """
+
+    return (
+        isinstance(call.func, ast.Attribute)
+        and call.func.attr == "close"
+        and not call.args
+        and not call.keywords
+        and isinstance(call.func.value, ast.Name)
+        and call.func.value.id in ctx.model.open_handle_names
+    )
 
 
 def _is_read_text_call(node: ast.expr, path_names: set[str]) -> bool:
@@ -3034,11 +3399,7 @@ def _loop_body_violation(loop: ast.For, ctx: _TraceContext) -> bool:
 def _is_modelled_context(node: ast.expr, ctx: _TraceContext) -> bool:
     """The ``open()``-as pattern, the only context manager this trace models."""
 
-    if not isinstance(node, ast.Call):
-        return False
-    if isinstance(node.func, ast.Name) and node.func.id == "open" and _is_builtin_name("open", ctx):
-        return True
-    return isinstance(node.func, ast.Attribute) and node.func.attr == "open"
+    return _is_open_call(node, ctx.functions, ctx.model.imports)
 
 
 def _expression_statement_violation(statement: ast.Expr, ctx: _TraceContext) -> bool:
@@ -3058,6 +3419,10 @@ def _expression_statement_violation(statement: ast.Expr, ctx: _TraceContext) -> 
             return True
         return False
     if isinstance(value, ast.Call) and _is_print_read(value, ctx):
+        return False
+    if isinstance(value, ast.Call) and _is_handle_close_call(value, ctx):
+        # Closing the staged input handle, the one file-handle method this
+        # trace models. It computes nothing and returns None.
         return False
     if (
         isinstance(value, ast.Call)
@@ -3255,6 +3620,8 @@ def _recognized_call(call: ast.Call, ctx: _TraceContext) -> bool:
         # ``.splitlines()`` that closes it. The pre-pass proved the receiver
         # is a filesystem path under last-binding-wins tracking, so this reads
         # a staged file into strings and computes nothing else.
+        return True
+    if _is_handle_close_call(call, ctx):
         return True
     if name in model.functions:
         return True

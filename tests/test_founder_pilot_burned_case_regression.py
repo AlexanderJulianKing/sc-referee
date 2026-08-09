@@ -1,23 +1,27 @@
-"""Permanent regression: the founder pilot-a burned cases.
+"""Permanent regression: the founder pilot burned cases.
 
-The three cases in the ``founder-orientation-before-hmm-emission-v2.1.5``
-pilot-a lane are answer-visible development evidence: their scientific labels
-were exposed when the pilot was scored, so they are permanently
-qualification-ineligible. They are retained here as the regression fixtures
-for the discovered miss. Under v2.1.5 the detector abstained on all three,
-including the error-bearing case, because the blind author wrote five
-ordinary idioms the whitelist did not model. v2.2.0 models them.
+Two blind pilots have run against this recognizer, and both discovered a
+miss. The three cases of the ``...-v2.1.5`` pilot-a lane and the three of the
+``...-v2.2.1`` pilot-b lane are answer-visible development evidence: their
+scientific labels were exposed when each pilot was scored, so they are
+permanently qualification-ineligible. They are retained here as the
+regression fixtures for the two discovered misses. Under v2.1.5 the detector
+abstained on all three pilot-a cases, including the error-bearing one,
+because the blind author wrote five ordinary idioms the whitelist did not
+model; v2.2.0 models them. Under v2.2.1 it abstained on all three pilot-b
+cases for the same kind of reason, across four more idioms; v2.2.2 models
+those.
 
-These assertions are permanent, and they are asymmetric on purpose. The
+These assertions are permanent, and they are asymmetric on purpose. Each
 error-bearing case must localize: the resolver must read the repaired
 orientation and the adapter must return an applicable observation carrying
-the repaired operand. The two controls must never carry the repaired operand,
-whatever else they do. A control is allowed to abstain and allowed to read
+the repaired operand. Every control must never carry the repaired operand,
+whatever else it does. A control is allowed to abstain and allowed to read
 the direct orientation; it is never allowed to raise the false alarm.
 
-The case documents are read from the lane directory by their real paths, so
+The case documents are read from the lane directories by their real paths, so
 this file tests the released recognizer against the exact bytes the blind
-author wrote.
+authors wrote.
 """
 
 from __future__ import annotations
@@ -50,6 +54,10 @@ REPAIRED_OPERAND = "repair_ril_founder_orientation_before_hmm_emission"
 
 LANE = Path("evaluation/qualification/founder-orientation-before-hmm-emission-v2.1.5-lane/pilot-a")
 CASES = LANE / "authoring/cases"
+LANE_B = Path(
+    "evaluation/qualification/founder-orientation-before-hmm-emission-v2.2.1-lane/pilot-b"
+)
+CASES_B = LANE_B / "authoring/cases"
 WORKFLOW_PATH = "workflow/analysis.py"
 REPORT_PATH = "results/report.md"
 
@@ -57,7 +65,12 @@ ERROR_BEARING = "82083c85adcd805c3dcc"
 CORRECTED_TWIN = "34e2f37daaf6bd8bc45c"
 HARD_NEGATIVE = "a6f2518e34bfae4a356c"
 
+ERROR_BEARING_B = "a75ef9767fe5d844013c"
+CORRECTED_TWIN_B = "a2b7f1909259491efe88"
+HARD_NEGATIVE_B = "2d54a3f3add5ee29ce6d"
+
 CONTROLS = (CORRECTED_TWIN, HARD_NEGATIVE)
+CONTROLS_B = (CORRECTED_TWIN_B, HARD_NEGATIVE_B)
 
 
 def _inspection_context(report: bytes, workflow: bytes) -> FrozenInspectionContext:
@@ -160,8 +173,8 @@ def _inspection_context(report: bytes, workflow: bytes) -> FrozenInspectionConte
     )
 
 
-def _case_context(project_root: Path, slug: str) -> FrozenInspectionContext:
-    case = project_root / CASES / slug
+def _case_context(project_root: Path, slug: str, cases: Path = CASES) -> FrozenInspectionContext:
+    case = project_root / cases / slug
     return _inspection_context(
         (case / REPORT_PATH).read_bytes(), (case / WORKFLOW_PATH).read_bytes()
     )
@@ -277,6 +290,114 @@ def test_the_controls_never_produce_a_repaired_reading(project_root: Path, slug:
 @pytest.mark.parametrize("slug", [ERROR_BEARING, *CONTROLS])
 def test_every_pilot_case_answers_deterministically(project_root: Path, slug: str) -> None:
     context = _case_context(project_root, slug)
+    first = _resolution(context)
+    second = _resolution(context)
+    assert first.state == second.state
+    assert first.orientation == second.orientation
+    assert first.operand_value == second.operand_value
+    assert _observation(context) == _observation(context)
+
+
+# Pilot b, run blind against v2.2.1 and burned by the same scoring. Its
+# error-bearing case wrote four ordinary idioms the v2.2.1 whitelist did not
+# model: the row copy ``dict(entry)``, ``handle.close()``, two one-parameter
+# column-extraction helpers, and the multiply-complement selector
+# ``A * FLAG + B * (1 - FLAG)``. v2.2.2 models all four.
+
+
+def test_the_pilot_b_lane_labels_still_say_what_these_cases_are(project_root: Path) -> None:
+    """The roles asserted below are the lane's own frozen scientific labels."""
+
+    ledger = json.loads(
+        (project_root / LANE_B / "SCIENTIFIC_LABEL_LEDGER.json").read_text(encoding="utf-8")
+    )
+    roles = {
+        entry["case_id"].removeprefix("case:"): entry["case_role"] for entry in ledger["entries"]
+    }
+    assert roles[ERROR_BEARING_B] == "error_bearing"
+    assert roles[CORRECTED_TWIN_B] == "corrected_twin"
+    assert roles[HARD_NEGATIVE_B] == "hard_negative"
+
+
+def test_the_pilot_b_error_bearing_case_localizes_the_repaired_orientation(
+    project_root: Path,
+) -> None:
+    """The miss v2.2.1 recorded on this lane, closed.
+
+    The workflow loads its table through a helper that copies each reader row
+    with ``dict(entry)`` and closes the handle, reads each column through a
+    one-parameter helper, and builds the panel column as ``PANEL_CODE_TOP -
+    staged_value``. Exactly one operand path carries that involution, so the
+    emission accumulates over the complemented panel while the report
+    describes the panel as staged.
+    """
+
+    context = _case_context(project_root, ERROR_BEARING_B, CASES_B)
+    resolution = _resolution(context)
+    assert resolution.state == "unique"
+    assert resolution.orientation == "repaired"
+    assert resolution.operand_value == REPAIRED_OPERAND
+    assert resolution.source_path == WORKFLOW_PATH
+    applicability, operand = _observation(context)
+    assert applicability == "applicable"
+    assert operand == REPAIRED_OPERAND
+
+
+def test_the_pilot_b_corrected_twin_carries_no_repaired_operand(project_root: Path) -> None:
+    """The twin reads both columns as staged, so a repair reading is a false alarm.
+
+    It is the error-bearing workflow with the involution and the two ``int``
+    casts removed, so both operand paths are identity reads of raw column
+    strings. Direct and clean abstention are both sound answers; under
+    v2.2.2 the answer is direct.
+    """
+
+    context = _case_context(project_root, CORRECTED_TWIN_B, CASES_B)
+    resolution = _resolution(context)
+    assert resolution.orientation in {None, "direct"}
+    assert resolution.operand_value != REPAIRED_OPERAND
+    applicability, operand = _observation(context)
+    assert operand != REPAIRED_OPERAND
+    if applicability == "applicable":
+        assert operand == DIRECT_OPERAND
+
+
+def test_the_pilot_b_hard_negative_stays_clean(project_root: Path) -> None:
+    """No false alarm on the hard negative, whichever way it resolves.
+
+    This workflow carries a complemented reference copy beside the emission
+    accumulation as a declared orientation control, and the report says the
+    complement never enters the emission. It also reads its columns as
+    ``rows[index][COLUMN]``, which is a tagged row set outside its permitted
+    positions, so the current answer is an abstention. That is clean, and so
+    is a direct reading; a repaired operand is not. The assertion is
+    therefore on the absence of the false alarm rather than on a particular
+    state.
+    """
+
+    context = _case_context(project_root, HARD_NEGATIVE_B, CASES_B)
+    resolution = _resolution(context)
+    assert resolution.operand_value != REPAIRED_OPERAND
+    applicability, operand = _observation(context)
+    assert operand != REPAIRED_OPERAND
+    assert applicability != "applicable" or operand == DIRECT_OPERAND
+
+
+@pytest.mark.parametrize("slug", CONTROLS_B)
+def test_the_pilot_b_controls_never_produce_a_repaired_reading(
+    project_root: Path, slug: str
+) -> None:
+    """One rule over both controls, stated once so no future version loses it."""
+
+    context = _case_context(project_root, slug, CASES_B)
+    assert _resolution(context).orientation != "repaired"
+    _applicability, operand = _observation(context)
+    assert operand != REPAIRED_OPERAND
+
+
+@pytest.mark.parametrize("slug", [ERROR_BEARING_B, *CONTROLS_B])
+def test_every_pilot_b_case_answers_deterministically(project_root: Path, slug: str) -> None:
+    context = _case_context(project_root, slug, CASES_B)
     first = _resolution(context)
     second = _resolution(context)
     assert first.state == second.state

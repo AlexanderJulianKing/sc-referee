@@ -3780,3 +3780,369 @@ def test_a_chained_range_check_filter_still_resolves() -> None:
     unsupported, states = _resolve(source)
     assert not unsupported
     assert states == {"repaired"}
+
+
+# v2.2.2: the pilot-b coverage extensions.
+#
+# The fixture below is the pilot-b error-bearing workflow's shape, reduced to
+# what the four new forms need: a loader that opens a handle, reads it through
+# a ``dict(row)`` rebuild and closes it; two one-parameter helpers that each
+# extract one column, one of them through the involution; and a two-parameter
+# selector helper whose return is the multiply-complement encoding. Every
+# boundary test below is one edit away from it.
+
+_V222_SOURCE = (
+    "import csv\n"
+    "import pathlib\n"
+    "\n"
+    "DATA_PATH = pathlib.Path('inputs/markers.csv')\n"
+    "CALL_COLUMN = 'call'\n"
+    "FOUNDER_COLUMN = 'founder'\n"
+    "PANEL_BASELINE = 1\n"
+    "SELECTOR_MATCH = 1\n"
+    "SELECTOR_MISMATCH = 0\n"
+    "\n"
+    "\n"
+    "def load_table(source_path):\n"
+    "    handle = source_path.open('r', encoding='ascii', newline='')\n"
+    "    reader = csv.DictReader(handle)\n"
+    "    staged_rows = [dict(entry) for entry in reader]\n"
+    "    closed = handle.close()\n"
+    "    return staged_rows\n"
+    "\n"
+    "\n"
+    "def observed_state(entry):\n"
+    "    return int(entry[CALL_COLUMN])\n"
+    "\n"
+    "\n"
+    "def panel_state(entry):\n"
+    "    staged_value = int(entry[FOUNDER_COLUMN])\n"
+    "    return PANEL_BASELINE - staged_value\n"
+    "\n"
+    "\n"
+    "def agreement_selector(observed_value, reference_value):\n"
+    "    match_flag = observed_value == reference_value\n"
+    "    return SELECTOR_MATCH * match_flag + SELECTOR_MISMATCH * (1 - match_flag)\n"
+    "\n"
+    "\n"
+    "rows = load_table(DATA_PATH)\n"
+    "total = 0\n"
+    "for record in rows:\n"
+    "    total = total + agreement_selector(observed_state(record), panel_state(record))\n"
+    "n = len(rows)\n"
+    "rate = total / n\n"
+    "report = f'Of {n} markers, {total} agree at {rate:.6f}.'\n"
+    "pathlib.Path('results/report.md').write_text(report)\n"
+)
+
+
+def _v222_workflow(*replacements: tuple[str, str]) -> str:
+    source = _V222_SOURCE
+    for old, new in replacements:
+        assert old in source, old
+        source = source.replace(old, new)
+    return source
+
+
+def test_the_v222_extensions_resolve_together() -> None:
+    """All four forms in one workflow, in the pilot-b shape."""
+
+    unsupported, states = _resolve(_v222_workflow())
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+def test_the_v222_workflow_without_the_involution_reads_direct() -> None:
+    """The same workflow comparing both columns as staged."""
+
+    unsupported, states = _resolve(
+        _v222_workflow(("    return PANEL_BASELINE - staged_value\n", "    return staged_value\n"))
+    )
+    assert not unsupported
+    assert states == {"direct"}
+
+
+# Extension one: the identity row copy.
+
+
+def test_a_dict_row_copy_with_a_second_entry_abstains() -> None:
+    """``dict(row)`` is the identity rebuild; ``dict(row, extra=...)`` is not."""
+
+    unsupported, states = _resolve(
+        _v222_workflow(
+            ("dict(entry) for entry in reader", "dict(entry, call='1') for entry in reader")
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_dict_copy_of_something_other_than_the_loop_variable_abstains() -> None:
+    """The one argument must be the row the comprehension is iterating."""
+
+    unsupported, states = _resolve(
+        _v222_workflow(("dict(entry) for entry in reader", "dict(source_path) for entry in reader"))
+    )
+    assert unsupported
+    assert states == set()
+
+
+# Extension two: the file-handle close.
+
+
+def test_a_bare_handle_close_statement_resolves() -> None:
+    """``close`` is admitted as a statement as well as an assignment source."""
+
+    unsupported, states = _resolve(
+        _v222_workflow(("    closed = handle.close()\n", "    handle.close()\n"))
+    )
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+def test_a_handle_close_inside_a_with_block_resolves() -> None:
+    """The ``with``-``as`` target is a modelled handle binding too."""
+
+    loader = (
+        "def load_table(source_path):\n"
+        "    with source_path.open('r', encoding='ascii', newline='') as handle:\n"
+        "        reader = csv.DictReader(handle)\n"
+        "        staged_rows = [dict(entry) for entry in reader]\n"
+        "        handle.close()\n"
+        "    return staged_rows\n"
+    )
+    original = (
+        "def load_table(source_path):\n"
+        "    handle = source_path.open('r', encoding='ascii', newline='')\n"
+        "    reader = csv.DictReader(handle)\n"
+        "    staged_rows = [dict(entry) for entry in reader]\n"
+        "    closed = handle.close()\n"
+        "    return staged_rows\n"
+    )
+    unsupported, states = _resolve(_v222_workflow((original, loader)))
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+def test_close_on_a_receiver_the_open_pattern_never_bound_abstains() -> None:
+    """A handle is a name the modelled ``open()`` bound, and nothing else."""
+
+    unsupported, states = _resolve(
+        _v222_workflow(
+            (
+                "    handle = source_path.open('r', encoding='ascii', newline='')\n",
+                "    handle = source_path\n",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_handle_method_other_than_close_abstains() -> None:
+    """``read`` and ``readlines`` deliver contents; they are not modelled."""
+
+    unsupported, states = _resolve(
+        _v222_workflow(("closed = handle.close()", "closed = handle.readlines()"))
+    )
+    assert unsupported
+    assert states == set()
+
+
+# Extension three: the one-parameter column-extraction helper.
+
+
+def test_a_column_extraction_helper_with_two_locals_abstains() -> None:
+    """The body is one optional local and one return, in that shape only."""
+
+    unsupported, states = _resolve(
+        _v222_workflow(
+            (
+                "    staged_value = int(entry[FOUNDER_COLUMN])\n"
+                "    return PANEL_BASELINE - staged_value\n",
+                "    staged_value = int(entry[FOUNDER_COLUMN])\n"
+                "    flipped_value = PANEL_BASELINE - staged_value\n"
+                "    return flipped_value\n",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_column_extraction_helper_that_rebinds_its_parameter_abstains() -> None:
+    """A rebound parameter makes the return read a value the caller never sent."""
+
+    unsupported, states = _resolve(
+        _v222_workflow(
+            (
+                "    staged_value = int(entry[FOUNDER_COLUMN])\n"
+                "    return PANEL_BASELINE - staged_value\n",
+                "    entry = dict(entry)\n    return PANEL_BASELINE - int(entry[FOUNDER_COLUMN])\n",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_one_parameter_helper_returning_no_column_abstains() -> None:
+    """A helper that reads no column of the row it was handed is not an extraction."""
+
+    unsupported, states = _resolve(
+        _v222_workflow(
+            (
+                "    staged_value = int(entry[FOUNDER_COLUMN])\n"
+                "    return PANEL_BASELINE - staged_value\n",
+                "    return PANEL_BASELINE\n",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_second_parameter_leaves_the_extraction_helper_unrecognized() -> None:
+    """Exactly one plain parameter, taking exactly the row."""
+
+    unsupported, states = _resolve(
+        _v222_workflow(
+            (
+                "def panel_state(entry):\n"
+                "    staged_value = int(entry[FOUNDER_COLUMN])\n"
+                "    return PANEL_BASELINE - staged_value\n",
+                "def panel_state(entry, baseline):\n"
+                "    staged_value = int(entry[FOUNDER_COLUMN])\n"
+                "    return baseline - staged_value\n",
+            ),
+            ("panel_state(record)", "panel_state(record, PANEL_BASELINE)"),
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_keyword_call_to_an_extraction_helper_abstains() -> None:
+    """The call is one positional argument; a keyword is outside the shape."""
+
+    unsupported, states = _resolve(
+        _v222_workflow(("panel_state(record)", "panel_state(entry=record)"))
+    )
+    assert unsupported
+    assert states == set()
+
+
+# Extension four: the multiply-complement selector.
+
+
+def test_the_multiply_complement_selector_commutes_its_addends() -> None:
+    """``B * (1 - FLAG) + A * FLAG`` is the same selector written the other way."""
+
+    unsupported, states = _resolve(
+        _v222_workflow(
+            (
+                "SELECTOR_MATCH * match_flag + SELECTOR_MISMATCH * (1 - match_flag)",
+                "SELECTOR_MISMATCH * (1 - match_flag) + SELECTOR_MATCH * match_flag",
+            )
+        )
+    )
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+def test_a_multiply_complement_selector_over_an_inline_flag_resolves() -> None:
+    """The flag may be written out in both products when the two agree.
+
+    The two comparison nodes are one flag, so the second is recognized with
+    the first and the module-wide emission belt is satisfied.
+    """
+
+    comparison = "(int(record[CALL_COLUMN]) == PANEL_BASELINE - int(record[FOUNDER_COLUMN]))"
+    source = (
+        "import csv\n"
+        "import pathlib\n"
+        "\n"
+        "CALL_COLUMN = 'call'\n"
+        "FOUNDER_COLUMN = 'founder'\n"
+        "PANEL_BASELINE = 1\n"
+        "SELECTOR_MATCH = 1\n"
+        "SELECTOR_MISMATCH = 0\n"
+        "\n"
+        "rows = list(csv.DictReader(pathlib.Path('inputs/markers.csv').open()))\n"
+        "total = sum(\n"
+        f"    SELECTOR_MATCH * {comparison}\n"
+        f"    + SELECTOR_MISMATCH * (1 - {comparison})\n"
+        "    for record in rows\n"
+        ")\n"
+        "n = len(rows)\n"
+        "rate = total / n\n"
+        "report = f'Of {n} markers, {total} agree at {rate:.6f}.'\n"
+        "pathlib.Path('results/report.md').write_text(report)\n"
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+def test_a_complement_that_is_not_one_minus_the_flag_abstains() -> None:
+    """The complement is exactly one minus the flag; ``2 - FLAG`` is not."""
+
+    unsupported, states = _resolve(
+        _v222_workflow(
+            (
+                "SELECTOR_MISMATCH = 0\n",
+                "SELECTOR_MISMATCH = 0\nCOMPLEMENT_BASE = 2\n",
+            ),
+            (
+                "SELECTOR_MISMATCH * (1 - match_flag)",
+                "SELECTOR_MISMATCH * (COMPLEMENT_BASE - match_flag)",
+            ),
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_two_different_flags_in_the_two_products_abstain() -> None:
+    """Both products must carry one and the same flag expression."""
+
+    unsupported, states = _resolve(
+        _v222_workflow(
+            (
+                "SELECTOR_MISMATCH * (1 - match_flag)",
+                "SELECTOR_MISMATCH * (1 - (reference_value == observed_value))",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_flag_left_of_its_multiply_abstains() -> None:
+    """The branch constant stands left of the multiply in both products."""
+
+    unsupported, states = _resolve(
+        _v222_workflow(
+            (
+                "SELECTOR_MATCH * match_flag + SELECTOR_MISMATCH * (1 - match_flag)",
+                "match_flag * SELECTOR_MATCH + SELECTOR_MISMATCH * (1 - match_flag)",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_multiply_complement_selector_with_swapped_branches_abstains() -> None:
+    """The canonicity rule is unchanged: the match branch must be the larger."""
+
+    unsupported, states = _resolve(
+        _v222_workflow(
+            (
+                "SELECTOR_MATCH * match_flag + SELECTOR_MISMATCH * (1 - match_flag)",
+                "SELECTOR_MISMATCH * match_flag + SELECTOR_MATCH * (1 - match_flag)",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()

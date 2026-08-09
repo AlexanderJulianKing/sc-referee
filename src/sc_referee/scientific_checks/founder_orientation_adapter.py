@@ -48,6 +48,11 @@ helper that binds its comparison to one local before returning the selector.
 Each is modelled in one exact shape, and anything outside that shape abstains
 exactly as it did in v2.1.5.
 
+v2.2.2 widens it by four more on the same terms: ``dict(row)`` as the identity
+row rebuild, ``close()`` on a file handle the modelled ``open()`` bound, a
+one-parameter helper that extracts one column of the row it is handed, and
+the multiply-complement selector ``A * FLAG + B * (1 - FLAG)``.
+
 Even a silent report has to account for the workflow's reading: the adapter
 classifies on the dataflow alone only when some stated marker total,
 agreement count, and rate reconcile in the direction the workflow computed.
@@ -121,7 +126,7 @@ def founder_orientation_recognition_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-reconciliation",
-        "grammar_version": "2.2.1",
+        "grammar_version": "2.2.2",
         "count_source": "integer_tokens_without_unit_or_percent_suffix",
         "rate_source": "decimal_point_or_percent_suffixed_tokens_direct_or_percent_scaled",
         "relations": [
