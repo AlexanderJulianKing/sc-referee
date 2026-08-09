@@ -173,6 +173,21 @@ FOUNDER_LANE_RELATIVE_C = Path(
     f"founder-orientation-before-hmm-emission-v{FOUNDER_CHECK_VERSION_C}-lane"
 )
 
+# Pilot d is the same envelope, the same briefs and the same discipline once
+# more, run against the v2.2.4 recognizer that closed the pilot-c miss. The
+# check version is the one the scientific-check manifest registry carries for
+# this check id, and the lane directory and the envelope id are built from it by
+# the same f-string convention pilots a, b and c used. The actor labels are
+# fresh so no earlier participant record is reused; reviewer calibration
+# resolves by (model id, pinned binary version, calibration suite) from the
+# shared registry, exactly as before.
+FOUNDER_CHECK_VERSION_D = "2.2.4"
+FOUNDER_PILOT_INSTANCE_D = "d"
+FOUNDER_LANE_RELATIVE_D = Path(
+    "evaluation/qualification/"
+    f"founder-orientation-before-hmm-emission-v{FOUNDER_CHECK_VERSION_D}-lane"
+)
+
 _FOUNDER_COMMON_TASK = (
     "Choose one concrete scientific subject area yourself, from any field you like, and invent "
     "a small truthful comparison accounting for it: a set of measured units (choose the unit "
@@ -302,9 +317,15 @@ def default_founder_orientation_config(
     lane_relative: Path = FOUNDER_LANE_RELATIVE,
     author_ordinals: tuple[str, str] = ("01", "02"),
     reviewer_ordinal: str = "01",
+    escalation_ordinal: str | None = None,
 ) -> EnvelopeConfig:
     slug = f"founder-{instance}"
     first_author, second_author = author_ordinals
+    # The two reviewer ordinals move independently so that retiring a spent
+    # primary identity never renames an escalation reviewer that has observed
+    # nothing. Omitting the escalation ordinal keeps the pilot-a, b and c
+    # behavior exactly: both reviewers carry the same ordinal.
+    escalation_ordinal = reviewer_ordinal if escalation_ordinal is None else escalation_ordinal
     return EnvelopeConfig(
         envelope_id=f"founder-orientation-before-hmm-emission-v{check_version}-lean-{instance}",
         pipeline_relative=lane_relative / f"pilot-{instance}",
@@ -343,7 +364,7 @@ def default_founder_orientation_config(
             model_alias="fable",
         ),
         escalation_reviewer=ModelParticipant(
-            participant_id=f"actor:{slug}-reviewer-opus-{reviewer_ordinal}",
+            participant_id=f"actor:{slug}-reviewer-opus-{escalation_ordinal}",
             model_id="claude-opus-5",
             model_name="Claude Opus 5",
             model_alias="claude-opus-5",
@@ -382,11 +403,50 @@ def default_founder_orientation_c_config() -> EnvelopeConfig:
     )
 
 
+def default_founder_orientation_d_config() -> EnvelopeConfig:
+    """Instance d of the founder-orientation blind pilot, run against v2.2.4.
+
+    The primary reviewer ordinal is 05 rather than 04 because pilot d's first
+    review attempt is retired. That attempt, actor:founder-d-reviewer-fable-04,
+    completed its single model call and then failed deterministic projection:
+    one quoted evidence span was a hybrid of two adjacent rows of the staged
+    CSV and so matched no line of any visible file, and the frozen projector
+    failed closed on it. Under the envelope-10 precedent a failed attempt is
+    retired rather than repaired: its process capture stays in the lane, its
+    packets are moved aside by the pipeline into packets-primary-retired, and
+    the cases, which that attempt's model never had a recorded verdict over,
+    are reviewed once more by an identity that has seen nothing.
+
+    Re-firing the retained call is forbidden, and the fresh participant id is
+    what makes it impossible here rather than merely disallowed. The process
+    capture directory, the session identity and the transmitted prompt are all
+    keyed by participant, so attempt 2 cannot land on attempt 1's retained
+    bytes: it gets its own capture path, and the retained-call reuse check
+    binds a capture to one exact prompt digest and participant id.
+
+    The escalation reviewer keeps ordinal 04. It never ran in attempt 1 and
+    never observed a case, so its identity is unspent and a rename would only
+    obscure that. Calibration resolves by (model id, pinned binary version,
+    calibration suite), so the fresh primary identity reuses the same passing
+    fable calibration entry without re-running the suite.
+    """
+
+    return default_founder_orientation_config(
+        instance=FOUNDER_PILOT_INSTANCE_D,
+        check_version=FOUNDER_CHECK_VERSION_D,
+        lane_relative=FOUNDER_LANE_RELATIVE_D,
+        author_ordinals=("07", "08"),
+        reviewer_ordinal="05",
+        escalation_ordinal="04",
+    )
+
+
 ENVELOPE_CONFIGS = {
     "complete-domain": default_complete_domain_config,
     "founder-orientation": default_founder_orientation_config,
     "founder-orientation-b": default_founder_orientation_b_config,
     "founder-orientation-c": default_founder_orientation_c_config,
+    "founder-orientation-d": default_founder_orientation_d_config,
 }
 
 
