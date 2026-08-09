@@ -4146,3 +4146,540 @@ def test_a_multiply_complement_selector_with_swapped_branches_abstains() -> None
     )
     assert unsupported
     assert states == set()
+
+
+# v2.2.3: the pilot-c coverage extensions.
+#
+# The fixture below is the pilot-c error-bearing workflow's shape, reduced to
+# what the ten new forms need: exact-numeric module constants in the selector
+# branches, a loader and a writer whose path parameters are proven at their
+# call sites, a ``read_text`` result read through a name, a bare ``mkdir``, a
+# report write routed through a helper, an elementwise recode of a
+# column-values list, a ``range``-indexed pairing, two accumulation loops, and
+# a ``print`` carrying a keyword argument. Every boundary test below is one
+# edit away from it.
+
+_V223_SOURCE = (
+    "import csv\n"
+    "from decimal import Decimal\n"
+    "from fractions import Fraction\n"
+    "from pathlib import Path\n"
+    "\n"
+    "DATA_PATH = Path('inputs/markers.csv')\n"
+    "REPORT_PATH = Path('results/report.md')\n"
+    "CALL_COLUMN = 'call'\n"
+    "FOUNDER_COLUMN = 'founder'\n"
+    "PANEL_BASELINE = 1\n"
+    "MATCH_WEIGHT = Fraction(1, 1)\n"
+    "MISS_WEIGHT = Fraction(1, 4)\n"
+    "\n"
+    "\n"
+    "def read_table(source_path):\n"
+    "    raw_text = source_path.read_text(encoding='ascii')\n"
+    "    reader = csv.DictReader(raw_text.splitlines())\n"
+    "    return [dict(record) for record in reader]\n"
+    "\n"
+    "\n"
+    "def panel_indicator(marker_value):\n"
+    "    return PANEL_BASELINE - marker_value\n"
+    "\n"
+    "\n"
+    "def concordance_weight(observed_value, panel_value):\n"
+    "    match_flag = observed_value == panel_value\n"
+    "    return MISS_WEIGHT + (MATCH_WEIGHT - MISS_WEIGHT) * match_flag\n"
+    "\n"
+    "\n"
+    "def write_report(target_path, payload_text):\n"
+    "    target_path.parent.mkdir(parents=True, exist_ok=True)\n"
+    "    return target_path.write_text(payload_text, encoding='ascii')\n"
+    "\n"
+    "\n"
+    "table_rows = read_table(DATA_PATH)\n"
+    "unit_count = len(table_rows)\n"
+    "observed_calls = [int(record[CALL_COLUMN]) for record in table_rows]\n"
+    "panel_markers = [int(record[FOUNDER_COLUMN]) for record in table_rows]\n"
+    "panel_values = [panel_indicator(marker_value) for marker_value in panel_markers]\n"
+    "weight_values = [\n"
+    "    concordance_weight(observed_calls[position], panel_values[position])\n"
+    "    for position in range(unit_count)\n"
+    "]\n"
+    "emission_total = 0\n"
+    "for weight_value in weight_values:\n"
+    "    emission_total = emission_total + weight_value\n"
+    "panel_positive_total = 0\n"
+    "for panel_entry in panel_values:\n"
+    "    panel_positive_total = panel_positive_total + panel_entry\n"
+    "rate = emission_total / unit_count\n"
+    "report_text = f'Of {unit_count} markers, {panel_positive_total} carry the marker "
+    "at {rate:.6f}.'\n"
+    "written_length = write_report(REPORT_PATH, report_text)\n"
+    "print(report_text, end='')\n"
+)
+
+_V223_LOADER = (
+    "    raw_text = source_path.read_text(encoding='ascii')\n"
+    "    reader = csv.DictReader(raw_text.splitlines())\n"
+)
+_V223_RECODE = "panel_values = [panel_indicator(marker_value) for marker_value in panel_markers]\n"
+_V223_COLUMN_LOOP = (
+    "panel_positive_total = 0\n"
+    "for panel_entry in panel_values:\n"
+    "    panel_positive_total = panel_positive_total + panel_entry\n"
+)
+_V223_ACCUMULATION = (
+    "emission_total = 0\n"
+    "for weight_value in weight_values:\n"
+    "    emission_total = emission_total + weight_value\n"
+)
+_V223_WRITE_HELPER = (
+    "def write_report(target_path, payload_text):\n"
+    "    target_path.parent.mkdir(parents=True, exist_ok=True)\n"
+    "    return target_path.write_text(payload_text, encoding='ascii')\n"
+    "\n"
+    "\n"
+)
+
+
+def _v223_workflow(*replacements: tuple[str, str]) -> str:
+    source = _V223_SOURCE
+    for old, new in replacements:
+        assert old in source, old
+        source = source.replace(old, new)
+    return source
+
+
+def test_the_v223_extensions_resolve_together() -> None:
+    """All ten forms in one workflow, in the pilot-c shape."""
+
+    unsupported, states = _resolve(_v223_workflow())
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+def test_the_v223_workflow_without_the_recode_reads_direct() -> None:
+    """The direct reading is proven, not a fallthrough: same shape, no recode."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(("    return PANEL_BASELINE - marker_value\n", "    return marker_value\n"))
+    )
+    assert not unsupported
+    assert states == {"direct"}
+
+
+# Extension one: exact-numeric module constants in selector branches.
+
+
+def test_decimal_module_constants_resolve_in_selector_branches() -> None:
+    """``Decimal('s')`` reads in a branch position exactly as ``Fraction(a, b)`` does."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(
+            (
+                "MATCH_WEIGHT = Fraction(1, 1)\nMISS_WEIGHT = Fraction(1, 4)\n",
+                "MATCH_WEIGHT = Decimal('1.00')\nMISS_WEIGHT = Decimal('0.25')\n",
+            )
+        )
+    )
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+def test_a_non_literal_exact_numeric_constructor_abstains() -> None:
+    """The constructor's arguments are literals; a named denominator is an expression."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(
+            ("PANEL_BASELINE = 1\n", "PANEL_BASELINE = 1\nMISS_DENOMINATOR = 4\n"),
+            ("MISS_WEIGHT = Fraction(1, 4)\n", "MISS_WEIGHT = Fraction(1, MISS_DENOMINATOR)\n"),
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_an_exact_numeric_constant_is_not_the_involution_literal() -> None:
+    """These constants resolve in selector branches and nowhere else.
+
+    ``Fraction(1, 1) - marker_value`` is not read as the involution the recode
+    vocabulary tests for, so the panel column stays unresolved rather than
+    being reported as a repair on the strength of a constructor call.
+    """
+
+    unsupported, states = _resolve(
+        _v223_workflow(("PANEL_BASELINE = 1\n", "PANEL_BASELINE = Fraction(1, 1)\n"))
+    )
+    assert unsupported
+    assert states == set()
+
+
+# Extension two: a helper parameter proven path-like at its call sites.
+
+
+def test_a_second_path_like_call_site_still_proves_the_parameter() -> None:
+    """Every call site proves it, so two of them prove it as well as one."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(
+            (
+                "table_rows = read_table(DATA_PATH)\n",
+                "spare_rows = read_table(DATA_PATH)\ntable_rows = read_table(DATA_PATH)\n",
+            )
+        )
+    )
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+def test_one_non_path_call_site_leaves_the_parameter_unproven() -> None:
+    """A single call site handing over a string is enough to close the proof."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(
+            (
+                "table_rows = read_table(DATA_PATH)\n",
+                "spare_rows = read_table('inputs/markers.csv')\n"
+                "table_rows = read_table(DATA_PATH)\n",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_helper_name_that_escapes_call_position_proves_nothing() -> None:
+    """A helper reachable through an alias has call sites this scan cannot see."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(
+            (
+                "table_rows = read_table(DATA_PATH)\n",
+                "loader = read_table\ntable_rows = read_table(DATA_PATH)\n",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+# Extension three: the named read-text chain and the named reader.
+
+
+def test_a_named_read_text_result_opens_the_splitlines_chain() -> None:
+    """``raw_text.splitlines()`` reads what the inline chain reads.
+
+    The reader is inlined here, so the name holding the ``read_text`` result
+    is the only form of this extension the workflow uses.
+    """
+
+    unsupported, states = _resolve(
+        _v223_workflow(
+            (
+                _V223_LOADER + "    return [dict(record) for record in reader]\n",
+                "    raw_text = source_path.read_text(encoding='ascii')\n"
+                "    return [dict(record) for record in csv.DictReader(raw_text.splitlines())]\n",
+            )
+        )
+    )
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+def test_a_reader_bound_to_a_name_is_iterated_from_there() -> None:
+    """The chain is written inline, so the named reader is the only form in play."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(
+            (
+                _V223_LOADER,
+                "    reader = csv.DictReader(source_path.read_text(encoding='ascii').splitlines())\n",
+            )
+        )
+    )
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+def test_a_rebound_read_text_name_opens_no_chain() -> None:
+    """The name holds the read text only when the module binds it exactly once."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(
+            (
+                "    reader = csv.DictReader(raw_text.splitlines())\n",
+                "    raw_text = raw_text\n    reader = csv.DictReader(raw_text.splitlines())\n",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+# Extension four: the bare mkdir statement.
+
+
+def test_a_bare_mkdir_statement_is_admitted() -> None:
+    """Creating the results directory answers exactly as leaving it out does."""
+
+    with_mkdir = _resolve(_v223_workflow())
+    without_mkdir = _resolve(
+        _v223_workflow(("    target_path.parent.mkdir(parents=True, exist_ok=True)\n", ""))
+    )
+    assert with_mkdir == (False, {"repaired"})
+    assert with_mkdir == without_mkdir
+
+
+def test_an_unknown_bare_method_statement_abstains() -> None:
+    """``mkdir`` joins ``close``; every other bare method call stays outside."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(
+            (
+                "    target_path.parent.mkdir(parents=True, exist_ok=True)\n",
+                "    target_path.parent.chmod(0o755)\n",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_non_literal_mkdir_keyword_abstains() -> None:
+    """A keyword whose value is a name is an expression, not a literal setting."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(
+            ("PANEL_BASELINE = 1\n", "PANEL_BASELINE = 1\nMAKE_PARENTS = True\n"),
+            ("mkdir(parents=True, exist_ok=True)", "mkdir(parents=MAKE_PARENTS, exist_ok=True)"),
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+# Extension five: the report write routed through a helper.
+
+
+def test_a_helper_routed_report_write_seeds_reachability() -> None:
+    """``write_report(PATH, text)`` publishes what the inline write publishes."""
+
+    routed = _resolve(_v223_workflow())
+    inline = _resolve(
+        _v223_workflow(
+            (_V223_WRITE_HELPER, ""),
+            (
+                "written_length = write_report(REPORT_PATH, report_text)\n",
+                "written_length = REPORT_PATH.write_text(report_text, encoding='ascii')\n",
+            ),
+        )
+    )
+    assert routed == (False, {"repaired"})
+    assert routed == inline
+
+
+def test_a_write_helper_handed_a_non_path_argument_abstains() -> None:
+    """The call site must prove the path; a string names no proven receiver."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(
+            (
+                "written_length = write_report(REPORT_PATH, report_text)\n",
+                "written_length = write_report('results/report.md', report_text)\n",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+# Extension six: the elementwise recode of a column-values list.
+
+
+def test_a_rebound_recode_source_list_abstains() -> None:
+    """A rebound list leaves which list the comprehension walks to execution order."""
+
+    unsupported, states = _resolve(
+        _v223_workflow((_V223_RECODE, "panel_markers = panel_markers\n" + _V223_RECODE))
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_filtered_recode_abstains() -> None:
+    """A filter drops rows, so the result is no longer the same column over the same rows."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(
+            (
+                "[panel_indicator(marker_value) for marker_value in panel_markers]",
+                "[panel_indicator(marker_value) for marker_value in panel_markers "
+                "if marker_value >= 0]",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+# Extension seven: the range-indexed pairing.
+
+
+@pytest.mark.parametrize(
+    "length",
+    ["len(observed_calls)", "len(panel_values)", "len(table_rows)"],
+)
+def test_a_range_indexed_pairing_resolves_on_each_proven_length(length: str) -> None:
+    """The three ``len`` forms that prove the walk covers each pair once, in order.
+
+    The fixture itself writes the fourth spelling: a name bound exactly once
+    to ``len(table_rows)``.
+    """
+
+    unsupported, states = _resolve(
+        _v223_workflow(("for position in range(unit_count)", f"for position in range({length})"))
+    )
+    assert not unsupported, length
+    assert states == {"repaired"}, length
+
+
+def test_a_range_over_a_named_constant_abstains() -> None:
+    """A plausible count is not a proof that the walk covers the lists."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(
+            ("PANEL_BASELINE = 1\n", "PANEL_BASELINE = 1\nUNIT_TOTAL = 4\n"),
+            ("for position in range(unit_count)", "for position in range(UNIT_TOTAL)"),
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_an_index_used_outside_the_two_subscripts_abstains() -> None:
+    """The index may appear nowhere but as the two lists' subscript."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(
+            (
+                "    concordance_weight(observed_calls[position], panel_values[position])\n",
+                "    concordance_weight(observed_calls[position], panel_values[position])"
+                " + position * 0\n",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_shifted_subscript_abstains() -> None:
+    """``A[i - 0]`` is an expression under the index, not the index itself."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(("panel_values[position])", "panel_values[position - 0])"))
+    )
+    assert unsupported
+    assert states == set()
+
+
+# Extension eight: the accumulation loop over a list of per-element selectors.
+
+
+def test_an_accumulation_loop_reads_its_list_as_sum_does() -> None:
+    """``for v in vals: total = total + v`` answers as ``sum(vals)`` answers."""
+
+    looped = _resolve(_v223_workflow())
+    summed = _resolve(_v223_workflow((_V223_ACCUMULATION, "emission_total = sum(weight_values)\n")))
+    assert looped == (False, {"repaired"})
+    assert looped == summed
+
+
+def test_an_augmented_accumulation_loop_resolves() -> None:
+    """``total += v`` is the same loop written the shorter way."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(
+            (
+                "    emission_total = emission_total + weight_value\n",
+                "    emission_total += weight_value\n",
+            )
+        )
+    )
+    assert not unsupported
+    assert states == {"repaired"}
+
+
+def test_an_accumulation_payload_beyond_the_loop_variable_abstains() -> None:
+    """The payload is the bare loop variable; anything computed per element is not."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(
+            (
+                "    emission_total = emission_total + weight_value\n",
+                "    emission_total = emission_total + weight_value * 2\n",
+            )
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_an_accumulation_loop_over_a_rebound_list_abstains() -> None:
+    """Which list the loop walks must not be a question about execution order."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(
+            ("emission_total = 0\n", "weight_values = weight_values\nemission_total = 0\n")
+        )
+    )
+    assert unsupported
+    assert states == set()
+
+
+# Extension nine: the accumulation loop over a single column-values list.
+
+
+def test_a_loop_over_one_column_values_list_introduces_no_abstention() -> None:
+    """Counting one column carries no orientation, and no longer costs the answer."""
+
+    with_loop = _resolve(_v223_workflow())
+    without_loop = _resolve(
+        _v223_workflow(
+            (_V223_COLUMN_LOOP, ""),
+            ("{panel_positive_total} carry the marker", "{unit_count} carry the marker"),
+        )
+    )
+    assert with_loop == (False, {"repaired"})
+    assert with_loop == without_loop
+
+
+# Extension ten: the print keyword arguments.
+
+
+@pytest.mark.parametrize("keyword", ["sep=' '", "end='\\n'", "sep='', end=''"])
+def test_print_layout_keywords_resolve(keyword: str) -> None:
+    """``sep`` and ``end`` change the layout of the same arguments, nothing else."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(("print(report_text, end='')", f"print(report_text, {keyword})"))
+    )
+    assert not unsupported, keyword
+    assert states == {"repaired"}, keyword
+
+
+def test_a_print_file_keyword_abstains() -> None:
+    """``file`` redirects the write to a receiver this trace has not proven."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(("print(report_text, end='')", "print(report_text, file=None)"))
+    )
+    assert unsupported
+    assert states == set()
+
+
+def test_a_non_string_print_keyword_value_abstains() -> None:
+    """The admitted keyword values are string literals and ``None``."""
+
+    unsupported, states = _resolve(
+        _v223_workflow(("print(report_text, end='')", "print(report_text, flush=True)"))
+    )
+    assert unsupported
+    assert states == set()

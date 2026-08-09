@@ -110,6 +110,50 @@ anything outside that shape abstains exactly as it did before.
   must be exactly one minus that flag, and the canonicity rule over the
   resolved constants is unchanged.
 
+v2.2.3 widens it by ten more, on the same terms. Every one is one exact
+shape, and anything outside that shape abstains exactly as it did before.
+
+- A module-level name assigned exactly once to ``Fraction(a, b)`` or
+  ``Decimal('s')`` over literal arguments resolves to that value in selector
+  branch positions, which is where the selector-constant grammar already
+  reads such a constructor written inline. It resolves nowhere else: an
+  exact-numeric constant is not the literal ``1`` the recode vocabulary
+  tests for, so ``WEIGHT - x`` is still not an involution.
+- A helper's parameter used as a path receiver is a filesystem path when
+  every call site binds it to a provably path-like argument. The proof is
+  the bind-and-check the helper-parity rule uses; a helper nothing calls, a
+  name that escapes call position, and one call site handing over anything
+  else all leave the parameter unproven.
+- ``.splitlines()`` applied to a name assigned exactly once from a
+  ``read_text(...)`` call is admitted wherever the inline chain is, which is
+  what this module's grammar has always said and what its code did not do.
+- ``<path-like>.mkdir(...)`` with no positional argument and literal keyword
+  arguments joins ``close()`` in the admitted bare expression statements.
+- A helper whose body is one return of ``path_parameter.write_text(payload)``
+  over its other parameter, called with a provably path-like argument and a
+  report-text name, seeds report-reachability exactly as the inline write
+  does. Routing the write through a helper otherwise hides the report plane.
+- ``[<recode>(v) for v in column_values]`` over a single-assignment
+  column-values list is another column-values list of the same column over
+  the same rows, with the recode's parity, numeric proof, and boolean taint
+  folded in.
+- ``[f(A[i], B[i]) for i in range(N)]`` and its loop form pair ``A`` and
+  ``B`` exactly as ``zip(A, B)`` does, when both are single-assignment
+  column-values lists of one single-assignment row-set name, the index
+  appears nowhere but as their subscript, and ``N`` is provably ``len(A)``,
+  ``len(B)``, or ``len(rows)``. Only those three forms prove that the walk
+  covers each pair once and in order.
+- ``for v in vals: total = total + v`` over a list of recognized per-element
+  selectors classifies that list's comparison with the loop's reaching
+  status, exactly as ``sum(vals)`` already does.
+- The same loop over a single column-values list is recognized as consuming
+  that list. It classifies nothing, because a count of one column carries no
+  cross-panel orientation, but it no longer abstains.
+- ``print`` with ``sep``, ``end``, or ``flush`` keyword arguments whose
+  values are string literals or ``None`` joins the print-read form. ``file``
+  stays banned: it redirects the write to a receiver this trace has not
+  proven is a path.
+
 Three belts run independently of the whitelist:
 
 - The emission scan walks the entire module tree for comparisons between two
@@ -245,7 +289,7 @@ def founder_orientation_dataflow_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-emission-dataflow",
-        "grammar_version": "2.2.2",
+        "grammar_version": "2.2.3",
         "trust_model": (
             "default deny: the trace holds an explicit whitelist of the statement and "
             "expression forms it models completely, and any form outside that whitelist "
@@ -307,7 +351,10 @@ def founder_orientation_dataflow_grammar(
         "output_inertness": (
             "print and report-write payloads are names, constants, f-strings, "
             "arithmetic over those, and str/repr of names; a call inside a payload is "
-            "unsupported because payloads are evaluated"
+            "unsupported because payloads are evaluated; print may carry sep, end, "
+            "and flush keyword arguments whose values are string literals or None, "
+            "and file is banned because it redirects the write to an unproven "
+            "receiver"
         ),
         "row_source_operations": [
             "csv.DictReader and csv.reader, only when the call resolves to the csv "
@@ -315,7 +362,10 @@ def founder_orientation_dataflow_grammar(
             "the reader's argument may be a path-like read_text chain, inline or "
             "through a name single-assigned from it: <path-like>.read_text(...) "
             "whose keyword arguments are all string literals, followed by "
-            ".splitlines(); every other argument construction is unchanged",
+            ".splitlines() applied either to that call or to a name assigned "
+            "exactly once from it; every other argument construction is "
+            "unchanged, and the reader call itself may be bound to a name and "
+            "iterated from there",
             "close() with no argument on a name whose single binding in the whole "
             "module is the modelled open(), as a bare expression statement or an "
             "assignment right-hand side; every other file-handle method is "
@@ -327,7 +377,11 @@ def founder_orientation_dataflow_grammar(
             "never bound again under any form, resolves to that literal in string "
             "column subscripts, selector branch values, binary-constant positions, "
             "and the one-literal position of C - x, x ^ C, and abs(x - C); a name "
-            "bound twice, augmented, or given a non-literal value stays unresolvable"
+            "bound the same way to Fraction(a, b) or Decimal('s') over literal "
+            "arguments resolves in selector branch positions only, because an "
+            "exact-numeric constructor is not the literal one the recode "
+            "vocabulary tests for; a name bound twice, augmented, or given any "
+            "other value stays unresolvable"
         ),
         "column_value_pairing": (
             "an unfiltered list comprehension [<recode>(row[COL]) for row in rows] "
@@ -338,8 +392,22 @@ def founder_orientation_dataflow_grammar(
             "the same named row set, pair them; iterating the pair and reading "
             "pair[0] or pair[1] under an integer literal yields the respective "
             "paths, which classify through the ordinary operand-path rule with "
-            "the lists' parities folded in; a filter, a differing source, a "
-            "rebound name, tuple unpacking, and every other index abstain"
+            "the lists' parities folded in; an unfiltered [<recode>(v) for v in "
+            "A] over such a list is another column-values list of the same "
+            "column with the recode folded in; a comprehension or loop over "
+            "range(N) reading exactly A[i] and B[i], with the index appearing "
+            "nowhere else and N provably len(A), len(B), or len(rows), pairs "
+            "them the same way; a filter, a differing source, a rebound name, "
+            "tuple unpacking, an unprovable length, and every other index abstain"
+        ),
+        "path_receivers": (
+            "a write, a mkdir, and a read_text chain are admitted only on a "
+            "receiver that is provably a filesystem path under last-binding-wins "
+            "tracking; a helper parameter counts as such a receiver when every "
+            "call site of that helper binds it to a provably path-like argument, "
+            "and a helper nothing calls, a helper name that escapes call "
+            "position, and a single call site handing over anything else all "
+            "leave the parameter unproven"
         ),
         "emission_comparison": (
             "an equality or inequality between two distinct columns of one "
@@ -365,6 +433,9 @@ def founder_orientation_dataflow_grammar(
             "an elementwise multiply or add accumulation loop over the row set",
             "an elementwise multiply or add accumulation loop or comprehension "
             "over a recognized column-values pairing",
+            "an accumulation loop whose payload is the bare loop variable over a "
+            "single-assignment list a comprehension built, which consumes that "
+            "comprehension exactly as sum of the same name does",
         ],
         "involutive_recode_forms": [
             "1 - x",
@@ -398,7 +469,8 @@ def founder_orientation_dataflow_grammar(
             "assignment to exactly one plain name from a fully readable expression",
             "function definition subject to the helper rules",
             "expression statement only as a docstring, a recognized report write, "
-            "the recognized print-read form, or close() on a modelled file handle",
+            "the recognized print-read form, close() on a modelled file handle, "
+            "or mkdir() with literal keyword arguments on a proven path",
             "with only in the modelled open()-as pattern",
             "if only as the __main__ guard",
             "for only in the recognized counter and accumulator forms",
@@ -468,7 +540,10 @@ def founder_orientation_dataflow_grammar(
         "report_reachability": (
             "a write whose receiver resolves to a filesystem path under "
             "last-binding-wins path tracking, or a return, and either only from a "
-            "function reachable code actually calls; reachability excludes and never "
+            "function reachable code actually calls; a call to a helper whose whole "
+            "body is one such write of one parameter to another seeds the same way "
+            "as the inline write, when the call site hands it a provably path-like "
+            "argument and a report-text name; reachability excludes and never "
             "selects, and orientation readings collected module-wide must agree "
             "unless every disagreeing reading is provably dead"
         ),
@@ -502,6 +577,12 @@ def founder_orientation_dataflow_grammar(
             "body shape; a rebound parameter and a second local abstain",
             "the multiply-complement selector requires one and the same flag "
             "expression in both products and an exact one-minus complement",
+            "an exact-numeric module constant resolves in selector branch "
+            "positions and nowhere else",
+            "a helper parameter is path-like only when every call site proves it",
+            "a range-indexed pairing requires a provable length and an index "
+            "used nowhere but as the two lists' subscript",
+            "an accumulation loop over a rebound list name abstains",
         ],
         "nomenclature_authority": "none",
     }
@@ -583,10 +664,29 @@ class _Paired:
         return self.left.source
 
 
+@dataclass(frozen=True)
+class _IndexedPair:
+    """Two column-values lists read elementwise through one shared range index.
+
+    ``[f(A[i], B[i]) for i in range(len(A))]`` walks the same two lists in the
+    same order that ``zip(A, B)`` walks them, so it pairs them exactly as a
+    zip does. ``names`` records the two list names, because the index reads
+    them by name rather than through a tuple.
+    """
+
+    left: _ColumnValues
+    right: _ColumnValues
+    names: tuple[str, str]
+
+    @property
+    def source(self) -> _Rows:
+        return self.left.source
+
+
 _OPAQUE = _Opaque()
 _EMPTY_LIST = _EmptyList()
 
-_Value = _Rows | _Scalar | _EmptyList | _ColumnValues | _Paired | _Opaque
+_Value = _Rows | _Scalar | _EmptyList | _ColumnValues | _Paired | _IndexedPair | _Opaque
 
 
 @dataclass(frozen=True)
@@ -646,8 +746,12 @@ class _ModuleModel:
     reaching: frozenset[str]
     accumulated: frozenset[int]
     constants: dict[str, int | float | str]
+    selector_constants: dict[str, int | float | str]
     single_assignment: frozenset[str]
+    single_bindings: dict[str, ast.expr]
     read_chain_call_ids: frozenset[int]
+    mkdir_call_ids: frozenset[int]
+    helper_write_calls: dict[int, ast.expr]
     open_handle_names: frozenset[str]
 
 
@@ -667,6 +771,9 @@ class _TraceContext:
     # and only when the trace actually classifies the first.
     selector_siblings: dict[int, tuple[ast.Compare, ...]] = field(default_factory=dict)
     pair_paths: dict[str, tuple[_Path, _Path]] = field(default_factory=dict)
+    # ``(list name, index name)`` to the column path that subscript reads,
+    # for the range-indexed pairing form.
+    indexed_paths: dict[tuple[str, str], _Path] = field(default_factory=dict)
     tagged_names: set[str] = field(default_factory=set)
     unresolved: bool = False
 
@@ -677,6 +784,10 @@ class _TraceContext:
     @property
     def constants(self) -> dict[str, int | float | str]:
         return self.model.constants
+
+    @property
+    def selector_constants(self) -> dict[str, int | float | str]:
+        return self.model.selector_constants
 
     @property
     def opaque_callables(self) -> frozenset[str]:
@@ -1036,7 +1147,7 @@ def _statement_reaches(statement: ast.stmt, ctx: _TraceContext, *, returns_reach
     ):
         return statement.targets[0].id in ctx.reaching
     if isinstance(statement, ast.Expr) and _write_payloads(
-        statement.value, ctx.model.write_call_ids
+        statement.value, ctx.model.write_call_ids, ctx.model.helper_write_calls
     ):
         return True
     return returns_reach and isinstance(statement, ast.Return)
@@ -1118,7 +1229,8 @@ def _classify_comprehension(
     if _shadows_loop_var(node.elt, generator.target.id):
         ctx.unresolved = True
         return
-    tagged = _tag(generator.iter, env, ctx)
+    indexed = _range_pairing(generator, [node.elt, *generator.ifs], env, ctx)
+    tagged = indexed if indexed is not None else _tag(generator.iter, env, ctx)
     with _pair_scope(tagged, generator.target.id, ctx) as source:
         selectors = _selector_comparisons(node.elt, ctx)
         _classify_helper_selector_call(
@@ -1155,8 +1267,26 @@ def _pair_scope(source: _Value, loop_var: str, ctx: _TraceContext) -> Iterator[_
     caller reads one code path. Inside one it yields the row set both columns
     came from, which is what the operand-path rule needs, and registers the
     two paths under the loop variable so ``pair[0]`` and ``pair[1]`` resolve.
+
+    A range-indexed pairing registers its two paths under ``(list, index)``
+    instead, because the two halves are read by list name rather than by
+    tuple position.
     """
 
+    if isinstance(source, _IndexedPair):
+        keys = ((source.names[0], loop_var), (source.names[1], loop_var))
+        previous_indexed = {key: ctx.indexed_paths.get(key) for key in keys}
+        ctx.indexed_paths[keys[0]] = source.left.path
+        ctx.indexed_paths[keys[1]] = source.right.path
+        try:
+            yield source.source
+        finally:
+            for key, held in previous_indexed.items():
+                if held is None:
+                    ctx.indexed_paths.pop(key, None)
+                else:
+                    ctx.indexed_paths[key] = held
+        return
     if not isinstance(source, _Paired):
         yield source
         return
@@ -1169,6 +1299,94 @@ def _pair_scope(source: _Value, loop_var: str, ctx: _TraceContext) -> Iterator[_
             ctx.pair_paths.pop(loop_var, None)
         else:
             ctx.pair_paths[loop_var] = previous
+
+
+def _range_pairing(
+    node: ast.comprehension | ast.For,
+    payloads: list[ast.expr] | list[ast.stmt],
+    env: dict[str, _Value],
+    ctx: _TraceContext,
+) -> _IndexedPair | None:
+    """``for i in range(N)`` reading exactly ``A[i]`` and ``B[i]``, or None.
+
+    This is the index-walked spelling of ``zip(A, B)``, and it is admitted on
+    the same terms. Both lists must be single-assignment column-values lists
+    of one single-assignment row-set name, the index may appear nowhere but as
+    their subscript -- ``A[i + 1]`` or a bare ``i`` in the payload reads
+    something this pairing does not describe -- and the length must be
+    provably the length of one of the two lists or of the rows behind them.
+    Only those three ``len`` forms prove that the walk covers each pair once
+    and in order; a named constant, however plausible, does not.
+    """
+
+    target = node.target
+    iterable = node.iter
+    if not isinstance(target, ast.Name):
+        return None
+    index = target.id
+    if not (
+        isinstance(iterable, ast.Call)
+        and _call_name(iterable) == "range"
+        and _is_builtin_name("range", ctx)
+        and len(iterable.args) == 1
+        and not iterable.keywords
+    ):
+        return None
+    subscripted: set[int] = set()
+    order: list[str] = []
+    for payload in payloads:
+        for inner in ast.walk(payload):
+            if (
+                isinstance(inner, ast.Subscript)
+                and isinstance(inner.value, ast.Name)
+                and isinstance(inner.slice, ast.Name)
+                and inner.slice.id == index
+            ):
+                subscripted.add(id(inner.slice))
+                if inner.value.id not in order:
+                    order.append(inner.value.id)
+    if len(order) != 2:
+        return None
+    for payload in payloads:
+        for inner in ast.walk(payload):
+            if isinstance(inner, ast.Name) and inner.id == index and id(inner) not in subscripted:
+                return None
+    lists: list[_ColumnValues] = []
+    for name in order:
+        held = env.get(name)
+        if not isinstance(held, _ColumnValues) or name not in ctx.model.single_assignment:
+            return None
+        lists.append(held)
+    left, right = lists
+    if left.source_key != right.source_key or left.source != right.source:
+        return None
+    if left.source_key not in ctx.model.single_assignment:
+        return None
+    if not _proven_pair_length(iterable.args[0], {*order, left.source_key}, ctx):
+        return None
+    ctx.recognized_pairings.add(id(iterable))
+    return _IndexedPair(left, right, (order[0], order[1]))
+
+
+def _proven_pair_length(node: ast.expr, allowed: set[str], ctx: _TraceContext) -> bool:
+    """``len(A)``, ``len(B)``, or ``len(rows)``, directly or through one name."""
+
+    if isinstance(node, ast.Name):
+        if node.id not in ctx.model.single_assignment:
+            return False
+        bound = ctx.model.single_bindings.get(node.id)
+        if bound is None:
+            return False
+        node = bound
+    return (
+        isinstance(node, ast.Call)
+        and _call_name(node) == "len"
+        and _is_builtin_name("len", ctx)
+        and len(node.args) == 1
+        and not node.keywords
+        and isinstance(node.args[0], ast.Name)
+        and node.args[0].id in allowed
+    )
 
 
 def _shadows_loop_var(element: ast.expr, loop_var: str) -> bool:
@@ -1300,7 +1518,7 @@ def _helper_selector_form(
     if resolved is None:
         return None
     compare, match_branch, mismatch_branch = resolved
-    if not _is_canonical_selector(compare, match_branch, mismatch_branch, ctx.constants):
+    if not _is_canonical_selector(compare, match_branch, mismatch_branch, ctx.selector_constants):
         return None
     left, right = compare.left, compare.comparators[0]
     if not (isinstance(left, ast.Name) and isinstance(right, ast.Name)):
@@ -1516,7 +1734,7 @@ def _selector_comparisons(element: ast.expr, ctx: _TraceContext) -> list[ast.Com
     exact shape; the canonicity rule over the resolved constants is unchanged.
     """
 
-    constants = ctx.constants
+    constants = ctx.selector_constants
     found: list[ast.Compare] = []
     for node in ast.walk(element):
         if isinstance(node, ast.IfExp) and isinstance(node.test, ast.Compare):
@@ -1615,7 +1833,7 @@ def _shifted_difference_selector(
         return None
     mismatch_branch = node.left
     match_branch = difference.left
-    constants = ctx.constants
+    constants = ctx.selector_constants
     mismatch_value = _selector_constant(mismatch_branch, constants)
     repeated_value = _selector_constant(difference.right, constants)
     if mismatch_value is None or repeated_value is None or mismatch_value != repeated_value:
@@ -1684,7 +1902,7 @@ def _flag_product(
         if not _is_one(carrier.left, ctx.constants):
             return None
         carrier = carrier.right
-    if _selector_constant(branch, ctx.constants) is None:
+    if _selector_constant(branch, ctx.selector_constants) is None:
         return None
     compare = _flag_comparison(carrier, ctx, flag)
     if compare is None:
@@ -1872,12 +2090,18 @@ def _column_parity_inner(
     ctx: _TraceContext,
 ) -> _Path | None:
     def _unknown() -> _Path | None:
-        return _UNRESOLVED if _touches_rows(expression, loop_var, carriers) else None
+        return _UNRESOLVED if _touches_rows(expression, loop_var, carriers, ctx) else None
 
     if isinstance(expression, ast.Name):
         return carriers.get(expression.id)
 
     if isinstance(expression, ast.Subscript):
+        if isinstance(expression.value, ast.Name) and isinstance(expression.slice, ast.Name):
+            # One half of a range-indexed pairing, registered for the body of
+            # this iteration only.
+            indexed = ctx.indexed_paths.get((expression.value.id, expression.slice.id))
+            if indexed is not None:
+                return indexed
         if (
             loop_var is not None
             and isinstance(expression.value, ast.Name)
@@ -2235,7 +2459,10 @@ def _straight_line_helper(function: ast.FunctionDef, ctx: _TraceContext) -> bool
             # is where the loader idiom puts it.
             if not (
                 isinstance(statement.value, ast.Call)
-                and _is_handle_close_call(statement.value, ctx)
+                and (
+                    _is_handle_close_call(statement.value, ctx)
+                    or id(statement.value) in ctx.model.mkdir_call_ids
+                )
             ):
                 return False
         if not isinstance(statement, ast.Assign | ast.Return | ast.Pass | ast.Expr):
@@ -2364,7 +2591,12 @@ def _shift(base: _Path | None, amount: int) -> _Path | None:
     return _Path(base.column, base.parity + amount, numeric=True)
 
 
-def _touches_rows(expression: ast.expr, loop_var: str | None, carriers: dict[str, _Path]) -> bool:
+def _touches_rows(
+    expression: ast.expr,
+    loop_var: str | None,
+    carriers: dict[str, _Path],
+    ctx: _TraceContext,
+) -> bool:
     for node in ast.walk(expression):
         if (
             loop_var is not None
@@ -2372,6 +2604,15 @@ def _touches_rows(expression: ast.expr, loop_var: str | None, carriers: dict[str
             and isinstance(node.value, ast.Name)
             and node.value.id == loop_var
         ):
+            return True
+        if (
+            isinstance(node, ast.Subscript)
+            and isinstance(node.value, ast.Name)
+            and isinstance(node.slice, ast.Name)
+            and (node.value.id, node.slice.id) in ctx.indexed_paths
+        ):
+            # A half of a range-indexed pairing wrapped in something this
+            # trace does not read is an unresolved column, not a non-column.
             return True
         if isinstance(node, ast.Name) and node.id in carriers:
             return True
@@ -2503,6 +2744,8 @@ def _tag_comprehension(
         if isinstance(node.elt, ast.Name) and node.elt.id == generator.target.id:
             return source
         return _OPAQUE
+    if isinstance(source, _ColumnValues):
+        return _recoded_column_values(node, generator, source, env, ctx)
     if not isinstance(source, _Rows):
         return _OPAQUE
     built = _row_element_value(node.elt, generator.target.id, source, env, ctx)
@@ -2541,6 +2784,51 @@ def _column_values(
     return _ColumnValues(
         source_key=generator.iter.id,
         source=source,
+        column=str(path.column),
+        parity=path.parity,
+        numeric=path.numeric,
+        boolean=path.boolean,
+    )
+
+
+def _recoded_column_values(
+    node: ast.ListComp | ast.GeneratorExp,
+    generator: ast.comprehension,
+    source: _ColumnValues,
+    env: dict[str, _Value],
+    ctx: _TraceContext,
+) -> _Value:
+    """``[<recode>(v) for v in column_values]`` as the recoded column's list.
+
+    Recoding a column-values list elementwise produces another list of the
+    same column over the same rows in the same order, so it stays pairable
+    with its siblings; only the parity, the numeric proof, and the boolean
+    taint move. The recode is read by the ordinary operand-path rule with the
+    loop variable carrying the source list's path, so it admits exactly the
+    recodes a comprehension element admits and nothing else.
+    """
+
+    assert isinstance(generator.target, ast.Name)
+    if not isinstance(node, ast.ListComp):
+        # A generator is consumed by whatever reads it first; only a
+        # materialized list can be paired with a sibling list.
+        return _OPAQUE
+    if not isinstance(generator.iter, ast.Name) or generator.ifs:
+        return _OPAQUE
+    if _shadows_loop_var(node.elt, generator.target.id):
+        return _OPAQUE
+    path = _column_parity(
+        node.elt,
+        loop_var=None,
+        carriers={generator.target.id: source.path},
+        env=env,
+        ctx=ctx,
+    )
+    if path is None or not path.resolved:
+        return _OPAQUE
+    return _ColumnValues(
+        source_key=source.source_key,
+        source=source.source,
         column=str(path.column),
         parity=path.parity,
         numeric=path.numeric,
@@ -2727,8 +3015,9 @@ def _apply_recognized_loop(
         return False
     if not isinstance(statement.target, ast.Name):
         return False
-    source = _tag(statement.iter, env, ctx)
-    if isinstance(source, _Paired):
+    indexed = _range_pairing(statement, list(statement.body), env, ctx)
+    source = indexed if indexed is not None else _tag(statement.iter, env, ctx)
+    if isinstance(source, _Paired | _IndexedPair):
         # A pairing is iterated, never appended into, so only the
         # accumulation shape applies to it.
         with _pair_scope(source, statement.target.id, ctx) as rows:
@@ -2737,12 +3026,15 @@ def _apply_recognized_loop(
                 ctx.recognized_loops.add(id(statement))
                 return True
         return False
-    if not isinstance(source, _Rows):
+    if isinstance(source, _Rows):
+        if _apply_row_building_loop(statement, source, env, aliases, ctx):
+            ctx.recognized_loops.add(id(statement))
+            return True
+        if _apply_accumulation_loop(statement, source, env, ctx, classifications, dead=dead):
+            ctx.recognized_loops.add(id(statement))
+            return True
         return False
-    if _apply_row_building_loop(statement, source, env, aliases, ctx):
-        ctx.recognized_loops.add(id(statement))
-        return True
-    if _apply_accumulation_loop(statement, source, env, ctx, classifications, dead=dead):
+    if _apply_list_accumulation_loop(statement, env, ctx):
         ctx.recognized_loops.add(id(statement))
         return True
     return False
@@ -2792,6 +3084,88 @@ def _apply_row_building_loop(
             return False
         env[name] = value
         ctx.tagged_names.add(name)
+    return True
+
+
+def _elementwise_accumulation_targets(loop: ast.For, element: str) -> frozenset[str] | None:
+    """``for v in vals: total = total + v`` and its augmented form, or None.
+
+    The payload has to be the bare loop variable. That is what makes the loop
+    the sum or product of the list it walks and nothing else: no expression is
+    computed per element, so the loop reads the list and never rewrites it.
+    """
+
+    targets: set[str] = set()
+    for statement in loop.body:
+        if (
+            isinstance(statement, ast.AugAssign)
+            and isinstance(statement.target, ast.Name)
+            and isinstance(statement.op, ast.Mult | ast.Add)
+            and isinstance(statement.value, ast.Name)
+            and statement.value.id == element
+        ):
+            targets.add(statement.target.id)
+            continue
+        if (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and isinstance(statement.value, ast.BinOp)
+            and isinstance(statement.value.op, ast.Mult | ast.Add)
+        ):
+            target = statement.targets[0]
+            assert isinstance(target, ast.Name)
+            operands = (statement.value.left, statement.value.right)
+            held = [
+                item for item in operands if isinstance(item, ast.Name) and item.id == target.id
+            ]
+            payloads = [
+                item for item in operands if isinstance(item, ast.Name) and item.id == element
+            ]
+            if len(held) == 1 and len(payloads) == 1:
+                targets.add(target.id)
+                continue
+        return None
+    return frozenset(targets) or None
+
+
+def _apply_list_accumulation_loop(
+    loop: ast.For, env: dict[str, _Value], ctx: _TraceContext
+) -> bool:
+    """An accumulation loop that consumes a recognized list element by element.
+
+    ``for v in vals: total = total + v`` over a column-values list is the
+    counting loop spelling of ``sum(vals)``, and over a list of recognized
+    per-element selectors it is the accumulation spelling. Either way the loop
+    itself computes nothing per element, so it classifies nothing; the
+    comprehension that built the list is what the trace reads, and the loop is
+    what marks that comprehension as consumed.
+
+    The list name must be bound exactly once in the whole module. A rebound
+    name would leave which list this loop walks a question about execution
+    order, which is the same reason a rebound name cannot be paired.
+    """
+
+    assert isinstance(loop.target, ast.Name)
+    if not isinstance(loop.iter, ast.Name):
+        return False
+    name = loop.iter.id
+    if name not in ctx.model.single_assignment:
+        return False
+    held = env.get(name)
+    binding = ctx.model.single_bindings.get(name)
+    if not (isinstance(held, _ColumnValues) or isinstance(binding, ast.ListComp)):
+        return False
+    targets = _elementwise_accumulation_targets(loop, loop.target.id)
+    if targets is None:
+        return False
+    for target in targets:
+        if isinstance(env.get(target), _Rows | _ColumnValues | _Paired | _IndexedPair | _EmptyList):
+            # An accumulator that already holds a row set or a list is not a
+            # number being summed; rebinding it here is outside this shape.
+            return False
+    for target in targets:
+        env[target] = _Scalar()
     return True
 
 
@@ -2890,9 +3264,14 @@ def _module_model(tree: ast.Module) -> _ModuleModel:
     called = _called_function_names(tree, functions)
     reachable = frozenset(called | (escaping & set(functions)))
     dead = frozenset(name for name in functions if occurrences[name] == 0)
-    write_call_ids = _report_write_call_ids(tree)
-    reaching = _report_reaching_names(tree, functions, write_call_ids, reachable)
     single_assignment = _single_assignment_names(tree)
+    paths = _path_call_model(tree, functions, single_assignment)
+    write_call_ids = paths.writes
+    helper_write_calls = _helper_write_call_sites(tree, functions, write_call_ids, paths.names)
+    reaching = _report_reaching_names(
+        tree, functions, write_call_ids, helper_write_calls, reachable
+    )
+    constants, selector_constants = _module_constants(tree, single_assignment)
     return _ModuleModel(
         imports=imports,
         functions=functions,
@@ -2902,11 +3281,30 @@ def _module_model(tree: ast.Module) -> _ModuleModel:
         write_call_ids=write_call_ids,
         reaching=frozenset(reaching),
         accumulated=frozenset(_accumulated_comprehension_ids(tree)),
-        constants=_module_constants(tree, single_assignment),
+        constants=constants,
+        selector_constants=selector_constants,
         single_assignment=single_assignment,
-        read_chain_call_ids=_read_text_chain_call_ids(tree),
+        single_bindings=_single_bindings(tree, single_assignment),
+        read_chain_call_ids=paths.read_chains,
+        mkdir_call_ids=paths.mkdirs,
+        helper_write_calls=helper_write_calls,
         open_handle_names=_open_handle_names(tree, functions, imports, single_assignment),
     )
+
+
+def _single_bindings(tree: ast.Module, single_assignment: frozenset[str]) -> dict[str, ast.expr]:
+    """The one module-level expression each single-assignment name is bound to."""
+
+    bindings: dict[str, ast.expr] = {}
+    for statement in tree.body:
+        if (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and statement.targets[0].id in single_assignment
+        ):
+            bindings[statement.targets[0].id] = statement.value
+    return bindings
 
 
 def _binding_counts(tree: ast.Module) -> Counter[str]:
@@ -2933,17 +3331,27 @@ def _single_assignment_names(tree: ast.Module) -> frozenset[str]:
 
 def _module_constants(
     tree: ast.Module, single_assignment: frozenset[str]
-) -> dict[str, int | float | str]:
-    """Module-level names that provably hold one literal for the whole run.
+) -> tuple[dict[str, int | float | str], dict[str, int | float | str]]:
+    """Module-level names that provably hold one value for the whole run.
 
-    The name must be assigned exactly once in the entire module, at module
-    level, to a numeric or string literal or the negation of a numeric one.
-    A second binding anywhere -- a rebinding, a parameter, a loop target, an
-    import -- disqualifies it, so no execution order decides what the name
-    means. The builtin-shadowing ban already keeps these names off builtins.
+    The first mapping is the literal one: assigned exactly once in the entire
+    module, at module level, to a numeric or string literal or the negation of
+    a numeric one. A second binding anywhere -- a rebinding, a parameter, a
+    loop target, an import -- disqualifies it, so no execution order decides
+    what the name means. The builtin-shadowing ban already keeps these names
+    off builtins.
+
+    The second mapping adds the exact-numeric constructors ``Fraction(a, b)``
+    and ``Decimal('s')`` over literal arguments, read by the selector-constant
+    grammar. They resolve in selector branch positions only. A ``Fraction`` is
+    the ordinary way to write an emission weight exactly, but it is not the
+    literal ``1`` that the recode vocabulary tests for, and letting it stand
+    in that position would read ``WEIGHT - x`` as an involution on the
+    strength of a constructor call.
     """
 
     constants: dict[str, int | float | str] = {}
+    selectors: dict[str, int | float | str] = {}
     for statement in tree.body:
         if not (
             isinstance(statement, ast.Assign)
@@ -2957,7 +3365,12 @@ def _module_constants(
         value = _literal_value(statement.value)
         if value is not None:
             constants[name] = value
-    return constants
+            selectors[name] = value
+            continue
+        exact = _selector_constant(statement.value, {})
+        if exact is not None:
+            selectors[name] = exact
+    return constants, selectors
 
 
 def _literal_value(node: ast.expr) -> int | float | str | None:
@@ -3065,77 +3478,375 @@ def _is_read_text_call(node: ast.expr, path_names: set[str]) -> bool:
     )
 
 
-def _read_text_chain_call_ids(tree: ast.Module) -> frozenset[int]:
-    """The ``read_text(...).splitlines()`` calls this module admits.
+def _is_splitlines_call(node: ast.AST) -> bool:
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "splitlines"
+        and not node.args
+        and not node.keywords
+    )
 
-    Path-likeness is tracked exactly as the report-write scan tracks it, with
-    last binding wins, so a name rebound away from a ``Path`` no longer opens
-    the chain.
+
+def _is_mkdir_call(node: ast.AST) -> bool:
+    """``<receiver>.mkdir(...)`` with literal keyword arguments and no positional ones.
+
+    ``parents`` and ``exist_ok`` are the whole keyword vocabulary a results
+    directory needs, and a literal cannot compute anything. A positional
+    argument, or a keyword whose value is an expression, is a call this shape
+    does not describe.
     """
 
-    chain_ids: set[int] = set()
-    ever: set[str] = set()
-    broken: set[str] = set()
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "mkdir"
+        and not node.args
+        and all(
+            keyword.arg is not None and isinstance(keyword.value, ast.Constant)
+            for keyword in node.keywords
+        )
+    )
 
-    def _rebind(name: str, path_like: bool, names: set[str]) -> None:
+
+@dataclass(frozen=True)
+class _PathCalls:
+    """Every path-receiver call the module admits, by node identity."""
+
+    writes: frozenset[int]
+    mkdirs: frozenset[int]
+    read_chains: frozenset[int]
+    names: frozenset[str]
+    parameters: dict[str, frozenset[str]]
+
+
+class _PathScan:
+    """Last-binding-wins tracking of the names that hold a filesystem path.
+
+    One pass records every report write, every ``mkdir``, and every
+    ``read_text`` chain call the module admits, because all three ask the same
+    question of the same receiver. ``sink = Path(...)`` followed by ``sink =
+    io.StringIO()`` leaves ``sink`` an in-memory buffer, and the write that
+    follows publishes nothing.
+
+    ``text_names`` carries the second half of the read-text chain rule the
+    grammar has always stated: a name assigned exactly once from a
+    ``read_text`` call holds that call's string, so ``.splitlines()`` on the
+    name reads exactly what the inline chain reads.
+    """
+
+    def __init__(self, single_assignment: frozenset[str]) -> None:
+        self._single_assignment = single_assignment
+        self.writes: set[int] = set()
+        self.mkdirs: set[int] = set()
+        self.chains: set[int] = set()
+        self.ever: set[str] = set()
+        self.broken: set[str] = set()
+        self.text_ever: set[str] = set()
+
+    def _rebind(
+        self,
+        name: str,
+        path_like: bool,
+        text_like: bool,
+        names: set[str],
+        text_names: set[str],
+    ) -> None:
         if path_like:
             names.add(name)
-            ever.add(name)
+            self.ever.add(name)
         else:
             names.discard(name)
-            broken.add(name)
+            self.broken.add(name)
+        if text_like:
+            text_names.add(name)
+            self.text_ever.add(name)
+        else:
+            text_names.discard(name)
 
-    def _scan(statements: list[ast.stmt], names: set[str]) -> None:
+    def _visit(self, node: ast.AST, names: set[str], text_names: set[str]) -> None:
+        if _is_write_call(node):
+            assert isinstance(node, ast.Call)
+            assert isinstance(node.func, ast.Attribute)
+            if _is_path_like(node.func.value, names):
+                self.writes.add(id(node))
+        if _is_mkdir_call(node):
+            assert isinstance(node, ast.Call)
+            assert isinstance(node.func, ast.Attribute)
+            if _is_path_like(node.func.value, names):
+                self.mkdirs.add(id(node))
+        if _is_read_text_call(node, names):
+            self.chains.add(id(node))
+        if _is_splitlines_call(node):
+            assert isinstance(node, ast.Call)
+            assert isinstance(node.func, ast.Attribute)
+            receiver = node.func.value
+            named = (
+                isinstance(receiver, ast.Name)
+                and receiver.id in text_names
+                and receiver.id in self._single_assignment
+            )
+            if named or _is_read_text_call(receiver, names):
+                self.chains.add(id(node))
+
+    def scan(self, statements: list[ast.stmt], names: set[str], text_names: set[str]) -> None:
         for statement in statements:
             if isinstance(statement, ast.With | ast.AsyncWith):
                 for item in statement.items:
                     if isinstance(item.optional_vars, ast.Name):
-                        _rebind(
+                        self._rebind(
                             item.optional_vars.id,
                             _is_path_like(item.context_expr, names),
+                            False,
                             names,
+                            text_names,
                         )
-                _scan(list(statement.body), names)
+                self.scan(list(statement.body), names, text_names)
                 continue
             if isinstance(statement, ast.If | ast.For | ast.While):
-                _scan(list(statement.body), names)
-                _scan(list(statement.orelse), names)
+                self.scan(list(statement.body), names, text_names)
+                self.scan(list(statement.orelse), names, text_names)
                 continue
             for inner in ast.walk(statement):
-                if _is_read_text_call(inner, names):
-                    chain_ids.add(id(inner))
-                if (
-                    isinstance(inner, ast.Call)
-                    and isinstance(inner.func, ast.Attribute)
-                    and inner.func.attr == "splitlines"
-                    and not inner.args
-                    and not inner.keywords
-                    and _is_read_text_call(inner.func.value, names)
-                ):
-                    chain_ids.add(id(inner))
+                self._visit(inner, names, text_names)
             if (
                 isinstance(statement, ast.Assign)
                 and len(statement.targets) == 1
                 and isinstance(statement.targets[0], ast.Name)
             ):
-                _rebind(
+                self._rebind(
                     statement.targets[0].id,
                     _is_path_like(statement.value, names),
+                    _is_read_text_call(statement.value, names),
                     names,
+                    text_names,
                 )
             elif isinstance(statement, ast.AnnAssign) and isinstance(statement.target, ast.Name):
-                _rebind(
+                bound = statement.value
+                self._rebind(
                     statement.target.id,
-                    statement.value is not None and _is_path_like(statement.value, names),
+                    bound is not None and _is_path_like(bound, names),
+                    bound is not None and _is_read_text_call(bound, names),
                     names,
+                    text_names,
                 )
 
+
+def _path_call_model(
+    tree: ast.Module, functions: dict[str, ast.FunctionDef], single_assignment: frozenset[str]
+) -> _PathCalls:
+    """The path-receiver calls of one module, module level first then bodies.
+
+    A function body cannot be placed in the module's binding order, so it sees
+    only the names that were path-like and never rebound to anything else,
+    plus its own parameters that every call site proved path-like.
+    """
+
+    scan = _PathScan(single_assignment)
     module_names: set[str] = set()
-    _scan([item for item in tree.body if not isinstance(item, ast.FunctionDef)], module_names)
-    stable = (module_names | ever) - broken
+    module_text: set[str] = set()
+    scan.scan(
+        [item for item in tree.body if not isinstance(item, ast.FunctionDef)],
+        module_names,
+        module_text,
+    )
+    stable = frozenset((module_names | scan.ever) - scan.broken)
+    stable_text = frozenset((module_text | scan.text_ever) & single_assignment)
+    parameters = _path_like_parameters(tree, functions, stable)
     for function in (item for item in tree.body if isinstance(item, ast.FunctionDef)):
-        _scan(list(function.body), set(stable))
-    return frozenset(chain_ids)
+        scan.scan(
+            list(function.body),
+            set(stable) | set(parameters.get(function.name, frozenset())),
+            set(stable_text),
+        )
+    return _PathCalls(
+        writes=frozenset(scan.writes),
+        mkdirs=frozenset(scan.mkdirs),
+        read_chains=frozenset(scan.chains),
+        names=stable,
+        parameters=parameters,
+    )
+
+
+def _path_like_parameters(
+    tree: ast.Module, functions: dict[str, ast.FunctionDef], stable: frozenset[str]
+) -> dict[str, frozenset[str]]:
+    """Parameters a helper may treat as filesystem paths, proven at the call sites.
+
+    A loader that reads ``source_path.read_text(...)`` and a writer that calls
+    ``target_path.write_text(...)`` say nothing on their own about what they
+    were handed: ``StringIO`` answers to both. The proof is the same
+    bind-and-check the helper-parity rule uses -- bind every call site's
+    arguments to the parameters and keep only the parameters every one of
+    those sites proved path-like -- and it is required, so a helper nothing
+    calls, or one whose name escapes call position and could be called through
+    an alias, proves nothing.
+    """
+
+    escaping, _ = _name_occurrences(tree)
+    sites: dict[str, list[ast.Call]] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            if node.func.id in functions:
+                sites.setdefault(node.func.id, []).append(node)
+    proven: dict[str, frozenset[str]] = {}
+    for name, function in functions.items():
+        if name in escaping or name not in sites:
+            continue
+        if (
+            function.args.posonlyargs
+            or function.args.kwonlyargs
+            or function.args.vararg
+            or function.args.kwarg
+            or function.args.defaults
+        ):
+            continue
+        parameters = [item.arg for item in function.args.args]
+        if len(set(parameters)) != len(parameters):
+            continue
+        candidates = set(parameters) & _path_receiver_parameters(function)
+        for call in sites[name]:
+            bound = _bind_arguments(parameters, call)
+            if bound is None:
+                candidates = set()
+                break
+            candidates &= {
+                parameter
+                for parameter, argument in bound.items()
+                if _is_path_like(argument, set(stable))
+            }
+        if candidates:
+            proven[name] = frozenset(candidates)
+    return proven
+
+
+def _bind_arguments(parameters: list[str], call: ast.Call) -> dict[str, ast.expr] | None:
+    """Positional and keyword binding of one call onto a plain parameter list."""
+
+    if len(call.args) > len(parameters):
+        return None
+    bound: dict[str, ast.expr] = {}
+    for parameter, argument in zip(parameters, call.args, strict=False):
+        bound[parameter] = argument
+    for keyword in call.keywords:
+        if keyword.arg is None or keyword.arg not in parameters or keyword.arg in bound:
+            return None
+        bound[keyword.arg] = keyword.value
+    if set(bound) != set(parameters):
+        return None
+    return bound
+
+
+def _path_receiver_parameters(function: ast.FunctionDef) -> set[str]:
+    """Parameters the body actually uses as a filesystem receiver."""
+
+    found: set[str] = set()
+    for node in ast.walk(function):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)):
+            continue
+        if node.func.attr not in {"read_text", "write_text", "open"}:
+            continue
+        receiver: ast.expr = node.func.value
+        while isinstance(receiver, ast.Attribute):
+            receiver = receiver.value
+        if isinstance(receiver, ast.Name):
+            found.add(receiver.id)
+    return found
+
+
+def _helper_write_call_sites(
+    tree: ast.Module,
+    functions: dict[str, ast.FunctionDef],
+    write_call_ids: frozenset[int],
+    stable: frozenset[str],
+) -> dict[int, ast.expr]:
+    """Calls to a helper whose only job is to write the report, and their payloads.
+
+    ``write_report(REPORT_PATH, report_text)`` publishes exactly what the
+    inline ``REPORT_PATH.write_text(report_text)`` publishes, so it has to seed
+    report-reachability the same way; routing the write through a helper
+    otherwise hides the report plane from the trace entirely. The helper's body
+    is one return of a recognized write on one parameter, whose payload is an
+    inert expression over the other, and the call site must hand it a provably
+    path-like argument.
+    """
+
+    helpers: dict[str, tuple[int, int]] = {}
+    for name, function in functions.items():
+        shape = _report_write_helper_shape(function, write_call_ids)
+        if shape is not None:
+            helpers[name] = shape
+    if not helpers:
+        return {}
+    calls: dict[int, ast.expr] = {}
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)):
+            continue
+        shape = helpers.get(node.func.id)
+        if shape is None:
+            continue
+        path_index, payload_index = shape
+        parameters = [item.arg for item in functions[node.func.id].args.args]
+        bound = _bind_arguments(parameters, node)
+        if bound is None:
+            continue
+        if not _is_path_like(bound[parameters[path_index]], set(stable)):
+            continue
+        payload = bound[parameters[payload_index]]
+        if not isinstance(payload, ast.Name):
+            continue
+        calls[id(node)] = payload
+    return calls
+
+
+def _report_write_helper_shape(
+    function: ast.FunctionDef, write_call_ids: frozenset[int]
+) -> tuple[int, int] | None:
+    """``(path parameter index, payload parameter index)`` of a write helper, or None.
+
+    The body is one return of ``path_parameter.write_text(<payload>)``, with
+    at most the inert bare-call statements the whitelist admits before it, and
+    the payload reads the other parameter and nothing else. Two plain
+    parameters exactly: the shape is a path and the text to put at it.
+    """
+
+    if (
+        function.args.posonlyargs
+        or function.args.kwonlyargs
+        or function.args.vararg
+        or function.args.kwarg
+        or function.args.defaults
+        or len(function.args.args) != 2
+    ):
+        return None
+    parameters = [item.arg for item in function.args.args]
+    if len(set(parameters)) != 2:
+        return None
+    statements = [
+        item
+        for item in _flatten_statements(function.body)
+        if not (isinstance(item, ast.Expr) and isinstance(item.value, ast.Constant | ast.Call))
+    ]
+    if len(statements) != 1 or not isinstance(statements[0], ast.Return):
+        return None
+    returned = statements[0].value
+    if not (isinstance(returned, ast.Call) and id(returned) in write_call_ids):
+        return None
+    if not (isinstance(returned.func, ast.Attribute) and returned.func.attr == "write_text"):
+        return None
+    if not isinstance(returned.func.value, ast.Name) or not returned.args:
+        return None
+    path_parameter = returned.func.value.id
+    if path_parameter not in parameters:
+        return None
+    payload = returned.args[0]
+    if not _print_argument(payload):
+        return None
+    free = {inner.id for inner in ast.walk(payload) if isinstance(inner, ast.Name)}
+    payload_parameter = next(item for item in parameters if item != path_parameter)
+    if free != {payload_parameter}:
+        return None
+    return parameters.index(path_parameter), parameters.index(payload_parameter)
 
 
 def _import_table(tree: ast.Module) -> dict[str, str]:
@@ -3359,7 +4070,9 @@ def _statement_violation(statement: ast.stmt, ctx: _TraceContext, *, scope: str)
     if isinstance(statement, ast.For):
         if id(statement) not in ctx.recognized_loops:
             return True
-        if not isinstance(statement.iter, ast.Name):
+        if not (
+            isinstance(statement.iter, ast.Name) or id(statement.iter) in ctx.recognized_pairings
+        ):
             return True
         # A recognized loop shape says nothing about the expressions inside
         # it; ``operator.setitem(row, ...) or 1.0`` in a loop payload was a
@@ -3424,6 +4137,12 @@ def _expression_statement_violation(statement: ast.Expr, ctx: _TraceContext) -> 
         # Closing the staged input handle, the one file-handle method this
         # trace models. It computes nothing and returns None.
         return False
+    if isinstance(value, ast.Call) and id(value) in ctx.model.mkdir_call_ids:
+        # Creating the results directory a report is written into. The
+        # receiver is a proven filesystem path, every argument is a literal,
+        # and the call returns None, so nothing this trace follows passes
+        # through it.
+        return False
     if (
         isinstance(value, ast.Call)
         and _call_name(value) in ctx.model.functions
@@ -3444,8 +4163,18 @@ def _is_print_read(call: ast.Call, ctx: _TraceContext) -> bool:
 
     if not (isinstance(call.func, ast.Name) and call.func.id == "print"):
         return False
-    if not _is_builtin_name("print", ctx) or call.keywords:
+    if not _is_builtin_name("print", ctx):
         return False
+    for keyword in call.keywords:
+        # ``sep``, ``end``, and ``flush`` only change how the same arguments
+        # are laid out on standard output. ``file`` redirects the write to a
+        # receiver this trace has not proven, so it stays outside the form.
+        if keyword.arg not in {"sep", "end", "flush"}:
+            return False
+        if not isinstance(keyword.value, ast.Constant):
+            return False
+        if not (isinstance(keyword.value.value, str) or keyword.value.value is None):
+            return False
     return all(_print_argument(item) for item in call.args)
 
 
@@ -3897,6 +4626,16 @@ def _accumulated_comprehension_ids(tree: ast.Module) -> set[int]:
                 # left that comprehension unclassified, a demonstrated
                 # wrong answer.
                 renames.setdefault(node.targets[0].id, set()).add(node.value.id)
+        if (
+            isinstance(node, ast.For)
+            and isinstance(node.target, ast.Name)
+            and isinstance(node.iter, ast.Name)
+            and _elementwise_accumulation_targets(node, node.target.id) is not None
+        ):
+            # ``for weight in weights: total = total + weight`` is the loop
+            # spelling of ``sum(weights)``, and it consumes the comprehension
+            # bound to ``weights`` exactly as the call does.
+            consumed.add(node.iter.id)
     changed = True
     while changed:
         changed = False
@@ -3965,81 +4704,27 @@ def _is_write_call(node: ast.AST) -> bool:
     )
 
 
-def _report_write_call_ids(tree: ast.Module) -> frozenset[int]:
-    """Write calls whose receiver is a filesystem path at that point in the module.
+def _write_payloads(
+    node: ast.AST,
+    write_call_ids: frozenset[int],
+    helper_write_calls: dict[int, ast.expr],
+) -> list[ast.expr]:
+    """The text every recognized report write in a subtree publishes.
 
-    Path-likeness is tracked with last binding wins. ``sink = Path(...)``
-    followed by ``sink = io.StringIO()`` leaves ``sink`` an in-memory buffer,
-    and the write that follows publishes nothing.
+    A direct write publishes its first argument; a call to a recognized
+    report-write helper publishes the argument that reaches that helper's
+    payload parameter.
     """
 
-    write_ids: set[int] = set()
-    ever: set[str] = set()
-    broken: set[str] = set()
-
-    def _rebind(name: str, path_like: bool, names: set[str]) -> None:
-        if path_like:
-            names.add(name)
-            ever.add(name)
-        else:
-            names.discard(name)
-            broken.add(name)
-
-    def _scan(statements: list[ast.stmt], names: set[str]) -> None:
-        for statement in statements:
-            if isinstance(statement, ast.With | ast.AsyncWith):
-                for item in statement.items:
-                    if isinstance(item.optional_vars, ast.Name):
-                        _rebind(
-                            item.optional_vars.id,
-                            _is_path_like(item.context_expr, names),
-                            names,
-                        )
-                _scan(list(statement.body), names)
-                continue
-            if isinstance(statement, ast.If | ast.For | ast.While):
-                _scan(list(statement.body), names)
-                _scan(list(statement.orelse), names)
-                continue
-            for inner in ast.walk(statement):
-                if _is_write_call(inner):
-                    assert isinstance(inner, ast.Call)
-                    assert isinstance(inner.func, ast.Attribute)
-                    if _is_path_like(inner.func.value, names):
-                        write_ids.add(id(inner))
-            if (
-                isinstance(statement, ast.Assign)
-                and len(statement.targets) == 1
-                and isinstance(statement.targets[0], ast.Name)
-            ):
-                _rebind(
-                    statement.targets[0].id,
-                    _is_path_like(statement.value, names),
-                    names,
-                )
-            elif isinstance(statement, ast.AnnAssign) and isinstance(statement.target, ast.Name):
-                _rebind(
-                    statement.target.id,
-                    statement.value is not None and _is_path_like(statement.value, names),
-                    names,
-                )
-
-    module_names: set[str] = set()
-    _scan([item for item in tree.body if not isinstance(item, ast.FunctionDef)], module_names)
-    # A function body cannot be placed in the module's binding order, so it
-    # sees only the names that were path-like and never rebound to anything
-    # else.
-    stable = (module_names | ever) - broken
-    for function in (item for item in tree.body if isinstance(item, ast.FunctionDef)):
-        _scan(list(function.body), set(stable))
-    return frozenset(write_ids)
-
-
-def _write_payloads(node: ast.AST, write_call_ids: frozenset[int]) -> list[ast.expr]:
     payloads: list[ast.expr] = []
     for inner in ast.walk(node):
-        if isinstance(inner, ast.Call) and id(inner) in write_call_ids:
+        if not isinstance(inner, ast.Call):
+            continue
+        if id(inner) in write_call_ids:
             payloads.append(inner.args[0])
+        routed = helper_write_calls.get(id(inner))
+        if routed is not None:
+            payloads.append(routed)
     return payloads
 
 
@@ -4076,6 +4761,7 @@ def _report_reaching_names(
     tree: ast.Module,
     functions: dict[str, ast.FunctionDef],
     write_call_ids: frozenset[int],
+    helper_write_calls: dict[int, ast.expr],
     reachable: frozenset[str],
 ) -> set[str]:
     """Names whose values can flow into a written report payload.
@@ -4118,11 +4804,26 @@ def _report_reaching_names(
             and isinstance(node.op, ast.Add | ast.Mult)
         ):
             _depend(node.target.id, [node.value])
+            return
+        if isinstance(node, ast.For) and isinstance(node.target, ast.Name):
+            # An accumulation loop's total depends on the list it walks, not
+            # only on the loop variable that names one element of it.
+            for inner in node.body:
+                if isinstance(inner, ast.AugAssign) and isinstance(inner.target, ast.Name):
+                    _depend(inner.target.id, [node.iter])
+                elif (
+                    isinstance(inner, ast.Assign)
+                    and len(inner.targets) == 1
+                    and isinstance(inner.targets[0], ast.Name)
+                ):
+                    target = inner.targets[0]
+                    assert isinstance(target, ast.Name)
+                    _depend(target.id, [node.iter])
 
     def _collect(statements: list[ast.stmt], *, seeding: bool) -> None:
         for statement in _flatten_statements(statements):
             if seeding:
-                for payload in _write_payloads(statement, write_call_ids):
+                for payload in _write_payloads(statement, write_call_ids, helper_write_calls):
                     for name in ast.walk(payload):
                         if isinstance(name, ast.Name):
                             seeds.add(name.id)

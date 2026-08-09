@@ -1,16 +1,17 @@
 """Permanent regression: the founder pilot burned cases.
 
-Two blind pilots have run against this recognizer, and both discovered a
-miss. The three cases of the ``...-v2.1.5`` pilot-a lane and the three of the
-``...-v2.2.1`` pilot-b lane are answer-visible development evidence: their
-scientific labels were exposed when each pilot was scored, so they are
-permanently qualification-ineligible. They are retained here as the
-regression fixtures for the two discovered misses. Under v2.1.5 the detector
-abstained on all three pilot-a cases, including the error-bearing one,
-because the blind author wrote five ordinary idioms the whitelist did not
-model; v2.2.0 models them. Under v2.2.1 it abstained on all three pilot-b
-cases for the same kind of reason, across four more idioms; v2.2.2 models
-those.
+Three blind pilots have run against this recognizer, and each discovered a
+miss. The three cases of the ``...-v2.1.5`` pilot-a lane, the three of the
+``...-v2.2.1`` pilot-b lane, and the three of the ``...-v2.2.2`` pilot-c lane
+are answer-visible development evidence: their scientific labels were exposed
+when each pilot was scored, so they are permanently qualification-ineligible.
+They are retained here as the regression fixtures for the three discovered
+misses. Under v2.1.5 the detector abstained on all three pilot-a cases,
+including the error-bearing one, because the blind author wrote five ordinary
+idioms the whitelist did not model; v2.2.0 models them. Under v2.2.1 it
+abstained on all three pilot-b cases for the same kind of reason, across four
+more idioms; v2.2.2 models those. Under v2.2.2 it abstained on the pilot-c
+error-bearing case across ten more; v2.2.3 models those.
 
 These assertions are permanent, and they are asymmetric on purpose. Each
 error-bearing case must localize: the resolver must read the repaired
@@ -58,6 +59,10 @@ LANE_B = Path(
     "evaluation/qualification/founder-orientation-before-hmm-emission-v2.2.1-lane/pilot-b"
 )
 CASES_B = LANE_B / "authoring/cases"
+LANE_C = Path(
+    "evaluation/qualification/founder-orientation-before-hmm-emission-v2.2.2-lane/pilot-c"
+)
+CASES_C = LANE_C / "authoring/cases"
 WORKFLOW_PATH = "workflow/analysis.py"
 REPORT_PATH = "results/report.md"
 
@@ -69,8 +74,13 @@ ERROR_BEARING_B = "a75ef9767fe5d844013c"
 CORRECTED_TWIN_B = "a2b7f1909259491efe88"
 HARD_NEGATIVE_B = "2d54a3f3add5ee29ce6d"
 
+ERROR_BEARING_C = "8c347d0471b4ab2fcc31"
+CORRECTED_TWIN_C = "ba25407cb8c597e00a42"
+HARD_NEGATIVE_C = "be698ab19891acbd8e51"
+
 CONTROLS = (CORRECTED_TWIN, HARD_NEGATIVE)
 CONTROLS_B = (CORRECTED_TWIN_B, HARD_NEGATIVE_B)
+CONTROLS_C = (CORRECTED_TWIN_C, HARD_NEGATIVE_C)
 
 
 def _inspection_context(report: bytes, workflow: bytes) -> FrozenInspectionContext:
@@ -398,6 +408,118 @@ def test_the_pilot_b_controls_never_produce_a_repaired_reading(
 @pytest.mark.parametrize("slug", [ERROR_BEARING_B, *CONTROLS_B])
 def test_every_pilot_b_case_answers_deterministically(project_root: Path, slug: str) -> None:
     context = _case_context(project_root, slug, CASES_B)
+    first = _resolution(context)
+    second = _resolution(context)
+    assert first.state == second.state
+    assert first.orientation == second.orientation
+    assert first.operand_value == second.operand_value
+    assert _observation(context) == _observation(context)
+
+
+# Pilot c, run blind against v2.2.2 and burned by the same scoring. Its
+# error-bearing case wrote ten ordinary idioms the v2.2.2 whitelist did not
+# model: ``Fraction`` module constants in the selector branches, a helper
+# parameter used as a filesystem path, ``.splitlines()`` on a name holding a
+# ``read_text`` result, a bare ``mkdir()``, a report write routed through a
+# two-parameter helper, an elementwise recode of a column-values list, the
+# ``range(len(...))`` spelling of a pairing, two accumulation loops, and
+# ``print(..., end="")``. v2.2.3 models all ten.
+
+
+def test_the_pilot_c_lane_labels_still_say_what_these_cases_are(project_root: Path) -> None:
+    """The roles asserted below are the lane's own frozen scientific labels."""
+
+    ledger = json.loads(
+        (project_root / LANE_C / "SCIENTIFIC_LABEL_LEDGER.json").read_text(encoding="utf-8")
+    )
+    roles = {
+        entry["case_id"].removeprefix("case:"): entry["case_role"] for entry in ledger["entries"]
+    }
+    assert roles[ERROR_BEARING_C] == "error_bearing"
+    assert roles[CORRECTED_TWIN_C] == "corrected_twin"
+    assert roles[HARD_NEGATIVE_C] == "hard_negative"
+
+
+def test_the_pilot_c_error_bearing_case_localizes_the_repaired_orientation(
+    project_root: Path,
+) -> None:
+    """The miss v2.2.2 recorded on this lane, closed.
+
+    The workflow reads its table through a helper whose parameter every call
+    site proves is a path, recodes the panel column with ``panel_indicator``,
+    which returns ``1 - marker_value``, and then pairs the observed column
+    against the recoded one by index. Exactly one operand path carries that
+    involution, so the emission accumulates over the complemented panel while
+    the report says the panel is used as supplied.
+    """
+
+    context = _case_context(project_root, ERROR_BEARING_C, CASES_C)
+    resolution = _resolution(context)
+    assert resolution.state == "unique"
+    assert resolution.orientation == "repaired"
+    assert resolution.operand_value == REPAIRED_OPERAND
+    assert resolution.source_path == WORKFLOW_PATH
+    applicability, operand = _observation(context)
+    assert applicability == "applicable"
+    assert operand == REPAIRED_OPERAND
+
+
+def test_the_pilot_c_corrected_twin_carries_no_repaired_operand(project_root: Path) -> None:
+    """The twin compares both columns as staged, so a repair reading is a false alarm.
+
+    It is the error-bearing workflow with the recode helper and its
+    intermediate column removed, so the panel column reaches the pairing as
+    read. Direct and clean abstention are both sound answers; under v2.2.3 the
+    answer is direct.
+    """
+
+    context = _case_context(project_root, CORRECTED_TWIN_C, CASES_C)
+    resolution = _resolution(context)
+    assert resolution.orientation in {None, "direct"}
+    assert resolution.operand_value != REPAIRED_OPERAND
+    applicability, operand = _observation(context)
+    assert operand != REPAIRED_OPERAND
+    if applicability == "applicable":
+        assert operand == DIRECT_OPERAND
+
+
+def test_the_pilot_c_hard_negative_stays_clean(project_root: Path) -> None:
+    """No false alarm on the hard negative, whichever way it resolves.
+
+    This workflow builds a strand-complemented copy of the panel column as a
+    declared quality-control comparison, and the report says the complement
+    never enters the emission. Its selector helper takes the two branch
+    weights as parameters instead of reading module constants, and binds its
+    flag through an ``int()`` cast; either one alone puts the helper outside
+    the recognized selector shape, so the current answer is an abstention.
+    That is clean, and so is a direct reading; a repaired operand is not. The
+    assertion is therefore on the absence of the false alarm rather than on a
+    particular state.
+    """
+
+    context = _case_context(project_root, HARD_NEGATIVE_C, CASES_C)
+    resolution = _resolution(context)
+    assert resolution.operand_value != REPAIRED_OPERAND
+    applicability, operand = _observation(context)
+    assert operand != REPAIRED_OPERAND
+    assert applicability != "applicable" or operand == DIRECT_OPERAND
+
+
+@pytest.mark.parametrize("slug", CONTROLS_C)
+def test_the_pilot_c_controls_never_produce_a_repaired_reading(
+    project_root: Path, slug: str
+) -> None:
+    """One rule over both controls, stated once so no future version loses it."""
+
+    context = _case_context(project_root, slug, CASES_C)
+    assert _resolution(context).orientation != "repaired"
+    _applicability, operand = _observation(context)
+    assert operand != REPAIRED_OPERAND
+
+
+@pytest.mark.parametrize("slug", [ERROR_BEARING_C, *CONTROLS_C])
+def test_every_pilot_c_case_answers_deterministically(project_root: Path, slug: str) -> None:
+    context = _case_context(project_root, slug, CASES_C)
     first = _resolution(context)
     second = _resolution(context)
     assert first.state == second.state

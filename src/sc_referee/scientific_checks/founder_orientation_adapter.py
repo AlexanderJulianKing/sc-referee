@@ -53,6 +53,14 @@ row rebuild, ``close()`` on a file handle the modelled ``open()`` bound, a
 one-parameter helper that extracts one column of the row it is handed, and
 the multiply-complement selector ``A * FLAG + B * (1 - FLAG)``.
 
+v2.2.3 widens it by ten more, again one exact shape each: exact-numeric module
+constants in selector branches, helper parameters proven path-like at their
+call sites, ``.splitlines()`` on a name holding a ``read_text`` result, a bare
+``mkdir()``, a report write routed through a two-parameter helper, an
+elementwise recode of a column-values list, the ``range(len(...))`` spelling of
+a ``zip`` pairing, accumulation loops that consume a list the way ``sum`` does,
+and ``print`` with ``sep``, ``end``, or ``flush``.
+
 Even a silent report has to account for the workflow's reading: the adapter
 classifies on the dataflow alone only when some stated marker total,
 agreement count, and rate reconcile in the direction the workflow computed.
@@ -126,7 +134,7 @@ def founder_orientation_recognition_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-reconciliation",
-        "grammar_version": "2.2.2",
+        "grammar_version": "2.2.3",
         "count_source": "integer_tokens_without_unit_or_percent_suffix",
         "rate_source": "decimal_point_or_percent_suffixed_tokens_direct_or_percent_scaled",
         "relations": [
