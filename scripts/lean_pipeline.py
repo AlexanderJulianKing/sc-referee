@@ -143,6 +143,21 @@ FOUNDER_LANE_RELATIVE = Path(
     f"evaluation/qualification/founder-orientation-before-hmm-emission-v{FOUNDER_CHECK_VERSION}-lane"
 )
 
+# Pilot b is the same envelope, the same briefs and the same discipline, run
+# against the v2.2.1 recognizer that closed the pilot-a miss. Every
+# version-derived string is derived exactly the way pilot a derived it from
+# v2.1.5: the check version is the one the scientific-check manifest registry
+# carries for this check id, and the lane directory and the envelope id are
+# built from it. The actor labels are fresh so no pilot-a participant record is
+# reused; reviewer calibration resolves by (model id, pinned binary version,
+# calibration suite), which the shared registry already holds for both models.
+FOUNDER_CHECK_VERSION_B = "2.2.1"
+FOUNDER_PILOT_INSTANCE_B = "b"
+FOUNDER_LANE_RELATIVE_B = Path(
+    "evaluation/qualification/"
+    f"founder-orientation-before-hmm-emission-v{FOUNDER_CHECK_VERSION_B}-lane"
+)
+
 _FOUNDER_COMMON_TASK = (
     "Choose one concrete scientific subject area yourself, from any field you like, and invent "
     "a small truthful comparison accounting for it: a set of measured units (choose the unit "
@@ -266,13 +281,18 @@ _FOUNDER_LABEL_STATUS_BY_ROLE = {
 }
 
 
-def default_founder_orientation_config(instance: str = FOUNDER_PILOT_INSTANCE) -> EnvelopeConfig:
+def default_founder_orientation_config(
+    instance: str = FOUNDER_PILOT_INSTANCE,
+    check_version: str = FOUNDER_CHECK_VERSION,
+    lane_relative: Path = FOUNDER_LANE_RELATIVE,
+    author_ordinals: tuple[str, str] = ("01", "02"),
+    reviewer_ordinal: str = "01",
+) -> EnvelopeConfig:
     slug = f"founder-{instance}"
+    first_author, second_author = author_ordinals
     return EnvelopeConfig(
-        envelope_id=(
-            f"founder-orientation-before-hmm-emission-v{FOUNDER_CHECK_VERSION}-lean-{instance}"
-        ),
-        pipeline_relative=FOUNDER_LANE_RELATIVE / f"pilot-{instance}",
+        envelope_id=f"founder-orientation-before-hmm-emission-v{check_version}-lean-{instance}",
+        pipeline_relative=lane_relative / f"pilot-{instance}",
         check_id=FOUNDER_CHECK_ID,
         canonical_issue_class="issue-class:complemented-panel-for-supplied-panel-emission",
         candidate_by_role={
@@ -284,31 +304,31 @@ def default_founder_orientation_config(instance: str = FOUNDER_PILOT_INSTANCE) -
         role_constraints={role: list(items) for role, items in _FOUNDER_ROLE_CONSTRAINTS.items()},
         common_task=_FOUNDER_COMMON_TASK,
         authors={
-            f"actor:{slug}-author-opus-01": ModelParticipant(
-                participant_id=f"actor:{slug}-author-opus-01",
+            f"actor:{slug}-author-opus-{first_author}": ModelParticipant(
+                participant_id=f"actor:{slug}-author-opus-{first_author}",
                 model_id="claude-opus-5",
                 model_name="Claude Opus 5",
                 model_alias="claude-opus-5",
             ),
-            f"actor:{slug}-author-opus-02": ModelParticipant(
-                participant_id=f"actor:{slug}-author-opus-02",
+            f"actor:{slug}-author-opus-{second_author}": ModelParticipant(
+                participant_id=f"actor:{slug}-author-opus-{second_author}",
                 model_id="claude-opus-5",
                 model_name="Claude Opus 5",
                 model_alias="claude-opus-5",
             ),
         },
         author_roles={
-            f"actor:{slug}-author-opus-01": ["error_bearing", "corrected_twin"],
-            f"actor:{slug}-author-opus-02": ["hard_negative"],
+            f"actor:{slug}-author-opus-{first_author}": ["error_bearing", "corrected_twin"],
+            f"actor:{slug}-author-opus-{second_author}": ["hard_negative"],
         },
         reviewer=ModelParticipant(
-            participant_id=f"actor:{slug}-reviewer-fable-01",
+            participant_id=f"actor:{slug}-reviewer-fable-{reviewer_ordinal}",
             model_id="claude-fable-5",
             model_name="Claude Fable 5",
             model_alias="fable",
         ),
         escalation_reviewer=ModelParticipant(
-            participant_id=f"actor:{slug}-reviewer-opus-01",
+            participant_id=f"actor:{slug}-reviewer-opus-{reviewer_ordinal}",
             model_id="claude-opus-5",
             model_name="Claude Opus 5",
             model_alias="claude-opus-5",
@@ -323,9 +343,22 @@ def default_founder_orientation_config(instance: str = FOUNDER_PILOT_INSTANCE) -
     )
 
 
+def default_founder_orientation_b_config() -> EnvelopeConfig:
+    """Instance b of the founder-orientation blind pilot, run against v2.2.1."""
+
+    return default_founder_orientation_config(
+        instance=FOUNDER_PILOT_INSTANCE_B,
+        check_version=FOUNDER_CHECK_VERSION_B,
+        lane_relative=FOUNDER_LANE_RELATIVE_B,
+        author_ordinals=("03", "04"),
+        reviewer_ordinal="02",
+    )
+
+
 ENVELOPE_CONFIGS = {
     "complete-domain": default_complete_domain_config,
     "founder-orientation": default_founder_orientation_config,
+    "founder-orientation-b": default_founder_orientation_b_config,
 }
 
 

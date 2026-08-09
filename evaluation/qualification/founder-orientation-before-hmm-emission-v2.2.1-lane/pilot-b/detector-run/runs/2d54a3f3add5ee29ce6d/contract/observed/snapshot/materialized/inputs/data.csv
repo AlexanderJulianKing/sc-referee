@@ -1,0 +1,25 @@
+isolate_id,collection_site,species,mic_cipro_mg_per_l,phenotype_resistant,panel_gyra_marker
+EC-01,Ward-A,Escherichia coli,0.25,0,0
+EC-02,Ward-A,Escherichia coli,8,1,1
+EC-03,Ward-A,Escherichia coli,0.125,0,0
+EC-04,Ward-B,Escherichia coli,4,1,0
+EC-05,Ward-B,Escherichia coli,16,1,1
+EC-06,Ward-B,Escherichia coli,0.25,0,0
+EC-07,Ward-B,Escherichia coli,8,1,1
+EC-08,Ward-C,Escherichia coli,0.5,0,0
+EC-09,Ward-C,Escherichia coli,0.25,0,1
+EC-10,Ward-C,Escherichia coli,32,1,1
+EC-11,Ward-C,Escherichia coli,4,1,1
+EC-12,Ward-D,Escherichia coli,0.125,0,0
+EC-13,Ward-D,Escherichia coli,8,1,0
+EC-14,Ward-D,Escherichia coli,0.5,0,0
+EC-15,Ward-D,Escherichia coli,16,1,1
+EC-16,Ward-E,Escherichia coli,4,1,1
+EC-17,Ward-E,Escherichia coli,0.25,0,0
+EC-18,Ward-E,Escherichia coli,0.5,0,1
+EC-19,Ward-E,Escherichia coli,8,1,1
+EC-20,Ward-F,Escherichia coli,0.125,0,0
+EC-21,Ward-F,Escherichia coli,16,1,1
+EC-22,Ward-F,Escherichia coli,4,1,0
+EC-23,Ward-F,Escherichia coli,0.25,0,0
+EC-24,Ward-F,Escherichia coli,32,1,1
