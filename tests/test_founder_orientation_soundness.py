@@ -3711,3 +3711,72 @@ def test_an_arithmetic_selector_outside_its_exact_shape_abstains() -> None:
     unsupported, states = _resolve(_v220_workflow(head=head))
     assert unsupported
     assert states == set()
+
+
+# v2.2.1: the v2.2.0 verification round's two closures.
+
+
+def test_a_zip_over_a_rebound_row_source_abstains() -> None:
+    """Rebinding the row-set name between list constructions pairs columns
+    from two different staged reads; the source name must be bound once."""
+
+    source = (
+        "import csv\nimport math\nimport pathlib\n\n"
+        "CALL_COLUMN = 'call'\n"
+        "FOUNDER_COLUMN = 'founder'\n"
+        "PANEL_BASELINE = 1\n\n"
+        "lines_a = pathlib.Path('inputs/markers.csv').read_text(encoding='ascii').splitlines()\n"
+        "lines_b = pathlib.Path('inputs/panel.csv').read_text(encoding='ascii').splitlines()\n"
+        "rows = [record for record in csv.DictReader(lines_a)]\n"
+        "call_values = [int(record[CALL_COLUMN]) for record in rows]\n"
+        "rows = [record for record in csv.DictReader(lines_b)]\n"
+        "founder_values = [PANEL_BASELINE - int(record[FOUNDER_COLUMN]) for record in rows]\n"
+        "pairs = zip(call_values, founder_values)\n"
+        "emission_value = 0\n"
+        "for pair in pairs:\n"
+        "    emission_value = emission_value + (0 + (1 - 0) * (pair[0] == pair[1]))\n"
+        "report_text = f'Of 4 markers, {emission_value} agree.'\n"
+        "pathlib.Path('results/report.md').write_text(report_text)\n"
+    )
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()
+
+
+def test_a_chained_comparison_emission_abstains() -> None:
+    """``a == b == 1`` is outside every classifier; a decoy count answered."""
+
+    source = (
+        "import csv\nimport math\nfrom pathlib import Path\n\n"
+        "rows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n"
+        "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
+        "agreement = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in rows)\n"
+        "flags = [int(item['call']) == int(item['founder']) == 1 for item in panel]\n"
+        "likelihood = math.prod(0.99 if flag else 0.01 for flag in flags)\n"
+        "n = len(rows)\n"
+        "report = f'{agreement} of {n}. Likelihood {likelihood:.8g}.'\n"
+        "Path('results/report.md').write_text(report)\n"
+    )
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()
+
+
+def test_a_chained_range_check_filter_still_resolves() -> None:
+    """``0 <= x <= 1`` reads one name; the belt leaves it alone."""
+
+    source = (
+        "import csv\nimport math\nfrom pathlib import Path\n\n"
+        "rows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n"
+        "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
+        "likelihood = math.prod(\n"
+        "    0.99 if int(item['call']) == int(item['founder']) else 0.01\n"
+        "    for item in panel\n"
+        "    if 0 <= int(item['call']) <= 1\n"
+        ")\n"
+        "report = f'Likelihood {likelihood:.8g}.'\n"
+        "Path('results/report.md').write_text(report)\n"
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {"repaired"}

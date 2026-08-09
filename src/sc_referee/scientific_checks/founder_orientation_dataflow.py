@@ -218,7 +218,7 @@ def founder_orientation_dataflow_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-emission-dataflow",
-        "grammar_version": "2.2.0",
+        "grammar_version": "2.2.1",
         "trust_model": (
             "default deny: the trace holds an explicit whitelist of the statement and "
             "expression forms it models completely, and any form outside that whitelist "
@@ -2202,6 +2202,12 @@ def _tag_zip(node: ast.Call, env: dict[str, _Value], ctx: _TraceContext) -> _Val
         return _OPAQUE
     if left.source_key != right.source_key or left.source != right.source:
         return _OPAQUE
+    if left.source_key not in ctx.model.single_assignment:
+        # Two independent staged reads produce structurally equal _Rows
+        # values, so a rebound row-set name satisfies the equality tests
+        # while the two lists read two different files (a demonstrated
+        # invariant breach). The source name must be bound exactly once.
+        return _OPAQUE
     ctx.recognized_pairings.add(id(node))
     return _Paired(left, right)
 
@@ -3394,11 +3400,30 @@ def _emission_scan_violation(tree: ast.Module, ctx: _TraceContext) -> bool:
         ):
             unreachable_regions.update(id(inner) for inner in ast.walk(statement))
     for node in ast.walk(tree):
-        if not isinstance(node, ast.Compare) or len(node.ops) != 1:
-            continue
-        if not isinstance(node.ops[0], ast.Eq | ast.NotEq):
+        if not isinstance(node, ast.Compare):
             continue
         if id(node) in ctx.recognized_compares or id(node) in unreachable_regions:
+            continue
+        if len(node.ops) != 1:
+            # ``a == b == 1`` is outside every classifier, and letting a
+            # recognized decoy count answer for it was a demonstrated
+            # wrong-answer route. A chained comparison over two distinct
+            # staged extractions, or over operands reading different
+            # names, abstains; a plain range check over one name passes.
+            operands = [node.left, *node.comparators]
+            extractions = {
+                found
+                for found in (_staged_extraction(item, ctx.constants) for item in operands)
+                if found
+            }
+            if len(extractions) > 1:
+                return True
+            named = [_operand_names(item) for item in operands]
+            named = [item for item in named if item]
+            if len(named) > 1 and len(set(named)) > 1:
+                return True
+            continue
+        if not isinstance(node.ops[0], ast.Eq | ast.NotEq):
             continue
         left = _staged_extraction(node.left, ctx.constants)
         right = _staged_extraction(node.comparators[0], ctx.constants)
