@@ -1845,12 +1845,55 @@ def test_repeated_identical_predictions_cancel_instead_of_restoring() -> None:
     _assert_abstains(source)
 
 
-def test_a_prediction_from_a_second_estimator_still_mints_fresh_provenance() -> None:
-    """A different estimator is a different value, so the pair is readable."""
+def test_a_second_identically_fitted_estimator_shares_the_first_ones_identity() -> None:
+    """v2.0.3 expectation change: identity is what an estimator is, not where.
+
+    Under v2.0.2 this read as the direct calibration, because a second
+    ``RidgeCV()`` minted provenance of its own and the difference of the two
+    predictions then read as an independent continuous addend. Two estimators
+    of the same class fitted on the same values are one value written twice,
+    and for a deterministic estimator that difference is identically zero, so
+    the reading was wrong. Estimator ids are now keyed on the constructor path
+    and the fit-call argument signature, which makes the two predictions
+    intersect and the subtraction unreadable.
+
+    Fresh ids are minted only when the constructor path or the fit signature
+    differs; the two tests below are the controls for each half of that key.
+    """
 
     source = _calibration_workflow(
         "raw = calibrator.predict(features)\n"
         "second_model = RidgeCV().fit(features, frame['copy_index'])\n"
+        "dosage = raw - second_model.predict(features)\n"
+    )
+    _assert_abstains(source)
+
+
+def test_a_second_estimator_of_a_different_class_still_mints_fresh_provenance() -> None:
+    """Half one of the identity key: a different constructor path."""
+
+    source = _calibration_workflow(
+        "raw = calibrator.predict(features)\n"
+        "second_model = LinearRegression().fit(features, frame['copy_index'])\n"
+        "dosage = raw - second_model.predict(features)\n"
+    ).replace(
+        "from sklearn.linear_model import LogisticRegression, RidgeCV",
+        "from sklearn.linear_model import LinearRegression, LogisticRegression, RidgeCV",
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {CALIBRATION}
+
+
+def test_a_second_estimator_fitted_on_other_values_still_mints_fresh_provenance() -> None:
+    """Half two of the identity key: the same class, a different fit."""
+
+    source = _calibration_workflow(
+        "replicate = pd.read_csv(Path('inputs/replicate.csv'))\n"
+        "raw = calibrator.predict(features)\n"
+        "second_model = RidgeCV().fit(\n"
+        "    replicate[['marker_a', 'marker_b']], replicate['copy_index']\n"
+        ")\n"
         "dosage = raw - second_model.predict(features)\n"
     )
     unsupported, states = _resolve(source)
@@ -1951,12 +1994,21 @@ def test_a_gather_from_a_traced_table_abstains(body: str) -> None:
 
 @pytest.mark.parametrize(
     "expression",
-    ["expected[0:3]", "expected[2]", "expected[mask]"],
+    ["expected[0:3]", "expected[2]", "expected[:]", "expected[0:2, 1]", "expected[mask]"],
 )
 def test_a_literal_index_or_a_comparison_mask_still_selects_rows(expression: str) -> None:
-    """The control: row selection preserves the scale, and still reads."""
+    """The control: row selection preserves the scale, and still reads.
 
-    source = _posterior_workflow(f"mask = frame['qc_pass'] == 1\ndosage = {expression}\n")
+    v2.0.3 expectation change: the mask here is now built from ``expected``,
+    which this trace watched a comparison produce. Under v2.0.2 the case was
+    written ``mask = frame['qc_pass'] == 1``, whose operands are opaque staged
+    columns, so the comparison produced no mask at all and the subscript read
+    as a row selection only because the index had lost its provenance. That is
+    the permissive branch ruling 6 withdrew; the case it stood for is now
+    ``test_an_unproven_mask_index_abstains``.
+    """
+
+    source = _posterior_workflow(f"mask = expected > 0.5\ndosage = {expression}\n")
     unsupported, states = _resolve(source)
     assert not unsupported
     assert states == {EXPECTATION}
@@ -2039,6 +2091,322 @@ def test_a_contract_whose_operand_values_are_not_distinct_is_unsupported() -> No
     observation = adapter.inspect(_dataflow_context({"analysis.py": _QUANTIZED_WORKFLOW}))
     assert observation.applicability == "unsupported"
     assert observation.observed_operand is None
+
+
+# ---------------------------------------------------------------------------
+# v2.0.3: the six wrong-answer families a fourth adversarial review
+# demonstrated.
+#
+# Every case below runs at run time to something other than what v2.0.2
+# reported. None of them is executed here: ``_resolve`` parses the source and
+# runs the static trace over the syntax tree.
+
+
+# ---------------------------------------------------------------------------
+# Family 16: a conversion is a view unless it always writes its own buffer.
+
+
+_ASARRAY_DTYPE_REPRODUCTION = _posterior_workflow(
+    "values = np.asarray(expected, dtype=float)\n"
+    "np.round(values, 0, out=values)\n"
+    "dosage = expected\n"
+)
+_CHKFINITE_REPRODUCTION = _posterior_workflow(
+    "values = np.asarray_chkfinite(expected)\nnp.round(values, 0, out=values)\ndosage = expected\n"
+)
+
+
+@pytest.mark.parametrize(
+    "conversion",
+    [
+        "np.asarray(expected, dtype=float)",
+        "np.asarray(expected, dtype='float64')",
+        "np.asarray(expected, np.float64)",
+        "np.asfarray(expected)",
+        "np.asfarray(expected, dtype=float)",
+        "np.asarray_chkfinite(expected)",
+    ],
+)
+def test_a_conversion_that_can_return_its_input_keeps_its_handle(conversion: str) -> None:
+    """``numpy.asarray`` is the identity whenever the dtype already matches.
+
+    v2.0.2 minted a fresh handle for every ``asarray`` carrying a dtype,
+    because it routed the dtype through the same cast path ``numpy.array``
+    uses. ``numpy.array`` copies; ``numpy.asarray`` does not. The second name
+    is a second handle on one buffer, so the ``out=`` write through it lands
+    in the exposure array, and the workflow was reported as the continuous
+    posterior expectation while run time rounds it.
+
+    ``numpy.asarray_chkfinite`` reads its input for non-finite entries and
+    then returns ``numpy.asarray`` of it, so it is the same identity.
+    """
+
+    source = _posterior_workflow(
+        f"values = {conversion}\nnp.round(values, 0, out=values)\ndosage = expected\n"
+    )
+    _assert_abstains(source)
+
+
+@pytest.mark.parametrize(
+    "conversion",
+    [
+        "np.array(expected, dtype=float)",
+        "np.array(expected)",
+        "np.copy(expected)",
+        "expected.copy()",
+        "expected.flatten()",
+    ],
+)
+def test_a_conversion_that_always_writes_its_own_buffer_still_mints(conversion: str) -> None:
+    """The boundary: only a call that always copies breaks the handle.
+
+    ``numpy.array`` copies unless told not to, ``numpy.copy`` is a copy by
+    name, and ``ndarray.copy``/``ndarray.flatten`` are copies by definition.
+    A write through the new name therefore does not reach the exposure array.
+    """
+
+    source = _posterior_workflow(
+        f"values = {conversion}\nnp.round(values, 0, out=values)\ndosage = expected\n"
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {EXPECTATION}
+
+
+@pytest.mark.parametrize(
+    ("conversion", "state"),
+    [
+        ("np.asarray(expected, dtype=int)", QUANTIZED),
+        ("np.asarray(expected, dtype='int64')", QUANTIZED),
+        ("np.asfarray(expected, dtype=int)", QUANTIZED),
+        ("np.array(expected, dtype=int)", QUANTIZED),
+        ("np.asarray_chkfinite(expected)", EXPECTATION),
+        ("np.asarray(expected)", EXPECTATION),
+    ],
+)
+def test_the_dtype_reading_of_a_conversion_is_unchanged(conversion: str, state: str) -> None:
+    """Only the handle moved. An integer dtype still truncates, view or not."""
+
+    unsupported, states = _resolve(_posterior_workflow(f"dosage = {conversion}\n"))
+    assert not unsupported
+    assert states == {state}
+
+
+# ---------------------------------------------------------------------------
+# Family 17: a ``*`` unpacking states no argument positions.
+
+
+_STARRED_DESTINATION_REPRODUCTION = _posterior_workflow(
+    "spec = (expected, 0, expected)\nnp.round(*spec)\ndosage = expected\n"
+)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        # Call form: the unpacked sequence supplies the ``out`` destination.
+        "spec = (expected, 0, expected)\nnp.round(*spec)\ndosage = expected\n",
+        # Method form: the same, written through the receiver.
+        "spec = (0, expected)\ndosage = expected * 1.0\ndosage.round(*spec)\n",
+        # The unpacked sequence may equally supply the decimal count that bins.
+        "spec = [expected]\ndosage = np.round(*spec)\n",
+        # Or the dtype that truncates.
+        "spec = (expected, int)\ndosage = np.asarray(*spec)\n",
+        # A local helper reached through an unpacking is unread the same way.
+        "def harmonise(value):\n    return value * 1.0\n\n"
+        "spec = [expected]\ndosage = harmonise(*spec)\n",
+    ],
+)
+def test_a_star_unpacked_argument_leaves_the_call_unread(body: str) -> None:
+    """``f(*spec)`` states no argument positions, so it states no operation.
+
+    v2.0.2 counted ``node.args`` to decide whether a call reached past its
+    read-only arity, and a ``*`` unpacking is one element of ``node.args``
+    holding a sequence of unknown length. ``np.round(*spec)`` with a
+    three-element ``spec`` writes its third element and was reported as the
+    continuous posterior expectation. This is the positional twin of the
+    ``**`` rule: the call's result is unreadable and every traced value its
+    subtree names is presumed written.
+    """
+
+    _assert_abstains(_posterior_workflow(body))
+
+
+def test_a_star_unpacked_prediction_is_unreadable_rather_than_fresh() -> None:
+    """An evaluation whose arguments do not resolve is a step, not a value."""
+
+    _assert_abstains(
+        _calibration_workflow("argv = [features]\ndosage = calibrator.predict(*argv)\n")
+    )
+
+
+def test_the_same_calls_without_an_unpacking_still_read() -> None:
+    """The boundary: only the unpacking is at issue."""
+
+    unsupported, states = _resolve(
+        _posterior_workflow("spec = expected\ndosage = np.round(spec, 2)\n")
+    )
+    assert not unsupported
+    assert states == {EXPECTATION}
+
+
+# ---------------------------------------------------------------------------
+# Family 18: an evaluation is keyed on its arguments' values, not their
+# spelling.
+
+
+_TWO_SPELLINGS_REPRODUCTION = _calibration_workflow(
+    "argv = [features]\n"
+    "raw = calibrator.predict(features)\n"
+    "drift = calibrator.predict(X=features) - calibrator.predict(*argv)\n"
+    "dosage = raw.round() + drift\n"
+)
+
+
+def test_one_evaluation_written_in_two_spellings_cancels() -> None:
+    """``predict(features)`` and ``predict(X=features)`` are one value.
+
+    v2.0.2 keyed the evaluation cache on ``(position, ids)`` and
+    ``(keyword name, ids)``, so moving one argument from a position to a
+    keyword minted a second identity for the same call. Their difference is
+    identically zero at run time, and it read as an independent continuous
+    addend that restored the scale a ``round()`` had removed.
+    """
+
+    _assert_abstains(
+        _calibration_workflow(
+            "raw = calibrator.predict(features)\n"
+            "drift = calibrator.predict(X=features) - calibrator.predict(features)\n"
+            "dosage = raw.round() + drift\n"
+        )
+    )
+
+
+def test_the_two_spellings_reproduction_abstains() -> None:
+    """The review's consolidated form, which also carries the ``*`` spelling."""
+
+    _assert_abstains(_TWO_SPELLINGS_REPRODUCTION)
+
+
+def test_an_evaluation_on_different_values_still_mints_fresh_provenance() -> None:
+    """The boundary: the signature still separates different argument values."""
+
+    source = _calibration_workflow(
+        "replicate = pd.read_csv(Path('inputs/replicate.csv'))\n"
+        "raw = calibrator.predict(features)\n"
+        "dosage = raw - calibrator.predict(X=replicate[['marker_a', 'marker_b']])\n"
+    )
+    unsupported, states = _resolve(source)
+    assert not unsupported
+    assert states == {CALIBRATION}
+
+
+# ---------------------------------------------------------------------------
+# Family 19: two identically constructed and fitted estimators are one
+# estimator written twice.
+
+
+_TWO_ESTIMATORS_REPRODUCTION = _calibration_workflow(
+    "raw = calibrator.predict(features)\n"
+    "second = RidgeCV().fit(features, frame['copy_index'])\n"
+    "third = RidgeCV().fit(features, frame['copy_index'])\n"
+    "dosage = raw.round() + (second.predict(features) - third.predict(features))\n"
+)
+
+
+def test_two_identically_fitted_estimators_cancel_into_abstention() -> None:
+    """A deterministic estimator fitted twice on one dataset is one estimator.
+
+    v2.0.2 minted an identity per construction site, so the difference of the
+    two predictions read as an independent continuous addend and restored the
+    scale a ``round()`` had removed. At run time that difference is
+    identically zero for any deterministic estimator; for a nondeterministic
+    one it is unknown, which is not a continuous repair either. Merging the
+    identities can only add abstention, never a classification.
+    """
+
+    _assert_abstains(_TWO_ESTIMATORS_REPRODUCTION)
+
+
+def test_an_estimator_fitted_by_keyword_shares_the_positional_fits_identity() -> None:
+    """The fit signature discards names and positions too."""
+
+    source = _calibration_workflow(
+        "raw = calibrator.predict(features)\n"
+        "second = RidgeCV().fit(X=features, y=frame['copy_index'])\n"
+        "dosage = raw - second.predict(features)\n"
+    )
+    _assert_abstains(source)
+
+
+# ---------------------------------------------------------------------------
+# Family 20: row selection is reserved for index forms this trace read in
+# full.
+
+
+_UNREAD_INDEX_REPRODUCTION = _posterior_workflow(
+    "centres = expected[0:3]\n"
+    "level = expected.round().astype(int)\n"
+    "key = level & 1\n"
+    "dosage = centres[key]\n"
+)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        # The review's form: the index is a bit operation this trace lost.
+        "centres = expected[0:3]\n"
+        "level = expected.round().astype(int)\n"
+        "key = level & 1\n"
+        "dosage = centres[key]\n",
+        # An index the trace never bound at all.
+        "dosage = expected[picks]\n",
+        # An index built by a call whose result the trace could not read.
+        "dosage = expected[np.argsort(expected)]\n",
+        # A comparison this trace did not watch produce a mask: its operands
+        # are opaque staged columns, so no mask was established.
+        "mask = frame['qc_pass'] == 1\ndosage = expected[mask]\n",
+        # A slice whose bounds are not literal.
+        "cut = expected.size // 2\ndosage = expected[0:cut]\n",
+    ],
+)
+def test_an_index_this_trace_could_not_read_gathers(body: str) -> None:
+    """An index the trace lost is an index it cannot rule out.
+
+    v2.0.2 asked whether the index subtree held a *traced* value, so an index
+    whose provenance the trace had already dropped -- an opaque column, an
+    unreadable step, a name bound nowhere -- fell through to the row-selection
+    reading and the gather was reported as the receiver's own continuous
+    scale. A gather repeats and reorders whatever entries the index picked
+    out, so it is neither the receiver's scale nor a reading this trace can
+    complete.
+    """
+
+    _assert_abstains(_posterior_workflow(body))
+
+
+# ---------------------------------------------------------------------------
+# The fused adapter over every reproduction the review consolidated.
+
+
+@pytest.mark.parametrize(
+    ("label", "workflow"),
+    [
+        ("asarray with a dtype", _ASARRAY_DTYPE_REPRODUCTION),
+        ("asarray_chkfinite", _CHKFINITE_REPRODUCTION),
+        ("star-unpacked destination", _STARRED_DESTINATION_REPRODUCTION),
+        ("one evaluation in two spellings", _TWO_SPELLINGS_REPRODUCTION),
+        ("two identically fitted estimators", _TWO_ESTIMATORS_REPRODUCTION),
+        ("an index the trace could not read", _UNREAD_INDEX_REPRODUCTION),
+    ],
+)
+def test_the_released_adapter_abstains_on_every_v203_reproduction(
+    label: str, workflow: str
+) -> None:
+    """Each of these resolved to an operand under v2.0.2, and each was wrong."""
+
+    assert _fused_observation(_SILENT_REPORT, workflow) == ("unsupported", None), label
 
 
 # ---------------------------------------------------------------------------

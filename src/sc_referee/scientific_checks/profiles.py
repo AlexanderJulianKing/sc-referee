@@ -1894,8 +1894,8 @@ def _classifier_copy_dosage_profile() -> _ReportProfile:
             "Which calibrated copy-number representation governs the quantitative "
             "exposure for this review?"
         ),
-        check_version="2.0.2",
-        adapter_version="2.0.2",
+        check_version="2.0.3",
+        adapter_version="2.0.3",
     )
 
 
