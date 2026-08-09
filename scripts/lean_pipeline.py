@@ -158,6 +158,21 @@ FOUNDER_LANE_RELATIVE_B = Path(
     f"founder-orientation-before-hmm-emission-v{FOUNDER_CHECK_VERSION_B}-lane"
 )
 
+# Pilot c is the same envelope, the same briefs and the same discipline again,
+# run against the v2.2.2 recognizer that closed the pilot-b miss. The check
+# version is the one the scientific-check manifest registry carries for this
+# check id, and the lane directory and the envelope id are built from it by the
+# same f-string convention pilots a and b used. The actor labels are fresh so no
+# pilot-a or pilot-b participant record is reused; reviewer calibration resolves
+# by (model id, pinned binary version, calibration suite) from the shared
+# registry, exactly as before.
+FOUNDER_CHECK_VERSION_C = "2.2.2"
+FOUNDER_PILOT_INSTANCE_C = "c"
+FOUNDER_LANE_RELATIVE_C = Path(
+    "evaluation/qualification/"
+    f"founder-orientation-before-hmm-emission-v{FOUNDER_CHECK_VERSION_C}-lane"
+)
+
 _FOUNDER_COMMON_TASK = (
     "Choose one concrete scientific subject area yourself, from any field you like, and invent "
     "a small truthful comparison accounting for it: a set of measured units (choose the unit "
@@ -355,10 +370,23 @@ def default_founder_orientation_b_config() -> EnvelopeConfig:
     )
 
 
+def default_founder_orientation_c_config() -> EnvelopeConfig:
+    """Instance c of the founder-orientation blind pilot, run against v2.2.2."""
+
+    return default_founder_orientation_config(
+        instance=FOUNDER_PILOT_INSTANCE_C,
+        check_version=FOUNDER_CHECK_VERSION_C,
+        lane_relative=FOUNDER_LANE_RELATIVE_C,
+        author_ordinals=("05", "06"),
+        reviewer_ordinal="03",
+    )
+
+
 ENVELOPE_CONFIGS = {
     "complete-domain": default_complete_domain_config,
     "founder-orientation": default_founder_orientation_config,
     "founder-orientation-b": default_founder_orientation_b_config,
+    "founder-orientation-c": default_founder_orientation_c_config,
 }
 
 
