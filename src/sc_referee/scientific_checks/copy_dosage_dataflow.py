@@ -48,6 +48,37 @@ demonstrated. Four of them changed a rule rather than an enumeration:
   unsupported, because what such a module does on import is outside this
   trace.
 
+v2.0.2 closes six more wrong-answer families a third adversarial review
+demonstrated. Every closure is shape-level: each one replaces a question the
+trace answered from an enumeration with a question it answers from the shape
+of the call.
+
+- A keyword this trace cannot name is a keyword it cannot rule out. Any call
+  carrying a ``**`` unpacking is unreadable, and it invalidates every traced
+  value its subtree names, because the hidden mapping may hold ``dtype``,
+  ``decimals``, or ``out``. One predicate answers this for every keyword
+  reader in the module.
+- A recognized call reads a stated number of positional arguments. Every
+  recognized call path and method carries that read-only arity, and a call
+  with more positional arguments than its arity writes: it invalidates every
+  traced value in its whole subtree. A recognized path that is not in the
+  arity table invalidates by default, so a path added to the vocabulary
+  without a stated destination position abstains rather than reads.
+- Aliasing is provenance, not syntax. A name bound to a value that may share
+  a runtime buffer with an existing binding joins that binding's group, so a
+  numpy view reached through ``ravel``, ``reshape``, or a slice is a second
+  handle on one array. A copy mints a fresh handle, so copies do not join.
+- Per-value identity is cached. The same estimator applied to the same traced
+  arguments yields one provenance id set however many times it is written, so
+  two textually identical predictions cancel each other under the arithmetic
+  rule instead of reading as independent.
+- ``numpy.where`` is a selection, not arithmetic. Two literal branches are two
+  levels and still bin; any other branch pair is unreadable, because no static
+  reading of the guard says which branch supplies which element.
+- A subscript whose index holds a traced value is a table gather, and its
+  result is unreadable. A literal slice, a literal integer index, and a
+  boolean mask built by a comparison keep their row-selection reading.
+
 Soundness rules (each backed by a demonstrated counterexample in
 ``tests/test_copy_dosage_soundness.py``):
 
@@ -472,10 +503,149 @@ _RECOGNIZED_METHODS = (
     | _PREDICTION_METHODS
     | frozenset({"astype", "clip", "map", "dot", "fit"})
 )
-# Positional out-parameters: every numpy ufunc in the recognized vocabulary
-# accepts its destination array as the argument after the ones this trace
-# reads, so an extra positional argument naming a traced value is a write.
-_UFUNC_CALLS = _ROUNDING_CALLS | _PRESERVING_CALLS
+
+# ---------------------------------------------------------------------------
+# Positional destinations.
+#
+# A library call writes through a positional argument that sits past the ones
+# it reads: ``numpy.round(x, 0, target)`` fills ``target`` and
+# ``x.round(0, target)`` fills ``target``. Enumerating the ``out``-bearing APIs
+# was the demonstrated wrong answer, so every recognized call and method
+# instead carries the number of positional arguments this trace has
+# established as read-only, and anything past that count is a write to every
+# traced value the call names. A recognized path or method absent from these
+# tables is a write too: a vocabulary entry whose destination position was
+# never stated cannot be read.
+_ALL_POSITIONAL_READ_ONLY = -1
+
+_CALL_READ_ONLY_ARITY: dict[str, int] = {
+    # Readers, constructors, and table calls: no destination parameter exists
+    # in the modelled API, so every positional argument is read-only.
+    **{path: _ALL_POSITIONAL_READ_ONLY for path in _STAGED_FRAME_CALLS},
+    **{path: _ALL_POSITIONAL_READ_ONLY for path in _STAGED_ROW_CALLS},
+    **{path: _ALL_POSITIONAL_READ_ONLY for path in _CLASSIFIER_CONSTRUCTORS},
+    **{path: _ALL_POSITIONAL_READ_ONLY for path in _CONTINUOUS_CONSTRUCTORS},
+    **{path: _ALL_POSITIONAL_READ_ONLY for path in _OPAQUE_ESTIMATOR_CONSTRUCTORS},
+    **{path: _ALL_POSITIONAL_READ_ONLY for path in _MODEL_CONSTRUCTORS},
+    **{path: _ALL_POSITIONAL_READ_ONLY for path in _CONSTANT_CALLS},
+    **{path: _ALL_POSITIONAL_READ_ONLY for path in _TABLE_CALLS},
+    # ``pandas.DataFrame(data, index, columns, dtype, copy)``: only the data
+    # argument is read here, and a positional ``copy`` decides whether the
+    # frame shares its input's buffer.
+    "pandas.DataFrame": 1,
+    # Stacking: ``numpy.stack`` takes a destination after its axis.
+    "numpy.column_stack": 1,
+    "numpy.hstack": 1,
+    "numpy.vstack": 1,
+    "numpy.stack": 2,
+    # Constructors and casts: the second positional argument is the dtype this
+    # trace reads; a third decides buffer sharing.
+    "numpy.array": 2,
+    "numpy.asarray": 2,
+    "numpy.asfarray": 2,
+    "numpy.where": 3,
+    # Reductions: ``a`` and ``axis`` are read; the third positional argument is
+    # a dtype this trace does not model and the fourth is the destination.
+    "numpy.sum": 2,
+    "numpy.nansum": 2,
+    "numpy.mean": 2,
+    # Products: ``numpy.dot`` and ``numpy.matmul`` take a destination third.
+    "numpy.dot": 2,
+    "numpy.matmul": 2,
+    "numpy.inner": 2,
+    # Rounding: ``numpy.round(a, decimals, out)``; the bare ufuncs take their
+    # destination second.
+    "numpy.round": 2,
+    "numpy.around": 2,
+    "numpy.rint": 1,
+    "numpy.floor": 1,
+    "numpy.ceil": 1,
+    "numpy.trunc": 1,
+    "numpy.fix": 1,
+    "math.floor": 1,
+    "math.ceil": 1,
+    "math.trunc": 1,
+    # Scale-preserving ufuncs and shape calls.
+    "numpy.clip": 3,
+    "numpy.abs": 1,
+    "numpy.absolute": 1,
+    # ``numpy.nan_to_num(x, copy=False)`` rewrites its input in place, so only
+    # the input itself is read-only.
+    "numpy.nan_to_num": 1,
+    "numpy.ravel": 2,
+    "numpy.reshape": 3,
+    "numpy.squeeze": 2,
+    "numpy.copy": 3,
+    "numpy.asarray_chkfinite": 3,
+    # Binning and ranking: ``argmax`` and ``argmin`` take a destination third.
+    "numpy.digitize": 3,
+    "numpy.searchsorted": 4,
+    "numpy.argmax": 2,
+    "numpy.argmin": 2,
+    "numpy.argsort": 4,
+    "numpy.nonzero": 1,
+    "numpy.bincount": 3,
+    # Builtins.
+    "builtins.int": 2,
+    "builtins.float": 1,
+    "builtins.round": 2,
+    "builtins.list": 1,
+    "builtins.len": 1,
+    "builtins.sum": 2,
+    "builtins.abs": 1,
+    "builtins.max": _ALL_POSITIONAL_READ_ONLY,
+    "builtins.min": _ALL_POSITIONAL_READ_ONLY,
+    "builtins.tuple": 1,
+    "builtins.str": 3,
+}
+
+_METHOD_READ_ONLY_ARITY: dict[str, int] = {
+    # ``ndarray.round(decimals, out)``.
+    "round": 1,
+    # No method of this name exists in the modelled stack, so no positional
+    # argument of one has been established as read-only.
+    "rint": 0,
+    "floor": 0,
+    "ceil": 0,
+    "trunc": 0,
+    # ``ndarray.argmax(axis, out)``.
+    "argmax": 1,
+    "argmin": 1,
+    "idxmax": 2,
+    "idxmin": 2,
+    "searchsorted": 3,
+    "digitize": 2,
+    # ``ndarray.reshape`` takes its shape as a variable-length positional
+    # sequence and has no destination parameter.
+    "reshape": _ALL_POSITIONAL_READ_ONLY,
+    "ravel": 1,
+    "flatten": 1,
+    "squeeze": 1,
+    "to_numpy": 1,
+    "copy": 1,
+    # ``ndarray.sum(axis, dtype, out)``: the dtype this trace does not model
+    # sits before the destination, so only the axis is read-only.
+    "sum": 1,
+    "mean": 1,
+    "nansum": 1,
+    "predict": 1,
+    "predict_proba": 1,
+    "predict_log_proba": 1,
+    "astype": 1,
+    # ``ndarray.clip(min, max, out)``.
+    "clip": 2,
+    "map": 1,
+    # ``ndarray.dot(b, out)``.
+    "dot": 1,
+    # ``estimator.fit(X, y)``.
+    "fit": 2,
+}
+
+# Keywords that turn a call into a write. ``out`` names its destination, while
+# ``copy`` and ``inplace`` turn a call that would return a new array into one
+# that rewrites the value it was given.
+_DESTINATION_KEYWORD = "out"
+_IN_PLACE_KEYWORDS = frozenset({"copy", "inplace"})
 
 _UNSUPPORTED_STATEMENTS = (
     ast.FunctionDef,
@@ -633,7 +803,17 @@ class _Col:
 
     ``ids`` is the set of source values this one descends from. Two values
     whose sets intersect are not independent, so arithmetic between them can
-    cancel exactly the information one of them lost.
+    cancel exactly the information one of them lost. A copy descends from its
+    original, so it carries the original's ``ids``.
+
+    ``handles`` is the set of runtime buffers this value may share. It answers
+    a different question: two names holding values whose handles intersect can
+    be two names for one array, so a write reached through either is a write
+    to both. A view carries its source's handles and a copy mints its own,
+    which is exactly the opposite of what ``ids`` does for a copy. Keeping the
+    two separate is what lets ``view = dosage.ravel()`` join ``dosage``'s
+    invalidation group while ``spare = dosage.copy()`` does not, without
+    letting a pair of copies launder a quantizer by cancelling to zero.
     """
 
     tag: str
@@ -643,6 +823,7 @@ class _Col:
     node: ast.AST | None = None
     operation: str | None = None
     ids: frozenset[int] = frozenset()
+    handles: frozenset[int] = frozenset()
 
     @property
     def model_derived(self) -> bool:
@@ -659,12 +840,22 @@ def _joined_ids(*values: _Value) -> frozenset[int]:
     return joined
 
 
+def _joined_handles(*values: _Value) -> frozenset[int]:
+    """Every runtime buffer the operands of an expression may share."""
+
+    joined: frozenset[int] = frozenset()
+    for item in values:
+        joined |= _value_handles(item)
+    return joined
+
+
 @dataclass(frozen=True)
 class _Rows:
     """A row set whose per-column provenance is known relative to a staged read."""
 
     columns: tuple[tuple[str, _Col], ...] = ()
     default: _Col | None = None
+    handles: frozenset[int] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -673,11 +864,16 @@ class _Frame:
 
     columns: tuple[tuple[str, _Col], ...] = ()
     default: _Col | None = None
+    handles: frozenset[int] = frozenset()
 
 
 @dataclass(frozen=True)
 class _Estimator:
     category: str  # "classifier" | "continuous"
+    # One fitted estimator's identity. Two estimators of the same category are
+    # still two estimators, and a prediction's provenance is keyed on which
+    # one produced it.
+    ids: frozenset[int] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -748,6 +944,36 @@ _Value = (
 _OPAQUE_COL = _Col(_OPAQUE_TAG)
 
 
+def _value_ids(value: _Value | None) -> frozenset[int]:
+    """Every source value a bound value descends from."""
+
+    if isinstance(value, _Col):
+        return value.ids
+    if isinstance(value, _Rows | _Frame):
+        joined = _joined_ids(*(item for _, item in value.columns))
+        return joined | (value.default.ids if value.default is not None else frozenset())
+    if isinstance(value, _Design | _Model | _Fit):
+        return _joined_ids(*value.regressors)
+    if isinstance(value, _Estimator):
+        return value.ids
+    return frozenset()
+
+
+def _value_handles(value: _Value | None) -> frozenset[int]:
+    """Every runtime buffer a bound value may share with another binding."""
+
+    if isinstance(value, _Col):
+        return value.handles
+    if isinstance(value, _Rows | _Frame):
+        return value.handles
+    if isinstance(value, _Design | _Model | _Fit):
+        joined: frozenset[int] = frozenset()
+        for item in value.regressors:
+            joined |= item.handles
+        return joined
+    return frozenset()
+
+
 @dataclass(frozen=True)
 class _Classification:
     node: ast.AST
@@ -779,6 +1005,11 @@ class _TraceContext:
     expression_depth: int = 0
     visiting: set[str] = field(default_factory=set)
     unresolved: bool = False
+    # Per-value identity for evaluations this trace mints provenance for. The
+    # same estimator applied to the same traced arguments is one value however
+    # many times the workflow writes it, so its id set is issued once and
+    # reused.
+    evaluation_ids: dict[tuple[Any, ...], frozenset[int]] = field(default_factory=dict)
 
 
 class _Aliases:
@@ -892,10 +1123,12 @@ def resolve_copy_dosage_dataflow(
         if tree is None:
             parse_failure = True
             continue
-        if _imports_case_module(tree, case_module_names - {Path(document.path).stem}):
-            # An import that resolves to another document in this very case
-            # shadows the installed module of the same name at run time; what
-            # such a module does on import is outside this trace.
+        if _imports_case_module(tree, case_module_names):
+            # An import that resolves to a document in this very case shadows
+            # the installed module of the same name at run time; what such a
+            # module does on import is outside this trace. The scanning
+            # document's own stem is not exempt: a workflow stored as
+            # ``numpy.py`` is what its own ``import numpy`` resolves to.
             unsupported = True
             continue
         outcome = _document_dose_representations(tree)
@@ -1232,13 +1465,36 @@ def _apply_name_assign(
     _bind(target.id, value, env, aliases)
     if isinstance(value_node, ast.Name) and not isinstance(value, _Opaque):
         aliases.link(target.id, value_node.id)
+    else:
+        for name in _container_member_names(value_node):
+            if _tagged(name, env, aliases):
+                # ``tables = [frame]`` is a second reference to one runtime
+                # table. Mutation reached through the container is mutation of
+                # the table, so the container name joins the table's
+                # invalidation group.
+                aliases.link(target.id, name)
+    _link_by_shared_handle(target.id, value, env, aliases)
+
+
+def _link_by_shared_handle(
+    name: str, value: _Value, env: dict[str, _Value], aliases: _Aliases
+) -> None:
+    """Join the group of every binding this value may share a buffer with.
+
+    Aliasing is provenance, not syntax. ``view = dosage.ravel()`` is a second
+    handle on one array even though neither side is a bare name, and reading
+    only the syntax left a whole family of numpy views outside the
+    invalidation model. Over-linking costs an abstention and never a wrong
+    answer, so the test is a plain intersection of handle sets; a copy mints
+    its own handle and therefore joins nothing.
+    """
+
+    handles = _value_handles(value)
+    if not handles:
         return
-    for name in _container_member_names(value_node):
-        if _tagged(name, env, aliases):
-            # ``tables = [frame]`` is a second reference to one runtime table.
-            # Mutation reached through the container is mutation of the table,
-            # so the container name joins the table's invalidation group.
-            aliases.link(target.id, name)
+    for other, bound in list(env.items()):
+        if other != name and _value_handles(bound) & handles:
+            aliases.link(name, other)
 
 
 def _container_member_names(value_node: ast.expr) -> set[str]:
@@ -1344,6 +1600,12 @@ def _apply_call_effects(
 def _apply_one_call_effect(
     node: ast.Call, env: dict[str, _Value], aliases: _Aliases, ctx: _TraceContext
 ) -> None:
+    if _unnameable_keywords(node):
+        # A ``**`` unpacking hides the keyword names. One of them may be the
+        # destination, so every traced value the call names is presumed
+        # written.
+        _invalidate_named(node, env, aliases, node)
+        return
     helper = _local_helper(node, env, ctx)
     if helper is not None:
         _helper_effects(helper, node, env, aliases, ctx)
@@ -1353,13 +1615,50 @@ def _apply_one_call_effect(
         _invalidate_named(node, env, aliases, node)
         return
     for keyword in node.keywords:
-        if keyword.arg == "out":
+        if keyword.arg == _DESTINATION_KEYWORD:
             _invalidate_named(keyword.value, env, aliases, node)
-    if path in _UFUNC_CALLS and len(node.args) > 1:
-        # A ufunc's destination array rides in the position after the operands
-        # this trace reads.
-        for argument in node.args[1:]:
-            _invalidate_named(argument, env, aliases, node)
+        elif keyword.arg in _IN_PLACE_KEYWORDS:
+            # A call that would have returned a new array instead rewrites the
+            # one it was given.
+            _invalidate_named(node, env, aliases, node)
+    if _writes_a_positional_destination(node, path):
+        _invalidate_named(node, env, aliases, node)
+
+
+def _unnameable_keywords(node: ast.Call) -> bool:
+    """Whether a call carries a keyword this trace cannot name.
+
+    ``f(x, **options)`` states no keyword names at all. Every keyword reader in
+    this module asks this one question first, because a keyword it cannot name
+    is a keyword it cannot rule out: the hidden mapping may hold the ``dtype``
+    that truncates, the ``decimals`` that bins, or the ``out`` that writes.
+    ``_bind_call`` has always rejected such a call for helper binding; this is
+    the same rejection, shared.
+    """
+
+    return any(keyword.arg is None for keyword in node.keywords)
+
+
+def _read_only_arity(node: ast.Call, path: str | None) -> int | None:
+    """How many positional arguments of a recognized call are read-only."""
+
+    if path is not None and path in _CALL_READ_ONLY_ARITY:
+        return _CALL_READ_ONLY_ARITY[path]
+    if path is not None and path in _RECOGNIZED_CALL_PATHS:
+        # A recognized path whose destination position was never stated.
+        return None
+    if isinstance(node.func, ast.Attribute):
+        return _METHOD_READ_ONLY_ARITY.get(node.func.attr)
+    return None
+
+
+def _writes_a_positional_destination(node: ast.Call, path: str | None) -> bool:
+    """Whether a recognized call carries a positional argument it writes to."""
+
+    arity = _read_only_arity(node, path)
+    if arity is None:
+        return True
+    return arity != _ALL_POSITIONAL_READ_ONLY and len(node.args) > arity
 
 
 def _recognized_call(node: ast.Call, path: str | None) -> bool:
@@ -1412,7 +1711,16 @@ def _helper_effects(
         return
     for parameter, value in effects.items():
         argument = _argument_for(function, call, parameter)
+        if argument is None:
+            # The parameter took its default, so the helper mutated a value no
+            # caller binding names.
+            continue
         if not isinstance(argument, ast.Name):
+            # The helper mutated an object reached through an expression, so
+            # there is no caller binding to write the new value back to. The
+            # mutation still happened, so every traced value the expression
+            # names loses its provenance.
+            _invalidate_named(argument, env, aliases, call)
             continue
         for member in aliases.group(argument.id):
             env[member] = value
@@ -1603,11 +1911,38 @@ def _tag_subscript(node: ast.Subscript, env: dict[str, _Value], ctx: _TraceConte
             node=node,
             operation="literal_table_lookup",
             ids=index.ids,
+            handles=_fresh_ids(),
         )
     if isinstance(receiver, _Col):
-        # A positional or boolean row selection preserves the value's scale.
+        index_value = _tag(node.slice, env, ctx)
+        if _is_comparison_mask(index_value):
+            # A boolean mask built by a comparison selects rows, and a row
+            # selection preserves the value's scale.
+            return replace(receiver, node=receiver.node or node)
+        if _traced_index(node.slice, index_value, env):
+            # Indexing a traced value by a traced index gathers from it: the
+            # result holds whatever levels the index picked out, in whatever
+            # order and with whatever repetition, so it is neither the
+            # receiver's scale nor a reading this trace can complete.
+            return _unreadable(node, receiver, index_value)
+        # A literal slice or a literal integer index selects rows, which
+        # preserves the value's scale.
         return replace(receiver, node=receiver.node or node)
     return _OPAQUE
+
+
+def _is_comparison_mask(value: _Value) -> bool:
+    """A two-valued mask this trace watched a comparison produce."""
+
+    return isinstance(value, _Col) and value.operation == "threshold_comparison"
+
+
+def _traced_index(slice_node: ast.expr, index_value: _Value, env: dict[str, _Value]) -> bool:
+    """Whether a subscript's index subtree holds any traced value."""
+
+    if isinstance(index_value, _Col) and index_value.tag != _OPAQUE_TAG:
+        return True
+    return any(_is_traced(item) for item in _bound_values(slice_node, env))
 
 
 def _literal_string_sequence(node: ast.expr) -> tuple[str, ...] | None:
@@ -1653,6 +1988,7 @@ def _tag_compare(node: ast.Compare, env: dict[str, _Value], ctx: _TraceContext) 
         node=node,
         operation="threshold_comparison",
         ids=_joined_ids(*values),
+        handles=_fresh_ids(),
     )
 
 
@@ -1718,6 +2054,7 @@ def _combine(left: _Value, right: _Value, node: ast.AST) -> _Value:
         node=node,
         operation=None,
         ids=_joined_ids(*operands),
+        handles=_fresh_ids(),
     )
 
 
@@ -1740,6 +2077,7 @@ def _expectation_terms(left: _Value, right: _Value, node: ast.AST) -> _Col | Non
                 node=node,
                 operation="class_probability_weighting",
                 ids=column.ids,
+                handles=_fresh_ids(),
             )
     return None
 
@@ -1763,12 +2101,18 @@ def _expectation_product(left: _Value, right: _Value, node: ast.AST) -> _Col | N
                 node=node,
                 operation="posterior_expectation_product",
                 ids=column.ids,
+                handles=_fresh_ids(),
             )
     return None
 
 
 def _unreadable(node: ast.AST, *sources: _Value) -> _Col:
-    """A dose-shaped step this library cannot read, carrying its provenance."""
+    """A dose-shaped step this library cannot read, carrying its provenance.
+
+    The step's handles are its sources' handles: an operation this trace did
+    not read may have returned a view of what it was given, so the result stays
+    in its sources' invalidation group.
+    """
 
     columns = [item for item in sources if isinstance(item, _Col)]
     return _Col(
@@ -1779,6 +2123,7 @@ def _unreadable(node: ast.AST, *sources: _Value) -> _Col:
         node=node,
         operation="unreadable_step",
         ids=_joined_ids(*sources),
+        handles=_joined_handles(*sources),
     )
 
 
@@ -1803,6 +2148,7 @@ def _quantize(base: _Col, node: ast.AST, operation: str) -> _Col:
         node=node,
         operation=operation,
         ids=base.ids,
+        handles=_fresh_ids(),
     )
 
 
@@ -1827,7 +2173,7 @@ def _tag_comprehension(
     if isinstance(element, _Const):
         # One literal value per row is a level set of size one, and a literal
         # level set is a binning whatever its values are.
-        return _Col(_QUANTIZED, node=node, ids=_fresh_ids())
+        return _Col(_QUANTIZED, node=node, ids=_fresh_ids(), handles=_fresh_ids())
     return _OPAQUE
 
 
@@ -1873,12 +2219,34 @@ def _row_element_rows(
 
 
 def _tag_call(node: ast.Call, env: dict[str, _Value], ctx: _TraceContext) -> _Value:
+    if _unnameable_keywords(node):
+        # The call's keywords are unread, so the operation it performs is
+        # unread: the hidden mapping may hold the dtype that truncates or the
+        # decimal count that bins. Its result is a step this trace cannot read,
+        # whatever the positional arguments say.
+        return _unreadable(node, *_bound_values(node, env))
     value = _tag_call_inner(node, env, ctx)
     if isinstance(value, _Opaque) and _dose_shaped(node, env):
         # An unrecognized call applied to a copy-model value is a step on the
         # exposure path this library cannot read.
         return _unreadable(node)
     return value
+
+
+def _bound_values(node: ast.AST, env: dict[str, _Value]) -> list[_Value]:
+    """Every bound value an expression's subtree names.
+
+    The scan is syntactic, so an unreadable step built from it carries the
+    provenance and the handles of everything the step touched.
+    """
+
+    found: list[_Value] = []
+    for item in ast.walk(node):
+        if isinstance(item, ast.Name):
+            bound = env.get(item.id)
+            if bound is not None:
+                found.append(bound)
+    return found
 
 
 def _dose_shaped(node: ast.AST, env: dict[str, _Value]) -> bool:
@@ -1950,7 +2318,9 @@ def _tag_receiver_method(
     if isinstance(receiver, _Model) and attribute == "fit":
         return _Fit(receiver.regressors)
     if isinstance(receiver, _Frame | _Rows) and attribute in {"copy"}:
-        return receiver
+        # A copied table holds the same values in its own buffer, so it keeps
+        # its columns' provenance and takes a handle of its own.
+        return replace(receiver, handles=_fresh_ids())
     if isinstance(receiver, _Col):
         return _tag_column_method(node, attribute, receiver, env, ctx)
     if attribute in _PREDICTION_METHODS:
@@ -1973,30 +2343,81 @@ def _tag_estimator_method(
     if attribute == "predict_proba":
         if estimator.category != "classifier":
             return _unreadable(node)
+        evaluation = _evaluation_ids(node, attribute, estimator, env, ctx)
         return _Col(
             _CONTINUOUS,
             origin=_ORIGIN_PROBABILITIES,
             node=node,
             operation="class_probability_prediction",
-            ids=_fresh_ids(),
+            ids=evaluation,
+            handles=evaluation,
         )
     if attribute == "predict":
+        evaluation = _evaluation_ids(node, attribute, estimator, env, ctx)
         if estimator.category == "classifier":
             return _Col(
                 _QUANTIZED,
                 origin=_ORIGIN_HARD_CALL,
                 node=node,
                 operation="classifier_hard_call_prediction",
-                ids=_fresh_ids(),
+                ids=evaluation,
+                handles=evaluation,
             )
         return _Col(
             _CONTINUOUS,
             origin=_ORIGIN_CALIBRATION,
             node=node,
             operation="continuous_calibration_prediction",
-            ids=_fresh_ids(),
+            ids=evaluation,
+            handles=evaluation,
         )
     return _OPAQUE
+
+
+def _evaluation_ids(
+    node: ast.Call,
+    attribute: str,
+    estimator: _Estimator,
+    env: dict[str, _Value],
+    ctx: _TraceContext,
+) -> frozenset[int]:
+    """The provenance id set one estimator evaluation owns.
+
+    A prediction is a function of the estimator and its arguments, so writing
+    the same prediction twice produces one value twice, not two independent
+    values. Minting a fresh id per call site said the opposite, and three
+    identical predictions then supplied an ``a - b`` that is identically zero
+    while reading as an independent continuous addend. The id set is therefore
+    issued once per (evaluation, estimator, argument provenance) and reused; a
+    different estimator or a different argument still mints its own.
+    """
+
+    key: tuple[Any, ...] = (
+        attribute,
+        tuple(sorted(estimator.ids)),
+        _argument_signature(node, env, ctx),
+    )
+    issued = ctx.evaluation_ids.get(key)
+    if issued is None:
+        issued = _fresh_ids()
+        ctx.evaluation_ids[key] = issued
+    return issued
+
+
+def _argument_signature(
+    node: ast.Call, env: dict[str, _Value], ctx: _TraceContext
+) -> tuple[Any, ...]:
+    """One call's arguments, read as the provenance each of them carries."""
+
+    parts: list[Any] = [
+        (index, tuple(sorted(_value_ids(_tag(argument, env, ctx)))))
+        for index, argument in enumerate(node.args)
+    ]
+    parts.extend(
+        (keyword.arg, tuple(sorted(_value_ids(_tag(keyword.value, env, ctx)))))
+        for keyword in node.keywords
+    )
+    return tuple(parts)
 
 
 def _tag_column_method(
@@ -2034,9 +2455,16 @@ def _tag_column_method(
             # ``to_numpy(dtype=int)`` truncates exactly as ``astype(int)``
             # does; the conversion is spelled as a keyword, not as a cast.
             return _cast(column, _dtype_argument(node), node)
+        if attribute in _COPYING_METHODS:
+            # A copy holds the same values in a buffer of its own, so a write
+            # through one of the two names never reaches the other.
+            return replace(column, handles=_fresh_ids())
+        # ``reshape``, ``ravel``, ``squeeze``, and ``to_numpy`` can each hand
+        # back a view of the same buffer, so the result stays in the
+        # receiver's invalidation group.
         return column
     if attribute == "clip":
-        return replace(column, unchanged=False, node=column.node or node)
+        return replace(column, unchanged=False, node=column.node or node, handles=_fresh_ids())
     if attribute == "map":
         return _mapped(column, node, env, ctx)
     if attribute == "dot":
@@ -2296,13 +2724,19 @@ def _tag_library_call(
 
 
 def _tag_where(node: ast.Call, env: dict[str, _Value], ctx: _TraceContext) -> _Value:
-    """``numpy.where(condition, a, b)``.
+    """``numpy.where(condition, a, b)``: a selection, never arithmetic.
 
     Two literal branches are two levels, so the result is quantized whatever
     the two literals are: ``where(c, 0.12, 1.93)`` assigns a value from a
-    two-entry table exactly as ``where(c, 0, 1)`` does. A branch that is
-    neither a literal nor a traced value is unread, and an unread branch on
-    the exposure path abstains rather than falling through.
+    two-entry table exactly as ``where(c, 0, 1)`` does.
+
+    Any other branch pair is unreadable. A guard is a run-time value, so no
+    static reading says which branch supplies which element: mixing a rounded
+    branch with the continuous value it was rounded from delivers a rounded
+    number wherever the guard held, and reading the pair by the branches' tags
+    reported the continuous one. Reading the tags was the demonstrated wrong
+    answer, and it is wrong in the same way for a traced branch beside a
+    literal one.
     """
 
     if len(node.args) != 3:
@@ -2318,26 +2752,16 @@ def _tag_where(node: ast.Call, env: dict[str, _Value], ctx: _TraceContext) -> _V
             node=node,
             operation="literal_branch_selection",
             ids=condition.ids if condition is not None else frozenset(),
+            handles=_fresh_ids(),
         )
     branches = [
         _tag(item, env, ctx) if literal is None else _Const(literal)
         for item, literal in zip(node.args[1:], literals, strict=True)
     ]
-    columns = [item for item in branches if isinstance(item, _Col)]
-    if len(columns) != len([item for item in branches if not isinstance(item, _Const)]):
-        return _abstain_or_opaque(node, condition or _OPAQUE, *branches)
-    if any(item.tag in {_OPAQUE_TAG, _TEXT} for item in columns):
-        return _abstain_or_opaque(node, condition or _OPAQUE, *branches)
-    tag = _CONTINUOUS if any(item.tag == _CONTINUOUS for item in columns) else _QUANTIZED
-    return _Col(
-        tag,
-        origin=next((item.origin for item in columns if item.origin is not None), None),
-        staged=any(item.staged for item in columns),
-        unchanged=False,
-        node=node,
-        operation="branch_selection",
-        ids=_joined_ids(*columns),
-    )
+    sources = [condition if condition is not None else _OPAQUE, *branches]
+    if any(isinstance(item, _Col) and item.tag != _OPAQUE_TAG for item in sources):
+        return _unreadable(node, *sources)
+    return _abstain_or_opaque(node, *sources)
 
 
 def _binned_labels(node: ast.Call, env: dict[str, _Value], ctx: _TraceContext) -> _Value:

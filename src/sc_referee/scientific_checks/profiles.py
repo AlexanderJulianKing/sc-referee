@@ -876,8 +876,8 @@ def _founder_orientation_profile() -> _ReportProfile:
         question_wording=(
             "Which founder-allele orientation rule governs the HMM emission for this review?"
         ),
-        check_version="2.1.3",
-        adapter_version="2.1.3",
+        check_version="2.1.4",
+        adapter_version="2.1.4",
     )
 
 

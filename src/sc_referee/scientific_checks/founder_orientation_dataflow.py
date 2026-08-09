@@ -184,7 +184,7 @@ def founder_orientation_dataflow_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-emission-dataflow",
-        "grammar_version": "2.1.3",
+        "grammar_version": "2.1.4",
         "trust_model": (
             "default deny: the trace holds an explicit whitelist of the statement and "
             "expression forms it models completely, and any form outside that whitelist "
@@ -718,6 +718,7 @@ def _document_orientations_inner(tree: ast.Module) -> dict[str, Any]:
 
     unsupported = (
         ctx.unresolved
+        or _iterator_reconsumed(tree, ctx)
         or _whitelist_violation(tree, ctx)
         or _tagged_name_escape(tree, ctx)
         or _emission_scan_violation(tree, ctx)
@@ -932,6 +933,9 @@ def _classify_comprehension(
     generator = node.generators[0]
     if not isinstance(generator.target, ast.Name):
         return
+    if _shadows_loop_var(node.elt, generator.target.id):
+        ctx.unresolved = True
+        return
     selectors = _selector_comparisons(node.elt)
     source = _tag(generator.iter, env, ctx)
     _classify_helper_selector_call(
@@ -958,6 +962,24 @@ def _classify_comprehension(
             reaching=reaching,
             dead=dead,
         )
+
+
+def _shadows_loop_var(element: ast.expr, loop_var: str) -> bool:
+    """Whether a nested comprehension rebinds the enclosing target name.
+
+    Every comprehension has its own scope in Python 3, so a ``row['col']``
+    inside a nested ``for row in panel`` reads the inner panel while this
+    trace would classify it against the outer iterable -- a demonstrated
+    wrong answer in both directions. Such an element is unreadable.
+    """
+
+    for node in ast.walk(element):
+        if isinstance(node, ast.ListComp | ast.SetComp | ast.GeneratorExp | ast.DictComp):
+            for generator in node.generators:
+                for name in ast.walk(generator.target):
+                    if isinstance(name, ast.Name) and name.id == loop_var:
+                        return True
+    return False
 
 
 def _classify_helper_selector_call(
@@ -1520,6 +1542,10 @@ def _call_parity(
         if base is None or not base.resolved:
             return base
         if name == "str":
+            if isinstance(call.args[0], ast.UnaryOp) and isinstance(call.args[0].op, ast.Not):
+                # ``str(not x)`` is 'True' or 'False', which no digit-string
+                # column ever equals; the comparison is degenerate.
+                return _UNRESOLVED
             # ``str`` keeps the value but drops the numeric proof: ``not``
             # and arithmetic over the result no longer mean inversion.
             return _Path(base.column, base.parity, numeric=False)
@@ -2101,6 +2127,9 @@ def _apply_accumulation_loop(
         return False
     reaching = bool(targets & ctx.reaching)
     for payload in payloads:
+        if _shadows_loop_var(payload, loop.target.id):
+            ctx.unresolved = True
+            return True
         selectors = _selector_comparisons(payload)
         _classify_helper_selector_call(
             payload,
@@ -2279,6 +2308,40 @@ def _is_reader_call(call: ast.Call, model: _ModuleModel) -> bool:
 
 # ---------------------------------------------------------------------------
 # The whitelist.
+
+
+def _iterator_reconsumed(tree: ast.Module, ctx: _TraceContext) -> bool:
+    """Whether a bare reader iterator is used as an iterable more than once.
+
+    ``csv.DictReader`` not materialized by ``list`` is exhausted by its
+    first pass; a second comprehension over it iterates nothing, and a
+    classification from either pass would describe an emission over zero
+    rows.
+    """
+
+    iterator_names: set[str] = set()
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and isinstance(node.value, ast.Call)
+            and _is_reader_call(node.value, ctx.model)
+        ):
+            iterator_names.add(node.targets[0].id)
+    if not iterator_names:
+        return False
+    uses: Counter[str] = Counter()
+    for node in ast.walk(tree):
+        iterables: list[ast.expr] = []
+        if isinstance(node, ast.comprehension):
+            iterables.append(node.iter)
+        elif isinstance(node, ast.For):
+            iterables.append(node.iter)
+        for iterable in iterables:
+            if isinstance(iterable, ast.Name) and iterable.id in iterator_names:
+                uses[iterable.id] += 1
+    return any(count > 1 for count in uses.values())
 
 
 def _whitelist_violation(tree: ast.Module, ctx: _TraceContext) -> bool:

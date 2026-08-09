@@ -3091,3 +3091,90 @@ def test_negative_branch_constants_abstain() -> None:
     unsupported, states = _resolve(source)
     assert unsupported
     assert states == set()
+
+
+# ---------------------------------------------------------------------------
+# v2.1.4 controls: the sixth review round (independent Opus, whole-module).
+# One family: a nested comprehension rebinding the enclosing target name has
+# its own scope at runtime, and the trace classified its comparison against
+# the outer iterable. Plus two degenerate-workflow closures.
+
+
+_ROUND_SEVEN_HEAD = (
+    "import csv\nimport math\nfrom pathlib import Path\n\n"
+    "rows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n"
+    "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
+)
+_ROUND_SEVEN_TAIL = (
+    "report = f'emission likelihood {likelihood}'\nPath('results/report.md').write_text(report)\n"
+)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "likelihood = math.prod(\n"
+        "    sum([0.99 if int(row['call']) == int(row['founder']) else 0.01"
+        " for row in panel], 0)\n"
+        "    for row in rows\n"
+        ")\n",
+        "likelihood = math.prod(\n"
+        "    sum([0.99 if int(row['call']) == int(row['founder']) else 0.01"
+        " for row in panel], 0) / len(panel)\n"
+        "    for row in rows\n"
+        ")\n",
+        "likelihood = math.prod(\n"
+        "    sum(sorted([0.99 if int(row['call']) == int(row['founder']) else 0.01"
+        " for row in panel]), 0)\n"
+        "    for row in rows\n"
+        ")\n",
+        "likelihood = 1.0\n"
+        "for row in rows:\n"
+        "    likelihood *= sum([0.99 if int(row['call']) == int(row['founder'])"
+        " else 0.01 for row in panel], 0)\n",
+    ],
+)
+def test_a_nested_comprehension_shadowing_the_target_abstains(body: str) -> None:
+    """The inner ``for row in panel`` has its own scope; classifying its
+    comparison against the outer iterable was a demonstrated wrong answer
+    in both directions, including the natural marginalisation form."""
+
+    source = _ROUND_SEVEN_HEAD + body + _ROUND_SEVEN_TAIL
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()
+    applicability, operand = _fused_observation(_COUNTEREXAMPLE_REPORT, source)
+    assert applicability == "unsupported"
+    assert operand is None
+
+
+def test_a_reader_iterator_consumed_twice_abstains() -> None:
+    """The second pass over an unmaterialized DictReader iterates nothing."""
+
+    source = (
+        "import csv\nimport math\nfrom pathlib import Path\n\n"
+        "reader = csv.DictReader(Path('inputs/markers.csv').open())\n"
+        "first = sum(1 if int(row['call']) == int(row['founder']) else 0 for row in reader)\n"
+        "likelihood = math.prod(\n"
+        "    0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in reader\n"
+        ")\n" + _ROUND_SEVEN_TAIL
+    )
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()
+
+
+def test_a_str_of_not_recode_abstains() -> None:
+    """``str(not x)`` is 'True'/'False'; no digit-string column equals it."""
+
+    source = (
+        "import csv\nimport math\nfrom pathlib import Path\n\n"
+        "rows = list(csv.DictReader(Path('inputs/markers.csv').open()))\n"
+        "panel = [{**row, 'founder': str(not int(row['founder']))} for row in rows]\n"
+        "likelihood = math.prod(\n"
+        "    0.99 if str(int(item['call'])) == item['founder'] else 0.01 for item in panel\n"
+        ")\n" + _ROUND_SEVEN_TAIL
+    )
+    unsupported, states = _resolve(source)
+    assert unsupported
+    assert states == set()
