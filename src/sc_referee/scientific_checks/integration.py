@@ -421,17 +421,23 @@ def _compile_applicable_module(
             "x-scientific-check-scope-join-digest": scope_digest,
         },
     }
-    module_assertions = [
-        _observation_assertion(
-            module,
-            observation,
-            context,
-            run_id,
-            created_at,
-            scope_digest,
+    equivalent_groups: dict[str, list[NormalizedMethodObservation]] = {}
+    for observation in observations:
+        equivalent_groups.setdefault(observation.equivalence_key, []).append(observation)
+    module_assertions = []
+    for key in sorted(equivalent_groups):
+        group = sorted(equivalent_groups[key], key=lambda item: item.adapter_id)
+        module_assertions.append(
+            _observation_assertion(
+                module,
+                group[0],
+                context,
+                run_id,
+                created_at,
+                scope_digest,
+                equivalent_observations=group,
+            )
         )
-        for observation in observations
-    ]
     observed_ids = [str(item["assertion_id"]) for item in module_assertions]
     question_id = stable_id(
         "question-analysis-scientific-check",
@@ -540,14 +546,17 @@ def _observation_assertion(
     run_id: str,
     created_at: str,
     scope_digest: str,
+    *,
+    equivalent_observations: list[NormalizedMethodObservation] | None = None,
 ) -> dict[str, Any]:
     manifest = module.manifest
-    source_refs = _source_refs(context, [observation])
+    equivalent = equivalent_observations or [observation]
+    source_refs = _source_refs(context, equivalent)
     is_static = observation.evidence_plane == "static_source"
     assertion_id = stable_id(
         "assertion-scientific-check-observation",
         run_id,
-        observation.observation_digest,
+        *(item.observation_digest for item in equivalent),
     )
     return {
         "schema_version": SCHEMA_VERSION,
@@ -597,6 +606,16 @@ def _observation_assertion(
             "x-scientific-check-adapter-id": observation.adapter_id,
             "x-scientific-check-adapter-manifest-digest": (observation.adapter_manifest_digest),
             "x-normalized-observation-digest": observation.observation_digest,
+            "x-equivalent-normalized-observation-digests": [
+                item.observation_digest for item in equivalent
+            ],
+            "x-equivalent-scientific-check-adapters": [
+                {
+                    "adapter_id": item.adapter_id,
+                    "adapter_manifest_digest": item.adapter_manifest_digest,
+                }
+                for item in equivalent
+            ],
             "x-scientific-check-scope-join-digest": scope_digest,
             "x-posthoc-comparison-form": manifest.comparison_form,
             "x-authority-limitation": (

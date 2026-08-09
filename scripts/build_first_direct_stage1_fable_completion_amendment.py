@@ -138,7 +138,7 @@ def build_first_direct_stage1_fable_completion_amendment(project_root: Path) -> 
     participants, entries = _v9_evidence(project_root)
     admitted = _admitted_opus_ledgers(project_root, root)
     protocol_calls = {str(item["participant_id"]): item for item in protocol["calls"]}
-    for fable_id, codex_id in SLOT_BY_FABLE.items():
+    for _fable_id, codex_id in SLOT_BY_FABLE.items():
         slug = codex_id.removeprefix("actor:")
         for stale in (
             root / "incoming" / f"{slug}.json",

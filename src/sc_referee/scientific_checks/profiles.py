@@ -35,6 +35,15 @@ from sc_referee.scientific_checks.founder_orientation_adapter import (
 from sc_referee.scientific_checks.founder_orientation_dataflow import (
     FOUNDER_ORIENTATION_DATAFLOW_IMPLEMENTATION_DIGEST,
 )
+from sc_referee.scientific_checks.founder_orientation_semantic import (
+    FOUNDER_ORIENTATION_SEMANTIC_IMPLEMENTATION_DIGEST,
+)
+from sc_referee.scientific_checks.founder_orientation_semantic_adapter import (
+    FOUNDER_ORIENTATION_SEMANTIC_ADAPTER_IMPLEMENTATION_DIGEST,
+    FOUNDER_ORIENTATION_SEMANTIC_COUNTEREVIDENCE,
+    FounderOrientationSemanticReportAdapter,
+    founder_orientation_semantic_recognition_grammar_digest,
+)
 from sc_referee.scientific_checks.python_founder_adapter import (
     PYTHON_FOUNDER_ADAPTER_IMPLEMENTATION_DIGEST,
 )
@@ -250,6 +259,22 @@ def scientific_check_release_projection(
             ),
             "scientific_checks/founder_orientation_dataflow.py": (
                 FOUNDER_ORIENTATION_DATAFLOW_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/founder_orientation_semantic.py": (
+                FOUNDER_ORIENTATION_SEMANTIC_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/founder_orientation_semantic_adapter.py": (
+                FOUNDER_ORIENTATION_SEMANTIC_ADAPTER_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/founder_orientation_certificate.py": sha256_digest(
+                (
+                    Path(__file__).resolve().parent / "founder_orientation_certificate.py"
+                ).read_bytes()
+            ),
+            "scientific_checks/founder_orientation_semantic_ir.py": sha256_digest(
+                (
+                    Path(__file__).resolve().parent / "founder_orientation_semantic_ir.py"
+                ).read_bytes()
             ),
             "scientific_checks/python_founder_adapter.py": (
                 PYTHON_FOUNDER_ADAPTER_IMPLEMENTATION_DIGEST
@@ -511,11 +536,45 @@ def _founder_orientation_module(
         repaired_operand=repaired_operand,
         role_bindings=profile.role_bindings,
     )
+    semantic_manifest = AdapterManifest(
+        adapter_id=(f"adapter:{profile.check_id.removeprefix('check:')}:orientation-semantic-v3"),
+        adapter_version="3.0.0",
+        implementation_digest=FOUNDER_ORIENTATION_SEMANTIC_ADAPTER_IMPLEMENTATION_DIGEST,
+        recognition_grammar_digest=founder_orientation_semantic_recognition_grammar_digest(
+            str(direct_operand.value), str(repaired_operand.value)
+        ),
+        parser_id="parser:markdown-inventory",
+        parser_version="0.2.0",
+        source_language="markdown",
+        evidence_plane="reported_text",
+        semantic_roles=profile.semantic_roles,
+        applicability_profile="bounded-founder-orientation-semantic-certificate-v3",
+        counterevidence_profiles=FOUNDER_ORIENTATION_SEMANTIC_COUNTEREVIDENCE,
+        known_gaps=(
+            "opaque operations whose effects intersect the report-reaching projection, "
+            "selector, fold, accumulator, or sink slice",
+            "binary-only recodes such as xor-one, absolute-difference-one, and logical-not "
+            "without a separately proved binary staged-column domain",
+            "control-flow joins that do not reduce to one exact abstract value",
+            "helpers with variadic or higher-order dynamic dispatch",
+            "CSV refinement of a lone unresolved parity bit is intentionally not enabled",
+            "reports that state no marker-total and agreement-count accounting",
+            "non-Markdown publication surfaces",
+            "static operations do not establish execution or scientific intent",
+        ),
+    )
+    semantic_adapter = FounderOrientationSemanticReportAdapter(
+        check_manifest=check,
+        adapter_manifest=semantic_manifest,
+        direct_operand=direct_operand,
+        repaired_operand=repaired_operand,
+        role_bindings=profile.role_bindings,
+    )
     return ScientificCheckModule(
         manifest=check,
         declared_manifest_digest=check.manifest_digest,
-        adapter_manifests=(adapter_manifest,),
-        adapters=(adapter,),
+        adapter_manifests=(adapter_manifest, semantic_manifest),
+        adapters=(adapter, semantic_adapter),
     )
 
 
@@ -840,6 +899,10 @@ def _founder_orientation_profile() -> _ReportProfile:
     to run time. The dataflow trace now holds an explicit whitelist of the
     statement and expression forms it models completely, and any form outside
     that whitelist anywhere in the workflow leaves the document unsupported.
+
+    Semantic v3 is an independent shadow adapter beside the frozen v2 tuple.
+    It proposes typed dataflow certificates to a smaller verifier kernel;
+    adapter disagreement remains an abstention under the registry reducer.
     """
 
     direct = "use_supplied_founder_alleles_directly_in_hmm_emission"

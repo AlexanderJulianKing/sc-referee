@@ -242,6 +242,10 @@ def _module(bundle: dict[str, Any], check_id: str) -> dict[str, Any]:
     )
 
 
+def _applicable_observations(module: dict[str, Any]) -> list[dict[str, Any]]:
+    return [item for item in module["observations"] if item["applicability"] == "applicable"]
+
+
 def _inspection_context(*, report_parser_version: str = "0.2.0") -> FrozenInspectionContext:
     report = FOUNDER_DIRECT_REPORT.encode("utf-8")
     # The founder observation is dataflow-led from v2.0.1, so the context
@@ -686,8 +690,8 @@ def test_exact_method_profiles_route_through_one_general_audit_interface(
     assert questions[0]["affected_claim_ids"] == []
     assert questions[0]["extensions"]["x-scientific-check-id"] == check_id
     assert len(assertions) == 1
-    assert assertions[0]["object"] == operand
-    assert assertions[0]["finding_eligibility"] == "ineligible"
+    assert {item["object"] for item in assertions} == {operand}
+    assert {item["finding_eligibility"] for item in assertions} == {"ineligible"}
     assert _module(bundle, check_id)["state"] == "applicable"
 
 
@@ -2211,14 +2215,18 @@ def test_founder_dataflow_plane_resolves_the_orientation_operand(
     )
 
     module = _module(bundle, FOUNDER_CHECK)
-    observation = module["observations"][0]
+    observations = _applicable_observations(module)
 
     assert module["state"] == "applicable"
-    assert observation["applicability"] == "applicable"
-    assert observation["evidence_plane"] == "reported_text"
-    assert observation["observed_operand"]["value"] == expected_operand
-    assert observation["evidence_spans"]
-    assert all(item["end_line"] - item["start_line"] <= 4 for item in observation["evidence_spans"])
+    assert observations
+    assert {item["evidence_plane"] for item in observations} == {"reported_text"}
+    assert {item["observed_operand"]["value"] for item in observations} == {expected_operand}
+    assert all(item["evidence_spans"] for item in observations)
+    assert all(
+        span["end_line"] - span["start_line"] <= 4
+        for observation in observations
+        for span in observation["evidence_spans"]
+    )
     assert len(_check_questions(bundle)) == 1
     assert _check_questions(bundle)[0]["extensions"]["x-scientific-check-id"] == FOUNDER_CHECK
     assert bundle["findings"] == []
@@ -2272,19 +2280,20 @@ def test_founder_report_and_source_planes_fuse_or_abstain(
     bundle = _audit(tmp_path, schema_root, report_text=report_text, analysis_text=analysis_text)
 
     module = _module(bundle, FOUNDER_CHECK)
-    observation = module["observations"][0]
 
     assert module["state"] == expected_state
     assert bundle["findings"] == []
     if expected_operand is None:
-        assert observation["observed_operand"] is None
+        assert not _applicable_observations(module)
         assert not [
             item
             for item in _check_questions(bundle)
             if item["extensions"].get("x-scientific-check-id") == FOUNDER_CHECK
         ]
     else:
-        assert observation["observed_operand"]["value"] == expected_operand
+        observations = _applicable_observations(module)
+        assert observations
+        assert {item["observed_operand"]["value"] for item in observations} == {expected_operand}
         assert len(_check_questions(bundle)) == 1
 
 
@@ -2300,14 +2309,15 @@ def test_founder_question_is_publication_scoped_and_replays_without_execution(
     )
 
     module = _module(bundle, FOUNDER_CHECK)
-    observation = module["observations"][0]
+    observations = _applicable_observations(module)
+    observation = observations[0]
     relations = [
         item["relation"]
         for item in _check_questions(bundle)[0]["extensions"]["x-scientific-check-scope-join-path"]
     ]
 
     assert module["state"] == "applicable"
-    assert observation["applicability"] == "applicable"
+    assert observations
     assert [item["relation"] for item in observation["scope_join_path"]] == [
         "selected_by_publication_surface"
     ]

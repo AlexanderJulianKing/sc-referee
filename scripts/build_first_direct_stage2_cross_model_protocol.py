@@ -287,7 +287,7 @@ def build_first_direct_stage2_cross_model_protocol(project_root: Path) -> dict[s
     if output_root.exists() or output_root.is_symlink():
         raise FileExistsError(f"Stage-2 protocol output already exists: {output_root}")
     _retire_v1(project_root)
-    panel, freezes, reviews_by_case = _panel_inputs(project_root)
+    _panel, freezes, reviews_by_case = _panel_inputs(project_root)
     participants = _stage2_participants(project_root)
     from scripts.record_first_direct_three_case_stage1_semantic_recovery_clean_cli import (
         _protocol as _stage1_protocol,
@@ -308,7 +308,6 @@ def build_first_direct_stage2_cross_model_protocol(project_root: Path) -> dict[s
 
             sections: list[str] = []
             answer_refs_by_case: dict[str, list[dict[str, str]]] = {}
-            packet_payloads: list[tuple[str, dict[str, Any]]] = []
             for index, case_id in enumerate(case_order, start=1):
                 files = _case_files(project_root, stage1_protocol, case_id)
                 answer_summary, answer_refs = _answer_side(project_root, case_id)
