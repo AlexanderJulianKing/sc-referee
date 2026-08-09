@@ -340,7 +340,7 @@ def founder_orientation_dataflow_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-emission-dataflow",
-        "grammar_version": "2.2.5",
+        "grammar_version": "2.2.6",
         "trust_model": (
             "default deny: the trace holds an explicit whitelist of the statement and "
             "expression forms it models completely, and any form outside that whitelist "
@@ -1111,6 +1111,8 @@ def _document_orientations_inner(tree: ast.Module) -> dict[str, Any]:
             *function.args.posonlyargs,
             *function.args.args,
             *function.args.kwonlyargs,
+            *([function.args.vararg] if function.args.vararg else []),
+            *([function.args.kwarg] if function.args.kwarg else []),
         ):
             aliases.detach(parameter.arg)
             env[parameter.arg] = _OPAQUE
@@ -5100,6 +5102,14 @@ def _staged_extraction(
 def _accumulated_comprehension_ids(tree: ast.Module) -> set[int]:
     """Comprehensions whose elements a product or sum accumulates."""
 
+    assign_counts: Counter[str] = Counter()
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+        ):
+            assign_counts[node.targets[0].id] += 1
     ids: set[int] = set()
     assigned: dict[str, list[ast.expr]] = {}
     consumed: set[str] = set()
@@ -5121,7 +5131,8 @@ def _accumulated_comprehension_ids(tree: ast.Module) -> set[int]:
             and isinstance(node.targets[0], ast.Name)
         ):
             if isinstance(node.value, ast.GeneratorExp | ast.ListComp):
-                assigned.setdefault(node.targets[0].id, []).append(node.value)
+                if assign_counts[node.targets[0].id] == 1:
+                    assigned.setdefault(node.targets[0].id, []).append(node.value)
             elif isinstance(node.value, ast.Name):
                 # ``scores = weights`` then ``math.prod(scores)`` consumes
                 # the comprehension bound to ``weights``; missing the rename

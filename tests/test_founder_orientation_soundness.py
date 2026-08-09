@@ -5211,3 +5211,95 @@ def test_the_weighted_product_is_the_only_thing_that_reads_this_selector_list() 
     )
     assert unsupported
     assert states == set()
+
+
+# v2.2.6: the v2.2.5 verification round's two wrong-classification routes.
+# Vararg/kwarg parameters are now masked like every other parameter (a
+# module column-values list stood in for the caller's arguments), and a
+# name bound more than once never links a comprehension to an accumulation
+# (the reaching closure unions dependencies across bindings, so a rebound
+# product list carried a classification the runtime never computed).
+
+
+V226_COUNTEREXAMPLES = {
+    "F1a-wrong-direct": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+calls = [int(row['call']) for row in rows]
+founders = [int(row['founder']) for row in rows]
+adjusted = [1 - value for value in founders]
+
+
+def emission(*founders):
+    return math.prod(
+        0.99 if pair[0] == pair[1] else 0.01 for pair in zip(calls, founders)
+    )
+
+
+likelihood = emission(adjusted[0], adjusted[1], adjusted[2], adjusted[3], adjusted[4])
+report = f'emission likelihood {likelihood}'
+Path('results/report.md').write_text(report)
+""",
+    "F1b-wrong-repaired-false-alarm": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+calls = [int(row['call']) for row in rows]
+founders = [int(row['founder']) for row in rows]
+adjusted = [1 - value for value in founders]
+
+
+def emission(*adjusted):
+    return math.prod(
+        0.99 if pair[0] == pair[1] else 0.01 for pair in zip(calls, adjusted)
+    )
+
+
+likelihood = emission(founders[0], founders[1], founders[2], founders[3], founders[4])
+report = f'emission likelihood {likelihood}'
+Path('results/report.md').write_text(report)
+""",
+    "F2a-rebound-product-direct": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+ones = [int(row['one']) for row in rows]
+weights = [
+    0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in rows
+]
+terms = [ones[i] * weights[i] for i in range(len(rows))]
+terms = [1.0, 1.0, 1.0, 1.0, 1.0]
+likelihood = math.prod(terms)
+report = f'emission likelihood {likelihood}'
+Path('results/report.md').write_text(report)
+""",
+    "F2b-rebound-product-false-alarm": r"""import csv
+import math
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+ones = [int(row['one']) for row in rows]
+weights = [
+    0.99 if int(row['call']) == 1 - int(row['founder']) else 0.01 for row in rows
+]
+terms = [ones[i] * weights[i] for i in range(len(rows))]
+terms = [1.0, 1.0, 1.0, 1.0, 1.0]
+likelihood = math.prod(terms)
+report = f'emission likelihood {likelihood}'
+Path('results/report.md').write_text(report)
+""",
+}
+
+
+@pytest.mark.parametrize("case", sorted(V226_COUNTEREXAMPLES))
+def test_v226_counterexample_abstains(case: str) -> None:
+    unsupported, states = _resolve(V226_COUNTEREXAMPLES[case])
+    assert unsupported
+    assert states == set()
+    applicability, operand = _fused_observation(_COUNTEREXAMPLE_REPORT, V226_COUNTEREXAMPLES[case])
+    assert applicability == "unsupported"
+    assert operand is None
