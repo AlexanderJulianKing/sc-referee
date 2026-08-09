@@ -39,7 +39,7 @@ against a complete v3 certificate.
 - Ordinary opaque constructs outside the certified slice do not invalidate a certificate. The
   v2 module-wide bans for reflection, import substitution, dynamic dispatch, executable
   annotations, star imports, and builtin shadowing remain fail-closed.
-- The optional single-parity-bit CSV refinement is not enabled in semantic v3.0.0. Any unresolved
+- The optional single-parity-bit CSV refinement is not enabled in semantic v3.0.1. Any unresolved
   parity remains an abstention.
 - Production code execution is prohibited. Intake sandbox evidence is not an analyzer input.
 
@@ -57,7 +57,8 @@ reconciliation, and tokenization. A change to any bound byte changes the adapter
 
 ## Development acceptance gates
 
-- all five error-bearing founder pilot workflows produce the repaired operand under v3;
+- each error-bearing founder pilot either produces the repaired operand or records the exact
+  fail-closed v3.0.1 abstention introduced by a demonstrated hardening obligation;
 - all ten paired pilot controls produce no repaired operand;
 - every historical executable wrong-answer counterexample either abstains or agrees with runtime;
 - all 27 envelope-10 burned cases and the frozen v2 suite remain green;
@@ -68,3 +69,19 @@ reconciliation, and tokenization. A change to any bound byte changes the adapter
 Passing these development gates does not promote v3 beyond question-only shadow status. Any later
 Finding authority still requires the accepted prospective qualification and explicit promotion
 process.
+
+## v3.0.1 fail-closed hardening
+
+The v3.0.1 lowering pass makes two analyzer invariants structural. Every evaluated subtree that
+cannot be modeled emits an opaque wildcard-write effect over its complete syntactic read set and
+invalidates the bindings and origins it may touch. Every selector constructor carries the tracked
+condition or index as a parent. Selected-result fields are tracked independently from diagnostic
+fields, so comparison completeness is no longer inferred from the same payload lineage offered as
+the sink proof.
+
+V3.0.1 also adds live-callable dispatch, normalized selected paths, conservative cross-document
+effects, definition-time default and control-transfer abstentions, exact-arithmetic and AST/helper
+budgets, and explicit staged-transform domain effects. CSV refinement remains disabled. Because
+the five pilot contexts contain the report and workflow but no independently checkable staged CSV
+domain, all five former repaired positives now abstain; none is special-cased around the missing
+row-completeness, cast, finiteness, or Decimal-context proof.

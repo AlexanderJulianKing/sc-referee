@@ -85,7 +85,7 @@ def founder_orientation_semantic_recognition_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-semantic-shadow-fusion",
-        "grammar_version": "3.0.0",
+        "grammar_version": "3.0.1",
         "semantic_source": founder_orientation_semantic_grammar(direct_operand, repaired_operand),
         "semantic_source_implementation_digest": (
             FOUNDER_ORIENTATION_SEMANTIC_IMPLEMENTATION_DIGEST

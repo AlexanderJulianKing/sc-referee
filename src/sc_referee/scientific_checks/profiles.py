@@ -538,7 +538,7 @@ def _founder_orientation_module(
     )
     semantic_manifest = AdapterManifest(
         adapter_id=(f"adapter:{profile.check_id.removeprefix('check:')}:orientation-semantic-v3"),
-        adapter_version="3.0.0",
+        adapter_version="3.0.1",
         implementation_digest=FOUNDER_ORIENTATION_SEMANTIC_ADAPTER_IMPLEMENTATION_DIGEST,
         recognition_grammar_digest=founder_orientation_semantic_recognition_grammar_digest(
             str(direct_operand.value), str(repaired_operand.value)

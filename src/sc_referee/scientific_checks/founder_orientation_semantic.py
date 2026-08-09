@@ -59,6 +59,11 @@ FOUNDER_ORIENTATION_SEMANTIC_IMPLEMENTATION_DIGEST = sha256_digest(Path(__file__
 
 _MAX_EXPRESSION_DEPTH = 120
 _MAX_CALL_DEPTH = 8
+_MAX_SOURCE_BYTES = 2_000_000
+_MAX_AST_NODES = 20_000
+_MAX_HELPERS = 256
+_MAX_EXACT_INTEGER_BITS = 4_096
+_MAX_POW_EXPONENT = 1_024
 _STDLIB_IMPORTS = frozenset({"csv", "math", "pathlib", "fractions", "decimal", "statistics"})
 _BUILTINS = frozenset(dir(builtins))
 _NUMERIC_RUNTIME_TYPES = frozenset({"int", "float", "decimal", "fraction"})
@@ -103,9 +108,7 @@ class _PathValue:
 
     @property
     def normalized(self) -> str:
-        if not self.parts:
-            return "."
-        return PurePosixPath(*self.parts).as_posix()
+        return _normalize_posix_parts(self.parts)
 
 
 @dataclass(frozen=True)
@@ -175,7 +178,7 @@ class _DerivedValue:
 
 @dataclass(frozen=True)
 class _TextValue:
-    pass
+    field_tokens: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -190,6 +193,12 @@ class _AccumulatorValue:
 @dataclass(frozen=True)
 class _FunctionValue:
     name: str
+
+
+@dataclass(frozen=True)
+class _ReportField:
+    value: _Tracked
+    selected_result: bool
 
 
 _NONE = _NoneValue()
@@ -269,10 +278,13 @@ class _Analyzer:
     writes: list[_WriteEvent] = field(default_factory=list)
     consumed_sequences: set[str] = field(default_factory=set)
     invalidated_origins: set[str] = field(default_factory=set)
+    invalidated_bindings: set[str] = field(default_factory=set)
     call_stack: list[str] = field(default_factory=list)
     expression_depth: int = 0
     branch: str = "module"
     selected_sink_seen: bool = False
+    report_fields: dict[str, _ReportField] = field(default_factory=dict)
+    fail_closed: bool = False
 
     def analyze(self) -> OrientationCertificate | None:
         self._index_module()
@@ -281,15 +293,21 @@ class _Analyzer:
         self._exec_statements(self.tree.body, env, local=False)
         matching = [event for event in self.writes if self._is_selected_path(event.path)]
         self.selected_sink_seen = bool(matching)
-        if not matching:
+        if not matching or self.fail_closed:
             return None
         sinks: list[SinkProof] = []
         orientations: list[frozenset[Orientation]] = []
         report_comparisons: set[str] = set()
         evidence_tokens: set[str] = set()
         for event in matching:
-            payload = event.payload
-            if payload.unknowns or payload.origins & self.invalidated_origins:
+            payload = self._selected_result_payload(event.payload)
+            if payload is None:
+                return None
+            if (
+                payload.unknowns
+                or payload.origins & self.invalidated_origins
+                or payload.bindings & self.invalidated_bindings
+            ):
                 return None
             fold_tokens = payload.folds & self.folds.keys()
             selector_tokens = {
@@ -302,15 +320,15 @@ class _Analyzer:
                 for token in selector_tokens
                 if token in self.selectors
             }
-            # Every staged-column comparison reaching the report must be in
-            # the agreement set.  A non-canonical or otherwise unproved
-            # comparison remains in ``payload.predicates`` but has no closed
-            # selector/fold proof, causing the independent kernel to reject
-            # the proposal rather than letting a nearby count answer for it.
-            predicate_tokens.update(payload.predicates)
             if not fold_tokens or not selector_tokens or not predicate_tokens:
                 return None
-            report_comparisons.update(predicate_tokens)
+            # Completeness is computed independently from every tracked value
+            # in the selected-result field set.  The sink lineage above comes
+            # only from closed selector folds.  A direct/non-fold comparison,
+            # or a competing fold, therefore makes the kernel's equality fail
+            # instead of letting a nearby diagnostic count answer for the
+            # selected result.
+            report_comparisons.update(payload.predicates)
             evidence_tokens.update(predicate_tokens)
             path_orientations = {
                 self._orientation(self.comparisons[token])
@@ -391,12 +409,7 @@ class _Analyzer:
                 self._bind(statement.targets[0].id, value, env)
             else:
                 names = self._target_names(statement)
-                self._opaque_effect(
-                    statement,
-                    value,
-                    writes={*names, "*"},
-                    reason="unmodelled assignment",
-                )
+                self._give_up(statement, env, "unmodelled assignment", value)
                 for name in names:
                     self._bind(name, self._unknown("unmodelled assignment", value), env)
             return _ExecResult()
@@ -437,17 +450,10 @@ class _Analyzer:
                 chosen = statement.body if condition.value.value else statement.orelse
                 return self._exec_statements(chosen, env, local=local)
             writes = self._bound_names(statement.body + statement.orelse)
-            if self._may_have_global_or_sink_effect(statement):
-                writes.add("*")
             touched = self._merge_tracked(
                 [condition, *[env[name] for name in writes if name in env]]
             )
-            self._opaque_effect(
-                statement,
-                touched,
-                writes=writes,
-                reason="unresolved control-flow join",
-            )
+            self._give_up(statement, env, "unresolved control-flow join", touched)
             for name in writes:
                 self._bind(name, self._unknown("unresolved control-flow join", touched), env)
             return _ExecResult()
@@ -455,10 +461,8 @@ class _Analyzer:
             self._exec_for(statement, env, local=local)
             return _ExecResult()
         writes = self._bound_names([statement])
-        if self._may_have_global_or_sink_effect(statement):
-            writes.add("*")
         reads = self._tracked_from_names(statement, env)
-        self._opaque_effect(statement, reads, writes=writes, reason="unmodelled statement")
+        self._give_up(statement, env, "unmodelled statement", reads)
         for name in writes:
             self._bind(name, self._unknown("unmodelled statement", reads), env)
         return _ExecResult()
@@ -469,52 +473,40 @@ class _Analyzer:
         if not isinstance(sequence, _SequenceState) or statement.orelse:
             touched = self._merge_tracked([iterable, self._tracked_from_names(statement, env)])
             writes = self._bound_names(statement.body + statement.orelse)
-            if self._may_have_global_or_sink_effect(statement):
-                writes.add("*")
-            self._opaque_effect(statement, touched, writes=writes, reason="unresolved loop")
+            self._give_up(statement, env, "unresolved loop", touched)
             for name in writes:
                 self._bind(name, self._unknown("unresolved loop", touched), env)
             return
         if self._loop_has_unsupported_control(statement):
             touched = self._merge_tracked([iterable, self._tracked_from_names(statement, env)])
             writes = self._bound_names(statement.body)
-            if self._may_have_global_or_sink_effect(statement):
-                writes.add("*")
-            self._opaque_effect(
-                statement,
-                touched,
-                writes=writes,
-                reason="unsupported loop control transfer",
-            )
+            self._give_up(statement, env, "unsupported loop control transfer", touched)
             for name in writes:
                 self._bind(name, self._unknown("unsupported loop control transfer", touched), env)
             return
         if sequence.single_pass and not self._consume(sequence):
             touched = self._merge_tracked([iterable])
-            self._opaque_effect(
-                statement,
-                touched,
-                writes=self._bound_names(statement.body),
-                reason="reconsumed iterator",
-            )
+            self._give_up(statement, env, "reconsumed iterator", touched)
             return
         if not isinstance(statement.target, ast.Name):
             touched = self._merge_tracked([iterable])
-            self._opaque_effect(
-                statement,
-                touched,
-                writes=self._target_names(statement.target),
-                reason="unmodelled loop target",
-            )
+            self._give_up(statement, env, "unmodelled loop target", touched)
             return
         before = dict(env)
         element = sequence.semantic.element_value
         if not isinstance(element, _Tracked):
+            self._give_up(statement, env, "invalid loop element", iterable)
             return
         self._bind(
             statement.target.id, replace(element, index_map=sequence.semantic.index_map), env
         )
         assigned = self._bound_names(statement.body)
+        if not self._loop_bindings_are_sound(statement, before, assigned):
+            touched = self._merge_tracked([iterable, self._tracked_from_names(statement, env)])
+            self._give_up(statement, env, "unsupported loop-carried binding", touched)
+            for name in assigned:
+                self._bind(name, self._unknown("unsupported loop-carried binding", touched), env)
+            return
         for name in assigned:
             if name in before and name != statement.target.id:
                 seed = before[name]
@@ -541,17 +533,26 @@ class _Analyzer:
                 continue
             if isinstance(value.value, _AccumulatorValue):
                 env[name] = before.get(name, self._unknown("unmodified accumulator"))
+            elif name not in before or name == statement.target.id:
+                # CSV and other symbolic sequences may be empty.  A loop-local
+                # or target value is therefore not available after the loop.
+                self._bind(name, self._unknown("possibly empty loop binding", value), env)
 
     def _eval(self, node: ast.expr, env: dict[str, _Tracked]) -> _Tracked:
         if self.expression_depth >= _MAX_EXPRESSION_DEPTH:
-            return self._unknown("expression depth exceeded")
+            result = self._unknown("expression depth exceeded")
+            self._give_up(node, env, "expression depth exceeded", result)
+            return result
         self.expression_depth += 1
         try:
-            return self._eval_inner(node, env)
+            result = self._eval_inner(node, env)
         except (ArithmeticError, InvalidOperation, ValueError, TypeError, OverflowError):
-            return self._unknown("primitive evaluation failed")
+            result = self._unknown("primitive evaluation failed")
         finally:
             self.expression_depth -= 1
+        if isinstance(result.value, Unknown):
+            self._give_up(node, env, result.value.reason, result)
+        return result
 
     def _eval_inner(self, node: ast.expr, env: dict[str, _Tracked]) -> _Tracked:
         if isinstance(node, ast.Name):
@@ -572,6 +573,8 @@ class _Analyzer:
             if isinstance(node.value, str):
                 return self._tracked(_ExactString(node.value))
             if isinstance(node.value, int):
+                if node.value.bit_length() > _MAX_EXACT_INTEGER_BITS:
+                    return self._unknown("integer magnitude exceeded")
                 return self._tracked(_number(node.value))
             if isinstance(node.value, float) and math.isfinite(node.value):
                 return self._tracked(_number(node.value))
@@ -607,14 +610,40 @@ class _Analyzer:
         if isinstance(node, ast.ListComp | ast.GeneratorExp):
             return self._comprehension(node, env)
         if isinstance(node, ast.JoinedStr):
-            parts = [self._eval(item, env) for item in node.values]
-            return self._compose(_TextValue(), parts)
+            return self._eval_joined_string(node, env)
         if isinstance(node, ast.FormattedValue):
             parts = [self._eval(node.value, env)]
             if node.format_spec is not None:
                 parts.append(self._eval(node.format_spec, env))
             return self._compose(_TextValue(), parts)
         return self._unknown(f"unsupported expression:{type(node).__name__}")
+
+    def _eval_joined_string(self, node: ast.JoinedStr, env: dict[str, _Tracked]) -> _Tracked:
+        parts: list[_Tracked] = []
+        field_tokens: list[str] = []
+        selected_line = False
+        for item in node.values:
+            if isinstance(item, ast.Constant) and isinstance(item.value, str):
+                part = self._tracked(_ExactString(item.value))
+                parts.append(part)
+                tail = item.value.rsplit("\n", 1)[-1]
+                if "\n" in item.value:
+                    selected_line = "[selected-result]" in tail
+                elif "[selected-result]" in item.value:
+                    selected_line = True
+                continue
+            if isinstance(item, ast.FormattedValue):
+                value = self._eval(item.value, env)
+                parts.append(value)
+                if item.format_spec is not None:
+                    parts.append(self._eval(item.format_spec, env))
+                token = self._node_token(item, "report-field")
+                self.report_fields[token] = _ReportField(value, selected_line)
+                field_tokens.append(token)
+                continue
+            value = self._eval(item, env)
+            parts.append(value)
+        return self._compose(_TextValue(tuple(field_tokens)), parts)
 
     def _eval_dict(self, node: ast.Dict, env: dict[str, _Tracked]) -> _Tracked:
         if len(node.keys) == 1 and node.keys[0] is None:
@@ -648,12 +677,17 @@ class _Analyzer:
                 runtime_type="str",
                 transforms=(transform,),
             )
-            return self._compose(
+            projected = self._compose(
                 projection,
                 [base, index],
                 origins={base.value.asset, base.value.row_domain},
                 index_map=base.value.index_map,
             )
+            self._record_transform_domain_effect(
+                projection,
+                "csv_subscript may be absent or None for a ragged DictReader row",
+            )
+            return projected
         if isinstance(base.value, _SequenceState) and isinstance(index.value, _IndexValue):
             if index.value.index_map != base.value.semantic.index_map:
                 return self._unknown("misaligned sequence index", base, index)
@@ -676,6 +710,7 @@ class _Analyzer:
                     base.value.items[0],
                     base.value.items[1],
                     node,
+                    parents=[base, index],
                 )
         return self._unknown("unsupported subscript", base, index)
 
@@ -684,8 +719,16 @@ class _Analyzer:
         function_value = self._eval(node.func, env) if isinstance(node.func, ast.Name) else None
         if function_value is not None and isinstance(function_value.value, _FunctionValue):
             return self._call_helper(function_value.value.name, node, env)
-        if key in self.functions:
-            return self._call_helper(key, node, env)
+        if isinstance(node.func, ast.Name) and node.func.id in env:
+            # The indexed definition is not runtime authority: any live
+            # reassignment makes dispatch opaque.
+            key = ""
+        if (
+            isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id in env
+        ):
+            key = ""
         args = [self._eval(argument, env) for argument in node.args]
         keywords = {item.arg: self._eval(item.value, env) for item in node.keywords if item.arg}
         if any(item.arg is None for item in node.keywords):
@@ -696,7 +739,7 @@ class _Analyzer:
             return self._numeric_constructor("fraction", args)
         if key in {"Decimal", "decimal.Decimal"} and not keywords:
             return self._numeric_constructor("decimal", args)
-        if key in {"int", "float", "str", "bool"} and key not in self.functions and not keywords:
+        if key in {"int", "float", "str", "bool"} and not keywords:
             return self._builtin_cast(key, args, node)
         if key == "abs" and len(args) == 1 and not keywords:
             return self._absolute(node.args[0], args[0], env)
@@ -711,7 +754,9 @@ class _Analyzer:
                 _LengthValue(sequence.semantic.index_map, sequence.row_domain), args
             )
         if key == "len" and len(args) == 1 and not keywords:
-            return self._compose(_DerivedValue("len"), args)
+            if isinstance(args[0].value, (_ContainerValue, _ExactString, _TextValue)):
+                return self._compose(_DerivedValue("len"), args)
+            return self._unknown("len operand is not an exact builtin container", *args)
         if (
             key == "range"
             and len(args) == 1
@@ -844,7 +889,7 @@ class _Analyzer:
         tracked = self._merge_tracked(args + list(keywords.values()))
         pure_stdlib = key.startswith(("statistics.", "math."))
         if pure_stdlib:
-            return self._compose(_DerivedValue(key), [tracked])
+            return self._unknown(f"unmodelled stdlib call:{key}", tracked)
         # An unmodelled call into an allowlisted module can still alter global
         # process state used by the certified slice (for example decimal
         # context or CSV parser limits).  With no operation summary, that is
@@ -870,7 +915,7 @@ class _Analyzer:
         all_values = [receiver, *args, *keywords.values()]
         if isinstance(receiver.value, _PathValue):
             if method in {"resolve", "absolute", "expanduser"} and not args:
-                return receiver
+                return self._unknown(f"runtime-dependent path normalization:{method}", receiver)
             if method == "mkdir":
                 return self._compose(_NONE, all_values)
             if method == "read_text":
@@ -906,9 +951,21 @@ class _Analyzer:
                 self.writes.append(_WriteEvent(receiver.value.path, args[0], self.branch))
                 return self._compose(_DerivedValue("write_length"), all_values)
         if isinstance(receiver.value, _ExactString) and method in {"join", "format"}:
-            return self._compose(_TextValue(), all_values)
+            field_tokens: list[str] = []
+            if method == "join" and len(args) == 1 and isinstance(args[0].value, _ContainerValue):
+                if not all(
+                    isinstance(item.value, (_ExactString, _TextValue))
+                    for item in args[0].value.items
+                ):
+                    return self._unknown("join item is not proven text", *all_values)
+                for item in args[0].value.items:
+                    if isinstance(item.value, _TextValue):
+                        field_tokens.extend(item.value.field_tokens)
+            elif method == "format":
+                return self._unknown("str.format placeholder binding is not modelled", *all_values)
+            return self._compose(_TextValue(tuple(field_tokens)), all_values)
         if method in {"quantize"}:
-            return self._compose(_DerivedValue(method), all_values)
+            return self._unknown("decimal quantize is context-dependent", *all_values)
         if (
             method in {"strip", "lstrip", "rstrip"}
             and not args
@@ -956,26 +1013,20 @@ class _Analyzer:
             "sort",
             "reverse",
         }
-        locally_typed = isinstance(
-            receiver.value,
-            (ExactNumber, _ExactString, _ExactBool, _PairValue, _ContainerValue),
-        )
         aliases = tracked.origins if mutating else frozenset()
-        writes = receiver.bindings if mutating and locally_typed else frozenset()
-        if not locally_typed:
-            writes = frozenset({"*"})
         self.effects.append(
             Effect(
-                reads=tracked.origins,
-                writes=frozenset(writes),
+                reads=tracked.origins | tracked.bindings | self._syntactic_reads(node),
+                writes=frozenset({"*"}),
                 aliases=frozenset(aliases),
                 may_raise=True,
                 opaque=True,
                 reason=f"opaque method:{method}",
             )
         )
-        if mutating:
-            self.invalidated_origins.update(aliases)
+        self.fail_closed = True
+        self.invalidated_origins.update(aliases)
+        self.invalidated_bindings.update(tracked.bindings)
         return self._unknown(f"opaque method:{method}", tracked)
 
     def _call_helper(self, name: str, node: ast.Call, env: dict[str, _Tracked]) -> _Tracked:
@@ -1102,7 +1153,8 @@ class _Analyzer:
     def _if_expression(self, node: ast.IfExp, env: dict[str, _Tracked]) -> _Tracked:
         test = self._eval(node.test, env)
         if isinstance(test.value, _ExactBool):
-            return self._eval(node.body if test.value.value else node.orelse, env)
+            chosen = self._eval(node.body if test.value.value else node.orelse, env)
+            return self._compose(chosen.value, [test, chosen], index_map=chosen.index_map)
         predicate = self._predicate_of(test)
         if predicate is None:
             return self._unknown("non-predicate conditional", test)
@@ -1111,6 +1163,7 @@ class _Analyzer:
             self._eval(node.orelse, env),
             self._eval(node.body, env),
             node,
+            parents=[test],
         )
 
     def _binary(self, op: ast.operator, left: _Tracked, right: _Tracked, node: ast.AST) -> _Tracked:
@@ -1127,7 +1180,10 @@ class _Analyzer:
             and isinstance(left.value, (_ExactString, _TextValue))
             and isinstance(right.value, (_ExactString, _TextValue))
         ):
-            return self._compose(_TextValue(), [left, right])
+            field_tokens = (
+                left.value.field_tokens if isinstance(left.value, _TextValue) else ()
+            ) + (right.value.field_tokens if isinstance(right.value, _TextValue) else ())
+            return self._compose(_TextValue(field_tokens), [left, right])
         projection = self._projection_binary(op, left, right)
         if projection is not None:
             return projection
@@ -1190,6 +1246,12 @@ class _Analyzer:
         exact = _exact_binary(op, left.value, right.value)
         if exact is not None:
             return self._compose(exact, [left, right])
+        if isinstance(op, ast.Pow):
+            return self._unknown("power is not within the exact arithmetic budget", left, right)
+        if isinstance(op, (ast.Div, ast.FloorDiv, ast.Mod)):
+            return self._unknown("division domain is not proven", left, right)
+        if isinstance(left.value, ExactNumber) and isinstance(right.value, ExactNumber):
+            return self._unknown("exact arithmetic is not within the supported domain", left, right)
         if left.folds or right.folds or left.selectors or right.selectors:
             return self._compose(_DerivedValue(type(op).__name__), [left, right])
         if isinstance(op, (ast.Add, ast.Sub, ast.Mult, ast.Div, ast.FloorDiv, ast.Mod, ast.Pow)):
@@ -1224,7 +1286,7 @@ class _Analyzer:
         if predicate is not None:
             false = self._tracked(self._number(1))
             true = self._tracked(self._number(0))
-            return self._dependent(predicate, false, true, node)
+            return self._dependent(predicate, false, true, node, parents=[value])
         if isinstance(value.value, _ExactBool):
             return self._compose(_ExactBool(not value.value.value), [value])
         if isinstance(value.value, Projection) and value.value.runtime_type in (
@@ -1300,11 +1362,11 @@ class _Analyzer:
         true: _Tracked,
         node: ast.AST,
         *,
-        parents: list[_Tracked] | None = None,
+        parents: list[_Tracked],
     ) -> _Tracked:
         if not isinstance(false.value, ExactNumber) or not isinstance(true.value, ExactNumber):
             return self._unknown("selector branch is not an exact number", false, true)
-        combined = [false, true, *(parents or [])]
+        combined = [false, true, *parents]
         dependent = _DependentValue(predicate, false.value, true.value)
         false_fraction = _number_fraction(false.value)
         true_fraction = _number_fraction(true.value)
@@ -1416,14 +1478,14 @@ class _Analyzer:
             if converted is not None:
                 return self._compose(converted, args)
         if value.folds or value.selectors:
-            return self._compose(_DerivedValue(key), args)
+            return self._unknown(f"{key} cast domain is not proven", *args)
         if key == "str" and isinstance(value.value, _ExactString):
             return value
         return self._unknown(f"unsupported {key} cast", value)
 
     def _numeric_constructor(self, kind: str, args: list[_Tracked]) -> _Tracked:
         if any(item.folds or item.selectors for item in args):
-            return self._compose(_DerivedValue(kind), args)
+            return self._unknown(f"{kind} constructor domain is not proven", *args)
         if len(args) == 1 and isinstance(args[0].value, Projection):
             projection = args[0].value
             if kind == "decimal" and projection.runtime_type in {"str", "int", "decimal"}:
@@ -1573,6 +1635,20 @@ class _Analyzer:
             output_type,
             parity_delta,
         )
+        if operation in {
+            "builtin_int",
+            "builtin_float",
+            "builtin_decimal",
+            "builtin_fraction",
+            "one_minus",
+            "bitxor_one",
+            "abs_difference_one",
+            "boolean_not",
+        }:
+            self._record_transform_domain_effect(
+                projection,
+                f"{operation} runtime domain is not proven for the staged column",
+            )
         return Projection(
             projection.asset,
             projection.row_domain,
@@ -1642,6 +1718,55 @@ class _Analyzer:
             return self._tracked(_NONE)
         return self._compose(_DerivedValue("merge"), values)
 
+    def _selected_result_payload(self, payload: _Tracked) -> _Tracked | None:
+        """Return independently tracked fields from the selected-result line.
+
+        Text-wide lineage is deliberately not sufficient: a diagnostic fold
+        elsewhere in the report cannot stand in for the selected emission.
+        """
+
+        if not isinstance(payload.value, _TextValue):
+            return None
+        values = [
+            field.value
+            for token in payload.value.field_tokens
+            if (field := self.report_fields.get(token)) is not None and field.selected_result
+        ]
+        if not values:
+            return None
+        selected = self._merge_tracked(values)
+        return replace(
+            selected,
+            origins=selected.origins | payload.origins,
+            bindings=selected.bindings | payload.bindings,
+            unknowns=selected.unknowns | payload.unknowns,
+        )
+
+    def _give_up(
+        self,
+        node: ast.AST,
+        env: dict[str, _Tracked],
+        reason: str,
+        *parents: _Tracked,
+    ) -> None:
+        """Emit the one fail-closed lowering effect for an unevaluated subtree."""
+
+        touched = self._merge_tracked([*parents, self._tracked_from_names(node, env)])
+        reads = touched.origins | touched.bindings | self._syntactic_reads(node)
+        self.effects.append(
+            Effect(
+                reads=frozenset(reads),
+                writes=frozenset({"*"}),
+                aliases=touched.origins,
+                may_raise=True,
+                opaque=True,
+                reason=reason,
+            )
+        )
+        self.fail_closed = True
+        self.invalidated_origins.update(touched.origins)
+        self.invalidated_bindings.update(touched.bindings)
+
     def _opaque_effect(
         self,
         node: ast.AST,
@@ -1650,15 +1775,42 @@ class _Analyzer:
         writes: set[str],
         reason: str,
     ) -> None:
-        del node
-        aliases = touched.origins if touched.origins else frozenset()
+        del writes
+        aliases = touched.origins
         self.effects.append(
             Effect(
-                reads=touched.origins,
-                writes=frozenset(writes),
+                reads=touched.origins | touched.bindings | self._syntactic_reads(node),
+                writes=frozenset({"*"}),
                 aliases=frozenset(aliases),
                 may_raise=True,
                 opaque=True,
+                reason=reason,
+            )
+        )
+        self.fail_closed = True
+        self.invalidated_origins.update(touched.origins)
+        self.invalidated_bindings.update(touched.bindings)
+
+    @staticmethod
+    def _syntactic_reads(node: ast.AST) -> frozenset[str]:
+        reads: set[str] = set()
+        for item in ast.walk(node):
+            if isinstance(item, ast.Name) and isinstance(item.ctx, ast.Load):
+                reads.add(f"name:{item.id}")
+            elif isinstance(item, ast.Attribute) and isinstance(item.ctx, ast.Load):
+                reads.add(f"attribute:{item.attr}")
+            elif isinstance(item, ast.Subscript) and isinstance(item.ctx, ast.Load):
+                reads.add("subscript")
+        return frozenset(reads)
+
+    def _record_transform_domain_effect(self, projection: Projection, reason: str) -> None:
+        self.effects.append(
+            Effect(
+                reads=frozenset({projection.asset, projection.row_domain}),
+                writes=frozenset(),
+                aliases=frozenset(),
+                may_raise=True,
+                opaque=False,
                 reason=reason,
             )
         )
@@ -1760,6 +1912,7 @@ class _Analyzer:
                 node,
                 ast.Break
                 | ast.Continue
+                | ast.Return
                 | ast.Raise
                 | ast.Yield
                 | ast.YieldFrom
@@ -1769,6 +1922,50 @@ class _Analyzer:
                 return True
             stack.extend(ast.iter_child_nodes(node))
         return False
+
+    def _loop_bindings_are_sound(
+        self,
+        statement: ast.For,
+        before: dict[str, _Tracked],
+        assigned: set[str],
+    ) -> bool:
+        """Admit only exact associative loop-carried accumulator updates."""
+
+        for name in assigned & before.keys():
+            updates = [item for item in statement.body if self._statement_binds_name(item, name)]
+            if len(updates) != 1:
+                return False
+            update = updates[0]
+            operation: Literal["sum", "product"] | None = None
+            if isinstance(update, ast.AugAssign) and isinstance(update.target, ast.Name):
+                if isinstance(update.op, ast.Add):
+                    operation = "sum"
+                elif isinstance(update.op, ast.Mult):
+                    operation = "product"
+            elif (
+                isinstance(update, ast.Assign)
+                and len(update.targets) == 1
+                and isinstance(update.targets[0], ast.Name)
+                and isinstance(update.value, ast.BinOp)
+            ):
+                operands = (update.value.left, update.value.right)
+                if not any(
+                    isinstance(operand, ast.Name) and operand.id == name for operand in operands
+                ):
+                    return False
+                if isinstance(update.value.op, ast.Add):
+                    operation = "sum"
+                elif isinstance(update.value.op, ast.Mult):
+                    operation = "product"
+            if operation == "sum" and _is_zero(before[name].value):
+                continue
+            if operation == "product" and _is_one(before[name].value):
+                continue
+            return False
+        return True
+
+    def _statement_binds_name(self, statement: ast.stmt, name: str) -> bool:
+        return name in self._bound_names([statement])
 
     @staticmethod
     def _static_helper_default(node: ast.expr) -> bool:
@@ -1800,8 +1997,8 @@ class _Analyzer:
     def _is_selected_path(self, path: _PathValue) -> bool:
         if not path.exact:
             return False
-        actual = PurePosixPath(path.normalized).parts
-        selected = PurePosixPath(self.selected_report_path).parts
+        actual = path.normalized
+        selected = _normalize_posix_parts(PurePosixPath(self.selected_report_path).parts)
         return actual == selected
 
     def _node_token(self, node: ast.AST, kind: str) -> str:
@@ -1870,19 +2067,29 @@ def resolve_founder_orientation_semantic(
             if stem != "__init__":
                 case_module_names.add(stem)
     for document in context.documents:
-        if document.media_type != "text/x-python" or not _python_parser_supported(
-            document, parser_id, parser_version
-        ):
+        if document.media_type != "text/x-python":
+            continue
+        if not _python_parser_supported(document, parser_id, parser_version):
+            saw_blocked_candidate = True
+            continue
+        if len(document.content) > _MAX_SOURCE_BYTES:
+            saw_blocked_candidate = True
             continue
         try:
             source = document.content.decode("utf-8")
         except UnicodeDecodeError:
+            saw_blocked_candidate = True
             continue
         tree = _guarded_parse(source, filename=document.path)
         if tree is None:
+            saw_blocked_candidate = True
             continue
         other_modules = case_module_names - {Path(document.path).stem}
-        if _imports_case_module(tree, other_modules) or _semantic_module_bans(tree):
+        if (
+            _semantic_resource_bans(tree)
+            or _imports_case_module(tree, other_modules)
+            or _semantic_module_bans(tree)
+        ):
             saw_blocked_candidate = True
             continue
         analyzer = _Analyzer(document, tree, selected_report_path)
@@ -1894,7 +2101,9 @@ def resolve_founder_orientation_semantic(
             saw_blocked_candidate = True
             continue
         if proposal is None:
-            saw_blocked_candidate = saw_blocked_candidate or analyzer.selected_sink_seen
+            saw_blocked_candidate = (
+                saw_blocked_candidate or analyzer.selected_sink_seen or analyzer.fail_closed
+            )
             continue
         verified = verify_orientation_certificate(proposal)
         if verified is not None:
@@ -1933,7 +2142,7 @@ def founder_orientation_semantic_grammar(
 
     return {
         "grammar_id": "founder-orientation-semantic-certificate",
-        "grammar_version": "3.0.0",
+        "grammar_version": "3.0.1",
         "operands": {"direct": direct_operand, "repaired": repaired_operand},
         "abstract_values": [
             "Projection(asset,row_domain,column,parity,runtime_type)",
@@ -1963,7 +2172,7 @@ def founder_orientation_semantic_grammar(
         ),
         "certificate_kernel": "founder_orientation_certificate.verify_orientation_certificate",
         "csv_refinement": (
-            "not enabled in 3.0.0; an unresolved parity bit remains an abstention rather than "
+            "not enabled in 3.0.1; an unresolved parity bit remains an abstention rather than "
             "using report-number uniqueness"
         ),
         "fusion": "v2 and v3 are independent adapters; disagreement abstains and never votes",
@@ -1979,36 +2188,47 @@ def _semantic_module_bans(tree: ast.Module) -> bool:
 
     if _module_bans(tree):
         return True
+    nodes = list(ast.walk(tree))
     definitions: dict[str, int] = {}
     function_names: set[str] = set()
-    for node in ast.walk(tree):
+    parameter_names: set[str] = set()
+    for node in nodes:
         if isinstance(node, ast.FunctionDef):
             definitions[node.name] = definitions.get(node.name, 0) + 1
             function_names.add(node.name)
             if node.decorator_list:
                 return True
-        if isinstance(node, ast.AnnAssign | ast.Global | ast.Nonlocal | ast.Lambda):
+            parameters = (
+                *node.args.posonlyargs,
+                *node.args.args,
+                *node.args.kwonlyargs,
+                *([node.args.vararg] if node.args.vararg else []),
+                *([node.args.kwarg] if node.args.kwarg else []),
+            )
+            parameter_names.update(item.arg for item in parameters)
+            defaults = [*node.args.defaults, *[item for item in node.args.kw_defaults if item]]
+            if any(not _Analyzer._static_helper_default(default) for default in defaults):
+                return True
+        if isinstance(
+            node,
+            ast.AnnAssign | ast.Global | ast.Nonlocal | ast.Lambda | ast.NamedExpr,
+        ):
             return True
         if isinstance(node, ast.AsyncFunctionDef | ast.AsyncFor | ast.AsyncWith | ast.Await):
             return True
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
-            for function in (item for item in ast.walk(tree) if isinstance(item, ast.FunctionDef)):
-                parameters = {
-                    item.arg
-                    for item in (
-                        *function.args.posonlyargs,
-                        *function.args.args,
-                        *function.args.kwonlyargs,
-                        *([function.args.vararg] if function.args.vararg else []),
-                        *([function.args.kwarg] if function.args.kwarg else []),
-                    )
-                }
-                if node in ast.walk(function) and node.func.id in parameters:
-                    return True
+        if _semantic_binding_names(node) & _BUILTINS:
+            return True
+    if any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in parameter_names
+        for node in nodes
+    ):
+        return True
     if any(count != 1 for count in definitions.values()):
         return True
-    call_positions = {id(node.func) for node in ast.walk(tree) if isinstance(node, ast.Call)}
-    for node in ast.walk(tree):
+    call_positions = {id(node.func) for node in nodes if isinstance(node, ast.Call)}
+    for node in nodes:
         if (
             isinstance(node, ast.Name)
             and node.id in function_names
@@ -2017,6 +2237,60 @@ def _semantic_module_bans(tree: ast.Module) -> bool:
             if id(node) not in call_positions:
                 return True
     return False
+
+
+def _semantic_binding_names(node: ast.AST) -> set[str]:
+    """V3 supplement for binding forms omitted by the frozen v2 scanner."""
+
+    if isinstance(node, ast.ClassDef):
+        return {node.name}
+    if isinstance(node, ast.ExceptHandler) and node.name:
+        return {node.name}
+    if isinstance(node, ast.MatchAs) and node.name:
+        return {node.name}
+    if isinstance(node, ast.MatchStar) and node.name:
+        return {node.name}
+    if isinstance(node, ast.MatchMapping) and node.rest:
+        return {node.rest}
+    return set()
+
+
+def _semantic_resource_bans(tree: ast.Module) -> bool:
+    count = 0
+    helpers = 0
+    stack: list[ast.AST] = [tree]
+    while stack:
+        node = stack.pop()
+        count += 1
+        if count > _MAX_AST_NODES:
+            return True
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+            helpers += 1
+            if helpers > _MAX_HELPERS:
+                return True
+        stack.extend(ast.iter_child_nodes(node))
+    return False
+
+
+def _normalize_posix_parts(parts: tuple[str, ...]) -> str:
+    """Lexically normalize runtime-equivalent relative POSIX path aliases."""
+
+    absolute = bool(parts and parts[0] == "/")
+    normalized: list[str] = []
+    for part in parts:
+        if part in {"", ".", "/"}:
+            continue
+        if part == "..":
+            if normalized and normalized[-1] != "..":
+                normalized.pop()
+            elif not absolute:
+                normalized.append(part)
+            continue
+        normalized.append(part)
+    text = "/".join(normalized)
+    if absolute:
+        return f"/{text}" if text else "/"
+    return text or "."
 
 
 def _number(value: int | float | Decimal | Fraction) -> ExactNumber:
@@ -2038,6 +2312,11 @@ def _number(value: int | float | Decimal | Fraction) -> ExactNumber:
     else:
         fraction = value
         kind = "fraction"
+    if (
+        abs(fraction.numerator).bit_length() > _MAX_EXACT_INTEGER_BITS
+        or fraction.denominator.bit_length() > _MAX_EXACT_INTEGER_BITS
+    ):
+        raise OverflowError("exact number magnitude exceeded")
     return ExactNumber(kind, f"{fraction.numerator}/{fraction.denominator}")  # type: ignore[arg-type]
 
 
@@ -2097,6 +2376,18 @@ def _exact_binary(op: ast.operator, left: _Value, right: _Value) -> ExactNumber 
         right_value, (int, float, Decimal, Fraction)
     ):
         return None
+    if isinstance(left_value, Decimal) or isinstance(right_value, Decimal):
+        # Decimal arithmetic consults mutable process context.  Exact
+        # constructor values alone do not authorize replaying that context.
+        return None
+    if isinstance(op, ast.Pow):
+        exponent = right_value
+        if not isinstance(exponent, int) or abs(exponent) > _MAX_POW_EXPONENT:
+            return None
+        if isinstance(left_value, int) and left_value not in {-1, 0, 1}:
+            estimated_bits = max(1, abs(left_value).bit_length()) * max(exponent, 0)
+            if estimated_bits > _MAX_EXACT_INTEGER_BITS:
+                return None
     operation = {
         ast.Add: operator.add,
         ast.Sub: operator.sub,
