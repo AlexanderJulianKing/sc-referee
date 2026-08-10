@@ -689,12 +689,15 @@ _DEPENDENCE_TWIN_KEY_GUIDANCE = (
     "namespace and every tag is distinct, with no same-suffix `k1`,`k2` row."
 )
 _DEPENDENCE_HARD_KEY_GUIDANCE = (
-    "Use exactly these 12 `k1,k2,tag` triples in row order: `u07,w01,t01`; "
-    "`u08,w01,t02`; `u09,w02,t03`; `u10,w02,t04`; `u11,w03,t05`; "
-    "`u12,w03,t06`; `u01,w04,t07`; `u02,w04,t08`; `u03,w05,t09`; "
-    "`u06,w05,t10`; `u05,w06,t11`; `u04,w06,t12`. Each authorized `k1` "
-    "and every tag is distinct; each `k2` repeats exactly twice, and no row "
-    "has matching numeric suffixes for `k1` and `k2`."
+    "Use exactly these 24 `k1,k2,tag` triples in row order: `u07,v12,t01`; "
+    "`u08,v13,t02`; `u09,v14,t03`; `u10,v15,t04`; `u11,v16,t05`; "
+    "`u12,v17,t06`; `u01,v18,t07`; `u02,v19,t08`; `u03,v20,t09`; "
+    "`u06,v21,t10`; `u05,v22,t11`; `u04,v23,t12`; `u19,v24,t13`; "
+    "`u20,v01,t14`; `u21,v02,t15`; `u22,v03,t16`; `u23,v04,t17`; "
+    "`u24,v05,t18`; `u13,v06,t19`; `u14,v07,t20`; `u15,v08,t21`; "
+    "`u18,v09,t22`; `u17,v10,t23`; `u16,v11,t24`. Every `k1`, `k2`, "
+    "and tag is distinct, and no row has matching numeric suffixes for `k1` "
+    "and `k2`."
 )
 _DEPENDENCE_TTEST_UNIQUE_RESULT = (
     "TtestResult(statistic=np.float64(-0.6793662204867575), "
@@ -739,10 +742,10 @@ _DEPENDENCE_ROLE_CONSTRAINTS = {
     ],
     "hard_negative": [
         _DEPENDENCE_HARD_KEY_GUIDANCE,
-        _DEPENDENCE_BASE_VECTOR_GUIDANCE,
+        _DEPENDENCE_ERROR_VECTOR_GUIDANCE,
         "Call `scipy.stats.ttest_ind`.",
         "The exact SciPy 1.14.0 result text for these vectors is `"
-        + _DEPENDENCE_TTEST_UNIQUE_RESULT
+        + _DEPENDENCE_TTEST_REPEATED_MEASUREMENT_RESULT
         + "`; the report must be `[selected-result] ` followed by exactly that text.",
     ],
     "ambiguous": [

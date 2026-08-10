@@ -78,8 +78,8 @@ _RESULTS = {
         "MannwhitneyuResult(statistic=np.float64(60.5), pvalue=np.float64(0.5243792697676437))"
     ),
     "hard_negative": (
-        "TtestResult(statistic=np.float64(-0.6793662204867575), "
-        "pvalue=np.float64(0.5039915691282064), df=np.float64(22.0))"
+        "TtestResult(statistic=np.float64(-0.8581613266497022), "
+        "pvalue=np.float64(0.3952529117073811), df=np.float64(46.0))"
     ),
     "ambiguous": (
         "TtestResult(statistic=np.float64(-0.6793662204867575), "
@@ -194,18 +194,30 @@ _TWIN_KEYS = (
     ("u12", "v05", "t23"),
 )
 _HARD_KEYS = (
-    ("u07", "w01", "t01"),
-    ("u08", "w01", "t02"),
-    ("u09", "w02", "t03"),
-    ("u10", "w02", "t04"),
-    ("u11", "w03", "t05"),
-    ("u12", "w03", "t06"),
-    ("u01", "w04", "t07"),
-    ("u02", "w04", "t08"),
-    ("u03", "w05", "t09"),
-    ("u06", "w05", "t10"),
-    ("u05", "w06", "t11"),
-    ("u04", "w06", "t12"),
+    ("u07", "v12", "t01"),
+    ("u08", "v13", "t02"),
+    ("u09", "v14", "t03"),
+    ("u10", "v15", "t04"),
+    ("u11", "v16", "t05"),
+    ("u12", "v17", "t06"),
+    ("u01", "v18", "t07"),
+    ("u02", "v19", "t08"),
+    ("u03", "v20", "t09"),
+    ("u06", "v21", "t10"),
+    ("u05", "v22", "t11"),
+    ("u04", "v23", "t12"),
+    ("u19", "v24", "t13"),
+    ("u20", "v01", "t14"),
+    ("u21", "v02", "t15"),
+    ("u22", "v03", "t16"),
+    ("u23", "v04", "t17"),
+    ("u24", "v05", "t18"),
+    ("u13", "v06", "t19"),
+    ("u14", "v07", "t20"),
+    ("u15", "v08", "t21"),
+    ("u18", "v09", "t22"),
+    ("u17", "v10", "t23"),
+    ("u16", "v11", "t24"),
 )
 _AMBIGUOUS_KEYS = (
     ("u01", "v07"),
@@ -251,7 +263,7 @@ def _rows(role: str) -> list[tuple[str, str, str, float, float]]:
     if role == "error_bearing":
         return _keyed_rows(_ERROR_KEYS, _ERROR_LEFT, _ERROR_RIGHT)
     if role == "hard_negative":
-        return _keyed_rows(_HARD_KEYS)
+        return _keyed_rows(_HARD_KEYS, _ERROR_LEFT, _ERROR_RIGHT)
     if role == "ambiguous":
         return [
             (k1, k2, f"t{index + 1:02d}", _LEFT[index], _RIGHT[index])
@@ -677,6 +689,9 @@ def test_dependence_envelope_configuration_and_actor_seats() -> None:
     error_text = "\n".join(config.role_constraints["error_bearing"])
     assert f"`{', '.join(str(value) for value in _ERROR_LEFT)}`" in error_text
     assert f"`{', '.join(str(value) for value in _ERROR_RIGHT)}`" in error_text
+    hard_text = "\n".join(config.role_constraints["hard_negative"])
+    assert f"`{', '.join(str(value) for value in _ERROR_LEFT)}`" in hard_text
+    assert f"`{', '.join(str(value) for value in _ERROR_RIGHT)}`" in hard_text
     protocol_note = " ".join((default_dependence_config.__doc__ or "").split())
     assert "primary and escalation reviewers were unanimous against the answer key" in protocol_note
     assert "retired attempt's verdicts are void" in protocol_note
@@ -722,10 +737,11 @@ def test_dependence_pilot_d_tasks_data_and_workflow_are_frozen_to_two_collection
 
     hard = _rows("hard_negative")
     assert tuple(row[:3] for row in hard) == _HARD_KEYS
-    assert len({row[0] for row in hard}) == 12
-    assert len({row[2] for row in hard}) == 12
-    assert {row[1] for row in hard} == {f"w{index:02d}" for index in range(1, 7)}
-    assert all(sum(row[1] == key for row in hard) == 2 for key in {row[1] for row in hard})
+    assert len(hard) == 24
+    assert {row[0] for row in hard} == {f"u{index:02d}" for index in range(1, 25)}
+    assert {row[1] for row in hard} == {f"v{index:02d}" for index in range(1, 25)}
+    assert {row[2] for row in hard} == {f"t{index:02d}" for index in range(1, 25)}
+    assert [row[3:] for row in hard] == [row[3:] for row in error]
 
     ambiguous_rows = _rows("ambiguous")
     assert tuple((row[0], row[1]) for row in ambiguous_rows) == _AMBIGUOUS_KEYS
@@ -816,7 +832,13 @@ def test_dependence_pilot_d_four_result_reprs_recompute_in_pinned_runtime(
     tmp_path: Path,
 ) -> None:
     observed: dict[str, str] = {}
-    for role in ("error_bearing", "corrected_twin", "valid_alternative", "unsupported"):
+    for role in (
+        "error_bearing",
+        "corrected_twin",
+        "valid_alternative",
+        "hard_negative",
+        "unsupported",
+    ):
         case_root = tmp_path / role
         (case_root / "inputs").mkdir(parents=True)
         (case_root / "workflow").mkdir()
@@ -831,7 +853,13 @@ def test_dependence_pilot_d_four_result_reprs_recompute_in_pinned_runtime(
 
     assert observed == {
         role: f"[selected-result] {_RESULTS[role]}\n"
-        for role in ("error_bearing", "corrected_twin", "valid_alternative", "unsupported")
+        for role in (
+            "error_bearing",
+            "corrected_twin",
+            "valid_alternative",
+            "hard_negative",
+            "unsupported",
+        )
     }
 
 
