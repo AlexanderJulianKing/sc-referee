@@ -67,8 +67,8 @@ _LEFT = tuple(float(index) for index in range(1, 13))
 _RIGHT = (2.0, 4.0, 3.0, 5.0, 7.0, 6.0, 9.0, 8.0, 11.0, 10.0, 13.0, 12.0)
 _RESULTS = {
     "error_bearing": (
-        "TtestResult(statistic=np.float64(-0.9823619317924353), "
-        "pvalue=np.float64(0.33106037814548595), df=np.float64(46.0))"
+        "TtestResult(statistic=np.float64(-0.8581613266497022), "
+        "pvalue=np.float64(0.3952529117073811), df=np.float64(46.0))"
     ),
     "corrected_twin": (
         "TtestResult(statistic=np.float64(-0.6793662204867575), "
@@ -101,19 +101,111 @@ _CALLABLE_BY_ROLE = {
 _PROCEDURE_ATTRIBUTE_BY_ROLE = {
     role: value.rsplit(".", maxsplit=1)[-1] for role, value in _CALLABLE_BY_ROLE.items()
 }
-_CLEAN_KEYS = (
-    ("u01", "v07"),
-    ("u02", "v11"),
-    ("u03", "v02"),
-    ("u04", "v09"),
-    ("u05", "v01"),
-    ("u06", "v12"),
-    ("u07", "v05"),
-    ("u08", "v03"),
-    ("u09", "v10"),
-    ("u10", "v04"),
-    ("u11", "v08"),
-    ("u12", "v06"),
+_ERROR_KEYS = (
+    ("u01", "v07", "t01"),
+    ("u01", "v08", "t02"),
+    ("u02", "v09", "t03"),
+    ("u02", "v10", "t04"),
+    ("u03", "v11", "t05"),
+    ("u03", "v12", "t06"),
+    ("u04", "v13", "t07"),
+    ("u04", "v14", "t08"),
+    ("u05", "v15", "t09"),
+    ("u05", "v16", "t10"),
+    ("u06", "v17", "t11"),
+    ("u06", "v18", "t12"),
+    ("u07", "v19", "t13"),
+    ("u07", "v20", "t14"),
+    ("u08", "v21", "t15"),
+    ("u08", "v22", "t16"),
+    ("u09", "v23", "t17"),
+    ("u09", "v24", "t18"),
+    ("u10", "v01", "t19"),
+    ("u10", "v02", "t20"),
+    ("u11", "v03", "t21"),
+    ("u11", "v04", "t22"),
+    ("u12", "v05", "t23"),
+    ("u12", "v06", "t24"),
+)
+_ERROR_LEFT = (
+    1.0,
+    1.5,
+    2.0,
+    2.5,
+    3.0,
+    3.5,
+    4.0,
+    4.5,
+    5.0,
+    5.5,
+    6.0,
+    6.5,
+    7.0,
+    7.5,
+    8.0,
+    8.5,
+    9.0,
+    9.5,
+    10.0,
+    10.5,
+    11.0,
+    11.5,
+    12.0,
+    12.5,
+)
+_ERROR_RIGHT = (
+    2.0,
+    2.25,
+    4.0,
+    4.25,
+    3.0,
+    3.25,
+    5.0,
+    5.25,
+    7.0,
+    7.25,
+    6.0,
+    6.25,
+    9.0,
+    9.25,
+    8.0,
+    8.25,
+    11.0,
+    11.25,
+    10.0,
+    10.25,
+    13.0,
+    13.25,
+    12.0,
+    12.25,
+)
+_TWIN_KEYS = (
+    ("u01", "v07", "t01"),
+    ("u02", "v09", "t03"),
+    ("u03", "v11", "t05"),
+    ("u04", "v13", "t07"),
+    ("u05", "v15", "t09"),
+    ("u06", "v17", "t11"),
+    ("u07", "v19", "t13"),
+    ("u08", "v21", "t15"),
+    ("u09", "v23", "t17"),
+    ("u10", "v01", "t19"),
+    ("u11", "v03", "t21"),
+    ("u12", "v05", "t23"),
+)
+_HARD_KEYS = (
+    ("u07", "w01", "t01"),
+    ("u08", "w01", "t02"),
+    ("u09", "w02", "t03"),
+    ("u10", "w02", "t04"),
+    ("u11", "w03", "t05"),
+    ("u12", "w03", "t06"),
+    ("u01", "w04", "t07"),
+    ("u02", "w04", "t08"),
+    ("u03", "w05", "t09"),
+    ("u06", "w05", "t10"),
+    ("u05", "w06", "t11"),
+    ("u04", "w06", "t12"),
 )
 _AMBIGUOUS_KEYS = (
     ("u01", "v07"),
@@ -147,35 +239,30 @@ if not _DEPENDENCE_SANDBOX_AVAILABLE:
     )
 
 
-def _unique_rows(*, shared_tag: bool = False) -> list[tuple[str, str, str, float, float]]:
-    return [
-        (
-            k1,
-            k2,
-            "shared" if shared_tag else f"t{index:02d}",
-            _LEFT[index - 1],
-            _RIGHT[index - 1],
-        )
-        for index, (k1, k2) in enumerate(_CLEAN_KEYS, start=1)
-    ]
+def _keyed_rows(
+    keys: tuple[tuple[str, str, str], ...],
+    left: tuple[float, ...] = _LEFT,
+    right: tuple[float, ...] = _RIGHT,
+) -> list[tuple[str, str, str, float, float]]:
+    return [(k1, k2, tag, a, b) for (k1, k2, tag), a, b in zip(keys, left, right, strict=True)]
 
 
 def _rows(role: str) -> list[tuple[str, str, str, float, float]]:
     if role == "error_bearing":
-        return [row for row in _unique_rows() for _copy in range(2)]
+        return _keyed_rows(_ERROR_KEYS, _ERROR_LEFT, _ERROR_RIGHT)
     if role == "hard_negative":
-        return _unique_rows(shared_tag=True)
+        return _keyed_rows(_HARD_KEYS)
     if role == "ambiguous":
         return [
             (k1, k2, f"t{index + 1:02d}", _LEFT[index], _RIGHT[index])
             for index, (k1, k2) in enumerate(_AMBIGUOUS_KEYS)
         ]
-    return _unique_rows()
+    return _keyed_rows(_TWIN_KEYS)
 
 
 def _csv(role: str) -> str:
     lines = ["k1,k2,tag,a,b"]
-    lines.extend(f"{k1},{k2},{tag},{a:.1f},{b:.1f}" for k1, k2, tag, a, b in _rows(role))
+    lines.extend(f"{k1},{k2},{tag},{a},{b}" for k1, k2, tag, a, b in _rows(role))
     return "\n".join(lines) + "\n"
 
 
@@ -219,7 +306,7 @@ def _authority_lock(
     procedure_id = f"procedure:{slug}"
     result_id = f"result:{slug}"
     authorization_id = f"authorization:{slug}"
-    actor_id = "scientist:dependence-c-method-owner-01"
+    actor_id = "scientist:dependence-d-method-owner-01"
     value: dict[str, Any] = {
         "lock_kind": LOCK_KIND,
         "case_id": case_id,
@@ -293,7 +380,7 @@ def _run_single_case_intake(
         sandbox_python=Path(sys.executable),
         required_sandbox_distributions={},
     )
-    participant_id = "actor:dependence-c-author-opus-17"
+    participant_id = "actor:dependence-d-author-opus-19"
     case_id = "case:0000000000000000f102"
     role = "corrected_twin"
     authoring = tmp_path / config.pipeline_relative / "authoring"
@@ -343,7 +430,7 @@ def _run_single_case_intake(
     }
     incoming = authoring / "incoming"
     incoming.mkdir()
-    (incoming / "dependence-c-author-opus-17.json").write_text(
+    (incoming / "dependence-d-author-opus-19.json").write_text(
         canonical_json(attempt) + "\n", encoding="utf-8"
     )
     monkeypatch.setattr(
@@ -362,18 +449,18 @@ def _preflight_context(role: str) -> FrozenInspectionContext:
     requirements = b"numpy==2.2.6\nscipy==1.14.0\n"
     data_digest = sha256_digest(data)
     requirements_digest = sha256_digest(requirements)
-    surface_ref = RecordRef("publication_surface", "surface:pilot-c")
-    artifact_ref = RecordRef("artifact", "artifact:pilot-c-report")
-    snapshot_ref = RecordRef("repository_snapshot", "snapshot:pilot-c")
-    analysis_file_ref = RecordRef("file_record", "file:pilot-c-analysis")
-    parser_ref = RecordRef("parser_result", "parser:pilot-c-analysis")
-    data_file_ref = RecordRef("file_record", "file:pilot-c-data")
-    data_identity_ref = RecordRef("asset_identity", "asset:pilot-c-data")
-    requirements_file_ref = RecordRef("file_record", "file:pilot-c-requirements")
-    requirements_identity_ref = RecordRef("asset_identity", "asset:pilot-c-requirements")
-    analysis_ref = RecordRef("analysis", "analysis:pilot-c")
-    procedure_ref = RecordRef("procedure", "procedure:pilot-c")
-    result_ref = RecordRef("result", "result:pilot-c")
+    surface_ref = RecordRef("publication_surface", "surface:pilot-d")
+    artifact_ref = RecordRef("artifact", "artifact:pilot-d-report")
+    snapshot_ref = RecordRef("repository_snapshot", "snapshot:pilot-d")
+    analysis_file_ref = RecordRef("file_record", "file:pilot-d-analysis")
+    parser_ref = RecordRef("parser_result", "parser:pilot-d-analysis")
+    data_file_ref = RecordRef("file_record", "file:pilot-d-data")
+    data_identity_ref = RecordRef("asset_identity", "asset:pilot-d-data")
+    requirements_file_ref = RecordRef("file_record", "file:pilot-d-requirements")
+    requirements_identity_ref = RecordRef("asset_identity", "asset:pilot-d-requirements")
+    analysis_ref = RecordRef("analysis", "analysis:pilot-d")
+    procedure_ref = RecordRef("procedure", "procedure:pilot-d")
+    result_ref = RecordRef("result", "result:pilot-d")
     parser_payload = canonical_json(
         {"parser_id": "python-ast", "parser_version": "3.11", "state": "parsed"}
     ).encode()
@@ -457,11 +544,11 @@ def _preflight_context(role: str) -> FrozenInspectionContext:
     if role != "ambiguous":
         records.append(
             (
-                RecordRef("human_method_authorization", "authorization:pilot-c"),
+                RecordRef("human_method_authorization", "authorization:pilot-d"),
                 {
                     "record_type": "human_method_authorization",
-                    "record_id": "authorization:pilot-c",
-                    "actor_id": "human:pilot-c-method-owner",
+                    "record_id": "authorization:pilot-d",
+                    "actor_id": "human:pilot-d-method-owner",
                     "authority_state": "authorized",
                     "analysis_target_ref": analysis_ref.to_dict(),
                     "procedure_ref": procedure_ref.to_dict(),
@@ -475,7 +562,7 @@ def _preflight_context(role: str) -> FrozenInspectionContext:
             )
         )
     return FrozenInspectionContext(
-        snapshot_digest=sha256_digest(b"pilot-c-preflight"),
+        snapshot_digest=sha256_digest(b"pilot-d-preflight"),
         selected_surface_ref=surface_ref,
         selected_artifact_ref=artifact_ref,
         documents=(
@@ -516,8 +603,8 @@ def test_dependence_envelope_configuration_and_actor_seats() -> None:
     assert config.canonical_issue_class == (
         "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure"
     )
-    assert config.envelope_id.endswith("-lean-c")
-    assert config.pipeline_relative.as_posix().endswith("/pilot-c")
+    assert config.envelope_id.endswith("-lean-d")
+    assert config.pipeline_relative.as_posix().endswith("/pilot-d")
     assert config.roles == sorted(_ROLES)
     assert set(config.candidate_by_role) == set(_ROLES) - {"ambiguous"}
     assert set(config.candidate_by_role.values()) == {
@@ -544,21 +631,21 @@ def test_dependence_envelope_configuration_and_actor_seats() -> None:
     assert set(config.frozen_workflow_procedure_by_role) == set(_ROLES)
     assert config.detector_id == "detector:bounded-analysis-method-conflict"
     assert sorted(config.authors) == [
-        "actor:dependence-c-author-opus-17",
-        "actor:dependence-c-author-opus-18",
+        "actor:dependence-d-author-opus-19",
+        "actor:dependence-d-author-opus-20",
     ]
-    assert config.author_roles["actor:dependence-c-author-opus-17"] == [
+    assert config.author_roles["actor:dependence-d-author-opus-19"] == [
         "error_bearing",
         "corrected_twin",
     ]
-    assert config.author_roles["actor:dependence-c-author-opus-18"] == [
+    assert config.author_roles["actor:dependence-d-author-opus-20"] == [
         "valid_alternative",
         "hard_negative",
         "ambiguous",
         "unsupported",
     ]
-    assert config.reviewer.participant_id == "actor:dependence-c-reviewer-fable-11"
-    assert config.escalation_reviewer.participant_id == "actor:dependence-c-reviewer-opus-09"
+    assert config.reviewer.participant_id == "actor:dependence-d-reviewer-fable-12"
+    assert config.escalation_reviewer.participant_id == "actor:dependence-d-reviewer-opus-09"
     assert (
         "Judge only whether this exact issue class is demonstrated in the selected report. "
         "Other methodological concerns, however serious, are outside this review and must "
@@ -577,6 +664,19 @@ def test_dependence_envelope_configuration_and_actor_seats() -> None:
         assert f"`{triple}`" in ambiguous
     assert "Do not substitute any author-chosen string" in ambiguous
     assert all(k1.removeprefix("u") != k2.removeprefix("v") for k1, k2 in _AMBIGUOUS_KEYS)
+    for role, keys in {
+        "error_bearing": _ERROR_KEYS,
+        "corrected_twin": _TWIN_KEYS,
+        "valid_alternative": _TWIN_KEYS,
+        "hard_negative": _HARD_KEYS,
+        "unsupported": _TWIN_KEYS,
+    }.items():
+        role_text = "\n".join(config.role_constraints[role])
+        for k1, k2, tag in keys:
+            assert f"`{k1},{k2},{tag}`" in role_text
+    error_text = "\n".join(config.role_constraints["error_bearing"])
+    assert f"`{', '.join(str(value) for value in _ERROR_LEFT)}`" in error_text
+    assert f"`{', '.join(str(value) for value in _ERROR_RIGHT)}`" in error_text
     protocol_note = " ".join((default_dependence_config.__doc__ or "").split())
     assert "primary and escalation reviewers were unanimous against the answer key" in protocol_note
     assert "retired attempt's verdicts are void" in protocol_note
@@ -584,7 +684,7 @@ def test_dependence_envelope_configuration_and_actor_seats() -> None:
     assert "covered_negative`` result" in (default_dependence_config.__doc__ or "")
 
 
-def test_dependence_pilot_c_tasks_data_and_workflow_are_frozen_to_two_collections() -> None:
+def test_dependence_pilot_d_tasks_data_and_workflow_are_frozen_to_two_collections() -> None:
     config = default_dependence_config()
     authorized = config.task_by_role["error_bearing"]
     assert "`k1` identifies a first-collection source item measured by column `a`" in authorized
@@ -600,14 +700,33 @@ def test_dependence_pilot_c_tasks_data_and_workflow_are_frozen_to_two_collection
     assert "does not establish whether either code identifies a source item" in ambiguous
     assert "no matching, pairing, block, or other relationship" in ambiguous
 
-    clean = _unique_rows()
-    assert tuple((row[0], row[1]) for row in clean) == _CLEAN_KEYS
-    assert [row[2] for row in clean] == [f"t{index:02d}" for index in range(1, 13)]
     error = _rows("error_bearing")
     assert len(error) == 24
-    assert all(error[index] == error[index + 1] for index in range(0, 24, 2))
+    assert tuple(row[:3] for row in error) == _ERROR_KEYS
+    assert len({row[1] for row in error}) == 24
+    assert len({row[2] for row in error}) == 24
+    for index in range(0, 24, 2):
+        first, second = error[index : index + 2]
+        assert first[0] == second[0]
+        assert first[1:] != second[1:]
+        assert first[1] != second[1]
+        assert first[2] != second[2]
+        assert first[3] != second[3]
+        assert first[4] != second[4]
+
+    twin = _rows("corrected_twin")
+    assert tuple(row[:3] for row in twin) == _TWIN_KEYS
+    assert twin == error[::2]
+    assert _rows("valid_alternative") == twin
+    assert _rows("unsupported") == twin
+
     hard = _rows("hard_negative")
-    assert {row[2] for row in hard} == {"shared"}
+    assert tuple(row[:3] for row in hard) == _HARD_KEYS
+    assert len({row[0] for row in hard}) == 12
+    assert len({row[2] for row in hard}) == 12
+    assert {row[1] for row in hard} == {f"w{index:02d}" for index in range(1, 7)}
+    assert all(sum(row[1] == key for row in hard) == 2 for key in {row[1] for row in hard})
+
     ambiguous_rows = _rows("ambiguous")
     assert tuple((row[0], row[1]) for row in ambiguous_rows) == _AMBIGUOUS_KEYS
     assert [row[2] for row in ambiguous_rows] == [f"t{index:02d}" for index in range(1, 13)]
@@ -615,6 +734,8 @@ def test_dependence_pilot_c_tasks_data_and_workflow_are_frozen_to_two_collection
     assert all(
         ambiguous_rows[index][0] == ambiguous_rows[index + 1][0] for index in range(0, 12, 2)
     )
+    for role in _ROLES:
+        assert all(row[0][1:] != row[1][1:] for row in _rows(role)), role
 
     expected_workflow = (
         "import csv\n"
@@ -677,7 +798,7 @@ def test_dependence_frozen_workflow_variants_refuse_intake_with_named_reason(
 
 
 @pytest.mark.parametrize("role", _ROLES)
-def test_dependence_pilot_c_workflows_are_inside_the_static_preflight(role: str) -> None:
+def test_dependence_pilot_d_workflows_are_inside_the_static_preflight(role: str) -> None:
     analysis = analyze_dependence_python(_preflight_context(role))
     if role == "unsupported":
         assert analysis.state == "unsupported"
@@ -691,7 +812,7 @@ def test_dependence_pilot_c_workflows_are_inside_the_static_preflight(role: str)
     not _DEPENDENCE_SANDBOX_AVAILABLE,
     reason="dedicated SciPy 1.14.0 qualification interpreter is absent",
 )
-def test_dependence_pilot_c_four_result_reprs_recompute_in_pinned_runtime(
+def test_dependence_pilot_d_four_result_reprs_recompute_in_pinned_runtime(
     tmp_path: Path,
 ) -> None:
     observed: dict[str, str] = {}
@@ -997,7 +1118,7 @@ def test_dependence_six_role_fixture_runs_real_pipeline_without_findings(
 def test_dependence_sandbox_execution_tests_cannot_silently_skip_when_runtime_exists() -> None:
     guarded_tests = (
         test_dependence_dedicated_runtime_probe_passes_for_real,
-        test_dependence_pilot_c_four_result_reprs_recompute_in_pinned_runtime,
+        test_dependence_pilot_d_four_result_reprs_recompute_in_pinned_runtime,
         test_dependence_six_role_fixture_runs_real_pipeline_without_findings,
     )
     skip_conditions: list[bool] = []

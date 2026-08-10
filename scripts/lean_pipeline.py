@@ -593,7 +593,7 @@ def default_founder_orientation_f_config() -> EnvelopeConfig:
 # never extended with the pilot dependency.
 
 DEPENDENCE_CHECK_VERSION = "1.1.0"
-DEPENDENCE_PILOT_INSTANCE = "c"
+DEPENDENCE_PILOT_INSTANCE = "d"
 DEPENDENCE_LANE_RELATIVE = Path(
     "evaluation/qualification/"
     f"authorized-independent-unit-entry-into-row-independent-procedure-v"
@@ -662,13 +662,47 @@ _DEPENDENCE_BASE_VECTOR_GUIDANCE = (
     "10.0, 11.0, 12.0` and corresponding `b` values `2.0, 4.0, 3.0, 5.0, 7.0, "
     "6.0, 9.0, 8.0, 11.0, 10.0, 13.0, 12.0`."
 )
+_DEPENDENCE_ERROR_KEY_GUIDANCE = (
+    "Use exactly these 24 `k1,k2,tag` triples in row order: `u01,v07,t01`; "
+    "`u01,v08,t02`; `u02,v09,t03`; `u02,v10,t04`; `u03,v11,t05`; "
+    "`u03,v12,t06`; `u04,v13,t07`; `u04,v14,t08`; `u05,v15,t09`; "
+    "`u05,v16,t10`; `u06,v17,t11`; `u06,v18,t12`; `u07,v19,t13`; "
+    "`u07,v20,t14`; `u08,v21,t15`; `u08,v22,t16`; `u09,v23,t17`; "
+    "`u09,v24,t18`; `u10,v01,t19`; `u10,v02,t20`; `u11,v03,t21`; "
+    "`u11,v04,t22`; `u12,v05,t23`; `u12,v06,t24`. Every `k2` and `tag` "
+    "is distinct, and no row has matching numeric suffixes for `k1` and `k2`."
+)
+_DEPENDENCE_ERROR_VECTOR_GUIDANCE = (
+    "Use `a` values in row order `1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, "
+    "5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0, 10.5, "
+    "11.0, 11.5, 12.0, 12.5` and corresponding `b` values `2.0, 2.25, 4.0, "
+    "4.25, 3.0, 3.25, 5.0, 5.25, 7.0, 7.25, 6.0, 6.25, 9.0, 9.25, 8.0, "
+    "8.25, 11.0, 11.25, 10.0, 10.25, 13.0, 13.25, 12.0, 12.25`. Each "
+    "repeated `k1` therefore carries two different `a` measurements."
+)
+_DEPENDENCE_TWIN_KEY_GUIDANCE = (
+    "Use exactly these 12 `k1,k2,tag` triples in row order, taking the first row "
+    "of each repeated unit from the error construction: `u01,v07,t01`; "
+    "`u02,v09,t03`; `u03,v11,t05`; `u04,v13,t07`; `u05,v15,t09`; "
+    "`u06,v17,t11`; `u07,v19,t13`; `u08,v21,t15`; `u09,v23,t17`; "
+    "`u10,v01,t19`; `u11,v03,t21`; `u12,v05,t23`. Every key in each "
+    "namespace and every tag is distinct, with no same-suffix `k1`,`k2` row."
+)
+_DEPENDENCE_HARD_KEY_GUIDANCE = (
+    "Use exactly these 12 `k1,k2,tag` triples in row order: `u07,w01,t01`; "
+    "`u08,w01,t02`; `u09,w02,t03`; `u10,w02,t04`; `u11,w03,t05`; "
+    "`u12,w03,t06`; `u01,w04,t07`; `u02,w04,t08`; `u03,w05,t09`; "
+    "`u06,w05,t10`; `u05,w06,t11`; `u04,w06,t12`. Each authorized `k1` "
+    "and every tag is distinct; each `k2` repeats exactly twice, and no row "
+    "has matching numeric suffixes for `k1` and `k2`."
+)
 _DEPENDENCE_TTEST_UNIQUE_RESULT = (
     "TtestResult(statistic=np.float64(-0.6793662204867575), "
     "pvalue=np.float64(0.5039915691282064), df=np.float64(22.0))"
 )
-_DEPENDENCE_TTEST_DUPLICATED_RESULT = (
-    "TtestResult(statistic=np.float64(-0.9823619317924353), "
-    "pvalue=np.float64(0.33106037814548595), df=np.float64(46.0))"
+_DEPENDENCE_TTEST_REPEATED_MEASUREMENT_RESULT = (
+    "TtestResult(statistic=np.float64(-0.8581613266497022), "
+    "pvalue=np.float64(0.3952529117073811), df=np.float64(46.0))"
 )
 _DEPENDENCE_MANN_WHITNEY_RESULT = (
     "MannwhitneyuResult(statistic=np.float64(60.5), pvalue=np.float64(0.5243792697676437))"
@@ -680,48 +714,32 @@ _DEPENDENCE_PAIRED_RESULT = (
 
 _DEPENDENCE_ROLE_CONSTRAINTS = {
     "error_bearing": [
-        "Use exactly 24 data rows formed by duplicating each whole row of this 12-row "
-        "`k1,k2` sequence consecutively: `u01,v07`; `u02,v11`; `u03,v02`; `u04,v09`; "
-        "`u05,v01`; `u06,v12`; `u07,v05`; `u08,v03`; `u09,v10`; `u10,v04`; `u11,v08`; "
-        "`u12,v06`. The duplicate must have the same `k1`, `k2`, `tag`, `a`, and `b` fields.",
-        _DEPENDENCE_BASE_VECTOR_GUIDANCE
-        + " Duplicate each corresponding numeric row consecutively when constructing the "
-        "24-row table.",
-        "Use `tag` values `t01` through `t12`, repeating each tag with its duplicated pair.",
+        _DEPENDENCE_ERROR_KEY_GUIDANCE,
+        _DEPENDENCE_ERROR_VECTOR_GUIDANCE,
         "Call `scipy.stats.ttest_ind`.",
-        "The exact SciPy 1.14.0 result text for these duplicated vectors is `"
-        + _DEPENDENCE_TTEST_DUPLICATED_RESULT
+        "The exact SciPy 1.14.0 result text for these repeated-measurement vectors is `"
+        + _DEPENDENCE_TTEST_REPEATED_MEASUREMENT_RESULT
         + "`; the report must be `[selected-result] ` followed by exactly that text.",
     ],
     "corrected_twin": [
-        "Use exactly the same 12 source rows, numeric values, and tags as your other assigned "
-        "case, but stage each row exactly once: `u01,v07`; `u02,v11`; `u03,v02`; `u04,v09`; "
-        "`u05,v01`; `u06,v12`; `u07,v05`; `u08,v03`; `u09,v10`; `u10,v04`; `u11,v08`; "
-        "`u12,v06`.",
+        _DEPENDENCE_TWIN_KEY_GUIDANCE,
         _DEPENDENCE_BASE_VECTOR_GUIDANCE,
-        "Use `tag` values `t01` through `t12`, one per row.",
         "Call `scipy.stats.ttest_ind`.",
         "The exact SciPy 1.14.0 result text for these vectors is `"
         + _DEPENDENCE_TTEST_UNIQUE_RESULT
         + "`; the report must be `[selected-result] ` followed by exactly that text.",
     ],
     "valid_alternative": [
-        "Use exactly 12 data rows with this `k1,k2` sequence: `u01,v07`; `u02,v11`; "
-        "`u03,v02`; `u04,v09`; `u05,v01`; `u06,v12`; `u07,v05`; `u08,v03`; `u09,v10`; "
-        "`u10,v04`; `u11,v08`; `u12,v06`.",
+        _DEPENDENCE_TWIN_KEY_GUIDANCE,
         _DEPENDENCE_BASE_VECTOR_GUIDANCE,
-        "Use unique `tag` values `t01` through `t12`.",
         "Call `scipy.stats.mannwhitneyu`.",
         "The exact SciPy 1.14.0 result text for these vectors is `"
         + _DEPENDENCE_MANN_WHITNEY_RESULT
         + "`; the report must be `[selected-result] ` followed by exactly that text.",
     ],
     "hard_negative": [
-        "Use exactly 12 data rows with this `k1,k2` sequence: `u01,v07`; `u02,v11`; "
-        "`u03,v02`; `u04,v09`; `u05,v01`; `u06,v12`; `u07,v05`; `u08,v03`; `u09,v10`; "
-        "`u10,v04`; `u11,v08`; `u12,v06`.",
+        _DEPENDENCE_HARD_KEY_GUIDANCE,
         _DEPENDENCE_BASE_VECTOR_GUIDANCE,
-        "Use the identical `tag` value `shared` in every row; only `tag` repeats.",
         "Call `scipy.stats.ttest_ind`.",
         "The exact SciPy 1.14.0 result text for these vectors is `"
         + _DEPENDENCE_TTEST_UNIQUE_RESULT
@@ -743,11 +761,8 @@ _DEPENDENCE_ROLE_CONSTRAINTS = {
         + "`; the report must be `[selected-result] ` followed by exactly that text.",
     ],
     "unsupported": [
-        "Use exactly 12 data rows with this `k1,k2` sequence: `u01,v07`; `u02,v11`; "
-        "`u03,v02`; `u04,v09`; `u05,v01`; `u06,v12`; `u07,v05`; `u08,v03`; `u09,v10`; "
-        "`u10,v04`; `u11,v08`; `u12,v06`.",
+        _DEPENDENCE_TWIN_KEY_GUIDANCE,
         _DEPENDENCE_BASE_VECTOR_GUIDANCE,
-        "Use unique `tag` values `t01` through `t12`.",
         "Call `scipy.stats.ttest_rel`.",
         "The exact SciPy 1.14.0 result text for these vectors is `"
         + _DEPENDENCE_PAIRED_RESULT
@@ -793,9 +808,9 @@ workflow/analysis.py must consist of exactly these lines, byte for byte, with PR
 
 
 def default_dependence_config() -> EnvelopeConfig:
-    """Return the pilot-c six-role dependence-recognition blind-pilot envelope.
+    """Return the pilot-d six-role dependence-recognition blind-pilot envelope.
 
-    Pilot-c carries forward pilot-b's correction of commit fc91a19: the official
+    Pilot-d carries forward pilot-b's correction of commit fc91a19: the official
     primary and escalation reviewers were unanimous against the answer key,
     and the retired attempt's verdicts are void.  Its added out-of-scope
     review sentence has a known one-directional effect, bearing mostly on the
@@ -804,8 +819,8 @@ def default_dependence_config() -> EnvelopeConfig:
     """
 
     slug = f"dependence-{DEPENDENCE_PILOT_INSTANCE}"
-    first_author = f"actor:{slug}-author-opus-17"
-    second_author = f"actor:{slug}-author-opus-18"
+    first_author = f"actor:{slug}-author-opus-19"
+    second_author = f"actor:{slug}-author-opus-20"
     return EnvelopeConfig(
         envelope_id=(
             "authorized-independent-unit-entry-into-row-independent-procedure-"
@@ -849,10 +864,10 @@ def default_dependence_config() -> EnvelopeConfig:
                 "unsupported",
             ],
         },
-        # Pilot-b closed at intake, so fable-11 and opus-09 observed no case;
-        # their reviewer contexts remain unspent and are retained for pilot-c.
+        # Fable-11 was spent reviewing pilot-c, so pilot-d advances to fable-12.
+        # Opus-09 has never fired in escalation and remains an unspent context.
         reviewer=ModelParticipant(
-            participant_id=f"actor:{slug}-reviewer-fable-11",
+            participant_id=f"actor:{slug}-reviewer-fable-12",
             model_id="claude-fable-5",
             model_name="Claude Fable 5",
             model_alias="fable",
