@@ -38,9 +38,14 @@ SPLITLINES_ONLY_SEPARATORS = (
 )
 
 ReaderForm = Literal["csv_dictreader_splitlines", "csv_dictreader_file"]
+RECOGNIZED_READER_MODELS: tuple[tuple[ReaderForm, LineModel], ...] = (
+    ("csv_dictreader_splitlines", "splitlines"),
+    ("csv_dictreader_file", "csv_newline"),
+)
 FrameTransformOperation = Literal["identity", "unit_groupby_mean", "unit_groupby_first"]
 ProcedureIndependenceModel = Literal["row_independent", "paired"]
 SafeguardState = Literal["present", "absent", "not_applicable", "unknown", "unsupported"]
+SafeguardBasis = Literal["completeness-equation", "recognized-collapse", "registry-match"]
 DependenceConclusion = Literal["repeated_units", "one_observation_per_unit"]
 DependenceOutputCeiling = Literal["evaluation_candidate"]
 StaticWordingCeiling = Literal["static_code_relationship_only"]
@@ -65,6 +70,9 @@ class HumanMethodAuthorization:
     analysis_target_ref: RecordRef
     procedure_ref: RecordRef
     independent_unit_definition_id: str
+    authorized_key_columns: tuple[str, ...]
+    input_path: str
+    input_content_digest: str
 
 
 @dataclass(frozen=True, order=True)
@@ -116,6 +124,7 @@ class UnitKeyMultiplicityFact:
     asset_identity_ref: RecordRef
     reader_form: ReaderForm
     line_model: LineModel
+    splitlines_only_separators_absent: bool
     dialect: str
     row_domain: str
     source_byte_count: int
@@ -127,6 +136,7 @@ class UnitKeyMultiplicityFact:
     row_shape_complete: bool
     row_count: int
     observation_ids: tuple[str, ...]
+    key_value_tuples: tuple[tuple[str, ...], ...]
     unit_ids: tuple[str, ...]
     distinct_key_count: int
     multiplicities: tuple[tuple[str, int], ...]
@@ -141,7 +151,6 @@ class UnitKeyMultiplicityObligation:
     reader: ReaderBinding
     row_domain: str
     key_columns: tuple[str, ...]
-    fact: UnitKeyMultiplicityFact | None = None
 
 
 @dataclass(frozen=True, order=True)
@@ -168,6 +177,7 @@ class FrameLineage:
     analyzed_row_domain: str
     source_observation_ids: tuple[str, ...]
     analyzed_observation_ids: tuple[str, ...]
+    output_token: str
     procedure_call_token: str
     relevant_origins: frozenset[str]
     relevant_bindings: frozenset[str]
@@ -191,6 +201,7 @@ class ProcedureCall:
     procedure_ref: RecordRef
     resolved_callable: str
     positional_argument_tokens: tuple[str, ...]
+    positional_argument_frame_bindings: tuple[tuple[str, str], ...]
     keyword_argument_names: tuple[str, ...]
     frame_lineage_token: str
     analyzed_row_domain: str
@@ -210,7 +221,7 @@ class SafeguardCheckObligation:
     procedure_ref: RecordRef
     independent_unit_definition_id: str
     evidence_ids: tuple[str, ...]
-    basis: str
+    basis: SafeguardBasis
     complete_syntactic_construct_tokens: frozenset[str]
     modeled_construct_tokens: frozenset[str]
     proven_dead_construct_tokens: frozenset[str]
@@ -234,6 +245,14 @@ class SinkLineageObligation:
     relevant_bindings: frozenset[str]
 
 
+@dataclass(frozen=True, order=True)
+class EvidenceDeclaration:
+    """One stable evidence identity bound to one exact source/data span."""
+
+    evidence_id: str
+    point: EvidencePoint
+
+
 @dataclass(frozen=True)
 class DependenceCertificate:
     """An untrusted analyzer proposal; only the kernel may accept it."""
@@ -244,11 +263,11 @@ class DependenceCertificate:
     parser_version: str
     dependency_closure_digest: str
     proposed_case_digest: str
+    replay_digest: str
     case_binding: DependenceCaseBinding
     frame_lineage: FrameLineage
     procedure_call: ProcedureCall
     multiplicity_obligations: tuple[UnitKeyMultiplicityObligation, ...]
-    proven_multiplicity_facts: tuple[UnitKeyMultiplicityFact, ...]
     safeguard_checks: tuple[SafeguardCheckObligation, ...]
     sinks: tuple[SinkLineageObligation, ...]
     all_syntactic_construct_tokens: frozenset[str]
@@ -261,7 +280,7 @@ class DependenceCertificate:
     safeguard_registry_ids: tuple[str, ...]
     output_ceiling: DependenceOutputCeiling
     wording_ceiling: StaticWordingCeiling
-    evidence: tuple[EvidencePoint, ...]
+    evidence: tuple[EvidenceDeclaration, ...]
 
 
 @dataclass(frozen=True)
@@ -275,10 +294,11 @@ class VerifiedDependenceCertificate:
     procedure_call: ProcedureCall
     conclusion: DependenceConclusion
     repeated_unit_ids: tuple[str, ...]
+    source_frame_repeated_unit_ids: tuple[str, ...]
     applicable_safeguard_ids: tuple[str, ...]
     domain_fact: UnitKeyMultiplicityFact
     sink_tokens: tuple[str, ...]
-    evidence: tuple[EvidencePoint, ...]
+    evidence: tuple[EvidenceDeclaration, ...]
     proposed_case_digest: str
     output_ceiling: DependenceOutputCeiling
     wording_ceiling: StaticWordingCeiling

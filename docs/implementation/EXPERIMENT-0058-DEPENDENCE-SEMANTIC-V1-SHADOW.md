@@ -22,12 +22,14 @@ or a covered case as a coverage note.  None of those projections grants Finding 
 
 ## Frozen authority channel
 
-The only v1 authority input is the existing `human_method_authorization` shape used by the
-declaration adapters.  It must be `authorized` and bind the exact analysis target, procedure, and
-independent-unit-definition identity.  The internal unit-key binding must name the exact ordered
-CSV key columns governed by that authorization.  An absent or mismatched authority leaves the unit
-definition unknown.  Candidate columns may be reported as unresolved choices but are never ranked,
-selected from their names, or selected because their values repeat.
+The only v1 authority input is the existing `human_method_authorization` channel used by the
+declaration adapters, extended inside this recognizer with the exact ordered CSV key columns and
+the governed input path and content digest.  It must be `authorized` and bind the exact analysis
+target, procedure, independent-unit-definition identity, ordered key columns, and frozen input.
+Those columns and that input identity must agree across authority, case, obligation, trusted fact,
+and lineage.  An absent or mismatched authority leaves the unit definition unknown.  Candidate
+columns may be reported as unresolved choices but are never ranked, selected from their names, or
+selected because their values repeat.
 
 ## Frozen reader and data envelope
 
@@ -40,6 +42,8 @@ The only certified readers are the two existing default-`csv.DictReader` forms:
 Both use the default `excel` CSV dialect.  The prover must enumerate rows under the certified line
 model.  A `splitlines` proof abstains if the decoded bytes contain any separator recognized only by
 `str.splitlines`: vertical tab, form feed, file/group/record separator, NEL, U+2028, or U+2029.
+The trusted fact records whether this complete separator check passed, and the kernel refuses a
+`splitlines` fact unless it did.
 Strict UTF-8, unique nonempty headers, nonempty tables, complete non-ragged rows, exact full-digest
 binding, and the duplicated 8 MiB / 100,000-row / 256-field / 64 KiB-field ceilings apply.  Key
 comparison is byte-exact after strict UTF-8 decoding: no trimming, case folding, numeric coercion,
@@ -54,16 +58,16 @@ the named unsupported construct `membership-scale-above-v1-bound`.
 
 The trusted v1 registry contains exactly these resolved live callables and argument shapes:
 
-| Resolved callable | Accepted call shape | Registered behavior |
-| --- | --- | --- |
-| `scipy.stats.ttest_ind` | exactly two positional data arguments; no keywords | row-independent |
-| `scipy.stats.mannwhitneyu` | exactly two positional data arguments; no keywords | row-independent |
-| `scipy.stats.ttest_rel` | exactly two positional data arguments; no keywords | paired |
+| Resolved callable | Accepted call shape | Supported SciPy versions | Registered behavior |
+| --- | --- | --- | --- |
+| `scipy.stats.ttest_ind` | exactly two positional data arguments; no keywords | `1.14.0` only | row-independent |
+| `scipy.stats.mannwhitneyu` | exactly two positional data arguments; no keywords | `1.14.0` only | row-independent |
+| `scipy.stats.ttest_rel` | exactly two positional data arguments; no keywords | `1.14.0` only | paired |
 
-Every entry requires an exact SciPy version from a bound requirements or lock-file evidence record.
-V1 makes no cross-version stability claim.  If the imported version is not pinned, the callable is
-rebound or wrapped, the argument shape differs, or the live callable is outside this table,
-procedure semantics are unsupported.  `ttest_rel` discharges
+Every entry requires SciPy `1.14.0` from a bound requirements or lock-file evidence record.  An
+unpinned version, any other version, a rebound or wrapped callable, a different argument shape, or
+a live callable outside this table is unsupported.  There is no fallback based on claimed
+cross-version stability.  `ttest_rel` discharges
 `safeguard:paired-or-blocked-procedure` as present only when its unit operand is bound to the exact
 authorized unit key.
 
@@ -91,32 +95,46 @@ The kernel accepts only a closed certificate that discharges all of the followin
    across obligation, fact, and lineage.
 3. **O3 — well-formed frame:** a nonempty uniquely headed table contains every ordered key column,
    has no ragged or missing key row, and remains within the closed ceilings.
-4. **O4 — fact/obligation equality:** trusted facts equal declared facts and used facts, with no
-   duplicate, missing, or extraneous fact or obligation.
+4. **O4 — fact/obligation equality:** facts enter only through the trusted controller argument;
+   their lookup keys equal the complete obligation keys with no certificate-embedded, duplicate,
+   missing, or extraneous fact or obligation.
 5. **O5 — fact closure:** path, digest, references, line model, row counts, observations,
-   memberships, multiplicities, and repeated-unit identities are internally consistent.
-6. **O6 — unit-key multiplicity:** every source observation has exactly one proven unit identity;
-   the kernel recomputes exact multiplicities and whether repetition is present.
+   per-row ordered key tuples, derived memberships, multiplicities, and repeated-unit identities
+   are internally consistent.
+6. **O6 — unit-key multiplicity:** every source observation has exactly one raw ordered key tuple;
+   the kernel independently derives unit identities, exact multiplicities, and repetition.
 7. **O7 — key domain:** ordered composite keys are byte-exact, unnormalized, nonempty, and free of
    declared missing values.
 8. **O8 — frame lineage:** the proven source frame reaches the registered procedure through only
    the frozen transform grammar; direct and unit-collapsed row domains cannot be confused.
 9. **O9 — procedure identity:** exact live callable, two-positional/no-keyword shape, pinned SciPy
-   version evidence, procedure binding, row domain, result token, and paired-unit operand agree.
+   `1.14.0` evidence, procedure binding, row domain, result token, paired-unit operand, and an exact
+   binding from every positional argument to the certified frame-lineage output agree.
 10. **O10 — safeguard completeness:** the seven existing safeguard identities appear exactly once.
     For each, modeled constructs equal the complete syntactic set minus proven-dead constructs.
     `absent` or `not_applicable` requires evidence, no recognized match, and that exact equation;
     recognized aggregation or paired matches require `present` with the exact operand binding.
-11. **O11 — noninterference:** no opaque or wildcard effect writes a relevant binding, aliases a
-    relevant origin, or may raise while reading a relevant origin; relevant unknowns also block.
+11. **O11 — noninterference:** the kernel-derived origin/binding union includes the input, every
+    row domain, frame output, procedure arguments/result, and transform tokens.  No effect may write
+    or alias that union or may raise while reading it; relevant unknowns also block.  An opaque
+    effect is valid only with a wildcard write and therefore blocks the certificate.
 12. **O12 — exact affected sink:** every active selected sink binds the same result or Claim, exact
     procedure call, exact procedure-result token, and payload lineage.
-13. **O13 — singleton resolution:** the active-sink completeness equation closes and every sink and
-    every reaching control path agrees on the one recomputed repetition conclusion.
+13. **O13 — singleton resolution:** the active-sink completeness equation closes, dead sinks are
+    also syntactically dead, and every sink and reaching path agrees on the repetition conclusion
+    recomputed over the analyzed post-transform row domain.  Source-frame repetition is recorded
+    separately and a recognized unit collapse yields a one-observation-per-unit conclusion.
 
 The certificate additionally requires the exact authorized unit definition, parser and source
-identity, evidence spans, safeguard-registry identity, dependency-closure digest, proposed case
-digest, report-only output ceiling, and wording ceiling.
+identity, a replay digest over the source/parser identity and all completeness token sets,
+closed-vocabulary safeguard bases, cross-referenced evidence declarations, safeguard-registry
+identity, dependency-closure digest, proposed case digest, report-only output ceiling, and wording
+ceiling.
+
+A verified certificate is required only for `evaluation_candidate` and `covered_negative`
+projections.  `question` and `unsupported` projections are non-accusatory and bypass this kernel;
+they must not manufacture a partial certificate.  Unknown or unsupported safeguard states inside
+a proposed certificate remain grounds for refusal.
 
 ## Wording and non-inferences
 
@@ -138,3 +156,7 @@ invalidity, or a required repair.
 Stage 1 adds only this experiment record, typed IR, the trusted certificate kernel, and hand-built
 certificate tests.  It contains no analyzer, CSV prover, adapter, harness, registry integration, or
 project-authored-code execution.
+
+The future Stage 4 adapter must catch every exception from the analyzer and certificate kernel,
+including type-invalid proposal failures, and convert it to a non-accusatory abstention.  The
+kernel is not itself required to accept arbitrary dynamically ill-typed Python objects.

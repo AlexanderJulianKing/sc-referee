@@ -29,6 +29,7 @@ from sc_referee.dependence_recognition.ir import (
     MAX_DEPENDENCE_CSV_DOMAIN_ROWS,
     MAX_V1_MEMBERSHIPS,
     RECOGNIZED_LINE_MODELS,
+    RECOGNIZED_READER_MODELS,
     SPLITLINES_ONLY_SEPARATORS,
     ReaderForm,
     RecordRef,
@@ -43,8 +44,7 @@ MAX_DEPENDENCE_CSV_DISTINCT_KEYS = MAX_V1_MEMBERSHIPS
 MAX_DEPENDENCE_CSV_PROOF_RECORD_BYTES = MAX_DEPENDENCE_CSV_DOMAIN_BYTES
 
 _READER_FOR_LINE_MODEL: dict[str, ReaderForm] = {
-    "splitlines": "csv_dictreader_splitlines",
-    "csv_newline": "csv_dictreader_file",
+    line_model: reader_form for reader_form, line_model in RECOGNIZED_READER_MODELS
 }
 _DIALECT = "excel"
 _NORMALIZATION = "byte_exact_utf8"
@@ -85,6 +85,9 @@ def prove_unit_key_multiplicity(
         # silently changing the runtime header or accepting a BOM-prefixed key.
         if text.startswith("\ufeff"):
             return None
+        splitlines_only_separators_absent = not any(
+            separator in text for separator in SPLITLINES_ONLY_SEPARATORS
+        )
         reader = _line_model_reader(text, line_model)
         if reader is None:
             return None
@@ -95,6 +98,7 @@ def prove_unit_key_multiplicity(
 
         row_domain = _row_domain(path, content_digest, line_model)
         observation_ids: list[str] = []
+        key_value_tuples: list[tuple[str, ...]] = []
         unit_ids: list[str] = []
         unit_id_by_key: dict[tuple[str, ...], str] = {}
         row_count = 0
@@ -128,6 +132,7 @@ def prove_unit_key_multiplicity(
                 unit_id = _unit_id(key_columns, exact_key)
                 unit_id_by_key[exact_key] = unit_id
             observation_ids.append(_observation_id(row_domain, row_count))
+            key_value_tuples.append(exact_key)
             unit_ids.append(unit_id)
         if row_count == 0:
             return None
@@ -148,6 +153,7 @@ def prove_unit_key_multiplicity(
         ),
         reader_form=_READER_FOR_LINE_MODEL[line_model],
         line_model=line_model,
+        splitlines_only_separators_absent=splitlines_only_separators_absent,
         dialect=_DIALECT,
         row_domain=row_domain,
         source_byte_count=len(material.content),
@@ -159,6 +165,7 @@ def prove_unit_key_multiplicity(
         row_shape_complete=True,
         row_count=row_count,
         observation_ids=tuple(observation_ids),
+        key_value_tuples=tuple(key_value_tuples),
         unit_ids=tuple(unit_ids),
         distinct_key_count=len(unit_id_by_key),
         multiplicities=multiplicities,

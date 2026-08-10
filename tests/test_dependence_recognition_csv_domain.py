@@ -87,12 +87,14 @@ def test_duplicate_key_fact_is_bound_and_recomputable() -> None:
     assert fact.asset_identity_ref.record_id == material.asset_identity_ref.record_id
     assert fact.reader_form == "csv_dictreader_file"
     assert fact.line_model == "csv_newline"
+    assert fact.splitlines_only_separators_absent
     assert fact.dialect == "excel"
     assert fact.normalization == "byte_exact_utf8"
     assert fact.declared_missing_value_tokens == ()
     assert fact.row_count == 3
     assert len(fact.observation_ids) == 3
     assert len(set(fact.observation_ids)) == 3
+    assert fact.key_value_tuples == (("a",), ("b",), ("a",))
     assert fact.unit_ids[0] == fact.unit_ids[2]
     assert fact.unit_ids[0] != fact.unit_ids[1]
     assert sorted(count for _, count in fact.multiplicities) == [1, 2]
@@ -235,6 +237,7 @@ def test_splitlines_only_separator_abstains_only_for_that_runtime_model(
     fact = _prove(material, line_model="csv_newline")
     assert fact is not None
     assert fact.row_count == 2
+    assert not fact.splitlines_only_separators_absent
 
 
 @pytest.mark.parametrize("separator", SPLITLINES_ONLY_SEPARATORS)
@@ -250,6 +253,8 @@ def test_quoted_embedded_newline_uses_the_certified_runtime_model() -> None:
     assert csv_fact is not None
     assert splitlines_fact is not None
     assert csv_fact.row_count == splitlines_fact.row_count == 2
+    assert csv_fact.splitlines_only_separators_absent
+    assert splitlines_fact.splitlines_only_separators_absent
     assert csv_fact.row_domain != splitlines_fact.row_domain
     assert csv_fact.observation_ids != splitlines_fact.observation_ids
 
