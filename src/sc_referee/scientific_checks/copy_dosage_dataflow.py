@@ -112,6 +112,20 @@ permissively:
   every other index gathers, including one the trace could not read, because
   a gather repeats and reorders whatever entries the index picked out.
 
+v2.0.4 closes the two wrong-answer families the final pre-pilot review
+demonstrated, and removes an order-dependent representation choice:
+
+- A continuous operand restores a quantized scale only when arithmetic has
+  not annihilated it. Exact static zero factors, zero exponents, and clipping
+  bounds that collapse a value to one constant are unreadable steps, including
+  when a zero is reached through a name binding.
+- A recognized estimator ``fit`` used as a bare statement writes the fitted
+  identity back to its receiver. All supported fitted-estimator idioms now
+  merge estimators of the same class fitted on the same values.
+- Arithmetic derives its origin from semantic operand roles, preserving the
+  repaired quantized value's origin. Conflicting role origins abstain, so
+  swapping operands cannot change the asserted representation.
+
 Soundness rules (each backed by a demonstrated counterexample in
 ``tests/test_copy_dosage_soundness.py``):
 
@@ -717,7 +731,7 @@ def copy_dosage_dataflow_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "copy-dosage-representation-dataflow",
-        "grammar_version": "2.0.3",
+        "grammar_version": "2.0.4",
         "staged_read_operations": sorted(_STAGED_FRAME_CALLS | _STAGED_ROW_CALLS),
         "tag_lattice": [_CONTINUOUS, _QUANTIZED, _TEXT, _OPAQUE_TAG],
         "quantizing_operations": [
@@ -741,7 +755,10 @@ def copy_dosage_dataflow_grammar(
         ],
         "re_expansion_operations": [
             "arithmetic between a quantized value and a traced continuous value that "
-            "descends from no source the quantized value descends from",
+            "descends from no source the quantized value descends from and is not "
+            "annihilated by an exact static constant",
+            "zero multiplication factors, zero powers, and clipping bounds that "
+            "collapse their operand are unreadable and never restore a scale",
             "a literal table never re-expands: a finite set of literal levels is a "
             "binning whether or not its values are whole numbers",
             "a float cast never re-expands a quantized value",
@@ -766,8 +783,15 @@ def copy_dosage_dataflow_grammar(
             "argument signature of its fit call, so two estimators of the same class "
             "fitted on the same values are one value twice; fresh provenance is minted "
             "only when the constructor path or the fit signature differs; the merge "
+            "is committed both by assigned fit calls and by a recognized bare fit "
+            "statement on a simple receiver; the merge "
             "can only add abstention, because two merged estimators' predictions "
             "intersect and their arithmetic is therefore unreadable"
+        ),
+        "arithmetic_origin": (
+            "the result origin is derived from semantic operand roles, preserving the "
+            "quantized operand's origin when an independent continuous operand restores "
+            "its scale, never from left-to-right order; conflicting role origins abstain"
         ),
         "selection_versus_arithmetic": (
             "numpy where is a selection, never arithmetic: a branch pair whose members "
@@ -1425,6 +1449,7 @@ def _scan_scope(
                         _classify_fit(value, node, ctx, classifications)
         _invalidate_mutations(statement, env, aliases)
         _apply_call_effects(statement, env, aliases, ctx)
+        _apply_bare_fitted_estimator(statement, env, aliases, ctx)
         _apply_assign(statement, env, aliases, ctx)
 
 
@@ -1574,6 +1599,48 @@ def _apply_assign(
         for name in _target_names(target):
             _invalidate_group(name, env, aliases, statement)
             _bind(name, _OPAQUE, env, aliases)
+
+
+def _apply_bare_fitted_estimator(
+    statement: ast.stmt,
+    env: dict[str, _Value],
+    aliases: _Aliases,
+    ctx: _TraceContext,
+) -> bool:
+    """Commit ``estimator.fit(...)`` to a bare statement's receiver.
+
+    ``fit`` returns the fitted estimator itself. Assignment spellings already
+    preserve the fitted identity because ``_tag`` supplies a ``_Fit`` value to
+    ``_apply_name_assign``. A bare call has the same runtime effect on its
+    receiver, so it must make the same environment transition. Otherwise two
+    same-class estimators fitted on the same values keep their fresh
+    constructor ids and an identically-zero difference of their predictions
+    appears independent.
+
+    Only a simple name currently bound to a recognized estimator (or its
+    fitted handle) is writable here. Every other receiver shape remains
+    outside this environment model.
+    """
+
+    if not isinstance(statement, ast.Expr) or not isinstance(statement.value, ast.Call):
+        return False
+    call = statement.value
+    if (
+        not isinstance(call.func, ast.Attribute)
+        or call.func.attr != "fit"
+        or not isinstance(call.func.value, ast.Name)
+    ):
+        return False
+    receiver_name = call.func.value.id
+    receiver = env.get(receiver_name)
+    if not (
+        isinstance(receiver, _Estimator)
+        or (isinstance(receiver, _Fit) and receiver.estimator is not None)
+    ):
+        return False
+    fitted = _tag(call, env, ctx)
+    _bind(receiver_name, fitted, env, aliases)
+    return True
 
 
 def _apply_name_assign(
@@ -1908,6 +1975,7 @@ def _helper_parameter_effects(
                 rebound.add(statement.targets[0].id)
             _invalidate_mutations(statement, callee_env, callee_aliases)
             _apply_call_effects(statement, callee_env, callee_aliases, ctx)
+            _apply_bare_fitted_estimator(statement, callee_env, callee_aliases, ctx)
             _apply_assign(statement, callee_env, callee_aliases, ctx)
     finally:
         ctx.depth -= 1
@@ -2192,6 +2260,11 @@ def _tag_binop(node: ast.BinOp, env: dict[str, _Value], ctx: _TraceContext) -> _
         expectation = _expectation_terms(left, right, node)
         if expectation is not None:
             return expectation
+    if _constant_annihilates(node.op, left, right):
+        # The traced operand contributes no variation to this term. Keeping
+        # its continuous tag would let the constant term repair an unrelated
+        # quantizer even though it is identically zero (or one for ``x**0``).
+        return _unreadable(node, left, right)
     if isinstance(node.op, ast.FloorDiv):
         base = _as_col(left)
         if base is None or base.tag in {_OPAQUE_TAG, _TEXT}:
@@ -2200,6 +2273,29 @@ def _tag_binop(node: ast.BinOp, env: dict[str, _Value], ctx: _TraceContext) -> _
     if not isinstance(node.op, ast.Add | ast.Sub | ast.Mult | ast.Div | ast.Pow | ast.Mod):
         return _abstain_or_opaque(node, left, right)
     return _combine(left, right, node)
+
+
+def _constant_annihilates(operator: ast.operator, left: _Value, right: _Value) -> bool:
+    """Whether exact static arithmetic collapses a traced operand.
+
+    Constants arrive either directly from syntax or through a name binding,
+    so this one predicate covers both spellings. It deliberately answers only
+    from exact ``_Const`` values; an expression this trace did not reduce is
+    opaque elsewhere and therefore cannot establish restoration.
+    """
+
+    if not isinstance(left, _Col) and not isinstance(right, _Col):
+        return False
+    left_zero = isinstance(left, _Const) and left.value == 0.0
+    right_zero = isinstance(right, _Const) and right.value == 0.0
+    if isinstance(operator, ast.Mult | ast.Div | ast.Mod):
+        return left_zero or right_zero
+    if isinstance(operator, ast.Pow):
+        # ``x ** 0`` is one for every supported runtime value. A zero or one
+        # constant base is likewise constant over its valid exponent domain.
+        left_constant_base = isinstance(left, _Const) and left.value in {0.0, 1.0}
+        return right_zero or left_constant_base
+    return False
 
 
 def _combine(left: _Value, right: _Value, node: ast.AST) -> _Value:
@@ -2227,9 +2323,19 @@ def _combine(left: _Value, right: _Value, node: ast.AST) -> _Value:
     if len(operands) == 2 and operands[0].ids & operands[1].ids:
         return _unreadable(node, *operands)
     tag = _CONTINUOUS if any(item.tag == _CONTINUOUS for item in operands) else _QUANTIZED
-    origin = next((item.origin for item in operands if item.origin is not None), None)
-    if origin == _ORIGIN_EXPECTATION_TERMS:
-        origin = None
+    quantized_operands = [item for item in operands if item.tag == _QUANTIZED]
+    origin_operands = quantized_operands or operands
+    origins = {
+        item.origin
+        for item in origin_operands
+        if item.origin is not None and item.origin != _ORIGIN_EXPECTATION_TERMS
+    }
+    if len(origins) > 1:
+        # No single representation names the role that is being carried
+        # through this arithmetic. Operand order must never decide which one
+        # is asserted.
+        return _unreadable(node, *operands)
+    origin = next(iter(origins), None)
     return _Col(
         tag,
         origin=origin,
@@ -2708,6 +2814,14 @@ def _tag_column_method(
         # receiver's invalidation group.
         return column
     if attribute == "clip":
+        if not _clip_bounds_preserve_variation(
+            node,
+            env,
+            ctx,
+            lower_position=0,
+            upper_position=1,
+        ):
+            return _unreadable(node, column)
         return replace(column, unchanged=False, node=column.node or node, handles=_fresh_ids())
     if attribute == "map":
         return _mapped(column, node, env, ctx)
@@ -2718,6 +2832,57 @@ def _tag_column_method(
                 return product
         return _abstain_or_opaque(node, column)
     return _abstain_or_opaque(node, column)
+
+
+def _clip_bounds_preserve_variation(
+    node: ast.Call,
+    env: dict[str, _Value],
+    ctx: _TraceContext,
+    *,
+    lower_position: int,
+    upper_position: int,
+) -> bool:
+    """Whether certified clip bounds rule out a constant clip operation.
+
+    Equal bounds collapse every input. NumPy also documents the result as the
+    upper bound when the lower bound exceeds it, so that ordering collapses as
+    well. Preservation is granted only when both bounds are exact constants in
+    increasing order. Bounds may be literals or names bound to exact
+    constants; no runtime expression is evaluated. An unread bound abstains.
+    """
+
+    lower = _call_argument(
+        node,
+        env,
+        ctx,
+        position=lower_position,
+        keywords=frozenset({"a_min", "min"}),
+    )
+    upper = _call_argument(
+        node,
+        env,
+        ctx,
+        position=upper_position,
+        keywords=frozenset({"a_max", "max"}),
+    )
+    return isinstance(lower, _Const) and isinstance(upper, _Const) and lower.value < upper.value
+
+
+def _call_argument(
+    node: ast.Call,
+    env: dict[str, _Value],
+    ctx: _TraceContext,
+    *,
+    position: int,
+    keywords: frozenset[str],
+) -> _Value | None:
+    """One statically placed call argument, tagged without executing it."""
+
+    candidate: ast.expr | None = node.args[position] if len(node.args) > position else None
+    for keyword in node.keywords:
+        if keyword.arg in keywords:
+            candidate = keyword.value
+    return None if candidate is None else _tag(candidate, env, ctx)
 
 
 def _mapped(column: _Col, node: ast.Call, env: dict[str, _Value], ctx: _TraceContext) -> _Value:
@@ -2931,6 +3096,14 @@ def _tag_library_call(
         base = _as_col(_tag(node.args[0], env, ctx)) if node.args else None
         if base is None:
             return _OPAQUE
+        if path == "numpy.clip" and not _clip_bounds_preserve_variation(
+            node,
+            env,
+            ctx,
+            lower_position=1,
+            upper_position=2,
+        ):
+            return _unreadable(node, base)
         if path in _VIEW_CALLS:
             return replace(base, unchanged=False, node=base.node or node)
         # Every other scale-preserving call builds a new array.
@@ -3241,6 +3414,13 @@ def _bound_return_value(
                     return _OPAQUE
                 return _tag(statement.value, callee_env, ctx)
             _invalidate_mutations(statement, callee_env, callee_aliases)
+            _apply_call_effects(statement, callee_env, callee_aliases, ctx)
+            if (
+                isinstance(statement, ast.Expr)
+                and not isinstance(statement.value, ast.Constant)
+                and not _apply_bare_fitted_estimator(statement, callee_env, callee_aliases, ctx)
+            ):
+                return _OPAQUE
             _apply_assign(statement, callee_env, callee_aliases, ctx)
         return _OPAQUE
     finally:
@@ -3256,9 +3436,18 @@ def _straight_line_helper(function: ast.FunctionDef) -> bool:
             return False
     for statement in _flatten_statements(function.body):
         if isinstance(statement, ast.Expr) and not isinstance(statement.value, ast.Constant):
-            # A bare expression statement exists for its side effect; only a
-            # docstring is inert.
-            return False
+            # A recognized estimator ``fit`` is the one modelled bare side
+            # effect: it writes the fitted identity back to a simple receiver.
+            # Recognition against the bound environment happens in
+            # ``_bound_return_value``. Every other bare expression remains an
+            # unread helper body.
+            if not (
+                isinstance(statement.value, ast.Call)
+                and isinstance(statement.value.func, ast.Attribute)
+                and statement.value.func.attr == "fit"
+                and isinstance(statement.value.func.value, ast.Name)
+            ):
+                return False
     return True
 
 

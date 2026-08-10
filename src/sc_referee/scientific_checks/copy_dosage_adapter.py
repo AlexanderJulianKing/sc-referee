@@ -104,7 +104,7 @@ def copy_dosage_recognition_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "copy-dosage-representation-reconciliation",
-        "grammar_version": "2.0.3",
+        "grammar_version": "2.0.4",
         "count_source": "integer_tokens_without_unit_or_percent_suffix",
         "mean_source": "decimal_point_tokens_without_percent_suffix",
         "copy_states": list(_COPY_STATES),
