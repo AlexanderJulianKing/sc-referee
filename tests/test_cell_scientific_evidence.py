@@ -94,6 +94,34 @@ def _static_source_observation(context):
     return module, observation
 
 
+def test_scientific_context_freezes_exact_selected_material_input_bytes(
+    tmp_path: Path, schema_root: Path
+) -> None:
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    (repository / "report.md").write_text("A descriptive summary.\n", encoding="utf-8")
+    csv_bytes = b"observed,panel\n0,1\n1,0\n"
+    (repository / "inputs.csv").write_bytes(csv_bytes)
+    output = tmp_path / "audit"
+
+    bundle = run_audit(
+        repository,
+        output,
+        schema_root,
+        report="report.md",
+        material_inputs=("inputs.csv",),
+    )
+    context = _context(repository, output, bundle)
+
+    assert len(context.material_inputs) == 1
+    material = context.material_inputs[0]
+    assert material.path == "inputs.csv"
+    assert material.content == csv_bytes
+    assert material.content_digest == sha256_digest(csv_bytes)
+    assert material.file_ref in {item.ref for item in context.base_records}
+    assert material.asset_identity_ref in {item.ref for item in context.base_records}
+
+
 def test_notebook_cells_are_distinct_scientific_documents_but_remain_unscoped(
     tmp_path: Path, schema_root: Path
 ) -> None:

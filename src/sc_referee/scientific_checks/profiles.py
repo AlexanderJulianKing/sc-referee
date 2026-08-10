@@ -271,10 +271,16 @@ def scientific_check_release_projection(
                     Path(__file__).resolve().parent / "founder_orientation_certificate.py"
                 ).read_bytes()
             ),
+            "scientific_checks/founder_orientation_csv_domain.py": sha256_digest(
+                (Path(__file__).resolve().parent / "founder_orientation_csv_domain.py").read_bytes()
+            ),
             "scientific_checks/founder_orientation_semantic_ir.py": sha256_digest(
                 (
                     Path(__file__).resolve().parent / "founder_orientation_semantic_ir.py"
                 ).read_bytes()
+            ),
+            "scientific_checks/integration.py": sha256_digest(
+                (Path(__file__).resolve().parent / "integration.py").read_bytes()
             ),
             "scientific_checks/python_founder_adapter.py": (
                 PYTHON_FOUNDER_ADAPTER_IMPLEMENTATION_DIGEST
@@ -538,7 +544,7 @@ def _founder_orientation_module(
     )
     semantic_manifest = AdapterManifest(
         adapter_id=(f"adapter:{profile.check_id.removeprefix('check:')}:orientation-semantic-v3"),
-        adapter_version="3.0.1",
+        adapter_version="3.1.0",
         implementation_digest=FOUNDER_ORIENTATION_SEMANTIC_ADAPTER_IMPLEMENTATION_DIGEST,
         recognition_grammar_digest=founder_orientation_semantic_recognition_grammar_digest(
             str(direct_operand.value), str(repaired_operand.value)
@@ -553,11 +559,11 @@ def _founder_orientation_module(
         known_gaps=(
             "opaque operations whose effects intersect the report-reaching projection, "
             "selector, fold, accumulator, or sink slice",
-            "binary-only recodes such as xor-one, absolute-difference-one, and logical-not "
-            "without a separately proved binary staged-column domain",
+            "binary-only recodes other than one-minus remain outside the accepted transform "
+            "grammar even when a staged-column binary domain is proved",
             "control-flow joins that do not reduce to one exact abstract value",
             "helpers with variadic or higher-order dynamic dispatch",
-            "CSV refinement of a lone unresolved parity bit is intentionally not enabled",
+            "orientation-from-report-numbers CSV refinement remains intentionally disabled",
             "reports that state no marker-total and agreement-count accounting",
             "non-Markdown publication surfaces",
             "static operations do not establish execution or scientific intent",

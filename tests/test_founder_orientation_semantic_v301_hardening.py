@@ -15,6 +15,7 @@ from sc_referee.scientific_checks.founder_orientation_semantic import (
     resolve_founder_orientation_semantic,
 )
 from sc_referee.scientific_checks.profiles import scientific_check_release_registry
+from tests.test_founder_orientation_semantic_pilots import _with_bound_csv
 from tests.test_founder_orientation_semantic_soundness import _resolution
 from tests.test_founder_orientation_soundness import (
     DIRECT_OPERAND,
@@ -26,10 +27,10 @@ _FOUNDER_CHECK = "check:founder-orientation-before-hmm-emission"
 _CSV = "call,founder\n0,0\n1,1\n0,0\n1,0\n"
 
 
-def _runtime_context(tmp_path: Path, source: str):
+def _runtime_context(tmp_path: Path, source: str, *, csv_text: str = _CSV):
     (tmp_path / "inputs").mkdir()
     (tmp_path / "results").mkdir()
-    (tmp_path / "inputs" / "markers.csv").write_text(_CSV, encoding="utf-8")
+    (tmp_path / "inputs" / "markers.csv").write_text(csv_text, encoding="utf-8")
     workflow = tmp_path / "analysis.py"
     workflow.write_text(source, encoding="utf-8")
     completed = subprocess.run(
@@ -51,7 +52,8 @@ def _runtime_context(tmp_path: Path, source: str):
         payload = json.loads(record.canonical_payload)
         payload["path"] = "results/report.md"
         records.append(type(record).from_record(record.ref, payload))
-    return replace(context, base_records=tuple(records))
+    context = replace(context, base_records=tuple(records))
+    return _with_bound_csv(context, csv_text.encode("utf-8"), path="inputs/markers.csv")
 
 
 def _assert_released_adapters_match_or_abstain(
@@ -63,7 +65,7 @@ def _assert_released_adapters_match_or_abstain(
     context = _runtime_context(tmp_path, source)
     registry = scientific_check_release_registry()
     module = next(item for item in registry.modules if item.manifest.check_id == _FOUNDER_CHECK)
-    assert {item.adapter_version for item in module.adapters} == {"2.2.6", "3.0.1"}
+    assert {item.adapter_version for item in module.adapters} == {"2.2.6", "3.1.0"}
     evaluation = next(
         item for item in registry.evaluate(context).modules if item.check_id == _FOUNDER_CHECK
     )
@@ -80,7 +82,7 @@ def _assert_released_adapters_match_or_abstain(
     )
     if evaluation.state == "applicable":
         assert applicable
-    semantic = next(item for item in module.adapters if item.adapter_version == "3.0.1")
+    semantic = next(item for item in module.adapters if item.adapter_version == "3.1.0")
     semantic_observation = semantic.inspect(context)
     assert semantic_observation.applicability != "applicable" or (
         semantic_observation.observed_operand is not None
@@ -268,7 +270,7 @@ assert rows is not None
         "Fraction(row['founder'])",
     ],
 )
-def test_transform_domains_are_not_assumed_from_csv(tmp_path: Path, cast: str) -> None:
+def test_binary_domain_discharge_keeps_supported_casts_sound(tmp_path: Path, cast: str) -> None:
     imports = "from decimal import Decimal\nfrom fractions import Fraction\n"
     source = f"""import csv
 from pathlib import Path
@@ -280,6 +282,32 @@ report = f'[selected-result] Of 4 markers, {{score}} agree. Agreement rate {{rat
 Path('results/report.md').write_text(report, encoding='ascii')
 """
     _assert_released_adapters_match_or_abstain(tmp_path, source, runtime_orientation="direct")
+
+
+def test_non_binary_compared_column_still_abstains(tmp_path: Path) -> None:
+    source = """import csv
+from pathlib import Path
+
+rows = list(csv.DictReader(Path('inputs/markers.csv').open()))
+score = sum(1 * (int(row['call']) == 1 - int(row['founder'])) for row in rows)
+rate = score / 4
+report = f'[selected-result] Of 4 markers, {score} agree. Agreement rate {rate:.6f}. Score {score}.'
+Path('results/report.md').write_text(report, encoding='ascii')
+"""
+    context = _runtime_context(
+        tmp_path,
+        source,
+        csv_text="call,founder\n0,0\n1,1\n0,2\n1,0\n",
+    )
+    resolution = resolve_founder_orientation_semantic(
+        context,
+        direct_operand=DIRECT_OPERAND,
+        repaired_operand=REPAIRED_OPERAND,
+        parser_id="parser:python-ast-tokenize",
+        parser_version="1.0.0",
+    )
+    assert resolution.state != "unique"
+    assert resolution.orientation is None
 
 
 def test_short_dictreader_row_raises_at_runtime_and_never_certifies(tmp_path: Path) -> None:

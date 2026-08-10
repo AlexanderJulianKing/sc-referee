@@ -58,6 +58,42 @@ class FrozenBaseRecord:
         _require_canonical_object(self.canonical_payload, "frozen base record")
 
 
+@dataclass(frozen=True)
+class FrozenMaterialInput:
+    """One intake-selected material input bound to exact snapshot bytes."""
+
+    path: str
+    file_ref: RecordRef
+    asset_identity_ref: RecordRef
+    content: bytes
+    content_digest: str
+
+    def __post_init__(self) -> None:
+        if not self.path or self.path.startswith("/") or ".." in self.path.split("/"):
+            raise ScientificCheckContractError(
+                "inspection material-input path must be relative and bounded"
+            )
+        if self.file_ref.record_type != "file_record":
+            raise ScientificCheckContractError(
+                "inspection material input must reference one file record"
+            )
+        if self.asset_identity_ref.record_type != "asset_identity":
+            raise ScientificCheckContractError(
+                "inspection material input must reference one asset identity"
+            )
+        _require_sha256(self.content_digest, "inspection material-input digest")
+        if sha256_digest(self.content) != self.content_digest:
+            raise ScientificCheckContractError("inspection material-input digest mismatch")
+
+    def digest_projection(self) -> dict[str, Any]:
+        return {
+            "path": self.path,
+            "file_ref": self.file_ref.to_dict(),
+            "asset_identity_ref": self.asset_identity_ref.to_dict(),
+            "content_digest": self.content_digest,
+        }
+
+
 @dataclass(frozen=True, order=True)
 class FrozenSourceLocation:
     """One immutable public SourceRef that identifies the bytes presented separately."""
@@ -455,6 +491,7 @@ class FrozenInspectionContext:
     selected_artifact_ref: RecordRef
     documents: tuple[InspectionDocument, ...]
     base_records: tuple[FrozenBaseRecord, ...]
+    material_inputs: tuple[FrozenMaterialInput, ...] = ()
     shared_derivations: tuple[FrozenBaseRecord, ...] = ()
     scope_join_graph: StaticScopeJoinGraph | None = None
 
@@ -472,6 +509,10 @@ class FrozenInspectionContext:
             (canonical_json(item.ref.to_dict()) for item in self.shared_derivations),
             "shared derivation references",
         )
+        _require_unique(
+            (item.path for item in self.material_inputs),
+            "inspection material-input paths",
+        )
         base_refs = {item.ref for item in self.base_records}
         if (
             self.selected_surface_ref not in base_refs
@@ -480,6 +521,37 @@ class FrozenInspectionContext:
             raise ScientificCheckContractError(
                 "selected publication surface and artifact must be present in the frozen base view"
             )
+        base_payloads = {item.ref: json.loads(item.canonical_payload) for item in self.base_records}
+        selected_material_paths = {
+            path
+            for ref, payload in base_payloads.items()
+            if ref.record_type == "repository_snapshot" and isinstance(payload, dict)
+            for path in payload.get("extensions", {}).get("x-material-full-digest-paths", [])
+            if isinstance(path, str)
+        }
+        for item in self.material_inputs:
+            file_record = base_payloads.get(item.file_ref)
+            identity = base_payloads.get(item.asset_identity_ref)
+            if (
+                not isinstance(file_record, dict)
+                or file_record.get("path") != item.path
+                or file_record.get("entry_kind") != "regular_file"
+                or file_record.get("asset_identity_ref") != item.asset_identity_ref.to_dict()
+                or item.path not in selected_material_paths
+            ):
+                raise ScientificCheckContractError(
+                    "inspection material input is not an admitted regular file"
+                )
+            if (
+                not isinstance(identity, dict)
+                or identity.get("tier") != "full_digest"
+                or identity.get("asset_ref") != item.file_ref.to_dict()
+                or identity.get("identity_evidence", {}).get("kind") != "full_digest"
+                or identity.get("identity_evidence", {}).get("digest") != item.content_digest
+            ):
+                raise ScientificCheckContractError(
+                    "inspection material input lacks its exact full-digest identity"
+                )
         if (
             self.scope_join_graph is not None
             and self.scope_join_graph.snapshot_digest != self.snapshot_digest
@@ -525,6 +597,10 @@ class FrozenInspectionContext:
             "base_records": [
                 {"ref": item.ref.to_dict(), "payload_digest": item.payload_digest}
                 for item in sorted(self.base_records, key=lambda value: value.ref)
+            ],
+            "material_inputs": [
+                item.digest_projection()
+                for item in sorted(self.material_inputs, key=lambda value: value.path)
             ],
             "shared_derivations": [
                 {"ref": item.ref.to_dict(), "payload_digest": item.payload_digest}

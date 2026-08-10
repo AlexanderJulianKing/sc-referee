@@ -49,7 +49,10 @@ _SEMANTIC_DEPENDENCY_FILES = (
     "founder_orientation_semantic_adapter.py",
     "founder_orientation_semantic.py",
     "founder_orientation_certificate.py",
+    "founder_orientation_csv_domain.py",
     "founder_orientation_semantic_ir.py",
+    "core.py",
+    "integration.py",
     "founder_orientation_adapter.py",
     "founder_orientation_dataflow.py",
     "quantity_consistency_adapter.py",
@@ -85,7 +88,7 @@ def founder_orientation_semantic_recognition_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-semantic-shadow-fusion",
-        "grammar_version": "3.0.1",
+        "grammar_version": "3.1.0",
         "semantic_source": founder_orientation_semantic_grammar(direct_operand, repaired_operand),
         "semantic_source_implementation_digest": (
             FOUNDER_ORIENTATION_SEMANTIC_IMPLEMENTATION_DIGEST
@@ -274,6 +277,20 @@ class FounderOrientationSemanticReportAdapter:
                 list(flow.certificate.selector_tokens) if flow.certificate else []
             ),
             "certificate_folds": list(flow.certificate.fold_tokens) if flow.certificate else [],
+            "certificate_domain_facts": (
+                [
+                    {
+                        "path": fact.path,
+                        "content_digest": fact.content_digest,
+                        "column": fact.column,
+                        "row_count": fact.row_count,
+                        "recognized_values": list(fact.recognized_values),
+                    }
+                    for fact in flow.certificate.domain_facts
+                ]
+                if flow.certificate
+                else []
+            ),
         }
         receipts = tuple(
             InspectionReceipt(

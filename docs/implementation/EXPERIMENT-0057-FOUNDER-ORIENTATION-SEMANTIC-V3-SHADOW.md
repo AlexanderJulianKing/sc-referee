@@ -6,7 +6,8 @@
 - **Production impact:** Adds an independent question-only shadow adapter; v2.2.6 remains present
   and byte-identical
 - **Finding impact:** None; this experiment does not qualify a detector or authorize a Finding
-- **Execution impact:** None; the recognizer is static and never executes project-authored code
+- **Execution impact:** None; the recognizer remains non-executing and reads only controller-bound
+  immutable data bytes
 
 ## Decision
 
@@ -39,9 +40,10 @@ against a complete v3 certificate.
 - Ordinary opaque constructs outside the certified slice do not invalidate a certificate. The
   v2 module-wide bans for reflection, import substitution, dynamic dispatch, executable
   annotations, star imports, and builtin shadowing remain fail-closed.
-- The optional single-parity-bit CSV refinement is not enabled in semantic v3.0.1. Any unresolved
-  parity remains an abstention.
-- Production code execution is prohibited. Intake sandbox evidence is not an analyzer input.
+- The orientation-from-report-numbers CSV refinement is not enabled. Report arithmetic and staged
+  values never choose an orientation or repair an unresolved parity bit.
+- Production code execution is prohibited. Only the explicitly admitted digest-bound staged-data
+  view is added; sandbox execution evidence is not an analyzer input.
 
 ## Implementation identity
 
@@ -49,8 +51,11 @@ The v3 adapter implementation digest binds the complete new semantic dependency 
 
 1. `founder_orientation_semantic_adapter.py`;
 2. `founder_orientation_semantic.py`;
-3. `founder_orientation_certificate.py`; and
-4. `founder_orientation_semantic_ir.py`.
+3. `founder_orientation_certificate.py`;
+4. `founder_orientation_semantic_ir.py`;
+5. `founder_orientation_csv_domain.py`;
+6. `core.py`; and
+7. `integration.py`.
 
 The closure also binds the frozen v2/report helpers reused for parsing, hard bans, report
 reconciliation, and tokenization. A change to any bound byte changes the adapter identity.
@@ -85,3 +90,67 @@ budgets, and explicit staged-transform domain effects. CSV refinement remains di
 the five pilot contexts contain the report and workflow but no independently checkable staged CSV
 domain, all five former repaired positives now abstain; none is special-cased around the missing
 row-completeness, cast, finiteness, or Decimal-context proof.
+
+## v3.1.0 digest-bound staged-data domain proof
+
+V3.1.0 replaces the unresolved compared-column transform effects with explicit certificate
+obligations. Each projection participating in the report-reaching equality must identify one exact
+CSV reader path, the digest of the single intake-selected material input at that path, its row
+domain, its exact column name, and its complete primitive transform sequence. Both equality
+operands receive independent obligations even when only one carries `1 - x`.
+
+The controller freezes at most 8 selected material inputs, at most 8 MiB each and 64 MiB total,
+only after all of these checks succeed: the path is a bounded regular file in the immutable
+snapshot, the repository snapshot lists it in `x-material-full-digest-paths`, its public
+`FileRecord` points to one `AssetIdentity`, that identity is `full_digest` over the same file
+reference, and re-hashing the materialized bytes reproduces the identity digest. The frozen
+inspection context exposes the bytes plus the path, file reference, asset-identity reference, and
+digest. It exposes no filesystem or execution handle.
+
+For one obligation, `founder_orientation_csv_domain.py` re-hashes those frozen bytes and uses
+strict UTF-8 plus the default `csv.DictReader` grammar under these closed ceilings: 8 MiB, 100,000
+data rows, 256 header fields, and 64 KiB per decoded header or data field. A positive fact requires
+a nonempty table, a unique header containing the exact named column, no extra or short/ragged row,
+and every value in that column to be exactly `"0"` or `"1"`. Whitespace is not normalized. Any
+digest mismatch, parse or encoding failure, missing or duplicate column, non-binary value, empty
+table, or ceiling overflow produces no fact.
+
+The controller, not the analyzer, attaches prover results to the proposed certificate. The kernel
+accepts a discharge only when the trusted fact and obligation have the same path, digest, column,
+and row binding and when the obligation is exactly the one recomputed from an active comparison
+projection. The kernel requires the supplied fact set to equal the used fact set, rejects duplicate
+or extraneous obligations, and requires all columns on one row domain to agree on digest and row
+count. No fact leaves the v3.0.1 obligation undischarged, so the adapter abstains.
+
+The v3.1 lowering also closes three non-policy defects exposed when the pilot obligations became
+dischargeable: recognized builtin calls no longer manufacture an “unbound name” wildcard effect;
+formatted fields on one f-string line receive distinct deterministic tokens instead of overwriting
+one another; and exact aggregate/row-count report formatting preserves its existing selector-fold
+provenance through `Decimal`, `Fraction`, and ordinary arithmetic. These repairs add no orientation
+source. The kernel still requires the same active comparison, selector, fold, selected-result sink,
+and noninterference proof, and the CSV fact still discharges only compared-column transform
+domains.
+
+### Data versus execution boundary
+
+Reading digest-bound immutable staged **data** is not execution under ADR-0069. The controller and
+prover decode inert CSV bytes; no scientist-authored Python, R, shell, notebook, import hook,
+formula, macro, or other project code runs. The data proof establishes only that column `K` in the
+exact bound bytes contains values from the finite recognized binary string set. It does not
+establish that the workflow executed, infer intended biology, infer orientation from observed
+counts or rates, or approve a complement.
+
+This is deliberately narrower than the disabled orientation-from-report-numbers “CSV refinement.”
+That retired idea used numeric coincidence to resolve orientation and remains prohibited. V3.1.0
+uses data only to show that `int`, finite `float`, `Decimal`, and `Fraction` conversion are total on
+the compared values and that `1 - x` is a real 0/1 complement. Static source still supplies the
+orientation parity, equality, selector, fold, and report-sink proof.
+
+### Fail-closed cases
+
+The v3 adapter abstains when the staged path is unresolved, when zero or multiple bound inputs
+match it, when a comparison column identity is unresolved, when the path or digest differs between
+the static trace and fact, when either compared column lacks an exact binary fact, when any CSV row
+or value fails the closed profile, or when the source uses a transform outside the fact-covered
+grammar. Non-compared quantitative gating columns are not used to infer orientation and receive no
+binary claim from this mechanism.

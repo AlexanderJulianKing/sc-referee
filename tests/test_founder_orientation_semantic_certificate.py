@@ -10,6 +10,7 @@ from sc_referee.scientific_checks.founder_orientation_certificate import (
     verify_orientation_certificate,
 )
 from sc_referee.scientific_checks.founder_orientation_semantic_ir import (
+    CsvBinaryDomainFact,
     Effect,
     Eq,
     ExactNumber,
@@ -20,7 +21,10 @@ from sc_referee.scientific_checks.founder_orientation_semantic_ir import (
     Projection,
     Selector,
     SinkProof,
+    TransformDomainObligation,
 )
+
+_DOMAIN_DIGEST = "sha256:" + "a" * 64
 
 
 def _certificate() -> OrientationCertificate:
@@ -71,22 +75,49 @@ def _certificate() -> OrientationCertificate:
         frozenset({"inputs/data.csv", "rows"}),
         frozenset({"score", "report"}),
     )
+    observed_fact = CsvBinaryDomainFact(
+        "inputs/data.csv", _DOMAIN_DIGEST, "observed", 4, ("0", "1")
+    )
+    founder_fact = CsvBinaryDomainFact("inputs/data.csv", _DOMAIN_DIGEST, "founder", 4, ("0", "1"))
+    obligations = (
+        TransformDomainObligation(
+            "inputs/data.csv",
+            _DOMAIN_DIGEST,
+            "rows",
+            "founder",
+            ("csv_subscript", "builtin_int", "one_minus"),
+            founder_fact,
+        ),
+        TransformDomainObligation(
+            "inputs/data.csv",
+            _DOMAIN_DIGEST,
+            "rows",
+            "observed",
+            ("csv_subscript", "builtin_int"),
+            observed_fact,
+        ),
+    )
     return OrientationCertificate(
-        "workflow/analysis.py",
-        (comparison,),
-        (selector,),
-        (fold,),
-        (sink,),
-        (frozenset({"repaired"}),),
-        (),
-        frozenset({"comparison"}),
-        frozenset(),
-        (),
+        source_path="workflow/analysis.py",
+        comparisons=(comparison,),
+        selectors=(selector,),
+        folds=(fold,),
+        sinks=(sink,),
+        reaching_path_orientations=(frozenset({"repaired"}),),
+        effects=(),
+        transform_domain_obligations=obligations,
+        proven_domain_facts=(founder_fact, observed_fact),
+        all_report_comparison_tokens=frozenset({"comparison"}),
+        dead_comparison_tokens=frozenset(),
+        evidence=(),
     )
 
 
 def test_kernel_accepts_one_closed_repaired_certificate() -> None:
-    verified = verify_orientation_certificate(_certificate())
+    certificate = _certificate()
+    verified = verify_orientation_certificate(
+        certificate, trusted_domain_facts=certificate.proven_domain_facts
+    )
     assert verified is not None
     assert verified.orientation == "repaired"
 
@@ -160,7 +191,12 @@ def test_kernel_rejects_each_broken_proof_obligation(mutation: str) -> None:
             certificate,
             all_report_comparison_tokens=frozenset({"comparison", "competitor"}),
         )
-    assert verify_orientation_certificate(certificate) is None
+    assert (
+        verify_orientation_certificate(
+            certificate, trusted_domain_facts=certificate.proven_domain_facts
+        )
+        is None
+    )
 
 
 @pytest.mark.parametrize("operation", ["bitxor_one", "abs_difference_one", "boolean_not"])
@@ -177,5 +213,35 @@ def test_kernel_rejects_a_binary_only_recode_without_a_binary_domain(operation: 
     )
     bad_comparison = replace(comparison, right=right)
     assert (
-        verify_orientation_certificate(replace(certificate, comparisons=(bad_comparison,))) is None
+        verify_orientation_certificate(
+            replace(certificate, comparisons=(bad_comparison,)),
+            trusted_domain_facts=certificate.proven_domain_facts,
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize("mutation", ["path", "digest", "column"])
+def test_kernel_rejects_a_domain_discharge_for_the_wrong_binding(mutation: str) -> None:
+    certificate = _certificate()
+    obligation = certificate.transform_domain_obligations[0]
+    fact = obligation.domain_fact
+    assert fact is not None
+    if mutation == "path":
+        wrong_fact = replace(fact, path="inputs/other.csv")
+    elif mutation == "digest":
+        wrong_fact = replace(fact, content_digest="sha256:" + "b" * 64)
+    else:
+        wrong_fact = replace(fact, column="other")
+    mutated = replace(
+        certificate,
+        transform_domain_obligations=(
+            replace(obligation, domain_fact=wrong_fact),
+            *certificate.transform_domain_obligations[1:],
+        ),
+        proven_domain_facts=(wrong_fact, *certificate.proven_domain_facts[1:]),
+    )
+    assert (
+        verify_orientation_certificate(mutated, trusted_domain_facts=mutated.proven_domain_facts)
+        is None
     )

@@ -12,6 +12,7 @@ from fractions import Fraction
 from typing import Protocol, TypeVar
 
 from sc_referee.scientific_checks.founder_orientation_semantic_ir import (
+    CsvBinaryDomainFact,
     Eq,
     ExactNumber,
     Fold,
@@ -21,6 +22,7 @@ from sc_referee.scientific_checks.founder_orientation_semantic_ir import (
     PrimitiveTransform,
     Projection,
     Selector,
+    TransformDomainObligation,
     VerifiedOrientationCertificate,
 )
 
@@ -63,6 +65,8 @@ _TRANSFORMS: dict[str, tuple[frozenset[str], str | None, int]] = {
 
 def verify_orientation_certificate(
     certificate: OrientationCertificate,
+    *,
+    trusted_domain_facts: tuple[CsvBinaryDomainFact, ...] = (),
 ) -> VerifiedOrientationCertificate | None:
     """Accept one complete, internally consistent singleton proof or abstain."""
 
@@ -74,6 +78,12 @@ def verify_orientation_certificate(
     if comparisons is None or selectors is None or folds is None:
         return None
     if not comparisons or not selectors or not folds:
+        return None
+    if not _transform_domains_are_discharged(
+        certificate,
+        comparisons,
+        trusted_domain_facts,
+    ):
         return None
 
     orientations: dict[str, Orientation] = {}
@@ -163,7 +173,101 @@ def verify_orientation_certificate(
         comparison_tokens=comparison_tokens,
         selector_tokens=selector_tokens,
         fold_tokens=fold_tokens,
+        domain_facts=certificate.proven_domain_facts,
     )
+
+
+def _transform_domains_are_discharged(
+    certificate: OrientationCertificate,
+    comparisons: dict[str, Eq],
+    trusted_domain_facts: tuple[CsvBinaryDomainFact, ...],
+) -> bool:
+    trusted = set(trusted_domain_facts)
+    declared = set(certificate.proven_domain_facts)
+    if (
+        len(trusted) != len(trusted_domain_facts)
+        or len(declared) != len(certificate.proven_domain_facts)
+        or trusted != declared
+    ):
+        return False
+    if any(not _binary_domain_fact_is_closed(fact) for fact in trusted):
+        return False
+
+    obligations = certificate.transform_domain_obligations
+    obligation_keys = [_obligation_key(item) for item in obligations]
+    if len(obligation_keys) != len(set(obligation_keys)):
+        return False
+    expected: dict[tuple[str, str, str, tuple[str, ...]], Projection] = {}
+    for comparison in comparisons.values():
+        for projection in (comparison.left, comparison.right):
+            key = _projection_obligation_key(projection)
+            expected[key] = projection
+    if set(obligation_keys) != set(expected):
+        return False
+
+    used_facts: set[CsvBinaryDomainFact] = set()
+    row_bindings: dict[tuple[str, str], tuple[str, int]] = {}
+    for obligation in obligations:
+        fact = obligation.domain_fact
+        if fact is None or fact not in trusted:
+            return False
+        matched_projection = expected.get(_obligation_key(obligation))
+        if matched_projection is None or not _projection_is_exact(matched_projection):
+            return False
+        if (
+            fact.path != obligation.asset
+            or fact.content_digest != obligation.content_digest
+            or fact.column != obligation.column
+        ):
+            return False
+        binding_key = (obligation.asset, obligation.row_domain)
+        binding = (obligation.content_digest, fact.row_count)
+        previous = row_bindings.setdefault(binding_key, binding)
+        if previous != binding:
+            return False
+        used_facts.add(fact)
+    return used_facts == declared
+
+
+def _projection_obligation_key(
+    projection: Projection,
+) -> tuple[str, str, str, tuple[str, ...]]:
+    return (
+        projection.asset,
+        projection.row_domain,
+        projection.column,
+        tuple(item.operation for item in projection.transforms),
+    )
+
+
+def _obligation_key(
+    obligation: TransformDomainObligation,
+) -> tuple[str, str, str, tuple[str, ...]]:
+    return (
+        obligation.asset,
+        obligation.row_domain,
+        obligation.column,
+        obligation.operations,
+    )
+
+
+def _binary_domain_fact_is_closed(fact: CsvBinaryDomainFact) -> bool:
+    if (
+        not fact.path
+        or fact.path.startswith("/")
+        or ".." in fact.path.split("/")
+        or not fact.column
+        or fact.row_count < 1
+        or fact.recognized_values != ("0", "1")
+        or not fact.content_digest.startswith("sha256:")
+        or len(fact.content_digest) != 71
+    ):
+        return False
+    try:
+        int(fact.content_digest.removeprefix("sha256:"), 16)
+    except ValueError:
+        return False
+    return True
 
 
 def _unique_by_token(

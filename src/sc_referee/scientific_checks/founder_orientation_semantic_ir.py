@@ -45,6 +45,29 @@ class Projection:
 
 
 @dataclass(frozen=True, order=True)
+class CsvBinaryDomainFact:
+    """A bounded proof about one exact column in one digest-bound CSV."""
+
+    path: str
+    content_digest: str
+    column: str
+    row_count: int
+    recognized_values: tuple[str, ...]
+
+
+@dataclass(frozen=True, order=True)
+class TransformDomainObligation:
+    """One compared projection whose runtime transforms require a domain proof."""
+
+    asset: str
+    content_digest: str
+    row_domain: str
+    column: str
+    operations: tuple[str, ...]
+    domain_fact: CsvBinaryDomainFact | None = None
+
+
+@dataclass(frozen=True, order=True)
 class ExactNumber:
     """An exact finite numeric value, retaining its Python runtime type.
 
@@ -169,6 +192,8 @@ class OrientationCertificate:
     sinks: tuple[SinkProof, ...]
     reaching_path_orientations: tuple[frozenset[Orientation], ...]
     effects: tuple[Effect, ...]
+    transform_domain_obligations: tuple[TransformDomainObligation, ...]
+    proven_domain_facts: tuple[CsvBinaryDomainFact, ...]
     all_report_comparison_tokens: frozenset[str]
     dead_comparison_tokens: frozenset[str]
     evidence: tuple[EvidencePoint, ...]
@@ -184,3 +209,4 @@ class VerifiedOrientationCertificate:
     comparison_tokens: tuple[str, ...]
     selector_tokens: tuple[str, ...]
     fold_tokens: tuple[str, ...]
+    domain_facts: tuple[CsvBinaryDomainFact, ...]

@@ -13,6 +13,7 @@ from sc_referee.scientific_checks.core import (
     CheckManifest,
     FrozenBaseRecord,
     FrozenInspectionContext,
+    FrozenMaterialInput,
     FrozenSourceLocation,
     InspectionDocument,
     NormalizedMethodObservation,
@@ -24,6 +25,9 @@ from sc_referee.scientific_checks.scope_joins import build_static_scope_join_gra
 from sc_referee.version import SCHEMA_VERSION, __version__
 
 _MAX_ADAPTER_DOCUMENT_BYTES = 2_000_000
+_MAX_INSPECTION_MATERIAL_INPUTS = 8
+_MAX_INSPECTION_MATERIAL_INPUT_BYTES = 8 * 1024 * 1024
+_MAX_INSPECTION_MATERIAL_TOTAL_BYTES = 64 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -81,6 +85,13 @@ def build_frozen_inspection_context(
     base_records.sort(key=lambda item: item.ref)
     if len({item.ref for item in base_records}) != len(base_records):
         return None
+
+    material_inputs = _frozen_material_inputs(
+        resolved_root=snapshot_root.resolve(),
+        repository_snapshot=repository_snapshot,
+        file_records=file_records,
+        asset_identities=asset_identities,
+    )
 
     files_by_path = {
         str(item.get("path")): item
@@ -146,6 +157,7 @@ def build_frozen_inspection_context(
         selected_artifact_ref=RecordRef("artifact", str(selected_artifact_id)),
         documents=tuple(documents),
         base_records=tuple(base_records),
+        material_inputs=material_inputs,
     )
     snapshot_ref = _record_ref(repository_snapshot)
     if snapshot_ref is None:
@@ -160,6 +172,93 @@ def build_frozen_inspection_context(
         scope_selections=scope_selections,
     )
     return replace(context, scope_join_graph=graph)
+
+
+def _frozen_material_inputs(
+    *,
+    resolved_root: Path,
+    repository_snapshot: dict[str, Any],
+    file_records: list[dict[str, Any]],
+    asset_identities: list[dict[str, Any]],
+) -> tuple[FrozenMaterialInput, ...]:
+    """Freeze only intake-selected, full-digest material bytes under strict budgets."""
+
+    selected = repository_snapshot.get("extensions", {}).get("x-material-full-digest-paths", [])
+    if not isinstance(selected, list):
+        return ()
+    selected_paths = sorted({item for item in selected if isinstance(item, str)})
+    if len(selected_paths) > _MAX_INSPECTION_MATERIAL_INPUTS:
+        selected_paths = selected_paths[:_MAX_INSPECTION_MATERIAL_INPUTS]
+    files_by_path: dict[str, list[dict[str, Any]]] = {}
+    for record in file_records:
+        path = record.get("path")
+        if record.get("entry_kind") == "regular_file" and isinstance(path, str):
+            files_by_path.setdefault(path, []).append(record)
+    identities_by_id = {
+        str(record["asset_identity_id"]): record
+        for record in asset_identities
+        if isinstance(record.get("asset_identity_id"), str)
+    }
+    frozen: list[FrozenMaterialInput] = []
+    total_bytes = 0
+    for path in selected_paths:
+        matches = files_by_path.get(path, [])
+        if len(matches) != 1:
+            continue
+        file_record = matches[0]
+        file_ref = _record_ref(file_record)
+        identity_ref_value = file_record.get("asset_identity_ref")
+        if (
+            file_ref is None
+            or not isinstance(identity_ref_value, dict)
+            or identity_ref_value.get("record_type") != "asset_identity"
+            or not isinstance(identity_ref_value.get("record_id"), str)
+        ):
+            continue
+        identity_ref = RecordRef("asset_identity", str(identity_ref_value["record_id"]))
+        identity = identities_by_id.get(identity_ref.record_id)
+        evidence = identity.get("identity_evidence") if isinstance(identity, dict) else None
+        digest = evidence.get("digest") if isinstance(evidence, dict) else None
+        if (
+            not isinstance(identity, dict)
+            or identity.get("tier") != "full_digest"
+            or identity.get("asset_ref") != file_ref.to_dict()
+            or not isinstance(evidence, dict)
+            or evidence.get("kind") != "full_digest"
+            or not isinstance(digest, str)
+        ):
+            continue
+        source_path = _resolved_snapshot_file(resolved_root, path)
+        if source_path is None:
+            continue
+        try:
+            size = source_path.stat().st_size
+        except OSError:
+            continue
+        if (
+            size > _MAX_INSPECTION_MATERIAL_INPUT_BYTES
+            or total_bytes + size > _MAX_INSPECTION_MATERIAL_TOTAL_BYTES
+        ):
+            continue
+        try:
+            content = source_path.read_bytes()
+        except OSError:
+            continue
+        if len(content) != size or sha256_digest(content) != digest:
+            continue
+        try:
+            material = FrozenMaterialInput(
+                path=path,
+                file_ref=file_ref,
+                asset_identity_ref=identity_ref,
+                content=content,
+                content_digest=digest,
+            )
+        except ValueError:
+            continue
+        frozen.append(material)
+        total_bytes += size
+    return tuple(frozen)
 
 
 def _whole_file_inspection_document(

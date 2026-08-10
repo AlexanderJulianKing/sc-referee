@@ -368,6 +368,7 @@ def test_adapter_receives_only_the_frozen_base_capability_surface() -> None:
         "selected_artifact_ref",
         "documents",
         "base_records",
+        "material_inputs",
         "shared_derivations",
         "scope_join_graph",
     }

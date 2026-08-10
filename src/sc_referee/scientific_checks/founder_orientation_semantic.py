@@ -25,10 +25,14 @@ from sc_referee.core.ids import semantic_digest, sha256_digest
 from sc_referee.scientific_checks.core import (
     EvidenceSpan,
     FrozenInspectionContext,
+    FrozenMaterialInput,
     InspectionDocument,
 )
 from sc_referee.scientific_checks.founder_orientation_certificate import (
     verify_orientation_certificate,
+)
+from sc_referee.scientific_checks.founder_orientation_csv_domain import (
+    prove_binary_csv_column,
 )
 from sc_referee.scientific_checks.founder_orientation_dataflow import (
     _guarded_parse,
@@ -37,6 +41,7 @@ from sc_referee.scientific_checks.founder_orientation_dataflow import (
     _python_parser_supported,
 )
 from sc_referee.scientific_checks.founder_orientation_semantic_ir import (
+    CsvBinaryDomainFact,
     Effect,
     Eq,
     EvidencePoint,
@@ -51,6 +56,7 @@ from sc_referee.scientific_checks.founder_orientation_semantic_ir import (
     Selector,
     Sequence,
     SinkProof,
+    TransformDomainObligation,
     Unknown,
     VerifiedOrientationCertificate,
 )
@@ -105,6 +111,7 @@ class _ModuleValue:
 class _PathValue:
     parts: tuple[str, ...]
     exact: bool = True
+    snapshot_anchored: bool = False
 
     @property
     def normalized(self) -> str:
@@ -266,6 +273,7 @@ class _Analyzer:
     document: InspectionDocument
     tree: ast.Module
     selected_report_path: str
+    material_inputs: tuple[FrozenMaterialInput, ...] = ()
     imports: dict[str, str] = field(default_factory=dict)
     functions: dict[str, ast.FunctionDef] = field(default_factory=dict)
     global_env: dict[str, _Tracked] = field(default_factory=dict)
@@ -284,6 +292,7 @@ class _Analyzer:
     branch: str = "module"
     selected_sink_seen: bool = False
     report_fields: dict[str, _ReportField] = field(default_factory=dict)
+    row_domain_bindings: dict[str, tuple[str, str]] = field(default_factory=dict)
     fail_closed: bool = False
 
     def analyze(self) -> OrientationCertificate | None:
@@ -353,6 +362,9 @@ class _Analyzer:
             for token in sorted(report_comparisons)
             if token in self.comparisons
         )
+        obligations = self._comparison_domain_obligations(comparisons)
+        if obligations is None:
+            return None
         selector_tokens = {token for sink in sinks for token in sink.selector_tokens}
         all_fold_tokens = {token for sink in sinks for token in sink.fold_tokens}
         return OrientationCertificate(
@@ -363,12 +375,44 @@ class _Analyzer:
             sinks=tuple(sinks),
             reaching_path_orientations=tuple(orientations),
             effects=tuple(self.effects),
+            transform_domain_obligations=obligations,
+            proven_domain_facts=(),
             all_report_comparison_tokens=frozenset(report_comparisons),
             dead_comparison_tokens=frozenset(),
             evidence=tuple(
                 self.evidence[token] for token in sorted(evidence_tokens) if token in self.evidence
             ),
         )
+
+    def _comparison_domain_obligations(
+        self, comparisons: tuple[Eq, ...]
+    ) -> tuple[TransformDomainObligation, ...] | None:
+        obligations: dict[
+            tuple[str, str, str, str, tuple[str, ...]], TransformDomainObligation
+        ] = {}
+        for comparison in comparisons:
+            for projection in (comparison.left, comparison.right):
+                binding = self.row_domain_bindings.get(projection.row_domain)
+                if binding is None or binding[0] != projection.asset:
+                    return None
+                content_digest = binding[1]
+                operations = tuple(item.operation for item in projection.transforms)
+                obligation = TransformDomainObligation(
+                    asset=projection.asset,
+                    content_digest=content_digest,
+                    row_domain=projection.row_domain,
+                    column=projection.column,
+                    operations=operations,
+                )
+                key = (
+                    obligation.asset,
+                    obligation.content_digest,
+                    obligation.row_domain,
+                    obligation.column,
+                    obligation.operations,
+                )
+                obligations[key] = obligation
+        return tuple(obligations[key] for key in sorted(obligations))
 
     def _index_module(self) -> None:
         for statement in self.tree.body:
@@ -557,7 +601,12 @@ class _Analyzer:
     def _eval_inner(self, node: ast.expr, env: dict[str, _Tracked]) -> _Tracked:
         if isinstance(node, ast.Name):
             if node.id == "__file__":
-                return self._tracked(_PathValue(tuple(PurePosixPath(self.document.path).parts)))
+                return self._tracked(
+                    _PathValue(
+                        tuple(PurePosixPath(self.document.path).parts),
+                        snapshot_anchored=True,
+                    )
+                )
             value = env.get(node.id)
             if value is not None:
                 return value.with_binding(node.id)
@@ -622,7 +671,7 @@ class _Analyzer:
         parts: list[_Tracked] = []
         field_tokens: list[str] = []
         selected_line = False
-        for item in node.values:
+        for position, item in enumerate(node.values):
             if isinstance(item, ast.Constant) and isinstance(item.value, str):
                 part = self._tracked(_ExactString(item.value))
                 parts.append(part)
@@ -637,7 +686,7 @@ class _Analyzer:
                 parts.append(value)
                 if item.format_spec is not None:
                     parts.append(self._eval(item.format_spec, env))
-                token = self._node_token(item, "report-field")
+                token = self._node_token(item, f"report-field:{position}")
                 self.report_fields[token] = _ReportField(value, selected_line)
                 field_tokens.append(token)
                 continue
@@ -657,7 +706,7 @@ class _Analyzer:
         base = self._eval(node.value, env)
         if isinstance(base.value, _PathValue):
             if node.attr == "parent":
-                return replace(base, value=_PathValue(base.value.parts[:-1], base.value.exact))
+                return replace(base, value=replace(base.value, parts=base.value.parts[:-1]))
         if node.attr in {"numerator", "denominator"}:
             return self._compose(_DerivedValue(node.attr), [base])
         if isinstance(base.value, _ModuleValue):
@@ -682,10 +731,6 @@ class _Analyzer:
                 [base, index],
                 origins={base.value.asset, base.value.row_domain},
                 index_map=base.value.index_map,
-            )
-            self._record_transform_domain_effect(
-                projection,
-                "csv_subscript may be absent or None for a ragged DictReader row",
             )
             return projected
         if isinstance(base.value, _SequenceState) and isinstance(index.value, _IndexValue):
@@ -716,7 +761,7 @@ class _Analyzer:
 
     def _eval_call(self, node: ast.Call, env: dict[str, _Tracked]) -> _Tracked:
         key = self._call_key(node.func)
-        function_value = self._eval(node.func, env) if isinstance(node.func, ast.Name) else None
+        function_value = env.get(node.func.id) if isinstance(node.func, ast.Name) else None
         if function_value is not None and isinstance(function_value.value, _FunctionValue):
             return self._call_helper(function_value.value.name, node, env)
         if isinstance(node.func, ast.Name) and node.func.id in env:
@@ -822,15 +867,23 @@ class _Analyzer:
             if path is None:
                 return self._unknown("csv reader input is not bound to an exact path", *args)
             asset = path.normalized
+            material_matches = [item for item in self.material_inputs if item.path == asset]
+            if len(material_matches) != 1:
+                return self._unknown(
+                    "csv reader path is not one digest-bound material input", *args
+                )
+            content_digest = material_matches[0].content_digest
             row_domain = semantic_digest(
                 {
                     "asset": asset,
+                    "content_digest": content_digest,
                     "path": self.document.path,
                     "line": getattr(node, "lineno", 0),
                     "reader": key,
                 }
             )
             index_map = semantic_digest({"row_domain": row_domain, "order": "csv"})
+            self.row_domain_bindings[row_domain] = (asset, content_digest)
             row = self._tracked(
                 _RowValue(asset, row_domain, index_map),
                 index_map=index_map,
@@ -914,6 +967,13 @@ class _Analyzer:
         method = node.func.attr
         all_values = [receiver, *args, *keywords.values()]
         if isinstance(receiver.value, _PathValue):
+            if (
+                method == "resolve"
+                and not args
+                and not keywords
+                and receiver.value.snapshot_anchored
+            ):
+                return receiver
             if method in {"resolve", "absolute", "expanduser"} and not args:
                 return self._unknown(f"runtime-dependent path normalization:{method}", receiver)
             if method == "mkdir":
@@ -1173,7 +1233,7 @@ class _Analyzer:
             and isinstance(right.value, _ExactString)
         ):
             return self._compose(
-                _PathValue((*left.value.parts, right.value.value), left.value.exact), [left, right]
+                replace(left.value, parts=(*left.value.parts, right.value.value)), [left, right]
             )
         if (
             isinstance(op, ast.Add)
@@ -1246,6 +1306,17 @@ class _Analyzer:
         exact = _exact_binary(op, left.value, right.value)
         if exact is not None:
             return self._compose(exact, [left, right])
+        aggregate_values = (_DerivedValue, _LengthValue, Fold, _AccumulatorValue)
+        if (
+            isinstance(op, (ast.Add, ast.Sub, ast.Mult, ast.Div))
+            and (
+                isinstance(left.value, aggregate_values)
+                or isinstance(right.value, aggregate_values)
+            )
+            and isinstance(left.value, (*aggregate_values, ExactNumber))
+            and isinstance(right.value, (*aggregate_values, ExactNumber))
+        ):
+            return self._compose(_DerivedValue(type(op).__name__), [left, right])
         if isinstance(op, ast.Pow):
             return self._unknown("power is not within the exact arithmetic budget", left, right)
         if isinstance(op, (ast.Div, ast.FloorDiv, ast.Mod)):
@@ -1484,6 +1555,13 @@ class _Analyzer:
         return self._unknown(f"unsupported {key} cast", value)
 
     def _numeric_constructor(self, kind: str, args: list[_Tracked]) -> _Tracked:
+        aggregate_values = (_DerivedValue, _LengthValue, Fold, _AccumulatorValue)
+        if (
+            len(args) in {1, 2}
+            and any(isinstance(item.value, aggregate_values) for item in args)
+            and all(isinstance(item.value, (*aggregate_values, ExactNumber)) for item in args)
+        ):
+            return self._compose(_DerivedValue(kind), args)
         if any(item.folds or item.selectors for item in args):
             return self._unknown(f"{kind} constructor domain is not proven", *args)
         if len(args) == 1 and isinstance(args[0].value, Projection):
@@ -1498,10 +1576,7 @@ class _Analyzer:
                     projection, "builtin_fraction", "fraction", 0
                 )
                 return self._compose(transformed, args, index_map=args[0].index_map)
-        if any(
-            isinstance(item.value, (_DerivedValue, _LengthValue, Fold, _AccumulatorValue))
-            for item in args
-        ):
+        if any(isinstance(item.value, _DerivedValue) for item in args):
             return self._compose(_DerivedValue(kind), args)
         try:
             if kind == "fraction":
@@ -1635,20 +1710,6 @@ class _Analyzer:
             output_type,
             parity_delta,
         )
-        if operation in {
-            "builtin_int",
-            "builtin_float",
-            "builtin_decimal",
-            "builtin_fraction",
-            "one_minus",
-            "bitxor_one",
-            "abs_difference_one",
-            "boolean_not",
-        }:
-            self._record_transform_domain_effect(
-                projection,
-                f"{operation} runtime domain is not proven for the staged column",
-            )
         return Projection(
             projection.asset,
             projection.row_domain,
@@ -1802,18 +1863,6 @@ class _Analyzer:
             elif isinstance(item, ast.Subscript) and isinstance(item.ctx, ast.Load):
                 reads.add("subscript")
         return frozenset(reads)
-
-    def _record_transform_domain_effect(self, projection: Projection, reason: str) -> None:
-        self.effects.append(
-            Effect(
-                reads=frozenset({projection.asset, projection.row_domain}),
-                writes=frozenset(),
-                aliases=frozenset(),
-                may_raise=True,
-                opaque=False,
-                reason=reason,
-            )
-        )
 
     def _tracked_from_names(self, node: ast.AST, env: dict[str, _Tracked]) -> _Tracked:
         return self._merge_tracked(
@@ -2092,7 +2141,12 @@ def resolve_founder_orientation_semantic(
         ):
             saw_blocked_candidate = True
             continue
-        analyzer = _Analyzer(document, tree, selected_report_path)
+        analyzer = _Analyzer(
+            document,
+            tree,
+            selected_report_path,
+            material_inputs=context.material_inputs,
+        )
         try:
             proposal = analyzer.analyze()
         except (RecursionError, MemoryError, OverflowError):
@@ -2105,7 +2159,14 @@ def resolve_founder_orientation_semantic(
                 saw_blocked_candidate or analyzer.selected_sink_seen or analyzer.fail_closed
             )
             continue
-        verified = verify_orientation_certificate(proposal)
+        discharged = _discharge_transform_domains(proposal, context.material_inputs)
+        if discharged is None:
+            saw_blocked_candidate = True
+            continue
+        verified = verify_orientation_certificate(
+            discharged,
+            trusted_domain_facts=discharged.proven_domain_facts,
+        )
         if verified is not None:
             certificates.append((document, verified))
         else:
@@ -2135,6 +2196,37 @@ def resolve_founder_orientation_semantic(
     )
 
 
+def _discharge_transform_domains(
+    certificate: OrientationCertificate,
+    material_inputs: tuple[FrozenMaterialInput, ...],
+) -> OrientationCertificate | None:
+    obligations: list[TransformDomainObligation] = []
+    facts: set[CsvBinaryDomainFact] = set()
+    for obligation in certificate.transform_domain_obligations:
+        matches = [
+            item
+            for item in material_inputs
+            if item.path == obligation.asset and item.content_digest == obligation.content_digest
+        ]
+        if len(matches) != 1:
+            return None
+        fact = prove_binary_csv_column(
+            matches[0],
+            path=obligation.asset,
+            content_digest=obligation.content_digest,
+            column=obligation.column,
+        )
+        if fact is None:
+            return None
+        facts.add(fact)
+        obligations.append(replace(obligation, domain_fact=fact))
+    return replace(
+        certificate,
+        transform_domain_obligations=tuple(obligations),
+        proven_domain_facts=tuple(sorted(facts)),
+    )
+
+
 def founder_orientation_semantic_grammar(
     direct_operand: str, repaired_operand: str
 ) -> dict[str, Any]:
@@ -2142,10 +2234,12 @@ def founder_orientation_semantic_grammar(
 
     return {
         "grammar_id": "founder-orientation-semantic-certificate",
-        "grammar_version": "3.0.1",
+        "grammar_version": "3.1.0",
         "operands": {"direct": direct_operand, "repaired": repaired_operand},
         "abstract_values": [
             "Projection(asset,row_domain,column,parity,runtime_type)",
+            "CsvBinaryDomainFact(path,content_digest,column,row_count,recognized_values)",
+            "TransformDomainObligation(asset,content_digest,row_domain,column,operations)",
             "Sequence(index_map,element_value)",
             "Predicate(Eq(left,right))",
             "ExactNumber(type,value)",
@@ -2171,9 +2265,14 @@ def founder_orientation_semantic_grammar(
             "and non-stdlib import bans, plus duplicate or higher-order dynamic dispatch"
         ),
         "certificate_kernel": "founder_orientation_certificate.verify_orientation_certificate",
-        "csv_refinement": (
-            "not enabled in 3.0.1; an unresolved parity bit remains an abstention rather than "
-            "using report-number uniqueness"
+        "staged_csv_domain_proof": (
+            "each compared column requires an exact path-and-digest-matched binary-domain fact "
+            "from a bounded strict-UTF-8 CSV read before csv subscripts, numeric casts, or "
+            "one-minus transforms are accepted"
+        ),
+        "orientation_from_report_csv_refinement": (
+            "disabled; CSV data never selects an orientation and report-number uniqueness "
+            "never repairs an unresolved parity bit"
         ),
         "fusion": "v2 and v3 are independent adapters; disagreement abstains and never votes",
     }
