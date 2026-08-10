@@ -1276,6 +1276,14 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 row["controller_material_file_digests"] = {
                     path_value: sha256_digest(payload) for path_value, payload in controller_files
                 }
+            if config.requires_dependence_authority:
+                row["expected_audit_snapshot_digest"] = _prospective_audit_snapshot_digest(
+                    case_root,
+                    task_payload=(config.task_by_role[roles[case_id]].rstrip() + "\n").encode(
+                        "utf-8"
+                    ),
+                    material_input_paths=config.material_input_paths,
+                )
             rows.append(row)
     if sorted(row["case_id"] for row in rows) != sorted(roles):
         raise LeanPipelineError("Intake did not admit the exact authored case set.")
@@ -1308,6 +1316,30 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         relative_path="authoring/INTAKE_LEDGER.json",
     )
     return ledger
+
+
+def _prospective_audit_snapshot_digest(
+    case_root: Path,
+    *,
+    task_payload: bytes,
+    material_input_paths: tuple[str, ...],
+) -> str:
+    """Freeze the content identity of the exact future detector repository."""
+
+    with tempfile.TemporaryDirectory(prefix="sc-referee-dependence-snapshot-") as raw_root:
+        temporary_root = Path(raw_root)
+        repository = temporary_root / "project"
+        shutil.copytree(case_root, repository)
+        atomic_write_bytes(repository / "task.md", task_payload)
+        captured = capture_repository(
+            repository,
+            temporary_root / "snapshot",
+            "lean-pipeline-prospective-dependence-snapshot",
+            captured_at="1970-01-01T00:00:00Z",
+            preferred_full_digest_paths=("results/report.md",),
+            material_full_digest_paths=material_input_paths,
+        )
+        return str(captured.snapshot_record["snapshot_digest"])
 
 
 # ---------------------------------------------------------------------------
@@ -1365,6 +1397,7 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
                     "frozen_lock_relative": None,
                     "lock_digest": None,
                     "approved_projection_digest": None,
+                    "snapshot_digest": None,
                 }
             )
             continue
@@ -1384,6 +1417,8 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
         verified = verify_dependence_authorization_lock(
             incoming,
             expected_case_id=case_id,
+            expected_snapshot_digest=str(intake_row["expected_audit_snapshot_digest"]),
+            expected_intake_recorded_at=str(intake["recorded_at"]),
             source_paths=("workflow/analysis.py",),
             selected_report_path="results/report.md",
             material_input_digests=admitted_digests,
@@ -1398,6 +1433,7 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
                 "frozen_lock_relative": relative.as_posix(),
                 "lock_digest": verified.lock_digest,
                 "approved_projection_digest": verified.approved_projection_digest,
+                "snapshot_digest": verified.snapshot_digest,
             }
         )
 
@@ -1410,6 +1446,7 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
         "envelope_id": config.envelope_id,
         "authoring_protocol_digest": protocol["protocol_digest"],
         "intake_ledger_digest": intake["ledger_digest"],
+        "intake_recorded_at": intake["recorded_at"],
         "entries": entries,
         "case_count": len(entries),
         "authorized_count": sum(item["authority_state"] == "authorized" for item in entries),
@@ -2160,6 +2197,8 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 verified_lock = verify_dependence_authorization_lock(
                     dependence_lock,
                     expected_case_id=case_id,
+                    expected_snapshot_digest=str(authority_entry["snapshot_digest"]),
+                    expected_intake_recorded_at=str(authority_ledger["intake_recorded_at"]),
                     source_paths=("workflow/analysis.py",),
                     selected_report_path="results/report.md",
                     material_input_digests=material_digests,
@@ -2202,6 +2241,7 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             method_contract_lock=contract_lock,
             material_inputs=config.material_input_paths,
             dependence_authorization_lock=dependence_lock,
+            dependence_authorization_case_id=(case_id if dependence_lock is not None else None),
         )
         replayed = replay(
             case_root / "audit" / "semantic.lock.json", case_root / "replay", schema_root

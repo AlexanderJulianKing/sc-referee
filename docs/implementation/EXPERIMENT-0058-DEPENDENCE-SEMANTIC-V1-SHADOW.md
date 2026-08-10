@@ -241,3 +241,13 @@ project-authored code.  The underlying shadow payload remains a report-only inte
 not itself be scored as a detector result.  Stages 1-4 remain historically unregistered; the final
 sentence of the preceding Stage boundary describes that earlier boundary and is superseded only
 by this narrowly enumerated Stage 5 wrapper registration.
+
+## Pre-pilot evidence-asymmetry disclosure — 2026-08-10
+
+In blind dependence pilots, authority presence is role-derived through `contract_free_roles`: the
+ambiguous control withholds the dependence-authorization lock while the other roles receive one,
+so detector behavior keyed on authority is also keyed on a role-derived signal.  In addition,
+controller material files such as `requirements.txt` are visible to the detector but not to the
+blind reviewer.  Pilot agreement metrics therefore compare decisions made over different evidence
+sets; they must not be described as evidence-blind agreement or as qualification for production
+Finding authority.

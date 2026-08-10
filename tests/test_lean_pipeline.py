@@ -368,10 +368,18 @@ def test_dependence_csv_bound_is_structural_and_closed() -> None:
         _validate_bounded_input_csv("k1,k2,tag,a,b\nx1,y1,t1,1\n", config)
 
 
-def _authority_test_lock(case_id: str, input_digest: str) -> dict[str, Any]:
+def _authority_test_lock(
+    case_id: str,
+    input_digest: str,
+    *,
+    snapshot_digest: str,
+    intake_recorded_at: str,
+) -> dict[str, Any]:
     value: dict[str, Any] = {
         "lock_kind": LOCK_KIND,
         "case_id": case_id,
+        "snapshot_digest": snapshot_digest,
+        "intake_recorded_at": intake_recorded_at,
         "records": [
             {
                 "record_type": "analysis",
@@ -411,7 +419,7 @@ def _authority_test_lock(case_id: str, input_digest: str) -> dict[str, Any]:
             "actor_kind": "human",
             "actor_id": "scientist:method-owner-01",
             "approved_projection_digest": "sha256:" + "0" * 64,
-            "approved_at": "2026-08-10T12:00:00Z",
+            "approved_at": intake_recorded_at,
         },
         "authority_limitations": list(AUTHORITY_LIMITATIONS),
         "lock_digest": "sha256:" + "0" * 64,
@@ -482,6 +490,8 @@ def test_authority_step_freezes_before_review_and_keys_only_by_opaque_case_id(
         "protocol_digest",
     )
     entries = []
+    expected_snapshot_digest = "sha256:" + "8" * 64
+    intake_recorded_at = "2026-08-10T12:00:00Z"
     csv_payload = b"k1,k2,tag,a,b\nx1,y1,t1,1,2\n"
     source_payload = b"result = 1\n"
     report_payload = b"[selected-result] 1\n"
@@ -500,6 +510,7 @@ def test_authority_step_freezes_before_review_and_keys_only_by_opaque_case_id(
         entries.append(
             {
                 "case_id": case_id,
+                "expected_audit_snapshot_digest": expected_snapshot_digest,
                 "file_digests": {
                     "inputs/data.csv": sha256_digest(csv_payload),
                     "workflow/analysis.py": sha256_digest(source_payload),
@@ -511,6 +522,7 @@ def test_authority_step_freezes_before_review_and_keys_only_by_opaque_case_id(
         "artifact_kind": "lean_pipeline_intake_ledger",
         "envelope_id": config.envelope_id,
         "entries": entries,
+        "recorded_at": intake_recorded_at,
     }
     _record_artifact(
         tmp_path,
@@ -528,7 +540,15 @@ def test_authority_step_freezes_before_review_and_keys_only_by_opaque_case_id(
     )
     incoming.parent.mkdir(parents=True)
     incoming.write_text(
-        canonical_json(_authority_test_lock(authorized_case, sha256_digest(csv_payload))) + "\n",
+        canonical_json(
+            _authority_test_lock(
+                authorized_case,
+                sha256_digest(csv_payload),
+                snapshot_digest=expected_snapshot_digest,
+                intake_recorded_at=intake_recorded_at,
+            )
+        )
+        + "\n",
         encoding="utf-8",
     )
 

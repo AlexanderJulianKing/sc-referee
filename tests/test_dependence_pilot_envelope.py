@@ -162,7 +162,14 @@ def _authored_case(role: str) -> dict[str, Any]:
     }
 
 
-def _authority_lock(case_id: str, role: str, input_digest: str) -> dict[str, Any]:
+def _authority_lock(
+    case_id: str,
+    role: str,
+    input_digest: str,
+    *,
+    snapshot_digest: str,
+    intake_recorded_at: str,
+) -> dict[str, Any]:
     slug = case_id.removeprefix("case:")
     analysis_id = f"analysis:{slug}"
     procedure_id = f"procedure:{slug}"
@@ -172,6 +179,8 @@ def _authority_lock(case_id: str, role: str, input_digest: str) -> dict[str, Any
     value: dict[str, Any] = {
         "lock_kind": LOCK_KIND,
         "case_id": case_id,
+        "snapshot_digest": snapshot_digest,
+        "intake_recorded_at": intake_recorded_at,
         "records": [
             {
                 "record_type": "analysis",
@@ -211,7 +220,7 @@ def _authority_lock(case_id: str, role: str, input_digest: str) -> dict[str, Any
             "actor_kind": "human",
             "actor_id": actor_id,
             "approved_projection_digest": "sha256:" + "0" * 64,
-            "approved_at": "2026-08-10T12:00:00Z",
+            "approved_at": intake_recorded_at,
         },
         "authority_limitations": list(AUTHORITY_LIMITATIONS),
         "lock_digest": "sha256:" + "0" * 64,
@@ -350,12 +359,20 @@ def test_dependence_six_role_fixture_runs_real_pipeline_without_findings(
         if role == "ambiguous":
             continue
         input_digest = str(intake_by_case[case_id]["file_digests"]["inputs/data.csv"])
-        lock = _authority_lock(case_id, role, input_digest)
+        lock = _authority_lock(
+            case_id,
+            role,
+            input_digest,
+            snapshot_digest=str(intake_by_case[case_id]["expected_audit_snapshot_digest"]),
+            intake_recorded_at=str(intake["recorded_at"]),
+        )
         lock_path = incoming_root / f"{case_id.removeprefix('case:')}.json"
         lock_path.write_text(canonical_json(lock) + "\n", encoding="utf-8")
         verified = verify_dependence_authorization_lock(
             lock_path,
             expected_case_id=case_id,
+            expected_snapshot_digest=str(intake_by_case[case_id]["expected_audit_snapshot_digest"]),
+            expected_intake_recorded_at=str(intake["recorded_at"]),
             source_paths=("workflow/analysis.py",),
             selected_report_path="results/report.md",
             material_input_digests={

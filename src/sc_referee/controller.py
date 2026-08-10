@@ -534,6 +534,7 @@ def run_audit(
     calculation_check_registry: CalculationCheckRegistry | None = None,
     material_inputs: tuple[str, ...] = (),
     dependence_authorization_lock: Path | None = None,
+    dependence_authorization_case_id: str | None = None,
 ) -> dict[str, Any]:
     """Run a conservative static audit over an arbitrary repository.
 
@@ -542,6 +543,10 @@ def run_audit(
     claim contracts and qualified detector envelopes are available.
     """
 
+    if (dependence_authorization_lock is None) != (dependence_authorization_case_id is None):
+        raise ValueError(
+            "a dependence authorization lock and its expected case id must be supplied together"
+        )
     if output.exists() or output.is_symlink():
         raise FileExistsError(f"audit output already exists: {output}")
     report = _normalize_optional_relative_path(report)
@@ -928,12 +933,26 @@ def run_audit(
                     "a dependence authorization lock requires one frozen inspection context"
                 )
             from sc_referee.dependence_recognition.authority_lock import (
-                apply_dependence_authorization_lock,
+                apply_dependence_authorization_lock_with_receipt,
                 bind_dependence_selected_writer_scope,
+                dependence_authorization_disclosure,
             )
 
-            scientific_context = apply_dependence_authorization_lock(
-                scientific_context, dependence_authorization_lock
+            assert dependence_authorization_case_id is not None
+            scientific_context, verified_authority = (
+                apply_dependence_authorization_lock_with_receipt(
+                    scientific_context,
+                    dependence_authorization_lock,
+                    expected_case_id=dependence_authorization_case_id,
+                )
+            )
+            scientific_check_disclosures.append(
+                dependence_authorization_disclosure(
+                    verified_authority,
+                    run_id=run_id,
+                    created_at=created_at,
+                    affected_ref=scientific_context.selected_surface_ref,
+                )
             )
             scientific_context = bind_dependence_selected_writer_scope(scientific_context)
             dependence_records = {

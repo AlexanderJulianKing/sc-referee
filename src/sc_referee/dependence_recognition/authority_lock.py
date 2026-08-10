@@ -9,15 +9,19 @@ returns a dataclass-replaced inspection context.
 from __future__ import annotations
 
 import ast
+import csv
+import io
 import json
 import re
+import unicodedata
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
+from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest, stable_id
+from sc_referee.records.observed import controller_provenance
 from sc_referee.scientific_checks.core import (
     FrozenBaseRecord,
     FrozenInspectionContext,
@@ -42,6 +46,8 @@ _ROOT_KEYS = frozenset(
     {
         "lock_kind",
         "case_id",
+        "snapshot_digest",
+        "intake_recorded_at",
         "records",
         "approval",
         "authority_limitations",
@@ -82,8 +88,60 @@ _DEFAULT_ROLE_MARKERS = frozenset(
     }
 )
 _CASE_ID_RE = re.compile(r"case:[A-Za-z0-9][A-Za-z0-9._-]{7,127}\Z")
-_RECORD_ID_RE = re.compile(r"[a-z][a-z0-9_-]*:[A-Za-z0-9][A-Za-z0-9._-]{7,255}\Z")
+_RECORD_ID_RE = re.compile(r"[a-z][a-z0-9_-]*:[A-Za-z0-9][A-Za-z0-9._-]{7,127}\Z")
 _SHA256_RE = re.compile(r"sha256:[0-9a-f]{64}\Z")
+_MAX_JSON_DEPTH = 32
+_MAX_FREE_TEXT_LENGTH = 128
+_CONFUSABLE_TO_LATIN = str.maketrans(
+    {
+        # Common Cyrillic lookalikes.
+        "\u0430": "a",
+        "\u0435": "e",
+        "\u043e": "o",
+        "\u0440": "p",
+        "\u0441": "c",
+        "\u0445": "x",
+        "\u0443": "y",
+        "\u0456": "i",
+        "\u0458": "j",
+        "\u0410": "A",
+        "\u0412": "B",
+        "\u0415": "E",
+        "\u041a": "K",
+        "\u041c": "M",
+        "\u041d": "H",
+        "\u041e": "O",
+        "\u0420": "P",
+        "\u0421": "C",
+        "\u0422": "T",
+        "\u0425": "X",
+        # Common Greek lookalikes.
+        "\u03b1": "a",
+        "\u03b2": "b",
+        "\u03b5": "e",
+        "\u03b9": "i",
+        "\u03ba": "k",
+        "\u03bf": "o",
+        "\u03c1": "p",
+        "\u03c4": "t",
+        "\u03c5": "y",
+        "\u03c7": "x",
+        "\u0391": "A",
+        "\u0392": "B",
+        "\u0395": "E",
+        "\u0396": "Z",
+        "\u0397": "H",
+        "\u0399": "I",
+        "\u039a": "K",
+        "\u039c": "M",
+        "\u039d": "N",
+        "\u039f": "O",
+        "\u03a1": "P",
+        "\u03a4": "T",
+        "\u03a5": "Y",
+        "\u03a7": "X",
+    }
+)
 
 
 class DependenceAuthorizationLockError(ValueError):
@@ -95,7 +153,10 @@ class VerifiedDependenceAuthorizationLock:
     """One closed lock after schema, digest, and case-binding verification."""
 
     case_id: str
+    snapshot_digest: str
     records: tuple[dict[str, Any], ...]
+    record_refs: tuple[RecordRef, ...]
+    approver_actor_id: str
     approved_projection_digest: str
     lock_digest: str
     canonical_payload: bytes
@@ -107,6 +168,8 @@ def approval_projection(lock: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "lock_kind": lock.get("lock_kind"),
         "case_id": lock.get("case_id"),
+        "snapshot_digest": lock.get("snapshot_digest"),
+        "intake_recorded_at": lock.get("intake_recorded_at"),
         "records": lock.get("records"),
         "authority_limitations": lock.get("authority_limitations"),
     }
@@ -122,6 +185,8 @@ def verify_dependence_authorization_lock(
     lock_path: Path,
     *,
     expected_case_id: str | None = None,
+    expected_snapshot_digest: str | None = None,
+    expected_intake_recorded_at: str | None = None,
     source_paths: Iterable[str] | None = None,
     selected_report_path: str | None = None,
     material_input_digests: Mapping[str, str] | None = None,
@@ -142,8 +207,14 @@ def verify_dependence_authorization_lock(
         raise DependenceAuthorizationLockError("dependence authority lock size is invalid")
     try:
         text = payload.decode("utf-8", errors="strict")
+        if not _json_depth_within_bound(text):
+            raise DependenceAuthorizationLockError(
+                "dependence authority lock exceeds the JSON depth bound"
+            )
         value = json.loads(text, object_pairs_hook=_closed_object)
-    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+    except DependenceAuthorizationLockError:
+        raise
+    except Exception as error:
         raise DependenceAuthorizationLockError(
             "dependence authority lock is not strict duplicate-free JSON"
         ) from error
@@ -157,6 +228,21 @@ def verify_dependence_authorization_lock(
         raise DependenceAuthorizationLockError("dependence authority case id is not opaque")
     if expected_case_id is not None and case_id != expected_case_id:
         raise DependenceAuthorizationLockError("dependence authority lock names another case")
+    snapshot_digest = value.get("snapshot_digest")
+    if not isinstance(snapshot_digest, str) or _SHA256_RE.fullmatch(snapshot_digest) is None:
+        raise DependenceAuthorizationLockError("dependence authority snapshot digest is invalid")
+    if expected_snapshot_digest is not None and snapshot_digest != expected_snapshot_digest:
+        raise DependenceAuthorizationLockError(
+            "dependence authority lock names another frozen snapshot"
+        )
+    intake_recorded_at = _optional_timestamp(value.get("intake_recorded_at"), "intake time")
+    if (
+        expected_intake_recorded_at is not None
+        and value.get("intake_recorded_at") != expected_intake_recorded_at
+    ):
+        raise DependenceAuthorizationLockError(
+            "dependence authority lock names another intake time"
+        )
 
     markers = _normalized_markers((*_DEFAULT_ROLE_MARKERS, *forbidden_role_markers))
     if _contains_marker(value, markers):
@@ -193,7 +279,9 @@ def verify_dependence_authorization_lock(
         raise DependenceAuthorizationLockError(
             "dependence authority limitations are not the closed v1 text"
         )
-    approval = _verify_approval(value.get("approval"), authorization)
+    approval = _verify_approval(
+        value.get("approval"), authorization, intake_recorded_at=intake_recorded_at
+    )
     expected_approval_digest = semantic_digest(approval_projection(value))
     if approval["approved_projection_digest"] != expected_approval_digest:
         raise DependenceAuthorizationLockError(
@@ -205,7 +293,10 @@ def verify_dependence_authorization_lock(
 
     return VerifiedDependenceAuthorizationLock(
         case_id=case_id,
+        snapshot_digest=snapshot_digest,
         records=tuple(dict(item) for item in records),
+        record_refs=tuple(RecordRef(record_type, record_id) for record_type, record_id in refs),
+        approver_actor_id=str(approval["actor_id"]),
         approved_projection_digest=expected_approval_digest,
         lock_digest=expected_lock_digest,
         canonical_payload=(canonical_json(value) + "\n").encode("utf-8"),
@@ -216,9 +307,23 @@ def apply_dependence_authorization_lock(
     context: FrozenInspectionContext,
     lock_path: Path,
     *,
-    expected_case_id: str | None = None,
+    expected_case_id: str,
 ) -> FrozenInspectionContext:
     """Validate and append the closed four-record bundle to a frozen context."""
+
+    updated, _verified = apply_dependence_authorization_lock_with_receipt(
+        context, lock_path, expected_case_id=expected_case_id
+    )
+    return updated
+
+
+def apply_dependence_authorization_lock_with_receipt(
+    context: FrozenInspectionContext,
+    lock_path: Path,
+    *,
+    expected_case_id: str,
+) -> tuple[FrozenInspectionContext, VerifiedDependenceAuthorizationLock]:
+    """Apply one lock and retain its exact verified disclosure projection."""
 
     selected_report_path = _selected_report_path(context)
     if selected_report_path is None:
@@ -235,10 +340,12 @@ def apply_dependence_authorization_lock(
     verified = verify_dependence_authorization_lock(
         lock_path,
         expected_case_id=expected_case_id,
+        expected_snapshot_digest=context.snapshot_digest,
         source_paths=(item.path for item in context.documents),
         selected_report_path=selected_report_path,
         material_input_digests={item.path: item.content_digest for item in context.material_inputs},
     )
+    _verify_frozen_authorized_columns(context, verified)
 
     additions: list[FrozenBaseRecord] = []
     existing_refs = {item.ref for item in context.base_records}
@@ -249,10 +356,59 @@ def apply_dependence_authorization_lock(
                 "dependence authority record ref collides with the frozen base view"
             )
         additions.append(FrozenBaseRecord.from_record(ref, record))
-    return replace(
+    updated = replace(
         context,
         base_records=tuple(sorted((*context.base_records, *additions), key=lambda item: item.ref)),
     )
+    return updated, verified
+
+
+def dependence_authorization_disclosure(
+    verified: VerifiedDependenceAuthorizationLock,
+    *,
+    run_id: str,
+    created_at: str,
+    affected_ref: RecordRef,
+) -> dict[str, Any]:
+    """Describe the exact bounded authority injection without an accusation."""
+
+    return {
+        "schema_version": "0.18.0",
+        "record_type": "disclosure",
+        "disclosure_id": stable_id(
+            "disclosure-dependence-authority-lock", run_id, verified.lock_digest
+        ),
+        "audit_run_id": run_id,
+        "disclosure_kind": "other",
+        "title": "A bounded human dependence-authorization lock was applied",
+        "description": (
+            "The controller applied one digest-sealed four-record human authorization "
+            "bundle before question-only static scientific-check evaluation."
+        ),
+        "importance": "informational",
+        "non_accusatory": True,
+        "affected_refs": [affected_ref.to_dict()],
+        "source_refs": [],
+        "coverage_status": "covered",
+        "interpretive_consequence": (
+            "The lock supplies only its stated case-, snapshot-, input-, procedure-, and "
+            "ordered-key authority; it establishes no execution, correctness, numerical "
+            "impact, or production Finding eligibility."
+        ),
+        "created_at": created_at,
+        "provenance": controller_provenance(
+            "deterministic_dependence_authority_lock_disclosure_v1", created_at
+        ),
+        "extensions": {
+            "x-dependence-authorization-lock": {
+                "lock_digest": verified.lock_digest,
+                "approved_projection_digest": verified.approved_projection_digest,
+                "approver_actor_id": verified.approver_actor_id,
+                "record_refs": [item.to_dict() for item in verified.record_refs],
+                "snapshot_digest": verified.snapshot_digest,
+            }
+        },
+    }
 
 
 def bind_dependence_selected_writer_scope(
@@ -616,7 +772,7 @@ def _verify_authorization_record(
         },
     )
     actor_id = value.get("actor_id")
-    if not _trimmed(actor_id) or not str(actor_id).startswith("scientist:"):
+    if not _bounded_identifier(actor_id) or not str(actor_id).startswith("scientist:"):
         raise DependenceAuthorizationLockError("dependence authority actor is invalid")
     if value.get("authority_state") != "authorized":
         raise DependenceAuthorizationLockError("dependence authority state is not authorized")
@@ -630,7 +786,7 @@ def _verify_authorization_record(
         "record_id": procedure["record_id"],
     }:
         raise DependenceAuthorizationLockError("dependence authority procedure ref is invalid")
-    if not _trimmed(value.get("independent_unit_definition_id")):
+    if not _bounded_identifier(value.get("independent_unit_definition_id")):
         raise DependenceAuthorizationLockError("dependence authority unit-definition id is invalid")
     columns = value.get("authorized_key_columns")
     if not (
@@ -652,7 +808,12 @@ def _verify_authorization_record(
         )
 
 
-def _verify_approval(approval: object, authorization: dict[str, Any]) -> dict[str, Any]:
+def _verify_approval(
+    approval: object,
+    authorization: dict[str, Any],
+    *,
+    intake_recorded_at: datetime | None,
+) -> dict[str, Any]:
     if not isinstance(approval, dict) or set(approval) != {
         "actor_kind",
         "actor_id",
@@ -667,17 +828,11 @@ def _verify_approval(approval: object, authorization: dict[str, Any]) -> dict[st
     digest = approval.get("approved_projection_digest")
     if not isinstance(digest, str) or _SHA256_RE.fullmatch(digest) is None:
         raise DependenceAuthorizationLockError("dependence authority approval digest is invalid")
-    approved_at = approval.get("approved_at")
-    if not _trimmed(approved_at):
-        raise DependenceAuthorizationLockError("dependence authority approval time is invalid")
-    try:
-        parsed = datetime.fromisoformat(str(approved_at).replace("Z", "+00:00"))
-    except ValueError as error:
+    parsed = _required_timestamp(approval.get("approved_at"), "approval time")
+    if intake_recorded_at is not None and parsed < intake_recorded_at:
         raise DependenceAuthorizationLockError(
-            "dependence authority approval time is invalid"
-        ) from error
-    if parsed.tzinfo is None:
-        raise DependenceAuthorizationLockError("dependence authority approval time lacks a zone")
+            "dependence authority approval predates the referenced intake"
+        )
     return approval
 
 
@@ -698,6 +853,8 @@ def _require_record(
     if (
         not isinstance(record_id, str)
         or _RECORD_ID_RE.fullmatch(record_id) is None
+        or len(record_id) > _MAX_FREE_TEXT_LENGTH
+        or any(character.isspace() for character in record_id)
         or not record_id.startswith(_RECORD_ID_PREFIX[record_type])
     ):
         raise DependenceAuthorizationLockError(
@@ -712,7 +869,7 @@ def _selected_report_path(context: FrozenInspectionContext) -> str | None:
         return None
     try:
         payload = json.loads(matches[0].canonical_payload)
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, RecursionError, MemoryError, TypeError, ValueError):
         return None
     if not isinstance(payload, dict):
         return None
@@ -737,22 +894,47 @@ def _trimmed(value: object) -> bool:
     return isinstance(value, str) and bool(value) and value == value.strip()
 
 
+def _bounded_identifier(value: object) -> bool:
+    return bool(
+        isinstance(value, str)
+        and 1 <= len(value) <= _MAX_FREE_TEXT_LENGTH
+        and value == value.strip()
+        and not any(character.isspace() for character in value)
+    )
+
+
+def _required_timestamp(value: object, label: str) -> datetime:
+    if not _trimmed(value):
+        raise DependenceAuthorizationLockError(f"dependence authority {label} is invalid")
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (OverflowError, TypeError, ValueError) as error:
+        raise DependenceAuthorizationLockError(
+            f"dependence authority {label} is invalid"
+        ) from error
+    if parsed.tzinfo is None:
+        raise DependenceAuthorizationLockError(f"dependence authority {label} lacks a zone")
+    return parsed
+
+
+def _optional_timestamp(value: object, label: str) -> datetime | None:
+    return None if value is None else _required_timestamp(value, label)
+
+
 def _normalized_markers(markers: Iterable[str]) -> frozenset[str]:
     normalized: set[str] = set()
     for marker in markers:
         if not marker:
             continue
-        lowered = marker.lower()
-        normalized.add(lowered)
-        normalized.add(lowered.replace("_", "-"))
-        normalized.add(lowered.replace("-", "_"))
+        normalized.update(_marker_variants(marker))
     return frozenset(normalized)
 
 
 def _contains_marker(value: object, markers: frozenset[str]) -> bool:
     if isinstance(value, str):
-        lowered = value.lower()
-        return any(marker in lowered for marker in markers)
+        return any(
+            marker in candidate for candidate in _marker_variants(value) for marker in markers
+        )
     if isinstance(value, dict):
         return any(
             _contains_marker(key, markers) or _contains_marker(item, markers)
@@ -761,6 +943,81 @@ def _contains_marker(value: object, markers: frozenset[str]) -> bool:
     if isinstance(value, list):
         return any(_contains_marker(item, markers) for item in value)
     return False
+
+
+def _marker_variants(value: str) -> frozenset[str]:
+    folded = unicodedata.normalize("NFKC", value).translate(_CONFUSABLE_TO_LATIN).casefold()
+    underscore = re.sub(r"[\s_-]+", "_", folded)
+    hyphen = re.sub(r"[\s_-]+", "-", folded)
+    return frozenset({folded, underscore, hyphen})
+
+
+def _json_depth_within_bound(text: str) -> bool:
+    depth = 0
+    in_string = False
+    escaped = False
+    for character in text:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+            continue
+        if character == '"':
+            in_string = True
+        elif character in "[{":
+            depth += 1
+            if depth > _MAX_JSON_DEPTH:
+                return False
+        elif character in "]}":
+            depth -= 1
+            if depth < 0:
+                return False
+    return depth == 0 and not in_string
+
+
+def _verify_frozen_authorized_columns(
+    context: FrozenInspectionContext,
+    verified: VerifiedDependenceAuthorizationLock,
+) -> None:
+    authorization = verified.records[-1]
+    input_path = authorization.get("input_path")
+    input_digest = authorization.get("input_content_digest")
+    columns = authorization.get("authorized_key_columns")
+    matches = [
+        item
+        for item in context.material_inputs
+        if item.path == input_path and item.content_digest == input_digest
+    ]
+    if len(matches) != 1 or not isinstance(columns, list):
+        raise DependenceAuthorizationLockError(
+            "dependence authority ordered key lacks one frozen CSV input"
+        )
+    material = matches[0]
+    try:
+        text = material.content.decode("utf-8", errors="strict")
+        reader = csv.reader(io.StringIO(text, newline=""))
+        header = next(reader)
+    except (
+        UnicodeDecodeError,
+        csv.Error,
+        StopIteration,
+        RecursionError,
+        MemoryError,
+        TypeError,
+        ValueError,
+    ) as error:
+        raise DependenceAuthorizationLockError(
+            "dependence authority frozen CSV header is unavailable"
+        ) from error
+    if not header or any(not item for item in header) or len(header) != len(set(header)):
+        raise DependenceAuthorizationLockError("dependence authority frozen CSV header is invalid")
+    if any(column not in header for column in columns):
+        raise DependenceAuthorizationLockError(
+            "dependence authority ordered key names a column outside the frozen CSV header"
+        )
 
 
 def reverify_material_digest(content: bytes, expected_digest: str) -> bool:

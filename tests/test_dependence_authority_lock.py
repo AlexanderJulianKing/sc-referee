@@ -9,6 +9,7 @@ from typing import Any
 
 import pytest
 
+import sc_referee.dependence_recognition.authority_lock as authority_lock_module
 from sc_referee.controller import run_audit
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.dependence_recognition.authority_lock import (
@@ -26,12 +27,18 @@ from sc_referee.scientific_checks.core import (
     InspectionDocument,
     RecordRef,
 )
+from sc_referee.snapshot.repository import capture_repository
 
 _DATA = b"k1,k2,tag,a,b\nx1,y1,t1,1,2\n"
 _DATA_DIGEST = sha256_digest(_DATA)
+_CASE_ID = "case:0123456789abcdefabcd"
 
 
-def _context() -> FrozenInspectionContext:
+def _context(
+    *,
+    snapshot_digest: str | None = None,
+    data: bytes = _DATA,
+) -> FrozenInspectionContext:
     surface_ref = RecordRef("publication_surface", "surface:authority-seat")
     artifact_ref = RecordRef("artifact", "artifact:selected-report")
     snapshot_ref = RecordRef("repository_snapshot", "snapshot:authority-seat")
@@ -43,6 +50,7 @@ def _context() -> FrozenInspectionContext:
         {"parser_id": "parser:python-ast-tokenize", "parser_version": "0.15.1"}
     ).encode()
     source = b"result = scipy.stats.ttest_ind(left, right)\n"
+    data_digest = sha256_digest(data)
     records = (
         FrozenBaseRecord.from_record(
             surface_ref, {"publication_surface_id": surface_ref.record_id}
@@ -75,12 +83,12 @@ def _context() -> FrozenInspectionContext:
                 "asset_identity_id": identity_ref.record_id,
                 "tier": "full_digest",
                 "asset_ref": data_ref.to_dict(),
-                "identity_evidence": {"kind": "full_digest", "digest": _DATA_DIGEST},
+                "identity_evidence": {"kind": "full_digest", "digest": data_digest},
             },
         ),
     )
     return FrozenInspectionContext(
-        snapshot_digest=sha256_digest(b"authority-seat-snapshot"),
+        snapshot_digest=snapshot_digest or sha256_digest(b"authority-seat-snapshot"),
         selected_surface_ref=surface_ref,
         selected_artifact_ref=artifact_ref,
         documents=(
@@ -101,17 +109,25 @@ def _context() -> FrozenInspectionContext:
                 path="inputs/data.csv",
                 file_ref=data_ref,
                 asset_identity_ref=identity_ref,
-                content=_DATA,
-                content_digest=_DATA_DIGEST,
+                content=data,
+                content_digest=data_digest,
             ),
         ),
     )
 
 
-def _lock(*, case_id: str = "case:0123456789abcdefabcd") -> dict[str, Any]:
+def _lock(
+    *,
+    case_id: str = _CASE_ID,
+    snapshot_digest: str | None = None,
+    intake_recorded_at: str | None = None,
+    approved_at: str = "2026-08-10T12:00:00Z",
+) -> dict[str, Any]:
     value: dict[str, Any] = {
         "lock_kind": LOCK_KIND,
         "case_id": case_id,
+        "snapshot_digest": snapshot_digest or _context().snapshot_digest,
+        "intake_recorded_at": intake_recorded_at,
         "records": [
             {
                 "record_type": "analysis",
@@ -151,7 +167,7 @@ def _lock(*, case_id: str = "case:0123456789abcdefabcd") -> dict[str, Any]:
             "actor_kind": "human",
             "actor_id": "scientist:method-owner-01",
             "approved_projection_digest": "sha256:" + "0" * 64,
-            "approved_at": "2026-08-10T12:00:00Z",
+            "approved_at": approved_at,
         },
         "authority_limitations": list(AUTHORITY_LIMITATIONS),
         "lock_digest": "sha256:" + "0" * 64,
@@ -172,7 +188,11 @@ def _write(path: Path, value: dict[str, Any]) -> Path:
 
 def test_valid_dependence_authority_lock_is_accepted(tmp_path: Path) -> None:
     context = _context()
-    updated = apply_dependence_authorization_lock(context, _write(tmp_path / "lock.json", _lock()))
+    updated = apply_dependence_authorization_lock(
+        context,
+        _write(tmp_path / "lock.json", _lock()),
+        expected_case_id=_CASE_ID,
+    )
     assert len(updated.base_records) == len(context.base_records) + 4
     assert context.base_records != updated.base_records
     assert [
@@ -187,7 +207,11 @@ def test_tampered_input_digest_is_refused(tmp_path: Path) -> None:
     value["records"][3]["input_content_digest"] = "sha256:" + "f" * 64
     _seal(value)
     with pytest.raises(DependenceAuthorizationLockError, match="input path or digest"):
-        apply_dependence_authorization_lock(_context(), _write(tmp_path / "tampered.json", value))
+        apply_dependence_authorization_lock(
+            _context(),
+            _write(tmp_path / "tampered.json", value),
+            expected_case_id=_CASE_ID,
+        )
 
 
 def test_extra_record_type_is_refused(tmp_path: Path) -> None:
@@ -195,7 +219,11 @@ def test_extra_record_type_is_refused(tmp_path: Path) -> None:
     value["records"].append({"record_type": "claim", "record_id": "claim:0123456789abcdefabcd"})
     _seal(value)
     with pytest.raises(DependenceAuthorizationLockError, match="exactly four records"):
-        apply_dependence_authorization_lock(_context(), _write(tmp_path / "extra.json", value))
+        apply_dependence_authorization_lock(
+            _context(),
+            _write(tmp_path / "extra.json", value),
+            expected_case_id=_CASE_ID,
+        )
 
 
 def test_duplicate_ref_collision_is_refused(tmp_path: Path) -> None:
@@ -209,7 +237,11 @@ def test_duplicate_ref_collision_is_refused(tmp_path: Path) -> None:
         base_records=tuple(sorted((*context.base_records, duplicate), key=lambda item: item.ref)),
     )
     with pytest.raises(DependenceAuthorizationLockError, match="collides"):
-        apply_dependence_authorization_lock(context, _write(tmp_path / "duplicate.json", _lock()))
+        apply_dependence_authorization_lock(
+            context,
+            _write(tmp_path / "duplicate.json", _lock()),
+            expected_case_id=_CASE_ID,
+        )
 
 
 def test_wrong_lock_kind_is_refused(tmp_path: Path) -> None:
@@ -217,13 +249,21 @@ def test_wrong_lock_kind_is_refused(tmp_path: Path) -> None:
     value["lock_kind"] = "generic_trusted_records_v1"
     _seal(value)
     with pytest.raises(DependenceAuthorizationLockError, match="kind"):
-        apply_dependence_authorization_lock(_context(), _write(tmp_path / "wrong-kind.json", value))
+        apply_dependence_authorization_lock(
+            _context(),
+            _write(tmp_path / "wrong-kind.json", value),
+            expected_case_id=_CASE_ID,
+        )
 
 
 def test_role_string_leakage_is_refused(tmp_path: Path) -> None:
     value = _lock(case_id="case:error_bearing_opaque_01")
     with pytest.raises(DependenceAuthorizationLockError, match="leaks a case role"):
-        apply_dependence_authorization_lock(_context(), _write(tmp_path / "role-leak.json", value))
+        apply_dependence_authorization_lock(
+            _context(),
+            _write(tmp_path / "role-leak.json", value),
+            expected_case_id="case:error_bearing_opaque_01",
+        )
 
 
 def test_unapproved_extra_field_is_refused(tmp_path: Path) -> None:
@@ -232,7 +272,9 @@ def test_unapproved_extra_field_is_refused(tmp_path: Path) -> None:
     _seal(value)
     with pytest.raises(DependenceAuthorizationLockError, match="not closed"):
         apply_dependence_authorization_lock(
-            _context(), _write(tmp_path / "extra-field.json", value)
+            _context(),
+            _write(tmp_path / "extra-field.json", value),
+            expected_case_id=_CASE_ID,
         )
 
 
@@ -241,10 +283,131 @@ def test_plaintext_role_label_is_refused_even_with_replayed_digests(tmp_path: Pa
     value["records"][3]["independent_unit_definition_id"] = "unit-definition:verified_good_eligible"
     _seal(value)
     with pytest.raises(DependenceAuthorizationLockError, match="leaks a case role"):
-        apply_dependence_authorization_lock(_context(), _write(tmp_path / "label-leak.json", value))
+        apply_dependence_authorization_lock(
+            _context(),
+            _write(tmp_path / "label-leak.json", value),
+            expected_case_id=_CASE_ID,
+        )
 
 
-def test_run_audit_applies_authority_after_context_freeze_before_registry_evaluation(
+def test_regression_p1_same_lock_refuses_a_different_frozen_snapshot(tmp_path: Path) -> None:
+    first = _context()
+    lock_path = _write(
+        tmp_path / "snapshot-bound.json",
+        _lock(snapshot_digest=first.snapshot_digest),
+    )
+    apply_dependence_authorization_lock(first, lock_path, expected_case_id=_CASE_ID)
+    second = _context(snapshot_digest=sha256_digest(b"another-frozen-snapshot"))
+    with pytest.raises(DependenceAuthorizationLockError, match="another frozen snapshot"):
+        apply_dependence_authorization_lock(second, lock_path, expected_case_id=_CASE_ID)
+
+
+def test_regression_p1_run_audit_requires_the_expected_case_id(
+    tmp_path: Path,
+    schema_root: Path,
+) -> None:
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    lock_path = _write(tmp_path / "identity-required.json", _lock())
+    with pytest.raises(ValueError, match="expected case id"):
+        run_audit(
+            repository,
+            tmp_path / "audit",
+            schema_root,
+            dependence_authorization_lock=lock_path,
+        )
+
+
+@pytest.mark.parametrize(
+    "leaked_definition",
+    [
+        "unit-definition:error bearing",
+        "unit-definition:err\u043er_bearing",  # Cyrillic small o.
+    ],
+)
+def test_regression_p3_whitespace_and_confusable_role_markers_are_refused(
+    tmp_path: Path,
+    leaked_definition: str,
+) -> None:
+    value = _lock()
+    value["records"][3]["independent_unit_definition_id"] = leaked_definition
+    _seal(value)
+    with pytest.raises(DependenceAuthorizationLockError, match="leaks a case role"):
+        apply_dependence_authorization_lock(
+            _context(),
+            _write(tmp_path / f"role-{semantic_digest(leaked_definition)}.json", value),
+            expected_case_id=_CASE_ID,
+        )
+
+
+def test_regression_p4_unknown_authorized_key_column_is_refused(tmp_path: Path) -> None:
+    value = _lock()
+    value["records"][3]["authorized_key_columns"] = ["k1", "not_in_frozen_header"]
+    _seal(value)
+    with pytest.raises(DependenceAuthorizationLockError, match="outside the frozen CSV header"):
+        apply_dependence_authorization_lock(
+            _context(),
+            _write(tmp_path / "unknown-column.json", value),
+            expected_case_id=_CASE_ID,
+        )
+
+
+def test_regression_p5_json_recursion_error_is_wrapped(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    lock_path = _write(tmp_path / "recursive-json.json", _lock())
+
+    def recurse(*_args: object, **_kwargs: object) -> object:
+        raise RecursionError("injected JSON recursion")
+
+    monkeypatch.setattr(authority_lock_module.json, "loads", recurse)
+    with pytest.raises(DependenceAuthorizationLockError, match="not strict duplicate-free JSON"):
+        authority_lock_module.verify_dependence_authorization_lock(lock_path)
+
+
+@pytest.mark.parametrize("free_text_route", ["actor", "definition", "record_id", "approval"])
+def test_regression_p6_free_text_and_approval_time_are_narrowed(
+    tmp_path: Path,
+    free_text_route: str,
+) -> None:
+    if free_text_route == "approval":
+        value = _lock(
+            intake_recorded_at="2026-08-10T13:00:00Z",
+            approved_at="2026-08-10T12:59:59Z",
+        )
+        match = "predates the referenced intake"
+    else:
+        value = _lock()
+        if free_text_route == "actor":
+            value["records"][3]["actor_id"] = "scientist:method owner"
+            value["approval"]["actor_id"] = "scientist:method owner"
+            match = "actor is invalid"
+        elif free_text_route == "definition":
+            value["records"][3]["independent_unit_definition_id"] = "unit-definition:ordered key"
+            match = "unit-definition id is invalid"
+        else:
+            value["records"][0]["record_id"] = "analysis:" + "a" * 121
+            match = "record id is invalid"
+        _seal(value)
+    with pytest.raises(DependenceAuthorizationLockError, match=match):
+        apply_dependence_authorization_lock(
+            _context(),
+            _write(tmp_path / f"free-text-{free_text_route}.json", value),
+            expected_case_id=_CASE_ID,
+        )
+
+
+def test_regression_p7_pilot_evidence_asymmetry_is_disclosed(project_root: Path) -> None:
+    text = (
+        project_root / "docs/implementation/EXPERIMENT-0058-DEPENDENCE-SEMANTIC-V1-SHADOW.md"
+    ).read_text(encoding="utf-8")
+    normalized = " ".join(text.split())
+    assert "authority presence is role-derived through `contract_free_roles`" in normalized
+    assert "visible to the detector but not to the blind reviewer" in normalized
+
+
+def test_regression_p2_run_audit_discloses_exact_applied_authority_lock(
     tmp_path: Path,
     schema_root: Path,
 ) -> None:
@@ -271,7 +434,14 @@ Path("results/report.md").write_text(f"[selected-result] {result}\\n", encoding=
     (repository / "results/report.md").write_text(
         "[selected-result] frozen pilot result\n", encoding="utf-8"
     )
-    value = _lock()
+    preview = capture_repository(
+        repository,
+        tmp_path / "prospective-snapshot",
+        "audit:prospective-authority-seat",
+        preferred_full_digest_paths=("results/report.md",),
+        material_full_digest_paths=("inputs/data.csv", "requirements.txt"),
+    )
+    value = _lock(snapshot_digest=str(preview.snapshot_record["snapshot_digest"]))
     value["records"][3]["input_content_digest"] = sha256_digest(data)
     _seal(value)
     lock_path = _write(tmp_path / "controller-authority.json", value)
@@ -283,6 +453,7 @@ Path("results/report.md").write_text(f"[selected-result] {result}\\n", encoding=
         report="results/report.md",
         material_inputs=("inputs/data.csv", "requirements.txt"),
         dependence_authorization_lock=lock_path,
+        dependence_authorization_case_id=_CASE_ID,
     )
 
     semantic_lock = json.loads((tmp_path / "audit/semantic.lock.json").read_text(encoding="utf-8"))
@@ -308,5 +479,29 @@ Path("results/report.md").write_text(f"[selected-result] {result}\\n", encoding=
         != without_lock_semantic["scientific_check_registry"]["evaluation"]["context_digest"]
     )
     assert module["check_id"].startswith("check:authorized-independent-unit-entry")
+    authority_disclosures = [
+        item
+        for item in bundle["disclosures"]
+        if "x-dependence-authorization-lock" in item.get("extensions", {})
+    ]
+    assert len(authority_disclosures) == 1
+    disclosure = authority_disclosures[0]
+    assert disclosure["non_accusatory"] is True
+    assert "severity" not in disclosure
+    assert disclosure["extensions"]["x-dependence-authorization-lock"] == {
+        "lock_digest": value["lock_digest"],
+        "approved_projection_digest": value["approval"]["approved_projection_digest"],
+        "approver_actor_id": "scientist:method-owner-01",
+        "record_refs": [
+            {"record_type": str(item["record_type"]), "record_id": str(item["record_id"])}
+            for item in value["records"]
+        ],
+        "snapshot_digest": preview.snapshot_record["snapshot_digest"],
+    }
+    assert not [
+        item
+        for item in without_lock["disclosures"]
+        if "x-dependence-authorization-lock" in item.get("extensions", {})
+    ]
     assert bundle["findings"] == []
     assert without_lock["findings"] == []
