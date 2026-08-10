@@ -26,6 +26,36 @@ Its public assessment types are:
 Zero Findings means only that no issue was admitted within the audit's declared evidence and
 coverage. It does not mean the workflow is correct.
 
+## Program status and validation record
+
+Every claim in this section is traceable to a committed record in this repository.
+
+- **One detector has passed a sealed qualification examination, 7 of 7, and holds a recorded,
+  independently verified maintainer promotion.** The complete-domain exposure-denominator
+  detector (a headline rate computed over only the surviving subset of units but reported as
+  covering the whole planned set) was examined against seven sealed, pre-registered assignments:
+  both planted errors caught, zero false alarms on five controls, one attempt, no repair. See
+  [ADR-0070](docs/implementation/ADR-0070-HELDOUT-THRESHOLD-COMPLETE-DOMAIN-ENVELOPE.md) for the
+  examination and [ADR-0071](docs/implementation/ADR-0071-COMPLETE-DOMAIN-ENVELOPE-PROMOTION.md)
+  for the promotion decision. The promotion grants no production authority yet: wiring a real
+  audit run to publish that Finding is separately gated future work, and the installed
+  qualification manifest remains empty until it lands.
+- **The no-false-accusation record is intact.** Across every blind trial and adversarial review
+  round conducted to date, the detectors under development have produced zero false accusations.
+  Where the tool cannot be certain, it abstains or asks.
+- **A general recognition engine, independently reviewed.** The founder-orientation detector
+  interprets what a program's operations mean rather than matching code by appearance, and
+  asserts a result only when a small, separately written verification kernel accepts a formal
+  proof. See
+  [EXPERIMENT-0057](docs/implementation/EXPERIMENT-0057-FOUNDER-ORIENTATION-SEMANTIC-V3-SHADOW.md).
+- **A dependence / pseudoreplication recognizer is built, reviewed, and registered
+  question-only.** It requires a human-authorized unit definition on a trusted channel, proves
+  from the digest-fixed input file which column's values repeat, and abstains outside a narrow
+  certified envelope. Four rounds of independent adversarial review plus a targeted verification
+  pass closed every constructed wrong answer as a permanent regression test. See
+  [EXPERIMENT-0058](docs/implementation/EXPERIMENT-0058-DEPENDENCE-SEMANTIC-V1-SHADOW.md).
+- The full program plan and per-capability maturity are in [docs/ROADMAP.md](docs/ROADMAP.md).
+
 ## Five-minute start
 
 Python 3.11 or newer is required. The public alpha is installed from a source checkout:
@@ -115,7 +145,8 @@ contract sidecar. The second layout makes paths and column bindings portable wit
 filenames as scientific meaning. They currently produce deterministic observations or
 Disclosures—not production Findings. Capability maturity is reported as six independent
 dimensions; there is no aggregate “full” status. The only
-complete Finding-producing path remains a synthetic test fixture. Read the
+complete Finding-producing path remains a synthetic test fixture; the promoted detector's
+production wiring is separately gated future work recorded in ADR-0071. Read the
 [capability and limitation guide](docs/CAPABILITIES.md) before interpreting a real audit.
 
 ## Safety and evidence boundary
@@ -139,6 +170,7 @@ complete Finding-producing path remains a synthetic test fixture. Read the
 
 ## Documentation
 
+- [Program roadmap and status board](docs/ROADMAP.md)
 - [Quickstart and result interpretation](docs/QUICKSTART.md)
 - [Agentic skill installation and use](docs/AGENTIC_SKILL.md)
 - [Capabilities and explicit limits](docs/CAPABILITIES.md)

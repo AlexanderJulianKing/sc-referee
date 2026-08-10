@@ -130,9 +130,13 @@ place rather than pretending the older artifact exists.
    digest is pinned to an externally recorded value rather than accepted from a self-consistent
    record (the Round-1 resolver otherwise permits a policy mutation accompanied by digest refresh);
    production-controller wiring; resolution of the adapter digest drift for the live bytes; and a
-   floor-independent missed-root check before this policy is reused with more positives. The
-   current `adjudicated_root_recall` denominator counts only resolved roots, so a missed root can
-   fall out of that denominator. None of these gates may be inferred from the Round-1 resolver test
+   floor-independent missed-root check, which is already material at the current two positives:
+   under the frozen one-of-two bar, a record with one missed and one localized root computes
+   `adjudicated_root_recall` of exactly 0.5 and satisfies every Round-1 threshold, so only an
+   absolute missed-root gate in the installed grant can demand more than the exam bar did. A
+   separate, narrower gap also stands: a root that never reaches a resolved state at all (a
+   missed root stays in the denominator, but an unresolved one does not) drops out of both the
+   numerator and denominator. None of these gates may be inferred from the Round-1 resolver test
    or the delivery-plan promotion checkbox.
 
 ## Consequences
@@ -149,8 +153,9 @@ place rather than pretending the older artifact exists.
   certificate, domain-wide validation, or authority for later adapter bytes.
 - Any Round-2 implementation that cannot re-establish the exact digest and schema gates must fail
   closed without installing the grant.
-- The Round-1 root-manifest regeneration expanded the tracked inventory from 4,726 to 13,043 files
-  and repaired 40 pre-existing stale parent-manifest rows, including rows for `registry.json`,
-  `scientific_checks/core.py`, and `scientific_checks/profiles.py` even though those files did not
-  change in the Round-1 work. That repair records parent-manifest staleness, not content drift or
-  an expansion of the promotion decision.
+- The Round-1 root-manifest regeneration expanded the tracked inventory from 4,726 to 13,043 files,
+  repaired 39 pre-existing stale parent-manifest rows for files the Round-1 work did not change
+  (including `registry.json`, `scientific_checks/core.py`, and `scientific_checks/profiles.py`;
+  a 40th changed row reflected `TEN_FINDINGS_DELIVERY_PLAN.md`, which the work did change), and
+  dropped 3 stale compiled-bytecode rows. That repair records parent-manifest staleness, not
+  content drift or an expansion of the promotion decision.
