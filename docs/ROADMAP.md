@@ -77,7 +77,7 @@ result, and nothing has reached that rung yet.
 |---|---|---|
 | Rate reported over the whole planned set but computed over the surviving subset | **Promoted** (sealed exam 7/7; promotion recorded 2026-08-10 and independently verified) | Production wiring: schema release and controller work |
 | Reference panel silently complemented before comparison | **Blind pilots** (six run, zero false accusations; every miss a documented abstention) | Close the one named coverage class, or continue pilots |
-| Hard or binned category used where a continuous measure was declared | **Adversarial review** (round five in progress on two findings from the final pre-pilot check) | Blind pilots |
+| Hard or binned category used where a continuous measure was declared | **Adversarial review passed** (round five closed both final findings; verified ready) | Blind pilots |
 | Plain group average used as a model-expected background | **Recon** (design complete; rebuild on the recognition engine queued) | Build |
 | Directional measurement-error interpretation | Planned | |
 | Poststratified misclassification estimator | Planned | |
@@ -93,7 +93,7 @@ frontier is the recognition that finds what to compute over.
 
 | Family | What it catches | Built today | Stage | Next step |
 |---|---|---|---|---|
-| **Dependence / pseudoreplication** | Repeated measurements from one subject counted as independent (300 cells from 3 mice reported as n=300) | Evaluator, safeguard registry, data provers, and the full recognizer | **Adversarial review passed** (five rounds, no known wrong-answer route; runs in shadow) | Pilot infrastructure, then blind pilots |
+| **Dependence / pseudoreplication** | Repeated measurements from one subject counted as independent (300 cells from 3 mice reported as n=300) | Evaluator, safeguard registry, data provers, the full recognizer, and the complete pilot pipeline | **Pilot stack verified** (registered question-only; nine review rounds across recognizer and pipeline; final verdict: ready for blind pilots) | Blind pilots |
 | **Multiple testing** | An incomplete or mis-scoped correction across a family of tests | Exact complete-family Benjamini-Hochberg recomputation | Recon | Recognizer build (next family in the queue) |
 | **Design integrity & aggregation** | Aggregation that merges or drops design groups; broken pairing | Exact categorical design, pairing, and aggregation calculations | Recon | Queued third; reuses dependence evidence |
 | **Model / response compatibility** | A model fitted on a scale incompatible with its response | Exact call registry and response-scale comparison | Planned | |
@@ -104,9 +104,9 @@ frontier is the recognition that finds what to compute over.
 
 | Slot | Work |
 |---|---|
-| In flight | Copy-dosage fix round five; promotion-record correction from its verification review |
-| Next | Dependence pilot infrastructure (five named gaps), then dependence blind pilots |
-| Then | Production Finding wiring for the promoted detector; multiple-testing recognizer |
+| In flight | Dependence blind pilots (authoring, human authorization, blind review, one-attempt detector runs) |
+| Next | Copy-dosage blind pilots; production Finding wiring for the promoted detector (staged decisions) |
+| Then | Multiple-testing recognizer build (recon complete) |
 
 Verification reviews gate every hand-off in this queue: no item advances past a review that found
 something until the finding is fixed and re-checked.
