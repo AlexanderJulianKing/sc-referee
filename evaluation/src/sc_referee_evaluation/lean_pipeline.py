@@ -24,12 +24,15 @@ Process properties this module encodes structurally:
 from __future__ import annotations
 
 import ast
+import csv
+import io
 import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -41,6 +44,9 @@ import jsonschema
 
 from sc_referee.controller import replay, run_audit
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest, stable_id
+from sc_referee.dependence_recognition.authority_lock import (
+    verify_dependence_authorization_lock,
+)
 from sc_referee.method_contract_run import run_method_contract
 from sc_referee.records.normalization import (
     normalized_json_bytes,
@@ -66,6 +72,9 @@ SCHEMA_RELATIVE = Path("reference/schemas-v0.18.0")
 CALIBRATION_REGISTRY_RELATIVE = Path("evaluation/qualification/calibration-registry.json")
 MANIFEST_NAME = "MANIFEST.json"
 DETECTOR_ID = "detector:bounded-analysis-method-conflict"
+DEPENDENCE_RECOGNITION_CHECK_ID = (
+    "check:authorized-independent-unit-entry-into-row-independent-procedure"
+)
 CLI_TIMEOUT_SECONDS = 3600
 SANDBOX_TIMEOUT_SECONDS = 30
 MAX_INPUT_BYTES = 65536
@@ -80,20 +89,44 @@ VISIBLE_FILES = (
     {"path": "results/report.md", "role": "report"},
 )
 
-_ALLOWED_IMPORT_ROOTS = {
-    "csv",
-    "math",
-    "statistics",
-    "pathlib",
-    "collections",
-    "fractions",
-    "decimal",
-    "itertools",
-    "functools",
-    "json",
-    "re",
-}
+DEFAULT_ALLOWED_IMPORT_ROOTS = frozenset(
+    {
+        "csv",
+        "math",
+        "statistics",
+        "pathlib",
+        "collections",
+        "fractions",
+        "decimal",
+        "itertools",
+        "functools",
+        "json",
+        "re",
+    }
+)
+_ALLOWED_IMPORT_ROOTS = DEFAULT_ALLOWED_IMPORT_ROOTS
 _FORBIDDEN_NAMES = {"eval", "exec", "__import__", "compile", "globals", "locals", "vars"}
+_DEPENDENCE_INPUT_HEADER = ("k1", "k2", "tag", "a", "b")
+_RUNTIME_PROBE = """import importlib
+import importlib.metadata
+import json
+import sys
+
+required = json.loads(sys.argv[1])
+distributions = {}
+for name in sorted(required):
+    module = importlib.import_module(name)
+    distributions[name] = {
+        "distribution_version": importlib.metadata.version(name),
+        "module_version": getattr(module, "__version__", None),
+        "module_path": getattr(module, "__file__", None),
+    }
+print(json.dumps({
+    "python_version": sys.version,
+    "sys_prefix": sys.prefix,
+    "distributions": distributions,
+}, sort_keys=True, separators=(",", ":")))
+"""
 
 EXPECTED_VERDICT_BY_ROLE = {
     "error_bearing": "demonstrated_issue",
@@ -218,10 +251,21 @@ class EnvelopeConfig:
     mq_tolerant_roles: set[str] = field(default_factory=set)
     contract_free_roles: set[str] = field(default_factory=set)
     opening_record_relative: str | None = None
+    allowed_import_roots: frozenset[str] = DEFAULT_ALLOWED_IMPORT_ROOTS
+    detector_id: str = DETECTOR_ID
+    sandbox_python: Path | None = None
+    required_sandbox_distributions: dict[str, str] = field(default_factory=dict)
+    controller_material_files: dict[str, bytes] = field(default_factory=dict)
+    material_input_paths: tuple[str, ...] = ()
+    input_csv_row_bounds: tuple[int, int] | None = None
 
     @property
     def roles(self) -> list[str]:
         return sorted({role for roles in self.author_roles.values() for role in roles})
+
+    @property
+    def requires_dependence_authority(self) -> bool:
+        return self.check_id == DEPENDENCE_RECOGNITION_CHECK_ID
 
     def expected_verdict(self, role: str) -> str:
         table = (
@@ -744,6 +788,10 @@ def step_authoring(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
     binding = next(
         item for item in registry["method_conflict_bindings"] if item["check_id"] == config.check_id
     )
+    if binding.get("detector_id") != config.detector_id:
+        raise LeanPipelineError(
+            "The configured detector id does not match the registered method-conflict binding."
+        )
     detector_tuple = {
         "check_id": config.check_id,
         "check_version": module["check_version"],
@@ -758,6 +806,8 @@ def step_authoring(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
         ),
         "production_finding_permitted": False,
     }
+    if config.requires_dependence_authority:
+        detector_tuple["detector_id"] = config.detector_id
     tuple_digest = semantic_digest(detector_tuple)
 
     if config.sealed_case_assignments is None:
@@ -906,7 +956,7 @@ def _strip_single_fence(text: str) -> str:
     return stripped
 
 
-def _static_guard(source: str) -> None:
+def _static_guard(source: str, allowed_import_roots: frozenset[str]) -> None:
     try:
         tree = ast.parse(source)
     except SyntaxError as error:
@@ -914,13 +964,13 @@ def _static_guard(source: str) -> None:
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
-                if alias.name.split(".")[0] not in _ALLOWED_IMPORT_ROOTS:
+                if alias.name.split(".")[0] not in allowed_import_roots:
                     raise LeanPipelineError(
                         f"Authored workflow imports a forbidden module: {alias.name}"
                     )
         elif isinstance(node, ast.ImportFrom):
             root_name = (node.module or "").split(".")[0]
-            if node.level or root_name not in _ALLOWED_IMPORT_ROOTS:
+            if node.level or root_name not in allowed_import_roots:
                 raise LeanPipelineError(
                     f"Authored workflow imports a forbidden module: {node.module}"
                 )
@@ -928,7 +978,7 @@ def _static_guard(source: str) -> None:
             raise LeanPipelineError(f"Authored workflow uses a forbidden builtin: {node.id}")
 
 
-def _sandbox_run(case_root: Path) -> bytes:
+def _sandbox_run(case_root: Path, sandbox_python: Path) -> bytes:
     """Execute the authored workflow once in an isolated copy; return report bytes."""
 
     with tempfile.TemporaryDirectory(prefix="sc-referee-lean-sandbox-") as temporary:
@@ -940,7 +990,7 @@ def _sandbox_run(case_root: Path) -> bytes:
             if path.is_file()
         }
         completed = subprocess.run(
-            [sys.executable, "-I", "workflow/analysis.py"],
+            [str(sandbox_python), "-I", "workflow/analysis.py"],
             cwd=sandbox,
             env={"NO_COLOR": "1"},
             capture_output=True,
@@ -968,6 +1018,157 @@ def _sandbox_run(case_root: Path) -> bytes:
         return report.read_bytes()
 
 
+def _resolve_sandbox_python(project_root: Path, config: EnvelopeConfig) -> Path:
+    configured = config.sandbox_python or Path(sys.executable)
+    expanded = configured.expanduser()
+    candidate = expanded if expanded.is_absolute() else project_root / expanded
+    # Keep the venv entry path rather than resolving its symlink: CPython uses
+    # that entry path to locate pyvenv.cfg and establish the intended prefix.
+    candidate = Path(os.path.abspath(candidate))
+    if not candidate.is_file() or not os.access(candidate, os.X_OK):
+        raise LeanPipelineError("The configured sandbox interpreter is not executable.")
+    return candidate
+
+
+def _probe_sandbox_runtime(
+    sandbox_python: Path,
+    required_distributions: Mapping[str, str],
+) -> dict[str, Any]:
+    if not required_distributions:
+        raise LeanPipelineError("A sandbox probe requires at least one pinned distribution.")
+    if any(
+        not isinstance(name, str)
+        or not name
+        or name != name.strip()
+        or not isinstance(version, str)
+        or not version
+        or version != version.strip()
+        for name, version in required_distributions.items()
+    ):
+        raise LeanPipelineError("Sandbox distribution pins are invalid.")
+    interpreter_digest = sha256_digest(sandbox_python.read_bytes())
+    completed = subprocess.run(
+        [
+            str(sandbox_python),
+            "-I",
+            "-c",
+            _RUNTIME_PROBE,
+            canonical_json(dict(sorted(required_distributions.items()))),
+        ],
+        env={"NO_COLOR": "1"},
+        capture_output=True,
+        check=False,
+        timeout=SANDBOX_TIMEOUT_SECONDS,
+    )
+    if completed.returncode != 0 or completed.stderr:
+        raise LeanPipelineError("The isolated sandbox runtime probe failed.")
+    if sha256_digest(sandbox_python.read_bytes()) != interpreter_digest:
+        raise LeanPipelineError("The sandbox interpreter drifted during its isolated probe.")
+    try:
+        observed = json.loads(completed.stdout.decode("utf-8", errors="strict"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise LeanPipelineError("The sandbox runtime probe returned invalid JSON.") from error
+    if not isinstance(observed, dict) or set(observed) != {
+        "python_version",
+        "sys_prefix",
+        "distributions",
+    }:
+        raise LeanPipelineError("The sandbox runtime probe returned an open record.")
+    distributions = observed.get("distributions")
+    if not isinstance(distributions, dict) or set(distributions) != set(required_distributions):
+        raise LeanPipelineError("The sandbox runtime probe covered the wrong distributions.")
+    for name, required_version in required_distributions.items():
+        item = distributions.get(name)
+        if not isinstance(item, dict) or set(item) != {
+            "distribution_version",
+            "module_version",
+            "module_path",
+        }:
+            raise LeanPipelineError("The sandbox runtime probe distribution record is open.")
+        if (
+            item.get("distribution_version") != required_version
+            or item.get("module_version") != required_version
+            or not isinstance(item.get("module_path"), str)
+            or not item["module_path"]
+        ):
+            raise LeanPipelineError(
+                f"The sandbox runtime does not satisfy the exact {name}=={required_version} pin."
+            )
+    if not isinstance(observed.get("sys_prefix"), str) or not observed["sys_prefix"]:
+        raise LeanPipelineError("The sandbox runtime probe omitted sys.prefix.")
+    if not isinstance(observed.get("python_version"), str) or not observed["python_version"]:
+        raise LeanPipelineError("The sandbox runtime probe omitted the Python version.")
+    record: dict[str, Any] = {
+        "interpreter_path": sandbox_python.as_posix(),
+        "interpreter_digest": interpreter_digest,
+        "sys_prefix": observed["sys_prefix"],
+        "python_version": observed["python_version"],
+        "required_distributions": dict(sorted(required_distributions.items())),
+        "observed_distributions": distributions,
+        "probe_script_digest": sha256_digest(_RUNTIME_PROBE),
+    }
+    record["probe_digest"] = semantic_digest(record)
+    return record
+
+
+def _validate_bounded_input_csv(input_csv: str, config: EnvelopeConfig) -> None:
+    bounds = config.input_csv_row_bounds
+    if bounds is None:
+        return
+    lower, upper = bounds
+    if lower < 0 or upper < lower:
+        raise LeanPipelineError("The configured input CSV row bounds are invalid.")
+    try:
+        rows = list(csv.reader(io.StringIO(input_csv, newline=""), strict=True))
+    except csv.Error as error:
+        raise LeanPipelineError("The authored input CSV is malformed.") from error
+    if not rows or not rows[0] or any(not item for item in rows[0]):
+        raise LeanPipelineError("The authored input CSV header is empty.")
+    header = tuple(rows[0])
+    if len(header) != len(set(header)):
+        raise LeanPipelineError("The authored input CSV header is duplicated.")
+    if config.requires_dependence_authority and header != _DEPENDENCE_INPUT_HEADER:
+        raise LeanPipelineError("The dependence input CSV header is outside the frozen envelope.")
+    data_rows = rows[1:]
+    if not lower <= len(data_rows) <= upper:
+        raise LeanPipelineError("The authored input CSV row count is outside its bound.")
+    if any(len(row) != len(header) or any(cell == "" for cell in row) for row in data_rows):
+        raise LeanPipelineError("The authored input CSV contains an empty or ragged row.")
+
+
+def _require_probed_interpreter_unchanged(
+    sandbox_python: Path, runtime_probe: dict[str, Any] | None
+) -> None:
+    if (
+        runtime_probe is not None
+        and sha256_digest(sandbox_python.read_bytes()) != runtime_probe["interpreter_digest"]
+    ):
+        raise LeanPipelineError("The sandbox interpreter drifted after its intake probe.")
+
+
+def _controller_material_files(config: EnvelopeConfig) -> tuple[tuple[str, bytes], ...]:
+    visible_paths = {str(item["path"]) for item in VISIBLE_FILES}
+    entries: list[tuple[str, bytes]] = []
+    for path_value, payload in sorted(config.controller_material_files.items()):
+        path = Path(path_value)
+        if (
+            not path_value
+            or path.is_absolute()
+            or "." in path.parts
+            or ".." in path.parts
+            or path_value in visible_paths
+            or not isinstance(payload, bytes)
+        ):
+            raise LeanPipelineError("A controller material file escapes the private envelope.")
+        entries.append((path_value, payload))
+    if len(config.material_input_paths) != len(set(config.material_input_paths)):
+        raise LeanPipelineError("The material input paths are duplicated.")
+    available = visible_paths | {path for path, _payload in entries}
+    if any(path not in available for path in config.material_input_paths):
+        raise LeanPipelineError("A material input path is not present in the admitted case.")
+    return tuple(entries)
+
+
 def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     root = project_root / config.pipeline_relative
     output_root = root / "authoring"
@@ -975,6 +1176,13 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     if (root / "authoring" / "INTAKE_LEDGER.json").exists():
         raise LeanPipelineError("The intake step already has output.")
     roles = {str(k): str(v) for k, v in protocol["case_role_assignments"].items()}
+    sandbox_python = _resolve_sandbox_python(project_root, config)
+    runtime_probe = (
+        _probe_sandbox_runtime(sandbox_python, config.required_sandbox_distributions)
+        if config.required_sandbox_distributions
+        else None
+    )
+    controller_files = _controller_material_files(config)
     rows: list[dict[str, Any]] = []
     for assignment in protocol["author_assignments"]:
         participant_id = str(assignment["participant"]["participant_id"])
@@ -1013,7 +1221,8 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                     raise LeanPipelineError(f"Authored file {name} exceeds its size bound.")
                 if not payload_text.isascii():
                     raise LeanPipelineError(f"Authored file {name} is not ASCII.")
-            _static_guard(analysis_py)
+            _static_guard(analysis_py, config.allowed_import_roots)
+            _validate_bounded_input_csv(input_csv, config)
             marker_lines = [
                 index + 1
                 for index, line in enumerate(report_md.splitlines())
@@ -1032,30 +1241,42 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             (case_root / "inputs/data.csv").write_bytes(input_csv.encode("utf-8"))
             (case_root / "workflow/analysis.py").write_bytes(analysis_py.encode("utf-8"))
             (case_root / "results/report.md").write_bytes(report_md.encode("utf-8"))
-            first = _sandbox_run(case_root)
-            second = _sandbox_run(case_root)
+            for path_value, payload in controller_files:
+                destination = case_root / path_value
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                if destination.exists() or destination.is_symlink():
+                    raise LeanPipelineError("A controller material file collides with case bytes.")
+                atomic_write_bytes(destination, payload)
+            _require_probed_interpreter_unchanged(sandbox_python, runtime_probe)
+            first = _sandbox_run(case_root, sandbox_python)
+            _require_probed_interpreter_unchanged(sandbox_python, runtime_probe)
+            second = _sandbox_run(case_root, sandbox_python)
+            _require_probed_interpreter_unchanged(sandbox_python, runtime_probe)
             if first != second:
                 raise LeanPipelineError(f"Case {case_id} is not deterministic.")
             if first != report_md.encode("utf-8"):
                 raise LeanPipelineError(
                     f"Case {case_id} report does not equal its executed output."
                 )
-            rows.append(
-                {
-                    "case_id": case_id,
-                    "case_role": roles[case_id],
-                    "author_participant_id": participant_id,
-                    "selected_result_line": marker_lines[0],
-                    "file_digests": {
-                        "inputs/data.csv": sha256_digest(input_csv.encode("utf-8")),
-                        "workflow/analysis.py": sha256_digest(analysis_py.encode("utf-8")),
-                        "results/report.md": sha256_digest(report_md.encode("utf-8")),
-                    },
-                    "sandbox_runs": 2,
-                    "sandbox_report_digest": sha256_digest(first),
-                    "deterministic": True,
+            row: dict[str, Any] = {
+                "case_id": case_id,
+                "case_role": roles[case_id],
+                "author_participant_id": participant_id,
+                "selected_result_line": marker_lines[0],
+                "file_digests": {
+                    "inputs/data.csv": sha256_digest(input_csv.encode("utf-8")),
+                    "workflow/analysis.py": sha256_digest(analysis_py.encode("utf-8")),
+                    "results/report.md": sha256_digest(report_md.encode("utf-8")),
+                },
+                "sandbox_runs": 2,
+                "sandbox_report_digest": sha256_digest(first),
+                "deterministic": True,
+            }
+            if controller_files:
+                row["controller_material_file_digests"] = {
+                    path_value: sha256_digest(payload) for path_value, payload in controller_files
                 }
-            )
+            rows.append(row)
     if sorted(row["case_id"] for row in rows) != sorted(roles):
         raise LeanPipelineError("Intake did not admit the exact authored case set.")
     ledger: dict[str, Any] = {
@@ -1075,6 +1296,8 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         "recorded_at": _now(),
         "qualification_authority": "none_intake_only",
     }
+    if runtime_probe is not None:
+        ledger["sandbox_runtime_probe"] = runtime_probe
     ledger["ledger_digest"] = semantic_digest(ledger)
     write_normalized_json_once(output_root / "INTAKE_LEDGER.json", ledger)
     _manifest_record(
@@ -1083,6 +1306,128 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         "intake",
         digest=ledger["ledger_digest"],
         relative_path="authoring/INTAKE_LEDGER.json",
+    )
+    return ledger
+
+
+# ---------------------------------------------------------------------------
+# Conditional dependence authority freeze: after intake, before review.
+
+
+def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
+    if not config.requires_dependence_authority:
+        raise LeanPipelineError("This envelope does not require a dependence authority step.")
+    root = project_root / config.pipeline_relative
+    authority_root = root / "authority"
+    ledger_path = authority_root / "AUTHORITY_LEDGER.json"
+    if ledger_path.exists():
+        raise LeanPipelineError("The authority step already has output.")
+    if (authority_root / "locks").exists():
+        raise LeanPipelineError("The authority freeze directory already exists.")
+    _authoring_entry, protocol = _manifest_require(project_root, config, "authoring")
+    _intake_entry, intake = _manifest_require(project_root, config, "intake")
+    roles = {str(key): str(value) for key, value in protocol["case_role_assignments"].items()}
+    intake_rows = {str(row["case_id"]): row for row in intake["entries"]}
+    if set(intake_rows) != set(roles):
+        raise LeanPipelineError("The authority step received a different admitted case set.")
+    incoming_root = authority_root / "incoming"
+    expected_lock_names = {
+        f"{case_id.removeprefix('case:')}.json"
+        for case_id, role in roles.items()
+        if role not in config.contract_free_roles
+    }
+    actual_lock_names = (
+        {path.name for path in incoming_root.iterdir() if path.is_file() and not path.is_symlink()}
+        if incoming_root.is_dir()
+        else set()
+    )
+    if actual_lock_names != expected_lock_names or (
+        incoming_root.exists()
+        and any(not path.is_file() or path.is_symlink() for path in incoming_root.iterdir())
+    ):
+        raise LeanPipelineError("The authority inbox is not keyed by the exact opaque case set.")
+
+    entries: list[dict[str, Any]] = []
+    frozen_payloads: list[tuple[Path, bytes]] = []
+    for case_id in sorted(roles):
+        role = roles[case_id]
+        slug = case_id.removeprefix("case:")
+        incoming = authority_root / "incoming" / f"{slug}.json"
+        if role in config.contract_free_roles:
+            if incoming.exists() or incoming.is_symlink():
+                raise LeanPipelineError(
+                    "A contract-free case must not receive a fabricated authority lock."
+                )
+            entries.append(
+                {
+                    "case_id": case_id,
+                    "authority_state": "unresolved_or_withheld",
+                    "frozen_lock_relative": None,
+                    "lock_digest": None,
+                    "approved_projection_digest": None,
+                }
+            )
+            continue
+        if not incoming.is_file():
+            raise LeanPipelineError(f"Case {case_id} lacks its separately approved authority lock.")
+
+        case_root = root / "authoring" / "cases" / slug
+        intake_row = intake_rows[case_id]
+        admitted_digests = {
+            **dict(intake_row["file_digests"]),
+            **dict(intake_row.get("controller_material_file_digests", {})),
+        }
+        for path_value, digest in admitted_digests.items():
+            path = case_root / str(path_value)
+            if not path.is_file() or sha256_digest(path.read_bytes()) != digest:
+                raise LeanPipelineError(f"Admitted authority-bound bytes drifted for {case_id}.")
+        verified = verify_dependence_authorization_lock(
+            incoming,
+            expected_case_id=case_id,
+            source_paths=("workflow/analysis.py",),
+            selected_report_path="results/report.md",
+            material_input_digests=admitted_digests,
+            forbidden_role_markers=config.roles,
+        )
+        relative = Path("authority") / "locks" / f"{slug}.json"
+        frozen_payloads.append((root / relative, verified.canonical_payload))
+        entries.append(
+            {
+                "case_id": case_id,
+                "authority_state": "authorized",
+                "frozen_lock_relative": relative.as_posix(),
+                "lock_digest": verified.lock_digest,
+                "approved_projection_digest": verified.approved_projection_digest,
+            }
+        )
+
+    for path, payload in frozen_payloads:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        atomic_write_bytes(path, payload)
+    ledger: dict[str, Any] = {
+        "artifact_kind": "lean_pipeline_dependence_authority_ledger",
+        "ledger_version": "1.0.0",
+        "envelope_id": config.envelope_id,
+        "authoring_protocol_digest": protocol["protocol_digest"],
+        "intake_ledger_digest": intake["ledger_digest"],
+        "entries": entries,
+        "case_count": len(entries),
+        "authorized_count": sum(item["authority_state"] == "authorized" for item in entries),
+        "withheld_count": sum(
+            item["authority_state"] == "unresolved_or_withheld" for item in entries
+        ),
+        "frozen_before_review": True,
+        "frozen_at": _now(),
+        "qualification_authority": "human_method_authorization_freeze_only",
+    }
+    ledger["ledger_digest"] = semantic_digest(ledger)
+    write_normalized_json_once(ledger_path, ledger)
+    _manifest_record(
+        project_root,
+        config,
+        "authority",
+        digest=ledger["ledger_digest"],
+        relative_path="authority/AUTHORITY_LEDGER.json",
     )
     return ledger
 
@@ -1266,13 +1611,11 @@ def _prepare_blind_case(
         config.canonical_issue_class,
         config.check_id,
         config.envelope_id,
-        "error-bearing",
-        "error_bearing",
-        "corrected_twin",
-        "corrected-twin",
-        "valid_alternative",
-        "valid-alternative",
     }
+    for role_value in config.roles:
+        forbidden_markers.add(role_value)
+        forbidden_markers.add(role_value.replace("_", "-"))
+        forbidden_markers.add(role_value.replace("-", "_"))
     workspace_manifest = build_blind_workspace(
         runner_source,
         preparation_root / "blind-workspace",
@@ -1476,6 +1819,11 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     calibrations = ensure_calibrations(project_root, config)
     _auth_entry, protocol = _manifest_require(project_root, config, "authoring")
     _intake_entry, intake = _manifest_require(project_root, config, "intake")
+    authority = None
+    if config.requires_dependence_authority:
+        _authority_entry, authority = _manifest_require(project_root, config, "authority")
+        if authority.get("frozen_before_review") is not True:
+            raise LeanPipelineError("Dependence authority was not frozen before review.")
     roles = {str(k): str(v) for k, v in protocol["case_role_assignments"].items()}
     intake_rows = {str(row["case_id"]): row for row in intake["entries"]}
     review_root.mkdir(parents=True, exist_ok=True)
@@ -1518,6 +1866,8 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         "frozen_at": _now(),
         "qualification_authority": "none_review_protocol_only",
     }
+    if authority is not None:
+        review_protocol["authority_ledger_digest"] = authority["ledger_digest"]
     review_protocol["protocol_digest"] = semantic_digest(review_protocol)
     write_normalized_json_once(review_root / "REVIEW_PROTOCOL.json", review_protocol)
 
@@ -1624,6 +1974,8 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         "recorded_at": _now(),
         "qualification_authority": "none_lean_review_only",
     }
+    if authority is not None:
+        ledger["authority_ledger_digest"] = authority["ledger_digest"]
     ledger["ledger_digest"] = semantic_digest(ledger)
     write_normalized_json_once(review_root / "REVIEW_LEDGER.json", ledger)
     _manifest_record(
@@ -1740,6 +2092,21 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     if label_ledger["detector_output_observed"] is not False:
         raise LeanPipelineError("Labels were not frozen before detector observation.")
     detector_tuple = protocol["detector_tuple"]
+    detector_id = str(detector_tuple.get("detector_id", config.detector_id))
+    if detector_id != config.detector_id:
+        raise LeanPipelineError("The frozen detector id differs from the envelope configuration.")
+    authority_entries: dict[str, dict[str, Any]] = {}
+    authority_ledger: dict[str, Any] | None = None
+    if config.requires_dependence_authority:
+        _authority_entry, authority_ledger = _manifest_require(project_root, config, "authority")
+        _review_entry, review_ledger = _manifest_require(project_root, config, "review")
+        if review_ledger.get("authority_ledger_digest") != authority_ledger["ledger_digest"]:
+            raise LeanPipelineError("The detector authority digest differs from blind review.")
+        authority_entries = {
+            str(item["case_id"]): item for item in authority_ledger.get("entries", [])
+        }
+        if len(authority_entries) != len(authority_ledger.get("entries", [])):
+            raise LeanPipelineError("The authority ledger repeats an opaque case id.")
     registry_path = (
         project_root / "src/sc_referee/resources/scientific-check-manifests-v1/registry.json"
     )
@@ -1748,6 +2115,8 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             "The current check registry drifted from the frozen detector tuple."
         )
     roles = {str(k): str(v) for k, v in protocol["case_role_assignments"].items()}
+    if config.requires_dependence_authority and set(authority_entries) != set(roles):
+        raise LeanPipelineError("The authority ledger does not cover the exact opaque case set.")
     labels_by_case = {str(row["case_id"]): row for row in label_ledger["entries"]}
     schema_root = project_root / SCHEMA_RELATIVE
     output_root.mkdir(parents=True)
@@ -1768,6 +2137,46 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         contract_free = role in config.contract_free_roles
         candidate_id = None if contract_free else config.candidate_by_role[role]
         contract_lock: Path | None = None
+        dependence_lock: Path | None = None
+        if config.requires_dependence_authority:
+            authority_entry = authority_entries.get(case_id)
+            if authority_entry is None:
+                raise LeanPipelineError(f"The authority ledger omits case {case_id}.")
+            if authority_entry.get("authority_state") == "authorized":
+                relative = authority_entry.get("frozen_lock_relative")
+                if not isinstance(relative, str):
+                    raise LeanPipelineError("An authorized case lacks its frozen lock path.")
+                expected_relative = f"authority/locks/{slug}.json"
+                if relative != expected_relative:
+                    raise LeanPipelineError(
+                        "An authority lock path is outside its opaque case key."
+                    )
+                dependence_lock = root / relative
+                material_digests = {
+                    path_value: sha256_digest((repository / path_value).read_bytes())
+                    for path_value in config.material_input_paths
+                    if (repository / path_value).is_file()
+                }
+                verified_lock = verify_dependence_authorization_lock(
+                    dependence_lock,
+                    expected_case_id=case_id,
+                    source_paths=("workflow/analysis.py",),
+                    selected_report_path="results/report.md",
+                    material_input_digests=material_digests,
+                    forbidden_role_markers=config.roles,
+                )
+                if verified_lock.lock_digest != authority_entry.get(
+                    "lock_digest"
+                ) or verified_lock.approved_projection_digest != authority_entry.get(
+                    "approved_projection_digest"
+                ):
+                    raise LeanPipelineError("The frozen authority lock drifted after review.")
+            elif authority_entry.get("authority_state") != "unresolved_or_withheld":
+                raise LeanPipelineError("The authority ledger contains an unknown state.")
+            if contract_free != (dependence_lock is None):
+                raise LeanPipelineError(
+                    "The method-contract and dependence-authority states do not align."
+                )
         if not contract_free:
             contract = run_method_contract(
                 repository,
@@ -1791,6 +2200,8 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             schema_root,
             report="results/report.md",
             method_contract_lock=contract_lock,
+            material_inputs=config.material_input_paths,
+            dependence_authorization_lock=dependence_lock,
         )
         replayed = replay(
             case_root / "audit" / "semantic.lock.json", case_root / "replay", schema_root
@@ -1800,7 +2211,7 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         fired = [
             result
             for result in bundle.get("detector_results", [])
-            if result.get("detector_id") == DETECTOR_ID
+            if result.get("detector_id") == detector_id
             and result.get("state") == "evaluation_finding_candidate"
         ]
         label_status = str(labels_by_case[case_id]["label_status"])
@@ -1860,7 +2271,7 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         "labels_frozen_before_detector_observation": True,
         "check_id": config.check_id,
         "check_version": detector_tuple["check_version"],
-        "detector_id": DETECTOR_ID,
+        "detector_id": detector_id,
         "entries": rows,
         "pilot_metrics": metrics,
         "production_finding_count": sum(int(row["production_findings"]) for row in rows),
@@ -1869,6 +2280,8 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         "run_at": _now(),
         "qualification_authority": "none_pilot_detector_run_only",
     }
+    if authority_ledger is not None:
+        ledger["authority_ledger_digest"] = authority_ledger["ledger_digest"]
     ledger["ledger_digest"] = semantic_digest(ledger)
     write_normalized_json_once(output_root / "DETECTOR_RUN_LEDGER.json", ledger)
     _manifest_record(
@@ -1908,6 +2321,7 @@ def write_heldout_opening(
 STEP_FUNCTIONS = {
     "authoring": step_authoring,
     "intake": step_intake,
+    "authority": step_authority,
     "review": step_review,
     "labels": step_labels,
     "detector": step_detector,
@@ -1915,11 +2329,19 @@ STEP_FUNCTIONS = {
 STEP_ORDER = ("authoring", "intake", "review", "labels", "detector")
 
 
+def pipeline_step_order(config: EnvelopeConfig) -> tuple[str, ...]:
+    if config.requires_dependence_authority:
+        return ("authoring", "intake", "authority", "review", "labels", "detector")
+    return STEP_ORDER
+
+
 def run_pipeline(
     project_root: Path, config: EnvelopeConfig, steps: list[str] | None = None
 ) -> dict[str, Any]:
     manifest = _manifest_read(project_root, config)
-    selected = steps or [step for step in STEP_ORDER if step not in manifest["steps"]]
+    selected = steps or [
+        step for step in pipeline_step_order(config) if step not in manifest["steps"]
+    ]
     results: dict[str, Any] = {}
     for step in selected:
         if step not in STEP_FUNCTIONS:

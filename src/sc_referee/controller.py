@@ -533,6 +533,7 @@ def run_audit(
     scientific_check_registry: ScientificCheckRegistry | None = None,
     calculation_check_registry: CalculationCheckRegistry | None = None,
     material_inputs: tuple[str, ...] = (),
+    dependence_authorization_lock: Path | None = None,
 ) -> dict[str, Any]:
     """Run a conservative static audit over an arbitrary repository.
 
@@ -921,6 +922,18 @@ def run_audit(
             scope_selections=scope_selection_build.projection,
             selection_evidence_records=questions,
         )
+        if dependence_authorization_lock is not None:
+            if scientific_context is None:
+                raise ValueError(
+                    "a dependence authorization lock requires one frozen inspection context"
+                )
+            from sc_referee.dependence_recognition.authority_lock import (
+                apply_dependence_authorization_lock,
+            )
+
+            scientific_context = apply_dependence_authorization_lock(
+                scientific_context, dependence_authorization_lock
+            )
         if scientific_context is not None:
             scientific_evaluation = active_scientific_checks.evaluate(scientific_context)
             scientific_compilation = compile_scientific_check_records(

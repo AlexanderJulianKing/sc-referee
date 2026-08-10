@@ -607,7 +607,7 @@ def main() -> int:
     parser.add_argument(
         "--step",
         action="append",
-        choices=["authoring", "intake", "review", "labels", "detector"],
+        choices=["authoring", "intake", "authority", "review", "labels", "detector"],
         help="Steps to run; omit to run every step not yet in the manifest.",
     )
     arguments = parser.parse_args()
