@@ -1,0 +1,55 @@
+{
+  "approval": {
+    "actor_id": "scientist:alexander-king-method-owner-01",
+    "actor_kind": "human",
+    "approved_at": "2026-08-10T22:41:20.818762Z",
+    "approved_projection_digest": "sha256:da9ed7c935f5f431b157b58a07be9a6b3c12817dfb3e0c87bb1f1db9e5e8aba0"
+  },
+  "authority_limitations": [
+    "Authorization is limited to this case, input digest, procedure and ordered key.",
+    "It establishes no execution, numerical impact or general scientific correctness."
+  ],
+  "case_id": "case:7232c367dbb013d06cde",
+  "declared_execution_root": "case_root",
+  "intake_recorded_at": "2026-08-10T22:40:48.790753Z",
+  "lock_digest": "sha256:e8010525f6fb4ef61eb147cc6a557ccce27134a5f77451f799ec5ebaba0ab227",
+  "lock_kind": "dependence_method_authorization_v1",
+  "records": [
+    {
+      "path": "workflow/analysis.py",
+      "record_id": "analysis:7232c367dbb013d06cde",
+      "record_type": "analysis"
+    },
+    {
+      "record_id": "procedure:7232c367dbb013d06cde",
+      "record_type": "procedure",
+      "resolved_callable": "scipy.stats.mannwhitneyu"
+    },
+    {
+      "path": "results/report.md",
+      "record_id": "result:7232c367dbb013d06cde",
+      "record_type": "result"
+    },
+    {
+      "actor_id": "scientist:alexander-king-method-owner-01",
+      "analysis_target_ref": {
+        "record_id": "analysis:7232c367dbb013d06cde",
+        "record_type": "analysis"
+      },
+      "authority_state": "authorized",
+      "authorized_key_columns": [
+        "k1"
+      ],
+      "independent_unit_definition_id": "unit-definition:k1-first-collection-source-item",
+      "input_content_digest": "sha256:9d3ee2facf1c4abf312f51916c349260ca77df1e1047fe6db6d299f1bdcd66c4",
+      "input_path": "inputs/data.csv",
+      "procedure_ref": {
+        "record_id": "procedure:7232c367dbb013d06cde",
+        "record_type": "procedure"
+      },
+      "record_id": "authorization:7232c367dbb013d06cde",
+      "record_type": "human_method_authorization"
+    }
+  ],
+  "snapshot_digest": "sha256:14c4041a7e3debec6c8f22e4e2ec96ffa51769123e37d5047f980b7165f917d8"
+}
