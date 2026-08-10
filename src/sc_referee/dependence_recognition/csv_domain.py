@@ -9,7 +9,11 @@ overflow returns ``None``.
 The two line models deliberately reproduce the two certified runtime forms.
 ``splitlines`` means ``csv.DictReader(text.splitlines())`` and therefore
 abstains when a separator unique to :meth:`str.splitlines` occurs anywhere.
-``csv_newline`` means ``csv.DictReader`` over an untranslated text stream.
+Quoted fields crossing physical lines are reconstructed with ``\n`` by that
+iterator model, so its fact records ``splitlines_rejoined_utf8`` rather than
+claiming byte-exact field preservation.  ``csv_newline`` means
+``csv.DictReader(open(path, ..., newline=""))`` and is reproduced over an
+untranslated text stream.  Universal-newline ``open`` is not this model.
 Facts proven under one model cannot be reused under the other.
 """
 
@@ -39,17 +43,19 @@ from sc_referee.dependence_recognition.ir import (
 from sc_referee.scientific_checks.core import FrozenMaterialInput
 from sc_referee.scientific_checks.founder_orientation_semantic_ir import LineModel
 
-# These are independent output budgets even where their numerical values match
-# an input budget.  The first bounds the key map; the second bounds the complete
-# canonical fact rather than only the source bytes.
-MAX_DEPENDENCE_CSV_DISTINCT_KEYS = MAX_V1_MEMBERSHIPS
+# This independently limits key-map cardinality below the membership ceiling;
+# the proof-record budget separately bounds the complete canonical fact.
+MAX_DEPENDENCE_CSV_DISTINCT_KEYS = 5_000
 MAX_DEPENDENCE_CSV_PROOF_RECORD_BYTES = MAX_DEPENDENCE_CSV_DOMAIN_BYTES
 
 _READER_FOR_LINE_MODEL: dict[str, ReaderForm] = {
     line_model: reader_form for reader_form, line_model in RECOGNIZED_READER_MODELS
 }
 _DIALECT = "excel"
-_NORMALIZATION = "byte_exact_utf8"
+_NORMALIZATION_BY_LINE_MODEL = {
+    "splitlines": "splitlines_rejoined_utf8",
+    "csv_newline": "byte_exact_utf8",
+}
 
 
 @dataclass(frozen=True)
@@ -124,7 +130,7 @@ def prove_unit_key_multiplicity(
         source_byte_count=len(material.content),
         header=tuple(header),
         key_columns=key_columns,
-        normalization=_NORMALIZATION,
+        normalization=_NORMALIZATION_BY_LINE_MODEL[line_model],
         declared_missing_value_tokens=(),
         missing_key_value_count=0,
         row_shape_complete=True,

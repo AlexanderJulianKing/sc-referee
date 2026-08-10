@@ -10,9 +10,11 @@ This analyzer is deliberately untrusted.  It proposes a provisional
 ``DependenceCertificate`` whose fact-derived observation identities and sink
 conclusion are empty/placeholders.  ``discharge_dependence_proposal`` is the
 controller-side boundary: it calls the digest-bound CSV prover over frozen
-bytes, fills only fields determined by the returned fact, supplies that fact
-to the certificate kernel through the external trusted-fact argument, and
-only then constructs a domain-neutral ``DependenceCase``.
+bytes, constructs trusted authorizations from caller-supplied frozen records,
+fills only fields determined by the returned fact, supplies both trusted
+channels to the certificate kernel, and only then constructs a domain-neutral
+``DependenceCase``.  The analyzer sees authorization records only as untrusted
+hints; it never constructs a ``HumanMethodAuthorization``.
 """
 
 from __future__ import annotations
@@ -130,14 +132,27 @@ class DischargedDependenceAnalysis:
     state: DischargeState
     certificate: DependenceCertificate | None
     trusted_multiplicity_facts: tuple[UnitKeyMultiplicityFact, ...]
+    trusted_authorizations: tuple[HumanMethodAuthorization, ...]
     verified_certificate: VerifiedDependenceCertificate | None
     case: DependenceCase | None
     basis: str
 
 
 @dataclass(frozen=True)
+class _AuthorityHint:
+    record_id: str
+    actor_id: str
+    analysis_target_ref: RecordRef
+    procedure_ref: RecordRef
+    independent_unit_definition_id: str
+    authorized_key_columns: tuple[str, ...]
+    input_path: str
+    input_content_digest: str
+
+
+@dataclass(frozen=True)
 class _AuthorityResolution:
-    authority: HumanMethodAuthorization | None
+    authority: _AuthorityHint | None
     ambiguous: bool
 
 
@@ -357,7 +372,12 @@ class _TraceEngine:
             return
         opened = self._open_expression(item.context_expr)
         if opened is None:
-            self._unsupported(statement, "unsupported-with-resource")
+            self._unsupported(
+                statement,
+                "universal-newline-reader"
+                if self._is_universal_newline_open(item.context_expr)
+                else "unsupported-with-resource",
+            )
             return
         name = item.optional_vars.id
         if not self._reserve_name(name, statement):
@@ -400,7 +420,12 @@ class _TraceEngine:
         else:
             opened = self._reader_open_source(source)
             if opened is None:
-                self._unsupported(statement, "unsupported-csv-reader-source")
+                self._unsupported(
+                    statement,
+                    "universal-newline-reader"
+                    if self._is_universal_newline_open(source)
+                    else "unsupported-csv-reader-source",
+                )
                 return None
             form = "csv_dictreader_file"
             line_model = "csv_newline"
@@ -487,6 +512,21 @@ class _TraceEngine:
         if "newline" not in keyword_values or not _empty_string(keyword_values["newline"]):
             return None
         return _OpenHandle(path, mode)
+
+    def _is_universal_newline_open(self, expression: ast.expr) -> bool:
+        if not isinstance(expression, ast.Call):
+            return False
+        if isinstance(expression.func, ast.Attribute) and expression.func.attr == "read_text":
+            return True
+        qualified = self._qualified(expression.func)
+        if qualified != "open" and not (
+            isinstance(expression.func, ast.Attribute) and expression.func.attr == "open"
+        ):
+            return False
+        newline_values = [item.value for item in expression.keywords if item.arg == "newline"]
+        return not newline_values or any(
+            isinstance(value, ast.Constant) and value.value is None for value in newline_values
+        )
 
     def _aggregation(
         self,
@@ -1048,12 +1088,14 @@ def discharge_dependence_proposal(
             state=cast(DischargeState, analysis.state),
             certificate=None,
             trusted_multiplicity_facts=(),
+            trusted_authorizations=(),
             verified_certificate=None,
             case=analysis.case,
             basis=analysis.basis,
         )
     certificate = analysis.certificate
-    if not _proposal_matches_context(certificate, context):
+    trusted_authorizations = _trusted_authorizations(context)
+    if not _proposal_matches_context(certificate, context, trusted_authorizations):
         return _failed_discharge(certificate, "frozen-context-drift")
     facts: list[UnitKeyMultiplicityFact] = []
     for obligation in certificate.multiplicity_obligations:
@@ -1128,6 +1170,7 @@ def discharge_dependence_proposal(
     verified = verify_dependence_certificate(
         discharged,
         trusted_multiplicity_facts=trusted_facts,
+        trusted_authorizations=trusted_authorizations,
     )
     if verified is None:
         return _failed_discharge(discharged, "certificate-kernel-refusal")
@@ -1136,6 +1179,7 @@ def discharge_dependence_proposal(
         state="verified",
         certificate=discharged,
         trusted_multiplicity_facts=trusted_facts,
+        trusted_authorizations=trusted_authorizations,
         verified_certificate=verified,
         case=case,
         basis="The trusted CSV fact and certificate kernel closed the static dependence case.",
@@ -1147,7 +1191,7 @@ def _certificate(
     context: FrozenInspectionContext,
     document: InspectionDocument,
     trace: _TraceEngine,
-    authority: HumanMethodAuthorization,
+    authority: _AuthorityHint,
     material: FrozenMaterialInput,
     procedure: _Procedure,
     sink: _Sink,
@@ -1167,7 +1211,6 @@ def _certificate(
         affected_target_ref=affected_ref,
         independent_unit_definition_id=authority.independent_unit_definition_id,
         authorized_key_columns=authority.authorized_key_columns,
-        authority=authority,
     )
     input_binding = MaterialInputBinding(
         path=material.path,
@@ -1306,7 +1349,7 @@ def _certificate(
     if result.resolved_callable == "scipy.stats.ttest_rel":
         expected_matches[_PAIRED_SAFEGUARD] = frozenset({result.token})
     checks: list[SafeguardCheckObligation] = []
-    declarations: set[EvidenceDeclaration] = set()
+    evidence_requests: list[tuple[str, ast.AST]] = []
     transform_node_by_token = dict(
         zip((item.token for item in transforms), _transform_nodes(trace), strict=True)
     )
@@ -1335,13 +1378,12 @@ def _certificate(
                 matched_construct_tokens=matched,
             )
         )
-        if matched and safeguard_id == _AGGREGATION_SAFEGUARD:
-            evidence_point = _point(document.path, transform_node_by_token[next(iter(matched))])
-        elif matched:
-            evidence_point = _point(document.path, procedure.node)
-        else:
-            evidence_point = _module_point(document)
-        declarations.add(EvidenceDeclaration(evidence_id, evidence_point))
+        evidence_node = (
+            transform_node_by_token[next(iter(matched))]
+            if matched and safeguard_id == _AGGREGATION_SAFEGUARD
+            else procedure.node
+        )
+        evidence_requests.append((evidence_id, evidence_node))
     evidence_nodes = [
         *(item for transform in transforms for item in transform.evidence_ids),
         *result.package_version.evidence_ids,
@@ -1358,10 +1400,10 @@ def _certificate(
         **{evidence_id: procedure.node for evidence_id in result.evidence_ids},
         **{evidence_id: sink.node for evidence_id in sink_record.evidence_ids},
     }
-    declarations.update(
-        EvidenceDeclaration(evidence_id, _point(document.path, node_by_evidence[evidence_id]))
-        for evidence_id in evidence_nodes
+    evidence_requests.extend(
+        (evidence_id, node_by_evidence[evidence_id]) for evidence_id in evidence_nodes
     )
+    declarations = _distinct_code_evidence(document, tuple(evidence_requests))
     obligation = UnitKeyMultiplicityObligation(
         input_binding=input_binding,
         reader=reader,
@@ -1373,6 +1415,7 @@ def _certificate(
         source_digest=document.content_digest,
         parser_id=parser_id,
         parser_version=parser_version,
+        source_extent=_module_point(document),
         dependency_closure_digest=_dependency_closure_digest(context.material_inputs),
         proposed_case_digest=semantic_digest(
             {
@@ -1392,7 +1435,6 @@ def _certificate(
                     },
                     "independent_unit_definition_id": case_binding.independent_unit_definition_id,
                     "authorized_key_columns": case_binding.authorized_key_columns,
-                    "authority_record_id": case_binding.authority.record_id,
                 },
                 "source_digest": document.content_digest,
                 "reader": {
@@ -1422,7 +1464,7 @@ def _certificate(
         safeguard_registry_ids=SAFEGUARD_IDS,
         output_ceiling="evaluation_candidate",
         wording_ceiling="static_code_relationship_only",
-        evidence=tuple(sorted(declarations)),
+        evidence=declarations,
     )
     return replace(certificate, replay_digest=dependence_replay_digest(certificate))
 
@@ -1488,7 +1530,18 @@ def _failed_discharge(
     certificate: DependenceCertificate,
     construct: str,
 ) -> DischargedDependenceAnalysis:
-    authority = certificate.case_binding.authority
+    binding = certificate.case_binding
+    input_binding = certificate.frame_lineage.input_binding
+    authority = _AuthorityHint(
+        record_id="controller-discharge:untrusted-binding",
+        actor_id="controller-discharge",
+        analysis_target_ref=binding.analysis_target_ref,
+        procedure_ref=binding.procedure_ref,
+        independent_unit_definition_id=binding.independent_unit_definition_id,
+        authorized_key_columns=binding.authorized_key_columns,
+        input_path=input_binding.path,
+        input_content_digest=input_binding.content_digest,
+    )
     case = _state_case(
         state="unsupported",
         authority=authority,
@@ -1498,6 +1551,7 @@ def _failed_discharge(
         state="unsupported",
         certificate=certificate,
         trusted_multiplicity_facts=(),
+        trusted_authorizations=(),
         verified_certificate=None,
         case=case,
         basis=f"Controller discharge abstained: {construct}.",
@@ -1507,6 +1561,7 @@ def _failed_discharge(
 def _proposal_matches_context(
     certificate: DependenceCertificate,
     context: FrozenInspectionContext,
+    trusted_authorizations: tuple[HumanMethodAuthorization, ...],
 ) -> bool:
     source_matches = [
         document
@@ -1514,18 +1569,27 @@ def _proposal_matches_context(
         if document.path == certificate.source_path
         and document.content_digest == certificate.source_digest
     ]
-    authority = _authority(context)
     selected_path = _selected_artifact_path(context)
     pinned = _pinned_scipy_version(context.material_inputs)
+    binding = certificate.case_binding
+    trusted_authority = trusted_authorizations[0] if len(trusted_authorizations) == 1 else None
     return (
         len(source_matches) == 1
         and _parser_is_supported(
             source_matches[0], certificate.parser_id, certificate.parser_version
         )
+        and certificate.source_extent == _module_point(source_matches[0])
         and _dependency_closure_digest(context.material_inputs)
         == certificate.dependency_closure_digest
-        and authority.authority == certificate.case_binding.authority
-        and not authority.ambiguous
+        and trusted_authority is not None
+        and trusted_authority.analysis_target_ref == binding.analysis_target_ref
+        and trusted_authority.procedure_ref == binding.procedure_ref
+        and trusted_authority.independent_unit_definition_id
+        == binding.independent_unit_definition_id
+        and trusted_authority.authorized_key_columns == binding.authorized_key_columns
+        and trusted_authority.input_path == certificate.frame_lineage.input_binding.path
+        and trusted_authority.input_content_digest
+        == certificate.frame_lineage.input_binding.content_digest
         and pinned is not None
         and certificate.procedure_call.package_version.package_name == "scipy"
         and certificate.procedure_call.package_version.version == pinned[0] == _SUPPORTED_VERSION
@@ -1568,7 +1632,7 @@ def _analysis_without_certificate(
     unsupported: tuple[str, ...] = (),
     effects: tuple[Effect, ...] = (),
     basis: str,
-    authority: HumanMethodAuthorization | None = None,
+    authority: _AuthorityHint | None = None,
 ) -> PythonDependenceAnalysis:
     del context
     case = (
@@ -1596,7 +1660,7 @@ def _analysis_without_certificate(
 def _state_case(
     *,
     state: AnalysisState,
-    authority: HumanMethodAuthorization | None,
+    authority: _AuthorityHint | None,
     unresolved: tuple[str, ...] = (),
     unsupported: tuple[str, ...] = (),
 ) -> DependenceCase:
@@ -1629,13 +1693,13 @@ def _state_case(
 
 
 def _authority(context: FrozenInspectionContext) -> _AuthorityResolution:
-    authorities: list[HumanMethodAuthorization] = []
+    authorities: list[_AuthorityHint] = []
     malformed = False
     for record in context.base_records:
         if record.ref.record_type != "human_method_authorization":
             continue
         value = _record_value(record)
-        authority = _parse_authority(value)
+        authority = _parse_authority_hint(value)
         if authority is not None:
             authorities.append(authority)
         else:
@@ -1646,7 +1710,34 @@ def _authority(context: FrozenInspectionContext) -> _AuthorityResolution:
     )
 
 
-def _parse_authority(value: object) -> HumanMethodAuthorization | None:
+def _trusted_authorizations(
+    context: FrozenInspectionContext,
+) -> tuple[HumanMethodAuthorization, ...]:
+    trusted: list[HumanMethodAuthorization] = []
+    for record in context.base_records:
+        if record.ref.record_type != "human_method_authorization":
+            continue
+        hint = _parse_authority_hint(_record_value(record))
+        if hint is None:
+            return ()
+        trusted.append(
+            HumanMethodAuthorization(
+                record_type="human_method_authorization",
+                record_id=hint.record_id,
+                actor_id=hint.actor_id,
+                authority_state="authorized",
+                analysis_target_ref=hint.analysis_target_ref,
+                procedure_ref=hint.procedure_ref,
+                independent_unit_definition_id=hint.independent_unit_definition_id,
+                authorized_key_columns=hint.authorized_key_columns,
+                input_path=hint.input_path,
+                input_content_digest=hint.input_content_digest,
+            )
+        )
+    return tuple(trusted)
+
+
+def _parse_authority_hint(value: object) -> _AuthorityHint | None:
     if not isinstance(value, dict) or value.get("record_type") != "human_method_authorization":
         return None
     analysis_ref = _recognition_ref(value.get("analysis_target_ref"), "analysis")
@@ -1676,11 +1767,9 @@ def _parse_authority(value: object) -> HumanMethodAuthorization | None:
         and _sha256_literal(value["input_content_digest"])
     ):
         return None
-    return HumanMethodAuthorization(
-        record_type="human_method_authorization",
+    return _AuthorityHint(
         record_id=value["record_id"],
         actor_id=value["actor_id"],
-        authority_state="authorized",
         analysis_target_ref=analysis_ref,
         procedure_ref=procedure_ref,
         independent_unit_definition_id=value["independent_unit_definition_id"],
@@ -1786,7 +1875,7 @@ def _selected_artifact_path(context: FrozenInspectionContext) -> str | None:
 
 def _authority_refs_exist_once(
     context: FrozenInspectionContext,
-    authority: HumanMethodAuthorization,
+    authority: _AuthorityHint,
 ) -> bool:
     return all(
         sum(_same_ref(record.ref, ref) for record in context.base_records) == 1
@@ -2011,6 +2100,7 @@ def _same_ref(value: object, expected: RecordRef) -> bool:
 
 
 def _relative_analysis_path(value: str) -> bool:
+    segments = value.split("/")
     return (
         bool(value)
         and value == value.strip()
@@ -2018,7 +2108,9 @@ def _relative_analysis_path(value: str) -> bool:
         and "\\" not in value
         and "\x00" not in value
         and not any(unicodedata.category(character).startswith("C") for character in value)
-        and ".." not in value.split("/")
+        and not any(unicodedata.category(character) in {"Zl", "Zp"} for character in value)
+        and all(segment not in {"", ".", ".."} for segment in segments)
+        and not (len(value) >= 2 and value[0].isalpha() and value[1] == ":")
     )
 
 
@@ -2054,6 +2146,41 @@ def _module_point(document: InspectionDocument) -> EvidencePoint:
     if not lines:
         return EvidencePoint(document.path, 1, 1, 1, 1)
     return EvidencePoint(document.path, 1, len(lines), 1, max(1, len(lines[-1]) + 1))
+
+
+def _distinct_code_evidence(
+    document: InspectionDocument,
+    requests: tuple[tuple[str, ast.AST], ...],
+) -> tuple[EvidenceDeclaration, ...]:
+    if len(requests) != len({evidence_id for evidence_id, _ in requests}):
+        raise ValueError("code constructs require distinct evidence identities")
+    text = document.content.decode("utf-8", errors="strict")
+    lines = text.splitlines() or [""]
+    global_candidates = [
+        EvidencePoint(document.path, line_number, line_number, column, column + 1)
+        for line_number, line in enumerate(lines, start=1)
+        for column in range(1, len(line) + 1)
+    ]
+    used: set[EvidencePoint] = set()
+    declarations: list[EvidenceDeclaration] = []
+    for evidence_id, node in requests:
+        base = _point(document.path, node)
+        candidates = [base]
+        start_line = min(max(base.start_line, 1), len(lines))
+        line_length = len(lines[start_line - 1])
+        candidates.extend(
+            EvidencePoint(document.path, start_line, start_line, column, column + 1)
+            for column in range(max(1, base.start_column), line_length + 1)
+        )
+        point = next(
+            (candidate for candidate in (*candidates, *global_candidates) if candidate not in used),
+            None,
+        )
+        if point is None:
+            raise ValueError("source extent cannot assign distinct construct spans")
+        used.add(point)
+        declarations.append(EvidenceDeclaration(evidence_id, point))
+    return tuple(sorted(declarations))
 
 
 def _evidence_id(path: str, node: ast.AST, kind: str) -> str:

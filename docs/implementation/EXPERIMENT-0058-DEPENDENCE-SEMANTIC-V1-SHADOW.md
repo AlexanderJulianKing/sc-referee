@@ -1,6 +1,6 @@
 # Experiment 0058: Dependence semantic v1 shadow recognizer
 
-- **Status:** Active development shadow; Stage 1 contract and trusted kernel only
+- **Status:** Active development shadow; Stages 1-3 remain package-local and report-only
 - **Date:** 2026-08-09
 - **Related decisions:** ADR-0062, ADR-0069, Experiment 0057
 - **Production impact:** None; v1 is not registered as a scientific check or detector
@@ -26,24 +26,35 @@ The only v1 authority input is the existing `human_method_authorization` channel
 declaration adapters, extended inside this recognizer with the exact ordered CSV key columns and
 the governed input path and content digest.  It must be `authorized` and bind the exact analysis
 target, procedure, independent-unit-definition identity, ordered key columns, and frozen input.
-Those columns and that input identity must agree across authority, case, obligation, trusted fact,
-and lineage.  An absent or mismatched authority leaves the unit definition unknown.  Candidate
-columns may be reported as unresolved choices but are never ranked, selected from their names, or
-selected because their values repeat.
+Authority enters the trusted kernel only through a controller-supplied `trusted_authorizations`
+tuple built from caller-supplied frozen records.  The analyzer may inspect those records as
+untrusted selection hints, but neither it nor its certificate may construct or carry an authority
+record.  The kernel looks up exactly one closed authorization by analysis target, procedure, and
+independent-unit-definition identity.  Those columns and that input identity must then agree
+across trusted authority, case operands, obligation, trusted fact, and lineage.  An absent,
+duplicate, malformed, or mismatched trusted authorization refuses the certificate.  Before a
+proposal exists, missing or ambiguous hints leave the unit definition unknown.  Candidate columns
+may be reported as unresolved choices but are never ranked, selected from their names, or selected
+because their values repeat.
 
 ## Frozen reader and data envelope
 
 The only certified readers are the two existing default-`csv.DictReader` forms:
 
 1. `csv.DictReader(path.read_text(...).splitlines())`, with line model `splitlines`; and
-2. `csv.DictReader(path.open(...))` (or the exact builtin-open equivalent), with line model
-   `csv_newline`.
+2. `csv.DictReader(open(path, ..., encoding="utf-8", newline=""))` (or the exact `Path.open`
+   equivalent with `newline=""`), with line model `csv_newline`.
 
 Both use the default `excel` CSV dialect.  The prover must enumerate rows under the certified line
 model.  A `splitlines` proof abstains if the decoded bytes contain any separator recognized only by
 `str.splitlines`: vertical tab, form feed, file/group/record separator, NEL, U+2028, or U+2029.
 The trusted fact records whether this complete separator check passed, and the kernel refuses a
-`splitlines` fact unless it did.
+`splitlines` fact unless it did.  Because `splitlines()` removes physical separators before the
+CSV parser sees them, quoted fields spanning physical lines are reconstructed by the CSV iterator
+with `\n`; this model is recorded as `splitlines_rejoined_utf8`, not byte-exact field preservation.
+The `csv_newline` prover uses `StringIO(text, newline="")`, matching the untranslated-newline
+reader model above.  Plain `open()` without `newline=""`, `open(..., newline=None)`, and
+`read_text()` universal-newline behavior are not asserted equivalent and are outside v1.
 Strict UTF-8, unique nonempty headers, nonempty tables, complete non-ragged rows, exact full-digest
 binding, and the duplicated 8 MiB / 100,000-row / 256-field / 64 KiB-field ceilings apply.  Key
 comparison is byte-exact after strict UTF-8 decoding: no trimming, case folding, numeric coercion,
@@ -51,7 +62,8 @@ dtype inference, NA inference, or sentinel guessing.  An empty or declared-missi
 abstains.
 
 The unchanged dependence core requires one complete membership per analyzed observation.  V1
-therefore sets `MAX_V1_MEMBERSHIPS = 10_000`.  A larger analyzed frame is not summarized; it records
+therefore sets `MAX_V1_MEMBERSHIPS = 10_000`, plus an independently lower 5,000-distinct-key budget
+and a complete proof-record byte budget.  A larger analyzed frame is not summarized; it records
 the named unsupported construct `membership-scale-above-v1-bound`.
 
 ## Frozen procedure registry
@@ -95,9 +107,10 @@ The kernel accepts only a closed certificate that discharges all of the followin
    across obligation, fact, and lineage.
 3. **O3 — well-formed frame:** a nonempty uniquely headed table contains every ordered key column,
    has no ragged or missing key row, and remains within the closed ceilings.
-4. **O4 — fact/obligation equality:** facts enter only through the trusted controller argument;
-   their lookup keys equal the complete obligation keys with no certificate-embedded, duplicate,
-   missing, or extraneous fact or obligation.
+4. **O4 — trusted-channel/obligation equality:** facts and authorizations enter only through
+   trusted controller arguments.  The authorization lookup and fact lookup keys must equal the
+   complete case and obligation keys, with no certificate-embedded, duplicate, missing, or
+   extraneous trusted record, fact, or obligation.
 5. **O5 — fact closure:** path, digest, references, line model, row counts, observations,
    per-row ordered key tuples, derived memberships, multiplicities, and repeated-unit identities
    are internally consistent.
@@ -115,21 +128,30 @@ The kernel accepts only a closed certificate that discharges all of the followin
     `absent` or `not_applicable` requires evidence, no recognized match, and that exact equation;
     recognized aggregation or paired matches require `present` with the exact operand binding.
 11. **O11 — noninterference:** the kernel-derived origin/binding union includes the input, every
-    row domain, frame output, procedure arguments/result, and transform tokens.  No effect may write
-    or alias that union or may raise while reading it; relevant unknowns also block.  An opaque
-    effect is valid only with a wildcard write and therefore blocks the certificate.
+    row domain, frame output, procedure arguments/result, transform tokens, every active sink
+    token and payload token, and every sink path.  No effect may write or alias that union.  An
+    effect that may raise also blocks when it reads a relevant value or carries a wildcard read;
+    relevant unknowns block.  An opaque effect is valid only with a wildcard write and therefore
+    blocks the certificate.
 12. **O12 — exact affected sink:** every active selected sink binds the same result or Claim, exact
-    procedure call, exact procedure-result token, and payload lineage.
+    procedure call, exact procedure-result token, and payload lineage.  Its path must be relative
+    and distinct from both the analyzed source path and the bound data-input path.
 13. **O13 — singleton resolution:** the active-sink completeness equation closes, dead sinks are
     also syntactically dead, and every sink and reaching path agrees on the repetition conclusion
     recomputed over the analyzed post-transform row domain.  Source-frame repetition is recorded
     separately and a recognized unit collapse yields a one-observation-per-unit conclusion.
 
-The certificate additionally requires the exact authorized unit definition, parser and source
-identity, a replay digest over the source/parser identity and all completeness token sets,
+The certificate additionally requires exact unit-definition operands corroborated through the
+trusted authorization channel, parser and source identity, parser-reported source extent,
+source/data-separated and non-overlapping evidence spans, a replay digest over the source/parser
+identity, extent, and all completeness token sets,
 closed-vocabulary safeguard bases, cross-referenced evidence declarations, safeguard-registry
 identity, dependency-closure digest, proposed case digest, report-only output ceiling, and wording
 ceiling.
+
+The replay digest establishes certificate self-consistency only.  Independent replay by
+re-parsing the bytes identified by `source_digest` under the recorded parser identity is future
+work and is not a v1 property.
 
 A verified certificate is required only for `evaluation_candidate` and `covered_negative`
 projections.  `question` and `unsupported` projections are non-accusatory and bypass this kernel;
@@ -150,12 +172,15 @@ invalidity, or a required repair.
   v1 and must be reported as unsupported.
 - `membership-scale-above-v1-bound`: more than 10,000 analyzed observations is outside v1 and must
   be reported as unsupported rather than summarized.
+- `universal-newline-reader`: a plain `open()`/`Path.open()` reader without `newline=""`, an
+  explicit `newline=None`, or a `read_text()` universal-newline stream is outside the certified
+  `csv_newline` model and must be reported as unsupported.
 
 ## Stage boundary
 
-Stage 1 adds only this experiment record, typed IR, the trusted certificate kernel, and hand-built
-certificate tests.  It contains no analyzer, CSV prover, adapter, harness, registry integration, or
-project-authored-code execution.
+Stages 1-3 add this experiment record, typed IR, trusted certificate kernel, bounded CSV prover,
+and the untrusted static proposing analyzer plus controller discharge.  They contain no production
+adapter, harness, registry integration, or project-authored-code execution.
 
 The future Stage 4 adapter must catch every exception from the analyzer and certificate kernel,
 including type-invalid proposal failures, and convert it to a non-accusatory abstention.  The

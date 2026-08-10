@@ -77,7 +77,7 @@ class HumanMethodAuthorization:
 
 @dataclass(frozen=True, order=True)
 class DependenceCaseBinding:
-    """Exact case operands and the human-authorized unit-key binding."""
+    """Untrusted proposal operands later checked against trusted authority."""
 
     case_id: str
     analysis_target_ref: RecordRef
@@ -85,7 +85,6 @@ class DependenceCaseBinding:
     affected_target_ref: RecordRef
     independent_unit_definition_id: str
     authorized_key_columns: tuple[str, ...]
-    authority: HumanMethodAuthorization
 
 
 @dataclass(frozen=True, order=True)
@@ -261,6 +260,7 @@ class DependenceCertificate:
     source_digest: str
     parser_id: str
     parser_version: str
+    source_extent: EvidencePoint
     dependency_closure_digest: str
     proposed_case_digest: str
     replay_digest: str

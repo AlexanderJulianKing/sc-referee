@@ -381,6 +381,42 @@ def test_reader_without_exact_utf8_and_newline_binding_abstains(reader: str) -> 
     assert _analyze(_source(reader=reader)).state == "unsupported"
 
 
+def test_regression_r1_controller_alone_supplies_trusted_authority() -> None:
+    source = _source()
+    authorized_context = _context(source)
+    analysis = analyze_dependence_python(authorized_context)
+    assert analysis.state == "proposal"
+    assert analysis.certificate is not None
+    assert not hasattr(analysis.certificate.case_binding, "authority")
+
+    discharged = discharge_dependence_proposal(analysis, authorized_context)
+    assert discharged.state == "verified"
+    assert len(discharged.trusted_authorizations) == 1
+
+    no_trusted_authority = discharge_dependence_proposal(
+        analysis,
+        _context(source, authority=False),
+    )
+    assert no_trusted_authority.state == "unsupported"
+    assert no_trusted_authority.verified_certificate is None
+
+
+@pytest.mark.parametrize(
+    "reader",
+    [
+        'rows = list(csv.DictReader(open("inputs/data.csv", encoding="utf-8")))',
+        'rows = list(csv.DictReader(Path("inputs/data.csv").open(encoding="utf-8")))',
+        'rows = list(csv.DictReader(open("inputs/data.csv", encoding="utf-8", newline=None)))',
+        'rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8")))',
+    ],
+)
+def test_regression_r5_universal_newline_reader_is_named_and_refused(reader: str) -> None:
+    analysis = _analyze(_source(reader=reader))
+    assert analysis.state == "unsupported"
+    assert analysis.certificate is None
+    assert "universal-newline-reader" in analysis.unsupported_constructs
+
+
 def test_unmaterialized_dictreader_iterator_cannot_claim_two_full_domain_operands() -> None:
     reader = 'rows = csv.DictReader(Path("inputs/data.csv").open(encoding="utf-8", newline=""))'
     analysis = _analyze(_source(reader=reader))

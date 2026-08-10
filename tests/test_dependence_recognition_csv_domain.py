@@ -224,6 +224,9 @@ def test_clean_csv_is_proven_under_both_certified_line_models(line_model: LineMo
     assert fact.reader_form == (
         "csv_dictreader_splitlines" if line_model == "splitlines" else "csv_dictreader_file"
     )
+    assert fact.normalization == (
+        "splitlines_rejoined_utf8" if line_model == "splitlines" else "byte_exact_utf8"
+    )
     assert fact.row_count == 2
     assert fact.repeated_unit_ids
 
@@ -332,20 +335,19 @@ def test_row_ceiling_guard_is_exact_when_isolated(
 
 
 def test_membership_ceiling_accepts_boundary_and_rejects_boundary_plus_one() -> None:
-    fact = _prove(_material(_row_csv(MAX_V1_MEMBERSHIPS, unique=True)))
+    fact = _prove(_material(_row_csv(MAX_V1_MEMBERSHIPS, unique=False)))
     assert fact is not None
     assert fact.row_count == MAX_V1_MEMBERSHIPS
+    assert fact.distinct_key_count == 1
+    assert _prove(_material(_row_csv(MAX_V1_MEMBERSHIPS + 1, unique=False))) is None
+
+
+def test_distinct_key_ceiling_accepts_boundary_and_rejects_boundary_plus_one() -> None:
+    assert MAX_DEPENDENCE_CSV_DISTINCT_KEYS == 5_000
+    fact = _prove(_material(_row_csv(MAX_DEPENDENCE_CSV_DISTINCT_KEYS, unique=True)))
+    assert fact is not None
     assert fact.distinct_key_count == MAX_DEPENDENCE_CSV_DISTINCT_KEYS
-    assert _prove(_material(_row_csv(MAX_V1_MEMBERSHIPS + 1, unique=True))) is None
-
-
-def test_distinct_key_ceiling_guard_is_exact_when_isolated(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    assert MAX_DEPENDENCE_CSV_DISTINCT_KEYS == 10_000
-    monkeypatch.setattr(csv_domain, "MAX_DEPENDENCE_CSV_DISTINCT_KEYS", 2)
-    assert _prove(_material(_row_csv(2, unique=True))) is not None
-    assert _prove(_material(_row_csv(3, unique=True))) is None
+    assert _prove(_material(_row_csv(MAX_DEPENDENCE_CSV_DISTINCT_KEYS + 1, unique=True))) is None
 
 
 def test_proof_record_ceiling_accepts_boundary_and_rejects_boundary_plus_one(

@@ -50,6 +50,7 @@ _CASE_DIGEST = "sha256:" + "4" * 64
 class _Fixture:
     certificate: DependenceCertificate
     trusted_facts: tuple[UnitKeyMultiplicityFact, ...]
+    trusted_authorizations: tuple[HumanMethodAuthorization, ...]
 
 
 def _unit_id(key_columns: tuple[str, ...], key: tuple[str, ...]) -> str:
@@ -117,7 +118,6 @@ def _fixture(
         affected_target_ref=affected_ref,
         independent_unit_definition_id="unit-definition:participant",
         authorized_key_columns=key_columns,
-        authority=authority,
     )
     input_binding = MaterialInputBinding(
         path=authority.input_path,
@@ -154,7 +154,9 @@ def _fixture(
         source_byte_count=max(128, len(key_value_tuples) * 4),
         header=header,
         key_columns=key_columns,
-        normalization="byte_exact_utf8",
+        normalization=(
+            "splitlines_rejoined_utf8" if line_model == "splitlines" else "byte_exact_utf8"
+        ),
         declared_missing_value_tokens=("NA",),
         missing_key_value_count=0,
         row_shape_complete=True,
@@ -322,24 +324,19 @@ def _fixture(
         *(item for transform in transforms for item in transform.evidence_ids),
         *(item for check in safeguard_checks for item in check.evidence_ids),
     }
-    evidence = tuple(
-        EvidenceDeclaration(
-            evidence_id=evidence_id,
-            point=EvidencePoint(
-                fact.path if evidence_id == fact.evidence_id else "workflow/analysis.py",
-                1,
-                max(1, fact.row_count + 1) if evidence_id == fact.evidence_id else 20,
-                1,
-                1,
-            ),
-        )
-        for evidence_id in sorted(evidence_ids)
-    )
+    evidence: list[EvidenceDeclaration] = []
+    for index, evidence_id in enumerate(sorted(evidence_ids), start=1):
+        if evidence_id == fact.evidence_id:
+            point = EvidencePoint(fact.path, 1, max(1, fact.row_count + 1), 1, 1)
+        else:
+            point = EvidencePoint("workflow/analysis.py", index, index, 1, 2)
+        evidence.append(EvidenceDeclaration(evidence_id=evidence_id, point=point))
     certificate = DependenceCertificate(
         source_path="workflow/analysis.py",
         source_digest=_SOURCE_DIGEST,
         parser_id="python-ast",
         parser_version="3.11",
+        source_extent=EvidencePoint("workflow/analysis.py", 1, 1_000, 1, 1),
         dependency_closure_digest=_CLOSURE_DIGEST,
         proposed_case_digest=_CASE_DIGEST,
         replay_digest="sha256:" + "0" * 64,
@@ -359,15 +356,16 @@ def _fixture(
         safeguard_registry_ids=SAFEGUARD_IDS,
         output_ceiling="evaluation_candidate",
         wording_ceiling="static_code_relationship_only",
-        evidence=evidence,
+        evidence=tuple(evidence),
     )
-    return _Fixture(_refresh_replay(certificate), (fact,))
+    return _Fixture(_refresh_replay(certificate), (fact,), (authority,))
 
 
 def _verify(fixture: _Fixture) -> object | None:
     return verify_dependence_certificate(
         fixture.certificate,
         trusted_multiplicity_facts=fixture.trusted_facts,
+        trusted_authorizations=fixture.trusted_authorizations,
     )
 
 
@@ -535,7 +533,7 @@ def test_regression_f1_authority_refuses_measurement_column_substitution() -> No
     )
     obligation = replace(certificate.multiplicity_obligations[0], key_columns=("value",))
     mutated = replace(certificate, multiplicity_obligations=(obligation,))
-    assert _verify(_Fixture(mutated, (fact,))) is None
+    assert _verify(_Fixture(mutated, (fact,), fixture.trusted_authorizations)) is None
 
 
 def test_regression_f2_certificate_has_no_embedded_trusted_fact_channel() -> None:
@@ -762,6 +760,162 @@ def test_regression_f14_version_pin_must_be_in_explicit_supported_set(version: s
         _verify(_with_certificate(fixture, replace(fixture.certificate, procedure_call=procedure)))
         is None
     )
+
+
+# --- Opus round-2 regressions ------------------------------------------------
+
+
+def test_regression_r1_authority_is_an_external_trusted_channel() -> None:
+    fixture = _fixture()
+    assert not hasattr(fixture.certificate.case_binding, "authority")
+    assert (
+        verify_dependence_certificate(
+            fixture.certificate,
+            trusted_multiplicity_facts=fixture.trusted_facts,
+        )
+        is None
+    )
+    nonmatching = replace(
+        fixture.trusted_authorizations[0],
+        independent_unit_definition_id="unit-definition:other",
+    )
+    assert (
+        verify_dependence_certificate(
+            fixture.certificate,
+            trusted_multiplicity_facts=fixture.trusted_facts,
+            trusted_authorizations=(nonmatching,),
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize("path_source", ["source", "input"])
+def test_regression_r2_sink_cannot_overwrite_source_or_input(path_source: str) -> None:
+    fixture = _fixture()
+    certificate = fixture.certificate
+    path = (
+        certificate.source_path
+        if path_source == "source"
+        else certificate.frame_lineage.input_binding.path
+    )
+    sink = replace(certificate.sinks[0], path=path)
+    assert _verify(_with_certificate(fixture, replace(certificate, sinks=(sink,)))) is None
+
+
+@pytest.mark.parametrize("sink_value", ["token", "payload", "path"])
+def test_regression_r3_effect_over_any_sink_slice_value_refuses(sink_value: str) -> None:
+    fixture = _fixture()
+    certificate = fixture.certificate
+    sink = certificate.sinks[0]
+    if sink_value == "payload":
+        target = "payload:formatted-result"
+        sink = replace(sink, payload_tokens=sink.payload_tokens | {target})
+        certificate = replace(certificate, sinks=(sink,))
+    elif sink_value == "token":
+        target = sink.token
+    else:
+        target = sink.path
+    effect = Effect(
+        reads=frozenset(),
+        writes=frozenset({target}),
+        aliases=frozenset(),
+        may_raise=False,
+        opaque=False,
+        reason="round-2 sink-slice repro",
+    )
+    certificate = replace(certificate, effects=(effect,))
+    assert _verify(_with_certificate(fixture, certificate)) is None
+
+
+def test_regression_r4_wildcard_read_that_may_raise_refuses() -> None:
+    fixture = _fixture()
+    effect = Effect(
+        reads=frozenset({"*"}),
+        writes=frozenset(),
+        aliases=frozenset(),
+        may_raise=True,
+        opaque=False,
+        reason="round-2 wildcard-read repro",
+    )
+    certificate = replace(fixture.certificate, effects=(effect,))
+    assert _verify(_with_certificate(fixture, certificate)) is None
+
+
+def test_regression_r6_splitlines_refuses_byte_exact_normalization_claim() -> None:
+    fixture = _fixture(line_model="splitlines")
+    fact = replace(fixture.trusted_facts[0], normalization="byte_exact_utf8")
+    assert _verify(_with_fact(fixture, fact)) is None
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["code-on-data", "data-on-code", "duplicate-code-span", "beyond-source-extent"],
+)
+def test_regression_r7_evidence_origin_distinctness_and_extent_refuse(mutation: str) -> None:
+    fixture = _fixture()
+    certificate = fixture.certificate
+    fact_id = fixture.trusted_facts[0].evidence_id
+    data_index = next(
+        index
+        for index, declaration in enumerate(certificate.evidence)
+        if declaration.evidence_id == fact_id
+    )
+    code_indices = tuple(
+        index
+        for index, declaration in enumerate(certificate.evidence)
+        if declaration.evidence_id != fact_id
+    )
+    evidence = list(certificate.evidence)
+    if mutation == "code-on-data":
+        index = code_indices[0]
+        evidence[index] = replace(
+            evidence[index],
+            point=replace(evidence[index].point, path=fixture.trusted_facts[0].path),
+        )
+    elif mutation == "data-on-code":
+        evidence[data_index] = replace(
+            evidence[data_index],
+            point=replace(evidence[data_index].point, path=certificate.source_path),
+        )
+    elif mutation == "duplicate-code-span":
+        evidence[code_indices[1]] = replace(
+            evidence[code_indices[1]],
+            point=evidence[code_indices[0]].point,
+        )
+    else:
+        index = code_indices[0]
+        beyond = certificate.source_extent.end_line + 1
+        evidence[index] = replace(
+            evidence[index],
+            point=EvidencePoint(certificate.source_path, beyond, beyond, 1, 2),
+        )
+    assert (
+        _verify(
+            _with_certificate(
+                fixture,
+                replace(certificate, evidence=tuple(evidence)),
+            )
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "results/line\u2028separator.txt",
+        "results/paragraph\u2029separator.txt",
+        ".",
+        "results//report.txt",
+        "./results/report.txt",
+        "C:/results/report.txt",
+    ],
+)
+def test_regression_r8_ambiguous_relative_paths_refuse(path: str) -> None:
+    fixture = _fixture()
+    sink = replace(fixture.certificate.sinks[0], path=path)
+    certificate = replace(fixture.certificate, sinks=(sink,))
+    assert _verify(_with_certificate(fixture, certificate)) is None
 
 
 # --- Spec-concern closures and held refusal inventory ------------------------
@@ -1074,11 +1228,19 @@ def test_held_competing_sink_colliding_tokens_and_dead_set_refusals() -> None:
 def test_held_fact_channel_refusals() -> None:
     fixture = _fixture()
     fact = fixture.trusted_facts[0]
-    assert verify_dependence_certificate(fixture.certificate, trusted_multiplicity_facts=()) is None
+    assert (
+        verify_dependence_certificate(
+            fixture.certificate,
+            trusted_multiplicity_facts=(),
+            trusted_authorizations=fixture.trusted_authorizations,
+        )
+        is None
+    )
     assert (
         verify_dependence_certificate(
             fixture.certificate,
             trusted_multiplicity_facts=(fact, fact),
+            trusted_authorizations=fixture.trusted_authorizations,
         )
         is None
     )
@@ -1087,6 +1249,7 @@ def test_held_fact_channel_refusals() -> None:
         verify_dependence_certificate(
             fixture.certificate,
             trusted_multiplicity_facts=(fact, extra),
+            trusted_authorizations=fixture.trusted_authorizations,
         )
         is None
     )

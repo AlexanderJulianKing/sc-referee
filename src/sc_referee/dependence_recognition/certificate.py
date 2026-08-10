@@ -38,6 +38,7 @@ from sc_referee.dependence_recognition.ir import (
     UnitKeyMultiplicityObligation,
     VerifiedDependenceCertificate,
 )
+from sc_referee.scientific_checks.founder_orientation_semantic_ir import EvidencePoint
 
 _RECOGNIZED_READER_MODELS = dict(RECOGNIZED_READER_MODELS)
 _RECOGNIZED_DIALECT = "excel"
@@ -102,6 +103,7 @@ def verify_dependence_certificate(
     certificate: DependenceCertificate,
     *,
     trusted_multiplicity_facts: tuple[UnitKeyMultiplicityFact, ...] = (),
+    trusted_authorizations: tuple[HumanMethodAuthorization, ...] = (),
 ) -> VerifiedDependenceCertificate | None:
     """Accept one complete internally consistent static proof or abstain."""
 
@@ -109,8 +111,18 @@ def verify_dependence_certificate(
         return None
     if not _case_binding_is_closed(certificate.case_binding):
         return None
+    authority = _trusted_authorization_is_discharged(
+        certificate.case_binding,
+        trusted_authorizations,
+    )
+    if authority is None:
+        return None
 
-    multiplicity = _multiplicity_fact_is_discharged(certificate, trusted_multiplicity_facts)
+    multiplicity = _multiplicity_fact_is_discharged(
+        certificate,
+        trusted_multiplicity_facts,
+        authority,
+    )
     if multiplicity is None:
         return None
     frame = _frame_lineage_is_closed(
@@ -195,6 +207,13 @@ def dependence_replay_digest(certificate: DependenceCertificate) -> str:
             "source_digest": certificate.source_digest,
             "parser_id": certificate.parser_id,
             "parser_version": certificate.parser_version,
+            "source_extent": {
+                "path": certificate.source_extent.path,
+                "start_line": certificate.source_extent.start_line,
+                "end_line": certificate.source_extent.end_line,
+                "start_column": certificate.source_extent.start_column,
+                "end_column": certificate.source_extent.end_column,
+            },
             "all_syntactic_construct_tokens": sorted(certificate.all_syntactic_construct_tokens),
             "dead_syntactic_construct_tokens": sorted(certificate.dead_syntactic_construct_tokens),
             "all_sink_tokens": sorted(certificate.all_sink_tokens),
@@ -210,6 +229,7 @@ def _certificate_identity_is_closed(certificate: DependenceCertificate) -> bool:
         or not _sha256(certificate.source_digest)
         or not _present(certificate.parser_id)
         or not _present(certificate.parser_version)
+        or not _source_extent_is_closed(certificate)
         or not _sha256(certificate.dependency_closure_digest)
         or not _sha256(certificate.proposed_case_digest)
         or certificate.replay_digest != dependence_replay_digest(certificate)
@@ -232,23 +252,14 @@ def _certificate_identity_is_closed(certificate: DependenceCertificate) -> bool:
 
 
 def _case_binding_is_closed(binding: DependenceCaseBinding) -> bool:
-    authority = binding.authority
-    if (
-        not _present(binding.case_id)
-        or not _record_ref_is_closed(binding.analysis_target_ref, "analysis")
-        or not _record_ref_is_closed(binding.procedure_ref, "procedure")
-        or not _record_ref_is_closed(binding.affected_target_ref)
-        or binding.affected_target_ref.record_type not in {"result", "claim"}
-        or not _present(binding.independent_unit_definition_id)
-        or not _nonempty_unique_strings(binding.authorized_key_columns, trimmed=False)
-        or not _authority_is_closed(authority)
-    ):
-        return False
     return (
-        authority.analysis_target_ref == binding.analysis_target_ref
-        and authority.procedure_ref == binding.procedure_ref
-        and authority.independent_unit_definition_id == binding.independent_unit_definition_id
-        and authority.authorized_key_columns == binding.authorized_key_columns
+        _present(binding.case_id)
+        and _record_ref_is_closed(binding.analysis_target_ref, "analysis")
+        and _record_ref_is_closed(binding.procedure_ref, "procedure")
+        and _record_ref_is_closed(binding.affected_target_ref)
+        and binding.affected_target_ref.record_type in {"result", "claim"}
+        and _present(binding.independent_unit_definition_id)
+        and _nonempty_unique_strings(binding.authorized_key_columns, trimmed=False)
     )
 
 
@@ -267,9 +278,48 @@ def _authority_is_closed(authority: HumanMethodAuthorization) -> bool:
     )
 
 
+def _authority_key(
+    authority: HumanMethodAuthorization,
+) -> tuple[RecordRef, RecordRef, str]:
+    return (
+        authority.analysis_target_ref,
+        authority.procedure_ref,
+        authority.independent_unit_definition_id,
+    )
+
+
+def _case_authority_key(
+    binding: DependenceCaseBinding,
+) -> tuple[RecordRef, RecordRef, str]:
+    return (
+        binding.analysis_target_ref,
+        binding.procedure_ref,
+        binding.independent_unit_definition_id,
+    )
+
+
+def _trusted_authorization_is_discharged(
+    binding: DependenceCaseBinding,
+    trusted_authorizations: tuple[HumanMethodAuthorization, ...],
+) -> HumanMethodAuthorization | None:
+    if (
+        len(trusted_authorizations) != 1
+        or len(set(trusted_authorizations)) != len(trusted_authorizations)
+        or not all(_authority_is_closed(item) for item in trusted_authorizations)
+    ):
+        return None
+    authority = trusted_authorizations[0]
+    if _authority_key(authority) != _case_authority_key(binding):
+        return None
+    if authority.authorized_key_columns != binding.authorized_key_columns:
+        return None
+    return authority
+
+
 def _multiplicity_fact_is_discharged(
     certificate: DependenceCertificate,
     trusted_facts: tuple[UnitKeyMultiplicityFact, ...],
+    authority: HumanMethodAuthorization,
 ) -> _MultiplicityResolution | None:
     if len(set(trusted_facts)) != len(trusted_facts):
         return None
@@ -299,7 +349,6 @@ def _multiplicity_fact_is_discharged(
     resolution = facts_by_key.get(obligation_keys[0])
     if resolution is None or not _fact_matches_obligation(resolution.fact, obligation):
         return None
-    authority = certificate.case_binding.authority
     fact = resolution.fact
     if not (
         authority.authorized_key_columns
@@ -396,7 +445,8 @@ def _multiplicity_fact_resolution(
         )
         or not _nonempty_unique_strings(fact.key_columns, trimmed=False)
         or not set(fact.key_columns) <= set(fact.header)
-        or fact.normalization != "byte_exact_utf8"
+        or fact.normalization
+        != ("splitlines_rejoined_utf8" if fact.line_model == "splitlines" else "byte_exact_utf8")
         or not _unique_strings(fact.declared_missing_value_tokens, trimmed=False)
         or any(not item for item in fact.declared_missing_value_tokens)
         or fact.missing_key_value_count != 0
@@ -716,6 +766,8 @@ def _sinks_are_closed(
             case_binding=certificate.case_binding,
             procedure=certificate.procedure_call,
             conclusion=conclusion,
+            source_path=certificate.source_path,
+            input_path=certificate.frame_lineage.input_binding.path,
         ):
             return None
     if {item.conclusion for item in sinks} != {conclusion}:
@@ -733,11 +785,14 @@ def _sink_is_closed(
     case_binding: DependenceCaseBinding,
     procedure: ProcedureCall,
     conclusion: DependenceConclusion,
+    source_path: str,
+    input_path: str,
 ) -> bool:
     return (
         _present(sink.token)
         and _present(sink.path)
         and _relative_path(sink.path)
+        and sink.path not in {source_path, input_path}
         and sink.affected_target_ref == case_binding.affected_target_ref
         and sink.affected_target_ref.record_type in {"result", "claim"}
         and sink.procedure_call_token == procedure.token
@@ -766,6 +821,7 @@ def _derived_slice_sets(
         *(item.input_row_domain for item in lineage.transforms),
         *(item.output_row_domain for item in lineage.transforms),
         *lineage.relevant_origins,
+        *(sink.path for sink in certificate.sinks),
         *(origin for sink in certificate.sinks for origin in sink.relevant_origins),
     }
     relevant_bindings = {
@@ -776,6 +832,8 @@ def _derived_slice_sets(
         procedure.result_token,
         *procedure.positional_argument_tokens,
         *(item.token for item in lineage.transforms),
+        *(sink.token for sink in certificate.sinks),
+        *(token for sink in certificate.sinks for token in sink.payload_tokens),
         *lineage.relevant_bindings,
         *(binding for sink in certificate.sinks for binding in sink.relevant_bindings),
     }
@@ -799,7 +857,9 @@ def _proof_slice_is_noninterfering(
             return False
         touches_write = "*" in effect.writes or bool(effect.writes & relevant_values)
         touches_alias = "*" in effect.aliases or bool(effect.aliases & relevant_values)
-        raising_on_slice = effect.may_raise and bool(effect.reads & relevant_values)
+        raising_on_slice = effect.may_raise and (
+            "*" in effect.reads or bool(effect.reads & relevant_values)
+        )
         if touches_write or touches_alias or raising_on_slice:
             return False
     for unknown in certificate.unknowns:
@@ -822,35 +882,72 @@ def _evidence_is_closed(
         or len(set(declarations)) != len(declarations)
     ):
         return False
-    allowed_paths = {certificate.source_path, fact.path}
     for declaration in declarations:
         point = declaration.point
         if (
             not _present(declaration.evidence_id)
-            or point.path not in allowed_paths
+            or (
+                point.path != fact.path
+                if declaration.evidence_id == fact.evidence_id
+                else point.path != certificate.source_path
+            )
             or point.start_line < 1
             or point.end_line < point.start_line
             or point.start_column < 1
             or point.end_column < 1
             or (point.end_line == point.start_line and point.end_column < point.start_column)
+            or (
+                declaration.evidence_id != fact.evidence_id
+                and not _point_within(declaration.point, certificate.source_extent)
+            )
         ):
             return False
 
-    required_ids = {fact.evidence_id}
-    required_ids.update(
-        evidence_id for check in certificate.safeguard_checks for evidence_id in check.evidence_ids
+    code_evidence_id_uses = [
+        *(
+            evidence_id
+            for check in certificate.safeguard_checks
+            for evidence_id in check.evidence_ids
+        ),
+        *(
+            evidence_id
+            for transform in certificate.frame_lineage.transforms
+            for evidence_id in transform.evidence_ids
+        ),
+        *certificate.procedure_call.package_version.evidence_ids,
+        *certificate.procedure_call.evidence_ids,
+        *(evidence_id for sink in certificate.sinks for evidence_id in sink.evidence_ids),
+    ]
+    if fact.evidence_id in code_evidence_id_uses or len(code_evidence_id_uses) != len(
+        set(code_evidence_id_uses)
+    ):
+        return False
+    required_ids = {fact.evidence_id, *code_evidence_id_uses}
+    if not required_ids <= set(evidence_by_id):
+        return False
+    code_points = [
+        evidence_by_id[evidence_id].point for evidence_id in required_ids - {fact.evidence_id}
+    ]
+    return len(code_points) == len(set(code_points))
+
+
+def _source_extent_is_closed(certificate: DependenceCertificate) -> bool:
+    extent = certificate.source_extent
+    return (
+        extent.path == certificate.source_path
+        and extent.start_line == 1
+        and extent.start_column == 1
+        and extent.end_line >= extent.start_line
+        and extent.end_column >= 1
     )
-    required_ids.update(
-        evidence_id
-        for transform in certificate.frame_lineage.transforms
-        for evidence_id in transform.evidence_ids
-    )
-    required_ids.update(certificate.procedure_call.package_version.evidence_ids)
-    required_ids.update(certificate.procedure_call.evidence_ids)
-    required_ids.update(
-        evidence_id for sink in certificate.sinks for evidence_id in sink.evidence_ids
-    )
-    return required_ids <= set(evidence_by_id)
+
+
+def _point_within(point: EvidencePoint, extent: EvidencePoint) -> bool:
+    point_start = (point.start_line, point.start_column)
+    point_end = (point.end_line, point.end_column)
+    extent_start = (extent.start_line, extent.start_column)
+    extent_end = (extent.end_line, extent.end_column)
+    return extent_start <= point_start <= point_end <= extent_end
 
 
 def _material_input_binding_is_closed(binding: MaterialInputBinding) -> bool:
@@ -891,13 +988,16 @@ def _ordered_unique(values: tuple[str, ...]) -> tuple[str, ...]:
 
 
 def _relative_path(value: str) -> bool:
+    segments = value.split("/")
     return (
         _present(value)
         and not value.startswith("/")
         and "\\" not in value
         and "\x00" not in value
         and not any(unicodedata.category(character).startswith("C") for character in value)
-        and ".." not in value.split("/")
+        and not any(unicodedata.category(character) in {"Zl", "Zp"} for character in value)
+        and all(segment not in {"", ".", ".."} for segment in segments)
+        and not (len(value) >= 2 and value[0].isalpha() and value[1] == ":")
     )
 
 
