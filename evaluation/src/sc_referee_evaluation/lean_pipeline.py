@@ -2384,7 +2384,10 @@ def write_heldout_opening(
     record["recorded_at"] = _now()
     record["semantic_digest"] = semantic_digest(record)
     root.mkdir(parents=True, exist_ok=True)
-    write_normalized_json_once(root / "HELDOUT_OPENING.json", record)
+    relative = config.opening_record_relative or "HELDOUT_OPENING.json"
+    output_path = root / relative
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    write_normalized_json_once(output_path, record)
     return record
 
 

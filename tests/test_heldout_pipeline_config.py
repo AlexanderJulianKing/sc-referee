@@ -236,6 +236,19 @@ def test_heldout_opening_is_written_once_and_replays(sealed_root: Path) -> None:
         write_heldout_opening(sealed_root, config, payload)
 
 
+def test_heldout_opening_honors_configured_relative_path(sealed_root: Path) -> None:
+    config, payload = heldout_config(sealed_root)
+    relative = "opening/DEPENDENCE_HELDOUT_OPENING.json"
+    configured = replace(config, opening_record_relative=relative)
+
+    record = write_heldout_opening(sealed_root, configured, payload)
+
+    path = sealed_root / configured.pipeline_relative / relative
+    assert path.is_file()
+    assert not (sealed_root / configured.pipeline_relative / "HELDOUT_OPENING.json").exists()
+    assert json.loads(path.read_text("utf-8")) == record
+
+
 def test_sealed_inputs_fail_closed_when_a_brief_digest_drifts(sealed_root: Path) -> None:
     path = sealed_root / LANE_RELATIVE / "AUTHORING_BRIEF_MANIFEST.json"
     manifest = json.loads(path.read_text("utf-8"))
