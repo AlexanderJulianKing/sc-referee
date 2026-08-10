@@ -642,6 +642,8 @@ def test_founder_f_defaults_and_frozen_manifest_replay_are_unchanged(
     assert config.controller_material_files == {}
     assert config.material_input_paths == ()
     assert config.input_csv_row_bounds is None
+    assert config.frozen_workflow_template is None
+    assert config.frozen_workflow_procedure_by_role == {}
     assert config.requires_dependence_authority is False
     assert pipeline_step_order(config) == STEP_ORDER
     manifest_path = project_root / config.pipeline_relative / "MANIFEST.json"

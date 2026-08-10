@@ -8,6 +8,7 @@ this file, under the dedicated SciPy 1.14.0 qualification interpreter.
 from __future__ import annotations
 
 import json
+import sys
 import warnings
 from dataclasses import replace
 from pathlib import Path
@@ -17,6 +18,8 @@ import pytest
 from sc_referee_evaluation import lean_pipeline
 from sc_referee_evaluation.lean_pipeline import (
     DEFAULT_ALLOWED_IMPORT_ROOTS,
+    LeanPipelineError,
+    _manifest_record,
     _probe_sandbox_runtime,
     step_authoring,
     step_authority,
@@ -278,6 +281,79 @@ def _isolated_project_root(tmp_path: Path, project_root: Path) -> Path:
     return tmp_path
 
 
+def _run_single_case_intake(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    source: str,
+) -> dict[str, Any]:
+    base = default_dependence_config()
+    config = replace(
+        base,
+        pipeline_relative=Path("evaluation/qualification/dependence-frozen-workflow-test"),
+        sandbox_python=Path(sys.executable),
+        required_sandbox_distributions={},
+    )
+    participant_id = "actor:dependence-b-author-opus-15"
+    case_id = "case:0000000000000000f102"
+    role = "corrected_twin"
+    authoring = tmp_path / config.pipeline_relative / "authoring"
+    authoring.mkdir(parents=True)
+    assignment = {
+        "participant": {"participant_id": participant_id},
+        "case_ids": [case_id],
+        "prompt": "frozen workflow intake test",
+        "prompt_digest": "sha256:" + "1" * 64,
+        "output_schema": {"type": "object"},
+        "call_identity_id": "00000000-0000-0000-0000-00000000f102",
+    }
+    protocol: dict[str, Any] = {
+        "artifact_kind": "lean_pipeline_authoring_protocol",
+        "envelope_id": config.envelope_id,
+        "case_role_assignments": {case_id: role},
+        "author_assignments": [assignment],
+    }
+    protocol["protocol_digest"] = semantic_digest(protocol)
+    (authoring / "AUTHORING_PROTOCOL.json").write_text(
+        canonical_json(protocol) + "\n", encoding="utf-8"
+    )
+    _manifest_record(
+        tmp_path,
+        config,
+        "authoring",
+        digest=str(protocol["protocol_digest"]),
+        relative_path="authoring/AUTHORING_PROTOCOL.json",
+    )
+    report = f"[selected-result] {_RESULTS[role]}\n"
+    response = {
+        "participant_id": participant_id,
+        "cases": [
+            {
+                "case_id": case_id,
+                "input_csv": _csv(role),
+                "analysis_py": source,
+                "report_md": report,
+                "selected_result_line": 1,
+            }
+        ],
+    }
+    attempt = {
+        "participant_id": participant_id,
+        "protocol_digest": protocol["protocol_digest"],
+        "raw_response": canonical_json(response),
+    }
+    incoming = authoring / "incoming"
+    incoming.mkdir()
+    (incoming / "dependence-b-author-opus-15.json").write_text(
+        canonical_json(attempt) + "\n", encoding="utf-8"
+    )
+    monkeypatch.setattr(
+        lean_pipeline,
+        "_sandbox_run",
+        lambda _case_root, _sandbox_python: report.encode("utf-8"),
+    )
+    return step_intake(tmp_path, config)
+
+
 def _preflight_context(role: str) -> FrozenInspectionContext:
     """Build only the frozen records required for an analyzer-envelope preflight."""
 
@@ -457,6 +533,15 @@ def test_dependence_envelope_configuration_and_actor_seats() -> None:
     }
     assert config.material_input_paths == ("inputs/data.csv", "requirements.txt")
     assert config.input_csv_row_bounds == (1, 64)
+    assert config.common_task == (
+        "Treat `k1`, `k2`, and `tag` only as specified by the governing task and `a` and `b` "
+        "as finite numeric measurements. Apply the procedure named in the case instructions "
+        "to the complete staged row sequence and write its single selected result."
+    )
+    assert "Choose a neutral scientific subject area" not in config.common_task
+    assert config.frozen_workflow_template is not None
+    assert config.frozen_workflow_template.count("{procedure}") == 1
+    assert set(config.frozen_workflow_procedure_by_role) == set(_ROLES)
     assert config.detector_id == "detector:bounded-analysis-method-conflict"
     assert sorted(config.authors) == [
         "actor:dependence-b-author-opus-15",
@@ -510,7 +595,7 @@ def test_dependence_pilot_b_tasks_data_and_workflow_are_frozen_to_two_collection
     assert "two disjoint collections" in ambiguous
     assert "`tag` is an opaque annotation." in ambiguous
     assert "The row pairing is a storage convention only" in ambiguous
-    assert "does not establish which code identifies a source item" in ambiguous
+    assert "does not establish whether either code identifies a source item" in ambiguous
     assert "no matching, pairing, block, or other relationship" in ambiguous
 
     clean = _unique_rows()
@@ -543,10 +628,48 @@ def test_dependence_pilot_b_tasks_data_and_workflow_are_frozen_to_two_collection
         'encoding="utf-8")\n'
     )
     assert _workflow("corrected_twin") == expected_workflow
+    assert config.frozen_workflow_template is not None
+    for role in _ROLES:
+        assert _workflow(role) == config.frozen_workflow_template.replace(
+            "{procedure}", config.frozen_workflow_procedure_by_role[role]
+        )
     assert ".open(" not in config.author_case_requirements
     assert "exactly one row-sequence alias with `staged = rows`" in (
         config.author_case_requirements
     )
+
+
+def test_dependence_frozen_workflow_template_match_passes_intake(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ledger = _run_single_case_intake(tmp_path, monkeypatch, _workflow("corrected_twin"))
+    assert ledger["case_count"] == 1
+    assert ledger["entries"][0]["sandbox_runs"] == 2
+
+
+@pytest.mark.parametrize(
+    ("variant", "source"),
+    [
+        (
+            "from-import",
+            _workflow("corrected_twin")
+            .replace("import scipy.stats as st\n", "from scipy import stats\n")
+            .replace("st.ttest_ind", "stats.ttest_ind"),
+        ),
+        ("added-docstring", '"""Authored workflow."""\n' + _workflow("corrected_twin")),
+        ("added-comment", "# authored workflow\n" + _workflow("corrected_twin")),
+    ],
+)
+def test_dependence_frozen_workflow_variants_refuse_intake_with_named_reason(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    variant: str,
+    source: str,
+) -> None:
+    del variant
+    with pytest.raises(LeanPipelineError, match=r"^frozen-workflow-template-mismatch$"):
+        _run_single_case_intake(tmp_path, monkeypatch, source)
 
 
 @pytest.mark.parametrize("role", _ROLES)

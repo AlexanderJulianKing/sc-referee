@@ -258,6 +258,8 @@ class EnvelopeConfig:
     controller_material_files: dict[str, bytes] = field(default_factory=dict)
     material_input_paths: tuple[str, ...] = ()
     input_csv_row_bounds: tuple[int, int] | None = None
+    frozen_workflow_template: str | None = None
+    frozen_workflow_procedure_by_role: dict[str, str] = field(default_factory=dict)
 
     @property
     def roles(self) -> list[str]:
@@ -1169,6 +1171,25 @@ def _controller_material_files(config: EnvelopeConfig) -> tuple[tuple[str, bytes
     return tuple(entries)
 
 
+def _expected_frozen_workflow(config: EnvelopeConfig, role: str) -> str | None:
+    """Close one optional authored-workflow template over its role substitution."""
+
+    template = config.frozen_workflow_template
+    procedures = config.frozen_workflow_procedure_by_role
+    if template is None:
+        if procedures:
+            raise LeanPipelineError("frozen-workflow-template-configuration-invalid")
+        return None
+    if (
+        template.count("{procedure}") != 1
+        or set(procedures) != set(config.roles)
+        or role not in procedures
+        or not procedures[role].isidentifier()
+    ):
+        raise LeanPipelineError("frozen-workflow-template-configuration-invalid")
+    return template.replace("{procedure}", procedures[role])
+
+
 def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     root = project_root / config.pipeline_relative
     output_root = root / "authoring"
@@ -1221,6 +1242,11 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                     raise LeanPipelineError(f"Authored file {name} exceeds its size bound.")
                 if not payload_text.isascii():
                     raise LeanPipelineError(f"Authored file {name} is not ASCII.")
+            expected_workflow = _expected_frozen_workflow(config, roles[case_id])
+            if expected_workflow is not None and analysis_py.encode(
+                "utf-8"
+            ) != expected_workflow.encode("utf-8"):
+                raise LeanPipelineError("frozen-workflow-template-mismatch")
             _static_guard(analysis_py, config.allowed_import_roots)
             _validate_bounded_input_csv(input_csv, config)
             marker_lines = [

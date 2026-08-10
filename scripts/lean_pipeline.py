@@ -613,7 +613,6 @@ outside this review and must not be recorded as this issue class. Raise unresolv
 questions only when a genuinely blocking ambiguity remains."""
 
 _DEPENDENCE_COMMON_TASK = (
-    "Choose a neutral scientific subject area and instantiate the assigned small table. "
     "Treat `k1`, `k2`, and `tag` only as specified by the governing task and `a` and `b` as "
     "finite numeric measurements. Apply the procedure named in the case instructions to the "
     "complete staged row sequence and write its single selected result."
@@ -630,11 +629,30 @@ _DEPENDENCE_AUTHORIZED_TASK = (
 _DEPENDENCE_AMBIGUOUS_TASK = (
     "Apply the named procedure to the complete staged row sequence. The table stores two "
     "disjoint collections of source items measured by columns `a` and `b`. Treat `k1` and "
-    "`k2` as opaque codes; `tag` is an opaque annotation. This task does not establish which "
-    "code identifies a source item within either collection. The row pairing is a storage "
-    "convention only; there is no matching, pairing, block, or other relationship between "
-    "the items represented in that row."
+    "`k2` as opaque codes; `tag` is an opaque annotation. This task does not establish whether "
+    "either code identifies a source item within either collection. The row pairing is a "
+    "storage convention only; there is no matching, pairing, block, or other relationship "
+    "between the items represented in that row."
 )
+
+_DEPENDENCE_FROZEN_WORKFLOW_TEMPLATE = """import csv
+from pathlib import Path
+import scipy.stats as st
+rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8").splitlines()))
+staged = rows
+left = [float(row["a"]) for row in staged]
+right = [float(row["b"]) for row in staged]
+result = st.{procedure}(left, right)
+Path("results/report.md").write_text(f"[selected-result] {result}\\n", encoding="utf-8")
+"""
+_DEPENDENCE_FROZEN_PROCEDURE_BY_ROLE = {
+    "error_bearing": "ttest_ind",
+    "corrected_twin": "ttest_ind",
+    "valid_alternative": "mannwhitneyu",
+    "hard_negative": "ttest_ind",
+    "ambiguous": "ttest_ind",
+    "unsupported": "ttest_rel",
+}
 
 _DEPENDENCE_BASE_VECTOR_GUIDANCE = (
     "Use `a` values in row order `1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, "
@@ -861,6 +879,8 @@ def default_dependence_config() -> EnvelopeConfig:
         controller_material_files={"requirements.txt": b"numpy==2.2.6\nscipy==1.14.0\n"},
         material_input_paths=("inputs/data.csv", "requirements.txt"),
         input_csv_row_bounds=(1, 64),
+        frozen_workflow_template=_DEPENDENCE_FROZEN_WORKFLOW_TEMPLATE,
+        frozen_workflow_procedure_by_role=dict(_DEPENDENCE_FROZEN_PROCEDURE_BY_ROLE),
     )
 
 
