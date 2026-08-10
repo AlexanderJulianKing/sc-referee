@@ -219,7 +219,7 @@ def _authority_lock(
     procedure_id = f"procedure:{slug}"
     result_id = f"result:{slug}"
     authorization_id = f"authorization:{slug}"
-    actor_id = "scientist:dependence-b-method-owner-01"
+    actor_id = "scientist:dependence-c-method-owner-01"
     value: dict[str, Any] = {
         "lock_kind": LOCK_KIND,
         "case_id": case_id,
@@ -293,7 +293,7 @@ def _run_single_case_intake(
         sandbox_python=Path(sys.executable),
         required_sandbox_distributions={},
     )
-    participant_id = "actor:dependence-b-author-opus-15"
+    participant_id = "actor:dependence-c-author-opus-17"
     case_id = "case:0000000000000000f102"
     role = "corrected_twin"
     authoring = tmp_path / config.pipeline_relative / "authoring"
@@ -343,7 +343,7 @@ def _run_single_case_intake(
     }
     incoming = authoring / "incoming"
     incoming.mkdir()
-    (incoming / "dependence-b-author-opus-15.json").write_text(
+    (incoming / "dependence-c-author-opus-17.json").write_text(
         canonical_json(attempt) + "\n", encoding="utf-8"
     )
     monkeypatch.setattr(
@@ -362,18 +362,18 @@ def _preflight_context(role: str) -> FrozenInspectionContext:
     requirements = b"numpy==2.2.6\nscipy==1.14.0\n"
     data_digest = sha256_digest(data)
     requirements_digest = sha256_digest(requirements)
-    surface_ref = RecordRef("publication_surface", "surface:pilot-b")
-    artifact_ref = RecordRef("artifact", "artifact:pilot-b-report")
-    snapshot_ref = RecordRef("repository_snapshot", "snapshot:pilot-b")
-    analysis_file_ref = RecordRef("file_record", "file:pilot-b-analysis")
-    parser_ref = RecordRef("parser_result", "parser:pilot-b-analysis")
-    data_file_ref = RecordRef("file_record", "file:pilot-b-data")
-    data_identity_ref = RecordRef("asset_identity", "asset:pilot-b-data")
-    requirements_file_ref = RecordRef("file_record", "file:pilot-b-requirements")
-    requirements_identity_ref = RecordRef("asset_identity", "asset:pilot-b-requirements")
-    analysis_ref = RecordRef("analysis", "analysis:pilot-b")
-    procedure_ref = RecordRef("procedure", "procedure:pilot-b")
-    result_ref = RecordRef("result", "result:pilot-b")
+    surface_ref = RecordRef("publication_surface", "surface:pilot-c")
+    artifact_ref = RecordRef("artifact", "artifact:pilot-c-report")
+    snapshot_ref = RecordRef("repository_snapshot", "snapshot:pilot-c")
+    analysis_file_ref = RecordRef("file_record", "file:pilot-c-analysis")
+    parser_ref = RecordRef("parser_result", "parser:pilot-c-analysis")
+    data_file_ref = RecordRef("file_record", "file:pilot-c-data")
+    data_identity_ref = RecordRef("asset_identity", "asset:pilot-c-data")
+    requirements_file_ref = RecordRef("file_record", "file:pilot-c-requirements")
+    requirements_identity_ref = RecordRef("asset_identity", "asset:pilot-c-requirements")
+    analysis_ref = RecordRef("analysis", "analysis:pilot-c")
+    procedure_ref = RecordRef("procedure", "procedure:pilot-c")
+    result_ref = RecordRef("result", "result:pilot-c")
     parser_payload = canonical_json(
         {"parser_id": "python-ast", "parser_version": "3.11", "state": "parsed"}
     ).encode()
@@ -457,11 +457,11 @@ def _preflight_context(role: str) -> FrozenInspectionContext:
     if role != "ambiguous":
         records.append(
             (
-                RecordRef("human_method_authorization", "authorization:pilot-b"),
+                RecordRef("human_method_authorization", "authorization:pilot-c"),
                 {
                     "record_type": "human_method_authorization",
-                    "record_id": "authorization:pilot-b",
-                    "actor_id": "human:pilot-b-method-owner",
+                    "record_id": "authorization:pilot-c",
+                    "actor_id": "human:pilot-c-method-owner",
                     "authority_state": "authorized",
                     "analysis_target_ref": analysis_ref.to_dict(),
                     "procedure_ref": procedure_ref.to_dict(),
@@ -475,7 +475,7 @@ def _preflight_context(role: str) -> FrozenInspectionContext:
             )
         )
     return FrozenInspectionContext(
-        snapshot_digest=sha256_digest(b"pilot-b-preflight"),
+        snapshot_digest=sha256_digest(b"pilot-c-preflight"),
         selected_surface_ref=surface_ref,
         selected_artifact_ref=artifact_ref,
         documents=(
@@ -516,8 +516,8 @@ def test_dependence_envelope_configuration_and_actor_seats() -> None:
     assert config.canonical_issue_class == (
         "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure"
     )
-    assert config.envelope_id.endswith("-lean-b")
-    assert config.pipeline_relative.as_posix().endswith("/pilot-b")
+    assert config.envelope_id.endswith("-lean-c")
+    assert config.pipeline_relative.as_posix().endswith("/pilot-c")
     assert config.roles == sorted(_ROLES)
     assert set(config.candidate_by_role) == set(_ROLES) - {"ambiguous"}
     assert set(config.candidate_by_role.values()) == {
@@ -544,29 +544,31 @@ def test_dependence_envelope_configuration_and_actor_seats() -> None:
     assert set(config.frozen_workflow_procedure_by_role) == set(_ROLES)
     assert config.detector_id == "detector:bounded-analysis-method-conflict"
     assert sorted(config.authors) == [
-        "actor:dependence-b-author-opus-15",
-        "actor:dependence-b-author-opus-16",
+        "actor:dependence-c-author-opus-17",
+        "actor:dependence-c-author-opus-18",
     ]
-    assert config.author_roles["actor:dependence-b-author-opus-15"] == [
+    assert config.author_roles["actor:dependence-c-author-opus-17"] == [
         "error_bearing",
         "corrected_twin",
     ]
-    assert config.author_roles["actor:dependence-b-author-opus-16"] == [
+    assert config.author_roles["actor:dependence-c-author-opus-18"] == [
         "valid_alternative",
         "hard_negative",
         "ambiguous",
         "unsupported",
     ]
-    assert config.reviewer.participant_id == "actor:dependence-b-reviewer-fable-11"
-    assert config.escalation_reviewer.participant_id == "actor:dependence-b-reviewer-opus-09"
+    assert config.reviewer.participant_id == "actor:dependence-c-reviewer-fable-11"
+    assert config.escalation_reviewer.participant_id == "actor:dependence-c-reviewer-opus-09"
     assert (
         "Judge only whether this exact issue class is demonstrated in the selected report. "
         "Other methodological concerns, however serious, are outside this review and must "
         "not be recorded as this issue class."
     ) in config.review_instructions.replace("\n", " ")
-    assert "scipy.stats.ttest_ind" in config.author_case_requirements
-    assert "scipy.stats.mannwhitneyu" in config.author_case_requirements
-    assert "scipy.stats.ttest_rel" in config.author_case_requirements
+    assert (
+        "workflow/analysis.py must consist of exactly these lines, byte for byte, with "
+        "PROCEDURE replaced by the procedure named in your case instructions and nothing "
+        "else changed:"
+    ) in config.author_case_requirements
     for role, result in _RESULTS.items():
         assert result in "\n".join(config.role_constraints[role])
     ambiguous = "\n".join(config.role_constraints["ambiguous"])
@@ -582,7 +584,7 @@ def test_dependence_envelope_configuration_and_actor_seats() -> None:
     assert "covered_negative`` result" in (default_dependence_config.__doc__ or "")
 
 
-def test_dependence_pilot_b_tasks_data_and_workflow_are_frozen_to_two_collections() -> None:
+def test_dependence_pilot_c_tasks_data_and_workflow_are_frozen_to_two_collections() -> None:
     config = default_dependence_config()
     authorized = config.task_by_role["error_bearing"]
     assert "`k1` identifies a first-collection source item measured by column `a`" in authorized
@@ -629,14 +631,16 @@ def test_dependence_pilot_b_tasks_data_and_workflow_are_frozen_to_two_collection
     )
     assert _workflow("corrected_twin") == expected_workflow
     assert config.frozen_workflow_template is not None
+    author_facing_template = config.frozen_workflow_template.replace("{procedure}", "PROCEDURE")
+    assert config.author_case_requirements.count(author_facing_template) == 1
     for role in _ROLES:
         assert _workflow(role) == config.frozen_workflow_template.replace(
             "{procedure}", config.frozen_workflow_procedure_by_role[role]
         )
-    assert ".open(" not in config.author_case_requirements
-    assert "exactly one row-sequence alias with `staged = rows`" in (
+    assert "must consist only of module-level imports and assignments" not in (
         config.author_case_requirements
     )
+    assert "Zero or more row-sequence aliases" not in config.author_case_requirements
 
 
 def test_dependence_frozen_workflow_template_match_passes_intake(
@@ -673,7 +677,7 @@ def test_dependence_frozen_workflow_variants_refuse_intake_with_named_reason(
 
 
 @pytest.mark.parametrize("role", _ROLES)
-def test_dependence_pilot_b_workflows_are_inside_the_static_preflight(role: str) -> None:
+def test_dependence_pilot_c_workflows_are_inside_the_static_preflight(role: str) -> None:
     analysis = analyze_dependence_python(_preflight_context(role))
     if role == "unsupported":
         assert analysis.state == "unsupported"
@@ -687,7 +691,7 @@ def test_dependence_pilot_b_workflows_are_inside_the_static_preflight(role: str)
     not _DEPENDENCE_SANDBOX_AVAILABLE,
     reason="dedicated SciPy 1.14.0 qualification interpreter is absent",
 )
-def test_dependence_pilot_b_four_result_reprs_recompute_in_pinned_runtime(
+def test_dependence_pilot_c_four_result_reprs_recompute_in_pinned_runtime(
     tmp_path: Path,
 ) -> None:
     observed: dict[str, str] = {}
@@ -993,7 +997,7 @@ def test_dependence_six_role_fixture_runs_real_pipeline_without_findings(
 def test_dependence_sandbox_execution_tests_cannot_silently_skip_when_runtime_exists() -> None:
     guarded_tests = (
         test_dependence_dedicated_runtime_probe_passes_for_real,
-        test_dependence_pilot_b_four_result_reprs_recompute_in_pinned_runtime,
+        test_dependence_pilot_c_four_result_reprs_recompute_in_pinned_runtime,
         test_dependence_six_role_fixture_runs_real_pipeline_without_findings,
     )
     skip_conditions: list[bool] = []

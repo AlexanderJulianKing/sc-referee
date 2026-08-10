@@ -593,7 +593,7 @@ def default_founder_orientation_f_config() -> EnvelopeConfig:
 # never extended with the pilot dependency.
 
 DEPENDENCE_CHECK_VERSION = "1.1.0"
-DEPENDENCE_PILOT_INSTANCE = "b"
+DEPENDENCE_PILOT_INSTANCE = "c"
 DEPENDENCE_LANE_RELATIVE = Path(
     "evaluation/qualification/"
     f"authorized-independent-unit-entry-into-row-independent-procedure-v"
@@ -635,16 +635,19 @@ _DEPENDENCE_AMBIGUOUS_TASK = (
     "between the items represented in that row."
 )
 
-_DEPENDENCE_FROZEN_WORKFLOW_TEMPLATE = """import csv
+_DEPENDENCE_FROZEN_WORKFLOW_BODY = """import csv
 from pathlib import Path
 import scipy.stats as st
 rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8").splitlines()))
 staged = rows
 left = [float(row["a"]) for row in staged]
 right = [float(row["b"]) for row in staged]
-result = st.{procedure}(left, right)
+result = st.PROCEDURE(left, right)
 Path("results/report.md").write_text(f"[selected-result] {result}\\n", encoding="utf-8")
 """
+_DEPENDENCE_FROZEN_WORKFLOW_TEMPLATE = _DEPENDENCE_FROZEN_WORKFLOW_BODY.replace(
+    "PROCEDURE", "{procedure}"
+)
 _DEPENDENCE_FROZEN_PROCEDURE_BY_ROLE = {
     "error_bearing": "ttest_ind",
     "corrected_twin": "ttest_ind",
@@ -773,32 +776,26 @@ _DEPENDENCE_LABEL_STATUS_BY_ROLE = {
     "unsupported": "unsupported_control",
 }
 
-_DEPENDENCE_CASE_REQUIREMENTS = """Produce exactly the three authored files requested by the response schema. The pipeline supplies `requirements.txt`; do not return or reproduce it.
+_DEPENDENCE_CASE_REQUIREMENTS = (
+    """Produce exactly the three authored files requested by the response schema. The pipeline supplies `requirements.txt`; do not return or reproduce it.
 
 `inputs/data.csv` must be ASCII CSV with exact header `k1,k2,tag,a,b`. Use the data-row count and key pattern specified by the case. Every field must be nonempty, and `a` and `b` must contain finite decimal literals.
 
-`workflow/analysis.py` must consist only of module-level imports and assignments in the following forms:
+workflow/analysis.py must consist of exactly these lines, byte for byte, with PROCEDURE replaced by the procedure named in your case instructions and nothing else changed:
 
-- Import `csv`, `Path` from `pathlib`, and one direct `scipy.stats` binding.
-- Bind `rows` exactly once with:
-  - `rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8").splitlines()))`
-- Bind exactly one row-sequence alias with `staged = rows`.
-- Build the two procedure vectors as complete ordered projections:
-  - `left = [float(row["a"]) for row in staged]`
-  - `right = [float(row["b"]) for row in staged]`
-- Bind `result` by calling exactly the procedure named in the case: `scipy.stats.ttest_ind`, `scipy.stats.mannwhitneyu`, or `scipy.stats.ttest_rel`. The call must have exactly `left` and `right` as two positional arguments and no keyword arguments.
-- Write the sole report directly with:
-  - `Path("results/report.md").write_text(f"[selected-result] {result}\n", encoding="utf-8")`
-
-Do not filter, slice, sample, merge, aggregate, deduplicate, mutate, or loop-build the row sequence. Do not use helper functions, branches, exception handling, randomness, clocks, network access, command-line arguments, environment variables, or any other read or write.
+```python
+"""
+    + _DEPENDENCE_FROZEN_WORKFLOW_BODY
+    + """```
 
 `results/report.md` must be ASCII, contain exactly the one `[selected-result]` line written by the script, and equal the SciPy 1.14.0 output byte-for-byte."""
+)
 
 
 def default_dependence_config() -> EnvelopeConfig:
-    """Return the pilot-b six-role dependence-recognition blind-pilot envelope.
+    """Return the pilot-c six-role dependence-recognition blind-pilot envelope.
 
-    Pilot-b corrects commit fc91a19's description of pilot-a: the official
+    Pilot-c carries forward pilot-b's correction of commit fc91a19: the official
     primary and escalation reviewers were unanimous against the answer key,
     and the retired attempt's verdicts are void.  Its added out-of-scope
     review sentence has a known one-directional effect, bearing mostly on the
@@ -807,8 +804,8 @@ def default_dependence_config() -> EnvelopeConfig:
     """
 
     slug = f"dependence-{DEPENDENCE_PILOT_INSTANCE}"
-    first_author = f"actor:{slug}-author-opus-15"
-    second_author = f"actor:{slug}-author-opus-16"
+    first_author = f"actor:{slug}-author-opus-17"
+    second_author = f"actor:{slug}-author-opus-18"
     return EnvelopeConfig(
         envelope_id=(
             "authorized-independent-unit-entry-into-row-independent-procedure-"
@@ -852,6 +849,8 @@ def default_dependence_config() -> EnvelopeConfig:
                 "unsupported",
             ],
         },
+        # Pilot-b closed at intake, so fable-11 and opus-09 observed no case;
+        # their reviewer contexts remain unspent and are retained for pilot-c.
         reviewer=ModelParticipant(
             participant_id=f"actor:{slug}-reviewer-fable-11",
             model_id="claude-fable-5",
