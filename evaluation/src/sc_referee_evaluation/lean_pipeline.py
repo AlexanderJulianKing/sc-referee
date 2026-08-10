@@ -1710,6 +1710,10 @@ def _run_review_call(
 ) -> dict[str, Any]:
     """One frozen blind batched review call: packets, transport, projection, captures."""
 
+    # The projection requires the workspace-payload case set to equal the packet case
+    # set. An escalation call reviews a strict subset of cases, so restrict the payload
+    # mapping to the subset here; the prompt below already iterates case_subset only.
+    workspace_payloads = {case_id: workspace_payloads[case_id] for case_id in case_subset}
     schema = build_stage1_batch_output_schema_v2(
         participant.participant_id, case_subset, config.canonical_issue_class
     )

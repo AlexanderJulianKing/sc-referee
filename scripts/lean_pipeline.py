@@ -808,7 +808,9 @@ def default_dependence_config() -> EnvelopeConfig:
             model_alias="fable",
         ),
         escalation_reviewer=ModelParticipant(
-            participant_id=f"actor:{slug}-reviewer-opus-07",
+            # opus-07 retired after attempt 1 (empty workspace-payload echo failed
+            # deterministic projection); see the lane's RETIREMENT_ATTEMPT_1.md.
+            participant_id=f"actor:{slug}-reviewer-opus-08",
             model_id="claude-opus-5",
             model_name="Claude Opus 5",
             model_alias="claude-opus-5",
