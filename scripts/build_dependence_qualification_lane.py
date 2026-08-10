@@ -1,10 +1,9 @@
-"""Build the sealed dependence qualification-lane inputs without opening them.
+"""Build the two-block dependence qualification lane without opening it.
 
-This is a one-shot builder.  It is intentionally not invoked by repository
-generation.  The threshold ADR and maintainer decision must precede any real
-lane write.  At present the shared prospective allocator also requires a
-separate seven-cell threshold-pilot block; the requested seven-brief held-out
-shape therefore fails closed before this builder writes any artifact.
+This one-shot builder is intentionally absent from repository generation.  It
+freezes a seven-case threshold-pilot dress rehearsal and a separate seven-case
+qualification-heldout block.  Tests may write the artifacts only below a
+temporary directory; the real lane remains unbuilt pending maintainer action.
 """
 
 from __future__ import annotations
@@ -42,13 +41,18 @@ CANONICAL_ISSUE_CLASS = (
 )
 DETECTOR_ID = "detector:bounded-analysis-method-conflict"
 LANE_ID = "lane:authorized-independent-unit-entry-v1"
-BLOCK_ID = "block:" + semantic_digest({"lane_id": LANE_ID, "role": "qualification_heldout"})[7:23]
+PILOT_BLOCK_ID = "block:" + semantic_digest({"lane_id": LANE_ID, "role": "threshold_pilot"})[7:23]
+HELDOUT_BLOCK_ID = (
+    "block:" + semantic_digest({"lane_id": LANE_ID, "role": "qualification_heldout"})[7:23]
+)
 FROZEN_AT = "2026-08-10T23:02:00Z"
 ASSIGNED_AT = "2026-08-10T23:01:00Z"
 DETECTOR_FROZEN_AT = "2026-08-10T23:00:00Z"
 
-AUTHOR_OPUS_21 = "actor:dependence-heldout-author-opus-21"
-AUTHOR_OPUS_22 = "actor:dependence-heldout-author-opus-22"
+PILOT_AUTHOR_1 = "actor:dependence-pilot-e-sealed-author-01"
+PILOT_AUTHOR_2 = "actor:dependence-pilot-e-sealed-author-02"
+HELDOUT_AUTHOR_1 = "actor:dependence-heldout-sealed-author-01"
+HELDOUT_AUTHOR_2 = "actor:dependence-heldout-sealed-author-02"
 STAGE1_IDS = (
     "actor:dependence-stage1-claude-01",
     "actor:dependence-stage1-claude-02",
@@ -68,14 +72,25 @@ ROLES = (
     "unsupported",
     "renamed_implementation",
 )
-AUTHOR_BY_ROLE = {
-    "error_bearing": AUTHOR_OPUS_21,
-    "corrected_twin": AUTHOR_OPUS_21,
-    "valid_alternative": AUTHOR_OPUS_22,
-    "hard_negative": AUTHOR_OPUS_22,
-    "ambiguous": AUTHOR_OPUS_22,
-    "unsupported": AUTHOR_OPUS_22,
-    "renamed_implementation": AUTHOR_OPUS_22,
+AUTHOR_BY_BLOCK_AND_ROLE = {
+    "threshold_pilot": {
+        "error_bearing": PILOT_AUTHOR_1,
+        "corrected_twin": PILOT_AUTHOR_1,
+        "valid_alternative": PILOT_AUTHOR_2,
+        "hard_negative": PILOT_AUTHOR_2,
+        "ambiguous": PILOT_AUTHOR_2,
+        "unsupported": PILOT_AUTHOR_2,
+        "renamed_implementation": PILOT_AUTHOR_2,
+    },
+    "qualification_heldout": {
+        "error_bearing": HELDOUT_AUTHOR_1,
+        "corrected_twin": HELDOUT_AUTHOR_1,
+        "valid_alternative": HELDOUT_AUTHOR_2,
+        "hard_negative": HELDOUT_AUTHOR_2,
+        "ambiguous": HELDOUT_AUTHOR_2,
+        "unsupported": HELDOUT_AUTHOR_2,
+        "renamed_implementation": HELDOUT_AUTHOR_2,
+    },
 }
 ADDITIONAL_HIDDEN_TERMS = [
     "pseudoreplication",
@@ -85,7 +100,7 @@ ADDITIONAL_HIDDEN_TERMS = [
     CANDIDATE_ID,
 ]
 
-RENAMED_TRIPLES = (
+PILOT_RENAMED_TRIPLES = (
     ("x01", "y09", "s01"),
     ("x01", "y10", "s02"),
     ("x01", "y11", "s03"),
@@ -111,7 +126,7 @@ RENAMED_TRIPLES = (
     ("x08", "y07", "s23"),
     ("x08", "y01", "s24"),
 )
-RENAMED_LEFT = (
+PILOT_RENAMED_LEFT = (
     10.0,
     10.5,
     11.0,
@@ -137,7 +152,7 @@ RENAMED_LEFT = (
     80.5,
     81.0,
 )
-RENAMED_RIGHT = (
+PILOT_RENAMED_RIGHT = (
     12.0,
     22.0,
     32.0,
@@ -163,7 +178,89 @@ RENAMED_RIGHT = (
     76.0,
     86.0,
 )
-RENAMED_RESULT = (
+PILOT_RENAMED_RESULT = (
+    "MannwhitneyuResult(statistic=np.float64(252.0), pvalue=np.float64(0.4641699943597949))"
+)
+
+HELDOUT_RENAMED_TRIPLES = (
+    ("r01", "z09", "q01"),
+    ("r01", "z10", "q02"),
+    ("r01", "z11", "q03"),
+    ("r02", "z12", "q04"),
+    ("r02", "z13", "q05"),
+    ("r02", "z14", "q06"),
+    ("r03", "z15", "q07"),
+    ("r03", "z16", "q08"),
+    ("r03", "z17", "q09"),
+    ("r04", "z18", "q10"),
+    ("r04", "z19", "q11"),
+    ("r04", "z20", "q12"),
+    ("r05", "z21", "q13"),
+    ("r05", "z22", "q14"),
+    ("r05", "z23", "q15"),
+    ("r06", "z24", "q16"),
+    ("r06", "z08", "q17"),
+    ("r06", "z02", "q18"),
+    ("r07", "z03", "q19"),
+    ("r07", "z04", "q20"),
+    ("r07", "z05", "q21"),
+    ("r08", "z06", "q22"),
+    ("r08", "z07", "q23"),
+    ("r08", "z01", "q24"),
+)
+HELDOUT_RENAMED_LEFT = (
+    110.0,
+    110.25,
+    110.75,
+    120.0,
+    120.25,
+    120.75,
+    130.0,
+    130.25,
+    130.75,
+    140.0,
+    140.25,
+    140.75,
+    150.0,
+    150.25,
+    150.75,
+    160.0,
+    160.25,
+    160.75,
+    170.0,
+    170.25,
+    170.75,
+    180.0,
+    180.25,
+    180.75,
+)
+HELDOUT_RENAMED_RIGHT = (
+    113.0,
+    123.0,
+    133.0,
+    143.0,
+    153.0,
+    163.0,
+    173.0,
+    183.0,
+    116.0,
+    126.0,
+    136.0,
+    146.0,
+    156.0,
+    166.0,
+    176.0,
+    186.0,
+    119.0,
+    129.0,
+    139.0,
+    149.0,
+    159.0,
+    169.0,
+    179.0,
+    189.0,
+)
+HELDOUT_RENAMED_RESULT = (
     "MannwhitneyuResult(statistic=np.float64(252.0), pvalue=np.float64(0.4641699943597949))"
 )
 
@@ -193,27 +290,45 @@ def _visible_brief(
     }
 
 
-def _renamed_constraints() -> list[str]:
-    triples = "; ".join(f"`{','.join(item)}`" for item in RENAMED_TRIPLES)
-    left = ", ".join(str(value) for value in RENAMED_LEFT)
-    right = ", ".join(str(value) for value in RENAMED_RIGHT)
+def _renamed_constraints(block_role: str) -> list[str]:
+    if block_role == "threshold_pilot":
+        triples_source = PILOT_RENAMED_TRIPLES
+        left_source = PILOT_RENAMED_LEFT
+        right_source = PILOT_RENAMED_RIGHT
+        result = PILOT_RENAMED_RESULT
+        key_prefix, companion_prefix, tag_prefix = "x", "y", "s"
+    elif block_role == "qualification_heldout":
+        triples_source = HELDOUT_RENAMED_TRIPLES
+        left_source = HELDOUT_RENAMED_LEFT
+        right_source = HELDOUT_RENAMED_RIGHT
+        result = HELDOUT_RENAMED_RESULT
+        key_prefix, companion_prefix, tag_prefix = "r", "z", "q"
+    else:
+        raise DependenceQualificationScaffoldError(
+            f"Unsupported renamed-construction block role: {block_role!r}."
+        )
+    triples = "; ".join(f"`{','.join(item)}`" for item in triples_source)
+    left = ", ".join(str(value) for value in left_source)
+    right = ", ".join(str(value) for value in right_source)
     return [
         f"Use exactly these 24 k1,k2,tag triples in row order: {triples}.",
         f"Use a values in row order `{left}` and corresponding b values `{right}`.",
         (
-            "Each x01 through x08 code occurs on exactly three rows with three different a "
-            "values; every y01 through y24 code and every s01 through s24 tag occurs once."
+            f"Each {key_prefix}01 through {key_prefix}08 code occurs on exactly three rows "
+            f"with three different a values; every {companion_prefix}01 through "
+            f"{companion_prefix}24 code and every {tag_prefix}01 through {tag_prefix}24 tag "
+            "occurs once."
         ),
         "Call `scipy.stats.mannwhitneyu`.",
         (
             "The exact SciPy 1.14.0 result text is `"
-            + RENAMED_RESULT
+            + result
             + "`; the report must be `[selected-result] ` followed by exactly that text."
         ),
         (
-            "Use only the prescribed x/y/s namespaces and numeric values, which differ from "
-            "every other supplied construction; do not substitute identifiers or values from "
-            "another case."
+            f"Use only the prescribed {key_prefix}/{companion_prefix}/{tag_prefix} namespaces "
+            "and numeric values, which differ from every other supplied construction; do not "
+            "substitute identifiers or values from another case."
         ),
     ]
 
@@ -221,33 +336,39 @@ def _renamed_constraints() -> list[str]:
 def _case_specs() -> list[dict[str, Any]]:
     base = default_dependence_config()
     specs: list[dict[str, Any]] = []
-    for role in ROLES:
-        case_id = stable_id("case", LANE_ID, role)
-        task_role = "error_bearing" if role == "renamed_implementation" else role
-        constraints = (
-            _renamed_constraints()
-            if role == "renamed_implementation"
-            else list(base.role_constraints[role])
-        )
-        specs.append(
-            {
-                "case_id": case_id,
-                "brief_id": stable_id("brief", LANE_ID, role),
-                "cell_type": role,
-                "reference_role": (
-                    "error_bearing"
-                    if role in {"corrected_twin", "renamed_implementation"}
-                    else None
-                ),
-                "author_id": AUTHOR_BY_ROLE[role],
-                "design_status": (
-                    "draft_pending_hostile_review"
-                    if role == "renamed_implementation"
-                    else "pilot_d_construction_reused"
-                ),
-                "visible": _visible_brief(case_id, base.task_by_role[task_role], constraints),
-            }
-        )
+    for block_role, block_id in (
+        ("threshold_pilot", PILOT_BLOCK_ID),
+        ("qualification_heldout", HELDOUT_BLOCK_ID),
+    ):
+        for role in ROLES:
+            case_id = stable_id("case", LANE_ID, block_role, role)
+            task_role = "error_bearing" if role == "renamed_implementation" else role
+            constraints = (
+                _renamed_constraints(block_role)
+                if role == "renamed_implementation"
+                else list(base.role_constraints[role])
+            )
+            specs.append(
+                {
+                    "case_id": case_id,
+                    "brief_id": stable_id("brief", LANE_ID, block_role, role),
+                    "block_id": block_id,
+                    "block_role": block_role,
+                    "cell_type": role,
+                    "reference_role": (
+                        "error_bearing"
+                        if role in {"corrected_twin", "renamed_implementation"}
+                        else None
+                    ),
+                    "author_id": AUTHOR_BY_BLOCK_AND_ROLE[block_role][role],
+                    "design_status": (
+                        "draft_pending_hostile_review"
+                        if role == "renamed_implementation"
+                        else "pilot_d_construction_reused"
+                    ),
+                    "visible": _visible_brief(case_id, base.task_by_role[task_role], constraints),
+                }
+            )
     return specs
 
 
@@ -283,8 +404,10 @@ def _participant(identifier: str, role: str, provider: str) -> dict[str, str]:
 
 def _participants() -> list[dict[str, str]]:
     rows = [
-        _participant(AUTHOR_OPUS_21, "author", "Anthropic"),
-        _participant(AUTHOR_OPUS_22, "author", "Anthropic"),
+        _participant(PILOT_AUTHOR_1, "author", "Anthropic"),
+        _participant(PILOT_AUTHOR_2, "author", "Anthropic"),
+        _participant(HELDOUT_AUTHOR_1, "author", "Anthropic"),
+        _participant(HELDOUT_AUTHOR_2, "author", "Anthropic"),
         *[
             _participant(identifier, "stage1_reviewer", provider)
             for identifier, provider in zip(
@@ -402,7 +525,7 @@ def _live_precase_freeze(project_root: Path) -> dict[str, Any]:
         },
         "limitations": [
             "This scaffold has no threshold, label, detector outcome, promotion, or Finding authority.",
-            "The renamed construction remains DRAFT pending hostile review.",
+            "Both renamed constructions remain DRAFT pending hostile review.",
         ],
     }
     if (
@@ -432,7 +555,7 @@ def _protocol_participants(enrollment: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def assemble_dependence_qualification_inputs(project_root: Path) -> dict[str, Any]:
-    """Assemble replayable inputs and the currently blocked seven-case lane spec."""
+    """Assemble replayable inputs for the two-block, fourteen-case lane."""
 
     if tuple(REQUIRED_CELL_TYPES) != ROLES:
         raise DependenceQualificationScaffoldError(
@@ -453,7 +576,7 @@ def assemble_dependence_qualification_inputs(project_root: Path) -> dict[str, An
             "manifest_id": "brief-manifest:authorized-independent-unit-entry-v1",
             "lane_id": LANE_ID,
             "precase_freeze_digest": precase["freeze_digest"],
-            "expected_case_count": 7,
+            "expected_case_count": 14,
             "additional_hidden_terms": list(ADDITIONAL_HIDDEN_TERMS),
             "briefs": [
                 {
@@ -467,16 +590,18 @@ def assemble_dependence_qualification_inputs(project_root: Path) -> dict[str, An
         frozen_at=FROZEN_AT,
     )
     brief_by_case = {str(item["case_id"]): item for item in brief_manifest["briefs"]}
-    case_by_role = {str(item["cell_type"]): str(item["case_id"]) for item in cases}
+    case_by_block_and_role = {
+        (str(item["block_id"]), str(item["cell_type"])): str(item["case_id"]) for item in cases
+    }
     assignments = [
         {
             "case_id": item["case_id"],
             "envelope_id": ENVELOPE_ID,
-            "block_id": BLOCK_ID,
+            "block_id": item["block_id"],
             "cell_type": item["cell_type"],
             "source_kind": "independent_prospective",
             "reference_case_id": (
-                case_by_role[str(item["reference_role"])]
+                case_by_block_and_role[(str(item["block_id"]), str(item["reference_role"]))]
                 if item["reference_role"] is not None
                 else None
             ),
@@ -510,7 +635,13 @@ def assemble_dependence_qualification_inputs(project_root: Path) -> dict[str, An
                     "binding_digest": precase["binding"]["binding_digest"],
                 }
             ],
-            "blocks": [{"block_id": BLOCK_ID, "evidence_role": "qualification_heldout"}],
+            "blocks": [
+                {"block_id": PILOT_BLOCK_ID, "evidence_role": "threshold_pilot"},
+                {
+                    "block_id": HELDOUT_BLOCK_ID,
+                    "evidence_role": "qualification_heldout",
+                },
+            ],
             "assignments": assignments,
             "governance": {
                 "all_outcomes_retained": True,
@@ -535,7 +666,7 @@ def assemble_dependence_qualification_inputs(project_root: Path) -> dict[str, An
 def build_dependence_qualification_lane(
     project_root: Path, output_dir: Path
 ) -> dict[str, dict[str, Any]]:
-    """Freeze and write all four artifacts atomically once the allocator accepts seven cases."""
+    """Freeze and write the four two-block lane artifacts without opening either block."""
 
     assembled = assemble_dependence_qualification_inputs(project_root)
     precase = assembled["FREEZE_MANIFEST.json"]

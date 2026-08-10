@@ -22,6 +22,11 @@ from sc_referee_evaluation.lean_pipeline import (
 )
 
 from sc_referee.core.ids import semantic_digest
+from scripts.build_dependence_qualification_lane import (
+    HELDOUT_AUTHOR_1,
+    HELDOUT_AUTHOR_2,
+    HELDOUT_BLOCK_ID,
+)
 from scripts.lean_pipeline import default_dependence_config
 
 LANE_RELATIVE = Path(
@@ -58,6 +63,20 @@ EXPECTED_AUTHOR_ROLES = {
         "unsupported",
         "valid_alternative",
     ],
+}
+EXPECTED_SEALED_AUTHOR_ROLES = {
+    HELDOUT_AUTHOR_1: ["corrected_twin", "error_bearing"],
+    HELDOUT_AUTHOR_2: [
+        "ambiguous",
+        "hard_negative",
+        "renamed_implementation",
+        "unsupported",
+        "valid_alternative",
+    ],
+}
+HONORING_PARTICIPANT_BY_SEALED_AUTHOR = {
+    HELDOUT_AUTHOR_1: AUTHOR_OPUS_21,
+    HELDOUT_AUTHOR_2: AUTHOR_OPUS_22,
 }
 
 
@@ -108,6 +127,10 @@ def load_sealed_block(project_root: Path) -> dict[str, Any]:
         raise DependenceHeldoutConfigurationError(
             "The sealed dependence block is not withheld pending threshold approval."
         )
+    if seal.get("block_ids") != [HELDOUT_BLOCK_ID]:
+        raise DependenceHeldoutConfigurationError(
+            "The dependence held-out seal does not name the frozen held-out block."
+        )
     protocol = lane.get("prospective_protocol")
     if not isinstance(protocol, dict):
         raise DependenceHeldoutConfigurationError("The dependence lane has no protocol.")
@@ -117,7 +140,9 @@ def load_sealed_block(project_root: Path) -> dict[str, Any]:
         if isinstance(item, dict) and str(item.get("case_id")) in set(case_ids)
     }
     briefs = {
-        str(item["case_id"]): item for item in manifest.get("briefs", []) if isinstance(item, dict)
+        str(item["case_id"]): item
+        for item in manifest.get("briefs", [])
+        if isinstance(item, dict) and str(item.get("case_id")) in set(case_ids)
     }
     if set(assignments) != set(case_ids) or set(briefs) != set(case_ids):
         raise DependenceHeldoutConfigurationError(
@@ -144,7 +169,7 @@ def load_sealed_block(project_root: Path) -> dict[str, Any]:
             {
                 "case_id": case_id,
                 "role": str(assignment["cell_type"]),
-                "author_id": str(assignment["author_id"]),
+                "sealed_author_id": str(assignment["author_id"]),
                 "brief_digest": str(entry["brief_digest"]),
                 "brief": dict(visible),
             }
@@ -155,11 +180,11 @@ def load_sealed_block(project_root: Path) -> dict[str, Any]:
         )
     roles_by_author: dict[str, list[str]] = {}
     for row in rows:
-        roles_by_author.setdefault(str(row["author_id"]), []).append(str(row["role"]))
+        roles_by_author.setdefault(str(row["sealed_author_id"]), []).append(str(row["role"]))
     normalized = {key: sorted(value) for key, value in roles_by_author.items()}
-    if normalized != EXPECTED_AUTHOR_ROLES:
+    if normalized != EXPECTED_SEALED_AUTHOR_ROLES:
         raise DependenceHeldoutConfigurationError(
-            "The sealed dependence author-role table differs from the fresh actor allocation."
+            "The sealed dependence author-role table differs from the sealed slot allocation."
         )
     return {
         "lane_freeze_digest": str(lane["lane_freeze_digest"]),
@@ -269,7 +294,10 @@ def heldout_config(project_root: Path) -> tuple[EnvelopeConfig, dict[str, Any]]:
             {
                 "case_id": row["case_id"],
                 "case_role": row["role"],
-                "author_id": row["author_id"],
+                "sealed_author_id": row["sealed_author_id"],
+                "honoring_participant_id": HONORING_PARTICIPANT_BY_SEALED_AUTHOR[
+                    str(row["sealed_author_id"])
+                ],
                 "brief_digest": row["brief_digest"],
             }
             for row in block["assignments"]
