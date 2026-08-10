@@ -36,6 +36,14 @@ from sc_referee.dependence_recognition.authority_lock import (
     lock_projection,
     verify_dependence_authorization_lock,
 )
+from sc_referee.dependence_recognition.python_analyzer import analyze_dependence_python
+from sc_referee.scientific_checks.core import (
+    FrozenBaseRecord,
+    FrozenInspectionContext,
+    FrozenMaterialInput,
+    InspectionDocument,
+    RecordRef,
+)
 from scripts.lean_pipeline import (
     DEPENDENCE_SANDBOX_PYTHON,
     ENVELOPE_CONFIGS,
@@ -90,6 +98,34 @@ _CALLABLE_BY_ROLE = {
 _PROCEDURE_ATTRIBUTE_BY_ROLE = {
     role: value.rsplit(".", maxsplit=1)[-1] for role, value in _CALLABLE_BY_ROLE.items()
 }
+_CLEAN_KEYS = (
+    ("u01", "v07"),
+    ("u02", "v11"),
+    ("u03", "v02"),
+    ("u04", "v09"),
+    ("u05", "v01"),
+    ("u06", "v12"),
+    ("u07", "v05"),
+    ("u08", "v03"),
+    ("u09", "v10"),
+    ("u10", "v04"),
+    ("u11", "v08"),
+    ("u12", "v06"),
+)
+_AMBIGUOUS_KEYS = (
+    ("u01", "v07"),
+    ("u01", "v11"),
+    ("u02", "v06"),
+    ("u02", "v09"),
+    ("u03", "v01"),
+    ("u03", "v12"),
+    ("u04", "v05"),
+    ("u04", "v03"),
+    ("u05", "v10"),
+    ("u05", "v04"),
+    ("u06", "v08"),
+    ("u06", "v02"),
+)
 
 _DEPENDENCE_SANDBOX_AVAILABLE = DEPENDENCE_SANDBOX_PYTHON.is_file()
 DEPENDENCE_SANDBOX_AVAILABILITY_MARKER = (
@@ -111,13 +147,13 @@ if not _DEPENDENCE_SANDBOX_AVAILABLE:
 def _unique_rows(*, shared_tag: bool = False) -> list[tuple[str, str, str, float, float]]:
     return [
         (
-            f"u{index:02d}",
-            f"v{index:02d}",
+            k1,
+            k2,
             "shared" if shared_tag else f"t{index:02d}",
             _LEFT[index - 1],
             _RIGHT[index - 1],
         )
-        for index in range(1, 13)
+        for index, (k1, k2) in enumerate(_CLEAN_KEYS, start=1)
     ]
 
 
@@ -127,23 +163,9 @@ def _rows(role: str) -> list[tuple[str, str, str, float, float]]:
     if role == "hard_negative":
         return _unique_rows(shared_tag=True)
     if role == "ambiguous":
-        keys = (
-            ("u01", "v01"),
-            ("u01", "v02"),
-            ("u02", "v03"),
-            ("u02", "v04"),
-            ("u03", "v01"),
-            ("u03", "v03"),
-            ("u04", "v02"),
-            ("u04", "v04"),
-            ("u05", "v01"),
-            ("u05", "v04"),
-            ("u06", "v02"),
-            ("u06", "v03"),
-        )
         return [
-            (k1, k2, f"g{1 + (index % 2):02d}", _LEFT[index], _RIGHT[index])
-            for index, (k1, k2) in enumerate(keys)
+            (k1, k2, f"t{index + 1:02d}", _LEFT[index], _RIGHT[index])
+            for index, (k1, k2) in enumerate(_AMBIGUOUS_KEYS)
         ]
     return _unique_rows()
 
@@ -160,10 +182,11 @@ def _workflow(role: str) -> str:
         "import csv\n"
         "from pathlib import Path\n"
         "import scipy.stats as st\n"
-        'rows = list(csv.DictReader(Path("inputs/data.csv").open(newline="", '
-        'encoding="utf-8")))\n'
-        'left = [float(row["a"]) for row in rows]\n'
-        'right = [float(row["b"]) for row in rows]\n'
+        'rows = list(csv.DictReader(Path("inputs/data.csv").read_text('
+        'encoding="utf-8").splitlines()))\n'
+        "staged = rows\n"
+        'left = [float(row["a"]) for row in staged]\n'
+        'right = [float(row["b"]) for row in staged]\n'
         f"result = st.{procedure}(left, right)\n"
         'Path("results/report.md").write_text(f"[selected-result] {result}\\n", '
         'encoding="utf-8")\n'
@@ -193,7 +216,7 @@ def _authority_lock(
     procedure_id = f"procedure:{slug}"
     result_id = f"result:{slug}"
     authorization_id = f"authorization:{slug}"
-    actor_id = "scientist:dependence-a-method-owner-01"
+    actor_id = "scientist:dependence-b-method-owner-01"
     value: dict[str, Any] = {
         "lock_kind": LOCK_KIND,
         "case_id": case_id,
@@ -229,8 +252,8 @@ def _authority_lock(
                     "record_type": "procedure",
                     "record_id": procedure_id,
                 },
-                "independent_unit_definition_id": "unit-definition:ordered-k1-k2-source",
-                "authorized_key_columns": ["k1", "k2"],
+                "independent_unit_definition_id": "unit-definition:k1-first-collection-source-item",
+                "authorized_key_columns": ["k1"],
                 "input_path": "inputs/data.csv",
                 "input_content_digest": input_digest,
             },
@@ -255,70 +278,313 @@ def _isolated_project_root(tmp_path: Path, project_root: Path) -> Path:
     return tmp_path
 
 
+def _preflight_context(role: str) -> FrozenInspectionContext:
+    """Build only the frozen records required for an analyzer-envelope preflight."""
+
+    source = _workflow(role).encode()
+    data = _csv(role).encode()
+    requirements = b"numpy==2.2.6\nscipy==1.14.0\n"
+    data_digest = sha256_digest(data)
+    requirements_digest = sha256_digest(requirements)
+    surface_ref = RecordRef("publication_surface", "surface:pilot-b")
+    artifact_ref = RecordRef("artifact", "artifact:pilot-b-report")
+    snapshot_ref = RecordRef("repository_snapshot", "snapshot:pilot-b")
+    analysis_file_ref = RecordRef("file_record", "file:pilot-b-analysis")
+    parser_ref = RecordRef("parser_result", "parser:pilot-b-analysis")
+    data_file_ref = RecordRef("file_record", "file:pilot-b-data")
+    data_identity_ref = RecordRef("asset_identity", "asset:pilot-b-data")
+    requirements_file_ref = RecordRef("file_record", "file:pilot-b-requirements")
+    requirements_identity_ref = RecordRef("asset_identity", "asset:pilot-b-requirements")
+    analysis_ref = RecordRef("analysis", "analysis:pilot-b")
+    procedure_ref = RecordRef("procedure", "procedure:pilot-b")
+    result_ref = RecordRef("result", "result:pilot-b")
+    parser_payload = canonical_json(
+        {"parser_id": "python-ast", "parser_version": "3.11", "state": "parsed"}
+    ).encode()
+    records: list[tuple[RecordRef, dict[str, object]]] = [
+        (
+            surface_ref,
+            {
+                "publication_surface_id": surface_ref.record_id,
+                "status": "resolved",
+                "selection": {"selected_surface_refs": [artifact_ref.to_dict()]},
+            },
+        ),
+        (
+            artifact_ref,
+            {
+                "artifact_id": artifact_ref.record_id,
+                "kind": "report",
+                "path": "results/report.md",
+            },
+        ),
+        (
+            snapshot_ref,
+            {
+                "snapshot_id": snapshot_ref.record_id,
+                "extensions": {
+                    "x-material-full-digest-paths": ["inputs/data.csv", "requirements.txt"]
+                },
+            },
+        ),
+        (
+            data_file_ref,
+            {
+                "file_record_id": data_file_ref.record_id,
+                "path": "inputs/data.csv",
+                "entry_kind": "regular_file",
+                "asset_identity_ref": data_identity_ref.to_dict(),
+            },
+        ),
+        (
+            data_identity_ref,
+            {
+                "asset_identity_id": data_identity_ref.record_id,
+                "tier": "full_digest",
+                "asset_ref": data_file_ref.to_dict(),
+                "identity_evidence": {"kind": "full_digest", "digest": data_digest},
+            },
+        ),
+        (
+            requirements_file_ref,
+            {
+                "file_record_id": requirements_file_ref.record_id,
+                "path": "requirements.txt",
+                "entry_kind": "regular_file",
+                "asset_identity_ref": requirements_identity_ref.to_dict(),
+            },
+        ),
+        (
+            requirements_identity_ref,
+            {
+                "asset_identity_id": requirements_identity_ref.record_id,
+                "tier": "full_digest",
+                "asset_ref": requirements_file_ref.to_dict(),
+                "identity_evidence": {
+                    "kind": "full_digest",
+                    "digest": requirements_digest,
+                },
+            },
+        ),
+        (analysis_file_ref, {"file_record_id": analysis_file_ref.record_id}),
+        (parser_ref, {"parser_result_id": parser_ref.record_id}),
+        (analysis_ref, {"analysis_id": analysis_ref.record_id}),
+        (
+            procedure_ref,
+            {
+                "procedure_id": procedure_ref.record_id,
+                "resolved_callable": _CALLABLE_BY_ROLE[role],
+            },
+        ),
+        (result_ref, {"result_id": result_ref.record_id, "path": "results/report.md"}),
+    ]
+    if role != "ambiguous":
+        records.append(
+            (
+                RecordRef("human_method_authorization", "authorization:pilot-b"),
+                {
+                    "record_type": "human_method_authorization",
+                    "record_id": "authorization:pilot-b",
+                    "actor_id": "human:pilot-b-method-owner",
+                    "authority_state": "authorized",
+                    "analysis_target_ref": analysis_ref.to_dict(),
+                    "procedure_ref": procedure_ref.to_dict(),
+                    "independent_unit_definition_id": (
+                        "unit-definition:k1-first-collection-source-item"
+                    ),
+                    "authorized_key_columns": ["k1"],
+                    "input_path": "inputs/data.csv",
+                    "input_content_digest": data_digest,
+                },
+            )
+        )
+    return FrozenInspectionContext(
+        snapshot_digest=sha256_digest(b"pilot-b-preflight"),
+        selected_surface_ref=surface_ref,
+        selected_artifact_ref=artifact_ref,
+        documents=(
+            InspectionDocument(
+                path="workflow/analysis.py",
+                file_ref=analysis_file_ref,
+                content=source,
+                content_digest=sha256_digest(source),
+                media_type="text/x-python",
+                parser_result_ref=parser_ref,
+                parser_result_payload=parser_payload,
+                parser_result_digest=sha256_digest(parser_payload),
+            ),
+        ),
+        base_records=tuple(FrozenBaseRecord.from_record(ref, value) for ref, value in records),
+        material_inputs=(
+            FrozenMaterialInput(
+                path="inputs/data.csv",
+                file_ref=data_file_ref,
+                asset_identity_ref=data_identity_ref,
+                content=data,
+                content_digest=data_digest,
+            ),
+            FrozenMaterialInput(
+                path="requirements.txt",
+                file_ref=requirements_file_ref,
+                asset_identity_ref=requirements_identity_ref,
+                content=requirements,
+                content_digest=requirements_digest,
+            ),
+        ),
+    )
+
+
 def test_dependence_envelope_configuration_and_actor_seats() -> None:
     config = default_dependence_config()
     assert ENVELOPE_CONFIGS["dependence"] is default_dependence_config
     assert config.canonical_issue_class == (
         "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure"
     )
-    assert config.common_task == (
-        "Choose a neutral scientific subject area and instantiate the assigned small table. "
-        "Treat `k1`, `k2`, and `tag` as opaque codes and `a` and `b` as two finite numeric "
-        "measurements. Apply the procedure named in the case instructions to the complete "
-        "staged row sequence and write its single selected result."
-    )
+    assert config.envelope_id.endswith("-lean-b")
+    assert config.pipeline_relative.as_posix().endswith("/pilot-b")
     assert config.roles == sorted(_ROLES)
     assert set(config.candidate_by_role) == set(_ROLES) - {"ambiguous"}
     assert set(config.candidate_by_role.values()) == {
         "one-analyzed-row-per-authorized-independent-unit"
     }
-    assert config.mq_tolerant_roles == {"ambiguous"}
+    assert config.mq_tolerant_roles == {"ambiguous", "unsupported"}
     assert config.contract_free_roles == {"ambiguous"}
     assert config.allowed_import_roots == DEFAULT_ALLOWED_IMPORT_ROOTS | {"scipy"}
     assert config.sandbox_python == DEPENDENCE_SANDBOX_PYTHON
-    assert config.required_sandbox_distributions == {"scipy": "1.14.0"}
-    assert config.controller_material_files == {"requirements.txt": b"scipy==1.14.0\n"}
+    assert config.required_sandbox_distributions == {"numpy": "2.2.6", "scipy": "1.14.0"}
+    assert config.controller_material_files == {
+        "requirements.txt": b"numpy==2.2.6\nscipy==1.14.0\n"
+    }
     assert config.material_input_paths == ("inputs/data.csv", "requirements.txt")
     assert config.input_csv_row_bounds == (1, 64)
     assert config.detector_id == "detector:bounded-analysis-method-conflict"
     assert sorted(config.authors) == [
-        "actor:dependence-a-author-opus-13",
-        "actor:dependence-a-author-opus-14",
+        "actor:dependence-b-author-opus-15",
+        "actor:dependence-b-author-opus-16",
     ]
-    assert config.author_roles["actor:dependence-a-author-opus-13"] == [
+    assert config.author_roles["actor:dependence-b-author-opus-15"] == [
         "error_bearing",
         "corrected_twin",
     ]
-    assert config.author_roles["actor:dependence-a-author-opus-14"] == [
+    assert config.author_roles["actor:dependence-b-author-opus-16"] == [
         "valid_alternative",
         "hard_negative",
         "ambiguous",
         "unsupported",
     ]
-    assert config.reviewer.participant_id == "actor:dependence-a-reviewer-fable-10"
-    assert config.escalation_reviewer.participant_id == ("actor:dependence-a-reviewer-opus-07")
+    assert config.reviewer.participant_id == "actor:dependence-b-reviewer-fable-11"
+    assert config.escalation_reviewer.participant_id == "actor:dependence-b-reviewer-opus-09"
+    assert (
+        "Judge only whether this exact issue class is demonstrated in the selected report. "
+        "Other methodological concerns, however serious, are outside this review and must "
+        "not be recorded as this issue class."
+    ) in config.review_instructions.replace("\n", " ")
     assert "scipy.stats.ttest_ind" in config.author_case_requirements
     assert "scipy.stats.mannwhitneyu" in config.author_case_requirements
     assert "scipy.stats.ttest_rel" in config.author_case_requirements
     for role, result in _RESULTS.items():
         assert result in "\n".join(config.role_constraints[role])
     ambiguous = "\n".join(config.role_constraints["ambiguous"])
-    for triple in (
-        "u01,v01,g01",
-        "u01,v02,g02",
-        "u02,v03,g01",
-        "u02,v04,g02",
-        "u03,v01,g01",
-        "u03,v03,g02",
-        "u04,v02,g01",
-        "u04,v04,g02",
-        "u05,v01,g01",
-        "u05,v04,g02",
-        "u06,v02,g01",
-        "u06,v03,g02",
-    ):
+    for index, (k1, k2) in enumerate(_AMBIGUOUS_KEYS, start=1):
+        triple = f"{k1},{k2},t{index:02d}"
         assert f"`{triple}`" in ambiguous
     assert "Do not substitute any author-chosen string" in ambiguous
+    assert all(k1.removeprefix("u") != k2.removeprefix("v") for k1, k2 in _AMBIGUOUS_KEYS)
+    protocol_note = " ".join((default_dependence_config.__doc__ or "").split())
+    assert "primary and escalation reviewers were unanimous against the answer key" in protocol_note
+    assert "retired attempt's verdicts are void" in protocol_note
+    assert "known one-directional effect" in protocol_note
+    assert "covered_negative`` result" in (default_dependence_config.__doc__ or "")
+
+
+def test_dependence_pilot_b_tasks_data_and_workflow_are_frozen_to_two_collections() -> None:
+    config = default_dependence_config()
+    authorized = config.task_by_role["error_bearing"]
+    assert "`k1` identifies a first-collection source item measured by column `a`" in authorized
+    assert "`k2` identifies a second-collection source item measured by column `b`" in authorized
+    assert "The two collections are disjoint." in authorized
+    assert "`tag` is an opaque annotation." in authorized
+    assert "The row pairing is a storage convention only" in authorized
+    assert "no matching, pairing, block, or other relationship" in authorized
+    ambiguous = config.task_by_role["ambiguous"]
+    assert "two disjoint collections" in ambiguous
+    assert "`tag` is an opaque annotation." in ambiguous
+    assert "The row pairing is a storage convention only" in ambiguous
+    assert "does not establish which code identifies a source item" in ambiguous
+    assert "no matching, pairing, block, or other relationship" in ambiguous
+
+    clean = _unique_rows()
+    assert tuple((row[0], row[1]) for row in clean) == _CLEAN_KEYS
+    assert [row[2] for row in clean] == [f"t{index:02d}" for index in range(1, 13)]
+    error = _rows("error_bearing")
+    assert len(error) == 24
+    assert all(error[index] == error[index + 1] for index in range(0, 24, 2))
+    hard = _rows("hard_negative")
+    assert {row[2] for row in hard} == {"shared"}
+    ambiguous_rows = _rows("ambiguous")
+    assert tuple((row[0], row[1]) for row in ambiguous_rows) == _AMBIGUOUS_KEYS
+    assert [row[2] for row in ambiguous_rows] == [f"t{index:02d}" for index in range(1, 13)]
+    assert len({row[1] for row in ambiguous_rows}) == 12
+    assert all(
+        ambiguous_rows[index][0] == ambiguous_rows[index + 1][0] for index in range(0, 12, 2)
+    )
+
+    expected_workflow = (
+        "import csv\n"
+        "from pathlib import Path\n"
+        "import scipy.stats as st\n"
+        'rows = list(csv.DictReader(Path("inputs/data.csv").read_text('
+        'encoding="utf-8").splitlines()))\n'
+        "staged = rows\n"
+        'left = [float(row["a"]) for row in staged]\n'
+        'right = [float(row["b"]) for row in staged]\n'
+        "result = st.ttest_ind(left, right)\n"
+        'Path("results/report.md").write_text(f"[selected-result] {result}\\n", '
+        'encoding="utf-8")\n'
+    )
+    assert _workflow("corrected_twin") == expected_workflow
+    assert ".open(" not in config.author_case_requirements
+    assert "exactly one row-sequence alias with `staged = rows`" in (
+        config.author_case_requirements
+    )
+
+
+@pytest.mark.parametrize("role", _ROLES)
+def test_dependence_pilot_b_workflows_are_inside_the_static_preflight(role: str) -> None:
+    analysis = analyze_dependence_python(_preflight_context(role))
+    if role == "unsupported":
+        assert analysis.state == "unsupported"
+        assert analysis.unsupported_constructs == ("paired-procedure-operand-unverified",)
+    else:
+        assert analysis.unsupported_constructs == ()
+        assert analysis.state == ("question" if role == "ambiguous" else "proposal")
+
+
+@pytest.mark.skipif(
+    not _DEPENDENCE_SANDBOX_AVAILABLE,
+    reason="dedicated SciPy 1.14.0 qualification interpreter is absent",
+)
+def test_dependence_pilot_b_four_result_reprs_recompute_in_pinned_runtime(
+    tmp_path: Path,
+) -> None:
+    observed: dict[str, str] = {}
+    for role in ("error_bearing", "corrected_twin", "valid_alternative", "unsupported"):
+        case_root = tmp_path / role
+        (case_root / "inputs").mkdir(parents=True)
+        (case_root / "workflow").mkdir()
+        (case_root / "results").mkdir()
+        (case_root / "inputs/data.csv").write_text(_csv(role), encoding="utf-8")
+        source = _workflow(role)
+        (case_root / "workflow/analysis.py").write_text(source, encoding="utf-8")
+        lean_pipeline._static_guard(source, default_dependence_config().allowed_import_roots)
+        observed[role] = lean_pipeline._sandbox_run(case_root, DEPENDENCE_SANDBOX_PYTHON).decode(
+            "utf-8"
+        )
+
+    assert observed == {
+        role: f"[selected-result] {_RESULTS[role]}\n"
+        for role in ("error_bearing", "corrected_twin", "valid_alternative", "unsupported")
+    }
 
 
 @pytest.mark.skipif(
@@ -326,10 +592,13 @@ def test_dependence_envelope_configuration_and_actor_seats() -> None:
     reason="dedicated SciPy 1.14.0 qualification interpreter is absent",
 )
 def test_dependence_dedicated_runtime_probe_passes_for_real() -> None:
-    record = _probe_sandbox_runtime(DEPENDENCE_SANDBOX_PYTHON, {"scipy": "1.14.0"})
+    pins = {"numpy": "2.2.6", "scipy": "1.14.0"}
+    record = _probe_sandbox_runtime(DEPENDENCE_SANDBOX_PYTHON, pins)
     assert record["interpreter_path"] == DEPENDENCE_SANDBOX_PYTHON.as_posix()
     assert record["python_version"].startswith("3.11.15 ")
-    assert record["required_distributions"] == {"scipy": "1.14.0"}
+    assert record["required_distributions"] == pins
+    assert record["observed_distributions"]["numpy"]["distribution_version"] == "2.2.6"
+    assert record["observed_distributions"]["numpy"]["module_version"] == "2.2.6"
     assert record["observed_distributions"]["scipy"]["distribution_version"] == "1.14.0"
     assert record["observed_distributions"]["scipy"]["module_version"] == "1.14.0"
     assert record["probe_digest"] == semantic_digest(
@@ -386,7 +655,10 @@ def test_dependence_six_role_fixture_runs_real_pipeline_without_findings(
     assert intake["case_count"] == 6
     assert intake["ground_truth_execution"]["executed"] is True
     assert intake["ground_truth_execution"]["runs_per_case"] == 2
-    assert intake["sandbox_runtime_probe"]["required_distributions"] == {"scipy": "1.14.0"}
+    assert intake["sandbox_runtime_probe"]["required_distributions"] == {
+        "numpy": "2.2.6",
+        "scipy": "1.14.0",
+    }
     intake_by_case = {str(row["case_id"]): row for row in intake["entries"]}
 
     incoming_root = isolated_root / config.pipeline_relative / "authority/incoming"
@@ -598,6 +870,7 @@ def test_dependence_six_role_fixture_runs_real_pipeline_without_findings(
 def test_dependence_sandbox_execution_tests_cannot_silently_skip_when_runtime_exists() -> None:
     guarded_tests = (
         test_dependence_dedicated_runtime_probe_passes_for_real,
+        test_dependence_pilot_b_four_result_reprs_recompute_in_pinned_runtime,
         test_dependence_six_role_fixture_runs_real_pipeline_without_findings,
     )
     skip_conditions: list[bool] = []
@@ -608,7 +881,138 @@ def test_dependence_sandbox_execution_tests_cannot_silently_skip_when_runtime_ex
 
     if DEPENDENCE_SANDBOX_PYTHON.is_file():
         assert DEPENDENCE_SANDBOX_AVAILABILITY_MARKER.startswith("AVAILABLE:")
-        assert skip_conditions == [False, False]
+        assert skip_conditions == [False, False, False]
     else:
         assert DEPENDENCE_SANDBOX_AVAILABILITY_MARKER.startswith("PRE-PILOT BLOCKER:")
-        assert skip_conditions == [True, True]
+        assert skip_conditions == [True, True, True]
+
+
+def test_dependence_review_subset_projects_through_real_run_review_call(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Pin the pilot-a harness bug: projection sees only the strict review subset."""
+
+    config = default_dependence_config()
+    all_cases = [f"case:{index:020x}" for index in range(101, 104)]
+    case_subset = [all_cases[0], all_cases[2]]
+    workspace_payloads = {
+        case_id: {
+            "task.md": f"Visible task for {case_id}.\n".encode(),
+            "inputs/data.csv": _csv("corrected_twin").encode(),
+            "workflow/analysis.py": _workflow("corrected_twin").encode(),
+            "results/report.md": (f"[selected-result] {_RESULTS['corrected_twin']}\n").encode(),
+        }
+        for case_id in all_cases
+    }
+    workspace_payloads[all_cases[1]]["task.md"] = b"EXCLUDED-SUBSET-SENTINEL\n"
+    preparations_by_case: dict[str, dict[str, Any]] = {}
+    for case_id in all_cases:
+        manifest: dict[str, Any] = {
+            "record_type": "evaluation_blind_workspace_manifest",
+            "workspace_id": f"workspace:{case_id.removeprefix('case:')}",
+            "created_at": "2026-08-10T11:59:00Z",
+            "source_snapshot_ref": {
+                "record_type": "repository_snapshot",
+                "record_id": f"snapshot:{case_id.removeprefix('case:')}",
+            },
+            "source_snapshot_digest": "sha256:" + "a" * 64,
+            "files": [
+                {
+                    "path": path,
+                    "content_digest": sha256_digest(payload),
+                    "byte_size": len(payload),
+                }
+                for path, payload in sorted(workspace_payloads[case_id].items())
+            ],
+            "answer_side_content_copied": False,
+            "project_code_executed": False,
+        }
+        manifest["manifest_digest"] = semantic_digest(manifest)
+        preparations_by_case[case_id] = {"workspace_manifest": manifest}
+
+    observed_prompts: list[str] = []
+
+    def _transport(
+        _config: Any,
+        participant: Any,
+        prompt: str,
+        _session_id: str,
+        _capture_root: Path,
+    ) -> dict[str, Any]:
+        observed_prompts.append(prompt)
+        reviews = []
+        for case_id in case_subset:
+            payloads = workspace_payloads[case_id]
+            task_line = payloads["task.md"].decode().strip()
+            report_line = payloads["results/report.md"].decode().strip()
+            reviews.append(
+                {
+                    "case_id": case_id,
+                    "verdict": "no_demonstrated_issue_within_scope",
+                    "bounded_statement": None,
+                    "root_cause": None,
+                    "issue_class": None,
+                    "evidence_atoms": [
+                        {
+                            "description": "Visible task evidence.",
+                            "source_spans": [
+                                {
+                                    "path": "task.md",
+                                    "start_line": 1,
+                                    "end_line": 1,
+                                    "quoted_text": task_line,
+                                }
+                            ],
+                        }
+                    ],
+                    "counterevidence_atoms": [
+                        {
+                            "description": "Visible selected-result counterevidence.",
+                            "source_spans": [
+                                {
+                                    "path": "results/report.md",
+                                    "start_line": 1,
+                                    "end_line": 1,
+                                    "quoted_text": report_line,
+                                }
+                            ],
+                        }
+                    ],
+                    "falsification_attempt": "Checked the visible task against the report.",
+                    "cross_case_evidence_used": False,
+                    "unresolved_material_questions": [],
+                    "self_reported_confidence": "high",
+                }
+            )
+        response = {
+            "reviewer_participant_id": participant.participant_id,
+            "reviews": reviews,
+        }
+        return {
+            "raw_response": canonical_json(response),
+            "transport_error": None,
+            "completed_at": "2026-08-10T12:00:02Z",
+        }
+
+    monkeypatch.setattr(lean_pipeline, "_call_cli", _transport)
+    monkeypatch.setattr(lean_pipeline, "_now", lambda: "2026-08-10T12:00:02Z")
+    review_root = tmp_path / "review"
+    review_root.mkdir()
+    result = lean_pipeline._run_review_call(
+        project_root,
+        config,
+        review_root,
+        config.escalation_reviewer,
+        case_subset,
+        preparations_by_case,
+        workspace_payloads,
+        "sha256:" + "b" * 64,
+        "escalation",
+    )
+
+    assert [entry["case_id"] for entry in result["entries"]] == case_subset
+    assert set(result["packet_digests"]) == set(case_subset)
+    assert len(observed_prompts) == 1
+    assert "EXCLUDED-SUBSET-SENTINEL" not in observed_prompts[0]
