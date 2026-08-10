@@ -1,6 +1,6 @@
 # Experiment 0058: Dependence semantic v1 shadow recognizer
 
-- **Status:** Active development shadow; Stages 1-3 remain package-local and report-only
+- **Status:** Active development shadow; Stages 1-4 remain unregistered and report-only
 - **Date:** 2026-08-09
 - **Related decisions:** ADR-0062, ADR-0069, Experiment 0057
 - **Production impact:** None; v1 is not registered as a scientific check or detector
@@ -16,7 +16,8 @@ later be normalized into the unchanged `DependenceCase` evaluator.
 
 Version 1 has no production delivery-plane integration.  It does not edit or register a
 scientific-check manifest, detector, qualification record, or safeguard.  A later shadow harness
-and direct tests may project an accepted evaluation as a report-only candidate, an unresolved unit
+and the package-local Stage 4 adapter may project an accepted evaluation as a report-only
+candidate, an unresolved unit
 definition as a MaterialQuestion payload, an unsupported construct as a non-accusatory abstention,
 or a covered case as a coverage note.  None of those projections grants Finding authority.
 
@@ -178,10 +179,16 @@ invalidity, or a required repair.
 
 ## Stage boundary
 
-Stages 1-3 add this experiment record, typed IR, trusted certificate kernel, bounded CSV prover,
-and the untrusted static proposing analyzer plus controller discharge.  They contain no production
-adapter, harness, registry integration, or project-authored-code execution.
+Stages 1-4 add this experiment record, typed IR, trusted certificate kernel, bounded CSV prover,
+the untrusted static proposing analyzer plus controller discharge, and one package-local shadow
+adapter.  The adapter has no scientific-check or detector registration and emits only a report-only
+shadow candidate, material-question payload, non-accusatory abstention, or coverage note.  It
+catches every exception from the analyzer, prover, kernel, and unchanged dependence evaluator,
+including type-invalid proposal failures, and converts it to a named abstention.  The kernel is
+not itself required to accept arbitrary dynamically ill-typed Python objects.
 
-The future Stage 4 adapter must catch every exception from the analyzer and certificate kernel,
-including type-invalid proposal failures, and convert it to a non-accusatory abstention.  The
-kernel is not itself required to accept arbitrary dynamically ill-typed Python objects.
+The shadow payload binds a dependency-closure digest over only the six
+`dependence_recognition` package modules (including the adapter) and this experiment record.
+Founder modules, the unchanged dependence core, registries, and production integration files are
+deliberately not listed or hashed by this experiment closure.  There remains no registry
+integration, detector registration, production Finding path, or project-authored-code execution.

@@ -949,6 +949,23 @@ def analyze_dependence_python(
             unresolved=unresolved,
             basis="No single matching human authorization selected an ordered unit key.",
         )
+    if candidates and not set(authority.authorized_key_columns) <= set(candidates):
+        unresolved = (
+            "authorized-unit-key-column-binding",
+            *(f"candidate_unit_key:{column}" for column in candidates),
+            "candidate_unit_key:none-of-these",
+        )
+        return _analysis_without_certificate(
+            "question",
+            context,
+            candidate_columns=candidates,
+            unresolved=unresolved,
+            basis=(
+                "The human authorization names a unit-key column that is absent from the "
+                "exact statically read CSV header."
+            ),
+            authority=authority,
+        )
     if not _authority_refs_exist_once(context, authority) or not _procedure_record_allows(
         context,
         authority.procedure_ref,
