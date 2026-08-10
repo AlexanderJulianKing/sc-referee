@@ -203,6 +203,53 @@ FOUNDER_LANE_RELATIVE_E = Path(
     f"founder-orientation-before-hmm-emission-v{FOUNDER_CHECK_VERSION_E}-lane"
 )
 
+# Pilot f is the same envelope, the same briefs and the same discipline once
+# more, but the detector set under it is now fused. Two adapters are installed
+# under this check id: the frozen v2.2.6 dataflow recognizer that pilots a-e
+# exercised, and a new v3.1.1 semantic shadow recognizer. The module reducer
+# treats a disagreement between the two applicable adapters as ambiguous, and
+# either applicable adapter can drive the single module operand; the check stays
+# question-only and emits no Finding.
+#
+# The version string in the lane and envelope names is derived here exactly the
+# way pilots a-e derived theirs: from the scientific-check manifest registry, at
+# run configuration time. Pilots a-e read the module's check_version, which the
+# registry still carries as 2.2.6 for this fused module. That string no longer
+# names what is under test, because the fused module bumped no check_version
+# when it gained the second adapter. The recognizer whose generalization pilot f
+# measures is the v3 semantic shadow adapter, so instance f mirrors the same
+# registry derivation against that adapter's adapter_version (3.1.1) and records
+# it in a semantic-named lane, so the lane states the recognizer version it
+# actually exercised rather than the unchanged module version.
+_FOUNDER_REGISTRY_RELATIVE = Path(
+    "src/sc_referee/resources/scientific-check-manifests-v1/registry.json"
+)
+_FOUNDER_SEMANTIC_ADAPTER_ID_SUFFIX = "orientation-semantic-v3"
+
+
+def _founder_semantic_adapter_version() -> str:
+    """Return the v3 semantic shadow recognizer's adapter_version from the registry."""
+
+    registry_path = Path(__file__).resolve().parent.parent / _FOUNDER_REGISTRY_RELATIVE
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    module = next(
+        item for item in registry["modules"] if item["check_id"] == FOUNDER_CHECK_ID
+    )
+    adapter = next(
+        item
+        for item in module["adapters"]
+        if str(item["adapter_id"]).endswith(_FOUNDER_SEMANTIC_ADAPTER_ID_SUFFIX)
+    )
+    return str(adapter["adapter_version"])
+
+
+FOUNDER_SEMANTIC_ADAPTER_VERSION_F = _founder_semantic_adapter_version()
+FOUNDER_PILOT_INSTANCE_F = "f"
+FOUNDER_LANE_RELATIVE_F = Path(
+    "evaluation/qualification/"
+    f"founder-orientation-semantic-v{FOUNDER_SEMANTIC_ADAPTER_VERSION_F}-lane"
+)
+
 _FOUNDER_COMMON_TASK = (
     "Choose one concrete scientific subject area yourself, from any field you like, and invent "
     "a small truthful comparison accounting for it: a set of measured units (choose the unit "
@@ -479,6 +526,64 @@ def default_founder_orientation_e_config() -> EnvelopeConfig:
     )
 
 
+def default_founder_orientation_f_config() -> EnvelopeConfig:
+    """Instance f of the founder-orientation blind pilot, run against the fused set.
+
+    The check id now carries two installed adapters: the frozen v2.2.6 dataflow
+    recognizer and the new v3.1.1 semantic shadow recognizer. The authoring step
+    freezes the whole registry module into the detector tuple, so both adapters
+    run in the one detector observation and the module reducer combines them:
+    disagreement between two applicable adapters is ambiguous, and either
+    applicable adapter can drive the single question-only module operand.
+
+    The lane and envelope version string is the v3 semantic adapter_version read
+    from the registry (see _founder_semantic_adapter_version), not the module's
+    unchanged 2.2.6 check_version, so the lane records that the v3 shadow
+    recognizer is the recognizer under test.
+
+    Authors are opus-11 and opus-12, and the escalation reviewer is opus-06; the
+    two reviewer ordinals continue to move independently, as they have since
+    pilot d. Reviewer calibration resolves by (model id, pinned binary version,
+    calibration suite) from the shared registry, so the fresh identities reuse
+    the existing passing calibration entries without re-running the suite.
+
+    The primary reviewer ordinal is 09 rather than 08 because pilot f's first
+    review attempt is retired under the envelope-10 retired-attempt precedent.
+    That attempt, actor:founder-f-reviewer-fable-08 (session
+    164023d9-e564-5108-ae9e-7d821df5b14d), completed its single one-shot call
+    transport-clean but returned its batch review payload wrapped in a
+    ```json ...``` markdown fence. The frozen review path parses the returned
+    text as JSON directly and strips no fence, so the payload could not be
+    projected into review records, exactly as a span that matches no visible
+    line could not be projected in pilot d. Under the precedent the attempt is
+    retired rather than repaired: its process capture stays in the lane as
+    retained evidence (review/process-captures/primary-founder-f-reviewer-fable-08),
+    its attempt-1 prompt is preserved as review/prompt-primary-attempt-1-retired.txt,
+    its rebuilt packets are moved aside by the pipeline into
+    review/packets-primary-retired, a retirement disclosure is written at the
+    lane root RETIREMENT_ATTEMPT_1.md, and the cases -- over which that attempt's
+    model never had a recorded verdict -- are reviewed once more by an identity
+    that has seen nothing.
+
+    Re-firing the retained call is forbidden, and the fresh participant id is
+    what makes it impossible rather than merely disallowed: the process-capture
+    path, the session identity and the transmitted prompt are all keyed by
+    participant, so attempt 2 gets its own capture path and cannot land on
+    attempt 1's retained bytes. The escalation reviewer keeps ordinal 06: it
+    never ran in attempt 1 and observed no case, so its identity is unspent and
+    a rename would only obscure that.
+    """
+
+    return default_founder_orientation_config(
+        instance=FOUNDER_PILOT_INSTANCE_F,
+        check_version=FOUNDER_SEMANTIC_ADAPTER_VERSION_F,
+        lane_relative=FOUNDER_LANE_RELATIVE_F,
+        author_ordinals=("11", "12"),
+        reviewer_ordinal="09",
+        escalation_ordinal="06",
+    )
+
+
 ENVELOPE_CONFIGS = {
     "complete-domain": default_complete_domain_config,
     "founder-orientation": default_founder_orientation_config,
@@ -486,6 +591,7 @@ ENVELOPE_CONFIGS = {
     "founder-orientation-c": default_founder_orientation_c_config,
     "founder-orientation-d": default_founder_orientation_d_config,
     "founder-orientation-e": default_founder_orientation_e_config,
+    "founder-orientation-f": default_founder_orientation_f_config,
 }
 
 
