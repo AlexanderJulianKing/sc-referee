@@ -129,7 +129,7 @@ def _resolution(context):
 def _v3_observation(context):
     registry = scientific_check_release_registry()
     module = next(item for item in registry.modules if item.manifest.check_id == FOUNDER_CHECK)
-    adapter = next(item for item in module.adapters if item.adapter_version == "3.1.0")
+    adapter = next(item for item in module.adapters if item.adapter_version == "3.1.1")
     observation = adapter.inspect(context)
     return (
         observation.applicability,
@@ -213,6 +213,6 @@ def test_shadow_wiring_keeps_v2_and_v3_as_independent_adapters() -> None:
         ),
         (
             "adapter:founder-orientation-before-hmm-emission:orientation-semantic-v3",
-            "3.1.0",
+            "3.1.1",
         ),
     }

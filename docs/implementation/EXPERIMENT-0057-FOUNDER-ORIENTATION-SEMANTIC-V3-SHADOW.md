@@ -154,3 +154,56 @@ the static trace and fact, when either compared column lacks an exact binary fac
 or value fails the closed profile, or when the source uses a transform outside the fact-covered
 grammar. Non-compared quantitative gating columns are not used to infer orientation and receive no
 binary claim from this mechanism.
+
+## v3.1.1 reader-form / line-model binding
+
+V3.1.0 left one obligation implicit. The prover parsed the staged bytes with `csv.DictReader` over
+`io.StringIO`, i.e. under `csv`'s own newline model (`\r`, `\n`, `\r\n`). The analyzer, however,
+certifies workflows whose reader is `<path-like>.read_text(...).splitlines()` fed to
+`csv.DictReader(list_of_lines)`. Python `str.splitlines()` starts a new line on more code points
+than `csv` does: the vertical tab `\x0b`, form feed `\x0c`, the information separators `\x1c`,
+`\x1d`, `\x1e`, the Next Line `\x85`, and the Unicode line and paragraph separators `U+2028` and
+`U+2029`. The prover's row model and the certified reader's runtime row model were therefore two
+different parsers whose equivalence was assumed rather than proven. Divergence was only incidentally
+safe: a workflow that hit one of these code points produced an extra, short runtime row, whose cast
+then raised, so no report was written and reconciliation failed. Nothing tied the prover's row model
+to the reader form the analyzer had modeled.
+
+V3.1.1 makes the binding explicit and fail-closed.
+
+- **Reader-form identity in the obligation.** When the analyzer models the staged read it already
+  knows the reader form: a `read_text().splitlines()` chain yields the `_InputLines` value, and
+  `csv.DictReader` over an open file yields the `_FileHandle` value. It now records one line model
+  per staged row domain (`row_line_models`): `splitlines` for the former and `csv_newline` for the
+  latter. Any other `csv.DictReader` source stays unknown and abstains as before. The certified
+  line model is threaded into each `TransformDomainObligation` (new `line_model` field) and into the
+  row-domain digest, so a compared projection's obligation carries the exact model of the reader
+  that produced its rows.
+- **The prover reproduces the certified model.** `prove_binary_csv_column` takes a required
+  `line_model`. For `splitlines` it enumerates rows with `csv.DictReader(text.splitlines())` -- the
+  exact runtime construction -- but only after confirming the decoded text holds none of the
+  splitlines-only separators listed above; any such separator anywhere in the bytes makes
+  `str.splitlines()` and `csv`'s newline model able to disagree, so the prover returns no fact. For
+  `csv_newline` it uses `csv`'s newline model over the untranslated text, which handles quoted
+  embedded newlines the same way the open-file reader does at runtime. An unrecognized line model
+  produces no fact. The proven `CsvBinaryDomainFact` carries the `line_model` it was proven under.
+- **The kernel binds fact to obligation.** `verify_orientation_certificate` accepts a discharge only
+  when the obligation's `line_model` is recognized and the trusted fact's `line_model` equals it. A
+  fact proven under `splitlines` can never discharge a `csv_newline` obligation, or vice versa, and
+  an unknown model leaves the obligation undischarged, so the adapter abstains. The domain fact now
+  describes the same rows the certified reader actually produces at runtime.
+
+The ragged-row obligation is unchanged and already correct. The prover rejects both a short
+`csv.DictReader` row (a missing compared value under `restval=None`) and a long row (extra values
+under the `None` restkey), which is at least as strict as a runtime reader that indexes and casts
+the compared column directly. A reader that tolerates a ragged row cannot reach a certified
+emission: `row.get(col, default)` is an opaque method on the row value that forces a fail-closed
+effect, and a `try`/`except` around the cast is an unmodelled statement (and unsupported loop-carried
+control) that likewise abstains. The five splitlines pilots continue to certify repaired over their
+clean binary CSVs, and the ten paired controls still emit no repaired operand.
+
+The v3.1.1 change touches only the semantic dependency closure (`founder_orientation_semantic.py`,
+`founder_orientation_certificate.py`, `founder_orientation_csv_domain.py`,
+`founder_orientation_semantic_ir.py`, and `founder_orientation_semantic_adapter.py`); the adapter
+and recognition grammar advance to `3.1.1` and the implementation digest rebinds the changed bytes.
+The frozen founder-orientation v2.2.6 modules remain byte-identical.

@@ -76,9 +76,11 @@ def _certificate() -> OrientationCertificate:
         frozenset({"score", "report"}),
     )
     observed_fact = CsvBinaryDomainFact(
-        "inputs/data.csv", _DOMAIN_DIGEST, "observed", 4, ("0", "1")
+        "inputs/data.csv", _DOMAIN_DIGEST, "observed", 4, ("0", "1"), "csv_newline"
     )
-    founder_fact = CsvBinaryDomainFact("inputs/data.csv", _DOMAIN_DIGEST, "founder", 4, ("0", "1"))
+    founder_fact = CsvBinaryDomainFact(
+        "inputs/data.csv", _DOMAIN_DIGEST, "founder", 4, ("0", "1"), "csv_newline"
+    )
     obligations = (
         TransformDomainObligation(
             "inputs/data.csv",
@@ -86,6 +88,7 @@ def _certificate() -> OrientationCertificate:
             "rows",
             "founder",
             ("csv_subscript", "builtin_int", "one_minus"),
+            "csv_newline",
             founder_fact,
         ),
         TransformDomainObligation(
@@ -94,6 +97,7 @@ def _certificate() -> OrientationCertificate:
             "rows",
             "observed",
             ("csv_subscript", "builtin_int"),
+            "csv_newline",
             observed_fact,
         ),
     )
@@ -221,7 +225,7 @@ def test_kernel_rejects_a_binary_only_recode_without_a_binary_domain(operation: 
     )
 
 
-@pytest.mark.parametrize("mutation", ["path", "digest", "column"])
+@pytest.mark.parametrize("mutation", ["path", "digest", "column", "line-model", "unknown-model"])
 def test_kernel_rejects_a_domain_discharge_for_the_wrong_binding(mutation: str) -> None:
     certificate = _certificate()
     obligation = certificate.transform_domain_obligations[0]
@@ -231,8 +235,17 @@ def test_kernel_rejects_a_domain_discharge_for_the_wrong_binding(mutation: str) 
         wrong_fact = replace(fact, path="inputs/other.csv")
     elif mutation == "digest":
         wrong_fact = replace(fact, content_digest="sha256:" + "b" * 64)
-    else:
+    elif mutation == "column":
         wrong_fact = replace(fact, column="other")
+    elif mutation == "line-model":
+        # The prover proved this fact under the splitlines line model, but the
+        # analyzer certified the obligation under csv_newline; the kernel must
+        # refuse the cross-model discharge.
+        wrong_fact = replace(fact, line_model="splitlines")
+    else:
+        # A line model neither the prover nor the kernel recognizes.
+        wrong_fact = replace(fact, line_model="universal")
+        obligation = replace(obligation, line_model="universal")
     mutated = replace(
         certificate,
         transform_domain_obligations=(

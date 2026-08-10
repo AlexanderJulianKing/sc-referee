@@ -21,6 +21,17 @@ RuntimeType = Literal["str", "int", "float", "bool", "decimal", "fraction"]
 FoldOperation = Literal["sum", "product"]
 Orientation = Literal["direct", "repaired"]
 
+# The exact runtime line model a certified staged CSV reader uses.  ``splitlines``
+# is ``<path-like>.read_text(...).splitlines()`` fed to ``csv.DictReader``; the
+# runtime row boundaries are Python ``str.splitlines()`` boundaries, which break
+# on more code points than ``csv``'s own ``\r``/``\n``/``\r\n`` newline handling.
+# ``csv_newline`` is ``csv.DictReader`` over an open file handle, whose row
+# boundaries are ``csv``'s newline model.  The prover must reproduce the exact
+# model the analyzer certified, and the kernel binds the two together so a fact
+# proven under one line model can never discharge an obligation certified under
+# the other.
+LineModel = Literal["splitlines", "csv_newline"]
+
 
 @dataclass(frozen=True, order=True)
 class PrimitiveTransform:
@@ -46,24 +57,37 @@ class Projection:
 
 @dataclass(frozen=True, order=True)
 class CsvBinaryDomainFact:
-    """A bounded proof about one exact column in one digest-bound CSV."""
+    """A bounded proof about one exact column in one digest-bound CSV.
+
+    ``line_model`` names the exact runtime line model the prover reproduced to
+    enumerate the rows (:data:`LineModel`).  A fact carries the model it was
+    proven under so the kernel can refuse a discharge whose obligation was
+    certified under a different model.
+    """
 
     path: str
     content_digest: str
     column: str
     row_count: int
     recognized_values: tuple[str, ...]
+    line_model: str
 
 
 @dataclass(frozen=True, order=True)
 class TransformDomainObligation:
-    """One compared projection whose runtime transforms require a domain proof."""
+    """One compared projection whose runtime transforms require a domain proof.
+
+    ``line_model`` is the runtime line model the analyzer certified for the
+    staged read that produced this projection's rows (:data:`LineModel`).  The
+    prover must prove the domain fact under exactly this model.
+    """
 
     asset: str
     content_digest: str
     row_domain: str
     column: str
     operations: tuple[str, ...]
+    line_model: str
     domain_fact: CsvBinaryDomainFact | None = None
 
 

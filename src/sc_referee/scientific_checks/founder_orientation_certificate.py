@@ -27,6 +27,10 @@ from sc_referee.scientific_checks.founder_orientation_semantic_ir import (
 )
 
 _NUMERIC_TYPES = frozenset({"int", "float", "decimal", "fraction"})
+# The runtime line models the kernel will accept on a discharged domain fact.
+# Kept independent of the prover module: the kernel is the trust boundary and
+# recomputes admissibility from the closed records alone.
+_RECOGNIZED_LINE_MODELS = frozenset({"splitlines", "csv_newline"})
 _TokenValue = TypeVar("_TokenValue", bound="_Tokenized")
 
 
@@ -218,6 +222,8 @@ def _transform_domains_are_discharged(
             fact.path != obligation.asset
             or fact.content_digest != obligation.content_digest
             or fact.column != obligation.column
+            or obligation.line_model not in _RECOGNIZED_LINE_MODELS
+            or fact.line_model != obligation.line_model
         ):
             return False
         binding_key = (obligation.asset, obligation.row_domain)
@@ -259,6 +265,7 @@ def _binary_domain_fact_is_closed(fact: CsvBinaryDomainFact) -> bool:
         or not fact.column
         or fact.row_count < 1
         or fact.recognized_values != ("0", "1")
+        or fact.line_model not in _RECOGNIZED_LINE_MODELS
         or not fact.content_digest.startswith("sha256:")
         or len(fact.content_digest) != 71
     ):

@@ -293,6 +293,11 @@ class _Analyzer:
     selected_sink_seen: bool = False
     report_fields: dict[str, _ReportField] = field(default_factory=dict)
     row_domain_bindings: dict[str, tuple[str, str]] = field(default_factory=dict)
+    # The exact runtime line model certified for each staged reader's row domain,
+    # keyed by row_domain: "splitlines" for a read_text().splitlines() chain fed
+    # to csv.DictReader, "csv_newline" for csv.DictReader over an open file.  The
+    # prover must reproduce this model, and the kernel binds the proven fact to it.
+    row_line_models: dict[str, str] = field(default_factory=dict)
     fail_closed: bool = False
 
     def analyze(self) -> OrientationCertificate | None:
@@ -395,6 +400,9 @@ class _Analyzer:
                 binding = self.row_domain_bindings.get(projection.row_domain)
                 if binding is None or binding[0] != projection.asset:
                     return None
+                line_model = self.row_line_models.get(projection.row_domain)
+                if line_model is None:
+                    return None
                 content_digest = binding[1]
                 operations = tuple(item.operation for item in projection.transforms)
                 obligation = TransformDomainObligation(
@@ -403,6 +411,7 @@ class _Analyzer:
                     row_domain=projection.row_domain,
                     column=projection.column,
                     operations=operations,
+                    line_model=line_model,
                 )
                 key = (
                     obligation.asset,
@@ -860,11 +869,19 @@ class _Analyzer:
         if key == "csv.DictReader" and len(args) == 1 and not keywords:
             source = args[0].value
             path: _PathValue | None = None
+            # The reader form fixes the exact runtime line model.  A
+            # read_text().splitlines() chain (_InputLines) breaks rows on Python
+            # str.splitlines() boundaries; csv.DictReader over an open file
+            # (_FileHandle) breaks rows on csv's own newline model.  Any other
+            # source is not pinned to a known line model, so it stays unknown.
+            line_model: str | None = None
             if isinstance(source, _InputLines):
                 path = source.path
+                line_model = "splitlines"
             elif isinstance(source, _FileHandle) and not self._is_write_mode(source.mode):
                 path = source.path
-            if path is None:
+                line_model = "csv_newline"
+            if path is None or line_model is None:
                 return self._unknown("csv reader input is not bound to an exact path", *args)
             asset = path.normalized
             material_matches = [item for item in self.material_inputs if item.path == asset]
@@ -880,10 +897,12 @@ class _Analyzer:
                     "path": self.document.path,
                     "line": getattr(node, "lineno", 0),
                     "reader": key,
+                    "line_model": line_model,
                 }
             )
             index_map = semantic_digest({"row_domain": row_domain, "order": "csv"})
             self.row_domain_bindings[row_domain] = (asset, content_digest)
+            self.row_line_models[row_domain] = line_model
             row = self._tracked(
                 _RowValue(asset, row_domain, index_map),
                 index_map=index_map,
@@ -2215,6 +2234,7 @@ def _discharge_transform_domains(
             path=obligation.asset,
             content_digest=obligation.content_digest,
             column=obligation.column,
+            line_model=obligation.line_model,
         )
         if fact is None:
             return None
@@ -2234,12 +2254,13 @@ def founder_orientation_semantic_grammar(
 
     return {
         "grammar_id": "founder-orientation-semantic-certificate",
-        "grammar_version": "3.1.0",
+        "grammar_version": "3.1.1",
         "operands": {"direct": direct_operand, "repaired": repaired_operand},
         "abstract_values": [
             "Projection(asset,row_domain,column,parity,runtime_type)",
-            "CsvBinaryDomainFact(path,content_digest,column,row_count,recognized_values)",
-            "TransformDomainObligation(asset,content_digest,row_domain,column,operations)",
+            "CsvBinaryDomainFact(path,content_digest,column,row_count,recognized_values,line_model)",
+            "TransformDomainObligation("
+            "asset,content_digest,row_domain,column,operations,line_model)",
             "Sequence(index_map,element_value)",
             "Predicate(Eq(left,right))",
             "ExactNumber(type,value)",
@@ -2269,6 +2290,13 @@ def founder_orientation_semantic_grammar(
             "each compared column requires an exact path-and-digest-matched binary-domain fact "
             "from a bounded strict-UTF-8 CSV read before csv subscripts, numeric casts, or "
             "one-minus transforms are accepted"
+        ),
+        "reader_line_model_binding": (
+            "each staged reader pins one runtime line model -- splitlines for a "
+            "read_text().splitlines() chain, csv_newline for csv.DictReader over an open file -- "
+            "and the prover enumerates rows under that same model; a splitlines proof abstains "
+            "if any splitlines-only separator could make the two line models disagree; the "
+            "kernel discharges only when the proven fact's line model equals the certified one"
         ),
         "orientation_from_report_csv_refinement": (
             "disabled; CSV data never selects an orientation and report-number uniqueness "

@@ -65,7 +65,7 @@ def _assert_released_adapters_match_or_abstain(
     context = _runtime_context(tmp_path, source)
     registry = scientific_check_release_registry()
     module = next(item for item in registry.modules if item.manifest.check_id == _FOUNDER_CHECK)
-    assert {item.adapter_version for item in module.adapters} == {"2.2.6", "3.1.0"}
+    assert {item.adapter_version for item in module.adapters} == {"2.2.6", "3.1.1"}
     evaluation = next(
         item for item in registry.evaluate(context).modules if item.check_id == _FOUNDER_CHECK
     )
@@ -82,7 +82,7 @@ def _assert_released_adapters_match_or_abstain(
     )
     if evaluation.state == "applicable":
         assert applicable
-    semantic = next(item for item in module.adapters if item.adapter_version == "3.1.0")
+    semantic = next(item for item in module.adapters if item.adapter_version == "3.1.1")
     semantic_observation = semantic.inspect(context)
     assert semantic_observation.applicability != "applicable" or (
         semantic_observation.observed_operand is not None

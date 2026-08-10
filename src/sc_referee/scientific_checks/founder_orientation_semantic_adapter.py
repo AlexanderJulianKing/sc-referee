@@ -88,7 +88,7 @@ def founder_orientation_semantic_recognition_grammar(
 ) -> dict[str, Any]:
     return {
         "grammar_id": "founder-orientation-semantic-shadow-fusion",
-        "grammar_version": "3.1.0",
+        "grammar_version": "3.1.1",
         "semantic_source": founder_orientation_semantic_grammar(direct_operand, repaired_operand),
         "semantic_source_implementation_digest": (
             FOUNDER_ORIENTATION_SEMANTIC_IMPLEMENTATION_DIGEST
@@ -285,6 +285,7 @@ class FounderOrientationSemanticReportAdapter:
                         "column": fact.column,
                         "row_count": fact.row_count,
                         "recognized_values": list(fact.recognized_values),
+                        "line_model": fact.line_model,
                     }
                     for fact in flow.certificate.domain_facts
                 ]

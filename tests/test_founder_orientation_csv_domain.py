@@ -20,12 +20,18 @@ def _material(content: bytes) -> FrozenMaterialInput:
     )
 
 
-def _prove(material: FrozenMaterialInput, column: str = "observed"):
+def _prove(
+    material: FrozenMaterialInput,
+    column: str = "observed",
+    *,
+    line_model: str = "csv_newline",
+):
     return prove_binary_csv_column(
         material,
         path=material.path,
         content_digest=material.content_digest,
         column=column,
+        line_model=line_model,
     )
 
 
@@ -58,6 +64,7 @@ def test_digest_mismatch_fails_closed() -> None:
             path=material.path,
             content_digest="sha256:" + "0" * 64,
             column="observed",
+            line_model="csv_newline",
         )
         is None
     )
