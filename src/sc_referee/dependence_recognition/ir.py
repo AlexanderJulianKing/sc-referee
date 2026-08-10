@@ -42,7 +42,7 @@ RECOGNIZED_READER_MODELS: tuple[tuple[ReaderForm, LineModel], ...] = (
     ("csv_dictreader_splitlines", "splitlines"),
     ("csv_dictreader_file", "csv_newline"),
 )
-FrameTransformOperation = Literal["identity", "unit_groupby_mean", "unit_groupby_first"]
+FrameTransformOperation = Literal["identity"]
 ProcedureIndependenceModel = Literal["row_independent", "paired"]
 SafeguardState = Literal["present", "absent", "not_applicable", "unknown", "unsupported"]
 SafeguardBasis = Literal["completeness-equation", "recognized-collapse", "registry-match"]

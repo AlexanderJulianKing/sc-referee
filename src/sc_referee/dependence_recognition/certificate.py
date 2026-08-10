@@ -42,7 +42,7 @@ from sc_referee.scientific_checks.founder_orientation_semantic_ir import Evidenc
 
 _RECOGNIZED_READER_MODELS = dict(RECOGNIZED_READER_MODELS)
 _RECOGNIZED_DIALECT = "excel"
-_RECOGNIZED_TRANSFORMS = frozenset({"identity", "unit_groupby_mean", "unit_groupby_first"})
+_RECOGNIZED_TRANSFORMS = frozenset({"identity"})
 _UNIT_AGGREGATION_SAFEGUARD = "safeguard:unit-level-aggregation"
 _PAIRED_SAFEGUARD = "safeguard:paired-or-blocked-procedure"
 _LOWER_HEX = frozenset("0123456789abcdef")
@@ -68,7 +68,6 @@ class _MultiplicityResolution:
 @dataclass(frozen=True)
 class _FrameResolution:
     analyzed_unit_ids: tuple[str, ...]
-    aggregation_seen: bool
 
 
 _PROCEDURE_REGISTRY: tuple[_ProcedureRegistryEntry, ...] = (
@@ -127,7 +126,6 @@ def verify_dependence_certificate(
         return None
     frame = _frame_lineage_is_closed(
         certificate.frame_lineage,
-        certificate.case_binding,
         multiplicity,
         certificate.procedure_call,
     )
@@ -142,7 +140,6 @@ def verify_dependence_certificate(
         return None
 
     expected_safeguard_matches = _expected_safeguard_matches(
-        certificate.frame_lineage.transforms,
         certificate.procedure_call,
         procedure_entry,
     )
@@ -488,7 +485,6 @@ def _unit_id(key_columns: tuple[str, ...], key: tuple[str, ...]) -> str:
 
 def _frame_lineage_is_closed(
     lineage: FrameLineage,
-    case_binding: DependenceCaseBinding,
     multiplicity: _MultiplicityResolution,
     procedure: ProcedureCall,
 ) -> _FrameResolution | None:
@@ -523,20 +519,16 @@ def _frame_lineage_is_closed(
     if len(transform_tokens) != len(set(transform_tokens)):
         return None
     current_domain = fact.row_domain
-    aggregation_seen = False
     all_row_domains = {fact.row_domain, lineage.source_row_domain, lineage.analyzed_row_domain}
     for transform in lineage.transforms:
         all_row_domains.update({transform.input_row_domain, transform.output_row_domain})
         checked = _apply_frame_transform(
             transform,
             current_domain=current_domain,
-            authorized_key_columns=case_binding.authorized_key_columns,
-            aggregation_seen=aggregation_seen,
         )
         if checked is None:
             return None
-        current_domain, collapsed = checked
-        aggregation_seen = aggregation_seen or collapsed
+        current_domain = checked
 
     expected_output_token = (
         lineage.transforms[-1].token if lineage.transforms else lineage.reader.token
@@ -559,12 +551,8 @@ def _frame_lineage_is_closed(
     ):
         return None
 
-    analyzed_unit_ids = (
-        _ordered_unique(multiplicity.source_unit_ids)
-        if aggregation_seen
-        else multiplicity.source_unit_ids
-    )
-    expected_observations = analyzed_unit_ids if aggregation_seen else fact.observation_ids
+    analyzed_unit_ids = multiplicity.source_unit_ids
+    expected_observations = fact.observation_ids
     if (
         lineage.analyzed_observation_ids != expected_observations
         or len(lineage.analyzed_observation_ids) > MAX_V1_MEMBERSHIPS
@@ -572,16 +560,14 @@ def _frame_lineage_is_closed(
         or procedure.frame_lineage_token != lineage.token
     ):
         return None
-    return _FrameResolution(analyzed_unit_ids, aggregation_seen)
+    return _FrameResolution(analyzed_unit_ids)
 
 
 def _apply_frame_transform(
     transform: FrameTransform,
     *,
     current_domain: str,
-    authorized_key_columns: tuple[str, ...],
-    aggregation_seen: bool,
-) -> tuple[str, bool] | None:
+) -> str | None:
     if (
         not _present(transform.token)
         or transform.operation not in _RECOGNIZED_TRANSFORMS
@@ -593,14 +579,8 @@ def _apply_frame_transform(
     if transform.operation == "identity":
         if transform.grouping_columns or transform.output_row_domain != current_domain:
             return None
-        return current_domain, False
-    if (
-        aggregation_seen
-        or transform.grouping_columns != authorized_key_columns
-        or transform.output_row_domain == current_domain
-    ):
-        return None
-    return transform.output_row_domain, True
+        return current_domain
+    return None
 
 
 def _procedure_call_is_registered(
@@ -656,18 +636,14 @@ def _bound_package_version_is_closed(version: BoundPackageVersion) -> bool:
 
 
 def _expected_safeguard_matches(
-    transforms: tuple[FrameTransform, ...],
     procedure: ProcedureCall,
     registered: _ProcedureRegistryEntry,
 ) -> dict[str, frozenset[str]] | None:
     matches: dict[str, set[str]] = {item: set() for item in SAFEGUARD_IDS}
     if _UNIT_AGGREGATION_SAFEGUARD not in matches or _PAIRED_SAFEGUARD not in matches:
         return None
-    matches[_UNIT_AGGREGATION_SAFEGUARD].update(
-        transform.token
-        for transform in transforms
-        if transform.operation in {"unit_groupby_mean", "unit_groupby_first"}
-    )
+    # Unit-level aggregation is a named future route. No v1 transform can
+    # establish this safeguard on the certified list-bound CSV readers.
     if registered.required_safeguard_id is not None:
         matches[registered.required_safeguard_id].add(procedure.token)
     return {key: frozenset(value) for key, value in matches.items()}
@@ -981,10 +957,6 @@ def _record_ref_is_closed(value: RecordRef, expected_type: str | None = None) ->
         and _present(value.record_id)
         and (expected_type is None or value.record_type == expected_type)
     )
-
-
-def _ordered_unique(values: tuple[str, ...]) -> tuple[str, ...]:
-    return tuple(dict.fromkeys(values))
 
 
 def _relative_path(value: str) -> bool:

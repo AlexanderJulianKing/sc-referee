@@ -11,6 +11,7 @@ from sc_referee.dependence_recognition import csv_domain
 from sc_referee.dependence_recognition.csv_domain import (
     MAX_DEPENDENCE_CSV_DISTINCT_KEYS,
     MAX_DEPENDENCE_CSV_PROOF_RECORD_BYTES,
+    certified_unit_key_distinct_count,
     prove_unit_key_multiplicity,
 )
 from sc_referee.dependence_recognition.ir import (
@@ -344,10 +345,32 @@ def test_membership_ceiling_accepts_boundary_and_rejects_boundary_plus_one() -> 
 
 def test_distinct_key_ceiling_accepts_boundary_and_rejects_boundary_plus_one() -> None:
     assert MAX_DEPENDENCE_CSV_DISTINCT_KEYS == 5_000
-    fact = _prove(_material(_row_csv(MAX_DEPENDENCE_CSV_DISTINCT_KEYS, unique=True)))
+    boundary = _material(_row_csv(MAX_DEPENDENCE_CSV_DISTINCT_KEYS, unique=True))
+    above = _material(_row_csv(MAX_DEPENDENCE_CSV_DISTINCT_KEYS + 1, unique=True))
+    fact = _prove(boundary)
     assert fact is not None
     assert fact.distinct_key_count == MAX_DEPENDENCE_CSV_DISTINCT_KEYS
-    assert _prove(_material(_row_csv(MAX_DEPENDENCE_CSV_DISTINCT_KEYS + 1, unique=True))) is None
+    assert _prove(above) is None
+    assert (
+        certified_unit_key_distinct_count(
+            boundary,
+            path=boundary.path,
+            content_digest=boundary.content_digest,
+            key_columns=("unit",),
+            line_model="csv_newline",
+        )
+        == MAX_DEPENDENCE_CSV_DISTINCT_KEYS
+    )
+    assert (
+        certified_unit_key_distinct_count(
+            above,
+            path=above.path,
+            content_digest=above.content_digest,
+            key_columns=("unit",),
+            line_model="csv_newline",
+        )
+        == MAX_DEPENDENCE_CSV_DISTINCT_KEYS + 1
+    )
 
 
 def test_proof_record_ceiling_accepts_boundary_and_rejects_boundary_plus_one(

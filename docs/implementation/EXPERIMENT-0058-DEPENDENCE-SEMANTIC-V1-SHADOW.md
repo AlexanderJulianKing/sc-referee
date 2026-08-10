@@ -53,6 +53,9 @@ The trusted fact records whether this complete separator check passed, and the k
 `splitlines` fact unless it did.  Because `splitlines()` removes physical separators before the
 CSV parser sees them, quoted fields spanning physical lines are reconstructed by the CSV iterator
 with `\n`; this model is recorded as `splitlines_rejoined_utf8`, not byte-exact field preservation.
+On certified inputs, `str.splitlines` treats `\r`, `\n`, and `\r\n` as separators and every
+splitlines-only separator is refused, so `read_text().splitlines()` and raw-decoded-text
+`.splitlines()` agree.
 The `csv_newline` prover uses `StringIO(text, newline="")`, matching the untranslated-newline
 reader model above.  Plain `open()` without `newline=""`, `open(..., newline=None)`, and
 `read_text()` universal-newline behavior are not asserted equivalent and are outside v1.
@@ -65,7 +68,9 @@ abstains.
 The unchanged dependence core requires one complete membership per analyzed observation.  V1
 therefore sets `MAX_V1_MEMBERSHIPS = 10_000`, plus an independently lower 5,000-distinct-key budget
 and a complete proof-record byte budget.  A larger analyzed frame is not summarized; it records
-the named unsupported construct `membership-scale-above-v1-bound`.
+the named unsupported construct `membership-scale-above-v1-bound`.  A domain within that
+membership bound but above the distinct-key budget records the separate named unsupported
+construct `distinct-key-scale-above-v1-bound`.
 
 ## Frozen procedure registry
 
@@ -89,14 +94,17 @@ authorized unit key.
 A certified frame lineage is one digest-bound read, followed by zero or more of these transforms,
 and then one registry procedure call:
 
-- identity-preserving variable rebinding or tuple passing;
-- `groupby(...).mean()` with grouping columns exactly equal to the authorized unit key; or
-- `groupby(...).first()` with grouping columns exactly equal to the authorized unit key.
+- identity-preserving variable rebinding or tuple passing.
 
-The two groupby forms establish `safeguard:unit-level-aggregation` as present and therefore support
-only a covered negative.  Every filter, merge, sample, slice, apply, other deduplication, loop-built
-frame, or other transform is unsupported in v1.  Membership evidence comes only from the exact
-digest-bound file consumed by the reader in the same lineage.
+The formerly proposed `groupby(...).mean()` and `groupby(...).first()` forms are not executable on
+the certified list-bound readers and are dropped from the v1 grammar.  Any aggregation-shaped
+construct is opaque and records the named gap `unit-level-aggregation-unrecognized`; recognizing
+unit-level aggregation is a future route.  Every filter, merge, sample, slice, apply, other
+deduplication, loop-built frame, or other transform is likewise unsupported in v1.  Membership
+evidence comes only from the exact digest-bound file consumed by the reader in the same lineage.
+
+The exact v1 `covered_negative` routes are (a) a digest-bound proof of one row per authorized unit
+and (b) the registered paired procedure with its unit operand bound to that authorized unit.
 
 ## Certificate obligations
 
@@ -120,14 +128,15 @@ The kernel accepts only a closed certificate that discharges all of the followin
 7. **O7 — key domain:** ordered composite keys are byte-exact, unnormalized, nonempty, and free of
    declared missing values.
 8. **O8 — frame lineage:** the proven source frame reaches the registered procedure through only
-   the frozen transform grammar; direct and unit-collapsed row domains cannot be confused.
+   the frozen identity-only transform grammar.
 9. **O9 — procedure identity:** exact live callable, two-positional/no-keyword shape, pinned SciPy
    `1.14.0` evidence, procedure binding, row domain, result token, paired-unit operand, and an exact
    binding from every positional argument to the certified frame-lineage output agree.
 10. **O10 — safeguard completeness:** the seven existing safeguard identities appear exactly once.
     For each, modeled constructs equal the complete syntactic set minus proven-dead constructs.
     `absent` or `not_applicable` requires evidence, no recognized match, and that exact equation;
-    recognized aggregation or paired matches require `present` with the exact operand binding.
+    recognized paired matches require `present` with the exact operand binding; aggregation-shaped
+    constructs cannot enter a v1 certificate.
 11. **O11 — noninterference:** the kernel-derived origin/binding union includes the input, every
     row domain, frame output, procedure arguments/result, transform tokens, every active sink
     token and payload token, and every sink path.  No effect may write or alias that union.  An
@@ -140,7 +149,7 @@ The kernel accepts only a closed certificate that discharges all of the followin
 13. **O13 — singleton resolution:** the active-sink completeness equation closes, dead sinks are
     also syntactically dead, and every sink and reaching path agrees on the repetition conclusion
     recomputed over the analyzed post-transform row domain.  Source-frame repetition is recorded
-    separately and a recognized unit collapse yields a one-observation-per-unit conclusion.
+    separately.
 
 The certificate additionally requires exact unit-definition operands corroborated through the
 trusted authorization channel, parser and source identity, parser-reported source extent,
@@ -150,9 +159,10 @@ closed-vocabulary safeguard bases, cross-referenced evidence declarations, safeg
 identity, dependency-closure digest, proposed case digest, report-only output ceiling, and wording
 ceiling.
 
-The replay digest establishes certificate self-consistency only.  Independent replay by
-re-parsing the bytes identified by `source_digest` under the recorded parser identity is future
-work and is not a v1 property.
+The replay digest establishes certificate self-consistency only.  The controller recomputes it on
+the certificate shipped through the discharge path; it is not an analyzer commitment at that
+boundary.  Independent replay by re-parsing the bytes identified by `source_digest` under the
+recorded parser identity is future work and is not a v1 property.
 
 A verified certificate is required only for `evaluation_candidate` and `covered_negative`
 projections.  `question` and `unsupported` projections are non-accusatory and bypass this kernel;
@@ -173,6 +183,10 @@ invalidity, or a required repair.
   v1 and must be reported as unsupported.
 - `membership-scale-above-v1-bound`: more than 10,000 analyzed observations is outside v1 and must
   be reported as unsupported rather than summarized.
+- `distinct-key-scale-above-v1-bound`: more than 5,000 distinct ordered keys, while remaining at or
+  below the membership bound, is outside the bounded v1 proof-record envelope.
+- `unit-level-aggregation-unrecognized`: aggregation-shaped code over the certified list-bound
+  readers is outside v1; unit-level aggregation is a future recognition route.
 - `universal-newline-reader`: a plain `open()`/`Path.open()` reader without `newline=""`, an
   explicit `newline=None`, or a `read_text()` universal-newline stream is outside the certified
   `csv_newline` model and must be reported as unsupported.

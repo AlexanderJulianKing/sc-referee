@@ -451,20 +451,18 @@ def test_filter_merge_sample_dedup_and_slice_all_abstain(transform: str) -> None
     assert analysis.certificate is None
 
 
-def test_groupby_on_authorized_key_proposes_and_discharges_the_safeguard() -> None:
+@pytest.mark.parametrize("method", ["mean", "first"])
+def test_regression_n3_groupby_is_a_named_future_route(method: str) -> None:
     source = _source(
-        before_operands='unit_rows = rows.groupby("participant_id").mean()',
+        before_operands=f'unit_rows = rows.groupby("participant_id").{method}()',
         frame_name="unit_rows",
     )
-    context = _context(source)
-    discharged = discharge_dependence_proposal(analyze_dependence_python(context), context)
-    assert discharged.state == "verified"
-    assert discharged.verified_certificate is not None
-    assert "safeguard:unit-level-aggregation" in (
-        discharged.verified_certificate.applicable_safeguard_ids
-    )
-    assert discharged.case is not None
-    assert evaluate_dependence_case(discharged.case).outcome == "covered_negative"
+    analysis = _analyze(source)
+    assert analysis.state == "unsupported"
+    assert analysis.certificate is None
+    assert "unit-level-aggregation-unrecognized" in analysis.unsupported_constructs
+    assert analysis.effects
+    assert all(effect.opaque and effect.writes == frozenset({"*"}) for effect in analysis.effects)
 
 
 def test_groupby_on_non_authorized_key_never_discharges_the_safeguard() -> None:
@@ -475,7 +473,7 @@ def test_groupby_on_non_authorized_key_never_discharges_the_safeguard() -> None:
     analysis = _analyze(source)
     assert analysis.state == "unsupported"
     assert analysis.certificate is None
-    assert "groupby-operand-not-authorized-unit-key" in analysis.unsupported_constructs
+    assert "unit-level-aggregation-unrecognized" in analysis.unsupported_constructs
 
 
 def test_pandas_reader_is_the_named_unsupported_gap() -> None:
@@ -526,14 +524,11 @@ def test_missing_or_multiple_authority_lists_candidates_without_selecting_one() 
 @pytest.mark.parametrize(
     "context_kwargs",
     [
-        {"authority_analysis_id": "analysis:other"},
-        {"authority_procedure_id": "procedure:other"},
         {"authority_input_path": "inputs/other.csv"},
         {"authority_input_digest": "sha256:" + "0" * 64},
-        {"procedure_callable": "scipy.stats.mannwhitneyu"},
     ],
 )
-def test_mismatched_authority_or_procedure_record_remains_a_key_question(
+def test_mismatched_authority_input_remains_a_key_question(
     context_kwargs: dict[str, object],
 ) -> None:
     analysis = _analyze(_source(), **context_kwargs)
@@ -546,11 +541,7 @@ def test_mismatched_authority_or_procedure_record_remains_a_key_question(
 
 def test_multiple_procedure_calls_with_conflicting_frame_conclusions_are_a_question() -> None:
     source = _source(
-        before_call="direct = st.ttest_ind(group_a, group_b)\n"
-        'unit_rows = rows.groupby("participant_id").mean()\n'
-        'unit_a = [float(row["a"]) for row in unit_rows]\n'
-        'unit_b = [float(row["b"]) for row in unit_rows]',
-        call="result = st.ttest_ind(unit_a, unit_b)",
+        before_call="direct = st.mannwhitneyu(group_a, group_b)",
     )
     analysis = _analyze(source)
     assert analysis.state == "question"
@@ -725,3 +716,132 @@ def test_controller_rechecks_the_bound_package_pin_evidence_identity() -> None:
     assert discharged.state == "unsupported"
     assert discharged.case is not None
     assert discharged.case.unsupported_constructs == ("frozen-context-drift",)
+
+
+@pytest.mark.parametrize(
+    ("record_type", "record_id"),
+    [
+        ("claim", "claim:forged"),
+        ("result", "result:unrelated"),
+    ],
+)
+def test_regression_n1_affected_target_must_match_the_selected_frozen_record(
+    record_type: str,
+    record_id: str,
+) -> None:
+    context = _context(_source())
+    if record_id == "result:unrelated":
+        unrelated_ref = RecordRef(record_type, record_id)
+        context = replace(
+            context,
+            base_records=(
+                *context.base_records,
+                FrozenBaseRecord.from_record(
+                    unrelated_ref,
+                    {"result_id": record_id, "path": "results/unrelated.txt"},
+                ),
+            ),
+        )
+    analysis = analyze_dependence_python(context)
+    assert analysis.state == "proposal"
+    assert analysis.certificate is not None
+    certificate = analysis.certificate
+    forged_ref = replace(
+        certificate.case_binding.affected_target_ref,
+        record_type=record_type,
+        record_id=record_id,
+    )
+    forged = replace(
+        analysis,
+        certificate=replace(
+            certificate,
+            case_binding=replace(certificate.case_binding, affected_target_ref=forged_ref),
+            sinks=tuple(
+                replace(sink, affected_target_ref=forged_ref) for sink in certificate.sinks
+            ),
+        ),
+    )
+    discharged = discharge_dependence_proposal(forged, context)
+    assert discharged.state == "unsupported"
+    assert discharged.case is not None
+    assert discharged.case.unsupported_constructs == ("frozen-context-drift",)
+
+
+def test_regression_n2_trusted_procedure_record_mismatch_refuses_discharge() -> None:
+    context = _context(_source(), procedure_callable="scipy.stats.ttest_rel")
+    analysis = analyze_dependence_python(context)
+    assert analysis.state == "proposal"
+    discharged = discharge_dependence_proposal(analysis, context)
+    assert discharged.state == "unsupported"
+    assert discharged.case is not None
+    assert discharged.case.unsupported_constructs == ("frozen-context-drift",)
+
+
+def test_regression_n2_missing_trusted_analysis_record_refuses_discharge() -> None:
+    context = _context(_source())
+    context = replace(
+        context,
+        base_records=tuple(
+            record for record in context.base_records if record.ref.record_type != "analysis"
+        ),
+    )
+    analysis = analyze_dependence_python(context)
+    assert analysis.state == "proposal"
+    discharged = discharge_dependence_proposal(analysis, context)
+    assert discharged.state == "unsupported"
+    assert discharged.case is not None
+    assert discharged.case.unsupported_constructs == ("frozen-context-drift",)
+
+
+@pytest.mark.parametrize(
+    "context_kwargs",
+    [
+        {"authority_analysis_id": "analysis:other"},
+        {"authority_procedure_id": "procedure:other"},
+    ],
+)
+def test_trusted_authority_reference_mismatch_refuses_at_controller(
+    context_kwargs: dict[str, object],
+) -> None:
+    context = _context(_source(), **context_kwargs)
+    analysis = analyze_dependence_python(context)
+    assert analysis.state == "proposal"
+    discharged = discharge_dependence_proposal(analysis, context)
+    assert discharged.state == "unsupported"
+    assert discharged.case is not None
+    assert discharged.case.unsupported_constructs == ("frozen-context-drift",)
+
+
+def test_regression_n4_distinct_key_scale_has_its_own_named_gap() -> None:
+    rows = b"".join(f"p{index},s1,{index},{index + 1}\n".encode() for index in range(5_001))
+    context = _context(
+        _source(),
+        data=b"participant_id,site_id,a,b\n" + rows,
+    )
+    analysis = analyze_dependence_python(context)
+    assert analysis.state == "proposal"
+    discharged = discharge_dependence_proposal(analysis, context)
+    assert discharged.state == "unsupported"
+    assert discharged.case is not None
+    assert discharged.case.unsupported_constructs == ("distinct-key-scale-above-v1-bound",)
+
+
+def test_regression_n5_write_handle_has_its_own_non_reader_branch() -> None:
+    direct_sink = 'Path("results/report.txt").write_text(str(result), encoding="utf-8")'
+    write_handle_sink = (
+        'with Path("results/report.txt").open("w", encoding="utf-8") as output:\n'
+        "    output.write(str(result))"
+    )
+    source = _source().replace(direct_sink, write_handle_sink)
+    context = _context(source)
+    analysis = analyze_dependence_python(context)
+    assert analysis.state == "proposal"
+    assert discharge_dependence_proposal(analysis, context).state == "verified"
+
+    dynamic_newline = write_handle_sink.replace(
+        'encoding="utf-8")', 'encoding="utf-8", newline=setting)'
+    )
+    refused = _analyze(_source().replace(direct_sink, dynamic_newline))
+    assert refused.state == "unsupported"
+    assert "unsupported-write-handle" in refused.unsupported_constructs
+    assert "universal-newline-reader" not in refused.unsupported_constructs

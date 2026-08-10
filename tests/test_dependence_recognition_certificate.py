@@ -389,18 +389,6 @@ def _with_fact(fixture: _Fixture, fact: UnitKeyMultiplicityFact) -> _Fixture:
             "repeated_units",
             ("safeguard:paired-or-blocked-procedure",),
         ),
-        (
-            "scipy.stats.ttest_ind",
-            "unit_groupby_mean",
-            "one_observation_per_unit",
-            ("safeguard:unit-level-aggregation",),
-        ),
-        (
-            "scipy.stats.ttest_ind",
-            "unit_groupby_first",
-            "one_observation_per_unit",
-            ("safeguard:unit-level-aggregation",),
-        ),
     ],
 )
 def test_kernel_accepts_each_frozen_procedure_and_transform_form(
@@ -414,9 +402,14 @@ def test_kernel_accepts_each_frozen_procedure_and_transform_form(
     assert verified is not None
     assert verified.conclusion == expected_conclusion
     assert verified.applicable_safeguard_ids == expected_safeguards
-    if aggregation in {"unit_groupby_mean", "unit_groupby_first"}:
-        assert verified.repeated_unit_ids == ()
-        assert verified.source_frame_repeated_unit_ids
+
+
+@pytest.mark.parametrize("operation", ["unit_groupby_mean", "unit_groupby_first"])
+def test_regression_n3_legacy_groupby_transform_is_outside_kernel_grammar(
+    operation: str,
+) -> None:
+    fixture = _fixture(aggregation=cast(Any, operation))
+    assert _verify(fixture) is None
 
 
 def test_kernel_accepts_nonrepetition_and_both_reader_models() -> None:
@@ -454,12 +447,12 @@ def test_kernel_accepts_not_applicable_and_exact_dead_set_equation() -> None:
     assert _verify(_with_certificate(fixture, mutated)) is not None
 
 
-def test_kernel_enforces_analyzed_membership_cap_without_rejecting_a_collapsed_source() -> None:
+def test_kernel_enforces_membership_cap_and_refuses_legacy_collapsed_source() -> None:
     at = (("a",),) * MAX_V1_MEMBERSHIPS
     above = (("a",),) * (MAX_V1_MEMBERSHIPS + 1)
     assert _verify(_fixture(key_value_tuples=at)) is not None
     assert _verify(_fixture(key_value_tuples=above)) is None
-    assert _verify(_fixture(key_value_tuples=above, aggregation="unit_groupby_mean")) is not None
+    assert _verify(_fixture(key_value_tuples=above, aggregation="unit_groupby_mean")) is None
 
 
 @pytest.mark.parametrize("obligation", [f"O{index}" for index in range(1, 14)])
@@ -545,10 +538,10 @@ def test_regression_f2_certificate_has_no_embedded_trusted_fact_channel() -> Non
 
 @pytest.mark.parametrize(
     "write",
-    ["inputs/data.csv", "rows:source", "reader:data", "transform:aggregate"],
+    ["inputs/data.csv", "rows:source", "reader:data", "transform:identity"],
 )
 def test_regression_f3_writes_to_any_origin_or_binding_refuse(write: str) -> None:
-    fixture = _fixture(aggregation="unit_groupby_mean")
+    fixture = _fixture(aggregation="identity")
     effect = Effect(
         reads=frozenset(),
         writes=frozenset({write}),
@@ -1274,7 +1267,7 @@ def test_held_evidence_and_token_refusals() -> None:
 
 
 def test_held_transform_refusals() -> None:
-    fixture = _fixture(aggregation="unit_groupby_mean")
+    fixture = _fixture(aggregation="identity")
     transform = fixture.certificate.frame_lineage.transforms[0]
     bad_group = replace(transform, grouping_columns=("value",))
     assert (
@@ -1388,8 +1381,7 @@ def test_held_kernel_fact_ceilings_accept_boundary_and_refuse_boundary_plus_one(
 
     at_row_ceiling = (("unit-a",),) * MAX_DEPENDENCE_CSV_DOMAIN_ROWS
     above_row_ceiling = (*at_row_ceiling, ("unit-a",))
-    assert _verify(_fixture(key_value_tuples=at_row_ceiling, aggregation="unit_groupby_mean"))
-    assert (
-        _verify(_fixture(key_value_tuples=above_row_ceiling, aggregation="unit_groupby_mean"))
-        is None
-    )
+    # The independently lower membership cap refuses both values before the
+    # wider CSV-domain row ceiling can become a positive kernel route.
+    assert _verify(_fixture(key_value_tuples=at_row_ceiling)) is None
+    assert _verify(_fixture(key_value_tuples=above_row_ceiling)) is None

@@ -46,6 +46,8 @@ from sc_referee.dependence_recognition.certificate import (
     verify_dependence_certificate,
 )
 from sc_referee.dependence_recognition.csv_domain import (
+    MAX_DEPENDENCE_CSV_DISTINCT_KEYS,
+    certified_unit_key_distinct_count,
     certified_unit_key_row_count,
     prove_unit_key_multiplicity,
     unit_key_row_domain,
@@ -60,7 +62,6 @@ from sc_referee.dependence_recognition.ir import (
     EvidenceDeclaration,
     FrameLineage,
     FrameTransform,
-    FrameTransformOperation,
     HumanMethodAuthorization,
     MaterialInputBinding,
     ProcedureCall,
@@ -336,14 +337,8 @@ class _TraceEngine:
         if isinstance(value, ast.Name) and value.id in self.frame_names:
             self._identity_alias(value.id, target, statement)
             return
-        aggregation = self._aggregation(value, target, statement)
-        if aggregation is not None:
-            self.transforms.append(aggregation)
-            self.transform_nodes.append(statement)
-            self.current_frame_name = target
-            self.current_output_token = aggregation.token
-            self.frame_names = {target}
-            self.operand_frames[target] = aggregation.token
+        if self._is_unit_aggregation_shape(value):
+            self._unsupported(statement, "unit-level-aggregation-unrecognized")
             return
         operand_frame = self._full_row_projection(value)
         if operand_frame is not None:
@@ -376,6 +371,8 @@ class _TraceEngine:
                 statement,
                 "universal-newline-reader"
                 if self._is_universal_newline_open(item.context_expr)
+                else "unsupported-write-handle"
+                if self._is_write_open(item.context_expr)
                 else "unsupported-with-resource",
             )
             return
@@ -500,6 +497,8 @@ class _TraceEngine:
             return None
         if set(keyword_values) - {"mode", "encoding", "newline"}:
             return None
+        if positionals and "mode" in keyword_values:
+            return None
         if "mode" in keyword_values:
             mode_value = keyword_values["mode"]
             if not isinstance(mode_value, ast.Constant) or not isinstance(mode_value.value, str):
@@ -509,7 +508,17 @@ class _TraceEngine:
             return None
         if "encoding" not in keyword_values:
             return None
-        if "newline" not in keyword_values or not _empty_string(keyword_values["newline"]):
+        if mode in {"r", "rt"}:
+            if "newline" not in keyword_values or not _empty_string(keyword_values["newline"]):
+                return None
+        elif mode in {"w", "wt"}:
+            newline = keyword_values.get("newline")
+            if newline is not None and not (
+                isinstance(newline, ast.Constant)
+                and (newline.value is None or isinstance(newline.value, str))
+            ):
+                return None
+        else:
             return None
         return _OpenHandle(path, mode)
 
@@ -523,54 +532,59 @@ class _TraceEngine:
             isinstance(expression.func, ast.Attribute) and expression.func.attr == "open"
         ):
             return False
+        if self._open_mode(expression) not in {"r", "rt"}:
+            return False
         newline_values = [item.value for item in expression.keywords if item.arg == "newline"]
         return not newline_values or any(
             isinstance(value, ast.Constant) and value.value is None for value in newline_values
         )
 
-    def _aggregation(
-        self,
-        expression: ast.expr,
-        target: str,
-        statement: ast.Assign,
-    ) -> FrameTransform | None:
-        del target
+    def _is_write_open(self, expression: ast.expr) -> bool:
+        return self._open_mode(expression) in {"w", "wt"}
+
+    def _open_mode(self, expression: ast.expr) -> str | None:
+        if not isinstance(expression, ast.Call):
+            return None
+        qualified = self._qualified(expression.func)
+        positionals = list(expression.args)
+        if qualified == "open":
+            if not positionals:
+                return None
+            positionals.pop(0)
+        elif not (isinstance(expression.func, ast.Attribute) and expression.func.attr == "open"):
+            return None
+        if len(positionals) > 1:
+            return None
+        mode = "r"
+        if positionals:
+            value = positionals[0]
+            if not isinstance(value, ast.Constant) or not isinstance(value.value, str):
+                return None
+            mode = value.value
+        keyword_modes = [item.value for item in expression.keywords if item.arg == "mode"]
+        if len(keyword_modes) > 1:
+            return None
+        if keyword_modes:
+            value = keyword_modes[0]
+            if not isinstance(value, ast.Constant) or not isinstance(value.value, str):
+                return None
+            mode = value.value
+        return mode
+
+    def _is_unit_aggregation_shape(self, expression: ast.expr) -> bool:
         if not (
             isinstance(expression, ast.Call)
             and isinstance(expression.func, ast.Attribute)
             and expression.func.attr in {"mean", "first"}
-            and not expression.args
-            and not expression.keywords
             and isinstance(expression.func.value, ast.Call)
         ):
-            return None
+            return False
         groupby = expression.func.value
-        if not (
+        return bool(
             isinstance(groupby.func, ast.Attribute)
             and groupby.func.attr == "groupby"
             and isinstance(groupby.func.value, ast.Name)
             and groupby.func.value.id == self.current_frame_name
-            and len(groupby.args) == 1
-            and not groupby.keywords
-        ):
-            self._unsupported(statement, "unsupported-frame-transform")
-            return None
-        columns = _string_columns(groupby.args[0])
-        if columns is None:
-            self._unsupported(statement, "dynamic-grouping-operand")
-            return None
-        operation: FrameTransformOperation = cast(
-            FrameTransformOperation,
-            f"unit_groupby_{expression.func.attr}",
-        )
-        token = _token(self.document.path, statement, f"transform:{operation}")
-        return FrameTransform(
-            token=token,
-            operation=operation,
-            input_row_domain="pending",
-            output_row_domain=f"pending:{token}",
-            grouping_columns=columns,
-            evidence_ids=(_evidence_id(self.document.path, statement, operation),),
         )
 
     def _full_row_projection(self, expression: ast.expr) -> str | None:
@@ -966,24 +980,6 @@ def analyze_dependence_python(
             ),
             authority=authority,
         )
-    if not _authority_refs_exist_once(context, authority) or not _procedure_record_allows(
-        context,
-        authority.procedure_ref,
-        procedure.resolved_callable,
-    ):
-        unresolved = (
-            "authorized-analysis-procedure-binding",
-            *(f"candidate_unit_key:{column}" for column in candidates),
-            "candidate_unit_key:none-of-these",
-        )
-        return _analysis_without_certificate(
-            "question",
-            context,
-            candidate_columns=candidates,
-            unresolved=unresolved,
-            basis="The authority did not match extant analysis and procedure records.",
-            authority=authority,
-        )
     if authority.input_path != read.path:
         unresolved = (
             "authorized-input-binding",
@@ -1023,32 +1019,6 @@ def analyze_dependence_python(
             context,
             unsupported=("digest-bound-input-unavailable",),
             basis="The authorized source input was not present once with its full digest.",
-            authority=authority,
-        )
-    if any(
-        transform.operation != "identity"
-        and transform.grouping_columns != authority.authorized_key_columns
-        for transform in trace.transforms
-    ):
-        return _analysis_without_certificate(
-            "unsupported",
-            context,
-            unsupported=("groupby-operand-not-authorized-unit-key",),
-            basis="A collapsing transform grouped by a non-authorized operand.",
-            authority=authority,
-        )
-    if (
-        sum(
-            transform.operation in {"unit_groupby_mean", "unit_groupby_first"}
-            for transform in trace.transforms
-        )
-        > 1
-    ):
-        return _analysis_without_certificate(
-            "unsupported",
-            context,
-            unsupported=("multiple-unit-collapsing-transforms",),
-            basis="V1 models at most one unit-collapsing transform.",
             authority=authority,
         )
     version_material = _pinned_scipy_version(context.material_inputs)
@@ -1140,17 +1110,22 @@ def discharge_dependence_proposal(
             )
             if row_count is not None and row_count > MAX_V1_MEMBERSHIPS:
                 return _failed_discharge(certificate, "membership-scale-above-v1-bound")
+            distinct_count = certified_unit_key_distinct_count(
+                material,
+                path=obligation.input_binding.path,
+                content_digest=obligation.input_binding.content_digest,
+                key_columns=obligation.key_columns,
+                line_model=obligation.reader.line_model,
+            )
+            if distinct_count is not None and distinct_count > MAX_DEPENDENCE_CSV_DISTINCT_KEYS:
+                return _failed_discharge(certificate, "distinct-key-scale-above-v1-bound")
             return _failed_discharge(certificate, "unit-key-multiplicity-proof-unavailable")
         facts.append(fact)
     if len(facts) != 1 or len(set(facts)) != 1:
         return _failed_discharge(certificate, "non-singleton-multiplicity-discharge")
     fact = facts[0]
-    aggregation = any(
-        transform.operation in {"unit_groupby_mean", "unit_groupby_first"}
-        for transform in certificate.frame_lineage.transforms
-    )
-    analyzed_unit_ids = tuple(dict.fromkeys(fact.unit_ids)) if aggregation else fact.unit_ids
-    analyzed_observations = analyzed_unit_ids if aggregation else fact.observation_ids
+    analyzed_unit_ids = fact.unit_ids
+    analyzed_observations = fact.observation_ids
     if len(analyzed_observations) > MAX_V1_MEMBERSHIPS:
         return _failed_discharge(certificate, "membership-scale-above-v1-bound")
     repeated = tuple(
@@ -1248,19 +1223,7 @@ def _certificate(
     transforms: list[FrameTransform] = []
     current_domain = source_domain
     for transform in trace.transforms:
-        output_domain = (
-            current_domain
-            if transform.operation == "identity"
-            else semantic_digest(
-                {
-                    "kind": "dependence-frame-transform-v1",
-                    "input_row_domain": current_domain,
-                    "operation": transform.operation,
-                    "grouping_columns": transform.grouping_columns,
-                    "token": transform.token,
-                }
-            )
-        )
+        output_domain = current_domain
         transforms.append(
             replace(
                 transform,
@@ -1357,12 +1320,6 @@ def _certificate(
     dead = frozenset(dead_constructs)
     active = all_constructs - dead
     expected_matches: dict[str, frozenset[str]] = {item: frozenset() for item in SAFEGUARD_IDS}
-    aggregate_tokens = frozenset(
-        item.token
-        for item in transforms
-        if item.operation in {"unit_groupby_mean", "unit_groupby_first"}
-    )
-    expected_matches[_AGGREGATION_SAFEGUARD] = aggregate_tokens
     if result.resolved_callable == "scipy.stats.ttest_rel":
         expected_matches[_PAIRED_SAFEGUARD] = frozenset({result.token})
     checks: list[SafeguardCheckObligation] = []
@@ -1491,22 +1448,10 @@ def _verified_case(
     certificate: DependenceCertificate,
 ) -> DependenceCase:
     fact = verified.domain_fact
-    aggregation = any(
-        transform.operation in {"unit_groupby_mean", "unit_groupby_first"}
-        for transform in verified.frame_lineage.transforms
+    memberships = tuple(
+        Membership(observation, unit, (fact.evidence_id,))
+        for observation, unit in zip(fact.observation_ids, fact.unit_ids, strict=True)
     )
-    if aggregation:
-        memberships = tuple(
-            Membership(item, item, (fact.evidence_id,))
-            for item in verified.frame_lineage.analyzed_observation_ids
-        )
-        separate_state: EvidenceState = "refuted"
-    else:
-        memberships = tuple(
-            Membership(observation, unit, (fact.evidence_id,))
-            for observation, unit in zip(fact.observation_ids, fact.unit_ids, strict=True)
-        )
-        separate_state = "established"
     binding = verified.case_binding
     safeguards = tuple(
         SafeguardCheck(
@@ -1530,7 +1475,7 @@ def _verified_case(
         membership_state="established",
         analysis_target_ref=_core_ref(binding.analysis_target_ref),
         analysis_input_binding_state="established",
-        separate_observation_entry_state=separate_state,
+        separate_observation_entry_state="established",
         procedure_ref=_core_ref(binding.procedure_ref),
         procedure_binding_state="established",
         row_independence_state="refuted" if paired else "established",
@@ -1590,6 +1535,11 @@ def _proposal_matches_context(
     pinned = _pinned_scipy_version(context.material_inputs)
     binding = certificate.case_binding
     trusted_authority = trusted_authorizations[0] if len(trusted_authorizations) == 1 else None
+    if trusted_authority is None:
+        return False
+    affected_target = (
+        _affected_target_ref(context, selected_path) if selected_path is not None else None
+    )
     return (
         len(source_matches) == 1
         and _parser_is_supported(
@@ -1598,7 +1548,6 @@ def _proposal_matches_context(
         and certificate.source_extent == _module_point(source_matches[0])
         and _dependency_closure_digest(context.material_inputs)
         == certificate.dependency_closure_digest
-        and trusted_authority is not None
         and trusted_authority.analysis_target_ref == binding.analysis_target_ref
         and trusted_authority.procedure_ref == binding.procedure_ref
         and trusted_authority.independent_unit_definition_id
@@ -1607,6 +1556,12 @@ def _proposal_matches_context(
         and trusted_authority.input_path == certificate.frame_lineage.input_binding.path
         and trusted_authority.input_content_digest
         == certificate.frame_lineage.input_binding.content_digest
+        and _authority_refs_exist_once(context, trusted_authority)
+        and _procedure_record_allows(
+            context,
+            trusted_authority.procedure_ref,
+            certificate.procedure_call.resolved_callable,
+        )
         and pinned is not None
         and certificate.procedure_call.package_version.package_name == "scipy"
         and certificate.procedure_call.package_version.version == pinned[0] == _SUPPORTED_VERSION
@@ -1614,6 +1569,9 @@ def _proposal_matches_context(
         == (_package_pin_evidence_id(pinned[1], pinned[0]),)
         and selected_path is not None
         and {sink.path for sink in certificate.sinks} == {selected_path}
+        and affected_target is not None
+        and binding.affected_target_ref == affected_target
+        and all(sink.affected_target_ref == affected_target for sink in certificate.sinks)
     )
 
 
@@ -1892,7 +1850,7 @@ def _selected_artifact_path(context: FrozenInspectionContext) -> str | None:
 
 def _authority_refs_exist_once(
     context: FrozenInspectionContext,
-    authority: _AuthorityHint,
+    authority: HumanMethodAuthorization,
 ) -> bool:
     return all(
         sum(_same_ref(record.ref, ref) for record in context.base_records) == 1
@@ -2023,27 +1981,6 @@ def _unsupported_kind(statement: ast.stmt) -> str:
 
 def _statement_subtree(statement: ast.stmt) -> list[ast.stmt]:
     return [node for node in ast.walk(statement) if isinstance(node, ast.stmt)]
-
-
-def _string_columns(expression: ast.expr) -> tuple[str, ...] | None:
-    if (
-        isinstance(expression, ast.Constant)
-        and isinstance(expression.value, str)
-        and expression.value
-    ):
-        return (expression.value,)
-    if isinstance(expression, ast.Tuple | ast.List) and expression.elts:
-        values = tuple(
-            item.value
-            for item in expression.elts
-            if isinstance(item, ast.Constant) and isinstance(item.value, str) and item.value
-        )
-        return (
-            values
-            if len(values) == len(expression.elts) and len(values) == len(set(values))
-            else None
-        )
-    return None
 
 
 def _tuple_identity_assignment(statement: ast.Assign) -> tuple[str, str] | None:

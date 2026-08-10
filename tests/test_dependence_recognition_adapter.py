@@ -274,7 +274,7 @@ def test_adverse_workflow_emits_report_only_shadow_candidate(
     assert not forbidden_keys & set(body)
 
 
-def test_unit_groupby_mean_is_a_verified_coverage_note(
+def test_regression_n3_unit_groupby_mean_is_a_named_abstention(
     shadow_adapter: DependenceRecognitionShadowAdapter,
 ) -> None:
     source = _source(
@@ -283,12 +283,9 @@ def test_unit_groupby_mean_is_a_verified_coverage_note(
     )
     payload = shadow_adapter.inspect(_context(source))
     _assert_not_candidate(payload)
-    assert payload["payload_type"] == "coverage_note"
-    assert payload["outcome"] == "covered_negative"
-    body = payload["payload"]
-    assert body["coverage_class"] == "applicable_safeguard_present"
-    assert body["core_reason_code"] == "one_observation_per_independent_unit"
-    assert "safeguard:unit-level-aggregation" in body["applicable_safeguard_ids"]
+    assert payload["payload_type"] == "abstention"
+    assert payload["outcome"] == "unsupported"
+    assert "unit-level-aggregation-unrecognized" in _coverage_classes(payload)
 
 
 def test_one_row_per_unit_is_a_verified_coverage_note(

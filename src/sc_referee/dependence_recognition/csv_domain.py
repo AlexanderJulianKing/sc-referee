@@ -172,6 +172,31 @@ def certified_unit_key_row_count(
     return len(parsed.key_value_tuples) if parsed is not None else None
 
 
+def certified_unit_key_distinct_count(
+    material: FrozenMaterialInput,
+    *,
+    path: str,
+    content_digest: str,
+    key_columns: tuple[str, ...],
+    line_model: str,
+) -> int | None:
+    """Return a validated exact distinct-key count without issuing a fact.
+
+    The controller uses this bounded helper only after the membership ceiling
+    is known to hold, so it can distinguish the lower distinct-key coverage
+    ceiling from other proof failures without trusting analyzer assertions.
+    """
+
+    parsed = _parse_unit_key_domain(
+        material,
+        path=path,
+        content_digest=content_digest,
+        key_columns=key_columns,
+        line_model=line_model,
+    )
+    return len(set(parsed.key_value_tuples)) if parsed is not None else None
+
+
 def _parse_unit_key_domain(
     material: FrozenMaterialInput,
     *,
