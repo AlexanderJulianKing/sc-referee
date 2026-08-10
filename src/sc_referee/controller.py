@@ -929,11 +929,26 @@ def run_audit(
                 )
             from sc_referee.dependence_recognition.authority_lock import (
                 apply_dependence_authorization_lock,
+                bind_dependence_selected_writer_scope,
             )
 
             scientific_context = apply_dependence_authorization_lock(
                 scientific_context, dependence_authorization_lock
             )
+            scientific_context = bind_dependence_selected_writer_scope(scientific_context)
+            dependence_records = {
+                (item.ref.record_type, item.ref.record_id): json.loads(item.canonical_payload)
+                for item in scientific_context.base_records
+                if item.ref.record_type in {"operation", "artifact"}
+            }
+            static_graph["operations"] = [
+                dependence_records.get(("operation", str(item["operation_id"])), item)
+                for item in static_graph["operations"]
+            ]
+            all_artifacts = [
+                dependence_records.get(("artifact", str(item["artifact_id"])), item)
+                for item in all_artifacts
+            ]
         if scientific_context is not None:
             scientific_evaluation = active_scientific_checks.evaluate(scientific_context)
             scientific_compilation = compile_scientific_check_records(

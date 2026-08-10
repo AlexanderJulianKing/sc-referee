@@ -8,6 +8,7 @@ returns a dataclass-replaced inspection context.
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 from collections.abc import Iterable, Mapping
@@ -20,7 +21,16 @@ from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.scientific_checks.core import (
     FrozenBaseRecord,
     FrozenInspectionContext,
+    InspectionDocument,
     RecordRef,
+    ScopeJoinEdge,
+    ScopeJoinProof,
+    StaticScopeJoinGraph,
+)
+from sc_referee.scientific_checks.scope_joins import (
+    STATIC_WRITER_OUTPUT_PROFILE,
+    STATIC_WRITER_SOURCE_PROFILE,
+    selected_static_writer_path,
 )
 
 LOCK_KIND = "dependence_method_authorization_v1"
@@ -242,6 +252,302 @@ def apply_dependence_authorization_lock(
     return replace(
         context,
         base_records=tuple(sorted((*context.base_records, *additions), key=lambda item: item.ref)),
+    )
+
+
+def bind_dependence_selected_writer_scope(
+    context: FrozenInspectionContext,
+) -> FrozenInspectionContext:
+    """Add only the closed pilot writer proof for an exact authorized sink.
+
+    The general Python inventory conservatively resolves relative ``Path``
+    literals beside their source file.  Pilot workflows are commissioned and
+    intake-executed from the case root, but that execution evidence is not
+    imported into production audit.  This helper therefore proves only the
+    static declaration: one trusted analysis record, one trusted result
+    record, and one parsed module-level ``Path(<selected report>).write_*``
+    call with an exact literal.  It establishes neither execution nor byte
+    production, and any ambiguity leaves the original graph unchanged.
+    """
+
+    graph = context.scope_join_graph
+    if graph is None:
+        return context
+    python_documents = tuple(
+        item for item in context.documents if item.media_type == "text/x-python"
+    )
+    analyses = _records_of_type(context, "analysis")
+    results = _records_of_type(context, "result")
+    if len(python_documents) != 1 or len(analyses) != 1 or len(results) != 1:
+        return context
+    analysis_ref, analysis = analyses[0]
+    result_ref, result = results[0]
+    analysis_path = analysis.get("path")
+    result_path = result.get("path")
+    if not isinstance(analysis_path, str) or not isinstance(result_path, str):
+        return context
+    document = python_documents[0]
+    if document.path != analysis_path or document.parser_result_ref is None:
+        return context
+    if result_ref not in {item.ref for item in context.base_records}:
+        return context
+    selected = _base_record_value(context, context.selected_artifact_ref)
+    if not isinstance(selected, dict) or selected.get("path") != result_path:
+        return context
+    if selected_static_writer_path(
+        graph,
+        document=document,
+        selected_artifact_ref=context.selected_artifact_ref,
+        selected_surface_ref=context.selected_surface_ref,
+    ):
+        return context
+
+    call = _one_direct_selected_writer(document, result_path)
+    if call is None:
+        return context
+    writer_matches: list[tuple[RecordRef, dict[str, Any]]] = []
+    for record in context.base_records:
+        if record.ref.record_type != "operation":
+            continue
+        value = _record_payload(record)
+        if not isinstance(value, dict) or not _operation_matches_writer(
+            value, document=document, call=call
+        ):
+            continue
+        writer_matches.append((record.ref, value))
+    if len(writer_matches) != 1:
+        return context
+    writer_ref, writer = writer_matches[0]
+    output_values = writer.get("output_refs")
+    if not isinstance(output_values, list) or len(output_values) != 1:
+        return context
+    parsed_output_ref = _closed_record_ref(output_values[0], "artifact")
+    if parsed_output_ref is None or parsed_output_ref == context.selected_artifact_ref:
+        return context
+    parsed_output = _base_record_value(context, parsed_output_ref)
+    if not isinstance(parsed_output, dict):
+        return context
+    expected_parser_path = (
+        PurePosixPath(document.path).parent / PurePosixPath(result_path)
+    ).as_posix()
+    writer_ref_value = writer_ref.to_dict()
+    if (
+        parsed_output.get("path") != expected_parser_path
+        or parsed_output.get("kind") != "result_file"
+        or parsed_output.get("observed_role") != "output_file"
+        or parsed_output.get("producer_operation_refs") != [writer_ref_value]
+        or selected.get("kind") != "report"
+        or selected.get("observed_role") != "publication_surface_candidate"
+        or selected.get("producer_operation_refs") != []
+    ):
+        return context
+
+    # Resolve only this lock-authorized direct declaration from the parser's
+    # conservative source-directory-relative artifact to the selected report.
+    # The displaced parser artifact remains frozen but no longer claims the
+    # operation as its producer, keeping the relation internally one-to-one.
+    updated_writer = {**writer, "output_refs": [context.selected_artifact_ref.to_dict()]}
+    updated_selected = {**selected, "producer_operation_refs": [writer_ref_value]}
+    updated_parser_output = {**parsed_output, "producer_operation_refs": []}
+    updated_payloads = {
+        writer_ref: updated_writer,
+        context.selected_artifact_ref: updated_selected,
+        parsed_output_ref: updated_parser_output,
+    }
+    updated_base_records = tuple(
+        FrozenBaseRecord.from_record(item.ref, updated_payloads[item.ref])
+        if item.ref in updated_payloads
+        else item
+        for item in context.base_records
+    )
+    evidence_refs = (
+        document.file_ref,
+        document.parser_result_ref,
+        analysis_ref,
+        result_ref,
+        writer_ref,
+        context.selected_artifact_ref,
+        parsed_output_ref,
+    )
+    records: dict[RecordRef, dict[str, Any]] = {}
+    for item in updated_base_records:
+        payload = _record_payload(item)
+        if not isinstance(payload, dict):
+            return context
+        records[item.ref] = payload
+    if any(ref not in records for ref in evidence_refs):
+        return context
+    if any(ref not in records for proof in graph.proofs for ref in proof.evidence_refs):
+        return context
+    rebased_proofs = tuple(
+        ScopeJoinProof.create(
+            edge=proof.edge,
+            profile=proof.profile,
+            evidence_refs=proof.evidence_refs,
+            evidence_payload_digests=tuple(
+                semantic_digest(records[ref]) for ref in proof.evidence_refs
+            ),
+            snapshot_digest=proof.snapshot_digest,
+            authority_limitations=proof.authority_limitations,
+        )
+        for proof in graph.proofs
+    )
+    limitation = (
+        "The exact authorized source declares one direct writer for the selected report path; "
+        "this static relation does not establish execution or produced bytes.",
+    )
+    proofs = (
+        ScopeJoinProof.create(
+            edge=ScopeJoinEdge(
+                document.file_ref,
+                "contains_unique_static_selected_output_writer",
+                writer_ref,
+            ),
+            profile=STATIC_WRITER_SOURCE_PROFILE,
+            evidence_refs=evidence_refs,
+            evidence_payload_digests=tuple(semantic_digest(records[ref]) for ref in evidence_refs),
+            snapshot_digest=context.snapshot_digest,
+            authority_limitations=limitation,
+        ),
+        ScopeJoinProof.create(
+            edge=ScopeJoinEdge(
+                writer_ref,
+                "declares_selected_output_artifact",
+                context.selected_artifact_ref,
+            ),
+            profile=STATIC_WRITER_OUTPUT_PROFILE,
+            evidence_refs=evidence_refs,
+            evidence_payload_digests=tuple(semantic_digest(records[ref]) for ref in evidence_refs),
+            snapshot_digest=context.snapshot_digest,
+            authority_limitations=limitation,
+        ),
+    )
+    merged = tuple(
+        sorted(
+            (*rebased_proofs, *proofs),
+            key=lambda item: canonical_json(item.to_dict()),
+        )
+    )
+    return replace(
+        context,
+        base_records=updated_base_records,
+        scope_join_graph=StaticScopeJoinGraph(
+            snapshot_digest=graph.snapshot_digest,
+            proofs=merged,
+            max_path_edges=graph.max_path_edges,
+        ),
+    )
+
+
+def _closed_record_ref(value: object, record_type: str) -> RecordRef | None:
+    if not isinstance(value, dict) or set(value) != {"record_type", "record_id"}:
+        return None
+    record_id = value.get("record_id")
+    if value.get("record_type") != record_type or not isinstance(record_id, str):
+        return None
+    try:
+        return RecordRef(record_type, record_id)
+    except (TypeError, ValueError):
+        return None
+
+
+def _records_of_type(
+    context: FrozenInspectionContext, record_type: str
+) -> list[tuple[RecordRef, dict[str, Any]]]:
+    matches: list[tuple[RecordRef, dict[str, Any]]] = []
+    for record in context.base_records:
+        if record.ref.record_type != record_type:
+            continue
+        value = _record_payload(record)
+        if isinstance(value, dict):
+            matches.append((record.ref, value))
+    return matches
+
+
+def _base_record_value(context: FrozenInspectionContext, ref: RecordRef) -> dict[str, Any] | None:
+    matches = [item for item in context.base_records if item.ref == ref]
+    if len(matches) != 1:
+        return None
+    value = _record_payload(matches[0])
+    return value if isinstance(value, dict) else None
+
+
+def _record_payload(record: FrozenBaseRecord) -> object:
+    try:
+        return json.loads(record.canonical_payload)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return None
+
+
+def _one_direct_selected_writer(
+    document: InspectionDocument, selected_report_path: str
+) -> ast.Call | None:
+    try:
+        tree = ast.parse(document.content.decode("utf-8", errors="strict"), type_comments=True)
+    except (SyntaxError, UnicodeDecodeError, ValueError, MemoryError, RecursionError):
+        return None
+    pathlib_imports = [
+        statement
+        for statement in tree.body
+        if isinstance(statement, ast.ImportFrom)
+        and statement.level == 0
+        and statement.module == "pathlib"
+        and len(statement.names) == 1
+        and statement.names[0].name == "Path"
+        and statement.names[0].asname is None
+    ]
+    if len(pathlib_imports) != 1 or any(
+        isinstance(node, ast.Name)
+        and node.id == "Path"
+        and isinstance(node.ctx, (ast.Store, ast.Del))
+        for node in ast.walk(tree)
+    ):
+        return None
+    matches: list[ast.Call] = []
+    for statement in tree.body:
+        if not isinstance(statement, ast.Expr) or not isinstance(statement.value, ast.Call):
+            continue
+        call = statement.value
+        if not isinstance(call.func, ast.Attribute) or call.func.attr not in {
+            "write_text",
+            "write_bytes",
+        }:
+            continue
+        receiver = call.func.value
+        if not (
+            isinstance(receiver, ast.Call)
+            and isinstance(receiver.func, ast.Name)
+            and receiver.func.id == "Path"
+            and len(receiver.args) == 1
+            and not receiver.keywords
+            and isinstance(receiver.args[0], ast.Constant)
+            and receiver.args[0].value == selected_report_path
+        ):
+            continue
+        matches.append(call)
+    return matches[0] if len(matches) == 1 else None
+
+
+def _operation_matches_writer(
+    value: dict[str, Any], *, document: InspectionDocument, call: ast.Call
+) -> bool:
+    implementation = value.get("implementation")
+    name = implementation.get("name") if isinstance(implementation, dict) else implementation
+    refs = value.get("source_refs")
+    return bool(
+        value.get("kind") == "write"
+        and value.get("inspection_status") == "supported"
+        and isinstance(name, str)
+        and name.endswith((".write_text", ".write_bytes"))
+        and isinstance(refs, list)
+        and len(refs) == 1
+        and isinstance(refs[0], dict)
+        and refs[0].get("path") == document.path
+        and refs[0].get("content_digest") == document.content_digest
+        and refs[0].get("start_line") == call.lineno
+        and refs[0].get("end_line") == getattr(call, "end_lineno", call.lineno)
+        and refs[0].get("start_column") == call.col_offset + 1
+        and refs[0].get("end_column") == getattr(call, "end_col_offset", call.col_offset) + 1
     )
 
 

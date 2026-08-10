@@ -108,7 +108,7 @@ b8f9438bec7ac6f42fe192f4846577f7cae5862fc43956c224b97380ed670fff  docs/implement
 184fc878a9cf68e862b4d06166623cb88d471e92d4ce0f099eb8d97cac416ad1  docs/implementation/ADR-0070-HELDOUT-THRESHOLD-COMPLETE-DOMAIN-ENVELOPE.md
 19d825e65b19bbfbfa8c4a519c91dbfb98225e93fabc95fa6114e39f53e9d565  docs/implementation/ADR-0071-COMPLETE-DOMAIN-ENVELOPE-PROMOTION.md
 cd7dc0c386940f5ea46dc3e7b20201c574e2180e85b777c12272b8e546b99903  docs/implementation/CACHE-DIFF-DEADLINE-CONTROL.md
-33d090a67e9891a25fff9595fcbf04de3efcf017be5b878b2130c32a8ab9c5bf  docs/implementation/CAPABILITY_MATURITY_LEDGER.json
+fd3e39d76927061f74e91f613e10f477b11717da52782951866473eff944eec7  docs/implementation/CAPABILITY_MATURITY_LEDGER.json
 50bbb0218a07cac1305200ef4fd94a4e3db0fa2df95576a2a591c873f7307bfe  docs/implementation/CAPABILITY_MATURITY_LEDGER.md
 82324a5f34256356515d797f08180ee233cade38f616e0f6a9bfbbe08123bd5a  docs/implementation/CHANGE_CONTROL.md
 ec8bab2d53e02abe762c7e6e99d21b1d085a53e82d5e34cb720f8498220f5888  docs/implementation/CONTROLLER_STATE_MACHINE.md
@@ -8167,78 +8167,133 @@ c86106fa7e142aef1ce68aa92398dd02ef64d60fffd8a65556d5814cd8d713b0  evaluation/qua
 a49dc05e2b469b001a5ac64be52fc703b6844999152fa0e309868d37a6fe6012  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/audit.db
 fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/audit.db-shm
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/audit.db-wal
+b6d1af07e646e486ed8c00ab11ba37a26efbc9c3e9462414fe70fc7adc73c5c4  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/derived/coverage-record 2.jsonl
 b6d1af07e646e486ed8c00ab11ba37a26efbc9c3e9462414fe70fc7adc73c5c4  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/derived/coverage-record.jsonl
+37bed63200785c8305c50edd8def46e9ce6d33958bf5300f445e1bed8ba1ef8b  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/derived/detector-manifest 2.jsonl
 37bed63200785c8305c50edd8def46e9ce6d33958bf5300f445e1bed8ba1ef8b  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/derived/detector-manifest.jsonl
+4a3f639a01c2c2343d73936f797d89229bc7b83bc0686ce89101e65c002380d0  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/derived/disclosure 2.jsonl
 4a3f639a01c2c2343d73936f797d89229bc7b83bc0686ce89101e65c002380d0  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/derived/disclosure.jsonl
+75cd40b43aac2b70c322ee26009c189703f9263d0159913f1c4e96a078291e4a  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/derived/material-question 2.jsonl
 75cd40b43aac2b70c322ee26009c189703f9263d0159913f1c4e96a078291e4a  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/derived/material-question.jsonl
+ee4233da5bf440e92be6afeb5fec54afae4e811c9a2546efca9cd03bc1b2ca97  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/derived/performance-record 2.jsonl
 ee4233da5bf440e92be6afeb5fec54afae4e811c9a2546efca9cd03bc1b2ca97  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/derived/performance-record.jsonl
+f26cf217af4e4a7b11decd8b9fa1c0afb53ceaba21f78f8854ee2de98eb4a00b  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/derived/publication-surface 2.jsonl
 f26cf217af4e4a7b11decd8b9fa1c0afb53ceaba21f78f8854ee2de98eb4a00b  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/derived/publication-surface.jsonl
+e2f7f72420f394aff53e3b09c24a9321126c5c90229de2c43521d4ae891105f7  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/derived/semantic-assertion 2.jsonl
 e2f7f72420f394aff53e3b09c24a9321126c5c90229de2c43521d4ae891105f7  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/derived/semantic-assertion.jsonl
+8ba506c415e5e1b44d2105230668776657c0dc34442ea0023f837dc30b120c56  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/derived/storage-manifest 2.jsonl
 8ba506c415e5e1b44d2105230668776657c0dc34442ea0023f837dc30b120c56  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/derived/storage-manifest.jsonl
+e4af9bbafe0dddc30d4c5dac7a77b159362896ae4a6a750a6c93f7b74eb4dd71  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/observed/artifact 2.jsonl
 e4af9bbafe0dddc30d4c5dac7a77b159362896ae4a6a750a6c93f7b74eb4dd71  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/observed/artifact.jsonl
 414936774c4069d0486bb68cd44535054f7734274d9d5768eb71d1705fdfc0aa  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/observed/asset-identity.jsonl
 a4f71188a0926aa3ecfeca9fd02a9cf901e060183dcb41b4d9d827ab31b948be  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/observed/cache-policy.jsonl
+882fe58061a17c4c2d0ab9b1fd5aeaa7d06957ae8094b000a752f594c68c904d  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/observed/data-asset 2.jsonl
 882fe58061a17c4c2d0ab9b1fd5aeaa7d06957ae8094b000a752f594c68c904d  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/observed/data-asset.jsonl
 197783dd677773644875c274b7694bbc8c297cc0e8e5fa58afbffc1546109fc9  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/observed/environment.jsonl
+45bbb4cdbd7411af81a50787f409b513a118a1fe87bfb7f5afadb3c96e173712  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/observed/files 2.jsonl
 45bbb4cdbd7411af81a50787f409b513a118a1fe87bfb7f5afadb3c96e173712  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/observed/files.jsonl
+a5723bb2e0cc30bd8b6f36a3d023f4a81d9804c1260de68dfe002bdcd50b8b44  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/observed/operation 2.jsonl
 a5723bb2e0cc30bd8b6f36a3d023f4a81d9804c1260de68dfe002bdcd50b8b44  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/observed/operation.jsonl
+ffb3eecfe3dd7b198f7c3257f0378032dda08df04cb1a6e5c9da3c35041bea7d  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/observed/parser-result 2.jsonl
 ffb3eecfe3dd7b198f7c3257f0378032dda08df04cb1a6e5c9da3c35041bea7d  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/observed/parser-result.jsonl
 7598065a33c06424b1158d7a993664023cd9a6bd6415133c42a501802e255a6a  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/observed/snapshot.json
+3ad95b93de18733324b54bb84815117e9e39efc37dd2110bd6ab7f82f468b9ed  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/observed/variable 2.jsonl
 3ad95b93de18733324b54bb84815117e9e39efc37dd2110bd6ab7f82f468b9ed  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/observed/variable.jsonl
 cd2d73e5d2ee910583d31e958bb244adb652eaee6e3d14172a597da978ed8e07  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/report.html
+899f894adf3dc05fc79f114c927a115862a0d521b8099604d567c8881e399ed5  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/semantic.lock 2.json
 899f894adf3dc05fc79f114c927a115862a0d521b8099604d567c8881e399ed5  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/b04854e589e660cad64a/replay/semantic.lock.json
+baae20ca90d6d975204cafdb6b49bacd161fc24da14aba103746ab932edf3dfe  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/audit 2.db
+fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/audit 2.db-shm
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/audit 2.db-wal
+bdc7a5165fd79dbe7842387122c40eb3e168802fdd645926f252a9e8ea348e51  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/audit.bundle 2.json
 bdc7a5165fd79dbe7842387122c40eb3e168802fdd645926f252a9e8ea348e51  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/audit.bundle.json
 baae20ca90d6d975204cafdb6b49bacd161fc24da14aba103746ab932edf3dfe  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/audit.db
 fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/audit.db-shm
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/audit.db-wal
+a19407d56269bb56e6750d9a6e270b1e326729a11a202b03eff2e1def7e55e32  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/derived/coverage-record 2.jsonl
 a19407d56269bb56e6750d9a6e270b1e326729a11a202b03eff2e1def7e55e32  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/derived/coverage-record.jsonl
+37bed63200785c8305c50edd8def46e9ce6d33958bf5300f445e1bed8ba1ef8b  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/derived/detector-manifest 2.jsonl
 37bed63200785c8305c50edd8def46e9ce6d33958bf5300f445e1bed8ba1ef8b  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/derived/detector-manifest.jsonl
+03b2c7569ca3cd571f0735a001aa23d8783baa36ab4ef335c4ae1389d4e98d97  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/derived/disclosure 2.jsonl
 03b2c7569ca3cd571f0735a001aa23d8783baa36ab4ef335c4ae1389d4e98d97  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/derived/disclosure.jsonl
+69ee087d435bf966a5a84337714cd751235105d5041cea01b456a32667b99590  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/derived/performance-record 2.jsonl
 69ee087d435bf966a5a84337714cd751235105d5041cea01b456a32667b99590  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/derived/performance-record.jsonl
+b006ef0bf38826fb147f22daa21c4c21001beaffe986ac01a09f7ffe2c74d2d7  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/derived/publication-surface 2.jsonl
 b006ef0bf38826fb147f22daa21c4c21001beaffe986ac01a09f7ffe2c74d2d7  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/derived/publication-surface.jsonl
+5be1ac473502056ba8ca69776f6f7dfcf26e267ac01439c08be2b226e5bf3a0b  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/derived/storage-manifest 2.jsonl
 5be1ac473502056ba8ca69776f6f7dfcf26e267ac01439c08be2b226e5bf3a0b  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/derived/storage-manifest.jsonl
+ce2db9e21dbf7e6e807943ba92fc554640e1f2d228299d99908c74e8fdce2dd5  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/artifact 2.jsonl
 ce2db9e21dbf7e6e807943ba92fc554640e1f2d228299d99908c74e8fdce2dd5  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/artifact.jsonl
+19546c48bbc188e526551a7b7e314c17061f4bb64bebbaf1b9632488a9f432bc  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/asset-identity 2.jsonl
 19546c48bbc188e526551a7b7e314c17061f4bb64bebbaf1b9632488a9f432bc  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/asset-identity.jsonl
+3b370460b879b3e01492aed2084a072de98440f602af6d38552688061620cd03  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/audit-run 2.jsonl
 3b370460b879b3e01492aed2084a072de98440f602af6d38552688061620cd03  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/audit-run.jsonl
+ed2635974009430da89e57857540db38b7016120d7fe9400725923070c060890  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/cache-policy 2.jsonl
 ed2635974009430da89e57857540db38b7016120d7fe9400725923070c060890  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/cache-policy.jsonl
+8ccb3ca174c0b57b5596f2c8631b9995fc7d4368b4b2c11619ea35d74223c25a  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/data-asset 2.jsonl
 8ccb3ca174c0b57b5596f2c8631b9995fc7d4368b4b2c11619ea35d74223c25a  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/data-asset.jsonl
+4c93af3eac3b0abc22275b3b9551e25ebdac80d154994fb82b08cf04dc6da505  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/environment 2.jsonl
 4c93af3eac3b0abc22275b3b9551e25ebdac80d154994fb82b08cf04dc6da505  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/environment.jsonl
+ec2a0937d7417c983e999410e9d0dbf1dbd4695a220925f667801e6ef672c905  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/files 2.jsonl
 ec2a0937d7417c983e999410e9d0dbf1dbd4695a220925f667801e6ef672c905  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/files.jsonl
+bd5497020c2aa348a2115218885334c92848fcad2e481a4129e5f367b1bb52ec  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/operation 2.jsonl
 bd5497020c2aa348a2115218885334c92848fcad2e481a4129e5f367b1bb52ec  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/operation.jsonl
+134d833f3a865490ad71307d2a3cab8e9333a286dea9cd0542ba1140a2ef46a9  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/parser-result 2.jsonl
 134d833f3a865490ad71307d2a3cab8e9333a286dea9cd0542ba1140a2ef46a9  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/parser-result.jsonl
 9f807cfa126fd89f16cc365ec2f0750dbe74973269b210ff4feba947f68cafc4  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/snapshot/materialized/inputs/data.csv
 a61dd5d4971bf5615bb342c3a9bbc7ba375c42014262cc76f1aa43d169c8816b  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/snapshot/materialized/results/report.md
 5b9f3e9506005752722a9464a5a49907dcc5889184721e1f33a8c502af8320ac  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/snapshot/materialized/task.md
 b6f756425d123b4e09ff2da70d8fe0e4feac903870e487cc50fe52a29317335f  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/snapshot/materialized/workflow/analysis.py
+c6335c514fe126cd0395da2441761ca65ab481b3e2dd2ed1d5c285434648288c  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/snapshot 2.json
 c6335c514fe126cd0395da2441761ca65ab481b3e2dd2ed1d5c285434648288c  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/snapshot.json
+b2d3955e104f0803df582dcdd86f020c3ac64d354c4b34920d308e98f2e0cf77  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/stage-result 2.jsonl
 b2d3955e104f0803df582dcdd86f020c3ac64d354c4b34920d308e98f2e0cf77  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/stage-result.jsonl
+38a2455735e6552503d3d9788f6790dc9224f8290b21ac7c24bd4524ba571f19  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/variable 2.jsonl
 38a2455735e6552503d3d9788f6790dc9224f8290b21ac7c24bd4524ba571f19  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/observed/variable.jsonl
+6e7d225a35668adf4d4a95ab4d24a7324ff04d0808516faa34770b815840604a  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/report 2.html
 6e7d225a35668adf4d4a95ab4d24a7324ff04d0808516faa34770b815840604a  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/report.html
+406e54e5bbf490462ad54999ff542021e64ee60aeac0c82a69a4a13ad494b158  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/semantic.lock 2.json
 406e54e5bbf490462ad54999ff542021e64ee60aeac0c82a69a4a13ad494b158  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/audit/semantic.lock.json
+fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/audit 2.db-shm
 7a4c4bbbe65e0747e5229a1aded2d85411149cb8358e1e98f5b29aedecc732b5  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/audit.bundle.json
 2caff4e8a5f33e11fbf8882cacd9f119da40218bac3cba5a518d92c1070cb2fc  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/audit.db
 fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/audit.db-shm
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/audit.db-wal
+6441f303930dbdcf00293172299463fed1d55f7f6ddc7c948d2bee4475cbdea8  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/derived/answer 2.jsonl
 6441f303930dbdcf00293172299463fed1d55f7f6ddc7c948d2bee4475cbdea8  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/derived/answer.jsonl
+07768ecac238865ea4b26c50c36f3d8a9f2386d4d67c849df6309a9f96cdfbdf  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/derived/coverage-record 2.jsonl
 07768ecac238865ea4b26c50c36f3d8a9f2386d4d67c849df6309a9f96cdfbdf  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/derived/coverage-record.jsonl
+10dbbb293cd3614dee665783817576dcb4d4b7170b783203c6598092a53f0355  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/derived/disclosure 2.jsonl
 10dbbb293cd3614dee665783817576dcb4d4b7170b783203c6598092a53f0355  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/derived/disclosure.jsonl
+74083c06f122d89735a6d70d52e58be2b50c5a7224e6121cc2ae3376443e73aa  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/derived/material-question 2.jsonl
 74083c06f122d89735a6d70d52e58be2b50c5a7224e6121cc2ae3376443e73aa  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/derived/material-question.jsonl
+3e0e9991d55df6a2cf7792380c8c560f3023765528821c6f1c63c00aa2f1c6e8  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/derived/scientific-contract 2.jsonl
 3e0e9991d55df6a2cf7792380c8c560f3023765528821c6f1c63c00aa2f1c6e8  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/derived/scientific-contract.jsonl
+fd0e56e7924c2075a288f1486268de54729f094e08644d6b43afeed34a8629f5  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/derived/semantic-assertion 2.jsonl
 fd0e56e7924c2075a288f1486268de54729f094e08644d6b43afeed34a8629f5  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/derived/semantic-assertion.jsonl
+85634e8e1d5df4c01cac89d587db8bb0227b6eb22d1e61be70e3e16688cd9b96  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/derived/storage-manifest 2.jsonl
 85634e8e1d5df4c01cac89d587db8bb0227b6eb22d1e61be70e3e16688cd9b96  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/derived/storage-manifest.jsonl
+71c9f673d8158bead55ea8f25130a39e0d747cc9a0ade3c6d4f095af0e4380df  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/observed/asset-identity 2.jsonl
 71c9f673d8158bead55ea8f25130a39e0d747cc9a0ade3c6d4f095af0e4380df  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/observed/asset-identity.jsonl
+3f4ac4223fb0d6a1adeddc4a718e532fc93c79fd03a24e5d4694fb735b612da6  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/observed/files 2.jsonl
 3f4ac4223fb0d6a1adeddc4a718e532fc93c79fd03a24e5d4694fb735b612da6  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/observed/files.jsonl
 9f807cfa126fd89f16cc365ec2f0750dbe74973269b210ff4feba947f68cafc4  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/observed/snapshot/materialized/inputs/data.csv
 a61dd5d4971bf5615bb342c3a9bbc7ba375c42014262cc76f1aa43d169c8816b  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/observed/snapshot/materialized/results/report.md
 5b9f3e9506005752722a9464a5a49907dcc5889184721e1f33a8c502af8320ac  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/observed/snapshot/materialized/task.md
 b6f756425d123b4e09ff2da70d8fe0e4feac903870e487cc50fe52a29317335f  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/observed/snapshot/materialized/workflow/analysis.py
+47646a57a2d6c62e70ae1bff67405fb03046f282abaa8c78c52dbac0dc89eeb0  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/observed/snapshot 2.json
 47646a57a2d6c62e70ae1bff67405fb03046f282abaa8c78c52dbac0dc89eeb0  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/observed/snapshot.json
+16d8878f0f1974b26678da5a763f457f53a2980f552f64bcdb255097480af004  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/report 2.html
 16d8878f0f1974b26678da5a763f457f53a2980f552f64bcdb255097480af004  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/report.html
 b77855bd97b0a96ea099876aa551e4d3d4e42b7619d1cc4acb3d1bf8cc62036d  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/contract/semantic.lock.json
 9f807cfa126fd89f16cc365ec2f0750dbe74973269b210ff4feba947f68cafc4  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/project/inputs/data.csv
 a61dd5d4971bf5615bb342c3a9bbc7ba375c42014262cc76f1aa43d169c8816b  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/project/results/report.md
 5b9f3e9506005752722a9464a5a49907dcc5889184721e1f33a8c502af8320ac  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/project/task.md
 b6f756425d123b4e09ff2da70d8fe0e4feac903870e487cc50fe52a29317335f  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/project/workflow/analysis.py
+aae9b71752e6221a04723e9629b019b2f394dc151464438d260e46ab8afa318c  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/audit 2.db
+fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/audit 2.db-shm
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/audit 2.db-wal
+a9a62a7092f42b7df682a2a82461aa021b5840e9b4cf711b01f80749095fb8e0  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/audit.bundle 2.json
 a9a62a7092f42b7df682a2a82461aa021b5840e9b4cf711b01f80749095fb8e0  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/audit.bundle.json
 aae9b71752e6221a04723e9629b019b2f394dc151464438d260e46ab8afa318c  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/audit.db
 fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/audit.db-shm
@@ -8249,19 +8304,32 @@ a19407d56269bb56e6750d9a6e270b1e326729a11a202b03eff2e1def7e55e32  evaluation/qua
 69ee087d435bf966a5a84337714cd751235105d5041cea01b456a32667b99590  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/derived/performance-record.jsonl
 b006ef0bf38826fb147f22daa21c4c21001beaffe986ac01a09f7ffe2c74d2d7  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/derived/publication-surface.jsonl
 af1585cca1d3ac09e710ba2619a44484b767607877160a90988e09a227f39b7a  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/derived/storage-manifest.jsonl
+ce2db9e21dbf7e6e807943ba92fc554640e1f2d228299d99908c74e8fdce2dd5  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/artifact 2.jsonl
 ce2db9e21dbf7e6e807943ba92fc554640e1f2d228299d99908c74e8fdce2dd5  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/artifact.jsonl
+19546c48bbc188e526551a7b7e314c17061f4bb64bebbaf1b9632488a9f432bc  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/asset-identity 2.jsonl
 19546c48bbc188e526551a7b7e314c17061f4bb64bebbaf1b9632488a9f432bc  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/asset-identity.jsonl
+ed2635974009430da89e57857540db38b7016120d7fe9400725923070c060890  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/cache-policy 2.jsonl
 ed2635974009430da89e57857540db38b7016120d7fe9400725923070c060890  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/cache-policy.jsonl
+8ccb3ca174c0b57b5596f2c8631b9995fc7d4368b4b2c11619ea35d74223c25a  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/data-asset 2.jsonl
 8ccb3ca174c0b57b5596f2c8631b9995fc7d4368b4b2c11619ea35d74223c25a  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/data-asset.jsonl
+4c93af3eac3b0abc22275b3b9551e25ebdac80d154994fb82b08cf04dc6da505  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/environment 2.jsonl
 4c93af3eac3b0abc22275b3b9551e25ebdac80d154994fb82b08cf04dc6da505  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/environment.jsonl
+ec2a0937d7417c983e999410e9d0dbf1dbd4695a220925f667801e6ef672c905  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/files 2.jsonl
 ec2a0937d7417c983e999410e9d0dbf1dbd4695a220925f667801e6ef672c905  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/files.jsonl
+bd5497020c2aa348a2115218885334c92848fcad2e481a4129e5f367b1bb52ec  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/operation 2.jsonl
 bd5497020c2aa348a2115218885334c92848fcad2e481a4129e5f367b1bb52ec  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/operation.jsonl
+134d833f3a865490ad71307d2a3cab8e9333a286dea9cd0542ba1140a2ef46a9  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/parser-result 2.jsonl
 134d833f3a865490ad71307d2a3cab8e9333a286dea9cd0542ba1140a2ef46a9  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/parser-result.jsonl
+c6335c514fe126cd0395da2441761ca65ab481b3e2dd2ed1d5c285434648288c  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/snapshot 2.json
 c6335c514fe126cd0395da2441761ca65ab481b3e2dd2ed1d5c285434648288c  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/snapshot.json
+38a2455735e6552503d3d9788f6790dc9224f8290b21ac7c24bd4524ba571f19  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/variable 2.jsonl
 38a2455735e6552503d3d9788f6790dc9224f8290b21ac7c24bd4524ba571f19  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/observed/variable.jsonl
 6e7d225a35668adf4d4a95ab4d24a7324ff04d0808516faa34770b815840604a  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/report.html
+406e54e5bbf490462ad54999ff542021e64ee60aeac0c82a69a4a13ad494b158  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/semantic.lock 2.json
 406e54e5bbf490462ad54999ff542021e64ee60aeac0c82a69a4a13ad494b158  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/detector-run/runs/e7c60e3c8ce8290eda9f/replay/semantic.lock.json
+31ef47fb07f93f1d4c0c1dd9576839cd33a06aa047e7fdf171f79479843e63e8  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/review/REVIEW_LEDGER 2.json
 31ef47fb07f93f1d4c0c1dd9576839cd33a06aa047e7fdf171f79479843e63e8  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/review/REVIEW_LEDGER.json
+04f88c67d334ebe07fe398412ea294c22c5f449915c8e8413a92f7de163d4851  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/review/REVIEW_PROTOCOL 2.json
 04f88c67d334ebe07fe398412ea294c22c5f449915c8e8413a92f7de163d4851  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/review/REVIEW_PROTOCOL.json
 70036136b0eb923baa58e85950a9f938a1b9cb349d1fde7b82f14286c32195c3  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/review/captures-primary/47683aaa445c7a72f32a/capture.manifest.json
 a536eec97f8557a633fd2965927116207443e52e5a5ae1fd861d19dbce7667c6  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/review/captures-primary/47683aaa445c7a72f32a/packet.json
@@ -8332,6 +8400,8 @@ f8057a2edb9e69b782fc2ff44d3dc7257ef46cd8c88ce1f2bb760fec9eda88ab  evaluation/qua
 b9e05e71e4a5dd5b3ad6dc4b5d00e4854e154c4ff6427a371b2a0df54e51fa2c  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/review/process-captures/primary-founder-f-reviewer-fable-09/capture.json
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/review/process-captures/primary-founder-f-reviewer-fable-09/stderr.bin
 4af3f4c64024cf5ec6ba0234e5f1140357227e793a8f2d4badaac704e00f5e3c  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/review/process-captures/primary-founder-f-reviewer-fable-09/stdout.bin
+d67a1d2ceaa16981b25b49900aed944ce7f2265a7f55b604ca691907f0641da0  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/review/prompt-primary 2.txt
+c9882c7ba8464f18612e42f85b6d9f30cd23ebdbd8c86df1004c2d0176b7e4ed  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/review/prompt-primary-attempt-1-retired 2.txt
 c9882c7ba8464f18612e42f85b6d9f30cd23ebdbd8c86df1004c2d0176b7e4ed  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/review/prompt-primary-attempt-1-retired.txt
 d67a1d2ceaa16981b25b49900aed944ce7f2265a7f55b604ca691907f0641da0  evaluation/qualification/founder-orientation-semantic-v3.1.1-lane/pilot-f/review/prompt-primary.txt
 8116cf29f13fd10b4d31fe73cb8fb8825972d80c246f6fb5d600f3b853bd06d6  evaluation/qualification/selected-result-verifier-v1.0.0-precase/FREEZE_MANIFEST.json
@@ -10727,7 +10797,7 @@ e2e12b90bd22e28f251791c5dbc4dbfa75c59187ca9b69dcc55f6347c5f92071  scripts/captur
 9c72986da6740629bdbbf775b1ba3df6edaeb7257cd22d5431ff840ade25ee6f  scripts/freeze_first_direct_pilot_scientific_labels.py
 3177d29506ff455f495c3cf198208f9cd6b08543282cb4ed31f8d06073612a40  scripts/freeze_v120_lean_pilot_labels.py
 be291cb8f3caafd4fee3aa5a411178a0328d11a8ac772da945e775f5a36edbd8  scripts/heldout_run.py
-8200c69c124cc627c617ef1cd63e6ebc71195ce628181ee9eb1c637cd7840731  scripts/lean_pipeline.py
+8d126950373024a36aef8598475d3d0922bae92dc4605422090c76b050ed8aa2  scripts/lean_pipeline.py
 da95573971a98ece747a4f318a2091d2a22110f607a7e4fe24ff0c7cea89183d  scripts/migrate_observed_schema_candidate.py
 716f374b895e245449d7f6446cbaa4549157edd1a546fa77eeec4c940b33a571  scripts/migrate_v0_10_to_v0_11.py
 dcf422bd2895531283fe0fd51bd938e20f5e9fc43731ed7577cef6b2a3ef6860  scripts/migrate_v0_11_to_v0_12.py
@@ -10822,7 +10892,7 @@ da8bebf5a5792ef3bb05a3472a86815f372d855112510c2162db316f001482a1  src/sc_referee
 d5e290f3422018e4c7507092e21fa399c4f26bf81b902bf13d13c646ef231e4a  src/sc_referee/capability_matrix.py
 7e6490e210ea11471aa8ae730441f1e0de5b693ca470ebd4437009d0a869f412  src/sc_referee/capability_maturity_ledger.py
 ed141f9ec4098f4c0c1700e5a5bc26b47a05519a5c9b2a05004f95ed98e5fe7c  src/sc_referee/cli.py
-30eaa26d8e59e57bbd6d730b076a5bdbc7bbea53351707d443ce83d7253d9069  src/sc_referee/controller.py
+2738ab1b033b9fa80d9fc8aa4e9f514d44dd8f81227ab9c9273a60a74029ff15  src/sc_referee/controller.py
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  src/sc_referee/core/__init__.py
 54f18e058d1f498135c090b63b4ee6658818eb012179c0ece50e63ed81aac69d  src/sc_referee/core/control.py
 4ecb55b784c509a89eb64e473c77e95381c655798c426d5c8a0b11780c34f4e2  src/sc_referee/core/deadline.py
@@ -10833,12 +10903,18 @@ b03b408c455794197d2b1302570bdbd67c5802c1be5aa9a7c492f1eff0b86700  src/sc_referee
 5ac066e212f93caf46fe3b08fd2e3a6fee44540373e430b8e84ca3d2badc862d  src/sc_referee/delimited_io.py
 f3242585b60bfe994c37f8e1325a06b7785d4b7e84ee925f94c7f0bafe2c99c4  src/sc_referee/dependence_adapters.py
 bac595eba00bf3958ef4a5f8043e04c5c554475cb76a98bfb62d9c1465672d7d  src/sc_referee/dependence_core.py
+818bee2ee623afae37fb4595c28c96592bbe49a9ce818204d611452beb740f32  src/sc_referee/dependence_recognition/__init__ 2.py
 818bee2ee623afae37fb4595c28c96592bbe49a9ce818204d611452beb740f32  src/sc_referee/dependence_recognition/__init__.py
-2d50b8eec5e6b00fb37ca234ba08efc0c405645d38ed3ac16b30e386beee9f8f  src/sc_referee/dependence_recognition/adapter.py
-c3615bec40347432f1ee88ad52e086c84ed206f9962d440bb83b1933138fb651  src/sc_referee/dependence_recognition/authority_lock.py
+d30936c1c4d8456f422b280a1b22e45605189dba44c3b25e667b565621620bcb  src/sc_referee/dependence_recognition/adapter 2.py
+6564eb97bee53576ef19a9dd38b54afd1a2a7855b40e586298a14223068d5c58  src/sc_referee/dependence_recognition/adapter.py
+bb68eea5e6f1c99660692b57d8368bedc23484e06384d8570df31f46366a1808  src/sc_referee/dependence_recognition/authority_lock.py
+eacafce34cb9eb2ec4d578a36f01bf19fc24fdef3c2fb57c9f9afeec69355a50  src/sc_referee/dependence_recognition/certificate 2.py
 eacafce34cb9eb2ec4d578a36f01bf19fc24fdef3c2fb57c9f9afeec69355a50  src/sc_referee/dependence_recognition/certificate.py
+23c4accf0b55b0bec93b58a1de3bd498dec19e857a47b1a68547f9d8541091d3  src/sc_referee/dependence_recognition/csv_domain 2.py
 23c4accf0b55b0bec93b58a1de3bd498dec19e857a47b1a68547f9d8541091d3  src/sc_referee/dependence_recognition/csv_domain.py
+afa035806b39c3cc2d8f70bbb4850eb75f295909a7d0127bb6a43deef43adc00  src/sc_referee/dependence_recognition/ir 2.py
 afa035806b39c3cc2d8f70bbb4850eb75f295909a7d0127bb6a43deef43adc00  src/sc_referee/dependence_recognition/ir.py
+55340b634c8ab10cd8bd34431361175cfe52a6966937b012fc0561df28df0355  src/sc_referee/dependence_recognition/python_analyzer 2.py
 55340b634c8ab10cd8bd34431361175cfe52a6966937b012fc0561df28df0355  src/sc_referee/dependence_recognition/python_analyzer.py
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  src/sc_referee/detectors/__init__.py
 979f73d9808624d80c8692f12cb9d40950165203c419350b7dc269a7dc8b43db  src/sc_referee/detectors/admission.py
@@ -12799,7 +12875,7 @@ a2a85427af6a27c5a30c215b06f65bfcdde571b9a9edd13e676d3070aec81653  src/sc_referee
 0653fd717700b81f0ebfeee46a7575dbc350216e46f9a137faaa638eaf6db795  src/sc_referee/resources/schemas-v0.9.0/tests/test_release_invariants.py
 97ff3242f8f95ad1974e519c1c1869b55445872611799e9af4e9140fc1fc9264  src/sc_referee/resources/schemas-v0.9.0/tests/test_root_cause_invariants.py
 d8c927138268c503845211bf0acdf3ed52ca1c25039a95187c4a6af03cd206a0  src/sc_referee/resources/schemas-v0.9.0/tools/validate_records.py
-bcbbf32d9ced42fb579d50ad6ec75468ab11eed6502c69b4aef02c6dfdfecf04  src/sc_referee/resources/scientific-check-manifests-v1/registry.json
+77a788889de0d34dda733228dcc330d0bd3a992fc8790ee594a1357e148c3fc4  src/sc_referee/resources/scientific-check-manifests-v1/registry.json
 1615fc4a07206af6607ddb365d0370ee27f6e0942c38d4506fb1adf3b487f2a8  src/sc_referee/resources/third-party/tree-sitter-r/LICENSE.txt
 54ba6448ab6187c7626d5aea631d51b121566cdaccf685cbdfd4fd3e4ccf0d88  src/sc_referee/resources/third-party/tree-sitter-r/provenance.json
 42479f0fdc8adf10bcbf8392126caf67c0f3868b8726bbc285b50db67a4aff52  src/sc_referee/review_case.py
@@ -12812,11 +12888,16 @@ a3ab6bf61d556f0ba9532af67c8da8cda00dff4f6d03894d5ae90f6f5907e410  src/sc_referee
 91271b8c2a007c460a35134ff1c207424a99cf269c78d638557ffad330192c92  src/sc_referee/scientific_checks/core.py
 eb3d829f02ca5f96c32c3bc3fd212c9186f3513e3d67a588f108af58a0ecebe5  src/sc_referee/scientific_checks/dependence_recognition_adapter.py
 24554fdbb6f5623eec6038b8f85d091a9f3ba711ca3a1b5b788f0058caa408de  src/sc_referee/scientific_checks/founder_orientation_adapter.py
+761175c8a304d6d9eb2778cef60e8c3acd7a62309bd9a0557bea63732dd8d183  src/sc_referee/scientific_checks/founder_orientation_certificate 2.py
 761175c8a304d6d9eb2778cef60e8c3acd7a62309bd9a0557bea63732dd8d183  src/sc_referee/scientific_checks/founder_orientation_certificate.py
+e7dba2757a4f6b32557f3f0aa10dfe36efd533a56c761f99a5c1986275e8a91d  src/sc_referee/scientific_checks/founder_orientation_csv_domain 2.py
 e7dba2757a4f6b32557f3f0aa10dfe36efd533a56c761f99a5c1986275e8a91d  src/sc_referee/scientific_checks/founder_orientation_csv_domain.py
 066d258deae0f789bcfb6e74520a121afe31dde9073abf64c170d4ffadbc15ae  src/sc_referee/scientific_checks/founder_orientation_dataflow.py
+ce24cb3e9095cc4b0072a51e9bb75a70e665c04b1e49371fb3157b6c278be128  src/sc_referee/scientific_checks/founder_orientation_semantic 2.py
 ce24cb3e9095cc4b0072a51e9bb75a70e665c04b1e49371fb3157b6c278be128  src/sc_referee/scientific_checks/founder_orientation_semantic.py
+937bd76f44411cc035e1d0c48ca971215ccb3bcbb765ad44e801f0f126fa03f5  src/sc_referee/scientific_checks/founder_orientation_semantic_adapter 2.py
 937bd76f44411cc035e1d0c48ca971215ccb3bcbb765ad44e801f0f126fa03f5  src/sc_referee/scientific_checks/founder_orientation_semantic_adapter.py
+aabb720a5195d719acd8579ce0c09f1d12ea4293becbbc7e60e60f2ff35969ab  src/sc_referee/scientific_checks/founder_orientation_semantic_ir 2.py
 aabb720a5195d719acd8579ce0c09f1d12ea4293becbbc7e60e60f2ff35969ab  src/sc_referee/scientific_checks/founder_orientation_semantic_ir.py
 e3c53ddf23992534c85b46df46ea5afc6f0b1cc777db765802c92532e334c77e  src/sc_referee/scientific_checks/integration.py
 ab74cda9929ac4ccd9d734c6b36c56c6c1d925bce8b510d87260cbc6a42a8b74  src/sc_referee/scientific_checks/profiles.py
@@ -12876,9 +12957,14 @@ ba85b53e566f51c0d632608a40ae82c4c737156844aad3842c9b7d386eae69d6  tests/test_com
 36d9888a77a62e6799037bcaaf5a276b8836326822f469592ca88ebda69cc12a  tests/test_dependence_authority_lock.py
 4ffbe65d493204025cf6ec7bcdcd72d3cbe2b20d61e9c87400c111e92d6c0af8  tests/test_dependence_core.py
 1e2160ebd9fa075fd13bb54c6631ddbb3ff23997be21afde8c63bb3d8121396c  tests/test_dependence_detector.py
+86fd664ff47647f17d8d6447e864e125880b7bfb85b33cffdbded1084ffc0fac  tests/test_dependence_pilot_envelope.py
+2d13ed349c3d00217aef7d11de182f300d1fb8cc808a71ee295f38f815f6d307  tests/test_dependence_recognition_adapter 2.py
 f1bbc65d16b5d295fbd8d5a30c129c7e31e691f6ace3a38ba25dfdcbb2afa86f  tests/test_dependence_recognition_adapter.py
+c16b63076f57d6e5b833eb75277f7f0e7e1cd4123fb789280f4f8ea2aaa8d7a9  tests/test_dependence_recognition_analyzer 2.py
 c16b63076f57d6e5b833eb75277f7f0e7e1cd4123fb789280f4f8ea2aaa8d7a9  tests/test_dependence_recognition_analyzer.py
+a0e7a50736ab36b3e675ed0da9211e9ca6cb0b2faef59ea3d7cfb1202c700f51  tests/test_dependence_recognition_certificate 2.py
 a0e7a50736ab36b3e675ed0da9211e9ca6cb0b2faef59ea3d7cfb1202c700f51  tests/test_dependence_recognition_certificate.py
+e4d13077baeeb19274d491540fff498198fcae3968b9b4346a65894e8677fb90  tests/test_dependence_recognition_csv_domain 2.py
 e4d13077baeeb19274d491540fff498198fcae3968b9b4346a65894e8677fb90  tests/test_dependence_recognition_csv_domain.py
 eb7898ed97c34556edd3f2f29318472fdf951b6adb4e414f6e96f53ed325dcd0  tests/test_dependence_recognition_scientific_adapter.py
 7e0ed078e58b32d8f41834426cd5316232a8a03edf605c66423e1fae4a8fa2cf  tests/test_design_integrity.py
@@ -12940,11 +13026,17 @@ cda771b27441eb9a6206ec556d082c9c255887cc484e624af88d2e14f9b83185  tests/test_fir
 a9dc4dff977fe30d5c31ec71e4dff37fc97543e1a7ec5a563aa32aa0cc4f6837  tests/test_first_direct_three_case_stage1_semantic_recovery_recorder.py
 b5fd980804504ac89d6e05809e340a211cacded926acbc0d33e3e02c5d9140c9  tests/test_first_direct_three_case_stage1_semantic_recovery_transports.py
 75fde35f7b3ec98c90bc1d8a3a8fc3448ea1d8425497967248bc279159b1f5a5  tests/test_fixture_proof_schema_release.py
+47f855adfacf1d2ab270266a7673f391c9d238edd4de0d0ac169179222e964cf  tests/test_founder_orientation_csv_domain 2.py
 47f855adfacf1d2ab270266a7673f391c9d238edd4de0d0ac169179222e964cf  tests/test_founder_orientation_csv_domain.py
+3cd3c1e35fec461fe7e4f632e209fd6ff3bc0eb82fe71da25df51f998913d3b0  tests/test_founder_orientation_semantic_certificate 2.py
 3cd3c1e35fec461fe7e4f632e209fd6ff3bc0eb82fe71da25df51f998913d3b0  tests/test_founder_orientation_semantic_certificate.py
+c02d3e23a42ae9b1c405745bd8119af4eb3248ee0ae95e6b9cd42ae1d01aa89c  tests/test_founder_orientation_semantic_pilots 2.py
 c02d3e23a42ae9b1c405745bd8119af4eb3248ee0ae95e6b9cd42ae1d01aa89c  tests/test_founder_orientation_semantic_pilots.py
+8f7b49237b29358bfee830c423b35cbeed8ac8102fbdc0afffd4aa388de8f520  tests/test_founder_orientation_semantic_soundness 2.py
 8f7b49237b29358bfee830c423b35cbeed8ac8102fbdc0afffd4aa388de8f520  tests/test_founder_orientation_semantic_soundness.py
+5d56ec2a8bc545225f1414ccb7022152a7cc310a795cd65b9709803d69b3c4c5  tests/test_founder_orientation_semantic_v301_hardening 2.py
 5d56ec2a8bc545225f1414ccb7022152a7cc310a795cd65b9709803d69b3c4c5  tests/test_founder_orientation_semantic_v301_hardening.py
+ef0c6b33438e9e4973d14519a236c8f5f4c5ca7a77e787d241ef231837c6d726  tests/test_founder_orientation_semantic_v311_hardening 2.py
 ef0c6b33438e9e4973d14519a236c8f5f4c5ca7a77e787d241ef231837c6d726  tests/test_founder_orientation_semantic_v311_hardening.py
 61425da33ea41fd7abed0637743a4bed0941389a82f7375d8a4ff5cc111a4fbf  tests/test_founder_orientation_soundness.py
 6206dfd4f45f5379b63ecac2baa4cb2e334440bd8a7b83335a6c43b227b44250  tests/test_founder_pilot_burned_case_regression.py

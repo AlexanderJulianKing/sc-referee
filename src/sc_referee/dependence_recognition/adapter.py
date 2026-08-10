@@ -8,6 +8,7 @@ Every exception at those boundaries becomes a named non-accusatory abstention.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -59,6 +60,12 @@ _NON_INFERENCES: tuple[str, ...] = (
     "No numerical impact, bias direction, biological truth, or global invalidity is inferred.",
     "The shadow result is not a Finding and grants no production admission authority.",
 )
+_SUPPORTED_PYTHON_PARSER_IDENTITIES = frozenset(
+    {
+        ("python-ast", "3.11"),
+        ("parser:python-ast-tokenize", "0.15.1"),
+    }
+)
 
 
 def dependence_recognition_dependency_closure() -> dict[str, str]:
@@ -94,7 +101,12 @@ class DependenceRecognitionShadowAdapter:
         """Inspect frozen material without executing author code; never raise."""
 
         try:
-            analysis = analyze_dependence_python(context)
+            parser_id, parser_version = _closed_python_parser_identity(context)
+            analysis = analyze_dependence_python(
+                context,
+                parser_id=parser_id,
+                parser_version=parser_version,
+            )
         except BaseException:
             return self._exception_abstention("analyzer-exception")
 
@@ -360,6 +372,36 @@ class DependenceRecognitionShadowAdapter:
 
 def _ref_dict(value: RecordRef) -> dict[str, str]:
     return {"record_type": value.record_type, "record_id": value.record_id}
+
+
+def _closed_python_parser_identity(context: FrozenInspectionContext) -> tuple[str, str]:
+    """Select one exact allowlisted parser identity or force analyzer refusal."""
+
+    identities: set[tuple[str, str]] = set()
+    for document in context.documents:
+        if document.media_type != "text/x-python":
+            continue
+        try:
+            payload = json.loads(document.parser_result_payload or b"")
+        except (json.JSONDecodeError, UnicodeDecodeError, TypeError, ValueError):
+            return ("unsupported-python-parser", "unsupported")
+        if not isinstance(payload, dict):
+            return ("unsupported-python-parser", "unsupported")
+        parser_id = payload.get("parser_id")
+        parser_version = payload.get("parser_version")
+        if not isinstance(parser_id, str) or not isinstance(parser_version, str):
+            return ("unsupported-python-parser", "unsupported")
+        identities.add((parser_id, parser_version))
+    if not identities:
+        return ("python-ast", "3.11")
+    if len(identities) != 1:
+        return ("unsupported-python-parser", "unsupported")
+    identity = next(iter(identities))
+    return (
+        identity
+        if identity in _SUPPORTED_PYTHON_PARSER_IDENTITIES
+        else ("unsupported-python-parser", "unsupported")
+    )
 
 
 def _verified_projection(verified: VerifiedDependenceCertificate) -> dict[str, Any]:

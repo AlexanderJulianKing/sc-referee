@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 
 from sc_referee_evaluation.lean_pipeline import (
+    DEFAULT_ALLOWED_IMPORT_ROOTS,
+    DEPENDENCE_RECOGNITION_CHECK_ID,
     EnvelopeConfig,
     ModelParticipant,
     run_pipeline,
@@ -232,9 +234,7 @@ def _founder_semantic_adapter_version() -> str:
 
     registry_path = Path(__file__).resolve().parent.parent / _FOUNDER_REGISTRY_RELATIVE
     registry = json.loads(registry_path.read_text(encoding="utf-8"))
-    module = next(
-        item for item in registry["modules"] if item["check_id"] == FOUNDER_CHECK_ID
-    )
+    module = next(item for item in registry["modules"] if item["check_id"] == FOUNDER_CHECK_ID)
     adapter = next(
         item
         for item in module["adapters"]
@@ -584,8 +584,254 @@ def default_founder_orientation_f_config() -> EnvelopeConfig:
     )
 
 
+# ---------------------------------------------------------------------------
+# Envelope 7: authorized independent-unit entry into a row-independent
+# procedure. This is the first blind dependence-recognition pilot envelope.
+# The authored workflow is deliberately smaller than the registered static
+# recognizer's v1 bounds, and authored code runs only in the separately managed
+# SciPy 1.14.0 qualification runtime named below. The project environment is
+# never extended with the pilot dependency.
+
+DEPENDENCE_CHECK_VERSION = "1.1.0"
+DEPENDENCE_PILOT_INSTANCE = "a"
+DEPENDENCE_LANE_RELATIVE = Path(
+    "evaluation/qualification/"
+    f"authorized-independent-unit-entry-into-row-independent-procedure-v"
+    f"{DEPENDENCE_CHECK_VERSION}-lane/pilot-{DEPENDENCE_PILOT_INSTANCE}"
+)
+DEPENDENCE_SANDBOX_PYTHON = Path(
+    "/Users/alexanderking/Desktop/random_stuff/sc-referee-pilot-runtime/scipy114-venv/bin/python"
+)
+
+_DEPENDENCE_COMMON_TASK = (
+    "Choose a neutral scientific subject area and instantiate the assigned small table. "
+    "Treat `k1`, `k2`, and `tag` as opaque codes and `a` and `b` as two finite numeric "
+    "measurements. Apply the procedure named in the case instructions to the complete staged "
+    "row sequence and write its single selected result."
+)
+
+_DEPENDENCE_AUTHORIZED_TASK = (
+    "Apply the named procedure to the complete staged row sequence. Treat each distinct "
+    "ordered `k1`,`k2` pair as one source item; rows carrying the same ordered pair originate "
+    "from the same source item."
+)
+_DEPENDENCE_AMBIGUOUS_TASK = (
+    "Apply the named procedure to the complete staged row sequence. Treat every code as "
+    "opaque; this task does not establish which code or ordered code tuple denotes one source "
+    "item."
+)
+
+_DEPENDENCE_BASE_VECTOR_GUIDANCE = (
+    "Use `a` values in row order `1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, "
+    "10.0, 11.0, 12.0` and corresponding `b` values `2.0, 4.0, 3.0, 5.0, 7.0, "
+    "6.0, 9.0, 8.0, 11.0, 10.0, 13.0, 12.0`."
+)
+_DEPENDENCE_TTEST_UNIQUE_RESULT = (
+    "TtestResult(statistic=np.float64(-0.6793662204867575), "
+    "pvalue=np.float64(0.5039915691282064), df=np.float64(22.0))"
+)
+_DEPENDENCE_TTEST_DUPLICATED_RESULT = (
+    "TtestResult(statistic=np.float64(-0.9823619317924353), "
+    "pvalue=np.float64(0.33106037814548595), df=np.float64(46.0))"
+)
+_DEPENDENCE_MANN_WHITNEY_RESULT = (
+    "MannwhitneyuResult(statistic=np.float64(60.5), pvalue=np.float64(0.5243792697676437))"
+)
+_DEPENDENCE_PAIRED_RESULT = (
+    "TtestResult(statistic=np.float64(-3.63318042491699), "
+    "pvalue=np.float64(0.00393470596182021), df=np.int64(11))"
+)
+
+_DEPENDENCE_ROLE_CONSTRAINTS = {
+    "error_bearing": [
+        "Use exactly 24 data rows formed from twelve ordered pairs `u01,v01` through "
+        "`u12,v12`; place each pair in two consecutive rows, with the same `tag`, `a`, and "
+        "`b` values in both copies.",
+        _DEPENDENCE_BASE_VECTOR_GUIDANCE
+        + " Duplicate each corresponding numeric row consecutively when constructing the "
+        "24-row table.",
+        "Use `tag` values `t01` through `t12`, repeating each tag with its duplicated pair.",
+        "Call `scipy.stats.ttest_ind`.",
+        "The exact SciPy 1.14.0 result text for these duplicated vectors is `"
+        + _DEPENDENCE_TTEST_DUPLICATED_RESULT
+        + "`; the report must be `[selected-result] ` followed by exactly that text.",
+    ],
+    "corrected_twin": [
+        "Use exactly the same twelve source items, ordered pairs `u01,v01` through `u12,v12`, "
+        "numeric values, and tags as your other assigned case, but stage each pair exactly "
+        "once for a total of 12 data rows.",
+        _DEPENDENCE_BASE_VECTOR_GUIDANCE,
+        "Use `tag` values `t01` through `t12`, one per row.",
+        "Call `scipy.stats.ttest_ind`.",
+        "The exact SciPy 1.14.0 result text for these vectors is `"
+        + _DEPENDENCE_TTEST_UNIQUE_RESULT
+        + "`; the report must be `[selected-result] ` followed by exactly that text.",
+    ],
+    "valid_alternative": [
+        "Use exactly 12 data rows with unique ordered pairs `u01,v01` through `u12,v12`.",
+        _DEPENDENCE_BASE_VECTOR_GUIDANCE,
+        "Use unique `tag` values `t01` through `t12`.",
+        "Call `scipy.stats.mannwhitneyu`.",
+        "The exact SciPy 1.14.0 result text for these vectors is `"
+        + _DEPENDENCE_MANN_WHITNEY_RESULT
+        + "`; the report must be `[selected-result] ` followed by exactly that text.",
+    ],
+    "hard_negative": [
+        "Use exactly 12 data rows with unique ordered pairs `u01,v01` through `u12,v12`.",
+        _DEPENDENCE_BASE_VECTOR_GUIDANCE,
+        "Use the identical `tag` value `shared` in every row; only `tag` repeats.",
+        "Call `scipy.stats.ttest_ind`.",
+        "The exact SciPy 1.14.0 result text for these vectors is `"
+        + _DEPENDENCE_TTEST_UNIQUE_RESULT
+        + "`; the report must be `[selected-result] ` followed by exactly that text.",
+    ],
+    "ambiguous": [
+        "Use exactly 12 data rows. Make each ordered `k1`,`k2` pair unique, repeat every `k1` "
+        "value twice, repeat every `k2` value three times in a crossing pattern, and repeat "
+        "`tag` values without identifying any of those codes as a source-item key.",
+        _DEPENDENCE_BASE_VECTOR_GUIDANCE,
+        "Call `scipy.stats.ttest_ind`.",
+        "The exact SciPy 1.14.0 result text for these vectors is `"
+        + _DEPENDENCE_TTEST_UNIQUE_RESULT
+        + "`; the report must be `[selected-result] ` followed by exactly that text.",
+    ],
+    "unsupported": [
+        "Use exactly 12 data rows with unique ordered pairs `u01,v01` through `u12,v12`.",
+        _DEPENDENCE_BASE_VECTOR_GUIDANCE,
+        "Use unique `tag` values `t01` through `t12`.",
+        "Call `scipy.stats.ttest_rel`.",
+        "The exact SciPy 1.14.0 result text for these vectors is `"
+        + _DEPENDENCE_PAIRED_RESULT
+        + "`; the report must be `[selected-result] ` followed by exactly that text.",
+    ],
+}
+
+_DEPENDENCE_TASK_BY_ROLE = {
+    role: (_DEPENDENCE_AMBIGUOUS_TASK if role == "ambiguous" else _DEPENDENCE_AUTHORIZED_TASK)
+    for role in _DEPENDENCE_ROLE_CONSTRAINTS
+}
+_DEPENDENCE_EXPECTED_VERDICT_BY_ROLE = {
+    "error_bearing": "demonstrated_issue",
+    "corrected_twin": "no_demonstrated_issue_within_scope",
+    "valid_alternative": "no_demonstrated_issue_within_scope",
+    "hard_negative": "no_demonstrated_issue_within_scope",
+    "ambiguous": "no_demonstrated_issue_within_scope",
+    "unsupported": "no_demonstrated_issue_within_scope",
+}
+_DEPENDENCE_LABEL_STATUS_BY_ROLE = {
+    "error_bearing": "positive_demonstrated",
+    "corrected_twin": "verified_good_eligible",
+    "valid_alternative": "verified_good_eligible",
+    "hard_negative": "verified_good_eligible",
+    "ambiguous": "ambiguous_control",
+    "unsupported": "unsupported_control",
+}
+
+_DEPENDENCE_CASE_REQUIREMENTS = """Produce exactly the three authored files requested by the response schema. The pipeline supplies `requirements.txt`; do not return or reproduce it.
+
+`inputs/data.csv` must be ASCII CSV with exact header `k1,k2,tag,a,b`. Use the data-row count and key pattern specified by the case. Every field must be nonempty, and `a` and `b` must contain finite decimal literals.
+
+`workflow/analysis.py` must consist only of module-level imports and assignments in the following forms:
+
+- Import `csv`, `Path` from `pathlib`, and one direct `scipy.stats` binding.
+- Bind `rows` using exactly one of:
+  - `rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8").splitlines()))`
+  - `rows = list(csv.DictReader(Path("inputs/data.csv").open(newline="", encoding="utf-8")))`
+- Zero or more row-sequence aliases may use only `alias = rows` or `alias, = rows,`.
+- Build the two procedure vectors as complete ordered projections:
+  - `left = [float(row["a"]) for row in <row-sequence>]`
+  - `right = [float(row["b"]) for row in <row-sequence>]`
+- Bind `result` by calling exactly the procedure named in the case: `scipy.stats.ttest_ind`, `scipy.stats.mannwhitneyu`, or `scipy.stats.ttest_rel`. The call must have exactly `left` and `right` as two positional arguments and no keyword arguments.
+- Write the sole report directly with:
+  - `Path("results/report.md").write_text(f"[selected-result] {result}\n", encoding="utf-8")`
+
+Do not filter, slice, sample, merge, aggregate, deduplicate, mutate, or loop-build the row sequence. Do not use helper functions, branches, exception handling, randomness, clocks, network access, command-line arguments, environment variables, or any other read or write.
+
+`results/report.md` must be ASCII, contain exactly the one `[selected-result]` line written by the script, and equal the SciPy 1.14.0 output byte-for-byte."""
+
+
+def default_dependence_config() -> EnvelopeConfig:
+    """Return the first six-role dependence-recognition blind-pilot envelope."""
+
+    slug = f"dependence-{DEPENDENCE_PILOT_INSTANCE}"
+    first_author = f"actor:{slug}-author-opus-13"
+    second_author = f"actor:{slug}-author-opus-14"
+    return EnvelopeConfig(
+        envelope_id=(
+            "authorized-independent-unit-entry-into-row-independent-procedure-"
+            f"v{DEPENDENCE_CHECK_VERSION}-lean-{DEPENDENCE_PILOT_INSTANCE}"
+        ),
+        pipeline_relative=DEPENDENCE_LANE_RELATIVE,
+        check_id=DEPENDENCE_RECOGNITION_CHECK_ID,
+        canonical_issue_class=(
+            "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure"
+        ),
+        candidate_by_role={
+            role: "one-analyzed-row-per-authorized-independent-unit"
+            for role in _DEPENDENCE_ROLE_CONSTRAINTS
+            if role != "ambiguous"
+        },
+        task_by_role=dict(_DEPENDENCE_TASK_BY_ROLE),
+        role_constraints={
+            role: list(items) for role, items in _DEPENDENCE_ROLE_CONSTRAINTS.items()
+        },
+        common_task=_DEPENDENCE_COMMON_TASK,
+        authors={
+            first_author: ModelParticipant(
+                participant_id=first_author,
+                model_id="claude-opus-5",
+                model_name="Claude Opus 5",
+                model_alias="claude-opus-5",
+            ),
+            second_author: ModelParticipant(
+                participant_id=second_author,
+                model_id="claude-opus-5",
+                model_name="Claude Opus 5",
+                model_alias="claude-opus-5",
+            ),
+        },
+        author_roles={
+            first_author: ["error_bearing", "corrected_twin"],
+            second_author: [
+                "valid_alternative",
+                "hard_negative",
+                "ambiguous",
+                "unsupported",
+            ],
+        },
+        reviewer=ModelParticipant(
+            participant_id=f"actor:{slug}-reviewer-fable-10",
+            model_id="claude-fable-5",
+            model_name="Claude Fable 5",
+            model_alias="fable",
+        ),
+        escalation_reviewer=ModelParticipant(
+            participant_id=f"actor:{slug}-reviewer-opus-07",
+            model_id="claude-opus-5",
+            model_name="Claude Opus 5",
+            model_alias="claude-opus-5",
+        ),
+        review_instructions=_REVIEW_INSTRUCTIONS,
+        cli_binary=CLAUDE_PINNED,
+        cli_binary_version=CLAUDE_PINNED_VERSION,
+        calibration_suite=CALIBRATION_SUITE,
+        author_case_requirements=_DEPENDENCE_CASE_REQUIREMENTS,
+        expected_verdict_by_role=dict(_DEPENDENCE_EXPECTED_VERDICT_BY_ROLE),
+        label_status_by_role=dict(_DEPENDENCE_LABEL_STATUS_BY_ROLE),
+        mq_tolerant_roles={"ambiguous"},
+        contract_free_roles={"ambiguous"},
+        allowed_import_roots=DEFAULT_ALLOWED_IMPORT_ROOTS | {"scipy"},
+        sandbox_python=DEPENDENCE_SANDBOX_PYTHON,
+        required_sandbox_distributions={"scipy": "1.14.0"},
+        controller_material_files={"requirements.txt": b"scipy==1.14.0\n"},
+        material_input_paths=("inputs/data.csv", "requirements.txt"),
+        input_csv_row_bounds=(1, 64),
+    )
+
+
 ENVELOPE_CONFIGS = {
     "complete-domain": default_complete_domain_config,
+    "dependence": default_dependence_config,
     "founder-orientation": default_founder_orientation_config,
     "founder-orientation-b": default_founder_orientation_b_config,
     "founder-orientation-c": default_founder_orientation_c_config,
