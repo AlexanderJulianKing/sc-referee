@@ -80,15 +80,20 @@ def _proof(source: RecordRef, relation: str, target: RecordRef, profile: str) ->
     )
 
 
-def _context(*, scoped: bool = True) -> FrozenInspectionContext:
+def _context(
+    *,
+    scoped: bool = True,
+    parser_id: str = "parser:python-ast-tokenize",
+    parser_version: str = "0.15.1",
+) -> FrozenInspectionContext:
     surface_ref = RecordRef("publication_surface", "surface:dependence-stage5")
     artifact_ref = RecordRef("artifact", "artifact:selected-report")
     source_ref = RecordRef("file_record", "file:dependence-analysis")
     operation_ref = RecordRef("operation", "operation:selected-writer")
     parser_ref = RecordRef("parser_result", "parser:dependence-analysis")
     parser = {
-        "parser_id": "parser:python-ast-tokenize",
-        "parser_version": "0.15.1",
+        "parser_id": parser_id,
+        "parser_version": parser_version,
         "state": "parsed",
     }
     parser_payload = canonical_json(parser).encode()
@@ -318,6 +323,37 @@ def test_all_shadow_routes_normalize_once_under_question_only_ceiling(
     else:
         assert observation.evidence_spans == ()
         assert observation.scope_join_path == ()
+
+
+def test_material_question_legacy_python_ast_parser_identity_is_unsupported() -> None:
+    module = _module()
+    adapter = module.adapters[0]
+    assert isinstance(adapter, DependenceRecognitionScientificAdapter)
+    adapter = replace(
+        adapter,
+        shadow_adapter=_CountingShadow(_shadow_payload("material_question")),
+    )
+
+    observation = adapter.inspect(_context(parser_id="python-ast", parser_version="3.11"))
+
+    assert observation.applicability == "unsupported"
+    assert observation.abstention_reason == "dependence-source-or-parser-identity-mismatch"
+
+
+def test_paired_procedure_coverage_gap_retains_its_exact_named_abstention() -> None:
+    module = _module()
+    adapter = module.adapters[0]
+    assert isinstance(adapter, DependenceRecognitionScientificAdapter)
+    shadow = _shadow_payload("unsupported")
+    shadow["payload"]["coverage_classes"] = ["paired-procedure-operand-unverified"]
+
+    observation = replace(
+        adapter,
+        shadow_adapter=_CountingShadow(shadow),
+    ).inspect(_context())
+
+    assert observation.applicability == "unsupported"
+    assert observation.abstention_reason == "paired-procedure-operand-unverified"
 
 
 def test_applicable_shadow_without_exact_writer_scope_is_unsupported() -> None:

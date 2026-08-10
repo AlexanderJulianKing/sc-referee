@@ -251,3 +251,27 @@ controller material files such as `requirements.txt` are visible to the detector
 blind reviewer.  Pilot agreement metrics therefore compare decisions made over different evidence
 sets; they must not be described as evidence-blind agreement or as qualification for production
 Finding authority.
+
+## Stage 5 pre-pilot conformance amendment — 2026-08-10
+
+The shadow adapter's closed Python parser-identity allowlist has two entries:
+`python-ast` version `3.11`, used by bounded hand-built semantic tests, and
+`parser:python-ast-tokenize` version `0.15.1`, emitted by the real capture parser.  Accepting the
+second identity is a conformance fix that lets the registered dependence check analyze actual
+capture-parser documents; it does not broaden the Python grammar or create new Finding authority.
+The registered scientific-check wrapper retains its stricter capture-parser-only boundary and now
+applies that same boundary to material-question projections, so the legacy test identity cannot
+produce even an ambiguous registered observation.
+
+The pilot-only selected-writer scope bridge is authorized only when the digest-sealed human lock
+declares `declared_execution_root` as exactly `case_root`.  It then still requires one authorized
+analysis record, one authorized result record naming the selected report, one whole-file Python
+document, one direct module-level literal `Path(<selected report>).write_text` or `write_bytes`
+statement, one exact supported parser write operation, and unambiguous selected-artifact bindings.
+The manufactured scope-join proofs carry the marker
+`human_approved_declared_execution_root:case_root`; the controller also discloses that writer scope
+was established from the human-approved declared execution root, not from execution evidence.
+The declaration supplies only a path-resolution assumption.  It does not establish that author
+code ran, that the write occurred, that produced bytes equal the selected report, or that the
+scientific result is correct.  A missing or different declaration creates no writer-scope rewrite
+and leaves the dependence check to abstain when no independently evidenced sink path exists.

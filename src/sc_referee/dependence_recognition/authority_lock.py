@@ -38,6 +38,8 @@ from sc_referee.scientific_checks.scope_joins import (
 )
 
 LOCK_KIND = "dependence_method_authorization_v1"
+DECLARED_EXECUTION_ROOT = "case_root"
+WRITER_SCOPE_EXECUTION_ROOT_MARKER = "human_approved_declared_execution_root:case_root"
 AUTHORITY_LIMITATIONS = (
     "Authorization is limited to this case, input digest, procedure and ordered key.",
     "It establishes no execution, numerical impact or general scientific correctness.",
@@ -48,6 +50,7 @@ _ROOT_KEYS = frozenset(
         "case_id",
         "snapshot_digest",
         "intake_recorded_at",
+        "declared_execution_root",
         "records",
         "approval",
         "authority_limitations",
@@ -154,6 +157,7 @@ class VerifiedDependenceAuthorizationLock:
 
     case_id: str
     snapshot_digest: str
+    declared_execution_root: str | None
     records: tuple[dict[str, Any], ...]
     record_refs: tuple[RecordRef, ...]
     approver_actor_id: str
@@ -165,7 +169,7 @@ class VerifiedDependenceAuthorizationLock:
 def approval_projection(lock: Mapping[str, Any]) -> dict[str, Any]:
     """Return the exact projection a human approves before review."""
 
-    return {
+    projection = {
         "lock_kind": lock.get("lock_kind"),
         "case_id": lock.get("case_id"),
         "snapshot_digest": lock.get("snapshot_digest"),
@@ -173,6 +177,9 @@ def approval_projection(lock: Mapping[str, Any]) -> dict[str, Any]:
         "records": lock.get("records"),
         "authority_limitations": lock.get("authority_limitations"),
     }
+    if "declared_execution_root" in lock:
+        projection["declared_execution_root"] = lock.get("declared_execution_root")
+    return projection
 
 
 def lock_projection(lock: Mapping[str, Any]) -> dict[str, Any]:
@@ -218,7 +225,10 @@ def verify_dependence_authorization_lock(
         raise DependenceAuthorizationLockError(
             "dependence authority lock is not strict duplicate-free JSON"
         ) from error
-    if not isinstance(value, dict) or set(value) != _ROOT_KEYS:
+    if not isinstance(value, dict) or frozenset(value) not in {
+        _ROOT_KEYS,
+        _ROOT_KEYS - {"declared_execution_root"},
+    }:
         raise DependenceAuthorizationLockError("dependence authority lock root is not closed")
     if value.get("lock_kind") != LOCK_KIND:
         raise DependenceAuthorizationLockError("dependence authority lock kind is invalid")
@@ -242,6 +252,11 @@ def verify_dependence_authorization_lock(
     ):
         raise DependenceAuthorizationLockError(
             "dependence authority lock names another intake time"
+        )
+    declared_execution_root = value.get("declared_execution_root")
+    if "declared_execution_root" in value and declared_execution_root != DECLARED_EXECUTION_ROOT:
+        raise DependenceAuthorizationLockError(
+            "dependence authority declared execution root is invalid"
         )
 
     markers = _normalized_markers((*_DEFAULT_ROLE_MARKERS, *forbidden_role_markers))
@@ -294,6 +309,9 @@ def verify_dependence_authorization_lock(
     return VerifiedDependenceAuthorizationLock(
         case_id=case_id,
         snapshot_digest=snapshot_digest,
+        declared_execution_root=(
+            str(declared_execution_root) if declared_execution_root is not None else None
+        ),
         records=tuple(dict(item) for item in records),
         record_refs=tuple(RecordRef(record_type, record_id) for record_type, record_id in refs),
         approver_actor_id=str(approval["actor_id"]),
@@ -372,6 +390,15 @@ def dependence_authorization_disclosure(
 ) -> dict[str, Any]:
     """Describe the exact bounded authority injection without an accusation."""
 
+    writer_scope_statement = (
+        "Writer scope was established from the human-approved declared execution root, "
+        "not from execution evidence."
+        if verified.declared_execution_root == DECLARED_EXECUTION_ROOT
+        else (
+            "Writer scope was not established because this legacy lock carried no "
+            "human-approved declared execution root."
+        )
+    )
     return {
         "schema_version": "0.18.0",
         "record_type": "disclosure",
@@ -383,7 +410,8 @@ def dependence_authorization_disclosure(
         "title": "A bounded human dependence-authorization lock was applied",
         "description": (
             "The controller applied one digest-sealed four-record human authorization "
-            "bundle before question-only static scientific-check evaluation."
+            "bundle before question-only static scientific-check evaluation. "
+            + writer_scope_statement
         ),
         "importance": "informational",
         "non_accusatory": True,
@@ -406,6 +434,7 @@ def dependence_authorization_disclosure(
                 "approver_actor_id": verified.approver_actor_id,
                 "record_refs": [item.to_dict() for item in verified.record_refs],
                 "snapshot_digest": verified.snapshot_digest,
+                "declared_execution_root": verified.declared_execution_root,
             }
         },
     }
@@ -413,6 +442,8 @@ def dependence_authorization_disclosure(
 
 def bind_dependence_selected_writer_scope(
     context: FrozenInspectionContext,
+    *,
+    declared_execution_root: str | None,
 ) -> FrozenInspectionContext:
     """Add only the closed pilot writer proof for an exact authorized sink.
 
@@ -426,6 +457,8 @@ def bind_dependence_selected_writer_scope(
     production, and any ambiguity leaves the original graph unchanged.
     """
 
+    if declared_execution_root != DECLARED_EXECUTION_ROOT:
+        return context
     graph = context.scope_join_graph
     if graph is None:
         return context
@@ -549,8 +582,10 @@ def bind_dependence_selected_writer_scope(
         for proof in graph.proofs
     )
     limitation = (
+        WRITER_SCOPE_EXECUTION_ROOT_MARKER,
         "The exact authorized source declares one direct writer for the selected report path; "
-        "this static relation does not establish execution or produced bytes.",
+        "path resolution assumes the human-approved case-root execution root and this static "
+        "relation does not establish execution or produced bytes.",
     )
     proofs = (
         ScopeJoinProof.create(

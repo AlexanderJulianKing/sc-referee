@@ -8,6 +8,7 @@ this file, under the dedicated SciPy 1.14.0 qualification interpreter.
 from __future__ import annotations
 
 import json
+import warnings
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -29,6 +30,7 @@ from sc_referee.controller import replay
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.dependence_recognition.authority_lock import (
     AUTHORITY_LIMITATIONS,
+    DECLARED_EXECUTION_ROOT,
     LOCK_KIND,
     approval_projection,
     lock_projection,
@@ -88,6 +90,22 @@ _CALLABLE_BY_ROLE = {
 _PROCEDURE_ATTRIBUTE_BY_ROLE = {
     role: value.rsplit(".", maxsplit=1)[-1] for role, value in _CALLABLE_BY_ROLE.items()
 }
+
+_DEPENDENCE_SANDBOX_AVAILABLE = DEPENDENCE_SANDBOX_PYTHON.is_file()
+DEPENDENCE_SANDBOX_AVAILABILITY_MARKER = (
+    f"AVAILABLE: dependence sandbox runtime at {DEPENDENCE_SANDBOX_PYTHON}"
+    if _DEPENDENCE_SANDBOX_AVAILABLE
+    else (
+        "PRE-PILOT BLOCKER: dedicated SciPy 1.14.0 dependence sandbox runtime is absent at "
+        f"{DEPENDENCE_SANDBOX_PYTHON}"
+    )
+)
+if not _DEPENDENCE_SANDBOX_AVAILABLE:
+    warnings.warn(
+        DEPENDENCE_SANDBOX_AVAILABILITY_MARKER,
+        pytest.PytestWarning,
+        stacklevel=1,
+    )
 
 
 def _unique_rows(*, shared_tag: bool = False) -> list[tuple[str, str, str, float, float]]:
@@ -181,6 +199,7 @@ def _authority_lock(
         "case_id": case_id,
         "snapshot_digest": snapshot_digest,
         "intake_recorded_at": intake_recorded_at,
+        "declared_execution_root": DECLARED_EXECUTION_ROOT,
         "records": [
             {
                 "record_type": "analysis",
@@ -283,10 +302,27 @@ def test_dependence_envelope_configuration_and_actor_seats() -> None:
     assert "scipy.stats.ttest_rel" in config.author_case_requirements
     for role, result in _RESULTS.items():
         assert result in "\n".join(config.role_constraints[role])
+    ambiguous = "\n".join(config.role_constraints["ambiguous"])
+    for triple in (
+        "u01,v01,g01",
+        "u01,v02,g02",
+        "u02,v03,g01",
+        "u02,v04,g02",
+        "u03,v01,g01",
+        "u03,v03,g02",
+        "u04,v02,g01",
+        "u04,v04,g02",
+        "u05,v01,g01",
+        "u05,v04,g02",
+        "u06,v02,g01",
+        "u06,v03,g02",
+    ):
+        assert f"`{triple}`" in ambiguous
+    assert "Do not substitute any author-chosen string" in ambiguous
 
 
 @pytest.mark.skipif(
-    not DEPENDENCE_SANDBOX_PYTHON.is_file(),
+    not _DEPENDENCE_SANDBOX_AVAILABLE,
     reason="dedicated SciPy 1.14.0 qualification interpreter is absent",
 )
 def test_dependence_dedicated_runtime_probe_passes_for_real() -> None:
@@ -302,7 +338,7 @@ def test_dependence_dedicated_runtime_probe_passes_for_real() -> None:
 
 
 @pytest.mark.skipif(
-    not DEPENDENCE_SANDBOX_PYTHON.is_file(),
+    not _DEPENDENCE_SANDBOX_AVAILABLE,
     reason="dedicated SciPy 1.14.0 qualification interpreter is absent",
 )
 def test_dependence_six_role_fixture_runs_real_pipeline_without_findings(
@@ -530,6 +566,17 @@ def test_dependence_six_role_fixture_runs_real_pipeline_without_findings(
         and disclosure["extensions"]["x-scientific-check-state"] == "ambiguous"
         for disclosure in replayed_by_role["ambiguous"]["disclosures"]
     )
+    unsupported_module = next(
+        item
+        for item in semantic_locks_by_role["unsupported"]["scientific_check_registry"][
+            "evaluation"
+        ]["modules"]
+        if item["check_id"] == config.check_id
+    )
+    assert unsupported_module["state"] == "unsupported"
+    assert [item["abstention_reason"] for item in unsupported_module["observations"]] == [
+        "paired-procedure-operand-unverified"
+    ]
     assert not [
         assertion
         for assertion in replayed_by_role["unsupported"]["semantic_assertions"]
@@ -546,3 +593,22 @@ def test_dependence_six_role_fixture_runs_real_pipeline_without_findings(
         )
         assert intake_row["sandbox_runs"] == 2
         assert rows_by_role[role]["project_code_executions"] == 0
+
+
+def test_dependence_sandbox_execution_tests_cannot_silently_skip_when_runtime_exists() -> None:
+    guarded_tests = (
+        test_dependence_dedicated_runtime_probe_passes_for_real,
+        test_dependence_six_role_fixture_runs_real_pipeline_without_findings,
+    )
+    skip_conditions: list[bool] = []
+    for test in guarded_tests:
+        marks = [mark for mark in getattr(test, "pytestmark", ()) if mark.name == "skipif"]
+        assert len(marks) == 1
+        skip_conditions.append(bool(marks[0].args[0]))
+
+    if DEPENDENCE_SANDBOX_PYTHON.is_file():
+        assert DEPENDENCE_SANDBOX_AVAILABILITY_MARKER.startswith("AVAILABLE:")
+        assert skip_conditions == [False, False]
+    else:
+        assert DEPENDENCE_SANDBOX_AVAILABILITY_MARKER.startswith("PRE-PILOT BLOCKER:")
+        assert skip_conditions == [True, True]

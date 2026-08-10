@@ -2,6 +2,18 @@
 
 ## 0.3.0
 
+- Corrected the dependence shadow adapter's parser-identity conformance boundary so its closed
+  two-entry allowlist accepts both the hand-built `python-ast` 3.11 test identity and the real
+  `parser:python-ast-tokenize` 0.15.1 capture-parser identity used by registered audits. The
+  scientific-check wrapper now applies its stricter registered capture-parser gate to material
+  questions as well as applicable observations, so a legacy parser identity cannot create an
+  ambiguous registered observation.
+- Made the dependence pilot's controller writer-scope bridge explicitly authority-bearing. New
+  locks seal the human-approved `case_root` execution-root declaration; only that declaration can
+  enable the narrow static writer rewrite, its scope proofs name the assumption, and the lock
+  Disclosure distinguishes the assumption from execution evidence. Legacy locks without the
+  declaration remain readable only as fail-closed inputs that receive no manufactured writer
+  scope.
 - Accepted ADR-0057 after Experiment 0048 observed the same two-line sequence-record parsing
   boundary in three independent answer-isolated author attempts and a fresh corrected control.
   Calculation profile v12 adds one general selected-material, inert-Python-AST check with exact

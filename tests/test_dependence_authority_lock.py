@@ -14,7 +14,9 @@ from sc_referee.controller import run_audit
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.dependence_recognition.authority_lock import (
     AUTHORITY_LIMITATIONS,
+    DECLARED_EXECUTION_ROOT,
     LOCK_KIND,
+    WRITER_SCOPE_EXECUTION_ROOT_MARKER,
     DependenceAuthorizationLockError,
     apply_dependence_authorization_lock,
     approval_projection,
@@ -128,6 +130,7 @@ def _lock(
         "case_id": case_id,
         "snapshot_digest": snapshot_digest or _context().snapshot_digest,
         "intake_recorded_at": intake_recorded_at,
+        "declared_execution_root": DECLARED_EXECUTION_ROOT,
         "records": [
             {
                 "record_type": "analysis",
@@ -200,6 +203,19 @@ def test_valid_dependence_authority_lock_is_accepted(tmp_path: Path) -> None:
         for item in updated.base_records
         if item.ref.record_type in {"analysis", "procedure", "result", "human_method_authorization"}
     ] == ["analysis", "human_method_authorization", "procedure", "result"]
+
+
+def test_unknown_declared_execution_root_is_refused(tmp_path: Path) -> None:
+    value = _lock()
+    value["declared_execution_root"] = "repository_root"
+    _seal(value)
+
+    with pytest.raises(DependenceAuthorizationLockError, match="execution root is invalid"):
+        apply_dependence_authorization_lock(
+            _context(),
+            _write(tmp_path / "unknown-execution-root.json", value),
+            expected_case_id=_CASE_ID,
+        )
 
 
 def test_tampered_input_digest_is_refused(tmp_path: Path) -> None:
@@ -410,6 +426,7 @@ def test_regression_p7_pilot_evidence_asymmetry_is_disclosed(project_root: Path)
 def test_regression_p2_run_audit_discloses_exact_applied_authority_lock(
     tmp_path: Path,
     schema_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     repository = tmp_path / "repository"
     (repository / "inputs").mkdir(parents=True)
@@ -445,6 +462,33 @@ Path("results/report.md").write_text(f"[selected-result] {result}\\n", encoding=
     value["records"][3]["input_content_digest"] = sha256_digest(data)
     _seal(value)
     lock_path = _write(tmp_path / "controller-authority.json", value)
+
+    original = authority_lock_module.bind_dependence_selected_writer_scope
+    proof_limitations: list[str] = []
+
+    def observe_scope_rewrite(
+        context: FrozenInspectionContext,
+        *,
+        declared_execution_root: str | None,
+    ) -> FrozenInspectionContext:
+        rewritten = original(
+            context,
+            declared_execution_root=declared_execution_root,
+        )
+        proof_limitations.extend(
+            limitation
+            for proof in (
+                rewritten.scope_join_graph.proofs if rewritten.scope_join_graph is not None else ()
+            )
+            for limitation in proof.authority_limitations
+        )
+        return rewritten
+
+    monkeypatch.setattr(
+        authority_lock_module,
+        "bind_dependence_selected_writer_scope",
+        observe_scope_rewrite,
+    )
 
     bundle = run_audit(
         repository,
@@ -488,6 +532,10 @@ Path("results/report.md").write_text(f"[selected-result] {result}\\n", encoding=
     disclosure = authority_disclosures[0]
     assert disclosure["non_accusatory"] is True
     assert "severity" not in disclosure
+    assert (
+        "writer scope was established from the human-approved declared execution root, "
+        "not from execution evidence"
+    ) in disclosure["description"].casefold()
     assert disclosure["extensions"]["x-dependence-authorization-lock"] == {
         "lock_digest": value["lock_digest"],
         "approved_projection_digest": value["approval"]["approved_projection_digest"],
@@ -497,11 +545,109 @@ Path("results/report.md").write_text(f"[selected-result] {result}\\n", encoding=
             for item in value["records"]
         ],
         "snapshot_digest": preview.snapshot_record["snapshot_digest"],
+        "declared_execution_root": DECLARED_EXECUTION_ROOT,
     }
     assert not [
         item
         for item in without_lock["disclosures"]
         if "x-dependence-authorization-lock" in item.get("extensions", {})
     ]
+    assert WRITER_SCOPE_EXECUTION_ROOT_MARKER in proof_limitations
     assert bundle["findings"] == []
     assert without_lock["findings"] == []
+
+
+def test_regression_b2_lock_without_execution_root_cannot_manufacture_writer_scope(
+    tmp_path: Path,
+    schema_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = tmp_path / "repository"
+    (repository / "inputs").mkdir(parents=True)
+    (repository / "workflow").mkdir()
+    (repository / "results").mkdir()
+    data = b"k1,k2,tag,a,b\nx1,y1,t1,1,2\nx1,y1,t2,2,3\n"
+    (repository / "inputs/data.csv").write_bytes(data)
+    (repository / "requirements.txt").write_bytes(b"scipy==1.14.0\n")
+    (repository / "workflow/analysis.py").write_text(
+        """import csv
+from pathlib import Path
+import scipy.stats as st
+
+rows = list(csv.DictReader(Path("inputs/data.csv").open(newline="", encoding="utf-8")))
+left = [float(row["a"]) for row in rows]
+right = [float(row["b"]) for row in rows]
+result = st.ttest_ind(left, right)
+Path("results/report.md").write_text(f"[selected-result] {result}\\n", encoding="utf-8")
+""",
+        encoding="utf-8",
+    )
+    (repository / "results/report.md").write_text(
+        "[selected-result] frozen pilot result\n", encoding="utf-8"
+    )
+    preview = capture_repository(
+        repository,
+        tmp_path / "prospective-snapshot",
+        "audit:prospective-authority-seat",
+        preferred_full_digest_paths=("results/report.md",),
+        material_full_digest_paths=("inputs/data.csv", "requirements.txt"),
+    )
+    value = _lock(snapshot_digest=str(preview.snapshot_record["snapshot_digest"]))
+    value["records"][3]["input_content_digest"] = sha256_digest(data)
+    del value["declared_execution_root"]
+    _seal(value)
+    lock_path = _write(tmp_path / "legacy-controller-authority.json", value)
+
+    original = authority_lock_module.bind_dependence_selected_writer_scope
+    observed: dict[str, object] = {}
+
+    def observe_scope_rewrite(
+        context: FrozenInspectionContext,
+        *,
+        declared_execution_root: str | None,
+    ) -> FrozenInspectionContext:
+        rewritten = original(
+            context,
+            declared_execution_root=declared_execution_root,
+        )
+        observed["declared_execution_root"] = declared_execution_root
+        observed["records_unchanged"] = rewritten.base_records == context.base_records
+        observed["proof_limitations"] = tuple(
+            limitation
+            for proof in (
+                rewritten.scope_join_graph.proofs if rewritten.scope_join_graph is not None else ()
+            )
+            for limitation in proof.authority_limitations
+        )
+        return rewritten
+
+    monkeypatch.setattr(
+        authority_lock_module,
+        "bind_dependence_selected_writer_scope",
+        observe_scope_rewrite,
+    )
+    run_audit(
+        repository,
+        tmp_path / "audit",
+        schema_root,
+        report="results/report.md",
+        material_inputs=("inputs/data.csv", "requirements.txt"),
+        dependence_authorization_lock=lock_path,
+        dependence_authorization_case_id=_CASE_ID,
+    )
+
+    semantic_lock = json.loads((tmp_path / "audit/semantic.lock.json").read_text(encoding="utf-8"))
+    evaluation = semantic_lock["scientific_check_registry"]["evaluation"]
+    module = next(
+        item
+        for item in evaluation["modules"]
+        if item["check_id"]
+        == "check:authorized-independent-unit-entry-into-row-independent-procedure"
+    )
+    assert observed["declared_execution_root"] is None
+    assert observed["records_unchanged"] is True
+    assert WRITER_SCOPE_EXECUTION_ROOT_MARKER not in observed["proof_limitations"]
+    assert module["state"] == "unsupported"
+    assert [item["abstention_reason"] for item in module["observations"]] == [
+        "selected-static-writer-scope-unavailable"
+    ]

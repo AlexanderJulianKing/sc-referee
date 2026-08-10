@@ -40,6 +40,7 @@ from sc_referee_evaluation.lean_pipeline import (
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.dependence_recognition.authority_lock import (
     AUTHORITY_LIMITATIONS,
+    DECLARED_EXECUTION_ROOT,
     LOCK_KIND,
     approval_projection,
     lock_projection,
@@ -380,6 +381,7 @@ def _authority_test_lock(
         "case_id": case_id,
         "snapshot_digest": snapshot_digest,
         "intake_recorded_at": intake_recorded_at,
+        "declared_execution_root": DECLARED_EXECUTION_ROOT,
         "records": [
             {
                 "record_type": "analysis",

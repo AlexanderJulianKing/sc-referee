@@ -686,9 +686,11 @@ _DEPENDENCE_ROLE_CONSTRAINTS = {
         + "`; the report must be `[selected-result] ` followed by exactly that text.",
     ],
     "ambiguous": [
-        "Use exactly 12 data rows. Make each ordered `k1`,`k2` pair unique, repeat every `k1` "
-        "value twice, repeat every `k2` value three times in a crossing pattern, and repeat "
-        "`tag` values without identifying any of those codes as a source-item key.",
+        "Use exactly these 12 `k1,k2,tag` triples in row order: `u01,v01,g01`; "
+        "`u01,v02,g02`; `u02,v03,g01`; `u02,v04,g02`; `u03,v01,g01`; "
+        "`u03,v03,g02`; `u04,v02,g01`; `u04,v04,g02`; `u05,v01,g01`; "
+        "`u05,v04,g02`; `u06,v02,g01`; `u06,v03,g02`. Do not substitute any "
+        "author-chosen string for `k1`, `k2`, or `tag`.",
         _DEPENDENCE_BASE_VECTOR_GUIDANCE,
         "Call `scipy.stats.ttest_ind`.",
         "The exact SciPy 1.14.0 result text for these vectors is `"

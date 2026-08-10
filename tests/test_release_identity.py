@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import tomllib
 from pathlib import Path
 
 import yaml
 
 from sc_referee.version import __version__
+from scripts.build_manifest import (
+    INTENTIONALLY_GENERATED_ARTIFACTS,
+    MANIFEST_RELATIVE_PATH,
+    build_manifest_rows,
+    manifest_inventory,
+)
 
 
 def test_public_release_version_is_coordinated(project_root: Path) -> None:
@@ -47,3 +54,32 @@ def test_release_identity_files_are_in_the_handoff_manifest(project_root: Path) 
     assert "CITATION.cff" in paths
     assert "ACKNOWLEDGMENTS.md" in paths
     assert "docs/implementation/EXPERIMENT-0033-PUBLIC-RELEASE-IDENTITY.md" in paths
+
+
+def test_manifest_builder_inventory_equals_git_tree_listing(project_root: Path) -> None:
+    completed = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(project_root),
+            "ls-tree",
+            "-r",
+            "--full-tree",
+            "--name-only",
+            "-z",
+            "HEAD",
+        ],
+        check=True,
+        capture_output=True,
+    )
+    tracked = {
+        item.decode("utf-8", errors="strict") for item in completed.stdout.split(b"\0") if item
+    }
+    expected = tuple(
+        sorted((tracked - {MANIFEST_RELATIVE_PATH}) | set(INTENTIONALLY_GENERATED_ARTIFACTS))
+    )
+
+    assert manifest_inventory(project_root) == expected
+    assert (project_root / MANIFEST_RELATIVE_PATH).read_text(encoding="utf-8") == (
+        "\n".join(build_manifest_rows(project_root)) + "\n"
+    )

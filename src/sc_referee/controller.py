@@ -954,7 +954,10 @@ def run_audit(
                     affected_ref=scientific_context.selected_surface_ref,
                 )
             )
-            scientific_context = bind_dependence_selected_writer_scope(scientific_context)
+            scientific_context = bind_dependence_selected_writer_scope(
+                scientific_context,
+                declared_execution_root=verified_authority.declared_execution_root,
+            )
             dependence_records = {
                 (item.ref.record_type, item.ref.record_id): json.loads(item.canonical_payload)
                 for item in scientific_context.base_records

@@ -199,6 +199,8 @@ class DependenceRecognitionScientificAdapter:
         if payload_type == "material_question":
             if shadow.get("outcome") != "question":
                 return self._abstain("unsupported", "shadow-outcome-payload-mismatch")
+            if _question_source_document(context) is None:
+                return self._abstain("unsupported", "dependence-source-or-parser-identity-mismatch")
             return self._abstain("ambiguous", "independent-unit-definition-unresolved")
 
         if payload_type == "abstention":
@@ -208,6 +210,8 @@ class DependenceRecognitionScientificAdapter:
             assert isinstance(coverage_classes, list)
             if "no-supported-dependence-lineage" in coverage_classes:
                 return self._abstain("not_applicable", "no-supported-dependence-lineage")
+            if "paired-procedure-operand-unverified" in coverage_classes:
+                return self._abstain("unsupported", "paired-procedure-operand-unverified")
             return self._abstain("unsupported", "dependence-shadow-abstention")
 
         return self._abstain("unsupported", "unsupported-dependence-shadow-payload-type")
@@ -409,17 +413,30 @@ def _source_document(
     if len(matches) != 1:
         return None
     document = matches[0]
+    return document if _has_registered_capture_parser_identity(document) else None
+
+
+def _question_source_document(context: FrozenInspectionContext) -> InspectionDocument | None:
+    matches = [document for document in context.documents if document.media_type == "text/x-python"]
+    if len(matches) != 1:
+        return None
+    document = matches[0]
+    return document if _has_registered_capture_parser_identity(document) else None
+
+
+def _has_registered_capture_parser_identity(document: InspectionDocument) -> bool:
+    if document.parser_result_ref is None or document.parser_result_payload is None:
+        return False
     try:
         parser = json.loads(document.parser_result_payload or b"{}")
-    except (json.JSONDecodeError, TypeError, UnicodeDecodeError):
-        return None
-    if not isinstance(parser, Mapping) or (
-        parser.get("parser_id") != "parser:python-ast-tokenize"
-        or parser.get("parser_version") != "0.15.1"
-        or parser.get("state") != "parsed"
-    ):
-        return None
-    return document
+    except (json.JSONDecodeError, MemoryError, RecursionError, TypeError, UnicodeDecodeError):
+        return False
+    return bool(
+        isinstance(parser, Mapping)
+        and parser.get("parser_id") == "parser:python-ast-tokenize"
+        and parser.get("parser_version") == "0.15.1"
+        and parser.get("state") == "parsed"
+    )
 
 
 def _source_evidence_spans(
