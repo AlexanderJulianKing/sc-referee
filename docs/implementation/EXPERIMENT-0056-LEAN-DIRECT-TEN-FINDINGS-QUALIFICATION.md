@@ -152,7 +152,7 @@ development matrix and two qualification-ineligible, independently renamed posit
   a non-deferred promotion policy.
 - [ ] Open, author, review, run, and replay the seven held-out cases without changing the tuple.
 - [ ] Apply the accepted safety gates and publish the envelope qualification report.
-- [ ] Record an exact maintainer promotion or failure decision.
+- [x] Record an exact maintainer promotion or failure decision (ADR-0071).
 - [ ] If promoted, prove the intended Finding and all control outcomes through the CLI, Codex skill,
   and Claude Code skill on fresh installations.
 
