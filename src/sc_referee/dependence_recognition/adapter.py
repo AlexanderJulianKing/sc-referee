@@ -145,6 +145,22 @@ class DependenceRecognitionShadowAdapter:
                     coverage_classes=("verified-certificate-required",),
                     case_digest=evaluation.case_digest,
                 )
+            expected_conclusion = (
+                "repeated_units"
+                if evaluation.outcome == "evaluation_candidate"
+                else "one_observation_per_unit"
+            )
+            if verified.conclusion != expected_conclusion:
+                return self._abstention(
+                    reason_code="conclusion-outcome-mismatch",
+                    basis=(
+                        "The accepted certificate conclusion did not match the unchanged "
+                        "dependence evaluator outcome, so the shadow adapter emitted no "
+                        "candidate or clearance."
+                    ),
+                    coverage_classes=("conclusion-outcome-mismatch",),
+                    case_digest=evaluation.case_digest,
+                )
             if evaluation.outcome == "evaluation_candidate":
                 return self._candidate(evaluation, verified)
             return self._coverage_note(evaluation, verified)
@@ -201,24 +217,11 @@ class DependenceRecognitionShadowAdapter:
         verified: VerifiedDependenceCertificate,
     ) -> ShadowPayload:
         applicable_safeguards = verified.applicable_safeguard_ids
-        if applicable_safeguards:
-            coverage_class = "applicable_safeguard_present"
-            statement = (
-                "The accepted static certificate recognizes an exact registered dependence "
-                "safeguard bound to the human-authorized unit key before the selected sink."
-            )
-        elif evaluation.reason_code == "one_observation_per_independent_unit":
-            coverage_class = evaluation.reason_code
-            statement = (
-                "The accepted static certificate and digest-bound membership proof establish "
-                "one analyzed observation per human-authorized independent unit."
-            )
-        else:
-            coverage_class = evaluation.reason_code
-            statement = (
-                "The accepted static certificate recognizes an exact registered dependence "
-                "safeguard bound to the human-authorized unit key before the selected sink."
-            )
+        coverage_class = "one_observation_per_independent_unit"
+        statement = (
+            "The accepted static certificate and digest-bound membership proof establish "
+            "one analyzed observation per human-authorized independent unit."
+        )
         body = {
             "record_type": "dependence_shadow_coverage_note",
             "coverage_class": coverage_class,

@@ -260,7 +260,6 @@ def _analyze(source: str, **context_kwargs: object):
         ("import scipy.stats as st", "st.ttest_ind"),
         ("from scipy import stats", "stats.mannwhitneyu"),
         ("from scipy import stats\nstats2 = stats", "stats2.ttest_ind"),
-        ("import scipy.stats", "scipy.stats.ttest_rel"),
     ],
 )
 def test_exact_import_aliases_and_sc2_operand_bindings_are_proposed(
@@ -272,9 +271,7 @@ def test_exact_import_aliases_and_sc2_operand_bindings_are_proposed(
     assert analysis.certificate is not None
     procedure = analysis.certificate.procedure_call
     assert procedure.resolved_callable == (
-        "scipy.stats.ttest_rel"
-        if callable_name.endswith("ttest_rel")
-        else "scipy.stats.mannwhitneyu"
+        "scipy.stats.mannwhitneyu"
         if callable_name.endswith("mannwhitneyu")
         else "scipy.stats.ttest_ind"
     )
@@ -291,10 +288,9 @@ def test_exact_import_aliases_and_sc2_operand_bindings_are_proposed(
     [
         ("import scipy.stats as st", "st.ttest_ind", "evaluation_candidate"),
         ("from scipy import stats", "stats.mannwhitneyu", "evaluation_candidate"),
-        ("from scipy.stats import ttest_rel as paired", "paired", "covered_negative"),
     ],
 )
-def test_all_three_registry_entries_reach_the_expected_core_outcome(
+def test_row_independent_registry_entries_reach_the_expected_core_outcome(
     scipy_import: str,
     callable_name: str,
     expected_outcome: str,
@@ -304,6 +300,43 @@ def test_all_three_registry_entries_reach_the_expected_core_outcome(
     assert discharged.state == "verified"
     assert discharged.case is not None
     assert evaluate_dependence_case(discharged.case).outcome == expected_outcome
+
+
+def test_regression_n8_paired_procedure_operand_is_a_named_gap() -> None:
+    data = b"participant_id,site_id,a,b\np1,s1,1,2\np1,s1,2,3\np2,s2,4,5\np2,s2,5,6\n"
+    context = _context(
+        _source(callable_name="st.ttest_rel"),
+        data=data,
+    )
+    analysis = analyze_dependence_python(context)
+    discharged = discharge_dependence_proposal(analysis, context)
+    assert analysis.state == "unsupported"
+    assert analysis.certificate is None
+    assert analysis.unsupported_constructs == ("paired-procedure-operand-unverified",)
+    assert discharged.state == "unsupported"
+    assert discharged.case is not None
+    assert evaluate_dependence_case(discharged.case).outcome == "unsupported"
+
+
+def test_regression_n8_controller_refuses_forged_required_safeguard_proposal() -> None:
+    context = _context(_source())
+    analysis = analyze_dependence_python(context)
+    assert analysis.state == "proposal"
+    assert analysis.certificate is not None
+    certificate = analysis.certificate
+    forged_procedure = replace(
+        certificate.procedure_call,
+        resolved_callable="scipy.stats.ttest_rel",
+        unit_operand_columns=certificate.case_binding.authorized_key_columns,
+    )
+    forged = replace(
+        analysis,
+        certificate=replace(certificate, procedure_call=forged_procedure),
+    )
+    discharged = discharge_dependence_proposal(forged, context)
+    assert discharged.state == "unsupported"
+    assert discharged.case is not None
+    assert discharged.case.unsupported_constructs == ("paired-procedure-operand-unverified",)
 
 
 @pytest.mark.parametrize(

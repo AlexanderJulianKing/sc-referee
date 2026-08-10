@@ -38,6 +38,9 @@ proposal exists, missing or ambiguous hints leave the unit definition unknown.  
 may be reported as unresolved choices but are never ranked, selected from their names, or selected
 because their values repeat.
 
+The controller's `_procedure_record_allows` check constrains only procedure records that declare a
+`resolved_callable`; a procedure record without that field supplies no callable assertion.
+
 ## Frozen reader and data envelope
 
 The only certified readers are the two existing default-`csv.DictReader` forms:
@@ -85,9 +88,9 @@ The trusted v1 registry contains exactly these resolved live callables and argum
 Every entry requires SciPy `1.14.0` from a bound requirements or lock-file evidence record.  An
 unpinned version, any other version, a rebound or wrapped callable, a different argument shape, or
 a live callable outside this table is unsupported.  There is no fallback based on claimed
-cross-version stability.  `ttest_rel` discharges
-`safeguard:paired-or-blocked-procedure` as present only when its unit operand is bound to the exact
-authorized unit key.
+cross-version stability.  Although `ttest_rel` is resolved as a known callable, v1 cannot verify
+that its positional vectors encode pairs bound to the human-authorized independent-unit key; it
+therefore records `paired-procedure-operand-unverified` and does not propose a certificate.
 
 ## Frozen frame-transform grammar
 
@@ -103,8 +106,7 @@ unit-level aggregation is a future route.  Every filter, merge, sample, slice, a
 deduplication, loop-built frame, or other transform is likewise unsupported in v1.  Membership
 evidence comes only from the exact digest-bound file consumed by the reader in the same lineage.
 
-The exact v1 `covered_negative` routes are (a) a digest-bound proof of one row per authorized unit
-and (b) the registered paired procedure with its unit operand bound to that authorized unit.
+The only v1 `covered_negative` route is a digest-bound proof of one row per authorized unit.
 
 ## Certificate obligations
 
@@ -130,13 +132,14 @@ The kernel accepts only a closed certificate that discharges all of the followin
 8. **O8 — frame lineage:** the proven source frame reaches the registered procedure through only
    the frozen identity-only transform grammar.
 9. **O9 — procedure identity:** exact live callable, two-positional/no-keyword shape, pinned SciPy
-   `1.14.0` evidence, procedure binding, row domain, result token, paired-unit operand, and an exact
-   binding from every positional argument to the certified frame-lineage output agree.
+   `1.14.0` evidence, procedure binding, row domain, result token, and an exact binding from every
+   positional argument to the certified frame-lineage output agree.  The kernel retains its exact
+   paired-unit-operand equality check as defense in depth, but no shipped v1 path can discharge it.
 10. **O10 — safeguard completeness:** the seven existing safeguard identities appear exactly once.
     For each, modeled constructs equal the complete syntactic set minus proven-dead constructs.
     `absent` or `not_applicable` requires evidence, no recognized match, and that exact equation;
-    recognized paired matches require `present` with the exact operand binding; aggregation-shaped
-    constructs cannot enter a v1 certificate.
+    required-safeguard procedures and aggregation-shaped constructs cannot enter a shipped v1
+    certificate.
 11. **O11 — noninterference:** the kernel-derived origin/binding union includes the input, every
     row domain, frame output, procedure arguments/result, transform tokens, every active sink
     token and payload token, and every sink path.  No effect may write or alias that union.  An
@@ -187,9 +190,13 @@ invalidity, or a required repair.
   below the membership bound, is outside the bounded v1 proof-record envelope.
 - `unit-level-aggregation-unrecognized`: aggregation-shaped code over the certified list-bound
   readers is outside v1; unit-level aggregation is a future recognition route.
+- `paired-procedure-operand-unverified`: v1 cannot verify that paired-procedure vector positions
+  correspond to the human-authorized independent-unit key.
 - `universal-newline-reader`: a plain `open()`/`Path.open()` reader without `newline=""`, an
   explicit `newline=None`, or a `read_text()` universal-newline stream is outside the certified
   `csv_newline` model and must be reported as unsupported.
+- `unsupported-write-handle`: a write-mode context manager that is outside the closed static sink
+  grammar is a writer gap and is never mislabeled as a reader newline gap.
 
 ## Stage boundary
 
@@ -199,7 +206,9 @@ adapter.  The adapter has no scientific-check or detector registration and emits
 shadow candidate, material-question payload, non-accusatory abstention, or coverage note.  It
 catches every exception from the analyzer, prover, kernel, and unchanged dependence evaluator,
 including type-invalid proposal failures, and converts it to a named abstention.  The kernel is
-not itself required to accept arbitrary dynamically ill-typed Python objects.
+not itself required to accept arbitrary dynamically ill-typed Python objects.  Candidate and
+covered-negative projection additionally require the kernel conclusion to match the evaluator
+outcome; a mismatch records `conclusion-outcome-mismatch`.
 
 The shadow payload binds a dependency-closure digest over only the six
 `dependence_recognition` package modules (including the adapter) and this experiment record.

@@ -107,8 +107,8 @@ _PROCEDURES = frozenset(
         "scipy.stats.ttest_rel",
     }
 )
+_REQUIRED_SAFEGUARD_PROCEDURES = frozenset({"scipy.stats.ttest_rel"})
 _AGGREGATION_SAFEGUARD = "safeguard:unit-level-aggregation"
-_PAIRED_SAFEGUARD = "safeguard:paired-or-blocked-procedure"
 _PIN_RE = re.compile(r"^\s*scipy\s*==\s*([A-Za-z0-9.!+_-]+)\s*(?:#.*)?$")
 
 
@@ -945,6 +945,16 @@ def analyze_dependence_python(
             unresolved=("selected-result-sink",),
             basis="The exact selected result sink was absent, competing, or ambiguous.",
         )
+    if procedure.resolved_callable in _REQUIRED_SAFEGUARD_PROCEDURES:
+        return _analysis_without_certificate(
+            "unsupported",
+            context,
+            unsupported=("paired-procedure-operand-unverified",),
+            basis=(
+                "V1 cannot verify that the paired procedure operands encode pairs bound "
+                "to the human-authorized independent-unit key."
+            ),
+        )
 
     read = trace.read
     authority_resolution = _authority(context)
@@ -1081,6 +1091,8 @@ def discharge_dependence_proposal(
             basis=analysis.basis,
         )
     certificate = analysis.certificate
+    if certificate.procedure_call.resolved_callable in _REQUIRED_SAFEGUARD_PROCEDURES:
+        return _failed_discharge(certificate, "paired-procedure-operand-unverified")
     trusted_authorizations = _trusted_authorizations(context)
     if not _proposal_matches_context(certificate, context, trusted_authorizations):
         return _failed_discharge(certificate, "frozen-context-drift")
@@ -1251,11 +1263,7 @@ def _certificate(
             version=_SUPPORTED_VERSION,
             evidence_ids=(_package_pin_evidence_id(version_material, _SUPPORTED_VERSION),),
         ),
-        unit_operand_columns=(
-            authority.authorized_key_columns
-            if procedure.resolved_callable == "scipy.stats.ttest_rel"
-            else ()
-        ),
+        unit_operand_columns=(),
         result_token=procedure.result_token,
         evidence_ids=(_evidence_id(document.path, procedure.node, "procedure-call"),),
     )
@@ -1320,8 +1328,6 @@ def _certificate(
     dead = frozenset(dead_constructs)
     active = all_constructs - dead
     expected_matches: dict[str, frozenset[str]] = {item: frozenset() for item in SAFEGUARD_IDS}
-    if result.resolved_callable == "scipy.stats.ttest_rel":
-        expected_matches[_PAIRED_SAFEGUARD] = frozenset({result.token})
     checks: list[SafeguardCheckObligation] = []
     evidence_requests: list[tuple[str, ast.AST]] = []
     transform_node_by_token = dict(

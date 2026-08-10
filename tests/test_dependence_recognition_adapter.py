@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
+from sc_referee.dependence_core import DependenceCase
 from sc_referee.dependence_recognition import adapter as adapter_module
 from sc_referee.dependence_recognition import python_analyzer as analyzer_module
 from sc_referee.dependence_recognition.adapter import (
@@ -298,6 +301,17 @@ def test_one_row_per_unit_is_a_verified_coverage_note(
     assert payload["reason_code"] == "one_observation_per_independent_unit"
 
 
+def test_regression_n8_paired_procedure_is_a_named_abstention(
+    shadow_adapter: DependenceRecognitionShadowAdapter,
+) -> None:
+    source = _source(call="result = st.ttest_rel(group_a, group_b)")
+    payload = shadow_adapter.inspect(_context(source))
+    _assert_not_candidate(payload)
+    assert payload["payload_type"] == "abstention"
+    assert payload["outcome"] == "unsupported"
+    assert "paired-procedure-operand-unverified" in _coverage_classes(payload)
+
+
 def test_absent_authority_names_both_repeated_candidates_without_ranking(
     shadow_adapter: DependenceRecognitionShadowAdapter,
 ) -> None:
@@ -492,6 +506,25 @@ def test_core_exception_is_caught_as_named_abstention(
     payload = shadow_adapter.inspect(_context(_source()))
     _assert_not_candidate(payload)
     assert _coverage_classes(payload) == ("dependence-core-exception",)
+
+
+def test_regression_n9_candidate_requires_repeated_units_kernel_conclusion(
+    shadow_adapter: DependenceRecognitionShadowAdapter,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original_evaluator = adapter_module.evaluate_dependence_case
+
+    def mismatched_evaluator(case: DependenceCase):
+        evaluation = original_evaluator(case)
+        return replace(evaluation, outcome="evaluation_candidate")
+
+    monkeypatch.setattr(adapter_module, "evaluate_dependence_case", mismatched_evaluator)
+    unique_data = b"participant_id,site_id,a,b\np1,s1,1,2\np2,s1,2,3\np3,s2,4,5\n"
+    payload = shadow_adapter.inspect(_context(_source(), data=unique_data))
+    _assert_not_candidate(payload)
+    assert payload["payload_type"] == "abstention"
+    assert payload["reason_code"] == "conclusion-outcome-mismatch"
+    assert _coverage_classes(payload) == ("conclusion-outcome-mismatch",)
 
 
 def test_same_frozen_input_produces_byte_identical_payload_and_closure(
