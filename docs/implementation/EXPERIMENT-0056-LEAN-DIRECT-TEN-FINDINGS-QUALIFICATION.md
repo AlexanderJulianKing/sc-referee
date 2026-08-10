@@ -150,8 +150,8 @@ development matrix and two qualification-ineligible, independently renamed posit
 - [ ] Run and replay the frozen detector on all three pilot opportunities.
 - [ ] Use pilot results to accept a numeric threshold ADR and forward schema capable of representing
   a non-deferred promotion policy.
-- [ ] Open, author, review, run, and replay the seven held-out cases without changing the tuple.
-- [ ] Apply the accepted safety gates and publish the envelope qualification report.
+- [x] Open, author, review, run, and replay the seven held-out cases without changing the tuple.
+- [x] Apply the accepted safety gates and publish the envelope qualification report.
 - [x] Record an exact maintainer promotion or failure decision (ADR-0071).
 - [ ] If promoted, prove the intended Finding and all control outcomes through the CLI, Codex skill,
   and Claude Code skill on fresh installations.

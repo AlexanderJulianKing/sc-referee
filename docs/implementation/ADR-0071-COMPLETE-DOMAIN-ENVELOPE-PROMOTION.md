@@ -20,9 +20,12 @@ qualification report records 7/7 complete cases, zero of five false accusations,
 sensitivity, deterministic replay, and no execution of project-authored code.
 
 The exam-time tuple is not identical to the live checkout. Commit `444d643` subsequently added an
-overflow guard to the quantity-consistency adapter. That change altered the adapter implementation
-bytes while leaving the recognition grammar digest unchanged. A maintainer decision must bind the
-object actually examined, not silently inherit later bytes.
+overflow guard to the quantity-consistency adapter. Commit `63fb0a1` also changed
+`scientific_checks/core.py`, whose bytes feed `adapter_common._COMMON_IMPLEMENTATION_DIGEST` and
+therefore the adapter identity. Those changes altered the adapter implementation identity while
+leaving the recognition grammar digest unchanged. Restoring the pinned exam-time identity would
+require more than reverting the overflow guard. A maintainer decision must bind the object actually
+examined, not silently inherit later bytes.
 
 ADR-0061 also describes the older full-panel qualification route. Accepted ADR-0066 and ADR-0067
 subsequently changed provider composition and review count, and ADR-0068 consolidated the lean
@@ -61,7 +64,9 @@ place rather than pretending the older artifact exists.
    - exam-time scientific-check registry content digest:
      `sha256:5ecad5ee3773c6ee5ae7686b6aa2e189ef65d1e4b56c816348564d6eec647fe9`.
 
-3. **Exclude drifted live bytes from Round 1.** Commit `444d643` changed the adapter implementation;
+3. **Exclude drifted live bytes from Round 1.** Commit `444d643` changed the adapter implementation,
+   and commit `63fb0a1` changed `scientific_checks/core.py`, which contributes through
+   `adapter_common._COMMON_IMPLEMENTATION_DIGEST` to the adapter's computed identity;
    the current scientific-check registry records implementation-file digest
    `sha256:cb6de94e39efdf726cc516178b77b85443044415b72c8671025ef9c2e6eef05c`,
    while the recognition grammar remains the pinned
@@ -75,8 +80,10 @@ place rather than pretending the older artifact exists.
    `completed_opportunity_false_positive_rate`, the fixed compiler metric that counts unsafe
    projected candidates among completed detector opportunities, with statistic `estimate`,
    operator `at_most`, and threshold `0.0`. Its sensitivity bar maps to
-   `adjudicated_root_recall`, with statistic `estimate`, operator `at_least`, and the achieved
-   threshold `1.0` (two boundedly localized roots of two). The minimum counts equal the frozen
+   `adjudicated_root_recall`, with statistic `estimate`, operator `at_least`, and the frozen
+   threshold `0.5` (at least one boundedly localized root of two). The observed two-of-two result,
+   or `1.0`, remains an achievement in the metric set and is not rewritten into the pre-label
+   policy. The minimum counts equal the frozen
    exam: 7 workflows, 7 distinct problem clusters, 2 adjudicated roots, and 5 control cases. The
    policy uses estimate-only decisions and sets `require_estimable_intervals` to `false`: seven
    clusters are too few to make bootstrap interval bounds the accepted decision rule, although the
@@ -110,11 +117,23 @@ place rather than pretending the older artifact exists.
    `qualification-manifests.json` byte-identical and empty. The detector manifest remains
    `experimental`, every production binding retains `production_finding_permitted: false`, the
    public capability matrix is unchanged, and no controller path consumes the private records.
+   The resolver's closed vocabulary has no value for one calibrated agent reviewer with escalation,
+   so the record retains `review_basis: agent_panel`; ADR-0067's one-review-with-escalation design
+   and the retained review ledgers provide the more precise disclosure. The
+   `regression_fixture_for_every_discovered_false_accusation` and
+   `unresolved_disagreement_excluded` gates are vacuously true for this exam: no false accusation
+   was discovered and no unresolved disagreement existed, so there was nothing to fixture or
+   exclude.
 
 7. **Make Round 2 a separate authority change.** Round 2 requires all of: public acceptance of
-   schema v0.19.0, installation of a content-addressed qualification grant, production-controller
-   wiring, and resolution of the adapter digest drift for the live bytes. None may be inferred from
-   the Round-1 resolver test or the delivery-plan promotion checkbox.
+   schema v0.19.0; installation of a content-addressed qualification grant whose threshold-policy
+   digest is pinned to an externally recorded value rather than accepted from a self-consistent
+   record (the Round-1 resolver otherwise permits a policy mutation accompanied by digest refresh);
+   production-controller wiring; resolution of the adapter digest drift for the live bytes; and a
+   floor-independent missed-root check before this policy is reused with more positives. The
+   current `adjudicated_root_recall` denominator counts only resolved roots, so a missed root can
+   fall out of that denominator. None of these gates may be inferred from the Round-1 resolver test
+   or the delivery-plan promotion checkbox.
 
 ## Consequences
 
@@ -130,3 +149,8 @@ place rather than pretending the older artifact exists.
   certificate, domain-wide validation, or authority for later adapter bytes.
 - Any Round-2 implementation that cannot re-establish the exact digest and schema gates must fail
   closed without installing the grant.
+- The Round-1 root-manifest regeneration expanded the tracked inventory from 4,726 to 13,043 files
+  and repaired 40 pre-existing stale parent-manifest rows, including rows for `registry.json`,
+  `scientific_checks/core.py`, and `scientific_checks/profiles.py` even though those files did not
+  change in the Round-1 work. That repair records parent-manifest staleness, not content drift or
+  an expansion of the promotion decision.

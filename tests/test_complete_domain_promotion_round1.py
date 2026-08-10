@@ -27,6 +27,7 @@ from sc_referee.scientific_checks.profiles import scientific_check_release_regis
 LANE = Path("evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2")
 LEDGER = LANE / "heldout-v207-seven-case/detector-run/DETECTOR_RUN_LEDGER.json"
 PROMOTION = LANE / "promotion"
+OPENING = LANE / "heldout-v207-seven-case/HELDOUT_OPENING.json"
 CAPABILITY_MATRIX_DIGEST_BEFORE_ROUND1 = (
     "sha256:4a3f3a74f295e899aace905c493c137a50e5545ac2be7b4e437ff2bedc19b968"
 )
@@ -143,6 +144,38 @@ def test_round1_private_records_rederive_and_resolve_exact_grant(project_root: P
         "unresolved_disagreement_excluded": True,
         "verified_good_and_hard_negative_included": True,
     }
+
+
+def test_round1_policy_derives_the_frozen_sensitivity_bar_from_heldout_opening(
+    project_root: Path,
+) -> None:
+    opening = _load(project_root / OPENING)
+    metric_set = _load(project_root / PROMOTION / "QUALIFICATION_METRIC_SET.json")
+    bar = opening["adr_reference"]["sensitivity_bar"]
+    prefix = "at_least_"
+    suffix = "_positives"
+    assert isinstance(bar, str) and bar.startswith(prefix) and bar.endswith(suffix)
+    numerator_word, denominator_word = bar[len(prefix) : -len(suffix)].split("_of_")
+    word_counts = {"one": 1, "two": 2}
+    expected_numerator = word_counts[numerator_word]
+    expected_denominator = word_counts[denominator_word]
+    recall_requirement = next(
+        requirement
+        for requirement in metric_set["numeric_threshold_policy"]["metric_requirements"]
+        if requirement["metric_name"] == "adjudicated_root_recall"
+    )
+    achieved_recall = next(
+        metric
+        for metric in metric_set["metrics"]
+        if metric["metric_name"] == "adjudicated_root_recall"
+    )
+
+    assert recall_requirement["threshold"] == expected_numerator / expected_denominator
+    assert (
+        metric_set["numeric_threshold_policy"]["minimum_counts"]["adjudicated_roots"]
+        == expected_denominator
+    )
+    assert achieved_recall["estimate"] == 1.0
 
 
 def test_round1_does_not_install_authority_or_change_capability_matrix(

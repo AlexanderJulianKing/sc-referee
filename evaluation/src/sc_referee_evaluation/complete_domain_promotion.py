@@ -11,6 +11,7 @@ lean-consolidated audit closures in place of a separate Stage-3 artifact.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -33,6 +34,7 @@ BINDING_DIGEST = "sha256:f0b46686e0c5a4ff137cc43b4729fc6194e7aa550565bf4f9fe637f
 CHECK_MANIFEST_DIGEST = "sha256:c3ef7acd8597c86e8a121ba43e94d4f2a2993c08cd2c14981b85b13c431841a9"
 DETECTOR_TUPLE_DIGEST = "sha256:c0d6ec05c8e24e04e4382430e3bfa7fa4086bef016df218f28b907542f2ca3c3"
 HELDOUT_LEDGER_DIGEST = "sha256:679cbc06c089ac8bccffbc89619bb4fdb67a722dcae0a47edcce205f87578048"
+HELDOUT_OPENING_DIGEST = "sha256:0daf0982bc0e15bb8aada0c6e0be143bea0f439494858f7dc3ffd53f0a3d08ec"
 SCIENTIFIC_LABEL_LEDGER_DIGEST = (
     "sha256:913c907ea9f39ecfb1291fb6c183e757180b32b4867f8632a9b91813fca50010"
 )
@@ -81,6 +83,10 @@ _EXPECTED_TOP_LEVEL = {
     "project_code_executed": False,
     "production_finding_count": 0,
 }
+_SENSITIVITY_BAR = re.compile(
+    r"at_least_(?P<numerator>one|two)_of_(?P<denominator>one|two)_positives\Z"
+)
+_COUNT_WORDS = {"one": 1, "two": 2}
 
 
 def project_heldout_detector_case_outcomes(path: Path) -> list[dict[str, Any]]:
@@ -145,8 +151,10 @@ def qualification_profile_descriptor() -> dict[str, Any]:
     }
 
 
-def numeric_threshold_policy() -> dict[str, Any]:
-    """Return the pre-label ADR-0070 policy in the resolver's fixed vocabulary."""
+def numeric_threshold_policy(opening_path: Path) -> dict[str, Any]:
+    """Translate the digest-bound pre-label ADR-0070 bar into fixed metric vocabulary."""
+
+    sensitivity_threshold, positive_count = _frozen_sensitivity_requirement(opening_path)
 
     value: dict[str, Any] = {
         "policy_kind": "pilot_informed_binding_thresholds_v1",
@@ -168,7 +176,7 @@ def numeric_threshold_policy() -> dict[str, Any]:
         "minimum_counts": {
             "workflows": 7,
             "problem_clusters": 7,
-            "adjudicated_roots": 2,
+            "adjudicated_roots": positive_count,
             "control_cases": 5,
         },
         "require_estimable_intervals": False,
@@ -183,7 +191,7 @@ def numeric_threshold_policy() -> dict[str, Any]:
                 "metric_name": "adjudicated_root_recall",
                 "statistic": "estimate",
                 "operator": "at_least",
-                "threshold": 1.0,
+                "threshold": sensitivity_threshold,
             },
         ],
     }
@@ -197,7 +205,7 @@ def build_round1_records(
     """Build the private metric-set/qualification pair without installing either record."""
 
     outcomes = project_heldout_detector_case_outcomes(ledger_path)
-    policy = numeric_threshold_policy()
+    policy = numeric_threshold_policy(ledger_path.parent.parent / "HELDOUT_OPENING.json")
     evidence = compile_qualification_evidence(outcomes, QUALIFICATION_ENVELOPE)
     profile = qualification_profile_descriptor()
     scope = {
@@ -470,6 +478,38 @@ def _provenance(created_at: str, method: str) -> dict[str, Any]:
         "tool": "sc-referee-eval",
         "tool_version": "0.1.0",
     }
+
+
+def _frozen_sensitivity_requirement(opening_path: Path) -> tuple[float, int]:
+    if opening_path.is_symlink() or not opening_path.is_file():
+        raise CompleteDomainPromotionError("Held-out opening must be one regular file.")
+    try:
+        opening = json.loads(opening_path.read_bytes().decode("utf-8", errors="strict"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise CompleteDomainPromotionError("Held-out opening is not strict UTF-8 JSON.") from error
+    if not isinstance(opening, dict):
+        raise CompleteDomainPromotionError("Held-out opening must be one JSON object.")
+    supplied_digest = opening.get("semantic_digest")
+    digest_payload = {key: value for key, value in opening.items() if key != "semantic_digest"}
+    if (
+        supplied_digest != HELDOUT_OPENING_DIGEST
+        or semantic_digest(digest_payload) != HELDOUT_OPENING_DIGEST
+    ):
+        raise CompleteDomainPromotionError("Held-out opening digest does not match the seal.")
+    adr_reference = opening.get("adr_reference")
+    sensitivity_bar = (
+        adr_reference.get("sensitivity_bar") if isinstance(adr_reference, Mapping) else None
+    )
+    if not isinstance(sensitivity_bar, str):
+        raise CompleteDomainPromotionError("Held-out sensitivity bar is missing.")
+    match = _SENSITIVITY_BAR.fullmatch(sensitivity_bar)
+    if match is None:
+        raise CompleteDomainPromotionError("Held-out sensitivity bar is unsupported.")
+    numerator = _COUNT_WORDS[match.group("numerator")]
+    denominator = _COUNT_WORDS[match.group("denominator")]
+    if numerator > denominator:
+        raise CompleteDomainPromotionError("Held-out sensitivity bar is inconsistent.")
+    return numerator / denominator, denominator
 
 
 def _is_sha256(value: object) -> bool:
