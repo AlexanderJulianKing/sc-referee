@@ -259,6 +259,46 @@ def _coverage_classes(payload: dict[str, object]) -> tuple[str, ...]:
     return tuple(str(item) for item in value)
 
 
+def _assert_verified_binding_and_evidence_projection(body: dict[str, object]) -> None:
+    assert body["analysis_target_ref"] == {
+        "record_type": "analysis",
+        "record_id": "analysis:primary",
+    }
+    assert body["procedure_ref"] == {
+        "record_type": "procedure",
+        "record_id": "procedure:test",
+    }
+    assert body["affected_target_ref"] == {
+        "record_type": "result",
+        "record_id": "result:report",
+    }
+    assert body["input_binding"] == {
+        "path": _DATA_PATH,
+        "content_digest": sha256_digest(
+            _ADVERSE_DATA
+            if body.get("repeated_independent_unit_ids")
+            else b"participant_id,site_id,a,b\np1,s1,1,2\np2,s1,2,3\np3,s2,4,5\n"
+        ),
+    }
+    assert body["sink_tokens"]
+    declarations = body["evidence_declarations"]
+    assert isinstance(declarations, list)
+    assert declarations
+    assert all(
+        set(item)
+        == {
+            "evidence_id",
+            "path",
+            "start_line",
+            "end_line",
+            "start_column",
+            "end_column",
+        }
+        for item in declarations
+    )
+    assert {item["path"] for item in declarations} == {_DATA_PATH, "workflow/analysis.py"}
+
+
 def test_adverse_workflow_emits_report_only_shadow_candidate(
     shadow_adapter: DependenceRecognitionShadowAdapter,
 ) -> None:
@@ -272,6 +312,7 @@ def test_adverse_workflow_emits_report_only_shadow_candidate(
     assert body["promotion_state"] == "unregistered_shadow_only"
     assert body["authorized_key_columns"] == ["participant_id"]
     assert body["resolved_callable"] == "scipy.stats.ttest_ind"
+    _assert_verified_binding_and_evidence_projection(body)
     forbidden_keys = {"finding_id", "finding_type", "severity", "remediation"}
     assert not forbidden_keys & set(payload)
     assert not forbidden_keys & set(body)
@@ -299,6 +340,10 @@ def test_one_row_per_unit_is_a_verified_coverage_note(
     _assert_not_candidate(payload)
     assert payload["payload_type"] == "coverage_note"
     assert payload["reason_code"] == "one_observation_per_independent_unit"
+    body = payload["payload"]
+    assert body["authorized_key_columns"] == ["participant_id"]
+    assert body["resolved_callable"] == "scipy.stats.ttest_ind"
+    _assert_verified_binding_and_evidence_projection(body)
 
 
 def test_regression_n8_paired_procedure_is_a_named_abstention(

@@ -14,6 +14,7 @@ MANIFEST_ROOT = ROOT / "src" / "sc_referee" / "resources" / "capability-manifest
 GENERATED_AT = "2026-07-30T00:00:00Z"
 ANALYSIS_METHOD_CONFLICT_CHECK_IDS = sorted(
     [
+        "check:authorized-independent-unit-entry-into-row-independent-procedure",
         "check:full-map-ancestry-exposure",
         "check:casrx-isoform-axis-model",
         "check:classifier-derived-copy-dosage-representation",

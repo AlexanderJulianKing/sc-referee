@@ -84,7 +84,7 @@ class DependenceRecognitionShadowAdapter:
     """Project one bounded static dependence case onto the shadow plane."""
 
     adapter_id: str = "dependence-recognition-semantic-shadow"
-    adapter_version: str = "1.0.0"
+    adapter_version: str = "1.1.0"
 
     @property
     def implementation_digest(self) -> str:
@@ -174,8 +174,6 @@ class DependenceRecognitionShadowAdapter:
         evaluation: DependenceEvaluation,
         verified: VerifiedDependenceCertificate,
     ) -> ShadowPayload:
-        binding = verified.case_binding
-        fact = verified.domain_fact
         body = {
             "record_type": "dependence_shadow_candidate",
             "candidate_id": f"dependence-shadow-candidate:{semantic_digest({'case_digest': evaluation.case_digest, 'source_digest': verified.source_digest})}",
@@ -188,19 +186,9 @@ class DependenceRecognitionShadowAdapter:
                 "the selected sink; no registered v1 safeguard form was present in that "
                 "closed static slice."
             ),
-            "source_path": verified.source_path,
-            "source_digest": verified.source_digest,
-            "analysis_target_ref": _ref_dict(binding.analysis_target_ref),
-            "procedure_ref": _ref_dict(binding.procedure_ref),
-            "affected_target_ref": _ref_dict(binding.affected_target_ref),
-            "independent_unit_definition_id": binding.independent_unit_definition_id,
-            "authorized_key_columns": list(binding.authorized_key_columns),
-            "input_binding": {"path": fact.path, "content_digest": fact.content_digest},
-            "resolved_callable": verified.procedure_call.resolved_callable,
-            "sink_tokens": list(verified.sink_tokens),
+            **_verified_projection(verified),
             "repeated_independent_unit_ids": list(evaluation.repeated_independent_unit_ids),
             "applicable_safeguard_ids": list(evaluation.applicable_safeguard_ids),
-            "proposed_case_digest": verified.proposed_case_digest,
         }
         return self._payload(
             payload_type="shadow_candidate",
@@ -228,13 +216,9 @@ class DependenceRecognitionShadowAdapter:
             "core_reason_code": evaluation.reason_code,
             "report_only": True,
             "statement": statement,
-            "source_path": verified.source_path,
-            "source_digest": verified.source_digest,
-            "resolved_callable": verified.procedure_call.resolved_callable,
-            "authorized_key_columns": list(verified.case_binding.authorized_key_columns),
+            **_verified_projection(verified),
             "applicable_safeguard_ids": list(applicable_safeguards),
             "repeated_independent_unit_ids": list(evaluation.repeated_independent_unit_ids),
-            "proposed_case_digest": verified.proposed_case_digest,
         }
         return self._payload(
             payload_type="coverage_note",
@@ -353,7 +337,7 @@ class DependenceRecognitionShadowAdapter:
     ) -> ShadowPayload:
         return {
             "record_type": "dependence_recognition_shadow_result",
-            "schema_version": "1.0.0",
+            "schema_version": "1.1.0",
             "adapter_id": self.adapter_id,
             "adapter_version": self.adapter_version,
             "adapter_implementation_digest": self.implementation_digest,
@@ -376,3 +360,34 @@ class DependenceRecognitionShadowAdapter:
 
 def _ref_dict(value: RecordRef) -> dict[str, str]:
     return {"record_type": value.record_type, "record_id": value.record_id}
+
+
+def _verified_projection(verified: VerifiedDependenceCertificate) -> dict[str, Any]:
+    """Project the exact accepted certificate bindings and evidence declarations."""
+
+    binding = verified.case_binding
+    fact = verified.domain_fact
+    return {
+        "source_path": verified.source_path,
+        "source_digest": verified.source_digest,
+        "analysis_target_ref": _ref_dict(binding.analysis_target_ref),
+        "procedure_ref": _ref_dict(binding.procedure_ref),
+        "affected_target_ref": _ref_dict(binding.affected_target_ref),
+        "independent_unit_definition_id": binding.independent_unit_definition_id,
+        "authorized_key_columns": list(binding.authorized_key_columns),
+        "input_binding": {"path": fact.path, "content_digest": fact.content_digest},
+        "resolved_callable": verified.procedure_call.resolved_callable,
+        "sink_tokens": list(verified.sink_tokens),
+        "proposed_case_digest": verified.proposed_case_digest,
+        "evidence_declarations": [
+            {
+                "evidence_id": declaration.evidence_id,
+                "path": declaration.point.path,
+                "start_line": declaration.point.start_line,
+                "end_line": declaration.point.end_line,
+                "start_column": declaration.point.start_column,
+                "end_column": declaration.point.end_column,
+            }
+            for declaration in verified.evidence
+        ],
+    }

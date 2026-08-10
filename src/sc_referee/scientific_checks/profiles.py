@@ -26,6 +26,21 @@ from sc_referee.scientific_checks.core import (
     ScientificCheckAdapter,
     ScientificCheckModule,
 )
+from sc_referee.scientific_checks.dependence_recognition_adapter import (
+    DEPENDENCE_RECOGNITION_ADAPTER_ID,
+    DEPENDENCE_RECOGNITION_ADAPTER_VERSION,
+    DEPENDENCE_RECOGNITION_CANDIDATE_ID,
+    DEPENDENCE_RECOGNITION_CHECK_ID,
+    DEPENDENCE_RECOGNITION_CHECK_VERSION,
+    DEPENDENCE_RECOGNITION_COUNTEREVIDENCE,
+    DEPENDENCE_RECOGNITION_ROLE_BINDINGS,
+    DEPENDENCE_RECOGNITION_SCIENTIFIC_ADAPTER_IMPLEMENTATION_DIGEST,
+    DEPENDENCE_RECOGNITION_SEMANTIC_ROLES,
+    MULTIPLE_ROWS_PER_AUTHORIZED_UNIT,
+    ONE_ROW_PER_AUTHORIZED_UNIT,
+    DependenceRecognitionScientificAdapter,
+    dependence_recognition_grammar_digest,
+)
 from sc_referee.scientific_checks.founder_orientation_adapter import (
     FOUNDER_ORIENTATION_ADAPTER_IMPLEMENTATION_DIGEST,
     FOUNDER_ORIENTATION_COUNTEREVIDENCE,
@@ -212,6 +227,7 @@ def _scientific_check_release_modules() -> tuple[ScientificCheckModule, ...]:
     modules = (
         *(tuple(_module(profile) for profile in report_profiles)),
         _mvmr_covariance_module(),
+        _module(_dependence_recognition_profile()),
         _module(_conformance_profile()),
     )
     return modules
@@ -253,6 +269,9 @@ def scientific_check_release_projection(
             "scientific_checks/copy_dosage_adapter.py": (COPY_DOSAGE_ADAPTER_IMPLEMENTATION_DIGEST),
             "scientific_checks/copy_dosage_dataflow.py": (
                 COPY_DOSAGE_DATAFLOW_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/dependence_recognition_adapter.py": (
+                DEPENDENCE_RECOGNITION_SCIENTIFIC_ADAPTER_IMPLEMENTATION_DIGEST
             ),
             "scientific_checks/founder_orientation_adapter.py": (
                 FOUNDER_ORIENTATION_ADAPTER_IMPLEMENTATION_DIGEST
@@ -397,6 +416,8 @@ def _module(profile: _ReportProfile) -> ScientificCheckModule:
         return _founder_orientation_module(check, profile)
     if profile.check_id == "check:classifier-derived-copy-dosage-representation":
         return _copy_dosage_module(check, profile)
+    if profile.check_id == DEPENDENCE_RECOGNITION_CHECK_ID:
+        return _dependence_recognition_module(check, profile)
     adapter_id = f"adapter:{profile.check_id.removeprefix('check:')}:selected-report-v1"
     adapter_manifest = AdapterManifest(
         adapter_id=adapter_id,
@@ -628,6 +649,52 @@ def _copy_dosage_module(check: CheckManifest, profile: _ReportProfile) -> Scient
         expectation_operand=expectation_operand,
         calibration_operand=calibration_operand,
         role_bindings=profile.role_bindings,
+    )
+    return ScientificCheckModule(
+        manifest=check,
+        declared_manifest_digest=check.manifest_digest,
+        adapter_manifests=(adapter_manifest,),
+        adapters=(adapter,),
+    )
+
+
+def _dependence_recognition_module(
+    check: CheckManifest, profile: _ReportProfile
+) -> ScientificCheckModule:
+    """Build the single-adapter Stage 5 dependence evaluation module."""
+
+    operands = {candidate.candidate_id: candidate.operand for candidate in profile.candidates}
+    one_row_operand = operands[DEPENDENCE_RECOGNITION_CANDIDATE_ID]
+    multiple_rows_operand = CanonicalOperand.scalar(MULTIPLE_ROWS_PER_AUTHORIZED_UNIT)
+    adapter_manifest = AdapterManifest(
+        adapter_id=DEPENDENCE_RECOGNITION_ADAPTER_ID,
+        adapter_version=DEPENDENCE_RECOGNITION_ADAPTER_VERSION,
+        implementation_digest=DEPENDENCE_RECOGNITION_SCIENTIFIC_ADAPTER_IMPLEMENTATION_DIGEST,
+        recognition_grammar_digest=dependence_recognition_grammar_digest(),
+        parser_id="parser:python-ast-tokenize",
+        parser_version="0.15.1",
+        source_language="python",
+        evidence_plane="static_source",
+        semantic_roles=profile.semantic_roles,
+        applicability_profile="bounded-dependence-semantic-certificate-v1",
+        counterevidence_profiles=DEPENDENCE_RECOGNITION_COUNTEREVIDENCE,
+        known_gaps=(
+            "pandas-frame-model",
+            "membership-scale-above-v1-bound",
+            "distinct-key-scale-above-v1-bound",
+            "unit-level-aggregation-unrecognized",
+            "paired-procedure-operand-unverified",
+            "universal-newline-reader",
+            "unsupported-write-handle",
+            "static source relationships do not establish execution or scientific correctness",
+        ),
+    )
+    adapter = DependenceRecognitionScientificAdapter(
+        check_manifest=check,
+        adapter_manifest=adapter_manifest,
+        one_row_operand=one_row_operand,
+        multiple_rows_operand=multiple_rows_operand,
+        role_bindings=DEPENDENCE_RECOGNITION_ROLE_BINDINGS,
     )
     return ScientificCheckModule(
         manifest=check,
@@ -2334,6 +2401,44 @@ def _local_perturbation_regression_profile() -> _ReportProfile:
         question_wording=(
             "Which target-axis and guide-nuisance specification governs the primary local "
             "perturbation effect for this review?"
+        ),
+    )
+
+
+def _dependence_recognition_profile() -> _ReportProfile:
+    authority_basis = (
+        "Scientist-supplied independent-unit authority for this exact analysis, procedure, "
+        "ordered key, and frozen input; the check does not infer the unit from column names "
+        "or repetition."
+    )
+    return _ReportProfile(
+        check_id=DEPENDENCE_RECOGNITION_CHECK_ID,
+        check_version=DEPENDENCE_RECOGNITION_CHECK_VERSION,
+        adapter_version=DEPENDENCE_RECOGNITION_ADAPTER_VERSION,
+        dimension="dependence_structure",
+        candidates=(
+            _candidate(
+                DEPENDENCE_RECOGNITION_CANDIDATE_ID,
+                "Use one analyzed row per authorized independent unit",
+                ONE_ROW_PER_AUTHORIZED_UNIT,
+                authority_basis,
+            ),
+        ),
+        semantic_roles=DEPENDENCE_RECOGNITION_SEMANTIC_ROLES,
+        role_bindings=DEPENDENCE_RECOGNITION_ROLE_BINDINGS,
+        rules=(),
+        triggers=(),
+        question_wording=(
+            "Which analyzed-row entry rule relative to the authorized independent-unit key "
+            "governs this review?"
+        ),
+        extra_record_types=(
+            "analysis",
+            "file_record",
+            "human_method_authorization",
+            "procedure",
+            "repository_snapshot",
+            "result",
         ),
     )
 

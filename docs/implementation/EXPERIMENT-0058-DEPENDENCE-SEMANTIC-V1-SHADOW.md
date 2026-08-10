@@ -1,10 +1,12 @@
 # Experiment 0058: Dependence semantic v1 shadow recognizer
 
-- **Status:** Active development shadow; Stages 1-4 remain unregistered and report-only
-- **Date:** 2026-08-09
+- **Status:** Stage 5 evaluation-only registration; Stages 1-4 remain package-local and report-only
+- **Date:** 2026-08-10
 - **Related decisions:** ADR-0062, ADR-0069, Experiment 0057
-- **Production impact:** None; v1 is not registered as a scientific check or detector
-- **Finding impact:** None; the maximum adverse output is a report-only evaluation candidate
+- **Production impact:** None; Stage 5 adds only a question-only scientific-check route to the
+  existing experimental generic method-conflict detector
+- **Finding impact:** None; the registered route is Finding-ineligible and the maximum adverse
+  output remains an evaluation candidate
 - **Execution impact:** None; project-authored code is never imported or executed
 
 ## Decision
@@ -215,3 +217,27 @@ The shadow payload binds a dependency-closure digest over only the six
 Founder modules, the unchanged dependence core, registries, and production integration files are
 deliberately not listed or hashed by this experiment closure.  There remains no registry
 integration, detector registration, production Finding path, or project-authored-code execution.
+
+## Stage 5 amendment — 2026-08-10
+
+Stage 5 authorizes an evaluation-only registration of the Stage 4 shadow result through exactly
+one scientific-check normalization wrapper.  The wrapper is question-only in every applicability
+state and may route an accepted adverse static certificate only to the existing generic
+evaluation-candidate path of `detector:bounded-analysis-method-conflict`.  It may also preserve a
+verified one-row-per-authorized-unit certificate as an applicable covered-negative observation,
+or project the existing material-question, not-applicable, and unsupported states without an
+operand.  This registration is authorized for blind-pilot evaluation.
+
+The registered check publishes only the candidate
+`one-analyzed-row-per-authorized-independent-unit`.  Both applicable projections carry the exact
+accepted source `EvidenceDeclaration` spans and the same frozen input, affected target, selected
+sink, and human-authority bindings.  The wrapper obtains scope only through the exact selected
+static-writer path.  Missing or malformed evidence, parser identity, source identity, or scope
+abstains; it never broadens localization to a whole file.
+
+This amendment grants no production `Finding` authority, no new detector or detector-maturity
+authority, no qualification or safeguard authority, and no authority to import or execute
+project-authored code.  The underlying shadow payload remains a report-only intermediate and may
+not itself be scored as a detector result.  Stages 1-4 remain historically unregistered; the final
+sentence of the preceding Stage boundary describes that earlier boundary and is superseded only
+by this narrowly enumerated Stage 5 wrapper registration.

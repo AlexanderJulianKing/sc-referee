@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -28,8 +29,12 @@ LANE = Path("evaluation/qualification/complete-domain-exposure-denominator-v1.1.
 LEDGER = LANE / "heldout-v207-seven-case/detector-run/DETECTOR_RUN_LEDGER.json"
 PROMOTION = LANE / "promotion"
 OPENING = LANE / "heldout-v207-seven-case/HELDOUT_OPENING.json"
-CAPABILITY_MATRIX_DIGEST_BEFORE_ROUND1 = (
-    "sha256:4a3f3a74f295e899aace905c493c137a50e5545ac2be7b4e437ff2bedc19b968"
+CAPABILITY_MATRIX_DIGEST_WITH_DEPENDENCE_STAGE5 = (
+    "sha256:a5baa9875efe58f629b6c021639d0dc2ee243edfb13b42f26f9240b22105d757"
+)
+FROZEN_DETECTOR_MANIFESTS = (
+    LANE / "heldout-v207-seven-case/detector-run/runs/0e8a84e424013c876694/"
+    "audit/derived/detector-manifest.jsonl"
 )
 EMPTY_QUALIFICATION_MANIFEST = (
     b'{"manifest_kind":"detector_qualification_manifest_collection",'
@@ -87,23 +92,32 @@ def test_round1_private_records_rederive_and_resolve_exact_grant(project_root: P
     assert metric_set == expected_metric_set
     assert qualification == expected_qualification
 
-    manifest_collection = _load(
+    current_manifest_collection = _load(
         project_root / "src/sc_referee/resources/capability-manifests-v1/detector-manifests.json"
     )
-    detector_manifest = next(
+    current_detector_manifest = next(
         record
-        for record in manifest_collection["records"]
+        for record in current_manifest_collection["records"]
         if record["detector_id"] == "detector:bounded-analysis-method-conflict"
     )
-    binding = next(
+    current_binding = next(
         item
         for item in scientific_check_release_registry().method_conflict_bindings
         if item.binding_id == "method-conflict-binding:complete-domain-exposure-denominator-v1"
     )
+    frozen_detector_manifest = next(
+        json.loads(line)
+        for line in (project_root / FROZEN_DETECTOR_MANIFESTS).read_text().splitlines()
+        if json.loads(line).get("detector_id") == "detector:bounded-analysis-method-conflict"
+    )
+    frozen_binding = replace(
+        current_binding,
+        detector_manifest_digest=DETECTOR_MANIFEST_DIGEST,
+    )
 
     grant = resolve_method_conflict_qualification(
-        binding=binding,
-        detector_manifest=detector_manifest,
+        binding=frozen_binding,
+        detector_manifest=frozen_detector_manifest,
         qualification=qualification,
         metric_set=metric_set,
     )
@@ -114,6 +128,15 @@ def test_round1_private_records_rederive_and_resolve_exact_grant(project_root: P
     assert grant.binding_digest == BINDING_DIGEST
     assert grant.detector_manifest_digest == DETECTOR_MANIFEST_DIGEST
     assert grant.maturity == "validated"
+    assert (
+        resolve_method_conflict_qualification(
+            binding=current_binding,
+            detector_manifest=current_detector_manifest,
+            qualification=qualification,
+            metric_set=metric_set,
+        )
+        is None
+    )
     assert metric_set["counts"] == {
         "abstentions": 1,
         "adjudicated_roots": 2,
@@ -178,7 +201,7 @@ def test_round1_policy_derives_the_frozen_sensitivity_bar_from_heldout_opening(
     assert achieved_recall["estimate"] == 1.0
 
 
-def test_round1_does_not_install_authority_or_change_capability_matrix(
+def test_round1_does_not_install_authority_and_current_matrix_stays_experimental(
     project_root: Path,
 ) -> None:
     qualification_manifest = (
@@ -191,7 +214,7 @@ def test_round1_does_not_install_authority_or_change_capability_matrix(
     matrix = generate_capability_matrix(
         default_capability_manifest_root(), project_root / "reference/schemas-v0.18.0"
     )
-    assert semantic_digest(matrix) == CAPABILITY_MATRIX_DIGEST_BEFORE_ROUND1
+    assert semantic_digest(matrix) == CAPABILITY_MATRIX_DIGEST_WITH_DEPENDENCE_STAGE5
     method_entry = next(
         item
         for item in matrix["entries"]
