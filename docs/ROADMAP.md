@@ -93,7 +93,7 @@ frontier is the recognition that finds what to compute over.
 
 | Family | What it catches | Built today | Stage | Next step |
 |---|---|---|---|---|
-| **Dependence / pseudoreplication** | Repeated measurements from one subject counted as independent (300 cells from 3 mice reported as n=300) | Evaluator, safeguard registry, data provers, the full recognizer, and the complete pilot pipeline | **Pilot stack verified** (registered question-only; nine review rounds across recognizer and pipeline; final verdict: ready for blind pilots) | Blind pilots |
+| **Dependence / pseudoreplication** | Repeated measurements from one subject counted as independent (300 cells from 3 mice reported as n=300) | Evaluator, safeguard registry, data provers, the full recognizer, and the complete pilot pipeline | **Blind pilots** (first completed pilot scored 6 of 6: the planted error caught, all five controls clean, zero false accusations) | Further pilots, then the sealed exam |
 | **Multiple testing** | An incomplete or mis-scoped correction across a family of tests | Exact complete-family Benjamini-Hochberg recomputation | Recon | Recognizer build (next family in the queue) |
 | **Design integrity & aggregation** | Aggregation that merges or drops design groups; broken pairing | Exact categorical design, pairing, and aggregation calculations | Recon | Queued third; reuses dependence evidence |
 | **Model / response compatibility** | A model fitted on a scale incompatible with its response | Exact call registry and response-scale comparison | Planned | |
@@ -104,7 +104,7 @@ frontier is the recognition that finds what to compute over.
 
 | Slot | Work |
 |---|---|
-| In flight | Dependence blind pilots (authoring, human authorization, blind review, one-attempt detector runs) |
+| In flight | Further dependence pilots toward the sealed exam |
 | Next | Copy-dosage blind pilots; production Finding wiring for the promoted detector (staged decisions) |
 | Then | Multiple-testing recognizer build (recon complete) |
 
