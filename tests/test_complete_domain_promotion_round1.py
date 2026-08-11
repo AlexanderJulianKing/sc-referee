@@ -9,8 +9,12 @@ import pytest
 from sc_referee_evaluation.complete_domain_promotion import (
     DETECTOR_MANIFEST_DIGEST,
     HELDOUT_LEDGER_DIGEST,
+    ROUND2_BINDING_DIGEST,
+    ROUND2_DETECTOR_MANIFEST_DIGEST,
+    ROUND2_EXAM_ADAPTER_IDENTITY,
     CompleteDomainPromotionError,
     build_round1_records,
+    build_round2_records,
     project_heldout_detector_case_outcomes,
 )
 
@@ -27,7 +31,10 @@ from sc_referee.scientific_checks.profiles import scientific_check_release_regis
 
 LANE = Path("evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2")
 LEDGER = LANE / "heldout-v207-seven-case/detector-run/DETECTOR_RUN_LEDGER.json"
+AUTHORING = LANE / "heldout-v207-seven-case/authoring/AUTHORING_PROTOCOL.json"
 PROMOTION = LANE / "promotion"
+PROMOTION_ROUND2 = LANE / "promotion-round2"
+ROUND2_ADR = Path("docs/implementation/ADR-0075-ROUND-2-PROMOTION-RECORD-REDERIVATION.md")
 OPENING = LANE / "heldout-v207-seven-case/HELDOUT_OPENING.json"
 CAPABILITY_MATRIX_DIGEST_WITH_DEPENDENCE_STAGE5 = (
     "sha256:d7db9216421e2407cb4a9abe7e922cb79673ff1c53130f8318c2bdf148dbe4bf"
@@ -189,6 +196,78 @@ def test_round1_private_records_rederive_but_require_v019_restamp(
         "unresolved_disagreement_excluded": True,
         "verified_good_and_hard_negative_included": True,
     }
+
+
+def test_round2_records_rederive_at_current_pins_and_resolve_test_local_grant(
+    project_root: Path,
+) -> None:
+    metric_set = _load(project_root / PROMOTION_ROUND2 / "QUALIFICATION_METRIC_SET.json")
+    qualification = _load(project_root / PROMOTION_ROUND2 / "DETECTOR_QUALIFICATION.json")
+    expected = build_round2_records(
+        project_root / LEDGER,
+        project_root / AUTHORING,
+        recorded_at=str(qualification["decided_at"]),
+        schema_root=project_root / "reference/schemas-v0.19.0",
+    )
+    assert expected == (metric_set, qualification)
+
+    detector_manifest = next(
+        record
+        for record in _load(
+            project_root
+            / "src/sc_referee/resources/capability-manifests-v1/detector-manifests.json"
+        )["records"]
+        if record["detector_id"] == "detector:bounded-analysis-method-conflict"
+    )
+    bindings = scientific_check_release_registry().method_conflict_bindings
+    binding = next(
+        item
+        for item in bindings
+        if item.binding_id == "method-conflict-binding:complete-domain-exposure-denominator-v1"
+    )
+    assert binding.binding_digest == ROUND2_BINDING_DIGEST
+    assert binding.detector_manifest_digest == ROUND2_DETECTOR_MANIFEST_DIGEST
+    assert live_adapter_identity(binding) == ROUND2_EXAM_ADAPTER_IDENTITY
+    grant = resolve_method_conflict_qualification(
+        binding=binding,
+        detector_manifest=detector_manifest,
+        qualification=qualification,
+        metric_set=metric_set,
+        pin=_pin(binding, metric_set, qualification),
+    )
+    assert grant is not None
+    assert grant.qualification_id == qualification["qualification_id"]
+    assert qualification["author_actor_ids"] == [
+        "actor:heldout-claude-04",
+        "actor:heldout-claude-05",
+        "actor:heldout-claude-06",
+        "actor:heldout-codex-04",
+        "actor:heldout-codex-05",
+        "actor:heldout-codex-06",
+    ]
+    assert qualification["agent_adjudication_refs"] == []
+    assert qualification["evaluation_refs"]
+    assert qualification["qualification_proof_families"] == ["static_closed_scope"]
+    assert qualification["static_scope_disclosure"]["stage3_comparison_artifact_exists"] is False
+
+    for sibling in bindings:
+        if sibling.binding_id != binding.binding_id:
+            assert (
+                resolve_method_conflict_qualification(
+                    binding=sibling,
+                    detector_manifest=detector_manifest,
+                    qualification=qualification,
+                    metric_set=metric_set,
+                    pin=_pin(binding, metric_set, qualification),
+                )
+                is None
+            )
+
+    adr = (project_root / ROUND2_ADR).read_text(encoding="utf-8")
+    assert semantic_digest(metric_set) in adr
+    assert semantic_digest(qualification) in adr
+    assert "Field-by-field divergence from Round 1" in adr
+    assert "ADR-0074" in adr
 
 
 def test_round1_policy_derives_the_frozen_sensitivity_bar_from_heldout_opening(

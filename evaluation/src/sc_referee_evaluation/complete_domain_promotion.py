@@ -12,12 +12,21 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from sc_referee.capability_matrix import default_capability_manifest_root
 from sc_referee.core.ids import semantic_digest, sha256_digest, stable_id
+from sc_referee.detectors.method_conflict_grant_pins import (
+    ExamAdapterIdentity,
+    live_adapter_identity,
+)
 from sc_referee.qualification_metrics import compile_qualification_evidence
+from sc_referee.records.schema_registry import LocalSchemaRegistry
+from sc_referee.scientific_checks.core import MethodConflictBinding
+from sc_referee.scientific_checks.profiles import scientific_check_release_registry
 
 
 class CompleteDomainPromotionError(ValueError):
@@ -27,10 +36,14 @@ class CompleteDomainPromotionError(ValueError):
 DETECTOR_ID = "detector:bounded-analysis-method-conflict"
 DETECTOR_VERSION = "0.3.0"
 DETECTOR_MANIFEST_DIGEST = "sha256:a8e8bdf16e847745276a3d8da0bc2ba44062e42293e1f3185c9ccf9a19abecbc"
+ROUND2_DETECTOR_MANIFEST_DIGEST = (
+    "sha256:05738abe8845442b25b9d03d35b5a5696f169ca46057aabd970561dd5bbf909e"
+)
 CHECK_ID = "check:complete-domain-exposure-denominator"
 CHECK_VERSION = "2.0.7"
 BINDING_ID = "method-conflict-binding:complete-domain-exposure-denominator-v1"
 BINDING_DIGEST = "sha256:f0b46686e0c5a4ff137cc43b4729fc6194e7aa550565bf4f9fe637f2480262ed"
+ROUND2_BINDING_DIGEST = "sha256:8998fc99f4bd9f8107e2049c1eb37dd4adc0234f67d36a97008b371b529c6351"
 CHECK_MANIFEST_DIGEST = "sha256:c3ef7acd8597c86e8a121ba43e94d4f2a2993c08cd2c14981b85b13c431841a9"
 DETECTOR_TUPLE_DIGEST = "sha256:c0d6ec05c8e24e04e4382430e3bfa7fa4086bef016df218f28b907542f2ca3c3"
 HELDOUT_LEDGER_DIGEST = "sha256:679cbc06c089ac8bccffbc89619bb4fdb67a722dcae0a47edcce205f87578048"
@@ -40,6 +53,22 @@ SCIENTIFIC_LABEL_LEDGER_DIGEST = (
 )
 AUTHORING_PROTOCOL_DIGEST = (
     "sha256:6554e88100ee986e8b5f6357ae9fe07d53723654c4aa415df1810ecc56d19c06"
+)
+ROUND1_QUALIFICATION_ADAPTER_IMPLEMENTATION_DIGEST = (
+    "sha256:b6f91c351002d689ef76a66e507f57c66b25bb485d890bc2ac1882b1e61713aa"
+)
+ROUND2_EXAM_ADAPTER_IDENTITY = (
+    ExamAdapterIdentity(
+        adapter_id="adapter:complete-domain-exposure-denominator:quantity-consistency-v1",
+        adapter_version="2.0.7",
+        implementation_digest=(
+            "sha256:cb6de94e39efdf726cc516178b77b85443044415b72c8671025ef9c2e6eef05c"
+        ),
+        manifest_digest=("sha256:231046e541e1e84671b7fe716a2454c67d2d931f1cfe432e7de80512987d3a20"),
+        recognition_grammar_digest=(
+            "sha256:c757692071a6925a5ca5e409dc0ad79f7421fcdbc93fb15c14efb30050524362"
+        ),
+    ),
 )
 QUALIFICATION_ENVELOPE = {
     "issue_classes": ["x-review-scoped-analysis-method-requirement-mismatch"],
@@ -226,7 +255,7 @@ def build_round1_records(
         "qualification_adapter": {
             "adapter_id": "qualification-adapter:heldout-ledger-case-outcome-v1",
             "adapter_version": "1.0.0",
-            "implementation_digest": sha256_digest(Path(__file__).read_bytes()),
+            "implementation_digest": ROUND1_QUALIFICATION_ADAPTER_IMPLEMENTATION_DIGEST,
         },
     }
     metric_set: dict[str, Any] = {
@@ -324,6 +353,249 @@ def build_round1_records(
         "provenance": _provenance(recorded_at, "maintainer_promotion_recording"),
     }
     return metric_set, qualification
+
+
+def build_round2_records(
+    ledger_path: Path,
+    authoring_protocol_path: Path,
+    *,
+    recorded_at: str,
+    schema_root: Path,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Re-derive the sealed evidence in public v0.19 shape at ruled current pins."""
+
+    binding, detector_manifest = _round2_live_identity()
+    outcomes = deepcopy(project_heldout_detector_case_outcomes(ledger_path))
+    for outcome in outcomes:
+        outcome["schema_version"] = "0.19.0"
+        outcome["detector_manifest_digest"] = binding.detector_manifest_digest
+    policy = numeric_threshold_policy(ledger_path.parent.parent / "HELDOUT_OPENING.json")
+    evidence = compile_qualification_evidence(outcomes, QUALIFICATION_ENVELOPE)
+    profile = qualification_profile_descriptor()
+    scope = _round2_scope(binding, profile)
+    metric_set: dict[str, Any] = {
+        "schema_version": "0.19.0",
+        "record_type": "qualification_metric_set",
+        **evidence,
+        "binding_scope": scope,
+        "metric_profile": "root-cause-clustered-metrics-v1",
+        "numeric_threshold_policy": policy,
+        "promotion_permitted": True,
+        "generated_at": recorded_at,
+        "non_inferences": [
+            "Round 2 installs no production grant and changes no controller authority.",
+            "Point estimates from seven cases are not a correctness certificate.",
+            "Any future grant applies only to the current digest pins ruled by ADR-0074.",
+        ],
+        "provenance": _provenance(recorded_at, "deterministic_round2_current_pin_rederivation"),
+    }
+    qualification: dict[str, Any] = {
+        "schema_version": "0.19.0",
+        "record_type": "detector_qualification",
+        "qualification_id": "qualification:complete-domain-exposure-denominator-v207-round2",
+        "detector_id": DETECTOR_ID,
+        "detector_version": DETECTOR_VERSION,
+        "outcome": "promoted",
+        "requested_maturity": "validated",
+        "effective_maturity": "validated",
+        "binding_scope": scope,
+        "numeric_threshold_policy": policy,
+        "qualification_proof_families": ["static_closed_scope"],
+        "quantitative_metrics": {
+            "metric_profile": "root-cause-clustered-metrics-v1",
+            "metric_set_refs": [
+                {
+                    "record_type": "qualification_metric_set",
+                    "record_id": metric_set["metric_set_id"],
+                }
+            ],
+        },
+        "review_basis": "agent_panel",
+        "agent_adjudication_refs": [],
+        "evaluation_refs": [
+            (
+                "evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-"
+                "direct-lane-v2/heldout-v207-seven-case/review/REVIEW_LEDGER.json"
+            ),
+            (
+                "evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-"
+                "direct-lane-v2/heldout-v207-seven-case/SCIENTIFIC_LABEL_LEDGER.json"
+            ),
+        ],
+        "author_actor_ids": _round2_author_actor_ids(authoring_protocol_path),
+        "human_scientific_approvals": [],
+        "software_maintainer_approvals": [
+            {
+                "actor": {
+                    "actor_kind": "human",
+                    "actor_id": "person:alex",
+                    "display_name": "Alex",
+                },
+                "approved_on": "2026-08-10",
+                "decision_ref": (
+                    "docs/implementation/ADR-0071-COMPLETE-DOMAIN-ENVELOPE-PROMOTION.md"
+                ),
+            }
+        ],
+        "qualification_report_ref": (
+            "evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-"
+            "lane-v2/QUALIFICATION_REPORT.md"
+        ),
+        "safety_gates": _round2_safety_gates(),
+        "static_scope_disclosure": {
+            "profile_refs": [scope["static_qualification_profile_ref"]],
+            "scope_statement": (
+                "Seven digest-locked static audit closures; project-authored code was not "
+                "executed. ADR-0071 accepts the lean-consolidated evidence without a separate "
+                "Stage-3 comparison artifact, and ADR-0074 rules the non-blind seven-case replay "
+                "at the current adapter identity into the exact qualification scope."
+            ),
+            "stage3_comparison_artifact_exists": False,
+            "execution_claimed": False,
+            "global_correctness_claimed": False,
+        },
+        "qualification_basis_disclosure": (
+            "The same one-shot 7/7 held-out evidence is re-derived in v0.19 shape at the "
+            "ADR-0074-ruled current adapter and live binding pins. This record does not install "
+            "a grant."
+        ),
+        "decided_at": recorded_at,
+        "provenance": _provenance(recorded_at, "maintainer_round2_rederivation_recording"),
+    }
+    registry = LocalSchemaRegistry(schema_root)
+    registry.validate(metric_set)
+    registry.validate(qualification)
+    if semantic_digest(detector_manifest) != binding.detector_manifest_digest:
+        raise CompleteDomainPromotionError("Live detector manifest changed during re-derivation.")
+    return metric_set, qualification
+
+
+def _round2_live_identity() -> tuple[MethodConflictBinding, dict[str, Any]]:
+    bindings = [
+        item
+        for item in scientific_check_release_registry().method_conflict_bindings
+        if item.binding_id == BINDING_ID
+    ]
+    if len(bindings) != 1:
+        raise CompleteDomainPromotionError("Round-2 binding is absent or duplicated.")
+    binding = bindings[0]
+    if (
+        binding.binding_digest != ROUND2_BINDING_DIGEST
+        or binding.check_id != CHECK_ID
+        or binding.check_version != CHECK_VERSION
+        or binding.check_manifest_digest != CHECK_MANIFEST_DIGEST
+        or binding.detector_id != DETECTOR_ID
+        or binding.detector_version != DETECTOR_VERSION
+        or binding.detector_manifest_digest != ROUND2_DETECTOR_MANIFEST_DIGEST
+        or live_adapter_identity(binding) != ROUND2_EXAM_ADAPTER_IDENTITY
+    ):
+        raise CompleteDomainPromotionError("Live Round-2 identity is not the ADR-0074-ruled tuple.")
+    collection_path = default_capability_manifest_root() / "detector-manifests.json"
+    try:
+        collection = json.loads(collection_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise CompleteDomainPromotionError(
+            "Live detector manifest collection is unreadable."
+        ) from error
+    records = collection.get("records") if isinstance(collection, Mapping) else None
+    matches = (
+        [
+            dict(item)
+            for item in records
+            if isinstance(item, Mapping)
+            and item.get("detector_id") == DETECTOR_ID
+            and item.get("detector_version") == DETECTOR_VERSION
+        ]
+        if isinstance(records, list)
+        else []
+    )
+    if (
+        len(matches) != 1
+        or semantic_digest(matches[0]) != ROUND2_DETECTOR_MANIFEST_DIGEST
+        or matches[0].get("maturity") != "experimental"
+    ):
+        raise CompleteDomainPromotionError("Live Round-2 detector manifest is not exact.")
+    return binding, matches[0]
+
+
+def _round2_scope(binding: MethodConflictBinding, profile: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "scope_kind": "method_conflict_binding_v1",
+        "binding_id": binding.binding_id,
+        "production_binding_digest": binding.binding_digest,
+        "check_id": binding.check_id,
+        "check_version": binding.check_version,
+        "check_manifest_digest": binding.check_manifest_digest,
+        "detector_id": binding.detector_id,
+        "detector_version": binding.detector_version,
+        "detector_manifest_digest": binding.detector_manifest_digest,
+        "static_qualification_profile_ref": {
+            "record_type": "static_qualification_profile",
+            "record_id": profile["record_id"],
+        },
+        "static_qualification_profile_digest": semantic_digest(profile),
+        "qualification_adapter": {
+            "adapter_id": "qualification-adapter:heldout-ledger-case-outcome-v1",
+            "adapter_version": "2.0.0",
+            "implementation_digest": sha256_digest(Path(__file__).read_bytes()),
+        },
+    }
+
+
+def _round2_author_actor_ids(path: Path) -> list[str]:
+    if path.is_symlink() or not path.is_file():
+        raise CompleteDomainPromotionError("Authoring protocol must be one regular file.")
+    try:
+        protocol = json.loads(path.read_bytes().decode("utf-8", errors="strict"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise CompleteDomainPromotionError(
+            "Authoring protocol is not strict UTF-8 JSON."
+        ) from error
+    if not isinstance(protocol, Mapping):
+        raise CompleteDomainPromotionError("Authoring protocol must be one JSON object.")
+    supplied = protocol.get("protocol_digest")
+    basis = {key: value for key, value in protocol.items() if key != "protocol_digest"}
+    if supplied != AUTHORING_PROTOCOL_DIGEST or semantic_digest(basis) != AUTHORING_PROTOCOL_DIGEST:
+        raise CompleteDomainPromotionError("Authoring protocol digest does not match the seal.")
+    assignments = protocol.get("author_assignments")
+    if not isinstance(assignments, Sequence) or isinstance(assignments, (str, bytes)):
+        raise CompleteDomainPromotionError("Authoring protocol assignments are malformed.")
+    actors: set[str] = set()
+    assigned_cases: set[str] = set()
+    for assignment in assignments:
+        participant = assignment.get("participant") if isinstance(assignment, Mapping) else None
+        actor_id = participant.get("participant_id") if isinstance(participant, Mapping) else None
+        case_ids = assignment.get("case_ids") if isinstance(assignment, Mapping) else None
+        if (
+            not isinstance(actor_id, str)
+            or not actor_id.startswith("actor:")
+            or not isinstance(case_ids, Sequence)
+            or isinstance(case_ids, (str, bytes))
+            or not case_ids
+            or not all(isinstance(case_id, str) for case_id in case_ids)
+            or assigned_cases.intersection(case_ids)
+        ):
+            raise CompleteDomainPromotionError("Authoring protocol assignment identity is invalid.")
+        actors.add(actor_id)
+        assigned_cases.update(case_ids)
+    if assigned_cases != set(_EXPECTED_CASE_ROLES) or not actors:
+        raise CompleteDomainPromotionError("Author assignments do not cover the sealed cases once.")
+    return sorted(actors)
+
+
+def _round2_safety_gates() -> dict[str, bool]:
+    return {
+        "no_known_high_or_critical_false_accusations": True,
+        "conditional_never_promoted": True,
+        "verified_good_and_hard_negative_included": True,
+        "decisive_counterevidence_included": True,
+        "cluster_aware_uncertainty_reported": True,
+        "public_development_cases_not_used_for_qualification": True,
+        "regression_fixture_for_every_discovered_false_accusation": True,
+        "unresolved_disagreement_excluded": True,
+        "qualification_report_public": True,
+        "proof_families_stratified": True,
+    }
 
 
 def _project_entry(entry: Mapping[str, Any], case_id: str, expected_role: str) -> dict[str, Any]:
@@ -522,6 +794,7 @@ def _is_sha256(value: object) -> bool:
 __all__ = [
     "CompleteDomainPromotionError",
     "build_round1_records",
+    "build_round2_records",
     "numeric_threshold_policy",
     "project_heldout_detector_case_outcomes",
     "qualification_profile_descriptor",

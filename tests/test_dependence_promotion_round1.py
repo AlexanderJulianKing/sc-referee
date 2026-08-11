@@ -23,8 +23,12 @@ from sc_referee_evaluation.dependence_promotion import (
     HELDOUT_OPENING_DIGEST,
     RECOGNITION_GRAMMAR_DIGEST,
     REGISTRY_CONTENT_DIGEST,
+    ROUND2_BINDING_DIGEST,
+    ROUND2_DETECTOR_MANIFEST_DIGEST,
+    ROUND2_EXAM_ADAPTER_IDENTITY,
     DependencePromotionError,
     build_round1_records,
+    build_round2_records,
     numeric_threshold_policy,
     project_heldout_detector_case_outcomes,
     verify_absolute_missed_root_gate,
@@ -46,6 +50,8 @@ LEDGER = EXAM / "detector-run/DETECTOR_RUN_LEDGER.json"
 OPENING = EXAM / "opening/DEPENDENCE_HELDOUT_OPENING.json"
 AUTHORING = EXAM / "authoring/AUTHORING_PROTOCOL.json"
 PROMOTION = LANE / "promotion"
+PROMOTION_ROUND2 = LANE / "promotion-round2"
+ROUND2_ADR = Path("docs/implementation/ADR-0075-ROUND-2-PROMOTION-RECORD-REDERIVATION.md")
 FROZEN_DETECTOR_MANIFESTS = (
     EXAM / "detector-run/runs/8a68d6ae147ce49e2a11/audit/derived/detector-manifest.jsonl"
 )
@@ -273,6 +279,66 @@ def test_sibling_bindings_and_simulated_current_drift_defeat_grant(
         )
         is None
     )
+
+
+def test_round2_records_rederive_at_current_pins_and_resolve_test_local_grant(
+    project_root: Path,
+) -> None:
+    metric_set = _load(project_root / PROMOTION_ROUND2 / "QUALIFICATION_METRIC_SET.json")
+    qualification = _load(project_root / PROMOTION_ROUND2 / "DETECTOR_QUALIFICATION.json")
+    expected = build_round2_records(
+        project_root / LEDGER,
+        project_root / AUTHORING,
+        recorded_at=str(qualification["decided_at"]),
+        schema_root=project_root / "reference/schemas-v0.19.0",
+    )
+    assert expected == (metric_set, qualification)
+
+    detector_manifest = _detector_manifest(_load(project_root / DETECTOR_MANIFESTS))
+    bindings = scientific_check_release_registry().method_conflict_bindings
+    binding = next(item for item in bindings if item.binding_id == BINDING_ID)
+    assert binding.binding_digest == ROUND2_BINDING_DIGEST
+    assert binding.detector_manifest_digest == ROUND2_DETECTOR_MANIFEST_DIGEST
+    assert live_adapter_identity(binding) == ROUND2_EXAM_ADAPTER_IDENTITY
+    grant = resolve_method_conflict_qualification(
+        binding=binding,
+        detector_manifest=detector_manifest,
+        qualification=qualification,
+        metric_set=metric_set,
+        pin=_pin(binding, metric_set, qualification),
+    )
+    assert grant is not None
+    assert grant.qualification_id == qualification["qualification_id"]
+    assert qualification["author_actor_ids"] == [
+        "actor:dependence-heldout-author-opus-23",
+        "actor:dependence-heldout-author-opus-24",
+    ]
+    assert qualification["agent_adjudication_refs"] == []
+    assert qualification["evaluation_refs"]
+    assert qualification["qualification_proof_families"] == ["static_closed_scope"]
+    assert qualification["static_scope_disclosure"]["stage3_comparison_artifact_exists"] is False
+    assert "absolute_count_requirements" not in qualification["numeric_threshold_policy"]
+    assert metric_set["counts"]["missed_roots"] == 0
+    assert metric_set["counts"]["adjudicated_roots"] == 2
+
+    for sibling in bindings:
+        if sibling.binding_id != binding.binding_id:
+            assert (
+                resolve_method_conflict_qualification(
+                    binding=sibling,
+                    detector_manifest=detector_manifest,
+                    qualification=qualification,
+                    metric_set=metric_set,
+                    pin=_pin(binding, metric_set, qualification),
+                )
+                is None
+            )
+
+    adr = (project_root / ROUND2_ADR).read_text(encoding="utf-8")
+    assert semantic_digest(metric_set) in adr
+    assert semantic_digest(qualification) in adr
+    assert "dependence `absolute_count_requirements`" in adr
+    assert "manifest collection remain empty" in adr
 
 
 def test_frozen_bars_and_absolute_missed_root_gate_are_enforced(

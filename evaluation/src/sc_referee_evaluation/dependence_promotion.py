@@ -12,12 +12,21 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from sc_referee.capability_matrix import default_capability_manifest_root
 from sc_referee.core.ids import semantic_digest, sha256_digest, stable_id
+from sc_referee.detectors.method_conflict_grant_pins import (
+    ExamAdapterIdentity,
+    live_adapter_identity,
+)
 from sc_referee.qualification_metrics import compile_qualification_evidence
+from sc_referee.records.schema_registry import LocalSchemaRegistry
+from sc_referee.scientific_checks.core import MethodConflictBinding
+from sc_referee.scientific_checks.profiles import scientific_check_release_registry
 
 
 class DependencePromotionError(ValueError):
@@ -27,12 +36,16 @@ class DependencePromotionError(ValueError):
 DETECTOR_ID = "detector:bounded-analysis-method-conflict"
 DETECTOR_VERSION = "0.3.0"
 DETECTOR_MANIFEST_DIGEST = "sha256:5b74ec663a651bd3e2eb934c25896cfbbe02f6840e2ea898296c0d478aa97e0a"
+ROUND2_DETECTOR_MANIFEST_DIGEST = (
+    "sha256:05738abe8845442b25b9d03d35b5a5696f169ca46057aabd970561dd5bbf909e"
+)
 CHECK_ID = "check:authorized-independent-unit-entry-into-row-independent-procedure"
 CHECK_VERSION = "1.1.0"
 BINDING_ID = (
     "method-conflict-binding:authorized-independent-unit-entry-into-row-independent-procedure-v1"
 )
 BINDING_DIGEST = "sha256:e212bf6f81ec30490c817cb810ce5214a160a5841b564019b10b8061ddc0cb16"
+ROUND2_BINDING_DIGEST = "sha256:4a62385441043681dca65005be3c73a11858449955104dc8efe0582606331787"
 CHECK_MANIFEST_DIGEST = "sha256:4f48a3104693cd6cdcf215bd620b59449ee87c3cd969ddbe7285f168e598ab21"
 ADAPTER_ID = (
     "adapter:authorized-independent-unit-entry-into-row-independent-procedure:"
@@ -45,6 +58,18 @@ ADAPTER_IMPLEMENTATION_DIGEST = (
 ADAPTER_MANIFEST_DIGEST = "sha256:81df54974a949648f6f86287df725c1a69ce63f41100480d299680f92eee3776"
 RECOGNITION_GRAMMAR_DIGEST = (
     "sha256:bb3b283145ec1420491771ca49fbd2214e553602a735af2a6f7027980c8be873"
+)
+ROUND1_QUALIFICATION_ADAPTER_IMPLEMENTATION_DIGEST = (
+    "sha256:4865e8b3e3344dd1d1478a2af78620d76a067d37a9cf34518c19deef6bce29b5"
+)
+ROUND2_EXAM_ADAPTER_IDENTITY = (
+    ExamAdapterIdentity(
+        adapter_id=ADAPTER_ID,
+        adapter_version=ADAPTER_VERSION,
+        implementation_digest=ADAPTER_IMPLEMENTATION_DIGEST,
+        manifest_digest=ADAPTER_MANIFEST_DIGEST,
+        recognition_grammar_digest=RECOGNITION_GRAMMAR_DIGEST,
+    ),
 )
 DETECTOR_TUPLE_DIGEST = "sha256:252ef70a22da2e2168b26d7477bb0e666f6188d3786f0c41f2034356ab630795"
 REGISTRY_CONTENT_DIGEST = "sha256:086db3b7dd0ebbb9e430763efcc6c1e981e22ea3db2b7e6b8200a51d3d38c253"
@@ -256,7 +281,7 @@ def build_round1_records(
         "qualification_adapter": {
             "adapter_id": "qualification-adapter:dependence-heldout-ledger-case-outcome-v1",
             "adapter_version": "1.0.0",
-            "implementation_digest": sha256_digest(Path(__file__).read_bytes()),
+            "implementation_digest": ROUND1_QUALIFICATION_ADAPTER_IMPLEMENTATION_DIGEST,
         },
     }
     metric_set: dict[str, Any] = {
@@ -359,6 +384,255 @@ def build_round1_records(
         "provenance": _provenance(recorded_at, "maintainer_promotion_recording"),
     }
     return metric_set, qualification
+
+
+def build_round2_records(
+    ledger_path: Path,
+    authoring_protocol_path: Path,
+    *,
+    recorded_at: str,
+    schema_root: Path,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Re-derive the sealed dependence evidence in public v0.19 shape at live pins."""
+
+    binding, detector_manifest = _round2_live_identity()
+    outcomes = deepcopy(project_heldout_detector_case_outcomes(ledger_path))
+    for outcome in outcomes:
+        outcome["schema_version"] = "0.19.0"
+        outcome["detector_manifest_digest"] = binding.detector_manifest_digest
+    opening_path = ledger_path.parent.parent / "opening" / "DEPENDENCE_HELDOUT_OPENING.json"
+    policy = _round2_numeric_threshold_policy(opening_path)
+    evidence = compile_qualification_evidence(outcomes, QUALIFICATION_ENVELOPE)
+    if (
+        evidence.get("counts", {}).get("missed_roots") != 0
+        or evidence.get("counts", {}).get("adjudicated_roots") != 2
+    ):
+        raise DependencePromotionError("Round-2 absolute root counts did not replay.")
+    profile = qualification_profile_descriptor()
+    scope = _round2_scope(binding, profile)
+    metric_set: dict[str, Any] = {
+        "schema_version": "0.19.0",
+        "record_type": "qualification_metric_set",
+        **evidence,
+        "binding_scope": scope,
+        "metric_profile": "root-cause-clustered-metrics-v1",
+        "numeric_threshold_policy": policy,
+        "promotion_permitted": True,
+        "generated_at": recorded_at,
+        "non_inferences": [
+            "Round 2 installs no production grant and changes no controller authority.",
+            "Point estimates from seven cases are not a correctness certificate.",
+            "Any future grant applies only to this exact current binding and adapter identity.",
+            "Intake sandbox execution is fixture ground truth, not detector execution evidence.",
+        ],
+        "provenance": _provenance(recorded_at, "deterministic_round2_current_pin_rederivation"),
+    }
+    qualification: dict[str, Any] = {
+        "schema_version": "0.19.0",
+        "record_type": "detector_qualification",
+        "qualification_id": "qualification:authorized-independent-unit-entry-v110-round2",
+        "detector_id": DETECTOR_ID,
+        "detector_version": DETECTOR_VERSION,
+        "outcome": "promoted",
+        "requested_maturity": "validated",
+        "effective_maturity": "validated",
+        "binding_scope": scope,
+        "numeric_threshold_policy": policy,
+        "qualification_proof_families": ["static_closed_scope"],
+        "quantitative_metrics": {
+            "metric_profile": "root-cause-clustered-metrics-v1",
+            "metric_set_refs": [
+                {
+                    "record_type": "qualification_metric_set",
+                    "record_id": metric_set["metric_set_id"],
+                }
+            ],
+        },
+        "review_basis": "agent_panel",
+        "agent_adjudication_refs": [],
+        "evaluation_refs": [
+            (
+                "evaluation/qualification/authorized-independent-unit-entry-into-row-"
+                "independent-procedure-v1.1.0-direct-lane/heldout-seven-case/review/"
+                "REVIEW_LEDGER.json"
+            ),
+            (
+                "evaluation/qualification/authorized-independent-unit-entry-into-row-"
+                "independent-procedure-v1.1.0-direct-lane/heldout-seven-case/"
+                "SCIENTIFIC_LABEL_LEDGER.json"
+            ),
+        ],
+        "author_actor_ids": _round2_author_actor_ids(authoring_protocol_path),
+        "human_scientific_approvals": [],
+        "software_maintainer_approvals": [
+            {
+                "actor": {
+                    "actor_kind": "human",
+                    "actor_id": "person:alex",
+                    "display_name": "Alex",
+                },
+                "approved_on": "2026-08-10",
+                "decision_ref": "docs/implementation/ADR-0073-DEPENDENCE-ENVELOPE-PROMOTION.md",
+            }
+        ],
+        "qualification_report_ref": (
+            "evaluation/qualification/authorized-independent-unit-entry-into-row-independent-"
+            "procedure-v1.1.0-direct-lane/QUALIFICATION_REPORT.md"
+        ),
+        "safety_gates": _round2_safety_gates(),
+        "static_scope_disclosure": {
+            "profile_refs": [scope["static_qualification_profile_ref"]],
+            "scope_statement": (
+                "Seven digest-locked static audit closures under the exact dependence binding; "
+                "the recognizer did not execute project-authored code. ADR-0073 accepts the "
+                "lean-consolidated evidence without a separate Stage-3 comparison artifact. "
+                "Intake sandbox executions established fixture ground truth only."
+            ),
+            "stage3_comparison_artifact_exists": False,
+            "execution_claimed": False,
+            "global_correctness_claimed": False,
+        },
+        "qualification_basis_disclosure": (
+            "The same one-shot 7/7 held-out evidence at the frozen two-of-two bar is re-derived "
+            "in v0.19 shape at the current live binding pins. It contains two bounded candidates, "
+            "five controls without candidates, zero missed roots, and installs no grant."
+        ),
+        "decided_at": recorded_at,
+        "provenance": _provenance(recorded_at, "maintainer_round2_rederivation_recording"),
+    }
+    registry = LocalSchemaRegistry(schema_root)
+    registry.validate(metric_set)
+    registry.validate(qualification)
+    if semantic_digest(detector_manifest) != binding.detector_manifest_digest:
+        raise DependencePromotionError("Live detector manifest changed during re-derivation.")
+    return metric_set, qualification
+
+
+def _round2_numeric_threshold_policy(opening_path: Path) -> dict[str, Any]:
+    policy = numeric_threshold_policy(opening_path)
+    expected = [{"count_name": "missed_roots", "operator": "equals", "threshold": 0}]
+    if policy.pop("absolute_count_requirements", None) != expected:
+        raise DependencePromotionError("Private absolute-count policy annotation drifted.")
+    policy.pop("policy_semantic_digest")
+    policy["policy_semantic_digest"] = semantic_digest(policy)
+    return policy
+
+
+def _round2_live_identity() -> tuple[MethodConflictBinding, dict[str, Any]]:
+    bindings = [
+        item
+        for item in scientific_check_release_registry().method_conflict_bindings
+        if item.binding_id == BINDING_ID
+    ]
+    if len(bindings) != 1:
+        raise DependencePromotionError("Round-2 binding is absent or duplicated.")
+    binding = bindings[0]
+    if (
+        binding.binding_digest != ROUND2_BINDING_DIGEST
+        or binding.check_id != CHECK_ID
+        or binding.check_version != CHECK_VERSION
+        or binding.check_manifest_digest != CHECK_MANIFEST_DIGEST
+        or binding.detector_id != DETECTOR_ID
+        or binding.detector_version != DETECTOR_VERSION
+        or binding.detector_manifest_digest != ROUND2_DETECTOR_MANIFEST_DIGEST
+        or live_adapter_identity(binding) != ROUND2_EXAM_ADAPTER_IDENTITY
+    ):
+        raise DependencePromotionError("Live Round-2 dependence identity is not exact.")
+    collection_path = default_capability_manifest_root() / "detector-manifests.json"
+    try:
+        collection = json.loads(collection_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise DependencePromotionError(
+            "Live detector manifest collection is unreadable."
+        ) from error
+    records = collection.get("records") if isinstance(collection, Mapping) else None
+    matches = (
+        [
+            dict(item)
+            for item in records
+            if isinstance(item, Mapping)
+            and item.get("detector_id") == DETECTOR_ID
+            and item.get("detector_version") == DETECTOR_VERSION
+        ]
+        if isinstance(records, list)
+        else []
+    )
+    if (
+        len(matches) != 1
+        or semantic_digest(matches[0]) != ROUND2_DETECTOR_MANIFEST_DIGEST
+        or matches[0].get("maturity") != "experimental"
+    ):
+        raise DependencePromotionError("Live Round-2 detector manifest is not exact.")
+    return binding, matches[0]
+
+
+def _round2_scope(binding: MethodConflictBinding, profile: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "scope_kind": "method_conflict_binding_v1",
+        "binding_id": binding.binding_id,
+        "production_binding_digest": binding.binding_digest,
+        "check_id": binding.check_id,
+        "check_version": binding.check_version,
+        "check_manifest_digest": binding.check_manifest_digest,
+        "detector_id": binding.detector_id,
+        "detector_version": binding.detector_version,
+        "detector_manifest_digest": binding.detector_manifest_digest,
+        "static_qualification_profile_ref": {
+            "record_type": "static_qualification_profile",
+            "record_id": profile["record_id"],
+        },
+        "static_qualification_profile_digest": semantic_digest(profile),
+        "qualification_adapter": {
+            "adapter_id": "qualification-adapter:dependence-heldout-ledger-case-outcome-v1",
+            "adapter_version": "2.0.0",
+            "implementation_digest": sha256_digest(Path(__file__).read_bytes()),
+        },
+    }
+
+
+def _round2_author_actor_ids(path: Path) -> list[str]:
+    protocol = _load_semantic_record(
+        path, "protocol_digest", AUTHORING_PROTOCOL_DIGEST, "authoring protocol"
+    )
+    assignments = protocol.get("author_assignments")
+    if not isinstance(assignments, Sequence) or isinstance(assignments, (str, bytes)):
+        raise DependencePromotionError("Authoring protocol assignments are malformed.")
+    actors: set[str] = set()
+    assigned_cases: set[str] = set()
+    for assignment in assignments:
+        participant = assignment.get("participant") if isinstance(assignment, Mapping) else None
+        actor_id = participant.get("participant_id") if isinstance(participant, Mapping) else None
+        case_ids = assignment.get("case_ids") if isinstance(assignment, Mapping) else None
+        if (
+            not isinstance(actor_id, str)
+            or not actor_id.startswith("actor:")
+            or not isinstance(case_ids, Sequence)
+            or isinstance(case_ids, (str, bytes))
+            or not case_ids
+            or not all(isinstance(case_id, str) for case_id in case_ids)
+            or assigned_cases.intersection(case_ids)
+        ):
+            raise DependencePromotionError("Authoring protocol assignment identity is invalid.")
+        actors.add(actor_id)
+        assigned_cases.update(case_ids)
+    if assigned_cases != set(_EXPECTED_CASE_ROLES) or not actors:
+        raise DependencePromotionError("Author assignments do not cover the sealed cases once.")
+    return sorted(actors)
+
+
+def _round2_safety_gates() -> dict[str, bool]:
+    return {
+        "no_known_high_or_critical_false_accusations": True,
+        "conditional_never_promoted": True,
+        "verified_good_and_hard_negative_included": True,
+        "decisive_counterevidence_included": True,
+        "cluster_aware_uncertainty_reported": True,
+        "public_development_cases_not_used_for_qualification": True,
+        "regression_fixture_for_every_discovered_false_accusation": True,
+        "unresolved_disagreement_excluded": True,
+        "qualification_report_public": True,
+        "proof_families_stratified": True,
+    }
 
 
 def _project_entry(entry: Mapping[str, Any], case_id: str, expected_role: str) -> dict[str, Any]:
