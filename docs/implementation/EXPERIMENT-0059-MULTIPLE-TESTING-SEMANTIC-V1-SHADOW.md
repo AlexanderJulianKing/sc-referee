@@ -1,6 +1,6 @@
 # Experiment 0059: Multiple-testing semantic v1 shadow recognizer
 
-- **Status:** Stage 4 fix round; unregistered report-only adapter with a blocking grammar limitation
+- **Status:** Executable-grammar extension built; unregistered report-only adapter pending re-review
 - **Date:** 2026-08-11
 - **Authority:** Maintainer blanket approval recorded for the four-stage shadow build
 - **Related decisions:** Experiment 0058 and the multiple-testing recon/design memoranda dated
@@ -26,8 +26,8 @@ The only positive v1 route is visible in one Python module:
 2. one synchronous, unfiltered list comprehension whose element is exactly a registered
    two-argument test call followed by `.pvalue` and whose two argument subscripts use the exact
    comprehension target;
-3. one later direct `benjamini_hochberg` call over a literal contiguous narrowing slice of that
-   battery;
+3. one later pinned `statsmodels.stats.multitest.multipletests(..., method="fdr_bh")` call over a
+   literal contiguous narrowing slice of that battery;
 4. one exact full-family report binding and selected static writer sink in the same module.
 
 There is no v1 absence route. A missing correction anywhere, a correction in another module, or
@@ -54,12 +54,14 @@ kernel recomputes. It cannot carry a trusted family fact or authority record and
 dynamic positions, dynamic result tokens, performed/corrected/reported cardinalities, normalized
 slice positions, or precomputed `F_*` collections.
 
-The kernel receives three separate controller-side inputs:
+The kernel receives four separate controller-side inputs:
 
 - the exact frozen module bytes, rehashed against the certificate source digest and parsed under
   the closed Python 3.11 AST identity;
 - `trusted_family_facts`, looked up exactly once by full input identity, reader model, ordered key
   columns, p-value column, and iterable row domain; and
+- `trusted_argument_facts`, looked up exactly once by full measurement-input identity, reader
+  model, ordered key/left/right column tuples, and measurement row domain; and
 - `trusted_family_authorizations`, looked up exactly once by analysis target, correction
   procedure, family definition, kernel-recomputed semantic battery construct, iterable row
   domain, ordered key columns, and frozen input identity.
@@ -79,22 +81,25 @@ dependence authority lock do not yet exist. Both are pre-registration requiremen
 constructed or freely injected authority record may substitute for a digest-sealed human-approved
 family definition.
 
-## Blocking known limitation: no executable accepted positive
+## 2026-08-11 resolution of the executable-grammar limitation
 
-The current v1 source grammar admits no executable module on its positive route. The battery
-requires expressions of the form `registered_test(x[g], y[g]).pvalue`, but the import-pinned,
-straight-line statement set provides no supported way to bind `x` or `y`. Adding assignments or
-other data-source statements makes the module unsupported. Consequently, the supported-normal-
-path expansion described above is vacuous for every certificate the current analyzer and kernel
-can accept: those accepted source texts would encounter unbound test-argument names if executed.
+The reviewed executable-grammar extension in
+`mt-executable-grammar-design-2026-08-11.md` has landed. It admits exactly one additional certified
+measurement CSV reader and exactly two key-indexed dictionary comprehensions. Both dictionaries
+use the authorized family-key selector and map each unique key to an immutable tuple of at least
+two exact `float(row["literal-column"])` cells. The kernel independently replays those source
+shapes, closes the measurement header, rederives finite binary64 values, joins the independently
+proven measurement keys to the family by hypothesis-token equality, and creates both operand
+vector tokens for every family position. It never trusts analyzer-supplied indices, counts,
+maps, float values, or dynamic tokens.
 
-This is a **blocking known limitation**, not a coverage footnote. An executable-grammar extension
-that statically binds the registered test arguments to supported data sources is required before
-scientific-check registration, blind pilots, qualification, production wiring, or any evaluation
-claim. The extension requires its own hostile review and must preserve kernel-derived family
-positions and noninterference. Until then, this package remains an unregistered shadow experiment
-and no accepted shadow candidate may be represented as evidence that an executable workflow has
-the demonstrated relationship.
+This resolves the prior vacuity blocker for the admitted statsmodels route. Direct repository-BH
+calls remain the named gap `repository-bh-runtime-type-binding-unverified`, because that function
+does not accept the SciPy-produced float list without a separately reviewed conversion grammar.
+The extension grants no execution or registration authority. The package remains an unregistered
+report-only shadow experiment; scientific-check registration, blind pilots, qualification, and
+evaluation claims remain gated on hostile re-review of the extension and on a digest-sealed
+family-authority producing channel.
 
 ## Frozen family-fact envelope
 
@@ -114,7 +119,7 @@ quantization, tolerance, or numerical matching may define family scope.
 
 ## Certificate obligations
 
-The Stage-1 kernel implements these eleven closed obligations:
+The kernel implements these twelve closed obligations:
 
 1. **M1 — frozen identity and trusted lookup:** relative source/input paths, lowercase SHA-256
    digests, parser identity, source extent, case digest, exact-one fact, and exact-one family
@@ -126,9 +131,11 @@ The Stage-1 kernel implements these eleven closed obligations:
    full ordered key projection and one-generator list-comprehension shape, and derives every
    `TestResultPosition` from ordered trusted hypotheses. Analyzer-supplied positions or dynamic
    result tokens do not exist in the IR.
-4. **M4 — authority/domain equality:** authority, case, family obligation, trusted fact,
-   projection, battery, correction, and report bind the same semantic battery construct, iterable
-   row domain, ordered key columns, correction procedure, and frozen input.
+4. **M4 — authority/domain equality:** authority, case, family obligation, trusted family fact,
+   trusted argument fact, both readers, three projections, battery, correction, and report bind
+   the same semantic battery construct, authorized ordered key columns, correction procedure, and
+   their exact frozen inputs and row domains. Measurement columns remain technical evidence, not
+   family authority.
 5. **M5 — cardinality and token-multiset relation:** the kernel recomputes `N`, normalizes the
    direct nonnegative literal slice, derives `F_corrected`, and requires
    `0 < len(F_corrected) < len(F_performed)`, multiset inclusion, and exact full-family reported
@@ -140,13 +147,14 @@ The Stage-1 kernel implements these eleven closed obligations:
    battery slice; one full-family `tuple(zip(keys, pvalues))` binding and selected same-module
    writer carry the complete raw family plus the correction result.
 8. **M8 — noninterference including sinks:** the kernel derives the full origin/binding slice from
-   source, input, row domain, projection, battery, positions, correction, report payload, sink
-   token, and sink path. Writes, aliases, relevant raising reads, opaque effects, and relevant
-   unknowns refuse.
-9. **M9 — supported straight-line singleton:** exactly one projection, battery, correction,
-   report binding, and sink occur in source order; loops, branches, functions, wrappers, async,
-   try/except, walrus, generators, competing batteries, rebinding, and extra executable module
-   statements refuse.
+   source, both inputs and row domains, all readers and projections, operand names, measurement
+   observation/cell/vector tokens, battery positions, correction, report payload, sink token, and
+   sink path. Writes, aliases, relevant raising reads, opaque effects, and relevant unknowns
+   refuse.
+9. **M9 — supported straight-line singleton:** exactly two readers, one family projection, two
+   keyed argument projections, one battery, correction, report binding, and sink occur in the
+   frozen order; loops, branches, functions, wrappers, async, try/except, walrus, generators,
+   competing batteries, mutation, rebinding, aliases, and extra executable statements refuse.
 10. **M10 — replay/evidence/basis closure:** replay digest binds parser/source identity and all
     completeness/sink sets; the basis vocabulary is exactly bounded-AST completeness, trusted
     family domain, literal narrowing slice, token-multiset relation, and trusted BH recomputation;
@@ -155,6 +163,12 @@ The Stage-1 kernel implements these eleven closed obligations:
     kernel imports the unchanged `benjamini_hochberg` implementation, applies it to the exact
     position-selected decimals, canonicalizes the result, and requires equality with the
     assertion. Numerical recomputation is supplemental and never determines family scope.
+12. **M12 — executable test-argument binding:** exactly one independently trusted measurement
+    fact closes one extra certified reader and exactly two keyed tuple projections; family and
+    measurement hypothesis-token multisets and cardinalities agree; keys are unique; literal
+    key/left/right columns are pairwise disjoint and cover the header; every measurement lexeme
+    and binary64 spelling is independently rederived; and the kernel derives both operand-vector
+    tokens for every family position by keyed lookup rather than positional `zip`.
 
 ## M3 bounded replay grammar
 
@@ -186,6 +200,7 @@ provenance, numerical impact, bias direction, scientific invalidity, or a requir
 - `family-definition-unauthorized`
 - `per-group-correction-unrecognized`
 - `value-predicate-correction-unsupported`
+- `repository-bh-runtime-type-binding-unverified`
 
 These names are reserved now so later analyzer/adapter stages route uncertainty to abstention
 rather than broadening the positive grammar.
@@ -229,12 +244,13 @@ one exact registered two-argument SciPy test-call comprehension, one correction,
 family report binding, and one selected writer sink. The exact test registry remains
 `scipy.stats.ttest_ind` and `scipy.stats.mannwhitneyu` under a bound `scipy==1.14.0` requirement.
 
-The correction registry is expanded by maintainer direction to exactly two entries:
+The Stage-3 correction registry was expanded by maintainer direction to exactly two entries:
 `sc_referee.calculation_checks.bh.benjamini_hochberg` and
 `statsmodels.stats.multitest.multipletests`. The statsmodels entry requires a unique bound
 `statsmodels==0.14.4` requirement and the exact call keyword `method="fdr_bh"`; the repository
 entry has no external-package pin. Both are recomputed with the repository's trusted exact-
-Decimal BH implementation. No statsmodels or author code is imported or executed.
+Decimal BH implementation. The executable-grammar resolution below narrows the shipped route and
+supersedes the repository-entry eligibility stated in this paragraph.
 
 The kernel recognizes only two correction inputs: the bare full battery (a verified covered route)
 and a nonempty literal nonnegative contiguous slice (an adverse route only when it is a proper
@@ -281,9 +297,43 @@ it may not claim historical execution, numerical impact, bias direction, invalid
 required repair.
 
 The implementation identity is the deterministic SHA-256 closure over exactly
-`__init__.py`, `adapter.py`, `certificate.py`, `ir.py`, `pvalue_domain.py`, and
-`python_analyzer.py` in the multiple-testing-recognition package plus this Experiment 0059
-record. It excludes dependence/founder files, production integrations, registries, and frozen
-lanes. Identical frozen inputs must produce byte-identical canonical payloads, including this
-closure digest. Any evaluation-only or production registration remains a later explicit
-maintainer decision.
+`__init__.py`, `adapter.py`, `certificate.py`, `ir.py`, `pvalue_domain.py`,
+`test_argument_domain.py`, and `python_analyzer.py` in the multiple-testing-recognition package
+plus this Experiment 0059 record. It excludes dependence/founder files, production integrations,
+registries, and frozen lanes. Identical frozen inputs must produce byte-identical canonical
+payloads, including this closure digest. Any evaluation-only or production registration remains a
+later explicit maintainer decision.
+
+## 2026-08-11 executable-grammar extension record
+
+This amendment implements only the productions reviewed in
+`mt-executable-grammar-design-2026-08-11.md`. The exact non-import statement sequence is: family
+reader; family-key projection; measurement reader; left keyed projection; right keyed projection;
+battery; correction; report binding; sink. `MEASUREMENT_READER` reuses one existing certified
+reader form over a distinct literal CSV path. Each keyed projection has one synchronous,
+unfiltered generator over that same materialized measurement-row name. Its key is exactly the
+authorized single or ordered composite family-key selector. Its value is an exact tuple of at
+least two `float(row["literal-column"])` cells. The two comprehension target names are distinct;
+key, left, and right columns are pairwise disjoint and cover the unique nonempty measurement
+header exactly. No scalar value, positional list, metadata column, filter, nesting, computed
+selector, alias, mutation, extra reader, or extra executable statement is admitted.
+
+The new controller-side `trusted_argument_facts` channel is exact-one and digest-bound. It carries
+raw key tuples and measurement lexemes plus independently rederived finite binary64 spellings,
+but the untrusted certificate carries none of those values or mappings. M12 makes the kernel join
+the two independently proven domains by exact hypothesis-token multiset and equal cardinality,
+with unique measurement keys, then derive both operand-vector tokens for each family position.
+Row order in the measurement CSV is immaterial; positional coincidence is never a premise.
+
+`FamilyAuthorization` is unchanged. It still authorizes only family membership through the family
+input and ordered family-key columns. Measurement input identity, reader form, key columns, and
+left/right measurement columns live only in the case binding and measurement obligation. Their
+substantive scientific appropriateness is explicitly unassessed by this check.
+
+The shipped executable correction route is narrowed to pinned
+`statsmodels.stats.multitest.multipletests(..., method="fdr_bh")` with exactly
+`statsmodels==0.14.4` and `scipy==1.14.0`. A direct repository `benjamini_hochberg` call is now the
+named abstention `repository-bh-runtime-type-binding-unverified`; admitting a `Decimal` conversion
+would be another grammar extension and is not authorized here. Static execution by the
+recognizer remains forbidden. Executable fixtures are test-only evidence and grant no pipeline
+execution privilege.

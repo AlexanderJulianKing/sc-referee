@@ -53,12 +53,18 @@ from sc_referee.multiple_testing_recognition.ir import (
     PValueFamilyFact,
     RecordRef,
     ReportFamilyBinding,
+    TestArgumentDomainFact,
+    TestArgumentDomainObligation,
     TestBatteryObligation,
     VerifiedMultipleTestingCertificate,
 )
 from sc_referee.multiple_testing_recognition.pvalue_domain import (
     prove_pvalue_family,
     pvalue_family_row_domain,
+)
+from sc_referee.multiple_testing_recognition.test_argument_domain import (
+    prove_test_argument_domain,
+    test_argument_row_domain,
 )
 from sc_referee.scientific_checks.core import (
     FrozenBaseRecord,
@@ -120,6 +126,7 @@ class DischargedMultipleTestingAnalysis:
     outcome: RecognitionOutcome
     certificate: MultipleTestingCertificate | None
     trusted_family_facts: tuple[PValueFamilyFact, ...]
+    trusted_argument_facts: tuple[TestArgumentDomainFact, ...]
     trusted_family_authorizations: tuple[FamilyAuthorization, ...]
     verified_certificate: VerifiedMultipleTestingCertificate | None
     failure_class: str | None
@@ -151,10 +158,21 @@ class _Reader:
 
 
 @dataclass(frozen=True)
+class _ArgumentProjection:
+    assignment: ast.Assign
+    row_name: str
+    key_columns: tuple[str, ...]
+    value_columns: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class _SourceShape:
     tree: ast.Module
     reader: _Reader
     projection: ast.Assign
+    measurement_reader: _Reader
+    left_projection: _ArgumentProjection
+    right_projection: _ArgumentProjection
     battery: ast.Assign
     battery_call: ast.Call
     correction: ast.Assign
@@ -233,6 +251,13 @@ def analyze_multiple_testing_python(
         return shape_or_analysis
     shape = shape_or_analysis
 
+    if shape.correction_callable == _REPOSITORY_BH_CALLABLE:
+        return _unsupported_nodes(
+            tree,
+            "repository-bh-runtime-type-binding-unverified",
+            (shape.correction,),
+        )
+
     material = _material_by_path(context.material_inputs, shape.reader.path)
     if material is None:
         return _without_certificate(
@@ -252,6 +277,39 @@ def analyze_multiple_testing_python(
             shape.tree,
             "full-family-projection-unverified",
             (shape.projection,),
+        )
+    measurement_material = _material_by_path(
+        context.material_inputs,
+        shape.measurement_reader.path,
+    )
+    if measurement_material is None:
+        return _without_certificate(
+            "unsupported",
+            unsupported=("digest-bound-measurement-input-unavailable",),
+            basis="The statically read measurement CSV was not frozen exactly once.",
+        )
+    measurement_header = _csv_header(
+        measurement_material,
+        shape.measurement_reader.line_model,
+    )
+    selected_measurement_columns = (
+        *shape.left_projection.key_columns,
+        *shape.left_projection.value_columns,
+        *shape.right_projection.value_columns,
+    )
+    if (
+        shape.left_projection.key_columns != key_columns
+        or shape.right_projection.key_columns != key_columns
+        or shape.left_projection.row_name == shape.right_projection.row_name
+        or measurement_header is None
+        or len(selected_measurement_columns) != len(set(selected_measurement_columns))
+        or set(selected_measurement_columns) != set(measurement_header)
+        or len(selected_measurement_columns) != len(measurement_header)
+    ):
+        return _unsupported_nodes(
+            shape.tree,
+            "keyed-test-argument-projection-unverified",
+            (shape.left_projection.assignment, shape.right_projection.assignment),
         )
     source_digest = document.content_digest
     battery_id = source_construct_token(
@@ -337,6 +395,7 @@ def analyze_multiple_testing_python(
         shape=shape,
         authority=authority,
         material=material,
+        measurement_material=measurement_material,
         key_columns=key_columns,
         row_domain=row_domain,
         affected_target=affected_target,
@@ -368,6 +427,7 @@ def discharge_multiple_testing_proposal(
             outcome=analysis.outcome,
             certificate=None,
             trusted_family_facts=(),
+            trusted_argument_facts=(),
             trusted_family_authorizations=(),
             verified_certificate=None,
             failure_class=None,
@@ -396,6 +456,27 @@ def discharge_multiple_testing_proposal(
     )
     if fact is None:
         return _failed_discharge(certificate, "pvalue-family-proof-unavailable")
+    if len(certificate.test_argument_domain_obligations) != 1:
+        return _failed_discharge(certificate, "non-singleton-test-argument-domain")
+    argument_obligation = certificate.test_argument_domain_obligations[0]
+    argument_material = _material(
+        context.material_inputs,
+        argument_obligation.input_binding.path,
+        argument_obligation.input_binding.content_digest,
+    )
+    if argument_material is None:
+        return _failed_discharge(certificate, "digest-bound-measurement-input-unavailable")
+    argument_fact = prove_test_argument_domain(
+        argument_material,
+        path=argument_obligation.input_binding.path,
+        content_digest=argument_obligation.input_binding.content_digest,
+        key_columns=argument_obligation.measurement_key_columns,
+        left_columns=argument_obligation.left_measurement_columns,
+        right_columns=argument_obligation.right_measurement_columns,
+        line_model=argument_obligation.line_model,
+    )
+    if argument_fact is None:
+        return _failed_discharge(certificate, "test-argument-domain-proof-unavailable")
     source_documents = tuple(
         item
         for item in context.documents
@@ -425,16 +506,22 @@ def discharge_multiple_testing_proposal(
         fact.evidence_id,
         EvidencePoint(fact.path, 1, max(1, fact.row_count + 1), 1, 1),
     )
+    argument_data_evidence = EvidenceDeclaration(
+        argument_fact.evidence_id,
+        EvidencePoint(argument_fact.path, 1, max(1, argument_fact.row_count + 1), 1, 1),
+    )
     discharged = replace(
         certificate,
         correction_calls=(correction,),
-        evidence=tuple(sorted((*certificate.evidence, data_evidence))),
+        evidence=tuple(sorted((*certificate.evidence, data_evidence, argument_data_evidence))),
     )
     trusted_facts = (fact,)
+    trusted_argument_facts = (argument_fact,)
     verified = verify_multiple_testing_certificate(
         discharged,
         frozen_source_bytes=source_documents[0].content,
         trusted_family_facts=trusted_facts,
+        trusted_argument_facts=trusted_argument_facts,
         trusted_family_authorizations=authorities,
     )
     if verified is None:
@@ -447,6 +534,7 @@ def discharge_multiple_testing_proposal(
         outcome=outcome,
         certificate=discharged,
         trusted_family_facts=trusted_facts,
+        trusted_argument_facts=trusted_argument_facts,
         trusted_family_authorizations=authorities,
         verified_certificate=verified,
         failure_class=None,
@@ -461,6 +549,7 @@ def _build_certificate(
     shape: _SourceShape,
     authority: _AuthorityHint,
     material: FrozenMaterialInput,
+    measurement_material: FrozenMaterialInput,
     key_columns: tuple[str, ...],
     row_domain: str,
     affected_target: RecordRef,
@@ -469,12 +558,17 @@ def _build_certificate(
 ) -> MultipleTestingCertificate:
     source_digest = document.content_digest
     projection_value = cast(ast.ListComp, shape.projection.value)
+    left_value = cast(ast.DictComp, shape.left_projection.assignment.value)
+    right_value = cast(ast.DictComp, shape.right_projection.assignment.value)
     battery_value = cast(ast.ListComp, shape.battery.value)
     battery_id = source_construct_token(
         "battery-construct", source_digest, _point(document.path, shape.battery)
     )
     reader_point = _point(document.path, shape.reader.assignment)
     projection_point = _point(document.path, shape.projection)
+    measurement_reader_point = _point(document.path, shape.measurement_reader.assignment)
+    left_projection_point = _point(document.path, shape.left_projection.assignment)
+    right_projection_point = _point(document.path, shape.right_projection.assignment)
     battery_point = _point(document.path, shape.battery)
     correction_point = _point(document.path, shape.correction_call)
     report_point = _point(document.path, shape.report)
@@ -482,6 +576,15 @@ def _build_certificate(
     reader_token = source_construct_token("family-domain-reader", source_digest, reader_point)
     projection_token = source_construct_token(
         "full-family-projection", source_digest, projection_point
+    )
+    measurement_reader_token = source_construct_token(
+        "test-argument-domain-reader", source_digest, measurement_reader_point
+    )
+    left_projection_token = source_construct_token(
+        "left-test-argument-projection", source_digest, left_projection_point
+    )
+    right_projection_token = source_construct_token(
+        "right-test-argument-projection", source_digest, right_projection_point
     )
     call_token = source_construct_token(
         "test-call-template", source_digest, _point(document.path, shape.battery_call)
@@ -495,6 +598,13 @@ def _build_certificate(
         "projection-assignment": projection_point,
         "projection-listcomp": _point(document.path, projection_value),
         "projection-element": _point(document.path, projection_value.elt),
+        "measurement-reader": measurement_reader_point,
+        "left-argument-projection": left_projection_point,
+        "right-argument-projection": right_projection_point,
+        "left-argument-key": _point(document.path, left_value.key),
+        "right-argument-key": _point(document.path, right_value.key),
+        "left-argument-value": _point(document.path, left_value.value),
+        "right-argument-value": _point(document.path, right_value.value),
         "battery-assignment": battery_point,
         "battery-listcomp": _point(document.path, battery_value),
         "battery-call": _point(document.path, shape.battery_call),
@@ -528,6 +638,55 @@ def _build_certificate(
         pvalue_column=_VALUE_COLUMN,
         reader_assignment_span=reader_point,
         reader_evidence_ids=(evidence_ids["reader"],),
+    )
+    measurement_input_binding = MaterialInputBinding(
+        path=measurement_material.path,
+        content_digest=measurement_material.content_digest,
+        file_ref=RecordRef(
+            measurement_material.file_ref.record_type,
+            measurement_material.file_ref.record_id,
+        ),
+        asset_identity_ref=RecordRef(
+            measurement_material.asset_identity_ref.record_type,
+            measurement_material.asset_identity_ref.record_id,
+        ),
+    )
+    measurement_row_domain = test_argument_row_domain(
+        measurement_material.path,
+        measurement_material.content_digest,
+        shape.measurement_reader.line_model,
+    )
+    argument_domain = TestArgumentDomainObligation(
+        input_binding=measurement_input_binding,
+        reader_form=shape.measurement_reader.reader_form,
+        line_model=shape.measurement_reader.line_model,
+        dialect=_DIALECT,
+        measurement_row_domain=measurement_row_domain,
+        measurement_rows_name=shape.measurement_reader.target_name,
+        measurement_key_columns=shape.left_projection.key_columns,
+        left_measurement_columns=shape.left_projection.value_columns,
+        right_measurement_columns=shape.right_projection.value_columns,
+        left_argument_name=cast(ast.Name, shape.left_projection.assignment.targets[0]).id,
+        right_argument_name=cast(ast.Name, shape.right_projection.assignment.targets[0]).id,
+        reader_assignment_span=measurement_reader_point,
+        left_projection_span=left_projection_point,
+        right_projection_span=right_projection_point,
+        left_key_span=points["left-argument-key"],
+        right_key_span=points["right-argument-key"],
+        left_value_span=points["left-argument-value"],
+        right_value_span=points["right-argument-value"],
+        evidence_ids=tuple(
+            evidence_ids[name]
+            for name in (
+                "measurement-reader",
+                "left-argument-projection",
+                "right-argument-projection",
+                "left-argument-key",
+                "right-argument-key",
+                "left-argument-value",
+                "right-argument-value",
+            )
+        ),
     )
     projection = FullFamilyProjectionObligation(
         battery_construct_id=battery_id,
@@ -594,13 +753,28 @@ def _build_certificate(
         sink_span=sink_point,
         selected_result=True,
         evidence_ids=(evidence_ids["report-binding"], evidence_ids["sink"]),
-        relevant_origins=frozenset({document.path, material.path, row_domain, shape.report_path}),
+        relevant_origins=frozenset(
+            {
+                document.path,
+                material.path,
+                row_domain,
+                measurement_material.path,
+                measurement_row_domain,
+                shape.report_path,
+            }
+        ),
         relevant_bindings=frozenset(
             {
                 shape.reader.target_name,
                 projection.projected_family_name,
                 reader_token,
                 projection_token,
+                measurement_reader_token,
+                left_projection_token,
+                right_projection_token,
+                shape.measurement_reader.target_name,
+                argument_domain.left_argument_name,
+                argument_domain.right_argument_name,
                 battery_id,
                 call_token,
                 correction_token,
@@ -630,6 +804,12 @@ def _build_certificate(
         authorized_family_key_columns=key_columns,
         family_input_path=material.path,
         family_input_content_digest=material.content_digest,
+        measurement_input_path=measurement_material.path,
+        measurement_input_content_digest=measurement_material.content_digest,
+        measurement_key_columns=argument_domain.measurement_key_columns,
+        left_measurement_columns=argument_domain.left_measurement_columns,
+        right_measurement_columns=argument_domain.right_measurement_columns,
+        measurement_reader_model=argument_domain.reader_form,
     )
     evidence = tuple(
         sorted(
@@ -650,6 +830,7 @@ def _build_certificate(
         replay_digest="sha256:" + "0" * 64,
         case_binding=case_binding,
         family_domain_obligations=(domain,),
+        test_argument_domain_obligations=(argument_domain,),
         full_family_projections=(projection,),
         test_batteries=(battery,),
         correction_calls=(correction,),
@@ -659,6 +840,9 @@ def _build_certificate(
             {
                 reader_token,
                 projection_token,
+                measurement_reader_token,
+                left_projection_token,
+                right_projection_token,
                 battery_id,
                 call_token,
                 correction_token,
@@ -729,6 +913,60 @@ def _source_shape(
     if len(readers) != 1:
         return _unsupported_nodes(tree, "certified-csv-reader-unverified", (projection,))
     reader = readers[0]
+    left_name, right_name = tuple(
+        cast(ast.Name, cast(ast.Subscript, argument).value).id for argument in battery_call.args
+    )
+    left_candidates = [
+        parsed
+        for item in assignments
+        if _single_target(item) == left_name and (parsed := _argument_projection(item)) is not None
+    ]
+    right_candidates = [
+        parsed
+        for item in assignments
+        if _single_target(item) == right_name and (parsed := _argument_projection(item)) is not None
+    ]
+    if len(left_candidates) != 1 or len(right_candidates) != 1:
+        return _unsupported_nodes(
+            tree,
+            "keyed-test-argument-projection-unverified",
+            (battery,),
+        )
+    left_projection = left_candidates[0]
+    right_projection = right_candidates[0]
+    if (
+        left_projection.row_name == right_projection.row_name
+        or left_projection.key_columns != right_projection.key_columns
+        or len(left_projection.value_columns) < 2
+        or len(right_projection.value_columns) < 2
+    ):
+        return _unsupported_nodes(
+            tree,
+            "keyed-test-argument-projection-unverified",
+            (left_projection.assignment, right_projection.assignment),
+        )
+    left_comp = cast(ast.DictComp, left_projection.assignment.value)
+    right_comp = cast(ast.DictComp, right_projection.assignment.value)
+    left_rows_name = cast(ast.Name, left_comp.generators[0].iter).id
+    right_rows_name = cast(ast.Name, right_comp.generators[0].iter).id
+    if left_rows_name != right_rows_name or left_rows_name == rows_name:
+        return _unsupported_nodes(
+            tree,
+            "keyed-test-argument-projection-unverified",
+            (left_projection.assignment, right_projection.assignment),
+        )
+    measurement_readers = [
+        found
+        for item in assignments
+        if (found := _reader(item)) is not None and found.target_name == left_rows_name
+    ]
+    if len(measurement_readers) != 1 or measurement_readers[0].path == reader.path:
+        return _unsupported_nodes(
+            tree,
+            "certified-measurement-reader-unverified",
+            (left_projection.assignment, right_projection.assignment),
+        )
+    measurement_reader = measurement_readers[0]
     corrections = [
         (item, value) for item in assignments if (value := _correction_call(item)) is not None
     ]
@@ -782,6 +1020,9 @@ def _source_shape(
     allowed = {
         id(reader.assignment),
         id(projection),
+        id(measurement_reader.assignment),
+        id(left_projection.assignment),
+        id(right_projection.assignment),
         id(battery),
         id(correction),
         id(report),
@@ -796,7 +1037,17 @@ def _source_shape(
         return _unsupported_nodes(tree, "unmodeled-live-subtree", unmodeled)
     if not _imports_are_exact(tree, correction_callable):
         return _unsupported_nodes(tree, "aliased-or-unsupported-import", tuple(tree.body))
-    ordered = (reader.assignment, projection, battery, correction, report, sink)
+    ordered = (
+        reader.assignment,
+        projection,
+        measurement_reader.assignment,
+        left_projection.assignment,
+        right_projection.assignment,
+        battery,
+        correction,
+        report,
+        sink,
+    )
     starts = tuple((item.lineno, item.col_offset) for item in ordered)
     if starts != tuple(sorted(starts)):
         return _unsupported_nodes(tree, "non-straight-line-analysis-order", ordered)
@@ -804,6 +1055,9 @@ def _source_shape(
         tree=tree,
         reader=reader,
         projection=projection,
+        measurement_reader=measurement_reader,
+        left_projection=left_projection,
+        right_projection=right_projection,
         battery=battery,
         battery_call=battery_call,
         correction=correction,
@@ -869,6 +1123,72 @@ def _reader(assignment: ast.Assign) -> _Reader | None:
                 "csv_newline",
             )
     return None
+
+
+def _argument_projection(assignment: ast.Assign) -> _ArgumentProjection | None:
+    target = _single_target(assignment)
+    value = assignment.value
+    if (
+        target is None
+        or not isinstance(value, ast.DictComp)
+        or len(value.generators) != 1
+        or value.generators[0].is_async
+        or value.generators[0].ifs
+        or not isinstance(value.generators[0].target, ast.Name)
+        or not isinstance(value.generators[0].iter, ast.Name)
+        or not isinstance(value.value, ast.Tuple)
+        or len(value.value.elts) < 2
+    ):
+        return None
+    row_name = value.generators[0].target.id
+    if row_name in {
+        "csv",
+        "Path",
+        "scipy",
+        "multipletests",
+        "benjamini_hochberg",
+        "float",
+    }:
+        return None
+    key_columns = _literal_selector_columns(value.key, row_name)
+    if key_columns is None:
+        return None
+    columns: list[str] = []
+    for cell in value.value.elts:
+        if not (
+            isinstance(cell, ast.Call)
+            and isinstance(cell.func, ast.Name)
+            and cell.func.id == "float"
+            and len(cell.args) == 1
+            and not cell.keywords
+        ):
+            return None
+        selected = _literal_selector_columns(cell.args[0], row_name)
+        if selected is None or len(selected) != 1:
+            return None
+        columns.append(selected[0])
+    value_columns = tuple(columns)
+    if len(value_columns) != len(set(value_columns)):
+        return None
+    return _ArgumentProjection(assignment, row_name, key_columns, value_columns)
+
+
+def _literal_selector_columns(node: ast.expr, row_name: str) -> tuple[str, ...] | None:
+    elements = node.elts if isinstance(node, ast.Tuple) else (node,)
+    columns: list[str] = []
+    for element in elements:
+        if not (
+            isinstance(element, ast.Subscript)
+            and isinstance(element.value, ast.Name)
+            and element.value.id == row_name
+            and isinstance(element.slice, ast.Constant)
+            and isinstance(element.slice.value, str)
+            and element.slice.value
+        ):
+            return None
+        columns.append(element.slice.value)
+    result = tuple(columns)
+    return result if result and len(result) == len(set(result)) else None
 
 
 def _battery_call(assignment: ast.Assign) -> ast.Call | None:
@@ -1147,9 +1467,17 @@ def _proposal_matches_context(
         return False
     if len(authorities) != 1:
         return False
+    if (
+        len(certificate.family_domain_obligations) != 1
+        or len(certificate.test_argument_domain_obligations) != 1
+        or len(certificate.correction_calls) != 1
+        or len(certificate.report_bindings) != 1
+    ):
+        return False
     authority = authorities[0]
     binding = certificate.case_binding
     obligation = certificate.family_domain_obligations[0]
+    argument_obligation = certificate.test_argument_domain_obligations[0]
     selected_path = _selected_artifact_path(context)
     affected = _affected_target_ref(context, selected_path) if selected_path else None
     required_pins = _pinned_version(context.material_inputs, "scipy") == _SCIPY_VERSION
@@ -1182,6 +1510,19 @@ def _proposal_matches_context(
             obligation.input_binding.content_digest,
         )
         is not None
+        and _material(
+            context.material_inputs,
+            argument_obligation.input_binding.path,
+            argument_obligation.input_binding.content_digest,
+        )
+        is not None
+        and binding.measurement_input_path == argument_obligation.input_binding.path
+        and binding.measurement_input_content_digest
+        == argument_obligation.input_binding.content_digest
+        and binding.measurement_key_columns == argument_obligation.measurement_key_columns
+        and binding.left_measurement_columns == argument_obligation.left_measurement_columns
+        and binding.right_measurement_columns == argument_obligation.right_measurement_columns
+        and binding.measurement_reader_model == argument_obligation.reader_form
         and selected_path == certificate.report_bindings[0].path
         and affected == binding.affected_target_ref
         and required_pins
@@ -1335,6 +1676,17 @@ def _candidate_key_columns(
     material: FrozenMaterialInput,
     line_model: str,
 ) -> tuple[str, ...] | None:
+    header = _csv_header(material, line_model)
+    if header is None or _VALUE_COLUMN not in header:
+        return None
+    columns = tuple(item for item in header if item != _VALUE_COLUMN)
+    return columns or None
+
+
+def _csv_header(
+    material: FrozenMaterialInput,
+    line_model: str,
+) -> tuple[str, ...] | None:
     try:
         text = material.content.decode("utf-8", errors="strict")
         if text.startswith("\ufeff"):
@@ -1351,15 +1703,9 @@ def _candidate_key_columns(
         header = reader.fieldnames
     except (csv.Error, UnicodeError, ValueError, OverflowError):
         return None
-    if (
-        not header
-        or len(header) != len(set(header))
-        or any(not item for item in header)
-        or _VALUE_COLUMN not in header
-    ):
+    if not header or len(header) != len(set(header)) or any(not item for item in header):
         return None
-    columns = tuple(item for item in header if item != _VALUE_COLUMN)
-    return columns or None
+    return tuple(header)
 
 
 def _failed_discharge(
@@ -1371,6 +1717,7 @@ def _failed_discharge(
         outcome="unsupported",
         certificate=certificate,
         trusted_family_facts=(),
+        trusted_argument_facts=(),
         trusted_family_authorizations=(),
         verified_certificate=None,
         failure_class=construct,

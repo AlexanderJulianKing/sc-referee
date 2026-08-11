@@ -30,6 +30,11 @@ MAX_PVALUE_FAMILY_ROWS = 10_000
 MAX_PVALUE_FAMILY_COLUMNS = 64
 MAX_PVALUE_FAMILY_FIELD_BYTES = 64 * 1024
 MAX_PVALUE_FAMILY_PROOF_RECORD_BYTES = 8 * 1024 * 1024
+MAX_TEST_ARGUMENT_DOMAIN_SOURCE_BYTES = 1_000_000
+MAX_TEST_ARGUMENT_DOMAIN_ROWS = 10_000
+MAX_TEST_ARGUMENT_DOMAIN_COLUMNS = 64
+MAX_TEST_ARGUMENT_DOMAIN_FIELD_BYTES = 64 * 1024
+MAX_TEST_ARGUMENT_DOMAIN_PROOF_RECORD_BYTES = 8 * 1024 * 1024
 MAX_MULTIPLE_TESTING_EVIDENCE_DECLARATIONS = 4_096
 
 SPLITLINES_ONLY_SEPARATORS = (
@@ -127,6 +132,12 @@ class MultipleTestingCaseBinding:
     authorized_family_key_columns: tuple[str, ...]
     family_input_path: str
     family_input_content_digest: str
+    measurement_input_path: str
+    measurement_input_content_digest: str
+    measurement_key_columns: tuple[str, ...]
+    left_measurement_columns: tuple[str, ...]
+    right_measurement_columns: tuple[str, ...]
+    measurement_reader_model: ReaderForm
 
 
 @dataclass(frozen=True, order=True)
@@ -174,6 +185,70 @@ class PValueFamilyFact:
     raw_pvalue_lexemes: tuple[str, ...]
     canonical_pvalue_decimals: tuple[str, ...]
     pvalue_tokens: tuple[str, ...]
+
+
+@dataclass(frozen=True, order=True)
+class TestArgumentDomainObligation:
+    """M12 source and material binding for the two keyed test operands.
+
+    The proposal carries only exact material identity, literal selectors, bare
+    binding names, and source spans.  It cannot carry a key map, row positions,
+    parsed values, binary64 values, or position-specific argument tokens.
+    """
+
+    input_binding: MaterialInputBinding
+    reader_form: ReaderForm
+    line_model: LineModel
+    dialect: str
+    measurement_row_domain: str
+    measurement_rows_name: str
+    measurement_key_columns: tuple[str, ...]
+    left_measurement_columns: tuple[str, ...]
+    right_measurement_columns: tuple[str, ...]
+    left_argument_name: str
+    right_argument_name: str
+    reader_assignment_span: EvidencePoint
+    left_projection_span: EvidencePoint
+    right_projection_span: EvidencePoint
+    left_key_span: EvidencePoint
+    right_key_span: EvidencePoint
+    left_value_span: EvidencePoint
+    right_value_span: EvidencePoint
+    evidence_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True, order=True)
+class TestArgumentDomainFact:
+    """Trusted digest-bound keyed measurement evidence supplied externally."""
+
+    evidence_id: str
+    path: str
+    content_digest: str
+    file_ref: RecordRef
+    asset_identity_ref: RecordRef
+    reader_form: ReaderForm
+    line_model: LineModel
+    splitlines_only_separators_absent: bool
+    dialect: str
+    row_domain: str
+    source_byte_count: int
+    header: tuple[str, ...]
+    measurement_key_columns: tuple[str, ...]
+    left_measurement_columns: tuple[str, ...]
+    right_measurement_columns: tuple[str, ...]
+    normalization: str
+    declared_missing_value_tokens: tuple[str, ...]
+    missing_key_value_count: int
+    missing_measurement_value_count: int
+    row_shape_complete: bool
+    row_count: int
+    observation_tokens: tuple[str, ...]
+    key_value_tuples: tuple[tuple[str, ...], ...]
+    hypothesis_tokens: tuple[str, ...]
+    left_raw_measurement_lexemes: tuple[tuple[str, ...], ...]
+    right_raw_measurement_lexemes: tuple[tuple[str, ...], ...]
+    left_binary64_hex: tuple[tuple[str, ...], ...]
+    right_binary64_hex: tuple[tuple[str, ...], ...]
 
 
 @dataclass(frozen=True, order=True)
@@ -281,6 +356,7 @@ class MultipleTestingCertificate:
     replay_digest: str
     case_binding: MultipleTestingCaseBinding
     family_domain_obligations: tuple[FamilyDomainObligation, ...]
+    test_argument_domain_obligations: tuple[TestArgumentDomainObligation, ...]
     full_family_projections: tuple[FullFamilyProjectionObligation, ...]
     test_batteries: tuple[TestBatteryObligation, ...]
     correction_calls: tuple[CorrectionCall, ...]
@@ -307,6 +383,7 @@ class TestResultPosition:
     source_observation_token: str
     element_call_template_token: str
     argument_template_tokens: tuple[str, str]
+    argument_vector_tokens: tuple[str, str]
     result_token: str
 
 
@@ -320,6 +397,7 @@ class VerifiedMultipleTestingCertificate:
     case_binding: MultipleTestingCaseBinding
     family_authorization: FamilyAuthorization
     family_fact: PValueFamilyFact
+    test_argument_fact: TestArgumentDomainFact
     test_result_positions: tuple[TestResultPosition, ...]
     performed_result_tokens: tuple[str, ...]
     corrected_result_tokens: tuple[str, ...]
@@ -352,6 +430,8 @@ __all__ = [
     "ReaderForm",
     "RecordRef",
     "ReportFamilyBinding",
+    "TestArgumentDomainFact",
+    "TestArgumentDomainObligation",
     "TestBatteryObligation",
     "TestResultPosition",
     "Unknown",

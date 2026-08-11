@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import ast
+import subprocess
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 
 from sc_referee.core.ids import canonical_json, sha256_digest
+from sc_referee.multiple_testing_recognition.adapter import (
+    MultipleTestingRecognitionShadowAdapter,
+)
 from sc_referee.multiple_testing_recognition.certificate import source_construct_token
 from sc_referee.multiple_testing_recognition.ir import EvidencePoint
 from sc_referee.multiple_testing_recognition.pvalue_domain import (
@@ -28,20 +33,29 @@ from sc_referee.scientific_checks.core import (
 
 _SOURCE_PATH = "workflow/analysis.py"
 _DATA_PATH = "results/tests.csv"
+_MEASUREMENT_PATH = "inputs/measurements.csv"
 _REPORT_PATH = "results/report.txt"
 _DATA = b"gene,pvalue\ng1,0.01\ng2,0.04\ng3,0.20\n"
+_MEASUREMENTS = b"gene,x1,x2,y1,y2\ng2,2.0,3.0,3.0,4.0\ng1,1.0,2.0,2.0,3.0\ng3,3.0,4.0,4.0,5.0\n"
 
 
 def _source(
     *,
     correction_input: str = "pvals[:2]",
-    correction: str = "repository",
+    correction: str = "statsmodels",
     reader: str | None = None,
     test_callable: str = "scipy.stats.ttest_ind",
     projection: str = 'genes = [row["gene"] for row in rows]',
     battery: str | None = None,
     before_reader: str = "",
     after_reader: str = "",
+    measurement_reader: str | None = None,
+    left_projection: str = (
+        'x = {r["gene"]: (float(r["x1"]), float(r["x2"])) for r in measurement_rows}'
+    ),
+    right_projection: str = (
+        'y = {s["gene"]: (float(s["y1"]), float(s["y2"])) for s in measurement_rows}'
+    ),
     after_battery: str = "",
     include_correction: bool = True,
     include_report: bool = True,
@@ -60,6 +74,10 @@ def _source(
         'rows = list(csv.DictReader(Path("results/tests.csv").read_text('
         'encoding="utf-8").splitlines()))'
     )
+    measurement_reader = measurement_reader or (
+        'measurement_rows = list(csv.DictReader(Path("inputs/measurements.csv").read_text('
+        'encoding="utf-8").splitlines()))'
+    )
     battery = battery or (f"pvals = [{test_callable}(x[g], y[g]).pvalue for g in genes]")
     statements = [
         "import csv",
@@ -70,6 +88,9 @@ def _source(
         reader,
         after_reader,
         projection,
+        measurement_reader,
+        left_projection,
+        right_projection,
         battery,
         after_battery,
     ]
@@ -119,6 +140,7 @@ def _context(
     source: str,
     *,
     data: bytes = _DATA,
+    measurement_data: bytes = _MEASUREMENTS,
     authority: bool = True,
     second_authority: bool = False,
     authority_battery_id: str | None = None,
@@ -127,7 +149,7 @@ def _context(
     authority_path: str = _DATA_PATH,
     authority_digest: str | None = None,
     authority_procedure_id: str = "procedure:correction",
-    requirements: bytes = b"scipy==1.14.0\n",
+    requirements: bytes = b"scipy==1.14.0\nstatsmodels==0.14.4\n",
     procedure_callable: str | None = None,
     include_procedure_callable: bool = True,
     second_document: bool = False,
@@ -139,12 +161,15 @@ def _context(
     parser_ref = RecordRef("parser_result", "parser:analysis")
     data_file_ref = RecordRef("file_record", "file:data")
     data_identity_ref = RecordRef("asset_identity", "asset:data")
+    measurement_file_ref = RecordRef("file_record", "file:measurements")
+    measurement_identity_ref = RecordRef("asset_identity", "asset:measurements")
     requirements_file_ref = RecordRef("file_record", "file:requirements")
     requirements_identity_ref = RecordRef("asset_identity", "asset:requirements")
     analysis_ref = RecordRef("analysis", "analysis:primary")
     procedure_ref = RecordRef("procedure", "procedure:correction")
     result_ref = RecordRef("result", "result:report")
     data_digest = sha256_digest(data)
+    measurement_digest = sha256_digest(measurement_data)
     requirements_digest = sha256_digest(requirements)
     source_bytes = source.encode()
     resolved_procedure_callable = procedure_callable or (
@@ -177,7 +202,13 @@ def _context(
             snapshot_ref,
             {
                 "snapshot_id": snapshot_ref.record_id,
-                "extensions": {"x-material-full-digest-paths": [_DATA_PATH, "requirements.txt"]},
+                "extensions": {
+                    "x-material-full-digest-paths": [
+                        _DATA_PATH,
+                        _MEASUREMENT_PATH,
+                        "requirements.txt",
+                    ]
+                },
             },
         ),
         (analysis_file_ref, {"file_record_id": analysis_file_ref.record_id}),
@@ -211,6 +242,27 @@ def _context(
                 "tier": "full_digest",
                 "asset_ref": data_file_ref.to_dict(),
                 "identity_evidence": {"kind": "full_digest", "digest": data_digest},
+            },
+        ),
+        (
+            measurement_file_ref,
+            {
+                "file_record_id": measurement_file_ref.record_id,
+                "path": _MEASUREMENT_PATH,
+                "entry_kind": "regular_file",
+                "asset_identity_ref": measurement_identity_ref.to_dict(),
+            },
+        ),
+        (
+            measurement_identity_ref,
+            {
+                "asset_identity_id": measurement_identity_ref.record_id,
+                "tier": "full_digest",
+                "asset_ref": measurement_file_ref.to_dict(),
+                "identity_evidence": {
+                    "kind": "full_digest",
+                    "digest": measurement_digest,
+                },
             },
         ),
         (
@@ -328,6 +380,13 @@ def _context(
                 content=requirements,
                 content_digest=requirements_digest,
             ),
+            FrozenMaterialInput(
+                path=_MEASUREMENT_PATH,
+                file_ref=measurement_file_ref,
+                asset_identity_ref=measurement_identity_ref,
+                content=measurement_data,
+                content_digest=measurement_digest,
+            ),
         ),
     )
 
@@ -397,27 +456,81 @@ def test_regression_r7_procedure_record_must_declare_resolved_callable() -> None
     assert analysis.certificate is None
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Registration blocker: v1 cannot bind executable x/y test-argument data sources; "
-        "the grammar extension is intentionally not part of this fix round."
-    ),
+@pytest.mark.parametrize(
+    ("test_callable", "correction_input", "raw_pvalue", "payload_type"),
+    [
+        ("scipy.stats.mannwhitneyu", "pvals[:2]", "0.4142161782425251", "shadow_candidate"),
+        ("scipy.stats.mannwhitneyu", "pvals", "0.4142161782425251", "coverage_note"),
+        ("scipy.stats.ttest_ind", "pvals", "0.29289321881345254", "coverage_note"),
+    ],
 )
-def test_regression_r4_executable_test_argument_bindings_remain_unsupported() -> None:
+def test_regression_r4_executable_keyed_arguments_execute_and_are_recognized(
+    tmp_path: Path,
+    test_callable: str,
+    correction_input: str,
+    raw_pvalue: str,
+    payload_type: str,
+) -> None:
+    runtime = Path(
+        "/Users/alexanderking/Desktop/random_stuff/"
+        "sc-referee-pilot-runtime/scipy114-venv/bin/python"
+    )
+    assert runtime.is_file(), "the mandatory multiple-testing sandbox runtime is absent"
+    probe = subprocess.run(
+        [
+            str(runtime),
+            "-I",
+            "-c",
+            (
+                "import importlib.metadata as m, scipy, statsmodels; "
+                "print(scipy.__version__, m.version('statsmodels'), statsmodels.__version__)"
+            ),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert probe.returncode == 0, probe.stderr
+    assert probe.stdout.strip() == "1.14.0 0.14.4 0.14.4"
+
     source = _source(
-        after_reader=(
-            'x = {"g1": [1.0, 2.0], "g2": [2.0, 3.0], "g3": [3.0, 4.0]}\n'
-            'y = {"g1": [2.0, 3.0], "g2": [3.0, 4.0], "g3": [4.0, 5.0]}'
+        correction_input=correction_input,
+        test_callable=test_callable,
+    )
+    family_data = (
+        "gene,pvalue\n" + "\n".join(f"g{index},{raw_pvalue}" for index in range(1, 4)) + "\n"
+    ).encode()
+    (tmp_path / "workflow").mkdir()
+    (tmp_path / "results").mkdir()
+    (tmp_path / "inputs").mkdir()
+    (tmp_path / _SOURCE_PATH).write_text(source, encoding="utf-8")
+    (tmp_path / _DATA_PATH).write_bytes(family_data)
+    (tmp_path / _MEASUREMENT_PATH).write_bytes(_MEASUREMENTS)
+    reports: list[bytes] = []
+    for _ in range(2):
+        report_path = tmp_path / _REPORT_PATH
+        report_path.unlink(missing_ok=True)
+        run = subprocess.run(
+            [str(runtime), "-I", _SOURCE_PATH],
+            cwd=tmp_path,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
+        assert run.returncode == 0, run.stderr
+        assert run.stderr == ""
+        reports.append(report_path.read_bytes())
+    assert reports[0] == reports[1]
+    assert raw_pvalue.encode() in reports[0]
+
+    context = _context(source, data=family_data)
+    payload = MultipleTestingRecognitionShadowAdapter().inspect(context)
+    assert payload["payload_type"] == payload_type
+    assert payload["outcome"] == (
+        "evaluation_candidate" if payload_type == "shadow_candidate" else "covered_negative"
     )
-    context = _context(source)
-    discharged = discharge_multiple_testing_proposal(
-        analyze_multiple_testing_python(context),
-        context,
-    )
-    assert discharged.state == "verified"
-    assert discharged.outcome == "evaluation_candidate"
 
 
 def test_csv_newline_reader_model_reaches_kernel() -> None:
@@ -455,8 +568,29 @@ def test_missing_mismatched_or_conflicting_authority_is_a_question(
 
 def test_multiple_candidate_key_columns_are_named_without_ranking() -> None:
     data = b"gene,study,pvalue\ng1,s1,0.01\ng2,s2,0.04\ng3,s3,0.20\n"
-    source = _source(projection='genes = [(row["gene"], row["study"]) for row in rows]')
-    analysis = _analyze(source, data=data, authority=False)
+    measurements = (
+        b"gene,study,x1,x2,y1,y2\n"
+        b"g1,s1,1.0,2.0,2.0,3.0\n"
+        b"g2,s2,2.0,3.0,3.0,4.0\n"
+        b"g3,s3,3.0,4.0,4.0,5.0\n"
+    )
+    source = _source(
+        projection='genes = [(row["gene"], row["study"]) for row in rows]',
+        left_projection=(
+            'x = {(r["gene"], r["study"]): '
+            '(float(r["x1"]), float(r["x2"])) for r in measurement_rows}'
+        ),
+        right_projection=(
+            'y = {(s["gene"], s["study"]): '
+            '(float(s["y1"]), float(s["y2"])) for s in measurement_rows}'
+        ),
+    )
+    analysis = _analyze(
+        source,
+        data=data,
+        measurement_data=measurements,
+        authority=False,
+    )
     assert analysis.state == "question"
     assert analysis.candidate_family_key_columns == ("gene", "study")
     assert analysis.unresolved_dimensions == (
@@ -531,14 +665,14 @@ def test_dynamic_import_execution_and_system_routes_abstain(injected: str) -> No
     [
         ("import scipy.stats", "import scipy.stats as st"),
         (
-            "from sc_referee.calculation_checks.bh import benjamini_hochberg",
-            "from sc_referee.calculation_checks.bh import benjamini_hochberg as bh",
+            "from statsmodels.stats.multitest import multipletests",
+            "from statsmodels.stats.multitest import multipletests as mt",
         ),
         ("import scipy.stats", "from scipy import stats"),
         (
-            "from sc_referee.calculation_checks.bh import benjamini_hochberg",
-            "from sc_referee.calculation_checks.bh import benjamini_hochberg\n"
-            "from sc_referee.calculation_checks.bh import benjamini_hochberg",
+            "from statsmodels.stats.multitest import multipletests",
+            "from statsmodels.stats.multitest import multipletests\n"
+            "from statsmodels.stats.multitest import multipletests",
         ),
     ],
 )
@@ -770,3 +904,78 @@ def test_every_nonadverse_end_to_end_case_is_not_a_candidate() -> None:
         analysis = analyze_multiple_testing_python(context)
         outcomes.append(discharge_multiple_testing_proposal(analysis, context).outcome)
     assert outcomes == ["covered_negative", "question", "unsupported", "unsupported"]
+
+
+def test_repository_bh_executable_type_binding_is_a_named_abstention() -> None:
+    analysis = _analyze(_source(correction="repository"))
+    assert analysis.state == "unsupported"
+    assert analysis.unsupported_constructs == ("repository-bh-runtime-type-binding-unverified",)
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        (
+            "for r in measurement_rows}",
+            "for r in measurement_rows if r}",
+        ),
+        (
+            'float(s["y1"])',
+            'float(s["x1"])',
+        ),
+        (
+            "scipy.stats.ttest_ind(x[g], y[g])",
+            "scipy.stats.ttest_ind(y[g], x[g])",
+        ),
+    ],
+)
+def test_executable_argument_projection_attacks_abstain(old: str, new: str) -> None:
+    analysis = _analyze(_source().replace(old, new, 1))
+    assert analysis.state == "unsupported"
+    assert analysis.outcome != "evaluation_candidate"
+
+
+def test_second_measurement_reader_is_an_unmodeled_live_subtree() -> None:
+    source = _source(after_battery="other_rows = measurement_rows")
+    analysis = _analyze(source)
+    assert analysis.state == "unsupported"
+    assert analysis.unsupported_constructs == ("unmodeled-live-subtree",)
+
+
+def test_argument_assignment_cannot_shadow_an_import_binding() -> None:
+    source = (
+        _source()
+        .replace(
+            'x = {r["gene"]:',
+            'csv = {r["gene"]:',
+        )
+        .replace("ttest_ind(x[g], y[g])", "ttest_ind(csv[g], y[g])")
+    )
+    context = _context(source)
+    discharged = discharge_multiple_testing_proposal(
+        analyze_multiple_testing_python(context),
+        context,
+    )
+    assert discharged.outcome == "unsupported"
+    assert discharged.verified_certificate is None
+
+
+@pytest.mark.parametrize(
+    "measurement_data",
+    [
+        _MEASUREMENTS.replace(b"g3,3.0", b"other,3.0"),
+        _MEASUREMENTS.replace(b"g3,3.0,4.0,4.0,5.0\n", b"g1,3.0,4.0,4.0,5.0\n"),
+        _MEASUREMENTS.replace(b"g3,3.0", b"g3,1e0"),
+        _MEASUREMENTS.replace(b"gene,x1,x2,y1,y2", b"gene,x1,x2,y1,y2,note"),
+    ],
+)
+def test_controller_measurement_proof_failures_never_become_candidates(
+    measurement_data: bytes,
+) -> None:
+    context = _context(_source(), measurement_data=measurement_data)
+    discharged = discharge_multiple_testing_proposal(
+        analyze_multiple_testing_python(context),
+        context,
+    )
+    assert discharged.outcome == "unsupported"
+    assert discharged.verified_certificate is None

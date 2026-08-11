@@ -14,6 +14,8 @@ from sc_referee.multiple_testing_recognition.certificate import (
     multiple_testing_case_digest,
     multiple_testing_replay_digest,
     source_construct_token,
+    test_argument_cell_token,
+    test_argument_vector_token,
     test_result_token,
     verify_multiple_testing_certificate,
 )
@@ -28,6 +30,8 @@ from sc_referee.multiple_testing_recognition.ir import (
     MultipleTestingCertificate,
     PValueFamilyFact,
     ReportFamilyBinding,
+    TestArgumentDomainFact,
+    TestArgumentDomainObligation,
     TestBatteryObligation,
     TestResultPosition,
     VerifiedMultipleTestingCertificate,
@@ -41,6 +45,10 @@ from sc_referee.multiple_testing_recognition.python_analyzer import (
     PythonMultipleTestingAnalysis,
     analyze_multiple_testing_python,
     discharge_multiple_testing_proposal,
+)
+from sc_referee.multiple_testing_recognition.test_argument_domain import (
+    prove_test_argument_domain,
+    test_argument_row_domain,
 )
 
 __all__ = [
@@ -60,6 +68,8 @@ __all__ = [
     "PValueFamilyFact",
     "PythonMultipleTestingAnalysis",
     "ReportFamilyBinding",
+    "TestArgumentDomainFact",
+    "TestArgumentDomainObligation",
     "TestBatteryObligation",
     "TestResultPosition",
     "VerifiedMultipleTestingCertificate",
@@ -72,8 +82,12 @@ __all__ = [
     "multiple_testing_recognition_dependency_closure",
     "multiple_testing_replay_digest",
     "prove_pvalue_family",
+    "prove_test_argument_domain",
     "pvalue_family_row_domain",
     "source_construct_token",
+    "test_argument_cell_token",
+    "test_argument_row_domain",
+    "test_argument_vector_token",
     "test_result_token",
     "verify_multiple_testing_certificate",
 ]

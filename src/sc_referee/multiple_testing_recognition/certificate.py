@@ -10,6 +10,7 @@ It never imports or executes project-authored code.
 from __future__ import annotations
 
 import ast
+import math
 import re
 import unicodedata
 from collections import Counter
@@ -28,6 +29,11 @@ from sc_referee.multiple_testing_recognition.ir import (
     MAX_PVALUE_FAMILY_PROOF_RECORD_BYTES,
     MAX_PVALUE_FAMILY_ROWS,
     MAX_PVALUE_FAMILY_SOURCE_BYTES,
+    MAX_TEST_ARGUMENT_DOMAIN_COLUMNS,
+    MAX_TEST_ARGUMENT_DOMAIN_FIELD_BYTES,
+    MAX_TEST_ARGUMENT_DOMAIN_PROOF_RECORD_BYTES,
+    MAX_TEST_ARGUMENT_DOMAIN_ROWS,
+    MAX_TEST_ARGUMENT_DOMAIN_SOURCE_BYTES,
     RECOGNIZED_READER_MODELS,
     REQUIRED_SCOPE_BASES,
     CorrectionCall,
@@ -43,6 +49,8 @@ from sc_referee.multiple_testing_recognition.ir import (
     PValueFamilyFact,
     RecordRef,
     ReportFamilyBinding,
+    TestArgumentDomainFact,
+    TestArgumentDomainObligation,
     TestBatteryObligation,
     TestResultPosition,
     VerifiedMultipleTestingCertificate,
@@ -65,8 +73,9 @@ _TEST_CALLABLES = frozenset(
 )
 _REPOSITORY_BH_CALLABLE = "sc_referee.calculation_checks.bh.benjamini_hochberg"
 _STATSMODELS_BH_CALLABLE = "statsmodels.stats.multitest.multipletests"
-_CORRECTION_CALLABLES = frozenset({_REPOSITORY_BH_CALLABLE, _STATSMODELS_BH_CALLABLE})
+_CORRECTION_CALLABLES = frozenset({_STATSMODELS_BH_CALLABLE})
 _UNSIGNED_FIXED_POINT_DECIMAL = re.compile(r"[0-9]+(?:\.[0-9]+)?", flags=re.ASCII)
+_MEASUREMENT_DECIMAL = re.compile(r"-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?", flags=re.ASCII)
 _PROHIBITED_AST_TYPES = (
     ast.AsyncFor,
     ast.AsyncFunctionDef,
@@ -75,7 +84,6 @@ _PROHIBITED_AST_TYPES = (
     ast.Await,
     ast.ClassDef,
     ast.Delete,
-    ast.DictComp,
     ast.For,
     ast.FunctionDef,
     ast.GeneratorExp,
@@ -101,12 +109,25 @@ class _FactResolution:
 
 
 @dataclass(frozen=True)
+class _ArgumentFactResolution:
+    fact: TestArgumentDomainFact
+    cell_tokens: tuple[str, ...]
+    vectors_by_hypothesis: dict[str, tuple[str, str]]
+
+
+@dataclass(frozen=True)
 class _SourceReplay:
     reader_token: str
     projection_token: str
     battery_construct_id: str
     element_call_template_token: str
     argument_template_tokens: tuple[str, str]
+    measurement_reader_token: str
+    left_projection_token: str
+    right_projection_token: str
+    measurement_rows_name: str
+    left_argument_name: str
+    right_argument_name: str
     correction_construct_token: str
     report_construct_token: str
     sink_token: str
@@ -120,6 +141,7 @@ def verify_multiple_testing_certificate(
     *,
     frozen_source_bytes: bytes,
     trusted_family_facts: tuple[PValueFamilyFact, ...] = (),
+    trusted_argument_facts: tuple[TestArgumentDomainFact, ...] = (),
     trusted_family_authorizations: tuple[FamilyAuthorization, ...] = (),
 ) -> VerifiedMultipleTestingCertificate | None:
     """Accept one closed subset/full-family proof or fail closed with ``None``."""
@@ -140,7 +162,20 @@ def verify_multiple_testing_certificate(
     )
     if fact_resolution is None:
         return None
-    replay = _replay_bounded_source(certificate, source, fact_resolution.fact)
+    argument_resolution = _trusted_argument_fact(certificate, trusted_argument_facts)
+    if argument_resolution is None:
+        return None
+    if not _argument_family_join_is_total(
+        fact_resolution.fact,
+        argument_resolution.fact,
+    ):
+        return None
+    replay = _replay_bounded_source(
+        certificate,
+        source,
+        fact_resolution.fact,
+        argument_resolution.fact,
+    )
     if replay is None or replay.battery_construct_id != authority.battery_construct_id:
         return None
     if not _scope_equation_is_closed(certificate, replay):
@@ -149,8 +184,11 @@ def verify_multiple_testing_certificate(
     positions = _derive_result_positions(
         certificate,
         fact_resolution.fact,
+        argument_resolution,
         replay,
     )
+    if positions is None:
+        return None
     performed = tuple(item.result_token for item in positions)
     corrected = tuple(performed[index] for index in replay.corrected_positions)
     reported = performed
@@ -178,11 +216,16 @@ def verify_multiple_testing_certificate(
     if not _proof_slice_is_noninterfering(
         certificate,
         fact_resolution.fact,
+        argument_resolution,
         replay,
         positions,
     ):
         return None
-    if not _evidence_is_closed(certificate, fact_resolution.fact):
+    if not _evidence_is_closed(
+        certificate,
+        fact_resolution.fact,
+        argument_resolution.fact,
+    ):
         return None
 
     return VerifiedMultipleTestingCertificate(
@@ -192,6 +235,7 @@ def verify_multiple_testing_certificate(
         case_binding=certificate.case_binding,
         family_authorization=authority,
         family_fact=fact_resolution.fact,
+        test_argument_fact=argument_resolution.fact,
         test_result_positions=positions,
         performed_result_tokens=performed,
         corrected_result_tokens=corrected,
@@ -239,6 +283,9 @@ def multiple_testing_replay_digest(certificate: MultipleTestingCertificate) -> s
             "all_sink_tokens": sorted(certificate.all_sink_tokens),
             "dead_sink_tokens": sorted(certificate.dead_sink_tokens),
             "scope_checks": scopes,
+            "test_argument_domain_obligations": [
+                asdict(item) for item in certificate.test_argument_domain_obligations
+            ],
         }
     )
 
@@ -311,6 +358,48 @@ def test_result_token(
     )
 
 
+def test_argument_cell_token(
+    row_domain: str,
+    hypothesis_token: str,
+    side: str,
+    column: str,
+    binary64_hex: str,
+) -> str:
+    """Derive one kernel-owned measurement-cell identity."""
+
+    return "test-argument-cell:" + semantic_digest(
+        {
+            "schema": "test-argument-cell-v1",
+            "row_domain": row_domain,
+            "hypothesis_token": hypothesis_token,
+            "side": side,
+            "column": column,
+            "binary64_hex": binary64_hex,
+        }
+    )
+
+
+def test_argument_vector_token(
+    row_domain: str,
+    hypothesis_token: str,
+    side: str,
+    columns: tuple[str, ...],
+    binary64_hex: tuple[str, ...],
+) -> str:
+    """Derive one kernel-owned position-independent keyed operand vector."""
+
+    return "test-argument-vector:" + semantic_digest(
+        {
+            "schema": "test-argument-vector-v1",
+            "row_domain": row_domain,
+            "hypothesis_token": hypothesis_token,
+            "side": side,
+            "columns": columns,
+            "binary64_hex": binary64_hex,
+        }
+    )
+
+
 def source_construct_token(kind: str, source_digest: str, point: EvidencePoint) -> str:
     """Return the stable static token formula also used by future proposers."""
 
@@ -369,6 +458,25 @@ def _case_binding_is_closed(binding: MultipleTestingCaseBinding) -> bool:
         and _nonempty_unique_strings(binding.authorized_family_key_columns, trimmed=False)
         and _relative_path(binding.family_input_path)
         and _sha256(binding.family_input_content_digest)
+        and _relative_path(binding.measurement_input_path)
+        and binding.measurement_input_path != binding.family_input_path
+        and _sha256(binding.measurement_input_content_digest)
+        and _nonempty_unique_strings(binding.measurement_key_columns, trimmed=False)
+        and _nonempty_unique_strings(binding.left_measurement_columns, trimmed=False)
+        and len(binding.left_measurement_columns) >= 2
+        and _nonempty_unique_strings(binding.right_measurement_columns, trimmed=False)
+        and len(binding.right_measurement_columns) >= 2
+        and len(
+            {
+                *binding.measurement_key_columns,
+                *binding.left_measurement_columns,
+                *binding.right_measurement_columns,
+            }
+        )
+        == len(binding.measurement_key_columns)
+        + len(binding.left_measurement_columns)
+        + len(binding.right_measurement_columns)
+        and binding.measurement_reader_model in _READER_MODELS
     )
 
 
@@ -589,13 +697,267 @@ def _fact_is_closed(fact: PValueFamilyFact) -> _FactResolution | None:
     return _FactResolution(fact, tuple(decimals))
 
 
+def _trusted_argument_fact(
+    certificate: MultipleTestingCertificate,
+    trusted: tuple[TestArgumentDomainFact, ...],
+) -> _ArgumentFactResolution | None:
+    if len(certificate.test_argument_domain_obligations) != 1 or len(trusted) != 1:
+        return None
+    obligation = certificate.test_argument_domain_obligations[0]
+    fact = trusted[0]
+    binding = certificate.case_binding
+    if not _argument_obligation_is_closed(obligation):
+        return None
+    expected = obligation.input_binding
+    if (
+        binding.measurement_input_path,
+        binding.measurement_input_content_digest,
+        binding.measurement_key_columns,
+        binding.left_measurement_columns,
+        binding.right_measurement_columns,
+        binding.measurement_reader_model,
+    ) != (
+        expected.path,
+        expected.content_digest,
+        obligation.measurement_key_columns,
+        obligation.left_measurement_columns,
+        obligation.right_measurement_columns,
+        obligation.reader_form,
+    ):
+        return None
+    if (
+        fact.path,
+        fact.content_digest,
+        fact.file_ref,
+        fact.asset_identity_ref,
+        fact.reader_form,
+        fact.line_model,
+        fact.dialect,
+        fact.row_domain,
+        fact.measurement_key_columns,
+        fact.left_measurement_columns,
+        fact.right_measurement_columns,
+    ) != (
+        expected.path,
+        expected.content_digest,
+        expected.file_ref,
+        expected.asset_identity_ref,
+        obligation.reader_form,
+        obligation.line_model,
+        obligation.dialect,
+        obligation.measurement_row_domain,
+        obligation.measurement_key_columns,
+        obligation.left_measurement_columns,
+        obligation.right_measurement_columns,
+    ):
+        return None
+    return _argument_fact_is_closed(fact)
+
+
+def _argument_obligation_is_closed(obligation: TestArgumentDomainObligation) -> bool:
+    columns = (
+        *obligation.measurement_key_columns,
+        *obligation.left_measurement_columns,
+        *obligation.right_measurement_columns,
+    )
+    points = (
+        obligation.reader_assignment_span,
+        obligation.left_projection_span,
+        obligation.right_projection_span,
+        obligation.left_key_span,
+        obligation.right_key_span,
+        obligation.left_value_span,
+        obligation.right_value_span,
+    )
+    return (
+        _material_input_is_closed(obligation.input_binding)
+        and _reader_model(obligation.reader_form, obligation.line_model, obligation.dialect)
+        and _present(obligation.measurement_row_domain)
+        and _present(obligation.measurement_rows_name)
+        and _present(obligation.left_argument_name)
+        and _present(obligation.right_argument_name)
+        and len(
+            {
+                obligation.measurement_rows_name,
+                obligation.left_argument_name,
+                obligation.right_argument_name,
+            }
+        )
+        == 3
+        and _nonempty_unique_strings(obligation.measurement_key_columns, trimmed=False)
+        and _nonempty_unique_strings(obligation.left_measurement_columns, trimmed=False)
+        and len(obligation.left_measurement_columns) >= 2
+        and _nonempty_unique_strings(obligation.right_measurement_columns, trimmed=False)
+        and len(obligation.right_measurement_columns) >= 2
+        and len(columns) == len(set(columns))
+        and all(_evidence_point_is_closed(point) for point in points)
+        and len(obligation.evidence_ids) == len(points)
+        and _nonempty_unique_strings(obligation.evidence_ids)
+    )
+
+
+def _argument_fact_is_closed(
+    fact: TestArgumentDomainFact,
+) -> _ArgumentFactResolution | None:
+    aligned = {
+        fact.row_count,
+        len(fact.observation_tokens),
+        len(fact.key_value_tuples),
+        len(fact.hypothesis_tokens),
+        len(fact.left_raw_measurement_lexemes),
+        len(fact.right_raw_measurement_lexemes),
+        len(fact.left_binary64_hex),
+        len(fact.right_binary64_hex),
+    }
+    selected_columns = (
+        *fact.measurement_key_columns,
+        *fact.left_measurement_columns,
+        *fact.right_measurement_columns,
+    )
+    if (
+        not _present(fact.evidence_id)
+        or not _relative_path(fact.path)
+        or not _sha256(fact.content_digest)
+        or not _record_ref(fact.file_ref, "file_record")
+        or not _record_ref(fact.asset_identity_ref, "asset_identity")
+        or not _reader_model(fact.reader_form, fact.line_model, fact.dialect)
+        or fact.normalization != _NORMALIZATIONS.get(fact.line_model)
+        or (fact.line_model == "splitlines" and not fact.splitlines_only_separators_absent)
+        or not _present(fact.row_domain)
+        or not 0 < fact.source_byte_count <= MAX_TEST_ARGUMENT_DOMAIN_SOURCE_BYTES
+        or not 0 < len(fact.header) <= MAX_TEST_ARGUMENT_DOMAIN_COLUMNS
+        or len(fact.header) != len(set(fact.header))
+        or any(not value for value in fact.header)
+        or not _nonempty_unique_strings(fact.measurement_key_columns, trimmed=False)
+        or not _nonempty_unique_strings(fact.left_measurement_columns, trimmed=False)
+        or len(fact.left_measurement_columns) < 2
+        or not _nonempty_unique_strings(fact.right_measurement_columns, trimmed=False)
+        or len(fact.right_measurement_columns) < 2
+        or len(selected_columns) != len(set(selected_columns))
+        or set(selected_columns) != set(fact.header)
+        or len(selected_columns) != len(fact.header)
+        or fact.declared_missing_value_tokens
+        or fact.missing_key_value_count != 0
+        or fact.missing_measurement_value_count != 0
+        or not fact.row_shape_complete
+        or not 0 < fact.row_count <= MAX_TEST_ARGUMENT_DOMAIN_ROWS
+        or aligned != {fact.row_count}
+        or len(set(fact.observation_tokens)) != fact.row_count
+        or len(set(fact.key_value_tuples)) != fact.row_count
+        or len(set(fact.hypothesis_tokens)) != fact.row_count
+        or _argument_fact_record_size(fact) > MAX_TEST_ARGUMENT_DOMAIN_PROOF_RECORD_BYTES
+    ):
+        return None
+    every_field = (
+        *fact.header,
+        *(value for row in fact.key_value_tuples for value in row),
+        *(value for row in fact.left_raw_measurement_lexemes for value in row),
+        *(value for row in fact.right_raw_measurement_lexemes for value in row),
+        *(value for row in fact.left_binary64_hex for value in row),
+        *(value for row in fact.right_binary64_hex for value in row),
+    )
+    if any(
+        len(value.encode("utf-8")) > MAX_TEST_ARGUMENT_DOMAIN_FIELD_BYTES for value in every_field
+    ):
+        return None
+    observations: list[str] = []
+    hypotheses: list[str] = []
+    cell_tokens: list[str] = []
+    vectors: dict[str, tuple[str, str]] = {}
+    rows = zip(
+        fact.key_value_tuples,
+        fact.left_raw_measurement_lexemes,
+        fact.right_raw_measurement_lexemes,
+        fact.left_binary64_hex,
+        fact.right_binary64_hex,
+        strict=True,
+    )
+    for position, (key, left_raw, right_raw, left_hex, right_hex) in enumerate(rows):
+        if (
+            len(key) != len(fact.measurement_key_columns)
+            or any(not value for value in key)
+            or len(left_raw) != len(fact.left_measurement_columns)
+            or len(right_raw) != len(fact.right_measurement_columns)
+            or len(left_hex) != len(left_raw)
+            or len(right_hex) != len(right_raw)
+        ):
+            return None
+        hypothesis = family_hypothesis_token(fact.measurement_key_columns, key)
+        observations.append(
+            _argument_observation_token(
+                fact.path,
+                fact.content_digest,
+                fact.row_domain,
+                position + 1,
+            )
+        )
+        hypotheses.append(hypothesis)
+        for side, columns, raw_values, hex_values in (
+            ("left", fact.left_measurement_columns, left_raw, left_hex),
+            ("right", fact.right_measurement_columns, right_raw, right_hex),
+        ):
+            for column, raw, binary_hex in zip(columns, raw_values, hex_values, strict=True):
+                parsed = _exact_measurement(raw)
+                if parsed is None or parsed.hex() != binary_hex:
+                    return None
+                cell_tokens.append(
+                    test_argument_cell_token(
+                        fact.row_domain,
+                        hypothesis,
+                        side,
+                        column,
+                        binary_hex,
+                    )
+                )
+        vectors[hypothesis] = (
+            test_argument_vector_token(
+                fact.row_domain,
+                hypothesis,
+                "left",
+                fact.left_measurement_columns,
+                left_hex,
+            ),
+            test_argument_vector_token(
+                fact.row_domain,
+                hypothesis,
+                "right",
+                fact.right_measurement_columns,
+                right_hex,
+            ),
+        )
+    if (
+        fact.observation_tokens != tuple(observations)
+        or fact.hypothesis_tokens != tuple(hypotheses)
+        or len(vectors) != fact.row_count
+        or len(set(cell_tokens)) != len(cell_tokens)
+    ):
+        return None
+    return _ArgumentFactResolution(fact, tuple(cell_tokens), vectors)
+
+
+def _argument_family_join_is_total(
+    family_fact: PValueFamilyFact,
+    argument_fact: TestArgumentDomainFact,
+) -> bool:
+    """Independently prove the keyed join without relying on row position."""
+
+    return (
+        argument_fact.measurement_key_columns == family_fact.hypothesis_key_columns
+        and argument_fact.row_count == family_fact.row_count
+        and len(set(argument_fact.hypothesis_tokens)) == argument_fact.row_count
+        and Counter(argument_fact.hypothesis_tokens) == Counter(family_fact.hypothesis_tokens)
+    )
+
+
 def _replay_bounded_source(
     certificate: MultipleTestingCertificate,
     source: str,
     fact: PValueFamilyFact,
+    argument_fact: TestArgumentDomainFact,
 ) -> _SourceReplay | None:
     if not (
         len(certificate.full_family_projections) == 1
+        and len(certificate.test_argument_domain_obligations) == 1
         and len(certificate.test_batteries) == 1
         and len(certificate.correction_calls) == 1
         and len(certificate.family_scope_checks) == 1
@@ -618,10 +980,12 @@ def _replay_bounded_source(
     ):
         return None
     list_comprehensions = [node for node in nodes if isinstance(node, ast.ListComp)]
-    if len(list_comprehensions) != 2:
+    dict_comprehensions = [node for node in nodes if isinstance(node, ast.DictComp)]
+    if len(list_comprehensions) != 2 or len(dict_comprehensions) != 2:
         return None
 
     projection = certificate.full_family_projections[0]
+    argument = certificate.test_argument_domain_obligations[0]
     battery = certificate.test_batteries[0]
     correction = certificate.correction_calls[0]
     report = certificate.report_bindings[0]
@@ -673,6 +1037,64 @@ def _replay_bounded_source(
     if reader_token is None:
         return None
     allowed_statements.add(id(reader_assign))
+    measurement_reader_node = _unique_node_at(
+        tree,
+        ast.Assign,
+        argument.reader_assignment_span,
+    )
+    left_projection_node = _unique_node_at(
+        tree,
+        ast.Assign,
+        argument.left_projection_span,
+    )
+    right_projection_node = _unique_node_at(
+        tree,
+        ast.Assign,
+        argument.right_projection_span,
+    )
+    if not all(
+        isinstance(item, ast.Assign)
+        for item in (measurement_reader_node, left_projection_node, right_projection_node)
+    ):
+        return None
+    measurement_reader_assign = cast(ast.Assign, measurement_reader_node)
+    left_projection_assign = cast(ast.Assign, left_projection_node)
+    right_projection_assign = cast(ast.Assign, right_projection_node)
+    measurement_reader_token = _measurement_reader_shape(
+        measurement_reader_assign,
+        argument,
+        argument_fact,
+        certificate.source_digest,
+    )
+    left_projection_checked = _argument_projection_shape(
+        left_projection_assign,
+        argument,
+        argument_fact,
+        side="left",
+        source_digest=certificate.source_digest,
+    )
+    right_projection_checked = _argument_projection_shape(
+        right_projection_assign,
+        argument,
+        argument_fact,
+        side="right",
+        source_digest=certificate.source_digest,
+    )
+    if (
+        measurement_reader_token is None
+        or left_projection_checked is None
+        or right_projection_checked is None
+    ):
+        return None
+    left_projection_token, left_generator_name = left_projection_checked
+    right_projection_token, right_generator_name = right_projection_checked
+    allowed_statements.update(
+        {
+            id(measurement_reader_assign),
+            id(left_projection_assign),
+            id(right_projection_assign),
+        }
+    )
     correction_parent = _assign_containing_call(tree, correction_call_node)
     if correction_parent is None:
         return None
@@ -703,6 +1125,7 @@ def _replay_bounded_source(
         battery_assign,
         battery,
         projection,
+        argument,
         certificate.source_digest,
     )
     if battery_checked is None:
@@ -713,7 +1136,17 @@ def _replay_bounded_source(
         argument_template_tokens,
         battery_generator_name,
     ) = battery_checked
-    if projection_generator_name == battery_generator_name:
+    if (
+        len(
+            {
+                projection_generator_name,
+                left_generator_name,
+                right_generator_name,
+                battery_generator_name,
+            }
+        )
+        != 4
+    ):
         return None
 
     correction_checked = _correction_shape(
@@ -736,6 +1169,7 @@ def _replay_bounded_source(
         correction,
         certificate.source_path,
         fact.path,
+        argument_fact.path,
         certificate.source_digest,
     )
     if report_checked is None:
@@ -744,12 +1178,47 @@ def _replay_bounded_source(
     ordered_statements = (
         reader_assign,
         projection_assign,
+        measurement_reader_assign,
+        left_projection_assign,
+        right_projection_assign,
         battery_assign,
         correction_parent,
         report_assign,
         sink_node,
     )
     if not _supported_statement_order(*ordered_statements):
+        return None
+    correction_local_name = (
+        "benjamini_hochberg"
+        if correction.resolved_callable == _REPOSITORY_BH_CALLABLE
+        else "multipletests"
+    )
+    assignment_names = tuple(
+        _single_name_target(statement)
+        for statement in (
+            reader_assign,
+            projection_assign,
+            measurement_reader_assign,
+            left_projection_assign,
+            right_projection_assign,
+            battery_assign,
+            correction_parent,
+            report_assign,
+        )
+    )
+    comprehension_names = (
+        projection_generator_name,
+        left_generator_name,
+        right_generator_name,
+        battery_generator_name,
+    )
+    fixed_names = ("csv", "scipy", "Path", correction_local_name, "float")
+    if (
+        any(name is None for name in assignment_names)
+        or len(set(assignment_names)) != len(assignment_names)
+        or len(set((*assignment_names, *comprehension_names, *fixed_names)))
+        != len(assignment_names) + len(comprehension_names) + len(fixed_names)
+    ):
         return None
     relevant_names = {
         projection.source_rows_name,
@@ -758,17 +1227,17 @@ def _replay_bounded_source(
         correction.result_name,
         report.reported_name,
         projection_generator_name,
+        left_generator_name,
+        right_generator_name,
         battery_generator_name,
+        argument.measurement_rows_name,
+        argument.left_argument_name,
+        argument.right_argument_name,
         "scipy",
         "benjamini_hochberg",
         "Path",
     }
     imported_names = {"scipy", "Path"}
-    correction_local_name = (
-        "benjamini_hochberg"
-        if correction.resolved_callable == _REPOSITORY_BH_CALLABLE
-        else "multipletests"
-    )
     relevant_names.add(correction_local_name)
     imported_names.add(correction_local_name)
     relevant_names.add("csv")
@@ -799,6 +1268,9 @@ def _replay_bounded_source(
             report_construct_token,
             sink_token,
             reader_token,
+            measurement_reader_token,
+            left_projection_token,
+            right_projection_token,
         }
     )
     if certificate.all_syntactic_construct_tokens != derived_constructs:
@@ -809,6 +1281,12 @@ def _replay_bounded_source(
         battery_construct_id=derived_battery_id,
         element_call_template_token=element_call_template_token,
         argument_template_tokens=argument_template_tokens,
+        measurement_reader_token=measurement_reader_token,
+        left_projection_token=left_projection_token,
+        right_projection_token=right_projection_token,
+        measurement_rows_name=argument.measurement_rows_name,
+        left_argument_name=argument.left_argument_name,
+        right_argument_name=argument.right_argument_name,
         correction_construct_token=correction_construct_token,
         report_construct_token=report_construct_token,
         sink_token=sink_token,
@@ -914,10 +1392,159 @@ def _reader_shape(
     return _source_token("family-domain-reader", source_digest, obligation.reader_assignment_span)
 
 
+def _measurement_reader_shape(
+    assignment: ast.Assign,
+    obligation: TestArgumentDomainObligation,
+    fact: TestArgumentDomainFact,
+    source_digest: str,
+) -> str | None:
+    if (
+        _single_name_target(assignment) != obligation.measurement_rows_name
+        or _span(assignment, obligation.reader_assignment_span.path)
+        != obligation.reader_assignment_span
+        or obligation.input_binding.path != fact.path
+        or obligation.input_binding.content_digest != fact.content_digest
+    ):
+        return None
+    value = assignment.value
+    if not (
+        isinstance(value, ast.Call)
+        and _dotted_name(value.func) == "list"
+        and len(value.args) == 1
+        and not value.keywords
+        and isinstance(value.args[0], ast.Call)
+        and _dotted_name(value.args[0].func) == "csv.DictReader"
+        and len(value.args[0].args) == 1
+        and not value.args[0].keywords
+    ):
+        return None
+    source = value.args[0].args[0]
+    if obligation.line_model == "splitlines":
+        if not (
+            isinstance(source, ast.Call)
+            and isinstance(source.func, ast.Attribute)
+            and source.func.attr == "splitlines"
+            and not source.args
+            and not source.keywords
+            and isinstance(source.func.value, ast.Call)
+            and isinstance(source.func.value.func, ast.Attribute)
+            and source.func.value.func.attr == "read_text"
+            and not source.func.value.args
+            and _exact_utf8_keyword(source.func.value.keywords)
+            and _literal_path_call(source.func.value.func.value, fact.path)
+        ):
+            return None
+    elif obligation.line_model == "csv_newline":
+        if not (
+            isinstance(source, ast.Call)
+            and isinstance(source.func, ast.Attribute)
+            and source.func.attr == "open"
+            and not source.args
+            and _exact_open_keywords(source.keywords)
+            and _literal_path_call(source.func.value, fact.path)
+        ):
+            return None
+    else:
+        return None
+    return _source_token(
+        "test-argument-domain-reader",
+        source_digest,
+        obligation.reader_assignment_span,
+    )
+
+
+def _argument_projection_shape(
+    assignment: ast.Assign,
+    obligation: TestArgumentDomainObligation,
+    fact: TestArgumentDomainFact,
+    *,
+    side: str,
+    source_digest: str,
+) -> tuple[str, str] | None:
+    if side == "left":
+        expected_target = obligation.left_argument_name
+        expected_columns = obligation.left_measurement_columns
+        expected_projection_span = obligation.left_projection_span
+        expected_key_span = obligation.left_key_span
+        expected_value_span = obligation.left_value_span
+    elif side == "right":
+        expected_target = obligation.right_argument_name
+        expected_columns = obligation.right_measurement_columns
+        expected_projection_span = obligation.right_projection_span
+        expected_key_span = obligation.right_key_span
+        expected_value_span = obligation.right_value_span
+    else:
+        return None
+    value = assignment.value
+    if (
+        _single_name_target(assignment) != expected_target
+        or _span(assignment, expected_projection_span.path) != expected_projection_span
+        or not isinstance(value, ast.DictComp)
+        or len(value.generators) != 1
+        or value.generators[0].is_async
+        or value.generators[0].ifs
+        or not isinstance(value.generators[0].target, ast.Name)
+        or not isinstance(value.generators[0].iter, ast.Name)
+        or value.generators[0].iter.id != obligation.measurement_rows_name
+        or not isinstance(value.value, ast.Tuple)
+        or len(value.value.elts) != len(expected_columns)
+        or len(expected_columns) < 2
+        or _span(value.key, expected_key_span.path) != expected_key_span
+        or _span(value.value, expected_value_span.path) != expected_value_span
+    ):
+        return None
+    row_name = value.generators[0].target.id
+    if row_name in {
+        "float",
+        "csv",
+        "Path",
+        "scipy",
+        "multipletests",
+        "benjamini_hochberg",
+    }:
+        return None
+    if not _projection_element_matches(
+        value.key,
+        row_name,
+        obligation.measurement_key_columns,
+    ):
+        return None
+    for cell, column in zip(value.value.elts, expected_columns, strict=True):
+        if not (
+            isinstance(cell, ast.Call)
+            and isinstance(cell.func, ast.Name)
+            and cell.func.id == "float"
+            and len(cell.args) == 1
+            and not cell.keywords
+            and isinstance(cell.args[0], ast.Subscript)
+            and isinstance(cell.args[0].value, ast.Name)
+            and cell.args[0].value.id == row_name
+            and isinstance(cell.args[0].slice, ast.Constant)
+            and cell.args[0].slice.value == column
+        ):
+            return None
+    if (
+        obligation.measurement_row_domain != fact.row_domain
+        or obligation.measurement_key_columns != fact.measurement_key_columns
+        or obligation.left_measurement_columns != fact.left_measurement_columns
+        or obligation.right_measurement_columns != fact.right_measurement_columns
+    ):
+        return None
+    return (
+        _source_token(
+            f"{side}-test-argument-projection",
+            source_digest,
+            expected_projection_span,
+        ),
+        row_name,
+    )
+
+
 def _battery_shape(
     assignment: ast.Assign,
     obligation: TestBatteryObligation,
     projection: FullFamilyProjectionObligation,
+    argument: TestArgumentDomainObligation,
     source_digest: str,
 ) -> tuple[str, str, tuple[str, str], str] | None:
     target = _single_name_target(assignment)
@@ -953,23 +1580,27 @@ def _battery_shape(
         return None
     arguments: list[str] = []
     argument_bases: list[str] = []
-    for argument in call.args:
+    for argument_node in call.args:
         if (
-            not isinstance(argument, ast.Subscript)
-            or not isinstance(argument.value, ast.Name)
-            or not isinstance(argument.slice, ast.Name)
-            or argument.slice.id != generator_name
+            not isinstance(argument_node, ast.Subscript)
+            or not isinstance(argument_node.value, ast.Name)
+            or not isinstance(argument_node.slice, ast.Name)
+            or argument_node.slice.id != generator_name
         ):
             return None
-        argument_bases.append(argument.value.id)
+        argument_bases.append(argument_node.value.id)
         arguments.append(
             _source_token(
                 "test-argument-template",
                 source_digest,
-                _span(argument, obligation.element_call_span.path),
+                _span(argument_node, obligation.element_call_span.path),
             )
         )
-    if len(set(arguments)) != 2 or len(set(argument_bases)) != 2:
+    if (
+        len(set(arguments)) != 2
+        or len(set(argument_bases)) != 2
+        or tuple(argument_bases) != (argument.left_argument_name, argument.right_argument_name)
+    ):
         return None
     derived_id = _source_token("battery-construct", source_digest, obligation.assignment_span)
     if (
@@ -1050,6 +1681,7 @@ def _report_shape(
     correction: CorrectionCall,
     source_path: str,
     input_path: str,
+    measurement_input_path: str,
     source_digest: str,
 ) -> tuple[str, str] | None:
     value = assignment.value
@@ -1062,7 +1694,7 @@ def _report_shape(
         or not _record_ref(obligation.affected_target_ref)
         or obligation.affected_target_ref.record_type not in {"result", "claim"}
         or not _relative_path(obligation.path)
-        or obligation.path in {source_path, input_path}
+        or obligation.path in {source_path, input_path, measurement_input_path}
         or not isinstance(value, ast.Call)
         or _dotted_name(value.func) != "tuple"
         or len(value.args) != 1
@@ -1138,27 +1770,34 @@ def _scope_equation_is_closed(
 def _derive_result_positions(
     certificate: MultipleTestingCertificate,
     fact: PValueFamilyFact,
+    argument_resolution: _ArgumentFactResolution,
     replay: _SourceReplay,
-) -> tuple[TestResultPosition, ...]:
-    return tuple(
-        TestResultPosition(
-            position=position,
-            row_ordinal=position + 1,
-            hypothesis_token=hypothesis,
-            source_observation_token=fact.observation_tokens[position],
-            element_call_template_token=replay.element_call_template_token,
-            argument_template_tokens=replay.argument_template_tokens,
-            result_token=test_result_token(
-                certificate.source_digest,
-                replay.battery_construct_id,
-                replay.element_call_template_token,
-                fact.row_domain,
-                position,
-                hypothesis,
-            ),
+) -> tuple[TestResultPosition, ...] | None:
+    positions: list[TestResultPosition] = []
+    for position, hypothesis in enumerate(fact.hypothesis_tokens):
+        vectors = argument_resolution.vectors_by_hypothesis.get(hypothesis)
+        if vectors is None:
+            return None
+        positions.append(
+            TestResultPosition(
+                position=position,
+                row_ordinal=position + 1,
+                hypothesis_token=hypothesis,
+                source_observation_token=fact.observation_tokens[position],
+                element_call_template_token=replay.element_call_template_token,
+                argument_template_tokens=replay.argument_template_tokens,
+                argument_vector_tokens=vectors,
+                result_token=test_result_token(
+                    certificate.source_digest,
+                    replay.battery_construct_id,
+                    replay.element_call_template_token,
+                    fact.row_domain,
+                    position,
+                    hypothesis,
+                ),
+            )
         )
-        for position, hypothesis in enumerate(fact.hypothesis_tokens)
-    )
+    return tuple(positions)
 
 
 def _trusted_bh_recomputation(
@@ -1182,6 +1821,7 @@ def _report_and_sink_are_closed(
     replay: _SourceReplay,
 ) -> tuple[str, ...] | None:
     report = certificate.report_bindings[0]
+    argument = certificate.test_argument_domain_obligations[0]
     if (
         report.affected_target_ref != certificate.case_binding.affected_target_ref
         or report.iterable_row_domain != fact.row_domain
@@ -1197,6 +1837,8 @@ def _report_and_sink_are_closed(
         certificate.source_path,
         fact.path,
         fact.row_domain,
+        argument.input_binding.path,
+        argument.measurement_row_domain,
         report.path,
     }
     required_bindings = {
@@ -1205,6 +1847,12 @@ def _report_and_sink_are_closed(
         replay.correction_construct_token,
         replay.report_construct_token,
         replay.sink_token,
+        replay.measurement_reader_token,
+        replay.left_projection_token,
+        replay.right_projection_token,
+        argument.measurement_rows_name,
+        argument.left_argument_name,
+        argument.right_argument_name,
         certificate.test_batteries[0].battery_result_name,
         certificate.correction_calls[0].result_name,
         report.reported_name,
@@ -1220,15 +1868,20 @@ def _report_and_sink_are_closed(
 def _proof_slice_is_noninterfering(
     certificate: MultipleTestingCertificate,
     fact: PValueFamilyFact,
+    argument_resolution: _ArgumentFactResolution,
     replay: _SourceReplay,
     positions: tuple[TestResultPosition, ...],
 ) -> bool:
     report = certificate.report_bindings[0]
     projection = certificate.full_family_projections[0]
+    argument = certificate.test_argument_domain_obligations[0]
+    argument_fact = argument_resolution.fact
     relevant_origins = {
         certificate.source_path,
         fact.path,
         fact.row_domain,
+        argument_fact.path,
+        argument_fact.row_domain,
         report.path,
         *report.relevant_origins,
     }
@@ -1237,9 +1890,17 @@ def _proof_slice_is_noninterfering(
         *fact.observation_tokens,
         *fact.hypothesis_tokens,
         *fact.pvalue_tokens,
+        *argument_fact.observation_tokens,
+        *argument_fact.hypothesis_tokens,
+        *argument_resolution.cell_tokens,
+        *(token for pair in argument_resolution.vectors_by_hypothesis.values() for token in pair),
         *(item.result_token for item in positions),
+        *(token for item in positions for token in item.argument_vector_tokens),
         projection.source_rows_name,
         projection.projected_family_name,
+        argument.measurement_rows_name,
+        argument.left_argument_name,
+        argument.right_argument_name,
         certificate.test_batteries[0].battery_result_name,
         certificate.correction_calls[0].result_name,
         report.reported_name,
@@ -1274,6 +1935,7 @@ def _proof_slice_is_noninterfering(
 def _evidence_is_closed(
     certificate: MultipleTestingCertificate,
     fact: PValueFamilyFact,
+    argument_fact: TestArgumentDomainFact,
 ) -> bool:
     declarations = certificate.evidence
     by_id = {item.evidence_id: item for item in declarations}
@@ -1291,6 +1953,11 @@ def _evidence_is_closed(
             for item in record.reader_evidence_ids
         ),
         *(item for record in certificate.full_family_projections for item in record.evidence_ids),
+        *(
+            item
+            for record in certificate.test_argument_domain_obligations
+            for item in record.evidence_ids
+        ),
         *(item for record in certificate.test_batteries for item in record.evidence_ids),
         *(item for record in certificate.correction_calls for item in record.evidence_ids),
         *(item for record in certificate.family_scope_checks for item in record.evidence_ids),
@@ -1299,7 +1966,7 @@ def _evidence_is_closed(
     if (
         any(not _present(item) for item in uses)
         or len(uses) != len(set(uses))
-        or set(by_id) != {fact.evidence_id, *uses}
+        or set(by_id) != {fact.evidence_id, argument_fact.evidence_id, *uses}
     ):
         return False
     code_points: list[EvidencePoint] = []
@@ -1309,6 +1976,9 @@ def _evidence_is_closed(
             return False
         if declaration.evidence_id == fact.evidence_id:
             if point.path != fact.path:
+                return False
+        elif declaration.evidence_id == argument_fact.evidence_id:
+            if point.path != argument_fact.path:
                 return False
         else:
             if point.path != certificate.source_path or not _point_within(
@@ -1320,6 +1990,7 @@ def _evidence_is_closed(
         return False
     projection = certificate.full_family_projections[0]
     domain = certificate.family_domain_obligations[0]
+    argument = certificate.test_argument_domain_obligations[0]
     battery = certificate.test_batteries[0]
     correction = certificate.correction_calls[0]
     report = certificate.report_bindings[0]
@@ -1332,6 +2003,19 @@ def _evidence_is_closed(
         and _ids_cover_points(
             projection.evidence_ids,
             (projection.assignment_span, projection.listcomp_span, projection.element_span),
+            by_id,
+        )
+        and _ids_cover_points(
+            argument.evidence_ids,
+            (
+                argument.reader_assignment_span,
+                argument.left_projection_span,
+                argument.right_projection_span,
+                argument.left_key_span,
+                argument.right_key_span,
+                argument.left_value_span,
+                argument.right_value_span,
+            ),
             by_id,
         )
         and _ids_cover_points(
@@ -1627,7 +2311,41 @@ def _exact_decimal(value: str) -> Decimal | None:
     return parsed
 
 
+def _exact_measurement(value: str) -> float | None:
+    if _MEASUREMENT_DECIMAL.fullmatch(value) is None:
+        return None
+    try:
+        exact = Decimal(value)
+        parsed = float(value)
+    except (InvalidOperation, ValueError, OverflowError):
+        return None
+    if not math.isfinite(parsed) or (exact != 0 and parsed == 0.0):
+        return None
+    return parsed
+
+
+def _argument_observation_token(
+    path: str,
+    content_digest: str,
+    row_domain: str,
+    row_ordinal: int,
+) -> str:
+    return "test-argument-observation:" + semantic_digest(
+        {
+            "schema": "test-argument-observation-v1",
+            "path": path,
+            "content_digest": content_digest,
+            "row_domain": row_domain,
+            "row_ordinal": row_ordinal,
+        }
+    )
+
+
 def _fact_record_size(fact: PValueFamilyFact) -> int:
+    return len(canonical_json(asdict(fact)).encode("utf-8"))
+
+
+def _argument_fact_record_size(fact: TestArgumentDomainFact) -> int:
     return len(canonical_json(asdict(fact)).encode("utf-8"))
 
 
@@ -1745,6 +2463,8 @@ __all__ = [
     "multiple_testing_case_digest",
     "multiple_testing_replay_digest",
     "source_construct_token",
+    "test_argument_cell_token",
+    "test_argument_vector_token",
     "test_result_token",
     "verify_multiple_testing_certificate",
 ]

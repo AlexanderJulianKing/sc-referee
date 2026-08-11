@@ -49,6 +49,7 @@ MULTIPLE_TESTING_RECOGNITION_PACKAGE_FILES: tuple[str, ...] = (
     "certificate.py",
     "ir.py",
     "pvalue_domain.py",
+    "test_argument_domain.py",
     "python_analyzer.py",
 )
 MULTIPLE_TESTING_RECOGNITION_DEPENDENCY_FILES: tuple[str, ...] = (
@@ -91,7 +92,7 @@ class MultipleTestingRecognitionShadowAdapter:
     """Project one bounded static multiple-testing case onto the shadow plane."""
 
     adapter_id: str = "multiple-testing-recognition-semantic-shadow"
-    adapter_version: str = "1.0.0"
+    adapter_version: str = "1.1.0"
 
     @property
     def implementation_digest(self) -> str:
@@ -444,6 +445,7 @@ def _verified_projection(
 
     binding = verified.case_binding
     fact = verified.family_fact
+    argument_fact = verified.test_argument_fact
     authority = verified.family_authorization
     return {
         "source_path": verified.source_path,
@@ -461,6 +463,16 @@ def _verified_projection(
             "family_member_rule": authority.family_member_rule,
         },
         "input_binding": {"path": fact.path, "content_digest": fact.content_digest},
+        "measurement_input_binding": {
+            "path": argument_fact.path,
+            "content_digest": argument_fact.content_digest,
+        },
+        "measurement_key_columns": list(argument_fact.measurement_key_columns),
+        "left_measurement_columns": list(argument_fact.left_measurement_columns),
+        "right_measurement_columns": list(argument_fact.right_measurement_columns),
+        "argument_vector_tokens": [
+            list(position.argument_vector_tokens) for position in verified.test_result_positions
+        ],
         "performed_count": len(verified.performed_result_tokens),
         "corrected_count": len(verified.corrected_result_tokens),
         "corrected_positions": list(verified.corrected_positions),

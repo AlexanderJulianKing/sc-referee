@@ -1,0 +1,16 @@
+{
+  "name": "sc-referee",
+  "description": "Audit scientific workflows and freeze bounded pre-analysis method contracts without executing project-authored code. A verified sc-referee runtime is bootstrapped locally on first use.",
+  "version": "0.3.3",
+  "author": {
+    "name": "Alexander King"
+  },
+  "homepage": "https://github.com/AlexanderJulianKing/sc-referee-skill",
+  "license": "Apache-2.0",
+  "keywords": [
+    "science",
+    "scientific-audit",
+    "static-analysis",
+    "reproducibility"
+  ]
+}

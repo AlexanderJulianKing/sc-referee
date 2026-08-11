@@ -30,8 +30,10 @@ from sc_referee.scientific_checks.core import (
 
 _SOURCE_PATH = "workflow/analysis.py"
 _DATA_PATH = "results/tests.csv"
+_MEASUREMENT_PATH = "inputs/measurements.csv"
 _REPORT_PATH = "results/report.txt"
 _DATA = b"gene,pvalue\ng1,0.01\ng2,0.04\ng3,0.20\n"
+_MEASUREMENTS = b"gene,x1,x2,y1,y2\ng2,2.0,3.0,3.0,4.0\ng1,1.0,2.0,2.0,3.0\ng3,3.0,4.0,4.0,5.0\n"
 
 
 class _BoundaryFailure(BaseException):
@@ -48,17 +50,23 @@ def _source(
         "import csv",
         "import scipy.stats",
         "from pathlib import Path",
-        "from sc_referee.calculation_checks.bh import benjamini_hochberg",
+        "from statsmodels.stats.multitest import multipletests",
         (
             'rows = list(csv.DictReader(Path("results/tests.csv").read_text('
             'encoding="utf-8").splitlines()))'
         ),
         after_reader,
         'genes = [row["gene"] for row in rows]',
+        (
+            'measurement_rows = list(csv.DictReader(Path("inputs/measurements.csv").read_text('
+            'encoding="utf-8").splitlines()))'
+        ),
+        'x = {r["gene"]: (float(r["x1"]), float(r["x2"])) for r in measurement_rows}',
+        'y = {s["gene"]: (float(s["y1"]), float(s["y2"])) for s in measurement_rows}',
         "pvals = [scipy.stats.ttest_ind(x[g], y[g]).pvalue for g in genes]",
     ]
     if include_correction:
-        statements.append(f"adjusted = benjamini_hochberg({correction_input})")
+        statements.append(f'adjusted = multipletests({correction_input}, method="fdr_bh")')
     statements.extend(
         [
             "reported = tuple(zip(genes, pvals))",
@@ -111,13 +119,16 @@ def _context(
     parser_ref = RecordRef("parser_result", "parser:analysis")
     data_file_ref = RecordRef("file_record", "file:data")
     data_identity_ref = RecordRef("asset_identity", "asset:data")
+    measurement_file_ref = RecordRef("file_record", "file:measurements")
+    measurement_identity_ref = RecordRef("asset_identity", "asset:measurements")
     requirements_file_ref = RecordRef("file_record", "file:requirements")
     requirements_identity_ref = RecordRef("asset_identity", "asset:requirements")
     analysis_ref = RecordRef("analysis", "analysis:primary")
     procedure_ref = RecordRef("procedure", "procedure:correction")
     result_ref = RecordRef("result", "result:report")
     data_digest = sha256_digest(data)
-    requirements = b"scipy==1.14.0\n"
+    measurement_digest = sha256_digest(_MEASUREMENTS)
+    requirements = b"scipy==1.14.0\nstatsmodels==0.14.4\n"
     requirements_digest = sha256_digest(requirements)
     source_bytes = source.encode()
     parser_payload = canonical_json(
@@ -145,7 +156,13 @@ def _context(
             snapshot_ref,
             {
                 "snapshot_id": snapshot_ref.record_id,
-                "extensions": {"x-material-full-digest-paths": [_DATA_PATH, "requirements.txt"]},
+                "extensions": {
+                    "x-material-full-digest-paths": [
+                        _DATA_PATH,
+                        _MEASUREMENT_PATH,
+                        "requirements.txt",
+                    ]
+                },
             },
         ),
         (analysis_file_ref, {"file_record_id": analysis_file_ref.record_id}),
@@ -155,7 +172,7 @@ def _context(
             procedure_ref,
             {
                 "procedure_id": procedure_ref.record_id,
-                "resolved_callable": ("sc_referee.calculation_checks.bh.benjamini_hochberg"),
+                "resolved_callable": "statsmodels.stats.multitest.multipletests",
             },
         ),
         (result_ref, {"result_id": result_ref.record_id, "path": _REPORT_PATH}),
@@ -175,6 +192,27 @@ def _context(
                 "tier": "full_digest",
                 "asset_ref": data_file_ref.to_dict(),
                 "identity_evidence": {"kind": "full_digest", "digest": data_digest},
+            },
+        ),
+        (
+            measurement_file_ref,
+            {
+                "file_record_id": measurement_file_ref.record_id,
+                "path": _MEASUREMENT_PATH,
+                "entry_kind": "regular_file",
+                "asset_identity_ref": measurement_identity_ref.to_dict(),
+            },
+        ),
+        (
+            measurement_identity_ref,
+            {
+                "asset_identity_id": measurement_identity_ref.record_id,
+                "tier": "full_digest",
+                "asset_ref": measurement_file_ref.to_dict(),
+                "identity_evidence": {
+                    "kind": "full_digest",
+                    "digest": measurement_digest,
+                },
             },
         ),
         (
@@ -257,6 +295,13 @@ def _context(
                 content=requirements,
                 content_digest=requirements_digest,
             ),
+            FrozenMaterialInput(
+                path=_MEASUREMENT_PATH,
+                file_ref=measurement_file_ref,
+                asset_identity_ref=measurement_identity_ref,
+                content=_MEASUREMENTS,
+                content_digest=measurement_digest,
+            ),
         ),
     )
 
@@ -303,6 +348,14 @@ def test_subset_correction_emits_report_only_shadow_candidate(
     assert body["corrected_count"] == 2
     assert body["performed_count"] == 3
     assert body["authorized_family_key_columns"] == ["gene"]
+    assert body["measurement_input_binding"] == {
+        "path": _MEASUREMENT_PATH,
+        "content_digest": sha256_digest(_MEASUREMENTS),
+    }
+    assert body["measurement_key_columns"] == ["gene"]
+    assert body["left_measurement_columns"] == ["x1", "x2"]
+    assert body["right_measurement_columns"] == ["y1", "y2"]
+    assert len(body["argument_vector_tokens"]) == 3
     assert body["report_only"] is True
     assert body["evidence_declarations"]
     _assert_report_only_without_finding_fields(payload)
