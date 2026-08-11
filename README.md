@@ -155,9 +155,7 @@ accept either their original explicit report declaration or a separately selecte
 contract sidecar. The second layout makes paths and column bindings portable without treating
 filenames as scientific meaning. They currently produce deterministic observations or
 Disclosures—not production Findings. Capability maturity is reported as six independent
-dimensions; there is no aggregate “full” status. The only
-complete Finding-producing path remains a synthetic test fixture; the promoted detector's
-production wiring is separately gated future work recorded in ADR-0071. Read the
+dimensions; there is no aggregate “full” status. Read the
 [capability and limitation guide](docs/CAPABILITIES.md) before interpreting a real audit.
 
 ## Safety and evidence boundary
