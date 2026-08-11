@@ -547,6 +547,81 @@ def test_csv_newline_reader_model_reaches_kernel() -> None:
     assert discharged.verified_certificate.family_fact.line_model == "csv_newline"
 
 
+def test_regression_r9_mismatched_single_column_key_shapes_abstain_identically() -> None:
+    family_bare_arguments_tuple = _source(
+        left_projection=(
+            'x = {(r["gene"],): (float(r["x1"]), float(r["x2"])) for r in measurement_rows}'
+        ),
+        right_projection=(
+            'y = {(s["gene"],): (float(s["y1"]), float(s["y2"])) for s in measurement_rows}'
+        ),
+    )
+    family_tuple_arguments_bare = _source(
+        projection='genes = [(row["gene"],) for row in rows]',
+    )
+
+    payloads = tuple(
+        MultipleTestingRecognitionShadowAdapter().inspect(_context(source))
+        for source in (family_bare_arguments_tuple, family_tuple_arguments_bare)
+    )
+    assert canonical_json(payloads[0]) == canonical_json(payloads[1])
+    for payload in payloads:
+        assert payload["payload_type"] == "abstention"
+        assert payload["outcome"] == "unsupported"
+        assert payload["payload"]["coverage_classes"] == [
+            "single-column-key-tuple-form-unsupported"
+        ]
+
+
+def test_regression_r9_bare_keys_execute_and_tuple_keys_execute_but_abstain(
+    tmp_path: Path,
+) -> None:
+    runtime = Path(
+        "/Users/alexanderking/Desktop/random_stuff/"
+        "sc-referee-pilot-runtime/scipy114-venv/bin/python"
+    )
+    assert runtime.is_file(), "the mandatory multiple-testing sandbox runtime is absent"
+    both_bare = _source()
+    both_tuple = _source(
+        projection='genes = [(row["gene"],) for row in rows]',
+        left_projection=(
+            'x = {(r["gene"],): (float(r["x1"]), float(r["x2"])) for r in measurement_rows}'
+        ),
+        right_projection=(
+            'y = {(s["gene"],): (float(s["y1"]), float(s["y2"])) for s in measurement_rows}'
+        ),
+    )
+
+    payloads: dict[str, dict[str, object]] = {}
+    for label, source in (("bare", both_bare), ("tuple", both_tuple)):
+        case_root = tmp_path / label
+        for relative in ("workflow", "results", "inputs"):
+            (case_root / relative).mkdir(parents=True, exist_ok=True)
+        (case_root / _SOURCE_PATH).write_text(source, encoding="utf-8")
+        (case_root / _DATA_PATH).write_bytes(_DATA)
+        (case_root / _MEASUREMENT_PATH).write_bytes(_MEASUREMENTS)
+        run = subprocess.run(
+            [str(runtime), "-I", _SOURCE_PATH],
+            cwd=case_root,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert run.returncode == 0, run.stderr
+        assert run.stderr == ""
+        assert (case_root / _REPORT_PATH).is_file()
+        payloads[label] = MultipleTestingRecognitionShadowAdapter().inspect(_context(source))
+
+    assert payloads["bare"]["payload_type"] == "shadow_candidate"
+    assert payloads["bare"]["outcome"] == "evaluation_candidate"
+    assert payloads["tuple"]["payload_type"] == "abstention"
+    assert payloads["tuple"]["outcome"] == "unsupported"
+    assert payloads["tuple"]["payload"]["coverage_classes"] == [
+        "single-column-key-tuple-form-unsupported"
+    ]
+
+
 @pytest.mark.parametrize(
     ("context_kwargs", "dimension"),
     [

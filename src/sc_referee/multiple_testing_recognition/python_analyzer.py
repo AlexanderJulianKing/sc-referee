@@ -916,6 +916,23 @@ def _source_shape(
     left_name, right_name = tuple(
         cast(ast.Name, cast(ast.Subscript, argument).value).id for argument in battery_call.args
     )
+    single_column_tuple_nodes: list[ast.AST] = []
+    if isinstance(projection_value.elt, ast.Tuple) and len(projection_value.elt.elts) == 1:
+        single_column_tuple_nodes.append(projection_value.elt)
+    for item in assignments:
+        if (
+            _single_target(item) in {left_name, right_name}
+            and isinstance(item.value, ast.DictComp)
+            and isinstance(item.value.key, ast.Tuple)
+            and len(item.value.key.elts) == 1
+        ):
+            single_column_tuple_nodes.append(item.value.key)
+    if single_column_tuple_nodes:
+        return _unsupported_nodes(
+            tree,
+            "single-column-key-tuple-form-unsupported",
+            tuple(single_column_tuple_nodes),
+        )
     left_candidates = [
         parsed
         for item in assignments
@@ -1188,7 +1205,13 @@ def _literal_selector_columns(node: ast.expr, row_name: str) -> tuple[str, ...] 
             return None
         columns.append(element.slice.value)
     result = tuple(columns)
-    return result if result and len(result) == len(set(result)) else None
+    return (
+        result
+        if result
+        and len(result) == len(set(result))
+        and isinstance(node, ast.Tuple) == (len(result) > 1)
+        else None
+    )
 
 
 def _battery_call(assignment: ast.Assign) -> ast.Call | None:
@@ -1294,7 +1317,7 @@ def _projection_element_matches_columns(
     if not isinstance(target, ast.Name):
         return False
     elements = value.elt.elts if isinstance(value.elt, ast.Tuple) else [value.elt]
-    if len(elements) != len(columns) or (len(columns) > 1 and not isinstance(value.elt, ast.Tuple)):
+    if len(elements) != len(columns) or isinstance(value.elt, ast.Tuple) != (len(columns) > 1):
         return False
     return all(
         isinstance(element, ast.Subscript)

@@ -201,6 +201,7 @@ provenance, numerical impact, bias direction, scientific invalidity, or a requir
 - `per-group-correction-unrecognized`
 - `value-predicate-correction-unsupported`
 - `repository-bh-runtime-type-binding-unverified`
+- `single-column-key-tuple-form-unsupported`
 
 These names are reserved now so later analyzer/adapter stages route uncertainty to abstention
 rather than broadening the positive grammar.
@@ -337,3 +338,13 @@ named abstention `repository-bh-runtime-type-binding-unverified`; admitting a `D
 would be another grammar extension and is not authorized here. Static execution by the
 recognizer remains forbidden. Executable fixtures are test-only evidence and grant no pipeline
 execution privilege.
+
+## 2026-08-11 R9 single-column key-form closure
+
+The registration-gate re-review found that accepting both a bare selector and a one-element tuple
+for a single-column key allowed the family projection and keyed measurement dictionaries to use
+different runtime key shapes. The analyzer and kernel now require a single-column key to be bare
+in all three positions. Ordered composite keys still require tuples. Even when the family and both
+measurement dictionaries consistently use executable one-element tuples, v1 abstains with the
+named gap `single-column-key-tuple-form-unsupported`; admitting that form requires a later reviewed
+grammar extension.

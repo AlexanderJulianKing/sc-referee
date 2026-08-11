@@ -975,6 +975,23 @@ def test_m12_source_projection_and_operand_attacks_refuse(old: str, new: str) ->
     assert _verify(_fixture(_DEFAULT_SOURCE.replace(old, new))) is None
 
 
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        (
+            'genes = [row["gene"] for row in rows]',
+            'genes = [(row["gene"],) for row in rows]',
+        ),
+        (
+            'x = {r["gene"]: (float(r["x1"]), float(r["x2"])) for r in measurement_rows}',
+            'x = {(r["gene"],): (float(r["x1"]), float(r["x2"])) for r in measurement_rows}',
+        ),
+    ],
+)
+def test_regression_r9_kernel_refuses_single_column_tuple_forms(old: str, new: str) -> None:
+    assert _verify(_fixture(_DEFAULT_SOURCE.replace(old, new))) is None
+
+
 def test_m12_assignment_comprehension_import_and_builtin_names_are_disjoint() -> None:
     import_shadow = _DEFAULT_SOURCE.replace(
         'x = {r["gene"]: (float(r["x1"]), float(r["x2"])) for r in measurement_rows}',

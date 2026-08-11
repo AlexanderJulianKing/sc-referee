@@ -2043,7 +2043,7 @@ def _projection_element_matches(
     columns: tuple[str, ...],
 ) -> bool:
     elements = node.elts if isinstance(node, ast.Tuple) else [node]
-    if len(elements) != len(columns) or (len(columns) > 1 and not isinstance(node, ast.Tuple)):
+    if len(elements) != len(columns) or isinstance(node, ast.Tuple) != (len(columns) > 1):
         return False
     return all(
         isinstance(element, ast.Subscript)
