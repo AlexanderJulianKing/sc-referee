@@ -625,3 +625,76 @@ def test_resolver_refuses_absent_or_drifted_external_pin_and_absolute_counts(
         )
         is None
     )
+
+
+def test_absolute_missed_roots_gate_is_driven_by_the_installed_pin(
+    project_root: Path, candidate: Path
+) -> None:
+    binding, manifest, metric_set, qualification = _records(project_root, candidate)
+    pin = replace(
+        _pin(binding, metric_set, qualification),
+        absolute_missed_roots=1,
+    )
+
+    assert (
+        resolve_method_conflict_qualification(
+            binding=binding,
+            detector_manifest=manifest,
+            qualification=qualification,
+            metric_set=metric_set,
+            pin=pin,
+        )
+        is not None
+    )
+
+
+def test_required_roots_gate_is_driven_by_the_installed_pin(
+    project_root: Path, candidate: Path
+) -> None:
+    binding, manifest, metric_set, qualification = _records(project_root, candidate)
+    metric_set["counts"]["adjudicated_roots"] = 3
+    pin = replace(
+        _pin(binding, metric_set, qualification),
+        required_roots=3,
+    )
+
+    assert (
+        resolve_method_conflict_qualification(
+            binding=binding,
+            detector_manifest=manifest,
+            qualification=qualification,
+            metric_set=metric_set,
+            pin=pin,
+        )
+        is not None
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("absolute_missed_roots", -1),
+        ("absolute_missed_roots", True),
+        ("required_roots", 0),
+        ("required_roots", False),
+    ],
+)
+def test_invalid_absolute_count_pin_fields_fail_closed(
+    project_root: Path,
+    candidate: Path,
+    field: str,
+    value: object,
+) -> None:
+    binding, manifest, metric_set, qualification = _records(project_root, candidate)
+    pin = replace(_pin(binding, metric_set, qualification), **{field: value})
+
+    assert (
+        resolve_method_conflict_qualification(
+            binding=binding,
+            detector_manifest=manifest,
+            qualification=qualification,
+            metric_set=metric_set,
+            pin=pin,
+        )
+        is None
+    )

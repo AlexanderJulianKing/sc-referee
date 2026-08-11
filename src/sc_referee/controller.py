@@ -3192,6 +3192,8 @@ def _derive_general_from_lock(
     detector_results: list[dict[str, Any]] | None = None,
     detector_findings: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    if (detector_results is None) != (detector_findings is None):
+        raise ValueError("detector results and findings must be supplied together")
     layout = AuditLayout(output)
     validator = LocalSchemaRegistry(schema_root)
     bundle = _empty_bundle(locked_case)
@@ -3235,8 +3237,7 @@ def _derive_general_from_lock(
             evaluation = _evaluate_general_detectors(locked_case)
             detector_results = list(evaluation.results)
             detector_findings = list(evaluation.findings)
-    elif detector_findings is None:
-        detector_findings = []
+    assert detector_findings is not None
     bundle["detector_results"] = deepcopy(detector_results)
     bundle["findings"] = deepcopy(detector_findings)
     coverage = _general_coverage_record(

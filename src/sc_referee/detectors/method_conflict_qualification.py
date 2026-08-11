@@ -15,9 +15,9 @@ from sc_referee.scientific_checks.core import MethodConflictBinding
 class MethodConflictQualificationGrant:
     """One exact, replayable binding-level authority result.
 
-    Constructing this value is intentionally possible only through the fail-closed resolver below.
-    The package currently installs no instances and the production controller does not discover
-    project-supplied qualification records.
+    No production call site accepts an externally supplied grant; the dataclass itself is
+    constructible. Production authority still comes only from fail-closed resolution of a
+    controller-installed pin and its digest-bound evidence.
     """
 
     qualification_id: str
@@ -188,8 +188,12 @@ def _absolute_count_gates_pass(metric_set: Mapping[str, Any], pin: GrantPin) -> 
         and not isinstance(missed_roots, bool)
         and isinstance(adjudicated_roots, int)
         and not isinstance(adjudicated_roots, bool)
-        and pin.absolute_missed_roots == 0
-        and pin.required_roots == 2
+        and isinstance(pin.absolute_missed_roots, int)
+        and not isinstance(pin.absolute_missed_roots, bool)
+        and pin.absolute_missed_roots >= 0
+        and isinstance(pin.required_roots, int)
+        and not isinstance(pin.required_roots, bool)
+        and pin.required_roots >= 1
         and missed_roots <= pin.absolute_missed_roots
         and adjudicated_roots == pin.required_roots
     )
