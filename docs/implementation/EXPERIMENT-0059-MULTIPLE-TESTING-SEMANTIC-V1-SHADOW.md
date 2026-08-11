@@ -1,6 +1,6 @@
 # Experiment 0059: Multiple-testing semantic v1 shadow recognizer
 
-- **Status:** Stage 1 contract and hand-built trusted-kernel evidence only
+- **Status:** Stage 2 digest-bound p-value-family prover; static analyzer still deferred
 - **Date:** 2026-08-11
 - **Authority:** Maintainer blanket approval recorded for the four-stage shadow build
 - **Related decisions:** Experiment 0058 and the multiple-testing recon/design memoranda dated
@@ -176,3 +176,19 @@ rather than broadening the positive grammar.
 Stages 1-4 have no scientific-check registry entry, detector entry, qualification manifest,
 production Finding route, or execution authority. Any evaluation-only or production delivery
 plane requires a later explicit decision.
+
+## 2026-08-11 Stage 2 p-value-domain amendment
+
+Stage 2 adds only the controller-side digest-bound CSV family prover and its tests. It does not
+add an analyzer, authority lock, adapter, registry entry, detector entry, Finding route, or
+execution authority. The prover accepts only unsigned ASCII fixed-point p-value lexemes of the
+form `DIGITS` or `DIGITS.DIGITS`. Scientific/exponent notation, signs, whitespace, underscores,
+non-finite values, and values outside `[0, 1]` are unsupported and cause abstention. The raw
+lexeme remains byte-exact; its separately derived canonical fixed-point spelling is used only for
+trusted arithmetic and never defines family scope.
+
+The Stage-2 API names one p-value column. To retain the frozen Stage-1 family-identity contract
+without selecting among candidate keys, the prover uses the complete ordered non-value header as
+the composite hypothesis key. It requires at least one non-value column and unique, nonempty key
+tuples. Later authority and kernel obligations must match that complete ordered tuple exactly;
+extra metadata therefore narrows to abstention rather than being ignored or guessed away.
