@@ -7,7 +7,6 @@ from typing import Any
 
 import pytest
 from sc_referee_evaluation.complete_domain_promotion import (
-    BINDING_DIGEST,
     DETECTOR_MANIFEST_DIGEST,
     HELDOUT_LEDGER_DIGEST,
     CompleteDomainPromotionError,
@@ -107,7 +106,9 @@ def test_projector_refuses_ledger_byte_or_self_digest_drift(
         project_heldout_detector_case_outcomes(drifted)
 
 
-def test_round1_private_records_rederive_and_resolve_exact_grant(project_root: Path) -> None:
+def test_round1_private_records_rederive_but_require_v019_restamp(
+    project_root: Path,
+) -> None:
     metric_set = _load(project_root / PROMOTION / "QUALIFICATION_METRIC_SET.json")
     qualification = _load(project_root / PROMOTION / "DETECTOR_QUALIFICATION.json")
     expected_metric_set, expected_qualification = build_round1_records(
@@ -147,12 +148,7 @@ def test_round1_private_records_rederive_and_resolve_exact_grant(project_root: P
         pin=_pin(frozen_binding, metric_set, qualification),
     )
 
-    assert grant is not None
-    assert grant.qualification_id == qualification["qualification_id"]
-    assert grant.metric_set_id == metric_set["metric_set_id"]
-    assert grant.binding_digest == BINDING_DIGEST
-    assert grant.detector_manifest_digest == DETECTOR_MANIFEST_DIGEST
-    assert grant.maturity == "validated"
+    assert grant is None
     assert (
         resolve_method_conflict_qualification(
             binding=current_binding,

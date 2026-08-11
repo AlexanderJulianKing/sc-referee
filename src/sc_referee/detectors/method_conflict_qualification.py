@@ -74,7 +74,7 @@ def resolve_method_conflict_qualification(
         != detector_identity[:2]
         or not _complete_safety_gates(qualification.get("safety_gates"))
         or qualification.get("review_basis") not in {"agent_panel", "mixed_panel"}
-        or not _nonempty_sequence(qualification.get("agent_adjudication_refs"))
+        or not _nonempty_string_sequence(qualification.get("evaluation_refs"))
         or not _nonempty_sequence(qualification.get("software_maintainer_approvals"))
         or not isinstance(qualification.get("qualification_report_ref"), str)
         or not qualification.get("qualification_report_ref")

@@ -299,6 +299,47 @@ def test_exact_records_resolve_one_binding_grant_and_project_candidate(
     assert promoted["extensions"]["x-method-conflict-binding-digest"] == binding.binding_digest
 
 
+def test_resolver_uses_evaluation_refs_not_typed_agent_refs(
+    project_root: Path, candidate: Path
+) -> None:
+    binding, manifest, metric_set, qualification = _records(project_root, candidate)
+    qualification["agent_adjudication_refs"] = []
+    assert (
+        resolve_method_conflict_qualification(
+            binding=binding,
+            detector_manifest=manifest,
+            qualification=qualification,
+            metric_set=metric_set,
+            pin=_pin(binding, metric_set, qualification),
+        )
+        is not None
+    )
+
+    qualification["evaluation_refs"] = []
+    assert (
+        resolve_method_conflict_qualification(
+            binding=binding,
+            detector_manifest=manifest,
+            qualification=qualification,
+            metric_set=metric_set,
+            pin=_pin(binding, metric_set, qualification),
+        )
+        is None
+    )
+
+    qualification["evaluation_refs"] = [1]
+    assert (
+        resolve_method_conflict_qualification(
+            binding=binding,
+            detector_manifest=manifest,
+            qualification=qualification,
+            metric_set=metric_set,
+            pin=_pin(binding, metric_set, qualification),
+        )
+        is None
+    )
+
+
 def test_registry_exposes_exact_work_packet_and_empty_grant_keeps_candidate(
     project_root: Path, candidate: Path
 ) -> None:

@@ -191,7 +191,7 @@ def test_exam_time_detector_tuple_matches_live_registry_and_manifest(
     assert semantic_digest(current_detector) == DETECTOR_MANIFEST_DIGEST
 
 
-def test_round1_private_records_rederive_and_resolve_live_exact_grant(
+def test_round1_private_records_rederive_but_require_v019_restamp(
     project_root: Path,
 ) -> None:
     metric_set = _load(project_root / PROMOTION / "QUALIFICATION_METRIC_SET.json")
@@ -213,12 +213,7 @@ def test_round1_private_records_rederive_and_resolve_live_exact_grant(
         pin=_pin(binding, metric_set, qualification),
     )
 
-    assert grant is not None
-    assert grant.qualification_id == qualification["qualification_id"]
-    assert grant.metric_set_id == metric_set["metric_set_id"]
-    assert grant.binding_digest == BINDING_DIGEST
-    assert grant.detector_manifest_digest == DETECTOR_MANIFEST_DIGEST
-    assert grant.maturity == "validated"
+    assert grant is None
     assert metric_set["counts"] == {
         "abstentions": 1,
         "adjudicated_roots": 2,
