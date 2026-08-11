@@ -26,8 +26,8 @@ key and never executes author code during the audit.
 1. A human-approved, digest-sealed authority lock names the ordered unit-key columns, the governed
    CSV bytes, the procedure, and the selected result scope. Missing or conflicting authority asks a
    question or abstains; it cannot produce a positive certificate.
-2. The untrusted analyzer accepts only the frozen Python envelope: one certified `csv.DictReader`
-   form, identity-only row lineage, an exact live callable from the three-entry SciPy 1.14.0
+2. The untrusted analyzer accepts only the frozen Python envelope: the two certified `csv.DictReader`
+   forms, identity-only row lineage, an exact live callable from the three-entry SciPy 1.14.0
    registry, and one statically selected report sink. Every unmodeled subtree invalidates the
    values it may touch.
 3. The controller-side CSV prover re-hashes the frozen input, reads strict UTF-8 under the
@@ -73,7 +73,7 @@ rehearsal.
 | `case:a516621a9cc0c4f6854d` | corrected twin, one row per authorized unit | covered-negative note | clean (true negative) |
 | `case:e9e6bf9e80c9287dabe5` | valid alternative, one row per authorized unit | covered-negative note | clean (true negative) |
 | `case:6f1702f1e1ff3855d34f` | hard negative, 24 distinct authorized keys and an error-byte-identical report | covered-negative note | clean (true negative) |
-| `case:75bb533785f478cbdd8d` | ambiguous unit authority withheld | material question | abstained, clean (true negative) |
+| `case:75bb533785f478cbdd8d` | ambiguous unit authority withheld | ambiguous abstention (independent-unit-definition-unresolved) | abstained, clean (true negative) |
 | `case:c41c53bc6fedd68b0ccc` | paired `ttest_rel` procedure | named `paired-procedure-operand-unverified` abstention | abstained, clean (true negative) |
 
 Integrity: one attempt; reviewer labels matched all seven sealed roles; no escalation and no
