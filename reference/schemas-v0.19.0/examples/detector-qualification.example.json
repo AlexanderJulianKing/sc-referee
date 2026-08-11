@@ -14,7 +14,8 @@
   "detector_version": "1.0.0",
   "effective_maturity": "experimental",
   "evaluation_refs": [
-    "evaluation:claim-sign-heldout"
+    "evaluation:claim-sign-heldout",
+    "evaluation:claim-sign-heldout:scientific-label-ledger"
   ],
   "extensions": {
     "x-v0-9-effective-maturity": "validated",

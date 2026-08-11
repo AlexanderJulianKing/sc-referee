@@ -25,6 +25,9 @@ from scripts.build_method_promotion_schema_candidate import (
 RELEASE_VERSION = CANDIDATE_VERSION
 SOURCE_ADRS = [SOURCE_ADR]
 RELEASE_DATE = "2026-08-11"
+PRE_CORRECTION_MANIFEST_CONTENT_DIGEST = (
+    "sha256:7188bd85b51f28e57ff0aa022fc2a2043ec248968bac19b37a63599a616cce9d"
+)
 
 
 def _maintainer_approval_schema() -> dict[str, Any]:
@@ -52,18 +55,24 @@ def _maintainer_approval_schema() -> dict[str, Any]:
 
 
 def _move_review_evidence_constraints(schema: dict[str, Any]) -> None:
-    """Make path-valued evaluation evidence the required promotion review basis."""
+    """Make two path-valued evaluation records the agent/mixed review basis."""
 
     for branch in schema["allOf"]:
         then_properties = branch.get("then", {}).get("properties", {})
         agent_constraint = then_properties.get("agent_adjudication_refs")
         if not isinstance(agent_constraint, dict) or "minItems" not in agent_constraint:
             continue
-        minimum = agent_constraint.pop("minItems")
+        agent_constraint.pop("minItems")
         if not agent_constraint:
             del then_properties["agent_adjudication_refs"]
-        evaluation_constraint = then_properties.setdefault("evaluation_refs", {})
-        evaluation_constraint["minItems"] = minimum
+
+    review_evidence_branch = next(
+        branch
+        for branch in schema["allOf"]
+        if branch.get("if", {}).get("properties", {}).get("review_basis", {}).get("enum")
+        == ["agent_panel", "mixed_panel"]
+    )
+    review_evidence_branch["then"]["properties"]["evaluation_refs"] = {"minItems": 2}
 
 
 def _extend_release_qualification(schema: dict[str, Any]) -> None:
@@ -92,10 +101,16 @@ def _transform_release_example(name: str, value: dict[str, Any]) -> None:
         }
         for approval in approvals
     ]
+    if value.get("review_basis") in {"agent_panel", "mixed_panel"}:
+        evaluation_refs = value["evaluation_refs"]
+        if len(evaluation_refs) == 1:
+            evaluation_refs.append(f"{evaluation_refs[0]}:scientific-label-ledger")
 
 
 def _release_tests() -> str:
-    return """from test_examples import errors, invalid, load
+    return """from copy import deepcopy
+
+from test_examples import errors, invalid, load
 
 
 def test_maintainer_approval_is_dated_and_decision_bound():
@@ -118,10 +133,14 @@ def test_maintainer_decision_ref_is_an_adr_path():
 
 def test_agent_review_paths_belong_in_evaluation_refs():
  x=load("detector-qualification.example.json")
+ assert x["review_basis"]=="agent_panel"
+ assert len(x["evaluation_refs"])==2
  x["agent_adjudication_refs"]=[]
  assert not errors(x,"detector_qualification")
- x["evaluation_refs"]=[]
- invalid(x,"detector_qualification")
+ for refs in ([],x["evaluation_refs"][:1]):
+  y=deepcopy(x)
+  y["evaluation_refs"]=refs
+  invalid(y,"detector_qualification")
 
 
 def test_static_scope_disclosure_states_stage3_artifact_status():
@@ -163,6 +182,16 @@ installs no qualification grant and grants no Finding authority.
 def _changelog() -> str:
     return f"""# Changelog
 
+## {RELEASE_VERSION} pre-use correction — {RELEASE_DATE}
+
+- Corrected the accepted release in place before first use: agent-panel and mixed-panel review now
+  require two path-valued `evaluation_refs`, so the conditional review-evidence branch genuinely
+  narrows the unconditional one-reference floor.
+- Kept the same release version because no grant was installed, no record was published outside
+  this repository, and nothing external consumed the prior bytes.
+- Recorded the prior closed-tree manifest-content digest for the audit trail:
+  `{PRE_CORRECTION_MANIFEST_CONTENT_DIGEST}`.
+
 ## {RELEASE_VERSION} — {RELEASE_DATE}
 
 - Added exact detector-v0.3 binding scopes and pilot-informed numeric threshold policies.
@@ -181,6 +210,8 @@ def _controller_invariants() -> str:
   content-addressed before any promotion can be considered.
 - Path-valued evaluation ledgers are carried by `evaluation_refs`; they are never represented as
   invented typed adjudication records.
+- Agent-panel and mixed-panel qualifications carry at least two path-valued evaluation records;
+  an empty or singleton evidence list cannot satisfy those review bases.
 - Every software-maintainer approval identifies its actor, approval date, and governing ADR.
 - Static-scope evidence explicitly discloses whether a Stage-3 comparison artifact exists.
 - Schema validity is representation only: an independently installed, matching grant and all
@@ -194,6 +225,8 @@ def _migration_notes() -> str:
 
 Ordinary public records receive the new schema version and historical qualification records gain
 null binding scopes while retaining deferred threshold policy and no promotion authority.
+Only bundles whose `storage_manifests` collection is already empty are accepted; migration refuses
+to discard retained integrity evidence.
 
 The two Round-1 private method-promotion record pairs require an explicit fail-closed re-stamp:
 path-valued review ledgers move from `agent_adjudication_refs` to `evaluation_refs`; author ids are

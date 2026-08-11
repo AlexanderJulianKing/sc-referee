@@ -9,7 +9,8 @@ the project Python 3.12 environment, and isolated Python 3.13.13:
 - Ruff lint and format check;
 - strict mypy over `src`;
 - the full test suite;
-- immutable accepted public schema validation through v0.18.0;
+- immutable accepted public schema validation through active v0.19.0, with v0.18.0 retained as an
+  immutable migration baseline;
 - starter validation and storage-integrity checks;
 - immutable-snapshot demo;
 - model-free replay of derived assessments; and

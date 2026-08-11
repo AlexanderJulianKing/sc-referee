@@ -15,6 +15,7 @@ from sc_referee.core.ids import semantic_digest
 from sc_referee.records.schema_registry import LocalSchemaRegistry
 from scripts.build_method_promotion_schema_release import (
     BASELINE_VERSION,
+    PRE_CORRECTION_MANIFEST_CONTENT_DIGEST,
     RELEASE_VERSION,
     SOURCE_ADRS,
     build_release,
@@ -57,6 +58,10 @@ def test_release_is_complete_accepted_and_self_validating(release: Path) -> None
     assert "Accepted forward-only public schema release" in (release / "README.md").read_text(
         encoding="utf-8"
     )
+    changelog = (release / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert "0.19.0 pre-use correction — 2026-08-11" in changelog
+    assert PRE_CORRECTION_MANIFEST_CONTENT_DIGEST in changelog
+    assert "nothing external consumed the prior bytes" in changelog
     for name in (
         "CHANGELOG.md",
         "CONTROLLER_INVARIANTS.md",
@@ -125,7 +130,7 @@ def test_release_adds_closed_approval_and_static_disclosure_shapes(release: Path
         if "minItems" in properties.get("evaluation_refs", {}):
             evaluation_minimums.append(properties["evaluation_refs"]["minItems"])
         assert "minItems" not in properties.get("agent_adjudication_refs", {})
-    assert evaluation_minimums == [1, 1, 1, 1, 2]
+    assert evaluation_minimums == [2]
 
 
 @pytest.mark.parametrize(

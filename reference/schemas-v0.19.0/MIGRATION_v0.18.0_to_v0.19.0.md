@@ -2,6 +2,8 @@
 
 Ordinary public records receive the new schema version and historical qualification records gain
 null binding scopes while retaining deferred threshold policy and no promotion authority.
+Only bundles whose `storage_manifests` collection is already empty are accepted; migration refuses
+to discard retained integrity evidence.
 
 The two Round-1 private method-promotion record pairs require an explicit fail-closed re-stamp:
 path-valued review ledgers move from `agent_adjudication_refs` to `evaluation_refs`; author ids are

@@ -16,7 +16,7 @@ from scripts.build_method_promotion_schema_candidate import (
     SOURCE_ADR,
     build_candidate,
 )
-from scripts.migrate_v0_18_to_v0_19 import migrate_public_bundle
+from scripts.migrate_v0_18_to_v0_19 import PublicMigrationError, migrate_public_bundle
 
 
 def _load(root: Path, name: str) -> dict[str, Any]:
@@ -107,6 +107,26 @@ def test_v018_migration_to_candidate_is_fail_closed(
     assert report["numeric_threshold_invented"] is False
     assert report["qualification_invented"] is False
     assert report["finding_authority_created"] is False
+
+
+def test_v018_migration_refuses_to_silently_empty_storage_manifests(
+    project_root: Path, candidate: Path, tmp_path: Path
+) -> None:
+    source_root = project_root / "reference" / "schemas-v0.18.0"
+    source = json.loads(
+        (source_root / "examples" / "audit-bundle.example.json").read_text(encoding="utf-8")
+    )
+    source["storage_manifests"] = [{"retained_integrity_evidence": True}]
+    source_path = tmp_path / "source-with-storage-manifest.json"
+    source_path.write_text(json.dumps(source), encoding="utf-8")
+
+    with pytest.raises(PublicMigrationError, match="will not discard retained integrity evidence"):
+        migrate_public_bundle(
+            source_path,
+            source_root,
+            candidate,
+            tmp_path / "migration-refused",
+        )
 
 
 def test_candidate_builder_preserves_immutable_v018(project_root: Path, tmp_path: Path) -> None:

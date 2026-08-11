@@ -154,3 +154,37 @@ binding reconstruction is needed for the Round-1 resolver proof.
   bindings.
 - Zero observed false accusations and two observed positives are narrow evidence, not a correctness
   certificate or domain-wide pseudoreplication authority.
+
+## 2026-08-11 amendment: active-schema identity movement
+
+Section 2's statement that every exam-time pin matched HEAD is factual at this ADR's acceptance
+commit. Acceptance of schema v0.19.0 subsequently changed the schema-version-bearing production
+binding digest from
+`sha256:e212bf6f81ec30490c817cb810ce5214a160a5841b564019b10b8061ddc0cb16`
+to `sha256:4a62385441043681dca65005be3c73a11858449955104dc8efe0582606331787`
+and the detector-manifest digest from
+`sha256:5b74ec663a651bd3e2eb934c25896cfbbe02f6840e2ea898296c0d478aa97e0a`
+to `sha256:05738abe8845442b25b9d03d35b5a5696f169ca46057aabd970561dd5bbf909e`.
+It did not change this ADR's adapter implementation, adapter manifest, recognition-grammar, or
+check-manifest pins:
+`sha256:d5d22803d309ddda51651bcc033cb3e5aa4e093988550fb489b7e9671e289c54`,
+`sha256:81df54974a949648f6f86287df725c1a69ce63f41100480d299680f92eee3776`,
+`sha256:bb3b283145ec1420491771ca49fbd2214e553602a735af2a6f7027980c8be873`,
+and `sha256:4f48a3104693cd6cdcf215bd620b59449ee87c3cd969ddbe7285f168e598ab21`.
+
+ADR-0074's separate complete-domain ruling identities are likewise unaffected: recognition
+grammar `sha256:c757692071a6925a5ca5e409dc0ad79f7421fcdbc93fb15c14efb30050524362`,
+HEAD adapter implementation
+`sha256:cb6de94e39efdf726cc516178b77b85443044415b72c8671025ef9c2e6eef05c`,
+HEAD adapter manifest
+`sha256:231046e541e1e84671b7fe716a2454c67d2d931f1cfe432e7de80512987d3a20`,
+and replay semantic digest
+`sha256:2c8fc8cbbb22912768cde8b43b00aff22b8de5a0d999b31972d3c3e3b44b87ca`.
+
+The Round-2 `promotion-round2/` records carry the active v0.19 pins. This movement was predicted
+by the Round-2 plan's F2 and remains fail-closed in
+`test_exam_time_detector_tuple_is_retained_while_live_binding_identity_drifts_at_v019`,
+`test_round1_private_records_rederive_but_require_v019_restamp`, and
+`test_sibling_bindings_and_simulated_current_drift_defeat_grant`; the current-pin acceptance path
+is separately pinned by
+`test_round2_records_rederive_at_current_pins_and_resolve_test_local_grant`.

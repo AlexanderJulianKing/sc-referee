@@ -413,9 +413,11 @@ ledger and without executing project code. The superseded v0.16 founder-specific
 a historical replay baseline only and cannot qualify detector `0.2.0`. No current CLI claim,
 qualification metric, promotion, or Finding permission follows from this local interface.
 
-The active v0.3 candidate cannot reuse this v0.2 profile or freeze. Schema v0.18.0 also retains the
-deferred numeric-threshold policy that prohibits promotion. The forward-only representation and
-independent evidence needed for a v0.3 qualification are recorded as an open schema gap.
+The active v0.3 detector cannot reuse this v0.2 profile or freeze. Accepted schema v0.19.0 now
+provides the forward-only binding-scoped representation for its threshold policy and qualification
+records. Two evaluation-private Round-2 record pairs validate at current pins, but the installed
+grant table and qualification-manifest collection remain empty; representation and retained
+qualification evidence alone confer no production Finding authority.
 
 `freeze_typed_method_profile` freezes the binding, detector/parser/profile/version manifests,
 independent adapter identity, budgets, and selection protocol before assignment.
@@ -437,8 +439,9 @@ immutable v0.16/v0.1 replay surface and cannot accept the typed v0.2 profile.
 
 ## Deterministic calculation checks
 
-Accepted ADR-0044 and schema v0.18.0 publish `deterministic_check_observation` as a parallel,
-non-executing evidence surface. A content-addressed calculation-check registry dispatches only
+Accepted ADR-0044 introduced `deterministic_check_observation` in schema v0.18.0; active accepted
+schema v0.19.0 retains it as a parallel, non-executing evidence surface. A content-addressed
+calculation-check registry dispatches only
 packaged manifests to bounded adapters. Each observation binds the check and adapter identities,
 applicability, exact input and source references, closed typed operands, comparison outcome,
 finite applicability/ambiguity/counterevidence/completeness receipts, limitations, provenance,
@@ -480,7 +483,7 @@ entry keys, mapping-valued contracts, unique check IDs, and the existing selecte
 path are mandatory. Unmarked YAML is ignored. An unselected sidecar has no authority, and competing
 report and sidecar observations fail closed. Sidecar declarations do not establish execution,
 truth, scientific adequacy, or producer lineage. Every v10 calculation remains Disclosure-only and
-Finding-ineligible under schema v0.18.0.
+Finding-ineligible under active schema v0.19.0.
 
 Accepted ADR-0055 and calculation registry profile v11 preserve those exact contracts and add a
 bounded decoded-input view for exact `.csv.gz` and `.tsv.gz` paths. This is a storage-format

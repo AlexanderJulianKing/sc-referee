@@ -16,9 +16,6 @@
       },
       "then": {
         "properties": {
-          "evaluation_refs": {
-            "minItems": 1
-          },
           "human_scientific_approvals": {
             "maxItems": 0
           }
@@ -38,9 +35,6 @@
       },
       "then": {
         "properties": {
-          "evaluation_refs": {
-            "minItems": 1
-          },
           "human_scientific_approvals": {
             "minItems": 1
           }
@@ -86,7 +80,7 @@
       "then": {
         "properties": {
           "evaluation_refs": {
-            "minItems": 1
+            "minItems": 2
           }
         }
       }
@@ -111,9 +105,6 @@
       },
       "then": {
         "properties": {
-          "evaluation_refs": {
-            "minItems": 1
-          },
           "review_basis": {
             "enum": [
               "agent_panel",
@@ -171,9 +162,6 @@
       },
       "then": {
         "properties": {
-          "evaluation_refs": {
-            "minItems": 2
-          },
           "independent_corpus_refs": {
             "minItems": 1
           },

@@ -57,6 +57,7 @@ def test_release_identity_files_are_in_the_handoff_manifest(project_root: Path) 
 
 
 def test_manifest_builder_inventory_equals_git_tree_listing(project_root: Path) -> None:
+    assert INTENTIONALLY_GENERATED_ARTIFACTS == ()
     completed = subprocess.run(
         [
             "git",

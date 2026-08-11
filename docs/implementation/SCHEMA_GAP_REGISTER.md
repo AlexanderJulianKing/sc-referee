@@ -314,28 +314,25 @@ controller, storage, reporting, admission, or schema meaning. This resolves repr
 local mechanism only. Authenticated answer-blind cross-provider evidence, thresholds, promotion,
 and Finding authority remain external and absent.
 
-### Staged v0.3 method-conflict promotion representation; external gate remains
+### Accepted v0.3 method-conflict promotion representation; installation gate remains
 
-Accepted ADR-0060 and Experiment 0047 advance the generic contract-bound method-conflict candidate
-to version `0.3.0`, add an internal ReviewCase projection, and bind all substantive registered
-scientific checks to the unchanged closed comparison core. Immutable schema v0.18.0 cannot encode
-a qualification or promotion for that candidate: its typed static-method profile fixes the target
-detector to version `0.2.0`, and `numeric_threshold_policy` is fixed to
-`deferred_until_pilot_threshold_adr`, which correctly forbids a promoted outcome.
+Accepted ADR-0060 and Experiment 0047 advance the generic contract-bound method-conflict detector
+to version `0.3.0`, add an internal ReviewCase projection, and bind substantive registered
+scientific checks to the unchanged closed comparison core. Historical schema v0.18.0 could not
+encode its qualification or promotion without reusing the wrong v0.2 freeze.
 
-Do not edit v0.18.0, reuse the historical v0.2 freeze, hide a grant in extensions, or treat a
-development fixture as qualification. Accepted ADR-0061 now stages a reproducible, explicitly
-nonpublic v0.19.0 schema candidate. It can represent a v0.3 static profile, an exact production
-binding scope, a content-addressed pilot-informed threshold policy, thresholded metric evidence,
-and one binding-level DetectorQualification. A fail-closed resolver independently checks all of
-those identities and thresholds; no production controller discovery or installed grant exists.
+Accepted schema v0.19.0 closes that representation gap with a v0.3 static profile, exact production
+binding scope, content-addressed pilot-informed threshold policy, thresholded metric evidence, and
+binding-level DetectorQualification. The complete-domain and dependence envelopes have retained
+sealed qualification evidence, maintainer promotion decisions, and evaluation-private Round-2
+records re-derived at current v0.19 pins. The fail-closed resolver validates those records only
+against exact test-local pins.
 
-The remaining blocker is external rather than representational: an independent pilot block must
-produce the threshold ADR, and fresh held-out qualification must produce the authenticated review,
-proof, metric, report, and maintainer-promotion records. Only then may the candidate be reviewed as
-a forward public schema release and an exact grant be installed. Until then,
-`production_finding_permitted` remains false and the controller cannot admit a production Finding
-from this detector family.
+The remaining gate is installation and public production authority, not schema representation or
+held-out evidence. `qualification-manifests.json` and the installed `GRANT_PINS` mapping remain
+empty, detector manifests remain experimental, and production bindings remain
+`production_finding_permitted: false`. No production Finding can be admitted until a separate
+maintainer decision installs exact grants and completes the remaining production release wiring.
 
 ## Resolved pre-snapshot AuditRun failure gap
 

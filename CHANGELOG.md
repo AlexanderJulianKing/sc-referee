@@ -2,6 +2,12 @@
 
 ## 0.3.0
 
+- **2026-08-11 — v0.19.0 pre-use correction:** Corrected the accepted schema in place before
+  first use so agent-panel and mixed-panel qualifications require two path-valued
+  `evaluation_refs`. The release version remains `0.19.0`: no grant was installed, no record was
+  published outside this repository, and nothing external consumed the prior bytes. The prior
+  closed-tree `MANIFEST.sha256` content digest was
+  `sha256:7188bd85b51f28e57ff0aa022fc2a2043ec248968bac19b37a63599a616cce9d`.
 - Accepted public schema v0.19.0 as the active record contract. The release adds exact
   detector-v0.3 per-binding promotion representation, dated and decision-bound maintainer
   approvals, explicit Stage-3 comparison-artifact disclosure, and fail-closed v0.18→v0.19

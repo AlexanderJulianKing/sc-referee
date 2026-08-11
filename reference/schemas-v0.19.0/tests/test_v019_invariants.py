@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from test_examples import errors, invalid, load
 
 
@@ -21,10 +23,14 @@ def test_maintainer_decision_ref_is_an_adr_path():
 
 def test_agent_review_paths_belong_in_evaluation_refs():
  x=load("detector-qualification.example.json")
+ assert x["review_basis"]=="agent_panel"
+ assert len(x["evaluation_refs"])==2
  x["agent_adjudication_refs"]=[]
  assert not errors(x,"detector_qualification")
- x["evaluation_refs"]=[]
- invalid(x,"detector_qualification")
+ for refs in ([],x["evaluation_refs"][:1]):
+  y=deepcopy(x)
+  y["evaluation_refs"]=refs
+  invalid(y,"detector_qualification")
 
 
 def test_static_scope_disclosure_states_stage3_artifact_status():

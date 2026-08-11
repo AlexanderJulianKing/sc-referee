@@ -57,6 +57,11 @@ def migrate_public_bundle(
         raise PublicMigrationError("Input must be an AuditBundle object")
     if source.get("schema_version") != SOURCE_VERSION:
         raise PublicMigrationError("Input must be an exact public v0.18.0 AuditBundle")
+    storage_manifests = source.get("storage_manifests")
+    if not isinstance(storage_manifests, list) or storage_manifests:
+        raise PublicMigrationError(
+            "Input storage_manifests must be empty; migration will not discard retained integrity evidence"
+        )
     LocalSchemaRegistry(source_schema_root).validate(source)
 
     migrated = _version(copy.deepcopy(source))
