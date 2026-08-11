@@ -5,6 +5,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from sc_referee.core.ids import semantic_digest
+from sc_referee.detectors import method_conflict_grant_pins
 from sc_referee.lineage import LINEAGE_GRADE_DIMENSIONS, derive_aggregate_lineage_status
 from sc_referee.qualification_metrics import (
     QualificationMetricInvariantError,
@@ -83,7 +84,10 @@ def validate_report_contract(bundle: Mapping[str, Any]) -> None:
         admission = finding.get("admission")
         if not isinstance(admission, Mapping) or not admission.get("non_inferences"):
             raise ReportContractError("every Finding requires explicit non-inferences")
-        _require_source_evidence(finding)
+        _require_source_evidence(
+            finding,
+            allow_method_record_evidence=_finding_links_qualified_method_result(finding, bundle),
+        )
 
     for concern in _records(bundle, "conditional_concerns"):
         statement = concern.get("conditional_statement")
@@ -199,11 +203,13 @@ def _validate_detector_projection(bundle: Mapping[str, Any]) -> None:
         for manifest in _records(bundle, "detector_manifests")
         if isinstance(manifest.get("detector_id"), str)
     }
-    result_by_id = {
-        str(result["result_id"]): result
-        for result in _records(bundle, "detector_results")
-        if isinstance(result.get("result_id"), str)
-    }
+    detector_results = _records(bundle, "detector_results")
+    result_ids = [result.get("result_id") for result in detector_results]
+    if any(not isinstance(result_id, str) or not result_id for result_id in result_ids) or len(
+        set(result_ids)
+    ) != len(result_ids):
+        raise ReportContractError("DetectorResult identities are missing or duplicated")
+    result_by_id = {str(result["result_id"]): result for result in detector_results}
     for result in result_by_id.values():
         maturity = result.get("detector_maturity")
         if maturity == "experimental" and result.get("state") == "finding_candidate":
@@ -225,6 +231,18 @@ def _validate_detector_projection(bundle: Mapping[str, Any]) -> None:
             result.get("extensions", {}).get("x-detector-profile")
             == "bounded_report_mean_direction_v1"
         )
+        method_conflict = (
+            result.get("extensions", {}).get("x-detector-profile")
+            == "bounded_analysis_method_conflict_v1"
+        )
+        if result.get("extensions", {}).get("x-production-finding-permitted") is True and not (
+            method_conflict
+        ):
+            raise ReportContractError(
+                "production Finding permission is not linked to a method-conflict grant"
+            )
+        if method_conflict:
+            _validate_method_conflict_result(result, manifest)
         if public_experimental and manifest is None:
             raise ReportContractError(
                 "an experimental DetectorResult requires its exact bundled DetectorManifest"
@@ -259,6 +277,68 @@ def _validate_detector_projection(bundle: Mapping[str, Any]) -> None:
                 raise ReportContractError(
                     "a production Finding cannot cite an experimental DetectorResult"
                 )
+
+
+def _validate_method_conflict_result(
+    result: Mapping[str, Any], manifest: Mapping[str, Any] | None
+) -> None:
+    if manifest is None:
+        raise ReportContractError(
+            "a method-conflict DetectorResult requires its exact bundled DetectorManifest"
+        )
+    if (
+        manifest.get("maturity") != "experimental"
+        or result.get("detector_version") != manifest.get("detector_version")
+        or result.get("detector_manifest_digest") != semantic_digest(manifest)
+    ):
+        raise ReportContractError(
+            "method-conflict DetectorResult identity does not match its experimental manifest"
+        )
+    extensions = result.get("extensions")
+    if not isinstance(extensions, Mapping):
+        raise ReportContractError("method-conflict DetectorResult extensions are malformed")
+    permitted = extensions.get("x-production-finding-permitted")
+    if permitted is False:
+        if (
+            result.get("detector_maturity") != "experimental"
+            or result.get("state") == "finding_candidate"
+        ):
+            raise ReportContractError(
+                "unqualified method-conflict result cannot carry production maturity"
+            )
+        return
+    if permitted is not True:
+        raise ReportContractError("method-conflict result has no closed production authority state")
+    if result.get("state") != "finding_candidate" or result.get("detector_maturity") not in {
+        "validated",
+        "publication_grade",
+    }:
+        raise ReportContractError("qualified method-conflict result has an invalid maturity pair")
+    binding_id = extensions.get("x-method-conflict-binding-id")
+    pin = (
+        method_conflict_grant_pins.GRANT_PINS.get(str(binding_id))
+        if isinstance(binding_id, str)
+        else None
+    )
+    if pin is None or not method_conflict_grant_pins.installed_pin_matches_live_identity(pin):
+        raise ReportContractError("qualified method-conflict result has no installed exact grant")
+    expected = {
+        "x-method-conflict-binding-id": pin.binding_id,
+        "x-method-conflict-binding-digest": pin.binding_digest,
+        "x-detector-qualification-id": pin.qualification_id,
+        "x-detector-qualification-digest": pin.qualification_digest,
+        "x-qualification-metric-set-id": pin.metric_set_id,
+        "x-qualification-metric-set-digest": pin.metric_set_digest,
+        "x-threshold-policy-digest": pin.threshold_policy_digest,
+    }
+    if any(extensions.get(key) != value for key, value in expected.items()):
+        raise ReportContractError("qualified method-conflict result grant linkage drifted")
+    if (
+        pin.detector_id != result.get("detector_id")
+        or pin.detector_version != result.get("detector_version")
+        or pin.detector_manifest_digest != result.get("detector_manifest_digest")
+    ):
+        raise ReportContractError("qualified method-conflict result detector grant drifted")
 
 
 def _validate_root_cause_projection(bundle: Mapping[str, Any]) -> None:
@@ -804,13 +884,54 @@ def _typed_refs(value: Any) -> Iterable[tuple[str, str]]:
             yield from _typed_refs(item)
 
 
-def _require_source_evidence(finding: Mapping[str, Any]) -> None:
+def _finding_links_qualified_method_result(
+    finding: Mapping[str, Any], bundle: Mapping[str, Any]
+) -> bool:
+    extensions = finding.get("extensions")
+    result_ids = finding.get("detector_result_ids")
+    if (
+        finding.get("issue_class") != "x-review-scoped-analysis-method-requirement-mismatch"
+        or not isinstance(extensions, Mapping)
+        or not isinstance(result_ids, list)
+        or len(result_ids) != 1
+        or not isinstance(result_ids[0], str)
+    ):
+        return False
+    matches = [
+        result
+        for result in _records(bundle, "detector_results")
+        if result.get("result_id") == result_ids[0]
+    ]
+    if len(matches) != 1:
+        return False
+    result_extensions = matches[0].get("extensions")
+    return (
+        matches[0].get("state") == "finding_candidate"
+        and isinstance(result_extensions, Mapping)
+        and result_extensions.get("x-production-finding-permitted") is True
+        and result_extensions.get("x-method-conflict-binding-id")
+        == extensions.get("x-method-conflict-binding-id")
+        and result_extensions.get("x-method-conflict-binding-digest")
+        == extensions.get("x-method-conflict-binding-digest")
+    )
+
+
+def _require_source_evidence(
+    finding: Mapping[str, Any], *, allow_method_record_evidence: bool = False
+) -> None:
     evidence = finding.get("evidence")
     if not isinstance(evidence, list) or not evidence:
         raise ReportContractError("every Finding requires evidence")
+    source_bearing = 0
     for item in evidence:
-        if not isinstance(item, Mapping) or not item.get("source_refs"):
+        if not isinstance(item, Mapping):
             raise ReportContractError("every Finding evidence item requires a source reference")
+        if item.get("source_refs"):
+            source_bearing += 1
+        elif not allow_method_record_evidence or not item.get("record_refs"):
+            raise ReportContractError("every Finding evidence item requires a source reference")
+    if allow_method_record_evidence and source_bearing == 0:
+        raise ReportContractError("a method-conflict Finding requires source-bearing evidence")
 
 
 def _reject_strengthening(values: Iterable[Any]) -> None:

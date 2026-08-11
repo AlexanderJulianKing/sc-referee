@@ -7,6 +7,7 @@ from math import isfinite
 from typing import Any, Literal, cast
 
 from sc_referee.core.ids import semantic_digest, stable_id
+from sc_referee.detectors.method_conflict_grant_pins import GrantPin, live_adapter_identity
 from sc_referee.scientific_checks.core import MethodConflictBinding
 
 
@@ -38,9 +39,14 @@ def resolve_method_conflict_qualification(
     detector_manifest: Mapping[str, Any],
     qualification: Mapping[str, Any],
     metric_set: Mapping[str, Any],
+    pin: GrantPin | None,
 ) -> MethodConflictQualificationGrant | None:
     """Resolve one exact binding grant without trusting a boolean promotion flag alone."""
 
+    if pin is None or not _pin_matches_binding(pin, binding):
+        return None
+    if live_adapter_identity(binding) != pin.exam_adapter_identity:
+        return None
     detector_identity = (
         binding.detector_id,
         binding.detector_version,
@@ -85,6 +91,8 @@ def resolve_method_conflict_qualification(
     if not _valid_threshold_policy(threshold_policy):
         return None
     threshold_mapping = cast(Mapping[str, Any], threshold_policy)
+    if threshold_mapping.get("policy_semantic_digest") != pin.threshold_policy_digest:
+        return None
 
     metrics = qualification.get("quantitative_metrics")
     metric_refs = metrics.get("metric_set_refs") if isinstance(metrics, Mapping) else None
@@ -113,6 +121,7 @@ def resolve_method_conflict_qualification(
         or "public_development" in _string_set(metric_set.get("corpus_partitions"))
         or bool(metric_set.get("excluded_case_outcomes"))
         or not _thresholds_pass(metric_set, threshold_mapping)
+        or not _absolute_count_gates_pass(metric_set, pin)
     ):
         return None
 
@@ -122,6 +131,13 @@ def resolve_method_conflict_qualification(
     if not all(
         isinstance(value, str) and value
         for value in (qualification_id, metric_set_id, policy_digest)
+    ):
+        return None
+    if (
+        qualification_id != pin.qualification_id
+        or semantic_digest(qualification) != pin.qualification_digest
+        or metric_set_id != pin.metric_set_id
+        or semantic_digest(metric_set) != pin.metric_set_digest
     ):
         return None
     return MethodConflictQualificationGrant(
@@ -136,6 +152,46 @@ def resolve_method_conflict_qualification(
         detector_version=binding.detector_version,
         detector_manifest_digest=binding.detector_manifest_digest,
         maturity=cast(Literal["validated", "publication_grade"], maturity),
+    )
+
+
+def _pin_matches_binding(pin: GrantPin, binding: MethodConflictBinding) -> bool:
+    return (
+        pin.binding_id,
+        pin.binding_digest,
+        pin.check_id,
+        pin.check_version,
+        pin.check_manifest_digest,
+        pin.detector_id,
+        pin.detector_version,
+        pin.detector_manifest_digest,
+    ) == (
+        binding.binding_id,
+        binding.binding_digest,
+        binding.check_id,
+        binding.check_version,
+        binding.check_manifest_digest,
+        binding.detector_id,
+        binding.detector_version,
+        binding.detector_manifest_digest,
+    )
+
+
+def _absolute_count_gates_pass(metric_set: Mapping[str, Any], pin: GrantPin) -> bool:
+    counts = metric_set.get("counts")
+    if not isinstance(counts, Mapping):
+        return False
+    missed_roots = counts.get("missed_roots")
+    adjudicated_roots = counts.get("adjudicated_roots")
+    return (
+        isinstance(missed_roots, int)
+        and not isinstance(missed_roots, bool)
+        and isinstance(adjudicated_roots, int)
+        and not isinstance(adjudicated_roots, bool)
+        and pin.absolute_missed_roots == 0
+        and pin.required_roots == 2
+        and missed_roots <= pin.absolute_missed_roots
+        and adjudicated_roots == pin.required_roots
     )
 
 

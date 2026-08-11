@@ -31,6 +31,7 @@ from sc_referee_evaluation.dependence_promotion import (
 )
 
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
+from sc_referee.detectors.method_conflict_grant_pins import GrantPin, live_adapter_identity
 from sc_referee.detectors.method_conflict_qualification import (
     resolve_method_conflict_qualification,
 )
@@ -75,6 +76,29 @@ def _detector_manifest(collection: dict[str, Any]) -> dict[str, Any]:
         record
         for record in collection["records"]
         if record["detector_id"] == "detector:bounded-analysis-method-conflict"
+    )
+
+
+def _pin(binding: Any, metric_set: dict[str, Any], qualification: dict[str, Any]) -> GrantPin:
+    adapters = live_adapter_identity(binding)
+    assert adapters is not None
+    return GrantPin(
+        binding_id=binding.binding_id,
+        binding_digest=binding.binding_digest,
+        check_id=binding.check_id,
+        check_version=binding.check_version,
+        check_manifest_digest=binding.check_manifest_digest,
+        detector_id=binding.detector_id,
+        detector_version=binding.detector_version,
+        detector_manifest_digest=binding.detector_manifest_digest,
+        qualification_id=qualification["qualification_id"],
+        qualification_digest=semantic_digest(qualification),
+        metric_set_id=metric_set["metric_set_id"],
+        metric_set_digest=semantic_digest(metric_set),
+        threshold_policy_digest=metric_set["numeric_threshold_policy"]["policy_semantic_digest"],
+        exam_adapter_identity=adapters,
+        absolute_missed_roots=0,
+        required_roots=2,
     )
 
 
@@ -186,6 +210,7 @@ def test_round1_private_records_rederive_and_resolve_live_exact_grant(
         detector_manifest=detector_manifest,
         qualification=qualification,
         metric_set=metric_set,
+        pin=_pin(binding, metric_set, qualification),
     )
 
     assert grant is not None
@@ -222,6 +247,7 @@ def test_sibling_bindings_and_simulated_current_drift_defeat_grant(
     detector_manifest = _detector_manifest(_load(project_root / DETECTOR_MANIFESTS))
     bindings = scientific_check_release_registry().method_conflict_bindings
     target = next(item for item in bindings if item.binding_id == BINDING_ID)
+    pin = _pin(target, metric_set, qualification)
 
     for sibling in bindings:
         if sibling.binding_id != BINDING_ID:
@@ -231,6 +257,7 @@ def test_sibling_bindings_and_simulated_current_drift_defeat_grant(
                     detector_manifest=detector_manifest,
                     qualification=qualification,
                     metric_set=metric_set,
+                    pin=pin,
                 )
                 is None
             )
@@ -243,6 +270,7 @@ def test_sibling_bindings_and_simulated_current_drift_defeat_grant(
             detector_manifest=detector_manifest,
             qualification=qualification,
             metric_set=metric_set,
+            pin=pin,
         )
         is None
     )

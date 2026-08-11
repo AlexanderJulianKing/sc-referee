@@ -287,6 +287,38 @@ def test_arbitrary_repository_audit_is_truthful_static_and_replayable(
     assert replay_status.integrity == "verified"
 
 
+def test_empty_method_grant_table_preserves_walking_skeleton_replay_bundle(
+    project_root: Path, schema_root: Path, tmp_path: Path
+) -> None:
+    repository = tmp_path / "walking-skeleton"
+    shutil.copytree(project_root / "examples" / "walking-skeleton", repository)
+    source = tmp_path / "walking-skeleton-audit"
+    bundle = run_audit(
+        repository,
+        source,
+        schema_root,
+        report="report.md",
+    )
+    replayed = replay(source / "semantic.lock.json", tmp_path / "replay", schema_root)
+
+    for field in (
+        "scientific_contracts",
+        "claims",
+        "detector_results",
+        "findings",
+        "conditional_concerns",
+        "material_questions",
+        "disclosures",
+        "coverage_records",
+        "publication_surfaces",
+        "parser_results",
+        "operations",
+        "artifacts",
+    ):
+        assert replayed[field] == bundle[field]
+    assert bundle["findings"] == []
+
+
 def test_enormous_data_asset_is_bounded_without_making_the_audit_useless(
     schema_root: Path, tmp_path: Path
 ) -> None:

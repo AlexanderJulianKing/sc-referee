@@ -45,7 +45,11 @@ from sc_referee.core.errors import (
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest, stable_id
 from sc_referee.core.state import AuditState, transition
 from sc_referee.delimited_io import classify_delimited_path
+from sc_referee.detectors import method_conflict_grant_pins
 from sc_referee.detectors.admission import AdmissionContext, admit_finding
+from sc_referee.detectors.bounded_analysis_method_conflict import (
+    BoundedAnalysisMethodConflictDetector,
+)
 from sc_referee.detectors.bounded_report_mean_direction import (
     BoundedReportMeanDirectionDetector,
 )
@@ -61,7 +65,13 @@ from sc_referee.detectors.manifest import (
     load_fixture_detector_envelope,
     locked_counterevidence_check_ids,
 )
+from sc_referee.detectors.method_conflict_finding import draft_method_conflict_finding
+from sc_referee.detectors.method_conflict_qualification import (
+    project_qualified_method_conflict_candidate,
+    resolve_method_conflict_qualification,
+)
 from sc_referee.detectors.method_conflict_registry import (
+    MethodConflictEvaluation,
     evaluate_registered_method_conflicts,
     locked_method_conflict_bindings,
     validate_registered_method_conflict_manifests,
@@ -1257,15 +1267,22 @@ def run_audit(
         if partial is not None:
             return partial
 
-        detector_results = _evaluate_general_detectors(locked_case)
+        detector_evaluation = _evaluate_general_detectors(locked_case)
+        detector_results = list(detector_evaluation.results)
+        detector_findings = list(detector_evaluation.findings)
         candidate_count = sum(
             result.get("state") == "evaluation_finding_candidate" for result in detector_results
         )
+        finding_count = len(detector_findings)
         journal.record_stage(
             "detection",
             "completed",
             (
                 f"Evaluated {len(detector_results)} bounded experimental detector target(s); "
+                f"{candidate_count} evaluation candidate(s) remain ineligible for production "
+                f"Findings; {finding_count} qualified Finding(s) admitted."
+                if finding_count
+                else f"Evaluated {len(detector_results)} bounded experimental detector target(s); "
                 f"{candidate_count} evaluation candidate(s) remain ineligible for production Findings."
             ),
         )
@@ -1288,6 +1305,7 @@ def run_audit(
             schema_root,
             finalize=False,
             detector_results=detector_results,
+            detector_findings=detector_findings,
         )
         journal.record_stage("report", "completed", "Canonical bundle, SQLite, and HTML persisted.")
         journal.transition_to(AuditState.REPORTED)
@@ -3172,6 +3190,7 @@ def _derive_general_from_lock(
     finalize: bool = True,
     coverage_disposition: _GeneralCoverageDisposition | None = None,
     detector_results: list[dict[str, Any]] | None = None,
+    detector_findings: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     layout = AuditLayout(output)
     validator = LocalSchemaRegistry(schema_root)
@@ -3209,12 +3228,17 @@ def _derive_general_from_lock(
         bundle[bundle_field] = deepcopy(locked_case.get(bundle_field, []))
     bundle["disclosures"].extend(_derive_posthoc_ledger_disclosures(locked_case))
     if detector_results is None:
-        detector_results = (
-            []
-            if coverage_disposition is not None and coverage_disposition.run_state != "complete"
-            else _evaluate_general_detectors(locked_case)
-        )
+        if coverage_disposition is not None and coverage_disposition.run_state != "complete":
+            detector_results = []
+            detector_findings = []
+        else:
+            evaluation = _evaluate_general_detectors(locked_case)
+            detector_results = list(evaluation.results)
+            detector_findings = list(evaluation.findings)
+    elif detector_findings is None:
+        detector_findings = []
     bundle["detector_results"] = deepcopy(detector_results)
+    bundle["findings"] = deepcopy(detector_findings)
     coverage = _general_coverage_record(
         locked_case,
         bundle,
@@ -3230,6 +3254,7 @@ def _derive_general_from_lock(
         *bundle["claims"],
         *bundle["detector_manifests"],
         *bundle["detector_results"],
+        *bundle["findings"],
         *bundle["file_records"],
         *bundle["parser_results"],
         *bundle["operations"],
@@ -3261,6 +3286,7 @@ def _derive_general_from_lock(
         "semantic_assertions",
         "detector_manifests",
         "detector_results",
+        "findings",
         "publication_surfaces",
         "material_questions",
         "work_items",
@@ -3277,8 +3303,21 @@ def _derive_general_from_lock(
     return _write_preliminary_outputs(bundle, layout, validator)
 
 
-def _evaluate_general_detectors(locked_case: dict[str, Any]) -> list[dict[str, Any]]:
-    results = evaluate_registered_method_conflicts(locked_case)
+@dataclass(frozen=True)
+class _GeneralDetectorEvaluation:
+    results: tuple[dict[str, Any], ...]
+    findings: tuple[dict[str, Any], ...]
+
+
+def _evaluate_general_detectors(locked_case: dict[str, Any]) -> _GeneralDetectorEvaluation:
+    method_evaluations = evaluate_registered_method_conflicts(locked_case)
+    results: list[dict[str, Any]] = []
+    findings: list[dict[str, Any]] = []
+    for evaluation in method_evaluations:
+        result, finding = _promote_method_conflict_evaluation(locked_case, evaluation)
+        results.append(result)
+        if finding is not None:
+            findings.append(finding)
     direction_manifests = [
         item
         for item in locked_case.get("detector_manifests", [])
@@ -3338,7 +3377,87 @@ def _evaluate_general_detectors(locked_case: dict[str, Any]) -> list[dict[str, A
             key=lambda observation: str(observation.get("deterministic_check_observation_id")),
         )
         results.extend(feature_detector.evaluate(locked_case, target) for target in targets)
-    return results
+    return _GeneralDetectorEvaluation(tuple(results), tuple(findings))
+
+
+def _promote_method_conflict_evaluation(
+    locked_case: dict[str, Any],
+    evaluation: MethodConflictEvaluation,
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    """Replace one candidate only after an installed pin resolves and admission succeeds."""
+
+    original = deepcopy(evaluation.result)
+    if original.get("state") != "evaluation_finding_candidate":
+        return original, None
+    pin = method_conflict_grant_pins.GRANT_PINS.get(evaluation.binding.binding_id)
+    if pin is None:
+        return original, None
+    evidence = method_conflict_grant_pins.load_method_conflict_grant_evidence(pin)
+    if evidence is None:
+        return original, None
+    qualification, metric_set = evidence
+    manifests = [
+        item
+        for item in locked_case.get("detector_manifests", [])
+        if item.get("detector_id") == evaluation.binding.detector_id
+        and item.get("detector_version") == evaluation.binding.detector_version
+        and semantic_digest(item) == evaluation.binding.detector_manifest_digest
+    ]
+    if len(manifests) != 1:
+        return original, None
+    grant = resolve_method_conflict_qualification(
+        binding=evaluation.binding,
+        detector_manifest=manifests[0],
+        qualification=qualification,
+        metric_set=metric_set,
+        pin=pin,
+    )
+    if grant is None:
+        return original, None
+    promoted = project_qualified_method_conflict_candidate(
+        original,
+        evaluation.binding,
+        grant,
+        work_packet=evaluation.work_packet,
+    )
+    if promoted is None:
+        return original, None
+    try:
+        draft = draft_method_conflict_finding(promoted, evaluation.binding)
+    except (KeyError, TypeError, ValueError):
+        return original, None
+    finding = admit_finding(
+        promoted,
+        AdmissionContext(
+            finding_draft=draft,
+            source_references_resolved=_method_conflict_evidence_resolves(promoted),
+            detector_qualification_applies=True,
+            wording_constraints_satisfied=True,
+            expected_deterministic_input_digest=semantic_digest(evaluation.work_packet),
+            required_counterevidence_check_ids=(BoundedAnalysisMethodConflictDetector.check_ids),
+            non_inferences=(
+                "Static evidence does not establish that project code executed.",
+                "The Finding does not establish numerical causality, bias direction, universal "
+                "scientific correctness, or effects outside the selected analysis.",
+            ),
+        ),
+    )
+    if finding is None:
+        return original, None
+    return promoted, finding
+
+
+def _method_conflict_evidence_resolves(result: dict[str, Any]) -> bool:
+    evidence = result.get("evidence")
+    return (
+        isinstance(evidence, list)
+        and bool(evidence)
+        and any(isinstance(item, dict) and bool(item.get("source_refs")) for item in evidence)
+        and all(
+            isinstance(item, dict) and bool(item.get("source_refs") or item.get("record_refs"))
+            for item in evidence
+        )
+    )
 
 
 def _derive_posthoc_ledger_disclosures(locked_case: dict[str, Any]) -> list[dict[str, Any]]:
@@ -3886,13 +4005,22 @@ def _general_detector_coverage_item(
         candidate_count = sum(
             result.get("state") == "evaluation_finding_candidate" for result in results
         )
+        admitted_count = sum(
+            result.get("state") == "finding_candidate"
+            and result.get("extensions", {}).get("x-production-finding-permitted") is True
+            for result in results
+        )
         return {
             "detector_id": detector_id,
             "status": status,
             "targets_total": targets_total,
             "targets_evaluated": len(results),
             "details": (
-                f"The experimental bounded mechanical profile evaluated {len(results)} target(s); "
+                f"The bounded mechanical profile evaluated {len(results)} target(s); "
+                f"{candidate_count} evaluation candidate(s) retain no production Finding "
+                f"authority and {admitted_count} qualified result(s) were admitted."
+                if admitted_count
+                else f"The experimental bounded mechanical profile evaluated {len(results)} target(s); "
                 f"{candidate_count} evaluation candidate(s) have no production Finding authority."
             ),
         }

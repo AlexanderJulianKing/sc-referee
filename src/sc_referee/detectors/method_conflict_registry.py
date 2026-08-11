@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from copy import deepcopy
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
@@ -22,6 +24,15 @@ from sc_referee.scientific_checks.registry import ScientificCheckRegistry
 
 class MethodConflictRegistryError(ValueError):
     """Raised when a locked or packaged detector binding is incomplete or drifted."""
+
+
+@dataclass(frozen=True)
+class MethodConflictEvaluation:
+    """One detector result with the exact binding and work packet that produced it."""
+
+    result: dict[str, Any]
+    binding: MethodConflictBinding
+    work_packet: dict[str, Any]
 
 
 def validate_registered_method_conflict_manifests(
@@ -48,13 +59,13 @@ def validate_registered_method_conflict_manifests(
 
 def evaluate_registered_method_conflicts(
     locked_case: Mapping[str, Any],
-) -> list[dict[str, Any]]:
+) -> list[MethodConflictEvaluation]:
     """Dispatch all locked method-conflict bindings without detector-specific controller code."""
 
     bindings = locked_method_conflict_bindings(locked_case)
     bindings_by_detector = _group_bindings(bindings)
     manifests = _mapping_list(locked_case.get("detector_manifests"))
-    results: list[dict[str, Any]] = []
+    evaluations: list[MethodConflictEvaluation] = []
     for detector_id in sorted(bindings_by_detector):
         if detector_id != BoundedAnalysisMethodConflictDetector.detector_id:
             raise MethodConflictRegistryError(
@@ -78,8 +89,35 @@ def evaluate_registered_method_conflicts(
             ),
             key=lambda question: str(question.get("question_id")),
         )
-        results.extend(detector.evaluate(locked_case, question) for question in targets)
-    return results
+        for question in targets:
+            extensions = question.get("extensions")
+            check_id = (
+                str(extensions.get("x-scientific-check-id", ""))
+                if isinstance(extensions, Mapping)
+                else ""
+            )
+            binding = detector.bindings_by_check.get(check_id)
+            if binding is None:
+                raise MethodConflictRegistryError(
+                    f"locked method-conflict target has no exact binding: {check_id}"
+                )
+            # The detector's work-packet constructor is deterministic and is the
+            # same path used internally by evaluate(). Keeping the detector file
+            # byte-identical preserves its installed implementation digest.
+            packet = detector._work_packet(locked_case, question)
+            result = detector.evaluate(locked_case, question)
+            if result.get("deterministic_input_digest") != semantic_digest(packet):
+                raise MethodConflictRegistryError(
+                    "method-conflict detector result drifted from its exposed work packet"
+                )
+            evaluations.append(
+                MethodConflictEvaluation(
+                    result=deepcopy(result),
+                    binding=binding,
+                    work_packet=deepcopy(packet),
+                )
+            )
+    return evaluations
 
 
 def locked_method_conflict_bindings(

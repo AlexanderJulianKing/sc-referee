@@ -2,20 +2,29 @@ from __future__ import annotations
 
 import copy
 import json
-from dataclasses import replace
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
 
 import pytest
 
+import sc_referee.detectors.method_conflict_grant_pins as grant_pins
+from sc_referee.controller import _evaluate_general_detectors
 from sc_referee.core.ids import semantic_digest, stable_id
+from sc_referee.detectors.method_conflict_grant_pins import GrantPin, live_adapter_identity
 from sc_referee.detectors.method_conflict_qualification import (
     project_qualified_method_conflict_candidate,
     resolve_method_conflict_qualification,
 )
+from sc_referee.detectors.method_conflict_registry import (
+    MethodConflictEvaluation,
+    evaluate_registered_method_conflicts,
+)
 from sc_referee.records.schema_registry import LocalSchemaRegistry
+from sc_referee.reporting.policy import ReportContractError, _validate_detector_projection
 from sc_referee.scientific_checks.profiles import scientific_check_release_registry
 from scripts.build_method_promotion_schema_candidate import build_candidate
+from tests.method_conflict_matrix_support import TARGET_RELATIONS, method_conflict_case
 
 
 def _detector_manifest(project_root: Path) -> dict[str, Any]:
@@ -120,7 +129,14 @@ def _records(
             "excluded_case_outcomes": [],
         }
     )
-    metric_set["counts"].update({"workflows": 2, "problem_clusters": 2, "adjudicated_roots": 1})
+    metric_set["counts"].update(
+        {
+            "workflows": 2,
+            "problem_clusters": 2,
+            "adjudicated_roots": 2,
+            "missed_roots": 0,
+        }
+    )
     metric_set["control_family_strata"][2]["case_count"] = 1
 
     qualification = json.loads(
@@ -160,6 +176,53 @@ def _records(
     return binding, manifest, metric_set, qualification
 
 
+def _pin(binding: Any, metric_set: dict[str, Any], qualification: dict[str, Any]) -> GrantPin:
+    adapters = live_adapter_identity(binding)
+    assert adapters is not None
+    return GrantPin(
+        binding_id=binding.binding_id,
+        binding_digest=binding.binding_digest,
+        check_id=binding.check_id,
+        check_version=binding.check_version,
+        check_manifest_digest=binding.check_manifest_digest,
+        detector_id=binding.detector_id,
+        detector_version=binding.detector_version,
+        detector_manifest_digest=binding.detector_manifest_digest,
+        qualification_id=qualification["qualification_id"],
+        qualification_digest=semantic_digest(qualification),
+        metric_set_id=metric_set["metric_set_id"],
+        metric_set_digest=semantic_digest(metric_set),
+        threshold_policy_digest=metric_set["numeric_threshold_policy"]["policy_semantic_digest"],
+        exam_adapter_identity=adapters,
+        absolute_missed_roots=0,
+        required_roots=2,
+    )
+
+
+def _locked_candidate_case(manifest: dict[str, Any], binding: Any) -> dict[str, Any]:
+    relation = TARGET_RELATIONS[0]
+    locked, question = method_conflict_case(
+        relation,
+        required_candidate_id=relation.required_candidate_id,
+        observed_candidate_id=relation.conflicting_candidate_id,
+        namespace="round2-production-wiring",
+    )
+    locked["material_questions"] = [question]
+    locked["detector_manifests"] = [copy.deepcopy(manifest)]
+    registry = scientific_check_release_registry()
+    locked["scientific_check_registry"] = {
+        "enabled_modules": [
+            {
+                "manifest": {"check_id": item.check_id},
+                "manifest_digest": item.check_manifest_digest,
+            }
+            for item in registry.method_conflict_bindings
+        ],
+        "method_conflict_bindings": [asdict(item) for item in registry.method_conflict_bindings],
+    }
+    return locked
+
+
 @pytest.fixture
 def candidate(tmp_path: Path) -> Path:
     output = tmp_path / "candidate"
@@ -176,6 +239,7 @@ def test_exact_records_resolve_one_binding_grant_and_project_candidate(
         detector_manifest=manifest,
         qualification=qualification,
         metric_set=metric_set,
+        pin=_pin(binding, metric_set, qualification),
     )
     assert grant is not None
     assert grant.binding_digest == binding.binding_digest
@@ -235,6 +299,160 @@ def test_exact_records_resolve_one_binding_grant_and_project_candidate(
     assert promoted["extensions"]["x-method-conflict-binding-digest"] == binding.binding_digest
 
 
+def test_registry_exposes_exact_work_packet_and_empty_grant_keeps_candidate(
+    project_root: Path, candidate: Path
+) -> None:
+    binding, manifest, metric_set, qualification = _records(project_root, candidate)
+    del metric_set, qualification
+    locked = _locked_candidate_case(manifest, binding)
+
+    registered = evaluate_registered_method_conflicts(locked)
+    assert len(registered) == 1
+    assert isinstance(registered[0], MethodConflictEvaluation)
+    assert registered[0].result["deterministic_input_digest"] == semantic_digest(
+        registered[0].work_packet
+    )
+    assert registered[0].binding.binding_id == binding.binding_id
+
+    evaluation = _evaluate_general_detectors(locked)
+
+    assert grant_pins.GRANT_PINS == {}
+    assert len(evaluation.results) == 1
+    assert evaluation.results[0]["state"] == "evaluation_finding_candidate"
+    assert evaluation.findings == ()
+
+
+def test_test_local_pin_admits_one_finding_through_full_controller_bundle(
+    project_root: Path,
+    schema_root: Path,
+    candidate: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from tests.test_evaluation_control_fixture import _lock_method_authority
+
+    binding, manifest, metric_set, qualification = _records(project_root, candidate)
+    del manifest
+    pin = _pin(binding, metric_set, qualification)
+    monkeypatch.setattr(grant_pins, "GRANT_PINS", {binding.binding_id: pin})
+    monkeypatch.setattr(
+        grant_pins,
+        "load_method_conflict_grant_evidence",
+        lambda installed: (qualification, metric_set) if installed == pin else None,
+    )
+    repository = tmp_path / "round2-controller-project"
+    repository.mkdir()
+    (repository / "analysis.py").write_text(
+        "import csv\n"
+        "import math\n"
+        "from pathlib import Path\n"
+        "ROOT = Path(__file__).resolve().parent\n"
+        "def emission_matrix(observed, founder_state, error):\n"
+        "    return observed == founder_state\n"
+        "def fit(sample, observed):\n"
+        "    return emission_matrix(observed, sample.founder_alleles[0], 0.01)\n"
+        "def main():\n"
+        "    (ROOT / 'report.md').write_text(\n"
+        "        'The parental marker panel as supplied and the progeny calls were compared marker by marker: 372 of the 480 markers agree.\\n\\nThe emission model used a per-marker agreement rate of 0.225.\\n'\n"
+        "    )\n"
+        "if __name__ == '__main__':\n"
+        "    main()\n"
+        "rows = list(csv.DictReader((ROOT / 'markers.csv').open()))\n"
+        "panel = [{**row, 'founder': 1 - int(row['founder'])} for row in rows]\n"
+        "LIKELIHOOD = math.prod(\n"
+        "    0.99 if int(row['call']) == int(row['founder']) else 0.01 for row in panel\n"
+        ")\n"
+        "(ROOT / 'likelihood.txt').write_text(str(LIKELIHOOD))\n",
+        encoding="utf-8",
+    )
+    (repository / "markers.csv").write_text("call,founder\n0,0\n1,1\n", encoding="utf-8")
+    (repository / "report.md").write_text(
+        "The parental marker panel as supplied and the progeny calls were compared marker "
+        "by marker: 372 of the 480 markers agree.\n\n"
+        "The emission model used a per-marker agreement rate of 0.225.\n",
+        encoding="utf-8",
+    )
+
+    bundle = _lock_method_authority(repository, schema_root, tmp_path)
+
+    promoted = [
+        result for result in bundle["detector_results"] if result["state"] == "finding_candidate"
+    ]
+    assert len(promoted) == 1
+    assert len(bundle["findings"]) == 1
+    assert bundle["coverage_records"][0]["assessment_counts"]["findings"] == 1
+
+
+def test_test_local_exact_pin_admits_one_finding_and_replaces_result(
+    project_root: Path,
+    candidate: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    binding, manifest, metric_set, qualification = _records(project_root, candidate)
+    pin = _pin(binding, metric_set, qualification)
+    locked = _locked_candidate_case(manifest, binding)
+    monkeypatch.setattr(grant_pins, "GRANT_PINS", {binding.binding_id: pin})
+    monkeypatch.setattr(
+        grant_pins,
+        "load_method_conflict_grant_evidence",
+        lambda installed: (qualification, metric_set) if installed == pin else None,
+    )
+
+    evaluation = _evaluate_general_detectors(locked)
+
+    assert len(evaluation.results) == 1
+    assert evaluation.results[0]["state"] == "finding_candidate"
+    assert len(evaluation.findings) == 1
+    assert evaluation.findings[0]["detector_result_ids"] == [evaluation.results[0]["result_id"]]
+    assert len({item["result_id"] for item in evaluation.results}) == 1
+    _validate_detector_projection(
+        {
+            "detector_manifests": [manifest],
+            "detector_results": list(evaluation.results),
+            "findings": list(evaluation.findings),
+        }
+    )
+
+
+def test_policy_rejects_forged_validated_method_result_without_grant_linkage(
+    project_root: Path, candidate: Path
+) -> None:
+    binding, manifest, metric_set, qualification = _records(project_root, candidate)
+    del metric_set, qualification
+    result = _evaluate_general_detectors(_locked_candidate_case(manifest, binding)).results[0]
+    forged = copy.deepcopy(result)
+    forged["state"] = "finding_candidate"
+    forged["detector_maturity"] = "validated"
+    forged["extensions"]["x-production-finding-permitted"] = True
+    forged["extensions"]["x-evaluation-only"] = False
+
+    with pytest.raises(ReportContractError, match="installed exact grant"):
+        _validate_detector_projection(
+            {
+                "detector_manifests": [manifest],
+                "detector_results": [forged],
+                "findings": [],
+            }
+        )
+
+
+def test_policy_rejects_duplicate_method_result_identity(
+    project_root: Path, candidate: Path
+) -> None:
+    binding, manifest, metric_set, qualification = _records(project_root, candidate)
+    del metric_set, qualification
+    result = _evaluate_general_detectors(_locked_candidate_case(manifest, binding)).results[0]
+
+    with pytest.raises(ReportContractError, match="duplicated"):
+        _validate_detector_projection(
+            {
+                "detector_manifests": [manifest],
+                "detector_results": [result, copy.deepcopy(result)],
+                "findings": [],
+            }
+        )
+
+
 def test_sibling_binding_grant_cannot_promote_result_for_another_question(
     project_root: Path, candidate: Path
 ) -> None:
@@ -244,6 +462,7 @@ def test_sibling_binding_grant_cannot_promote_result_for_another_question(
         detector_manifest=manifest,
         qualification=qualification,
         metric_set=metric_set,
+        pin=_pin(binding, metric_set, qualification),
     )
     assert grant is not None
     sibling = next(
@@ -336,6 +555,7 @@ def test_missing_drifted_or_failed_evidence_never_resolves_a_grant(
     mutation: Any,
 ) -> None:
     binding, manifest, metric_set, qualification = _records(project_root, candidate)
+    pin = _pin(binding, metric_set, qualification)
     mutation(qualification if target == "qualification" else metric_set)
     assert (
         resolve_method_conflict_qualification(
@@ -343,6 +563,65 @@ def test_missing_drifted_or_failed_evidence_never_resolves_a_grant(
             detector_manifest=manifest,
             qualification=qualification,
             metric_set=metric_set,
+            pin=pin,
+        )
+        is None
+    )
+
+
+def test_resolver_refuses_absent_or_drifted_external_pin_and_absolute_counts(
+    project_root: Path, candidate: Path
+) -> None:
+    binding, manifest, metric_set, qualification = _records(project_root, candidate)
+    pin = _pin(binding, metric_set, qualification)
+    arguments = {
+        "binding": binding,
+        "detector_manifest": manifest,
+        "qualification": qualification,
+        "metric_set": metric_set,
+    }
+    assert resolve_method_conflict_qualification(**arguments, pin=None) is None
+    assert (
+        resolve_method_conflict_qualification(
+            **arguments,
+            pin=replace(pin, threshold_policy_digest="sha256:" + "0" * 64),
+        )
+        is None
+    )
+    drifted_adapter = replace(
+        pin.exam_adapter_identity[0], implementation_digest="sha256:" + "0" * 64
+    )
+    assert (
+        resolve_method_conflict_qualification(
+            **arguments,
+            pin=replace(
+                pin,
+                exam_adapter_identity=(drifted_adapter, *pin.exam_adapter_identity[1:]),
+            ),
+        )
+        is None
+    )
+    missed = copy.deepcopy(metric_set)
+    missed["counts"]["missed_roots"] = 1
+    assert (
+        resolve_method_conflict_qualification(
+            binding=binding,
+            detector_manifest=manifest,
+            qualification=qualification,
+            metric_set=missed,
+            pin=pin,
+        )
+        is None
+    )
+    wrong_root_count = copy.deepcopy(metric_set)
+    wrong_root_count["counts"]["adjudicated_roots"] = 3
+    assert (
+        resolve_method_conflict_qualification(
+            binding=binding,
+            detector_manifest=manifest,
+            qualification=qualification,
+            metric_set=wrong_root_count,
+            pin=pin,
         )
         is None
     )
