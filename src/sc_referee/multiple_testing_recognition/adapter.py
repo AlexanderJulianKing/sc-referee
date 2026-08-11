@@ -66,7 +66,12 @@ _NON_INFERENCES: tuple[str, ...] = (
     "No numerical impact, bias direction, scientific invalidity, or required repair is inferred.",
     "The shadow result is not a Finding and grants no production admission authority.",
 )
-_SUPPORTED_PYTHON_PARSER_IDENTITIES = frozenset({("python-ast", "3.11")})
+_SUPPORTED_PYTHON_PARSER_IDENTITIES = frozenset(
+    {
+        ("python-ast", "3.11"),
+        ("parser:python-ast-tokenize", "0.15.1"),
+    }
+)
 
 
 def multiple_testing_recognition_dependency_closure() -> dict[str, str]:
@@ -92,7 +97,7 @@ class MultipleTestingRecognitionShadowAdapter:
     """Project one bounded static multiple-testing case onto the shadow plane."""
 
     adapter_id: str = "multiple-testing-recognition-semantic-shadow"
-    adapter_version: str = "1.1.0"
+    adapter_version: str = "1.2.0"
 
     @property
     def implementation_digest(self) -> str:
@@ -381,7 +386,7 @@ class MultipleTestingRecognitionShadowAdapter:
     ) -> ShadowPayload:
         return {
             "record_type": "multiple_testing_recognition_shadow_result",
-            "schema_version": "1.0.0",
+            "schema_version": "1.1.0",
             "adapter_id": self.adapter_id,
             "adapter_version": self.adapter_version,
             "adapter_implementation_digest": self.implementation_digest,
@@ -397,7 +402,7 @@ class MultipleTestingRecognitionShadowAdapter:
             "reason_code": reason_code,
             "basis": basis,
             "case_digest": case_digest,
-            "output_ceiling": "report_only",
+            "output_ceiling": "evaluation_candidate",
             "wording_ceiling": "supported_normal_path_static_relationship_only",
             "non_inferences": list(_NON_INFERENCES),
             "payload": body,

@@ -25,6 +25,7 @@ ANALYSIS_METHOD_CONFLICT_CHECK_IDS = sorted(
         "check:casrx-isoform-axis-model",
         "check:classifier-derived-copy-dosage-representation",
         "check:complete-domain-exposure-denominator",
+        "check:complete-family-correction-over-performed-test-battery",
         "check:direct-standardization-conditioning-set",
         "check:directional-measurement-error-interpretation",
         "check:expected-count-background-construction",

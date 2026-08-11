@@ -348,3 +348,19 @@ in all three positions. Ordered composite keys still require tuples. Even when t
 measurement dictionaries consistently use executable one-element tuples, v1 abstains with the
 named gap `single-column-key-tuple-form-unsupported`; admitting that form requires a later reviewed
 grammar extension.
+
+## 2026-08-11 Stage 5 question-only registration amendment
+
+The registration gate has cleared the reviewed v1 grammar for an evaluation-only scientific-check
+seat. Shadow adapter v1.2.0 may therefore feed exactly one normalization wrapper whose public
+ceiling is `question_only`. The wrapper may project accepted candidate and coverage certificates
+as applicable observations for generic evaluation-candidate routing, preserve unresolved family
+authority as a material question, and expose named unsupported or no-lineage states during blind
+pilots. Both applicable routes carry the accepted certificate's exact declared source spans and
+must close the selected-static-writer scope join.
+
+This amendment grants no `Finding` authority, detector qualification, production admission,
+scientific correctness claim, or execution privilege. The shadow adapter remains report-only and
+never executes project-authored code; its `evaluation_candidate` delivery ceiling only permits the
+question-only wrapper to participate in the existing generic evaluation plane. Registration does
+not install or alter any method-conflict grant.

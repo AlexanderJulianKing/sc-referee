@@ -59,6 +59,21 @@ from sc_referee.scientific_checks.founder_orientation_semantic_adapter import (
     FounderOrientationSemanticReportAdapter,
     founder_orientation_semantic_recognition_grammar_digest,
 )
+from sc_referee.scientific_checks.multiple_testing_recognition_adapter import (
+    COMPLETE_FAMILY_CORRECTION,
+    MULTIPLE_TESTING_RECOGNITION_ADAPTER_ID,
+    MULTIPLE_TESTING_RECOGNITION_ADAPTER_VERSION,
+    MULTIPLE_TESTING_RECOGNITION_CANDIDATE_ID,
+    MULTIPLE_TESTING_RECOGNITION_CHECK_ID,
+    MULTIPLE_TESTING_RECOGNITION_CHECK_VERSION,
+    MULTIPLE_TESTING_RECOGNITION_COUNTEREVIDENCE,
+    MULTIPLE_TESTING_RECOGNITION_ROLE_BINDINGS,
+    MULTIPLE_TESTING_RECOGNITION_SCIENTIFIC_ADAPTER_IMPLEMENTATION_DIGEST,
+    MULTIPLE_TESTING_RECOGNITION_SEMANTIC_ROLES,
+    STRICT_SUBSET_CORRECTION,
+    MultipleTestingRecognitionScientificAdapter,
+    multiple_testing_recognition_grammar_digest,
+)
 from sc_referee.scientific_checks.python_founder_adapter import (
     PYTHON_FOUNDER_ADAPTER_IMPLEMENTATION_DIGEST,
 )
@@ -228,6 +243,7 @@ def _scientific_check_release_modules() -> tuple[ScientificCheckModule, ...]:
         *(tuple(_module(profile) for profile in report_profiles)),
         _mvmr_covariance_module(),
         _module(_dependence_recognition_profile()),
+        _module(_multiple_testing_recognition_profile()),
         _module(_conformance_profile()),
     )
     return modules
@@ -272,6 +288,9 @@ def scientific_check_release_projection(
             ),
             "scientific_checks/dependence_recognition_adapter.py": (
                 DEPENDENCE_RECOGNITION_SCIENTIFIC_ADAPTER_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/multiple_testing_recognition_adapter.py": (
+                MULTIPLE_TESTING_RECOGNITION_SCIENTIFIC_ADAPTER_IMPLEMENTATION_DIGEST
             ),
             "scientific_checks/founder_orientation_adapter.py": (
                 FOUNDER_ORIENTATION_ADAPTER_IMPLEMENTATION_DIGEST
@@ -418,6 +437,8 @@ def _module(profile: _ReportProfile) -> ScientificCheckModule:
         return _copy_dosage_module(check, profile)
     if profile.check_id == DEPENDENCE_RECOGNITION_CHECK_ID:
         return _dependence_recognition_module(check, profile)
+    if profile.check_id == MULTIPLE_TESTING_RECOGNITION_CHECK_ID:
+        return _multiple_testing_recognition_module(check, profile)
     adapter_id = f"adapter:{profile.check_id.removeprefix('check:')}:selected-report-v1"
     adapter_manifest = AdapterManifest(
         adapter_id=adapter_id,
@@ -695,6 +716,53 @@ def _dependence_recognition_module(
         one_row_operand=one_row_operand,
         multiple_rows_operand=multiple_rows_operand,
         role_bindings=DEPENDENCE_RECOGNITION_ROLE_BINDINGS,
+    )
+    return ScientificCheckModule(
+        manifest=check,
+        declared_manifest_digest=check.manifest_digest,
+        adapter_manifests=(adapter_manifest,),
+        adapters=(adapter,),
+    )
+
+
+def _multiple_testing_recognition_module(
+    check: CheckManifest, profile: _ReportProfile
+) -> ScientificCheckModule:
+    """Build the single-adapter Stage 5 multiple-testing evaluation module."""
+
+    operands = {candidate.candidate_id: candidate.operand for candidate in profile.candidates}
+    complete_family_operand = operands[MULTIPLE_TESTING_RECOGNITION_CANDIDATE_ID]
+    strict_subset_operand = CanonicalOperand.scalar(STRICT_SUBSET_CORRECTION)
+    adapter_manifest = AdapterManifest(
+        adapter_id=MULTIPLE_TESTING_RECOGNITION_ADAPTER_ID,
+        adapter_version=MULTIPLE_TESTING_RECOGNITION_ADAPTER_VERSION,
+        implementation_digest=MULTIPLE_TESTING_RECOGNITION_SCIENTIFIC_ADAPTER_IMPLEMENTATION_DIGEST,
+        recognition_grammar_digest=multiple_testing_recognition_grammar_digest(),
+        parser_id="parser:python-ast-tokenize",
+        parser_version="0.15.1",
+        source_language="python",
+        evidence_plane="static_source",
+        semantic_roles=profile.semantic_roles,
+        applicability_profile="bounded-multiple-testing-semantic-certificate-v1",
+        counterevidence_profiles=MULTIPLE_TESTING_RECOGNITION_COUNTEREVIDENCE,
+        known_gaps=(
+            "loop-built-test-battery-unrecognized",
+            "cross-module-correction-unverified",
+            "hand-typed-correction-family-unbound",
+            "family-definition-unauthorized",
+            "per-group-correction-unrecognized",
+            "value-predicate-correction-unsupported",
+            "repository-bh-runtime-type-binding-unverified",
+            "single-column-key-tuple-form-unsupported",
+            "static source relationships do not establish execution or scientific correctness",
+        ),
+    )
+    adapter = MultipleTestingRecognitionScientificAdapter(
+        check_manifest=check,
+        adapter_manifest=adapter_manifest,
+        complete_family_operand=complete_family_operand,
+        strict_subset_operand=strict_subset_operand,
+        role_bindings=MULTIPLE_TESTING_RECOGNITION_ROLE_BINDINGS,
     )
     return ScientificCheckModule(
         manifest=check,
@@ -2450,6 +2518,44 @@ def _dependence_recognition_profile() -> _ReportProfile:
             "analysis",
             "file_record",
             "human_method_authorization",
+            "procedure",
+            "repository_snapshot",
+            "result",
+        ),
+    )
+
+
+def _multiple_testing_recognition_profile() -> _ReportProfile:
+    authority_basis = (
+        "Scientist-supplied family authority for this exact battery construct, ordered row "
+        "domain, key columns, frozen family input, analysis, and correction procedure; the "
+        "check does not infer the test family from values or column names."
+    )
+    return _ReportProfile(
+        check_id=MULTIPLE_TESTING_RECOGNITION_CHECK_ID,
+        check_version=MULTIPLE_TESTING_RECOGNITION_CHECK_VERSION,
+        adapter_version=MULTIPLE_TESTING_RECOGNITION_ADAPTER_VERSION,
+        dimension="selection_process",
+        candidates=(
+            _candidate(
+                MULTIPLE_TESTING_RECOGNITION_CANDIDATE_ID,
+                "Correct the complete performed test battery",
+                COMPLETE_FAMILY_CORRECTION,
+                authority_basis,
+            ),
+        ),
+        semantic_roles=MULTIPLE_TESTING_RECOGNITION_SEMANTIC_ROLES,
+        role_bindings=MULTIPLE_TESTING_RECOGNITION_ROLE_BINDINGS,
+        rules=(),
+        triggers=(),
+        question_wording=(
+            "Which correction-family entry rule relative to the authorized performed test "
+            "battery governs this review?"
+        ),
+        extra_record_types=(
+            "analysis",
+            "family_authorization",
+            "file_record",
             "procedure",
             "repository_snapshot",
             "result",

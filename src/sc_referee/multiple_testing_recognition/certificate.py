@@ -57,8 +57,12 @@ from sc_referee.multiple_testing_recognition.ir import (
 )
 
 _LOWER_HEX = frozenset("0123456789abcdef")
-_PARSER_ID = "python-ast"
-_PARSER_VERSION = "3.11"
+_PARSER_IDENTITIES = frozenset(
+    {
+        ("python-ast", "3.11"),
+        ("parser:python-ast-tokenize", "0.15.1"),
+    }
+)
 _DIALECT = "excel"
 _NORMALIZATIONS = {
     "splitlines": "splitlines_rejoined_utf8",
@@ -418,8 +422,7 @@ def _closed_source(
         or not _relative_path(certificate.source_path)
         or not _sha256(certificate.source_digest)
         or sha256_digest(frozen_source_bytes) != certificate.source_digest
-        or certificate.parser_id != _PARSER_ID
-        or certificate.parser_version != _PARSER_VERSION
+        or (certificate.parser_id, certificate.parser_version) not in _PARSER_IDENTITIES
         or not _sha256(certificate.dependency_closure_digest)
         or not _sha256(certificate.proposed_case_digest)
         or certificate.proposed_case_digest

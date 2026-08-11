@@ -111,6 +111,8 @@ def _context(
     *,
     authority: bool = True,
     data: bytes = _DATA,
+    parser_id: str = "python-ast",
+    parser_version: str = "3.11",
 ) -> FrozenInspectionContext:
     surface_ref = RecordRef("publication_surface", "surface:primary")
     artifact_ref = RecordRef("artifact", "artifact:report")
@@ -132,7 +134,7 @@ def _context(
     requirements_digest = sha256_digest(requirements)
     source_bytes = source.encode()
     parser_payload = canonical_json(
-        {"parser_id": "python-ast", "parser_version": "3.11", "state": "parsed"}
+        {"parser_id": parser_id, "parser_version": parser_version, "state": "parsed"}
     ).encode()
 
     records: list[tuple[RecordRef, dict[str, object]]] = [
@@ -330,7 +332,7 @@ def _assert_not_candidate(payload: dict[str, object]) -> None:
 
 def _assert_report_only_without_finding_fields(payload: dict[str, object]) -> None:
     assert payload["delivery_plane"] == "unregistered_shadow_report_only"
-    assert payload["output_ceiling"] == "report_only"
+    assert payload["output_ceiling"] == "evaluation_candidate"
     forbidden = {"finding_id", "finding_type", "severity", "remediation"}
     assert not forbidden & set(payload)
     assert not forbidden & set(_body(payload))
@@ -359,6 +361,19 @@ def test_subset_correction_emits_report_only_shadow_candidate(
     assert body["report_only"] is True
     assert body["evidence_declarations"]
     _assert_report_only_without_finding_fields(payload)
+
+
+def test_registered_capture_parser_identity_reaches_the_kernel() -> None:
+    payload = MultipleTestingRecognitionShadowAdapter().inspect(
+        _context(
+            _source(correction_input="pvals[:2]"),
+            parser_id="parser:python-ast-tokenize",
+            parser_version="0.15.1",
+        )
+    )
+    assert payload["payload_type"] == "shadow_candidate"
+    assert payload["outcome"] == "evaluation_candidate"
+    assert _body(payload)["evidence_declarations"]
 
 
 def test_regression_r1_h1_never_read_pvalue_values_cannot_control_a_finding(
