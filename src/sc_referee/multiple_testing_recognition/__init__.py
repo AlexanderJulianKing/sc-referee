@@ -1,5 +1,12 @@
 """Public types for the report-only multiple-testing semantic recognizer."""
 
+from sc_referee.multiple_testing_recognition.adapter import (
+    MULTIPLE_TESTING_RECOGNITION_ADAPTER_IMPLEMENTATION_DIGEST,
+    MULTIPLE_TESTING_RECOGNITION_DEPENDENCY_CLOSURE_DIGEST,
+    MULTIPLE_TESTING_RECOGNITION_DEPENDENCY_FILES,
+    MultipleTestingRecognitionShadowAdapter,
+    multiple_testing_recognition_dependency_closure,
+)
 from sc_referee.multiple_testing_recognition.certificate import (
     family_hypothesis_token,
     family_observation_token,
@@ -37,6 +44,9 @@ from sc_referee.multiple_testing_recognition.python_analyzer import (
 )
 
 __all__ = [
+    "MULTIPLE_TESTING_RECOGNITION_ADAPTER_IMPLEMENTATION_DIGEST",
+    "MULTIPLE_TESTING_RECOGNITION_DEPENDENCY_CLOSURE_DIGEST",
+    "MULTIPLE_TESTING_RECOGNITION_DEPENDENCY_FILES",
     "CorrectionCall",
     "DischargedMultipleTestingAnalysis",
     "EvidenceDeclaration",
@@ -46,6 +56,7 @@ __all__ = [
     "FullFamilyProjectionObligation",
     "MultipleTestingCaseBinding",
     "MultipleTestingCertificate",
+    "MultipleTestingRecognitionShadowAdapter",
     "PValueFamilyFact",
     "PythonMultipleTestingAnalysis",
     "ReportFamilyBinding",
@@ -58,6 +69,7 @@ __all__ = [
     "family_observation_token",
     "family_pvalue_token",
     "multiple_testing_case_digest",
+    "multiple_testing_recognition_dependency_closure",
     "multiple_testing_replay_digest",
     "prove_pvalue_family",
     "pvalue_family_row_domain",

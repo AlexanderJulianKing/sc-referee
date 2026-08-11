@@ -1,6 +1,6 @@
 # Experiment 0059: Multiple-testing semantic v1 shadow recognizer
 
-- **Status:** Stage 3 static proposing analyzer and controller discharge
+- **Status:** Stage 4 final shadow build; unregistered report-only adapter
 - **Date:** 2026-08-11
 - **Authority:** Maintainer blanket approval recorded for the four-stage shadow build
 - **Related decisions:** Experiment 0058 and the multiple-testing recon/design memoranda dated
@@ -216,3 +216,39 @@ recomputed from the trusted ordered fact. Other predicates, aliases, masks, nega
 steps, empty selections, multiple batteries/corrections, helpers, mutation, rebinding, or control
 flow abstain. Absence of a same-module correction remains outside scope and is reported as
 `cross-module-correction-unverified`; it never supports an absence finding.
+
+## 2026-08-11 Stage 4 shadow-adapter amendment
+
+Stage 4 completes only the unregistered package-local shadow build. The
+`MultipleTestingRecognitionShadowAdapter` accepts one `FrozenInspectionContext` and orchestrates
+the untrusted analyzer, controller-side digest-bound family proof and trusted family-authority
+lookup, and the certificate kernel. It never executes project-authored code and has no
+scientific-check registration, detector registration, qualification record, production Finding
+route, or execution authority.
+
+The adapter projects exactly four report-only payload classes. A verified
+`correction_subset` conclusion matching the controller's `evaluation_candidate` outcome may
+produce a shadow candidate. A verified `complete_family_correction` conclusion matching the
+controller's `covered_negative` outcome may produce a coverage note. An unresolved family
+authority produces a material question naming analyzer-discovered candidate battery construct
+identities and family-key columns without ranking or selection. Every unsupported,
+not-applicable, mismatched, or exceptional path produces a named non-accusatory abstention.
+Candidate and coverage projections require an accepted certificate; questions and unsupported
+routes do not. The verified certificate and discharged certificate must both bind the analyzer's
+exact source path, source digest, and proposed case digest. A proposal/discharge mismatch or a
+conclusion/outcome mismatch always abstains.
+
+Every adapter boundary catches `BaseException`, including analyzer, prover/kernel discharge, and
+payload projection failures, and converts it to a named abstention. This broad catch is confined
+to the shadow `inspect` boundary and is an epistemic fail-closed rule, not a runtime-recovery or
+execution privilege. Payload wording is limited to supported-normal-path static relationships;
+it may not claim historical execution, numerical impact, bias direction, invalidity, or a
+required repair.
+
+The implementation identity is the deterministic SHA-256 closure over exactly
+`__init__.py`, `adapter.py`, `certificate.py`, `ir.py`, `pvalue_domain.py`, and
+`python_analyzer.py` in the multiple-testing-recognition package plus this Experiment 0059
+record. It excludes dependence/founder files, production integrations, registries, and frozen
+lanes. Identical frozen inputs must produce byte-identical canonical payloads, including this
+closure digest. Any evaluation-only or production registration remains a later explicit
+maintainer decision.

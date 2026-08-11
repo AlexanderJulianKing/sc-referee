@@ -105,6 +105,7 @@ class PythonMultipleTestingAnalysis:
     state: AnalysisState
     outcome: RecognitionOutcome
     certificate: MultipleTestingCertificate | None
+    candidate_battery_ids: tuple[str, ...]
     candidate_family_key_columns: tuple[str, ...]
     unresolved_dimensions: tuple[str, ...]
     unsupported_constructs: tuple[str, ...]
@@ -122,6 +123,7 @@ class DischargedMultipleTestingAnalysis:
     trusted_family_facts: tuple[PValueFamilyFact, ...]
     trusted_family_authorizations: tuple[FamilyAuthorization, ...]
     verified_certificate: VerifiedMultipleTestingCertificate | None
+    failure_class: str | None
     basis: str
 
 
@@ -275,6 +277,7 @@ def analyze_multiple_testing_python(
     if malformed_authority or len(matching_authorities) != 1 or len(authorities) != 1:
         return _without_certificate(
             "question",
+            candidate_batteries=(battery_id,),
             candidates=key_columns,
             unresolved=(
                 "family-definition-unauthorized",
@@ -286,6 +289,7 @@ def analyze_multiple_testing_python(
     if authority.family_member_rule != "all_rows":
         return _without_certificate(
             "question",
+            candidate_batteries=(battery_id,),
             candidates=key_columns,
             unresolved=("family-definition-unauthorized",),
             basis="The authority did not select the closed all-rows family rule.",
@@ -345,6 +349,7 @@ def analyze_multiple_testing_python(
         state="proposal",
         outcome="not_applicable",
         certificate=certificate,
+        candidate_battery_ids=(battery_id,),
         candidate_family_key_columns=key_columns,
         unresolved_dimensions=(),
         unsupported_constructs=(),
@@ -367,6 +372,7 @@ def discharge_multiple_testing_proposal(
             trusted_family_facts=(),
             trusted_family_authorizations=(),
             verified_certificate=None,
+            failure_class=None,
             basis=analysis.basis,
         )
     certificate = analysis.certificate
@@ -445,6 +451,7 @@ def discharge_multiple_testing_proposal(
         trusted_family_facts=trusted_facts,
         trusted_family_authorizations=authorities,
         verified_certificate=verified,
+        failure_class=None,
         basis="Trusted family evidence and the certificate kernel closed the static outcome.",
     )
 
@@ -1408,6 +1415,7 @@ def _failed_discharge(
         trusted_family_facts=(),
         trusted_family_authorizations=(),
         verified_certificate=None,
+        failure_class=construct,
         basis=f"Controller discharge abstained: {construct}.",
     )
 
@@ -1415,6 +1423,7 @@ def _failed_discharge(
 def _without_certificate(
     state: AnalysisState,
     *,
+    candidate_batteries: tuple[str, ...] = (),
     candidates: tuple[str, ...] = (),
     unresolved: tuple[str, ...] = (),
     unsupported: tuple[str, ...] = (),
@@ -1426,6 +1435,7 @@ def _without_certificate(
         state=state,
         outcome=outcome,
         certificate=None,
+        candidate_battery_ids=tuple(dict.fromkeys(candidate_batteries)),
         candidate_family_key_columns=candidates,
         unresolved_dimensions=tuple(dict.fromkeys(unresolved)),
         unsupported_constructs=tuple(dict.fromkeys(unsupported)),
