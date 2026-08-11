@@ -1,0 +1,288 @@
+You are one independent blind scientific reviewer for opaque analysis
+workspaces. For each case you see exactly four files: the governing task, the staged input
+data, the workflow source, and the produced report. Determine independently for each case
+whether the in-scope issue class issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure is demonstrably present in the selected report,
+using only the visible files. Attempt to falsify your own verdict and report that attempt in
+the required fields. Do not guess unstated intentions. Judge only whether this exact issue class
+is demonstrated in the selected report. Other methodological concerns, however serious, are
+outside this review and must not be recorded as this issue class. Raise unresolved material
+questions only when a genuinely blocking ambiguity remains.
+
+Reviewer participant identity: actor:dependence-heldout-reviewer-fable-14
+
+=== workflow 1: case:6f1702f1e1ff3855d34f ===
+--- file task.md ---
+Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items. `k1` identifies a first-collection source item measured by column `a`; `k2` identifies a second-collection source item measured by column `b`. The two collections are disjoint. `tag` is an opaque annotation. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the `k1` item and the `k2` item in that row.
+
+--- file inputs/data.csv ---
+k1,k2,tag,a,b
+ha01,hb13,ht01,401.0,402.0
+ha02,hb14,ht02,401.5,402.25
+ha03,hb15,ht03,402.0,404.0
+ha04,hb16,ht04,402.5,404.25
+ha05,hb17,ht05,403.0,403.0
+ha06,hb18,ht06,403.5,403.25
+ha07,hb19,ht07,404.0,405.0
+ha08,hb20,ht08,404.5,405.25
+ha09,hb21,ht09,405.0,407.0
+ha10,hb22,ht10,405.5,407.25
+ha11,hb23,ht11,406.0,406.0
+ha12,hb24,ht12,406.5,406.25
+ha13,hb01,ht13,407.0,409.0
+ha14,hb02,ht14,407.5,409.25
+ha15,hb03,ht15,408.0,408.0
+ha16,hb04,ht16,408.5,408.25
+ha17,hb05,ht17,409.0,411.0
+ha18,hb06,ht18,409.5,411.25
+ha19,hb07,ht19,410.0,410.0
+ha20,hb08,ht20,410.5,410.25
+ha21,hb09,ht21,411.0,413.0
+ha22,hb10,ht22,411.5,413.25
+ha23,hb11,ht23,412.0,412.0
+ha24,hb12,ht24,412.5,412.25
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+import scipy.stats as st
+rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8").splitlines()))
+staged = rows
+left = [float(row["a"]) for row in staged]
+right = [float(row["b"]) for row in staged]
+result = st.ttest_ind(left, right)
+Path("results/report.md").write_text(f"[selected-result] {result}\n", encoding="utf-8")
+
+--- file results/report.md ---
+[selected-result] TtestResult(statistic=np.float64(-0.8581613266497022), pvalue=np.float64(0.3952529117073811), df=np.float64(46.0))
+
+
+=== workflow 2: case:75bb533785f478cbdd8d ===
+--- file task.md ---
+Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items measured by columns `a` and `b`. Treat `k1` and `k2` as opaque codes; `tag` is an opaque annotation. This task does not establish whether either code identifies a source item within either collection. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the items represented in that row.
+
+--- file inputs/data.csv ---
+k1,k2,tag,a,b
+ma01,mb07,mt01,501.0,502.0
+ma01,mb11,mt02,502.0,504.0
+ma02,mb06,mt03,503.0,503.0
+ma02,mb09,mt04,504.0,505.0
+ma03,mb01,mt05,505.0,507.0
+ma03,mb12,mt06,506.0,506.0
+ma04,mb05,mt07,507.0,509.0
+ma04,mb03,mt08,508.0,508.0
+ma05,mb10,mt09,509.0,511.0
+ma05,mb04,mt10,510.0,510.0
+ma06,mb08,mt11,511.0,513.0
+ma06,mb02,mt12,512.0,512.0
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+import scipy.stats as st
+rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8").splitlines()))
+staged = rows
+left = [float(row["a"]) for row in staged]
+right = [float(row["b"]) for row in staged]
+result = st.ttest_ind(left, right)
+Path("results/report.md").write_text(f"[selected-result] {result}\n", encoding="utf-8")
+
+--- file results/report.md ---
+[selected-result] TtestResult(statistic=np.float64(-0.6793662204867575), pvalue=np.float64(0.5039915691282064), df=np.float64(22.0))
+
+
+=== workflow 3: case:8a68d6ae147ce49e2a11 ===
+--- file task.md ---
+Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items. `k1` identifies a first-collection source item measured by column `a`; `k2` identifies a second-collection source item measured by column `b`. The two collections are disjoint. `tag` is an opaque annotation. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the `k1` item and the `k2` item in that row.
+
+--- file inputs/data.csv ---
+k1,k2,tag,a,b
+ea01,eb07,et01,101.0,102.0
+ea01,eb08,et02,101.5,102.25
+ea02,eb09,et03,102.0,104.0
+ea02,eb10,et04,102.5,104.25
+ea03,eb11,et05,103.0,103.0
+ea03,eb12,et06,103.5,103.25
+ea04,eb13,et07,104.0,105.0
+ea04,eb14,et08,104.5,105.25
+ea05,eb15,et09,105.0,107.0
+ea05,eb16,et10,105.5,107.25
+ea06,eb17,et11,106.0,106.0
+ea06,eb18,et12,106.5,106.25
+ea07,eb19,et13,107.0,109.0
+ea07,eb20,et14,107.5,109.25
+ea08,eb21,et15,108.0,108.0
+ea08,eb22,et16,108.5,108.25
+ea09,eb23,et17,109.0,111.0
+ea09,eb24,et18,109.5,111.25
+ea10,eb01,et19,110.0,110.0
+ea10,eb02,et20,110.5,110.25
+ea11,eb03,et21,111.0,113.0
+ea11,eb04,et22,111.5,113.25
+ea12,eb05,et23,112.0,112.0
+ea12,eb06,et24,112.5,112.25
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+import scipy.stats as st
+rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8").splitlines()))
+staged = rows
+left = [float(row["a"]) for row in staged]
+right = [float(row["b"]) for row in staged]
+result = st.ttest_ind(left, right)
+Path("results/report.md").write_text(f"[selected-result] {result}\n", encoding="utf-8")
+
+--- file results/report.md ---
+[selected-result] TtestResult(statistic=np.float64(-0.8581613266497022), pvalue=np.float64(0.3952529117073811), df=np.float64(46.0))
+
+
+=== workflow 4: case:a516621a9cc0c4f6854d ===
+--- file task.md ---
+Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items. `k1` identifies a first-collection source item measured by column `a`; `k2` identifies a second-collection source item measured by column `b`. The two collections are disjoint. `tag` is an opaque annotation. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the `k1` item and the `k2` item in that row.
+
+--- file inputs/data.csv ---
+k1,k2,tag,a,b
+ca01,cb07,ct01,201.0,202.0
+ca02,cb09,ct02,202.0,204.0
+ca03,cb11,ct03,203.0,203.0
+ca04,cb13,ct04,204.0,205.0
+ca05,cb15,ct05,205.0,207.0
+ca06,cb17,ct06,206.0,206.0
+ca07,cb19,ct07,207.0,209.0
+ca08,cb21,ct08,208.0,208.0
+ca09,cb23,ct09,209.0,211.0
+ca10,cb01,ct10,210.0,210.0
+ca11,cb03,ct11,211.0,213.0
+ca12,cb05,ct12,212.0,212.0
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+import scipy.stats as st
+rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8").splitlines()))
+staged = rows
+left = [float(row["a"]) for row in staged]
+right = [float(row["b"]) for row in staged]
+result = st.ttest_ind(left, right)
+Path("results/report.md").write_text(f"[selected-result] {result}\n", encoding="utf-8")
+
+--- file results/report.md ---
+[selected-result] TtestResult(statistic=np.float64(-0.6793662204867575), pvalue=np.float64(0.5039915691282064), df=np.float64(22.0))
+
+
+=== workflow 5: case:c37ea6f502dc593de820 ===
+--- file task.md ---
+Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items. `k1` identifies a first-collection source item measured by column `a`; `k2` identifies a second-collection source item measured by column `b`. The two collections are disjoint. `tag` is an opaque annotation. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the `k1` item and the `k2` item in that row.
+
+--- file inputs/data.csv ---
+k1,k2,tag,a,b
+r01,z09,q01,701.0,699.125
+r01,z10,q02,701.25,699.625
+r01,z11,q03,701.75,700.125
+r02,z12,q04,702.0,700.625
+r02,z13,q05,702.25,701.125
+r02,z14,q06,702.75,701.625
+r03,z15,q07,703.0,702.125
+r03,z16,q08,703.25,702.625
+r03,z17,q09,703.75,703.125
+r04,z18,q10,704.0,703.625
+r04,z19,q11,704.25,704.125
+r04,z20,q12,704.75,704.625
+r05,z21,q13,705.0,705.125
+r05,z22,q14,705.25,705.625
+r05,z23,q15,705.75,706.125
+r06,z24,q16,706.0,706.625
+r06,z08,q17,706.25,707.125
+r06,z02,q18,706.75,707.625
+r07,z03,q19,707.0,708.125
+r07,z04,q20,707.25,708.625
+r07,z05,q21,707.75,709.125
+r08,z06,q22,708.0,709.625
+r08,z07,q23,708.25,710.125
+r08,z01,q24,708.75,710.625
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+import scipy.stats as st
+rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8").splitlines()))
+staged = rows
+left = [float(row["a"]) for row in staged]
+right = [float(row["b"]) for row in staged]
+result = st.mannwhitneyu(left, right)
+Path("results/report.md").write_text(f"[selected-result] {result}\n", encoding="utf-8")
+
+--- file results/report.md ---
+[selected-result] MannwhitneyuResult(statistic=np.float64(288.0), pvalue=np.float64(1.0))
+
+
+=== workflow 6: case:c41c53bc6fedd68b0ccc ===
+--- file task.md ---
+Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items. `k1` identifies a first-collection source item measured by column `a`; `k2` identifies a second-collection source item measured by column `b`. The two collections are disjoint. `tag` is an opaque annotation. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the `k1` item and the `k2` item in that row.
+
+--- file inputs/data.csv ---
+k1,k2,tag,a,b
+pa01,pb05,pt01,601.0,603.0
+pa02,pb07,pt02,602.0,605.0
+pa03,pb09,pt03,603.0,604.0
+pa04,pb11,pt04,604.0,606.0
+pa05,pb13,pt05,605.0,608.0
+pa06,pb15,pt06,606.0,607.0
+pa07,pb17,pt07,607.0,610.0
+pa08,pb19,pt08,608.0,609.0
+pa09,pb21,pt09,609.0,612.0
+pa10,pb23,pt10,610.0,611.0
+pa11,pb01,pt11,611.0,614.0
+pa12,pb03,pt12,612.0,613.0
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+import scipy.stats as st
+rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8").splitlines()))
+staged = rows
+left = [float(row["a"]) for row in staged]
+right = [float(row["b"]) for row in staged]
+result = st.ttest_rel(left, right)
+Path("results/report.md").write_text(f"[selected-result] {result}\n", encoding="utf-8")
+
+--- file results/report.md ---
+[selected-result] TtestResult(statistic=np.float64(-7.26636084983398), pvalue=np.float64(1.610229916816512e-05), df=np.int64(11))
+
+
+=== workflow 7: case:e9e6bf9e80c9287dabe5 ===
+--- file task.md ---
+Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items. `k1` identifies a first-collection source item measured by column `a`; `k2` identifies a second-collection source item measured by column `b`. The two collections are disjoint. `tag` is an opaque annotation. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the `k1` item and the `k2` item in that row.
+
+--- file inputs/data.csv ---
+k1,k2,tag,a,b
+va01,vb04,vt01,301.0,303.0
+va02,vb06,vt02,302.0,305.0
+va03,vb08,vt03,303.0,304.0
+va04,vb10,vt04,304.0,306.0
+va05,vb12,vt05,305.0,308.0
+va06,vb14,vt06,306.0,307.0
+va07,vb16,vt07,307.0,310.0
+va08,vb18,vt08,308.0,309.0
+va09,vb20,vt09,309.0,312.0
+va10,vb22,vt10,310.0,311.0
+va11,vb24,vt11,311.0,314.0
+va12,vb02,vt12,312.0,313.0
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+import scipy.stats as st
+rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8").splitlines()))
+staged = rows
+left = [float(row["a"]) for row in staged]
+right = [float(row["b"]) for row in staged]
+result = st.mannwhitneyu(left, right)
+Path("results/report.md").write_text(f"[selected-result] {result}\n", encoding="utf-8")
+
+--- file results/report.md ---
+[selected-result] MannwhitneyuResult(statistic=np.float64(50.0), pvalue=np.float64(0.21349573711632197))
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-heldout-reviewer-fable-14", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:6f1702f1e1ff3855d34f", "case:75bb533785f478cbdd8d", "case:8a68d6ae147ce49e2a11", "case:a516621a9cc0c4f6854d", "case:c37ea6f502dc593de820", "case:c41c53bc6fedd68b0ccc", "case:e9e6bf9e80c9287dabe5"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 7, "minItems": 7, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}
