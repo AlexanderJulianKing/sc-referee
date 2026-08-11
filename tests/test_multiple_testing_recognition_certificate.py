@@ -44,9 +44,11 @@ _SOURCE_PATH = "workflow/analysis.py"
 _DATA_PATH = "results/tests.csv"
 _DATA_DIGEST = "sha256:" + "2" * 64
 _CLOSURE_DIGEST = "sha256:" + "3" * 64
-_DEFAULT_SOURCE = """import scipy.stats
+_DEFAULT_SOURCE = """import csv
+import scipy.stats
 from pathlib import Path
 from sc_referee.calculation_checks.bh import benjamini_hochberg
+rows = list(csv.DictReader(Path("results/tests.csv").open(encoding="utf-8", newline="")))
 genes = [row[\"gene\"] for row in rows]
 pvals = [scipy.stats.ttest_ind(x[g], y[g]).pvalue for g in genes]
 adjusted = benjamini_hochberg(pvals[:2])
@@ -158,6 +160,7 @@ def _fixture(
     source_bytes = source.encode("utf-8")
     source_digest = sha256_digest(source_bytes)
     tree = ast.parse(source, feature_version=(3, 11))
+    reader_assign = _target_assignment(tree, "rows")
     projection_assign = _target_assignment(tree, "genes")
     battery_assign = _target_assignment(tree, "pvals")
     correction_assign = _target_assignment(tree, "adjusted")
@@ -266,6 +269,7 @@ def _fixture(
         bases=REQUIRED_SCOPE_BASES,
         evidence_ids=("evidence:scope",),
     )
+    reader_token = _source_token("family-domain-reader", source_digest, reader_assign)
     projection_token = _source_token("full-family-projection", source_digest, projection_assign)
     correction_token = _source_token("correction-call", source_digest, correction_call)
     report_token = _source_token("reported-family-binding", source_digest, report_assign)
@@ -287,6 +291,7 @@ def _fixture(
         ),
         relevant_bindings=frozenset(
             {
+                reader_token,
                 projection_token,
                 battery_id,
                 element_token,
@@ -340,9 +345,12 @@ def _fixture(
         iterable_row_domain=domain_fact.row_domain,
         hypothesis_key_columns=domain_fact.hypothesis_key_columns,
         pvalue_column=domain_fact.pvalue_column,
+        reader_assignment_span=_span(reader_assign),
+        reader_evidence_ids=("evidence:reader",),
     )
     evidence = (
         EvidenceDeclaration(domain_fact.evidence_id, EvidencePoint(_DATA_PATH, 1, 4, 1, 20)),
+        EvidenceDeclaration("evidence:reader", obligation.reader_assignment_span),
         EvidenceDeclaration("evidence:projection-assignment", projection.assignment_span),
         EvidenceDeclaration("evidence:projection-listcomp", projection.listcomp_span),
         EvidenceDeclaration("evidence:projection-element", projection.element_span),
@@ -366,6 +374,7 @@ def _fixture(
     )
     all_constructs = frozenset(
         {
+            reader_token,
             projection_token,
             battery_id,
             element_token,
@@ -440,6 +449,24 @@ def test_accepting_certificate_discharges_m1_through_m11() -> None:
     assert Counter(verified.corrected_result_tokens) < Counter(verified.performed_result_tokens)
     assert len(set(verified.performed_result_tokens)) == 3
     assert verified.output_ceiling == "report_only"
+
+
+def test_certified_reader_binding_is_mandatory_at_the_kernel_boundary() -> None:
+    fixture = _fixture()
+    certificate = fixture.certificate
+    domain = replace(
+        certificate.family_domain_obligations[0],
+        reader_evidence_ids=(),
+    )
+    assert (
+        _verify(
+            _with_certificate(
+                fixture,
+                replace(certificate, family_domain_obligations=(domain,)),
+            )
+        )
+        is None
+    )
 
 
 @pytest.mark.parametrize("obligation", [f"M{index}" for index in range(1, 12)])

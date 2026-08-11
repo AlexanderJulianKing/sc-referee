@@ -47,6 +47,7 @@ LineModel = Literal["splitlines", "csv_newline"]
 ReaderForm = Literal["csv_dictreader_splitlines", "csv_dictreader_file"]
 MultipleTestingOutputCeiling = Literal["report_only"]
 MultipleTestingWordingCeiling = Literal["supported_normal_path_static_relationship_only"]
+MultipleTestingConclusion = Literal["correction_subset", "complete_family_correction"]
 FamilyScopeBasis = Literal[
     "bounded-ast-completeness",
     "trusted-family-domain",
@@ -138,6 +139,8 @@ class FamilyDomainObligation:
     iterable_row_domain: str
     hypothesis_key_columns: tuple[str, ...]
     pvalue_column: str
+    reader_assignment_span: EvidencePoint
+    reader_evidence_ids: tuple[str, ...]
 
 
 @dataclass(frozen=True, order=True)
@@ -308,10 +311,11 @@ class TestResultPosition:
 
 @dataclass(frozen=True)
 class VerifiedMultipleTestingCertificate:
-    """Kernel-authorized report-only proof of one strict correction-family subset."""
+    """Kernel-authorized report-only proof of one exact correction-family relation."""
 
     source_path: str
     source_digest: str
+    conclusion: MultipleTestingConclusion
     case_binding: MultipleTestingCaseBinding
     family_authorization: FamilyAuthorization
     family_fact: PValueFamilyFact
@@ -342,6 +346,7 @@ __all__ = [
     "MaterialInputBinding",
     "MultipleTestingCaseBinding",
     "MultipleTestingCertificate",
+    "MultipleTestingConclusion",
     "PValueFamilyFact",
     "ReaderForm",
     "RecordRef",

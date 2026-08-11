@@ -10,6 +10,7 @@ It never imports or executes project-authored code.
 from __future__ import annotations
 
 import ast
+import re
 import unicodedata
 from collections import Counter
 from dataclasses import asdict, dataclass
@@ -38,6 +39,7 @@ from sc_referee.multiple_testing_recognition.ir import (
     MaterialInputBinding,
     MultipleTestingCaseBinding,
     MultipleTestingCertificate,
+    MultipleTestingConclusion,
     PValueFamilyFact,
     RecordRef,
     ReportFamilyBinding,
@@ -61,7 +63,10 @@ _TEST_CALLABLES = frozenset(
         "scipy.stats.mannwhitneyu",
     }
 )
-_BH_CALLABLE = "sc_referee.calculation_checks.bh.benjamini_hochberg"
+_REPOSITORY_BH_CALLABLE = "sc_referee.calculation_checks.bh.benjamini_hochberg"
+_STATSMODELS_BH_CALLABLE = "statsmodels.stats.multitest.multipletests"
+_CORRECTION_CALLABLES = frozenset({_REPOSITORY_BH_CALLABLE, _STATSMODELS_BH_CALLABLE})
+_FIXED_POINT_DECIMAL = re.compile(r"[0-9]+(?:\.[0-9]+)?", flags=re.ASCII)
 _PROHIBITED_AST_TYPES = (
     ast.AsyncFor,
     ast.AsyncFunctionDef,
@@ -97,6 +102,7 @@ class _FactResolution:
 
 @dataclass(frozen=True)
 class _SourceReplay:
+    reader_token: str
     projection_token: str
     battery_construct_id: str
     element_call_template_token: str
@@ -116,7 +122,7 @@ def verify_multiple_testing_certificate(
     trusted_family_facts: tuple[PValueFamilyFact, ...] = (),
     trusted_family_authorizations: tuple[FamilyAuthorization, ...] = (),
 ) -> VerifiedMultipleTestingCertificate | None:
-    """Accept one closed supported-path subset proof or fail closed with ``None``."""
+    """Accept one closed subset/full-family proof or fail closed with ``None``."""
 
     source = _closed_source(certificate, frozen_source_bytes)
     if source is None or not _case_binding_is_closed(certificate.case_binding):
@@ -148,13 +154,17 @@ def verify_multiple_testing_certificate(
     performed = tuple(item.result_token for item in positions)
     corrected = tuple(performed[index] for index in replay.corrected_positions)
     reported = performed
-    if not (
+    is_subset = (
         0 < len(corrected) < len(performed)
         and Counter(corrected) <= Counter(performed)
         and Counter(corrected) != Counter(performed)
-        and Counter(reported) == Counter(performed)
-    ):
+    )
+    is_complete = bool(performed) and Counter(corrected) == Counter(performed)
+    if not ((is_subset or is_complete) and Counter(reported) == Counter(performed)):
         return None
+    conclusion: MultipleTestingConclusion = (
+        "correction_subset" if is_subset else "complete_family_correction"
+    )
     adjusted = _trusted_bh_recomputation(
         certificate.correction_calls[0],
         fact_resolution.decimals,
@@ -178,6 +188,7 @@ def verify_multiple_testing_certificate(
     return VerifiedMultipleTestingCertificate(
         source_path=certificate.source_path,
         source_digest=certificate.source_digest,
+        conclusion=conclusion,
         case_binding=certificate.case_binding,
         family_authorization=authority,
         family_fact=fact_resolution.fact,
@@ -470,6 +481,8 @@ def _domain_obligation_is_closed(obligation: FamilyDomainObligation) -> bool:
         and _nonempty_unique_strings(obligation.hypothesis_key_columns, trimmed=False)
         and bool(obligation.pvalue_column)
         and obligation.pvalue_column not in obligation.hypothesis_key_columns
+        and _evidence_point_is_closed(obligation.reader_assignment_span)
+        and _nonempty_unique_strings(obligation.reader_evidence_ids)
     )
 
 
@@ -605,7 +618,7 @@ def _replay_bounded_source(
     ):
         return None
     list_comprehensions = [node for node in nodes if isinstance(node, ast.ListComp)]
-    if len(list_comprehensions) != 2:
+    if len(list_comprehensions) not in {2, 3}:
         return None
 
     projection = certificate.full_family_projections[0]
@@ -645,6 +658,21 @@ def _replay_bounded_source(
         id(report_assign),
         id(sink_node),
     }
+    domain = certificate.family_domain_obligations[0]
+    reader_node = _unique_node_at(tree, ast.Assign, domain.reader_assignment_span)
+    if not isinstance(reader_node, ast.Assign):
+        return None
+    reader_assign = reader_node
+    reader_token = _reader_shape(
+        reader_assign,
+        domain,
+        projection,
+        fact,
+        certificate.source_digest,
+    )
+    if reader_token is None:
+        return None
+    allowed_statements.add(id(reader_assign))
     correction_parent = _assign_containing_call(tree, correction_call_node)
     if correction_parent is None:
         return None
@@ -655,7 +683,11 @@ def _replay_bounded_source(
         for statement in tree.body
     ):
         return None
-    if not _required_imports_are_exact(tree):
+    if not _required_imports_are_exact(
+        tree,
+        correction.resolved_callable,
+        reader_required=True,
+    ):
         return None
 
     projection_checked = _projection_shape(
@@ -690,7 +722,9 @@ def _replay_bounded_source(
         correction,
         battery,
         fact.row_count,
+        tuple(Decimal(value) for value in fact.raw_pvalue_lexemes),
         certificate.source_digest,
+        source,
     )
     if correction_checked is None:
         return None
@@ -709,13 +743,15 @@ def _replay_bounded_source(
     if report_checked is None:
         return None
     report_construct_token, sink_token = report_checked
-    if not _supported_statement_order(
+    ordered_statements = (
+        reader_assign,
         projection_assign,
         battery_assign,
         correction_parent,
         report_assign,
         sink_node,
-    ):
+    )
+    if not _supported_statement_order(*ordered_statements):
         return None
     relevant_names = {
         projection.projected_family_name,
@@ -728,7 +764,22 @@ def _replay_bounded_source(
         "benjamini_hochberg",
         "Path",
     }
-    if not _relevant_names_have_exact_bindings(tree, relevant_names, allowed_statements):
+    imported_names = {"scipy", "Path"}
+    correction_local_name = (
+        "benjamini_hochberg"
+        if correction.resolved_callable == _REPOSITORY_BH_CALLABLE
+        else "multipletests"
+    )
+    relevant_names.add(correction_local_name)
+    imported_names.add(correction_local_name)
+    relevant_names.add("csv")
+    imported_names.add("csv")
+    if not _relevant_names_have_exact_bindings(
+        tree,
+        relevant_names,
+        allowed_statements,
+        imported_names,
+    ):
         return None
 
     complete_calls = frozenset(
@@ -748,11 +799,13 @@ def _replay_bounded_source(
             correction_construct_token,
             report_construct_token,
             sink_token,
+            reader_token,
         }
     )
     if certificate.all_syntactic_construct_tokens != derived_constructs:
         return None
     return _SourceReplay(
+        reader_token=reader_token,
         projection_token=projection_token,
         battery_construct_id=derived_battery_id,
         element_call_template_token=element_call_template_token,
@@ -802,6 +855,64 @@ def _projection_shape(
         _source_token("full-family-projection", source_digest, obligation.assignment_span),
         row_name,
     )
+
+
+def _reader_shape(
+    assignment: ast.Assign,
+    obligation: FamilyDomainObligation,
+    projection: FullFamilyProjectionObligation,
+    fact: PValueFamilyFact,
+    source_digest: str,
+) -> str | None:
+    if (
+        _single_name_target(assignment) != projection.source_rows_name
+        or _span(assignment, obligation.reader_assignment_span.path)
+        != obligation.reader_assignment_span
+        or obligation.input_binding.path != fact.path
+        or obligation.input_binding.content_digest != fact.content_digest
+    ):
+        return None
+    value = assignment.value
+    if not (
+        isinstance(value, ast.Call)
+        and _dotted_name(value.func) == "list"
+        and len(value.args) == 1
+        and not value.keywords
+        and isinstance(value.args[0], ast.Call)
+        and _dotted_name(value.args[0].func) == "csv.DictReader"
+        and len(value.args[0].args) == 1
+        and not value.args[0].keywords
+    ):
+        return None
+    source = value.args[0].args[0]
+    if obligation.line_model == "splitlines":
+        if not (
+            isinstance(source, ast.Call)
+            and isinstance(source.func, ast.Attribute)
+            and source.func.attr == "splitlines"
+            and not source.args
+            and not source.keywords
+            and isinstance(source.func.value, ast.Call)
+            and isinstance(source.func.value.func, ast.Attribute)
+            and source.func.value.func.attr == "read_text"
+            and not source.func.value.args
+            and _exact_utf8_keyword(source.func.value.keywords)
+            and _literal_path_call(source.func.value.func.value, fact.path)
+        ):
+            return None
+    elif obligation.line_model == "csv_newline":
+        if not (
+            isinstance(source, ast.Call)
+            and isinstance(source.func, ast.Attribute)
+            and source.func.attr == "open"
+            and not source.args
+            and _exact_open_keywords(source.keywords)
+            and _literal_path_call(source.func.value, fact.path)
+        ):
+            return None
+    else:
+        return None
+    return _source_token("family-domain-reader", source_digest, obligation.reader_assignment_span)
 
 
 def _battery_shape(
@@ -881,30 +992,43 @@ def _correction_shape(
     obligation: CorrectionCall,
     battery: TestBatteryObligation,
     family_count: int,
+    family_values: tuple[Decimal, ...],
     source_digest: str,
+    source: str,
 ) -> tuple[str, tuple[int, ...]] | None:
     if (
         _single_name_target(assignment) != obligation.result_name
         or obligation.battery_construct_id != battery.battery_construct_id
         or obligation.iterable_row_domain != battery.iterable_row_domain
-        or obligation.resolved_callable != _BH_CALLABLE
+        or obligation.resolved_callable not in _CORRECTION_CALLABLES
         or not obligation.asserts_trusted_bh_recomputation
-        or _dotted_name(call.func) != "benjamini_hochberg"
+        or _dotted_name(call.func)
+        != (
+            "benjamini_hochberg"
+            if obligation.resolved_callable == _REPOSITORY_BH_CALLABLE
+            else "multipletests"
+        )
         or len(call.args) != 1
-        or call.keywords
-        or not isinstance(call.args[0], ast.Subscript)
-        or not isinstance(call.args[0].value, ast.Name)
-        or call.args[0].value.id != battery.battery_result_name
-        or not isinstance(call.args[0].slice, ast.Slice)
     ):
         return None
-    selected = call.args[0].slice
-    lower = _literal_nonnegative_bound(selected.lower)
-    upper = _literal_nonnegative_bound(selected.upper)
-    if lower is False or upper is False or selected.step is not None:
+    if obligation.resolved_callable == _REPOSITORY_BH_CALLABLE:
+        if call.keywords:
+            return None
+    elif not (
+        len(call.keywords) == 1
+        and call.keywords[0].arg == "method"
+        and isinstance(call.keywords[0].value, ast.Constant)
+        and call.keywords[0].value.value == "fdr_bh"
+    ):
         return None
-    positions = tuple(range(family_count)[slice(lower, upper, None)])
-    if not 0 < len(positions) < family_count:
+    positions = _correction_input_positions(
+        call.args[0],
+        battery.battery_result_name,
+        family_count,
+        family_values,
+        source,
+    )
+    if positions is None or not positions:
         return None
     return (
         _source_token("correction-call", source_digest, obligation.call_span),
@@ -1153,6 +1277,11 @@ def _evidence_is_closed(
     ):
         return False
     uses = [
+        *(
+            item
+            for record in certificate.family_domain_obligations
+            for item in record.reader_evidence_ids
+        ),
         *(item for record in certificate.full_family_projections for item in record.evidence_ids),
         *(item for record in certificate.test_batteries for item in record.evidence_ids),
         *(item for record in certificate.correction_calls for item in record.evidence_ids),
@@ -1182,11 +1311,17 @@ def _evidence_is_closed(
     if len(code_points) != len(set(code_points)):
         return False
     projection = certificate.full_family_projections[0]
+    domain = certificate.family_domain_obligations[0]
     battery = certificate.test_batteries[0]
     correction = certificate.correction_calls[0]
     report = certificate.report_bindings[0]
     return (
         _ids_cover_points(
+            domain.reader_evidence_ids,
+            (domain.reader_assignment_span,),
+            by_id,
+        )
+        and _ids_cover_points(
             projection.evidence_ids,
             (projection.assignment_span, projection.listcomp_span, projection.element_span),
             by_id,
@@ -1228,28 +1363,63 @@ def _projection_element_matches(
     )
 
 
-def _required_imports_are_exact(tree: ast.Module) -> bool:
+def _required_imports_are_exact(
+    tree: ast.Module,
+    correction_callable: str,
+    *,
+    reader_required: bool,
+) -> bool:
+    csv_count = 0
     scipy = 0
     path = 0
     bh = 0
+    multipletests = 0
     for statement in tree.body:
         if isinstance(statement, ast.Import):
-            scipy += sum(
-                alias.name == "scipy.stats" and alias.asname is None for alias in statement.names
-            )
+            for alias in statement.names:
+                if alias.name == "csv" and alias.asname is None:
+                    csv_count += 1
+                elif alias.name == "scipy.stats" and alias.asname is None:
+                    scipy += 1
+                else:
+                    return False
         elif isinstance(statement, ast.ImportFrom):
             if statement.level != 0:
                 return False
-            if statement.module == "pathlib":
-                path += sum(
-                    alias.name == "Path" and alias.asname is None for alias in statement.names
-                )
+            if statement.module == "pathlib" and len(statement.names) == 1:
+                alias = statement.names[0]
+                if alias.name != "Path" or alias.asname is not None:
+                    return False
+                path += 1
             elif statement.module == "sc_referee.calculation_checks.bh":
-                bh += sum(
-                    alias.name == "benjamini_hochberg" and alias.asname is None
-                    for alias in statement.names
-                )
-    return (scipy, path, bh) == (1, 1, 1)
+                if len(statement.names) != 1:
+                    return False
+                alias = statement.names[0]
+                if alias.name != "benjamini_hochberg" or alias.asname is not None:
+                    return False
+                bh += 1
+            elif statement.module == "statsmodels.stats.multitest":
+                if len(statement.names) != 1:
+                    return False
+                alias = statement.names[0]
+                if alias.name != "multipletests" or alias.asname is not None:
+                    return False
+                multipletests += 1
+            else:
+                return False
+    expected_correction = (1, 0) if correction_callable == _REPOSITORY_BH_CALLABLE else (0, 1)
+    return (
+        csv_count,
+        scipy,
+        path,
+        bh,
+        multipletests,
+    ) == (
+        1 if reader_required else 0,
+        1,
+        1,
+        *expected_correction,
+    )
 
 
 def _supported_statement_order(*statements: ast.stmt) -> bool:
@@ -1261,6 +1431,7 @@ def _relevant_names_have_exact_bindings(
     tree: ast.Module,
     names: set[str],
     allowed_statement_ids: set[int],
+    imported_names: set[str],
 ) -> bool:
     for statement in tree.body:
         if id(statement) in allowed_statement_ids or isinstance(
@@ -1272,10 +1443,104 @@ def _relevant_names_have_exact_bindings(
     assigned: Counter[str] = Counter()
     for statement in tree.body:
         assigned.update(_assigned_names(statement))
-    for name in names - {"scipy", "benjamini_hochberg", "Path"}:
+    for name in names - imported_names:
         if assigned[name] > 1:
             return False
     return True
+
+
+def _correction_input_positions(
+    node: ast.expr,
+    battery_name: str,
+    family_count: int,
+    family_values: tuple[Decimal, ...],
+    source: str,
+) -> tuple[int, ...] | None:
+    if isinstance(node, ast.Name) and node.id == battery_name:
+        return tuple(range(family_count))
+    if (
+        isinstance(node, ast.Subscript)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == battery_name
+        and isinstance(node.slice, ast.Slice)
+    ):
+        lower = _literal_nonnegative_bound(node.slice.lower)
+        upper = _literal_nonnegative_bound(node.slice.upper)
+        if lower is False or upper is False or node.slice.step is not None:
+            return None
+        positions = tuple(range(family_count)[slice(lower, upper, None)])
+        return positions if 0 < len(positions) < family_count else None
+    if not (
+        isinstance(node, ast.ListComp)
+        and isinstance(node.elt, ast.Name)
+        and len(node.generators) == 1
+        and not node.generators[0].is_async
+        and isinstance(node.generators[0].target, ast.Name)
+        and isinstance(node.generators[0].iter, ast.Name)
+        and node.generators[0].iter.id == battery_name
+        and len(node.generators[0].ifs) == 1
+    ):
+        return None
+    item_name = node.generators[0].target.id
+    if node.elt.id != item_name:
+        return None
+    predicate = node.generators[0].ifs[0]
+    if not (
+        isinstance(predicate, ast.Compare)
+        and isinstance(predicate.left, ast.Name)
+        and predicate.left.id == item_name
+        and len(predicate.ops) == 1
+        and isinstance(predicate.ops[0], ast.Lt)
+        and len(predicate.comparators) == 1
+    ):
+        return None
+    threshold = _fixed_decimal_source_literal(predicate.comparators[0], source)
+    if threshold is None:
+        return None
+    return tuple(index for index, value in enumerate(family_values) if value < threshold)
+
+
+def _fixed_decimal_source_literal(node: ast.expr, source: str) -> Decimal | None:
+    segment = ast.get_source_segment(source, node)
+    if segment is None or _FIXED_POINT_DECIMAL.fullmatch(segment) is None:
+        return None
+    try:
+        value = Decimal(segment)
+    except InvalidOperation:
+        return None
+    return value if value.is_finite() and 0 <= value <= 1 else None
+
+
+def _literal_path_call(node: ast.expr, path: str) -> bool:
+    return (
+        isinstance(node, ast.Call)
+        and _dotted_name(node.func) == "Path"
+        and len(node.args) == 1
+        and not node.keywords
+        and isinstance(node.args[0], ast.Constant)
+        and node.args[0].value == path
+    )
+
+
+def _exact_utf8_keyword(keywords: list[ast.keyword]) -> bool:
+    return (
+        len(keywords) == 1
+        and keywords[0].arg == "encoding"
+        and isinstance(keywords[0].value, ast.Constant)
+        and keywords[0].value.value == "utf-8"
+    )
+
+
+def _exact_open_keywords(keywords: list[ast.keyword]) -> bool:
+    values = {item.arg: item.value for item in keywords if item.arg is not None}
+    return (
+        len(values) == len(keywords) == 2
+        and set(values) == {"encoding", "newline"}
+        and isinstance(values["encoding"], ast.Constant)
+        and values["encoding"].value == "utf-8"
+        and isinstance(values["newline"], ast.Constant)
+        and values["newline"].value == ""
+    )
 
 
 def _assigned_names(statement: ast.stmt) -> set[str]:

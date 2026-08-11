@@ -1,6 +1,6 @@
 # Experiment 0059: Multiple-testing semantic v1 shadow recognizer
 
-- **Status:** Stage 2 digest-bound p-value-family prover; static analyzer still deferred
+- **Status:** Stage 3 static proposing analyzer and controller discharge
 - **Date:** 2026-08-11
 - **Authority:** Maintainer blanket approval recorded for the four-stage shadow build
 - **Related decisions:** Experiment 0058 and the multiple-testing recon/design memoranda dated
@@ -192,3 +192,27 @@ without selecting among candidate keys, the prover uses the complete ordered non
 the composite hypothesis key. It requires at least one non-value column and unique, nonempty key
 tuples. Later authority and kernel obligations must match that complete ordered tuple exactly;
 extra metadata therefore narrows to abstention rather than being ignored or guessed away.
+
+## 2026-08-11 Stage 3 analyzer amendment
+
+Stage 3 adds the untrusted static proposer and controller-side discharge only. The trusted kernel
+continues to reparse frozen source and derive positions itself. The shipped source route requires
+one of the two certified `csv.DictReader` forms, the complete ordered non-value-column projection,
+one exact registered two-argument SciPy test-call comprehension, one correction, one complete
+family report binding, and one selected writer sink. The exact test registry remains
+`scipy.stats.ttest_ind` and `scipy.stats.mannwhitneyu` under a bound `scipy==1.14.0` requirement.
+
+The correction registry is expanded by maintainer direction to exactly two entries:
+`sc_referee.calculation_checks.bh.benjamini_hochberg` and
+`statsmodels.stats.multitest.multipletests`. The statsmodels entry requires a unique bound
+`statsmodels==0.14.4` requirement and the exact call keyword `method="fdr_bh"`; the repository
+entry has no external-package pin. Both are recomputed with the repository's trusted exact-
+Decimal BH implementation. No statsmodels or author code is imported or executed.
+
+The kernel recognizes three correction inputs: the bare full battery (a verified covered route),
+a nonempty literal nonnegative contiguous slice (an adverse route only when it is a proper
+subset), and the exact filter `[p for p in BATTERY if p < FIXED_DECIMAL]`, whose positions are
+recomputed from the trusted ordered fact. Other predicates, aliases, masks, negative bounds,
+steps, empty selections, multiple batteries/corrections, helpers, mutation, rebinding, or control
+flow abstain. Absence of a same-module correction remains outside scope and is reported as
+`cross-module-correction-unverified`; it never supports an absence finding.

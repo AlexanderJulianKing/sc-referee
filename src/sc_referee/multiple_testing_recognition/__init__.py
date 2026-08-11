@@ -1,4 +1,4 @@
-"""Public Stage-1 types for the multiple-testing semantic recognizer."""
+"""Public types for the report-only multiple-testing semantic recognizer."""
 
 from sc_referee.multiple_testing_recognition.certificate import (
     family_hypothesis_token,
@@ -29,9 +29,16 @@ from sc_referee.multiple_testing_recognition.pvalue_domain import (
     prove_pvalue_family,
     pvalue_family_row_domain,
 )
+from sc_referee.multiple_testing_recognition.python_analyzer import (
+    DischargedMultipleTestingAnalysis,
+    PythonMultipleTestingAnalysis,
+    analyze_multiple_testing_python,
+    discharge_multiple_testing_proposal,
+)
 
 __all__ = [
     "CorrectionCall",
+    "DischargedMultipleTestingAnalysis",
     "EvidenceDeclaration",
     "FamilyAuthorization",
     "FamilyDomainObligation",
@@ -40,10 +47,13 @@ __all__ = [
     "MultipleTestingCaseBinding",
     "MultipleTestingCertificate",
     "PValueFamilyFact",
+    "PythonMultipleTestingAnalysis",
     "ReportFamilyBinding",
     "TestBatteryObligation",
     "TestResultPosition",
     "VerifiedMultipleTestingCertificate",
+    "analyze_multiple_testing_python",
+    "discharge_multiple_testing_proposal",
     "family_hypothesis_token",
     "family_observation_token",
     "family_pvalue_token",
