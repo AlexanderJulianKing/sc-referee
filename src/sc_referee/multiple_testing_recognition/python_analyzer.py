@@ -24,7 +24,7 @@ import json
 import re
 import unicodedata
 from dataclasses import asdict, dataclass, replace
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from pathlib import Path
 from typing import Literal, cast
 
@@ -95,7 +95,6 @@ _CORRECTION_LOCAL_NAMES = {
     "benjamini_hochberg": _REPOSITORY_BH_CALLABLE,
     "multipletests": _STATSMODELS_BH_CALLABLE,
 }
-_FIXED_POINT_DECIMAL = re.compile(r"[0-9]+(?:\.[0-9]+)?", flags=re.ASCII)
 
 
 @dataclass(frozen=True)
@@ -227,7 +226,6 @@ def analyze_multiple_testing_python(
         )
     shape_or_analysis = _source_shape(
         tree,
-        source,
         document.path,
         selected_report_path,
     )
@@ -599,6 +597,8 @@ def _build_certificate(
         relevant_origins=frozenset({document.path, material.path, row_domain, shape.report_path}),
         relevant_bindings=frozenset(
             {
+                shape.reader.target_name,
+                projection.projected_family_name,
                 reader_token,
                 projection_token,
                 battery_id,
@@ -680,7 +680,6 @@ def _build_certificate(
 
 def _source_shape(
     tree: ast.Module,
-    source: str,
     source_path: str,
     selected_report_path: str,
 ) -> _SourceShape | PythonMultipleTestingAnalysis:
@@ -742,10 +741,15 @@ def _source_shape(
             basis="Multiple correction calls could not be resolved to one outcome.",
         )
     correction, (correction_call, correction_callable) = corrections[0]
+    if _is_value_predicate_correction(correction_call.args[0]):
+        return _unsupported_nodes(
+            tree,
+            "value-predicate-correction-unsupported",
+            (correction,),
+        )
     if not _correction_input_is_supported(
         correction_call.args[0],
         cast(str, _single_target(battery)),
-        source,
     ):
         return _unsupported_nodes(tree, "correction-input-shape-unrecognized", (correction,))
     reports = [
@@ -921,7 +925,7 @@ def _correction_call(assignment: ast.Assign) -> tuple[ast.Call, str] | None:
     return call, resolved
 
 
-def _correction_input_is_supported(node: ast.expr, battery_name: str, source: str) -> bool:
+def _correction_input_is_supported(node: ast.expr, battery_name: str) -> bool:
     if isinstance(node, ast.Name):
         return node.id == battery_name
     if (
@@ -934,29 +938,11 @@ def _correction_input_is_supported(node: ast.expr, battery_name: str, source: st
         return (node.slice.lower is not None or node.slice.upper is not None) and all(
             _literal_nonnegative(item) for item in (node.slice.lower, node.slice.upper)
         )
-    if not (
-        isinstance(node, ast.ListComp)
-        and isinstance(node.elt, ast.Name)
-        and len(node.generators) == 1
-        and not node.generators[0].is_async
-        and isinstance(node.generators[0].target, ast.Name)
-        and isinstance(node.generators[0].iter, ast.Name)
-        and node.generators[0].iter.id == battery_name
-        and len(node.generators[0].ifs) == 1
-    ):
-        return False
-    name = node.generators[0].target.id
-    predicate = node.generators[0].ifs[0]
-    return (
-        node.elt.id == name
-        and isinstance(predicate, ast.Compare)
-        and isinstance(predicate.left, ast.Name)
-        and predicate.left.id == name
-        and len(predicate.ops) == 1
-        and isinstance(predicate.ops[0], ast.Lt)
-        and len(predicate.comparators) == 1
-        and _fixed_decimal_source(predicate.comparators[0], source) is not None
-    )
+    return False
+
+
+def _is_value_predicate_correction(node: ast.expr) -> bool:
+    return isinstance(node, ast.ListComp) and any(generator.ifs for generator in node.generators)
 
 
 def _report_assignment(assignment: ast.Assign, keys_name: str, pvalues_name: str) -> bool:
@@ -1142,35 +1128,7 @@ def _controller_correction_positions(
             return None
         positions = tuple(range(fact.row_count)[slice(lower, upper)])
         return positions if 0 < len(positions) < fact.row_count else None
-    if not (
-        isinstance(node, ast.ListComp)
-        and isinstance(node.elt, ast.Name)
-        and len(node.generators) == 1
-        and isinstance(node.generators[0].target, ast.Name)
-        and isinstance(node.generators[0].iter, ast.Name)
-        and node.generators[0].iter.id == battery_name
-        and len(node.generators[0].ifs) == 1
-    ):
-        return None
-    name = node.generators[0].target.id
-    predicate = node.generators[0].ifs[0]
-    if not (
-        node.elt.id == name
-        and isinstance(predicate, ast.Compare)
-        and isinstance(predicate.left, ast.Name)
-        and predicate.left.id == name
-        and len(predicate.ops) == 1
-        and isinstance(predicate.ops[0], ast.Lt)
-        and len(predicate.comparators) == 1
-    ):
-        return None
-    threshold = _fixed_decimal_source(predicate.comparators[0], source)
-    if threshold is None:
-        return None
-    positions = tuple(
-        index for index, raw in enumerate(fact.raw_pvalue_lexemes) if Decimal(raw) < threshold
-    )
-    return positions if 0 < len(positions) < fact.row_count else None
+    return None
 
 
 def _proposal_matches_context(
@@ -1563,7 +1521,7 @@ def _procedure_record_allows(
     if not isinstance(value, dict):
         return False
     declared = value.get("resolved_callable")
-    return declared is None or declared == resolved_callable
+    return isinstance(declared, str) and declared == resolved_callable
 
 
 def _parser_is_supported(
@@ -1658,17 +1616,6 @@ def _literal_value(node: ast.expr | None) -> int | bool | None:
     if not _literal_nonnegative(node):
         return False
     return cast(int, cast(ast.Constant, node).value)
-
-
-def _fixed_decimal_source(node: ast.expr, source: str) -> Decimal | None:
-    segment = ast.get_source_segment(source, node)
-    if segment is None or _FIXED_POINT_DECIMAL.fullmatch(segment) is None:
-        return None
-    try:
-        value = Decimal(segment)
-    except InvalidOperation:
-        return None
-    return value if value.is_finite() and 0 <= value <= 1 else None
 
 
 def _canonical_decimal(value: Decimal) -> str:

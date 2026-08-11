@@ -129,6 +129,7 @@ def _context(
     authority_procedure_id: str = "procedure:correction",
     requirements: bytes = b"scipy==1.14.0\n",
     procedure_callable: str | None = None,
+    include_procedure_callable: bool = True,
     second_document: bool = False,
 ) -> FrozenInspectionContext:
     surface_ref = RecordRef("publication_surface", "surface:primary")
@@ -146,6 +147,11 @@ def _context(
     data_digest = sha256_digest(data)
     requirements_digest = sha256_digest(requirements)
     source_bytes = source.encode()
+    resolved_procedure_callable = procedure_callable or (
+        "statsmodels.stats.multitest.multipletests"
+        if "multipletests(" in source
+        else "sc_referee.calculation_checks.bh.benjamini_hochberg"
+    )
     parser_payload = canonical_json(
         {"parser_id": "python-ast", "parser_version": "3.11", "state": "parsed"}
     ).encode()
@@ -182,8 +188,8 @@ def _context(
             {
                 "procedure_id": procedure_ref.record_id,
                 **(
-                    {"resolved_callable": procedure_callable}
-                    if procedure_callable is not None
+                    {"resolved_callable": resolved_procedure_callable}
+                    if include_procedure_callable
                     else {}
                 ),
             },
@@ -344,15 +350,15 @@ def test_narrowing_slice_reaches_evaluation_candidate(correction_input: str) -> 
     assert discharged.verified_certificate.corrected_positions in {(0, 1), (1, 2)}
 
 
-def test_fixed_decimal_filter_reaches_evaluation_candidate() -> None:
+def test_regression_r1_value_predicate_filter_is_a_named_abstention() -> None:
     source = _source(correction_input="[p for p in pvals if p < 0.05]")
     context = _context(source)
-    discharged = discharge_multiple_testing_proposal(
-        analyze_multiple_testing_python(context), context
-    )
-    assert discharged.outcome == "evaluation_candidate"
-    assert discharged.verified_certificate is not None
-    assert discharged.verified_certificate.corrected_positions == (0, 1)
+    analysis = analyze_multiple_testing_python(context)
+    discharged = discharge_multiple_testing_proposal(analysis, context)
+    assert analysis.state == "unsupported"
+    assert analysis.unsupported_constructs == ("value-predicate-correction-unsupported",)
+    assert discharged.outcome == "unsupported"
+    assert discharged.verified_certificate is None
 
 
 def test_exact_full_battery_correction_reaches_covered_negative() -> None:
@@ -382,6 +388,36 @@ def test_statsmodels_registry_entry_is_statically_verified_without_execution() -
     assert discharged.verified_certificate is not None
     assert discharged.certificate is not None
     assert discharged.certificate.correction_calls[0].resolved_callable.endswith(".multipletests")
+
+
+def test_regression_r7_procedure_record_must_declare_resolved_callable() -> None:
+    analysis = _analyze(_source(), include_procedure_callable=False)
+    assert analysis.state == "unsupported"
+    assert analysis.unsupported_constructs == ("correction-procedure-binding-unverified",)
+    assert analysis.certificate is None
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "Registration blocker: v1 cannot bind executable x/y test-argument data sources; "
+        "the grammar extension is intentionally not part of this fix round."
+    ),
+)
+def test_regression_r4_executable_test_argument_bindings_remain_unsupported() -> None:
+    source = _source(
+        after_reader=(
+            'x = {"g1": [1.0, 2.0], "g2": [2.0, 3.0], "g3": [3.0, 4.0]}\n'
+            'y = {"g1": [2.0, 3.0], "g2": [3.0, 4.0], "g3": [4.0, 5.0]}'
+        )
+    )
+    context = _context(source)
+    discharged = discharge_multiple_testing_proposal(
+        analyze_multiple_testing_python(context),
+        context,
+    )
+    assert discharged.state == "verified"
+    assert discharged.outcome == "evaluation_candidate"
 
 
 def test_csv_newline_reader_model_reaches_kernel() -> None:

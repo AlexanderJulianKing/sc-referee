@@ -151,7 +151,13 @@ def _context(
         (analysis_file_ref, {"file_record_id": analysis_file_ref.record_id}),
         (parser_ref, {"parser_result_id": parser_ref.record_id}),
         (analysis_ref, {"analysis_id": analysis_ref.record_id}),
-        (procedure_ref, {"procedure_id": procedure_ref.record_id}),
+        (
+            procedure_ref,
+            {
+                "procedure_id": procedure_ref.record_id,
+                "resolved_callable": ("sc_referee.calculation_checks.bh.benjamini_hochberg"),
+            },
+        ),
         (result_ref, {"result_id": result_ref.record_id, "path": _REPORT_PATH}),
         (
             data_file_ref,
@@ -285,30 +291,38 @@ def _assert_report_only_without_finding_fields(payload: dict[str, object]) -> No
     assert not forbidden & set(_body(payload))
 
 
-@pytest.mark.parametrize(
-    ("correction_input", "expected_positions"),
-    [
-        ("pvals[:2]", [0, 1]),
-        ("[p for p in pvals if p < 0.05]", [0, 1]),
-    ],
-)
 def test_subset_correction_emits_report_only_shadow_candidate(
     shadow_adapter: MultipleTestingRecognitionShadowAdapter,
-    correction_input: str,
-    expected_positions: list[int],
 ) -> None:
-    payload = shadow_adapter.inspect(_context(_source(correction_input=correction_input)))
+    payload = shadow_adapter.inspect(_context(_source(correction_input="pvals[:2]")))
     assert payload["payload_type"] == "shadow_candidate"
     assert payload["outcome"] == "evaluation_candidate"
     body = _body(payload)
     assert body["record_type"] == "multiple_testing_shadow_candidate"
-    assert body["corrected_positions"] == expected_positions
+    assert body["corrected_positions"] == [0, 1]
     assert body["corrected_count"] == 2
     assert body["performed_count"] == 3
     assert body["authorized_family_key_columns"] == ["gene"]
     assert body["report_only"] is True
     assert body["evidence_declarations"]
     _assert_report_only_without_finding_fields(payload)
+
+
+def test_regression_r1_h1_never_read_pvalue_values_cannot_control_a_finding(
+    shadow_adapter: MultipleTestingRecognitionShadowAdapter,
+) -> None:
+    source = _source(correction_input="[p for p in pvals if p < 0.05]")
+    csv_variants = (
+        b"gene,pvalue\ng1,0.01\ng2,0.04\ng3,0.20\n",
+        b"gene,pvalue\ng1,0.90\ng2,0.80\ng3,0.70\n",
+        b"gene,pvalue\ng1,0.001\ng2,0.002\ng3,0.003\n",
+    )
+    payloads = [shadow_adapter.inspect(_context(source, data=data)) for data in csv_variants]
+    assert len({canonical_json(payload) for payload in payloads}) == 1
+    for payload in payloads:
+        _assert_not_candidate(payload)
+        assert payload["payload_type"] == "abstention"
+        assert _coverage_classes(payload) == ("value-predicate-correction-unsupported",)
 
 
 def test_full_battery_correction_is_a_verified_coverage_note(

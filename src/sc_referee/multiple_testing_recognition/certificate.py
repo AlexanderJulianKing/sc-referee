@@ -66,7 +66,7 @@ _TEST_CALLABLES = frozenset(
 _REPOSITORY_BH_CALLABLE = "sc_referee.calculation_checks.bh.benjamini_hochberg"
 _STATSMODELS_BH_CALLABLE = "statsmodels.stats.multitest.multipletests"
 _CORRECTION_CALLABLES = frozenset({_REPOSITORY_BH_CALLABLE, _STATSMODELS_BH_CALLABLE})
-_FIXED_POINT_DECIMAL = re.compile(r"[0-9]+(?:\.[0-9]+)?", flags=re.ASCII)
+_UNSIGNED_FIXED_POINT_DECIMAL = re.compile(r"[0-9]+(?:\.[0-9]+)?", flags=re.ASCII)
 _PROHIBITED_AST_TYPES = (
     ast.AsyncFor,
     ast.AsyncFunctionDef,
@@ -618,7 +618,7 @@ def _replay_bounded_source(
     ):
         return None
     list_comprehensions = [node for node in nodes if isinstance(node, ast.ListComp)]
-    if len(list_comprehensions) not in {2, 3}:
+    if len(list_comprehensions) != 2:
         return None
 
     projection = certificate.full_family_projections[0]
@@ -722,9 +722,7 @@ def _replay_bounded_source(
         correction,
         battery,
         fact.row_count,
-        tuple(Decimal(value) for value in fact.raw_pvalue_lexemes),
         certificate.source_digest,
-        source,
     )
     if correction_checked is None:
         return None
@@ -754,6 +752,7 @@ def _replay_bounded_source(
     if not _supported_statement_order(*ordered_statements):
         return None
     relevant_names = {
+        projection.source_rows_name,
         projection.projected_family_name,
         battery.battery_result_name,
         correction.result_name,
@@ -992,12 +991,11 @@ def _correction_shape(
     obligation: CorrectionCall,
     battery: TestBatteryObligation,
     family_count: int,
-    family_values: tuple[Decimal, ...],
     source_digest: str,
-    source: str,
 ) -> tuple[str, tuple[int, ...]] | None:
     if (
         _single_name_target(assignment) != obligation.result_name
+        or assignment.value is not call
         or obligation.battery_construct_id != battery.battery_construct_id
         or obligation.iterable_row_domain != battery.iterable_row_domain
         or obligation.resolved_callable not in _CORRECTION_CALLABLES
@@ -1025,10 +1023,17 @@ def _correction_shape(
         call.args[0],
         battery.battery_result_name,
         family_count,
-        family_values,
-        source,
     )
-    if positions is None or not positions:
+    input_node = call.args[0]
+    if positions is None:
+        return None
+    if isinstance(input_node, ast.Name):
+        if len(positions) != family_count:
+            return None
+    elif isinstance(input_node, ast.Subscript):
+        if not 0 < len(positions) < family_count:
+            return None
+    else:
         return None
     return (
         _source_token("correction-call", source_digest, obligation.call_span),
@@ -1219,6 +1224,7 @@ def _proof_slice_is_noninterfering(
     positions: tuple[TestResultPosition, ...],
 ) -> bool:
     report = certificate.report_bindings[0]
+    projection = certificate.full_family_projections[0]
     relevant_origins = {
         certificate.source_path,
         fact.path,
@@ -1232,6 +1238,8 @@ def _proof_slice_is_noninterfering(
         *fact.hypothesis_tokens,
         *fact.pvalue_tokens,
         *(item.result_token for item in positions),
+        projection.source_rows_name,
+        projection.projected_family_name,
         certificate.test_batteries[0].battery_result_name,
         certificate.correction_calls[0].result_name,
         report.reported_name,
@@ -1453,8 +1461,6 @@ def _correction_input_positions(
     node: ast.expr,
     battery_name: str,
     family_count: int,
-    family_values: tuple[Decimal, ...],
-    source: str,
 ) -> tuple[int, ...] | None:
     if isinstance(node, ast.Name) and node.id == battery_name:
         return tuple(range(family_count))
@@ -1470,45 +1476,7 @@ def _correction_input_positions(
             return None
         positions = tuple(range(family_count)[slice(lower, upper, None)])
         return positions if 0 < len(positions) < family_count else None
-    if not (
-        isinstance(node, ast.ListComp)
-        and isinstance(node.elt, ast.Name)
-        and len(node.generators) == 1
-        and not node.generators[0].is_async
-        and isinstance(node.generators[0].target, ast.Name)
-        and isinstance(node.generators[0].iter, ast.Name)
-        and node.generators[0].iter.id == battery_name
-        and len(node.generators[0].ifs) == 1
-    ):
-        return None
-    item_name = node.generators[0].target.id
-    if node.elt.id != item_name:
-        return None
-    predicate = node.generators[0].ifs[0]
-    if not (
-        isinstance(predicate, ast.Compare)
-        and isinstance(predicate.left, ast.Name)
-        and predicate.left.id == item_name
-        and len(predicate.ops) == 1
-        and isinstance(predicate.ops[0], ast.Lt)
-        and len(predicate.comparators) == 1
-    ):
-        return None
-    threshold = _fixed_decimal_source_literal(predicate.comparators[0], source)
-    if threshold is None:
-        return None
-    return tuple(index for index, value in enumerate(family_values) if value < threshold)
-
-
-def _fixed_decimal_source_literal(node: ast.expr, source: str) -> Decimal | None:
-    segment = ast.get_source_segment(source, node)
-    if segment is None or _FIXED_POINT_DECIMAL.fullmatch(segment) is None:
-        return None
-    try:
-        value = Decimal(segment)
-    except InvalidOperation:
-        return None
-    return value if value.is_finite() and 0 <= value <= 1 else None
+    return None
 
 
 def _literal_path_call(node: ast.expr, path: str) -> bool:
@@ -1648,6 +1616,8 @@ def _canonical_decimal(value: Decimal) -> str:
 
 
 def _exact_decimal(value: str) -> Decimal | None:
+    if _UNSIGNED_FIXED_POINT_DECIMAL.fullmatch(value) is None:
+        return None
     try:
         parsed = Decimal(value)
     except InvalidOperation:

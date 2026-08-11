@@ -12,6 +12,7 @@ import pytest
 
 from sc_referee.calculation_checks.bh import benjamini_hochberg
 from sc_referee.core.ids import sha256_digest
+from sc_referee.multiple_testing_recognition import certificate as certificate_module
 from sc_referee.multiple_testing_recognition.certificate import (
     family_hypothesis_token,
     family_observation_token,
@@ -218,25 +219,31 @@ def _fixture(
             "evidence:battery-iterable",
         ),
     )
-    slice_node = correction_call.args[0]
-    assert isinstance(slice_node, ast.Subscript) and isinstance(slice_node.slice, ast.Slice)
-    lower_node = slice_node.slice.lower
-    upper_node = slice_node.slice.upper
-    lower = (
-        lower_node.value
-        if isinstance(lower_node, ast.Constant)
-        and isinstance(lower_node.value, int)
-        and not isinstance(lower_node.value, bool)
-        else None
-    )
-    upper = (
-        upper_node.value
-        if isinstance(upper_node, ast.Constant)
-        and isinstance(upper_node.value, int)
-        and not isinstance(upper_node.value, bool)
-        else None
-    )
-    selected = tuple(range(domain_fact.row_count)[slice(lower, upper)])
+    correction_input = correction_call.args[0]
+    if isinstance(correction_input, ast.Name) and correction_input.id == "pvals":
+        selected = tuple(range(domain_fact.row_count))
+    elif isinstance(correction_input, ast.Subscript) and isinstance(
+        correction_input.slice, ast.Slice
+    ):
+        lower_node = correction_input.slice.lower
+        upper_node = correction_input.slice.upper
+        lower = (
+            lower_node.value
+            if isinstance(lower_node, ast.Constant)
+            and isinstance(lower_node.value, int)
+            and not isinstance(lower_node.value, bool)
+            else None
+        )
+        upper = (
+            upper_node.value
+            if isinstance(upper_node, ast.Constant)
+            and isinstance(upper_node.value, int)
+            and not isinstance(upper_node.value, bool)
+            else None
+        )
+        selected = tuple(range(domain_fact.row_count)[slice(lower, upper)])
+    else:
+        selected = ()
     adjusted = (
         tuple(
             _canonical(value)
@@ -657,3 +664,73 @@ def test_direct_nonnegative_narrowing_slice_boundaries() -> None:
     for slice_text in ("[:]", "[:3]", "[0:3]", "[1:1]", "[-1:]", "[::2]"):
         source = _DEFAULT_SOURCE.replace("[:2]", slice_text)
         assert _verify(_fixture(source)) is None
+
+
+def test_regression_r1_filter_comprehension_is_not_a_kernel_route() -> None:
+    source = _DEFAULT_SOURCE.replace("pvals[:2]", "[p for p in pvals if p < 0.05]")
+    assert _verify(_fixture(source)) is None
+
+
+def test_regression_r2_kernel_enforces_cardinality_for_each_input_kind(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adverse = _fixture()
+    monkeypatch.setattr(
+        certificate_module,
+        "_correction_input_positions",
+        lambda *_args: (0, 1, 2),
+    )
+    assert _verify(adverse) is None
+
+    complete = _fixture(_DEFAULT_SOURCE.replace("pvals[:2]", "pvals"))
+    monkeypatch.setattr(
+        certificate_module,
+        "_correction_input_positions",
+        lambda *_args: (0, 1),
+    )
+    assert _verify(complete) is None
+
+
+def test_regression_r3_source_rows_and_projected_family_are_noninterfering() -> None:
+    fixture = _fixture()
+    effect = Effect(
+        reads=frozenset({"unrelated-read"}),
+        writes=frozenset({"rows"}),
+        aliases=frozenset({"unrelated-alias"}),
+        may_raise=False,
+        opaque=False,
+        reason="mutates source rows",
+    )
+    assert (
+        _verify(
+            _with_certificate(
+                fixture,
+                replace(fixture.certificate, effects=(effect,)),
+            )
+        )
+        is None
+    )
+    unknown = Unknown("projected family unresolved", frozenset({"genes"}))
+    assert (
+        _verify(
+            _with_certificate(
+                fixture,
+                replace(fixture.certificate, unknowns=(unknown,)),
+            )
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize("raw", ["1e-1", "+0.1", "-0", "-0.0"])
+def test_regression_r5_kernel_decimal_grammar_matches_the_prover(raw: str) -> None:
+    fact = _fact(raw_values=(raw, "0.04", "0.20"))
+    assert _verify(_fixture(fact=fact)) is None
+
+
+def test_regression_r8_correction_assignment_value_must_be_the_call() -> None:
+    source = _DEFAULT_SOURCE.replace(
+        "adjusted = benjamini_hochberg(pvals[:2])",
+        "adjusted = (benjamini_hochberg(pvals[:2]),)[0]",
+    )
+    assert _verify(_fixture(source)) is None

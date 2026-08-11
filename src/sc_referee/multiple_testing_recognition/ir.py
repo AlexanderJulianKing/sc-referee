@@ -91,8 +91,9 @@ class MaterialInputBinding:
 class FamilyAuthorization:
     """Controller-supplied human authority for one semantic p-value family.
 
-    ``battery_construct_id`` is the semantic construct identity recomputed from
-    frozen source, not a free source-location label. ``iterable_row_domain`` is
+    ``battery_construct_id`` is a source-location token recomputed from the
+    frozen source digest and the exact battery-assignment span. It is not a
+    semantic identity independent of source layout. ``iterable_row_domain`` is
     also insufficient alone: the input identity and ordered key columns remain
     part of the authorization.
     """

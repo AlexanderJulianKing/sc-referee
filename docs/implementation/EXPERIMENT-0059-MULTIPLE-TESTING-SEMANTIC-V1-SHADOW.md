@@ -1,6 +1,6 @@
 # Experiment 0059: Multiple-testing semantic v1 shadow recognizer
 
-- **Status:** Stage 4 final shadow build; unregistered report-only adapter
+- **Status:** Stage 4 fix round; unregistered report-only adapter with a blocking grammar limitation
 - **Date:** 2026-08-11
 - **Authority:** Maintainer blanket approval recorded for the four-stage shadow build
 - **Related decisions:** Experiment 0058 and the multiple-testing recon/design memoranda dated
@@ -69,6 +69,32 @@ certificate. Authority permits only literal `all_rows`; grouping, predicates, pr
 partitions, or inferred family selection are outside v1. Candidate batteries may later be listed
 as unresolved alternatives, but they are never ranked or selected by size, proximity, names, or
 repetition.
+
+`battery_construct_id` is a source-location token derived from the frozen source digest and exact
+battery assignment span. It is intentionally layout-sensitive and must not be described as a
+semantic construct identity independent of source location.
+
+A family-authority lock and controller-side producing channel analogous in discipline to the
+dependence authority lock do not yet exist. Both are pre-registration requirements: no analyzer-
+constructed or freely injected authority record may substitute for a digest-sealed human-approved
+family definition.
+
+## Blocking known limitation: no executable accepted positive
+
+The current v1 source grammar admits no executable module on its positive route. The battery
+requires expressions of the form `registered_test(x[g], y[g]).pvalue`, but the import-pinned,
+straight-line statement set provides no supported way to bind `x` or `y`. Adding assignments or
+other data-source statements makes the module unsupported. Consequently, the supported-normal-
+path expansion described above is vacuous for every certificate the current analyzer and kernel
+can accept: those accepted source texts would encounter unbound test-argument names if executed.
+
+This is a **blocking known limitation**, not a coverage footnote. An executable-grammar extension
+that statically binds the registered test arguments to supported data sources is required before
+scientific-check registration, blind pilots, qualification, production wiring, or any evaluation
+claim. The extension requires its own hostile review and must preserve kernel-derived family
+positions and noninterference. Until then, this package remains an unregistered shadow experiment
+and no accepted shadow candidate may be represented as evidence that an executable workflow has
+the demonstrated relationship.
 
 ## Frozen family-fact envelope
 
@@ -159,6 +185,7 @@ provenance, numerical impact, bias direction, scientific invalidity, or a requir
 - `hand-typed-correction-family-unbound`
 - `family-definition-unauthorized`
 - `per-group-correction-unrecognized`
+- `value-predicate-correction-unsupported`
 
 These names are reserved now so later analyzer/adapter stages route uncertainty to abstention
 rather than broadening the positive grammar.
@@ -209,13 +236,21 @@ The correction registry is expanded by maintainer direction to exactly two entri
 entry has no external-package pin. Both are recomputed with the repository's trusted exact-
 Decimal BH implementation. No statsmodels or author code is imported or executed.
 
-The kernel recognizes three correction inputs: the bare full battery (a verified covered route),
-a nonempty literal nonnegative contiguous slice (an adverse route only when it is a proper
-subset), and the exact filter `[p for p in BATTERY if p < FIXED_DECIMAL]`, whose positions are
-recomputed from the trusted ordered fact. Other predicates, aliases, masks, negative bounds,
+The kernel recognizes only two correction inputs: the bare full battery (a verified covered route)
+and a nonempty literal nonnegative contiguous slice (an adverse route only when it is a proper
+subset). Value-predicate comprehensions, including
+`[p for p in BATTERY if p < FIXED_DECIMAL]`, are the named gap
+`value-predicate-correction-unsupported`; neither analyzer nor kernel may derive their positions
+from the independently proven input p-value column because that column does not prove the runtime
+test results tested by the authored predicate. Other predicates, aliases, masks, negative bounds,
 steps, empty selections, multiple batteries/corrections, helpers, mutation, rebinding, or control
 flow abstain. Absence of a same-module correction remains outside scope and is reported as
 `cross-module-correction-unverified`; it never supports an absence finding.
+
+When a correction procedure record is present, it authorizes a call only if it declares the exact
+`resolved_callable`; omission is not wildcard authority. Kernel replay also rechecks cardinality
+by correction-input kind: a slice must select strictly between zero and the trusted family count,
+while the bare battery must select exactly the full trusted count.
 
 ## 2026-08-11 Stage 4 shadow-adapter amendment
 
