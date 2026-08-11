@@ -48,12 +48,19 @@ Every claim in this section is traceable to a committed record in this repositor
   asserts a result only when a small, separately written verification kernel accepts a formal
   proof. See
   [EXPERIMENT-0057](docs/implementation/EXPERIMENT-0057-FOUNDER-ORIENTATION-SEMANTIC-V3-SHADOW.md).
-- **A dependence / pseudoreplication recognizer is built, reviewed, and registered
-  question-only.** It requires a human-authorized unit definition on a trusted channel, proves
-  from the digest-fixed input file which column's values repeat, and abstains outside a narrow
-  certified envelope. Four rounds of independent adversarial review plus a targeted verification
-  pass closed every constructed wrong answer as a permanent regression test. See
-  [EXPERIMENT-0058](docs/implementation/EXPERIMENT-0058-DEPENDENCE-SEMANTIC-V1-SHADOW.md).
+- **A second detector has passed its own sealed examination, at a stricter bar, and holds a
+  recorded promotion.** The dependence / pseudoreplication recognizer requires a
+  human-authorized unit definition on a trusted channel, proves from the digest-fixed input
+  file which column's values repeat, and abstains outside a narrow certified envelope. After
+  nine rounds of independent adversarial review and four blind pilots, it passed a sealed
+  seven-case examination seven of seven at the two-of-two sensitivity bar: both planted errors
+  caught, including an independently structured second positive, with zero false alarms on five
+  controls, one attempt, no repair. See
+  [ADR-0072](docs/implementation/ADR-0072-HELDOUT-THRESHOLD-DEPENDENCE-ENVELOPE.md),
+  [ADR-0073](docs/implementation/ADR-0073-DEPENDENCE-ENVELOPE-PROMOTION.md), and the
+  [qualification report](evaluation/qualification/authorized-independent-unit-entry-into-row-independent-procedure-v1.1.0-direct-lane/QUALIFICATION_REPORT.md).
+  Like the first promotion, this grants no production authority yet; production wiring is the
+  program's next arc.
 - The full program plan and per-capability maturity are in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Five-minute start
