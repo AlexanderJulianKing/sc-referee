@@ -1,0 +1,84 @@
+{
+  "adapter": {
+    "adapter_id": "adapter:authorized-independent-unit-entry-into-row-independent-procedure:dependence-semantic-v1",
+    "adapter_manifest_digest": "sha256:81df54974a949648f6f86287df725c1a69ce63f41100480d299680f92eee3776",
+    "adapter_version": "1.1.0",
+    "implementation_digest": "sha256:d5d22803d309ddda51651bcc033cb3e5aa4e093988550fb489b7e9671e289c54",
+    "implementation_path": "src/sc_referee/scientific_checks/dependence_recognition_adapter.py",
+    "implementation_source_digest": "sha256:5e04ced7e9faf8aaacc8b0ee6d19a10df8f8cd02f63958df352779ab151d8be0",
+    "recognition_grammar_digest": "sha256:bb3b283145ec1420491771ca49fbd2214e553602a735af2a6f7027980c8be873"
+  },
+  "artifact_kind": "direct_envelope_precase_freeze",
+  "binding": {
+    "binding_digest": "sha256:e212bf6f81ec30490c817cb810ce5214a160a5841b564019b10b8061ddc0cb16",
+    "binding_id": "method-conflict-binding:authorized-independent-unit-entry-into-row-independent-procedure-v1",
+    "check_id": "check:authorized-independent-unit-entry-into-row-independent-procedure",
+    "check_manifest_digest": "sha256:4f48a3104693cd6cdcf215bd620b59449ee87c3cd969ddbe7285f168e598ab21",
+    "check_version": "1.1.0",
+    "comparison_form": "value_equals",
+    "counterevidence_predicates": [
+      "approved_method_deviation",
+      "governing_protocol_amendment",
+      "method_obligation_applicability"
+    ],
+    "detector_id": "detector:bounded-analysis-method-conflict",
+    "detector_manifest_digest": "sha256:5b74ec663a651bd3e2eb934c25896cfbbe02f6840e2ea898296c0d478aa97e0a",
+    "detector_version": "0.3.0",
+    "dimension": "dependence_structure",
+    "forbidden_members": [],
+    "operand_kind": "canonical_scalar",
+    "production_finding_permitted": false,
+    "required_assertion_roles": [
+      "observed"
+    ],
+    "required_evidence_planes": [
+      "static_source"
+    ],
+    "required_semantic_roles": [
+      "analyzed_row_domain",
+      "authorized_independent_unit_key",
+      "row_independent_procedure",
+      "selected_result_sink"
+    ]
+  },
+  "detector": {
+    "detector_id": "detector:bounded-analysis-method-conflict",
+    "detector_manifest_digest": "sha256:5b74ec663a651bd3e2eb934c25896cfbbe02f6840e2ea898296c0d478aa97e0a",
+    "detector_version": "0.3.0",
+    "implementation_digest": "sha256:d22f5b5cffbde98201077edf1a3825274780ac23bff997c78b44465e67bdf6d1",
+    "implementation_path": "src/sc_referee/detectors/bounded_analysis_method_conflict.py",
+    "maturity": "experimental",
+    "production_finding_permitted": false
+  },
+  "detector_outcome_count": 0,
+  "envelope": {
+    "binding_digest": "sha256:e212bf6f81ec30490c817cb810ce5214a160a5841b564019b10b8061ddc0cb16",
+    "candidate_id": "one-analyzed-row-per-authorized-independent-unit",
+    "canonical_issue_class": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure",
+    "case_evidence_contract_version": "3.0.0",
+    "check_id": "check:authorized-independent-unit-entry-into-row-independent-procedure",
+    "envelope_digest": "sha256:a1ae47e68c72b80a484933fb3065d8cce96216d8b1ef0d80cbbabd72580a28e0",
+    "envelope_id": "relation-envelope:authorized-independent-unit-entry-into-row-independent-procedure"
+  },
+  "freeze_digest": "sha256:411ba586fd1deb044791b8a572088c8108fdd3283a67f75851d338b987731621",
+  "freeze_id": "freeze:authorized-independent-unit-entry-v1-precase",
+  "freeze_version": "1.0.0",
+  "frozen_at": "2026-08-10T23:00:00Z",
+  "limitations": [
+    "This scaffold has no threshold, label, detector outcome, promotion, or Finding authority.",
+    "Hostile brief review cleared both renamed constructions for freeze only."
+  ],
+  "metric_case_count": 0,
+  "qualification_authority": "none_precase_freeze_only",
+  "registry": {
+    "content_digest": "sha256:086db3b7dd0ebbb9e430763efcc6c1e981e22ea3db2b7e6b8200a51d3d38c253",
+    "path": "src/sc_referee/resources/scientific-check-manifests-v1/registry.json",
+    "semantic_digest": "sha256:0f2f1b4b75c5d6644711c0454d1380178cd760079c58d74e27ffb8d3c5089040"
+  },
+  "scientific_check": {
+    "check_id": "check:authorized-independent-unit-entry-into-row-independent-procedure",
+    "check_manifest_digest": "sha256:4f48a3104693cd6cdcf215bd620b59449ee87c3cd969ddbe7285f168e598ab21",
+    "check_version": "1.1.0"
+  },
+  "scientific_label_count": 0
+}

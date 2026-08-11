@@ -1,0 +1,475 @@
+{
+  "artifact_kind": "direct_qualification_lane_freeze",
+  "authoring_brief_manifest_digest": "sha256:760ed127655f1d425d0aedbf0107b8a358379dba119dd6aefb815686d8f40276",
+  "frozen_at": "2026-08-10T23:02:00Z",
+  "heldout_seal": {
+    "author_access_state": "withheld_until_approved_threshold",
+    "block_ids": [
+      "block:35f9d2392a739e85"
+    ],
+    "case_ids": [
+      "case:6f1702f1e1ff3855d34f",
+      "case:75bb533785f478cbdd8d",
+      "case:8a68d6ae147ce49e2a11",
+      "case:a516621a9cc0c4f6854d",
+      "case:c37ea6f502dc593de820",
+      "case:c41c53bc6fedd68b0ccc",
+      "case:e9e6bf9e80c9287dabe5"
+    ],
+    "detector_outcomes_present": false,
+    "scientific_labels_present": false
+  },
+  "lane_freeze_digest": "sha256:21cfa46f9644fb200105d1ea2bca5a35fe62a35af7b0b4d5a4a266f090cc7187",
+  "lane_freeze_version": "1.0.0",
+  "lane_id": "lane:authorized-independent-unit-entry-v1",
+  "participant_enrollment_digest": "sha256:7f6b805e4d73851a507cf4c13c459f0edaa9e9505d4318f92917a0627e6a04d4",
+  "precase_freeze_digest": "sha256:411ba586fd1deb044791b8a572088c8108fdd3283a67f75851d338b987731621",
+  "prospective_protocol": {
+    "artifact_kind": "prospective_qualification_protocol",
+    "assignments": [
+      {
+        "assigned_at": "2026-08-10T23:01:00Z",
+        "author_id": "actor:dependence-pilot-e-sealed-author-01",
+        "authoring_brief_digest": "sha256:0aec9674fd9d689258bf62768f8fff348558ed19a0c30269c7cda0a4958a0a59",
+        "block_id": "block:dca359a3df068af8",
+        "case_id": "case:434510082167e2b70ef5",
+        "cell_type": "error_bearing",
+        "envelope_id": "relation-envelope:authorized-independent-unit-entry-into-row-independent-procedure",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:dependence-stage1-claude-01",
+          "actor:dependence-stage1-claude-02",
+          "actor:dependence-stage1-codex-01",
+          "actor:dependence-stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:dependence-stage2-claude-01",
+          "actor:dependence-stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-10T23:01:00Z",
+        "author_id": "actor:dependence-pilot-e-sealed-author-02",
+        "authoring_brief_digest": "sha256:75f6ae61ae28eb7b1d23834b7842b3bee918ffaa1078b1858901f83e31914bef",
+        "block_id": "block:dca359a3df068af8",
+        "case_id": "case:50255d84a67d0168e675",
+        "cell_type": "ambiguous",
+        "envelope_id": "relation-envelope:authorized-independent-unit-entry-into-row-independent-procedure",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:dependence-stage1-claude-01",
+          "actor:dependence-stage1-claude-02",
+          "actor:dependence-stage1-codex-01",
+          "actor:dependence-stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:dependence-stage2-claude-01",
+          "actor:dependence-stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-10T23:01:00Z",
+        "author_id": "actor:dependence-pilot-e-sealed-author-01",
+        "authoring_brief_digest": "sha256:b941d4d090aaccc9e4aa897d92e3fd4daa75b86568e35352ef541cdb18e3854d",
+        "block_id": "block:dca359a3df068af8",
+        "case_id": "case:62f3a0edb99d07dcb4df",
+        "cell_type": "corrected_twin",
+        "envelope_id": "relation-envelope:authorized-independent-unit-entry-into-row-independent-procedure",
+        "reference_case_id": "case:434510082167e2b70ef5",
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:dependence-stage1-claude-01",
+          "actor:dependence-stage1-claude-02",
+          "actor:dependence-stage1-codex-01",
+          "actor:dependence-stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:dependence-stage2-claude-01",
+          "actor:dependence-stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-10T23:01:00Z",
+        "author_id": "actor:dependence-pilot-e-sealed-author-02",
+        "authoring_brief_digest": "sha256:f186f811d78c62f4ab0d476a1ea8ecf538507d0f7560de9ae734a20c92996e9c",
+        "block_id": "block:dca359a3df068af8",
+        "case_id": "case:6449c37c18817c3d347d",
+        "cell_type": "unsupported",
+        "envelope_id": "relation-envelope:authorized-independent-unit-entry-into-row-independent-procedure",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:dependence-stage1-claude-01",
+          "actor:dependence-stage1-claude-02",
+          "actor:dependence-stage1-codex-01",
+          "actor:dependence-stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:dependence-stage2-claude-01",
+          "actor:dependence-stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-10T23:01:00Z",
+        "author_id": "actor:dependence-heldout-sealed-author-02",
+        "authoring_brief_digest": "sha256:3fca110a15793c24e0f3efaa789123879037d848d92ece9e1c99f94a2cf76e15",
+        "block_id": "block:35f9d2392a739e85",
+        "case_id": "case:6f1702f1e1ff3855d34f",
+        "cell_type": "hard_negative",
+        "envelope_id": "relation-envelope:authorized-independent-unit-entry-into-row-independent-procedure",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:dependence-stage1-claude-01",
+          "actor:dependence-stage1-claude-02",
+          "actor:dependence-stage1-codex-01",
+          "actor:dependence-stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:dependence-stage2-claude-01",
+          "actor:dependence-stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-10T23:01:00Z",
+        "author_id": "actor:dependence-heldout-sealed-author-02",
+        "authoring_brief_digest": "sha256:aca7998b434808bb609a50470587ccba42be219c68ff3bb0187650bba3b58263",
+        "block_id": "block:35f9d2392a739e85",
+        "case_id": "case:75bb533785f478cbdd8d",
+        "cell_type": "ambiguous",
+        "envelope_id": "relation-envelope:authorized-independent-unit-entry-into-row-independent-procedure",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:dependence-stage1-claude-01",
+          "actor:dependence-stage1-claude-02",
+          "actor:dependence-stage1-codex-01",
+          "actor:dependence-stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:dependence-stage2-claude-01",
+          "actor:dependence-stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-10T23:01:00Z",
+        "author_id": "actor:dependence-heldout-sealed-author-01",
+        "authoring_brief_digest": "sha256:89ed86657924e247adc8bc997b56b49fd4aa9172abf47f32d785eb01bee2e7dc",
+        "block_id": "block:35f9d2392a739e85",
+        "case_id": "case:8a68d6ae147ce49e2a11",
+        "cell_type": "error_bearing",
+        "envelope_id": "relation-envelope:authorized-independent-unit-entry-into-row-independent-procedure",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:dependence-stage1-claude-01",
+          "actor:dependence-stage1-claude-02",
+          "actor:dependence-stage1-codex-01",
+          "actor:dependence-stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:dependence-stage2-claude-01",
+          "actor:dependence-stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-10T23:01:00Z",
+        "author_id": "actor:dependence-heldout-sealed-author-01",
+        "authoring_brief_digest": "sha256:99689dcad7f0350e8bfc68ad55c7dca69bdfdabc2e2adc97fd36c73a98e51d20",
+        "block_id": "block:35f9d2392a739e85",
+        "case_id": "case:a516621a9cc0c4f6854d",
+        "cell_type": "corrected_twin",
+        "envelope_id": "relation-envelope:authorized-independent-unit-entry-into-row-independent-procedure",
+        "reference_case_id": "case:8a68d6ae147ce49e2a11",
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:dependence-stage1-claude-01",
+          "actor:dependence-stage1-claude-02",
+          "actor:dependence-stage1-codex-01",
+          "actor:dependence-stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:dependence-stage2-claude-01",
+          "actor:dependence-stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-10T23:01:00Z",
+        "author_id": "actor:dependence-pilot-e-sealed-author-02",
+        "authoring_brief_digest": "sha256:31fe475515286c429984beb6dfc990b0094264e6dc07e4294730f799b329eb9a",
+        "block_id": "block:dca359a3df068af8",
+        "case_id": "case:aa79bd1cc2e9bcf7b006",
+        "cell_type": "hard_negative",
+        "envelope_id": "relation-envelope:authorized-independent-unit-entry-into-row-independent-procedure",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:dependence-stage1-claude-01",
+          "actor:dependence-stage1-claude-02",
+          "actor:dependence-stage1-codex-01",
+          "actor:dependence-stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:dependence-stage2-claude-01",
+          "actor:dependence-stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-10T23:01:00Z",
+        "author_id": "actor:dependence-heldout-sealed-author-02",
+        "authoring_brief_digest": "sha256:51a6f5467b95ce4b13772dbfddd0073d103b859a42cbfabae1154f885ae0345c",
+        "block_id": "block:35f9d2392a739e85",
+        "case_id": "case:c37ea6f502dc593de820",
+        "cell_type": "renamed_implementation",
+        "envelope_id": "relation-envelope:authorized-independent-unit-entry-into-row-independent-procedure",
+        "reference_case_id": "case:8a68d6ae147ce49e2a11",
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:dependence-stage1-claude-01",
+          "actor:dependence-stage1-claude-02",
+          "actor:dependence-stage1-codex-01",
+          "actor:dependence-stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:dependence-stage2-claude-01",
+          "actor:dependence-stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-10T23:01:00Z",
+        "author_id": "actor:dependence-heldout-sealed-author-02",
+        "authoring_brief_digest": "sha256:9e8fd71bd9096d1206df7efc56ac95de139d3d307e0e72c0490b3c2bdbe4aab1",
+        "block_id": "block:35f9d2392a739e85",
+        "case_id": "case:c41c53bc6fedd68b0ccc",
+        "cell_type": "unsupported",
+        "envelope_id": "relation-envelope:authorized-independent-unit-entry-into-row-independent-procedure",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:dependence-stage1-claude-01",
+          "actor:dependence-stage1-claude-02",
+          "actor:dependence-stage1-codex-01",
+          "actor:dependence-stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:dependence-stage2-claude-01",
+          "actor:dependence-stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-10T23:01:00Z",
+        "author_id": "actor:dependence-pilot-e-sealed-author-02",
+        "authoring_brief_digest": "sha256:878f23d97d09bd1c9604edee9147316c5f7d5bfa6deb2cfbdd97be518ab7ace5",
+        "block_id": "block:dca359a3df068af8",
+        "case_id": "case:d2339be32ee7656f12fb",
+        "cell_type": "renamed_implementation",
+        "envelope_id": "relation-envelope:authorized-independent-unit-entry-into-row-independent-procedure",
+        "reference_case_id": "case:434510082167e2b70ef5",
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:dependence-stage1-claude-01",
+          "actor:dependence-stage1-claude-02",
+          "actor:dependence-stage1-codex-01",
+          "actor:dependence-stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:dependence-stage2-claude-01",
+          "actor:dependence-stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-10T23:01:00Z",
+        "author_id": "actor:dependence-pilot-e-sealed-author-02",
+        "authoring_brief_digest": "sha256:fbfb955d3f900d02415a27f327650eaa77bf7bb269a3cfea92ccf995d8d31b6f",
+        "block_id": "block:dca359a3df068af8",
+        "case_id": "case:e2830d69c846e7b6b93d",
+        "cell_type": "valid_alternative",
+        "envelope_id": "relation-envelope:authorized-independent-unit-entry-into-row-independent-procedure",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:dependence-stage1-claude-01",
+          "actor:dependence-stage1-claude-02",
+          "actor:dependence-stage1-codex-01",
+          "actor:dependence-stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:dependence-stage2-claude-01",
+          "actor:dependence-stage2-codex-01"
+        ]
+      },
+      {
+        "assigned_at": "2026-08-10T23:01:00Z",
+        "author_id": "actor:dependence-heldout-sealed-author-02",
+        "authoring_brief_digest": "sha256:ed0a47ee6c46a199bdf4ed79e04f7ba47c5657f243a50da4f6027228e23d1474",
+        "block_id": "block:35f9d2392a739e85",
+        "case_id": "case:e9e6bf9e80c9287dabe5",
+        "cell_type": "valid_alternative",
+        "envelope_id": "relation-envelope:authorized-independent-unit-entry-into-row-independent-procedure",
+        "reference_case_id": null,
+        "source_kind": "independent_prospective",
+        "stage1_reviewer_ids": [
+          "actor:dependence-stage1-claude-01",
+          "actor:dependence-stage1-claude-02",
+          "actor:dependence-stage1-codex-01",
+          "actor:dependence-stage1-codex-02"
+        ],
+        "stage2_reviewer_ids": [
+          "actor:dependence-stage2-claude-01",
+          "actor:dependence-stage2-codex-01"
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "block_id": "block:35f9d2392a739e85",
+        "evidence_role": "qualification_heldout"
+      },
+      {
+        "block_id": "block:dca359a3df068af8",
+        "evidence_role": "threshold_pilot"
+      }
+    ],
+    "coverage": {
+      "matrix_blocks": {
+        "block:35f9d2392a739e85": "qualification_heldout",
+        "block:dca359a3df068af8": "threshold_pilot"
+      },
+      "matrix_complete": true,
+      "required_case_count": 14,
+      "required_cell_types": [
+        "error_bearing",
+        "corrected_twin",
+        "valid_alternative",
+        "hard_negative",
+        "ambiguous",
+        "unsupported",
+        "renamed_implementation"
+      ]
+    },
+    "detector_lock": {
+      "detector_id": "detector:bounded-analysis-method-conflict",
+      "detector_manifest_digest": "sha256:5b74ec663a651bd3e2eb934c25896cfbbe02f6840e2ea898296c0d478aa97e0a",
+      "detector_version": "0.3.0",
+      "frozen_at": "2026-08-10T23:00:00Z",
+      "implementation_digest": "sha256:d22f5b5cffbde98201077edf1a3825274780ac23bff997c78b44465e67bdf6d1"
+    },
+    "envelopes": [
+      {
+        "binding_digest": "sha256:e212bf6f81ec30490c817cb810ce5214a160a5841b564019b10b8061ddc0cb16",
+        "candidate_id": "one-analyzed-row-per-authorized-independent-unit",
+        "check_id": "check:authorized-independent-unit-entry-into-row-independent-procedure",
+        "envelope_id": "relation-envelope:authorized-independent-unit-entry-into-row-independent-procedure"
+      }
+    ],
+    "expected_envelope_count": 1,
+    "external_actions_required": [
+      "prospective_case_authoring",
+      "participant_identity_authentication",
+      "answer_blind_stage1_review",
+      "independent_stage2_adjudication",
+      "all_outcome_capture",
+      "pilot_threshold_decision",
+      "heldout_evaluation",
+      "maintainer_promotion_decision"
+    ],
+    "frozen_at": "2026-08-10T23:02:00Z",
+    "governance": {
+      "all_outcomes_retained": true,
+      "detector_implementers_label_blind": true,
+      "development_case_qualification_excluded": true,
+      "independent_review_contexts_required": true,
+      "no_replacement": true,
+      "public_benchmark_qualification_excluded": true,
+      "review_detector_output_hidden": true
+    },
+    "participants": [
+      {
+        "execution_context_id": "context:dependence-detector-implementer-codex-01-sealed-v1",
+        "identity_evidence_digest": "sha256:22200d93816b8bf9aaef969413191bcc3a039fdcb1d48961d3f806ba9c2a4b63",
+        "participant_id": "actor:dependence-detector-implementer-codex-01",
+        "provider": "OpenAI",
+        "role": "detector_implementer"
+      },
+      {
+        "execution_context_id": "context:dependence-heldout-sealed-author-01-sealed-v1",
+        "identity_evidence_digest": "sha256:09b85bd426847cb7a5be0c88071f343a867e90c257b62e437132df4567dd41c9",
+        "participant_id": "actor:dependence-heldout-sealed-author-01",
+        "provider": "Anthropic",
+        "role": "author"
+      },
+      {
+        "execution_context_id": "context:dependence-heldout-sealed-author-02-sealed-v1",
+        "identity_evidence_digest": "sha256:a95b9f365f185a4cc4d160bee682e4b0ea3a79053f58bf6c9480e85f8795f72f",
+        "participant_id": "actor:dependence-heldout-sealed-author-02",
+        "provider": "Anthropic",
+        "role": "author"
+      },
+      {
+        "execution_context_id": "context:dependence-pilot-e-sealed-author-01-sealed-v1",
+        "identity_evidence_digest": "sha256:08cd9ebd5578dd82fbbf019f14b8f8fdd60d3db37dda91d5998f357b045a002b",
+        "participant_id": "actor:dependence-pilot-e-sealed-author-01",
+        "provider": "Anthropic",
+        "role": "author"
+      },
+      {
+        "execution_context_id": "context:dependence-pilot-e-sealed-author-02-sealed-v1",
+        "identity_evidence_digest": "sha256:19c381a3520bb81e044f12d2a416ba4bbc22ca76f635533daa7c9f83de6d351b",
+        "participant_id": "actor:dependence-pilot-e-sealed-author-02",
+        "provider": "Anthropic",
+        "role": "author"
+      },
+      {
+        "execution_context_id": "context:dependence-stage1-claude-01-sealed-v1",
+        "identity_evidence_digest": "sha256:5ce0cbe4cdc44ed9242529e2c762d21d35e9e5630582290162dd8b179f8eeca6",
+        "participant_id": "actor:dependence-stage1-claude-01",
+        "provider": "Anthropic",
+        "role": "stage1_reviewer"
+      },
+      {
+        "execution_context_id": "context:dependence-stage1-claude-02-sealed-v1",
+        "identity_evidence_digest": "sha256:5c228536c2c8abde709735a6c9be4cc4f9a14156e86dae0775beb0851f755d41",
+        "participant_id": "actor:dependence-stage1-claude-02",
+        "provider": "Anthropic",
+        "role": "stage1_reviewer"
+      },
+      {
+        "execution_context_id": "context:dependence-stage1-codex-01-sealed-v1",
+        "identity_evidence_digest": "sha256:dcc5793058711dbfcc61f04702a40df45efa8cc2b6adcfc02d411ed1a5834f56",
+        "participant_id": "actor:dependence-stage1-codex-01",
+        "provider": "OpenAI",
+        "role": "stage1_reviewer"
+      },
+      {
+        "execution_context_id": "context:dependence-stage1-codex-02-sealed-v1",
+        "identity_evidence_digest": "sha256:7ff705c064e206bbe9ec693f5f4b0e7486a2e20edfd32cc3c7b961b4d2d3f9ab",
+        "participant_id": "actor:dependence-stage1-codex-02",
+        "provider": "OpenAI",
+        "role": "stage1_reviewer"
+      },
+      {
+        "execution_context_id": "context:dependence-stage2-claude-01-sealed-v1",
+        "identity_evidence_digest": "sha256:ae36c254788eaeb5a885a5249faba07a4cbcc8d4c28a9d75e79dbaff05916ae9",
+        "participant_id": "actor:dependence-stage2-claude-01",
+        "provider": "Anthropic",
+        "role": "stage2_reviewer"
+      },
+      {
+        "execution_context_id": "context:dependence-stage2-codex-01-sealed-v1",
+        "identity_evidence_digest": "sha256:bb29634543185c9d7ad2b6f65b23e83e430880a1cd70041c3d28ff0601a7db80",
+        "participant_id": "actor:dependence-stage2-codex-01",
+        "provider": "OpenAI",
+        "role": "stage2_reviewer"
+      }
+    ],
+    "protocol_digest": "sha256:38333b7ac70e1144824295d7030c5b4a1deffa8f1860d1e7379893e00daf9385",
+    "protocol_id": "prospective-protocol:authorized-independent-unit-entry-v1",
+    "protocol_version": "1.0.0",
+    "qualification_authority": "none_protocol_only",
+    "study_state": "assignments_frozen_labels_unopened"
+  },
+  "qualification_authority": "none_lane_freeze_only",
+  "study_state": "assignments_frozen_labels_unopened"
+}

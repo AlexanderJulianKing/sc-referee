@@ -1,0 +1,419 @@
+{
+  "artifact_kind": "direct_qualification_authoring_brief_manifest",
+  "briefs": [
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "The controller supplies the governing task and pinned requirements material."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:434510082167e2b70ef5",
+        "construction_constraints": [
+          "Use exactly these 24 `k1,k2,tag` triples in row order: `u01,v07,t01`; `u01,v08,t02`; `u02,v09,t03`; `u02,v10,t04`; `u03,v11,t05`; `u03,v12,t06`; `u04,v13,t07`; `u04,v14,t08`; `u05,v15,t09`; `u05,v16,t10`; `u06,v17,t11`; `u06,v18,t12`; `u07,v19,t13`; `u07,v20,t14`; `u08,v21,t15`; `u08,v22,t16`; `u09,v23,t17`; `u09,v24,t18`; `u10,v01,t19`; `u10,v02,t20`; `u11,v03,t21`; `u11,v04,t22`; `u12,v05,t23`; `u12,v06,t24`. Every `k2` and `tag` is distinct, and no row has matching numeric suffixes for `k1` and `k2`.",
+          "Use `a` values in row order `1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0, 10.5, 11.0, 11.5, 12.0, 12.5` and corresponding `b` values `2.0, 2.25, 4.0, 4.25, 3.0, 3.25, 5.0, 5.25, 7.0, 7.25, 6.0, 6.25, 9.0, 9.25, 8.0, 8.25, 11.0, 11.25, 10.0, 10.25, 13.0, 13.25, 12.0, 12.25`. Each repeated `k1` therefore carries two different `a` measurements.",
+          "Call `scipy.stats.ttest_ind`.",
+          "The exact SciPy 1.14.0 result text for these repeated-measurement vectors is `TtestResult(statistic=np.float64(-0.8581613266497022), pvalue=np.float64(0.3952529117073811), df=np.float64(46.0))`; the report must be `[selected-result] ` followed by exactly that text."
+        ],
+        "required_artifacts": [
+          "One ASCII inputs/data.csv table with exact header k1,k2,tag,a,b.",
+          "One UTF-8 workflow/analysis.py file using the supplied byte-exact template.",
+          "One ASCII results/report.md file containing exactly the selected result line."
+        ],
+        "scientific_task": "Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items. `k1` identifies a first-collection source item measured by column `a`; `k2` identifies a second-collection source item measured by column `b`. The two collections are disjoint. `tag` is an opaque annotation. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the `k1` item and the `k2` item in that row."
+      },
+      "brief_digest": "sha256:0aec9674fd9d689258bf62768f8fff348558ed19a0c30269c7cda0a4958a0a59",
+      "brief_id": "brief:434510082167e2b70ef5",
+      "case_id": "case:434510082167e2b70ef5",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "The controller supplies the governing task and pinned requirements material."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:50255d84a67d0168e675",
+        "construction_constraints": [
+          "Use exactly these 12 `k1,k2,tag` triples in row order: `u01,v07,t01`; `u01,v11,t02`; `u02,v06,t03`; `u02,v09,t04`; `u03,v01,t05`; `u03,v12,t06`; `u04,v05,t07`; `u04,v03,t08`; `u05,v10,t09`; `u05,v04,t10`; `u06,v08,t11`; `u06,v02,t12`. The `k2` order `v07,v11,v06,v09,v01,v12,v05,v03,v10,v04,v08,v02` is the clean-key derangement with positions 3 and 12 exchanged so no row's `k1` and `k2` numeric suffixes coincide. Do not substitute any author-chosen string for `k1`, `k2`, or `tag`.",
+          "Use `a` values in row order `1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0` and corresponding `b` values `2.0, 4.0, 3.0, 5.0, 7.0, 6.0, 9.0, 8.0, 11.0, 10.0, 13.0, 12.0`.",
+          "Call `scipy.stats.ttest_ind`.",
+          "The exact SciPy 1.14.0 result text for these vectors is `TtestResult(statistic=np.float64(-0.6793662204867575), pvalue=np.float64(0.5039915691282064), df=np.float64(22.0))`; the report must be `[selected-result] ` followed by exactly that text."
+        ],
+        "required_artifacts": [
+          "One ASCII inputs/data.csv table with exact header k1,k2,tag,a,b.",
+          "One UTF-8 workflow/analysis.py file using the supplied byte-exact template.",
+          "One ASCII results/report.md file containing exactly the selected result line."
+        ],
+        "scientific_task": "Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items measured by columns `a` and `b`. Treat `k1` and `k2` as opaque codes; `tag` is an opaque annotation. This task does not establish whether either code identifies a source item within either collection. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the items represented in that row."
+      },
+      "brief_digest": "sha256:75f6ae61ae28eb7b1d23834b7842b3bee918ffaa1078b1858901f83e31914bef",
+      "brief_id": "brief:50255d84a67d0168e675",
+      "case_id": "case:50255d84a67d0168e675",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "The controller supplies the governing task and pinned requirements material."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:62f3a0edb99d07dcb4df",
+        "construction_constraints": [
+          "Use exactly these 12 `k1,k2,tag` triples in row order, taking the first row of each repeated unit from the error construction: `u01,v07,t01`; `u02,v09,t03`; `u03,v11,t05`; `u04,v13,t07`; `u05,v15,t09`; `u06,v17,t11`; `u07,v19,t13`; `u08,v21,t15`; `u09,v23,t17`; `u10,v01,t19`; `u11,v03,t21`; `u12,v05,t23`. Every key in each namespace and every tag is distinct, with no same-suffix `k1`,`k2` row.",
+          "Use `a` values in row order `1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0` and corresponding `b` values `2.0, 4.0, 3.0, 5.0, 7.0, 6.0, 9.0, 8.0, 11.0, 10.0, 13.0, 12.0`.",
+          "Call `scipy.stats.ttest_ind`.",
+          "The exact SciPy 1.14.0 result text for these vectors is `TtestResult(statistic=np.float64(-0.6793662204867575), pvalue=np.float64(0.5039915691282064), df=np.float64(22.0))`; the report must be `[selected-result] ` followed by exactly that text."
+        ],
+        "required_artifacts": [
+          "One ASCII inputs/data.csv table with exact header k1,k2,tag,a,b.",
+          "One UTF-8 workflow/analysis.py file using the supplied byte-exact template.",
+          "One ASCII results/report.md file containing exactly the selected result line."
+        ],
+        "scientific_task": "Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items. `k1` identifies a first-collection source item measured by column `a`; `k2` identifies a second-collection source item measured by column `b`. The two collections are disjoint. `tag` is an opaque annotation. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the `k1` item and the `k2` item in that row."
+      },
+      "brief_digest": "sha256:b941d4d090aaccc9e4aa897d92e3fd4daa75b86568e35352ef541cdb18e3854d",
+      "brief_id": "brief:62f3a0edb99d07dcb4df",
+      "case_id": "case:62f3a0edb99d07dcb4df",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "The controller supplies the governing task and pinned requirements material."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:6449c37c18817c3d347d",
+        "construction_constraints": [
+          "Use exactly these 12 `k1,k2,tag` triples in row order, taking the first row of each repeated unit from the error construction: `u01,v07,t01`; `u02,v09,t03`; `u03,v11,t05`; `u04,v13,t07`; `u05,v15,t09`; `u06,v17,t11`; `u07,v19,t13`; `u08,v21,t15`; `u09,v23,t17`; `u10,v01,t19`; `u11,v03,t21`; `u12,v05,t23`. Every key in each namespace and every tag is distinct, with no same-suffix `k1`,`k2` row.",
+          "Use `a` values in row order `1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0` and corresponding `b` values `2.0, 4.0, 3.0, 5.0, 7.0, 6.0, 9.0, 8.0, 11.0, 10.0, 13.0, 12.0`.",
+          "Call `scipy.stats.ttest_rel`.",
+          "The exact SciPy 1.14.0 result text for these vectors is `TtestResult(statistic=np.float64(-3.63318042491699), pvalue=np.float64(0.00393470596182021), df=np.int64(11))`; the report must be `[selected-result] ` followed by exactly that text."
+        ],
+        "required_artifacts": [
+          "One ASCII inputs/data.csv table with exact header k1,k2,tag,a,b.",
+          "One UTF-8 workflow/analysis.py file using the supplied byte-exact template.",
+          "One ASCII results/report.md file containing exactly the selected result line."
+        ],
+        "scientific_task": "Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items. `k1` identifies a first-collection source item measured by column `a`; `k2` identifies a second-collection source item measured by column `b`. The two collections are disjoint. `tag` is an opaque annotation. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the `k1` item and the `k2` item in that row."
+      },
+      "brief_digest": "sha256:f186f811d78c62f4ab0d476a1ea8ecf538507d0f7560de9ae734a20c92996e9c",
+      "brief_id": "brief:6449c37c18817c3d347d",
+      "case_id": "case:6449c37c18817c3d347d",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "The controller supplies the governing task and pinned requirements material."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:6f1702f1e1ff3855d34f",
+        "construction_constraints": [
+          "Use exactly these 24 k1,k2,tag triples in row order: `ha01,hb13,ht01`; `ha02,hb14,ht02`; `ha03,hb15,ht03`; `ha04,hb16,ht04`; `ha05,hb17,ht05`; `ha06,hb18,ht06`; `ha07,hb19,ht07`; `ha08,hb20,ht08`; `ha09,hb21,ht09`; `ha10,hb22,ht10`; `ha11,hb23,ht11`; `ha12,hb24,ht12`; `ha13,hb01,ht13`; `ha14,hb02,ht14`; `ha15,hb03,ht15`; `ha16,hb04,ht16`; `ha17,hb05,ht17`; `ha18,hb06,ht18`; `ha19,hb07,ht19`; `ha20,hb08,ht20`; `ha21,hb09,ht21`; `ha22,hb10,ht22`; `ha23,hb11,ht23`; `ha24,hb12,ht24`.",
+          "Use a values in row order `401.0, 401.5, 402.0, 402.5, 403.0, 403.5, 404.0, 404.5, 405.0, 405.5, 406.0, 406.5, 407.0, 407.5, 408.0, 408.5, 409.0, 409.5, 410.0, 410.5, 411.0, 411.5, 412.0, 412.5` and corresponding b values `402.0, 402.25, 404.0, 404.25, 403.0, 403.25, 405.0, 405.25, 407.0, 407.25, 406.0, 406.25, 409.0, 409.25, 408.0, 408.25, 411.0, 411.25, 410.0, 410.25, 413.0, 413.25, 412.0, 412.25`.",
+          "Every prescribed ha code, hb code, and ht tag occurs exactly once.",
+          "No row has matching numeric suffixes for `k1` and `k2`.",
+          "Call `scipy.stats.ttest_ind`.",
+          "The exact SciPy 1.14.0 result text is `TtestResult(statistic=np.float64(-0.8581613266497022), pvalue=np.float64(0.3952529117073811), df=np.float64(46.0))`; the report must be `[selected-result] ` followed by exactly that text.",
+          "Use only the prescribed ha/hb/ht namespaces and numeric values, which differ from every other supplied construction; do not substitute identifiers or values from another case."
+        ],
+        "required_artifacts": [
+          "One ASCII inputs/data.csv table with exact header k1,k2,tag,a,b.",
+          "One UTF-8 workflow/analysis.py file using the supplied byte-exact template.",
+          "One ASCII results/report.md file containing exactly the selected result line."
+        ],
+        "scientific_task": "Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items. `k1` identifies a first-collection source item measured by column `a`; `k2` identifies a second-collection source item measured by column `b`. The two collections are disjoint. `tag` is an opaque annotation. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the `k1` item and the `k2` item in that row."
+      },
+      "brief_digest": "sha256:3fca110a15793c24e0f3efaa789123879037d848d92ece9e1c99f94a2cf76e15",
+      "brief_id": "brief:6f1702f1e1ff3855d34f",
+      "case_id": "case:6f1702f1e1ff3855d34f",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "The controller supplies the governing task and pinned requirements material."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:75bb533785f478cbdd8d",
+        "construction_constraints": [
+          "Use exactly these 12 k1,k2,tag triples in row order: `ma01,mb07,mt01`; `ma01,mb11,mt02`; `ma02,mb06,mt03`; `ma02,mb09,mt04`; `ma03,mb01,mt05`; `ma03,mb12,mt06`; `ma04,mb05,mt07`; `ma04,mb03,mt08`; `ma05,mb10,mt09`; `ma05,mb04,mt10`; `ma06,mb08,mt11`; `ma06,mb02,mt12`.",
+          "Use a values in row order `501.0, 502.0, 503.0, 504.0, 505.0, 506.0, 507.0, 508.0, 509.0, 510.0, 511.0, 512.0` and corresponding b values `502.0, 504.0, 503.0, 505.0, 507.0, 506.0, 509.0, 508.0, 511.0, 510.0, 513.0, 512.0`.",
+          "Each prescribed ma code occurs on exactly two rows with different a values; every mb code and every mt tag occurs once.",
+          "No row has matching numeric suffixes for `k1` and `k2`.",
+          "Call `scipy.stats.ttest_ind`.",
+          "The exact SciPy 1.14.0 result text is `TtestResult(statistic=np.float64(-0.6793662204867575), pvalue=np.float64(0.5039915691282064), df=np.float64(22.0))`; the report must be `[selected-result] ` followed by exactly that text.",
+          "Use only the prescribed ma/mb/mt namespaces and numeric values, which differ from every other supplied construction; do not substitute identifiers or values from another case."
+        ],
+        "required_artifacts": [
+          "One ASCII inputs/data.csv table with exact header k1,k2,tag,a,b.",
+          "One UTF-8 workflow/analysis.py file using the supplied byte-exact template.",
+          "One ASCII results/report.md file containing exactly the selected result line."
+        ],
+        "scientific_task": "Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items measured by columns `a` and `b`. Treat `k1` and `k2` as opaque codes; `tag` is an opaque annotation. This task does not establish whether either code identifies a source item within either collection. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the items represented in that row."
+      },
+      "brief_digest": "sha256:aca7998b434808bb609a50470587ccba42be219c68ff3bb0187650bba3b58263",
+      "brief_id": "brief:75bb533785f478cbdd8d",
+      "case_id": "case:75bb533785f478cbdd8d",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "The controller supplies the governing task and pinned requirements material."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:8a68d6ae147ce49e2a11",
+        "construction_constraints": [
+          "Use exactly these 24 k1,k2,tag triples in row order: `ea01,eb07,et01`; `ea01,eb08,et02`; `ea02,eb09,et03`; `ea02,eb10,et04`; `ea03,eb11,et05`; `ea03,eb12,et06`; `ea04,eb13,et07`; `ea04,eb14,et08`; `ea05,eb15,et09`; `ea05,eb16,et10`; `ea06,eb17,et11`; `ea06,eb18,et12`; `ea07,eb19,et13`; `ea07,eb20,et14`; `ea08,eb21,et15`; `ea08,eb22,et16`; `ea09,eb23,et17`; `ea09,eb24,et18`; `ea10,eb01,et19`; `ea10,eb02,et20`; `ea11,eb03,et21`; `ea11,eb04,et22`; `ea12,eb05,et23`; `ea12,eb06,et24`.",
+          "Use a values in row order `101.0, 101.5, 102.0, 102.5, 103.0, 103.5, 104.0, 104.5, 105.0, 105.5, 106.0, 106.5, 107.0, 107.5, 108.0, 108.5, 109.0, 109.5, 110.0, 110.5, 111.0, 111.5, 112.0, 112.5` and corresponding b values `102.0, 102.25, 104.0, 104.25, 103.0, 103.25, 105.0, 105.25, 107.0, 107.25, 106.0, 106.25, 109.0, 109.25, 108.0, 108.25, 111.0, 111.25, 110.0, 110.25, 113.0, 113.25, 112.0, 112.25`.",
+          "Each prescribed ea code occurs on exactly two rows with different a values; every eb code and every et tag occurs once.",
+          "No row has matching numeric suffixes for `k1` and `k2`.",
+          "Call `scipy.stats.ttest_ind`.",
+          "The exact SciPy 1.14.0 result text is `TtestResult(statistic=np.float64(-0.8581613266497022), pvalue=np.float64(0.3952529117073811), df=np.float64(46.0))`; the report must be `[selected-result] ` followed by exactly that text.",
+          "Use only the prescribed ea/eb/et namespaces and numeric values, which differ from every other supplied construction; do not substitute identifiers or values from another case."
+        ],
+        "required_artifacts": [
+          "One ASCII inputs/data.csv table with exact header k1,k2,tag,a,b.",
+          "One UTF-8 workflow/analysis.py file using the supplied byte-exact template.",
+          "One ASCII results/report.md file containing exactly the selected result line."
+        ],
+        "scientific_task": "Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items. `k1` identifies a first-collection source item measured by column `a`; `k2` identifies a second-collection source item measured by column `b`. The two collections are disjoint. `tag` is an opaque annotation. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the `k1` item and the `k2` item in that row."
+      },
+      "brief_digest": "sha256:89ed86657924e247adc8bc997b56b49fd4aa9172abf47f32d785eb01bee2e7dc",
+      "brief_id": "brief:8a68d6ae147ce49e2a11",
+      "case_id": "case:8a68d6ae147ce49e2a11",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "The controller supplies the governing task and pinned requirements material."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:a516621a9cc0c4f6854d",
+        "construction_constraints": [
+          "Use exactly these 12 k1,k2,tag triples in row order: `ca01,cb07,ct01`; `ca02,cb09,ct02`; `ca03,cb11,ct03`; `ca04,cb13,ct04`; `ca05,cb15,ct05`; `ca06,cb17,ct06`; `ca07,cb19,ct07`; `ca08,cb21,ct08`; `ca09,cb23,ct09`; `ca10,cb01,ct10`; `ca11,cb03,ct11`; `ca12,cb05,ct12`.",
+          "Use a values in row order `201.0, 202.0, 203.0, 204.0, 205.0, 206.0, 207.0, 208.0, 209.0, 210.0, 211.0, 212.0` and corresponding b values `202.0, 204.0, 203.0, 205.0, 207.0, 206.0, 209.0, 208.0, 211.0, 210.0, 213.0, 212.0`.",
+          "Every prescribed ca code, cb code, and ct tag occurs exactly once.",
+          "No row has matching numeric suffixes for `k1` and `k2`.",
+          "Call `scipy.stats.ttest_ind`.",
+          "The exact SciPy 1.14.0 result text is `TtestResult(statistic=np.float64(-0.6793662204867575), pvalue=np.float64(0.5039915691282064), df=np.float64(22.0))`; the report must be `[selected-result] ` followed by exactly that text.",
+          "Use only the prescribed ca/cb/ct namespaces and numeric values, which differ from every other supplied construction; do not substitute identifiers or values from another case."
+        ],
+        "required_artifacts": [
+          "One ASCII inputs/data.csv table with exact header k1,k2,tag,a,b.",
+          "One UTF-8 workflow/analysis.py file using the supplied byte-exact template.",
+          "One ASCII results/report.md file containing exactly the selected result line."
+        ],
+        "scientific_task": "Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items. `k1` identifies a first-collection source item measured by column `a`; `k2` identifies a second-collection source item measured by column `b`. The two collections are disjoint. `tag` is an opaque annotation. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the `k1` item and the `k2` item in that row."
+      },
+      "brief_digest": "sha256:99689dcad7f0350e8bfc68ad55c7dca69bdfdabc2e2adc97fd36c73a98e51d20",
+      "brief_id": "brief:a516621a9cc0c4f6854d",
+      "case_id": "case:a516621a9cc0c4f6854d",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "The controller supplies the governing task and pinned requirements material."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:aa79bd1cc2e9bcf7b006",
+        "construction_constraints": [
+          "Use exactly these 24 `k1,k2,tag` triples in row order: `u07,v12,t01`; `u08,v13,t02`; `u09,v14,t03`; `u10,v15,t04`; `u11,v16,t05`; `u12,v17,t06`; `u01,v18,t07`; `u02,v19,t08`; `u03,v20,t09`; `u06,v21,t10`; `u05,v22,t11`; `u04,v23,t12`; `u19,v24,t13`; `u20,v01,t14`; `u21,v02,t15`; `u22,v03,t16`; `u23,v04,t17`; `u24,v05,t18`; `u13,v06,t19`; `u14,v07,t20`; `u15,v08,t21`; `u18,v09,t22`; `u17,v10,t23`; `u16,v11,t24`. Every `k1`, `k2`, and tag is distinct, and no row has matching numeric suffixes for `k1` and `k2`.",
+          "Use `a` values in row order `1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0, 10.5, 11.0, 11.5, 12.0, 12.5` and corresponding `b` values `2.0, 2.25, 4.0, 4.25, 3.0, 3.25, 5.0, 5.25, 7.0, 7.25, 6.0, 6.25, 9.0, 9.25, 8.0, 8.25, 11.0, 11.25, 10.0, 10.25, 13.0, 13.25, 12.0, 12.25`. Each repeated `k1` therefore carries two different `a` measurements.",
+          "Call `scipy.stats.ttest_ind`.",
+          "The exact SciPy 1.14.0 result text for these vectors is `TtestResult(statistic=np.float64(-0.8581613266497022), pvalue=np.float64(0.3952529117073811), df=np.float64(46.0))`; the report must be `[selected-result] ` followed by exactly that text."
+        ],
+        "required_artifacts": [
+          "One ASCII inputs/data.csv table with exact header k1,k2,tag,a,b.",
+          "One UTF-8 workflow/analysis.py file using the supplied byte-exact template.",
+          "One ASCII results/report.md file containing exactly the selected result line."
+        ],
+        "scientific_task": "Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items. `k1` identifies a first-collection source item measured by column `a`; `k2` identifies a second-collection source item measured by column `b`. The two collections are disjoint. `tag` is an opaque annotation. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the `k1` item and the `k2` item in that row."
+      },
+      "brief_digest": "sha256:31fe475515286c429984beb6dfc990b0094264e6dc07e4294730f799b329eb9a",
+      "brief_id": "brief:aa79bd1cc2e9bcf7b006",
+      "case_id": "case:aa79bd1cc2e9bcf7b006",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "The controller supplies the governing task and pinned requirements material."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:c37ea6f502dc593de820",
+        "construction_constraints": [
+          "Use exactly these 24 k1,k2,tag triples in row order: `r01,z09,q01`; `r01,z10,q02`; `r01,z11,q03`; `r02,z12,q04`; `r02,z13,q05`; `r02,z14,q06`; `r03,z15,q07`; `r03,z16,q08`; `r03,z17,q09`; `r04,z18,q10`; `r04,z19,q11`; `r04,z20,q12`; `r05,z21,q13`; `r05,z22,q14`; `r05,z23,q15`; `r06,z24,q16`; `r06,z08,q17`; `r06,z02,q18`; `r07,z03,q19`; `r07,z04,q20`; `r07,z05,q21`; `r08,z06,q22`; `r08,z07,q23`; `r08,z01,q24`.",
+          "Use a values in row order `701.0, 701.25, 701.75, 702.0, 702.25, 702.75, 703.0, 703.25, 703.75, 704.0, 704.25, 704.75, 705.0, 705.25, 705.75, 706.0, 706.25, 706.75, 707.0, 707.25, 707.75, 708.0, 708.25, 708.75` and corresponding b values `699.125, 699.625, 700.125, 700.625, 701.125, 701.625, 702.125, 702.625, 703.125, 703.625, 704.125, 704.625, 705.125, 705.625, 706.125, 706.625, 707.125, 707.625, 708.125, 708.625, 709.125, 709.625, 710.125, 710.625`.",
+          "Each r01 through r08 code occurs on exactly three rows with three different a values; every z01 through z24 code and every q01 through q24 tag occurs once.",
+          "No row has matching numeric suffixes for `k1` and `k2`.",
+          "Call `scipy.stats.mannwhitneyu`.",
+          "The exact SciPy 1.14.0 result text is `MannwhitneyuResult(statistic=np.float64(288.0), pvalue=np.float64(1.0))`; the report must be `[selected-result] ` followed by exactly that text.",
+          "Use only the prescribed r/z/q namespaces and numeric values, which differ from every other supplied construction; do not substitute identifiers or values from another case."
+        ],
+        "required_artifacts": [
+          "One ASCII inputs/data.csv table with exact header k1,k2,tag,a,b.",
+          "One UTF-8 workflow/analysis.py file using the supplied byte-exact template.",
+          "One ASCII results/report.md file containing exactly the selected result line."
+        ],
+        "scientific_task": "Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items. `k1` identifies a first-collection source item measured by column `a`; `k2` identifies a second-collection source item measured by column `b`. The two collections are disjoint. `tag` is an opaque annotation. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the `k1` item and the `k2` item in that row."
+      },
+      "brief_digest": "sha256:51a6f5467b95ce4b13772dbfddd0073d103b859a42cbfabae1154f885ae0345c",
+      "brief_id": "brief:c37ea6f502dc593de820",
+      "case_id": "case:c37ea6f502dc593de820",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "The controller supplies the governing task and pinned requirements material."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:c41c53bc6fedd68b0ccc",
+        "construction_constraints": [
+          "Use exactly these 12 k1,k2,tag triples in row order: `pa01,pb05,pt01`; `pa02,pb07,pt02`; `pa03,pb09,pt03`; `pa04,pb11,pt04`; `pa05,pb13,pt05`; `pa06,pb15,pt06`; `pa07,pb17,pt07`; `pa08,pb19,pt08`; `pa09,pb21,pt09`; `pa10,pb23,pt10`; `pa11,pb01,pt11`; `pa12,pb03,pt12`.",
+          "Use a values in row order `601.0, 602.0, 603.0, 604.0, 605.0, 606.0, 607.0, 608.0, 609.0, 610.0, 611.0, 612.0` and corresponding b values `603.0, 605.0, 604.0, 606.0, 608.0, 607.0, 610.0, 609.0, 612.0, 611.0, 614.0, 613.0`.",
+          "Every prescribed pa code, pb code, and pt tag occurs exactly once.",
+          "No row has matching numeric suffixes for `k1` and `k2`.",
+          "Call `scipy.stats.ttest_rel`.",
+          "The exact SciPy 1.14.0 result text is `TtestResult(statistic=np.float64(-7.26636084983398), pvalue=np.float64(1.610229916816512e-05), df=np.int64(11))`; the report must be `[selected-result] ` followed by exactly that text.",
+          "Use only the prescribed pa/pb/pt namespaces and numeric values, which differ from every other supplied construction; do not substitute identifiers or values from another case."
+        ],
+        "required_artifacts": [
+          "One ASCII inputs/data.csv table with exact header k1,k2,tag,a,b.",
+          "One UTF-8 workflow/analysis.py file using the supplied byte-exact template.",
+          "One ASCII results/report.md file containing exactly the selected result line."
+        ],
+        "scientific_task": "Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items. `k1` identifies a first-collection source item measured by column `a`; `k2` identifies a second-collection source item measured by column `b`. The two collections are disjoint. `tag` is an opaque annotation. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the `k1` item and the `k2` item in that row."
+      },
+      "brief_digest": "sha256:9e8fd71bd9096d1206df7efc56ac95de139d3d307e0e72c0490b3c2bdbe4aab1",
+      "brief_id": "brief:c41c53bc6fedd68b0ccc",
+      "case_id": "case:c41c53bc6fedd68b0ccc",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "The controller supplies the governing task and pinned requirements material."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:d2339be32ee7656f12fb",
+        "construction_constraints": [
+          "Use exactly these 24 k1,k2,tag triples in row order: `x01,y09,s01`; `x01,y10,s02`; `x01,y11,s03`; `x02,y12,s04`; `x02,y13,s05`; `x02,y14,s06`; `x03,y15,s07`; `x03,y16,s08`; `x03,y17,s09`; `x04,y18,s10`; `x04,y19,s11`; `x04,y20,s12`; `x05,y21,s13`; `x05,y22,s14`; `x05,y23,s15`; `x06,y24,s16`; `x06,y08,s17`; `x06,y02,s18`; `x07,y03,s19`; `x07,y04,s20`; `x07,y05,s21`; `x08,y06,s22`; `x08,y07,s23`; `x08,y01,s24`.",
+          "Use a values in row order `10.0, 10.5, 11.0, 20.0, 20.5, 21.0, 30.0, 30.5, 31.0, 40.0, 40.5, 41.0, 50.0, 50.5, 51.0, 60.0, 60.5, 61.0, 70.0, 70.5, 71.0, 80.0, 80.5, 81.0` and corresponding b values `12.0, 22.0, 32.0, 42.0, 52.0, 62.0, 72.0, 82.0, 14.0, 24.0, 34.0, 44.0, 54.0, 64.0, 74.0, 84.0, 16.0, 26.0, 36.0, 46.0, 56.0, 66.0, 76.0, 86.0`.",
+          "Each x01 through x08 code occurs on exactly three rows with three different a values; every y01 through y24 code and every s01 through s24 tag occurs once.",
+          "No row has matching numeric suffixes for `k1` and `k2`.",
+          "Call `scipy.stats.mannwhitneyu`.",
+          "The exact SciPy 1.14.0 result text is `MannwhitneyuResult(statistic=np.float64(252.0), pvalue=np.float64(0.4641699943597949))`; the report must be `[selected-result] ` followed by exactly that text.",
+          "Use only the prescribed x/y/s namespaces and numeric values, which differ from every other supplied construction; do not substitute identifiers or values from another case."
+        ],
+        "required_artifacts": [
+          "One ASCII inputs/data.csv table with exact header k1,k2,tag,a,b.",
+          "One UTF-8 workflow/analysis.py file using the supplied byte-exact template.",
+          "One ASCII results/report.md file containing exactly the selected result line."
+        ],
+        "scientific_task": "Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items. `k1` identifies a first-collection source item measured by column `a`; `k2` identifies a second-collection source item measured by column `b`. The two collections are disjoint. `tag` is an opaque annotation. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the `k1` item and the `k2` item in that row."
+      },
+      "brief_digest": "sha256:878f23d97d09bd1c9604edee9147316c5f7d5bfa6deb2cfbdd97be518ab7ace5",
+      "brief_id": "brief:d2339be32ee7656f12fb",
+      "case_id": "case:d2339be32ee7656f12fb",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "The controller supplies the governing task and pinned requirements material."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:e2830d69c846e7b6b93d",
+        "construction_constraints": [
+          "Use exactly these 12 `k1,k2,tag` triples in row order, taking the first row of each repeated unit from the error construction: `u01,v07,t01`; `u02,v09,t03`; `u03,v11,t05`; `u04,v13,t07`; `u05,v15,t09`; `u06,v17,t11`; `u07,v19,t13`; `u08,v21,t15`; `u09,v23,t17`; `u10,v01,t19`; `u11,v03,t21`; `u12,v05,t23`. Every key in each namespace and every tag is distinct, with no same-suffix `k1`,`k2` row.",
+          "Use `a` values in row order `1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0` and corresponding `b` values `2.0, 4.0, 3.0, 5.0, 7.0, 6.0, 9.0, 8.0, 11.0, 10.0, 13.0, 12.0`.",
+          "Call `scipy.stats.mannwhitneyu`.",
+          "The exact SciPy 1.14.0 result text for these vectors is `MannwhitneyuResult(statistic=np.float64(60.5), pvalue=np.float64(0.5243792697676437))`; the report must be `[selected-result] ` followed by exactly that text."
+        ],
+        "required_artifacts": [
+          "One ASCII inputs/data.csv table with exact header k1,k2,tag,a,b.",
+          "One UTF-8 workflow/analysis.py file using the supplied byte-exact template.",
+          "One ASCII results/report.md file containing exactly the selected result line."
+        ],
+        "scientific_task": "Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items. `k1` identifies a first-collection source item measured by column `a`; `k2` identifies a second-collection source item measured by column `b`. The two collections are disjoint. `tag` is an opaque annotation. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the `k1` item and the `k2` item in that row."
+      },
+      "brief_digest": "sha256:fbfb955d3f900d02415a27f327650eaa77bf7bb269a3cfea92ccf995d8d31b6f",
+      "brief_id": "brief:e2830d69c846e7b6b93d",
+      "case_id": "case:e2830d69c846e7b6b93d",
+      "literal_leakage_screen_passed": true
+    },
+    {
+      "author_visible_brief": {
+        "available_inputs": [
+          "The controller supplies the governing task and pinned requirements material."
+        ],
+        "brief_version": "1.0.0",
+        "case_id": "case:e9e6bf9e80c9287dabe5",
+        "construction_constraints": [
+          "Use exactly these 12 k1,k2,tag triples in row order: `va01,vb04,vt01`; `va02,vb06,vt02`; `va03,vb08,vt03`; `va04,vb10,vt04`; `va05,vb12,vt05`; `va06,vb14,vt06`; `va07,vb16,vt07`; `va08,vb18,vt08`; `va09,vb20,vt09`; `va10,vb22,vt10`; `va11,vb24,vt11`; `va12,vb02,vt12`.",
+          "Use a values in row order `301.0, 302.0, 303.0, 304.0, 305.0, 306.0, 307.0, 308.0, 309.0, 310.0, 311.0, 312.0` and corresponding b values `303.0, 305.0, 304.0, 306.0, 308.0, 307.0, 310.0, 309.0, 312.0, 311.0, 314.0, 313.0`.",
+          "Every prescribed va code, vb code, and vt tag occurs exactly once.",
+          "No row has matching numeric suffixes for `k1` and `k2`.",
+          "Call `scipy.stats.mannwhitneyu`.",
+          "The exact SciPy 1.14.0 result text is `MannwhitneyuResult(statistic=np.float64(50.0), pvalue=np.float64(0.21349573711632197))`; the report must be `[selected-result] ` followed by exactly that text.",
+          "Use only the prescribed va/vb/vt namespaces and numeric values, which differ from every other supplied construction; do not substitute identifiers or values from another case."
+        ],
+        "required_artifacts": [
+          "One ASCII inputs/data.csv table with exact header k1,k2,tag,a,b.",
+          "One UTF-8 workflow/analysis.py file using the supplied byte-exact template.",
+          "One ASCII results/report.md file containing exactly the selected result line."
+        ],
+        "scientific_task": "Apply the named procedure to the complete staged row sequence. The table stores two disjoint collections of source items. `k1` identifies a first-collection source item measured by column `a`; `k2` identifies a second-collection source item measured by column `b`. The two collections are disjoint. `tag` is an opaque annotation. The row pairing is a storage convention only; there is no matching, pairing, block, or other relationship between the `k1` item and the `k2` item in that row."
+      },
+      "brief_digest": "sha256:ed0a47ee6c46a199bdf4ed79e04f7ba47c5657f243a50da4f6027228e23d1474",
+      "brief_id": "brief:e9e6bf9e80c9287dabe5",
+      "case_id": "case:e9e6bf9e80c9287dabe5",
+      "literal_leakage_screen_passed": true
+    }
+  ],
+  "expected_case_count": 14,
+  "frozen_at": "2026-08-10T23:02:00Z",
+  "lane_id": "lane:authorized-independent-unit-entry-v1",
+  "leakage_screen_scope": "finite_literal_and_field_screen_only",
+  "literal_hidden_terms": [
+    "ambiguous",
+    "benchmark answer",
+    "canonical issue",
+    "corrected twin",
+    "corrected_twin",
+    "detector output",
+    "error bearing",
+    "error-bearing",
+    "error_bearing",
+    "expected answer",
+    "hard negative",
+    "hard_negative",
+    "held-out",
+    "heldout",
+    "independent unit",
+    "issue-class:",
+    "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure",
+    "one-analyzed-row-per-authorized-independent-unit",
+    "pseudoreplication",
+    "qualification_heldout",
+    "renamed implementation",
+    "renamed_implementation",
+    "repeated measurement",
+    "sc-referee",
+    "threshold pilot",
+    "threshold_pilot",
+    "unsupported cell",
+    "valid alternative",
+    "valid_alternative"
+  ],
+  "manifest_digest": "sha256:760ed127655f1d425d0aedbf0107b8a358379dba119dd6aefb815686d8f40276",
+  "manifest_id": "brief-manifest:authorized-independent-unit-entry-v1",
+  "manifest_version": "1.0.0",
+  "precase_freeze_digest": "sha256:411ba586fd1deb044791b8a572088c8108fdd3283a67f75851d338b987731621",
+  "qualification_authority": "none_brief_manifest_only"
+}
