@@ -78,7 +78,7 @@ result. The complete-domain and dependence bindings have reached that rung; no s
 |---|---|---|
 | Rate reported over the whole planned set but computed over the surviving subset | **Product-wired** (sealed exam 7/7; exact grant installed; production Finding and zero-Finding control replayed) | Preserve exact pins and qualify any broader envelope separately |
 | Reference panel silently complemented before comparison | **Blind pilots** (six run, zero false accusations; every miss a documented abstention) | Close the one named coverage class, or continue pilots |
-| Hard or binned category used where a continuous measure was declared | **Adversarial review passed** (round five closed both final findings; verified ready) | Blind pilots |
+| Hard or binned category used where a continuous measure was declared | **Blind pilots** (first pilot six of six: the planted error caught, all controls clean, zero false accusations) | Further pilots, then the sealed exam |
 | Plain group average used as a model-expected background | **Recon** (design complete; rebuild on the recognition engine queued) | Build |
 | Directional measurement-error interpretation | Planned | |
 | Poststratified misclassification estimator | Planned | |
