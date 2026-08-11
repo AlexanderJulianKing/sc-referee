@@ -37,27 +37,7 @@ def main() -> int:
         "detector:bounded-report-mean-direction",
         "detector:bounded-reported-method-contract-conflict",
     }
-    assert all(
-        {
-            "detector_id": item["detector_id"],
-            "maturity": item["maturity"],
-            "qualification_ref": item["qualification_ref"],
-            "strongest_output_type": item["strongest_output_type"],
-            "review_basis": item["review_basis"],
-        }
-        == {
-            "detector_id": item["detector_id"],
-            "maturity": "experimental",
-            "qualification_ref": None,
-            "strongest_output_type": "disclosure",
-            "review_basis": "not_qualified",
-        }
-        for item in detector_entries
-    )
-    binding_grants = [
-        grant for item in detector_entries for grant in item.get("binding_grants", [])
-    ]
-    assert binding_grants == [
+    expected_binding_grants = [
         {
             "binding_id": (
                 "method-conflict-binding:"
@@ -74,6 +54,31 @@ def main() -> int:
             "strongest_output_type": "finding",
         },
     ]
+    method_detector = next(
+        item
+        for item in detector_entries
+        if item["detector_id"] == "detector:bounded-analysis-method-conflict"
+    )
+    assert method_detector == {
+        "detector_id": "detector:bounded-analysis-method-conflict",
+        "maturity": "experimental",
+        "qualification_ref": None,
+        "strongest_output_type": "disclosure",
+        "review_basis": "not_qualified",
+        "binding_grants": expected_binding_grants,
+    }
+    assert all(
+        item
+        == {
+            "detector_id": item["detector_id"],
+            "maturity": "experimental",
+            "qualification_ref": None,
+            "strongest_output_type": "disclosure",
+            "review_basis": "not_qualified",
+        }
+        for item in detector_entries
+        if item is not method_detector
+    )
     assert all(not entry["tested_versions"] for entry in capability_matrix["entries"])
     assert all(not entry["inferred_compatibility"] for entry in capability_matrix["entries"])
     obligation_entry = next(

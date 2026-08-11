@@ -30,16 +30,15 @@ coverage. It does not mean the workflow is correct.
 
 Every claim in this section is traceable to a committed record in this repository.
 
-- **One detector has passed a sealed qualification examination, 7 of 7, and holds a recorded,
-  independently verified maintainer promotion.** The complete-domain exposure-denominator
+- **Two exact detector bindings hold installed production authority.** The complete-domain
+  exposure-denominator
   detector (a headline rate computed over only the surviving subset of units but reported as
   covering the whole planned set) was examined against seven sealed, pre-registered assignments:
   both planted errors caught, zero false alarms on five controls, one attempt, no repair. See
   [ADR-0070](docs/implementation/ADR-0070-HELDOUT-THRESHOLD-COMPLETE-DOMAIN-ENVELOPE.md) for the
   examination and [ADR-0071](docs/implementation/ADR-0071-COMPLETE-DOMAIN-ENVELOPE-PROMOTION.md)
-  for the promotion decision. The promotion grants no production authority yet: wiring a real
-  audit run to publish that Finding is separately gated future work, and the installed
-  qualification manifest remains empty until it lands.
+  for the promotion decision. Its exact Round-2 qualification, metric set, and external pin are
+  installed; the other method-conflict bindings remain unauthorized.
 - **The no-false-accusation record is intact.** Across every blind trial and adversarial review
   round conducted to date, the detectors under development have produced zero false accusations.
   Where the tool cannot be certain, it abstains or asks.
@@ -48,8 +47,8 @@ Every claim in this section is traceable to a committed record in this repositor
   asserts a result only when a small, separately written verification kernel accepts a formal
   proof. See
   [EXPERIMENT-0057](docs/implementation/EXPERIMENT-0057-FOUNDER-ORIENTATION-SEMANTIC-V3-SHADOW.md).
-- **A second detector has passed its own sealed examination, at a stricter bar, and holds a
-  recorded promotion.** The dependence / pseudoreplication recognizer requires a
+- **Dependence passed its own sealed examination at a stricter bar and is product-wired at one
+  exact binding.** The dependence / pseudoreplication recognizer requires a
   human-authorized unit definition on a trusted channel, proves from the digest-fixed input
   file which column's values repeat, and abstains outside a narrow certified envelope. After
   nine rounds of independent adversarial review and four blind pilots, it passed a sealed
@@ -59,8 +58,13 @@ Every claim in this section is traceable to a committed record in this repositor
   [ADR-0072](docs/implementation/ADR-0072-HELDOUT-THRESHOLD-DEPENDENCE-ENVELOPE.md),
   [ADR-0073](docs/implementation/ADR-0073-DEPENDENCE-ENVELOPE-PROMOTION.md), and the
   [qualification report](evaluation/qualification/authorized-independent-unit-entry-into-row-independent-procedure-v1.1.0-direct-lane/QUALIFICATION_REPORT.md).
-  Like the first promotion, this grants no production authority yet; production wiring is the
-  program's next arc.
+  Its exact Round-2 qualification, metric set, and external pin are installed; no other unit-key,
+  procedure, or workflow envelope inherits that authority.
+- **The first production Findings are committed and replayable.** Minimal error-bearing workflows
+  for both promoted bindings each produced exactly one policy-valid Finding through the real
+  `run_audit` path. Their matched corrected controls produced zero Findings, and all four semantic
+  locks replay exactly. See the
+  [canonical production-Finding demonstration](evaluation/production-finding-demonstration-v1/README.md).
 - The full program plan and per-capability maturity are in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Five-minute start

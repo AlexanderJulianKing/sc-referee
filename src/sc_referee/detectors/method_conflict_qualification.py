@@ -194,7 +194,7 @@ def _absolute_count_gates_pass(metric_set: Mapping[str, Any], pin: GrantPin) -> 
         and isinstance(pin.required_roots, int)
         and not isinstance(pin.required_roots, bool)
         and pin.required_roots >= 1
-        and missed_roots <= pin.absolute_missed_roots
+        and missed_roots == pin.absolute_missed_roots
         and adjudicated_roots == pin.required_roots
     )
 

@@ -4,21 +4,20 @@ The six burned pilot cases are answer-visible development evidence after the
 failed v1.1.0 and v1.2.0 pilots (their labels were exposed when the pilots were scored), so
 they are permanently qualification-ineligible. They are retained here as the
 regression fixtures the delivery plan requires for the discovered missed
-errors: the current detector must localize the planted retained-subset conflict in
-each error-bearing case and stay clean on every control, deterministically.
+errors.  This is the retained corpus that exercises the live installed-grant
+path: all nine error-bearing cases must publish one Finding and all eighteen
+controls must publish none, deterministically.
 """
 
 from __future__ import annotations
 
 import json
 import shutil
-from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
 import pytest
 
-import sc_referee.controller as controller
 from sc_referee.controller import replay, run_audit
 from sc_referee.method_contract_run import run_method_contract
 from sc_referee.scientific_requirement_contract import (
@@ -266,12 +265,12 @@ def _audit_case(
     return bundle, module
 
 
-def _conflict_candidates(bundle: dict[str, Any]) -> list[dict[str, Any]]:
+def _promoted_conflicts(bundle: dict[str, Any]) -> list[dict[str, Any]]:
     return [
         result
         for result in bundle["detector_results"]
         if result.get("detector_id") == DETECTOR_ID
-        and result.get("state") == "evaluation_finding_candidate"
+        and result.get("state") == "finding_candidate"
         and any(
             item.get("evidence_id") == "evidence:analysis-method-ledger"
             for item in result.get("evidence", [])
@@ -292,20 +291,14 @@ def test_burned_pilot_cases_have_exact_v2_outcomes(
     candidate_id: str,
     role: str,
     expected_state: str,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        controller,
-        "_promote_method_conflict_evaluation",
-        lambda _locked, evaluation: (deepcopy(evaluation.result), None),
-    )
     bundle, module = _audit_case(project_root, tmp_path, runs, slug, candidate_id)
-    conflicts = _conflict_candidates(bundle)
-    assert bundle["findings"] == []
+    conflicts = _promoted_conflicts(bundle)
     assert bundle["executions"] == []
     if role == "error":
         assert module["state"] == "applicable"
         assert len(conflicts) == 1
+        assert len(bundle["findings"]) == 1
         ledger = next(
             item
             for item in conflicts[0]["evidence"]
@@ -313,7 +306,7 @@ def test_burned_pilot_cases_have_exact_v2_outcomes(
         )
         assert ledger["observed_value"]["observed"] == "retained_observed_subset_exposure_only"
         assert ledger["observed_value"]["requirement"] == "complete_declared_domain_exposure"
-        assert conflicts[0]["extensions"]["x-production-finding-permitted"] is False
+        assert conflicts[0]["extensions"]["x-production-finding-permitted"] is True
         cited_paths = {
             ref.get("path")
             for item in conflicts[0]["evidence"]
@@ -323,13 +316,20 @@ def test_burned_pilot_cases_have_exact_v2_outcomes(
     elif role == "corrected":
         assert module["state"] == "applicable"
         assert conflicts == []
+        assert bundle["findings"] == []
         observation = module["observations"][0]
         assert observation["observed_operand"]["value"] == "complete_declared_domain_exposure"
     else:
         assert module["state"] == expected_state
         assert conflicts == []
+        assert bundle["findings"] == []
         if expected_state == "applicable":
             observation = module["observations"][0]
             assert (
                 observation["observed_operand"]["value"] == "retained_observed_subset_exposure_only"
             )
+
+
+def test_burned_live_corpus_freezes_the_reviewed_nine_by_eighteen_balance() -> None:
+    assert sum(role == "error" for _runs, _slug, _candidate, role, _state in CASES) == 9
+    assert sum(role != "error" for _runs, _slug, _candidate, role, _state in CASES) == 18

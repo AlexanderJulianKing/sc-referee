@@ -14,10 +14,11 @@ code truly does or stay silent, and every engineering decision resolves ambiguit
 
 ## Delivered
 
-- **Two promoted binding-level envelopes.** The complete-domain rate error and the narrow
+- **Two product-wired binding-level envelopes.** The complete-domain rate error and the narrow
   dependence/pseudoreplication family each passed a sealed, pre-registered examination **7 of 7**:
-  both planted errors caught, zero false alarms on five controls, one attempt, no repair. Neither
-  is product-wired yet.
+  both planted errors caught, zero false alarms on five controls, one attempt, no repair. Their
+  exact grants are installed, and each has now published one policy-valid, replay-stable Finding
+  through the real production audit path while its matched control twin published none.
 
 - **A no-false-alarm record that has never broken.** Across every blind trial and every
   adversarial review conducted to date, the detectors under development have produced **zero false
@@ -69,13 +70,13 @@ and the **Stage** column below names the highest rung each one has actually reac
 
 "Qualified" means the detector passed its sealed examination. "Promoted" means the maintainer's
 promotion decision is formally recorded. "Product-wired" means a real audit run can publish the
-result, and nothing has reached that rung yet.
+result. The complete-domain and dependence bindings have reached that rung; no sibling binding has.
 
 ### Track 1 — ten scientific error classes
 
 | Error class | Stage | Next step |
 |---|---|---|
-| Rate reported over the whole planned set but computed over the surviving subset | **Promoted** (sealed exam 7/7; promotion recorded 2026-08-10 and independently verified) | Production wiring: schema release and controller work |
+| Rate reported over the whole planned set but computed over the surviving subset | **Product-wired** (sealed exam 7/7; exact grant installed; production Finding and zero-Finding control replayed) | Preserve exact pins and qualify any broader envelope separately |
 | Reference panel silently complemented before comparison | **Blind pilots** (six run, zero false accusations; every miss a documented abstention) | Close the one named coverage class, or continue pilots |
 | Hard or binned category used where a continuous measure was declared | **Adversarial review passed** (round five closed both final findings; verified ready) | Blind pilots |
 | Plain group average used as a model-expected background | **Recon** (design complete; rebuild on the recognition engine queued) | Build |
@@ -93,25 +94,25 @@ frontier is the recognition that finds what to compute over.
 
 | Family | What it catches | Built today | Stage | Next step |
 |---|---|---|---|---|
-| **Dependence / pseudoreplication** | Repeated measurements from one subject counted as independent (300 cells from 3 mice reported as n=300) | Evaluator, safeguard registry, data provers, the full recognizer, and the complete pilot pipeline | **Promoted** (sealed exam 7/7 at the strict two-of-two bar; ADR-0073) — both planted errors caught including an independently structured second positive, zero false alarms | Round-2 schema, grant installation, and production wiring |
+| **Dependence / pseudoreplication** | Repeated measurements from one subject counted as independent (300 cells from 3 mice reported as n=300) | Evaluator, safeguard registry, data provers, full recognizer, pilot pipeline, installed grant, and production controller path | **Product-wired** (sealed exam 7/7 at the strict two-of-two bar; exact grant installed; production Finding and zero-Finding control replayed) | Preserve exact pins and qualify any broader envelope separately |
 | **Multiple testing** | An incomplete or mis-scoped correction across a family of tests | Exact complete-family Benjamini-Hochberg recomputation | Recon | Recognizer build (next family in the queue) |
 | **Design integrity & aggregation** | Aggregation that merges or drops design groups; broken pairing | Exact categorical design, pairing, and aggregation calculations | Recon | Queued third; reuses dependence evidence |
 | **Model / response compatibility** | A model fitted on a scale incompatible with its response | Exact call registry and response-scale comparison | Planned | |
 | **Circular selection ("double dipping")** | Selecting features with the same data later used to test them | A working selection-reuse observation | Planned | |
 | **Identifier integrity** | Sample identifiers that silently fail to match across files | Exact set comparison across tabular and matrix inputs | Planned | |
 
-### The queue right now (as of 2026-08-10)
+### The queue right now (as of 2026-08-11)
 
 | Slot | Work |
 |---|---|
-| In flight | Round-2 production-wiring decisions for the two promoted bindings |
+| Reached | Exact product wiring and first production Findings for complete-domain and dependence |
 | Next | Copy-dosage blind pilots |
 | Then | Multiple-testing recognizer build (recon complete) |
 
 Verification reviews gate every hand-off in this queue: no item advances past a review that found
 something until the finding is fixed and re-checked.
 
-**Qualified and promoted, not product-wired:** dependence / pseudoreplication. The original design named it the
+**Product-wired at one exact binding:** dependence / pseudoreplication. The original design named it the
 first complete vertical, and its decision rule, safeguard registry, and evaluator were already
 built and passing. The new piece is the recognizer: the component that reads an author's code and
 produces proven evidence for that evaluator. It is now built on the same propose-then-verify
@@ -125,7 +126,10 @@ pass; every reviewer-constructed wrong answer became a permanent regression test
 verdict found no known route to a wrong answer. It remains deliberately narrow (it abstains outside
 a small certified envelope), passed two completed blind pilots, a threshold rehearsal, and the
 sealed two-positive examination, and now has the exact ADR-0073 binding-level promotion. Public
-grant installation and production Finding wiring remain absent.
+grant installation and production Finding wiring are now present only for that exact binding. The
+canonical production demonstration publishes one replay-stable Finding for repeated authorized
+`k1` units and zero Findings for its one-row-per-unit control; it does not widen the grammar or
+authorize any sibling binding.
 
 ---
 

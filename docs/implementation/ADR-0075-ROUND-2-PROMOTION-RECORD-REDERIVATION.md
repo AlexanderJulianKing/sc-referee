@@ -84,3 +84,42 @@ references do not change.
   bindings remain unqualified.
 - The five-collection capability manifest invariant remains unchanged; grant metrics and external
   pins live in `qualification-grants-v1`.
+
+## 2026-08-11 ship record: installed authority and first production Findings
+
+The Stage-6 installation was reviewed at commit `4718968` under the maximum-rigor profile and
+returned **CLEARED**, with four low-severity defense-in-depth findings and no blocking authority or
+false-accusation route. That verdict closes a chain that includes the separately accepted sealed
+exam and promotion decisions in ADR-0071 and ADR-0073, the dead-code-safe Round-2 wiring review and
+its permanent adversarial regressions, the corrected-before-first-use v0.19 schema review, the
+current-pin Round-2 record re-derivation, and the final installed-resource review. None of those
+earlier artifacts alone supplied production authority; the installed exact grant and pin remain
+necessary at the live controller call site.
+
+The four low findings are closed as follows:
+
+1. `missed_roots` now must equal the pin's `absolute_missed_roots`; a looser pin cannot authorize a
+   better-looking metric set by monotonic comparison. Both installed pins remain exactly zero.
+2. The 27-case burned complete-domain pilot corpus now runs with installed promotion live in CI and
+   asserts the reviewed result: Findings on all 9 error-bearing cases and none on all 18 controls.
+   The separate answer-visible generic corpus stays explicitly detector-semantic so its retained
+   pre-promotion record contract does not silently change.
+3. `validate_starter.py` compares the full method-conflict detector capability entry to one exact
+   six-key object, including the two binding grants, instead of validating only a five-key
+   projection.
+4. The lower qualification-resource loader now states explicitly that live adapter-identity
+   tamper evidence is enforced by `load_method_conflict_grant_evidence`, not by that lower loader.
+
+The canonical ship demonstration is
+[`evaluation/production-finding-demonstration-v1/`](../../evaluation/production-finding-demonstration-v1/).
+It records controller timestamps rather than accepting declared times, binds all project, audit,
+lock, replay, qualification, metric, and pin identities, and validates every committed bundle
+against the reporting policy. The complete-domain error and the lock-bearing repeated-`k1`
+dependence error each publish exactly one Finding; their matched controls each publish zero, and
+all four replays reproduce detector results, Findings, and coverage.
+
+The honest production score movement is therefore **zero production Findings demonstrated → two
+exact binding-scoped production Finding paths demonstrated**. This is product wiring for those two
+bindings, not a new examination, a grammar expansion, a domain-wide claim, or authority for any of
+the twenty sibling method-conflict bindings. The stricter ten-envelope program's independent
+installed-skill/fresh-machine exit gate remains a separate accounting rule.

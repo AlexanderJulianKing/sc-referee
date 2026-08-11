@@ -677,7 +677,7 @@ def test_resolver_refuses_absent_or_drifted_external_pin_and_absolute_counts(
     )
 
 
-def test_absolute_missed_roots_gate_is_driven_by_the_installed_pin(
+def test_absolute_missed_roots_gate_requires_equality_with_the_installed_pin(
     project_root: Path, candidate: Path
 ) -> None:
     binding, manifest, metric_set, qualification = _records(project_root, candidate)
@@ -694,7 +694,7 @@ def test_absolute_missed_roots_gate_is_driven_by_the_installed_pin(
             metric_set=metric_set,
             pin=pin,
         )
-        is not None
+        is None
     )
 
 

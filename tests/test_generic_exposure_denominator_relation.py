@@ -1,3 +1,10 @@
+"""Retained detector-semantic corpus for complete-domain recognition.
+
+This answer-visible development corpus deliberately suppresses the installed promotion so its
+historical detector-result contract remains stable.  The burned-pilot corpus and the canonical
+production-Finding demonstration exercise the live installed-grant controller path instead.
+"""
+
 from __future__ import annotations
 
 import json

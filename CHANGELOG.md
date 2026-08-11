@@ -2,6 +2,14 @@
 
 ## 0.3.0
 
+- **2026-08-11 — first production Findings demonstrated:** Recorded canonical real-controller
+  demonstrations for the exact complete-domain and dependence grants. Each minimal error-bearing
+  workflow publishes one policy-valid, replay-stable Finding; each matched control twin publishes
+  none. The digest-closed record preserves the source bytes, contract/authority locks, audit
+  bundles, exact published wording, controller-recorded timestamps, and committed replays without
+  executing project-authored code. The install review was cleared after four defense-in-depth
+  hardenings: equality-bound missed-root pins, live 9/9-error and 0/18-control burned-pilot CI,
+  exact six-key starter validation, and explicit lower-loader adapter-identity limits.
 - **2026-08-11 — exact method-conflict grants installed:** Installed the schema-v0.19 Round-2
   qualification records, external metric/pin resource, and controller pins for exactly the
   complete-domain and dependence bindings. The public capability matrix exposes `finding` only

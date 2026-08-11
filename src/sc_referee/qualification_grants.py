@@ -50,7 +50,12 @@ def load_installed_qualification_grants(
     qualification_manifest_path: Path | None = None,
     schema_root: Path | None = None,
 ) -> Mapping[str, InstalledQualificationGrantEvidence]:
-    """Load exactly the digest-sealed grant set shipped by the controller package."""
+    """Load the package's digest-sealed records without consulting live adapter identity.
+
+    Adapter-identity tamper evidence belongs to
+    ``load_method_conflict_grant_evidence``; this lower resource loader closes only the
+    canonical resource, schema, record-digest, and external-pin relationships.
+    """
 
     root = (grant_root or default_qualification_grant_root()).resolve()
     qualifications_path = (
