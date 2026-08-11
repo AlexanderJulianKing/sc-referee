@@ -2282,7 +2282,7 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             result
             for result in bundle.get("detector_results", [])
             if result.get("detector_id") == detector_id
-            and result.get("state") == "evaluation_finding_candidate"
+            and result.get("state") in {"evaluation_finding_candidate", "finding_candidate"}
         ]
         label_status = str(labels_by_case[case_id]["label_status"])
         detector_positive = bool(fired)

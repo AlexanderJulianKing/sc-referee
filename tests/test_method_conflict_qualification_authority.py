@@ -340,7 +340,7 @@ def test_resolver_uses_evaluation_refs_not_typed_agent_refs(
     )
 
 
-def test_registry_exposes_exact_work_packet_and_empty_grant_keeps_candidate(
+def test_registry_exposes_exact_work_packet_and_ungranted_binding_keeps_candidate(
     project_root: Path, candidate: Path
 ) -> None:
     binding, manifest, metric_set, qualification = _records(project_root, candidate)
@@ -357,7 +357,8 @@ def test_registry_exposes_exact_work_packet_and_empty_grant_keeps_candidate(
 
     evaluation = _evaluate_general_detectors(locked)
 
-    assert grant_pins.GRANT_PINS == {}
+    assert len(grant_pins.GRANT_PINS) == 2
+    assert binding.binding_id not in grant_pins.GRANT_PINS
     assert len(evaluation.results) == 1
     assert evaluation.results[0]["state"] == "evaluation_finding_candidate"
     assert evaluation.findings == ()
@@ -375,11 +376,19 @@ def test_test_local_pin_admits_one_finding_through_full_controller_bundle(
     binding, manifest, metric_set, qualification = _records(project_root, candidate)
     del manifest
     pin = _pin(binding, metric_set, qualification)
-    monkeypatch.setattr(grant_pins, "GRANT_PINS", {binding.binding_id: pin})
+    installed_pins = dict(grant_pins.GRANT_PINS)
+    installed_loader = grant_pins.load_method_conflict_grant_evidence
+    monkeypatch.setattr(
+        grant_pins,
+        "GRANT_PINS",
+        {**installed_pins, binding.binding_id: pin},
+    )
     monkeypatch.setattr(
         grant_pins,
         "load_method_conflict_grant_evidence",
-        lambda installed: (qualification, metric_set) if installed == pin else None,
+        lambda installed: (
+            (qualification, metric_set) if installed == pin else installed_loader(installed)
+        ),
     )
     repository = tmp_path / "round2-controller-project"
     repository.mkdir()

@@ -1,4 +1,4 @@
-f7524d23bbec7f84847850e2838d5e8a685dab424fb9a4010e7e5b6a715a615d  CHANGELOG.md
+953a3ea984d51d2812f2876f62ba1061c4fa982cb0ae8f2a45e7c3a8f3ee6916  CHANGELOG.md
 615ff22d9fbe52c6ef7d46bc76112e3cd8b0db13c4fcd8150584618bdd05e4e9  CONTROLLER_INVARIANTS.md
 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30  LICENSE
 3d3a1c594ec36195dfcd2f4740df1396e3bb68d2d5712378cca2f64cb147b0ec  LICENSE-NOTICE.md
@@ -104,7 +104,7 @@ af424607b9ade120f971852d01fd710019270375335290d7f25d1e327359a556  schemas/v0.19.
 eb99ec59035f4c0b01bac825f8562c663b260a3030dd49f7038f4796238f7328  schemas/v0.19.0/benchmark-fixture.schema.json
 14e21d1d205c9bb216f8d4fb4a0917fb64aeea645530fff675cef117e5a04074  schemas/v0.19.0/cache-entry.schema.json
 48364391476f7c63872f6cfa9007a3464d7bc2e6885515e1d9a3fb3a37982b50  schemas/v0.19.0/cache-policy.schema.json
-0d15e176497ff20c218ba8f86e50971373a240994a744be48eafda3e2210f27b  schemas/v0.19.0/capability-matrix.schema.json
+00e3613b3141a33eb4aeec8929164909a2148cf95bf22f4b84d94d046f2c50f7  schemas/v0.19.0/capability-matrix.schema.json
 83561f53edb21425c98aa1d97834e011959e2a8cc3ec4eef1c06d57163a3dcb1  schemas/v0.19.0/causal-contract.schema.json
 ec1d0d44c1b966a1621b8adc52b811e9b4f99fa68f38d4c34e0b166489084349  schemas/v0.19.0/claim.schema.json
 124e3fc34e8509acc751b27e73b8f03d78873becc2d1c01e3ed93c6461ce9387  schemas/v0.19.0/common.schema.json
@@ -113,7 +113,7 @@ bbde32e506708997ea1339058a4cfa8fdffe8424612478048222db0d01079f5f  schemas/v0.19.
 a9071e88e3e7f1849840d6660bc9939f8fd4538d0602ea765125d44a198fa084  schemas/v0.19.0/data-asset.schema.json
 ded09049bfa85982838e874585cf3cd8cd2cb7ad95530469f69dc006adfb6c2f  schemas/v0.19.0/detector-case-outcome.schema.json
 863b619094d1ad9dd1368de198add14521ac454e9960dae10e8e8827c1245ae6  schemas/v0.19.0/detector-evaluation-candidate.schema.json
-12a9aef20a7c6b4742fab8806f45a31f5dd802286908d3bdf057b8679094c068  schemas/v0.19.0/detector-manifest.schema.json
+f6b96343757af5a2f1c25abdd9be63ba2e7ce1a265850019f3f1a643f907109e  schemas/v0.19.0/detector-manifest.schema.json
 a95efe9c951f97f407429abc8ce7d7f551e4d98760073a9e46989523af0d8472  schemas/v0.19.0/detector-qualification.schema.json
 f094b2afcc402fade315c383fe2add3618b1d899f8c2d52242057b96ddeec088  schemas/v0.19.0/detector-result.schema.json
 91ab1716150054b4bd727b58ac569d6bad7dbb39a715fd8577e78d9186324047  schemas/v0.19.0/deterministic-check-observation.schema.json

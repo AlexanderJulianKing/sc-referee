@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any, Literal
 
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
+from sc_referee.qualification_grants import load_installed_qualification_grants
+from sc_referee.version import SCHEMA_VERSION
 
 DimensionState = Literal["supported", "not_evidenced"]
 
@@ -38,11 +40,22 @@ def build_capability_maturity_ledger(source_root: Path) -> dict[str, Any]:
         "capability_qualifications": root
         / "capability-manifests-v1"
         / "qualification-manifests.json",
+        "qualification_grant_set": root / "qualification-grants-v1" / "grant-set.json",
+        "qualification_metric_sets": root / "qualification-grants-v1" / "metric-sets.json",
     }
     sources = {key: _load_canonical_object(path) for key, path in source_paths.items()}
+    installed_grants = load_installed_qualification_grants(
+        grant_root=root / "qualification-grants-v1",
+        qualification_manifest_path=source_paths["capability_qualifications"],
+        schema_root=root / f"schemas-v{SCHEMA_VERSION}",
+    )
+    grant_qualification_by_binding = {
+        binding_id: str(evidence.grant["qualification_id"])
+        for binding_id, evidence in installed_grants.items()
+    }
     entries = [
         *_calculation_entries(sources["calculation_registry"]),
-        *_scientific_check_entries(sources["scientific_registry"]),
+        *_scientific_check_entries(sources["scientific_registry"], grant_qualification_by_binding),
         *_capability_profile_entries(
             _records(sources["capability_profiles"], "profile manifests"),
             _records(sources["capability_detectors"], "detector manifests"),
@@ -124,7 +137,10 @@ def _calculation_entries(registry: dict[str, Any]) -> list[dict[str, Any]]:
     return entries
 
 
-def _scientific_check_entries(registry: dict[str, Any]) -> list[dict[str, Any]]:
+def _scientific_check_entries(
+    registry: dict[str, Any],
+    grant_qualification_by_binding: dict[str, str] | None = None,
+) -> list[dict[str, Any]]:
     modules = registry.get("modules")
     bindings = registry.get("method_conflict_bindings")
     if not isinstance(modules, list) or not isinstance(bindings, list):
@@ -139,12 +155,16 @@ def _scientific_check_entries(registry: dict[str, Any]) -> list[dict[str, Any]]:
         binding_by_check[check_id] = binding
 
     entries: list[dict[str, Any]] = []
+    grants = grant_qualification_by_binding or {}
     for module in modules:
         if not isinstance(module, dict) or not isinstance(module.get("check_id"), str):
             raise CapabilityMaturityLedgerError("scientific module lacks a check ID")
         check_id = str(module["check_id"])
         adapters = _string_ids(module.get("adapters"), "adapter_id")
-        structural_basis = _binding_structural_basis(module, binding_by_check.get(check_id))
+        binding = binding_by_check.get(check_id)
+        structural_basis = _binding_structural_basis(module, binding)
+        binding_id = binding.get("binding_id") if isinstance(binding, dict) else None
+        qualification_id = grants.get(str(binding_id)) if isinstance(binding_id, str) else None
         entries.append(
             _entry(
                 check_id,
@@ -170,7 +190,12 @@ def _scientific_check_entries(registry: dict[str, Any]) -> list[dict[str, Any]]:
                         "the check binding does not independently declare candidate qualification evidence"
                     ),
                     "finding_qualified": _not_evidenced(
-                        "the check binding does not independently declare a promoted qualification"
+                        "the check binding has no exact installed qualification grant"
+                    )
+                    if qualification_id is None
+                    else _supported(
+                        f"binding {binding_id}",
+                        f"installed qualification {qualification_id}",
                     ),
                 },
             )

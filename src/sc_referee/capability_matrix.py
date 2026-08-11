@@ -6,6 +6,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from sc_referee.core.ids import canonical_json, sha256_digest, stable_id
+from sc_referee.detectors import method_conflict_grant_pins
 from sc_referee.records.schema_registry import LocalSchemaRegistry
 from sc_referee.storage.atomic import atomic_create_bytes
 from sc_referee.version import SCHEMA_VERSION, __version__
@@ -449,16 +450,20 @@ def _detector_entry(
     maturity = str(detector["maturity"])
     outputs = _string_list(detector.get("permitted_output_types"), "permitted_output_types", True)
     strongest = max(outputs, key=lambda output: _OUTPUT_RANK[output])
+    binding_grants = _binding_grant_entries(detector, qualification_by_id)
     if maturity == "experimental":
         if strongest == "finding":
             raise CapabilityMatrixError("experimental detector cannot expose Finding capability")
-        return {
+        entry: dict[str, Any] = {
             "detector_id": detector_id,
             "maturity": maturity,
             "qualification_ref": None,
             "strongest_output_type": strongest,
             "review_basis": "not_qualified",
         }
+        if binding_grants:
+            entry["binding_grants"] = binding_grants
+        return entry
     if maturity not in {"validated", "publication_grade"}:
         raise CapabilityMatrixError(f"unsupported detector maturity: {maturity}")
     validation = detector.get("validation")
@@ -478,13 +483,76 @@ def _detector_entry(
         or qualification.get("review_basis") != validation.get("qualification_review_basis")
     ):
         raise CapabilityMatrixError(f"{detector_id} qualification envelope does not match")
-    return {
+    entry = {
         "detector_id": detector_id,
         "maturity": maturity,
         "qualification_ref": qualification_id,
         "strongest_output_type": strongest,
         "review_basis": qualification["review_basis"],
     }
+    if binding_grants:
+        entry["binding_grants"] = binding_grants
+    return entry
+
+
+def _binding_grant_entries(
+    detector: dict[str, Any], qualification_by_id: dict[str, dict[str, Any]]
+) -> list[dict[str, str]]:
+    validation = detector.get("validation")
+    if not isinstance(validation, dict):
+        raise CapabilityMatrixError(f"{detector.get('detector_id')} lacks validation metadata")
+    qualification_ids = validation.get("qualification_record_refs", [])
+    if not isinstance(qualification_ids, list) or not all(
+        isinstance(item, str) and item for item in qualification_ids
+    ):
+        raise CapabilityMatrixError("qualification_record_refs must be an array of identifiers")
+    if qualification_ids != sorted(set(qualification_ids)):
+        raise CapabilityMatrixError("qualification_record_refs must be unique and sorted")
+
+    grants: list[dict[str, str]] = []
+    for qualification_id in qualification_ids:
+        qualification = qualification_by_id.get(qualification_id)
+        scope = qualification.get("binding_scope") if isinstance(qualification, dict) else None
+        if not isinstance(scope, dict):
+            raise CapabilityMatrixError("binding-scoped qualification reference is unresolved")
+        binding_id = scope.get("binding_id")
+        check_id = scope.get("check_id")
+        pin = (
+            method_conflict_grant_pins.GRANT_PINS.get(binding_id)
+            if isinstance(binding_id, str)
+            else None
+        )
+        evidence = (
+            method_conflict_grant_pins.load_method_conflict_grant_evidence(pin)
+            if pin is not None
+            and method_conflict_grant_pins.installed_pin_matches_live_identity(pin)
+            else None
+        )
+        if (
+            not isinstance(binding_id, str)
+            or not isinstance(check_id, str)
+            or pin is None
+            or evidence is None
+            or dict(evidence[0]) != qualification
+            or qualification.get("detector_id") != detector.get("detector_id")
+            or qualification.get("detector_version") != detector.get("detector_version")
+            or qualification.get("outcome") != "promoted"
+            or qualification.get("effective_maturity") not in {"validated", "publication_grade"}
+            or pin.qualification_id != qualification_id
+        ):
+            raise CapabilityMatrixError("binding-scoped qualification has no exact installed grant")
+        grants.append(
+            {
+                "binding_id": binding_id,
+                "check_id": check_id,
+                "qualification_ref": qualification_id,
+                "strongest_output_type": "finding",
+            }
+        )
+    grants.sort(key=lambda item: item["binding_id"])
+    if len({item["binding_id"] for item in grants}) != len(grants):
+        raise CapabilityMatrixError("detector has duplicate binding-scoped grants")
+    return grants
 
 
 def _validate_version_manifests(

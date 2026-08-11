@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import shutil
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,7 @@ from sc_referee_evaluation.prospective_selected_result_verifier import (
     revalidate_independent_selected_result_derivation,
 )
 
+import sc_referee.controller as controller
 from sc_referee.controller import replay, run_audit
 from sc_referee.method_contract_run import run_method_contract
 from sc_referee.scientific_requirement_contract import (
@@ -27,6 +29,18 @@ CONFLICTING_OPERAND = "retained_observed_subset_exposure_only"
 GENERIC_WRITER = (
     "from pathlib import Path\nPath('report.md').write_text('generated\\n', encoding='utf-8')\n"
 )
+
+
+@pytest.fixture(autouse=True)
+def _retain_detector_only_development_contract(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep this retained corpus focused on pre-promotion detector semantics."""
+
+    monkeypatch.setattr(
+        controller,
+        "_promote_method_conflict_evaluation",
+        lambda _locked, evaluation: (deepcopy(evaluation.result), None),
+    )
+
 
 CONFLICT_REPORTS = (
     (

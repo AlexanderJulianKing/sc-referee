@@ -16,6 +16,7 @@ from sc_referee.records.schema_registry import LocalSchemaRegistry
 from scripts.build_method_promotion_schema_release import (
     BASELINE_VERSION,
     PRE_CORRECTION_MANIFEST_CONTENT_DIGEST,
+    PRE_GRANT_INSTALL_MANIFEST_CONTENT_DIGEST,
     RELEASE_VERSION,
     SOURCE_ADRS,
     build_release,
@@ -61,6 +62,8 @@ def test_release_is_complete_accepted_and_self_validating(release: Path) -> None
     changelog = (release / "CHANGELOG.md").read_text(encoding="utf-8")
     assert "0.19.0 pre-use correction — 2026-08-11" in changelog
     assert PRE_CORRECTION_MANIFEST_CONTENT_DIGEST in changelog
+    assert "0.19.0 grant-install representation — 2026-08-11" in changelog
+    assert PRE_GRANT_INSTALL_MANIFEST_CONTENT_DIGEST in changelog
     assert "nothing external consumed the prior bytes" in changelog
     for name in (
         "CHANGELOG.md",
@@ -131,6 +134,28 @@ def test_release_adds_closed_approval_and_static_disclosure_shapes(release: Path
             evaluation_minimums.append(properties["evaluation_refs"]["minItems"])
         assert "minItems" not in properties.get("agent_adjudication_refs", {})
     assert evaluation_minimums == [2]
+
+
+def test_release_adds_exact_binding_scoped_grant_shapes(release: Path) -> None:
+    detector_schema = _load(release / "schemas" / "v0.19.0" / "detector-manifest.schema.json")
+    qualification_refs = detector_schema["properties"]["validation"]["properties"][
+        "qualification_record_refs"
+    ]
+    assert qualification_refs["type"] == "array"
+    assert qualification_refs["uniqueItems"] is True
+
+    matrix_schema = _load(release / "schemas" / "v0.19.0" / "capability-matrix.schema.json")
+    grant = matrix_schema["properties"]["entries"]["items"]["properties"]["detectors"]["items"][
+        "properties"
+    ]["binding_grants"]["items"]
+    assert grant["additionalProperties"] is False
+    assert grant["required"] == [
+        "binding_id",
+        "check_id",
+        "qualification_ref",
+        "strongest_output_type",
+    ]
+    assert grant["properties"]["strongest_output_type"] == {"const": "finding"}
 
 
 @pytest.mark.parametrize(

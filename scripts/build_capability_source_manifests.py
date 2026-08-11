@@ -12,6 +12,12 @@ from sc_referee.version import SCHEMA_VERSION, __version__
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_ROOT = ROOT / "src" / "sc_referee" / "resources" / "capability-manifests-v1"
 GENERATED_AT = "2026-07-30T00:00:00Z"
+_INSTALLED_QUALIFICATION_PATHS = (
+    ROOT / "evaluation/qualification/authorized-independent-unit-entry-into-row-independent-"
+    "procedure-v1.1.0-direct-lane/promotion-round2/DETECTOR_QUALIFICATION.json",
+    ROOT / "evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2/"
+    "promotion-round2/DETECTOR_QUALIFICATION.json",
+)
 ANALYSIS_METHOD_CONFLICT_CHECK_IDS = sorted(
     [
         "check:authorized-independent-unit-entry-into-row-independent-procedure",
@@ -51,6 +57,14 @@ def _write(name: str, value: object) -> None:
     (MANIFEST_ROOT / name).write_text(canonical_json(value) + "\n", encoding="utf-8")
 
 
+def _load_installed_record(path: Path) -> dict[str, Any]:
+    raw = path.read_bytes()
+    value = json.loads(raw)
+    if not isinstance(value, dict) or canonical_json(value).encode("utf-8") != raw.rstrip(b"\n"):
+        raise ValueError(f"installed qualification is not one canonical JSON object: {path}")
+    return value
+
+
 def _upsert(collection: dict[str, Any], id_field: str, record: dict[str, Any]) -> None:
     records = collection.get("records")
     if not isinstance(records, list):
@@ -62,6 +76,16 @@ def _upsert(collection: dict[str, Any], id_field: str, record: dict[str, Any]) -
 
 
 def main() -> None:
+    installed_qualifications = [
+        _load_installed_record(path) for path in _INSTALLED_QUALIFICATION_PATHS
+    ]
+    installed_qualifications.sort(key=lambda item: str(item["qualification_id"]))
+    installed_qualification_ids = [
+        str(item["qualification_id"]) for item in installed_qualifications
+    ]
+    if len(installed_qualification_ids) != 2 or len(set(installed_qualification_ids)) != 2:
+        raise ValueError("grant installation requires exactly two distinct qualifications")
+
     parser_collection = _load("parser-manifests.json")
     tabular_parser_resource = ROOT / "src" / "sc_referee" / "tabular_inventory.py"
     _upsert(
@@ -658,7 +682,7 @@ def main() -> None:
             "issue_classes": ["x-review-scoped-analysis-method-requirement-mismatch"],
             "languages": ["markdown", "python", "r", "r_markdown"],
             "limitations": [
-                "Experimental output cannot become a production Finding.",
+                "The generic experimental detector cannot emit a production Finding; only an independently installed exact binding grant can authorize promotion.",
                 "Only scientific checks explicitly present in the content-addressed release binding registry are covered.",
                 "No project execution, historical intent, numerical causality, universal method adequacy, or broader scientific correctness is established.",
             ],
@@ -711,12 +735,15 @@ def main() -> None:
             "title": "Bounded analysis-method/review-requirement consistency",
             "validation": {
                 "agent_adjudication_count": 0,
-                "evaluation_ref": "adr:0040",
+                "evaluation_ref": (
+                    "docs/implementation/ADR-0075-ROUND-2-PROMOTION-RECORD-REDERIVATION.md"
+                ),
                 "human_scientific_approval_count": 0,
                 "qualification_record_ref": None,
-                "qualification_review_basis": "not_qualified",
-                "software_maintainer_approval_count": 0,
-                "status": "development_only",
+                "qualification_record_refs": installed_qualification_ids,
+                "qualification_review_basis": "agent_panel",
+                "software_maintainer_approval_count": 2,
+                "status": "held_out_validated",
             },
             "wording_constraints": [
                 "State only that the registered selected report and exactly scoped static-source method declaration differs from the scientist's requirement for this review.",
@@ -894,6 +921,9 @@ def main() -> None:
         },
     )
     _write("detector-manifests.json", detector_collection)
+    qualification_collection = _load("qualification-manifests.json")
+    qualification_collection["records"] = installed_qualifications
+    _write("qualification-manifests.json", qualification_collection)
 
     profile_collection = _load("profile-manifests.json")
     python_profiles = [

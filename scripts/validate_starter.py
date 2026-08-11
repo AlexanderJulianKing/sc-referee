@@ -38,7 +38,13 @@ def main() -> int:
         "detector:bounded-reported-method-contract-conflict",
     }
     assert all(
-        item
+        {
+            "detector_id": item["detector_id"],
+            "maturity": item["maturity"],
+            "qualification_ref": item["qualification_ref"],
+            "strongest_output_type": item["strongest_output_type"],
+            "review_basis": item["review_basis"],
+        }
         == {
             "detector_id": item["detector_id"],
             "maturity": "experimental",
@@ -48,6 +54,26 @@ def main() -> int:
         }
         for item in detector_entries
     )
+    binding_grants = [
+        grant for item in detector_entries for grant in item.get("binding_grants", [])
+    ]
+    assert binding_grants == [
+        {
+            "binding_id": (
+                "method-conflict-binding:"
+                "authorized-independent-unit-entry-into-row-independent-procedure-v1"
+            ),
+            "check_id": ("check:authorized-independent-unit-entry-into-row-independent-procedure"),
+            "qualification_ref": "qualification:authorized-independent-unit-entry-v110-round2",
+            "strongest_output_type": "finding",
+        },
+        {
+            "binding_id": "method-conflict-binding:complete-domain-exposure-denominator-v1",
+            "check_id": "check:complete-domain-exposure-denominator",
+            "qualification_ref": ("qualification:complete-domain-exposure-denominator-v207-round2"),
+            "strongest_output_type": "finding",
+        },
+    ]
     assert all(not entry["tested_versions"] for entry in capability_matrix["entries"])
     assert all(not entry["inferred_compatibility"] for entry in capability_matrix["entries"])
     obligation_entry = next(

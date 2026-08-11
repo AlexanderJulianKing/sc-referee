@@ -37,7 +37,7 @@ DETECTOR_ID = "detector:bounded-analysis-method-conflict"
 DETECTOR_VERSION = "0.3.0"
 DETECTOR_MANIFEST_DIGEST = "sha256:5b74ec663a651bd3e2eb934c25896cfbbe02f6840e2ea898296c0d478aa97e0a"
 ROUND2_DETECTOR_MANIFEST_DIGEST = (
-    "sha256:05738abe8845442b25b9d03d35b5a5696f169ca46057aabd970561dd5bbf909e"
+    "sha256:9c6270f47a2ab2d2a75183a9e4a2d2a955974e5968bacc2ba75778a1ae8ab3fb"
 )
 CHECK_ID = "check:authorized-independent-unit-entry-into-row-independent-procedure"
 CHECK_VERSION = "1.1.0"
@@ -45,7 +45,7 @@ BINDING_ID = (
     "method-conflict-binding:authorized-independent-unit-entry-into-row-independent-procedure-v1"
 )
 BINDING_DIGEST = "sha256:e212bf6f81ec30490c817cb810ce5214a160a5841b564019b10b8061ddc0cb16"
-ROUND2_BINDING_DIGEST = "sha256:4a62385441043681dca65005be3c73a11858449955104dc8efe0582606331787"
+ROUND2_BINDING_DIGEST = "sha256:56e8ccdef15d3c2371864e02cab92becb0c6859091ee782c94be2ac9b4b1a43d"
 CHECK_MANIFEST_DIGEST = "sha256:4f48a3104693cd6cdcf215bd620b59449ee87c3cd969ddbe7285f168e598ab21"
 ADAPTER_ID = (
     "adapter:authorized-independent-unit-entry-into-row-independent-procedure:"

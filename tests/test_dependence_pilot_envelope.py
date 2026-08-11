@@ -886,7 +886,7 @@ def test_dependence_dedicated_runtime_probe_passes_for_real() -> None:
     not _DEPENDENCE_SANDBOX_AVAILABLE,
     reason="dedicated SciPy 1.14.0 qualification interpreter is absent",
 )
-def test_dependence_six_role_fixture_runs_real_pipeline_without_findings(
+def test_dependence_six_role_fixture_runs_real_pipeline_with_one_installed_finding(
     tmp_path: Path,
     project_root: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1062,8 +1062,11 @@ def test_dependence_six_role_fixture_runs_real_pipeline_without_findings(
         "sensitivity": 1.0,
         "false_accusation_rate": 0.0,
     }
-    assert detector["production_finding_count"] == 0
-    assert all(row["production_findings"] == 0 for row in detector["entries"])
+    assert detector["production_finding_count"] == 1
+    assert rows_by_role["error_bearing"]["production_findings"] == 1
+    assert all(
+        rows_by_role[role]["production_findings"] == 0 for role in set(_ROLES) - {"error_bearing"}
+    )
     assert all(row["replay_equal"] is True for row in detector["entries"])
 
     replayed_by_role: dict[str, dict[str, Any]] = {}
@@ -1093,7 +1096,7 @@ def test_dependence_six_role_fixture_runs_real_pipeline_without_findings(
         ]
         for role, bundle in replayed_by_role.items()
     }
-    assert states_by_role["error_bearing"] == ["evaluation_finding_candidate"]
+    assert states_by_role["error_bearing"] == ["finding_candidate"]
     for role in ("corrected_twin", "valid_alternative", "hard_negative"):
         assert states_by_role[role] == ["no_issue_detected_within_coverage"]
     assert states_by_role["ambiguous"] == []
@@ -1130,7 +1133,8 @@ def test_dependence_six_role_fixture_runs_real_pipeline_without_findings(
         for assertion in replayed_by_role["unsupported"]["semantic_assertions"]
         if assertion.get("extensions", {}).get("x-scientific-check-id") == config.check_id
     ]
-    assert all(not bundle["findings"] for bundle in replayed_by_role.values())
+    assert len(replayed_by_role["error_bearing"]["findings"]) == 1
+    assert all(not replayed_by_role[role]["findings"] for role in set(_ROLES) - {"error_bearing"})
 
     # The runtime and authored bytes are both bound into intake, while production
     # audit remains non-executing and replay-stable.
@@ -1147,7 +1151,7 @@ def test_dependence_sandbox_execution_tests_cannot_silently_skip_when_runtime_ex
     guarded_tests = (
         test_dependence_dedicated_runtime_probe_passes_for_real,
         test_dependence_pilot_d_four_result_reprs_recompute_in_pinned_runtime,
-        test_dependence_six_role_fixture_runs_real_pipeline_without_findings,
+        test_dependence_six_role_fixture_runs_real_pipeline_with_one_installed_finding,
     )
     skip_conditions: list[bool] = []
     for test in guarded_tests:

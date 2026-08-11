@@ -83,6 +83,34 @@
                 }
               ],
               "properties": {
+                "binding_grants": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "binding_id": {
+                        "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/Identifier"
+                      },
+                      "check_id": {
+                        "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/Identifier"
+                      },
+                      "qualification_ref": {
+                        "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/Identifier"
+                      },
+                      "strongest_output_type": {
+                        "const": "finding"
+                      }
+                    },
+                    "required": [
+                      "binding_id",
+                      "check_id",
+                      "qualification_ref",
+                      "strongest_output_type"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "uniqueItems": true
+                },
                 "detector_id": {
                   "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/Identifier"
                 },

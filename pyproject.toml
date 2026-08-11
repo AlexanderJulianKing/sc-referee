@@ -47,6 +47,7 @@ where = ["src"]
 sc_referee = [
   "reporting/templates/*.j2",
   "resources/capability-manifests-v1/*.json",
+  "resources/qualification-grants-v1/*.json",
   "resources/calculation-check-manifests-v1/*.json",
   "resources/calculation-check-manifests-v2/*.json",
   "resources/calculation-check-manifests-v3/*.json",

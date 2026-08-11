@@ -415,9 +415,10 @@ qualification metric, promotion, or Finding permission follows from this local i
 
 The active v0.3 detector cannot reuse this v0.2 profile or freeze. Accepted schema v0.19.0 now
 provides the forward-only binding-scoped representation for its threshold policy and qualification
-records. Two evaluation-private Round-2 record pairs validate at current pins, but the installed
-grant table and qualification-manifest collection remain empty; representation and retained
-qualification evidence alone confer no production Finding authority.
+records. Two Round-2 record pairs validate at current pins and are installed for exactly the
+complete-domain and dependence bindings. The shared detector remains experimental with a generic
+disclosure ceiling; only the two exact capability-matrix binding grants expose Finding authority,
+and every sibling binding remains unqualified.
 
 `freeze_typed_method_profile` freezes the binding, detector/parser/profile/version manifests,
 independent adapter identity, budgets, and selection protocol before assignment.

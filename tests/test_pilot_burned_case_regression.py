@@ -12,11 +12,13 @@ from __future__ import annotations
 
 import json
 import shutil
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
 import pytest
 
+import sc_referee.controller as controller
 from sc_referee.controller import replay, run_audit
 from sc_referee.method_contract_run import run_method_contract
 from sc_referee.scientific_requirement_contract import (
@@ -290,7 +292,13 @@ def test_burned_pilot_cases_have_exact_v2_outcomes(
     candidate_id: str,
     role: str,
     expected_state: str,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(
+        controller,
+        "_promote_method_conflict_evaluation",
+        lambda _locked, evaluation: (deepcopy(evaluation.result), None),
+    )
     bundle, module = _audit_case(project_root, tmp_path, runs, slug, candidate_id)
     conflicts = _conflict_candidates(bundle)
     assert bundle["findings"] == []

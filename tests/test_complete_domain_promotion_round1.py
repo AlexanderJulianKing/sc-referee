@@ -23,7 +23,11 @@ from sc_referee.capability_matrix import (
     generate_capability_matrix,
 )
 from sc_referee.core.ids import canonical_json, semantic_digest
-from sc_referee.detectors.method_conflict_grant_pins import GrantPin, live_adapter_identity
+from sc_referee.detectors.method_conflict_grant_pins import (
+    GRANT_PINS,
+    GrantPin,
+    live_adapter_identity,
+)
 from sc_referee.detectors.method_conflict_qualification import (
     resolve_method_conflict_qualification,
 )
@@ -36,16 +40,9 @@ PROMOTION = LANE / "promotion"
 PROMOTION_ROUND2 = LANE / "promotion-round2"
 ROUND2_ADR = Path("docs/implementation/ADR-0075-ROUND-2-PROMOTION-RECORD-REDERIVATION.md")
 OPENING = LANE / "heldout-v207-seven-case/HELDOUT_OPENING.json"
-CAPABILITY_MATRIX_DIGEST_WITH_DEPENDENCE_STAGE5 = (
-    "sha256:d7db9216421e2407cb4a9abe7e922cb79673ff1c53130f8318c2bdf148dbe4bf"
-)
 FROZEN_DETECTOR_MANIFESTS = (
     LANE / "heldout-v207-seven-case/detector-run/runs/0e8a84e424013c876694/"
     "audit/derived/detector-manifest.jsonl"
-)
-EMPTY_QUALIFICATION_MANIFEST = (
-    b'{"manifest_kind":"detector_qualification_manifest_collection",'
-    b'"manifest_version":"1.0.0","records":[]}\n'
 )
 
 
@@ -302,20 +299,22 @@ def test_round1_policy_derives_the_frozen_sensitivity_bar_from_heldout_opening(
     assert achieved_recall["estimate"] == 1.0
 
 
-def test_round1_does_not_install_authority_and_current_matrix_stays_experimental(
+def test_round2_installs_exact_binding_authority_while_detector_stays_experimental(
     project_root: Path,
 ) -> None:
     qualification_manifest = (
         project_root
         / "src/sc_referee/resources/capability-manifests-v1/qualification-manifests.json"
     )
-    assert qualification_manifest.read_bytes() == EMPTY_QUALIFICATION_MANIFEST
-    assert _load(qualification_manifest)["records"] == []
+    records = _load(qualification_manifest)["records"]
+    assert {record["qualification_id"] for record in records} == {
+        "qualification:authorized-independent-unit-entry-v110-round2",
+        "qualification:complete-domain-exposure-denominator-v207-round2",
+    }
 
     matrix = generate_capability_matrix(
         default_capability_manifest_root(), project_root / "reference/schemas-v0.19.0"
     )
-    assert semantic_digest(matrix) == CAPABILITY_MATRIX_DIGEST_WITH_DEPENDENCE_STAGE5
     method_entry = next(
         item
         for item in matrix["entries"]
@@ -324,3 +323,6 @@ def test_round1_does_not_install_authority_and_current_matrix_stays_experimental
     assert method_entry["detectors"][0]["maturity"] == "experimental"
     assert method_entry["detectors"][0]["qualification_ref"] is None
     assert method_entry["detectors"][0]["strongest_output_type"] == "disclosure"
+    grants = method_entry["detectors"][0]["binding_grants"]
+    assert len(grants) == 2
+    assert {grant["binding_id"] for grant in grants} == set(GRANT_PINS)

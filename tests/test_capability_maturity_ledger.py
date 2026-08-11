@@ -21,10 +21,15 @@ def test_checked_in_sources_generate_six_independent_dimensions() -> None:
     assert ledger["entries"]
     assert all(tuple(entry["dimensions"]) == DIMENSIONS for entry in ledger["entries"])
     assert all("status" not in entry and "maturity" not in entry for entry in ledger["entries"])
-    assert all(
-        entry["dimensions"]["finding_qualified"]["state"] == "not_evidenced"
+    qualified = [
+        entry
         for entry in ledger["entries"]
-    )
+        if entry["dimensions"]["finding_qualified"]["state"] == "supported"
+    ]
+    assert {entry["capability_id"] for entry in qualified} == {
+        "check:authorized-independent-unit-entry-into-row-independent-procedure",
+        "check:complete-domain-exposure-denominator",
+    }
 
 
 def test_checked_in_private_ledger_matches_current_source_manifests() -> None:
@@ -83,6 +88,39 @@ def test_scientific_binding_does_not_infer_candidate_or_qualification() -> None:
     assert dimensions["structurally_verified"]["state"] == "supported"
     assert dimensions["evaluation_candidate"]["state"] == "not_evidenced"
     assert dimensions["finding_qualified"]["state"] == "not_evidenced"
+
+
+def test_scientific_binding_reports_only_an_exact_installed_grant() -> None:
+    registry: dict[str, Any] = {
+        "modules": [
+            {
+                "check_id": "check:example",
+                "check_version": "1.0.0",
+                "manifest_digest": "sha256:module",
+                "adapters": [{"adapter_id": "adapter:example"}],
+            }
+        ],
+        "method_conflict_bindings": [
+            {
+                "binding_id": "binding:example",
+                "check_id": "check:example",
+                "check_version": "1.0.0",
+                "check_manifest_digest": "sha256:module",
+                "detector_id": "detector:example",
+                "counterevidence_predicates": ["counterevidence"],
+                "required_assertion_roles": ["reported"],
+                "required_evidence_planes": ["reported_text"],
+                "required_semantic_roles": ["method"],
+            }
+        ],
+    }
+    dimensions = _scientific_check_entries(registry, {"binding:example": "qualification:example"})[
+        0
+    ]["dimensions"]
+    assert dimensions["finding_qualified"] == {
+        "state": "supported",
+        "basis": ["binding binding:example", "installed qualification qualification:example"],
+    }
 
 
 def test_profile_dimensions_fail_closed_without_cross_dimension_inference() -> None:

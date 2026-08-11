@@ -35,7 +35,11 @@ from sc_referee_evaluation.dependence_promotion import (
 )
 
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
-from sc_referee.detectors.method_conflict_grant_pins import GrantPin, live_adapter_identity
+from sc_referee.detectors.method_conflict_grant_pins import (
+    GRANT_PINS,
+    GrantPin,
+    live_adapter_identity,
+)
 from sc_referee.detectors.method_conflict_qualification import (
     resolve_method_conflict_qualification,
 )
@@ -65,10 +69,6 @@ QUALIFICATION_MANIFESTS = Path(
 REPORT = LANE / "QUALIFICATION_REPORT.md"
 ADR = Path("docs/implementation/ADR-0073-DEPENDENCE-ENVELOPE-PROMOTION.md")
 THRESHOLD_AUTHORING = LANE / "threshold-rehearsal/authoring/AUTHORING_PROTOCOL.json"
-EMPTY_QUALIFICATION_MANIFEST = (
-    b'{"manifest_kind":"detector_qualification_manifest_collection",'
-    b'"manifest_version":"1.0.0","records":[]}\n'
-)
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -338,7 +338,7 @@ def test_round2_records_rederive_at_current_pins_and_resolve_test_local_grant(
     assert semantic_digest(metric_set) in adr
     assert semantic_digest(qualification) in adr
     assert "dependence `absolute_count_requirements`" in adr
-    assert "manifest collection remain empty" in adr
+    assert "Stage 6 installs two `GrantPin` entries" in adr
 
 
 def test_frozen_bars_and_absolute_missed_root_gate_are_enforced(
@@ -398,9 +398,14 @@ def test_opening_digest_or_bar_drift_refuses_policy(project_root: Path, tmp_path
         numeric_threshold_policy(drifted)
 
 
-def test_round1_records_do_not_install_or_generalize_authority(project_root: Path) -> None:
-    assert (project_root / QUALIFICATION_MANIFESTS).read_bytes() == EMPTY_QUALIFICATION_MANIFEST
-    assert _load(project_root / QUALIFICATION_MANIFESTS)["records"] == []
+def test_round2_records_install_only_exact_binding_authority(project_root: Path) -> None:
+    qualifications = _load(project_root / QUALIFICATION_MANIFESTS)["records"]
+    assert len(qualifications) == 2
+    assert {record["qualification_id"] for record in qualifications} == {
+        "qualification:authorized-independent-unit-entry-v110-round2",
+        "qualification:complete-domain-exposure-denominator-v207-round2",
+    }
+    assert len(GRANT_PINS) == 2
     registry = _load(project_root / REGISTRY)
     target = next(
         item for item in registry["method_conflict_bindings"] if item["binding_id"] == BINDING_ID
@@ -409,6 +414,9 @@ def test_round1_records_do_not_install_or_generalize_authority(project_root: Pat
     assert target["production_finding_permitted"] is False
     assert detector["maturity"] == "experimental"
     assert detector["validation"]["qualification_record_ref"] is None
+    assert detector["validation"]["qualification_record_refs"] == sorted(
+        record["qualification_id"] for record in qualifications
+    )
 
 
 def test_public_report_retains_required_dependence_disclosures(project_root: Path) -> None:

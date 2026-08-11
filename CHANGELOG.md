@@ -2,6 +2,11 @@
 
 ## 0.3.0
 
+- **2026-08-11 — exact method-conflict grants installed:** Installed the schema-v0.19 Round-2
+  qualification records, external metric/pin resource, and controller pins for exactly the
+  complete-domain and dependence bindings. The public capability matrix exposes `finding` only
+  in those two binding-scoped grant entries; the shared detector remains experimental and its
+  other twenty bindings remain unqualified.
 - **2026-08-11 — v0.19.0 pre-use correction:** Corrected the accepted schema in place before
   first use so agent-panel and mixed-panel qualifications require two path-valued
   `evaluation_refs`. The release version remains `0.19.0`: no grant was installed, no record was

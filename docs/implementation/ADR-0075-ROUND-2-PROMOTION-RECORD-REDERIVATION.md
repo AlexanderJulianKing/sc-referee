@@ -1,9 +1,9 @@
 # ADR-0075: Round-2 promotion-record re-derivation
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-11
 - Decision owners: sc-referee maintainers
-- Scope: evaluation-private evidence construction only; no installed grant
+- Scope: Round-2 evidence re-derivation and exact binding-scoped grant installation
 
 ## Context
 
@@ -14,8 +14,9 @@ qualification evidence. ADR-0074 separately ruled the complete-domain detector's
 seven-case replay at the current adapter bytes into the existing qualification decision.
 
 The maintainer's blanket approval for the Round-2 construction authorizes deterministic
-re-derivation of both record sets. It does not install a `GrantPin`, populate
-`qualification-manifests.json`, change detector maturity, or permit a production Finding.
+re-derivation of both record sets. The subsequent Stage-6 approval installs only the two exact
+binding grants. It does not change the shared detector's experimental maturity or authorize any
+sibling binding.
 
 ## Decision under review
 
@@ -28,20 +29,20 @@ The record digests constructed for review are:
 
 | Binding | Qualification digest | Metric-set digest | Threshold-policy digest |
 | --- | --- | --- | --- |
-| complete-domain exposure denominator | `sha256:50780c9b05e5c27003d9573fbb87fa7cbe75be016fb0e768ac5039d6e01ed204` | `sha256:409b8e27a466f29d34dc79beada348cf774030caf88d05e847e80b486e9b1335` | `sha256:fcf27c8d4d315fe836e0d35356ecadc496be4e53b607617d18c8c4bd670efc80` |
-| authorized independent-unit entry | `sha256:828bd08f9a460f9d92257593e948bf2506abf6b94350897db6776fd75924459e` | `sha256:afcd62e5dcdf7629698ef9fcc191da01678cec36ee270c218762b9bc87efeb05` | `sha256:92af51be5f6d5e5127337963025cf0932747b4a088e7376f6d22d9d68d0ff644` |
+| complete-domain exposure denominator | `sha256:3a44dbdb144c152b7185c0dccc6bf855346093341324acfd443689982dd02dbe` | `sha256:50fda7205c683b49fc42351de25c7b98a46bd8ef62b7ca9379703c55e12e67a1` | `sha256:fcf27c8d4d315fe836e0d35356ecadc496be4e53b607617d18c8c4bd670efc80` |
+| authorized independent-unit entry | `sha256:a9114559f7b4ba0b75d704f0b6ba746e2150a8cb32da0cf3e8a9e975c541f9ba` | `sha256:27ac7cc5d1112661cef27a88694fef711f62877213f791e44a614ff52953f1ed` | `sha256:92af51be5f6d5e5127337963025cf0932747b4a088e7376f6d22d9d68d0ff644` |
 
 ## Current pin table
 
 | Field | Complete-domain | Dependence |
 | --- | --- | --- |
-| binding digest | `sha256:8998fc99f4bd9f8107e2049c1eb37dd4adc0234f67d36a97008b371b529c6351` | `sha256:4a62385441043681dca65005be3c73a11858449955104dc8efe0582606331787` |
+| binding digest | `sha256:d67b3bb459c32f84f4d920cffc9b56ab68d96741932bf3771926070342ff94e2` | `sha256:56e8ccdef15d3c2371864e02cab92becb0c6859091ee782c94be2ac9b4b1a43d` |
 | check manifest digest | `sha256:c3ef7acd8597c86e8a121ba43e94d4f2a2993c08cd2c14981b85b13c431841a9` | `sha256:4f48a3104693cd6cdcf215bd620b59449ee87c3cd969ddbe7285f168e598ab21` |
-| detector manifest digest | `sha256:05738abe8845442b25b9d03d35b5a5696f169ca46057aabd970561dd5bbf909e` | `sha256:05738abe8845442b25b9d03d35b5a5696f169ca46057aabd970561dd5bbf909e` |
+| detector manifest digest | `sha256:9c6270f47a2ab2d2a75183a9e4a2d2a955974e5968bacc2ba75778a1ae8ab3fb` | `sha256:9c6270f47a2ab2d2a75183a9e4a2d2a955974e5968bacc2ba75778a1ae8ab3fb` |
 | exam/current adapter implementation | `sha256:cb6de94e39efdf726cc516178b77b85443044415b72c8671025ef9c2e6eef05c` | `sha256:d5d22803d309ddda51651bcc033cb3e5aa4e093988550fb489b7e9671e289c54` |
 | exam/current adapter manifest | `sha256:231046e541e1e84671b7fe716a2454c67d2d931f1cfe432e7de80512987d3a20` | `sha256:81df54974a949648f6f86287df725c1a69ce63f41100480d299680f92eee3776` |
 | recognition grammar | `sha256:c757692071a6925a5ca5e409dc0ad79f7421fcdbc93fb15c14efb30050524362` | `sha256:bb3b283145ec1420491771ca49fbd2214e553602a735af2a6f7027980c8be873` |
-| qualification adapter implementation | `sha256:d860d4b3e39081e0f35d9f73714141f650118ccbce15d413d93d4885967b3efe` | `sha256:6cbbb60d06bcc076bbb3b02868a8b08125e1a5e89c01a018cb7a2c7144856b3c` |
+| qualification adapter implementation | `sha256:9b318abe37e34d7484c3d4f5bebad28f6e48e306bca9c0c8c8e6e42aaa432a0b` | `sha256:a8989baf0eba769aa1f458e36f73c99a409d73653d90d7f540f7742816c34c64` |
 
 The complete-domain adapter identity is the HEAD identity ruled admissible by ADR-0074. The
 dependence adapter identity already matches the sealed exam; its binding and detector-manifest
@@ -76,6 +77,10 @@ references do not change.
 
 - A test-local `GrantPin` can resolve each exact Round-2 pair against its matching live binding.
 - Every sibling binding refuses the same test-local pin.
-- Production behavior remains unchanged because the installed pin table and qualification
-  manifest collection remain empty.
-- Installing either grant is a separate public acceptance and wiring decision.
+- Stage 6 installs two `GrantPin` entries, the two qualifications, and their metric sets under a
+  separate digest-closed grant resource. Production resolution remains fail-closed on every pin.
+- The capability matrix publishes `finding` only inside the two exact binding-grant entries. The
+  generic detector remains experimental with a disclosure ceiling, and all twenty sibling
+  bindings remain unqualified.
+- The five-collection capability manifest invariant remains unchanged; grant metrics and external
+  pins live in `qualification-grants-v1`.

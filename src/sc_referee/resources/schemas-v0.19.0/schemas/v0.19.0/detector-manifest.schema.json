@@ -439,6 +439,13 @@
             "null"
           ]
         },
+        "qualification_record_refs": {
+          "items": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/Identifier"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
         "qualification_review_basis": {
           "enum": [
             "not_qualified",

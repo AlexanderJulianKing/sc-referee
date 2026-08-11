@@ -51,7 +51,9 @@ def _copied_manifest_root(tmp_path: Path) -> Path:
     return target
 
 
-def test_bundled_matrix_is_deterministic_and_preserves_unqualified_state(project_root) -> None:
+def test_bundled_matrix_is_deterministic_and_publishes_two_exact_binding_grants(
+    project_root,
+) -> None:
     root = default_capability_manifest_root()
     first = generate_capability_matrix(root, _schema_root(project_root))
     second = generate_capability_matrix(root, _schema_root(project_root))
@@ -75,6 +77,14 @@ def test_bundled_matrix_is_deterministic_and_preserves_unqualified_state(project
         {
             "record_type": "detector_manifest",
             "record_id": "detector:bounded-reported-method-contract-conflict",
+        },
+        {
+            "record_type": "detector_qualification",
+            "record_id": "qualification:authorized-independent-unit-entry-v110-round2",
+        },
+        {
+            "record_type": "detector_qualification",
+            "record_id": "qualification:complete-domain-exposure-denominator-v207-round2",
         },
         {
             "record_type": "parser_manifest",
@@ -139,6 +149,31 @@ def test_bundled_matrix_is_deterministic_and_preserves_unqualified_state(project
     assert analysis_entry["language"] is None
     assert analysis_entry["detectors"] == [
         {
+            "binding_grants": [
+                {
+                    "binding_id": (
+                        "method-conflict-binding:authorized-independent-unit-entry-into-row-"
+                        "independent-procedure-v1"
+                    ),
+                    "check_id": (
+                        "check:authorized-independent-unit-entry-into-row-independent-procedure"
+                    ),
+                    "qualification_ref": (
+                        "qualification:authorized-independent-unit-entry-v110-round2"
+                    ),
+                    "strongest_output_type": "finding",
+                },
+                {
+                    "binding_id": (
+                        "method-conflict-binding:complete-domain-exposure-denominator-v1"
+                    ),
+                    "check_id": "check:complete-domain-exposure-denominator",
+                    "qualification_ref": (
+                        "qualification:complete-domain-exposure-denominator-v207-round2"
+                    ),
+                    "strongest_output_type": "finding",
+                },
+            ],
             "detector_id": "detector:bounded-analysis-method-conflict",
             "maturity": "experimental",
             "qualification_ref": None,
@@ -146,6 +181,14 @@ def test_bundled_matrix_is_deterministic_and_preserves_unqualified_state(project
             "strongest_output_type": "disclosure",
         }
     ]
+    assert (
+        sum(
+            len(detector.get("binding_grants", []))
+            for entry in first["entries"]
+            for detector in entry["detectors"]
+        )
+        == 2
+    )
     assert any("cannot emit a production Finding" in gap for gap in analysis_entry["known_gaps"])
     feature_entry = next(
         entry

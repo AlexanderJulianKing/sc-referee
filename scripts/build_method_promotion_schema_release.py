@@ -28,6 +28,9 @@ RELEASE_DATE = "2026-08-11"
 PRE_CORRECTION_MANIFEST_CONTENT_DIGEST = (
     "sha256:7188bd85b51f28e57ff0aa022fc2a2043ec248968bac19b37a63599a616cce9d"
 )
+PRE_GRANT_INSTALL_MANIFEST_CONTENT_DIGEST = (
+    "sha256:b8ec49349fdf86913a5152d287af7a26d56221630e1525ebca494069cdd1a909"
+)
 
 
 def _maintainer_approval_schema() -> dict[str, Any]:
@@ -86,6 +89,46 @@ def _extend_release_qualification(schema: dict[str, Any]) -> None:
     )
     object_branch["properties"]["stage3_comparison_artifact_exists"] = {"type": "boolean"}
     object_branch["required"].append("stage3_comparison_artifact_exists")
+
+
+def _extend_detector_manifest_for_binding_grants(schema: dict[str, Any]) -> None:
+    validation = schema["properties"]["validation"]
+    validation["properties"]["qualification_record_refs"] = {
+        "items": {"$ref": _common_identifier_ref()},
+        "type": "array",
+        "uniqueItems": True,
+    }
+
+
+def _extend_capability_matrix_for_binding_grants(schema: dict[str, Any]) -> None:
+    detector_entry = schema["properties"]["entries"]["items"]["properties"]["detectors"]["items"]
+    detector_entry["properties"]["binding_grants"] = {
+        "items": {
+            "additionalProperties": False,
+            "properties": {
+                "binding_id": {"$ref": _common_identifier_ref()},
+                "check_id": {"$ref": _common_identifier_ref()},
+                "qualification_ref": {"$ref": _common_identifier_ref()},
+                "strongest_output_type": {"const": "finding"},
+            },
+            "required": [
+                "binding_id",
+                "check_id",
+                "qualification_ref",
+                "strongest_output_type",
+            ],
+            "type": "object",
+        },
+        "type": "array",
+        "uniqueItems": True,
+    }
+
+
+def _common_identifier_ref() -> str:
+    return (
+        f"https://w3id.org/sc-referee/schema/v{RELEASE_VERSION}/"
+        "common.schema.json#/$defs/Identifier"
+    )
 
 
 def _transform_release_example(name: str, value: dict[str, Any]) -> None:
@@ -181,6 +224,14 @@ installs no qualification grant and grants no Finding authority.
 
 def _changelog() -> str:
     return f"""# Changelog
+
+## {RELEASE_VERSION} grant-install representation — {RELEASE_DATE}
+
+- Added plural detector-validation qualification references and exact binding-scoped capability
+  grants while preserving the generic detector's experimental maturity and disclosure ceiling.
+- This representation was added before the first grant installation under the maintainer-approved
+  Round-2 authority change. The preceding corrected release-tree manifest-content digest was
+  `{PRE_GRANT_INSTALL_MANIFEST_CONTENT_DIGEST}`.
 
 ## {RELEASE_VERSION} pre-use correction — {RELEASE_DATE}
 
@@ -288,6 +339,10 @@ def build_release(output: Path) -> int:
             _extend_metric_set(schema)
         elif source.name == "detector-qualification.schema.json":
             _extend_release_qualification(schema)
+        elif source.name == "detector-manifest.schema.json":
+            _extend_detector_manifest_for_binding_grants(schema)
+        elif source.name == "capability-matrix.schema.json":
+            _extend_capability_matrix_for_binding_grants(schema)
         _write_json(schema_output / source.name, schema)
 
     catalog = _replace_version(_read_json(BASELINE / "schema-catalog.json"))

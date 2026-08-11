@@ -325,14 +325,15 @@ Accepted schema v0.19.0 closes that representation gap with a v0.3 static profil
 binding scope, content-addressed pilot-informed threshold policy, thresholded metric evidence, and
 binding-level DetectorQualification. The complete-domain and dependence envelopes have retained
 sealed qualification evidence, maintainer promotion decisions, and evaluation-private Round-2
-records re-derived at current v0.19 pins. The fail-closed resolver validates those records only
-against exact test-local pins.
+records re-derived at current v0.19 pins. The fail-closed resolver now validates the two installed
+record pairs against exact controller pins.
 
-The remaining gate is installation and public production authority, not schema representation or
-held-out evidence. `qualification-manifests.json` and the installed `GRANT_PINS` mapping remain
-empty, detector manifests remain experimental, and production bindings remain
-`production_finding_permitted: false`. No production Finding can be admitted until a separate
-maintainer decision installs exact grants and completes the remaining production release wiring.
+This gap is resolved for exactly two bindings. `qualification-manifests.json` carries those two
+records; `qualification-grants-v1` binds their metric sets and external pins; and `GRANT_PINS`
+contains exactly the complete-domain and dependence entries. Detector manifests remain
+experimental and production bindings remain `production_finding_permitted: false`; authority is
+published only by the capability matrix's two exact binding-grant entries. The other twenty
+bindings remain fail-closed and unqualified.
 
 ## Resolved pre-snapshot AuditRun failure gap
 

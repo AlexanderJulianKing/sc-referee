@@ -16,6 +16,7 @@ from sc_referee_evaluation.complete_domain_replay_at_head import (
     load_complete_domain_replay_at_head,
 )
 
+import sc_referee.controller as controller
 from sc_referee.core.ids import canonical_json
 
 
@@ -57,6 +58,11 @@ def test_retained_head_replay_preserves_all_case_outcomes_across_v019_identity_d
     # orchestrator commit, then compares every substantive field while
     # excluding only the expected commit-id change.
     monkeypatch.setattr(replay_at_head, "_require_audit_paths_at_head", lambda _root: None)
+    monkeypatch.setattr(
+        controller,
+        "_promote_method_conflict_evaluation",
+        lambda _locked, evaluation: (deepcopy(evaluation.result), None),
+    )
     replayed = build_complete_domain_replay_at_head(
         project_root,
         tmp_path / "runs",

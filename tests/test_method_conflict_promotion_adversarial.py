@@ -83,7 +83,7 @@ def _resolver_arguments(
     return binding, manifest, metric_set, qualification, _pin(binding, metric_set, qualification)
 
 
-def test_installed_empty_pin_table_never_calls_admission_for_method_candidate(
+def test_installed_grants_never_admit_an_ungranted_method_candidate(
     schema_root: Path,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -101,7 +101,7 @@ def test_installed_empty_pin_table_never_calls_admission_for_method_candidate(
 
     bundle = _lock_method_authority(repository, schema_root, tmp_path)
 
-    assert grant_pins.GRANT_PINS == {}
+    assert len(grant_pins.GRANT_PINS) == 2
     assert calls == []
     assert bundle["findings"] == []
     assert any(
@@ -109,7 +109,7 @@ def test_installed_empty_pin_table_never_calls_admission_for_method_candidate(
     )
 
 
-def test_installed_empty_pin_table_preserves_general_audit_replay(
+def test_installed_grants_preserve_unrelated_walking_skeleton_audit_replay(
     project_root: Path,
     schema_root: Path,
     tmp_path: Path,
@@ -129,6 +129,7 @@ def test_installed_empty_pin_table_preserves_general_audit_replay(
     bundle = run_audit(repository, output, schema_root, report="report.md")
     replayed = replay(output / "semantic.lock.json", tmp_path / "replay", schema_root)
 
+    assert len(grant_pins.GRANT_PINS) == 2
     assert calls == []
     assert bundle["findings"] == []
     for field in (

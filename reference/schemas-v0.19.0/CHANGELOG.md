@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.19.0 grant-install representation — 2026-08-11
+
+- Added plural detector-validation qualification references and exact binding-scoped capability
+  grants while preserving the generic detector's experimental maturity and disclosure ceiling.
+- This representation was added before the first grant installation under the maintainer-approved
+  Round-2 authority change. The preceding corrected release-tree manifest-content digest was
+  `sha256:b8ec49349fdf86913a5152d287af7a26d56221630e1525ebca494069cdd1a909`.
+
 ## 0.19.0 pre-use correction — 2026-08-11
 
 - Corrected the accepted release in place before first use: agent-panel and mixed-panel review now
