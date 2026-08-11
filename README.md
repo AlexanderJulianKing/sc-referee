@@ -1,71 +1,45 @@
 # sc-referee
 
-`sc-referee` is a conservative auditor for scientific-analysis repositories. It takes an immutable
-snapshot, inspects supported files without running project-authored code, records exactly what it
-could and could not establish, and produces a replayable audit report.
+`sc-referee` checks whether a scientific report matches what its code actually does. It reads
+the analysis code, the exact data files it was given, and the report it produced, without ever
+running the code. When it can demonstrate a real problem, it says so with evidence. When it
+cannot be certain, it stays quiet or asks a question instead of guessing. Across every blind
+trial and sealed examination to date, it has never made a false accusation.
 
-> **Public alpha:** the current program version is `0.3.0` and the public record schema
-> is `0.19.0`. The overhaul is usable for bounded review, but it is not a correctness certificate,
-> publication approval, or general detector of every possible scientific mistake.
+> **Public alpha:** program version `0.3.0`, public record schema `0.19.0`. Usable for bounded
+> review; not a correctness certificate, publication approval, or detector of every possible
+> scientific mistake.
 
-## Why it exists
+## What it tells you
 
-Scientific workflows often combine code, notebooks, reports, intermediate tables, large datasets,
-and undocumented choices. A reviewer may be able to demonstrate one narrow mismatch while many
-other questions remain unresolved. `sc-referee` preserves that distinction.
+Every audit produces four kinds of statements:
 
-Its public assessment types are:
-
-| Assessment | Meaning |
+| Statement | Plain meaning |
 |---|---|
-| `Finding` | A narrowly worded demonstrated issue that passed every admission requirement. |
-| `ConditionalConcern` | A stated consequence that applies only if an unresolved premise is later established. |
-| `MaterialQuestion` | A bounded question whose answer can change the audit. |
-| `Disclosure` | A relevant limitation, unsupported boundary, or deterministic observation below Finding authority. |
+| `Finding` | A demonstrated problem that passed every admission check. |
+| `MaterialQuestion` | A question for the scientist whose answer could change the audit. |
+| `ConditionalConcern` | A problem that exists only if an open question resolves a certain way. |
+| `Disclosure` | A limitation or observation the tool wants on the record. |
 
-Zero Findings means only that no issue was admitted within the audit's declared evidence and
-coverage. It does not mean the workflow is correct.
+Zero Findings means only that nothing was demonstrated within what the tool could check; it does
+not mean the analysis is correct. The audit says exactly what it could and could not check.
 
-## Program status and validation record
+## What it catches today
 
-Every claim in this section is traceable to a committed record in this repository.
+Two error classes have earned the right to produce production Findings, each by passing a
+sealed, pre-registered, one-attempt examination with zero false alarms:
 
-- **Two exact detector bindings hold installed production authority.** The complete-domain
-  exposure-denominator
-  detector (a headline rate computed over only the surviving subset of units but reported as
-  covering the whole planned set) was examined against seven sealed, pre-registered assignments:
-  both planted errors caught, zero false alarms on five controls, one attempt, no repair. See
-  [ADR-0070](docs/implementation/ADR-0070-HELDOUT-THRESHOLD-COMPLETE-DOMAIN-ENVELOPE.md) for the
-  examination and [ADR-0071](docs/implementation/ADR-0071-COMPLETE-DOMAIN-ENVELOPE-PROMOTION.md)
-  for the promotion decision. Its exact Round-2 qualification, metric set, and external pin are
-  installed; the other method-conflict bindings remain unauthorized.
-- **The no-false-accusation record is intact.** Across every blind trial and adversarial review
-  round conducted to date, the detectors under development have produced zero false accusations.
-  Where the tool cannot be certain, it abstains or asks.
-- **A general recognition engine, independently reviewed.** The founder-orientation detector
-  interprets what a program's operations mean rather than matching code by appearance, and
-  asserts a result only when a small, separately written verification kernel accepts a formal
-  proof. See
-  [EXPERIMENT-0057](docs/implementation/EXPERIMENT-0057-FOUNDER-ORIENTATION-SEMANTIC-V3-SHADOW.md).
-- **Dependence passed its own sealed examination at a stricter bar and is product-wired at one
-  exact binding.** The dependence / pseudoreplication recognizer requires a
-  human-authorized unit definition on a trusted channel, proves from the digest-fixed input
-  file which column's values repeat, and abstains outside a narrow certified envelope. After
-  nine rounds of independent adversarial review and four blind pilots, it passed a sealed
-  seven-case examination seven of seven at the two-of-two sensitivity bar: both planted errors
-  caught, including an independently structured second positive, with zero false alarms on five
-  controls, one attempt, no repair. See
-  [ADR-0072](docs/implementation/ADR-0072-HELDOUT-THRESHOLD-DEPENDENCE-ENVELOPE.md),
-  [ADR-0073](docs/implementation/ADR-0073-DEPENDENCE-ENVELOPE-PROMOTION.md), and the
-  [qualification report](evaluation/qualification/authorized-independent-unit-entry-into-row-independent-procedure-v1.1.0-direct-lane/QUALIFICATION_REPORT.md).
-  Its exact Round-2 qualification, metric set, and external pin are installed; no other unit-key,
-  procedure, or workflow envelope inherits that authority.
-- **The first production Findings are committed and replayable.** Minimal error-bearing workflows
-  for both promoted bindings each produced exactly one policy-valid Finding through the real
-  `run_audit` path. Their matched corrected controls produced zero Findings, and all four semantic
-  locks replay exactly. See the
-  [canonical production-Finding demonstration](evaluation/production-finding-demonstration-v1/README.md).
-- The full program plan and per-capability maturity are in [docs/ROADMAP.md](docs/ROADMAP.md).
+- **A headline rate quietly computed over only the surviving subset** of samples while the
+  report describes the whole planned set.
+- **Repeated measurements from the same source counted as independent evidence**, the error
+  known as pseudoreplication. This detector proves which data rows repeat directly from the
+  digest-pinned input file, and requires a human-authorized definition of the independent unit.
+
+The first demonstrated Findings, their zero-finding control runs, and the complete validation
+record (sealed examinations, promotion decisions, and every blind pilot, including the failed
+ones) are committed in this repository and linked from the
+[roadmap and status board](docs/ROADMAP.md). More error classes are in development on the same
+ladder; nothing reports a Finding without passing its own examination first.
 
 ## Five-minute start
 
@@ -120,8 +94,14 @@ This repository contains:
 - `method-contract` for freezing either the closed expected-count profile or one atomic,
   registry-published scientist-authorized requirement before coding.
 
-The skills are distributed in a validated Codex plugin under `plugins/sc-referee`. A repo
-marketplace is included for local installation. See [agentic skill setup](docs/AGENTIC_SKILL.md)
+The skills are distributed in a validated plugin under `plugins/sc-referee`, and this
+repository is itself the plugin marketplace. In Claude Code:
+
+```text
+/plugin marketplace add AlexanderJulianKing/sc-referee
+/plugin install sc-referee@sc-referee
+```
+ See [agentic skill setup](docs/AGENTIC_SKILL.md)
 for Codex and the bounded manual Agent Skills path for Claude Code.
 
 Example request after installation:

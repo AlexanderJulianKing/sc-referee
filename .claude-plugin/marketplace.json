@@ -1,0 +1,28 @@
+{
+  "name": "sc-referee",
+  "owner": {
+    "name": "Alexander King",
+    "url": "https://github.com/AlexanderJulianKing/sc-referee"
+  },
+  "metadata": {
+    "description": "Conservative, non-executing scientific workflow audits with a bundled verified runtime.",
+    "version": "0.3.3"
+  },
+  "plugins": [
+    {
+      "name": "sc-referee",
+      "source": "./plugins/sc-referee",
+      "description": "Audit scientific workflows and freeze bounded pre-analysis method contracts without executing project-authored code.",
+      "version": "0.3.3",
+      "author": {
+        "name": "Alexander King"
+      },
+      "keywords": [
+        "science",
+        "scientific-audit",
+        "static-analysis",
+        "reproducibility"
+      ]
+    }
+  ]
+}
