@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,7 @@ from sc_referee.scientific_checks.core import (
     InspectionDocument,
     RecordRef,
 )
+from scripts import dependence_heldout_run as dependence_driver
 from scripts.build_dependence_qualification_lane import (
     ADDITIONAL_HIDDEN_TERMS,
     CANDIDATE_ID,
@@ -55,15 +57,24 @@ from scripts.build_dependence_qualification_lane import (
     build_dependence_qualification_lane,
 )
 from scripts.dependence_heldout_run import (
-    AUTHOR_OPUS_21,
-    AUTHOR_OPUS_22,
-    EXPECTED_AUTHOR_ROLES,
-    HONORING_PARTICIPANT_BY_SEALED_AUTHOR,
+    ADR_RELATIVE,
+    HELDOUT_AUTHOR_OPUS_23,
+    HELDOUT_AUTHOR_OPUS_24,
+    HELDOUT_AUTHOR_ROLES,
+    HELDOUT_HONORING_PARTICIPANT_BY_SEALED_AUTHOR,
+    HELDOUT_PIPELINE_RELATIVE,
     LANE_RELATIVE,
     OPENING_RELATIVE,
     STEP_CHOICES,
+    THRESHOLD_AUTHOR_OPUS_21,
+    THRESHOLD_AUTHOR_OPUS_22,
+    THRESHOLD_AUTHOR_ROLES,
+    THRESHOLD_HONORING_PARTICIPANT_BY_SEALED_AUTHOR,
+    THRESHOLD_PIPELINE_RELATIVE,
     DependenceHeldoutConfigurationError,
     heldout_config,
+    load_sealed_block,
+    threshold_config,
 )
 from scripts.lean_pipeline import DEPENDENCE_SANDBOX_PYTHON, default_dependence_config
 
@@ -646,8 +657,122 @@ def test_freeze_uses_sealed_author_slots_not_future_runtime_actors(
         HELDOUT_AUTHOR_1,
         HELDOUT_AUTHOR_2,
     }
-    assert AUTHOR_OPUS_21 not in author_ids
-    assert AUTHOR_OPUS_22 not in author_ids
+    assert author_ids.isdisjoint(
+        {
+            THRESHOLD_AUTHOR_OPUS_21,
+            THRESHOLD_AUTHOR_OPUS_22,
+            HELDOUT_AUTHOR_OPUS_23,
+            HELDOUT_AUTHOR_OPUS_24,
+        }
+    )
+
+
+def test_dependence_block_selection_loads_exact_disjoint_assignments(
+    project_root: Path,
+) -> None:
+    threshold = load_sealed_block(project_root, "threshold")
+    heldout = load_sealed_block(project_root, "heldout")
+    assert threshold["block_ids"] == [PILOT_BLOCK_ID]
+    assert threshold["evidence_role"] == "threshold_pilot"
+    assert threshold["author_access_state"] == "permitted_threshold_rehearsal"
+    assert heldout["block_ids"] == [HELDOUT_BLOCK_ID]
+    assert heldout["evidence_role"] == "qualification_heldout"
+    assert heldout["author_access_state"] == "withheld_until_approved_threshold"
+    assert len(threshold["assignments"]) == len(heldout["assignments"]) == 7
+    assert {item["role"] for item in threshold["assignments"]} == set(ROLES)
+    assert {item["role"] for item in heldout["assignments"]} == set(ROLES)
+    assert set(threshold["case_ids"]).isdisjoint(heldout["case_ids"])
+    assert {item["sealed_author_id"] for item in threshold["assignments"]} == set(
+        THRESHOLD_HONORING_PARTICIPANT_BY_SEALED_AUTHOR
+    )
+    assert {item["sealed_author_id"] for item in heldout["assignments"]} == set(
+        HELDOUT_HONORING_PARTICIPANT_BY_SEALED_AUTHOR
+    )
+
+
+def test_dependence_driver_cli_defaults_heldout_and_accepts_threshold(
+    project_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    selections: list[str] = []
+    real_block_config = dependence_driver.block_config
+
+    def configured(root: Path, selection: str) -> tuple[Any, None]:
+        selections.append(selection)
+        config, _payload = real_block_config(root, selection)  # type: ignore[arg-type]
+        return config, None
+
+    monkeypatch.setattr(dependence_driver, "block_config", configured)
+    monkeypatch.setattr(dependence_driver, "run_pipeline", lambda *_args: {})
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["dependence_heldout_run.py", "--project-root", str(project_root)],
+    )
+    assert dependence_driver.main() == 0
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "dependence_heldout_run.py",
+            "--project-root",
+            str(project_root),
+            "--block",
+            "threshold",
+        ],
+    )
+    assert dependence_driver.main() == 0
+    assert selections == ["heldout", "threshold"]
+
+
+def test_dependence_threshold_refuses_nested_protocol_digest_drift(
+    project_root: Path, tmp_path: Path
+) -> None:
+    _write_future_seal(project_root, tmp_path)
+    path = tmp_path / LANE_RELATIVE / "LANE_FREEZE.json"
+    lane = json.loads(path.read_text(encoding="utf-8"))
+    lane["prospective_protocol"]["protocol_digest"] = "sha256:" + "0" * 64
+    candidate = dict(lane)
+    candidate.pop("lane_freeze_digest")
+    lane["lane_freeze_digest"] = semantic_digest(candidate)
+    path.write_text(json.dumps(lane), encoding="utf-8")
+    with pytest.raises(
+        DependenceHeldoutConfigurationError,
+        match="prospective protocol does not replay its digest",
+    ):
+        load_sealed_block(tmp_path, "threshold")
+
+
+def test_dependence_threshold_refuses_lane_freeze_digest_drift(
+    project_root: Path, tmp_path: Path
+) -> None:
+    _write_future_seal(project_root, tmp_path)
+    path = tmp_path / LANE_RELATIVE / "LANE_FREEZE.json"
+    lane = json.loads(path.read_text(encoding="utf-8"))
+    lane["lane_freeze_digest"] = "sha256:" + "0" * 64
+    path.write_text(json.dumps(lane), encoding="utf-8")
+    with pytest.raises(
+        DependenceHeldoutConfigurationError,
+        match="lane freeze does not replay its digest",
+    ):
+        load_sealed_block(tmp_path, "threshold")
+
+
+def test_dependence_threshold_selection_cannot_bypass_heldout_seal_refusal(
+    project_root: Path, tmp_path: Path
+) -> None:
+    _write_future_seal(project_root, tmp_path)
+    path = tmp_path / LANE_RELATIVE / "LANE_FREEZE.json"
+    lane = json.loads(path.read_text(encoding="utf-8"))
+    lane["heldout_seal"]["author_access_state"] = "author_access_permitted"
+    candidate = dict(lane)
+    candidate.pop("lane_freeze_digest")
+    lane["lane_freeze_digest"] = semantic_digest(candidate)
+    path.write_text(json.dumps(lane), encoding="utf-8")
+    with pytest.raises(
+        DependenceHeldoutConfigurationError,
+        match="not withheld pending threshold approval",
+    ):
+        load_sealed_block(tmp_path, "threshold")
 
 
 def test_dependence_heldout_config_carries_every_envelope_field(
@@ -660,12 +785,13 @@ def test_dependence_heldout_config_carries_every_envelope_field(
     heldout_ids = {item["case_id"] for item in assignments if item["block_id"] == HELDOUT_BLOCK_ID}
     assert set(config.sealed_case_assignments or {}) == heldout_ids
     assert len(config.sealed_case_assignments or {}) == 7
-    assert config.author_roles == EXPECTED_AUTHOR_ROLES
-    assert set(config.authors) == {AUTHOR_OPUS_21, AUTHOR_OPUS_22}
-    assert config.reviewer.participant_id == "actor:dependence-heldout-reviewer-fable-13"
+    assert config.author_roles == HELDOUT_AUTHOR_ROLES
+    assert set(config.authors) == {HELDOUT_AUTHOR_OPUS_23, HELDOUT_AUTHOR_OPUS_24}
+    assert config.reviewer.participant_id == "actor:dependence-heldout-reviewer-fable-14"
     assert config.escalation_reviewer.participant_id == (
-        "actor:dependence-heldout-reviewer-opus-10"
+        "actor:dependence-heldout-reviewer-opus-11"
     )
+    assert config.pipeline_relative == HELDOUT_PIPELINE_RELATIVE
     assert config.allowed_import_roots == base.allowed_import_roots
     assert config.detector_id == base.detector_id
     assert config.sandbox_python == base.sandbox_python
@@ -678,13 +804,69 @@ def test_dependence_heldout_config_carries_every_envelope_field(
     assert config.contract_free_roles == base.contract_free_roles
     assert config.frozen_workflow_procedure_by_role["renamed_implementation"] == "mannwhitneyu"
     assert config.opening_record_relative == OPENING_RELATIVE
+    assert ADR_RELATIVE.name in config.adr_references
     assert pipeline_step_order(config) == STEP_CHOICES
-    assert payload["threshold_authority"] == "pending_separate_maintainer_decision"
+    assert payload["threshold_authority"] == "accepted_adr_0072"
+    assert payload["adr_reference"] == {
+        "document": ADR_RELATIVE.as_posix(),
+        "status": "accepted",
+        "accepted_on": "2026-08-10",
+        "content_digest": sha256_digest((project_root / ADR_RELATIVE).read_bytes()),
+        "sensitivity_bar": "two_of_two_positives",
+        "false_accusation_bar": "zero_of_five_controls",
+    }
+    assert (
+        payload["lane"]["prospective_protocol_digest"]
+        == (artifacts["LANE_FREEZE.json"]["prospective_protocol"]["protocol_digest"])
+    )
     assert len(payload["sealed_assignment_table"]) == 7
     assert {
         (item["sealed_author_id"], item["honoring_participant_id"])
         for item in payload["sealed_assignment_table"]
-    } == set(HONORING_PARTICIPANT_BY_SEALED_AUTHOR.items())
+    } == set(HELDOUT_HONORING_PARTICIPANT_BY_SEALED_AUTHOR.items())
+    assert set(config.authors).isdisjoint({THRESHOLD_AUTHOR_OPUS_21, THRESHOLD_AUTHOR_OPUS_22})
+
+
+def test_dependence_threshold_config_selects_rehearsal_and_carries_every_envelope_field(
+    project_root: Path, tmp_path: Path
+) -> None:
+    artifacts = _write_future_seal(project_root, tmp_path)
+    config = threshold_config(tmp_path)
+    base = default_dependence_config()
+    assignments = artifacts["LANE_FREEZE.json"]["prospective_protocol"]["assignments"]
+    threshold_ids = {item["case_id"] for item in assignments if item["block_id"] == PILOT_BLOCK_ID}
+    assert set(config.sealed_case_assignments or {}) == threshold_ids
+    assert len(config.sealed_case_assignments or {}) == 7
+    assert config.author_roles == THRESHOLD_AUTHOR_ROLES
+    assert set(config.authors) == {THRESHOLD_AUTHOR_OPUS_21, THRESHOLD_AUTHOR_OPUS_22}
+    assert config.reviewer.participant_id == "actor:dependence-threshold-reviewer-fable-13"
+    assert config.escalation_reviewer.participant_id == (
+        "actor:dependence-threshold-reviewer-opus-10"
+    )
+    assert config.pipeline_relative == THRESHOLD_PIPELINE_RELATIVE
+    assert config.opening_record_relative is None
+    assert config.allowed_import_roots == base.allowed_import_roots
+    assert config.sandbox_python == base.sandbox_python
+    assert config.required_sandbox_distributions == base.required_sandbox_distributions
+    assert config.controller_material_files == base.controller_material_files
+    assert config.material_input_paths == base.material_input_paths
+    assert config.input_csv_row_bounds == base.input_csv_row_bounds
+    assert config.frozen_workflow_template == base.frozen_workflow_template
+    assert config.frozen_workflow_procedure_by_role["renamed_implementation"] == "mannwhitneyu"
+    assert pipeline_step_order(config) == STEP_CHOICES
+    assert set(config.authors).isdisjoint({HELDOUT_AUTHOR_OPUS_23, HELDOUT_AUTHOR_OPUS_24})
+    heldout, _payload = heldout_config(tmp_path)
+    rehearsal_seats = {
+        *config.authors,
+        config.reviewer.participant_id,
+        config.escalation_reviewer.participant_id,
+    }
+    exam_seats = {
+        *heldout.authors,
+        heldout.reviewer.participant_id,
+        heldout.escalation_reviewer.participant_id,
+    }
+    assert rehearsal_seats.isdisjoint(exam_seats)
 
 
 def test_dependence_heldout_loader_refuses_six_cases(project_root: Path, tmp_path: Path) -> None:
