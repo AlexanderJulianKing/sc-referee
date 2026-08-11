@@ -101,9 +101,10 @@ def test_dosage_config_freezes_the_approved_envelope() -> None:
     assert config.controller_material_files == {}
     assert config.material_input_paths == ("inputs/data.csv",)
     assert config.record_expected_audit_snapshot_digest is True
-    assert config.frozen_workflow_procedure_by_role["ambiguous"] == "neutral"
+    assert config.frozen_workflow_procedure_by_role["ambiguous"] == "plain"
     assert _workflow("ambiguous") != _workflow("corrected_twin")
-    assert "neutral = mean\nexposure = neutral" in _workflow("ambiguous")
+    assert "plain = mean\nexposure = plain" in _workflow("ambiguous")
+    assert "neutral" not in _workflow("ambiguous")
     assert "The quantities the case does not name are computed and not used." in config.common_task
     assert "%.6f" in config.author_case_requirements
     assert _DOSAGE_FROZEN_WORKFLOW_BODY in config.author_case_requirements
@@ -122,12 +123,13 @@ def test_dosage_opt_ins_leave_founder_f_defaults_closed() -> None:
 
 
 def test_dosage_one_number_report_has_no_hard_state_accounting() -> None:
-    tokens = _number_tokens(_report("error_bearing"))
-    integers = [item for item in tokens if item.is_integer and not item.is_percent]
-    decimals = [item for item in tokens if not item.is_integer and not item.is_percent]
-    accountings = _accountings(integers, decimals)
-    assert accountings == []
-    assert _identified_accounting(accountings) is None
+    for role in _ROLES:
+        tokens = _number_tokens(_report(role))
+        integers = [item for item in tokens if item.is_integer and not item.is_percent]
+        decimals = [item for item in tokens if not item.is_integer and not item.is_percent]
+        accountings = _accountings(integers, decimals)
+        assert accountings == [], role
+        assert _identified_accounting(accountings) is None, role
 
 
 @pytest.mark.skipif(not DOSAGE_SANDBOX_PYTHON.is_file(), reason=DOSAGE_SANDBOX_AVAILABILITY_MARKER)

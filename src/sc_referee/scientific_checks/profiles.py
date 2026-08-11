@@ -1976,6 +1976,20 @@ def _classifier_copy_dosage_profile() -> _ReportProfile:
     are literals; and a subscript indexed by a traced value is a gather. The
     adapter also abstains when the frozen contract's three operand values are
     not pairwise distinct.
+
+    v2.0.3 closes the fourth adversarial review: conversion aliasing follows
+    whether a call necessarily creates a new buffer, starred positional calls
+    abstain, estimator evaluation identities ignore argument spelling, fitted
+    estimators merge by constructor path and fit signature, ``numpy.where`` is
+    treated as selection, and only closed row-index forms retain selection
+    semantics.
+
+    v2.0.4 closes the final pre-pilot review: arithmetic cannot regain a
+    continuous classification through an operand annihilated by an exact
+    zero, zero exponent, or constant clip; bare-statement estimator ``fit``
+    calls merge their fitted identity back into the receiver; and arithmetic
+    origins are derived from semantic operand roles so operand order cannot
+    change the representation conclusion.
     """
 
     hard_call = "integer_hard_copy_state_as_numeric_dosage"
@@ -2031,7 +2045,7 @@ def _classifier_copy_dosage_profile() -> _ReportProfile:
             "exposure for this review?"
         ),
         check_version="2.0.4",
-        adapter_version="2.0.3",
+        adapter_version="2.0.4",
     )
 
 

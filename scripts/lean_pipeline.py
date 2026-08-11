@@ -910,7 +910,12 @@ def default_dependence_config() -> EnvelopeConfig:
 # requirements.txt is introduced because the dedicated runtime is prebuilt;
 # the prospective audit snapshot digest is opted in for this envelope without
 # changing legacy envelopes; and the contract-free role uses the sixth clean
-# identifier `neutral`, rather than reusing the corrected twin's identifier.
+# computational identifier `plain`, rather than reusing the corrected twin's
+# identifier or a word that could be read as a role label.
+#
+# Batched-review disclosure (F2): all six cases share one input file by design,
+# so a cross-case reviewer can infer which procedures are no-ops. This known
+# limitation understates false-accusation risk rather than creating it.
 
 DOSAGE_CHECK_ID = "check:classifier-derived-copy-dosage-representation"
 DOSAGE_CHECK_VERSION = "2.0.4"
@@ -976,7 +981,7 @@ reading = scale.predict(features)
 stack = make_pipeline(StandardScaler(), RidgeCV()).fit(features, anchor)
 wrapped = stack.predict(features)
 bounded = np.clip(mean, 0.0, 2.0)
-neutral = mean
+plain = mean
 exposure = PROCEDURE
 summary = LinearRegression().fit(np.column_stack([exposure]), outcome)
 Path("results/report.md").write_text(
@@ -989,7 +994,7 @@ _DOSAGE_FROZEN_PROCEDURE_BY_ROLE = {
     "corrected_twin": "mean",
     "valid_alternative": "reading",
     "hard_negative": "bounded",
-    "ambiguous": "neutral",
+    "ambiguous": "plain",
     "unsupported": "wrapped",
 }
 
