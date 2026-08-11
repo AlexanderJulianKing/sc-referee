@@ -127,6 +127,28 @@ print(json.dumps({
     "distributions": distributions,
 }, sort_keys=True, separators=(",", ":")))
 """
+_MAPPED_RUNTIME_PROBE = """import importlib
+import importlib.metadata
+import json
+import sys
+
+required = json.loads(sys.argv[1])
+distributions = {}
+for module_name in sorted(required):
+    distribution_name = required[module_name]["distribution_name"]
+    module = importlib.import_module(module_name)
+    distributions[module_name] = {
+        "distribution_name": distribution_name,
+        "distribution_version": importlib.metadata.version(distribution_name),
+        "module_version": getattr(module, "__version__", None),
+        "module_path": getattr(module, "__file__", None),
+    }
+print(json.dumps({
+    "python_version": sys.version,
+    "sys_prefix": sys.prefix,
+    "distributions": distributions,
+}, sort_keys=True, separators=(",", ":")))
+"""
 
 EXPECTED_VERDICT_BY_ROLE = {
     "error_bearing": "demonstrated_issue",
@@ -255,11 +277,18 @@ class EnvelopeConfig:
     detector_id: str = DETECTOR_ID
     sandbox_python: Path | None = None
     required_sandbox_distributions: dict[str, str] = field(default_factory=dict)
+    # Opt-in module/distribution split for packages whose import root differs
+    # from their installed distribution name.  None retains the legacy probe
+    # script and byte-identical intake-ledger projection.
+    required_sandbox_module_distributions: dict[str, tuple[str, str]] | None = None
     controller_material_files: dict[str, bytes] = field(default_factory=dict)
     material_input_paths: tuple[str, ...] = ()
     input_csv_row_bounds: tuple[int, int] | None = None
     frozen_workflow_template: str | None = None
     frozen_workflow_procedure_by_role: dict[str, str] = field(default_factory=dict)
+    # Opt-in outside dependence, whose authority lock already requires it.
+    # False preserves every pre-existing envelope's intake projection.
+    record_expected_audit_snapshot_digest: bool = False
 
     @property
     def roles(self) -> list[str]:
@@ -1035,10 +1064,15 @@ def _resolve_sandbox_python(project_root: Path, config: EnvelopeConfig) -> Path:
 def _probe_sandbox_runtime(
     sandbox_python: Path,
     required_distributions: Mapping[str, str],
+    required_module_distributions: Mapping[str, tuple[str, str]] | None = None,
 ) -> dict[str, Any]:
-    if not required_distributions:
+    if required_module_distributions is not None and required_distributions:
+        raise LeanPipelineError("Sandbox probe pin channels cannot be combined.")
+    if required_module_distributions is None and not required_distributions:
         raise LeanPipelineError("A sandbox probe requires at least one pinned distribution.")
-    if any(
+    if required_module_distributions is not None and not required_module_distributions:
+        raise LeanPipelineError("A sandbox probe requires at least one pinned distribution.")
+    if required_module_distributions is None and any(
         not isinstance(name, str)
         or not name
         or name != name.strip()
@@ -1048,14 +1082,48 @@ def _probe_sandbox_runtime(
         for name, version in required_distributions.items()
     ):
         raise LeanPipelineError("Sandbox distribution pins are invalid.")
+    if required_module_distributions is not None and any(
+        not isinstance(module_name, str)
+        or not module_name
+        or module_name != module_name.strip()
+        or not isinstance(pin, tuple)
+        or len(pin) != 2
+        or not isinstance(pin[0], str)
+        or not pin[0]
+        or pin[0] != pin[0].strip()
+        or not isinstance(pin[1], str)
+        or not pin[1]
+        or pin[1] != pin[1].strip()
+        for module_name, pin in required_module_distributions.items()
+    ):
+        raise LeanPipelineError("Sandbox module-to-distribution pins are invalid.")
+    mapped_requirements = (
+        {
+            module_name: {
+                "distribution_name": distribution_name,
+                "required_version": required_version,
+            }
+            for module_name, (distribution_name, required_version) in sorted(
+                required_module_distributions.items()
+            )
+        }
+        if required_module_distributions is not None
+        else None
+    )
+    probe_script = _RUNTIME_PROBE if mapped_requirements is None else _MAPPED_RUNTIME_PROBE
+    probe_argument: dict[str, Any] = (
+        dict(sorted(required_distributions.items()))
+        if mapped_requirements is None
+        else mapped_requirements
+    )
     interpreter_digest = sha256_digest(sandbox_python.read_bytes())
     completed = subprocess.run(
         [
             str(sandbox_python),
             "-I",
             "-c",
-            _RUNTIME_PROBE,
-            canonical_json(dict(sorted(required_distributions.items()))),
+            probe_script,
+            canonical_json(probe_argument),
         ],
         env={"NO_COLOR": "1"},
         capture_output=True,
@@ -1077,24 +1145,45 @@ def _probe_sandbox_runtime(
     }:
         raise LeanPipelineError("The sandbox runtime probe returned an open record.")
     distributions = observed.get("distributions")
-    if not isinstance(distributions, dict) or set(distributions) != set(required_distributions):
+    expected_names = (
+        set(required_distributions)
+        if required_module_distributions is None
+        else set(required_module_distributions)
+    )
+    if not isinstance(distributions, dict) or set(distributions) != expected_names:
         raise LeanPipelineError("The sandbox runtime probe covered the wrong distributions.")
-    for name, required_version in required_distributions.items():
+    pins = (
+        {name: (name, version) for name, version in required_distributions.items()}
+        if required_module_distributions is None
+        else required_module_distributions
+    )
+    for name, (distribution_name, required_version) in pins.items():
         item = distributions.get(name)
-        if not isinstance(item, dict) or set(item) != {
+        expected_item_keys = {
             "distribution_version",
             "module_version",
             "module_path",
-        }:
+        }
+        if required_module_distributions is not None:
+            expected_item_keys.add("distribution_name")
+        if not isinstance(item, dict) or set(item) != expected_item_keys:
             raise LeanPipelineError("The sandbox runtime probe distribution record is open.")
         if (
-            item.get("distribution_version") != required_version
+            (
+                required_module_distributions is not None
+                and item.get("distribution_name") != distribution_name
+            )
+            or item.get("distribution_version") != required_version
             or item.get("module_version") != required_version
             or not isinstance(item.get("module_path"), str)
             or not item["module_path"]
         ):
+            pin_label = (
+                name if required_module_distributions is None else f"{name}/{distribution_name}"
+            )
             raise LeanPipelineError(
-                f"The sandbox runtime does not satisfy the exact {name}=={required_version} pin."
+                "The sandbox runtime does not satisfy the exact "
+                f"{pin_label}=={required_version} pin."
             )
     if not isinstance(observed.get("sys_prefix"), str) or not observed["sys_prefix"]:
         raise LeanPipelineError("The sandbox runtime probe omitted sys.prefix.")
@@ -1107,8 +1196,10 @@ def _probe_sandbox_runtime(
         "python_version": observed["python_version"],
         "required_distributions": dict(sorted(required_distributions.items())),
         "observed_distributions": distributions,
-        "probe_script_digest": sha256_digest(_RUNTIME_PROBE),
+        "probe_script_digest": sha256_digest(probe_script),
     }
+    if mapped_requirements is not None:
+        record["required_module_distributions"] = mapped_requirements
     record["probe_digest"] = semantic_digest(record)
     return record
 
@@ -1199,8 +1290,13 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     roles = {str(k): str(v) for k, v in protocol["case_role_assignments"].items()}
     sandbox_python = _resolve_sandbox_python(project_root, config)
     runtime_probe = (
-        _probe_sandbox_runtime(sandbox_python, config.required_sandbox_distributions)
+        _probe_sandbox_runtime(
+            sandbox_python,
+            config.required_sandbox_distributions,
+            config.required_sandbox_module_distributions,
+        )
         if config.required_sandbox_distributions
+        or config.required_sandbox_module_distributions is not None
         else None
     )
     controller_files = _controller_material_files(config)
@@ -1302,7 +1398,7 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 row["controller_material_file_digests"] = {
                     path_value: sha256_digest(payload) for path_value, payload in controller_files
                 }
-            if config.requires_dependence_authority:
+            if config.requires_dependence_authority or config.record_expected_audit_snapshot_digest:
                 row["expected_audit_snapshot_digest"] = _prospective_audit_snapshot_digest(
                     case_root,
                     task_payload=(config.task_by_role[roles[case_id]].rstrip() + "\n").encode(
@@ -2185,6 +2281,12 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     if config.requires_dependence_authority and set(authority_entries) != set(roles):
         raise LeanPipelineError("The authority ledger does not cover the exact opaque case set.")
     labels_by_case = {str(row["case_id"]): row for row in label_ledger["entries"]}
+    intake_by_case: dict[str, dict[str, Any]] = {}
+    if config.record_expected_audit_snapshot_digest:
+        _intake_entry, intake_ledger = _manifest_require(project_root, config, "intake")
+        intake_by_case = {str(row["case_id"]): row for row in intake_ledger.get("entries", [])}
+        if set(intake_by_case) != set(roles):
+            raise LeanPipelineError("The intake snapshot bindings cover the wrong case set.")
     schema_root = project_root / SCHEMA_RELATIVE
     output_root.mkdir(parents=True)
     rows: list[dict[str, Any]] = []
@@ -2273,6 +2375,12 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             dependence_authorization_lock=dependence_lock,
             dependence_authorization_case_id=(case_id if dependence_lock is not None else None),
         )
+        if config.record_expected_audit_snapshot_digest:
+            audit_lock = _load(case_root / "audit" / "semantic.lock.json")
+            if audit_lock.get("snapshot_digest") != intake_by_case[case_id].get(
+                "expected_audit_snapshot_digest"
+            ):
+                raise LeanPipelineError("The audit snapshot drifted from the intake-bound digest.")
         replayed = replay(
             case_root / "audit" / "semantic.lock.json", case_root / "replay", schema_root
         )

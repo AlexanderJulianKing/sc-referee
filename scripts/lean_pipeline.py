@@ -901,9 +901,275 @@ def default_dependence_config() -> EnvelopeConfig:
     )
 
 
+# ---------------------------------------------------------------------------
+# Envelope 8: classifier-derived copy-dosage representation.
+#
+# Maintainer blanket authorization records the following pilot decisions:
+# the registered profile names the already-shipped v2.0.4 grammar; the sandbox
+# probe binds the `sklearn` import to the `scikit-learn` distribution; no
+# requirements.txt is introduced because the dedicated runtime is prebuilt;
+# the prospective audit snapshot digest is opted in for this envelope without
+# changing legacy envelopes; and the contract-free role uses the sixth clean
+# identifier `neutral`, rather than reusing the corrected twin's identifier.
+
+DOSAGE_CHECK_ID = "check:classifier-derived-copy-dosage-representation"
+DOSAGE_CHECK_VERSION = "2.0.4"
+DOSAGE_PILOT_INSTANCE = "a"
+DOSAGE_LANE_RELATIVE = Path(
+    "evaluation/qualification/"
+    f"classifier-derived-copy-dosage-representation-v{DOSAGE_CHECK_VERSION}-lane/"
+    f"pilot-{DOSAGE_PILOT_INSTANCE}"
+)
+DOSAGE_SANDBOX_PYTHON = Path(
+    "/Users/alexanderking/Desktop/random_stuff/sc-referee-pilot-runtime/sklearn-venv/bin/python"
+)
+
+_DOSAGE_REVIEW_INSTRUCTIONS = _DEPENDENCE_REVIEW_INSTRUCTIONS
+_DOSAGE_COMMON_TASK = (
+    "Treat `s1` and `s2` only as finite numeric measurements of each staged unit, `level` as "
+    "an ordered integer level index recorded for each unit, `anchor` as a finite numeric "
+    "reference measurement, and `y` as the recorded outcome. Apply the staged workflow to the "
+    "complete staged row sequence and write its single selected result. The workflow fits "
+    "several models and computes several candidate calibrated quantities from them; exactly one "
+    "of those quantities supplies the association model's exposure position, and the case "
+    "instructions name which one. The quantities the case does not name are computed and not "
+    "used."
+)
+_DOSAGE_EXPECTATION_TASK = (
+    "Apply the named workflow to the complete staged row sequence. The quantity that enters the "
+    "association model's exposure position must be the expected value of the ordered level "
+    "index under the sorter's own per-level shares, kept on its continuous scale. A quantity "
+    "confined to the finite set of level values does not satisfy this task."
+)
+_DOSAGE_CALIBRATION_TASK = (
+    "Apply the named workflow to the complete staged row sequence. The quantity that enters the "
+    "association model's exposure position must be the continuous prediction of the direct "
+    "calibration fitted against the supplied anchor measurement. A quantity confined to the "
+    "finite set of level values does not satisfy this task."
+)
+_DOSAGE_WITHHELD_TASK = (
+    "Apply the named workflow to the complete staged row sequence. This task does not establish "
+    "which of the workflow's calibrated quantities supplies the association model's exposure "
+    "position."
+)
+
+_DOSAGE_FROZEN_WORKFLOW_BODY = """import csv
+from pathlib import Path
+import numpy as np
+from sklearn.linear_model import LinearRegression, LogisticRegression, RidgeCV
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8").splitlines()))
+first = [float(row["s1"]) for row in rows]
+second = [float(row["s2"]) for row in rows]
+features = np.column_stack([first, second])
+levels = [int(row["level"]) for row in rows]
+anchor = [float(row["anchor"]) for row in rows]
+outcome = [float(row["y"]) for row in rows]
+sorter = LogisticRegression(max_iter=1000).fit(features, levels)
+shares = sorter.predict_proba(features)
+label = sorter.predict(features)
+mean = shares @ np.array([0.0, 1.0, 2.0])
+scale = RidgeCV().fit(features, anchor)
+reading = scale.predict(features)
+stack = make_pipeline(StandardScaler(), RidgeCV()).fit(features, anchor)
+wrapped = stack.predict(features)
+bounded = np.clip(mean, 0.0, 2.0)
+neutral = mean
+exposure = PROCEDURE
+summary = LinearRegression().fit(np.column_stack([exposure]), outcome)
+Path("results/report.md").write_text(
+    "[selected-result] %.6f\\n" % summary.coef_[0], encoding="utf-8"
+)
+"""
+_DOSAGE_FROZEN_WORKFLOW_TEMPLATE = _DOSAGE_FROZEN_WORKFLOW_BODY.replace("PROCEDURE", "{procedure}")
+_DOSAGE_FROZEN_PROCEDURE_BY_ROLE = {
+    "error_bearing": "label",
+    "corrected_twin": "mean",
+    "valid_alternative": "reading",
+    "hard_negative": "bounded",
+    "ambiguous": "neutral",
+    "unsupported": "wrapped",
+}
+
+_DOSAGE_INPUT_CSV = """s1,s2,level,anchor,y
+0.500,0.250,1,0.310,1.700
+1.000,0.500,2,0.620,3.400
+1.500,0.750,0,0.930,5.100
+2.000,1.000,1,1.240,6.800
+2.500,0.000,2,1.550,8.500
+3.000,0.250,0,1.860,10.200
+3.500,0.500,1,2.170,11.900
+4.000,0.750,2,2.480,13.600
+4.500,1.000,0,2.790,15.300
+5.000,0.000,1,3.100,17.000
+5.500,0.250,2,3.410,18.700
+6.000,0.500,0,3.720,20.400
+6.500,0.750,1,4.030,22.100
+7.000,1.000,2,4.340,23.800
+7.500,0.000,0,4.650,25.500
+8.000,0.250,1,4.960,27.200
+8.500,0.500,2,5.270,28.900
+9.000,0.750,0,5.580,30.600
+9.500,1.000,1,5.890,32.300
+10.000,0.000,2,6.200,34.000
+10.500,0.250,0,6.510,35.700
+11.000,0.500,1,6.820,37.400
+11.500,0.750,2,7.130,39.100
+12.000,1.000,0,7.440,40.800
+"""
+_DOSAGE_RESULT_NUMBER_BY_ROLE = {
+    "error_bearing": "-5.753846",
+    "corrected_twin": "-138.767563",
+    "valid_alternative": "5.485778",
+    "hard_negative": "-138.767563",
+    "ambiguous": "-138.767563",
+    "unsupported": "5.506718",
+}
+_DOSAGE_ROW_GUIDANCE = (
+    "Use exactly this complete ASCII CSV, including the header and row order:\n"
+    + _DOSAGE_INPUT_CSV.rstrip("\n")
+)
+_DOSAGE_ROLE_CONSTRAINTS = {
+    role: [
+        _DOSAGE_ROW_GUIDANCE,
+        f"Substitute `{procedure}` for PROCEDURE on the `exposure =` line.",
+        "The exact executed result line is `[selected-result] "
+        + _DOSAGE_RESULT_NUMBER_BY_ROLE[role]
+        + "`. The report must contain exactly that one line, formatted by `%.6f`, and no other "
+        "number.",
+    ]
+    for role, procedure in _DOSAGE_FROZEN_PROCEDURE_BY_ROLE.items()
+}
+_DOSAGE_TASK_BY_ROLE = {
+    "error_bearing": _DOSAGE_EXPECTATION_TASK,
+    "corrected_twin": _DOSAGE_EXPECTATION_TASK,
+    "valid_alternative": _DOSAGE_CALIBRATION_TASK,
+    "hard_negative": _DOSAGE_EXPECTATION_TASK,
+    "ambiguous": _DOSAGE_WITHHELD_TASK,
+    "unsupported": _DOSAGE_EXPECTATION_TASK,
+}
+_DOSAGE_EXPECTED_VERDICT_BY_ROLE = {
+    "error_bearing": "demonstrated_issue",
+    "corrected_twin": "no_demonstrated_issue_within_scope",
+    "valid_alternative": "no_demonstrated_issue_within_scope",
+    "hard_negative": "no_demonstrated_issue_within_scope",
+    "ambiguous": "no_demonstrated_issue_within_scope",
+    "unsupported": "no_demonstrated_issue_within_scope",
+}
+_DOSAGE_LABEL_STATUS_BY_ROLE = {
+    "error_bearing": "positive_demonstrated",
+    "corrected_twin": "verified_good_eligible",
+    "valid_alternative": "verified_good_eligible",
+    "hard_negative": "verified_good_eligible",
+    "ambiguous": "ambiguous_control",
+    "unsupported": "unsupported_control",
+}
+_DOSAGE_CASE_REQUIREMENTS = (
+    """Produce exactly the three authored files requested by the response schema.
+
+`inputs/data.csv` must be ASCII CSV with exact header `s1,s2,level,anchor,y`. Use the exact data rows specified by the case, in the order given. Every field must be nonempty; `s1`, `s2`, `anchor`, and `y` must be finite decimal literals and `level` must be one of 0, 1, or 2.
+
+`workflow/analysis.py` must consist of exactly these lines, byte for byte, with PROCEDURE replaced by the identifier named in your case instructions and nothing else changed:
+
+```python
+"""
+    + _DOSAGE_FROZEN_WORKFLOW_BODY
+    + """```
+
+`results/report.md` must be ASCII and must equal the script's executed output byte for byte. It must contain exactly one line: `[selected-result] ` followed by the one result formatted with `%.6f`; no other number is allowed."""
+)
+
+
+def default_dosage_config() -> EnvelopeConfig:
+    """Return the pilot-a six-role copy-dosage-representation envelope."""
+
+    slug = f"dosage-{DOSAGE_PILOT_INSTANCE}"
+    first_author = f"actor:{slug}-author-opus-25"
+    second_author = f"actor:{slug}-author-opus-26"
+    return EnvelopeConfig(
+        envelope_id=(
+            "classifier-derived-copy-dosage-representation-"
+            f"v{DOSAGE_CHECK_VERSION}-lean-{DOSAGE_PILOT_INSTANCE}"
+        ),
+        pipeline_relative=DOSAGE_LANE_RELATIVE,
+        check_id=DOSAGE_CHECK_ID,
+        canonical_issue_class=(
+            "issue-class:level-assignment-supplies-an-authorized-continuous-exposure"
+        ),
+        candidate_by_role={
+            "error_bearing": "continuous-posterior-expected-copy-dosage",
+            "corrected_twin": "continuous-posterior-expected-copy-dosage",
+            "valid_alternative": "direct-continuous-calibrated-copy-dosage",
+            "hard_negative": "continuous-posterior-expected-copy-dosage",
+            "unsupported": "continuous-posterior-expected-copy-dosage",
+        },
+        task_by_role=dict(_DOSAGE_TASK_BY_ROLE),
+        role_constraints={role: list(items) for role, items in _DOSAGE_ROLE_CONSTRAINTS.items()},
+        common_task=_DOSAGE_COMMON_TASK,
+        authors={
+            first_author: ModelParticipant(
+                participant_id=first_author,
+                model_id="claude-opus-5",
+                model_name="Claude Opus 5",
+                model_alias="claude-opus-5",
+            ),
+            second_author: ModelParticipant(
+                participant_id=second_author,
+                model_id="claude-opus-5",
+                model_name="Claude Opus 5",
+                model_alias="claude-opus-5",
+            ),
+        },
+        author_roles={
+            first_author: ["error_bearing", "corrected_twin"],
+            second_author: [
+                "valid_alternative",
+                "hard_negative",
+                "ambiguous",
+                "unsupported",
+            ],
+        },
+        reviewer=ModelParticipant(
+            participant_id=f"actor:{slug}-reviewer-fable-15",
+            model_id="claude-fable-5",
+            model_name="Claude Fable 5",
+            model_alias="fable",
+        ),
+        escalation_reviewer=ModelParticipant(
+            participant_id=f"actor:{slug}-reviewer-opus-12",
+            model_id="claude-opus-5",
+            model_name="Claude Opus 5",
+            model_alias="claude-opus-5",
+        ),
+        review_instructions=_DOSAGE_REVIEW_INSTRUCTIONS,
+        cli_binary=CLAUDE_PINNED,
+        cli_binary_version=CLAUDE_PINNED_VERSION,
+        calibration_suite=CALIBRATION_SUITE,
+        author_case_requirements=_DOSAGE_CASE_REQUIREMENTS,
+        expected_verdict_by_role=dict(_DOSAGE_EXPECTED_VERDICT_BY_ROLE),
+        label_status_by_role=dict(_DOSAGE_LABEL_STATUS_BY_ROLE),
+        mq_tolerant_roles={"ambiguous", "unsupported"},
+        contract_free_roles={"ambiguous"},
+        allowed_import_roots=frozenset({"csv", "pathlib", "numpy", "sklearn"}),
+        sandbox_python=DOSAGE_SANDBOX_PYTHON,
+        required_sandbox_module_distributions={
+            "numpy": ("numpy", "2.2.6"),
+            "sklearn": ("scikit-learn", "1.9.0"),
+        },
+        material_input_paths=("inputs/data.csv",),
+        input_csv_row_bounds=(12, 24),
+        frozen_workflow_template=_DOSAGE_FROZEN_WORKFLOW_TEMPLATE,
+        frozen_workflow_procedure_by_role=dict(_DOSAGE_FROZEN_PROCEDURE_BY_ROLE),
+        record_expected_audit_snapshot_digest=True,
+    )
+
+
 ENVELOPE_CONFIGS = {
     "complete-domain": default_complete_domain_config,
     "dependence": default_dependence_config,
+    "dosage": default_dosage_config,
     "founder-orientation": default_founder_orientation_config,
     "founder-orientation-b": default_founder_orientation_b_config,
     "founder-orientation-c": default_founder_orientation_c_config,

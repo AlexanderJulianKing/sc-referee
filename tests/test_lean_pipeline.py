@@ -350,6 +350,54 @@ def test_runtime_probe_refuses_a_module_distribution_version_disagreement(
         _probe_sandbox_runtime(interpreter, {"scipy": "1.14.0"})
 
 
+def test_runtime_probe_supports_a_closed_module_to_distribution_mapping(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    interpreter = tmp_path / "pilot-python"
+    interpreter.write_bytes(b"interpreter")
+    observed = {
+        "python_version": "3.11.15",
+        "sys_prefix": "/private/pilot-venv",
+        "distributions": {
+            "sklearn": {
+                "distribution_name": "scikit-learn",
+                "distribution_version": "1.9.0",
+                "module_version": "1.9.0",
+                "module_path": "/private/pilot-venv/site-packages/sklearn/__init__.py",
+            }
+        },
+    }
+    monkeypatch.setattr(
+        lean_pipeline.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args[0], 0, canonical_json(observed).encode() + b"\n", b""
+        ),
+    )
+    record = _probe_sandbox_runtime(interpreter, {}, {"sklearn": ("scikit-learn", "1.9.0")})
+    assert record["required_distributions"] == {}
+    assert record["required_module_distributions"] == {
+        "sklearn": {
+            "distribution_name": "scikit-learn",
+            "required_version": "1.9.0",
+        }
+    }
+    assert record["observed_distributions"] == observed["distributions"]
+    projection = dict(record)
+    assert projection.pop("probe_digest") == semantic_digest(projection)
+
+
+def test_runtime_probe_refuses_combined_pin_channels(tmp_path: Path) -> None:
+    interpreter = tmp_path / "pilot-python"
+    interpreter.write_bytes(b"interpreter")
+    with pytest.raises(LeanPipelineError, match="cannot be combined"):
+        _probe_sandbox_runtime(
+            interpreter,
+            {"numpy": "2.2.6"},
+            {"sklearn": ("scikit-learn", "1.9.0")},
+        )
+
+
 def test_dependence_csv_bound_is_structural_and_closed() -> None:
     config = replace(
         default_complete_domain_config(),
@@ -639,11 +687,13 @@ def test_founder_f_defaults_and_frozen_manifest_replay_are_unchanged(
     assert config.detector_id == "detector:bounded-analysis-method-conflict"
     assert config.sandbox_python is None
     assert config.required_sandbox_distributions == {}
+    assert config.required_sandbox_module_distributions is None
     assert config.controller_material_files == {}
     assert config.material_input_paths == ()
     assert config.input_csv_row_bounds is None
     assert config.frozen_workflow_template is None
     assert config.frozen_workflow_procedure_by_role == {}
+    assert config.record_expected_audit_snapshot_digest is False
     assert config.requires_dependence_authority is False
     assert pipeline_step_order(config) == STEP_ORDER
     manifest_path = project_root / config.pipeline_relative / "MANIFEST.json"
