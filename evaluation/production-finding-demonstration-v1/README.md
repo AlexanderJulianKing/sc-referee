@@ -13,7 +13,7 @@ published wording. This directory's `MANIFEST.sha256` closes every committed fil
 
 ## complete-domain
 
-Recorded at `2026-08-11T09:32:57Z` by AuditRun `audit:802f4185e11e4f6cbb6d02453b026311`.
+Recorded at `2026-08-11T19:53:52Z` by AuditRun `audit:51deeeb2a09c48aab25daeb9a1eb80a3`.
 
 ### Finding text as published
 
@@ -31,15 +31,15 @@ For this selected analysis, the binding-required selected-report evidence declar
 
 1. Sealed examination: [`evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2/heldout-v207-seven-case/HELDOUT_OPENING.json`](../../evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2/heldout-v207-seven-case/HELDOUT_OPENING.json) and [`evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2/heldout-v207-seven-case/detector-run/DETECTOR_RUN_LEDGER.json`](../../evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2/heldout-v207-seven-case/detector-run/DETECTOR_RUN_LEDGER.json).
 2. Promotion decision: [`docs/implementation/ADR-0071-COMPLETE-DOMAIN-ENVELOPE-PROMOTION.md`](../../docs/implementation/ADR-0071-COMPLETE-DOMAIN-ENVELOPE-PROMOTION.md).
-3. Installed qualification: `qualification:complete-domain-exposure-denominator-v207-round2` at `sha256:3a44dbdb144c152b7185c0dccc6bf855346093341324acfd443689982dd02dbe` with metric set `qualification-metric-set:cbb01f0b08e407f6a4f8` at `sha256:50fda7205c683b49fc42351de25c7b98a46bd8ef62b7ca9379703c55e12e67a1`.
-4. Installed external pin: binding `method-conflict-binding:complete-domain-exposure-denominator-v1` at `sha256:d67b3bb459c32f84f4d920cffc9b56ab68d96741932bf3771926070342ff94e2`, detector manifest `sha256:9c6270f47a2ab2d2a75183a9e4a2d2a955974e5968bacc2ba75778a1ae8ab3fb`.
+3. Installed qualification: `qualification:complete-domain-exposure-denominator-v207-round2` at `sha256:caedfac75ba4a28ffa0ae81488d022b984bca782c9411fc43938b9ce812b4e0e` with metric set `qualification-metric-set:329715c3cf01ed499eb5` at `sha256:6be79a7a0f1260c984664909fe709f28b63c1163e6ef548e5faf3c03654ff98f`.
+4. Installed external pin: binding `method-conflict-binding:complete-domain-exposure-denominator-v1` at `sha256:0f59ece664acbc541006037fbfc8518c21e8fee9768ed47a651f6532226950f9`, detector manifest `sha256:a5b089be6a18b220f56fd345450912a3aa7ee3e132ff519117b879cee8e72c41`.
 5. Controller run: [`complete-domain/error/audit/audit.bundle.json`](complete-domain/error/audit/audit.bundle.json), replayed at [`complete-domain/error/replay/audit.bundle.json`](complete-domain/error/replay/audit.bundle.json).
 
 The matched control twin is committed at [`complete-domain/control/`](complete-domain/control/) and produced zero Findings through the same contract, audit, policy, and replay path.
 
 ## dependence
 
-Recorded at `2026-08-11T09:33:00Z` by AuditRun `audit:0aa4317772af43deb9d32f5d9e59a68a`.
+Recorded at `2026-08-11T19:53:55Z` by AuditRun `audit:8f9deb23913e432fb0273aafca0582d4`.
 
 ### Finding text as published
 
@@ -57,8 +57,8 @@ For this selected analysis, the binding-required exact-scope static-source evide
 
 1. Sealed examination: [`evaluation/qualification/authorized-independent-unit-entry-into-row-independent-procedure-v1.1.0-direct-lane/heldout-seven-case/opening/DEPENDENCE_HELDOUT_OPENING.json`](../../evaluation/qualification/authorized-independent-unit-entry-into-row-independent-procedure-v1.1.0-direct-lane/heldout-seven-case/opening/DEPENDENCE_HELDOUT_OPENING.json) and [`evaluation/qualification/authorized-independent-unit-entry-into-row-independent-procedure-v1.1.0-direct-lane/heldout-seven-case/detector-run/DETECTOR_RUN_LEDGER.json`](../../evaluation/qualification/authorized-independent-unit-entry-into-row-independent-procedure-v1.1.0-direct-lane/heldout-seven-case/detector-run/DETECTOR_RUN_LEDGER.json).
 2. Promotion decision: [`docs/implementation/ADR-0073-DEPENDENCE-ENVELOPE-PROMOTION.md`](../../docs/implementation/ADR-0073-DEPENDENCE-ENVELOPE-PROMOTION.md).
-3. Installed qualification: `qualification:authorized-independent-unit-entry-v110-round2` at `sha256:a9114559f7b4ba0b75d704f0b6ba746e2150a8cb32da0cf3e8a9e975c541f9ba` with metric set `qualification-metric-set:ca098eea52a6cb1d4e62` at `sha256:27ac7cc5d1112661cef27a88694fef711f62877213f791e44a614ff52953f1ed`.
-4. Installed external pin: binding `method-conflict-binding:authorized-independent-unit-entry-into-row-independent-procedure-v1` at `sha256:56e8ccdef15d3c2371864e02cab92becb0c6859091ee782c94be2ac9b4b1a43d`, detector manifest `sha256:9c6270f47a2ab2d2a75183a9e4a2d2a955974e5968bacc2ba75778a1ae8ab3fb`.
+3. Installed qualification: `qualification:authorized-independent-unit-entry-v110-round2` at `sha256:a3c0ebebde92bfff4e7eacff8427d944d7a3f33b43b206fc071e4d85c37d3b3d` with metric set `qualification-metric-set:81c3713d3b6e81d999de` at `sha256:8469007a7067cbc6ca49a8c8672e9771d61ae2df5a1eb34086992eae53c03c99`.
+4. Installed external pin: binding `method-conflict-binding:authorized-independent-unit-entry-into-row-independent-procedure-v1` at `sha256:f58801cd66b18487da2d33ab2f424392b2d64bf84697ccd336de6ef8ba2cda1b`, detector manifest `sha256:a5b089be6a18b220f56fd345450912a3aa7ee3e132ff519117b879cee8e72c41`.
 5. Controller run: [`dependence/error/audit/audit.bundle.json`](dependence/error/audit/audit.bundle.json), replayed at [`dependence/error/replay/audit.bundle.json`](dependence/error/replay/audit.bundle.json).
 
 The matched control twin is committed at [`dependence/control/`](dependence/control/) and produced zero Findings through the same contract, audit, policy, and replay path.

@@ -123,3 +123,31 @@ exact binding-scoped production Finding paths demonstrated**. This is product wi
 bindings, not a new examination, a grammar expansion, a domain-wide claim, or authority for any of
 the twenty sibling method-conflict bindings. The stricter ten-envelope program's independent
 installed-skill/fresh-machine exit gate remains a separate accounting rule.
+
+## 2026-08-11 amendment: re-derivation after multiple-testing registration
+
+The question-only multiple-testing registration added one check identifier to the shared
+bounded-analysis method-conflict detector allowlist. Because the detector-manifest digest is an
+input to every method-conflict binding digest, this mechanically invalidated both installed exact
+grants while leaving their sealed exams, outcomes, thresholds, check manifests, adapter identities,
+and recognition grammars unchanged. The controller and capability matrix refused the stale grants.
+
+Under the maintainer's explicit urgent re-derivation authorization, the same deterministic builders
+replayed the unchanged evidence and installed these current identities:
+
+| Binding | Binding digest | Qualification digest | Metric-set id and digest |
+| --- | --- | --- | --- |
+| complete-domain exposure denominator | `sha256:0f59ece664acbc541006037fbfc8518c21e8fee9768ed47a651f6532226950f9` | `sha256:caedfac75ba4a28ffa0ae81488d022b984bca782c9411fc43938b9ce812b4e0e` | `qualification-metric-set:329715c3cf01ed499eb5`, `sha256:6be79a7a0f1260c984664909fe709f28b63c1163e6ef548e5faf3c03654ff98f` |
+| authorized independent-unit entry | `sha256:f58801cd66b18487da2d33ab2f424392b2d64bf84697ccd336de6ef8ba2cda1b` | `sha256:a3c0ebebde92bfff4e7eacff8427d944d7a3f33b43b206fc071e4d85c37d3b3d` | `qualification-metric-set:81c3713d3b6e81d999de`, `sha256:8469007a7067cbc6ca49a8c8672e9771d61ae2df5a1eb34086992eae53c03c99` |
+
+Both bindings now pin detector-manifest digest
+`sha256:a5b089be6a18b220f56fd345450912a3aa7ee3e132ff519117b879cee8e72c41`.
+Their threshold-policy digests, required roots, absolute missed-root gates, and exam adapter
+identities are unchanged. The first-Finding demonstration was rerun through the real controller
+path because its prior locks intentionally carried the now-stale grant linkage; the replacement
+record digest is `sha256:6a516f0a1362d1c9a428119d7cb61fb5c682b6d6b8eef362c8bdac945e88e799`.
+
+The structural coupling and same-commit re-derivation rule are recorded in
+`docs/implementation/RECORD_CORRECTIONS.md`. This amendment authorizes no new binding and leaves
+the shared detector experimental; production Finding capability remains limited to exactly these
+two binding-scoped grants.

@@ -52,7 +52,7 @@ def test_versioned_ledger_covers_every_active_module_without_qualification_leaka
     assert ledger["ledger_version"] == "1.0.0"
     assert ledger["qualification_use_permitted"] is False
     assert expected_ids == covered_ids
-    assert len(expected_ids) == 32
+    assert len(expected_ids) == 33
     assert all(source["qualification_status"] == "excluded" for source in ledger["sources"])
     assert all(case["qualification_status"] == "excluded" for case in ledger["cases"])
     assert any(source["answer_side"] for source in ledger["sources"])

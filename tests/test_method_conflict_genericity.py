@@ -14,7 +14,7 @@ def test_every_substantive_scientific_check_has_one_explicit_evaluation_binding(
     }
     bindings = {binding.check_id: binding for binding in registry.method_conflict_bindings}
 
-    assert len(substantive) == len(bindings) == 22
+    assert len(substantive) == len(bindings) == 23
     assert set(bindings) == set(substantive)
     for check_id, module in substantive.items():
         binding = bindings[check_id]

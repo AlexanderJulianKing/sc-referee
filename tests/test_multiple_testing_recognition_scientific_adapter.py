@@ -429,9 +429,9 @@ def test_promoted_check_and_installed_grant_identities_remain_invariant() -> Non
     }
 
 
-def test_qualification_manifest_bytes_are_unchanged() -> None:
+def test_qualification_manifest_bytes_match_same_commit_grant_rederivation() -> None:
     root = Path(__file__).resolve().parents[1]
     path = root / "src/sc_referee/resources/capability-manifests-v1/qualification-manifests.json"
     assert sha256_digest(path.read_bytes()) == (
-        "sha256:2b70a16990df98b6d775be2a38e8e0dba49b709df072e4b380e8ad3bbbb7f0a5"
+        "sha256:fda9bd1ffba8ac9f62ab3a2324c7ad551c351f5e0f02902e4b15c85c0d0dcb56"
     )

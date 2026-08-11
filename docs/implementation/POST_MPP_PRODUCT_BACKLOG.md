@@ -15,11 +15,11 @@ ADRs remain authoritative for their exact scopes.
 
 The 0.3.0 baseline contains:
 
-- 22 active question-oriented scientific checks through 26 bounded adapters;
+- 23 active question-oriented scientific checks through 27 bounded adapters;
 - 10 active deterministic calculation-check families;
 - 16 published capability profiles;
-- 22 experimental method-conflict detector bindings; and
-- zero qualified detectors with production Finding authority.
+- 23 experimental method-conflict detector bindings; and
+- two exact binding-scoped grants with production Finding authority.
 
 Those counts describe installed registry entries, not general scientific coverage. Most scientific
 checks recognize explicit selected-report language, and many ordinary code-to-report or

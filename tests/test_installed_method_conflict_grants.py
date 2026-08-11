@@ -70,11 +70,11 @@ def test_installed_grant_resource_and_pin_table_close_exactly_two_bindings() -> 
         assert load_method_conflict_grant_evidence(pin) is not None
 
 
-def test_both_installed_grants_resolve_and_all_twenty_siblings_refuse() -> None:
+def test_both_installed_grants_resolve_and_all_siblings_refuse() -> None:
     registry = scientific_check_release_registry()
     detector_manifest = _detector_manifest()
     by_binding = {binding.binding_id: binding for binding in registry.method_conflict_bindings}
-    assert len(by_binding) == 22
+    assert len(by_binding) == 23
     resolved = []
     refused = []
     for binding_id, binding in sorted(by_binding.items()):
@@ -106,7 +106,33 @@ def test_both_installed_grants_resolve_and_all_twenty_siblings_refuse() -> None:
         assert grant.binding_id == binding_id
         resolved.append(binding_id)
     assert resolved == sorted(GRANT_PINS)
-    assert len(refused) == 20
+    assert len(refused) == len(by_binding) - len(GRANT_PINS)
+
+
+def test_installed_grant_binding_digests_match_live_registry_and_matrix_builds(
+    project_root: Path,
+) -> None:
+    """Any shared detector-manifest change must repin every installed binding."""
+
+    registry = scientific_check_release_registry()
+    live_by_id = {binding.binding_id: binding for binding in registry.method_conflict_bindings}
+    assert set(GRANT_PINS) <= set(live_by_id)
+    for binding_id, pin in GRANT_PINS.items():
+        binding = live_by_id[binding_id]
+        assert pin.binding_digest == binding.binding_digest
+        assert pin.detector_manifest_digest == binding.detector_manifest_digest
+
+    matrix = generate_capability_matrix(
+        default_capability_manifest_root(), project_root / "reference/schemas-v0.19.0"
+    )
+    published = {
+        grant["binding_id"]
+        for entry in matrix["entries"]
+        for detector in entry["detectors"]
+        for grant in detector.get("binding_grants", [])
+        if grant.get("strongest_output_type") == "finding"
+    }
+    assert published == set(GRANT_PINS)
 
 
 def test_capability_matrix_exposes_finding_for_exactly_the_two_grant_bindings(
