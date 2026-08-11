@@ -14,10 +14,10 @@ code truly does or stay silent, and every engineering decision resolves ambiguit
 
 ## Delivered
 
-- **A fully qualified detector.** One error class — a headline rate computed over only the
-  surviving subset of units but reported as covering the whole planned set — passed a sealed,
-  pre-registered adversarial examination **7 of 7**: both planted errors caught, zero false alarms
-  on five controls, one attempt, no repair.
+- **Two promoted binding-level envelopes.** The complete-domain rate error and the narrow
+  dependence/pseudoreplication family each passed a sealed, pre-registered examination **7 of 7**:
+  both planted errors caught, zero false alarms on five controls, one attempt, no repair. Neither
+  is product-wired yet.
 
 - **A no-false-alarm record that has never broken.** Across every blind trial and every
   adversarial review conducted to date, the detectors under development have produced **zero false
@@ -93,7 +93,7 @@ frontier is the recognition that finds what to compute over.
 
 | Family | What it catches | Built today | Stage | Next step |
 |---|---|---|---|---|
-| **Dependence / pseudoreplication** | Repeated measurements from one subject counted as independent (300 cells from 3 mice reported as n=300) | Evaluator, safeguard registry, data provers, the full recognizer, and the complete pilot pipeline | **Qualified (sealed exam 7/7 at the strict two-of-two bar)** — both planted errors caught including an independently structured second positive, zero false alarms | Qualification report, then the promotion decision |
+| **Dependence / pseudoreplication** | Repeated measurements from one subject counted as independent (300 cells from 3 mice reported as n=300) | Evaluator, safeguard registry, data provers, the full recognizer, and the complete pilot pipeline | **Promoted** (sealed exam 7/7 at the strict two-of-two bar; ADR-0073) — both planted errors caught including an independently structured second positive, zero false alarms | Round-2 schema, grant installation, and production wiring |
 | **Multiple testing** | An incomplete or mis-scoped correction across a family of tests | Exact complete-family Benjamini-Hochberg recomputation | Recon | Recognizer build (next family in the queue) |
 | **Design integrity & aggregation** | Aggregation that merges or drops design groups; broken pairing | Exact categorical design, pairing, and aggregation calculations | Recon | Queued third; reuses dependence evidence |
 | **Model / response compatibility** | A model fitted on a scale incompatible with its response | Exact call registry and response-scale comparison | Planned | |
@@ -104,14 +104,14 @@ frontier is the recognition that finds what to compute over.
 
 | Slot | Work |
 |---|---|
-| In flight | Dependence qualification report and promotion decision |
-| Next | Copy-dosage blind pilots; production Finding wiring for the promoted detector (staged decisions) |
+| In flight | Round-2 production-wiring decisions for the two promoted bindings |
+| Next | Copy-dosage blind pilots |
 | Then | Multiple-testing recognizer build (recon complete) |
 
 Verification reviews gate every hand-off in this queue: no item advances past a review that found
 something until the finding is fixed and re-checked.
 
-**Built, entering validation:** dependence / pseudoreplication. The original design named it the
+**Qualified and promoted, not product-wired:** dependence / pseudoreplication. The original design named it the
 first complete vertical, and its decision rule, safeguard registry, and evaluator were already
 built and passing. The new piece is the recognizer: the component that reads an author's code and
 produces proven evidence for that evaluator. It is now built on the same propose-then-verify
@@ -122,9 +122,10 @@ trusted channel and then proves from the digest-fixed input file itself that the
 column's values actually repeat. Where either piece is missing, it stays silent or asks. The
 build went through four rounds of independent adversarial review plus a targeted verification
 pass; every reviewer-constructed wrong answer became a permanent regression test, and the final
-verdict found no known route to a wrong answer. It runs in shadow only, is deliberately
-narrow (it abstains outside a small certified envelope), and now moves to the ladder's blind
-trials before any qualification claim.
+verdict found no known route to a wrong answer. It remains deliberately narrow (it abstains outside
+a small certified envelope), passed two completed blind pilots, a threshold rehearsal, and the
+sealed two-positive examination, and now has the exact ADR-0073 binding-level promotion. Public
+grant installation and production Finding wiring remain absent.
 
 ---
 
