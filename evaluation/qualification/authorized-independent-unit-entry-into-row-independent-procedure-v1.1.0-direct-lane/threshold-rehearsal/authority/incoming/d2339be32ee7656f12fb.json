@@ -1,0 +1,55 @@
+{
+  "approval": {
+    "actor_id": "scientist:alexander-king-method-owner-01",
+    "actor_kind": "human",
+    "approved_at": "2026-08-11T00:34:37.464394Z",
+    "approved_projection_digest": "sha256:9d5b2fd8ed788f7f10a6ac4fabfff3c9cf1bae57979e4db41a844caae75e9ca9"
+  },
+  "authority_limitations": [
+    "Authorization is limited to this case, input digest, procedure and ordered key.",
+    "It establishes no execution, numerical impact or general scientific correctness."
+  ],
+  "case_id": "case:d2339be32ee7656f12fb",
+  "declared_execution_root": "case_root",
+  "intake_recorded_at": "2026-08-11T00:34:01.832789Z",
+  "lock_digest": "sha256:7632142713be6ebb494110b869d65c2d3a3aea0b8cb52c5cdf6cdf7322ddd1ef",
+  "lock_kind": "dependence_method_authorization_v1",
+  "records": [
+    {
+      "path": "workflow/analysis.py",
+      "record_id": "analysis:d2339be32ee7656f12fb",
+      "record_type": "analysis"
+    },
+    {
+      "record_id": "procedure:d2339be32ee7656f12fb",
+      "record_type": "procedure",
+      "resolved_callable": "scipy.stats.mannwhitneyu"
+    },
+    {
+      "path": "results/report.md",
+      "record_id": "result:d2339be32ee7656f12fb",
+      "record_type": "result"
+    },
+    {
+      "actor_id": "scientist:alexander-king-method-owner-01",
+      "analysis_target_ref": {
+        "record_id": "analysis:d2339be32ee7656f12fb",
+        "record_type": "analysis"
+      },
+      "authority_state": "authorized",
+      "authorized_key_columns": [
+        "k1"
+      ],
+      "independent_unit_definition_id": "unit-definition:k1-first-collection-source-item",
+      "input_content_digest": "sha256:175a4488e26a00247418d7b48bc31d221b2dd2463c594ff689a8effc7f880b51",
+      "input_path": "inputs/data.csv",
+      "procedure_ref": {
+        "record_id": "procedure:d2339be32ee7656f12fb",
+        "record_type": "procedure"
+      },
+      "record_id": "authorization:d2339be32ee7656f12fb",
+      "record_type": "human_method_authorization"
+    }
+  ],
+  "snapshot_digest": "sha256:7ce6e7e75534dc96a6de512a641071d0029eb592ae45b03ac0c875d5da9c8960"
+}
