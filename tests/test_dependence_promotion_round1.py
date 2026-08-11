@@ -151,7 +151,7 @@ def test_projector_refuses_ledger_byte_or_self_digest_drift(
         project_heldout_detector_case_outcomes(drifted)
 
 
-def test_exam_time_detector_tuple_matches_live_registry_and_manifest(
+def test_exam_time_detector_tuple_is_retained_while_live_binding_identity_drifts_at_v019(
     project_root: Path,
 ) -> None:
     authoring = _load(project_root / AUTHORING)
@@ -173,7 +173,10 @@ def test_exam_time_detector_tuple_matches_live_registry_and_manifest(
     assert detector_tuple["check_manifest_digest"] == CHECK_MANIFEST_DIGEST
     assert detector_tuple["method_conflict_binding_digest"] == BINDING_DIGEST
     assert detector_tuple["registry_content_digest"] == REGISTRY_CONTENT_DIGEST
-    assert sha256_digest((project_root / REGISTRY).read_bytes()) == REGISTRY_CONTENT_DIGEST
+    # The sealed examination remains bound to its exact v0.18 detector tuple.
+    # Accepting v0.19 changes the schema-versioned detector and binding records,
+    # so the live registry must no longer be mistaken for those frozen bytes.
+    assert sha256_digest((project_root / REGISTRY).read_bytes()) != REGISTRY_CONTENT_DIGEST
     assert current_module["manifest_digest"] == CHECK_MANIFEST_DIGEST
     assert current_module["adapters"] == [
         {
@@ -185,10 +188,11 @@ def test_exam_time_detector_tuple_matches_live_registry_and_manifest(
         }
     ]
     assert detector_tuple["adapters"] == current_module["adapters"]
-    assert current_binding["detector_manifest_digest"] == DETECTOR_MANIFEST_DIGEST
-    assert semantic_digest(current_binding) == BINDING_DIGEST
-    assert frozen_detector == current_detector
-    assert semantic_digest(current_detector) == DETECTOR_MANIFEST_DIGEST
+    assert current_binding["detector_manifest_digest"] != DETECTOR_MANIFEST_DIGEST
+    assert semantic_digest(current_binding) != BINDING_DIGEST
+    assert frozen_detector != current_detector
+    assert semantic_digest(frozen_detector) == DETECTOR_MANIFEST_DIGEST
+    assert semantic_digest(current_detector) == current_binding["detector_manifest_digest"]
 
 
 def test_round1_private_records_rederive_but_require_v019_restamp(

@@ -10,6 +10,7 @@ import pytest
 from sc_referee_evaluation.capture import load_review_capture
 from sc_referee_evaluation.review_protocol import validate_stage1_freeze_evidence
 
+import scripts.record_first_direct_three_case_stage1_semantic_recovery as stage1_recorder
 from sc_referee.core.ids import semantic_digest
 from scripts.build_first_direct_three_case_stage1_semantic_recovery_protocol import (
     ACTIVE_REVIEWERS,
@@ -25,7 +26,12 @@ from scripts.record_first_direct_three_case_stage1_semantic_recovery import (
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SCHEMA_RELATIVE = Path("reference/schemas-v0.18.0")
+SCHEMA_RELATIVE = Path("reference/schemas-v0.19.0")
+
+
+@pytest.fixture(autouse=True)
+def _current_schema_for_new_review_projection(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(stage1_recorder, "SCHEMA_RELATIVE", SCHEMA_RELATIVE)
 
 
 def _load(path: Path) -> dict[str, Any]:

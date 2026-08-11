@@ -17,6 +17,7 @@ from sc_referee_evaluation.review_semantic_payload import (
     project_stage1_semantic_batch,
 )
 
+import scripts.record_first_direct_three_case_stage1_reviews as stage1_recorder
 from sc_referee.core.ids import semantic_digest, sha256_digest
 from scripts.build_first_direct_three_case_stage1_protocol import (
     CANONICAL_ISSUE_CLASS,
@@ -35,8 +36,16 @@ from scripts.record_first_direct_three_case_stage1_reviews import (
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SCHEMA_ROOT = PROJECT_ROOT / "reference/schemas-v0.18.0"
+SCHEMA_ROOT = PROJECT_ROOT / "reference/schemas-v0.19.0"
+FROZEN_SCHEMA_ROOT = PROJECT_ROOT / "reference/schemas-v0.18.0"
 REVIEW_ROOT = PROJECT_ROOT / REVIEW_RELATIVE
+
+
+@pytest.fixture(autouse=True)
+def _current_schema_for_new_review_projection(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep the retained recorder bytes fixed while exercising new records at v0.19."""
+
+    monkeypatch.setattr(stage1_recorder, "SCHEMA_RELATIVE", Path("reference/schemas-v0.19.0"))
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -385,7 +394,7 @@ def test_retained_stage1_panel_replays_all_twelve_reviews() -> None:
                 / case_id.removeprefix("case:")
                 / participant_id.removeprefix("actor:")
             )
-            review, packet, manifest = load_review_capture(capture_root, SCHEMA_ROOT)
+            review, packet, manifest = load_review_capture(capture_root, FROZEN_SCHEMA_ROOT)
             reviews.append(review)
             packets.append(packet)
             manifests.append(manifest)
@@ -395,7 +404,7 @@ def test_retained_stage1_panel_replays_all_twelve_reviews() -> None:
             reviews,
             packets,
             manifests,
-            SCHEMA_ROOT,
+            FROZEN_SCHEMA_ROOT,
         )
         assert frozen["freeze_digest"] == panel["freeze_digest"]
         assert panel["review_count"] == 4

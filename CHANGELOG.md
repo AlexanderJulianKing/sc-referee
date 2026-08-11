@@ -2,6 +2,11 @@
 
 ## 0.3.0
 
+- Accepted public schema v0.19.0 as the active record contract. The release adds exact
+  detector-v0.3 per-binding promotion representation, dated and decision-bound maintainer
+  approvals, explicit Stage-3 comparison-artifact disclosure, and fail-closed v0.18→v0.19
+  migration. Qualification-manifest installation and production Finding authority remain
+  separate later decisions.
 - Corrected the dependence shadow adapter's parser-identity conformance boundary so its closed
   two-entry allowlist accepts both the hand-built `python-ast` 3.11 test identity and the real
   `parser:python-ast-tokenize` 0.15.1 capture-parser identity used by registered audits. The

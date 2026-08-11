@@ -57,7 +57,7 @@ It does not issue a global pass, risk score, publication approval, or correctnes
 The current release reports:
 
 ```text
-sc-referee 0.3.0 (schema 0.18.0; starter lineage 0.1.0)
+sc-referee 0.3.0 (schema 0.19.0; starter lineage 0.1.0)
 ```
 
 The program version, record-schema version, and historical starter lineage are deliberately

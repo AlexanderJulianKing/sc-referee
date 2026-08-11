@@ -31,6 +31,7 @@ V014_TO_V015_TARGET_SCHEMA_ROOT = "reference/schemas-v0.15.0"
 V015_TO_V016_TARGET_SCHEMA_ROOT = "reference/schemas-v0.16.0"
 V016_TO_V017_TARGET_SCHEMA_ROOT = "reference/schemas-v0.17.0"
 V017_TO_V018_TARGET_SCHEMA_ROOT = "reference/schemas-v0.18.0"
+V018_TO_V019_TARGET_SCHEMA_ROOT = "reference/schemas-v0.19.0"
 _V1_1_QUALIFICATION_MODULES = frozenset(
     {
         "sc_referee_evaluation/prospective_selected_result_verifier.py",
@@ -787,6 +788,7 @@ def main() -> int:
         second_static_qualification_migration = temp_root / "public-v0.15-to-v0.16"
         modular_method_migration = temp_root / "public-v0.16-to-v0.17"
         calculation_check_migration = temp_root / "public-v0.17-to-v0.18"
+        method_promotion_migration = temp_root / "public-v0.18-to-v0.19"
         ro_crate = temp_root / "demo-ro-crate.zip"
         capability_matrix = temp_root / "capability-matrix.json"
         shutil.copytree(
@@ -1684,6 +1686,31 @@ def main() -> int:
             )
         ):
             raise RuntimeError("Public calculation-check migration invented v0.18 authority")
+        run(
+            "scripts/migrate_v0_18_to_v0_19.py",
+            "reference/schemas-v0.18.0/examples/audit-bundle.example.json",
+            "--source-schema-root",
+            "reference/schemas-v0.18.0",
+            "--target-schema-root",
+            V018_TO_V019_TARGET_SCHEMA_ROOT,
+            "--output",
+            str(method_promotion_migration),
+        )
+        method_promotion_migration_report = json.loads(
+            (method_promotion_migration / "MIGRATION_REPORT.json").read_text(encoding="utf-8")
+        )
+        if any(
+            method_promotion_migration_report.get(field) is not False
+            for field in (
+                "binding_scope_invented",
+                "execution_launched",
+                "finding_authority_created",
+                "numeric_threshold_invented",
+                "qualification_invented",
+                "storage_manifest_carried_forward",
+            )
+        ):
+            raise RuntimeError("Public method-promotion migration invented v0.19 authority")
 
     verification = {
         "starter_version": "0.1.0",
@@ -1765,7 +1792,7 @@ def main() -> int:
         "ruff_format": "passed",
         "mypy": "passed",
         "public_detector_qualification": "not_claimed",
-        "public_schema_release": "0.18.0",
+        "public_schema_release": "0.19.0",
         "public_v0.5_to_v0.6_migration": "passed",
         "public_v0.6_to_v0.7_migration": "passed",
         "public_v0.7_to_v0.8_migration": "passed",
@@ -1779,6 +1806,7 @@ def main() -> int:
         "public_v0.15_to_v0.16_migration": "passed_fail_closed",
         "public_v0.16_to_v0.17_migration": "passed_fail_closed",
         "public_v0.17_to_v0.18_migration": "passed_fail_closed",
+        "public_v0.18_to_v0.19_migration": "passed_fail_closed",
         "interaction_schema_adr_accepted": True,
         "lineage_schema_adr_accepted": True,
         "performance_projection_adr_accepted": True,

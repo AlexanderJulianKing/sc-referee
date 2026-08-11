@@ -11,7 +11,7 @@ Your assignment is to turn the walking skeleton in this repository into the firs
 5. Treat accepted ADRs, including ADR-0017's evidence-first `0.6.0` MPP boundary and ADR-0018's
    closed method-contract compatibility boundary, as the highest
    product authority over the immutable `reference/specification-v0.5.0-draft/` baseline.
-6. Treat `reference/schemas-v0.18.0/` as the authority for the current public record contract;
+6. Treat `reference/schemas-v0.19.0/` as the authority for the current public record contract;
    accepted earlier schema releases remain immutable migration baselines.
 7. Treat `docs/implementation/` as the authority for implementation order and experimental
    interfaces.

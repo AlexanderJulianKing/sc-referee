@@ -1,0 +1,313 @@
+{
+  "adjudication_ref": {
+    "record_id": "benchmark-adjudication:verified-good-1",
+    "record_type": "benchmark_adjudication"
+  },
+  "corpus_partition": "public_development",
+  "declared_scope": {
+    "claim_refs": [
+      {
+        "record_id": "claim:1",
+        "record_type": "claim"
+      }
+    ],
+    "detector_ids": [
+      "detector:claim-sign"
+    ],
+    "issue_classes": [
+      "claim_result_agreement"
+    ],
+    "operation_refs": [
+      {
+        "record_id": "operation:1",
+        "record_type": "operation"
+      }
+    ]
+  },
+  "execution_evidence": "not_executed",
+  "expected_issue_labels": [],
+  "expected_root_cause_refs": [],
+  "fixture_id": "fixture:static-hard-1",
+  "fixture_kind": "static_scope_hard_negative",
+  "global_correctness_claim_allowed": false,
+  "limitations": [
+    "Verified only for the declared claim and detector scope."
+  ],
+  "problem_id": "problem:gene-1",
+  "proof_evidence": {
+    "chronology_validated": true,
+    "controller_profile": "fixture-proof-evidence-static-v1",
+    "hard_negative_evidence": {
+      "decisive_innocent_explanation": [
+        {
+          "description": "The independently recomputed direction agrees with the report.",
+          "evidence_id": "evidence:static-innocent-direction",
+          "record_refs": [
+            {
+              "record_id": "contract:1",
+              "record_type": "scientific_contract"
+            }
+          ],
+          "support_role": "counterevidence"
+        }
+      ],
+      "suspicious_pattern": [
+        {
+          "description": "A literal directional phrase resembles the target pattern.",
+          "evidence_id": "evidence:static-suspicious-direction",
+          "record_refs": [
+            {
+              "record_id": "contract:1",
+              "record_type": "scientific_contract"
+            }
+          ],
+          "support_role": "context"
+        }
+      ]
+    },
+    "protocol_artifacts": {
+      "blind_workspace_manifests": [
+        {
+          "artifact_id": "workspace-manifest:1",
+          "artifact_kind": "blind_workspace_manifest",
+          "content_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+        }
+      ],
+      "review_captures": [
+        {
+          "artifact_id": "review-capture:1",
+          "artifact_kind": "review_capture",
+          "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "artifact_id": "review-capture:2",
+          "artifact_kind": "review_capture",
+          "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "artifact_id": "review-capture:3",
+          "artifact_kind": "review_capture",
+          "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "artifact_id": "review-capture:4",
+          "artifact_kind": "review_capture",
+          "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "artifact_id": "review-capture:5",
+          "artifact_kind": "review_capture",
+          "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "artifact_id": "review-capture:6",
+          "artifact_kind": "review_capture",
+          "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "review_packets": [
+        {
+          "artifact_id": "review-packet:1",
+          "artifact_kind": "review_packet",
+          "content_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        {
+          "artifact_id": "review-packet:2",
+          "artifact_kind": "review_packet",
+          "content_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        {
+          "artifact_id": "review-packet:3",
+          "artifact_kind": "review_packet",
+          "content_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        {
+          "artifact_id": "review-packet:4",
+          "artifact_kind": "review_packet",
+          "content_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        {
+          "artifact_id": "review-packet:5",
+          "artifact_kind": "review_packet",
+          "content_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        {
+          "artifact_id": "review-packet:6",
+          "artifact_kind": "review_packet",
+          "content_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        }
+      ],
+      "review_transcripts": [
+        {
+          "artifact_id": "review-transcript:1",
+          "artifact_kind": "review_transcript",
+          "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "artifact_id": "review-transcript:2",
+          "artifact_kind": "review_transcript",
+          "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "artifact_id": "review-transcript:3",
+          "artifact_kind": "review_transcript",
+          "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "artifact_id": "review-transcript:4",
+          "artifact_kind": "review_transcript",
+          "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "artifact_id": "review-transcript:5",
+          "artifact_kind": "review_transcript",
+          "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "artifact_id": "review-transcript:6",
+          "artifact_kind": "review_transcript",
+          "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "stage1_freezes": [
+        {
+          "artifact_id": "stage1-freeze:1",
+          "artifact_kind": "stage1_freeze",
+          "content_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ]
+    },
+    "public_inputs": {
+      "adjudicated_root_causes": [],
+      "adjudications": [
+        {
+          "record_ref": {
+            "record_id": "benchmark-adjudication:verified-good-1",
+            "record_type": "benchmark_adjudication"
+          },
+          "semantic_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      ],
+      "agent_reviews": [
+        {
+          "record_ref": {
+            "record_id": "review:verified-good:1",
+            "record_type": "agent_review"
+          },
+          "semantic_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        {
+          "record_ref": {
+            "record_id": "review:verified-good:2",
+            "record_type": "agent_review"
+          },
+          "semantic_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        {
+          "record_ref": {
+            "record_id": "review:verified-good:3",
+            "record_type": "agent_review"
+          },
+          "semantic_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        {
+          "record_ref": {
+            "record_id": "review:verified-good:4",
+            "record_type": "agent_review"
+          },
+          "semantic_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        {
+          "record_ref": {
+            "record_id": "review:verified-good:5",
+            "record_type": "agent_review"
+          },
+          "semantic_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        {
+          "record_ref": {
+            "record_id": "review:verified-good:6",
+            "record_type": "agent_review"
+          },
+          "semantic_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+        }
+      ],
+      "answers": [],
+      "environments": [],
+      "executions": [],
+      "material_questions": [],
+      "operations": [
+        {
+          "record_ref": {
+            "record_id": "operation:1",
+            "record_type": "operation"
+          },
+          "semantic_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+        }
+      ],
+      "sandbox_capabilities": [],
+      "scientific_contracts": [
+        {
+          "record_ref": {
+            "record_id": "contract:1",
+            "record_type": "scientific_contract"
+          },
+          "semantic_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+        }
+      ],
+      "semantic_assertions": [],
+      "source_snapshots": [
+        {
+          "record_ref": {
+            "record_id": "snapshot:1",
+            "record_type": "repository_snapshot"
+          },
+          "semantic_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "static_qualification_proofs": [
+        {
+          "record_ref": {
+            "record_id": "static-proof:direction-case-1",
+            "record_type": "static_qualification_proof"
+          },
+          "semantic_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+        }
+      ]
+    },
+    "source_validation_report_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "proof_obligations": {
+    "claim_output_agreement": true,
+    "decisive_innocent_explanation_documented": true,
+    "hard_negative_pattern_documented": true,
+    "no_unresolved_material_disagreement": true,
+    "positive_root_cause_documented": false,
+    "reviewed_operations_identified": true,
+    "scope_semantics_resolved": true
+  },
+  "provenance": {
+    "actor": {
+      "actor_id": "software:sc-referee-eval",
+      "actor_kind": "controller",
+      "display_name": "sc-referee evaluation controller"
+    },
+    "created_at": "2026-07-27T18:00:00Z",
+    "method": "deterministic_evaluation_runner",
+    "tool": "sc-referee-eval",
+    "tool_version": "0.5.0"
+  },
+  "qualification_proof_status": "complete",
+  "record_type": "benchmark_fixture",
+  "schema_version": "0.19.0",
+  "scientific_contract_refs": [
+    {
+      "record_id": "contract:1",
+      "record_type": "scientific_contract"
+    }
+  ],
+  "snapshot_ref": {
+    "record_id": "snapshot:1",
+    "record_type": "repository_snapshot"
+  }
+}

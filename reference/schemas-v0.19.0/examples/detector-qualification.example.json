@@ -1,0 +1,73 @@
+{
+  "agent_adjudication_refs": [
+    {
+      "record_id": "benchmark-adjudication:claim-sign-heldout",
+      "record_type": "benchmark_adjudication"
+    }
+  ],
+  "author_actor_ids": [
+    "person:author-1"
+  ],
+  "binding_scope": null,
+  "decided_at": "2026-07-27T20:00:00Z",
+  "detector_id": "detector:claim-sign",
+  "detector_version": "1.0.0",
+  "effective_maturity": "experimental",
+  "evaluation_refs": [
+    "evaluation:claim-sign-heldout"
+  ],
+  "extensions": {
+    "x-v0-9-effective-maturity": "validated",
+    "x-v0-9-outcome": "promoted",
+    "x-v0-9-quantitative-metrics": null
+  },
+  "human_scientific_approvals": [],
+  "independent_corpus_refs": [],
+  "numeric_threshold_policy": "deferred_until_pilot_threshold_adr",
+  "outcome": "deferred",
+  "provenance": {
+    "actor": {
+      "actor_id": "software:sc-referee-eval",
+      "actor_kind": "controller",
+      "display_name": "sc-referee evaluation controller"
+    },
+    "created_at": "2026-07-27T18:00:00Z",
+    "method": "deterministic_evaluation_runner",
+    "tool": "sc-referee-eval",
+    "tool_version": "0.5.0"
+  },
+  "qualification_basis_disclosure": "Legacy v0.9 promotion is deferred because no typed Stage-3 metric set or accepted numeric threshold policy exists; no validated maturity is claimed.",
+  "qualification_id": "qualification:claim-sign-v1",
+  "qualification_proof_families": [],
+  "qualification_report_ref": "qualification/claim-sign-v1.md",
+  "quantitative_metrics": null,
+  "record_type": "detector_qualification",
+  "requested_maturity": "validated",
+  "review_basis": "agent_panel",
+  "reviewer_disagreement": null,
+  "safety_gates": {
+    "cluster_aware_uncertainty_reported": true,
+    "conditional_never_promoted": true,
+    "decisive_counterevidence_included": true,
+    "no_known_high_or_critical_false_accusations": true,
+    "proof_families_stratified": false,
+    "public_development_cases_not_used_for_qualification": true,
+    "qualification_report_public": true,
+    "regression_fixture_for_every_discovered_false_accusation": true,
+    "unresolved_disagreement_excluded": true,
+    "verified_good_and_hard_negative_included": true
+  },
+  "schema_version": "0.19.0",
+  "software_maintainer_approvals": [
+    {
+      "actor": {
+        "actor_id": "person:maintainer-1",
+        "actor_kind": "human",
+        "display_name": "Maintainer One"
+      },
+      "approved_on": "2026-08-11",
+      "decision_ref": "docs/implementation/ADR-0061-PER-BINDING-METHOD-CONFLICT-PROMOTION-PATH.md"
+    }
+  ],
+  "static_scope_disclosure": null
+}

@@ -48,6 +48,7 @@ def build_qualification_metric_set(
         "schema_version": SCHEMA_VERSION,
         "record_type": "qualification_metric_set",
         **evidence,
+        "binding_scope": None,
         "metric_profile": "root-cause-clustered-metrics-v1",
         "numeric_threshold_policy": "deferred_until_pilot_threshold_adr",
         "promotion_permitted": False,

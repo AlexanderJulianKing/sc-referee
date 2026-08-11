@@ -21,7 +21,7 @@ from sc_referee.core.ids import canonical_json, sha256_digest
 
 
 def _schema_root(project_root: Path) -> Path:
-    return project_root / "reference" / "schemas-v0.18.0"
+    return project_root / "reference" / "schemas-v0.19.0"
 
 
 def _write_canonical(path: Path, value: object) -> None:

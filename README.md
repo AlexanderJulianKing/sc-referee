@@ -5,7 +5,7 @@ snapshot, inspects supported files without running project-authored code, record
 could and could not establish, and produces a replayable audit report.
 
 > **Public alpha:** the current program version is `0.3.0` and the public record schema
-> is `0.18.0`. The overhaul is usable for bounded review, but it is not a correctness certificate,
+> is `0.19.0`. The overhaul is usable for bounded review, but it is not a correctness certificate,
 > publication approval, or general detector of every possible scientific mistake.
 
 ## Why it exists
@@ -214,7 +214,7 @@ record meaning.
 The three visible version lines describe different things:
 
 - `0.3.0` — the installable public-alpha Python program;
-- `0.18.0` — the current public JSON Schema release; and
+- `0.19.0` — the current public JSON Schema release; and
 - `0.1.0` — the historical starter lineage.
 
 The accepted “0.6.0 minimum proud product” is an architecture boundary, not the package version.

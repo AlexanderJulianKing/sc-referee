@@ -36,6 +36,7 @@ from sc_referee.scientific_checks.scope_joins import (
     STATIC_WRITER_SOURCE_PROFILE,
     selected_static_writer_path,
 )
+from sc_referee.version import SCHEMA_VERSION
 
 LOCK_KIND = "dependence_method_authorization_v1"
 DECLARED_EXECUTION_ROOT = "case_root"
@@ -400,7 +401,7 @@ def dependence_authorization_disclosure(
         )
     )
     return {
-        "schema_version": "0.18.0",
+        "schema_version": SCHEMA_VERSION,
         "record_type": "disclosure",
         "disclosure_id": stable_id(
             "disclosure-dependence-authority-lock", run_id, verified.lock_digest

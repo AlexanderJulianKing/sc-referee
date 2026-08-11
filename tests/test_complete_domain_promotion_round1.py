@@ -30,7 +30,7 @@ LEDGER = LANE / "heldout-v207-seven-case/detector-run/DETECTOR_RUN_LEDGER.json"
 PROMOTION = LANE / "promotion"
 OPENING = LANE / "heldout-v207-seven-case/HELDOUT_OPENING.json"
 CAPABILITY_MATRIX_DIGEST_WITH_DEPENDENCE_STAGE5 = (
-    "sha256:a5baa9875efe58f629b6c021639d0dc2ee243edfb13b42f26f9240b22105d757"
+    "sha256:d7db9216421e2407cb4a9abe7e922cb79673ff1c53130f8318c2bdf148dbe4bf"
 )
 FROZEN_DETECTOR_MANIFESTS = (
     LANE / "heldout-v207-seven-case/detector-run/runs/0e8a84e424013c876694/"
@@ -234,7 +234,7 @@ def test_round1_does_not_install_authority_and_current_matrix_stays_experimental
     assert _load(qualification_manifest)["records"] == []
 
     matrix = generate_capability_matrix(
-        default_capability_manifest_root(), project_root / "reference/schemas-v0.18.0"
+        default_capability_manifest_root(), project_root / "reference/schemas-v0.19.0"
     )
     assert semantic_digest(matrix) == CAPABILITY_MATRIX_DIGEST_WITH_DEPENDENCE_STAGE5
     method_entry = next(

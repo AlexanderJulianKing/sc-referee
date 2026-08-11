@@ -1,0 +1,144 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.19.0/environment-reconstruction.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "approximate"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "approximation_reason"
+        ]
+      }
+    }
+  ],
+  "properties": {
+    "approximation_reason": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/Identifier"
+    },
+    "definition_refs": {
+      "items": {
+        "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/SourceRef"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "dependencies": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "digest": {
+            "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/Digest"
+          },
+          "name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "source": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "version_status": {
+            "enum": [
+              "pinned",
+              "resolved_current",
+              "unknown"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "source",
+          "version_status"
+        ],
+        "type": "object"
+      },
+      "minItems": 0,
+      "type": "array"
+    },
+    "environment_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/Digest"
+    },
+    "environment_reconstruction_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/Identifier"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^x-"
+      },
+      "type": "object"
+    },
+    "failure_reason": {
+      "type": "string"
+    },
+    "finished_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/Timestamp"
+    },
+    "isolated_location": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "local_project_installed": {
+      "const": false
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "environment_reconstruction"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "started_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/Timestamp"
+    },
+    "status": {
+      "enum": [
+        "exact",
+        "approximate",
+        "failed",
+        "timed_out",
+        "skipped"
+      ]
+    },
+    "system_packages_installed": {
+      "const": false
+    },
+    "user_environment_modified": {
+      "const": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "environment_reconstruction_id",
+    "audit_run_id",
+    "status",
+    "definition_refs",
+    "isolated_location",
+    "user_environment_modified",
+    "system_packages_installed",
+    "local_project_installed",
+    "dependencies",
+    "started_at",
+    "finished_at",
+    "provenance"
+  ],
+  "title": "Environment Reconstruction",
+  "type": "object"
+}

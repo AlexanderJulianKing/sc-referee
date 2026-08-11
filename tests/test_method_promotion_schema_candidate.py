@@ -16,7 +16,7 @@ from scripts.build_method_promotion_schema_candidate import (
     SOURCE_ADR,
     build_candidate,
 )
-from scripts.migrate_v0_18_to_v0_19_candidate import migrate_public_bundle_to_candidate
+from scripts.migrate_v0_18_to_v0_19 import migrate_public_bundle
 
 
 def _load(root: Path, name: str) -> dict[str, Any]:
@@ -91,7 +91,7 @@ def test_v018_migration_to_candidate_is_fail_closed(
     project_root: Path, candidate: Path, tmp_path: Path
 ) -> None:
     source_root = project_root / "reference" / "schemas-v0.18.0"
-    migrated = migrate_public_bundle_to_candidate(
+    migrated = migrate_public_bundle(
         source_root / "examples" / "audit-bundle.example.json",
         source_root,
         candidate,

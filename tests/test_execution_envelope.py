@@ -19,7 +19,7 @@ def _authorization(project_root: Path) -> dict[str, object]:
         (
             project_root
             / "reference"
-            / "schemas-v0.18.0"
+            / "schemas-v0.19.0"
             / "examples"
             / "project-execution-authorization.example.json"
         ).read_text(encoding="utf-8")

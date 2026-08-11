@@ -1,0 +1,213 @@
+{
+  "applicability_results": [
+    {
+      "check_id": "unique_supported_dependency_closure",
+      "completion_status": "completed",
+      "detail_code": "unique_closure",
+      "evidence_paths": [
+        "analysis.py",
+        "data.csv",
+        "report.md"
+      ],
+      "outcome": "agreement"
+    }
+  ],
+  "case_assignment_artifact": {
+    "artifact_id": "case-assignment:direction-case-1",
+    "artifact_kind": "opaque_case_assignment",
+    "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "chronology": {
+    "case_assigned_at": "2026-07-30T18:01:00Z",
+    "detector_dispatched_at": null,
+    "label_frozen_at": "2026-07-30T18:02:00Z",
+    "profile_frozen_at": "2026-07-30T18:00:00Z",
+    "proof_frozen_at": "2026-07-30T18:03:00Z",
+    "stage3_started_at": null
+  },
+  "counterevidence_results": [
+    {
+      "check_id": "opposite_direction_sibling_claim",
+      "completion_status": "completed",
+      "detail_code": "full_report_search_complete",
+      "evidence_paths": [
+        "report.md"
+      ],
+      "outcome": "counterevidence_absent"
+    }
+  ],
+  "dependency_graph": {
+    "edges": [
+      {
+        "from_node_id": "node:data",
+        "relation": "derives",
+        "to_node_id": "node:mean"
+      },
+      {
+        "from_node_id": "node:mean",
+        "relation": "writes",
+        "to_node_id": "node:report"
+      }
+    ],
+    "nodes": [
+      {
+        "node_id": "node:data",
+        "node_kind": "raw_byte_source",
+        "path": "data.csv",
+        "semantic_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      {
+        "node_id": "node:mean",
+        "node_kind": "derived_fact",
+        "path": null,
+        "semantic_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      {
+        "node_id": "node:report",
+        "node_kind": "candidate",
+        "path": "report.md",
+        "semantic_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    ]
+  },
+  "derived_facts": {
+    "candidate_paths": [
+      "analysis.py",
+      "data.csv",
+      "report.md"
+    ],
+    "computed_orientation": "left_higher",
+    "data_path": "data.csv",
+    "group_column": "group",
+    "left_group": "A",
+    "left_mean": 3.0,
+    "left_values": [
+      2.0,
+      4.0
+    ],
+    "literal_claims": [
+      {
+        "end": 31,
+        "orientation": "right_higher",
+        "sentence": "Group B is higher than group A.",
+        "start": 0
+      }
+    ],
+    "outcome_column": "value",
+    "right_group": "B",
+    "right_mean": 1.0,
+    "right_values": [
+      1.0,
+      1.0
+    ],
+    "selected_report_path": "report.md",
+    "supported_closure_paths": [
+      "analysis.py",
+      "data.csv",
+      "report.md"
+    ],
+    "supported_exclusions": [],
+    "writer_path": "analysis.py"
+  },
+  "label_freeze_artifact": {
+    "artifact_id": "label-freeze:direction-case-1",
+    "artifact_kind": "scientific_label_freeze",
+    "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "limitations": [
+    "This proof establishes only the frozen static direction envelope."
+  ],
+  "profile": {
+    "record_ref": {
+      "record_id": "static-profile:bounded-direction-v1",
+      "record_type": "static_qualification_profile"
+    },
+    "semantic_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+  },
+  "proof_id": "static-proof:direction-case-1",
+  "proof_profile_kind": "bounded_report_mean_direction_v1",
+  "proof_semantic_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+  "proof_status": "complete",
+  "provenance": {
+    "actor": {
+      "actor_id": "software:sc-referee-eval",
+      "actor_kind": "controller",
+      "display_name": "sc-referee evaluation controller"
+    },
+    "created_at": "2026-07-30T18:03:00Z",
+    "method": "deterministic_static_qualification",
+    "tool": "sc-referee-eval",
+    "tool_version": "0.7.0"
+  },
+  "record_type": "static_qualification_proof",
+  "retained_bytes": [
+    {
+      "asset_identity": {
+        "record_ref": {
+          "record_id": "identity:analysis.py",
+          "record_type": "asset_identity"
+        },
+        "semantic_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "byte_size": 100,
+      "content_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "encoding": "utf-8",
+      "file_record": {
+        "record_ref": {
+          "record_id": "file:analysis.py",
+          "record_type": "file_record"
+        },
+        "semantic_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "path": "analysis.py"
+    },
+    {
+      "asset_identity": {
+        "record_ref": {
+          "record_id": "identity:data.csv",
+          "record_type": "asset_identity"
+        },
+        "semantic_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "byte_size": 100,
+      "content_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "encoding": "utf-8",
+      "file_record": {
+        "record_ref": {
+          "record_id": "file:data.csv",
+          "record_type": "file_record"
+        },
+        "semantic_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "path": "data.csv"
+    },
+    {
+      "asset_identity": {
+        "record_ref": {
+          "record_id": "identity:report.md",
+          "record_type": "asset_identity"
+        },
+        "semantic_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "byte_size": 100,
+      "content_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "encoding": "utf-8",
+      "file_record": {
+        "record_ref": {
+          "record_id": "file:report.md",
+          "record_type": "file_record"
+        },
+        "semantic_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "path": "report.md"
+    }
+  ],
+  "schema_version": "0.19.0",
+  "snapshot": {
+    "record_ref": {
+      "record_id": "snapshot:direction-case-1",
+      "record_type": "repository_snapshot"
+    },
+    "semantic_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  }
+}

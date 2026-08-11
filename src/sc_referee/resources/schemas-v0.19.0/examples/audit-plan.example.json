@@ -1,0 +1,154 @@
+{
+  "audit_plan_id": "audit-plan:standard-example",
+  "audit_run_id": "run:example",
+  "cache_policy": {
+    "cross_repository_semantic_cache": false,
+    "global_cache_allowed_classes": [
+      "parser_binaries_and_grammars",
+      "public_package_downloads",
+      "isolated_dependency_environments",
+      "public_external_evidence",
+      "tool_owned_immutable_assets"
+    ],
+    "source_derived_scope": "project_local_only"
+  },
+  "created_at": "2026-07-27T23:30:00Z",
+  "data_policy": {
+    "identity_policy": "tiered",
+    "max_source_packet_bytes": 250000,
+    "max_total_bytes_read_from_large_assets": 50000000
+  },
+  "deadlines": {
+    "clock": "user_visible_elapsed",
+    "hard_deadline_seconds": 600,
+    "no_automatic_mode_escalation": true,
+    "pause_states": [
+      "awaiting_scientist_response"
+    ],
+    "resume_creates_linked_run_segment": true,
+    "scheduling_cutoff_seconds": 480
+  },
+  "execution_policy": {
+    "allow_dependency_installation": true,
+    "allow_full_workflow_execution": false,
+    "allow_hpc_submission": false,
+    "allow_local_project_installation": false,
+    "allow_system_package_installation": false,
+    "automatic_execution_levels": [
+      "safe_inspection",
+      "auditor_owned_verification"
+    ],
+    "dependency_installation_isolation": "isolated_environment_only",
+    "project_code_execution": "denied",
+    "project_code_network_access": "denied",
+    "repository_mount": "read_only",
+    "static_first": true,
+    "unsafe_deserialization": "deny",
+    "unversioned_environment_status": "approximate",
+    "writable_roots": [
+      ".sc-referee/runs/run:example/"
+    ]
+  },
+  "finding_policy": {
+    "emit_numerical_finding_confidence": false,
+    "finding_means_demonstrated_issue_only": true,
+    "group_findings_by_root_cause": true,
+    "minimum_detector_maturity": "validated",
+    "never_emit_global_correctness_status": true,
+    "require_all_five_admission_conditions": true,
+    "require_finite_counterevidence_protocol": true,
+    "reserve_severity_for_findings": true
+  },
+  "mode": "standard",
+  "model_policy": {
+    "allow_bounded_semantic_extraction": true,
+    "allow_model_finding_admission": false,
+    "allow_open_ended_scientific_issue_search": false,
+    "auditor_call_limit": null,
+    "auditor_input_token_limit": null,
+    "auditor_output_token_limit": null,
+    "limit_authority": "host_managed",
+    "packetized_work": true,
+    "record_usage": true
+  },
+  "network_policy": {
+    "cache_retrieved_evidence": true,
+    "claude_network_access": "host_managed_unrestricted",
+    "controller_network_access": "allowed_with_provenance",
+    "project_code_network_access": "explicit_authorization_required",
+    "record_retrieval_provenance": true,
+    "repository_content_can_authorize": false
+  },
+  "on_deadline": {
+    "calculate_partial_coverage": true,
+    "preserve_completed_records": true,
+    "preserve_pending_work_items": true,
+    "render_partial_report": true,
+    "stop_new_optional_work_at_cutoff": true,
+    "terminate_eligible_children_at_hard_deadline": true
+  },
+  "parser_policy": {
+    "execute_source_during_parse": false,
+    "python_stack": "cpython_ast_plus_tokenize",
+    "r_stack": [
+      "tree_sitter_r",
+      "base_r_parse_data_when_available"
+    ],
+    "record_parser_coverage": true
+  },
+  "provenance": {
+    "actor": {
+      "actor_id": "sc_referee.core",
+      "actor_kind": "controller",
+      "display_name": "sc-referee controller"
+    },
+    "created_at": "2026-07-27T23:30:00Z",
+    "method": "deterministic_controller",
+    "source_refs": [],
+    "tool": "sc_referee.core",
+    "tool_version": "0.5.0"
+  },
+  "question_policy": {
+    "ask_only_material": true,
+    "batch_questions": true,
+    "maximum_interactive_rounds": 1,
+    "unanswered_behavior": "preserve_unknown_and_continue"
+  },
+  "record_type": "audit_plan",
+  "report_policy": {
+    "core_readable_without_javascript": true,
+    "external_assets": false,
+    "renderer": "jinja2_static_html",
+    "self_contained": true,
+    "template_autoescape": true
+  },
+  "sandbox_policy": {
+    "auditor_owned_verification_backend": "restricted_subprocess_allowed",
+    "project_code_backend": "rootless_oci_required",
+    "report_capabilities": true,
+    "unsafe_fallback": false
+  },
+  "schema_version": "0.19.0",
+  "scope": {
+    "deep_inspection": "final_claim_backward_slices",
+    "explicit_exclusions": [
+      ".git/**",
+      ".venv/**"
+    ],
+    "include_selection_envelope": true,
+    "inventory": "whole_project",
+    "project_root": ".",
+    "publication_surface_policy": "precedence_then_ask_if_ambiguous"
+  },
+  "snapshot_policy": {
+    "live_mutation_behavior": "continue_snapshot_mark_workspace_diverged",
+    "mix_live_content_into_run": false,
+    "strategy": "immutable_initial_snapshot"
+  },
+  "storage_policy": {
+    "canonical_records": "json_or_jsonl",
+    "generated_query_index": "sqlite",
+    "query_index_disposable": true,
+    "scientist_editable_records": "yaml_or_json"
+  }
+}

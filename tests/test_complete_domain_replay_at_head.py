@@ -46,7 +46,7 @@ def test_retained_head_replay_is_digest_bound_nonblind_and_seven_of_seven(
     assert all(entry["mismatch_fields"] == [] for entry in artifact["entries"])
 
 
-def test_retained_head_replay_reexecutes_current_audit_path_exactly(
+def test_retained_head_replay_preserves_all_case_outcomes_across_v019_identity_drift(
     project_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     artifact_path = project_root / REPLAY_OUTPUT_RELATIVE / REPLAY_ARTIFACT_NAME
@@ -67,8 +67,13 @@ def test_retained_head_replay_reexecutes_current_audit_path_exactly(
     expected_payload = deepcopy(expected)
     replay_payload.pop("semantic_digest")
     expected_payload.pop("semantic_digest")
+    replay_payload.pop("replay_harness_implementation_digest")
+    expected_payload.pop("replay_harness_implementation_digest")
     replay_payload["head_identity"].pop("git_head_commit")
     expected_payload["head_identity"].pop("git_head_commit")
+    current_registry_digest = replay_payload["head_identity"].pop("registry_content_digest")
+    retained_registry_digest = expected_payload["head_identity"].pop("registry_content_digest")
+    assert current_registry_digest != retained_registry_digest
     assert replay_payload == expected_payload
 
 

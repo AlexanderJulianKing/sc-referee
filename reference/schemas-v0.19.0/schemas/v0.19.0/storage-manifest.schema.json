@@ -1,0 +1,117 @@
+{
+  "$id": "https://w3id.org/sc-referee/schema/v0.19.0/storage-manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "audit_run_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/Identifier"
+    },
+    "canonical_manifest_digest": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/Digest"
+    },
+    "canonical_record_formats": {
+      "const": [
+        "json",
+        "jsonl"
+      ]
+    },
+    "canonical_record_roots": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "content_addressed_object_store": {
+      "additionalProperties": false,
+      "properties": {
+        "digest_algorithm": {
+          "const": "sha256"
+        },
+        "root": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "root",
+        "digest_algorithm"
+      ],
+      "type": "object"
+    },
+    "created_at": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/Timestamp"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "generated_query_index": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical": {
+          "const": false
+        },
+        "disposable": {
+          "const": true
+        },
+        "engine": {
+          "const": "sqlite"
+        },
+        "last_rebuild_digest": {
+          "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/Digest"
+        },
+        "path": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "rebuildable_from_canonical_records": {
+          "const": true
+        }
+      },
+      "required": [
+        "engine",
+        "path",
+        "canonical",
+        "disposable",
+        "rebuildable_from_canonical_records"
+      ],
+      "type": "object"
+    },
+    "provenance": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/Provenance"
+    },
+    "record_type": {
+      "const": "storage_manifest"
+    },
+    "schema_version": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "scientist_editable_formats": {
+      "const": [
+        "yaml",
+        "json"
+      ]
+    },
+    "storage_manifest_id": {
+      "$ref": "https://w3id.org/sc-referee/schema/v0.19.0/common.schema.json#/$defs/Identifier"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_type",
+    "storage_manifest_id",
+    "audit_run_id",
+    "canonical_record_formats",
+    "scientist_editable_formats",
+    "content_addressed_object_store",
+    "generated_query_index",
+    "canonical_manifest_digest",
+    "created_at",
+    "provenance"
+  ],
+  "title": "sc-referee Storage Manifest",
+  "type": "object"
+}

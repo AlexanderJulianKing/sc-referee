@@ -68,7 +68,7 @@ from sc_referee_evaluation.review_semantic_payload_v2 import (
 )
 from sc_referee_evaluation.workspace import build_blind_workspace
 
-SCHEMA_RELATIVE = Path("reference/schemas-v0.18.0")
+SCHEMA_RELATIVE = Path("reference/schemas-v0.19.0")
 CALIBRATION_REGISTRY_RELATIVE = Path("evaluation/qualification/calibration-registry.json")
 MANIFEST_NAME = "MANIFEST.json"
 DETECTOR_ID = "detector:bounded-analysis-method-conflict"

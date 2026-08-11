@@ -1,0 +1,98 @@
+{
+  "backend_kind": "rootless_oci",
+  "backend_name": "Podman rootless",
+  "backend_version": "5.0",
+  "capability_evidence": {
+    "backend": {
+      "backend_kind": "podman_rootless",
+      "executable_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "executable_path": "/opt/homebrew/bin/podman",
+      "version": "5.0"
+    },
+    "captured_at": "2026-07-27T12:00:00Z",
+    "effective_controls": {
+      "capabilities_dropped": true,
+      "cpu_limit_enforced": true,
+      "device_access_restricted": true,
+      "memory_limit_enforced": true,
+      "network_denied": true,
+      "no_new_privileges": true,
+      "open_file_limit_enforced": true,
+      "process_limit_enforced": true,
+      "repository_read_only": true,
+      "separate_writable_root": true,
+      "wall_time_enforced": true,
+      "writable_bytes_enforced": true
+    },
+    "endpoint": {
+      "arbitrary_remote": false,
+      "connection_id": "connection:podman-machine-default",
+      "machine_id": "machine:podman-default",
+      "service_id": "service:podman-rootless",
+      "transport": "podman_managed_machine"
+    },
+    "expires_at": "2026-07-29T13:00:00Z",
+    "host_platform": {
+      "machine": "arm64",
+      "release": "6.12",
+      "system": "Linux"
+    },
+    "normalized_info_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+    "oci_runtime": {
+      "name": "crun",
+      "version": "1.17"
+    },
+    "probe_artifact_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+    "probe_log_refs": [
+      {
+        "record_id": "artifact:probe-log",
+        "record_type": "artifact"
+      }
+    ],
+    "probe_outcome": "passed",
+    "probe_profile": "rootless-oci-capability-probe-v1",
+    "tested_limits": {
+      "cpu_quota_millis": 1000,
+      "memory_bytes": 268435456,
+      "open_files": 64,
+      "process_count": 32,
+      "wall_time_seconds": 60,
+      "writable_bytes": 1048576
+    }
+  },
+  "capability_evidence_status": "complete_effective_probe",
+  "captured_at": "2026-07-27T12:00:00Z",
+  "controls": {
+    "capabilities_dropped": true,
+    "device_access_restricted": true,
+    "network_default_denied": true,
+    "no_new_privileges": true,
+    "open_file_limits_enforced": true,
+    "process_limits_enforced": true,
+    "repository_read_only": true,
+    "resource_limits_enforced": true,
+    "wall_time_enforced": true,
+    "writable_bytes_enforced": true,
+    "writable_roots_enforced": true
+  },
+  "limitations": [
+    "Host-kernel isolation is shared with the container runtime."
+  ],
+  "project_code_execution_supported": true,
+  "provenance": {
+    "actor": {
+      "actor_id": "software:sc-referee-controller",
+      "actor_kind": "controller",
+      "display_name": "sc-referee controller"
+    },
+    "created_at": "2026-07-27T12:00:00Z",
+    "method": "deterministic_controller",
+    "tool": "sc-referee",
+    "tool_version": "0.5.0"
+  },
+  "record_type": "sandbox_capability",
+  "rootless_verified": true,
+  "sandbox_capability_id": "sandbox:rootless-podman",
+  "schema_version": "0.19.0",
+  "unsafe_fallback_available": false
+}

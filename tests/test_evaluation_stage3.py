@@ -26,7 +26,7 @@ from sc_referee.reporting.policy import ReportContractError
 
 def _example(project_root: Path, name: str) -> dict[str, Any]:
     return json.loads(
-        (project_root / "reference" / "schemas-v0.18.0" / "examples" / name).read_text(
+        (project_root / "reference" / "schemas-v0.19.0" / "examples" / name).read_text(
             encoding="utf-8"
         )
     )

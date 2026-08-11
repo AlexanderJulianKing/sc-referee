@@ -23,7 +23,7 @@ from sc_referee.storage.layout import AuditLayout  # noqa: E402
 
 
 def main() -> int:
-    schema_root = ROOT / "reference" / "schemas-v0.18.0"
+    schema_root = ROOT / "reference" / "schemas-v0.19.0"
     count = LocalSchemaRegistry(schema_root).validate_example_directory()
     capability_matrix = generate_capability_matrix(default_capability_manifest_root(), schema_root)
     assert len(capability_matrix["entries"]) == 16
@@ -164,7 +164,7 @@ def main() -> int:
         assert digest_one == digest_two
     summary = {
         "public_examples_validated": count,
-        "public_schema_version": "0.18.0",
+        "public_schema_version": "0.19.0",
         "observed_plane_records": "public",
         "multidimensional_lineage_plane": "public",
         "walking_skeleton": "passed",

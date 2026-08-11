@@ -3,7 +3,7 @@
   "program_version": "0.3.0",
   "product": "sc-referee",
   "architecture_specification": "0.5.0-draft",
-  "schema_version": "0.18.0",
+  "schema_version": "0.19.0",
   "python_minimum": "3.11",
   "first_commands": [
     "python -m pip install -e '.[dev]'",
@@ -16,7 +16,7 @@
   ],
   "normative_reference_roots": [
     "reference/specification-v0.5.0-draft",
-    "reference/schemas-v0.18.0"
+    "reference/schemas-v0.19.0"
   ],
   "immutable_baseline_roots": [
     "reference/specification-v0.5.0-draft",
@@ -32,7 +32,8 @@
     "reference/schemas-v0.14.0",
     "reference/schemas-v0.15.0",
     "reference/schemas-v0.16.0",
-    "reference/schemas-v0.17.0"
+    "reference/schemas-v0.17.0",
+    "reference/schemas-v0.18.0"
   ],
   "implementation_entry_points": [
     "AGENTS.md",

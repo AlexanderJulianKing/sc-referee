@@ -68,7 +68,7 @@ from sc_referee.version import SCHEMA_VERSION
 
 def _example(project_root: Path, name: str) -> dict[str, Any]:
     return json.loads(
-        (project_root / "reference" / "schemas-v0.18.0" / "examples" / name).read_text(
+        (project_root / "reference" / "schemas-v0.19.0" / "examples" / name).read_text(
             encoding="utf-8"
         )
     )
@@ -392,7 +392,10 @@ def _build_control_inputs(
                 *semantic_profile_manifests,
                 *version_manifests,
             ]:
-                manifest["schema_version"] = "0.18.0"
+                # These are current-run copies of frozen fixture inputs, not edits to
+                # the stored v0.18 evidence.  Stamp the in-memory records for the
+                # active validator before assembling the synthetic current bundle.
+                manifest["schema_version"] = SCHEMA_VERSION
         selection_artifact = freeze_protocol_artifact(
             "corpus_selection_protocol",
             "selection-protocol:static-control",

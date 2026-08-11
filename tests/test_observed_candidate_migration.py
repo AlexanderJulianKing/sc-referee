@@ -18,7 +18,7 @@ from scripts.migrate_v0_5_to_v0_6 import PublicMigrationError, migrate_public_bu
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_V05 = ROOT / "reference" / "schemas-v0.5.0"
 PUBLIC_V06 = ROOT / "reference" / "schemas-v0.6.0"
-PUBLIC_ACTIVE = ROOT / "reference" / "schemas-v0.18.0"
+PUBLIC_ACTIVE = ROOT / "reference" / "schemas-v0.19.0"
 
 
 @pytest.fixture(scope="module")

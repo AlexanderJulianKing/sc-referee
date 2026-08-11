@@ -1,0 +1,9 @@
+{
+  "accepted": true,
+  "baseline_version": "0.18.0",
+  "public_release": true,
+  "release_version": "0.19.0",
+  "source_adrs": [
+    "docs/implementation/ADR-0061-PER-BINDING-METHOD-CONFLICT-PROMOTION-PATH.md"
+  ]
+}

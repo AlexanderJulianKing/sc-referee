@@ -7,6 +7,8 @@
   v0.6.0 remains immutable.
 - `schemas-v0.8.0/` is the accepted local public multidimensional-lineage release implementing
   ADR-0005; v0.7.0 and earlier accepted releases remain immutable.
+- `schemas-v0.19.0/` is the current accepted public method-promotion representation release;
+  v0.18.0 and all earlier accepted releases remain immutable migration baselines.
 - The adjacent ZIP files are the original packaged distributions and checksums.
 - `../BASELINE_LOCK.json` records the exact digests embedded in this starter.
 

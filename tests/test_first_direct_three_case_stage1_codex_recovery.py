@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+import scripts.record_first_direct_three_case_stage1_reviews as stage1_recorder
 from sc_referee.core.ids import semantic_digest, sha256_digest
 from scripts.build_first_direct_three_case_stage1_codex_recovery import (
     AMENDMENT_NAME,
@@ -111,7 +112,9 @@ def test_retained_codex_recovery_reviews_replay_under_unchanged_local_validator(
     project_root: Path,
     participant_slug: str,
     expected_ledger_digest: str,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(stage1_recorder, "SCHEMA_RELATIVE", Path("reference/schemas-v0.19.0"))
     root = project_root / REVIEW_RELATIVE
     incoming = _load(root / "incoming" / f"{participant_slug}.json")
     reviews = validate_stage1_call_capture(project_root, incoming)

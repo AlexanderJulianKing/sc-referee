@@ -229,7 +229,9 @@ def _audit_case(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     repository = tmp_path / "project"
     shutil.copytree(project_root / runs / slug / "project", repository)
-    schema_root = project_root / "reference/schemas-v0.18.0"
+    # Replay the immutable case projects through the active public schema.  No
+    # record in the frozen lanes is rewritten or re-stamped.
+    schema_root = project_root / "reference/schemas-v0.19.0"
     contract = run_method_contract(
         repository,
         "task.md",

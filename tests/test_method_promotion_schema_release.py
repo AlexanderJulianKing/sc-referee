@@ -199,7 +199,7 @@ def test_round1_records_validate_after_fail_closed_migration(
     assert report["execution_launched"] is False
 
 
-def test_release_construction_never_touches_v018_or_installs_v019(
+def test_release_construction_matches_vendored_trees_and_never_touches_v018(
     project_root: Path, tmp_path: Path
 ) -> None:
     baseline = project_root / "reference" / "schemas-v0.18.0"
@@ -207,6 +207,9 @@ def test_release_construction_never_touches_v018_or_installs_v019(
     output = tmp_path / "constructed-only-v019"
     build_release(output)
     assert _tree_bytes(baseline) == before
-    assert not (project_root / "reference" / "schemas-v0.19.0").exists()
+    assert _tree_bytes(output) == _tree_bytes(project_root / "reference" / "schemas-v0.19.0")
+    assert _tree_bytes(output) == _tree_bytes(
+        project_root / "src" / "sc_referee" / "resources" / "schemas-v0.19.0"
+    )
     with pytest.raises(ValueError, match="absent or empty"):
         build_release(output)

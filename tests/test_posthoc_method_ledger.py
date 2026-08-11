@@ -23,6 +23,7 @@ from sc_referee.posthoc_method_ledger import (
     project_posthoc_method_ledger,
 )
 from sc_referee.records.schema_registry import LocalSchemaRegistry
+from sc_referee.version import SCHEMA_VERSION
 
 
 def _source(line: int) -> dict[str, object]:
@@ -345,7 +346,7 @@ def test_analysis_scoped_question_answer_and_work_item_validate_under_active_sch
         for dimension in SCIENTIFIC_CONTRACT_DIMENSIONS
     }
     contract = {
-        "schema_version": "0.18.0",
+        "schema_version": SCHEMA_VERSION,
         "record_type": "scientific_contract",
         "contract_id": "contract:analysis-interaction",
         "audit_run_id": run_id,
@@ -357,7 +358,7 @@ def test_analysis_scoped_question_answer_and_work_item_validate_under_active_sch
         "created_at": created_at,
     }
     question = {
-        "schema_version": "0.18.0",
+        "schema_version": SCHEMA_VERSION,
         "record_type": "material_question",
         "question_id": "question:analysis-interaction",
         "audit_run_id": run_id,
@@ -415,7 +416,7 @@ def test_analysis_scoped_question_answer_and_work_item_validate_under_active_sch
         },
     }
     answer = {
-        "schema_version": "0.18.0",
+        "schema_version": SCHEMA_VERSION,
         "record_type": "answer",
         "answer_id": "answer:analysis-interaction",
         "audit_run_id": run_id,

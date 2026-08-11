@@ -1081,7 +1081,7 @@ def test_dependence_six_role_fixture_runs_real_pipeline_without_findings(
         replayed_by_role[role] = replay(
             lock_path,
             isolated_root / "fixture-replay" / slug,
-            isolated_root / "reference/schemas-v0.18.0",
+            isolated_root / "reference/schemas-v0.19.0",
         )
 
     detector_id = config.detector_id

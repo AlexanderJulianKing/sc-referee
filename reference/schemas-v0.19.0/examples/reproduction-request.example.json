@@ -1,0 +1,63 @@
+{
+  "affected_claim_refs": [
+    {
+      "record_id": "claim:variant-count",
+      "record_type": "claim"
+    }
+  ],
+  "affected_detector_ids": [
+    "lineage.reference-build.v1"
+  ],
+  "audit_run_id": "run:example",
+  "created_at": "2026-07-27T23:30:00Z",
+  "environment_requirements": [
+    "Existing Nextflow profile"
+  ],
+  "expected_outputs": [
+    {
+      "format": "TSV",
+      "identity_expectation": "full_digest",
+      "role": "Nextflow trace"
+    },
+    {
+      "format": "OCI digest",
+      "identity_expectation": "immutable_external",
+      "role": "container identity"
+    }
+  ],
+  "imported_evidence_refs": [],
+  "input_requirements": [
+    "Institutional object-store access"
+  ],
+  "provenance": {
+    "actor": {
+      "actor_id": "sc_referee.core",
+      "actor_kind": "controller",
+      "display_name": "sc-referee controller"
+    },
+    "created_at": "2026-07-27T23:30:00Z",
+    "method": "deterministic_controller",
+    "source_refs": [],
+    "tool": "sc_referee.core",
+    "tool_version": "0.5.0"
+  },
+  "reason": "The saved report lacks the runtime trace needed to identify the executed reference build.",
+  "record_type": "reproduction_request",
+  "reproduction_request_id": "repro-request:hpc-trace",
+  "requested_action": {
+    "description": "Run the existing workflow target in the institutional environment and export the Nextflow trace plus container digest.",
+    "kind": "collect_runtime_trace"
+  },
+  "resource_class": "hpc_cpu",
+  "schema_version": "0.19.0",
+  "security_considerations": [
+    "Do not include subject identifiers in exported logs."
+  ],
+  "status": "proposed",
+  "target_refs": [
+    {
+      "record_id": "process:variant-call",
+      "record_type": "workflow_process"
+    }
+  ]
+}

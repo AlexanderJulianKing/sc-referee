@@ -10,6 +10,7 @@ from scripts.verify_handoff import (
     V015_TO_V016_TARGET_SCHEMA_ROOT,
     V016_TO_V017_TARGET_SCHEMA_ROOT,
     V017_TO_V018_TARGET_SCHEMA_ROOT,
+    V018_TO_V019_TARGET_SCHEMA_ROOT,
 )
 
 
@@ -18,6 +19,7 @@ def test_handoff_migration_targets_preserve_each_public_schema_boundary() -> Non
     assert V015_TO_V016_TARGET_SCHEMA_ROOT == "reference/schemas-v0.16.0"
     assert V016_TO_V017_TARGET_SCHEMA_ROOT == "reference/schemas-v0.17.0"
     assert V017_TO_V018_TARGET_SCHEMA_ROOT == "reference/schemas-v0.18.0"
+    assert V018_TO_V019_TARGET_SCHEMA_ROOT == "reference/schemas-v0.19.0"
 
 
 def test_evaluation_wheel_smoke_installs_production_dependency_first(

@@ -206,7 +206,7 @@ def _inputs(
     qualification_source_text: str | None = None,
     qualification_extra_bytes: tuple[str, bytes] | None = None,
 ) -> dict[str, Any]:
-    active_schema_root = project_root / "reference" / "schemas-v0.18.0"
+    active_schema_root = project_root / "reference" / "schemas-v0.19.0"
     repository = tmp_path / "repository"
     repository.mkdir(parents=True)
     requested_report = (
