@@ -1,0 +1,1 @@
+Apply the named workflow to the complete staged row sequence. The quantity that enters the association model's exposure position must be the expected value of the ordered level index under the sorter's own per-level shares, kept on its continuous scale. A quantity confined to the finite set of level values does not satisfy this task.

@@ -1,0 +1,410 @@
+You are one independent blind scientific reviewer for opaque analysis
+workspaces. For each case you see exactly four files: the governing task, the staged input
+data, the workflow source, and the produced report. Determine independently for each case
+whether the in-scope issue class issue-class:level-assignment-supplies-an-authorized-continuous-exposure is demonstrably present in the selected report,
+using only the visible files. Attempt to falsify your own verdict and report that attempt in
+the required fields. Do not guess unstated intentions. Judge only whether this exact issue class
+is demonstrated in the selected report. Other methodological concerns, however serious, are
+outside this review and must not be recorded as this issue class. Raise unresolved material
+questions only when a genuinely blocking ambiguity remains.
+
+Reviewer participant identity: actor:dosage-a-reviewer-fable-15
+
+=== workflow 1: case:4acc492c3a6034b4601d ===
+--- file task.md ---
+Apply the named workflow to the complete staged row sequence. The quantity that enters the association model's exposure position must be the expected value of the ordered level index under the sorter's own per-level shares, kept on its continuous scale. A quantity confined to the finite set of level values does not satisfy this task.
+
+--- file inputs/data.csv ---
+s1,s2,level,anchor,y
+0.500,0.250,1,0.310,1.700
+1.000,0.500,2,0.620,3.400
+1.500,0.750,0,0.930,5.100
+2.000,1.000,1,1.240,6.800
+2.500,0.000,2,1.550,8.500
+3.000,0.250,0,1.860,10.200
+3.500,0.500,1,2.170,11.900
+4.000,0.750,2,2.480,13.600
+4.500,1.000,0,2.790,15.300
+5.000,0.000,1,3.100,17.000
+5.500,0.250,2,3.410,18.700
+6.000,0.500,0,3.720,20.400
+6.500,0.750,1,4.030,22.100
+7.000,1.000,2,4.340,23.800
+7.500,0.000,0,4.650,25.500
+8.000,0.250,1,4.960,27.200
+8.500,0.500,2,5.270,28.900
+9.000,0.750,0,5.580,30.600
+9.500,1.000,1,5.890,32.300
+10.000,0.000,2,6.200,34.000
+10.500,0.250,0,6.510,35.700
+11.000,0.500,1,6.820,37.400
+11.500,0.750,2,7.130,39.100
+12.000,1.000,0,7.440,40.800
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+import numpy as np
+from sklearn.linear_model import LinearRegression, LogisticRegression, RidgeCV
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8").splitlines()))
+first = [float(row["s1"]) for row in rows]
+second = [float(row["s2"]) for row in rows]
+features = np.column_stack([first, second])
+levels = [int(row["level"]) for row in rows]
+anchor = [float(row["anchor"]) for row in rows]
+outcome = [float(row["y"]) for row in rows]
+sorter = LogisticRegression(max_iter=1000).fit(features, levels)
+shares = sorter.predict_proba(features)
+label = sorter.predict(features)
+mean = shares @ np.array([0.0, 1.0, 2.0])
+scale = RidgeCV().fit(features, anchor)
+reading = scale.predict(features)
+stack = make_pipeline(StandardScaler(), RidgeCV()).fit(features, anchor)
+wrapped = stack.predict(features)
+bounded = np.clip(mean, 0.0, 2.0)
+plain = mean
+exposure = label
+summary = LinearRegression().fit(np.column_stack([exposure]), outcome)
+Path("results/report.md").write_text(
+    "[selected-result] %.6f\n" % summary.coef_[0], encoding="utf-8"
+)
+
+--- file results/report.md ---
+[selected-result] -5.753846
+
+
+=== workflow 2: case:55d0e0c1e731a6ef3bfd ===
+--- file task.md ---
+Apply the named workflow to the complete staged row sequence. This task does not establish which of the workflow's calibrated quantities supplies the association model's exposure position.
+
+--- file inputs/data.csv ---
+s1,s2,level,anchor,y
+0.500,0.250,1,0.310,1.700
+1.000,0.500,2,0.620,3.400
+1.500,0.750,0,0.930,5.100
+2.000,1.000,1,1.240,6.800
+2.500,0.000,2,1.550,8.500
+3.000,0.250,0,1.860,10.200
+3.500,0.500,1,2.170,11.900
+4.000,0.750,2,2.480,13.600
+4.500,1.000,0,2.790,15.300
+5.000,0.000,1,3.100,17.000
+5.500,0.250,2,3.410,18.700
+6.000,0.500,0,3.720,20.400
+6.500,0.750,1,4.030,22.100
+7.000,1.000,2,4.340,23.800
+7.500,0.000,0,4.650,25.500
+8.000,0.250,1,4.960,27.200
+8.500,0.500,2,5.270,28.900
+9.000,0.750,0,5.580,30.600
+9.500,1.000,1,5.890,32.300
+10.000,0.000,2,6.200,34.000
+10.500,0.250,0,6.510,35.700
+11.000,0.500,1,6.820,37.400
+11.500,0.750,2,7.130,39.100
+12.000,1.000,0,7.440,40.800
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+import numpy as np
+from sklearn.linear_model import LinearRegression, LogisticRegression, RidgeCV
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8").splitlines()))
+first = [float(row["s1"]) for row in rows]
+second = [float(row["s2"]) for row in rows]
+features = np.column_stack([first, second])
+levels = [int(row["level"]) for row in rows]
+anchor = [float(row["anchor"]) for row in rows]
+outcome = [float(row["y"]) for row in rows]
+sorter = LogisticRegression(max_iter=1000).fit(features, levels)
+shares = sorter.predict_proba(features)
+label = sorter.predict(features)
+mean = shares @ np.array([0.0, 1.0, 2.0])
+scale = RidgeCV().fit(features, anchor)
+reading = scale.predict(features)
+stack = make_pipeline(StandardScaler(), RidgeCV()).fit(features, anchor)
+wrapped = stack.predict(features)
+bounded = np.clip(mean, 0.0, 2.0)
+plain = mean
+exposure = plain
+summary = LinearRegression().fit(np.column_stack([exposure]), outcome)
+Path("results/report.md").write_text(
+    "[selected-result] %.6f\n" % summary.coef_[0], encoding="utf-8"
+)
+
+--- file results/report.md ---
+[selected-result] -138.767563
+
+
+=== workflow 3: case:80e5a5a8bdf4b0285dc1 ===
+--- file task.md ---
+Apply the named workflow to the complete staged row sequence. The quantity that enters the association model's exposure position must be the continuous prediction of the direct calibration fitted against the supplied anchor measurement. A quantity confined to the finite set of level values does not satisfy this task.
+
+--- file inputs/data.csv ---
+s1,s2,level,anchor,y
+0.500,0.250,1,0.310,1.700
+1.000,0.500,2,0.620,3.400
+1.500,0.750,0,0.930,5.100
+2.000,1.000,1,1.240,6.800
+2.500,0.000,2,1.550,8.500
+3.000,0.250,0,1.860,10.200
+3.500,0.500,1,2.170,11.900
+4.000,0.750,2,2.480,13.600
+4.500,1.000,0,2.790,15.300
+5.000,0.000,1,3.100,17.000
+5.500,0.250,2,3.410,18.700
+6.000,0.500,0,3.720,20.400
+6.500,0.750,1,4.030,22.100
+7.000,1.000,2,4.340,23.800
+7.500,0.000,0,4.650,25.500
+8.000,0.250,1,4.960,27.200
+8.500,0.500,2,5.270,28.900
+9.000,0.750,0,5.580,30.600
+9.500,1.000,1,5.890,32.300
+10.000,0.000,2,6.200,34.000
+10.500,0.250,0,6.510,35.700
+11.000,0.500,1,6.820,37.400
+11.500,0.750,2,7.130,39.100
+12.000,1.000,0,7.440,40.800
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+import numpy as np
+from sklearn.linear_model import LinearRegression, LogisticRegression, RidgeCV
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8").splitlines()))
+first = [float(row["s1"]) for row in rows]
+second = [float(row["s2"]) for row in rows]
+features = np.column_stack([first, second])
+levels = [int(row["level"]) for row in rows]
+anchor = [float(row["anchor"]) for row in rows]
+outcome = [float(row["y"]) for row in rows]
+sorter = LogisticRegression(max_iter=1000).fit(features, levels)
+shares = sorter.predict_proba(features)
+label = sorter.predict(features)
+mean = shares @ np.array([0.0, 1.0, 2.0])
+scale = RidgeCV().fit(features, anchor)
+reading = scale.predict(features)
+stack = make_pipeline(StandardScaler(), RidgeCV()).fit(features, anchor)
+wrapped = stack.predict(features)
+bounded = np.clip(mean, 0.0, 2.0)
+plain = mean
+exposure = reading
+summary = LinearRegression().fit(np.column_stack([exposure]), outcome)
+Path("results/report.md").write_text(
+    "[selected-result] %.6f\n" % summary.coef_[0], encoding="utf-8"
+)
+
+--- file results/report.md ---
+[selected-result] 5.485778
+
+
+=== workflow 4: case:a73c018f6da247456f04 ===
+--- file task.md ---
+Apply the named workflow to the complete staged row sequence. The quantity that enters the association model's exposure position must be the expected value of the ordered level index under the sorter's own per-level shares, kept on its continuous scale. A quantity confined to the finite set of level values does not satisfy this task.
+
+--- file inputs/data.csv ---
+s1,s2,level,anchor,y
+0.500,0.250,1,0.310,1.700
+1.000,0.500,2,0.620,3.400
+1.500,0.750,0,0.930,5.100
+2.000,1.000,1,1.240,6.800
+2.500,0.000,2,1.550,8.500
+3.000,0.250,0,1.860,10.200
+3.500,0.500,1,2.170,11.900
+4.000,0.750,2,2.480,13.600
+4.500,1.000,0,2.790,15.300
+5.000,0.000,1,3.100,17.000
+5.500,0.250,2,3.410,18.700
+6.000,0.500,0,3.720,20.400
+6.500,0.750,1,4.030,22.100
+7.000,1.000,2,4.340,23.800
+7.500,0.000,0,4.650,25.500
+8.000,0.250,1,4.960,27.200
+8.500,0.500,2,5.270,28.900
+9.000,0.750,0,5.580,30.600
+9.500,1.000,1,5.890,32.300
+10.000,0.000,2,6.200,34.000
+10.500,0.250,0,6.510,35.700
+11.000,0.500,1,6.820,37.400
+11.500,0.750,2,7.130,39.100
+12.000,1.000,0,7.440,40.800
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+import numpy as np
+from sklearn.linear_model import LinearRegression, LogisticRegression, RidgeCV
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8").splitlines()))
+first = [float(row["s1"]) for row in rows]
+second = [float(row["s2"]) for row in rows]
+features = np.column_stack([first, second])
+levels = [int(row["level"]) for row in rows]
+anchor = [float(row["anchor"]) for row in rows]
+outcome = [float(row["y"]) for row in rows]
+sorter = LogisticRegression(max_iter=1000).fit(features, levels)
+shares = sorter.predict_proba(features)
+label = sorter.predict(features)
+mean = shares @ np.array([0.0, 1.0, 2.0])
+scale = RidgeCV().fit(features, anchor)
+reading = scale.predict(features)
+stack = make_pipeline(StandardScaler(), RidgeCV()).fit(features, anchor)
+wrapped = stack.predict(features)
+bounded = np.clip(mean, 0.0, 2.0)
+plain = mean
+exposure = wrapped
+summary = LinearRegression().fit(np.column_stack([exposure]), outcome)
+Path("results/report.md").write_text(
+    "[selected-result] %.6f\n" % summary.coef_[0], encoding="utf-8"
+)
+
+--- file results/report.md ---
+[selected-result] 5.506718
+
+
+=== workflow 5: case:e4ba0f6377e3f52de641 ===
+--- file task.md ---
+Apply the named workflow to the complete staged row sequence. The quantity that enters the association model's exposure position must be the expected value of the ordered level index under the sorter's own per-level shares, kept on its continuous scale. A quantity confined to the finite set of level values does not satisfy this task.
+
+--- file inputs/data.csv ---
+s1,s2,level,anchor,y
+0.500,0.250,1,0.310,1.700
+1.000,0.500,2,0.620,3.400
+1.500,0.750,0,0.930,5.100
+2.000,1.000,1,1.240,6.800
+2.500,0.000,2,1.550,8.500
+3.000,0.250,0,1.860,10.200
+3.500,0.500,1,2.170,11.900
+4.000,0.750,2,2.480,13.600
+4.500,1.000,0,2.790,15.300
+5.000,0.000,1,3.100,17.000
+5.500,0.250,2,3.410,18.700
+6.000,0.500,0,3.720,20.400
+6.500,0.750,1,4.030,22.100
+7.000,1.000,2,4.340,23.800
+7.500,0.000,0,4.650,25.500
+8.000,0.250,1,4.960,27.200
+8.500,0.500,2,5.270,28.900
+9.000,0.750,0,5.580,30.600
+9.500,1.000,1,5.890,32.300
+10.000,0.000,2,6.200,34.000
+10.500,0.250,0,6.510,35.700
+11.000,0.500,1,6.820,37.400
+11.500,0.750,2,7.130,39.100
+12.000,1.000,0,7.440,40.800
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+import numpy as np
+from sklearn.linear_model import LinearRegression, LogisticRegression, RidgeCV
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8").splitlines()))
+first = [float(row["s1"]) for row in rows]
+second = [float(row["s2"]) for row in rows]
+features = np.column_stack([first, second])
+levels = [int(row["level"]) for row in rows]
+anchor = [float(row["anchor"]) for row in rows]
+outcome = [float(row["y"]) for row in rows]
+sorter = LogisticRegression(max_iter=1000).fit(features, levels)
+shares = sorter.predict_proba(features)
+label = sorter.predict(features)
+mean = shares @ np.array([0.0, 1.0, 2.0])
+scale = RidgeCV().fit(features, anchor)
+reading = scale.predict(features)
+stack = make_pipeline(StandardScaler(), RidgeCV()).fit(features, anchor)
+wrapped = stack.predict(features)
+bounded = np.clip(mean, 0.0, 2.0)
+plain = mean
+exposure = bounded
+summary = LinearRegression().fit(np.column_stack([exposure]), outcome)
+Path("results/report.md").write_text(
+    "[selected-result] %.6f\n" % summary.coef_[0], encoding="utf-8"
+)
+
+--- file results/report.md ---
+[selected-result] -138.767563
+
+
+=== workflow 6: case:f79158b41228131d62f3 ===
+--- file task.md ---
+Apply the named workflow to the complete staged row sequence. The quantity that enters the association model's exposure position must be the expected value of the ordered level index under the sorter's own per-level shares, kept on its continuous scale. A quantity confined to the finite set of level values does not satisfy this task.
+
+--- file inputs/data.csv ---
+s1,s2,level,anchor,y
+0.500,0.250,1,0.310,1.700
+1.000,0.500,2,0.620,3.400
+1.500,0.750,0,0.930,5.100
+2.000,1.000,1,1.240,6.800
+2.500,0.000,2,1.550,8.500
+3.000,0.250,0,1.860,10.200
+3.500,0.500,1,2.170,11.900
+4.000,0.750,2,2.480,13.600
+4.500,1.000,0,2.790,15.300
+5.000,0.000,1,3.100,17.000
+5.500,0.250,2,3.410,18.700
+6.000,0.500,0,3.720,20.400
+6.500,0.750,1,4.030,22.100
+7.000,1.000,2,4.340,23.800
+7.500,0.000,0,4.650,25.500
+8.000,0.250,1,4.960,27.200
+8.500,0.500,2,5.270,28.900
+9.000,0.750,0,5.580,30.600
+9.500,1.000,1,5.890,32.300
+10.000,0.000,2,6.200,34.000
+10.500,0.250,0,6.510,35.700
+11.000,0.500,1,6.820,37.400
+11.500,0.750,2,7.130,39.100
+12.000,1.000,0,7.440,40.800
+
+--- file workflow/analysis.py ---
+import csv
+from pathlib import Path
+import numpy as np
+from sklearn.linear_model import LinearRegression, LogisticRegression, RidgeCV
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+rows = list(csv.DictReader(Path("inputs/data.csv").read_text(encoding="utf-8").splitlines()))
+first = [float(row["s1"]) for row in rows]
+second = [float(row["s2"]) for row in rows]
+features = np.column_stack([first, second])
+levels = [int(row["level"]) for row in rows]
+anchor = [float(row["anchor"]) for row in rows]
+outcome = [float(row["y"]) for row in rows]
+sorter = LogisticRegression(max_iter=1000).fit(features, levels)
+shares = sorter.predict_proba(features)
+label = sorter.predict(features)
+mean = shares @ np.array([0.0, 1.0, 2.0])
+scale = RidgeCV().fit(features, anchor)
+reading = scale.predict(features)
+stack = make_pipeline(StandardScaler(), RidgeCV()).fit(features, anchor)
+wrapped = stack.predict(features)
+bounded = np.clip(mean, 0.0, 2.0)
+plain = mean
+exposure = mean
+summary = LinearRegression().fit(np.column_stack([exposure]), outcome)
+Path("results/report.md").write_text(
+    "[selected-result] %.6f\n" % summary.coef_[0], encoding="utf-8"
+)
+
+--- file results/report.md ---
+[selected-result] -138.767563
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dosage-a-reviewer-fable-15", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:level-assignment-supplies-an-authorized-continuous-exposure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:4acc492c3a6034b4601d", "case:55d0e0c1e731a6ef3bfd", "case:80e5a5a8bdf4b0285dc1", "case:a73c018f6da247456f04", "case:e4ba0f6377e3f52de641", "case:f79158b41228131d62f3"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 6, "minItems": 6, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

@@ -1,0 +1,1 @@
+Apply the named workflow to the complete staged row sequence. The quantity that enters the association model's exposure position must be the continuous prediction of the direct calibration fitted against the supplied anchor measurement. A quantity confined to the finite set of level values does not satisfy this task.
