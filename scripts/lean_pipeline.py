@@ -868,7 +868,7 @@ def default_dependence_config() -> EnvelopeConfig:
             ],
         },
         # Fable-11 was spent reviewing pilot-c, so pilot-d advances to fable-12.
-        # Opus-09 has never fired in escalation and remains an unspent context.
+        # Opus-09 fired and was spent in pilot-c; this frozen pilot-d config records its seat.
         reviewer=ModelParticipant(
             participant_id=f"actor:{slug}-reviewer-fable-12",
             model_id="claude-fable-5",

@@ -100,6 +100,359 @@ ADDITIONAL_HIDDEN_TERMS = [
     CANDIDATE_ID,
 ]
 
+HELDOUT_ERROR_TRIPLES = (
+    ("ea01", "eb07", "et01"),
+    ("ea01", "eb08", "et02"),
+    ("ea02", "eb09", "et03"),
+    ("ea02", "eb10", "et04"),
+    ("ea03", "eb11", "et05"),
+    ("ea03", "eb12", "et06"),
+    ("ea04", "eb13", "et07"),
+    ("ea04", "eb14", "et08"),
+    ("ea05", "eb15", "et09"),
+    ("ea05", "eb16", "et10"),
+    ("ea06", "eb17", "et11"),
+    ("ea06", "eb18", "et12"),
+    ("ea07", "eb19", "et13"),
+    ("ea07", "eb20", "et14"),
+    ("ea08", "eb21", "et15"),
+    ("ea08", "eb22", "et16"),
+    ("ea09", "eb23", "et17"),
+    ("ea09", "eb24", "et18"),
+    ("ea10", "eb01", "et19"),
+    ("ea10", "eb02", "et20"),
+    ("ea11", "eb03", "et21"),
+    ("ea11", "eb04", "et22"),
+    ("ea12", "eb05", "et23"),
+    ("ea12", "eb06", "et24"),
+)
+HELDOUT_ERROR_LEFT = (
+    101.0,
+    101.5,
+    102.0,
+    102.5,
+    103.0,
+    103.5,
+    104.0,
+    104.5,
+    105.0,
+    105.5,
+    106.0,
+    106.5,
+    107.0,
+    107.5,
+    108.0,
+    108.5,
+    109.0,
+    109.5,
+    110.0,
+    110.5,
+    111.0,
+    111.5,
+    112.0,
+    112.5,
+)
+HELDOUT_ERROR_RIGHT = (
+    102.0,
+    102.25,
+    104.0,
+    104.25,
+    103.0,
+    103.25,
+    105.0,
+    105.25,
+    107.0,
+    107.25,
+    106.0,
+    106.25,
+    109.0,
+    109.25,
+    108.0,
+    108.25,
+    111.0,
+    111.25,
+    110.0,
+    110.25,
+    113.0,
+    113.25,
+    112.0,
+    112.25,
+)
+HELDOUT_ERROR_RESULT = (
+    "TtestResult(statistic=np.float64(-0.8581613266497022), "
+    "pvalue=np.float64(0.3952529117073811), df=np.float64(46.0))"
+)
+
+HELDOUT_TWIN_TRIPLES = (
+    ("ca01", "cb07", "ct01"),
+    ("ca02", "cb09", "ct02"),
+    ("ca03", "cb11", "ct03"),
+    ("ca04", "cb13", "ct04"),
+    ("ca05", "cb15", "ct05"),
+    ("ca06", "cb17", "ct06"),
+    ("ca07", "cb19", "ct07"),
+    ("ca08", "cb21", "ct08"),
+    ("ca09", "cb23", "ct09"),
+    ("ca10", "cb01", "ct10"),
+    ("ca11", "cb03", "ct11"),
+    ("ca12", "cb05", "ct12"),
+)
+HELDOUT_TWIN_LEFT = (
+    201.0,
+    202.0,
+    203.0,
+    204.0,
+    205.0,
+    206.0,
+    207.0,
+    208.0,
+    209.0,
+    210.0,
+    211.0,
+    212.0,
+)
+HELDOUT_TWIN_RIGHT = (
+    202.0,
+    204.0,
+    203.0,
+    205.0,
+    207.0,
+    206.0,
+    209.0,
+    208.0,
+    211.0,
+    210.0,
+    213.0,
+    212.0,
+)
+HELDOUT_TWIN_RESULT = (
+    "TtestResult(statistic=np.float64(-0.6793662204867575), "
+    "pvalue=np.float64(0.5039915691282064), df=np.float64(22.0))"
+)
+
+HELDOUT_VALID_TRIPLES = (
+    ("va01", "vb04", "vt01"),
+    ("va02", "vb06", "vt02"),
+    ("va03", "vb08", "vt03"),
+    ("va04", "vb10", "vt04"),
+    ("va05", "vb12", "vt05"),
+    ("va06", "vb14", "vt06"),
+    ("va07", "vb16", "vt07"),
+    ("va08", "vb18", "vt08"),
+    ("va09", "vb20", "vt09"),
+    ("va10", "vb22", "vt10"),
+    ("va11", "vb24", "vt11"),
+    ("va12", "vb02", "vt12"),
+)
+HELDOUT_VALID_LEFT = (
+    301.0,
+    302.0,
+    303.0,
+    304.0,
+    305.0,
+    306.0,
+    307.0,
+    308.0,
+    309.0,
+    310.0,
+    311.0,
+    312.0,
+)
+HELDOUT_VALID_RIGHT = (
+    303.0,
+    305.0,
+    304.0,
+    306.0,
+    308.0,
+    307.0,
+    310.0,
+    309.0,
+    312.0,
+    311.0,
+    314.0,
+    313.0,
+)
+HELDOUT_VALID_RESULT = (
+    "MannwhitneyuResult(statistic=np.float64(50.0), pvalue=np.float64(0.21349573711632197))"
+)
+
+HELDOUT_HARD_TRIPLES = (
+    ("ha01", "hb13", "ht01"),
+    ("ha02", "hb14", "ht02"),
+    ("ha03", "hb15", "ht03"),
+    ("ha04", "hb16", "ht04"),
+    ("ha05", "hb17", "ht05"),
+    ("ha06", "hb18", "ht06"),
+    ("ha07", "hb19", "ht07"),
+    ("ha08", "hb20", "ht08"),
+    ("ha09", "hb21", "ht09"),
+    ("ha10", "hb22", "ht10"),
+    ("ha11", "hb23", "ht11"),
+    ("ha12", "hb24", "ht12"),
+    ("ha13", "hb01", "ht13"),
+    ("ha14", "hb02", "ht14"),
+    ("ha15", "hb03", "ht15"),
+    ("ha16", "hb04", "ht16"),
+    ("ha17", "hb05", "ht17"),
+    ("ha18", "hb06", "ht18"),
+    ("ha19", "hb07", "ht19"),
+    ("ha20", "hb08", "ht20"),
+    ("ha21", "hb09", "ht21"),
+    ("ha22", "hb10", "ht22"),
+    ("ha23", "hb11", "ht23"),
+    ("ha24", "hb12", "ht24"),
+)
+HELDOUT_HARD_LEFT = (
+    401.0,
+    401.5,
+    402.0,
+    402.5,
+    403.0,
+    403.5,
+    404.0,
+    404.5,
+    405.0,
+    405.5,
+    406.0,
+    406.5,
+    407.0,
+    407.5,
+    408.0,
+    408.5,
+    409.0,
+    409.5,
+    410.0,
+    410.5,
+    411.0,
+    411.5,
+    412.0,
+    412.5,
+)
+HELDOUT_HARD_RIGHT = (
+    402.0,
+    402.25,
+    404.0,
+    404.25,
+    403.0,
+    403.25,
+    405.0,
+    405.25,
+    407.0,
+    407.25,
+    406.0,
+    406.25,
+    409.0,
+    409.25,
+    408.0,
+    408.25,
+    411.0,
+    411.25,
+    410.0,
+    410.25,
+    413.0,
+    413.25,
+    412.0,
+    412.25,
+)
+HELDOUT_HARD_RESULT = (
+    "TtestResult(statistic=np.float64(-0.8581613266497022), "
+    "pvalue=np.float64(0.3952529117073811), df=np.float64(46.0))"
+)
+
+HELDOUT_AMBIGUOUS_TRIPLES = (
+    ("ma01", "mb07", "mt01"),
+    ("ma01", "mb11", "mt02"),
+    ("ma02", "mb06", "mt03"),
+    ("ma02", "mb09", "mt04"),
+    ("ma03", "mb01", "mt05"),
+    ("ma03", "mb12", "mt06"),
+    ("ma04", "mb05", "mt07"),
+    ("ma04", "mb03", "mt08"),
+    ("ma05", "mb10", "mt09"),
+    ("ma05", "mb04", "mt10"),
+    ("ma06", "mb08", "mt11"),
+    ("ma06", "mb02", "mt12"),
+)
+HELDOUT_AMBIGUOUS_LEFT = (
+    501.0,
+    502.0,
+    503.0,
+    504.0,
+    505.0,
+    506.0,
+    507.0,
+    508.0,
+    509.0,
+    510.0,
+    511.0,
+    512.0,
+)
+HELDOUT_AMBIGUOUS_RIGHT = (
+    502.0,
+    504.0,
+    503.0,
+    505.0,
+    507.0,
+    506.0,
+    509.0,
+    508.0,
+    511.0,
+    510.0,
+    513.0,
+    512.0,
+)
+HELDOUT_AMBIGUOUS_RESULT = (
+    "TtestResult(statistic=np.float64(-0.6793662204867575), "
+    "pvalue=np.float64(0.5039915691282064), df=np.float64(22.0))"
+)
+
+HELDOUT_UNSUPPORTED_TRIPLES = (
+    ("pa01", "pb05", "pt01"),
+    ("pa02", "pb07", "pt02"),
+    ("pa03", "pb09", "pt03"),
+    ("pa04", "pb11", "pt04"),
+    ("pa05", "pb13", "pt05"),
+    ("pa06", "pb15", "pt06"),
+    ("pa07", "pb17", "pt07"),
+    ("pa08", "pb19", "pt08"),
+    ("pa09", "pb21", "pt09"),
+    ("pa10", "pb23", "pt10"),
+    ("pa11", "pb01", "pt11"),
+    ("pa12", "pb03", "pt12"),
+)
+HELDOUT_UNSUPPORTED_LEFT = (
+    601.0,
+    602.0,
+    603.0,
+    604.0,
+    605.0,
+    606.0,
+    607.0,
+    608.0,
+    609.0,
+    610.0,
+    611.0,
+    612.0,
+)
+HELDOUT_UNSUPPORTED_RIGHT = (
+    603.0,
+    605.0,
+    604.0,
+    606.0,
+    608.0,
+    607.0,
+    610.0,
+    609.0,
+    612.0,
+    611.0,
+    614.0,
+    613.0,
+)
+HELDOUT_UNSUPPORTED_RESULT = (
+    "TtestResult(statistic=np.float64(-7.26636084983398), "
+    "pvalue=np.float64(1.610229916816512e-05), df=np.int64(11))"
+)
+
 PILOT_RENAMED_TRIPLES = (
     ("x01", "y09", "s01"),
     ("x01", "y10", "s02"),
@@ -209,60 +562,104 @@ HELDOUT_RENAMED_TRIPLES = (
     ("r08", "z01", "q24"),
 )
 HELDOUT_RENAMED_LEFT = (
-    110.0,
-    110.25,
-    110.75,
-    120.0,
-    120.25,
-    120.75,
-    130.0,
-    130.25,
-    130.75,
-    140.0,
-    140.25,
-    140.75,
-    150.0,
-    150.25,
-    150.75,
-    160.0,
-    160.25,
-    160.75,
-    170.0,
-    170.25,
-    170.75,
-    180.0,
-    180.25,
-    180.75,
+    701.0,
+    701.25,
+    701.75,
+    702.0,
+    702.25,
+    702.75,
+    703.0,
+    703.25,
+    703.75,
+    704.0,
+    704.25,
+    704.75,
+    705.0,
+    705.25,
+    705.75,
+    706.0,
+    706.25,
+    706.75,
+    707.0,
+    707.25,
+    707.75,
+    708.0,
+    708.25,
+    708.75,
 )
 HELDOUT_RENAMED_RIGHT = (
-    113.0,
-    123.0,
-    133.0,
-    143.0,
-    153.0,
-    163.0,
-    173.0,
-    183.0,
-    116.0,
-    126.0,
-    136.0,
-    146.0,
-    156.0,
-    166.0,
-    176.0,
-    186.0,
-    119.0,
-    129.0,
-    139.0,
-    149.0,
-    159.0,
-    169.0,
-    179.0,
-    189.0,
+    699.125,
+    699.625,
+    700.125,
+    700.625,
+    701.125,
+    701.625,
+    702.125,
+    702.625,
+    703.125,
+    703.625,
+    704.125,
+    704.625,
+    705.125,
+    705.625,
+    706.125,
+    706.625,
+    707.125,
+    707.625,
+    708.125,
+    708.625,
+    709.125,
+    709.625,
+    710.125,
+    710.625,
 )
-HELDOUT_RENAMED_RESULT = (
-    "MannwhitneyuResult(statistic=np.float64(252.0), pvalue=np.float64(0.4641699943597949))"
-)
+HELDOUT_RENAMED_RESULT = "MannwhitneyuResult(statistic=np.float64(288.0), pvalue=np.float64(1.0))"
+
+HELDOUT_TRIPLES_BY_ROLE = {
+    "error_bearing": HELDOUT_ERROR_TRIPLES,
+    "corrected_twin": HELDOUT_TWIN_TRIPLES,
+    "valid_alternative": HELDOUT_VALID_TRIPLES,
+    "hard_negative": HELDOUT_HARD_TRIPLES,
+    "ambiguous": HELDOUT_AMBIGUOUS_TRIPLES,
+    "unsupported": HELDOUT_UNSUPPORTED_TRIPLES,
+    "renamed_implementation": HELDOUT_RENAMED_TRIPLES,
+}
+HELDOUT_LEFT_BY_ROLE = {
+    "error_bearing": HELDOUT_ERROR_LEFT,
+    "corrected_twin": HELDOUT_TWIN_LEFT,
+    "valid_alternative": HELDOUT_VALID_LEFT,
+    "hard_negative": HELDOUT_HARD_LEFT,
+    "ambiguous": HELDOUT_AMBIGUOUS_LEFT,
+    "unsupported": HELDOUT_UNSUPPORTED_LEFT,
+    "renamed_implementation": HELDOUT_RENAMED_LEFT,
+}
+HELDOUT_RIGHT_BY_ROLE = {
+    "error_bearing": HELDOUT_ERROR_RIGHT,
+    "corrected_twin": HELDOUT_TWIN_RIGHT,
+    "valid_alternative": HELDOUT_VALID_RIGHT,
+    "hard_negative": HELDOUT_HARD_RIGHT,
+    "ambiguous": HELDOUT_AMBIGUOUS_RIGHT,
+    "unsupported": HELDOUT_UNSUPPORTED_RIGHT,
+    "renamed_implementation": HELDOUT_RENAMED_RIGHT,
+}
+HELDOUT_PROCEDURE_BY_ROLE = {
+    "error_bearing": "ttest_ind",
+    "corrected_twin": "ttest_ind",
+    "valid_alternative": "mannwhitneyu",
+    "hard_negative": "ttest_ind",
+    "ambiguous": "ttest_ind",
+    "unsupported": "ttest_rel",
+    "renamed_implementation": "mannwhitneyu",
+}
+HELDOUT_RESULT_BY_ROLE = {
+    "error_bearing": HELDOUT_ERROR_RESULT,
+    "corrected_twin": HELDOUT_TWIN_RESULT,
+    "valid_alternative": HELDOUT_VALID_RESULT,
+    "hard_negative": HELDOUT_HARD_RESULT,
+    "ambiguous": HELDOUT_AMBIGUOUS_RESULT,
+    "unsupported": HELDOUT_UNSUPPORTED_RESULT,
+    "renamed_implementation": HELDOUT_RENAMED_RESULT,
+}
 
 
 class DependenceQualificationScaffoldError(ValueError):
@@ -319,7 +716,49 @@ def _renamed_constraints(block_role: str) -> list[str]:
             f"{companion_prefix}24 code and every {tag_prefix}01 through {tag_prefix}24 tag "
             "occurs once."
         ),
+        "No row has matching numeric suffixes for `k1` and `k2`.",
         "Call `scipy.stats.mannwhitneyu`.",
+        (
+            "The exact SciPy 1.14.0 result text is `"
+            + result
+            + "`; the report must be `[selected-result] ` followed by exactly that text."
+        ),
+        (
+            f"Use only the prescribed {key_prefix}/{companion_prefix}/{tag_prefix} namespaces "
+            "and numeric values, which differ from every other supplied construction; do not "
+            "substitute identifiers or values from another case."
+        ),
+    ]
+
+
+def _heldout_constraints(role: str) -> list[str]:
+    triples_source = HELDOUT_TRIPLES_BY_ROLE[role]
+    left_source = HELDOUT_LEFT_BY_ROLE[role]
+    right_source = HELDOUT_RIGHT_BY_ROLE[role]
+    procedure = HELDOUT_PROCEDURE_BY_ROLE[role]
+    result = HELDOUT_RESULT_BY_ROLE[role]
+    key_prefix = triples_source[0][0].rstrip("0123456789")
+    companion_prefix = triples_source[0][1].rstrip("0123456789")
+    tag_prefix = triples_source[0][2].rstrip("0123456789")
+    triples = "; ".join(f"`{','.join(item)}`" for item in triples_source)
+    left = ", ".join(str(value) for value in left_source)
+    right = ", ".join(str(value) for value in right_source)
+    if role in {"error_bearing", "ambiguous"}:
+        multiplicity = (
+            f"Each prescribed {key_prefix} code occurs on exactly two rows with different a "
+            f"values; every {companion_prefix} code and every {tag_prefix} tag occurs once."
+        )
+    else:
+        multiplicity = (
+            f"Every prescribed {key_prefix} code, {companion_prefix} code, and "
+            f"{tag_prefix} tag occurs exactly once."
+        )
+    return [
+        f"Use exactly these {len(triples_source)} k1,k2,tag triples in row order: {triples}.",
+        f"Use a values in row order `{left}` and corresponding b values `{right}`.",
+        multiplicity,
+        "No row has matching numeric suffixes for `k1` and `k2`.",
+        f"Call `scipy.stats.{procedure}`.",
         (
             "The exact SciPy 1.14.0 result text is `"
             + result
@@ -343,11 +782,12 @@ def _case_specs() -> list[dict[str, Any]]:
         for role in ROLES:
             case_id = stable_id("case", LANE_ID, block_role, role)
             task_role = "error_bearing" if role == "renamed_implementation" else role
-            constraints = (
-                _renamed_constraints(block_role)
-                if role == "renamed_implementation"
-                else list(base.role_constraints[role])
-            )
+            if role == "renamed_implementation":
+                constraints = _renamed_constraints(block_role)
+            elif block_role == "qualification_heldout":
+                constraints = _heldout_constraints(role)
+            else:
+                constraints = list(base.role_constraints[role])
             specs.append(
                 {
                     "case_id": case_id,
@@ -362,9 +802,13 @@ def _case_specs() -> list[dict[str, Any]]:
                     ),
                     "author_id": AUTHOR_BY_BLOCK_AND_ROLE[block_role][role],
                     "design_status": (
-                        "draft_pending_hostile_review"
+                        "hostile_brief_review_cleared_for_freeze"
                         if role == "renamed_implementation"
-                        else "pilot_d_construction_reused"
+                        else (
+                            "pilot_d_structure_fresh_literals"
+                            if block_role == "qualification_heldout"
+                            else "pilot_d_construction_reused"
+                        )
                     ),
                     "visible": _visible_brief(case_id, base.task_by_role[task_role], constraints),
                 }
@@ -525,7 +969,7 @@ def _live_precase_freeze(project_root: Path) -> dict[str, Any]:
         },
         "limitations": [
             "This scaffold has no threshold, label, detector outcome, promotion, or Finding authority.",
-            "Both renamed constructions remain DRAFT pending hostile review.",
+            "Hostile brief review cleared both renamed constructions for freeze only.",
         ],
     }
     if (

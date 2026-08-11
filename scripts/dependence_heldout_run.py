@@ -246,9 +246,9 @@ def heldout_config(project_root: Path) -> tuple[EnvelopeConfig, dict[str, Any]]:
             model_name="Claude Fable 5",
             model_alias="fable",
         ),
-        # Opus-09 remains the escalation seat because it did not fire in pilots b-d.
+        # Opus-09 fired and was spent in pilot-c; the sealed exam advances to opus-10.
         escalation_reviewer=ModelParticipant(
-            participant_id="actor:dependence-heldout-reviewer-opus-09",
+            participant_id="actor:dependence-heldout-reviewer-opus-10",
             model_id="claude-opus-5",
             model_name="Claude Opus 5",
             model_alias="claude-opus-5",
