@@ -28,6 +28,7 @@ import csv
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -45,6 +46,11 @@ import jsonschema
 from sc_referee.controller import replay, run_audit
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest, stable_id
 from sc_referee.dependence_recognition.authority_lock import (
+    AUTHORITY_LIMITATIONS,
+    DECLARED_EXECUTION_ROOT,
+    LOCK_KIND,
+    approval_projection,
+    lock_projection,
     verify_dependence_authorization_lock,
 )
 from sc_referee.method_contract_run import run_method_contract
@@ -88,6 +94,26 @@ VISIBLE_FILES = (
     {"path": "workflow/analysis.py", "role": "workflow_source"},
     {"path": "results/report.md", "role": "report"},
 )
+
+
+def _visible_files(config: EnvelopeConfig) -> tuple[dict[str, str], ...]:
+    files = tuple(
+        {**item, "path": config.authored_input_csv_path}
+        if item["role"] == "staged_data"
+        else dict(item)
+        for item in VISIBLE_FILES
+    )
+    if config.authored_data_description_path is None:
+        return files
+    return (
+        files[0],
+        {
+            "path": config.authored_data_description_path,
+            "role": "data_description",
+        },
+        *files[1:],
+    )
+
 
 DEFAULT_ALLOWED_IMPORT_ROOTS = frozenset(
     {
@@ -286,6 +312,20 @@ class EnvelopeConfig:
     input_csv_row_bounds: tuple[int, int] | None = None
     frozen_workflow_template: str | None = None
     frozen_workflow_procedure_by_role: dict[str, str] = field(default_factory=dict)
+    authored_data_description_path: str | None = None
+    authored_input_csv_path: str = "inputs/data.csv"
+    required_input_csv_header: tuple[str, ...] | None = None
+    allow_unprescribed_input_csv_header: bool = False
+    dependence_authority_from_description: bool = False
+    forbidden_artifact_markers: frozenset[str] = frozenset()
+    record_purpose: str | None = None
+    stateless_review_per_case: bool = False
+    hostile_answer_key_reviewer: ModelParticipant | None = None
+    freeze_role_key_in_review_protocol: bool = False
+    halt_on_false_accusation: bool = False
+    publish_count_metrics_only: bool = False
+    authored_role_ratification: bool = False
+    separately_reported_role: str | None = None
     # Opt-in outside dependence, whose authority lock already requires it.
     # False preserves every pre-existing envelope's intake projection.
     record_expected_audit_snapshot_digest: bool = False
@@ -320,6 +360,13 @@ class EnvelopeConfig:
         return status
 
 
+def _stamp_record_purpose(record: dict[str, Any], config: EnvelopeConfig) -> None:
+    """Add the opt-in development-plane marker before a record is digested."""
+
+    if config.record_purpose is not None:
+        record["record_purpose"] = config.record_purpose
+
+
 def _now() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
@@ -343,12 +390,14 @@ def _manifest_path(project_root: Path, config: EnvelopeConfig) -> Path:
 def _manifest_read(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     path = _manifest_path(project_root, config)
     if not path.exists():
-        return {
+        manifest = {
             "artifact_kind": "lean_pipeline_manifest",
             "manifest_version": "1.0.0",
             "envelope_id": config.envelope_id,
             "steps": {},
         }
+        _stamp_record_purpose(manifest, config)
+        return manifest
     manifest = _load(path)
     if manifest.get("envelope_id") != config.envelope_id:
         raise LeanPipelineError("The envelope manifest belongs to another envelope.")
@@ -412,7 +461,10 @@ def ensure_calibrations(project_root: Path, config: EnvelopeConfig) -> dict[str,
     registry = _load(registry_path)
     entries = {str(item["key"]): item for item in registry.get("entries", [])}
     resolved: dict[str, Any] = {}
-    for participant in (config.reviewer, config.escalation_reviewer):
+    review_participants = [config.reviewer, config.escalation_reviewer]
+    if config.hostile_answer_key_reviewer is not None:
+        review_participants.append(config.hostile_answer_key_reviewer)
+    for participant in review_participants:
         key = calibration_key(
             participant.model_id, config.cli_binary_version, config.calibration_suite
         )
@@ -733,8 +785,10 @@ def _call_codex(
 # Step 1: blind authoring of executable workflows.
 
 
-def _author_output_schema(participant_id: str, case_ids: list[str]) -> dict[str, Any]:
-    case_schema = {
+def _author_output_schema(
+    participant_id: str, case_ids: list[str], config: EnvelopeConfig
+) -> dict[str, Any]:
+    case_schema: dict[str, Any] = {
         "type": "object",
         "additionalProperties": False,
         "required": [
@@ -752,6 +806,12 @@ def _author_output_schema(participant_id: str, case_ids: list[str]) -> dict[str,
             "selected_result_line": {"type": "integer", "minimum": 1},
         },
     }
+    if config.authored_data_description_path is not None:
+        case_schema["required"].append("data_description")
+        case_schema["properties"]["data_description"] = {
+            "type": "string",
+            "minLength": 1,
+        }
     return {
         "type": "object",
         "additionalProperties": False,
@@ -865,7 +925,7 @@ def step_authoring(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
         brief_lines = []
         for case_id in assigned:
             brief_lines.append(_case_brief_block(config, case_id, role_by_case[case_id]))
-        schema = _author_output_schema(participant_id, assigned)
+        schema = _author_output_schema(participant_id, assigned, config)
         prompt = _AUTHOR_INSTRUCTIONS.format(
             case_requirements=config.author_case_requirements,
             task=config.common_task,
@@ -917,6 +977,7 @@ def step_authoring(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
         }
     if config.opening_record_relative is not None:
         protocol["heldout_opening_reference"] = config.opening_record_relative
+    _stamp_record_purpose(protocol, config)
     protocol["protocol_digest"] = semantic_digest(protocol)
     output_root.mkdir(parents=True)
     write_normalized_json_once(output_root / "AUTHORING_PROTOCOL.json", protocol)
@@ -1220,8 +1281,15 @@ def _validate_bounded_input_csv(input_csv: str, config: EnvelopeConfig) -> None:
     header = tuple(rows[0])
     if len(header) != len(set(header)):
         raise LeanPipelineError("The authored input CSV header is duplicated.")
-    if config.requires_dependence_authority and header != _DEPENDENCE_INPUT_HEADER:
-        raise LeanPipelineError("The dependence input CSV header is outside the frozen envelope.")
+    required_header = config.required_input_csv_header
+    if (
+        required_header is None
+        and config.requires_dependence_authority
+        and not config.allow_unprescribed_input_csv_header
+    ):
+        required_header = _DEPENDENCE_INPUT_HEADER
+    if required_header is not None and header != required_header:
+        raise LeanPipelineError("The input CSV header is outside the frozen envelope.")
     data_rows = rows[1:]
     if not lower <= len(data_rows) <= upper:
         raise LeanPipelineError("The authored input CSV row count is outside its bound.")
@@ -1240,7 +1308,7 @@ def _require_probed_interpreter_unchanged(
 
 
 def _controller_material_files(config: EnvelopeConfig) -> tuple[tuple[str, bytes], ...]:
-    visible_paths = {str(item["path"]) for item in VISIBLE_FILES}
+    visible_paths = {str(item["path"]) for item in _visible_files(config)}
     entries: list[tuple[str, bytes]] = []
     for path_value, payload in sorted(config.controller_material_files.items()):
         path = Path(path_value)
@@ -1328,16 +1396,40 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             input_csv = str(item["input_csv"])
             analysis_py = str(item["analysis_py"])
             report_md = str(item["report_md"])
-            for name, payload_text, limit in (
-                ("inputs/data.csv", input_csv, MAX_INPUT_BYTES),
+            authored_files = [
+                (config.authored_input_csv_path, input_csv, MAX_INPUT_BYTES),
                 ("workflow/analysis.py", analysis_py, MAX_PRODUCER_BYTES),
                 ("results/report.md", report_md, MAX_REPORT_BYTES),
-            ):
+            ]
+            description_path = config.authored_data_description_path
+            if description_path is not None:
+                authored_files.append(
+                    (description_path, str(item["data_description"]), MAX_REPORT_BYTES)
+                )
+            forbidden_markers: set[str] = set()
+            if description_path is not None or config.forbidden_artifact_markers:
+                forbidden_markers = {
+                    *config.roles,
+                    *(role.replace("_", "-") for role in config.roles),
+                    *(role.replace("-", "_") for role in config.roles),
+                    *config.forbidden_artifact_markers,
+                }
+            for name, payload_text, limit in authored_files:
                 encoded = payload_text.encode("utf-8")
                 if len(encoded) > limit:
                     raise LeanPipelineError(f"Authored file {name} exceeds its size bound.")
                 if not payload_text.isascii():
                     raise LeanPipelineError(f"Authored file {name} is not ASCII.")
+                normalized = " ".join(
+                    payload_text.casefold().replace("_", " ").replace("-", " ").split()
+                )
+                if any(
+                    " ".join(marker.casefold().replace("_", " ").replace("-", " ").split())
+                    in normalized
+                    for marker in forbidden_markers
+                    if marker
+                ):
+                    raise LeanPipelineError(f"Authored file {name} contains a forbidden marker.")
             expected_workflow = _expected_frozen_workflow(config, roles[case_id])
             if expected_workflow is not None and analysis_py.encode(
                 "utf-8"
@@ -1357,42 +1449,62 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             if marker_lines[0] != int(item["selected_result_line"]):
                 raise LeanPipelineError(f"Case {case_id} misdeclares its selected-result line.")
             case_root = output_root / "cases" / case_id.removeprefix("case:")
-            (case_root / "inputs").mkdir(parents=True)
+            (case_root / config.authored_input_csv_path).parent.mkdir(parents=True)
             (case_root / "workflow").mkdir(parents=True)
             (case_root / "results").mkdir(parents=True)
-            (case_root / "inputs/data.csv").write_bytes(input_csv.encode("utf-8"))
+            (case_root / config.authored_input_csv_path).write_bytes(input_csv.encode("utf-8"))
             (case_root / "workflow/analysis.py").write_bytes(analysis_py.encode("utf-8"))
             (case_root / "results/report.md").write_bytes(report_md.encode("utf-8"))
+            if description_path is not None:
+                description_destination = case_root / description_path
+                description_destination.parent.mkdir(parents=True, exist_ok=True)
+                description_destination.write_bytes(str(item["data_description"]).encode("utf-8"))
             for path_value, payload in controller_files:
                 destination = case_root / path_value
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 if destination.exists() or destination.is_symlink():
                     raise LeanPipelineError("A controller material file collides with case bytes.")
                 atomic_write_bytes(destination, payload)
-            _require_probed_interpreter_unchanged(sandbox_python, runtime_probe)
-            first = _sandbox_run(case_root, sandbox_python)
-            _require_probed_interpreter_unchanged(sandbox_python, runtime_probe)
-            second = _sandbox_run(case_root, sandbox_python)
-            _require_probed_interpreter_unchanged(sandbox_python, runtime_probe)
-            if first != second:
-                raise LeanPipelineError(f"Case {case_id} is not deterministic.")
-            if first != report_md.encode("utf-8"):
-                raise LeanPipelineError(
-                    f"Case {case_id} report does not equal its executed output."
-                )
+            execution_error: str | None = None
+            try:
+                _require_probed_interpreter_unchanged(sandbox_python, runtime_probe)
+                first = _sandbox_run(case_root, sandbox_python)
+                _require_probed_interpreter_unchanged(sandbox_python, runtime_probe)
+                second = _sandbox_run(case_root, sandbox_python)
+                _require_probed_interpreter_unchanged(sandbox_python, runtime_probe)
+                if first != second:
+                    raise LeanPipelineError(f"Case {case_id} is not deterministic.")
+                if first != report_md.encode("utf-8"):
+                    raise LeanPipelineError(
+                        f"Case {case_id} report does not equal its executed output."
+                    )
+            except LeanPipelineError as error:
+                if config.record_purpose != "development_growth_loop":
+                    raise
+                execution_error = str(error)
+                first = b""
             row: dict[str, Any] = {
                 "case_id": case_id,
                 "case_role": roles[case_id],
                 "author_participant_id": participant_id,
                 "selected_result_line": marker_lines[0],
                 "file_digests": {
-                    "inputs/data.csv": sha256_digest(input_csv.encode("utf-8")),
-                    "workflow/analysis.py": sha256_digest(analysis_py.encode("utf-8")),
-                    "results/report.md": sha256_digest(report_md.encode("utf-8")),
+                    name: sha256_digest(payload_text.encode("utf-8"))
+                    for name, payload_text, _limit in authored_files
                 },
-                "sandbox_runs": 2,
-                "sandbox_report_digest": sha256_digest(first),
-                "deterministic": True,
+                "sandbox_runs": 0 if execution_error is not None else 2,
+                "sandbox_report_digest": (
+                    None if execution_error is not None else sha256_digest(first)
+                ),
+                "deterministic": execution_error is None,
+                **(
+                    {
+                        "intake_execution_state": "execution_refused_but_case_retained",
+                        "intake_execution_reason": execution_error,
+                    }
+                    if execution_error is not None
+                    else {}
+                ),
             }
             if controller_files:
                 row["controller_material_file_digests"] = {
@@ -1428,6 +1540,7 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     }
     if runtime_probe is not None:
         ledger["sandbox_runtime_probe"] = runtime_probe
+    _stamp_record_purpose(ledger, config)
     ledger["ledger_digest"] = semantic_digest(ledger)
     write_normalized_json_once(output_root / "INTAKE_LEDGER.json", ledger)
     _manifest_record(
@@ -1468,6 +1581,151 @@ def _prospective_audit_snapshot_digest(
 # Conditional dependence authority freeze: after intake, before review.
 
 
+_DESCRIPTION_UNIT_COLUMN = re.compile(
+    r"(?im)^\s*independent unit column\s*:\s*`?([A-Za-z_][A-Za-z0-9_]*)`?\s*$"
+)
+_DESCRIPTION_ROW = re.compile(r"(?m)^One row is: (\S.*)$")
+_REGISTERED_DEPENDENCE_CALLABLES = frozenset(
+    {"scipy.stats.ttest_ind", "scipy.stats.mannwhitneyu", "scipy.stats.ttest_rel"}
+)
+
+
+def _description_unit_column(description: str) -> str | None:
+    matches = _DESCRIPTION_UNIT_COLUMN.findall(description)
+    rows = _DESCRIPTION_ROW.findall(description)
+    if len(matches) != 1 or len(rows) != 1:
+        return None
+    return str(matches[0])
+
+
+def _registered_dependence_callable(source: str) -> str | None:
+    """Resolve one direct registered SciPy call without executing authored code."""
+
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return None
+    bindings: dict[str, str] = {}
+    calls: list[str] = []
+    for statement in tree.body:
+        if isinstance(statement, ast.Import):
+            for alias in statement.names:
+                if alias.name == "scipy.stats":
+                    bindings[alias.asname or "scipy"] = "scipy.stats"
+        elif isinstance(statement, ast.ImportFrom) and statement.level == 0:
+            if statement.module == "scipy":
+                for alias in statement.names:
+                    if alias.name == "stats":
+                        bindings[alias.asname or alias.name] = "scipy.stats"
+            elif statement.module == "scipy.stats":
+                for alias in statement.names:
+                    candidate = f"scipy.stats.{alias.name}"
+                    if candidate in _REGISTERED_DEPENDENCE_CALLABLES:
+                        bindings[alias.asname or alias.name] = candidate
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        resolved_call: str | None = None
+        if isinstance(node.func, ast.Name):
+            resolved_call = bindings.get(node.func.id)
+        elif isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name):
+            base = bindings.get(node.func.value.id)
+            if base == "scipy.stats":
+                resolved_call = f"{base}.{node.func.attr}"
+        if resolved_call in _REGISTERED_DEPENDENCE_CALLABLES:
+            calls.append(str(resolved_call))
+    return calls[0] if len(calls) == 1 else None
+
+
+def _description_authority_lock(
+    *,
+    case_id: str,
+    case_root: Path,
+    intake_row: Mapping[str, Any],
+    intake_recorded_at: str,
+    description_path: str,
+    input_path: str,
+) -> tuple[dict[str, Any] | None, str, str | None]:
+    description = (case_root / description_path).read_text(encoding="ascii")
+    unit_column = _description_unit_column(description)
+    if unit_column is None:
+        return None, "unit-declaration-missing-or-malformed", None
+    try:
+        with (case_root / input_path).open("r", encoding="utf-8", newline="") as handle:
+            header = next(csv.reader(handle, strict=True))
+    except (OSError, StopIteration, UnicodeDecodeError, csv.Error):
+        return None, "frozen-csv-header-unavailable", unit_column
+    if (
+        not header
+        or len(header) != len(set(header))
+        or any(not item for item in header)
+        or unit_column not in header
+    ):
+        return None, "unit-column-absent-from-frozen-header", unit_column
+    procedure = _registered_dependence_callable(
+        (case_root / "workflow/analysis.py").read_text(encoding="ascii")
+    )
+    if procedure is None:
+        return None, "procedure-unavailable-to-closed-lock-schema", unit_column
+    slug = case_id.removeprefix("case:")
+    actor_id = f"scientist:dependence-free-author-{slug}"
+    value: dict[str, Any] = {
+        "lock_kind": LOCK_KIND,
+        "case_id": case_id,
+        "snapshot_digest": intake_row["expected_audit_snapshot_digest"],
+        "intake_recorded_at": intake_recorded_at,
+        "declared_execution_root": DECLARED_EXECUTION_ROOT,
+        "records": [
+            {
+                "record_type": "analysis",
+                "record_id": f"analysis:{slug}",
+                "path": "workflow/analysis.py",
+            },
+            {
+                "record_type": "procedure",
+                "record_id": f"procedure:{slug}",
+                "resolved_callable": procedure,
+            },
+            {
+                "record_type": "result",
+                "record_id": f"result:{slug}",
+                "path": "results/report.md",
+            },
+            {
+                "record_type": "human_method_authorization",
+                "record_id": f"authorization:{slug}",
+                "actor_id": actor_id,
+                "authority_state": "authorized",
+                "analysis_target_ref": {
+                    "record_type": "analysis",
+                    "record_id": f"analysis:{slug}",
+                },
+                "procedure_ref": {
+                    "record_type": "procedure",
+                    "record_id": f"procedure:{slug}",
+                },
+                "independent_unit_definition_id": stable_id(
+                    "unit-definition", case_id, unit_column
+                ),
+                "authorized_key_columns": [unit_column],
+                "input_path": input_path,
+                "input_content_digest": intake_row["file_digests"][input_path],
+            },
+        ],
+        "approval": {
+            "actor_kind": "human",
+            "actor_id": actor_id,
+            "approved_projection_digest": "sha256:" + "0" * 64,
+            "approved_at": intake_recorded_at,
+        },
+        "authority_limitations": list(AUTHORITY_LIMITATIONS),
+        "lock_digest": "sha256:" + "0" * 64,
+    }
+    value["approval"]["approved_projection_digest"] = semantic_digest(approval_projection(value))
+    value["lock_digest"] = semantic_digest(lock_projection(value))
+    return value, "lock-minted", unit_column
+
+
 def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     if not config.requires_dependence_authority:
         raise LeanPipelineError("This envelope does not require a dependence authority step.")
@@ -1485,11 +1743,59 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
     if set(intake_rows) != set(roles):
         raise LeanPipelineError("The authority step received a different admitted case set.")
     incoming_root = authority_root / "incoming"
-    expected_lock_names = {
-        f"{case_id.removeprefix('case:')}.json"
-        for case_id, role in roles.items()
-        if role not in config.contract_free_roles
-    }
+    if config.dependence_authority_from_description:
+        description_path = config.authored_data_description_path
+        if description_path is None or incoming_root.exists():
+            raise LeanPipelineError("Description-derived authority configuration is invalid.")
+        incoming_root.mkdir(parents=True)
+        generated_lock_names: set[str] = set()
+        translation_by_case: dict[str, dict[str, Any]] = {}
+        for case_id in sorted(roles):
+            slug = case_id.removeprefix("case:")
+            case_root = root / "authoring" / "cases" / slug
+            value, reason, declared_column = _description_authority_lock(
+                case_id=case_id,
+                case_root=case_root,
+                intake_row=intake_rows[case_id],
+                intake_recorded_at=str(intake["recorded_at"]),
+                description_path=description_path,
+                input_path=config.authored_input_csv_path,
+            )
+            translation = {
+                "artifact_kind": "dependence_description_authority_translation",
+                "translation_version": "1.0.0",
+                "case_id": case_id,
+                "description_path": description_path,
+                "description_content_digest": sha256_digest(
+                    (case_root / description_path).read_bytes()
+                ),
+                "input_path": config.authored_input_csv_path,
+                "input_content_digest": intake_rows[case_id]["file_digests"][
+                    config.authored_input_csv_path
+                ],
+                "declared_column": declared_column,
+                "translation_outcome": reason,
+                "lock_digest": value.get("lock_digest") if value is not None else None,
+                "role_information_used": False,
+                "translated_at": _now(),
+            }
+            _stamp_record_purpose(translation, config)
+            translation["translation_digest"] = semantic_digest(translation)
+            translation_path = authority_root / "translations" / f"{slug}.json"
+            write_normalized_json_once(translation_path, translation)
+            translation_by_case[case_id] = translation
+            if value is not None:
+                name = f"{slug}.json"
+                write_normalized_json_once(incoming_root / name, value)
+                generated_lock_names.add(name)
+        expected_lock_names = generated_lock_names
+    else:
+        translation_by_case = {}
+        expected_lock_names = {
+            f"{case_id.removeprefix('case:')}.json"
+            for case_id, role in roles.items()
+            if role not in config.contract_free_roles
+        }
     actual_lock_names = (
         {path.name for path in incoming_root.iterdir() if path.is_file() and not path.is_symlink()}
         if incoming_root.is_dir()
@@ -1507,7 +1813,9 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
         role = roles[case_id]
         slug = case_id.removeprefix("case:")
         incoming = authority_root / "incoming" / f"{slug}.json"
-        if role in config.contract_free_roles:
+        if role in config.contract_free_roles or (
+            config.dependence_authority_from_description and not incoming.is_file()
+        ):
             if incoming.exists() or incoming.is_symlink():
                 raise LeanPipelineError(
                     "A contract-free case must not receive a fabricated authority lock."
@@ -1520,6 +1828,18 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
                     "lock_digest": None,
                     "approved_projection_digest": None,
                     "snapshot_digest": None,
+                    **(
+                        {
+                            "translation_digest": translation_by_case[case_id][
+                                "translation_digest"
+                            ],
+                            "translation_outcome": translation_by_case[case_id][
+                                "translation_outcome"
+                            ],
+                        }
+                        if case_id in translation_by_case
+                        else {}
+                    ),
                 }
             )
             continue
@@ -1556,6 +1876,14 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
                 "lock_digest": verified.lock_digest,
                 "approved_projection_digest": verified.approved_projection_digest,
                 "snapshot_digest": verified.snapshot_digest,
+                **(
+                    {
+                        "translation_digest": translation_by_case[case_id]["translation_digest"],
+                        "translation_outcome": translation_by_case[case_id]["translation_outcome"],
+                    }
+                    if case_id in translation_by_case
+                    else {}
+                ),
             }
         )
 
@@ -1579,6 +1907,9 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
         "frozen_at": _now(),
         "qualification_authority": "human_method_authorization_freeze_only",
     }
+    if config.dependence_authority_from_description:
+        ledger["authority_source"] = "post_intake_authored_data_description_projection"
+    _stamp_record_purpose(ledger, config)
     ledger["ledger_digest"] = semantic_digest(ledger)
     write_normalized_json_once(ledger_path, ledger)
     _manifest_record(
@@ -1687,7 +2018,7 @@ def _anchor_review_spans(
                     _walk(value, table)
 
         _walk(review, lines_by_path)
-    return anchored
+    return cast(dict[str, Any], anchored)
 
 
 def _reviewer_agent(config: EnvelopeConfig, participant: ModelParticipant) -> dict[str, Any]:
@@ -1779,7 +2110,7 @@ def _prepare_blind_case(
         runner_source,
         preparation_root / "blind-workspace",
         preparation_root / "blind-workspace-manifest.json",
-        [dict(item) for item in VISIBLE_FILES],
+        [dict(item) for item in _visible_files(config)],
         snapshot=captured.snapshot_record,
         file_records=file_records,
         asset_identities=captured.asset_identity_records,
@@ -1807,7 +2138,7 @@ def _review_prompt(
         file_sections = "\n".join(
             f"--- file {item['path']} ---\n"
             + workspace_payloads[case_id][str(item["path"])].decode("utf-8")
-            for item in VISIBLE_FILES
+            for item in _visible_files(config)
         )
         sections.append(f"=== workflow {index}: {case_id} ===\n{file_sections}")
     return (
@@ -1854,6 +2185,7 @@ def _run_review_call(
             expected = candidate.get("expected_reviewer_agent", {})
             if (
                 candidate.get("case_id") == case_id
+                and candidate.get("prompt") == prompt
                 and expected.get("execution_context_id") == reviewer_agent["execution_context_id"]
             ):
                 packet = candidate
@@ -1964,6 +2296,139 @@ def _entry_clean(config: EnvelopeConfig, entry: dict[str, Any], role: str) -> bo
     return bool(entry["verdict"] == expected and issue_clean and questions_clean)
 
 
+def _run_hostile_answer_key_review(
+    project_root: Path,
+    config: EnvelopeConfig,
+    review_root: Path,
+    case_order: list[str],
+    roles: Mapping[str, str],
+) -> dict[str, Any] | None:
+    """Run the opt-in role-blind, per-case answer-key audit before blind review."""
+
+    participant = config.hostile_answer_key_reviewer
+    if participant is None:
+        return None
+    root = project_root / config.pipeline_relative
+    entries: list[dict[str, Any]] = []
+    for case_id in case_order:
+        slug = case_id.removeprefix("case:")
+        case_root = root / "authoring" / "cases" / slug
+        visible = []
+        for item in _visible_files(config):
+            path = str(item["path"])
+            if path == "task.md":
+                payload = (config.common_task.rstrip() + "\n").encode("utf-8")
+            else:
+                payload = (case_root / path).read_bytes()
+            visible.append(f"--- file {path} ---\n{payload.decode('utf-8')}")
+        lock_path = root / "authority" / "locks" / f"{slug}.json"
+        lock_text = (
+            lock_path.read_text(encoding="utf-8") if lock_path.is_file() else "NO LOCK MINTED"
+        )
+        prompt = (
+            "You are a hostile, role-blind answer-key reviewer. Review exactly one case. "
+            "The check's standard is whether the issue or its absence is demonstrated in "
+            "the selected report. Answer: (1) is the declared independent-unit column "
+            "consistent with the frozen data, considering both procedure arms; (2) is the "
+            "issue or its absence demonstrated in the selected report; (3) does any minted "
+            "minted lock's unit-key authorization follow from the declaration alone?\n\n"
+            + "\n\n".join(visible)
+            + "\n\n--- minted authority lock ---\n"
+            + lock_text
+            + "\n\nReturn only JSON with exact keys declaration_consistent, "
+            "selected_report_demonstration, lock_follows_declaration, and reasons. The first "
+            "and third values are booleans; selected_report_demonstration is exactly issue, "
+            "absence, or neither; reasons is a nonempty array of strings."
+        )
+        call = _call_cli(
+            config,
+            participant,
+            prompt,
+            str(
+                uuid5(
+                    NAMESPACE_URL,
+                    f"sc-referee:dependence-free-hostile:{config.envelope_id}:{case_id}",
+                )
+            ),
+            review_root / "hostile-answer-key" / "process-captures" / slug,
+        )
+        if call["transport_error"] is not None:
+            raise LeanPipelineError(
+                f"The hostile answer-key call failed and was retained for {case_id}."
+            )
+        try:
+            answer = json.loads(_strip_single_fence(str(call["raw_response"])))
+        except json.JSONDecodeError as error:
+            raise LeanPipelineError("The hostile answer-key response is not JSON.") from error
+        if (
+            not isinstance(answer, dict)
+            or set(answer)
+            != {
+                "declaration_consistent",
+                "selected_report_demonstration",
+                "lock_follows_declaration",
+                "reasons",
+            }
+            or any(
+                not isinstance(answer[name], bool)
+                for name in (
+                    "declaration_consistent",
+                    "lock_follows_declaration",
+                )
+            )
+            or answer["selected_report_demonstration"] not in {"issue", "absence", "neither"}
+            or not isinstance(answer["reasons"], list)
+            or not answer["reasons"]
+            or any(
+                not isinstance(reason, str) or not reason.strip() for reason in answer["reasons"]
+            )
+        ):
+            raise LeanPipelineError("The hostile answer-key response is outside its closed shape.")
+        expected_demonstration = (
+            "issue"
+            if config.expected_verdict(roles[case_id]) == "demonstrated_issue"
+            else "absence"
+        )
+        burn_reasons = []
+        if not answer["declaration_consistent"]:
+            burn_reasons.append("unit-declaration-inconsistent")
+        if answer["selected_report_demonstration"] != expected_demonstration:
+            burn_reasons.append("answer-key-refuted")
+        if not answer["lock_follows_declaration"]:
+            burn_reasons.append("lock-not-derived-from-declaration-alone")
+        entry = {
+            "case_id": case_id,
+            "answer": answer,
+            "burned_before_blind_review": bool(burn_reasons),
+            "burn_reasons": burn_reasons,
+            "prompt_digest": sha256_digest(prompt),
+            "response_digest": sha256_digest(str(call["raw_response"])),
+            "process_capture_digest": call["process_record"]["capture_digest"],
+        }
+        entry["entry_digest"] = semantic_digest(entry)
+        entries.append(entry)
+    ledger: dict[str, Any] = {
+        "artifact_kind": "dependence_free_hostile_answer_key_ledger",
+        "ledger_version": "1.0.0",
+        "envelope_id": config.envelope_id,
+        "reviewer": participant.to_dict(),
+        "role_blind": True,
+        "one_stateless_call_per_case": True,
+        "entries": entries,
+        "burned_case_ids": [
+            entry["case_id"] for entry in entries if entry["burned_before_blind_review"]
+        ],
+        "recorded_at": _now(),
+        "qualification_authority": "none_development_answer_key_screen_only",
+    }
+    _stamp_record_purpose(ledger, config)
+    ledger["ledger_digest"] = semantic_digest(ledger)
+    write_normalized_json_once(
+        review_root / "hostile-answer-key" / "HOSTILE_REVIEW_LEDGER.json", ledger
+    )
+    return ledger
+
+
 def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     root = project_root / config.pipeline_relative
     review_root = root / "review"
@@ -2004,7 +2469,7 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         workspace_root = review_root / str(item["workspace_relative"])
         workspace_payloads[case_id] = {
             str(entry["path"]): (workspace_root / str(entry["path"])).read_bytes()
-            for entry in VISIBLE_FILES
+            for entry in _visible_files(config)
         }
 
     preparations_by_case = {str(item["case_id"]): item for item in preparations}
@@ -2021,6 +2486,18 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             participant_id: entry["key"] for participant_id, entry in calibrations.items()
         },
         "case_order": case_order,
+        **(
+            {
+                "role_expected_verdict_map": {
+                    role: config.expected_verdict(role) for role in sorted(set(roles.values()))
+                },
+                "role_label_status_map": {
+                    role: config.label_status(role) for role in sorted(set(roles.values()))
+                },
+            }
+            if config.freeze_role_key_in_review_protocol
+            else {}
+        ),
         "escalation_policy": (
             "One merged blind review per case; a second blind review from the "
             "escalation reviewer runs only for non-clean cases per ADR-0067, and a "
@@ -2031,20 +2508,67 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     }
     if authority is not None:
         review_protocol["authority_ledger_digest"] = authority["ledger_digest"]
+    _stamp_record_purpose(review_protocol, config)
     review_protocol["protocol_digest"] = semantic_digest(review_protocol)
     write_normalized_json_once(review_root / "REVIEW_PROTOCOL.json", review_protocol)
 
-    primary = _run_review_call(
-        project_root,
-        config,
-        review_root,
-        config.reviewer,
-        case_order,
-        preparations_by_case,
-        workspace_payloads,
-        str(protocol["detector_tuple_digest"]),
-        "primary",
+    hostile = _run_hostile_answer_key_review(project_root, config, review_root, case_order, roles)
+    burned_case_ids = set((hostile or {}).get("burned_case_ids", []))
+    blind_case_order = [case_id for case_id in case_order if case_id not in burned_case_ids]
+
+    review_call_binding = semantic_digest(
+        {
+            "detector_tuple_digest": protocol["detector_tuple_digest"],
+            "review_protocol_digest": review_protocol["protocol_digest"],
+        }
     )
+    if config.stateless_review_per_case:
+        primary_calls = [
+            _run_review_call(
+                project_root,
+                config,
+                review_root,
+                config.reviewer,
+                [case_id],
+                preparations_by_case,
+                workspace_payloads,
+                review_call_binding,
+                f"primary-{case_id.removeprefix('case:')}",
+            )
+            for case_id in blind_case_order
+        ]
+        primary = {
+            "entries": [
+                {**entry, "review_role": "primary"}
+                for call in primary_calls
+                for entry in call["entries"]
+            ],
+            "per_case_calls": [
+                {
+                    key: call[key]
+                    for key in (
+                        "call_identity_id",
+                        "prompt_digest",
+                        "output_schema_digest",
+                        "shared_transcript_digest",
+                        "packet_digests",
+                    )
+                }
+                for call in primary_calls
+            ],
+        }
+    else:
+        primary = _run_review_call(
+            project_root,
+            config,
+            review_root,
+            config.reviewer,
+            blind_case_order,
+            preparations_by_case,
+            workspace_payloads,
+            review_call_binding,
+            "primary",
+        )
     primary_by_case = {str(entry["case_id"]): entry for entry in primary["entries"]}
     non_clean = sorted(
         case_id
@@ -2052,27 +2576,94 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         if not _entry_clean(config, entry, roles[case_id])
     )
     escalation: dict[str, Any] | None = None
-    if non_clean:
-        escalation = _run_review_call(
-            project_root,
-            config,
-            review_root,
-            config.escalation_reviewer,
-            non_clean,
-            preparations_by_case,
-            workspace_payloads,
-            str(protocol["detector_tuple_digest"]),
-            "escalation",
-        )
+    if non_clean and not config.authored_role_ratification:
+        if config.stateless_review_per_case:
+            escalation_calls = [
+                _run_review_call(
+                    project_root,
+                    config,
+                    review_root,
+                    config.escalation_reviewer,
+                    [case_id],
+                    preparations_by_case,
+                    workspace_payloads,
+                    review_call_binding,
+                    f"escalation-{case_id.removeprefix('case:')}",
+                )
+                for case_id in non_clean
+            ]
+            escalation = {
+                "entries": [
+                    {**entry, "review_role": "escalation"}
+                    for call in escalation_calls
+                    for entry in call["entries"]
+                ],
+                "per_case_calls": [
+                    {
+                        key: call[key]
+                        for key in (
+                            "call_identity_id",
+                            "prompt_digest",
+                            "output_schema_digest",
+                            "shared_transcript_digest",
+                            "packet_digests",
+                        )
+                    }
+                    for call in escalation_calls
+                ],
+            }
+        else:
+            escalation = _run_review_call(
+                project_root,
+                config,
+                review_root,
+                config.escalation_reviewer,
+                non_clean,
+                preparations_by_case,
+                workspace_payloads,
+                review_call_binding,
+                "escalation",
+            )
     escalation_by_case = {
         str(entry["case_id"]): entry for entry in (escalation or {}).get("entries", [])
     }
-    unblinding = []
+    unblinding: list[dict[str, Any]] = []
     unresolved: list[str] = []
     for case_id in case_order:
         role = roles[case_id]
+        if case_id in burned_case_ids:
+            unblinding.append(
+                {
+                    "case_id": case_id,
+                    "case_role": role,
+                    "expected_verdict": config.expected_verdict(role),
+                    "primary_verdict": None,
+                    "primary_issue_class": None,
+                    "primary_clean": None,
+                    "escalation_verdict": None,
+                    "escalation_clean": None,
+                    "resolution": "burned_by_hostile_answer_key_review",
+                }
+            )
+            continue
         primary_entry = primary_by_case[case_id]
         primary_clean = _entry_clean(config, primary_entry, role)
+        if config.authored_role_ratification:
+            resolution = "authored_role_ratified" if primary_clean else "authored_role_refuted"
+            unblinding.append(
+                {
+                    "case_id": case_id,
+                    "case_role": role,
+                    "expected_verdict": config.expected_verdict(role),
+                    "primary_verdict": primary_entry["verdict"],
+                    "primary_issue_class": primary_entry["issue_class"],
+                    "primary_clean": primary_clean,
+                    "escalation_verdict": None,
+                    "escalation_clean": None,
+                    "resolution": resolution,
+                }
+            )
+            continue
         escalation_entry = escalation_by_case.get(case_id)
         escalation_clean = (
             _entry_clean(config, escalation_entry, role) if escalation_entry is not None else None
@@ -2106,19 +2697,11 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         "ledger_version": "1.0.0",
         "envelope_id": config.envelope_id,
         "review_protocol_digest": review_protocol["protocol_digest"],
-        "primary_call": {
-            key: primary[key]
-            for key in (
-                "call_identity_id",
-                "prompt_digest",
-                "output_schema_digest",
-                "shared_transcript_digest",
-                "packet_digests",
-            )
-        },
-        "escalation_call": (
-            {
-                key: escalation[key]
+        "primary_call": (
+            {"per_case_calls": primary["per_case_calls"]}
+            if config.stateless_review_per_case
+            else {
+                key: primary[key]
                 for key in (
                     "call_identity_id",
                     "prompt_digest",
@@ -2127,6 +2710,22 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                     "packet_digests",
                 )
             }
+        ),
+        "escalation_call": (
+            (
+                {"per_case_calls": escalation["per_case_calls"]}
+                if config.stateless_review_per_case
+                else {
+                    key: escalation[key]
+                    for key in (
+                        "call_identity_id",
+                        "prompt_digest",
+                        "output_schema_digest",
+                        "shared_transcript_digest",
+                        "packet_digests",
+                    )
+                }
+            )
             if escalation is not None
             else None
         ),
@@ -2134,11 +2733,15 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         "unblinding_record": unblinding,
         "escalation_ran": escalation is not None,
         "unresolved_case_ids": unresolved,
+        "burned_case_ids": sorted(burned_case_ids),
         "recorded_at": _now(),
         "qualification_authority": "none_lean_review_only",
     }
     if authority is not None:
         ledger["authority_ledger_digest"] = authority["ledger_digest"]
+    if hostile is not None:
+        ledger["hostile_answer_key_ledger_digest"] = hostile["ledger_digest"]
+    _stamp_record_purpose(ledger, config)
     ledger["ledger_digest"] = semantic_digest(ledger)
     write_normalized_json_once(review_root / "REVIEW_LEDGER.json", ledger)
     _manifest_record(
@@ -2174,7 +2777,13 @@ def step_labels(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         str(row["case_id"]): str(row["resolution"]) for row in review_ledger["unblinding_record"]
     }
     resolving_role = {
-        case_id: ("primary" if resolution == "clean" else "escalation")
+        case_id: (
+            None
+            if resolution == "burned_by_hostile_answer_key_review"
+            else "primary"
+            if resolution in {"clean", "authored_role_ratified", "authored_role_refuted"}
+            else "escalation"
+        )
         for case_id, resolution in resolutions.items()
     }
     family_by_participant = {
@@ -2186,6 +2795,29 @@ def step_labels(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         ),
     }
     label_rows = []
+    for case_id, review_role in resolving_role.items():
+        if review_role is not None:
+            continue
+        role = roles[case_id]
+        label_status = config.label_status(role)
+        label_rows.append(
+            {
+                "case_id": case_id,
+                "case_role": role,
+                "label_status": label_status,
+                "issue_class": (
+                    config.canonical_issue_class
+                    if label_status == "positive_demonstrated"
+                    else None
+                ),
+                "measurement_state": "burned_before_blind_review",
+                "review_basis": "hostile_answer_key_review_refuted_frozen_role",
+                "review_id": None,
+                "review_digest": review_ledger["hostile_answer_key_ledger_digest"],
+                "reviewer_model_family": None,
+                "agent_only_disclosure": "Burned before blind review; authored role retained.",
+            }
+        )
     for entry in review_ledger["entries"]:
         case_id = str(entry["case_id"])
         if str(entry["review_role"]) != resolving_role[case_id]:
@@ -2203,6 +2835,17 @@ def step_labels(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                     else None
                 ),
                 "review_basis": "single_calibrated_blind_review_adr_0067",
+                **(
+                    {
+                        "measurement_state": (
+                            "burned_refuted_authored_role"
+                            if resolutions[case_id] == "authored_role_refuted"
+                            else "eligible"
+                        )
+                    }
+                    if config.authored_role_ratification
+                    else {}
+                ),
                 "review_id": entry["review_id"],
                 "review_digest": entry["review_digest"],
                 "reviewer_model_family": family_by_participant[str(entry["participant_id"])],
@@ -2229,6 +2872,7 @@ def step_labels(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         "frozen_at": _now(),
         "qualification_authority": "none_scientific_labels_only",
     }
+    _stamp_record_purpose(ledger, config)
     ledger["ledger_digest"] = semantic_digest(ledger)
     write_normalized_json_once(output_path, ledger)
     _manifest_record(
@@ -2248,8 +2892,11 @@ def step_labels(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
 def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     root = project_root / config.pipeline_relative
     output_root = root / "detector-run"
-    if output_root.exists():
+    final_ledger_path = output_root / "DETECTOR_RUN_LEDGER.json"
+    if final_ledger_path.exists():
         raise LeanPipelineError("The detector step already has output.")
+    if (output_root / "FALSE_ACCUSATION_HALT.json").exists():
+        raise LeanPipelineError("The development growth loop remains halted on false accusation.")
     _auth_entry, protocol = _manifest_require(project_root, config, "authoring")
     _label_entry, label_ledger = _manifest_require(project_root, config, "labels")
     if label_ledger["detector_output_observed"] is not False:
@@ -2288,11 +2935,43 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         if set(intake_by_case) != set(roles):
             raise LeanPipelineError("The intake snapshot bindings cover the wrong case set.")
     schema_root = project_root / SCHEMA_RELATIVE
-    output_root.mkdir(parents=True)
+    output_root.mkdir(parents=True, exist_ok=True)
+    case_result_root = output_root / "case-results"
+    case_result_root.mkdir(exist_ok=True)
     rows: list[dict[str, Any]] = []
     for case_id in sorted(roles):
         slug = case_id.removeprefix("case:")
         role = roles[case_id]
+        retained_path = case_result_root / f"{slug}.json"
+        if retained_path.exists():
+            retained = _load(retained_path)
+            supplied = retained.pop("case_result_digest", None)
+            if supplied != semantic_digest(retained):
+                raise LeanPipelineError("A retained per-case detector result does not replay.")
+            retained["case_result_digest"] = supplied
+            rows.append(retained)
+            continue
+        if str(labels_by_case[case_id].get("measurement_state", "eligible")).startswith("burned"):
+            burned_row = {
+                "case_id": case_id,
+                "case_role": role,
+                "frozen_label_status": str(labels_by_case[case_id]["label_status"]),
+                "measurement_state": labels_by_case[case_id]["measurement_state"],
+                "contract_candidate_id": None,
+                "method_contract_applied": False,
+                "finding_candidate_count": 0,
+                "detector_positive": False,
+                "comparison_outcome": "burned_before_measurement",
+                "production_findings": 0,
+                "project_code_executions": 0,
+                "replay_equal": False,
+                "shadow_payload": None,
+            }
+            _stamp_record_purpose(burned_row, config)
+            burned_row["case_result_digest"] = semantic_digest(burned_row)
+            write_normalized_json_once(retained_path, burned_row)
+            rows.append(burned_row)
+            continue
         case_source = root / "authoring" / "cases" / slug
         case_root = output_root / "runs" / slug
         repository = case_root / "project"
@@ -2312,6 +2991,8 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             if authority_entry is None:
                 raise LeanPipelineError(f"The authority ledger omits case {case_id}.")
             if authority_entry.get("authority_state") == "authorized":
+                if authority_ledger is None:
+                    raise LeanPipelineError("An authorized case has no authority ledger.")
                 relative = authority_entry.get("frozen_lock_relative")
                 if not isinstance(relative, str):
                     raise LeanPipelineError("An authorized case lacks its frozen lock path.")
@@ -2344,7 +3025,9 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                     raise LeanPipelineError("The frozen authority lock drifted after review.")
             elif authority_entry.get("authority_state") != "unresolved_or_withheld":
                 raise LeanPipelineError("The authority ledger contains an unknown state.")
-            if contract_free != (dependence_lock is None):
+            if not config.dependence_authority_from_description and contract_free != (
+                dependence_lock is None
+            ):
                 raise LeanPipelineError(
                     "The method-contract and dependence-authority states do not align."
                 )
@@ -2365,16 +3048,48 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             if contract["findings"]:
                 raise LeanPipelineError(f"The method-contract step emitted findings for {case_id}.")
             contract_lock = case_root / "contract" / "semantic.lock.json"
-        bundle = run_audit(
-            repository,
-            case_root / "audit",
-            schema_root,
-            report="results/report.md",
-            method_contract_lock=contract_lock,
-            material_inputs=config.material_input_paths,
-            dependence_authorization_lock=dependence_lock,
-            dependence_authorization_case_id=(case_id if dependence_lock is not None else None),
-        )
+        try:
+            bundle = run_audit(
+                repository,
+                case_root / "audit",
+                schema_root,
+                report="results/report.md",
+                method_contract_lock=contract_lock,
+                material_inputs=config.material_input_paths,
+                dependence_authorization_lock=dependence_lock,
+                dependence_authorization_case_id=(case_id if dependence_lock is not None else None),
+            )
+        except (Exception, RecursionError) as error:
+            if config.record_purpose != "development_growth_loop":
+                raise
+            failure_row = {
+                "case_id": case_id,
+                "case_role": role,
+                "frozen_label_status": str(labels_by_case[case_id]["label_status"]),
+                "contract_candidate_id": candidate_id,
+                "method_contract_applied": not contract_free,
+                "finding_candidate_count": 0,
+                "detector_positive": False,
+                "comparison_outcome": (
+                    "missed_error"
+                    if labels_by_case[case_id]["label_status"] == "positive_demonstrated"
+                    else "true_negative"
+                ),
+                "production_findings": 0,
+                "project_code_executions": 0,
+                "replay_equal": False,
+                "detector_failure_class": type(error).__name__,
+                "shadow_payload": {
+                    "outcome": "unsupported",
+                    "coverage_class": "detector-case-exception",
+                    "reason_codes": ["detector-case-exception"],
+                },
+            }
+            _stamp_record_purpose(failure_row, config)
+            failure_row["case_result_digest"] = semantic_digest(failure_row)
+            write_normalized_json_once(retained_path, failure_row)
+            rows.append(failure_row)
+            continue
         if config.record_expected_audit_snapshot_digest:
             audit_lock = _load(case_root / "audit" / "semantic.lock.json")
             if audit_lock.get("snapshot_digest") != intake_by_case[case_id].get(
@@ -2404,40 +3119,88 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             if not detector_positive and expected_positive
             else "true_negative"
         )
-        rows.append(
-            {
+        audit_lock = _load(case_root / "audit" / "semantic.lock.json")
+        shadow_modules = [
+            item
+            for item in audit_lock.get("scientific_check_registry", {})
+            .get("evaluation", {})
+            .get("modules", [])
+            if item.get("check_id") == config.check_id
+        ]
+        row = {
+            "case_id": case_id,
+            "case_role": role,
+            "frozen_label_status": label_status,
+            "contract_candidate_id": candidate_id,
+            "method_contract_applied": not contract_free,
+            "finding_candidate_count": len(fired),
+            "detector_positive": detector_positive,
+            "comparison_outcome": outcome,
+            "production_findings": len(bundle.get("findings", [])),
+            "project_code_executions": len(bundle.get("executions", [])),
+            "audit_lock_digest": sha256_digest(
+                (case_root / "audit" / "semantic.lock.json").read_bytes()
+            ),
+            "replay_equal": True,
+            "shadow_payload": shadow_modules[0] if len(shadow_modules) == 1 else None,
+        }
+        _stamp_record_purpose(row, config)
+        row["case_result_digest"] = semantic_digest(row)
+        write_normalized_json_once(retained_path, row)
+        rows.append(row)
+        if outcome == "false_accusation" and config.halt_on_false_accusation:
+            halt = {
+                "artifact_kind": "dependence_growth_loop_false_accusation_halt",
+                "halt_version": "1.0.0",
+                "envelope_id": config.envelope_id,
                 "case_id": case_id,
-                "case_role": role,
                 "frozen_label_status": label_status,
-                "contract_candidate_id": candidate_id,
-                "method_contract_applied": not contract_free,
-                "finding_candidate_count": len(fired),
-                "detector_positive": detector_positive,
-                "comparison_outcome": outcome,
-                "production_findings": len(bundle.get("findings", [])),
-                "project_code_executions": len(bundle.get("executions", [])),
-                "audit_lock_digest": sha256_digest(
-                    (case_root / "audit" / "semantic.lock.json").read_bytes()
-                ),
-                "replay_equal": True,
+                "case_result_digest": row["case_result_digest"],
+                "rule": "any_accusation_on_frozen_negative_halts_without_reclassification",
+                "reclassification_permitted": False,
+                "halted_at": _now(),
             }
-        )
+            _stamp_record_purpose(halt, config)
+            halt["halt_digest"] = semantic_digest(halt)
+            write_normalized_json_once(output_root / "FALSE_ACCUSATION_HALT.json", halt)
+            raise LeanPipelineError(
+                f"development growth loop halted on false accusation for {case_id}"
+            )
     outcomes = [str(row["comparison_outcome"]) for row in rows]
-    metrics = {
+    metrics: dict[str, Any] = {
         "opportunity_count": len(rows),
         "true_positive_count": outcomes.count("true_positive"),
         "true_negative_count": outcomes.count("true_negative"),
         "false_accusation_count": outcomes.count("false_accusation"),
         "missed_error_count": outcomes.count("missed_error"),
-        "sensitivity": (
-            outcomes.count("true_positive")
-            / max(1, outcomes.count("true_positive") + outcomes.count("missed_error"))
-        ),
-        "false_accusation_rate": (
-            outcomes.count("false_accusation")
-            / max(1, outcomes.count("false_accusation") + outcomes.count("true_negative"))
-        ),
     }
+    if config.publish_count_metrics_only:
+        metrics["rates_published"] = False
+        metrics["per_miss_wall_classifications"] = {
+            str(row["case_id"]): (
+                (row.get("shadow_payload") or {}).get("state")
+                or row.get("detector_failure_class")
+                or "no-positive-detector-output"
+            )
+            for row in rows
+            if row["comparison_outcome"] == "missed_error"
+        }
+        if config.separately_reported_role is not None:
+            metrics["separately_reported_role_outcome"] = next(
+                (
+                    row["comparison_outcome"]
+                    for row in rows
+                    if row["case_role"] == config.separately_reported_role
+                ),
+                None,
+            )
+    else:
+        metrics["sensitivity"] = outcomes.count("true_positive") / max(
+            1, outcomes.count("true_positive") + outcomes.count("missed_error")
+        )
+        metrics["false_accusation_rate"] = outcomes.count("false_accusation") / max(
+            1, outcomes.count("false_accusation") + outcomes.count("true_negative")
+        )
     ledger: dict[str, Any] = {
         "artifact_kind": "lean_pipeline_detector_run_ledger",
         "ledger_version": "1.0.0",
@@ -2460,6 +3223,7 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     }
     if authority_ledger is not None:
         ledger["authority_ledger_digest"] = authority_ledger["ledger_digest"]
+    _stamp_record_purpose(ledger, config)
     ledger["ledger_digest"] = semantic_digest(ledger)
     write_normalized_json_once(output_root / "DETECTOR_RUN_LEDGER.json", ledger)
     _manifest_record(

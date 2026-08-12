@@ -896,8 +896,150 @@ def default_dependence_config() -> EnvelopeConfig:
         controller_material_files={"requirements.txt": b"numpy==2.2.6\nscipy==1.14.0\n"},
         material_input_paths=("inputs/data.csv", "requirements.txt"),
         input_csv_row_bounds=(1, 64),
+        required_input_csv_header=("k1", "k2", "tag", "a", "b"),
         frozen_workflow_template=_DEPENDENCE_FROZEN_WORKFLOW_TEMPLATE,
         frozen_workflow_procedure_by_role=dict(_DEPENDENCE_FROZEN_PROCEDURE_BY_ROLE),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Dependence generalization growth loop, batch A. This development-only free
+# envelope measures the shipped recognizer without dictating source grammar.
+
+DEPENDENCE_FREE_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-a")
+_DEPENDENCE_FREE_ROLES = ("rq1", "rq2", "rq3", "rq4", "rq5", "rq6")
+_DEPENDENCE_FREE_COMMON_TASK = """Study one narrowly defined error class: repeated measurements from the same independent unit entered into a row-independent statistical procedure as if independent. Invent the scientific domain, study story, vocabulary, column names, data values, number of rows, and coding style yourself. Do not copy any prior-lane material.
+
+Build a real runnable Python analysis that reads exactly `data/input.csv` and writes `results/report.md`, stating the analysis and its result. Also provide `data-description.md`, with exactly one closed-syntax line `One row is: DESCRIPTION` and exactly one line `Independent unit column: COLUMN`, replacing DESCRIPTION with plain language and COLUMN with the actual single header name.
+
+Do not mention sc-referee or any case-role label in any authored artifact. The Python module must execute cleanly and deterministically in the pinned SciPy runtime. No workflow template, reader idiom, procedure, literals, or source structure is prescribed."""
+_DEPENDENCE_FREE_CASE_REQUIREMENTS = """Produce exactly four authored files.
+
+`data/input.csv`: one ASCII CSV with a unique nonempty header and nonempty, non-ragged rows. Choose the row count and all names and values yourself.
+
+`workflow/analysis.py`: runnable deterministic Python that reads exactly `data/input.csv`, performs the analysis, and writes exactly `results/report.md`. Use only allowed standard-library imports plus SciPy, NumPy, or statsmodels. Do not read any other file and do not use randomness, the clock, network access, command-line arguments, or dynamic execution.
+
+`results/report.md`: an ASCII report equal byte-for-byte to the script's output. It must contain exactly one line beginning `[selected-result]` and state the analysis and result.
+
+`data-description.md`: an ASCII plain-language description with exactly one line `One row is: DESCRIPTION` and exactly one line `Independent unit column: COLUMN`, replacing DESCRIPTION with what a row represents and COLUMN with the actual single CSV header name.
+
+Return the fourth file in the `data_description` response field. Do not include a frozen workflow template, prescribed data literals, or a prescribed statistical procedure."""
+_DEPENDENCE_FREE_ROLE_CONSTRAINTS = {
+    "rq1": [
+        "Plant the named error: the analyzed rows must include repeated measurements from an independent unit and the selected row-independent procedure must treat those rows as independent.",
+        "Make the report honest about the performed analysis without naming this assignment or its role.",
+    ],
+    "rq2": [
+        "Plant the named error independently using your own domain, names, data, procedure, and source style.",
+        "The repeated measurements must enter the selected row-independent procedure as separate independent observations.",
+    ],
+    "rq3": [
+        "Plant the named error in a third independently invented workflow.",
+        "Ensure the independent-unit column genuinely repeats and the selected report describes the row-independent analysis actually run.",
+    ],
+    "rq4": [
+        "Do not plant the named error. Use a genuinely independent design with exactly one analyzed row per independent unit.",
+        "Keep the analysis and report honest and otherwise invent all details freely.",
+    ],
+    "rq5": [
+        "Do not plant the named error. Independently invent another genuinely independent one-row-per-unit design.",
+        "Choose your own valid analysis and report its actual result.",
+    ],
+    "rq6": [
+        "Use a realistic long-format or repeated-session storage design in which the units entering the reported claim are genuinely independent with one analyzed row per independent unit.",
+        "Write the data description and report as ordinary scientific artifacts for the invented study.",
+    ],
+}
+_DEPENDENCE_FREE_EXPECTED_VERDICTS = {
+    role: (
+        "demonstrated_issue"
+        if role in {"rq1", "rq2", "rq3"}
+        else "no_demonstrated_issue_within_scope"
+    )
+    for role in _DEPENDENCE_FREE_ROLES
+}
+_DEPENDENCE_FREE_LABEL_STATUSES = {
+    role: ("positive_demonstrated" if role in {"rq1", "rq2", "rq3"} else "verified_good_eligible")
+    for role in _DEPENDENCE_FREE_ROLES
+}
+
+
+def default_dependence_free_config() -> EnvelopeConfig:
+    """Return development-loop batch A; never qualification evidence."""
+
+    authors = {
+        f"actor:dependence-free-batch-a-author-opus-{ordinal}": ModelParticipant(
+            participant_id=f"actor:dependence-free-batch-a-author-opus-{ordinal}",
+            model_id="claude-opus-5",
+            model_name="Claude Opus 5",
+            model_alias="claude-opus-5",
+        )
+        for ordinal in range(27, 33)
+    }
+    return EnvelopeConfig(
+        envelope_id="development-dependence-growth-loop-batch-a-v1",
+        pipeline_relative=DEPENDENCE_FREE_LANE_RELATIVE,
+        check_id=DEPENDENCE_RECOGNITION_CHECK_ID,
+        canonical_issue_class=(
+            "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure"
+        ),
+        candidate_by_role={
+            role: "one-analyzed-row-per-authorized-independent-unit"
+            for role in _DEPENDENCE_FREE_ROLES
+        },
+        task_by_role={role: _DEPENDENCE_FREE_COMMON_TASK for role in _DEPENDENCE_FREE_ROLES},
+        role_constraints={
+            role: list(_DEPENDENCE_FREE_ROLE_CONSTRAINTS[role]) for role in _DEPENDENCE_FREE_ROLES
+        },
+        common_task=_DEPENDENCE_FREE_COMMON_TASK,
+        authors=authors,
+        author_roles={
+            participant_id: [role]
+            for participant_id, role in zip(sorted(authors), _DEPENDENCE_FREE_ROLES, strict=True)
+        },
+        reviewer=ModelParticipant(
+            participant_id="actor:dependence-free-batch-a-reviewer-fable-16",
+            model_id="claude-fable-5",
+            model_name="Claude Fable 5",
+            model_alias="fable",
+        ),
+        escalation_reviewer=ModelParticipant(
+            participant_id="actor:dependence-free-batch-a-escalation-opus-13",
+            model_id="claude-opus-5",
+            model_name="Claude Opus 5",
+            model_alias="claude-opus-5",
+        ),
+        review_instructions=_DEPENDENCE_REVIEW_INSTRUCTIONS,
+        cli_binary=CLAUDE_PINNED,
+        cli_binary_version=CLAUDE_PINNED_VERSION,
+        calibration_suite=CALIBRATION_SUITE,
+        author_case_requirements=_DEPENDENCE_FREE_CASE_REQUIREMENTS,
+        expected_verdict_by_role=dict(_DEPENDENCE_FREE_EXPECTED_VERDICTS),
+        label_status_by_role=dict(_DEPENDENCE_FREE_LABEL_STATUSES),
+        allowed_import_roots=DEFAULT_ALLOWED_IMPORT_ROOTS | {"numpy", "scipy", "statsmodels"},
+        sandbox_python=DEPENDENCE_SANDBOX_PYTHON,
+        required_sandbox_distributions={"numpy": "2.2.6", "scipy": "1.14.0"},
+        controller_material_files={"requirements.txt": b"numpy==2.2.6\nscipy==1.14.0\n"},
+        material_input_paths=("data/input.csv", "requirements.txt"),
+        input_csv_row_bounds=(1, 10_000),
+        authored_data_description_path="data-description.md",
+        authored_input_csv_path="data/input.csv",
+        allow_unprescribed_input_csv_header=True,
+        dependence_authority_from_description=True,
+        forbidden_artifact_markers=frozenset({"sc-referee"}),
+        record_purpose="development_growth_loop",
+        stateless_review_per_case=True,
+        hostile_answer_key_reviewer=ModelParticipant(
+            participant_id="actor:dependence-free-batch-a-hostile-fable-17",
+            model_id="claude-fable-5",
+            model_name="Claude Fable 5",
+            model_alias="fable",
+        ),
+        freeze_role_key_in_review_protocol=True,
+        halt_on_false_accusation=True,
+        publish_count_metrics_only=True,
+        authored_role_ratification=True,
+        separately_reported_role="rq6",
     )
 
 
@@ -1174,6 +1316,7 @@ def default_dosage_config() -> EnvelopeConfig:
 ENVELOPE_CONFIGS = {
     "complete-domain": default_complete_domain_config,
     "dependence": default_dependence_config,
+    "dependence-free": default_dependence_free_config,
     "dosage": default_dosage_config,
     "founder-orientation": default_founder_orientation_config,
     "founder-orientation-b": default_founder_orientation_b_config,
