@@ -6,9 +6,10 @@ import json
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
+from uuid import NAMESPACE_URL, uuid5
 
 import pytest
-from sc_referee_evaluation import lean_pipeline
+from sc_referee_evaluation import dependence_promotion, lean_pipeline
 from sc_referee_evaluation.lean_pipeline import (
     LeanPipelineError,
     step_authority,
@@ -22,6 +23,7 @@ from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.detectors.method_conflict_grant_pins import (
     GRANT_PINS,
     installed_pin_matches_live_identity,
+    load_method_conflict_grant_evidence,
 )
 from scripts.lean_pipeline import (
     DEPENDENCE_FREE_LANE_RELATIVE,
@@ -29,6 +31,7 @@ from scripts.lean_pipeline import (
     ENVELOPE_CONFIGS,
     default_dependence_config,
     default_dependence_free_config,
+    default_founder_orientation_config,
     default_founder_orientation_f_config,
 )
 
@@ -225,6 +228,8 @@ def _freeze_fixture_inputs(root: Path, config: Any) -> None:
 def _freeze_fixture_labels(root: Path, config: Any, authority: dict[str, Any]) -> None:
     lane = root / config.pipeline_relative
     protocol = json.loads((lane / "authoring/AUTHORING_PROTOCOL.json").read_text(encoding="utf-8"))
+    intake = json.loads((lane / "authoring/INTAKE_LEDGER.json").read_text(encoding="utf-8"))
+    intake_by_role = {entry["case_role"]: entry for entry in intake["entries"]}
     review = {
         "artifact_kind": "lean_pipeline_review_ledger",
         "ledger_version": "1.0.0",
@@ -256,6 +261,15 @@ def _freeze_fixture_labels(root: Path, config: Any, authority: dict[str, Any]) -
                 "case_id": _CASE_BY_ROLE[role],
                 "case_role": role,
                 "label_status": config.label_status(role),
+                **(
+                    {
+                        "measurement_state": "refused_at_intake",
+                        "intake_admission_reason": intake_by_role[role]["intake_admission_reason"],
+                    }
+                    if intake_by_role[role].get("intake_admission_state")
+                    == "refused_but_case_retained"
+                    else {}
+                ),
             }
             for role in (config.expected_verdict_by_role or {})
         ],
@@ -286,9 +300,37 @@ def test_dependence_free_config_conforms_to_closed_growth_envelope() -> None:
     assert config.stateless_review_per_case is True
     assert config.freeze_role_key_in_review_protocol is True
     assert config.record_purpose == "development_growth_loop"
+    assert config.development_loop is True
     assert config.hostile_answer_key_reviewer is not None
     assert config.hostile_answer_key_reviewer.participant_id.endswith("fable-17")
     assert set(config.allowed_import_roots) >= {"numpy", "scipy", "statsmodels"}
+    assert {
+        "os",
+        "sys",
+        "typing",
+        "dataclasses",
+        "warnings",
+        "datetime",
+        "operator",
+        "math",
+        "statistics",
+        "itertools",
+        "functools",
+        "collections",
+        "csv",
+        "json",
+        "pathlib",
+        "random",
+        "string",
+        "textwrap",
+    } <= set(config.allowed_import_roots)
+    assert ", ".join(sorted(config.allowed_import_roots)) in config.author_case_requirements
+    assert config.reviewer_task_text == (
+        "Assess whether the selected report's stated statistical conclusion is supported "
+        "by the provided workflow and input data."
+    )
+    assert "sc-referee" not in config.reviewer_task_text
+    assert set(config.utf8_authored_paths) == {"data-description.md", "results/report.md"}
     assert len(set(config.task_by_role.values())) == 1
     assert len(set(config.candidate_by_role.values())) == 1
     author_visible = "\n".join(
@@ -298,6 +340,7 @@ def test_dependence_free_config_conforms_to_closed_growth_envelope() -> None:
     assert all(word not in author_visible for word in ("positive", "control", "hard control"))
     assert default_dependence_config().frozen_workflow_template is not None
     assert default_dependence_config().authored_input_csv_path == "inputs/data.csv"
+    assert default_dependence_config().development_loop is False
     assert default_founder_orientation_f_config().frozen_workflow_template is None
 
 
@@ -312,6 +355,55 @@ def test_installed_dependence_grant_refuses_recognition_grammar_drift() -> None:
         installed_pin_matches_live_identity(replace(pin, exam_adapter_identity=(changed_identity,)))
         is False
     )
+    assert (
+        load_method_conflict_grant_evidence(replace(pin, exam_adapter_identity=(changed_identity,)))
+        is None
+    )
+
+
+def test_dependence_round2_rederivation_refuses_grammar_drift(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        dependence_promotion,
+        "live_adapter_identity",
+        lambda _binding: (),
+    )
+    with pytest.raises(
+        dependence_promotion.DependencePromotionError, match="identity is not exact"
+    ):
+        dependence_promotion._round2_live_identity()
+
+
+def test_existing_qualification_retained_review_capture_still_binds(
+    project_root: Path,
+) -> None:
+    config = default_founder_orientation_config()
+    review_root = project_root / (
+        "evaluation/qualification/founder-orientation-before-hmm-emission-v2.1.5-lane/"
+        "pilot-a/review"
+    )
+    capture_root = review_root / "process-captures/primary-founder-a-reviewer-fable-01"
+    capture = json.loads((capture_root / "capture.json").read_text(encoding="utf-8"))
+    protocol = json.loads(
+        (review_root.parent / "authoring/AUTHORING_PROTOCOL.json").read_text(encoding="utf-8")
+    )
+    expected_call_id = str(
+        uuid5(
+            NAMESPACE_URL,
+            f"sc-referee:lean-pipeline-review:{config.envelope_id}:primary:"
+            f"{config.reviewer.participant_id}:{protocol['detector_tuple_digest']}",
+        )
+    )
+    assert capture["session_id"] == expected_call_id
+    retained = lean_pipeline._retained_call(
+        config.reviewer,
+        (review_root / "prompt-primary.txt").read_text(encoding="utf-8"),
+        expected_call_id,
+        capture_root,
+    )
+    assert retained is not None
+    assert retained["process_record"]["capture_digest"] == capture["capture_digest"]
 
 
 @pytest.mark.skipif(not _RUNTIME_AVAILABLE, reason="dedicated SciPy 1.14.0 runtime is absent")
@@ -363,15 +455,45 @@ def test_model_free_nonmeasurement_fixture_executes_and_records_abstentions(
         "fx2": ("ambiguous", "independent-unit-definition-unresolved"),
         "fx3": ("unsupported", "dependence-shadow-abstention"),
     }
+    assert {role: by_role[role]["comparison_outcome"] for role in ("fx1", "fx2", "fx3")} == {
+        "fx1": "abstained_no_authority",
+        "fx2": "abstained_no_authority",
+        "fx3": "abstained_unsupported",
+    }
+    assert {role: by_role[role]["comparison_outcome"] for role in _MEASUREMENT_ROLES} == {
+        "rq1": "caught",
+        "rq2": "caught",
+        "rq3": "caught",
+        "rq4": "true_negative",
+        "rq5": "true_negative",
+        "rq6": "true_negative",
+    }
     assert all(by_role[role]["replay_equal"] is True for role in _FIXTURE_ROLES)
     assert marker.is_file()
+
+    detector_root = isolated / config.pipeline_relative / "detector-run"
+    (detector_root / "DETECTOR_RUN_LEDGER.json").unlink()
+    manifest_path = isolated / config.pipeline_relative / "MANIFEST.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["steps"].pop("detector")
+    lean_pipeline.write_normalized_json(manifest_path, manifest)
+    retained_path = (
+        detector_root / "case-results" / (_CASE_BY_ROLE["rq1"].removeprefix("case:") + ".json")
+    )
+    retained = json.loads(retained_path.read_text(encoding="utf-8"))
+    retained.pop("case_result_digest")
+    retained["scientific_label_ledger_digest"] = "sha256:" + "0" * 64
+    retained["case_result_digest"] = semantic_digest(retained)
+    lean_pipeline.write_normalized_json(retained_path, retained)
+    with pytest.raises(LeanPipelineError, match="stale bindings"):
+        step_detector(isolated, config)
 
 
 def test_growth_intake_retains_one_crashing_case_without_changing_shared_path(
     tmp_path: Path, project_root: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     isolated = _isolated_root(tmp_path, project_root)
-    config = _fixture_config(("rq1", "rq4"))
+    config = _fixture_config(("rq1", "rq4", "rq5"))
     config = replace(
         config,
         pipeline_relative=Path("evaluation/development-fixtures/crash-retained"),
@@ -390,9 +512,27 @@ def test_growth_intake_retains_one_crashing_case_without_changing_shared_path(
     lean_pipeline.write_normalized_json(incoming, attempt)
     intake = step_intake(isolated, config)
     first = next(entry for entry in intake["entries"] if entry["case_role"] == "rq1")
-    assert first["intake_execution_state"] == "execution_refused_but_case_retained"
-    assert len(intake["entries"]) == 2
+    assert first["intake_admission_state"] == "refused_but_case_retained"
+    assert "fixture crash" in first["intake_admission_reason"]
+    assert len(intake["entries"]) == 3
+    lane = isolated / config.pipeline_relative
+    (lane / "authoring/INTAKE_LEDGER.json").unlink()
+    manifest_path = lane / "MANIFEST.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["steps"].pop("intake")
+    lean_pipeline.write_normalized_json(manifest_path, manifest)
+    intake = step_intake(isolated, config)
+    assert [entry["intake_admission_state"] for entry in intake["entries"]] == [
+        "refused_but_case_retained",
+        "admitted",
+        "admitted",
+    ]
     authority = step_authority(isolated, config)
+    authority_by_role = {
+        next(role for role, value in _CASE_BY_ROLE.items() if value == entry["case_id"]): entry
+        for entry in authority["entries"]
+    }
+    assert authority_by_role["rq1"]["authority_state"] == "excluded_intake_refusal"
     _freeze_fixture_labels(isolated, config, authority)
     original_run_audit = lean_pipeline.run_audit
     calls = 0
@@ -407,10 +547,51 @@ def test_growth_intake_retains_one_crashing_case_without_changing_shared_path(
     monkeypatch.setattr(lean_pipeline, "run_audit", fail_one_case)
     detector = step_detector(isolated, config)
     by_role = {entry["case_role"]: entry for entry in detector["entries"]}
-    assert by_role["rq1"]["detector_failure_class"] == "RuntimeError"
-    assert by_role["rq4"]["replay_equal"] is True
+    assert by_role["rq1"]["comparison_outcome"] == "refused_at_intake"
+    assert by_role["rq4"]["detector_failure_class"] == "RuntimeError"
+    assert by_role["rq5"]["replay_equal"] is True
     retained = isolated / config.pipeline_relative / "detector-run/case-results"
-    assert len(list(retained.glob("*.json"))) == 2
+    assert len(list(retained.glob("*.json"))) == 3
+
+
+def test_growth_intake_retains_static_refusal_and_accepts_utf8_prose_and_token_substrings(
+    tmp_path: Path, project_root: Path
+) -> None:
+    isolated = _isolated_root(tmp_path, project_root)
+    config = replace(
+        _fixture_config(("rq1", "rq4")),
+        pipeline_relative=Path("evaluation/development-fixtures/static-refusal-retained"),
+        record_purpose="development_growth_loop",
+        development_loop=True,
+    )
+    _freeze_fixture_inputs(isolated, config)
+    incoming = (
+        isolated
+        / config.pipeline_relative
+        / ("authoring/incoming/controller:nonmeasurement-fixture.json")
+    )
+    attempt = json.loads(incoming.read_text(encoding="utf-8"))
+    payload = json.loads(attempt["raw_response"])
+    rq1 = next(item for item in payload["cases"] if item["case_id"] == _CASE_BY_ROLE["rq1"])
+    rq1["analysis_py"] = "import requests\n" + rq1["analysis_py"]
+    rq4 = next(item for item in payload["cases"] if item["case_id"] == _CASE_BY_ROLE["rq4"])
+    rq4["analysis_py"] = rq4["analysis_py"].replace(
+        "{result}\\n", "{result} \\u2013 R\\u00e9sum\\u00e9 SRQ1\\n"
+    )
+    rq4["report_md"] = rq4["report_md"].replace(
+        "\n", f" {chr(0x2013)} R{chr(0xE9)}sum{chr(0xE9)} SRQ1\n"
+    )
+    rq4["data_description"] = rq4["data_description"].replace("one recorded", "one café-recorded")
+    rq4["selected_result_line"] = 1
+    attempt["raw_response"] = canonical_json(payload)
+    lean_pipeline.write_normalized_json(incoming, attempt)
+    intake = step_intake(isolated, config)
+    by_role = {entry["case_role"]: entry for entry in intake["entries"]}
+    assert by_role["rq1"]["intake_admission_state"] == "refused_but_case_retained"
+    assert by_role["rq4"]["intake_admission_state"] == "admitted"
+    authority = step_authority(isolated, config)
+    authority_by_case = {entry["case_id"]: entry for entry in authority["entries"]}
+    assert authority_by_case[_CASE_BY_ROLE["rq1"]]["authority_state"] == "excluded_intake_refusal"
 
 
 def test_description_is_required_by_the_author_schema() -> None:
@@ -423,6 +604,21 @@ def test_description_is_required_by_the_author_schema() -> None:
             "free,header\na,b\n",
             replace(config, allow_unprescribed_input_csv_header=False),
         )
+    assert (
+        lean_pipeline._description_unit_column(
+            "ONE ROW IS: a sample\nINDEPENDENT UNIT COLUMN:    subject_id\n"
+        )
+        == "subject_id"
+    )
+    assert (
+        lean_pipeline._description_unit_column(
+            "One row is:\nvalue on next line\nIndependent unit column:\nsubject_id\n"
+        )
+        is None
+    )
+    assert lean_pipeline._registered_dependence_callable(
+        "import scipy.stats as st\na=st.pearsonr(x,y)\nb=st.ttest_ind(x,y)\n"
+    ) == (None, "procedure-ambiguous-multiple-statistical-calls")
 
 
 @pytest.mark.skipif(not _RUNTIME_AVAILABLE, reason="dedicated SciPy 1.14.0 runtime is absent")
@@ -539,6 +735,15 @@ def test_review_key_is_presealed_and_primary_calls_are_stateless_per_case(
     rq6_label = next(row for row in labels["entries"] if row["case_role"] == "rq6")
     assert rq6_label["label_status"] == "verified_good_eligible"
     assert rq6_label["measurement_state"] == "burned_refuted_authored_role"
+    retained_hostile = lean_pipeline._run_hostile_answer_key_review(
+        isolated,
+        config,
+        isolated / config.pipeline_relative / "review",
+        [_CASE_BY_ROLE[role] for role in _MEASUREMENT_ROLES],
+        {_CASE_BY_ROLE[role]: role for role in _MEASUREMENT_ROLES},
+    )
+    assert retained_hostile is not None
+    assert len(hostile_prompts) == 6
 
 
 @pytest.mark.skipif(not _RUNTIME_AVAILABLE, reason="dedicated SciPy 1.14.0 runtime is absent")
@@ -573,5 +778,7 @@ def test_false_accusation_halts_and_preserves_per_case_outputs(
     assert halt["case_id"] == _CASE_BY_ROLE["rq4"]
     assert halt["reclassification_permitted"] is False
     assert len(list((detector_root / "case-results").glob("*.json"))) == 4
-    with pytest.raises(LeanPipelineError, match="remains halted"):
+    (detector_root / "FALSE_ACCUSATION_HALT.json").unlink()
+    with pytest.raises(LeanPipelineError, match="halted on false accusation"):
         step_detector(isolated, config)
+    assert (detector_root / "FALSE_ACCUSATION_HALT.json").is_file()

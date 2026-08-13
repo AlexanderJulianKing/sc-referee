@@ -33,6 +33,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unicodedata
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -133,6 +134,29 @@ DEFAULT_ALLOWED_IMPORT_ROOTS = frozenset(
 _ALLOWED_IMPORT_ROOTS = DEFAULT_ALLOWED_IMPORT_ROOTS
 _FORBIDDEN_NAMES = {"eval", "exec", "__import__", "compile", "globals", "locals", "vars"}
 _DEPENDENCE_INPUT_HEADER = ("k1", "k2", "tag", "a", "b")
+_MARKER_CONFUSABLES = str.maketrans(
+    {
+        "\u0430": "a",
+        "\u0435": "e",
+        "\u043e": "o",
+        "\u0440": "p",
+        "\u0441": "c",
+        "\u0445": "x",
+        "\u0443": "y",
+        "\u0456": "i",
+        "\u0458": "j",
+        "\u03b1": "a",
+        "\u03b2": "b",
+        "\u03b5": "e",
+        "\u03b9": "i",
+        "\u03ba": "k",
+        "\u03bf": "o",
+        "\u03c1": "p",
+        "\u03c4": "t",
+        "\u03c5": "y",
+        "\u03c7": "x",
+    }
+)
 _RUNTIME_PROBE = """import importlib
 import importlib.metadata
 import json
@@ -326,6 +350,10 @@ class EnvelopeConfig:
     publish_count_metrics_only: bool = False
     authored_role_ratification: bool = False
     separately_reported_role: str | None = None
+    development_loop: bool = False
+    reviewer_task_text: str | None = None
+    utf8_authored_paths: frozenset[str] = frozenset()
+    whole_token_role_markers: bool = False
     # Opt-in outside dependence, whose authority lock already requires it.
     # False preserves every pre-existing envelope's intake projection.
     record_expected_audit_snapshot_digest: bool = False
@@ -365,6 +393,10 @@ def _stamp_record_purpose(record: dict[str, Any], config: EnvelopeConfig) -> Non
 
     if config.record_purpose is not None:
         record["record_purpose"] = config.record_purpose
+
+
+def _case_task_text(config: EnvelopeConfig, role: str) -> str:
+    return config.reviewer_task_text or config.task_by_role[role]
 
 
 def _now() -> str:
@@ -1349,6 +1381,81 @@ def _expected_frozen_workflow(config: EnvelopeConfig, role: str) -> str | None:
     return template.replace("{procedure}", procedures[role])
 
 
+def _normalized_marker_text(value: str) -> str:
+    return " ".join(
+        unicodedata.normalize("NFKC", value)
+        .translate(_MARKER_CONFUSABLES)
+        .casefold()
+        .replace("_", " ")
+        .replace("-", " ")
+        .split()
+    )
+
+
+def _validate_authored_case(
+    config: EnvelopeConfig,
+    *,
+    case_id: str,
+    role: str,
+    item: Mapping[str, Any],
+    authored_files: list[tuple[str, str, int]],
+    analysis_py: str,
+    input_csv: str,
+    report_md: str,
+) -> list[int]:
+    role_markers = (
+        set(config.roles)
+        if config.authored_data_description_path is not None or config.forbidden_artifact_markers
+        else set()
+    )
+    default_markers = set(config.forbidden_artifact_markers)
+    for name, payload_text, limit in authored_files:
+        encoded = payload_text.encode("utf-8")
+        if len(encoded) > limit:
+            raise LeanPipelineError(f"Authored file {name} exceeds its size bound.")
+        if name not in config.utf8_authored_paths and not payload_text.isascii():
+            raise LeanPipelineError(f"Authored file {name} is not ASCII.")
+        normalized = _normalized_marker_text(payload_text)
+        if any(
+            _normalized_marker_text(marker) in normalized for marker in default_markers if marker
+        ):
+            raise LeanPipelineError(f"Authored file {name} contains a forbidden marker.")
+        if config.whole_token_role_markers:
+            folded = (
+                unicodedata.normalize("NFKC", payload_text)
+                .translate(_MARKER_CONFUSABLES)
+                .casefold()
+            )
+            if any(
+                re.search(rf"(?<![0-9a-z]){re.escape(marker.casefold())}(?![0-9a-z])", folded)
+                for marker in role_markers
+            ):
+                raise LeanPipelineError(f"Authored file {name} contains a forbidden marker.")
+        elif any(
+            _normalized_marker_text(marker) in normalized for marker in role_markers if marker
+        ):
+            raise LeanPipelineError(f"Authored file {name} contains a forbidden marker.")
+    expected_workflow = _expected_frozen_workflow(config, role)
+    if expected_workflow is not None and analysis_py.encode("utf-8") != expected_workflow.encode(
+        "utf-8"
+    ):
+        raise LeanPipelineError("frozen-workflow-template-mismatch")
+    _static_guard(analysis_py, config.allowed_import_roots)
+    _validate_bounded_input_csv(input_csv, config)
+    marker_lines = [
+        index + 1
+        for index, line in enumerate(report_md.splitlines())
+        if line.startswith(SELECTED_RESULT_MARKER)
+    ]
+    if len(marker_lines) != 1:
+        raise LeanPipelineError(
+            f"Case {case_id} does not contain exactly one selected-result line."
+        )
+    if marker_lines[0] != int(item["selected_result_line"]):
+        raise LeanPipelineError(f"Case {case_id} misdeclares its selected-result line.")
+    return marker_lines
+
+
 def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     root = project_root / config.pipeline_relative
     output_root = root / "authoring"
@@ -1378,21 +1485,76 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         try:
             payload = json.loads(_strip_single_fence(str(attempt["raw_response"])))
         except json.JSONDecodeError as error:
-            raise LeanPipelineError(
-                f"An author response is not valid JSON: {participant_id}"
-            ) from error
-        try:
-            jsonschema.validate(payload, assignment["output_schema"])
-        except jsonschema.ValidationError as error:
-            raise LeanPipelineError(
-                f"An author response fails its frozen schema: {error.message}"
-            ) from error
-        cases = payload["cases"]
-        returned_ids = sorted(str(item["case_id"]) for item in cases)
-        if returned_ids != sorted(str(v) for v in assignment["case_ids"]):
+            if not config.development_loop:
+                raise LeanPipelineError(
+                    f"An author response is not valid JSON: {participant_id}"
+                ) from error
+            for case_id_value in assignment["case_ids"]:
+                case_id = str(case_id_value)
+                rows.append(
+                    {
+                        "case_id": case_id,
+                        "case_role": roles[case_id],
+                        "author_participant_id": participant_id,
+                        "intake_admission_state": "refused_but_case_retained",
+                        "intake_admission_reason": "author response is not valid JSON",
+                        "file_digests": {},
+                        "sandbox_runs": 0,
+                        "sandbox_report_digest": None,
+                        "deterministic": False,
+                    }
+                )
+            continue
+        if config.development_loop:
+            cases = payload.get("cases", []) if isinstance(payload, dict) else []
+            if not isinstance(cases, list):
+                cases = []
+        else:
+            try:
+                jsonschema.validate(payload, assignment["output_schema"])
+            except jsonschema.ValidationError as error:
+                raise LeanPipelineError(
+                    f"An author response fails its frozen schema: {error.message}"
+                ) from error
+            cases = payload["cases"]
+        returned_ids = sorted(
+            str(item.get("case_id", "")) for item in cases if isinstance(item, dict)
+        )
+        if not config.development_loop and returned_ids != sorted(
+            str(v) for v in assignment["case_ids"]
+        ):
             raise LeanPipelineError("An author response covers the wrong case ids.")
-        for item in cases:
-            case_id = str(item["case_id"])
+        cases_by_id = {str(item.get("case_id")): item for item in cases if isinstance(item, dict)}
+        selected_cases = (
+            [
+                cases_by_id.get(str(case_id), {"case_id": case_id})
+                for case_id in assignment["case_ids"]
+            ]
+            if config.development_loop
+            else cases
+        )
+        for item in selected_cases:
+            case_id = str(item.get("case_id", ""))
+            if config.development_loop:
+                try:
+                    jsonschema.validate(
+                        item, assignment["output_schema"]["properties"]["cases"]["items"]
+                    )
+                except jsonschema.ValidationError as error:
+                    rows.append(
+                        {
+                            "case_id": case_id,
+                            "case_role": roles[case_id],
+                            "author_participant_id": participant_id,
+                            "intake_admission_state": "refused_but_case_retained",
+                            "intake_admission_reason": f"author response fails case schema: {error.message}",
+                            "file_digests": {},
+                            "sandbox_runs": 0,
+                            "sandbox_report_digest": None,
+                            "deterministic": False,
+                        }
+                    )
+                    continue
             input_csv = str(item["input_csv"])
             analysis_py = str(item["analysis_py"])
             report_md = str(item["report_md"])
@@ -1406,67 +1568,65 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 authored_files.append(
                     (description_path, str(item["data_description"]), MAX_REPORT_BYTES)
                 )
-            forbidden_markers: set[str] = set()
-            if description_path is not None or config.forbidden_artifact_markers:
-                forbidden_markers = {
-                    *config.roles,
-                    *(role.replace("_", "-") for role in config.roles),
-                    *(role.replace("-", "_") for role in config.roles),
-                    *config.forbidden_artifact_markers,
-                }
-            for name, payload_text, limit in authored_files:
-                encoded = payload_text.encode("utf-8")
-                if len(encoded) > limit:
-                    raise LeanPipelineError(f"Authored file {name} exceeds its size bound.")
-                if not payload_text.isascii():
-                    raise LeanPipelineError(f"Authored file {name} is not ASCII.")
-                normalized = " ".join(
-                    payload_text.casefold().replace("_", " ").replace("-", " ").split()
-                )
-                if any(
-                    " ".join(marker.casefold().replace("_", " ").replace("-", " ").split())
-                    in normalized
-                    for marker in forbidden_markers
-                    if marker
-                ):
-                    raise LeanPipelineError(f"Authored file {name} contains a forbidden marker.")
-            expected_workflow = _expected_frozen_workflow(config, roles[case_id])
-            if expected_workflow is not None and analysis_py.encode(
-                "utf-8"
-            ) != expected_workflow.encode("utf-8"):
-                raise LeanPipelineError("frozen-workflow-template-mismatch")
-            _static_guard(analysis_py, config.allowed_import_roots)
-            _validate_bounded_input_csv(input_csv, config)
-            marker_lines = [
-                index + 1
-                for index, line in enumerate(report_md.splitlines())
-                if line.startswith(SELECTED_RESULT_MARKER)
-            ]
-            if len(marker_lines) != 1:
-                raise LeanPipelineError(
-                    f"Case {case_id} does not contain exactly one selected-result line."
-                )
-            if marker_lines[0] != int(item["selected_result_line"]):
-                raise LeanPipelineError(f"Case {case_id} misdeclares its selected-result line.")
-            case_root = output_root / "cases" / case_id.removeprefix("case:")
-            (case_root / config.authored_input_csv_path).parent.mkdir(parents=True)
-            (case_root / "workflow").mkdir(parents=True)
-            (case_root / "results").mkdir(parents=True)
-            (case_root / config.authored_input_csv_path).write_bytes(input_csv.encode("utf-8"))
-            (case_root / "workflow/analysis.py").write_bytes(analysis_py.encode("utf-8"))
-            (case_root / "results/report.md").write_bytes(report_md.encode("utf-8"))
-            if description_path is not None:
-                description_destination = case_root / description_path
-                description_destination.parent.mkdir(parents=True, exist_ok=True)
-                description_destination.write_bytes(str(item["data_description"]).encode("utf-8"))
-            for path_value, payload in controller_files:
-                destination = case_root / path_value
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                if destination.exists() or destination.is_symlink():
-                    raise LeanPipelineError("A controller material file collides with case bytes.")
-                atomic_write_bytes(destination, payload)
-            execution_error: str | None = None
             try:
+                marker_lines = _validate_authored_case(
+                    config,
+                    case_id=case_id,
+                    role=roles[case_id],
+                    item=item,
+                    authored_files=authored_files,
+                    analysis_py=analysis_py,
+                    input_csv=input_csv,
+                    report_md=report_md,
+                )
+            except (Exception, RecursionError) as error:
+                if not config.development_loop:
+                    raise
+                rows.append(
+                    {
+                        "case_id": case_id,
+                        "case_role": roles[case_id],
+                        "author_participant_id": participant_id,
+                        "intake_admission_state": "refused_but_case_retained",
+                        "intake_admission_reason": str(error),
+                        "file_digests": {
+                            name: sha256_digest(payload_text.encode("utf-8"))
+                            for name, payload_text, _limit in authored_files
+                        },
+                        "sandbox_runs": 0,
+                        "sandbox_report_digest": None,
+                        "deterministic": False,
+                    }
+                )
+                continue
+            execution_error: str | None = None
+            case_root = output_root / "cases" / case_id.removeprefix("case:")
+            try:
+                (case_root / config.authored_input_csv_path).parent.mkdir(
+                    parents=True, exist_ok=True
+                )
+                (case_root / "workflow").mkdir(parents=True, exist_ok=True)
+                (case_root / "results").mkdir(parents=True, exist_ok=True)
+                (case_root / config.authored_input_csv_path).write_bytes(input_csv.encode("utf-8"))
+                (case_root / "workflow/analysis.py").write_bytes(analysis_py.encode("utf-8"))
+                (case_root / "results/report.md").write_bytes(report_md.encode("utf-8"))
+                if description_path is not None:
+                    description_destination = case_root / description_path
+                    description_destination.parent.mkdir(parents=True, exist_ok=True)
+                    description_destination.write_bytes(
+                        str(item["data_description"]).encode("utf-8")
+                    )
+                for path_value, payload in controller_files:
+                    destination = case_root / path_value
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    if destination.is_symlink() or (
+                        destination.exists() and destination.read_bytes() != payload
+                    ):
+                        raise LeanPipelineError(
+                            "A controller material file collides with case bytes."
+                        )
+                    if not destination.exists():
+                        atomic_write_bytes(destination, payload)
                 _require_probed_interpreter_unchanged(sandbox_python, runtime_probe)
                 first = _sandbox_run(case_root, sandbox_python)
                 _require_probed_interpreter_unchanged(sandbox_python, runtime_probe)
@@ -1478,8 +1638,8 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                     raise LeanPipelineError(
                         f"Case {case_id} report does not equal its executed output."
                     )
-            except LeanPipelineError as error:
-                if config.record_purpose != "development_growth_loop":
+            except (Exception, RecursionError) as error:
+                if not config.development_loop:
                     raise
                 execution_error = str(error)
                 first = b""
@@ -1499,21 +1659,23 @@ def step_intake(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 "deterministic": execution_error is None,
                 **(
                     {
-                        "intake_execution_state": "execution_refused_but_case_retained",
-                        "intake_execution_reason": execution_error,
+                        "intake_admission_state": "refused_but_case_retained",
+                        "intake_admission_reason": execution_error,
                     }
                     if execution_error is not None
-                    else {}
+                    else ({"intake_admission_state": "admitted"} if config.development_loop else {})
                 ),
             }
             if controller_files:
                 row["controller_material_file_digests"] = {
                     path_value: sha256_digest(payload) for path_value, payload in controller_files
                 }
-            if config.requires_dependence_authority or config.record_expected_audit_snapshot_digest:
+            if execution_error is None and (
+                config.requires_dependence_authority or config.record_expected_audit_snapshot_digest
+            ):
                 row["expected_audit_snapshot_digest"] = _prospective_audit_snapshot_digest(
                     case_root,
-                    task_payload=(config.task_by_role[roles[case_id]].rstrip() + "\n").encode(
+                    task_payload=(_case_task_text(config, roles[case_id]).rstrip() + "\n").encode(
                         "utf-8"
                     ),
                     material_input_paths=config.material_input_paths,
@@ -1582,9 +1744,9 @@ def _prospective_audit_snapshot_digest(
 
 
 _DESCRIPTION_UNIT_COLUMN = re.compile(
-    r"(?im)^\s*independent unit column\s*:\s*`?([A-Za-z_][A-Za-z0-9_]*)`?\s*$"
+    r"(?im)^[ \t]*independent unit column[ \t]*:[ \t]+`?([A-Za-z_][A-Za-z0-9_]*)`?[ \t]*$"
 )
-_DESCRIPTION_ROW = re.compile(r"(?m)^One row is: (\S.*)$")
+_DESCRIPTION_ROW = re.compile(r"(?im)^[ \t]*one row is[ \t]*:[ \t]+(\S[^\r\n]*)$")
 _REGISTERED_DEPENDENCE_CALLABLES = frozenset(
     {"scipy.stats.ttest_ind", "scipy.stats.mannwhitneyu", "scipy.stats.ttest_rel"}
 )
@@ -1598,13 +1760,13 @@ def _description_unit_column(description: str) -> str | None:
     return str(matches[0])
 
 
-def _registered_dependence_callable(source: str) -> str | None:
+def _registered_dependence_callable(source: str) -> tuple[str | None, str]:
     """Resolve one direct registered SciPy call without executing authored code."""
 
     try:
         tree = ast.parse(source)
     except SyntaxError:
-        return None
+        return None, "procedure-unavailable-to-closed-lock-schema"
     bindings: dict[str, str] = {}
     calls: list[str] = []
     for statement in tree.body:
@@ -1620,8 +1782,7 @@ def _registered_dependence_callable(source: str) -> str | None:
             elif statement.module == "scipy.stats":
                 for alias in statement.names:
                     candidate = f"scipy.stats.{alias.name}"
-                    if candidate in _REGISTERED_DEPENDENCE_CALLABLES:
-                        bindings[alias.asname or alias.name] = candidate
+                    bindings[alias.asname or alias.name] = candidate
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
@@ -1632,9 +1793,13 @@ def _registered_dependence_callable(source: str) -> str | None:
             base = bindings.get(node.func.value.id)
             if base == "scipy.stats":
                 resolved_call = f"{base}.{node.func.attr}"
-        if resolved_call in _REGISTERED_DEPENDENCE_CALLABLES:
+        if resolved_call is not None and resolved_call.startswith("scipy.stats."):
             calls.append(str(resolved_call))
-    return calls[0] if len(calls) == 1 else None
+    if len(calls) != 1:
+        return None, "procedure-ambiguous-multiple-statistical-calls"
+    if calls[0] not in _REGISTERED_DEPENDENCE_CALLABLES:
+        return None, "procedure-unavailable-to-closed-lock-schema"
+    return calls[0], "lock-minted"
 
 
 def _description_authority_lock(
@@ -1646,7 +1811,7 @@ def _description_authority_lock(
     description_path: str,
     input_path: str,
 ) -> tuple[dict[str, Any] | None, str, str | None]:
-    description = (case_root / description_path).read_text(encoding="ascii")
+    description = (case_root / description_path).read_text(encoding="utf-8")
     unit_column = _description_unit_column(description)
     if unit_column is None:
         return None, "unit-declaration-missing-or-malformed", None
@@ -1662,11 +1827,11 @@ def _description_authority_lock(
         or unit_column not in header
     ):
         return None, "unit-column-absent-from-frozen-header", unit_column
-    procedure = _registered_dependence_callable(
+    procedure, procedure_reason = _registered_dependence_callable(
         (case_root / "workflow/analysis.py").read_text(encoding="ascii")
     )
     if procedure is None:
-        return None, "procedure-unavailable-to-closed-lock-schema", unit_column
+        return None, procedure_reason, unit_column
     slug = case_id.removeprefix("case:")
     actor_id = f"scientist:dependence-free-author-{slug}"
     value: dict[str, Any] = {
@@ -1751,6 +1916,8 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
         generated_lock_names: set[str] = set()
         translation_by_case: dict[str, dict[str, Any]] = {}
         for case_id in sorted(roles):
+            if intake_rows[case_id].get("intake_admission_state") == "refused_but_case_retained":
+                continue
             slug = case_id.removeprefix("case:")
             case_root = root / "authoring" / "cases" / slug
             value, reason, declared_column = _description_authority_lock(
@@ -1813,6 +1980,19 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
         role = roles[case_id]
         slug = case_id.removeprefix("case:")
         incoming = authority_root / "incoming" / f"{slug}.json"
+        if intake_rows[case_id].get("intake_admission_state") == "refused_but_case_retained":
+            entries.append(
+                {
+                    "case_id": case_id,
+                    "authority_state": "excluded_intake_refusal",
+                    "frozen_lock_relative": None,
+                    "lock_digest": None,
+                    "approved_projection_digest": None,
+                    "snapshot_digest": None,
+                    "intake_admission_reason": intake_rows[case_id]["intake_admission_reason"],
+                }
+            )
+            continue
         if role in config.contract_free_roles or (
             config.dependence_authority_from_description and not incoming.is_file()
         ):
@@ -2065,7 +2245,7 @@ def _prepare_blind_case(
     preparation_root = review_root / "case-preparations" / slug
     runner_source = preparation_root / "runner-source"
     runner_source.mkdir(parents=True)
-    task_payload = (config.task_by_role[role].rstrip() + "\n").encode("utf-8")
+    task_payload = (_case_task_text(config, role).rstrip() + "\n").encode("utf-8")
     atomic_write_bytes(runner_source / "task.md", task_payload)
     for path_value, digest in sorted(dict(intake_row["file_digests"]).items()):
         payload = (case_root / path_value).read_bytes()
@@ -2309,6 +2489,8 @@ def _run_hostile_answer_key_review(
     if participant is None:
         return None
     root = project_root / config.pipeline_relative
+    retained_path = review_root / "hostile-answer-key" / "HOSTILE_REVIEW_LEDGER.json"
+    retained = _load(retained_path) if retained_path.exists() else None
     entries: list[dict[str, Any]] = []
     for case_id in case_order:
         slug = case_id.removeprefix("case:")
@@ -2317,7 +2499,7 @@ def _run_hostile_answer_key_review(
         for item in _visible_files(config):
             path = str(item["path"])
             if path == "task.md":
-                payload = (config.common_task.rstrip() + "\n").encode("utf-8")
+                payload = (_case_task_text(config, roles[case_id]).rstrip() + "\n").encode("utf-8")
             else:
                 payload = (case_root / path).read_bytes()
             visible.append(f"--- file {path} ---\n{payload.decode('utf-8')}")
@@ -2326,12 +2508,14 @@ def _run_hostile_answer_key_review(
             lock_path.read_text(encoding="utf-8") if lock_path.is_file() else "NO LOCK MINTED"
         )
         prompt = (
-            "You are a hostile, role-blind answer-key reviewer. Review exactly one case. "
+            "You are a hostile, role-blind answer-key reviewer. Review exactly one case for "
+            "repeated measurements from the same independent unit entered into a "
+            "row-independent statistical procedure as if independent. "
             "The check's standard is whether the issue or its absence is demonstrated in "
             "the selected report. Answer: (1) is the declared independent-unit column "
             "consistent with the frozen data, considering both procedure arms; (2) is the "
             "issue or its absence demonstrated in the selected report; (3) does any minted "
-            "minted lock's unit-key authorization follow from the declaration alone?\n\n"
+            "lock's unit-key authorization follow from the declaration alone?\n\n"
             + "\n\n".join(visible)
             + "\n\n--- minted authority lock ---\n"
             + lock_text
@@ -2340,6 +2524,13 @@ def _run_hostile_answer_key_review(
             "and third values are booleans; selected_report_demonstration is exactly issue, "
             "absence, or neither; reasons is a nonempty array of strings."
         )
+        if retained is not None:
+            retained_entries = {str(item["case_id"]): item for item in retained.get("entries", [])}
+            if set(retained_entries) != set(case_order) or retained_entries[case_id].get(
+                "prompt_digest"
+            ) != sha256_digest(prompt):
+                raise LeanPipelineError("The retained hostile answer-key prompts do not match.")
+            continue
         call = _call_cli(
             config,
             participant,
@@ -2395,7 +2586,7 @@ def _run_hostile_answer_key_review(
         if answer["selected_report_demonstration"] != expected_demonstration:
             burn_reasons.append("answer-key-refuted")
         if not answer["lock_follows_declaration"]:
-            burn_reasons.append("lock-not-derived-from-declaration-alone")
+            burn_reasons.append("unit-key-authorization-not-derived-from-declaration-alone")
         entry = {
             "case_id": case_id,
             "answer": answer,
@@ -2407,6 +2598,12 @@ def _run_hostile_answer_key_review(
         }
         entry["entry_digest"] = semantic_digest(entry)
         entries.append(entry)
+    if retained is not None:
+        supplied = retained.pop("ledger_digest", None)
+        if supplied != semantic_digest(retained):
+            raise LeanPipelineError("The retained hostile answer-key ledger does not replay.")
+        retained["ledger_digest"] = supplied
+        return retained
     ledger: dict[str, Any] = {
         "artifact_kind": "dependence_free_hostile_answer_key_ledger",
         "ledger_version": "1.0.0",
@@ -2439,9 +2636,10 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         # captures (the one-shot evidence) and rebuild the deterministic
         # remainder from the admitted cases.
         for child in review_root.iterdir():
-            keep = child.name == "process-captures" or child.name.startswith(
-                ("packets-", "prompt-")
-            )
+            keep = child.name in {
+                "process-captures",
+                "hostile-answer-key",
+            } or child.name.startswith(("packets-", "prompt-"))
             if not keep:
                 shutil.rmtree(child) if child.is_dir() else child.unlink()
     calibrations = ensure_calibrations(project_root, config)
@@ -2461,6 +2659,7 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             project_root, config, review_root, case_id, roles[case_id], intake_rows[case_id]
         )
         for case_id in sorted(roles)
+        if intake_rows[case_id].get("intake_admission_state") != "refused_but_case_retained"
     ]
     case_order = [str(item["case_id"]) for item in preparations]
     workspace_payloads: dict[str, dict[str, bytes]] = {}
@@ -2516,11 +2715,16 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     burned_case_ids = set((hostile or {}).get("burned_case_ids", []))
     blind_case_order = [case_id for case_id in case_order if case_id not in burned_case_ids]
 
-    review_call_binding = semantic_digest(
-        {
-            "detector_tuple_digest": protocol["detector_tuple_digest"],
-            "review_protocol_digest": review_protocol["protocol_digest"],
-        }
+    review_call_binding = (
+        semantic_digest(
+            {
+                "detector_tuple_digest": protocol["detector_tuple_digest"],
+                "role_expected_verdict_map": review_protocol["role_expected_verdict_map"],
+                "role_label_status_map": review_protocol["role_label_status_map"],
+            }
+        )
+        if config.freeze_role_key_in_review_protocol
+        else str(protocol["detector_tuple_digest"])
     )
     if config.stateless_review_per_case:
         primary_calls = [
@@ -2771,6 +2975,14 @@ def step_labels(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     _auth_entry, protocol = _manifest_require(project_root, config, "authoring")
     _review_entry, review_ledger = _manifest_require(project_root, config, "review")
     roles = {str(k): str(v) for k, v in protocol["case_role_assignments"].items()}
+    intake_refused: dict[str, dict[str, Any]] = {}
+    if config.development_loop:
+        _intake_entry, intake_ledger = _manifest_require(project_root, config, "intake")
+        intake_refused = {
+            str(row["case_id"]): row
+            for row in intake_ledger["entries"]
+            if row.get("intake_admission_state") == "refused_but_case_retained"
+        }
     if review_ledger["unresolved_case_ids"]:
         raise LeanPipelineError("Labels cannot freeze while unresolved cases are retained.")
     resolutions = {
@@ -2795,6 +3007,27 @@ def step_labels(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         ),
     }
     label_rows = []
+    for case_id, intake_row in sorted(intake_refused.items()):
+        role = roles[case_id]
+        label_rows.append(
+            {
+                "case_id": case_id,
+                "case_role": role,
+                "label_status": config.label_status(role),
+                "issue_class": (
+                    config.canonical_issue_class
+                    if config.label_status(role) == "positive_demonstrated"
+                    else None
+                ),
+                "measurement_state": "refused_at_intake",
+                "intake_admission_reason": intake_row["intake_admission_reason"],
+                "review_basis": "intake_refusal_retained_without_review",
+                "review_id": None,
+                "review_digest": None,
+                "reviewer_model_family": None,
+                "agent_only_disclosure": "Refused at intake and excluded from measurement.",
+            }
+        )
     for case_id, review_role in resolving_role.items():
         if review_role is not None:
             continue
@@ -2856,7 +3089,7 @@ def step_labels(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 ),
             }
         )
-    if len(label_rows) != len(resolving_role):
+    if len(label_rows) != len(resolving_role) + len(intake_refused):
         raise LeanPipelineError("The label freeze did not cover every resolved case.")
     ledger: dict[str, Any] = {
         "artifact_kind": "lean_pipeline_scientific_label_ledger",
@@ -2887,6 +3120,51 @@ def step_labels(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
 
 # ---------------------------------------------------------------------------
 # Step 5: detector run with deterministic replay, then pilot metrics.
+
+
+def _write_false_accusation_halt(
+    output_root: Path, config: EnvelopeConfig, row: Mapping[str, Any]
+) -> None:
+    halt = {
+        "artifact_kind": "dependence_growth_loop_false_accusation_halt",
+        "halt_version": "1.0.0",
+        "envelope_id": config.envelope_id,
+        "case_id": row["case_id"],
+        "frozen_label_status": row["frozen_label_status"],
+        "case_result_digest": row["case_result_digest"],
+        "rule": "any_accusation_on_frozen_negative_halts_without_reclassification",
+        "reclassification_permitted": False,
+        "halted_at": _now(),
+    }
+    _stamp_record_purpose(halt, config)
+    halt["halt_digest"] = semantic_digest(halt)
+    write_normalized_json(output_root / "FALSE_ACCUSATION_HALT.json", halt)
+
+
+def _development_nonpositive_outcome(
+    *, expected_positive: bool, shadow_payload: Mapping[str, Any] | None, has_authority: bool
+) -> str:
+    state = str((shadow_payload or {}).get("state", ""))
+    observations = (shadow_payload or {}).get("observations", [])
+    covered = any(
+        isinstance(item, dict)
+        and (item.get("observed_operand") or {}).get("value")
+        == "one_analyzed_row_per_authorized_independent_unit"
+        for item in observations
+    )
+    if covered:
+        subtype = "covered_negative"
+    elif not has_authority:
+        subtype = "no_authority"
+    elif state == "ambiguous":
+        subtype = "ambiguous"
+    else:
+        subtype = "unsupported"
+    return (
+        f"missed_{subtype}"
+        if expected_positive
+        else ("true_negative" if subtype == "covered_negative" else f"abstained_{subtype}")
+    )
 
 
 def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
@@ -2949,7 +3227,43 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             if supplied != semantic_digest(retained):
                 raise LeanPipelineError("A retained per-case detector result does not replay.")
             retained["case_result_digest"] = supplied
+            if retained.get("scientific_label_ledger_digest") != label_ledger[
+                "ledger_digest"
+            ] or retained.get("authority_ledger_digest") != (authority_ledger or {}).get(
+                "ledger_digest"
+            ):
+                raise LeanPipelineError("A retained per-case detector result has stale bindings.")
+            if (
+                retained.get("comparison_outcome") == "false_accusation"
+                and config.halt_on_false_accusation
+            ):
+                _write_false_accusation_halt(output_root, config, retained)
+                raise LeanPipelineError(
+                    f"development growth loop halted on false accusation for {case_id}"
+                )
             rows.append(retained)
+            continue
+        if labels_by_case[case_id].get("measurement_state") == "refused_at_intake":
+            refused_row = {
+                "case_id": case_id,
+                "case_role": role,
+                "frozen_label_status": str(labels_by_case[case_id]["label_status"]),
+                "measurement_state": "refused_at_intake",
+                "intake_admission_reason": labels_by_case[case_id]["intake_admission_reason"],
+                "comparison_outcome": "refused_at_intake",
+                "finding_candidate_count": 0,
+                "detector_positive": False,
+                "production_findings": 0,
+                "project_code_executions": 0,
+                "replay_equal": False,
+                "shadow_payload": None,
+                "scientific_label_ledger_digest": label_ledger["ledger_digest"],
+                "authority_ledger_digest": (authority_ledger or {}).get("ledger_digest"),
+            }
+            _stamp_record_purpose(refused_row, config)
+            refused_row["case_result_digest"] = semantic_digest(refused_row)
+            write_normalized_json_once(retained_path, refused_row)
+            rows.append(refused_row)
             continue
         if str(labels_by_case[case_id].get("measurement_state", "eligible")).startswith("burned"):
             burned_row = {
@@ -2966,6 +3280,8 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 "project_code_executions": 0,
                 "replay_equal": False,
                 "shadow_payload": None,
+                "scientific_label_ledger_digest": label_ledger["ledger_digest"],
+                "authority_ledger_digest": (authority_ledger or {}).get("ledger_digest"),
             }
             _stamp_record_purpose(burned_row, config)
             burned_row["case_result_digest"] = semantic_digest(burned_row)
@@ -2976,7 +3292,7 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         case_root = output_root / "runs" / slug
         repository = case_root / "project"
         shutil.copytree(case_source, repository)
-        task_payload = (config.task_by_role[role].rstrip() + "\n").encode("utf-8")
+        task_payload = (_case_task_text(config, role).rstrip() + "\n").encode("utf-8")
         atomic_write_bytes(repository / "task.md", task_payload)
         # A contract-free role has no human-authorized method choice to freeze:
         # its expected detector behavior is abstention, so the audit runs
@@ -3060,7 +3376,7 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 dependence_authorization_case_id=(case_id if dependence_lock is not None else None),
             )
         except (Exception, RecursionError) as error:
-            if config.record_purpose != "development_growth_loop":
+            if not config.development_loop:
                 raise
             failure_row = {
                 "case_id": case_id,
@@ -3071,9 +3387,9 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 "finding_candidate_count": 0,
                 "detector_positive": False,
                 "comparison_outcome": (
-                    "missed_error"
+                    "missed_detector_exception"
                     if labels_by_case[case_id]["label_status"] == "positive_demonstrated"
-                    else "true_negative"
+                    else "detector_exception"
                 ),
                 "production_findings": 0,
                 "project_code_executions": 0,
@@ -3084,6 +3400,8 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                     "coverage_class": "detector-case-exception",
                     "reason_codes": ["detector-case-exception"],
                 },
+                "scientific_label_ledger_digest": label_ledger["ledger_digest"],
+                "authority_ledger_digest": (authority_ledger or {}).get("ledger_digest"),
             }
             _stamp_record_purpose(failure_row, config)
             failure_row["case_result_digest"] = semantic_digest(failure_row)
@@ -3110,15 +3428,6 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         label_status = str(labels_by_case[case_id]["label_status"])
         detector_positive = bool(fired)
         expected_positive = label_status == "positive_demonstrated"
-        outcome = (
-            "true_positive"
-            if detector_positive and expected_positive
-            else "false_accusation"
-            if detector_positive and not expected_positive
-            else "missed_error"
-            if not detector_positive and expected_positive
-            else "true_negative"
-        )
         audit_lock = _load(case_root / "audit" / "semantic.lock.json")
         shadow_modules = [
             item
@@ -3127,6 +3436,21 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             .get("modules", [])
             if item.get("check_id") == config.check_id
         ]
+        shadow_payload = shadow_modules[0] if len(shadow_modules) == 1 else None
+        if detector_positive:
+            outcome = (
+                "caught"
+                if expected_positive and config.development_loop
+                else ("true_positive" if expected_positive else "false_accusation")
+            )
+        elif config.development_loop:
+            outcome = _development_nonpositive_outcome(
+                expected_positive=expected_positive,
+                shadow_payload=shadow_payload,
+                has_authority=dependence_lock is not None,
+            )
+        else:
+            outcome = "missed_error" if expected_positive else "true_negative"
         row = {
             "case_id": case_id,
             "case_role": role,
@@ -3142,48 +3466,40 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 (case_root / "audit" / "semantic.lock.json").read_bytes()
             ),
             "replay_equal": True,
-            "shadow_payload": shadow_modules[0] if len(shadow_modules) == 1 else None,
+            "shadow_payload": shadow_payload,
+            "scientific_label_ledger_digest": label_ledger["ledger_digest"],
+            "authority_ledger_digest": (authority_ledger or {}).get("ledger_digest"),
         }
         _stamp_record_purpose(row, config)
         row["case_result_digest"] = semantic_digest(row)
         write_normalized_json_once(retained_path, row)
         rows.append(row)
         if outcome == "false_accusation" and config.halt_on_false_accusation:
-            halt = {
-                "artifact_kind": "dependence_growth_loop_false_accusation_halt",
-                "halt_version": "1.0.0",
-                "envelope_id": config.envelope_id,
-                "case_id": case_id,
-                "frozen_label_status": label_status,
-                "case_result_digest": row["case_result_digest"],
-                "rule": "any_accusation_on_frozen_negative_halts_without_reclassification",
-                "reclassification_permitted": False,
-                "halted_at": _now(),
-            }
-            _stamp_record_purpose(halt, config)
-            halt["halt_digest"] = semantic_digest(halt)
-            write_normalized_json_once(output_root / "FALSE_ACCUSATION_HALT.json", halt)
+            _write_false_accusation_halt(output_root, config, row)
             raise LeanPipelineError(
                 f"development growth loop halted on false accusation for {case_id}"
             )
     outcomes = [str(row["comparison_outcome"]) for row in rows]
     metrics: dict[str, Any] = {
         "opportunity_count": len(rows),
-        "true_positive_count": outcomes.count("true_positive"),
+        "true_positive_count": outcomes.count("true_positive") + outcomes.count("caught"),
         "true_negative_count": outcomes.count("true_negative"),
         "false_accusation_count": outcomes.count("false_accusation"),
         "missed_error_count": outcomes.count("missed_error"),
     }
     if config.publish_count_metrics_only:
         metrics["rates_published"] = False
-        metrics["per_miss_wall_classifications"] = {
+        metrics["outcome_counts"] = {
+            outcome: outcomes.count(outcome) for outcome in sorted(set(outcomes))
+        }
+        metrics["per_miss_module_states"] = {
             str(row["case_id"]): (
                 (row.get("shadow_payload") or {}).get("state")
                 or row.get("detector_failure_class")
                 or "no-positive-detector-output"
             )
             for row in rows
-            if row["comparison_outcome"] == "missed_error"
+            if str(row["comparison_outcome"]).startswith("missed_")
         }
         if config.separately_reported_role is not None:
             metrics["separately_reported_role_outcome"] = next(

@@ -913,17 +913,46 @@ _DEPENDENCE_FREE_COMMON_TASK = """Study one narrowly defined error class: repeat
 Build a real runnable Python analysis that reads exactly `data/input.csv` and writes `results/report.md`, stating the analysis and its result. Also provide `data-description.md`, with exactly one closed-syntax line `One row is: DESCRIPTION` and exactly one line `Independent unit column: COLUMN`, replacing DESCRIPTION with plain language and COLUMN with the actual single header name.
 
 Do not mention sc-referee or any case-role label in any authored artifact. The Python module must execute cleanly and deterministically in the pinned SciPy runtime. No workflow template, reader idiom, procedure, literals, or source structure is prescribed."""
+_DEPENDENCE_FREE_ALLOWED_IMPORT_ROOTS = frozenset(
+    {
+        "collections",
+        "csv",
+        "dataclasses",
+        "datetime",
+        "functools",
+        "itertools",
+        "json",
+        "math",
+        "numpy",
+        "operator",
+        "os",
+        "pathlib",
+        "random",
+        "scipy",
+        "statistics",
+        "statsmodels",
+        "string",
+        "sys",
+        "textwrap",
+        "typing",
+        "warnings",
+    }
+)
 _DEPENDENCE_FREE_CASE_REQUIREMENTS = """Produce exactly four authored files.
 
 `data/input.csv`: one ASCII CSV with a unique nonempty header and nonempty, non-ragged rows. Choose the row count and all names and values yourself.
 
 `workflow/analysis.py`: runnable deterministic Python that reads exactly `data/input.csv`, performs the analysis, and writes exactly `results/report.md`. Use only allowed standard-library imports plus SciPy, NumPy, or statsmodels. Do not read any other file and do not use randomness, the clock, network access, command-line arguments, or dynamic execution.
 
-`results/report.md`: an ASCII report equal byte-for-byte to the script's output. It must contain exactly one line beginning `[selected-result]` and state the analysis and result.
+`results/report.md`: a UTF-8 report equal byte-for-byte to the script's output. It must contain exactly one line beginning `[selected-result]` and state the analysis and result.
 
-`data-description.md`: an ASCII plain-language description with exactly one line `One row is: DESCRIPTION` and exactly one line `Independent unit column: COLUMN`, replacing DESCRIPTION with what a row represents and COLUMN with the actual single CSV header name.
+`data-description.md`: a UTF-8 plain-language description with exactly one line `One row is: DESCRIPTION` and exactly one line `Independent unit column: COLUMN`, replacing DESCRIPTION with what a row represents and COLUMN with the actual single CSV header name.
 
-Return the fourth file in the `data_description` response field. Do not include a frozen workflow template, prescribed data literals, or a prescribed statistical procedure."""
+The CSV and workflow must be ASCII. The report and data description may be UTF-8 prose. The only allowed import roots are exactly: collections, csv, dataclasses, datetime, functools, itertools, json, math, numpy, operator, os, pathlib, random, scipy, statistics, statsmodels, string, sys, textwrap, typing, warnings.
+
+Return the description in the `data_description` response field. Do not include a frozen workflow template, prescribed data literals, or a prescribed statistical procedure."""
+_DEPENDENCE_FREE_REVIEWER_TASK = "Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data."
+_DEPENDENCE_FREE_REVIEW_INSTRUCTIONS = """Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: {issue_class}. Use only the supplied files and return the required structured review."""
 _DEPENDENCE_FREE_ROLE_CONSTRAINTS = {
     "rq1": [
         "Plant the named error: the analyzed rows must include repeated measurements from an independent unit and the selected row-independent procedure must treat those rows as independent.",
@@ -1009,14 +1038,14 @@ def default_dependence_free_config() -> EnvelopeConfig:
             model_name="Claude Opus 5",
             model_alias="claude-opus-5",
         ),
-        review_instructions=_DEPENDENCE_REVIEW_INSTRUCTIONS,
+        review_instructions=_DEPENDENCE_FREE_REVIEW_INSTRUCTIONS,
         cli_binary=CLAUDE_PINNED,
         cli_binary_version=CLAUDE_PINNED_VERSION,
         calibration_suite=CALIBRATION_SUITE,
         author_case_requirements=_DEPENDENCE_FREE_CASE_REQUIREMENTS,
         expected_verdict_by_role=dict(_DEPENDENCE_FREE_EXPECTED_VERDICTS),
         label_status_by_role=dict(_DEPENDENCE_FREE_LABEL_STATUSES),
-        allowed_import_roots=DEFAULT_ALLOWED_IMPORT_ROOTS | {"numpy", "scipy", "statsmodels"},
+        allowed_import_roots=_DEPENDENCE_FREE_ALLOWED_IMPORT_ROOTS,
         sandbox_python=DEPENDENCE_SANDBOX_PYTHON,
         required_sandbox_distributions={"numpy": "2.2.6", "scipy": "1.14.0"},
         controller_material_files={"requirements.txt": b"numpy==2.2.6\nscipy==1.14.0\n"},
@@ -1040,6 +1069,10 @@ def default_dependence_free_config() -> EnvelopeConfig:
         publish_count_metrics_only=True,
         authored_role_ratification=True,
         separately_reported_role="rq6",
+        development_loop=True,
+        reviewer_task_text=_DEPENDENCE_FREE_REVIEWER_TASK,
+        utf8_authored_paths=frozenset({"data-description.md", "results/report.md"}),
+        whole_token_role_markers=True,
     )
 
 
