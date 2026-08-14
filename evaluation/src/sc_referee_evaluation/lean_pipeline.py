@@ -2509,6 +2509,13 @@ def _run_hostile_answer_key_review(
     root = project_root / config.pipeline_relative
     retained_path = review_root / "hostile-answer-key" / "HOSTILE_REVIEW_LEDGER.json"
     retained = _load(retained_path) if retained_path.exists() else None
+    authority = _load(root / "authority/AUTHORITY_LEDGER.json")
+    all_authority_by_case = {str(entry["case_id"]): entry for entry in authority.get("entries", [])}
+    if len(all_authority_by_case) != len(authority.get("entries", [])) or any(
+        case_id not in all_authority_by_case for case_id in case_order
+    ):
+        raise LeanPipelineError("The hostile review authority states do not cover its cases.")
+    authority_by_case = {case_id: all_authority_by_case[case_id] for case_id in case_order}
     entries: list[dict[str, Any]] = []
     for case_id in case_order:
         slug = case_id.removeprefix("case:")
@@ -2522,8 +2529,22 @@ def _run_hostile_answer_key_review(
                 payload = (case_root / path).read_bytes()
             visible.append(f"--- file {path} ---\n{payload.decode('utf-8')}")
         lock_path = root / "authority" / "locks" / f"{slug}.json"
-        lock_text = (
-            lock_path.read_text(encoding="utf-8") if lock_path.is_file() else "NO LOCK MINTED"
+        authority_state = authority_by_case[case_id].get("authority_state")
+        if authority_state == "authorized":
+            if not lock_path.is_file():
+                raise LeanPipelineError("An authorized hostile-review case lacks its lock.")
+            has_lock = True
+        elif authority_state == "unresolved_or_withheld":
+            if lock_path.exists() or lock_path.is_symlink():
+                raise LeanPipelineError("A lock-less hostile-review case unexpectedly has a lock.")
+            has_lock = False
+        else:
+            raise LeanPipelineError("The hostile review received an ineligible authority state.")
+        lock_text = lock_path.read_text(encoding="utf-8") if has_lock else "NO LOCK MINTED"
+        lock_question = (
+            "(3) does the minted lock's unit-key authorization follow from the declaration alone?"
+            if has_lock
+            else "(3) no lock was minted; answer exactly not-applicable-no-lock."
         )
         prompt = (
             "You are a hostile, role-blind answer-key reviewer. Review exactly one case for "
@@ -2532,15 +2553,18 @@ def _run_hostile_answer_key_review(
             "The check's standard is whether the issue or its absence is demonstrated in "
             "the selected report. Answer: (1) is the declared independent-unit column "
             "consistent with the frozen data, considering both procedure arms; (2) is the "
-            "issue or its absence demonstrated in the selected report; (3) does any minted "
-            "lock's unit-key authorization follow from the declaration alone?\n\n"
+            "issue or its absence demonstrated in the selected report; "
+            + lock_question
+            + "\n\n"
             + "\n\n".join(visible)
             + "\n\n--- minted authority lock ---\n"
             + lock_text
             + "\n\nReturn only JSON with exact keys declaration_consistent, "
             "selected_report_demonstration, lock_follows_declaration, and reasons. The first "
-            "and third values are booleans; selected_report_demonstration is exactly issue, "
-            "absence, or neither; reasons is a nonempty array of strings."
+            "value is a boolean. lock_follows_declaration is a boolean when a lock is shown "
+            "and exactly not-applicable-no-lock when no lock was minted. "
+            "selected_report_demonstration is exactly issue, absence, or neither; reasons "
+            "is a nonempty array of strings."
         )
         if retained is not None:
             retained_entries = {str(item["case_id"]): item for item in retained.get("entries", [])}
@@ -2578,13 +2602,9 @@ def _run_hostile_answer_key_review(
                 "lock_follows_declaration",
                 "reasons",
             }
-            or any(
-                not isinstance(answer[name], bool)
-                for name in (
-                    "declaration_consistent",
-                    "lock_follows_declaration",
-                )
-            )
+            or not isinstance(answer["declaration_consistent"], bool)
+            or (has_lock and not isinstance(answer["lock_follows_declaration"], bool))
+            or (not has_lock and answer["lock_follows_declaration"] != "not-applicable-no-lock")
             or answer["selected_report_demonstration"] not in {"issue", "absence", "neither"}
             or not isinstance(answer["reasons"], list)
             or not answer["reasons"]
@@ -2603,7 +2623,7 @@ def _run_hostile_answer_key_review(
             burn_reasons.append("unit-declaration-inconsistent")
         if answer["selected_report_demonstration"] != expected_demonstration:
             burn_reasons.append("answer-key-refuted")
-        if not answer["lock_follows_declaration"]:
+        if has_lock and answer["lock_follows_declaration"] is False:
             burn_reasons.append("unit-key-authorization-not-derived-from-declaration-alone")
         entry = {
             "case_id": case_id,

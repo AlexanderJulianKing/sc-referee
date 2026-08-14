@@ -12,6 +12,7 @@ import pytest
 from sc_referee_evaluation import dependence_promotion, lean_pipeline
 from sc_referee_evaluation.lean_pipeline import (
     LeanPipelineError,
+    step_authoring,
     step_authority,
     step_detector,
     step_intake,
@@ -344,6 +345,49 @@ def test_dependence_free_config_conforms_to_closed_growth_envelope() -> None:
     assert default_founder_orientation_f_config().frozen_workflow_template is None
 
 
+def test_task_binding_disclosure_is_digest_bound_only_for_development_loop(
+    tmp_path: Path, project_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    isolated = _isolated_root(tmp_path, project_root)
+    monkeypatch.setattr(lean_pipeline, "ensure_calibrations", lambda _root, _config: {})
+
+    def retained_failure(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        return {
+            "raw_response": "",
+            "transport_error": "test-stop-after-protocol",
+            "process_record": {"capture_digest": "sha256:" + "1" * 64},
+            "started_at": "2026-08-14T00:00:00Z",
+            "completed_at": "2026-08-14T00:00:01Z",
+        }
+
+    monkeypatch.setattr(lean_pipeline, "_call_cli", retained_failure)
+    configurations = (
+        default_dependence_free_config(),
+        replace(
+            default_dependence_config(),
+            pipeline_relative=Path("evaluation/test-only/qualification-disclosure-control"),
+        ),
+    )
+    protocols = []
+    for config in configurations:
+        with pytest.raises(LeanPipelineError, match="Author calls failed and were retained"):
+            step_authoring(isolated, config)
+        protocol = json.loads(
+            (isolated / config.pipeline_relative / "authoring/AUTHORING_PROTOCOL.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        supplied = protocol.pop("protocol_digest")
+        assert supplied == semantic_digest(protocol)
+        protocols.append(protocol)
+    assert protocols[0]["task_binding_disclosure"] == (
+        "The governing task.md is a neutral reviewer-directed sentence rather than a "
+        "scientific target, unlike qualification envelopes; the method contract binds "
+        "the candidate id explicitly."
+    )
+    assert "task_binding_disclosure" not in protocols[1]
+
+
 def test_installed_dependence_grant_refuses_recognition_grammar_drift() -> None:
     binding_id = "method-conflict-binding:authorized-independent-unit-entry-into-row-independent-procedure-v1"
     pin = GRANT_PINS[binding_id]
@@ -662,6 +706,80 @@ def test_covered_negative_requires_authority_in_development_scoring() -> None:
         )
         == "true_negative"
     )
+
+
+@pytest.mark.skipif(not _RUNTIME_AVAILABLE, reason="dedicated SciPy 1.14.0 runtime is absent")
+def test_hostile_answer_key_lock_question_is_tri_state(
+    tmp_path: Path, project_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    isolated = _isolated_root(tmp_path, project_root)
+    roles = ("rq1", "fx1", "fx2")
+    config = replace(
+        _fixture_config(roles),
+        pipeline_relative=Path("evaluation/development-fixtures/hostile-tristate"),
+        hostile_answer_key_reviewer=default_dependence_free_config().hostile_answer_key_reviewer,
+    )
+    _freeze_fixture_inputs(isolated, config)
+    step_intake(isolated, config)
+    step_authority(isolated, config)
+    prompts: list[str] = []
+
+    def hostile_transport(
+        _selected: Any,
+        _participant: Any,
+        prompt: str,
+        _session: str,
+        _capture: Path,
+    ) -> dict[str, Any]:
+        prompts.append(prompt)
+        if "NO LOCK MINTED" not in prompt:
+            answer = {
+                "declaration_consistent": True,
+                "selected_report_demonstration": "issue",
+                "lock_follows_declaration": False,
+                "reasons": ["locked fixture deliberately fails question three"],
+            }
+        elif "ks_2samp" in prompt:
+            answer = {
+                "declaration_consistent": True,
+                "selected_report_demonstration": "absence",
+                "lock_follows_declaration": "not-applicable-no-lock",
+                "reasons": ["lock-less fixture survives questions one and two"],
+            }
+        else:
+            answer = {
+                "declaration_consistent": False,
+                "selected_report_demonstration": "absence",
+                "lock_follows_declaration": "not-applicable-no-lock",
+                "reasons": ["lock-less fixture fails question one"],
+            }
+        return {
+            "raw_response": canonical_json(answer),
+            "transport_error": None,
+            "process_record": {"capture_digest": semantic_digest(answer)},
+            "completed_at": "2026-08-14T00:00:01Z",
+        }
+
+    monkeypatch.setattr(lean_pipeline, "_call_cli", hostile_transport)
+    case_order = [_CASE_BY_ROLE[role] for role in roles]
+    ledger = lean_pipeline._run_hostile_answer_key_review(
+        isolated,
+        config,
+        isolated / config.pipeline_relative / "review",
+        case_order,
+        {_CASE_BY_ROLE[role]: role for role in roles},
+    )
+    assert ledger is not None
+    entries = {entry["case_id"]: entry for entry in ledger["entries"]}
+    assert entries[_CASE_BY_ROLE["rq1"]]["burn_reasons"] == [
+        "unit-key-authorization-not-derived-from-declaration-alone"
+    ]
+    assert entries[_CASE_BY_ROLE["fx1"]]["burned_before_blind_review"] is False
+    assert entries[_CASE_BY_ROLE["fx1"]]["answer"]["lock_follows_declaration"] == (
+        "not-applicable-no-lock"
+    )
+    assert entries[_CASE_BY_ROLE["fx2"]]["burn_reasons"] == ["unit-declaration-inconsistent"]
+    assert sum("answer exactly not-applicable-no-lock" in prompt for prompt in prompts) == 2
 
 
 @pytest.mark.skipif(not _RUNTIME_AVAILABLE, reason="dedicated SciPy 1.14.0 runtime is absent")
