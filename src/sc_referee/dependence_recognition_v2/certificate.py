@@ -1,18 +1,26 @@
-"""Small trusted kernel for dependence growth-1 group certificates."""
+"""Small trusted kernel for dependence growth group and symbolic-count certificates."""
 
 from __future__ import annotations
 
 import ast
+import posixpath
 from collections import Counter
 from dataclasses import asdict
+from typing import Literal, cast
 
 from sc_referee.core.ids import semantic_digest, sha256_digest
 from sc_referee.dependence_recognition.ir import HumanMethodAuthorization
 from sc_referee.dependence_recognition_v2.ir import (
     DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS,
     MAX_V2_AST_NODES,
+    CountDependenceCertificate,
+    CountGroupDomainObligation,
+    CountOperandObligation,
+    CountPredicateAtom,
+    CountProcedureFact,
     DependenceGrowthCertificate,
     GroupValueSequenceFact,
+    VerifiedCountDependenceCertificate,
     VerifiedDependenceGrowthCertificate,
 )
 
@@ -20,6 +28,8 @@ _PROCEDURE_ARITY = {
     "scipy.stats.ttest_ind": 2,
     "scipy.stats.mannwhitneyu": 2,
 }
+_COUNT_PROCEDURES = frozenset({"scipy.stats.binomtest", "scipy.stats.fisher_exact"})
+_ALL_PROCEDURES = frozenset((*_PROCEDURE_ARITY, *_COUNT_PROCEDURES))
 
 
 def verify_dependence_growth_certificate(
@@ -180,6 +190,959 @@ def verify_dependence_growth_certificate(
     )
 
 
+def verify_count_dependence_certificate(
+    certificate: CountDependenceCertificate,
+    *,
+    trusted_count_facts: tuple[CountProcedureFact, ...],
+    trusted_authorizations: tuple[HumanMethodAuthorization, ...],
+    source_bytes: bytes,
+    _failure_reasons: list[str] | None = None,
+) -> VerifiedCountDependenceCertificate | None:
+    """Replay symbolic count obligations and recompute every row set in-kernel."""
+
+    def refuse(obligation: str) -> VerifiedCountDependenceCertificate | None:
+        if obligation not in DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS:
+            raise AssertionError(f"unknown kernel refusal obligation: {obligation}")
+        if _failure_reasons is not None:
+            _failure_reasons.append(obligation)
+        return None
+
+    if (
+        len(trusted_count_facts) != 1
+        or len(trusted_authorizations) != 1
+        or sha256_digest(source_bytes) != certificate.source_digest
+        or certificate.source_extent != (0, len(source_bytes))
+        or certificate.resolved_callable
+        not in {"scipy.stats.binomtest", "scipy.stats.fisher_exact"}
+    ):
+        return refuse("envelope-binding")
+    fact = trusted_count_facts[0]
+    authority = trusted_authorizations[0]
+    obligation = certificate.obligation
+    if (
+        authority.record_type != "human_method_authorization"
+        or authority.authority_state != "authorized"
+        or authority.record_id != certificate.authority_record_id
+        or authority.analysis_target_ref != certificate.analysis_target_ref
+        or authority.procedure_ref != certificate.procedure_ref
+        or authority.independent_unit_definition_id != certificate.independent_unit_definition_id
+        or authority.authorized_key_columns != (obligation.authorized_unit_column,)
+        or authority.input_path != obligation.path
+        or authority.input_content_digest != obligation.content_digest
+    ):
+        return refuse("authority-binding")
+    if (
+        fact.evidence_id != f"dependence-growth-count-proof:{semantic_digest(asdict(obligation))}"
+        or fact.path != obligation.path
+        or fact.content_digest != obligation.content_digest
+        or fact.line_model != obligation.line_model
+        or fact.reader_form != obligation.reader_form
+        or fact.encoding != obligation.encoding
+        or fact.authorized_unit_column != obligation.authorized_unit_column
+        or fact.row_count <= 0
+        or fact.row_count != len(fact.rows)
+        or len(fact.header) != len(set(fact.header))
+        or any(not item for item in fact.header)
+        or fact.authorized_unit_column not in fact.header
+        or (fact.encoding == "ascii" and not fact.ascii_bytes_proven)
+    ):
+        return refuse("count-fact-closure")
+    if tuple(row.row_index for row in fact.rows) != tuple(range(1, fact.row_count + 1)):
+        return refuse("count-fact-closure")
+    for row in fact.rows:
+        values = dict(row.values)
+        if (
+            tuple(values) != fact.header
+            or len(values) != len(row.values)
+            or values[fact.authorized_unit_column] == ""
+            or row.observation_id
+            != "observation:"
+            + semantic_digest(
+                {
+                    "path": fact.path,
+                    "digest": fact.content_digest,
+                    "row": row.row_index,
+                }
+            )
+            or row.authorized_unit_id
+            != "unit-key:"
+            + semantic_digest(
+                {
+                    "column": fact.authorized_unit_column,
+                    "value": values[fact.authorized_unit_column],
+                }
+            )
+        ):
+            return refuse("count-fact-closure")
+    for group in obligation.group_domains:
+        if (
+            group.group_key_column not in fact.header
+            or not group.predeclared_bucket_keys
+            or len(group.predeclared_bucket_keys) != len(set(group.predeclared_bucket_keys))
+            or any(
+                dict(row.values)[group.group_key_column] not in group.predeclared_bucket_keys
+                for row in fact.rows
+            )
+        ):
+            return refuse("count-set-equations")
+    expected_universe = _kernel_matching_rows(fact, obligation.universe_atoms)
+    if tuple(fact.universe_row_indices) != expected_universe:
+        return refuse("count-set-equations")
+    if len(fact.operands) != len(obligation.operands):
+        return refuse("count-fact-closure")
+    by_identity = {(item.operand_id, item.position): item for item in fact.operands}
+    if len(by_identity) != len(fact.operands):
+        return refuse("count-fact-closure")
+    for operand in obligation.operands:
+        proof = by_identity.get((operand.operand_id, operand.position))
+        if proof is None:
+            return refuse("count-fact-closure")
+        expected_rows = _kernel_matching_rows(
+            fact, (*operand.domain_atoms, *operand.predicate_atoms)
+        )
+        expected_domain_rows = _kernel_matching_rows(fact, operand.domain_atoms)
+        rows_by_index = {row.row_index: row for row in fact.rows}
+        if (
+            proof.row_indices != expected_rows
+            or proof.cardinality != len(expected_rows)
+            or proof.observation_ids
+            != tuple(rows_by_index[index].observation_id for index in expected_rows)
+            or proof.authorized_unit_ids
+            != tuple(rows_by_index[index].authorized_unit_id for index in expected_rows)
+            or not set(expected_rows) <= set(expected_domain_rows)
+        ):
+            return refuse("count-set-equations")
+        if not proof.row_indices:
+            return refuse("count-set-equations")
+    try:
+        tree = ast.parse(source_bytes.decode("utf-8", errors="strict"))
+    except (SyntaxError, UnicodeDecodeError, ValueError, RecursionError):
+        return refuse("source-parse")
+    if sum(1 for _ in ast.walk(tree)) > MAX_V2_AST_NODES:
+        return refuse("source-size")
+    if not _kernel_replay_count_claims(tree, certificate):
+        return refuse("count-source-semantic-replay")
+
+    proofs = {item.position: item for item in fact.operands}
+    repeated: set[str] = set()
+    if certificate.resolved_callable == "scipy.stats.binomtest":
+        if set(proofs) != {0, 1} or not set(proofs[0].row_indices) <= set(proofs[1].row_indices):
+            return refuse("count-subset-partition")
+        repeated.update(
+            unit for unit, count in Counter(proofs[1].authorized_unit_ids).items() if count > 1
+        )
+    else:
+        if set(proofs) != {0, 1, 2, 3}:
+            return refuse("count-subset-partition")
+        cell_sets = [set(proofs[index].row_indices) for index in range(4)]
+        if any(
+            left & right for index, left in enumerate(cell_sets) for right in cell_sets[index + 1 :]
+        ) or set().union(*cell_sets) != set(fact.universe_row_indices):
+            return refuse("count-subset-partition")
+        unit_cells: dict[str, set[int]] = {}
+        for proof in fact.operands:
+            for unit in proof.authorized_unit_ids:
+                unit_cells.setdefault(unit, set()).add(proof.position)
+        if any(len(cells) > 1 for cells in unit_cells.values()):
+            return refuse("count-unit-nonspanning")
+        repeated.update(
+            unit
+            for proof in fact.operands
+            for unit, count in Counter(proof.authorized_unit_ids).items()
+            if count > 1
+        )
+    conclusion = "repeated_units" if repeated else "one_observation_per_unit"
+    if certificate.conclusion != conclusion:
+        return refuse("conclusion-equation")
+    if not _kernel_replay_function_bookkeeping(tree, certificate):
+        return refuse("dead-construct-completeness")
+    expected_id = "dependence-growth-count-certificate:" + semantic_digest(
+        {
+            "source_digest": certificate.source_digest,
+            "fact": fact.evidence_id,
+            "procedure": certificate.resolved_callable,
+            "conclusion": conclusion,
+        }
+    )
+    if certificate.certificate_id != expected_id:
+        return refuse("certificate-identity")
+    return VerifiedCountDependenceCertificate(
+        certificate_id=certificate.certificate_id,
+        source_path=certificate.source_path,
+        source_digest=certificate.source_digest,
+        resolved_callable=certificate.resolved_callable,
+        conclusion=conclusion,
+        fact=fact,
+        repeated_unit_ids=tuple(sorted(repeated)),
+        alpha_renames=certificate.alpha_renames,
+        dead_syntactic_construct_tokens=certificate.dead_syntactic_construct_tokens,
+    )
+
+
+def _kernel_matching_rows(
+    fact: CountProcedureFact, atoms: tuple[CountPredicateAtom, ...]
+) -> tuple[int, ...]:
+    matches: list[int] = []
+    for row in fact.rows:
+        values = dict(row.values)
+        if all(
+            (values.get(atom.column) == atom.literal)
+            if atom.operator == "eq"
+            else (values.get(atom.column) != atom.literal)
+            for atom in atoms
+        ):
+            matches.append(row.row_index)
+    return tuple(matches)
+
+
+def _kernel_replay_count_claims(tree: ast.Module, certificate: CountDependenceCertificate) -> bool:
+    """Independently reconstruct the symbolic count shapes from source AST."""
+
+    if not _kernel_import_forms_closed(tree):
+        return False
+    module_assignment_names = [
+        node.targets[0].id
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+    ]
+    if len(module_assignment_names) != len(set(module_assignment_names)):
+        return False
+    imports = _kernel_imports(tree)
+    if set(module_assignment_names) & set(imports):
+        return False
+    constants = _kernel_constants(tree)
+    if _kernel_count_group_obligations(tree, certificate) != certificate.obligation.group_domains:
+        return False
+    assignments = [node for node in ast.walk(tree) if isinstance(node, ast.Assign)]
+    procedures = [
+        node
+        for node in assignments
+        if len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and isinstance(node.value, ast.Call)
+        and _kernel_callable(node.value.func, imports)
+        in {"scipy.stats.binomtest", "scipy.stats.fisher_exact"}
+    ]
+    if len(procedures) != 1:
+        return False
+    procedure = procedures[0]
+    call = procedure.value
+    assert isinstance(call, ast.Call)
+    resolved = _kernel_callable(call.func, imports)
+    target = procedure.targets[0]
+    assert isinstance(target, ast.Name)
+    if (
+        resolved != certificate.resolved_callable
+        or _kernel_node_token(certificate.source_path, call, "procedure-call")
+        != certificate.procedure_call_token
+        or _kernel_renamed_name(tree, certificate, procedure, target.id) != certificate.result_name
+        or not _kernel_count_options_closed(call, certificate.resolved_callable, constants)
+    ):
+        return False
+    expressions = _kernel_count_call_expressions(call, certificate.resolved_callable, assignments)
+    if expressions is None or len(expressions) != len(certificate.obligation.operands):
+        return False
+    domains = _kernel_count_domains(tree, certificate, constants)
+    replayed: list[CountOperandObligation] = []
+    for position, (expression, _proposed) in enumerate(
+        zip(expressions, certificate.obligation.operands, strict=True)
+    ):
+        if not isinstance(expression, ast.Name):
+            return False
+        resolved_name = _kernel_renamed_name(tree, certificate, call, expression.id)
+        derivation = _kernel_count_derivation(tree, certificate, resolved_name, domains, constants)
+        if derivation is None:
+            return False
+        domain_kind, domain_atoms, predicate_atoms = derivation
+        replayed.append(
+            CountOperandObligation(
+                operand_id=resolved_name,
+                position=position,
+                domain_kind=cast(Literal["rows", "group_rows", "filtered_rows"], domain_kind),
+                domain_atoms=domain_atoms,
+                predicate_atoms=predicate_atoms,
+            )
+        )
+    if tuple(replayed) != certificate.obligation.operands:
+        return False
+    if certificate.resolved_callable == "scipy.stats.binomtest":
+        universe = replayed[1].domain_atoms
+    else:
+        common = set(replayed[0].domain_atoms)
+        for item in replayed[1:]:
+            common.intersection_update(item.domain_atoms)
+        universe = tuple(atom for atom in replayed[0].domain_atoms if atom in common)
+    if universe != certificate.obligation.universe_atoms:
+        return False
+    if not _kernel_count_reader_matches(tree, certificate, constants):
+        return False
+    return _kernel_count_sink_matches(
+        tree, certificate, constants
+    ) and _kernel_count_live_syntax_closed(tree, certificate, imports, constants)
+
+
+def _kernel_count_group_obligations(
+    tree: ast.Module, certificate: CountDependenceCertificate
+) -> tuple[CountGroupDomainObligation, ...]:
+    obligations: list[CountGroupDomainObligation] = []
+    for loop in (node for node in ast.walk(tree) if isinstance(node, ast.For)):
+        if not _kernel_count_group_loop_allowed(loop, certificate):
+            continue
+        assert isinstance(loop.target, ast.Name)
+        call = cast(ast.Call, cast(ast.Expr, loop.body[0]).value)
+        target = cast(ast.Subscript, cast(ast.Attribute, call.func).value)
+        column = _kernel_row_column(target.slice, loop.target.id)
+        if column is None or not isinstance(target.value, ast.Name):
+            return ()
+        group_name = _kernel_renamed_name(tree, certificate, target, target.value.id)
+        declarations = [
+            node.value
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and _kernel_renamed_name(tree, certificate, node, node.targets[0].id) == group_name
+            and isinstance(node.value, ast.Dict)
+        ]
+        if len(declarations) != 1:
+            return ()
+        declaration = declarations[0]
+        if not declaration.keys or any(
+            not isinstance(key, ast.Constant)
+            or not isinstance(key.value, str)
+            or not isinstance(value, ast.List)
+            or value.elts
+            for key, value in zip(declaration.keys, declaration.values, strict=True)
+        ):
+            return ()
+        obligations.append(
+            CountGroupDomainObligation(
+                group_key_column=column,
+                predeclared_bucket_keys=tuple(
+                    cast(str, cast(ast.Constant, key).value) for key in declaration.keys
+                ),
+            )
+        )
+    return tuple(sorted(obligations))
+
+
+def _kernel_count_live_syntax_closed(
+    tree: ast.Module,
+    certificate: CountDependenceCertificate,
+    imports: dict[str, str],
+    constants: dict[str, object],
+) -> bool:
+    functions = {item.name for item in tree.body if isinstance(item, ast.FunctionDef)}
+    operand_names = {item.operand_id for item in certificate.obligation.operands}
+    assignments = [node for node in ast.walk(tree) if isinstance(node, ast.Assign)]
+    procedure_assignments = {
+        id(node)
+        for node in assignments
+        if len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and isinstance(node.value, ast.Call)
+        and _kernel_callable(node.value.func, imports) in _COUNT_PROCEDURES
+    }
+    derivation_roots = [
+        node
+        for node in (*assignments, *(item for item in ast.walk(tree) if isinstance(item, ast.For)))
+        if any(
+            isinstance(candidate, ast.Name)
+            and isinstance(candidate.ctx, ast.Store)
+            and _kernel_renamed_name(tree, certificate, candidate, candidate.id) in operand_names
+            for candidate in ast.walk(node)
+        )
+    ]
+    used_source_names = {
+        candidate.id
+        for root in derivation_roots
+        for candidate in ast.walk(root)
+        if isinstance(candidate, ast.Name) and isinstance(candidate.ctx, ast.Load)
+    }
+    forbidden = (
+        ast.While,
+        ast.AsyncFor,
+        ast.AsyncWith,
+        ast.Try,
+        ast.Match,
+        ast.SetComp,
+        ast.DictComp,
+        ast.Raise,
+        ast.Assert,
+        ast.Yield,
+        ast.YieldFrom,
+        ast.Await,
+        ast.NamedExpr,
+        ast.Delete,
+    )
+    if any(isinstance(node, forbidden) for node in ast.walk(tree)):
+        return False
+    group_domains_used = any(
+        item.domain_kind == "group_rows" for item in certificate.obligation.operands
+    )
+    group_loops = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.For) and _kernel_count_group_loop_allowed(node, certificate)
+    ]
+    if (group_domains_used and len(group_loops) != 1) or (not group_domains_used and group_loops):
+        return False
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+            call = node.value
+            entry = isinstance(call.func, ast.Name) and call.func.id in functions
+            sink = isinstance(call.func, ast.Attribute) and call.func.attr == "write_text"
+            path_prep = _kernel_closed_makedirs(call, constants)
+            grouped = any(
+                _kernel_count_for_allowed(loop, tree, certificate) and node in set(ast.walk(loop))
+                for loop in ast.walk(tree)
+                if isinstance(loop, ast.For)
+            )
+            if not (entry or sink or path_prep or grouped):
+                return False
+        if isinstance(node, ast.If) and not _kernel_main_guard(node):
+            if not any(
+                _kernel_count_for_allowed(loop, tree, certificate) and node in set(ast.walk(loop))
+                for loop in ast.walk(tree)
+                if isinstance(loop, ast.For)
+            ):
+                return False
+        if isinstance(node, ast.Call):
+            resolved = _kernel_callable(node.func, imports)
+            if resolved in _COUNT_PROCEDURES:
+                continue
+            if isinstance(node.func, ast.Name) and node.func.id in functions | {
+                "Path",
+                "list",
+                "len",
+                "sum",
+                "str",
+            }:
+                continue
+            if isinstance(node.func, ast.Attribute):
+                if (
+                    isinstance(node.func.value, ast.Name)
+                    and imports.get(node.func.value.id) == "csv"
+                    and node.func.attr == "DictReader"
+                ):
+                    continue
+                if node.func.attr in {"open", "read_text", "splitlines", "write_text"}:
+                    continue
+                if node.func.attr == "append":
+                    continue
+            if _kernel_path_value(node, constants) is not None or _kernel_closed_makedirs(
+                node, constants
+            ):
+                continue
+            return False
+        if isinstance(node, ast.Assign):
+            if len(node.targets) != 1 or not isinstance(node.targets[0], ast.Name):
+                return False
+            value = node.value
+            renamed_target = _kernel_renamed_name(tree, certificate, node, node.targets[0].id)
+            if node.targets[0].id in constants:
+                continue
+            if (
+                isinstance(value, ast.Constant)
+                and value.value == 0
+                and renamed_target in operand_names
+            ):
+                continue
+            if (
+                isinstance(value, ast.Dict)
+                and value.keys
+                and all(
+                    isinstance(key, ast.Constant)
+                    and isinstance(key.value, str)
+                    and isinstance(item, ast.List)
+                    and not item.elts
+                    for key, item in zip(value.keys, value.values, strict=True)
+                )
+            ) and any(item.domain_kind == "group_rows" for item in certificate.obligation.operands):
+                continue
+            if isinstance(value, ast.List) and any(
+                isinstance(call.func, ast.Attribute | ast.Name)
+                and _kernel_callable(call.func, imports) == "scipy.stats.fisher_exact"
+                and len(call.args) == 1
+                and isinstance(call.args[0], ast.Name)
+                and call.args[0].id == node.targets[0].id
+                for call in ast.walk(tree)
+                if isinstance(call, ast.Call)
+            ):
+                continue
+            if isinstance(value, ast.ListComp) and node.targets[0].id in used_source_names:
+                continue
+            if id(node) in procedure_assignments:
+                continue
+            if (
+                renamed_target in operand_names
+                and isinstance(value, ast.Call)
+                and (isinstance(value.func, ast.Name) and value.func.id in {"list", "len", "sum"})
+            ):
+                continue
+            if _kernel_is_reader_assignment(node):
+                continue
+            return False
+        if isinstance(node, ast.For):
+            if not _kernel_count_for_allowed(node, tree, certificate):
+                return False
+    return bool(certificate.procedure_call_token and certificate.sink_token)
+
+
+def _kernel_count_for_allowed(
+    loop: ast.For, tree: ast.Module, certificate: CountDependenceCertificate
+) -> bool:
+    if not isinstance(loop.target, ast.Name) or loop.orelse:
+        return False
+    operand_names = {item.operand_id for item in certificate.obligation.operands}
+    stored = {
+        _kernel_renamed_name(tree, certificate, node, node.id)
+        for node in ast.walk(loop)
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store)
+    }
+    if stored & operand_names:
+        return bool(
+            len(loop.body) == 1
+            and isinstance(loop.body[0], ast.If)
+            and not loop.body[0].orelse
+            and len(loop.body[0].body) == 1
+            and isinstance(loop.body[0].body[0], ast.AugAssign)
+            and isinstance(loop.body[0].body[0].target, ast.Name)
+            and _kernel_renamed_name(
+                tree,
+                certificate,
+                loop.body[0].body[0],
+                loop.body[0].body[0].target.id,
+            )
+            in operand_names
+            and isinstance(loop.body[0].body[0].op, ast.Add)
+            and isinstance(loop.body[0].body[0].value, ast.Constant)
+            and type(loop.body[0].body[0].value.value) is int
+            and loop.body[0].body[0].value.value == 1
+        )
+    return _kernel_count_group_loop_allowed(loop, certificate)
+
+
+def _kernel_count_group_loop_allowed(
+    loop: ast.For, certificate: CountDependenceCertificate
+) -> bool:
+    if not isinstance(loop.target, ast.Name):
+        return False
+    columns = {
+        atom.column
+        for item in certificate.obligation.operands
+        if item.domain_kind == "group_rows"
+        for atom in item.domain_atoms
+    }
+    return bool(
+        columns
+        and len(loop.body) == 1
+        and isinstance(loop.body[0], ast.Expr)
+        and isinstance(loop.body[0].value, ast.Call)
+        and isinstance(loop.body[0].value.func, ast.Attribute)
+        and loop.body[0].value.func.attr == "append"
+        and len(loop.body[0].value.args) == 1
+        and not loop.body[0].value.keywords
+        and isinstance(loop.body[0].value.args[0], ast.Name)
+        and loop.body[0].value.args[0].id == loop.target.id
+        and isinstance(loop.body[0].value.func.value, ast.Subscript)
+        and _kernel_row_column(loop.body[0].value.func.value.slice, loop.target.id) in columns
+    )
+
+
+def _kernel_count_options_closed(
+    call: ast.Call, resolved: str, constants: dict[str, object]
+) -> bool:
+    keywords = {item.arg: item.value for item in call.keywords if item.arg is not None}
+    if len(keywords) != len(call.keywords):
+        return False
+    alternative = keywords.pop("alternative", None)
+    if alternative is not None and not (
+        isinstance(alternative, ast.Constant) and alternative.value == "two-sided"
+    ):
+        return False
+    if resolved == "scipy.stats.binomtest":
+        if len(call.args) not in {2, 3} or set(keywords) - {"p"}:
+            return False
+        if len(call.args) == 3 and "p" in keywords:
+            return False
+        p_value = call.args[2] if len(call.args) == 3 else keywords.get("p")
+        if p_value is not None and _kernel_numeric_constant(p_value, constants) is None:
+            return False
+        return True
+    return len(call.args) == 1 and not keywords
+
+
+def _kernel_count_call_expressions(
+    call: ast.Call, resolved: str, assignments: list[ast.Assign]
+) -> tuple[ast.expr, ...] | None:
+    if resolved == "scipy.stats.binomtest":
+        return tuple(call.args[:2])
+    table: ast.expr = call.args[0]
+    if isinstance(table, ast.Name):
+        matches = [
+            item.value
+            for item in assignments
+            if len(item.targets) == 1
+            and isinstance(item.targets[0], ast.Name)
+            and item.targets[0].id == table.id
+        ]
+        if len(matches) != 1:
+            return None
+        table = matches[0]
+    if not (
+        isinstance(table, ast.List)
+        and len(table.elts) == 2
+        and all(isinstance(row, ast.List) and len(row.elts) == 2 for row in table.elts)
+    ):
+        return None
+    return tuple(cell for row in table.elts if isinstance(row, ast.List) for cell in row.elts)
+
+
+def _kernel_count_domains(
+    tree: ast.Module,
+    certificate: CountDependenceCertificate,
+    constants: dict[str, object],
+) -> dict[str, tuple[str, tuple[CountPredicateAtom, ...], int]]:
+    domains: dict[str, tuple[str, tuple[CountPredicateAtom, ...], int]] = {}
+    for assignment in (node for node in ast.walk(tree) if isinstance(node, ast.Assign)):
+        if len(assignment.targets) != 1 or not isinstance(assignment.targets[0], ast.Name):
+            continue
+        target = _kernel_renamed_name(tree, certificate, assignment, assignment.targets[0].id)
+        if _kernel_is_reader_assignment(assignment):
+            domains[target] = ("rows", (), 0)
+    changed = True
+    while changed:
+        changed = False
+        for assignment in (node for node in ast.walk(tree) if isinstance(node, ast.Assign)):
+            if (
+                len(assignment.targets) != 1
+                or not isinstance(assignment.targets[0], ast.Name)
+                or not isinstance(assignment.value, ast.ListComp)
+            ):
+                continue
+            target = _kernel_renamed_name(tree, certificate, assignment, assignment.targets[0].id)
+            if target in domains:
+                continue
+            comp = assignment.value
+            if (
+                len(comp.generators) != 1
+                or comp.generators[0].is_async
+                or len(comp.generators[0].ifs) != 1
+                or not isinstance(comp.generators[0].target, ast.Name)
+                or not isinstance(comp.elt, ast.Name)
+                or comp.elt.id != comp.generators[0].target.id
+            ):
+                continue
+            source = _kernel_count_domain_expr(
+                tree, certificate, comp.generators[0].iter, domains, constants
+            )
+            atoms = _kernel_count_predicate(comp.generators[0].ifs[0], comp.generators[0].target.id)
+            if source is None or source[2] != 0 or atoms is None:
+                continue
+            domains[target] = ("filtered_rows", (*source[1], *atoms), 1)
+            changed = True
+    for loop in (node for node in ast.walk(tree) if isinstance(node, ast.For)):
+        if not (
+            isinstance(loop.target, ast.Name)
+            and len(loop.body) == 1
+            and isinstance(loop.body[0], ast.Expr)
+            and isinstance(loop.body[0].value, ast.Call)
+        ):
+            continue
+        call = loop.body[0].value
+        if not (
+            isinstance(call.func, ast.Attribute)
+            and call.func.attr == "append"
+            and len(call.args) == 1
+            and isinstance(call.args[0], ast.Name)
+            and call.args[0].id == loop.target.id
+            and isinstance(call.func.value, ast.Subscript)
+            and isinstance(call.func.value.value, ast.Name)
+        ):
+            continue
+        column = _kernel_row_column(call.func.value.slice, loop.target.id)
+        if column is not None:
+            group_name = _kernel_renamed_name(tree, certificate, call, call.func.value.value.id)
+            declarations = [
+                item.value
+                for item in ast.walk(tree)
+                if isinstance(item, ast.Assign)
+                and len(item.targets) == 1
+                and isinstance(item.targets[0], ast.Name)
+                and _kernel_renamed_name(tree, certificate, item, item.targets[0].id) == group_name
+                and isinstance(item.value, ast.Dict)
+                and item.value.keys
+                and all(
+                    isinstance(key, ast.Constant)
+                    and isinstance(key.value, str)
+                    and isinstance(value, ast.List)
+                    and not value.elts
+                    for key, value in zip(item.value.keys, item.value.values, strict=True)
+                )
+            ]
+            if len(declarations) == 1:
+                domains[f"__group__:{group_name}:{column}"] = ("group_rows", (), 0)
+    return domains
+
+
+def _kernel_is_reader_assignment(assignment: ast.Assign) -> bool:
+    value = assignment.value
+    return bool(
+        isinstance(value, ast.Call)
+        and isinstance(value.func, ast.Name)
+        and value.func.id == "list"
+        and len(value.args) == 1
+        and isinstance(value.args[0], ast.Call)
+        and isinstance(value.args[0].func, ast.Attribute)
+        and value.args[0].func.attr == "DictReader"
+    )
+
+
+def _kernel_count_domain_expr(
+    tree: ast.Module,
+    certificate: CountDependenceCertificate,
+    expression: ast.expr,
+    domains: dict[str, tuple[str, tuple[CountPredicateAtom, ...], int]],
+    constants: dict[str, object],
+) -> tuple[str, tuple[CountPredicateAtom, ...], int] | None:
+    if isinstance(expression, ast.Name):
+        name = _kernel_renamed_name(tree, certificate, expression, expression.id)
+        return domains.get(name)
+    if isinstance(expression, ast.Subscript) and isinstance(expression.value, ast.Name):
+        group_name = _kernel_renamed_name(tree, certificate, expression, expression.value.id)
+        key = _kernel_string_value(expression.slice, constants)
+        candidates = [
+            (token, domain)
+            for token, domain in domains.items()
+            if token.startswith(f"__group__:{group_name}:")
+        ]
+        if key is None or len(candidates) != 1:
+            return None
+        token, domain = candidates[0]
+        return (
+            domain[0],
+            (CountPredicateAtom(token.rsplit(":", 1)[1], "eq", key),),
+            0,
+        )
+    return None
+
+
+def _kernel_count_derivation(
+    tree: ast.Module,
+    certificate: CountDependenceCertificate,
+    name: str,
+    domains: dict[str, tuple[str, tuple[CountPredicateAtom, ...], int]],
+    constants: dict[str, object],
+) -> tuple[str, tuple[CountPredicateAtom, ...], tuple[CountPredicateAtom, ...]] | None:
+    assignments = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and _kernel_renamed_name(tree, certificate, node, node.targets[0].id) == name
+    ]
+    for assignment in assignments:
+        expression = assignment.value
+        if (
+            isinstance(expression, ast.Call)
+            and isinstance(expression.func, ast.Name)
+            and expression.func.id == "len"
+            and len(expression.args) == 1
+            and not expression.keywords
+        ):
+            domain = _kernel_count_domain_expr(
+                tree, certificate, expression.args[0], domains, constants
+            )
+            return (domain[0], domain[1], ()) if domain is not None else None
+        if (
+            isinstance(expression, ast.Call)
+            and isinstance(expression.func, ast.Name)
+            and expression.func.id == "sum"
+            and len(expression.args) == 1
+            and isinstance(expression.args[0], ast.GeneratorExp)
+        ):
+            generator = expression.args[0]
+            if (
+                not isinstance(generator.elt, ast.Constant)
+                or generator.elt.value != 1
+                or len(generator.generators) != 1
+                or not isinstance(generator.generators[0].target, ast.Name)
+            ):
+                return None
+            domain = _kernel_count_domain_expr(
+                tree, certificate, generator.generators[0].iter, domains, constants
+            )
+            predicates = (
+                _kernel_count_predicate(
+                    generator.generators[0].ifs[0], generator.generators[0].target.id
+                )
+                if len(generator.generators[0].ifs) == 1
+                else (() if not generator.generators[0].ifs else None)
+            )
+            if domain is None or predicates is None:
+                return None
+            return domain[0], domain[1], predicates
+    for loop in (node for node in ast.walk(tree) if isinstance(node, ast.For)):
+        increments = [
+            node
+            for node in ast.walk(loop)
+            if isinstance(node, ast.AugAssign)
+            and isinstance(node.target, ast.Name)
+            and _kernel_renamed_name(tree, certificate, node, node.target.id) == name
+        ]
+        if len(increments) != 1 or not isinstance(loop.target, ast.Name):
+            continue
+        if (
+            len(loop.body) != 1
+            or not isinstance(loop.body[0], ast.If)
+            or loop.body[0].orelse
+            or len(loop.body[0].body) != 1
+            or loop.body[0].body[0] is not increments[0]
+        ):
+            return None
+        domain = _kernel_count_domain_expr(tree, certificate, loop.iter, domains, constants)
+        predicates = _kernel_count_predicate(loop.body[0].test, loop.target.id)
+        if domain is None or predicates is None:
+            return None
+        return domain[0], domain[1], predicates
+    return None
+
+
+def _kernel_count_predicate(
+    expression: ast.expr, row_name: str
+) -> tuple[CountPredicateAtom, ...] | None:
+    parts = (
+        expression.values
+        if isinstance(expression, ast.BoolOp) and isinstance(expression.op, ast.And)
+        else [expression]
+    )
+    result: list[CountPredicateAtom] = []
+    for part in parts:
+        if not (
+            isinstance(part, ast.Compare)
+            and len(part.ops) == len(part.comparators) == 1
+            and isinstance(part.ops[0], ast.Eq | ast.NotEq)
+        ):
+            return None
+        column = _kernel_row_column(part.left, row_name)
+        literal = part.comparators[0]
+        if (
+            column is None
+            or not isinstance(literal, ast.Constant)
+            or not isinstance(literal.value, str)
+        ):
+            return None
+        result.append(
+            CountPredicateAtom(
+                column,
+                "eq" if isinstance(part.ops[0], ast.Eq) else "ne",
+                literal.value,
+            )
+        )
+    return tuple(result)
+
+
+def _kernel_count_reader_matches(
+    tree: ast.Module,
+    certificate: CountDependenceCertificate,
+    constants: dict[str, object],
+) -> bool:
+    obligation = certificate.obligation
+    paths: list[tuple[str, str]] = []
+    for node in ast.walk(tree):
+        if not (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "DictReader"
+            and len(node.args) == 1
+        ):
+            continue
+        source = node.args[0]
+        if isinstance(source, ast.Name):
+            for with_node in (item for item in ast.walk(tree) if isinstance(item, ast.With)):
+                for item in with_node.items:
+                    if (
+                        isinstance(item.optional_vars, ast.Name)
+                        and item.optional_vars.id == source.id
+                        and isinstance(item.context_expr, ast.Call)
+                        and isinstance(item.context_expr.func, ast.Attribute)
+                        and item.context_expr.func.attr == "open"
+                    ):
+                        values = {
+                            keyword.arg: keyword.value
+                            for keyword in item.context_expr.keywords
+                            if keyword.arg is not None
+                        }
+                        path = _kernel_path_value(item.context_expr.func.value, constants)
+                        encoding = _kernel_string_value(values.get("encoding"), constants)
+                        if (
+                            path is not None
+                            and encoding is not None
+                            and _kernel_string_value(values.get("newline"), constants) == ""
+                        ):
+                            paths.append((path, encoding))
+        elif (
+            isinstance(source, ast.Call)
+            and isinstance(source.func, ast.Attribute)
+            and source.func.attr == "splitlines"
+            and isinstance(source.func.value, ast.Call)
+            and isinstance(source.func.value.func, ast.Attribute)
+            and source.func.value.func.attr == "read_text"
+        ):
+            read = source.func.value
+            values = {
+                keyword.arg: keyword.value for keyword in read.keywords if keyword.arg is not None
+            }
+            assert isinstance(read.func, ast.Attribute)
+            path = _kernel_path_value(read.func.value, constants)
+            encoding = _kernel_string_value(values.get("encoding"), constants)
+            if path is not None and encoding is not None:
+                paths.append((path, encoding))
+    return paths == [(obligation.path, obligation.encoding)]
+
+
+def _kernel_count_sink_matches(
+    tree: ast.Module,
+    certificate: CountDependenceCertificate,
+    constants: dict[str, object],
+) -> bool:
+    writes = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "write_text"
+    ]
+    if len(writes) != 1:
+        return False
+    write = writes[0]
+    if not (
+        len(write.args) == 1
+        and isinstance(write.args[0], ast.Call)
+        and isinstance(write.args[0].func, ast.Name)
+        and write.args[0].func.id == "str"
+        and len(write.args[0].args) == 1
+        and isinstance(write.args[0].args[0], ast.Name)
+        and _kernel_renamed_name(tree, certificate, write, write.args[0].args[0].id)
+        == certificate.result_name
+    ):
+        return False
+    return (
+        _kernel_path_value(cast(ast.Attribute, write.func).value, constants)
+        == certificate.obligation.result_path
+        and _kernel_node_token(certificate.source_path, write, "selected-sink")
+        == certificate.sink_token
+    )
+
+
+def _kernel_node_token(path: str, node: ast.AST, kind: str) -> str:
+    return f"{kind}:{semantic_digest({'path': path, 'line': getattr(node, 'lineno', 0), 'column': getattr(node, 'col_offset', 0)})}"
+
+
 def _kernel_replay_source_claims(
     tree: ast.Module,
     certificate: DependenceGrowthCertificate,
@@ -308,13 +1271,13 @@ def _kernel_replay_source_claims(
     ):
         return False
     return _kernel_reader_matches(tree, fact, constants) and _kernel_live_syntax_closed(
-        tree, certificate, fact, constants, imports
+        tree, certificate, fact, dict(constants), imports
     )
 
 
 def _kernel_renamed_name(
     tree: ast.Module,
-    certificate: DependenceGrowthCertificate,
+    certificate: DependenceGrowthCertificate | CountDependenceCertificate,
     node: ast.AST,
     original: str,
 ) -> str:
@@ -355,7 +1318,13 @@ def _kernel_renamed_name(
 
 
 def _kernel_string_constants(tree: ast.Module) -> dict[str, str]:
-    values: dict[str, str] = {}
+    return {
+        name: value for name, value in _kernel_constants(tree).items() if isinstance(value, str)
+    }
+
+
+def _kernel_constants(tree: ast.Module) -> dict[str, object]:
+    values: dict[str, object] = {}
     for statement in tree.body:
         if not (
             isinstance(statement, ast.Assign)
@@ -364,25 +1333,81 @@ def _kernel_string_constants(tree: ast.Module) -> dict[str, str]:
         ):
             continue
         value = statement.value
-        if isinstance(value, ast.Constant) and isinstance(value.value, str):
+        if isinstance(value, ast.Constant) and type(value.value) in {str, int, float}:
             values[statement.targets[0].id] = value.value
-        elif (
-            isinstance(value, ast.Call)
-            and (
-                (isinstance(value.func, ast.Name) and value.func.id == "Path")
-                or (
-                    isinstance(value.func, ast.Attribute)
-                    and isinstance(value.func.value, ast.Name)
-                    and value.func.value.id == "pathlib"
-                    and value.func.attr == "Path"
-                )
-            )
-            and len(value.args) == 1
-            and isinstance(value.args[0], ast.Constant)
-            and isinstance(value.args[0].value, str)
-        ):
-            values[statement.targets[0].id] = value.args[0].value
+        elif (path_value := _kernel_path_value(value, values)) is not None:
+            values[statement.targets[0].id] = path_value
     return values
+
+
+def _kernel_string_value(expression: ast.expr | None, constants: dict[str, object]) -> str | None:
+    if isinstance(expression, ast.Constant) and isinstance(expression.value, str):
+        return expression.value
+    if isinstance(expression, ast.Name):
+        value = constants.get(expression.id)
+        return value if isinstance(value, str) else None
+    return None
+
+
+def _kernel_numeric_constant(
+    expression: ast.expr, constants: dict[str, object]
+) -> int | float | None:
+    if isinstance(expression, ast.Constant) and type(expression.value) in {int, float}:
+        return cast(int | float, expression.value)
+    if isinstance(expression, ast.Name):
+        value = constants.get(expression.id)
+        return cast(int | float, value) if type(value) in {int, float} else None
+    return None
+
+
+def _kernel_path_value(expression: ast.expr, constants: dict[str, object]) -> str | None:
+    direct = _kernel_string_value(expression, constants)
+    if direct is not None:
+        return direct
+    if (
+        isinstance(expression, ast.Call)
+        and (
+            (isinstance(expression.func, ast.Name) and expression.func.id == "Path")
+            or _kernel_attribute_chain(expression.func) == ("pathlib", "Path")
+        )
+        and len(expression.args) == 1
+        and not expression.keywords
+    ):
+        return _kernel_string_value(expression.args[0], constants)
+    if (
+        isinstance(expression, ast.Call)
+        and _kernel_attribute_chain(expression.func) == ("os", "path", "join")
+        and len(expression.args) >= 2
+        and not expression.keywords
+        and all(
+            isinstance(argument, ast.Constant) and isinstance(argument.value, str)
+            for argument in expression.args
+        )
+    ):
+        return posixpath.join(
+            *(
+                str(argument.value)
+                for argument in expression.args
+                if isinstance(argument, ast.Constant)
+            )
+        )
+    if (
+        isinstance(expression, ast.Call)
+        and _kernel_attribute_chain(expression.func) == ("os", "path", "dirname")
+        and len(expression.args) == 1
+        and not expression.keywords
+    ):
+        path = _kernel_path_value(expression.args[0], constants)
+        return posixpath.dirname(path) if path is not None else None
+    return None
+
+
+def _kernel_attribute_chain(expression: ast.expr) -> tuple[str, ...] | None:
+    parts: list[str] = []
+    while isinstance(expression, ast.Attribute):
+        parts.append(expression.attr)
+        expression = expression.value
+    return (expression.id, *reversed(parts)) if isinstance(expression, ast.Name) else None
 
 
 def _kernel_imports(tree: ast.Module) -> dict[str, str]:
@@ -404,6 +1429,7 @@ def _kernel_import_forms_closed(tree: ast.Module) -> bool:
         ("math", None),
         ("pathlib", None),
         ("csv", None),
+        ("os", None),
     }
     for statement in tree.body:
         if isinstance(statement, ast.Import):
@@ -421,7 +1447,7 @@ def _kernel_import_forms_closed(tree: ast.Module) -> bool:
             if (statement.module, alias.name) not in {
                 ("pathlib", "Path"),
                 ("scipy", "stats"),
-                *(("scipy.stats", name.rsplit(".", 1)[1]) for name in _PROCEDURE_ARITY),
+                *(("scipy.stats", name.rsplit(".", 1)[1]) for name in _ALL_PROCEDURES),
             }:
                 return False
     return True
@@ -431,7 +1457,7 @@ def _kernel_live_syntax_closed(
     tree: ast.Module,
     certificate: DependenceGrowthCertificate,
     fact: GroupValueSequenceFact,
-    constants: dict[str, str],
+    constants: dict[str, object],
     imports: dict[str, str],
 ) -> bool:
     """Reject any live call or assignment outside the bounded semantic basis."""
@@ -470,7 +1496,7 @@ def _kernel_live_syntax_closed(
         if isinstance(node, ast.If) and not _kernel_main_guard(node):
             return False
         if isinstance(node, ast.Call):
-            if _kernel_call_allowed(node, functions, group_names, imports):
+            if _kernel_call_allowed(node, functions, group_names, imports, constants):
                 continue
             return False
         if isinstance(node, ast.Assign) and not _kernel_assignment_allowed(
@@ -501,7 +1527,10 @@ def _kernel_call_allowed(
     functions: set[str],
     group_names: set[str],
     imports: dict[str, str],
+    constants: dict[str, object],
 ) -> bool:
+    if _kernel_path_value(node, constants) is not None or _kernel_closed_makedirs(node, constants):
+        return True
     if isinstance(node.func, ast.Name):
         return (
             node.func.id in functions | {"Path", "list", "float", "int", "str", "sorted"}
@@ -545,11 +1574,23 @@ def _kernel_call_allowed(
     )
 
 
+def _kernel_closed_makedirs(node: ast.Call, constants: dict[str, object]) -> bool:
+    return bool(
+        _kernel_attribute_chain(node.func) == ("os", "makedirs")
+        and len(node.args) == 1
+        and len(node.keywords) == 1
+        and node.keywords[0].arg == "exist_ok"
+        and isinstance(node.keywords[0].value, ast.Constant)
+        and node.keywords[0].value.value is True
+        and _kernel_path_value(node.args[0], constants) is not None
+    )
+
+
 def _kernel_assignment_allowed(
     node: ast.Assign,
     functions: set[str],
     group_names: set[str],
-    constants: dict[str, str],
+    constants: dict[str, object],
     imports: dict[str, str],
 ) -> bool:
     if len(node.targets) != 1:
@@ -577,7 +1618,7 @@ def _kernel_assignment_allowed(
         if _kernel_callable(node.value.func, imports) is not None:
             return True
     return any(
-        _kernel_group_key(node.value, group_name, constants) is not None
+        _kernel_group_key(node.value, group_name, cast(dict[str, str], constants)) is not None
         for group_name in group_names
     )
 
@@ -603,11 +1644,11 @@ def _kernel_predeclared_keys(tree: ast.Module, group_names: set[str]) -> set[str
 def _kernel_callable(expression: ast.expr, imports: dict[str, str]) -> str | None:
     if isinstance(expression, ast.Name):
         value = imports.get(expression.id)
-        return value if value in _PROCEDURE_ARITY else None
+        return value if value in _ALL_PROCEDURES else None
     if isinstance(expression, ast.Attribute) and isinstance(expression.value, ast.Name):
         base = imports.get(expression.value.id)
         value = f"{base}.{expression.attr}"
-        return value if value in _PROCEDURE_ARITY else None
+        return value if value in _ALL_PROCEDURES else None
     return None
 
 
@@ -780,11 +1821,12 @@ def _kernel_parameter_string(
 
 
 def _kernel_replay_function_bookkeeping(
-    tree: ast.Module, certificate: DependenceGrowthCertificate
+    tree: ast.Module,
+    certificate: DependenceGrowthCertificate | CountDependenceCertificate,
 ) -> bool:
     functions = {item.name: item for item in tree.body if isinstance(item, ast.FunctionDef)}
     import_names = set(_kernel_imports(tree))
-    constants = set(_kernel_string_constants(tree))
+    constants = set(_kernel_constants(tree))
     if any(
         not _kernel_function_shape_closed(item, import_names, constants, set(functions))
         for item in functions.values()
@@ -912,6 +1954,7 @@ def _kernel_function_shape_closed(
             "sorted",
             "str",
             "len",
+            "sum",
             "range",
             "enumerate",
         }

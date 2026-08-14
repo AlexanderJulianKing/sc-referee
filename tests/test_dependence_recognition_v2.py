@@ -183,10 +183,10 @@ def _context(
     if authority:
         values.append(
             (
-                RecordRef("human_method_authorization", "authorization:v2"),
+                RecordRef("human_method_authorization", "authorization-v2:test"),
                 {
                     "record_type": "human_method_authorization",
-                    "record_id": "authorization:v2",
+                    "record_id": "authorization-v2:test",
                     "actor_id": "human:method-owner",
                     "authority_state": "authorized",
                     "analysis_target_ref": analysis.to_dict(),
@@ -963,7 +963,7 @@ def test_adapter_exception_keeps_the_full_common_payload(monkeypatch: pytest.Mon
     assert payload["report_only"] is True
     assert payload["production_finding_permitted"] is False
     assert payload["adapter_id"] == "dependence-recognition-semantic-v2-growth-shadow"
-    assert payload["adapter_version"] == "2.0.0-development"
+    assert payload["adapter_version"] == "2.1.0-development"
     assert payload["adapter_implementation_digest"].startswith("sha256:")
     assert payload["implementation_dependency_closure"]
 
@@ -973,6 +973,7 @@ def test_reason_registry_equals_the_package_emission_vocabulary(project_root: Pa
     for relative in (
         "src/sc_referee/dependence_recognition_v2/python_analyzer.py",
         "src/sc_referee/dependence_recognition_v2/csv_domain.py",
+        "src/sc_referee/dependence_recognition_v2/count_domain.py",
         "src/sc_referee/dependence_recognition_v2/adapter.py",
     ):
         tree = ast.parse((project_root / relative).read_text(encoding="utf-8"))
@@ -1037,6 +1038,13 @@ def test_reason_registry_equals_the_package_emission_vocabulary(project_root: Pa
                     ):
                         emitted_literals.add(value.value)
     emitted_literals.add("dependence-v2-shadow-abstention")
+    emitted_literals.update(
+        {
+            "count-procedure-trial-declaration-missing",
+            "repeated-unit-rows-counted-as-independent-binomtest-trials",
+            "repeated-unit-rows-enter-independent-fisher-cells",
+        }
+    )
     emitted_literals.update(
         f"certificate-kernel-refusal:{item}" for item in DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS
     )

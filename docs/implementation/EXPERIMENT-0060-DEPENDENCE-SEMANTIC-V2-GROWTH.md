@@ -115,3 +115,56 @@ explicit `development` shadow identity and
 `development_v2_scored_for_qualification: false`; they confer no qualification
 or production authority.  No second intake or second authored-code execution is
 permitted by this hook.
+
+## 2026-08-14 growth-2: symbolic count procedures and exact path forms
+
+Growth-2 extends only this unregistered development shadow.  The qualified
+v1.1.0 recognizer, its experiment, scientific-check registry, installed grants,
+and capability claims remain unchanged.
+
+The added path grammar folds `os.path.join` with POSIX semantics only when every
+component is a string literal and the folded value equals the frozen reader or
+selected-result path exactly.  The only
+other admitted `os` uses are `os.path.dirname` of such a proven constant and
+`os.makedirs(proven_constant, exist_ok=True)`.  All other `os` use abstains.
+
+The count grammar covers `scipy.stats.binomtest` and
+`scipy.stats.fisher_exact` over digest-bound CSV rows.  The certificate carries
+symbolic domain and conjunction-of-byte-equality predicates plus operand
+positions; it carries no traced operand value.  The trusted prover returns
+ordered frozen rows, and the kernel independently evaluates predicates,
+cardinalities, observation identities, and authorized-unit multiplicities.
+Binomial success rows must be a row-level subset of trial rows.  Fisher cells
+must be nonempty, pairwise disjoint, collectively exhaustive over the proven
+universe, and no authorized unit may span cells.  Arithmetic/subtraction cells
+are outside the grammar.
+
+The C-3 v3 design choice is explicit: every corrected or adverse count set must
+be nonempty, but an adverse branch does not require a proper subset of another
+set.  Repetition is determined solely from authorized-unit multiplicity in the
+procedure-relevant proven sets.  No `count-derivation-not-closed` catch-all is
+defined; each refusal uses the closed growth-2 reason vocabulary.
+
+That vocabulary adds exactly `count-domain-not-row-bound`,
+`count-predicate-literal-not-string`, `count-predicate-not-closed`,
+`count-set-degenerate`, `count-cell-derived-by-arithmetic`,
+`count-success-not-subset`, `count-cells-not-partition`,
+`unit-spans-multiple-cells`, `count-increment-not-total`,
+`count-multiple-increment-sites`, `procedure-alternative-not-default`, and
+`count-procedure-trial-declaration-missing`.  Path-form refusals retain the
+existing granular `module-constant-not-closed`, `import-use-outside-grammar`,
+reader-binding, and report-composition reasons rather than adding a catch-all.
+
+Development count authority uses a distinct `dependence_semantic_v2_growth_2`
+lock line under `authority/locks-v2/`.  Its procedure registry is exactly
+`ttest_ind`, `mannwhitneyu`, `binomtest`, and `fisher_exact`.  A count lock is
+minted only when the role-blind data description contains exactly one closed
+line `One trial is: one row`; otherwise the v2 observation abstains as
+`count-procedure-trial-declaration-missing`.  The v1 lock and scored v1 outcome
+are unchanged by presence or absence of this distinct line.
+
+Growth-2 adds batch C at
+`evaluation/development/dependence-growth-loop/batch-c/`, with authors
+opus-39 through opus-44, blind reviewer fable-20, hostile reviewer fable-21,
+and escalation opus-15.  Like batch B, v1 alone is scored and the v2 result is
+retained side by side as non-qualification development evidence.

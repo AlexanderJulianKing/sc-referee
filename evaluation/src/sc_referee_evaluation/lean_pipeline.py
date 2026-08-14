@@ -354,6 +354,8 @@ class EnvelopeConfig:
     # Evaluation-only growth hook. The controller accepts only an opaque observer
     # callback and never imports or selects the unregistered v2 recognizer.
     dependence_v2_development_shadow: bool = False
+    # Development-only distinct authority line. False preserves every v1 lane.
+    dependence_v2_lock_line: bool = False
     reviewer_task_text: str | None = None
     utf8_authored_paths: frozenset[str] = frozenset()
     whole_token_role_markers: bool = False
@@ -1756,6 +1758,7 @@ _DESCRIPTION_UNIT_COLUMN = re.compile(
     r"(?im)^[ \t]*independent unit column[ \t]*:[ \t]+`?([A-Za-z_][A-Za-z0-9_]*)`?[ \t\r]*$"
 )
 _DESCRIPTION_ROW = re.compile(r"(?im)^[ \t]*one row is[ \t]*:[ \t]+(\S[^\r\n]*?)[ \t\r]*$")
+_DESCRIPTION_TRIAL_ROW = re.compile(r"(?m)^One trial is: one row\r?$")
 _REGISTERED_DEPENDENCE_CALLABLES = frozenset(
     {"scipy.stats.ttest_ind", "scipy.stats.mannwhitneyu", "scipy.stats.ttest_rel"}
 )
@@ -1769,7 +1772,10 @@ def _description_unit_column(description: str) -> str | None:
     return str(matches[0])
 
 
-def _registered_dependence_callable(source: str) -> tuple[str | None, str]:
+def _registered_dependence_callable(
+    source: str,
+    registry: frozenset[str] = _REGISTERED_DEPENDENCE_CALLABLES,
+) -> tuple[str | None, str]:
     """Resolve one direct registered SciPy call without executing authored code."""
 
     try:
@@ -1818,7 +1824,7 @@ def _registered_dependence_callable(source: str) -> tuple[str | None, str]:
         return None, "procedure-unresolved-by-lock-schema-resolver"
     if len(calls) > 1:
         return None, "procedure-ambiguous-multiple-statistical-calls"
-    if calls[0] not in _REGISTERED_DEPENDENCE_CALLABLES:
+    if calls[0] not in registry:
         return None, "procedure-unavailable-to-closed-lock-schema"
     return calls[0], "lock-minted"
 
@@ -1912,6 +1918,64 @@ def _description_authority_lock(
     return value, "lock-minted", unit_column
 
 
+def _description_v2_authority_lock(
+    *,
+    case_id: str,
+    case_root: Path,
+    intake_row: Mapping[str, Any],
+    intake_recorded_at: str,
+    description_path: str,
+    input_path: str,
+) -> tuple[dict[str, Any] | None, str, str | None]:
+    """Translate the same declaration into the distinct development v2 line."""
+
+    from sc_referee.dependence_recognition_v2.authority_lock import (
+        V2_PROCEDURES,
+        build_dependence_v2_authorization_lock,
+    )
+
+    description = (case_root / description_path).read_text(encoding="utf-8")
+    unit_column = _description_unit_column(description)
+    if unit_column is None:
+        return None, "unit-declaration-missing-or-malformed", None
+    try:
+        with (case_root / input_path).open("r", encoding="utf-8", newline="") as handle:
+            header = next(csv.reader(handle, strict=True))
+    except (OSError, StopIteration, UnicodeDecodeError, csv.Error):
+        return None, "frozen-csv-header-unavailable", unit_column
+    if (
+        not header
+        or len(header) != len(set(header))
+        or any(not item for item in header)
+        or unit_column not in header
+    ):
+        return None, "unit-column-absent-from-frozen-header", unit_column
+    procedure, reason = _registered_dependence_callable(
+        (case_root / "workflow/analysis.py").read_text(encoding="ascii"),
+        V2_PROCEDURES,
+    )
+    if procedure is None:
+        return None, reason, unit_column
+    if (
+        procedure in {"scipy.stats.binomtest", "scipy.stats.fisher_exact"}
+        and len(_DESCRIPTION_TRIAL_ROW.findall(description)) != 1
+    ):
+        return None, "count-procedure-trial-declaration-missing", unit_column
+    return (
+        build_dependence_v2_authorization_lock(
+            case_id=case_id,
+            snapshot_digest=str(intake_row["expected_audit_snapshot_digest"]),
+            intake_recorded_at=intake_recorded_at,
+            procedure=procedure,
+            unit_column=unit_column,
+            input_path=input_path,
+            input_content_digest=str(intake_row["file_digests"][input_path]),
+        ),
+        "lock-minted",
+        unit_column,
+    )
+
+
 def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     if not config.requires_dependence_authority:
         raise LeanPipelineError("This envelope does not require a dependence authority step.")
@@ -1922,6 +1986,8 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
         raise LeanPipelineError("The authority step already has output.")
     if (authority_root / "locks").exists():
         raise LeanPipelineError("The authority freeze directory already exists.")
+    if config.dependence_v2_lock_line and (authority_root / "locks-v2").exists():
+        raise LeanPipelineError("The v2 authority freeze directory already exists.")
     _authoring_entry, protocol = _manifest_require(project_root, config, "authoring")
     _intake_entry, intake = _manifest_require(project_root, config, "intake")
     roles = {str(key): str(value) for key, value in protocol["case_role_assignments"].items()}
@@ -1929,6 +1995,7 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
     if set(intake_rows) != set(roles):
         raise LeanPipelineError("The authority step received a different admitted case set.")
     incoming_root = authority_root / "incoming"
+    v2_values: dict[str, dict[str, Any]] = {}
     if config.dependence_authority_from_description:
         description_path = config.authored_data_description_path
         if description_path is None or incoming_root.exists():
@@ -1967,6 +2034,27 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
                 "role_information_used": False,
                 "translated_at": _now(),
             }
+            if config.dependence_v2_lock_line:
+                v2_value, v2_reason, v2_column = _description_v2_authority_lock(
+                    case_id=case_id,
+                    case_root=case_root,
+                    intake_row=intake_rows[case_id],
+                    intake_recorded_at=str(intake["recorded_at"]),
+                    description_path=description_path,
+                    input_path=config.authored_input_csv_path,
+                )
+                translation.update(
+                    {
+                        "v2_lock_line": "dependence_semantic_v2_growth_2",
+                        "v2_declared_column": v2_column,
+                        "v2_translation_outcome": v2_reason,
+                        "v2_lock_digest": (
+                            v2_value.get("lock_digest") if v2_value is not None else None
+                        ),
+                    }
+                )
+                if v2_value is not None:
+                    v2_values[case_id] = v2_value
             _stamp_record_purpose(translation, config)
             translation["translation_digest"] = semantic_digest(translation)
             translation_path = authority_root / "translations" / f"{slug}.json"
@@ -2091,6 +2179,66 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
     for path, payload in frozen_payloads:
         path.parent.mkdir(parents=True, exist_ok=True)
         atomic_write_bytes(path, payload)
+    if config.dependence_v2_lock_line:
+        from sc_referee.dependence_recognition_v2.authority_lock import (
+            verify_dependence_v2_authorization_lock,
+        )
+
+        entries_by_case = {str(item["case_id"]): item for item in entries}
+        for case_id in sorted(roles):
+            entry = entries_by_case[case_id]
+            translation = translation_by_case.get(case_id, {})
+            entry["v2_lock_line"] = "dependence_semantic_v2_growth_2"
+            entry["v2_translation_outcome"] = translation.get(
+                "v2_translation_outcome",
+                "excluded-intake-refusal",
+            )
+            if case_id not in v2_values:
+                entry.update(
+                    {
+                        "v2_authority_state": "unresolved_or_withheld",
+                        "v2_frozen_lock_relative": None,
+                        "v2_lock_digest": None,
+                        "v2_approved_projection_digest": None,
+                    }
+                )
+                continue
+            slug = case_id.removeprefix("case:")
+            staged = authority_root / "incoming-v2" / f"{slug}.json"
+            write_normalized_json_once(staged, v2_values[case_id])
+            case_root = root / "authoring" / "cases" / slug
+            input_path = config.authored_input_csv_path
+            try:
+                with (case_root / input_path).open("r", encoding="utf-8", newline="") as handle:
+                    header = tuple(next(csv.reader(handle, strict=True)))
+            except (OSError, StopIteration, UnicodeDecodeError, csv.Error) as error:
+                raise LeanPipelineError("The v2 authority header cannot replay.") from error
+            verified_v2 = verify_dependence_v2_authorization_lock(
+                staged,
+                expected_case_id=case_id,
+                expected_snapshot_digest=str(
+                    intake_rows[case_id]["expected_audit_snapshot_digest"]
+                ),
+                expected_intake_recorded_at=str(intake["recorded_at"]),
+                material_input_digests={
+                    **dict(intake_rows[case_id]["file_digests"]),
+                    **dict(intake_rows[case_id].get("controller_material_file_digests", {})),
+                },
+                frozen_input_headers={input_path: header},
+                forbidden_role_markers=config.roles,
+            )
+            relative = Path("authority") / "locks-v2" / f"{slug}.json"
+            destination = root / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            atomic_write_bytes(destination, verified_v2.canonical_payload)
+            entry.update(
+                {
+                    "v2_authority_state": "authorized",
+                    "v2_frozen_lock_relative": relative.as_posix(),
+                    "v2_lock_digest": verified_v2.lock_digest,
+                    "v2_approved_projection_digest": verified_v2.approved_projection_digest,
+                }
+            )
     ledger: dict[str, Any] = {
         "artifact_kind": "lean_pipeline_dependence_authority_ledger",
         "ledger_version": "1.0.0",
@@ -3418,7 +3566,36 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 raise LeanPipelineError(f"The method-contract step emitted findings for {case_id}.")
             contract_lock = case_root / "contract" / "semantic.lock.json"
         development_v2_payloads: list[dict[str, Any]] = []
-        evaluation_observer = _dependence_v2_observer(config, development_v2_payloads)
+        v2_lock: Path | None = None
+        v2_authority_reason: str | None = None
+        if config.dependence_v2_development_shadow:
+            authority_entry = authority_entries.get(case_id)
+            if authority_entry is None:
+                raise LeanPipelineError("The v2 shadow has no authority-ledger entry.")
+            v2_relative = authority_entry.get("v2_frozen_lock_relative")
+            if isinstance(v2_relative, str):
+                expected_v2_relative = f"authority/locks-v2/{slug}.json"
+                if v2_relative != expected_v2_relative:
+                    raise LeanPipelineError("A v2 lock path is outside its opaque case key.")
+                v2_lock = root / v2_relative
+            else:
+                outcome = authority_entry.get("v2_translation_outcome")
+                if isinstance(outcome, str) and outcome in {
+                    "count-procedure-trial-declaration-missing",
+                }:
+                    v2_authority_reason = outcome
+        evaluation_observer = _dependence_v2_observer(
+            config,
+            development_v2_payloads,
+            lock_path=v2_lock,
+            expected_case_id=case_id,
+            expected_intake_recorded_at=(
+                str(authority_ledger["intake_recorded_at"])
+                if authority_ledger is not None
+                else None
+            ),
+            authority_refusal_reason=v2_authority_reason,
+        )
 
         try:
             bundle = run_audit(
@@ -3656,7 +3833,13 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
 
 
 def _dependence_v2_observer(
-    config: EnvelopeConfig, payloads: list[dict[str, Any]]
+    config: EnvelopeConfig,
+    payloads: list[dict[str, Any]],
+    *,
+    lock_path: Path | None = None,
+    expected_case_id: str | None = None,
+    expected_intake_recorded_at: str | None = None,
+    authority_refusal_reason: str | None = None,
 ) -> Callable[[Any], None] | None:
     """Construct the opt-in evaluation observer without exposing v2 to production."""
 
@@ -3673,6 +3856,22 @@ def _dependence_v2_observer(
     adapter = DependenceRecognitionV2ShadowAdapter()
 
     def observe(context: Any) -> None:
+        if authority_refusal_reason is not None:
+            payloads.append(adapter.controller_abstention(authority_refusal_reason))
+            return
+        if lock_path is not None:
+            if expected_case_id is None or expected_intake_recorded_at is None:
+                raise LeanPipelineError("The v2 lock lacks its frozen case bindings.")
+            from sc_referee.dependence_recognition_v2.authority_lock import (
+                apply_dependence_v2_authorization_lock,
+            )
+
+            context = apply_dependence_v2_authorization_lock(
+                context,
+                lock_path,
+                expected_case_id=expected_case_id,
+                expected_intake_recorded_at=expected_intake_recorded_at,
+            )
         payloads.append(adapter.inspect(context))
 
     return observe

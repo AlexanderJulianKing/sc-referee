@@ -1,4 +1,4 @@
-"""Unregistered development-only shadow adapter for dependence growth-1."""
+"""Unregistered development-only shadow adapter for dependence growth-1/2."""
 
 from __future__ import annotations
 
@@ -7,7 +7,10 @@ from pathlib import Path
 from typing import Any
 
 from sc_referee.core.ids import semantic_digest, sha256_digest
-from sc_referee.dependence_recognition_v2.ir import require_registered_v2_reason
+from sc_referee.dependence_recognition_v2.ir import (
+    VerifiedCountDependenceCertificate,
+    require_registered_v2_reason,
+)
 from sc_referee.dependence_recognition_v2.python_analyzer import (
     analyze_dependence_growth_python,
     discharge_dependence_growth_analysis,
@@ -20,7 +23,9 @@ _EXPERIMENT = "docs/implementation/EXPERIMENT-0060-DEPENDENCE-SEMANTIC-V2-GROWTH
 DEPENDENCE_V2_PACKAGE_FILES = (
     "__init__.py",
     "adapter.py",
+    "authority_lock.py",
     "certificate.py",
+    "count_domain.py",
     "csv_domain.py",
     "ir.py",
     "python_analyzer.py",
@@ -45,11 +50,17 @@ class DependenceRecognitionV2ShadowAdapter:
     """Inspect one frozen context; every uncertainty is non-accusatory."""
 
     adapter_id: str = "dependence-recognition-semantic-v2-growth-shadow"
-    adapter_version: str = "2.0.0-development"
+    adapter_version: str = "2.1.0-development"
 
-    def inspect(self, context: FrozenInspectionContext) -> dict[str, Any]:
+    def controller_abstention(self, reason: str) -> dict[str, Any]:
+        """Project one closed controller-side v2 authority refusal."""
+
+        common = self._common_payload()
+        return {**common, **self._abstention((reason,))}
+
+    def _common_payload(self) -> dict[str, Any]:
         closure = dependence_v2_dependency_closure()
-        common = {
+        return {
             "record_type": "dependence_recognition_v2_shadow_result",
             "schema_version": "2.0.0-development",
             "adapter_id": self.adapter_id,
@@ -60,6 +71,9 @@ class DependenceRecognitionV2ShadowAdapter:
             "report_only": True,
             "production_finding_permitted": False,
         }
+
+    def inspect(self, context: FrozenInspectionContext) -> dict[str, Any]:
+        common = self._common_payload()
         try:
             analysis = analyze_dependence_growth_python(context)
             discharged = discharge_dependence_growth_analysis(analysis, context)
@@ -77,16 +91,67 @@ class DependenceRecognitionV2ShadowAdapter:
         verified = discharged.verified_certificate
         if discharged.state != "verified" or verified is None:
             return {**common, **self._abstention(discharged.abstention_reasons)}
-        fact = verified.fact
+        if isinstance(verified, VerifiedCountDependenceCertificate):
+            fact = verified.fact
+            projection = {
+                "source_path": verified.source_path,
+                "source_digest": verified.source_digest,
+                "resolved_callable": verified.resolved_callable,
+                "input_path": fact.path,
+                "input_content_digest": fact.content_digest,
+                "authorized_unit_column": fact.authorized_unit_column,
+                "count_operands": [
+                    {
+                        "operand_id": item.operand_id,
+                        "position": item.position,
+                        "cardinality": item.cardinality,
+                        "row_indices": list(item.row_indices),
+                    }
+                    for item in fact.operands
+                ],
+                "certificate_id": verified.certificate_id,
+            }
+            if verified.conclusion == "repeated_units":
+                reason = (
+                    "repeated-unit-rows-counted-as-independent-binomtest-trials"
+                    if verified.resolved_callable == "scipy.stats.binomtest"
+                    else "repeated-unit-rows-enter-independent-fisher-cells"
+                )
+                return {
+                    **common,
+                    "payload_type": "shadow_candidate",
+                    "outcome": "evaluation_candidate",
+                    "reason_code": reason,
+                    "wording": (
+                        "Static code counts repeated-unit rows as independent trials in "
+                        "the binomtest n operand."
+                        if verified.resolved_callable == "scipy.stats.binomtest"
+                        else "Static code enters repeated-unit rows as independent "
+                        "cross-classified observations in the fisher_exact table."
+                    ),
+                    "abstention_reasons": [],
+                    "repeated_unit_ids": list(verified.repeated_unit_ids),
+                    "payload": projection,
+                }
+            return {
+                **common,
+                "payload_type": "coverage_note",
+                "outcome": "covered_negative",
+                "reason_code": "one-row-per-unit-in-proven-count-sets",
+                "abstention_reasons": [],
+                "repeated_unit_ids": [],
+                "payload": projection,
+            }
+        group_fact = verified.fact
         projection = {
             "source_path": verified.source_path,
             "source_digest": verified.source_digest,
             "resolved_callable": verified.resolved_callable,
-            "input_path": fact.path,
-            "input_content_digest": fact.content_digest,
-            "authorized_unit_column": fact.authorized_unit_column,
-            "group_key_column": fact.group_key_column,
-            "value_column": fact.value_column,
+            "input_path": group_fact.path,
+            "input_content_digest": group_fact.content_digest,
+            "authorized_unit_column": group_fact.authorized_unit_column,
+            "group_key_column": group_fact.group_key_column,
+            "value_column": group_fact.value_column,
             "bound_group_keys": [item.group_key for item in verified.operand_bindings],
             "certificate_id": verified.certificate_id,
         }

@@ -10,16 +10,23 @@ from __future__ import annotations
 
 import ast
 import copy
+import json
+import posixpath
 import re
 from collections import Counter
-from dataclasses import asdict, replace
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 from sc_referee.core.ids import semantic_digest
+from sc_referee.dependence_recognition.ir import HumanMethodAuthorization
 from sc_referee.dependence_recognition.python_analyzer import _trusted_authorizations
 from sc_referee.dependence_recognition_v2.certificate import (
+    verify_count_dependence_certificate,
     verify_dependence_growth_certificate,
+)
+from sc_referee.dependence_recognition_v2.count_domain import (
+    prove_count_procedure_domain_with_reason,
 )
 from sc_referee.dependence_recognition_v2.csv_domain import (
     prove_group_value_sequences_with_reason,
@@ -30,12 +37,19 @@ from sc_referee.dependence_recognition_v2.ir import (
     MAX_V2_SOURCE_BYTES,
     AlphaRename,
     CastKind,
+    CountDependenceCertificate,
+    CountGroupDomainObligation,
+    CountOperandObligation,
+    CountPredicateAtom,
+    CountProcedureObligation,
+    CountSetProof,
     DependenceGrowthCertificate,
     DischargedGrowthAnalysis,
     GroupValueSequenceObligation,
     GrowthAnalysis,
     GrowthConclusion,
     OperandGroupBinding,
+    VerifiedCountDependenceCertificate,
     require_registered_v2_reason,
 )
 from sc_referee.scientific_checks.core import FrozenInspectionContext
@@ -43,14 +57,34 @@ from sc_referee.scientific_checks.core import FrozenInspectionContext
 _REGISTERED = {
     "scipy.stats.ttest_ind": 2,
     "scipy.stats.mannwhitneyu": 2,
+    "scipy.stats.binomtest": 2,
+    "scipy.stats.fisher_exact": 1,
 }
-_BUILTINS = frozenset({"list", "set", "float", "int", "sorted", "str", "len", "range", "enumerate"})
+_COUNT_PROCEDURES = frozenset({"scipy.stats.binomtest", "scipy.stats.fisher_exact"})
+_BUILTINS = frozenset(
+    {"list", "set", "float", "int", "sorted", "str", "len", "sum", "range", "enumerate"}
+)
 _SCIPY_PIN = re.compile(r"(?m)^\s*scipy\s*==\s*1\.14\.0\s*(?:#.*)?$")
 
 
 class _Refusal(Exception):
     def __init__(self, *reasons: str) -> None:
         self.reasons = tuple(require_registered_v2_reason(reason) for reason in reasons)
+
+
+@dataclass(frozen=True)
+class _CountDomain:
+    kind: str
+    atoms: tuple[CountPredicateAtom, ...]
+    depth: int = 0
+
+
+@dataclass(frozen=True)
+class _CountDerivation:
+    name: str
+    domain: _CountDomain
+    predicates: tuple[CountPredicateAtom, ...]
+    node: ast.AST
 
 
 def analyze_dependence_growth_python(context: FrozenInspectionContext) -> GrowthAnalysis:
@@ -71,7 +105,7 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
     if sum(1 for _ in ast.walk(tree)) > MAX_V2_AST_NODES:
         return _unsupported("ast-node-ceiling")
 
-    authorities = _trusted_authorizations(context)
+    authorities = _trusted_v2_authorizations(context)
     if len(authorities) != 1:
         return GrowthAnalysis(
             state="question",
@@ -97,7 +131,7 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
 
     try:
         imports, constants, functions, executable = _module_parts(tree)
-        _validate_import_uses(tree, imports)
+        _validate_import_uses(tree, imports, constants)
         flattened, renames, dead = _flatten_functions(executable, functions, constants, imports)
     except _Refusal as refusal:
         reasons.update(refusal.reasons)
@@ -106,11 +140,31 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
         return _unsupported(*reasons)
 
     reasons.update(_independent_wall_scan(tree))
+    if _count_procedure_present(flattened, imports):
+        try:
+            proposal = _analyze_count_proposal(
+                document_path=document.path,
+                document_digest=document.content_digest,
+                source_length=len(document.content),
+                body=flattened,
+                imports=imports,
+                constants=constants,
+                authority=authority,
+                renames=tuple(renames),
+                dead=tuple(sorted(dead)),
+                expected_result_path=_trusted_result_path(context),
+            )
+        except _Refusal as refusal:
+            reasons.update(refusal.reasons)
+            return _unsupported(*reasons)
+        if reasons:
+            return _unsupported(*reasons)
+        return proposal
     try:
         read = _recognize_reader(flattened, constants)
         grouping = _recognize_grouping(flattened, read[0], constants)
         procedure = _recognize_procedure(flattened, imports, grouping[0], constants)
-        sink = _recognize_sink(flattened, procedure[2], constants)
+        sink = _recognize_sink(flattened, procedure[2], constants, _trusted_result_path(context))
         _verify_closed_flattened_statements(
             flattened,
             rows_name=read[0],
@@ -187,6 +241,10 @@ def discharge_dependence_growth_analysis(
             basis=analysis.basis,
         )
     certificate = analysis.certificate
+    if isinstance(certificate, CountDependenceCertificate):
+        return _discharge_count_analysis(analysis, certificate, context)
+    assert isinstance(certificate, DependenceGrowthCertificate)
+    assert isinstance(analysis.obligation, GroupValueSequenceObligation)
     materials = [
         item
         for item in context.material_inputs
@@ -248,7 +306,7 @@ def discharge_dependence_growth_analysis(
     verified = verify_dependence_growth_certificate(
         certificate,
         trusted_group_facts=(fact,),
-        trusted_authorizations=_trusted_authorizations(context),
+        trusted_authorizations=_trusted_v2_authorizations(context),
         source_bytes=source_matches[0].content,
         _failure_reasons=kernel_failures,
     )
@@ -261,6 +319,703 @@ def discharge_dependence_growth_analysis(
         abstention_reasons=(),
         candidate_key_columns=analysis.candidate_key_columns,
         basis="The trusted group fact and growth certificate kernel discharged every equation.",
+    )
+
+
+def _count_procedure_present(body: list[ast.stmt], imports: dict[str, str]) -> bool:
+    return any(
+        isinstance(node, ast.Call) and _resolved_procedure(node.func, imports) in _COUNT_PROCEDURES
+        for statement in body
+        for node in ast.walk(statement)
+    )
+
+
+def _trusted_v2_authorizations(
+    context: FrozenInspectionContext,
+) -> tuple[HumanMethodAuthorization, ...]:
+    """Select the distinct v2 lock line without accepting arbitrary extra authority."""
+
+    authorities = _trusted_authorizations(context)
+    return tuple(item for item in authorities if item.record_id.startswith("authorization-v2:"))
+
+
+def _trusted_result_path(context: FrozenInspectionContext) -> str | None:
+    paths: list[tuple[str, str]] = []
+    for record in context.base_records:
+        if record.ref.record_type != "result":
+            continue
+        try:
+            value = json.loads(record.canonical_payload)
+        except (TypeError, ValueError):
+            return None
+        if isinstance(value, dict) and isinstance(value.get("path"), str):
+            paths.append((record.ref.record_id, value["path"]))
+    v2_paths = [path for record_id, path in paths if record_id.startswith("result-v2:")]
+    if v2_paths:
+        return v2_paths[0] if len(v2_paths) == 1 else None
+    return paths[0][1] if len(paths) == 1 else None
+
+
+def _analyze_count_proposal(
+    *,
+    document_path: str,
+    document_digest: str,
+    source_length: int,
+    body: list[ast.stmt],
+    imports: dict[str, str],
+    constants: dict[str, ast.Constant],
+    authority: HumanMethodAuthorization,
+    renames: tuple[AlphaRename, ...],
+    dead: tuple[str, ...],
+    expected_result_path: str | None,
+) -> GrowthAnalysis:
+    read = _recognize_reader(body, constants)
+    rows_name = read[0]
+    domains, group_domains = _count_row_domains(body, rows_name, constants)
+    derivations = _count_derivations(body, domains, constants)
+    matches = [
+        (statement, statement.value, _resolved_procedure(statement.value.func, imports))
+        for statement in body
+        if isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and isinstance(statement.value, ast.Call)
+        and _resolved_procedure(statement.value.func, imports) in _COUNT_PROCEDURES
+    ]
+    if len(matches) != 1:
+        raise _Refusal("procedure-call-unresolved")
+    statement, call, resolved_value = matches[0]
+    assert isinstance(statement.targets[0], ast.Name)
+    assert isinstance(resolved_value, str)
+    resolved = cast(Literal["scipy.stats.binomtest", "scipy.stats.fisher_exact"], resolved_value)
+    operands = _count_call_operands(call, resolved, derivations, body)
+    result_name = statement.targets[0].id
+    sink = _recognize_sink(body, result_name, constants, expected_result_path)
+    _verify_closed_count_statements(
+        body,
+        rows_name=rows_name,
+        domains=domains,
+        derivations=derivations,
+        procedure_statement=statement,
+        sink=sink,
+        constants=constants,
+    )
+    obligation = CountProcedureObligation(
+        path=read[1],
+        content_digest=authority.input_content_digest,
+        line_model=read[3],
+        reader_form=read[4],
+        encoding=read[2],
+        result_path=cast(str, expected_result_path),
+        authorized_unit_column=authority.authorized_key_columns[0],
+        resolved_callable=resolved,
+        operands=operands,
+        universe_atoms=_count_universe_atoms(operands, resolved),
+        group_domains=group_domains,
+    )
+    certificate = CountDependenceCertificate(
+        certificate_id="pending-controller-domain-proof",
+        source_path=document_path,
+        source_digest=document_digest,
+        source_extent=(0, source_length),
+        analysis_target_ref=authority.analysis_target_ref,
+        procedure_ref=authority.procedure_ref,
+        authority_record_id=authority.record_id,
+        independent_unit_definition_id=authority.independent_unit_definition_id,
+        obligation=obligation,
+        resolved_callable=resolved,
+        procedure_call_token=_node_token(document_path, call, "procedure-call"),
+        result_name=result_name,
+        sink_token=_node_token(document_path, sink, "selected-sink"),
+        alpha_renames=renames,
+        dead_syntactic_construct_tokens=dead,
+        conclusion="one_observation_per_unit",
+    )
+    return GrowthAnalysis(
+        state="proposal",
+        certificate=certificate,
+        obligation=obligation,
+        abstention_reasons=(),
+        candidate_key_columns=authority.authorized_key_columns,
+        basis="The bounded growth-2 symbolic count grammar proposed a frozen-row proof.",
+    )
+
+
+def _count_row_domains(
+    body: list[ast.stmt], rows_name: str, constants: dict[str, ast.Constant]
+) -> tuple[dict[str, _CountDomain], tuple[CountGroupDomainObligation, ...]]:
+    domains: dict[str, _CountDomain] = {rows_name: _CountDomain("rows", ())}
+    group_domains: list[CountGroupDomainObligation] = []
+    for statement in body:
+        if not (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and isinstance(statement.value, ast.ListComp)
+        ):
+            continue
+        comprehension = statement.value
+        if (
+            len(comprehension.generators) != 1
+            or comprehension.generators[0].is_async
+            or len(comprehension.generators[0].ifs) != 1
+            or not isinstance(comprehension.generators[0].target, ast.Name)
+            or not isinstance(comprehension.elt, ast.Name)
+            or comprehension.elt.id != comprehension.generators[0].target.id
+        ):
+            raise _Refusal("count-domain-not-row-bound")
+        source = _count_domain_expression(comprehension.generators[0].iter, domains, constants)
+        if source is None or source.depth != 0:
+            raise _Refusal("count-domain-not-row-bound")
+        atoms = _count_predicate(
+            comprehension.generators[0].ifs[0], comprehension.generators[0].target.id
+        )
+        domains[statement.targets[0].id] = _CountDomain("filtered_rows", (*source.atoms, *atoms), 1)
+
+    group_loops = [
+        statement
+        for statement in body
+        if isinstance(statement, ast.For)
+        and isinstance(statement.iter, ast.Name)
+        and statement.iter.id == rows_name
+        and isinstance(statement.target, ast.Name)
+        and len(statement.body) == 1
+        and isinstance(statement.body[0], ast.Expr)
+        and isinstance(statement.body[0].value, ast.Call)
+        and isinstance(statement.body[0].value.func, ast.Attribute)
+        and statement.body[0].value.func.attr == "append"
+    ]
+    for loop in group_loops:
+        call = cast(ast.Call, cast(ast.Expr, loop.body[0]).value)
+        row_name = cast(ast.Name, loop.target).id
+        if (
+            len(call.args) != 1
+            or call.keywords
+            or not isinstance(call.args[0], ast.Name)
+            or call.args[0].id != row_name
+            or not isinstance(call.func, ast.Attribute)
+            or not isinstance(call.func.value, ast.Subscript)
+            or not isinstance(call.func.value.value, ast.Name)
+        ):
+            continue
+        group_name = call.func.value.value.id
+        column = _row_subscript(call.func.value.slice, row_name)
+        if column is None:
+            raise _Refusal("count-domain-not-row-bound")
+        declarations = [
+            item.value
+            for item in body
+            if isinstance(item, ast.Assign)
+            and len(item.targets) == 1
+            and isinstance(item.targets[0], ast.Name)
+            and item.targets[0].id == group_name
+            and isinstance(item.value, ast.Dict)
+            and item.value.keys
+            and all(
+                isinstance(key, ast.Constant)
+                and isinstance(key.value, str)
+                and isinstance(value, ast.List)
+                and not value.elts
+                for key, value in zip(item.value.keys, item.value.values, strict=True)
+            )
+        ]
+        if len(declarations) != 1:
+            raise _Refusal("count-domain-not-row-bound")
+        domains[f"__group__:{group_name}:{column}"] = _CountDomain("group_rows", ())
+        declaration = declarations[0]
+        assert isinstance(declaration, ast.Dict)
+        group_domains.append(
+            CountGroupDomainObligation(
+                group_key_column=column,
+                predeclared_bucket_keys=tuple(
+                    cast(str, cast(ast.Constant, key).value) for key in declaration.keys
+                ),
+            )
+        )
+    return domains, tuple(sorted(group_domains))
+
+
+def _count_domain_expression(
+    expression: ast.expr,
+    domains: dict[str, _CountDomain],
+    constants: dict[str, ast.Constant],
+) -> _CountDomain | None:
+    if isinstance(expression, ast.Name):
+        return domains.get(expression.id)
+    if isinstance(expression, ast.Subscript) and isinstance(expression.value, ast.Name):
+        key = _constant_string(expression.slice, constants)
+        candidates = [
+            (token, domain)
+            for token, domain in domains.items()
+            if token.startswith(f"__group__:{expression.value.id}:")
+        ]
+        if key is None or len(candidates) != 1:
+            return None
+        token, domain = candidates[0]
+        column = token.rsplit(":", 1)[1]
+        return _CountDomain(
+            domain.kind,
+            (CountPredicateAtom(column=column, operator="eq", literal=key),),
+        )
+    return None
+
+
+def _count_derivations(
+    body: list[ast.stmt],
+    domains: dict[str, _CountDomain],
+    constants: dict[str, ast.Constant],
+) -> dict[str, _CountDerivation]:
+    derivations: dict[str, _CountDerivation] = {}
+    for statement in body:
+        if not (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+        ):
+            continue
+        name = statement.targets[0].id
+        derived = _count_expression(statement.value, name, domains, constants)
+        if derived is not None:
+            derivations[name] = replace(derived, node=statement)
+
+    increment_sites: dict[str, list[ast.AugAssign]] = {}
+    for statement in body:
+        if not isinstance(statement, ast.For):
+            continue
+        for node in ast.walk(statement):
+            if (
+                isinstance(node, ast.AugAssign)
+                and isinstance(node.target, ast.Name)
+                and isinstance(node.op, ast.Add)
+            ):
+                increment_sites.setdefault(node.target.id, []).append(node)
+    if any(len(sites) > 1 for sites in increment_sites.values()):
+        raise _Refusal("count-multiple-increment-sites")
+    for name, sites in increment_sites.items():
+        initializers = [
+            statement
+            for statement in body
+            if isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and statement.targets[0].id == name
+            and isinstance(statement.value, ast.Constant)
+            and type(statement.value.value) is int
+            and statement.value.value == 0
+        ]
+        loop = next(
+            (
+                statement
+                for statement in body
+                if isinstance(statement, ast.For) and sites[0] in set(ast.walk(statement))
+            ),
+            None,
+        )
+        if len(initializers) != 1 or loop is None:
+            raise _Refusal("count-increment-not-total")
+        derived = _count_increment_loop(name, loop, domains, constants)
+        derivations[name] = replace(derived, node=loop)
+    return derivations
+
+
+def _count_expression(
+    expression: ast.expr,
+    name: str,
+    domains: dict[str, _CountDomain],
+    constants: dict[str, ast.Constant],
+) -> _CountDerivation | None:
+    if (
+        isinstance(expression, ast.Call)
+        and isinstance(expression.func, ast.Name)
+        and expression.func.id == "len"
+        and len(expression.args) == 1
+        and not expression.keywords
+    ):
+        domain = _count_domain_expression(expression.args[0], domains, constants)
+        if domain is None:
+            raise _Refusal("count-domain-not-row-bound")
+        return _CountDerivation(name, domain, (), expression)
+    if not (
+        isinstance(expression, ast.Call)
+        and isinstance(expression.func, ast.Name)
+        and expression.func.id == "sum"
+        and len(expression.args) == 1
+        and not expression.keywords
+        and isinstance(expression.args[0], ast.GeneratorExp)
+    ):
+        return None
+    generator = expression.args[0]
+    if (
+        not isinstance(generator.elt, ast.Constant)
+        or type(generator.elt.value) is not int
+        or generator.elt.value != 1
+        or len(generator.generators) != 1
+        or generator.generators[0].is_async
+        or len(generator.generators[0].ifs) > 1
+        or not isinstance(generator.generators[0].target, ast.Name)
+    ):
+        raise _Refusal("count-increment-not-total")
+    domain = _count_domain_expression(generator.generators[0].iter, domains, constants)
+    if domain is None:
+        raise _Refusal("count-domain-not-row-bound")
+    predicates = (
+        _count_predicate(generator.generators[0].ifs[0], generator.generators[0].target.id)
+        if generator.generators[0].ifs
+        else ()
+    )
+    return _CountDerivation(name, domain, predicates, expression)
+
+
+def _count_increment_loop(
+    name: str,
+    loop: ast.For,
+    domains: dict[str, _CountDomain],
+    constants: dict[str, ast.Constant],
+) -> _CountDerivation:
+    if (
+        loop.orelse
+        or not isinstance(loop.target, ast.Name)
+        or len(loop.body) != 1
+        or not isinstance(loop.body[0], ast.If)
+        or loop.body[0].orelse
+        or len(loop.body[0].body) != 1
+        or not isinstance(loop.body[0].body[0], ast.AugAssign)
+    ):
+        raise _Refusal("count-increment-not-total")
+    increment = loop.body[0].body[0]
+    if not (
+        isinstance(increment.target, ast.Name)
+        and increment.target.id == name
+        and isinstance(increment.op, ast.Add)
+        and isinstance(increment.value, ast.Constant)
+        and type(increment.value.value) is int
+        and increment.value.value == 1
+    ):
+        raise _Refusal("count-increment-not-total")
+    domain = _count_domain_expression(loop.iter, domains, constants)
+    if domain is None:
+        raise _Refusal("count-domain-not-row-bound")
+    return _CountDerivation(
+        name,
+        domain,
+        _count_predicate(loop.body[0].test, loop.target.id),
+        loop,
+    )
+
+
+def _count_predicate(expression: ast.expr, row_name: str) -> tuple[CountPredicateAtom, ...]:
+    parts = (
+        expression.values
+        if isinstance(expression, ast.BoolOp) and isinstance(expression.op, ast.And)
+        else [expression]
+    )
+    atoms: list[CountPredicateAtom] = []
+    for part in parts:
+        if not (
+            isinstance(part, ast.Compare)
+            and len(part.ops) == len(part.comparators) == 1
+            and isinstance(part.ops[0], ast.Eq | ast.NotEq)
+        ):
+            raise _Refusal("count-predicate-not-closed")
+        column = _row_subscript(part.left, row_name)
+        literal = part.comparators[0]
+        if column is None:
+            raise _Refusal("count-predicate-not-closed")
+        if not isinstance(literal, ast.Constant) or not isinstance(literal.value, str):
+            if isinstance(literal, ast.Constant):
+                raise _Refusal("count-predicate-literal-not-string")
+            raise _Refusal("count-predicate-not-closed")
+        atoms.append(
+            CountPredicateAtom(
+                column=column,
+                operator="eq" if isinstance(part.ops[0], ast.Eq) else "ne",
+                literal=literal.value,
+            )
+        )
+    return tuple(atoms)
+
+
+def _count_call_operands(
+    call: ast.Call,
+    resolved: Literal["scipy.stats.binomtest", "scipy.stats.fisher_exact"],
+    derivations: dict[str, _CountDerivation],
+    body: list[ast.stmt],
+) -> tuple[CountOperandObligation, ...]:
+    keywords = {item.arg: item.value for item in call.keywords if item.arg is not None}
+    if len(keywords) != len(call.keywords):
+        raise _Refusal("procedure-call-unresolved")
+    alternative = keywords.pop("alternative", None)
+    if alternative is not None and not (
+        isinstance(alternative, ast.Constant) and alternative.value == "two-sided"
+    ):
+        raise _Refusal("procedure-alternative-not-default")
+    if resolved == "scipy.stats.binomtest":
+        if len(call.args) not in {2, 3} or set(keywords) - {"p"}:
+            raise _Refusal("procedure-call-unresolved")
+        if len(call.args) == 3 and "p" in keywords:
+            raise _Refusal("procedure-call-unresolved")
+        p_value = call.args[2] if len(call.args) == 3 else keywords.get("p")
+        if p_value is not None and not _numeric_constant(p_value):
+            raise _Refusal("procedure-call-unresolved")
+        expressions = call.args[:2]
+    else:
+        if len(call.args) != 1 or keywords:
+            raise _Refusal("procedure-call-unresolved")
+        table = call.args[0]
+        if isinstance(table, ast.Name):
+            assignments = [
+                statement.value
+                for statement in body
+                if isinstance(statement, ast.Assign)
+                and len(statement.targets) == 1
+                and isinstance(statement.targets[0], ast.Name)
+                and statement.targets[0].id == table.id
+            ]
+            table = assignments[0] if len(assignments) == 1 else table
+        if not (
+            isinstance(table, ast.List)
+            and len(table.elts) == 2
+            and all(isinstance(row, ast.List) and len(row.elts) == 2 for row in table.elts)
+        ):
+            raise _Refusal("count-cells-not-partition")
+        expressions = [cell for row in table.elts if isinstance(row, ast.List) for cell in row.elts]
+    operands: list[CountOperandObligation] = []
+    for position, expression in enumerate(expressions):
+        if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.Sub):
+            raise _Refusal("count-cell-derived-by-arithmetic")
+        if not isinstance(expression, ast.Name) or expression.id not in derivations:
+            raise _Refusal("count-domain-not-row-bound")
+        derivation = derivations[expression.id]
+        operands.append(
+            CountOperandObligation(
+                operand_id=expression.id,
+                position=position,
+                domain_kind=cast(Any, derivation.domain.kind),
+                domain_atoms=derivation.domain.atoms,
+                predicate_atoms=derivation.predicates,
+            )
+        )
+    return tuple(operands)
+
+
+def _count_universe_atoms(
+    operands: tuple[CountOperandObligation, ...],
+    resolved: Literal["scipy.stats.binomtest", "scipy.stats.fisher_exact"],
+) -> tuple[CountPredicateAtom, ...]:
+    if resolved == "scipy.stats.binomtest":
+        return operands[1].domain_atoms
+    common = set(operands[0].domain_atoms)
+    for operand in operands[1:]:
+        common.intersection_update(operand.domain_atoms)
+    return tuple(atom for atom in operands[0].domain_atoms if atom in common)
+
+
+def _numeric_constant(expression: ast.expr) -> bool:
+    return isinstance(expression, ast.Constant) and type(expression.value) in {int, float}
+
+
+def _constant_string(expression: ast.expr, constants: dict[str, ast.Constant]) -> str | None:
+    if isinstance(expression, ast.Constant) and isinstance(expression.value, str):
+        return expression.value
+    if isinstance(expression, ast.Name) and expression.id in constants:
+        value = constants[expression.id].value
+        return value if isinstance(value, str) else None
+    return None
+
+
+def _verify_closed_count_statements(
+    body: list[ast.stmt],
+    *,
+    rows_name: str,
+    domains: dict[str, _CountDomain],
+    derivations: dict[str, _CountDerivation],
+    procedure_statement: ast.Assign,
+    sink: ast.Call,
+    constants: dict[str, ast.Constant],
+) -> None:
+    allowed_count_nodes = {id(item.node) for item in derivations.values()}
+    for statement in body:
+        if statement is procedure_statement:
+            continue
+        if isinstance(statement, ast.With):
+            continue
+        if isinstance(statement, ast.Expr) and statement.value is sink:
+            continue
+        if isinstance(statement, ast.Expr) and _closed_makedirs_call(statement.value, constants):
+            continue
+        if id(statement) in allowed_count_nodes:
+            continue
+        if isinstance(statement, ast.Assign):
+            if (
+                len(statement.targets) == 1
+                and isinstance(statement.targets[0], ast.Name)
+                and statement.targets[0].id == rows_name
+            ):
+                continue
+            if (
+                len(statement.targets) == 1
+                and isinstance(statement.targets[0], ast.Name)
+                and statement.targets[0].id in domains
+            ):
+                continue
+            if (
+                len(statement.targets) == 1
+                and isinstance(statement.targets[0], ast.Name)
+                and isinstance(statement.value, ast.Dict)
+                and statement.value.keys
+                and all(
+                    isinstance(key, ast.Constant)
+                    and isinstance(key.value, str)
+                    and isinstance(value, ast.List)
+                    and not value.elts
+                    for key, value in zip(statement.value.keys, statement.value.values, strict=True)
+                )
+                and any(
+                    token.startswith(f"__group__:{statement.targets[0].id}:") for token in domains
+                )
+            ):
+                continue
+            if isinstance(statement.value, ast.List) and any(
+                isinstance(node, ast.Name) and node.id in derivations
+                for node in ast.walk(statement.value)
+            ):
+                continue
+            if (
+                len(statement.targets) == 1
+                and isinstance(statement.targets[0], ast.Name)
+                and isinstance(statement.value, ast.Constant)
+                and statement.targets[0].id in derivations
+            ):
+                continue
+        if isinstance(statement, ast.For):
+            if any(id(node) in allowed_count_nodes for node in ast.walk(statement)):
+                continue
+            if _closed_count_group_loop(statement, rows_name, domains):
+                continue
+        kind = _unmodeled_statement_kind(statement)
+        raise _Refusal(f"noninterference-unproven:{kind}")
+
+
+def _closed_count_group_loop(
+    statement: ast.For, rows_name: str, domains: dict[str, _CountDomain]
+) -> bool:
+    if not (
+        isinstance(statement.target, ast.Name)
+        and isinstance(statement.iter, ast.Name)
+        and statement.iter.id == rows_name
+        and not statement.orelse
+        and len(statement.body) == 1
+        and isinstance(statement.body[0], ast.Expr)
+        and isinstance(statement.body[0].value, ast.Call)
+    ):
+        return False
+    call = statement.body[0].value
+    return bool(
+        isinstance(call.func, ast.Attribute)
+        and call.func.attr == "append"
+        and len(call.args) == 1
+        and not call.keywords
+        and isinstance(call.args[0], ast.Name)
+        and call.args[0].id == statement.target.id
+        and isinstance(call.func.value, ast.Subscript)
+        and isinstance(call.func.value.value, ast.Name)
+        and (column := _row_subscript(call.func.value.slice, statement.target.id)) is not None
+        and f"__group__:{call.func.value.value.id}:{column}" in domains
+    )
+
+
+def _unmodeled_statement_kind(statement: ast.stmt) -> str:
+    if isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Call):
+        return "attribute-call" if isinstance(statement.value.func, ast.Attribute) else "name-call"
+    if isinstance(statement, ast.Assign):
+        return "alias-assignment" if isinstance(statement.value, ast.Name) else "assignment"
+    return "statement"
+
+
+def _discharge_count_analysis(
+    analysis: GrowthAnalysis,
+    certificate: CountDependenceCertificate,
+    context: FrozenInspectionContext,
+) -> DischargedGrowthAnalysis:
+    obligation = certificate.obligation
+    materials = [
+        item
+        for item in context.material_inputs
+        if item.path == obligation.path and item.content_digest == obligation.content_digest
+    ]
+    if len(materials) != 1:
+        return _discharged_unsupported("group-domain-binding-mismatch")
+    fact, reason = prove_count_procedure_domain_with_reason(materials[0], obligation=obligation)
+    if fact is None:
+        return _discharged_unsupported(reason or "group-domain-unproven")
+    if any(not operand.row_indices for operand in fact.operands):
+        return _discharged_unsupported("count-set-degenerate")
+    by_position = {item.position: item for item in fact.operands}
+    relevant: tuple[CountSetProof, ...]
+    if certificate.resolved_callable == "scipy.stats.binomtest":
+        if not set(by_position[0].row_indices) <= set(by_position[1].row_indices):
+            return _discharged_unsupported("count-success-not-subset")
+        relevant = (by_position[1],)
+    else:
+        sets = [set(by_position[position].row_indices) for position in range(4)]
+        if any(
+            left & right for index, left in enumerate(sets) for right in sets[index + 1 :]
+        ) or set().union(*sets) != set(fact.universe_row_indices):
+            return _discharged_unsupported("count-cells-not-partition")
+        unit_cells: dict[str, set[int]] = {}
+        for proof in fact.operands:
+            for unit in proof.authorized_unit_ids:
+                unit_cells.setdefault(unit, set()).add(proof.position)
+        if any(len(cells) > 1 for cells in unit_cells.values()):
+            return _discharged_unsupported("unit-spans-multiple-cells")
+        relevant = tuple(fact.operands)
+    repeated = {
+        unit
+        for proof in relevant
+        for unit, count in Counter(proof.authorized_unit_ids).items()
+        if count > 1
+    }
+    conclusion: GrowthConclusion = "repeated_units" if repeated else "one_observation_per_unit"
+    certificate = replace(certificate, conclusion=conclusion)
+    certificate = replace(
+        certificate,
+        certificate_id=(
+            "dependence-growth-count-certificate:"
+            + semantic_digest(
+                {
+                    "source_digest": certificate.source_digest,
+                    "fact": fact.evidence_id,
+                    "procedure": certificate.resolved_callable,
+                    "conclusion": conclusion,
+                }
+            )
+        ),
+    )
+    source_matches = [
+        item
+        for item in context.documents
+        if item.path == certificate.source_path and item.content_digest == certificate.source_digest
+    ]
+    if len(source_matches) != 1:
+        return _discharged_unsupported("source-binding-mismatch")
+    failures: list[str] = []
+    verified = verify_count_dependence_certificate(
+        certificate,
+        trusted_count_facts=(fact,),
+        trusted_authorizations=_trusted_v2_authorizations(context),
+        source_bytes=source_matches[0].content,
+        _failure_reasons=failures,
+    )
+    if verified is None:
+        obligation_name = failures[0] if len(failures) == 1 else "unspecified"
+        return _discharged_unsupported(f"certificate-kernel-refusal:{obligation_name}")
+    assert isinstance(verified, VerifiedCountDependenceCertificate)
+    return DischargedGrowthAnalysis(
+        state="verified",
+        verified_certificate=verified,
+        abstention_reasons=(),
+        candidate_key_columns=analysis.candidate_key_columns,
+        basis="The trusted count fact and growth-2 kernel discharged every symbolic equation.",
     )
 
 
@@ -291,7 +1046,7 @@ def _module_parts(
             and isinstance(statement.targets[0], ast.Name)
         ):
             name = statement.targets[0].id
-            value = _module_constant(statement.value)
+            value = _module_constant(statement.value, constants)
             if value is None or name in imports or name in constants or name in functions:
                 raise _Refusal("module-constant-not-closed")
             constants[name] = value
@@ -310,6 +1065,7 @@ def _closed_import(statement: ast.Import | ast.ImportFrom) -> tuple[str, str]:
             ("math", None): ("math", "math"),
             ("pathlib", None): ("pathlib", "pathlib"),
             ("csv", None): ("csv", "csv"),
+            ("os", None): ("os", "os"),
         }
         result = allowed.get((alias.name, alias.asname))
         if result is None:
@@ -329,9 +1085,15 @@ def _closed_import(statement: ast.Import | ast.ImportFrom) -> tuple[str, str]:
     raise _Refusal("unsupported-import-form")
 
 
-def _module_constant(value: ast.expr) -> ast.Constant | None:
-    if isinstance(value, ast.Constant) and isinstance(value.value, str):
+def _module_constant(value: ast.expr, constants: dict[str, ast.Constant]) -> ast.Constant | None:
+    if isinstance(value, ast.Constant) and type(value.value) in {str, int, float}:
         return copy.deepcopy(value)
+    folded_path = _path_value(value, constants)
+    if folded_path is not None:
+        return ast.Constant(value=folded_path)
+    dirname = _dirname_value(value, constants)
+    if dirname is not None:
+        return ast.Constant(value=dirname)
     if (
         isinstance(value, ast.Call)
         and (
@@ -382,7 +1144,9 @@ def _main_guard(statement: ast.If) -> bool:
     )
 
 
-def _validate_import_uses(tree: ast.Module, imports: dict[str, str]) -> None:
+def _validate_import_uses(
+    tree: ast.Module, imports: dict[str, str], constants: dict[str, ast.Constant]
+) -> None:
     parents: dict[ast.AST, ast.AST] = {
         child: parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)
     }
@@ -399,6 +1163,22 @@ def _validate_import_uses(tree: ast.Module, imports: dict[str, str]) -> None:
         target = imports[node.id]
         if target == "math":
             raise _Refusal("import-use-outside-grammar")
+        if target == "os":
+            call = next(
+                (
+                    candidate
+                    for candidate in ast.walk(tree)
+                    if isinstance(candidate, ast.Call) and node in set(ast.walk(candidate.func))
+                ),
+                None,
+            )
+            if call is None or not (
+                _path_value(call, constants) is not None
+                or _dirname_value(call, constants) is not None
+                or _closed_makedirs_call(call, constants)
+            ):
+                raise _Refusal("import-use-outside-grammar")
+            continue
         if target == "pathlib" and not (
             isinstance(parent, ast.Attribute) and parent.value is node and parent.attr == "Path"
         ):
@@ -868,7 +1648,21 @@ def _path_value(expression: ast.expr, constants: dict[str, ast.Constant]) -> str
     if isinstance(expression, ast.Constant) and isinstance(expression.value, str):
         return expression.value
     if isinstance(expression, ast.Name) and expression.id in constants:
-        return cast(str, constants[expression.id].value)
+        value = constants[expression.id].value
+        return value if isinstance(value, str) else None
+    if (
+        isinstance(expression, ast.Call)
+        and _attribute_chain(expression.func) == ("os", "path", "join")
+        and len(expression.args) >= 2
+        and not expression.keywords
+        and all(
+            isinstance(argument, ast.Constant) and isinstance(argument.value, str)
+            for argument in expression.args
+        )
+    ):
+        return posixpath.join(
+            *(cast(str, cast(ast.Constant, argument).value) for argument in expression.args)
+        )
     if (
         isinstance(expression, ast.Call)
         and (
@@ -887,6 +1681,46 @@ def _path_value(expression: ast.expr, constants: dict[str, ast.Constant]) -> str
     ):
         return expression.args[0].value
     return None
+
+
+def _dirname_value(expression: ast.expr, constants: dict[str, ast.Constant]) -> str | None:
+    if not (
+        isinstance(expression, ast.Call)
+        and _attribute_chain(expression.func) == ("os", "path", "dirname")
+        and len(expression.args) == 1
+        and not expression.keywords
+    ):
+        return None
+    path = _path_value(expression.args[0], constants)
+    return posixpath.dirname(path) if path is not None else None
+
+
+def _closed_makedirs_call(expression: ast.expr, constants: dict[str, ast.Constant]) -> bool:
+    if not (
+        isinstance(expression, ast.Call)
+        and _attribute_chain(expression.func) == ("os", "makedirs")
+        and len(expression.args) == 1
+        and len(expression.keywords) == 1
+        and expression.keywords[0].arg == "exist_ok"
+        and isinstance(expression.keywords[0].value, ast.Constant)
+        and expression.keywords[0].value.value is True
+    ):
+        return False
+    argument = expression.args[0]
+    return (
+        _path_value(argument, constants) is not None
+        or _dirname_value(argument, constants) is not None
+    )
+
+
+def _attribute_chain(expression: ast.expr) -> tuple[str, ...] | None:
+    parts: list[str] = []
+    while isinstance(expression, ast.Attribute):
+        parts.append(expression.attr)
+        expression = expression.value
+    if not isinstance(expression, ast.Name):
+        return None
+    return (expression.id, *reversed(parts))
 
 
 def _encoding(expression: ast.expr) -> str | None:
@@ -1240,7 +2074,10 @@ def _sorted_group_unpack(statement: ast.Assign, group_name: str) -> dict[str, st
 
 
 def _recognize_sink(
-    body: list[ast.stmt], result_name: str, constants: dict[str, ast.Constant]
+    body: list[ast.stmt],
+    result_name: str,
+    constants: dict[str, ast.Constant],
+    expected_result_path: str | None,
 ) -> ast.Call:
     writes = [
         node
@@ -1270,7 +2107,10 @@ def _recognize_sink(
         raise _Refusal("report-composition-not-modeled")
     function = call.func
     assert isinstance(function, ast.Attribute)
-    if _path_value(function.value, constants) is None:
+    if (
+        expected_result_path is None
+        or _path_value(function.value, constants) != expected_result_path
+    ):
         raise _Refusal("report-composition-not-modeled")
     return call
 
@@ -1304,6 +2144,8 @@ def _verify_closed_flattened_statements(
             # _recognize_grouping has already proved the exact total append body.
             continue
         if isinstance(statement, ast.Expr):
+            if _closed_makedirs_call(statement.value, {}):
+                continue
             if statement.value is not sink:
                 if isinstance(statement.value, ast.Call) and isinstance(
                     statement.value.func, ast.Attribute

@@ -909,6 +909,7 @@ def default_dependence_config() -> EnvelopeConfig:
 
 DEPENDENCE_FREE_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-a")
 DEPENDENCE_FREE_B_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-b")
+DEPENDENCE_FREE_C_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-c")
 _DEPENDENCE_FREE_ROLES = ("rq1", "rq2", "rq3", "rq4", "rq5", "rq6")
 _DEPENDENCE_FREE_COMMON_TASK = """Study one narrowly defined error class: repeated measurements from the same independent unit entered into a row-independent statistical procedure as if independent. Invent the scientific domain, study story, vocabulary, column names, data values, number of rows, and coding style yourself. Do not copy any prior-lane material.
 
@@ -953,6 +954,12 @@ _DEPENDENCE_FREE_CASE_REQUIREMENTS = """Produce exactly four authored files.
 The CSV and workflow must be ASCII. The report and data description may be UTF-8 prose. The only allowed import roots are exactly: collections, csv, dataclasses, datetime, functools, itertools, json, math, numpy, operator, os, pathlib, random, scipy, statistics, statsmodels, string, sys, textwrap, typing, warnings.
 
 Return the description in the `data_description` response field. Do not include a frozen workflow template, prescribed data literals, or a prescribed statistical procedure."""
+_DEPENDENCE_FREE_V2_CASE_REQUIREMENTS = (
+    _DEPENDENCE_FREE_CASE_REQUIREMENTS
+    + """
+
+If and only if the selected procedure is `scipy.stats.binomtest` or `scipy.stats.fisher_exact`, include the additional exact line `One trial is: one row` in `data-description.md`. This line authorizes only the development v2 count-procedure shadow; a missing or different declaration cannot mint that authority."""
+)
 _DEPENDENCE_FREE_REVIEWER_TASK = "Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data."
 _DEPENDENCE_FREE_REVIEW_INSTRUCTIONS = """Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: {issue_class}. Use only the supplied files and return the required structured review."""
 _DEPENDENCE_FREE_ROLE_CONSTRAINTS = {
@@ -1121,6 +1128,51 @@ def default_dependence_free_b_config() -> EnvelopeConfig:
             model_alias="claude-opus-5",
         ),
         dependence_v2_development_shadow=True,
+    )
+
+
+def default_dependence_free_c_config() -> EnvelopeConfig:
+    """Return batch C with the same v1-scored/v2-shadow measurement structure."""
+
+    base = default_dependence_free_b_config()
+    authors = {
+        f"actor:dependence-free-batch-c-author-opus-{ordinal}": ModelParticipant(
+            participant_id=f"actor:dependence-free-batch-c-author-opus-{ordinal}",
+            model_id="claude-opus-5",
+            model_name="Claude Opus 5",
+            model_alias="claude-opus-5",
+        )
+        for ordinal in range(39, 45)
+    }
+    return replace(
+        base,
+        envelope_id="development-dependence-growth-loop-batch-c-v1",
+        pipeline_relative=DEPENDENCE_FREE_C_LANE_RELATIVE,
+        author_case_requirements=_DEPENDENCE_FREE_V2_CASE_REQUIREMENTS,
+        dependence_v2_lock_line=True,
+        authors=authors,
+        author_roles={
+            participant_id: [role]
+            for participant_id, role in zip(sorted(authors), _DEPENDENCE_FREE_ROLES, strict=True)
+        },
+        reviewer=ModelParticipant(
+            participant_id="actor:dependence-free-batch-c-reviewer-fable-20",
+            model_id="claude-fable-5",
+            model_name="Claude Fable 5",
+            model_alias="fable",
+        ),
+        hostile_answer_key_reviewer=ModelParticipant(
+            participant_id="actor:dependence-free-batch-c-hostile-fable-21",
+            model_id="claude-fable-5",
+            model_name="Claude Fable 5",
+            model_alias="fable",
+        ),
+        escalation_reviewer=ModelParticipant(
+            participant_id="actor:dependence-free-batch-c-escalation-opus-15",
+            model_id="claude-opus-5",
+            model_name="Claude Opus 5",
+            model_alias="claude-opus-5",
+        ),
     )
 
 
@@ -1399,6 +1451,7 @@ ENVELOPE_CONFIGS = {
     "dependence": default_dependence_config,
     "dependence-free": default_dependence_free_config,
     "dependence-free-b": default_dependence_free_b_config,
+    "dependence-free-c": default_dependence_free_c_config,
     "dosage": default_dosage_config,
     "founder-orientation": default_founder_orientation_config,
     "founder-orientation-b": default_founder_orientation_b_config,
