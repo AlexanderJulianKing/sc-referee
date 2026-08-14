@@ -1002,6 +1002,12 @@ def step_authoring(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
         "frozen_at": _now(),
         "qualification_authority": "none_authoring_protocol_only",
     }
+    if config.development_loop and config.reviewer_task_text is not None:
+        protocol["task_binding_disclosure"] = (
+            "The governing task.md is a neutral reviewer-directed sentence rather than a "
+            "scientific target, unlike qualification envelopes; the method contract binds "
+            "the candidate id explicitly."
+        )
     if config.case_briefs is not None:
         protocol["sealed_brief_digests"] = {
             case_id: semantic_digest(config.case_briefs[case_id])
@@ -1744,9 +1750,9 @@ def _prospective_audit_snapshot_digest(
 
 
 _DESCRIPTION_UNIT_COLUMN = re.compile(
-    r"(?im)^[ \t]*independent unit column[ \t]*:[ \t]+`?([A-Za-z_][A-Za-z0-9_]*)`?[ \t]*$"
+    r"(?im)^[ \t]*independent unit column[ \t]*:[ \t]+`?([A-Za-z_][A-Za-z0-9_]*)`?[ \t\r]*$"
 )
-_DESCRIPTION_ROW = re.compile(r"(?im)^[ \t]*one row is[ \t]*:[ \t]+(\S[^\r\n]*)$")
+_DESCRIPTION_ROW = re.compile(r"(?im)^[ \t]*one row is[ \t]*:[ \t]+(\S[^\r\n]*?)[ \t\r]*$")
 _REGISTERED_DEPENDENCE_CALLABLES = frozenset(
     {"scipy.stats.ttest_ind", "scipy.stats.mannwhitneyu", "scipy.stats.ttest_rel"}
 )
@@ -1766,14 +1772,17 @@ def _registered_dependence_callable(source: str) -> tuple[str | None, str]:
     try:
         tree = ast.parse(source)
     except SyntaxError:
-        return None, "procedure-unavailable-to-closed-lock-schema"
+        return None, "procedure-unresolved-by-lock-schema-resolver"
     bindings: dict[str, str] = {}
     calls: list[str] = []
     for statement in tree.body:
         if isinstance(statement, ast.Import):
             for alias in statement.names:
                 if alias.name == "scipy.stats":
-                    bindings[alias.asname or "scipy"] = "scipy.stats"
+                    if alias.asname is None:
+                        bindings["scipy"] = "scipy"
+                    else:
+                        bindings[alias.asname] = "scipy.stats"
         elif isinstance(statement, ast.ImportFrom) and statement.level == 0:
             if statement.module == "scipy":
                 for alias in statement.names:
@@ -1783,19 +1792,28 @@ def _registered_dependence_callable(source: str) -> tuple[str | None, str]:
                 for alias in statement.names:
                     candidate = f"scipy.stats.{alias.name}"
                     bindings[alias.asname or alias.name] = candidate
+
+    def resolve_callable(node: ast.expr) -> str | None:
+        attributes: list[str] = []
+        while isinstance(node, ast.Attribute):
+            attributes.append(node.attr)
+            node = node.value
+        if not isinstance(node, ast.Name):
+            return None
+        resolved = bindings.get(node.id)
+        if resolved is None:
+            return None
+        return ".".join((resolved, *reversed(attributes)))
+
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
-        resolved_call: str | None = None
-        if isinstance(node.func, ast.Name):
-            resolved_call = bindings.get(node.func.id)
-        elif isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name):
-            base = bindings.get(node.func.value.id)
-            if base == "scipy.stats":
-                resolved_call = f"{base}.{node.func.attr}"
+        resolved_call = resolve_callable(node.func)
         if resolved_call is not None and resolved_call.startswith("scipy.stats."):
             calls.append(str(resolved_call))
-    if len(calls) != 1:
+    if not calls:
+        return None, "procedure-unresolved-by-lock-schema-resolver"
+    if len(calls) > 1:
         return None, "procedure-ambiguous-multiple-statistical-calls"
     if calls[0] not in _REGISTERED_DEPENDENCE_CALLABLES:
         return None, "procedure-unavailable-to-closed-lock-schema"
@@ -3152,10 +3170,10 @@ def _development_nonpositive_outcome(
         == "one_analyzed_row_per_authorized_independent_unit"
         for item in observations
     )
-    if covered:
-        subtype = "covered_negative"
-    elif not has_authority:
+    if not has_authority:
         subtype = "no_authority"
+    elif covered:
+        subtype = "covered_negative"
     elif state == "ambiguous":
         subtype = "ambiguous"
     else:

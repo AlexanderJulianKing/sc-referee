@@ -616,9 +616,52 @@ def test_description_is_required_by_the_author_schema() -> None:
         )
         is None
     )
+    assert (
+        lean_pipeline._description_unit_column(
+            "One row is: a sample\r\nIndependent unit column: subject_id\r\n"
+        )
+        == "subject_id"
+    )
+
+
+def test_dependence_lock_procedure_resolution_has_three_closed_failure_reasons() -> None:
+    assert lean_pipeline._registered_dependence_callable(
+        "import statsmodels.stats.multitest as mt\nmt.multipletests(values)\n"
+    ) == (None, "procedure-unresolved-by-lock-schema-resolver")
     assert lean_pipeline._registered_dependence_callable(
         "import scipy.stats as st\na=st.pearsonr(x,y)\nb=st.ttest_ind(x,y)\n"
     ) == (None, "procedure-ambiguous-multiple-statistical-calls")
+    assert lean_pipeline._registered_dependence_callable(
+        "from scipy.stats import pearsonr\npearsonr(x, y)\n"
+    ) == (None, "procedure-unavailable-to-closed-lock-schema")
+    assert lean_pipeline._registered_dependence_callable(
+        "import scipy.stats\nscipy.stats.ttest_ind(x, y)\n"
+    ) == ("scipy.stats.ttest_ind", "lock-minted")
+
+
+def test_covered_negative_requires_authority_in_development_scoring() -> None:
+    payload = {
+        "state": "applicable",
+        "observations": [
+            {"observed_operand": {"value": "one_analyzed_row_per_authorized_independent_unit"}}
+        ],
+    }
+    assert (
+        lean_pipeline._development_nonpositive_outcome(
+            expected_positive=False,
+            shadow_payload=payload,
+            has_authority=False,
+        )
+        == "abstained_no_authority"
+    )
+    assert (
+        lean_pipeline._development_nonpositive_outcome(
+            expected_positive=False,
+            shadow_payload=payload,
+            has_authority=True,
+        )
+        == "true_negative"
+    )
 
 
 @pytest.mark.skipif(not _RUNTIME_AVAILABLE, reason="dedicated SciPy 1.14.0 runtime is absent")
