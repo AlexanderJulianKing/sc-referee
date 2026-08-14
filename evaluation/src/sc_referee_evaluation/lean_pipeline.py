@@ -34,7 +34,7 @@ import subprocess
 import sys
 import tempfile
 import unicodedata
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -351,6 +351,9 @@ class EnvelopeConfig:
     authored_role_ratification: bool = False
     separately_reported_role: str | None = None
     development_loop: bool = False
+    # Evaluation-only growth hook. The controller accepts only an opaque observer
+    # callback and never imports or selects the unregistered v2 recognizer.
+    dependence_v2_development_shadow: bool = False
     reviewer_task_text: str | None = None
     utf8_authored_paths: frozenset[str] = frozenset()
     whole_token_role_markers: bool = False
@@ -3255,6 +3258,10 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     case_result_root = output_root / "case-results"
     case_result_root.mkdir(exist_ok=True)
     rows: list[dict[str, Any]] = []
+    if config.dependence_v2_development_shadow and not config.development_loop:
+        raise LeanPipelineError(
+            "The dependence v2 shadow is restricted to development-loop envelopes."
+        )
     for case_id in sorted(roles):
         slug = case_id.removeprefix("case:")
         role = roles[case_id]
@@ -3279,6 +3286,12 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 raise LeanPipelineError(
                     f"development growth loop halted on false accusation for {case_id}"
                 )
+            if config.dependence_v2_development_shadow and retained.get(
+                "development_shadow_adapter"
+            ) != _dependence_v2_identity(config):
+                raise LeanPipelineError(
+                    "A retained detector result has stale dependence v2 shadow identity."
+                )
             rows.append(retained)
             continue
         if labels_by_case[case_id].get("measurement_state") == "refused_at_intake":
@@ -3297,6 +3310,7 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 "shadow_payload": None,
                 "scientific_label_ledger_digest": label_ledger["ledger_digest"],
                 "authority_ledger_digest": (authority_ledger or {}).get("ledger_digest"),
+                **_dependence_v2_row_identity(config),
             }
             _stamp_record_purpose(refused_row, config)
             refused_row["case_result_digest"] = semantic_digest(refused_row)
@@ -3320,6 +3334,7 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 "shadow_payload": None,
                 "scientific_label_ledger_digest": label_ledger["ledger_digest"],
                 "authority_ledger_digest": (authority_ledger or {}).get("ledger_digest"),
+                **_dependence_v2_row_identity(config),
             }
             _stamp_record_purpose(burned_row, config)
             burned_row["case_result_digest"] = semantic_digest(burned_row)
@@ -3402,6 +3417,9 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             if contract["findings"]:
                 raise LeanPipelineError(f"The method-contract step emitted findings for {case_id}.")
             contract_lock = case_root / "contract" / "semantic.lock.json"
+        development_v2_payloads: list[dict[str, Any]] = []
+        evaluation_observer = _dependence_v2_observer(config, development_v2_payloads)
+
         try:
             bundle = run_audit(
                 repository,
@@ -3412,6 +3430,7 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 material_inputs=config.material_input_paths,
                 dependence_authorization_lock=dependence_lock,
                 dependence_authorization_case_id=(case_id if dependence_lock is not None else None),
+                evaluation_inspection_observer=evaluation_observer,
             )
         except (Exception, RecursionError) as error:
             if not config.development_loop:
@@ -3440,6 +3459,7 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 },
                 "scientific_label_ledger_digest": label_ledger["ledger_digest"],
                 "authority_ledger_digest": (authority_ledger or {}).get("ledger_digest"),
+                **_dependence_v2_row_identity(config),
             }
             _stamp_record_purpose(failure_row, config)
             failure_row["case_result_digest"] = semantic_digest(failure_row)
@@ -3475,6 +3495,15 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             if item.get("check_id") == config.check_id
         ]
         shadow_payload = shadow_modules[0] if len(shadow_modules) == 1 else None
+        if config.dependence_v2_development_shadow:
+            if len(development_v2_payloads) != 1:
+                raise LeanPipelineError(
+                    "The development v2 shadow did not inspect exactly one frozen context."
+                )
+            registered_v1_shadow_payload = shadow_payload
+            shadow_payload = development_v2_payloads[0]
+            detector_positive = shadow_payload.get("outcome") == "evaluation_candidate"
+            fired = [shadow_payload] if detector_positive else []
         if detector_positive:
             outcome = (
                 "caught"
@@ -3505,6 +3534,12 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             ),
             "replay_equal": True,
             "shadow_payload": shadow_payload,
+            **(
+                {"registered_v1_shadow_payload": registered_v1_shadow_payload}
+                if config.dependence_v2_development_shadow
+                else {}
+            ),
+            **_dependence_v2_row_identity(config),
             "scientific_label_ledger_digest": label_ledger["ledger_digest"],
             "authority_ledger_digest": (authority_ledger or {}).get("ledger_digest"),
         }
@@ -3588,6 +3623,55 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         relative_path="detector-run/DETECTOR_RUN_LEDGER.json",
     )
     return ledger
+
+
+def _dependence_v2_observer(
+    config: EnvelopeConfig, payloads: list[dict[str, Any]]
+) -> Callable[[Any], None] | None:
+    """Construct the opt-in evaluation observer without exposing v2 to production."""
+
+    if not config.dependence_v2_development_shadow:
+        return None
+    if not config.development_loop:
+        raise LeanPipelineError(
+            "The dependence v2 shadow is restricted to development-loop envelopes."
+        )
+    from sc_referee.dependence_recognition_v2.adapter import (
+        DependenceRecognitionV2ShadowAdapter,
+    )
+
+    adapter = DependenceRecognitionV2ShadowAdapter()
+
+    def observe(context: Any) -> None:
+        payloads.append(adapter.inspect(context))
+
+    return observe
+
+
+def _dependence_v2_identity(config: EnvelopeConfig) -> dict[str, str]:
+    if not config.development_loop or not config.dependence_v2_development_shadow:
+        raise LeanPipelineError("The dependence v2 identity is development-loop-only.")
+    from sc_referee.dependence_recognition_v2.adapter import (
+        DependenceRecognitionV2ShadowAdapter,
+        dependence_v2_dependency_closure,
+    )
+
+    adapter = DependenceRecognitionV2ShadowAdapter()
+    return {
+        "adapter_id": adapter.adapter_id,
+        "adapter_version": adapter.adapter_version,
+        "adapter_implementation_digest": semantic_digest(
+            {"dependency_closure": dependence_v2_dependency_closure()}
+        ),
+    }
+
+
+def _dependence_v2_row_identity(config: EnvelopeConfig) -> dict[str, Any]:
+    return (
+        {"development_shadow_adapter": _dependence_v2_identity(config)}
+        if config.dependence_v2_development_shadow
+        else {}
+    )
 
 
 # ---------------------------------------------------------------------------

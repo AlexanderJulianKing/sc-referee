@@ -134,6 +134,7 @@ from sc_referee.reproduction import (
     build_reproduction_requests,
     inspect_project_environments,
 )
+from sc_referee.scientific_checks.core import FrozenInspectionContext
 from sc_referee.scientific_checks.integration import (
     build_frozen_inspection_context,
     compile_scientific_check_records,
@@ -545,6 +546,7 @@ def run_audit(
     material_inputs: tuple[str, ...] = (),
     dependence_authorization_lock: Path | None = None,
     dependence_authorization_case_id: str | None = None,
+    evaluation_inspection_observer: Callable[[FrozenInspectionContext], None] | None = None,
 ) -> dict[str, Any]:
     """Run a conservative static audit over an arbitrary repository.
 
@@ -982,6 +984,8 @@ def run_audit(
                 for item in all_artifacts
             ]
         if scientific_context is not None:
+            if evaluation_inspection_observer is not None:
+                evaluation_inspection_observer(scientific_context)
             scientific_evaluation = active_scientific_checks.evaluate(scientific_context)
             scientific_compilation = compile_scientific_check_records(
                 registry=active_scientific_checks,
