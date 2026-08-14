@@ -3495,15 +3495,27 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             if item.get("check_id") == config.check_id
         ]
         shadow_payload = shadow_modules[0] if len(shadow_modules) == 1 else None
+        development_v2_shadow_payload: dict[str, Any] | None = None
+        development_v2_comparison_outcome: str | None = None
         if config.dependence_v2_development_shadow:
             if len(development_v2_payloads) != 1:
                 raise LeanPipelineError(
                     "The development v2 shadow did not inspect exactly one frozen context."
                 )
-            registered_v1_shadow_payload = shadow_payload
-            shadow_payload = development_v2_payloads[0]
-            detector_positive = shadow_payload.get("outcome") == "evaluation_candidate"
-            fired = [shadow_payload] if detector_positive else []
+            development_v2_shadow_payload = development_v2_payloads[0]
+            development_v2_positive = (
+                development_v2_shadow_payload.get("outcome") == "evaluation_candidate"
+            )
+            if development_v2_positive:
+                development_v2_comparison_outcome = (
+                    "caught" if expected_positive else "false_accusation"
+                )
+            else:
+                development_v2_comparison_outcome = _development_nonpositive_outcome(
+                    expected_positive=expected_positive,
+                    shadow_payload=development_v2_shadow_payload,
+                    has_authority=dependence_lock is not None,
+                )
         if detector_positive:
             outcome = (
                 "caught"
@@ -3535,7 +3547,11 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             "replay_equal": True,
             "shadow_payload": shadow_payload,
             **(
-                {"registered_v1_shadow_payload": registered_v1_shadow_payload}
+                {
+                    "development_v2_shadow_payload": development_v2_shadow_payload,
+                    "development_v2_comparison_outcome": development_v2_comparison_outcome,
+                    "development_v2_scored_for_qualification": False,
+                }
                 if config.dependence_v2_development_shadow
                 else {}
             ),
@@ -3560,6 +3576,20 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         "false_accusation_count": outcomes.count("false_accusation"),
         "missed_error_count": outcomes.count("missed_error"),
     }
+    if config.dependence_v2_development_shadow:
+        v2_outcomes = [
+            str(row["development_v2_comparison_outcome"])
+            for row in rows
+            if row.get("development_v2_comparison_outcome") is not None
+        ]
+        metrics["side_by_side_development_outcomes"] = {
+            "registered_v1_scored": {
+                outcome: outcomes.count(outcome) for outcome in sorted(set(outcomes))
+            },
+            "dependence_v2_development_shadow_not_qualification_scored": {
+                outcome: v2_outcomes.count(outcome) for outcome in sorted(set(v2_outcomes))
+            },
+        }
     if config.publish_count_metrics_only:
         metrics["rates_published"] = False
         metrics["outcome_counts"] = {

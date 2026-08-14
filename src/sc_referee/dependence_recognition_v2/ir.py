@@ -12,6 +12,107 @@ MAX_V2_AST_NODES = 50_000
 MAX_V2_INLINE_DEPTH = 3
 MAX_V2_GROUPS = 256
 
+DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS = frozenset(
+    {
+        "alpha-renaming",
+        "authority-binding",
+        "certificate-identity",
+        "conclusion-equation",
+        "dead-construct-completeness",
+        "envelope-binding",
+        "fact-closure",
+        "group-length-equation",
+        "group-partition",
+        "observation-identity",
+        "operand-binding",
+        "operand-disjointness",
+        "source-parse",
+        "source-semantic-replay",
+        "source-size",
+    }
+)
+
+# One closed vocabulary for every reason_code the development adapter can emit.
+DEPENDENCE_V2_REASON_REGISTRY = frozenset(
+    {
+        "ast-node-ceiling",
+        "authority-material-binding-mismatch",
+        "authorized-composite-unit-key-unsupported",
+        "bom-unsupported",
+        "dependence-v2-shadow-abstention",
+        "duplicate-header",
+        "function-argument-not-simple",
+        "function-closure",
+        "function-default-params",
+        "function-entry-not-closed",
+        "function-globals-read",
+        "function-globals-write",
+        "function-inline-depth-exceeded",
+        "function-multiple-call-sites",
+        "function-nonpositional-params",
+        "function-not-provably-dead",
+        "function-parameter-rebound",
+        "function-recursive",
+        "function-return-shape",
+        "function-star-params",
+        "group-accumulator-not-total",
+        "group-bucket-unpopulated",
+        "group-container-aliased",
+        "group-container-not-list",
+        "group-domain-binding-mismatch",
+        "group-domain-unproven",
+        "group-key-equals-value-column",
+        "group-key-is-unit-column",
+        "group-key-or-unit-cell-empty",
+        "group-operand-arity-mismatch",
+        "group-operand-sliced",
+        "group-set-not-closed",
+        "group-value-cast-absent",
+        "group-value-cast-unproven",
+        "group-value-expression-unsupported",
+        "import-name-collision",
+        "import-use-outside-grammar",
+        "independent-unit-definition-unresolved",
+        "module-constant-not-closed",
+        "noninterference-unproven:alias-assignment",
+        "noninterference-unproven:assignment",
+        "noninterference-unproven:attribute-call",
+        "noninterference-unproven:expression",
+        "noninterference-unproven:name-call",
+        "noninterference-unproven:statement",
+        "noninterference-unproven:with-body",
+        "one-observation-per-unit-in-disjoint-bound-operands",
+        "procedure-call-unresolved",
+        "procedure-version-unpinned",
+        "python-parse-unsupported",
+        "ragged-row",
+        "reader-bytes-not-ascii",
+        "reader-form-unsupported",
+        "repeated-unit-within-bound-operand",
+        "report-composition-not-modeled",
+        "single-python-module-required",
+        "source-binding-mismatch",
+        "source-byte-ceiling",
+        "unit-spans-multiple-operands",
+        "unsupported-import-form",
+        "unsupported-reader-encoding",
+        "v2-shadow-pipeline-exception",
+        *(
+            f"certificate-kernel-refusal:{obligation}"
+            for obligation in DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS
+        ),
+    }
+)
+
+
+def require_registered_v2_reason(reason: str) -> str:
+    """Refuse development-code drift outside the single reason vocabulary."""
+
+    if reason not in DEPENDENCE_V2_REASON_REGISTRY:
+        raise AssertionError(f"unregistered dependence v2 reason: {reason}")
+    return reason
+
+
 CastKind = Literal["none", "float", "int"]
 GrowthConclusion = Literal["repeated_units", "one_observation_per_unit"]
 

@@ -31,6 +31,7 @@ from scripts.lean_pipeline import (
     DEPENDENCE_SANDBOX_PYTHON,
     ENVELOPE_CONFIGS,
     default_dependence_config,
+    default_dependence_free_b_config,
     default_dependence_free_config,
     default_founder_orientation_config,
     default_founder_orientation_f_config,
@@ -344,6 +345,13 @@ def test_dependence_free_config_conforms_to_closed_growth_envelope() -> None:
     assert default_dependence_config().development_loop is False
     assert default_founder_orientation_f_config().frozen_workflow_template is None
 
+    batch_b = default_dependence_free_b_config()
+    assert ENVELOPE_CONFIGS["dependence-free-b"] is default_dependence_free_b_config
+    assert batch_b.pipeline_relative == Path(
+        "evaluation/development/dependence-growth-loop/batch-b"
+    )
+    assert batch_b.dependence_v2_development_shadow is True
+
 
 def test_task_binding_disclosure_is_digest_bound_only_for_development_loop(
     tmp_path: Path, project_root: Path, monkeypatch: pytest.MonkeyPatch
@@ -455,7 +463,7 @@ def test_model_free_nonmeasurement_fixture_executes_and_records_abstentions(
     tmp_path: Path, project_root: Path
 ) -> None:
     isolated = _isolated_root(tmp_path, project_root)
-    config = _fixture_config()
+    config = replace(_fixture_config(), dependence_v2_development_shadow=True)
     assert not config.pipeline_relative.is_relative_to(DEPENDENCE_FREE_LANE_RELATIVE)
     marker = isolated / config.pipeline_relative / "NON_MEASUREMENT_FIXTURE.json"
     marker.parent.mkdir(parents=True)
@@ -511,6 +519,32 @@ def test_model_free_nonmeasurement_fixture_executes_and_records_abstentions(
         "rq4": "true_negative",
         "rq5": "true_negative",
         "rq6": "true_negative",
+    }
+    assert all(
+        by_role[role]["development_v2_scored_for_qualification"] is False for role in _FIXTURE_ROLES
+    )
+    assert all(
+        by_role[role]["shadow_payload"]["state"]
+        in {"evaluation_candidate", "applicable", "ambiguous", "unsupported"}
+        for role in _FIXTURE_ROLES
+    )
+    assert all(
+        by_role[role]["development_v2_shadow_payload"]["delivery_plane"]
+        == "unregistered_development_shadow_only"
+        for role in _FIXTURE_ROLES
+    )
+    assert detector["pilot_metrics"]["side_by_side_development_outcomes"] == {
+        "registered_v1_scored": {
+            "abstained_no_authority": 2,
+            "abstained_unsupported": 1,
+            "caught": 3,
+            "true_negative": 3,
+        },
+        "dependence_v2_development_shadow_not_qualification_scored": {
+            "abstained_no_authority": 2,
+            "abstained_unsupported": 4,
+            "missed_unsupported": 3,
+        },
     }
     assert all(by_role[role]["replay_equal"] is True for role in _FIXTURE_ROLES)
     assert marker.is_file()

@@ -36,6 +36,7 @@ from sc_referee.dependence_recognition_v2.ir import (
     GrowthAnalysis,
     GrowthConclusion,
     OperandGroupBinding,
+    require_registered_v2_reason,
 )
 from sc_referee.scientific_checks.core import FrozenInspectionContext
 
@@ -49,7 +50,7 @@ _SCIPY_PIN = re.compile(r"(?m)^\s*scipy\s*==\s*1\.14\.0\s*(?:#.*)?$")
 
 class _Refusal(Exception):
     def __init__(self, *reasons: str) -> None:
-        self.reasons = tuple(reasons)
+        self.reasons = tuple(require_registered_v2_reason(reason) for reason in reasons)
 
 
 def analyze_dependence_growth_python(context: FrozenInspectionContext) -> GrowthAnalysis:
@@ -243,14 +244,17 @@ def discharge_dependence_growth_analysis(
     ]
     if len(source_matches) != 1:
         return _discharged_unsupported("source-binding-mismatch")
+    kernel_failures: list[str] = []
     verified = verify_dependence_growth_certificate(
         certificate,
         trusted_group_facts=(fact,),
         trusted_authorizations=_trusted_authorizations(context),
         source_bytes=source_matches[0].content,
+        _failure_reasons=kernel_failures,
     )
     if verified is None:
-        return _discharged_unsupported("certificate-kernel-refusal")
+        obligation = kernel_failures[0] if len(kernel_failures) == 1 else "unspecified"
+        return _discharged_unsupported(f"certificate-kernel-refusal:{obligation}")
     return DischargedGrowthAnalysis(
         state="verified",
         verified_certificate=verified,
@@ -432,6 +436,8 @@ def _flatten_functions(
     constants: dict[str, ast.Constant],
     imports: dict[str, str],
 ) -> tuple[list[ast.stmt], list[AlphaRename], set[str]]:
+    # This is a proof-oriented flattened IR, not executable Python: synthetic
+    # fresh names and return carriers exist only for bounded semantic replay.
     if not functions:
         return _substitute_constants(executable, constants), [], set()
     reasons: set[str] = set()
@@ -968,7 +974,9 @@ def _recognize_grouping(
         raise _Refusal("group-accumulator-not-total")
     parsed_value = _direct_row_value(append.args[0], row_name)
     if parsed_value is None:
-        raise _Refusal("group-value-cast-unproven")
+        if _absent_or_string_cast(append.args[0], row_name):
+            raise _Refusal("group-value-cast-absent")
+        raise _Refusal("group-value-expression-unsupported")
     value_column, cast_kind = parsed_value
     receiver = cast(ast.Attribute, append.func).value
     bucket_keys: tuple[str, ...] = ()
@@ -1019,9 +1027,6 @@ def _recognize_grouping(
 
 
 def _direct_row_value(expression: ast.expr, row_name: str) -> tuple[str, str] | None:
-    direct = _row_subscript(expression, row_name)
-    if direct is not None:
-        return direct, "none"
     if (
         isinstance(expression, ast.Call)
         and isinstance(expression.func, ast.Name)
@@ -1033,6 +1038,19 @@ def _direct_row_value(expression: ast.expr, row_name: str) -> tuple[str, str] | 
         if column is not None:
             return column, expression.func.id
     return None
+
+
+def _absent_or_string_cast(expression: ast.expr, row_name: str) -> bool:
+    if _row_subscript(expression, row_name) is not None:
+        return True
+    return bool(
+        isinstance(expression, ast.Call)
+        and isinstance(expression.func, ast.Name)
+        and expression.func.id == "str"
+        and len(expression.args) == 1
+        and not expression.keywords
+        and _row_subscript(expression.args[0], row_name) is not None
+    )
 
 
 def _row_subscript(expression: ast.expr, row_name: str) -> str | None:
@@ -1053,6 +1071,15 @@ def _recognize_procedure(
     group_name: str,
     constants: dict[str, ast.Constant],
 ) -> tuple[str, tuple[OperandGroupBinding, ...], str, ast.Call]:
+    container_aliases = {
+        statement.targets[0].id
+        for statement in (item for root in body for item in ast.walk(root))
+        if isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and isinstance(statement.value, ast.Name)
+        and statement.value.id == group_name
+    }
     aliases: dict[str, str] = {}
     for statement in (item for root in body for item in ast.walk(root)):
         if (
@@ -1083,6 +1110,23 @@ def _recognize_procedure(
     resolved, result_name, call = matches[0]
     if call.keywords or len(call.args) != _REGISTERED[resolved]:
         raise _Refusal("group-operand-arity-mismatch")
+    if container_aliases and any(
+        isinstance(node, ast.Subscript)
+        and isinstance(node.value, ast.Name)
+        and node.value.id in container_aliases
+        for root in body
+        for node in ast.walk(root)
+    ):
+        raise _Refusal("group-container-aliased")
+    if any(_uses_group_container_alias(argument, container_aliases) for argument in call.args):
+        raise _Refusal("group-container-aliased")
+    if any(
+        _group_operand_is_sliced(node, group_name)
+        for root in body
+        for node in ast.walk(root)
+        if isinstance(node, ast.expr)
+    ):
+        raise _Refusal("group-operand-sliced")
     bindings: list[OperandGroupBinding] = []
     for position, argument in enumerate(call.args):
         key = _group_argument_key(argument, group_name, constants)
@@ -1093,6 +1137,29 @@ def _recognize_procedure(
             raise _Refusal("group-operand-arity-mismatch")
         bindings.append(OperandGroupBinding(position, argument_name, key))
     return resolved, tuple(bindings), result_name, call
+
+
+def _uses_group_container_alias(expression: ast.expr, aliases: set[str]) -> bool:
+    return any(isinstance(node, ast.Name) and node.id in aliases for node in ast.walk(expression))
+
+
+def _group_operand_is_sliced(expression: ast.expr, group_name: str) -> bool:
+    if (
+        isinstance(expression, ast.Call)
+        and isinstance(expression.func, ast.Attribute)
+        and isinstance(expression.func.value, ast.Name)
+        and expression.func.value.id == "np"
+        and expression.func.attr in {"array", "asarray"}
+        and expression.args
+    ):
+        expression = expression.args[0]
+    return bool(
+        isinstance(expression, ast.Subscript)
+        and isinstance(expression.slice, ast.Slice)
+        and isinstance(expression.value, ast.Subscript)
+        and isinstance(expression.value.value, ast.Name)
+        and expression.value.value.id == group_name
+    )
 
 
 def _resolved_procedure(expression: ast.expr, imports: dict[str, str]) -> str | None:
@@ -1221,7 +1288,7 @@ def _verify_closed_flattened_statements(
     for statement in body:
         if isinstance(statement, ast.With):
             if len(statement.items) != 1 or len(statement.body) != 1:
-                raise _Refusal("noninterference-unproven")
+                raise _Refusal("noninterference-unproven:with-body")
             nested = statement.body[0]
             if not (
                 isinstance(nested, ast.Assign)
@@ -1231,17 +1298,23 @@ def _verify_closed_flattened_statements(
                 and isinstance(nested.value.func, ast.Name)
                 and nested.value.func.id == "list"
             ):
-                raise _Refusal("noninterference-unproven")
+                raise _Refusal("noninterference-unproven:with-body")
             continue
         if isinstance(statement, ast.For):
             # _recognize_grouping has already proved the exact total append body.
             continue
         if isinstance(statement, ast.Expr):
             if statement.value is not sink:
-                raise _Refusal("noninterference-unproven")
+                if isinstance(statement.value, ast.Call) and isinstance(
+                    statement.value.func, ast.Attribute
+                ):
+                    raise _Refusal("noninterference-unproven:attribute-call")
+                if isinstance(statement.value, ast.Call):
+                    raise _Refusal("noninterference-unproven:name-call")
+                raise _Refusal("noninterference-unproven:expression")
             continue
         if not isinstance(statement, ast.Assign) or len(statement.targets) != 1:
-            raise _Refusal("noninterference-unproven")
+            raise _Refusal("noninterference-unproven:statement")
         target = statement.targets[0]
         value = statement.value
         if isinstance(target, ast.Name) and target.id == rows_name:
@@ -1259,7 +1332,9 @@ def _verify_closed_flattened_statements(
             continue
         if isinstance(target, ast.Tuple) and _sorted_group_unpack(statement, group_name):
             continue
-        raise _Refusal("noninterference-unproven")
+        if isinstance(value, ast.Name):
+            raise _Refusal("noninterference-unproven:alias-assignment")
+        raise _Refusal("noninterference-unproven:assignment")
 
 
 def _independent_wall_scan(tree: ast.Module) -> set[str]:
@@ -1323,7 +1398,7 @@ def _node_token(path: str, node: ast.AST, kind: str) -> str:
 
 
 def _unsupported(*reasons: str) -> GrowthAnalysis:
-    values = tuple(sorted(set(reasons)))
+    values = tuple(sorted({require_registered_v2_reason(reason) for reason in reasons}))
     return GrowthAnalysis(
         state="unsupported",
         certificate=None,
@@ -1335,6 +1410,7 @@ def _unsupported(*reasons: str) -> GrowthAnalysis:
 
 
 def _discharged_unsupported(reason: str) -> DischargedGrowthAnalysis:
+    reason = require_registered_v2_reason(reason)
     return DischargedGrowthAnalysis(
         state="unsupported",
         verified_certificate=None,

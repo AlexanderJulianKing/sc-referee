@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import ast
 import json
+import os
 import shutil
 import subprocess
+import sys
 from dataclasses import replace
 from pathlib import Path
 
@@ -16,6 +19,10 @@ from sc_referee.dependence_recognition.python_analyzer import _trusted_authoriza
 from sc_referee.dependence_recognition_v2.adapter import DependenceRecognitionV2ShadowAdapter
 from sc_referee.dependence_recognition_v2.certificate import (
     verify_dependence_growth_certificate,
+)
+from sc_referee.dependence_recognition_v2.ir import (
+    DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS,
+    DEPENDENCE_V2_REASON_REGISTRY,
 )
 from sc_referee.dependence_recognition_v2.python_analyzer import (
     analyze_dependence_growth_python,
@@ -32,12 +39,28 @@ from sc_referee.scientific_checks.core import (
     InspectionDocument,
     RecordRef,
 )
-from scripts.lean_pipeline import default_dependence_free_config
+from scripts.lean_pipeline import (
+    default_dependence_free_b_config,
+    default_dependence_free_config,
+)
 
 _DATA = "inputs/data.csv"
 _RUNTIME = Path(
-    "/Users/alexanderking/Desktop/random_stuff/sc-referee-pilot-runtime/scipy114-venv/bin/python"
+    os.environ.get(
+        "SC_REFEREE_DEPENDENCE_V2_SANDBOX_PYTHON",
+        "/Users/alexanderking/Desktop/random_stuff/sc-referee-pilot-runtime/"
+        "scipy114-venv/bin/python",
+    )
 )
+
+
+def _require_runtime() -> Path:
+    if not _RUNTIME.is_file():
+        pytest.fail(
+            "dependence v2 runtime-differential coverage requires "
+            f"SC_REFEREE_DEPENDENCE_V2_SANDBOX_PYTHON={_RUNTIME}"
+        )
+    return _RUNTIME
 
 
 def _source(*, encoding: str = "ascii", group_key: str = "arm", value: str = "value") -> str:
@@ -232,14 +255,13 @@ def test_positive_function_and_transform_fixtures_certify(
     (case / "results").mkdir()
     (case / "inputs/data.csv").write_bytes(data)
     (case / "workflow/analysis.py").write_text(source, encoding="ascii")
-    if _RUNTIME.is_file():
-        completed = subprocess.run(
-            [str(_RUNTIME), "-I", "workflow/analysis.py"],
-            cwd=case,
-            capture_output=True,
-            check=False,
-        )
-        assert completed.returncode == 0, completed.stderr.decode()
+    completed = subprocess.run(
+        [str(_require_runtime()), "-I", "workflow/analysis.py"],
+        cwd=case,
+        capture_output=True,
+        check=False,
+    )
+    assert completed.returncode == 0, completed.stderr.decode()
     payload = DependenceRecognitionV2ShadowAdapter().inspect(_context(source, data))
     assert payload["payload_type"] == payload_type
     assert payload["outcome"] == outcome
@@ -300,7 +322,6 @@ def test_named_structural_and_domain_abstentions(
     assert reason in payload["abstention_reasons"]
 
 
-@pytest.mark.skipif(not _RUNTIME.is_file(), reason="dedicated SciPy 1.14.0 runtime is absent")
 def test_named_abstention_probes_are_actually_invoked_in_the_sandbox(tmp_path: Path) -> None:
     probes = {
         "paired": (_source(), b"unit_id,arm,value\nu1,A,1\nu1,B,2\nu2,A,3\nu2,B,4\n"),
@@ -333,7 +354,7 @@ def test_named_abstention_probes_are_actually_invoked_in_the_sandbox(tmp_path: P
         (case / "inputs/data.csv").write_bytes(data)
         (case / "workflow/analysis.py").write_text(source, encoding="ascii")
         completed = subprocess.run(
-            [str(_RUNTIME), "-I", "workflow/analysis.py"],
+            [str(_require_runtime()), "-I", "workflow/analysis.py"],
             cwd=case,
             capture_output=True,
             check=False,
@@ -363,6 +384,42 @@ def test_predeclared_bucket_closure_and_three_group_arity() -> None:
     three = b"unit_id,arm,value\nu1,A,1\nu2,B,2\nu3,C,3\n"
     payload = DependenceRecognitionV2ShadowAdapter().inspect(_context(_source(), three))
     assert payload["abstention_reasons"] == ["group-operand-arity-mismatch"]
+
+
+def test_split_group_operand_and_bucket_reasons_are_granular() -> None:
+    aliased = _source().replace(
+        "    left = groups[LEFT]\n    right = groups[RIGHT]",
+        "    buckets = groups\n    left = buckets[LEFT]\n    right = buckets[RIGHT]",
+    )
+    assert DependenceRecognitionV2ShadowAdapter().inspect(_context(aliased, _ADVERSE))[
+        "abstention_reasons"
+    ] == ["group-container-aliased"]
+
+    sliced = _source().replace("left = groups[LEFT]", "left = groups[LEFT][:]")
+    assert DependenceRecognitionV2ShadowAdapter().inspect(_context(sliced, _ADVERSE))[
+        "abstention_reasons"
+    ] == ["group-operand-sliced"]
+
+    empty_bucket = (
+        _source()
+        .replace("groups = {}", 'groups = {"A": [], "B": [], "C": []}')
+        .replace(
+            'groups.setdefault(row["arm"], []).append(float(row["value"]))',
+            'groups[row["arm"]].append(float(row["value"]))',
+        )
+    )
+    assert DependenceRecognitionV2ShadowAdapter().inspect(_context(empty_bucket, _ADVERSE))[
+        "abstention_reasons"
+    ] == ["group-bucket-unpopulated"]
+
+
+def test_empty_unit_or_group_cell_is_not_reported_as_cast_failure() -> None:
+    for data in (
+        b"unit_id,arm,value\n,A,1\nu2,B,2\n",
+        b"unit_id,arm,value\nu1,,1\nu2,B,2\n",
+    ):
+        payload = DependenceRecognitionV2ShadowAdapter().inspect(_context(_source(), data))
+        assert payload["abstention_reasons"] == ["group-key-or-unit-cell-empty"]
 
 
 def test_two_group_sorted_tuple_binding_and_numpy_wrappers_certify() -> None:
@@ -469,14 +526,13 @@ def test_batch_a_rq1_rq3_are_executable_and_pin_full_sorted_wall_sets(
         frozen_case = frozen_root / slug
         execution_case = tmp_path / role
         shutil.copytree(frozen_case, execution_case)
-        if _RUNTIME.is_file():
-            completed = subprocess.run(
-                [str(_RUNTIME), "-I", "workflow/analysis.py"],
-                cwd=execution_case,
-                capture_output=True,
-                check=False,
-            )
-            assert completed.returncode == 0, completed.stderr.decode()
+        completed = subprocess.run(
+            [str(_require_runtime()), "-I", "workflow/analysis.py"],
+            cwd=execution_case,
+            capture_output=True,
+            check=False,
+        )
+        assert completed.returncode == 0, completed.stderr.decode()
         source = (frozen_case / "workflow/analysis.py").read_text(encoding="utf-8")
         data = (frozen_case / "data/input.csv").read_bytes()
         payload = DependenceRecognitionV2ShadowAdapter().inspect(
@@ -518,6 +574,18 @@ def test_kernel_rejects_length_binding_conclusion_and_source_mutations() -> None
         )
         is None
     )
+    failure_reasons: list[str] = []
+    assert (
+        verify_dependence_growth_certificate(
+            certificate,
+            trusted_group_facts=(fact,),
+            trusted_authorizations=(replace(authorities[0], input_path="other.csv"),),
+            source_bytes=source_bytes,
+            _failure_reasons=failure_reasons,
+        )
+        is None
+    )
+    assert failure_reasons == ["authority-binding"]
     bad_sequence = replace(fact.groups[0], row_indices=fact.groups[0].row_indices[:-1])
     assert (
         verify_dependence_growth_certificate(
@@ -586,6 +654,26 @@ def test_kernel_rejects_length_binding_conclusion_and_source_mutations() -> None
         )
         is None
     )
+
+
+def test_discharger_surfaces_the_specific_kernel_obligation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = _context(_source(), _ADVERSE)
+    analysis = analyze_dependence_growth_python(context)
+    assert analysis.state == "proposal"
+
+    def refuse(*_args: object, **kwargs: object) -> None:
+        failure_reasons = kwargs["_failure_reasons"]
+        assert isinstance(failure_reasons, list)
+        failure_reasons.append("fact-closure")
+
+    monkeypatch.setattr(
+        "sc_referee.dependence_recognition_v2.python_analyzer.verify_dependence_growth_certificate",
+        refuse,
+    )
+    discharged = discharge_dependence_growth_analysis(analysis, context)
+    assert discharged.abstention_reasons == ("certificate-kernel-refusal:fact-closure",)
 
 
 def test_function_and_import_granular_reasons() -> None:
@@ -674,7 +762,10 @@ def test_bom_and_raw_string_operands_abstain() -> None:
     assert "bom-unsupported" in bom["abstention_reasons"]
     raw = _source().replace('float(row["value"])', 'row["value"]')
     payload = DependenceRecognitionV2ShadowAdapter().inspect(_context(raw, _ADVERSE))
-    assert payload["abstention_reasons"] == ["group-value-cast-unproven"]
+    assert payload["abstention_reasons"] == ["group-value-cast-absent"]
+    string_cast = _source().replace('float(row["value"])', 'str(row["value"])')
+    payload = DependenceRecognitionV2ShadowAdapter().inspect(_context(string_cast, _ADVERSE))
+    assert payload["abstention_reasons"] == ["group-value-cast-absent"]
     na = DependenceRecognitionV2ShadowAdapter().inspect(
         _context(_source(), b"unit_id,arm,value\nu1,A,NA\nu2,B,2\n")
     )
@@ -692,7 +783,7 @@ def test_live_mutation_outside_closed_basis_abstains_and_kernel_replays_it() -> 
         "    left = right\n    result = stats.ttest_ind(left, right)",
     )
     analysis = analyze_dependence_growth_python(_context(source, _ADVERSE))
-    assert analysis.abstention_reasons == ("noninterference-unproven",)
+    assert analysis.abstention_reasons == ("noninterference-unproven:alias-assignment",)
 
 
 def test_development_hook_is_opt_in_and_cannot_be_enabled_for_production() -> None:
@@ -719,6 +810,35 @@ def test_development_hook_is_opt_in_and_cannot_be_enabled_for_production() -> No
         )
 
 
+def test_batch_b_config_is_batch_a_with_only_fresh_seats_lane_and_v2_observer() -> None:
+    batch_a = default_dependence_free_config()
+    batch_b = default_dependence_free_b_config()
+    assert batch_a.dependence_v2_development_shadow is False
+    assert batch_b.dependence_v2_development_shadow is True
+    assert batch_b.envelope_id == "development-dependence-growth-loop-batch-b-v1"
+    assert str(batch_b.pipeline_relative).endswith("dependence-growth-loop/batch-b")
+    assert sorted(batch_b.authors) == [
+        f"actor:dependence-free-batch-b-author-opus-{ordinal}" for ordinal in range(33, 39)
+    ]
+    assert batch_b.reviewer.participant_id.endswith("reviewer-fable-18")
+    assert batch_b.hostile_answer_key_reviewer is not None
+    assert batch_b.hostile_answer_key_reviewer.participant_id.endswith("hostile-fable-19")
+    assert batch_b.escalation_reviewer.participant_id.endswith("escalation-opus-14")
+    ignored = {
+        "envelope_id",
+        "pipeline_relative",
+        "authors",
+        "author_roles",
+        "reviewer",
+        "hostile_answer_key_reviewer",
+        "escalation_reviewer",
+        "dependence_v2_development_shadow",
+    }
+    assert {key: value for key, value in batch_a.__dict__.items() if key not in ignored} == {
+        key: value for key, value in batch_b.__dict__.items() if key not in ignored
+    }
+
+
 def test_v1_dependence_closure_is_byte_frozen(project_root: Path) -> None:
     expected = {
         "src/sc_referee/dependence_recognition/__init__.py": "sha256:818bee2ee623afae37fb4595c28c96592bbe49a9ce818204d611452beb740f32",
@@ -735,6 +855,52 @@ def test_v1_dependence_closure_is_byte_frozen(project_root: Path) -> None:
     } == expected
 
 
+def _production_import_closure(project_root: Path, roots: tuple[str, ...]) -> set[str]:
+    source_root = project_root / "src"
+
+    def module_path(name: str) -> Path | None:
+        relative = Path(*name.split("."))
+        module = source_root / relative.with_suffix(".py")
+        package = source_root / relative / "__init__.py"
+        return module if module.is_file() else (package if package.is_file() else None)
+
+    pending = list(roots)
+    seen: set[str] = set()
+    while pending:
+        name = pending.pop()
+        if name in seen:
+            continue
+        path = module_path(name)
+        if path is None:
+            continue
+        seen.add(name)
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        is_package = path.name == "__init__.py"
+        package = name if is_package else name.rpartition(".")[0]
+        for node in ast.walk(tree):
+            candidates: list[str] = []
+            if isinstance(node, ast.Import):
+                candidates.extend(alias.name for alias in node.names)
+            elif isinstance(node, ast.ImportFrom):
+                if node.level:
+                    parts = package.split(".") if package else []
+                    if node.level > len(parts):
+                        continue
+                    base = ".".join(parts[: len(parts) - node.level + 1])
+                    target = ".".join(part for part in (base, node.module or "") if part)
+                else:
+                    target = node.module or ""
+                if target:
+                    candidates.append(target)
+                    candidates.extend(f"{target}.{alias.name}" for alias in node.names)
+            pending.extend(
+                candidate
+                for candidate in candidates
+                if candidate.startswith("sc_referee") and module_path(candidate) is not None
+            )
+    return seen
+
+
 def test_installed_dependence_pin_stays_live_and_v2_is_unregistered(project_root: Path) -> None:
     binding = "method-conflict-binding:authorized-independent-unit-entry-into-row-independent-procedure-v1"
     assert installed_pin_matches_live_identity(GRANT_PINS[binding]) is True
@@ -747,8 +913,33 @@ def test_installed_dependence_pin_stays_live_and_v2_is_unregistered(project_root
     assert all(
         "v2-growth" not in canonical_json(item) for item in registry["method_conflict_bindings"]
     )
-    controller = (project_root / "src/sc_referee/controller.py").read_text(encoding="utf-8")
-    assert "dependence_recognition_v2" not in controller
+    closure = _production_import_closure(
+        project_root,
+        (
+            "sc_referee.controller",
+            "sc_referee.cli",
+            "sc_referee.capability_matrix",
+        ),
+    )
+    assert not any(name.startswith("sc_referee.dependence_recognition_v2") for name in closure)
+    isolated = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import sys; import sc_referee.controller, sc_referee.cli, "
+                "sc_referee.capability_matrix; "
+                "assert not any(name.startswith('sc_referee.dependence_recognition_v2') "
+                "for name in sys.modules)"
+            ),
+        ],
+        cwd=project_root,
+        env={**os.environ, "PYTHONPATH": ".:src:evaluation/src"},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert isolated.returncode == 0, isolated.stderr
 
 
 def test_adapter_payload_is_deterministic() -> None:
@@ -756,3 +947,97 @@ def test_adapter_payload_is_deterministic() -> None:
     first = DependenceRecognitionV2ShadowAdapter().inspect(context)
     second = DependenceRecognitionV2ShadowAdapter().inspect(context)
     assert canonical_json(first) == canonical_json(second)
+
+
+def test_adapter_exception_keeps_the_full_common_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+    def explode(_context: FrozenInspectionContext) -> None:
+        raise RuntimeError("injected")
+
+    monkeypatch.setattr(
+        "sc_referee.dependence_recognition_v2.adapter.analyze_dependence_growth_python",
+        explode,
+    )
+    payload = DependenceRecognitionV2ShadowAdapter().inspect(_context(_source(), _ADVERSE))
+    assert payload["abstention_reasons"] == ["v2-shadow-pipeline-exception"]
+    assert payload["delivery_plane"] == "unregistered_development_shadow_only"
+    assert payload["report_only"] is True
+    assert payload["production_finding_permitted"] is False
+    assert payload["adapter_id"] == "dependence-recognition-semantic-v2-growth-shadow"
+    assert payload["adapter_version"] == "2.0.0-development"
+    assert payload["adapter_implementation_digest"].startswith("sha256:")
+    assert payload["implementation_dependency_closure"]
+
+
+def test_reason_registry_equals_the_package_emission_vocabulary(project_root: Path) -> None:
+    emitted_literals: set[str] = set()
+    for relative in (
+        "src/sc_referee/dependence_recognition_v2/python_analyzer.py",
+        "src/sc_referee/dependence_recognition_v2/csv_domain.py",
+        "src/sc_referee/dependence_recognition_v2/adapter.py",
+    ):
+        tree = ast.parse((project_root / relative).read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                function_name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else (node.func.attr if isinstance(node.func, ast.Attribute) else None)
+                )
+                if function_name in {
+                    "_Refusal",
+                    "_abstention",
+                    "_discharged_unsupported",
+                    "_unsupported",
+                }:
+                    emitted_literals.update(
+                        argument.value
+                        for argument in node.args
+                        if isinstance(argument, ast.Constant) and isinstance(argument.value, str)
+                    )
+                    emitted_literals.update(
+                        element.value
+                        for argument in node.args
+                        if isinstance(argument, ast.Tuple)
+                        for element in argument.elts
+                        if isinstance(element, ast.Constant) and isinstance(element.value, str)
+                    )
+                if (
+                    function_name == "add"
+                    and isinstance(node.func, ast.Attribute)
+                    and isinstance(node.func.value, ast.Name)
+                    and node.func.value.id == "reasons"
+                ):
+                    emitted_literals.update(
+                        argument.value
+                        for argument in node.args
+                        if isinstance(argument, ast.Constant) and isinstance(argument.value, str)
+                    )
+            if relative.endswith("csv_domain.py") and (
+                isinstance(node, ast.Return)
+                and isinstance(node.value, ast.Tuple)
+                and len(node.value.elts) == 2
+                and isinstance(node.value.elts[1], ast.Constant)
+                and isinstance(node.value.elts[1].value, str)
+            ):
+                emitted_literals.add(node.value.elts[1].value)
+            if (
+                relative.endswith("csv_domain.py")
+                and isinstance(node, ast.Return)
+                and isinstance(node.value, ast.Constant)
+                and isinstance(node.value.value, str)
+            ):
+                emitted_literals.add(node.value.value)
+            if isinstance(node, ast.Dict):
+                for key, value in zip(node.keys, node.values, strict=True):
+                    if (
+                        isinstance(key, ast.Constant)
+                        and key.value == "reason_code"
+                        and isinstance(value, ast.Constant)
+                        and isinstance(value.value, str)
+                    ):
+                        emitted_literals.add(value.value)
+    emitted_literals.add("dependence-v2-shadow-abstention")
+    emitted_literals.update(
+        f"certificate-kernel-refusal:{item}" for item in DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS
+    )
+    assert emitted_literals == set(DEPENDENCE_V2_REASON_REGISTRY)

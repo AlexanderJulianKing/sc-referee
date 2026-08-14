@@ -111,7 +111,11 @@ def prove_group_value_sequences_with_reason(
         group = row.get(obligation.group_key_column)
         value = row.get(obligation.value_column)
         unit = row.get(obligation.authorized_unit_column)
-        if not all(isinstance(item, str) and item != "" for item in (group, value, unit)):
+        if not all(isinstance(item, str) for item in (group, value, unit)):
+            return None, "group-domain-unproven"
+        if group == "" or unit == "":
+            return None, "group-key-or-unit-cell-empty"
+        if value == "":
             return None, "group-value-cast-unproven"
         assert isinstance(group, str) and isinstance(value, str) and isinstance(unit, str)
         try:
@@ -128,6 +132,10 @@ def prove_group_value_sequences_with_reason(
         obligation.predeclared_bucket_keys
     ):
         return None, "group-set-not-closed"
+    if obligation.predeclared_bucket_keys and observed_keys != set(
+        obligation.predeclared_bucket_keys
+    ):
+        return None, "group-bucket-unpopulated"
     sequences = tuple(
         GroupValueSequence(
             group_key=key,
@@ -214,6 +222,11 @@ def _shape_diagnostic(content: bytes, obligation: GroupValueSequenceObligation) 
         for row in reader:
             if None in row or any(row.get(column) is None for column in header):
                 return "ragged-row"
+            if (
+                row.get(obligation.authorized_unit_column) == ""
+                or row.get(obligation.group_key_column) == ""
+            ):
+                return "group-key-or-unit-cell-empty"
     except csv.Error:
         return "ragged-row"
     return None

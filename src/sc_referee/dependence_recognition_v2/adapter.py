@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from sc_referee.core.ids import semantic_digest, sha256_digest
+from sc_referee.dependence_recognition_v2.ir import require_registered_v2_reason
 from sc_referee.dependence_recognition_v2.python_analyzer import (
     analyze_dependence_growth_python,
     discharge_dependence_growth_analysis,
@@ -47,11 +48,6 @@ class DependenceRecognitionV2ShadowAdapter:
     adapter_version: str = "2.0.0-development"
 
     def inspect(self, context: FrozenInspectionContext) -> dict[str, Any]:
-        try:
-            analysis = analyze_dependence_growth_python(context)
-            discharged = discharge_dependence_growth_analysis(analysis, context)
-        except BaseException:
-            return self._abstention(("v2-shadow-pipeline-exception",))
         closure = dependence_v2_dependency_closure()
         common = {
             "record_type": "dependence_recognition_v2_shadow_result",
@@ -64,6 +60,11 @@ class DependenceRecognitionV2ShadowAdapter:
             "report_only": True,
             "production_finding_permitted": False,
         }
+        try:
+            analysis = analyze_dependence_growth_python(context)
+            discharged = discharge_dependence_growth_analysis(analysis, context)
+        except BaseException:
+            return {**common, **self._abstention(("v2-shadow-pipeline-exception",))}
         if discharged.state == "question":
             return {
                 **common,
@@ -110,7 +111,12 @@ class DependenceRecognitionV2ShadowAdapter:
         }
 
     def _abstention(self, reasons: tuple[str, ...]) -> dict[str, Any]:
-        values = sorted(set(reasons or ("dependence-v2-shadow-abstention",)))
+        values = sorted(
+            {
+                require_registered_v2_reason(reason)
+                for reason in reasons or ("dependence-v2-shadow-abstention",)
+            }
+        )
         return {
             "payload_type": "abstention",
             "outcome": "unsupported",

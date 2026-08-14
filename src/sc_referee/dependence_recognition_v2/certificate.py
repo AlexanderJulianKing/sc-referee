@@ -9,6 +9,7 @@ from dataclasses import asdict
 from sc_referee.core.ids import semantic_digest, sha256_digest
 from sc_referee.dependence_recognition.ir import HumanMethodAuthorization
 from sc_referee.dependence_recognition_v2.ir import (
+    DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS,
     MAX_V2_AST_NODES,
     DependenceGrowthCertificate,
     GroupValueSequenceFact,
@@ -27,8 +28,16 @@ def verify_dependence_growth_certificate(
     trusted_group_facts: tuple[GroupValueSequenceFact, ...],
     trusted_authorizations: tuple[HumanMethodAuthorization, ...],
     source_bytes: bytes,
+    _failure_reasons: list[str] | None = None,
 ) -> VerifiedDependenceGrowthCertificate | None:
     """Discharge every equation from source bytes and one trusted fact."""
+
+    def refuse(obligation: str) -> VerifiedDependenceGrowthCertificate | None:
+        if obligation not in DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS:
+            raise AssertionError(f"unknown kernel refusal obligation: {obligation}")
+        if _failure_reasons is not None:
+            _failure_reasons.append(obligation)
+        return None
 
     if (
         len(trusted_group_facts) != 1
@@ -39,7 +48,7 @@ def verify_dependence_growth_certificate(
         or not certificate.authority_record_id
         or not certificate.independent_unit_definition_id
     ):
-        return None
+        return refuse("envelope-binding")
     fact = trusted_group_facts[0]
     authority = trusted_authorizations[0]
     obligation = certificate.obligation
@@ -54,7 +63,7 @@ def verify_dependence_growth_certificate(
         or authority.input_path != obligation.path
         or authority.input_content_digest != obligation.content_digest
     ):
-        return None
+        return refuse("authority-binding")
     if (
         fact.evidence_id != f"dependence-growth-group-proof:{semantic_digest(asdict(obligation))}"
         or fact.row_count <= 0
@@ -81,27 +90,27 @@ def verify_dependence_growth_certificate(
         or fact.predeclared_bucket_keys != obligation.predeclared_bucket_keys
         or (fact.encoding == "ascii" and not fact.ascii_bytes_proven)
     ):
-        return None
+        return refuse("fact-closure")
     try:
         tree = ast.parse(source_bytes.decode("utf-8", errors="strict"))
     except (SyntaxError, UnicodeDecodeError, ValueError, RecursionError):
-        return None
+        return refuse("source-parse")
     if sum(1 for _ in ast.walk(tree)) > MAX_V2_AST_NODES:
-        return None
+        return refuse("source-size")
     if not _kernel_replay_source_claims(tree, certificate, fact):
-        return None
+        return refuse("source-semantic-replay")
 
     groups = {item.group_key: item for item in fact.groups}
     if len(groups) != len(fact.groups) or not groups:
-        return None
+        return refuse("group-partition")
     all_rows = [index for group in fact.groups for index in group.row_indices]
     if sorted(all_rows) != list(range(1, fact.row_count + 1)) or len(all_rows) != fact.row_count:
-        return None
+        return refuse("group-partition")
     all_observations = [item for group in fact.groups for item in group.observation_ids]
     if len(all_observations) != len(set(all_observations)) or any(
         not item for item in all_observations
     ):
-        return None
+        return refuse("observation-identity")
     for group in fact.groups:
         length = len(group.row_indices)
         if not (
@@ -111,7 +120,7 @@ def verify_dependence_growth_certificate(
             == len(group.source_values)
             == len(group.cast_value_reprs)
         ):
-            return None
+            return refuse("group-length-equation")
 
     arity = _PROCEDURE_ARITY[certificate.resolved_callable]
     bindings = certificate.operand_bindings
@@ -121,7 +130,7 @@ def verify_dependence_growth_certificate(
         or len({item.group_key for item in bindings}) != len(bindings)
         or {item.group_key for item in bindings} != set(groups)
     ):
-        return None
+        return refuse("operand-binding")
 
     unit_operand_memberships: dict[str, set[int]] = {}
     repeated: set[str] = set()
@@ -132,31 +141,31 @@ def verify_dependence_growth_certificate(
         for unit in counts:
             unit_operand_memberships.setdefault(unit, set()).add(binding.position)
     if any(len(positions) > 1 for positions in unit_operand_memberships.values()):
-        return None
+        return refuse("operand-disjointness")
     conclusion = "repeated_units" if repeated else "one_observation_per_unit"
     if certificate.conclusion != conclusion:
-        return None
+        return refuse("conclusion-equation")
 
     renames = certificate.alpha_renames
     if len({item.fresh_name for item in renames}) != len(renames):
-        return None
+        return refuse("alpha-renaming")
     if any(
         not item.fresh_name.startswith("__dependence_v2_")
         or item.original_name == item.fresh_name
         or not item.call_token
         for item in renames
     ):
-        return None
+        return refuse("alpha-renaming")
     if len(set(certificate.dead_syntactic_construct_tokens)) != len(
         certificate.dead_syntactic_construct_tokens
     ):
-        return None
+        return refuse("dead-construct-completeness")
     if not _kernel_replay_function_bookkeeping(tree, certificate):
-        return None
+        return refuse("dead-construct-completeness")
 
     expected_id = f"dependence-growth-certificate:{semantic_digest({'source_digest': certificate.source_digest, 'fact': fact.evidence_id, 'bindings': [asdict(item) for item in bindings], 'conclusion': conclusion})}"
     if certificate.certificate_id != expected_id:
-        return None
+        return refuse("certificate-identity")
     return VerifiedDependenceGrowthCertificate(
         certificate_id=certificate.certificate_id,
         source_path=certificate.source_path,
