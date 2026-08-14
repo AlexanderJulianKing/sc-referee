@@ -1,0 +1,213 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-a-reviewer-fable-16
+
+=== workflow 1: case:d1d4ed0e518ad533a2dc ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# North Ridge service reservoir chlorine survey
+
+`data/input.csv` holds the raw water-quality readings from a spring flushing
+survey of twelve municipal service reservoirs (drinking-water storage tanks) in
+the North Ridge distribution zone. Each reservoir has either an epoxy interior
+liner or a cement-mortar interior liner, and each one was tapped at the same
+four fixed sampling ports (1.5, 3.0, 4.5 and 6.0 m below the full-tank water
+line) during a single visit. Every reservoir therefore appears in four separate
+rows of the file, and its identifier repeats once per port depth.
+
+Columns:
+
+- `tank_id`: the reservoir the sample came from, e.g. TK-102. Twelve distinct
+  reservoirs appear, each in four rows.
+- `liner_type`: the interior lining of that reservoir, either `epoxy` or
+  `cement-mortar`. It is a fixed property of the reservoir, so it is the same in
+  all four rows belonging to a reservoir.
+- `port_depth_m`: depth of the sampling port below the water line, in metres.
+- `free_chlorine_mgl`: free chlorine residual measured in that sample, in
+  milligrams per litre.
+- `water_temp_c`: water temperature at that port at the moment of sampling, in
+  degrees Celsius.
+
+One row is: a single water sample drawn from one sampling port of one reservoir, with the free chlorine residual and water temperature measured on that sample.
+Independent unit column: tank_id
+
+--- file data/input.csv ---
+tank_id,liner_type,port_depth_m,free_chlorine_mgl,water_temp_c
+TK-102,epoxy,1.5,0.65,12.4
+TK-102,epoxy,3.0,0.69,12.1
+TK-102,epoxy,4.5,0.72,11.8
+TK-102,epoxy,6.0,0.74,11.5
+TK-105,epoxy,1.5,0.70,12.9
+TK-105,epoxy,3.0,0.74,12.6
+TK-105,epoxy,4.5,0.79,12.2
+TK-105,epoxy,6.0,0.81,11.9
+TK-108,epoxy,1.5,0.79,13.1
+TK-108,epoxy,3.0,0.79,12.8
+TK-108,epoxy,4.5,0.83,12.4
+TK-108,epoxy,6.0,0.87,12.0
+TK-111,epoxy,1.5,0.81,12.2
+TK-111,epoxy,3.0,0.89,12.0
+TK-111,epoxy,4.5,0.90,11.7
+TK-111,epoxy,6.0,0.92,11.4
+TK-114,epoxy,1.5,0.90,13.5
+TK-114,epoxy,3.0,0.92,13.2
+TK-114,epoxy,4.5,0.96,12.8
+TK-114,epoxy,6.0,0.98,12.5
+TK-117,epoxy,1.5,0.95,12.7
+TK-117,epoxy,3.0,0.97,12.3
+TK-117,epoxy,4.5,1.03,12.0
+TK-117,epoxy,6.0,1.05,11.6
+TK-103,cement-mortar,1.5,0.46,13.8
+TK-103,cement-mortar,3.0,0.48,13.4
+TK-103,cement-mortar,4.5,0.52,13.0
+TK-103,cement-mortar,6.0,0.54,12.7
+TK-106,cement-mortar,1.5,0.50,14.1
+TK-106,cement-mortar,3.0,0.55,13.7
+TK-106,cement-mortar,4.5,0.58,13.3
+TK-106,cement-mortar,6.0,0.61,12.9
+TK-109,cement-mortar,1.5,0.57,13.2
+TK-109,cement-mortar,3.0,0.59,12.9
+TK-109,cement-mortar,4.5,0.65,12.5
+TK-109,cement-mortar,6.0,0.67,12.2
+TK-112,cement-mortar,1.5,0.65,12.6
+TK-112,cement-mortar,3.0,0.67,12.3
+TK-112,cement-mortar,4.5,0.69,12.0
+TK-112,cement-mortar,6.0,0.71,11.7
+TK-115,cement-mortar,1.5,0.67,14.4
+TK-115,cement-mortar,3.0,0.72,14.0
+TK-115,cement-mortar,4.5,0.78,13.6
+TK-115,cement-mortar,6.0,0.79,13.1
+TK-118,cement-mortar,1.5,0.76,13.0
+TK-118,cement-mortar,3.0,0.80,12.6
+TK-118,cement-mortar,4.5,0.81,12.3
+TK-118,cement-mortar,6.0,0.83,11.9
+
+--- file workflow/analysis.py ---
+"""Free chlorine residual in North Ridge service reservoirs.
+
+Reads data/input.csv and writes results/report.md.
+"""
+
+import csv
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+SOURCE = Path("data/input.csv")
+REPORT = Path("results/report.md")
+GROUP_COL = "liner_type"
+VALUE_COL = "free_chlorine_mgl"
+EPOXY = "epoxy"
+CEMENT = "cement-mortar"
+
+
+def read_groups(path):
+    buckets = {EPOXY: [], CEMENT: []}
+    with path.open(newline="", encoding="ascii") as handle:
+        for record in csv.DictReader(handle):
+            buckets[record[GROUP_COL]].append(float(record[VALUE_COL]))
+    return {key: np.asarray(vals, dtype=float) for key, vals in buckets.items()}
+
+
+def welch_dof(first, second):
+    a = float(np.var(first, ddof=1)) / first.size
+    b = float(np.var(second, ddof=1)) / second.size
+    return (a + b) ** 2 / (a * a / (first.size - 1) + b * b / (second.size - 1))
+
+
+def summary_row(label, values):
+    return "| {} | {} | {:.3f} | {:.3f} |".format(
+        label, values.size, float(np.mean(values)), float(np.std(values, ddof=1))
+    )
+
+
+def compose(groups):
+    epoxy = groups[EPOXY]
+    cement = groups[CEMENT]
+    total = epoxy.size + cement.size
+    outcome = stats.ttest_ind(epoxy, cement, equal_var=False)
+    tstat = float(outcome.statistic)
+    pval = float(outcome.pvalue)
+    dof = welch_dof(epoxy, cement)
+    diff = float(np.mean(epoxy)) - float(np.mean(cement))
+    ptext = "p < 0.001" if pval < 0.001 else "p = {:.3f}".format(pval)
+    lines = [
+        "# Free chlorine residual by reservoir liner type",
+        "",
+        "## Data",
+        "",
+        "Twelve municipal service reservoirs in the North Ridge distribution zone were",
+        "sampled during a single spring flushing window. Six carry an epoxy liner and",
+        "six carry a cement-mortar liner. Each reservoir was tapped at four fixed port",
+        "depths (1.5, 3.0, 4.5 and 6.0 m), giving {} free chlorine readings in".format(total),
+        "`data/input.csv`.",
+        "",
+        "## Analysis",
+        "",
+        "Each reading was entered as one observation and the two liner groups were",
+        "compared with a two-sided Welch two-sample t-test (unequal variances).",
+        "",
+        "| liner | samples | mean free chlorine (mg/L) | SD (mg/L) |",
+        "| --- | ---: | ---: | ---: |",
+        summary_row(EPOXY, epoxy),
+        summary_row(CEMENT, cement),
+        "",
+        "Mean difference (epoxy minus cement-mortar): {:.3f} mg/L".format(diff),
+        "",
+        "Welch t = {:.3f}, df = {:.1f}, {}".format(tstat, dof, ptext),
+        "",
+        "## Result",
+        "",
+        (
+            "[selected-result] Epoxy-lined reservoirs carried {:.3f} mg/L more free "
+            "chlorine than cement-mortar-lined reservoirs (two-sided Welch two-sample "
+            "t-test over {} readings, {} per liner: t = {:.3f}, df = {:.1f}, {})."
+        ).format(diff, total, epoxy.size, tstat, dof, ptext),
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    groups = read_groups(SOURCE)
+    REPORT.parent.mkdir(parents=True, exist_ok=True)
+    REPORT.write_text(compose(groups), encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Free chlorine residual by reservoir liner type
+
+## Data
+
+Twelve municipal service reservoirs in the North Ridge distribution zone were
+sampled during a single spring flushing window. Six carry an epoxy liner and
+six carry a cement-mortar liner. Each reservoir was tapped at four fixed port
+depths (1.5, 3.0, 4.5 and 6.0 m), giving 48 free chlorine readings in
+`data/input.csv`.
+
+## Analysis
+
+Each reading was entered as one observation and the two liner groups were
+compared with a two-sided Welch two-sample t-test (unequal variances).
+
+| liner | samples | mean free chlorine (mg/L) | SD (mg/L) |
+| --- | ---: | ---: | ---: |
+| epoxy | 24 | 0.850 | 0.112 |
+| cement-mortar | 24 | 0.650 | 0.111 |
+
+Mean difference (epoxy minus cement-mortar): 0.200 mg/L
+
+Welch t = 6.226, df = 46.0, p < 0.001
+
+## Result
+
+[selected-result] Epoxy-lined reservoirs carried 0.200 mg/L more free chlorine than cement-mortar-lined reservoirs (two-sided Welch two-sample t-test over 48 readings, 24 per liner: t = 6.226, df = 46.0, p < 0.001).
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-a-reviewer-fable-16", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:d1d4ed0e518ad533a2dc"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

@@ -1,0 +1,208 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-a-reviewer-fable-16
+
+=== workflow 1: case:6da5419523f5f9dbedf9 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Sourdough leavening trial: timed rise readings
+
+The file `data/input.csv` comes from a small bakery-lab trial comparing two
+flours. Twelve starter jars were built and kept together in one proofing
+cabinet: six jars were fed rye flour and six were fed spelt flour, so the flour
+treatment belongs to the jar, not to any single measurement. After feeding, a
+technician returned to every jar four times, at 6, 12, 18 and 24 hours, and each
+time recorded the height of the risen gas column and the pH of the starter.
+Because of that schedule, each jar shows up in the file four times, once per
+visit, and those four numbers come from the same batch of dough.
+
+Columns:
+
+- `reading_id`: label for one measurement event (48 of them, all distinct).
+- `jar_id`: which starter jar was measured; twelve jars in total.
+- `flour_type`: the flour fed to that jar, either `rye` or `spelt`.
+- `incubation_h`: hours elapsed since feeding when the reading was taken.
+- `starter_ph`: pH of the starter at that reading.
+- `rise_mm`: height of the risen dough column, in millimetres, at that reading.
+
+One row is: one timed measurement of rise height and pH taken from a single starter jar at a single incubation time
+Independent unit column: jar_id
+
+--- file data/input.csv ---
+reading_id,jar_id,flour_type,incubation_h,starter_ph,rise_mm
+r01,RYE-1,rye,6,4.41,15
+r02,RYE-1,rye,12,4.19,16
+r03,RYE-1,rye,18,4.02,18
+r04,RYE-1,rye,24,3.93,19
+r05,RYE-2,rye,6,4.38,15
+r06,RYE-2,rye,12,4.16,17
+r07,RYE-2,rye,18,4.00,19
+r08,RYE-2,rye,24,3.90,22
+r09,RYE-3,rye,6,4.36,16
+r10,RYE-3,rye,12,4.13,18
+r11,RYE-3,rye,18,3.98,21
+r12,RYE-3,rye,24,3.88,23
+r13,RYE-4,rye,6,4.33,18
+r14,RYE-4,rye,12,4.10,19
+r15,RYE-4,rye,18,3.96,21
+r16,RYE-4,rye,24,3.86,25
+r17,RYE-5,rye,6,4.30,18
+r18,RYE-5,rye,12,4.08,21
+r19,RYE-5,rye,18,3.93,23
+r20,RYE-5,rye,24,3.84,25
+r21,RYE-6,rye,6,4.28,20
+r22,RYE-6,rye,12,4.05,22
+r23,RYE-6,rye,18,3.91,24
+r24,RYE-6,rye,24,3.82,25
+r25,SPL-1,spelt,6,4.26,22
+r26,SPL-1,spelt,12,4.03,23
+r27,SPL-1,spelt,18,3.89,24
+r28,SPL-1,spelt,24,3.80,25
+r29,SPL-2,spelt,6,4.24,23
+r30,SPL-2,spelt,12,4.01,25
+r31,SPL-2,spelt,18,3.87,27
+r32,SPL-2,spelt,24,3.78,28
+r33,SPL-3,spelt,6,4.22,22
+r34,SPL-3,spelt,12,3.99,26
+r35,SPL-3,spelt,18,3.85,29
+r36,SPL-3,spelt,24,3.76,30
+r37,SPL-4,spelt,6,4.20,25
+r38,SPL-4,spelt,12,3.97,26
+r39,SPL-4,spelt,18,3.83,28
+r40,SPL-4,spelt,24,3.74,32
+r41,SPL-5,spelt,6,4.18,25
+r42,SPL-5,spelt,12,3.95,28
+r43,SPL-5,spelt,18,3.81,30
+r44,SPL-5,spelt,24,3.72,32
+r45,SPL-6,spelt,6,4.16,26
+r46,SPL-6,spelt,12,3.93,29
+r47,SPL-6,spelt,18,3.79,31
+r48,SPL-6,spelt,24,3.70,32
+
+--- file workflow/analysis.py ---
+"""Rise-height comparison for a two-flour sourdough leavening trial."""
+
+import csv
+import math
+import pathlib
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = pathlib.Path("data/input.csv")
+REPORT_PATH = pathlib.Path("results/report.md")
+
+
+def read_readings(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def rise_by_flour(rows):
+    grouped = {}
+    for row in rows:
+        grouped.setdefault(row["flour_type"], []).append(float(row["rise_mm"]))
+    return {flour: np.array(vals, dtype=float) for flour, vals in sorted(grouped.items())}
+
+
+def jars_of(rows, flour):
+    return len({row["jar_id"] for row in rows if row["flour_type"] == flour})
+
+
+def p_phrase(pvalue):
+    if pvalue < 0.001:
+        return "p < 0.001"
+    return "p = {:.4f}".format(pvalue)
+
+
+def build_report(rows):
+    groups = rise_by_flour(rows)
+    (flour_a, rise_a), (flour_b, rise_b) = groups.items()
+
+    n_a, n_b = rise_a.size, rise_b.size
+    jars_a, jars_b = jars_of(rows, flour_a), jars_of(rows, flour_b)
+    mean_a, mean_b = float(rise_a.mean()), float(rise_b.mean())
+    sd_a, sd_b = float(rise_a.std(ddof=1)), float(rise_b.std(ddof=1))
+
+    tstat, pvalue = stats.ttest_ind(rise_a, rise_b, equal_var=True)
+    dof = n_a + n_b - 2
+    pooled_sd = math.sqrt(((n_a - 1) * sd_a ** 2 + (n_b - 1) * sd_b ** 2) / dof)
+    diff = mean_a - mean_b
+    effect = diff / pooled_sd
+
+    n_rows = len(rows)
+    n_jars = jars_a + jars_b
+    hours = ", ".join(str(h) for h in sorted({int(row["incubation_h"]) for row in rows}))
+
+    lines = [
+        "# Rise height of sourdough starters: rye versus spelt flour",
+        "",
+        "## Data",
+        "",
+        "`data/input.csv` holds {} timed rise readings from {} fermentation jars.".format(n_rows, n_jars),
+        "Each jar contributed {} readings, taken at hours {} after feeding.".format(n_rows // n_jars, hours),
+        "",
+        "| flour_type | jars | readings | mean rise (mm) | sd (mm) |",
+        "| --- | ---: | ---: | ---: | ---: |",
+        "| {} | {} | {} | {:.2f} | {:.2f} |".format(flour_a, jars_a, n_a, mean_a, sd_a),
+        "| {} | {} | {} | {:.2f} | {:.2f} |".format(flour_b, jars_b, n_b, mean_b, sd_b),
+        "",
+        "## Analysis",
+        "",
+        "Every one of the {} rows was entered as a separate observation in a two-sided,".format(n_rows),
+        "equal-variance two-sample Student t-test comparing rise height between the two",
+        "flour types ({} minus {}). The group summaries above use the same {} rows.".format(flour_a, flour_b, n_rows),
+        "",
+        "## Result",
+        "",
+        "[selected-result] Two-sample t-test over {} rise readings: {} minus {} = {:.2f} mm, t({}) = {:.2f}, {}, Cohen's d = {:.2f}.".format(
+            n_rows, flour_a, flour_b, diff, dof, float(tstat), p_phrase(float(pvalue)), effect
+        ),
+        "",
+        "Rye jars measured about 7 mm lower than spelt jars across the 24-hour window,",
+        "and at the level of individual readings the gap is flagged as highly significant.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    rows = read_readings(INPUT_PATH)
+    report = build_report(rows)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Rise height of sourdough starters: rye versus spelt flour
+
+## Data
+
+`data/input.csv` holds 48 timed rise readings from 12 fermentation jars.
+Each jar contributed 4 readings, taken at hours 6, 12, 18, 24 after feeding.
+
+| flour_type | jars | readings | mean rise (mm) | sd (mm) |
+| --- | ---: | ---: | ---: | ---: |
+| rye | 6 | 24 | 20.00 | 3.16 |
+| spelt | 6 | 24 | 27.00 | 3.16 |
+
+## Analysis
+
+Every one of the 48 rows was entered as a separate observation in a two-sided,
+equal-variance two-sample Student t-test comparing rise height between the two
+flour types (rye minus spelt). The group summaries above use the same 48 rows.
+
+## Result
+
+[selected-result] Two-sample t-test over 48 rise readings: rye minus spelt = -7.00 mm, t(46) = -7.67, p < 0.001, Cohen's d = -2.21.
+
+Rye jars measured about 7 mm lower than spelt jars across the 24-hour window,
+and at the level of individual readings the gap is flagged as highly significant.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-a-reviewer-fable-16", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:6da5419523f5f9dbedf9"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}
