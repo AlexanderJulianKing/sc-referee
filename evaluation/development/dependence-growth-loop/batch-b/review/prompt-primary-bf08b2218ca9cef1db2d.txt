@@ -1,0 +1,236 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-b-reviewer-fable-18
+
+=== workflow 1: case:bf08b2218ca9cef1db2d ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What is in data/input.csv
+
+Twenty-four drained upland peat basins were surveyed once each during the 2025
+growing season as part of a rewetting programme. Twelve of the basins had their
+drainage ditches dammed with peat blocks before the survey; the other twelve
+were left with their ditches open. A surveyor walked each basin a single time
+and recorded whether Sphagnum moss had re-established across the basin floor,
+along with the basin's mapped area and its mean peat depth.
+
+One row is: one drained peat basin, surveyed a single time, with its ditch treatment and its yes/no Sphagnum re-establishment outcome
+
+Independent unit column: basin_id
+
+Columns
+
+- basin_id: the survey code for the basin. Every code appears exactly once, so
+  the file has as many rows as there are basins.
+- catchment: the named catchment the basin sits in. Descriptive only.
+- ditch_treatment: "blocked" if the drainage ditches were dammed, "open" if they
+  were not. The treatment applies to the whole basin and does not change within
+  a basin.
+- basin_area_ha: mapped area of the basin in hectares.
+- peat_depth_cm: mean peat depth across the basin, in centimetres.
+- sphagnum_reestablished: "yes" or "no", the single outcome recorded for that
+  basin at its one survey visit.
+
+Because every basin contributes exactly one row and no basin was visited twice,
+the rows can be treated as independent observations, and the yes/no counts can
+go straight into a two-by-two comparison of blocked against open basins.
+
+--- file data/input.csv ---
+basin_id,catchment,ditch_treatment,basin_area_ha,peat_depth_cm,sphagnum_reestablished
+PB-01,Lang Fell,blocked,12.4,210,yes
+PB-02,Lang Fell,open,16.2,165,no
+PB-03,Lang Fell,blocked,8.7,145,yes
+PB-04,Tarn Moss,open,9.9,230,yes
+PB-05,Tarn Moss,blocked,21.3,320,yes
+PB-06,Corrie Burn,open,13.5,190,no
+PB-07,Tarn Moss,blocked,15.0,180,no
+PB-08,Lang Fell,open,22.7,275,no
+PB-09,Corrie Burn,blocked,9.6,265,yes
+PB-10,Tarn Moss,open,8.4,140,no
+PB-11,Corrie Burn,blocked,18.2,155,yes
+PB-12,Corrie Burn,open,17.6,250,yes
+PB-13,Lang Fell,blocked,11.1,290,yes
+PB-14,Lang Fell,open,11.8,200,no
+PB-15,Tarn Moss,blocked,26.5,205,no
+PB-16,Tarn Moss,open,20.3,160,no
+PB-17,Corrie Burn,blocked,7.8,175,yes
+PB-18,Corrie Burn,open,10.6,285,no
+PB-19,Lang Fell,blocked,14.9,240,yes
+PB-20,Lang Fell,open,14.2,215,yes
+PB-21,Tarn Moss,blocked,19.4,195,no
+PB-22,Tarn Moss,open,19.1,170,no
+PB-23,Corrie Burn,blocked,10.1,260,yes
+PB-24,Corrie Burn,open,6.7,225,no
+
+--- file workflow/analysis.py ---
+"""Ditch blocking and Sphagnum re-establishment in drained upland peat basins.
+
+Reads data/input.csv, which holds one surveyed basin per row, and writes
+results/report.md. Nothing else is read and nothing is printed.
+"""
+
+import csv
+import statistics
+from pathlib import Path
+
+from scipy import stats
+
+INPUT = Path("data") / "input.csv"
+OUTPUT = Path("results") / "report.md"
+
+UNIT_COLUMN = "basin_id"
+GROUP_COLUMN = "ditch_treatment"
+OUTCOME_COLUMN = "sphagnum_reestablished"
+
+
+def load_basins(path):
+    """Return the survey rows, refusing any basin that shows up twice."""
+    with path.open(newline="", encoding="ascii") as handle:
+        rows = list(csv.DictReader(handle))
+    seen = set()
+    for row in rows:
+        unit = row[UNIT_COLUMN]
+        if unit in seen:
+            raise ValueError("basin recorded more than once: " + unit)
+        seen.add(unit)
+    return rows
+
+
+def summarise(rows, treatment):
+    """Collapse one treatment arm into the counts the report needs."""
+    arm = [row for row in rows if row[GROUP_COLUMN] == treatment]
+    if not arm:
+        raise ValueError("no basins with treatment: " + treatment)
+    established = sum(1 for row in arm if row[OUTCOME_COLUMN] == "yes")
+    areas = [float(row["basin_area_ha"]) for row in arm]
+    depths = [int(row["peat_depth_cm"]) for row in arm]
+    return {
+        "label": treatment,
+        "n": len(arm),
+        "yes": established,
+        "no": len(arm) - established,
+        "proportion": established / len(arm),
+        "mean_area": sum(areas) / len(areas),
+        "median_depth": statistics.median(depths),
+    }
+
+
+def table_row(arm):
+    return "| {label} | {n} | {yes} | {proportion:.3f} | {mean_area:.2f} | {median_depth:.1f} |".format(**arm)
+
+
+def main():
+    rows = load_basins(INPUT)
+    blocked = summarise(rows, "blocked")
+    unblocked = summarise(rows, "open")
+
+    table = [[blocked["yes"], blocked["no"]], [unblocked["yes"], unblocked["no"]]]
+    _, p_value = stats.fisher_exact(table, alternative="two-sided")
+    odds_ratio = (table[0][0] * table[1][1]) / (table[0][1] * table[1][0])
+    risk_difference = blocked["proportion"] - unblocked["proportion"]
+
+    result = (
+        "[selected-result] Fisher's exact test on {total} independent peat basins: "
+        "Sphagnum re-established in {b_yes} of {b_n} basins with blocked ditches "
+        "versus {o_yes} of {o_n} basins with open ditches (sample odds ratio "
+        "{odds:.3f}, two-sided p = {p:.4f}), a significant difference at "
+        "alpha = 0.05."
+    ).format(
+        total=len(rows),
+        b_yes=blocked["yes"],
+        b_n=blocked["n"],
+        o_yes=unblocked["yes"],
+        o_n=unblocked["n"],
+        odds=odds_ratio,
+        p=p_value,
+    )
+
+    lines = [
+        "# Sphagnum re-establishment after ditch blocking in drained peat basins",
+        "",
+        "## Design",
+        "",
+        "Each row of `data/input.csv` is one drained peat basin surveyed once in the",
+        "2025 growing season. Basins are the independent units: {n} basins, {n} rows,".format(n=len(rows)),
+        "and no basin appears twice. Ditch treatment was fixed for the whole basin, so",
+        "each basin contributes a single yes/no outcome to a single cell of the table.",
+        "",
+        "## Groups",
+        "",
+        "| Ditch treatment | Basins | Re-established | Proportion | Mean area (ha) | Median peat depth (cm) |",
+        "| --- | --- | --- | --- | --- | --- |",
+        table_row(blocked),
+        table_row(unblocked),
+        "",
+        "## Test",
+        "",
+        "Fisher's exact test (two-sided) on the 2x2 table of ditch treatment by",
+        "Sphagnum re-establishment. Fisher's exact test was chosen over a chi-square",
+        "test because several expected cell counts are small.",
+        "",
+        "Contingency table (rows: blocked, open; columns: yes, no): {t}".format(t=table),
+        "",
+        "- Sample odds ratio: {v:.3f}".format(v=odds_ratio),
+        "- Two-sided p-value: {v:.4f}".format(v=p_value),
+        "- Risk difference (blocked minus open): {v:.3f}".format(v=risk_difference),
+        "",
+        "## Result",
+        "",
+        result,
+        "",
+        "## Notes",
+        "",
+        "Basin area and peat depth are reported only as descriptive balance checks;",
+        "neither was entered into the test.",
+    ]
+
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Sphagnum re-establishment after ditch blocking in drained peat basins
+
+## Design
+
+Each row of `data/input.csv` is one drained peat basin surveyed once in the
+2025 growing season. Basins are the independent units: 24 basins, 24 rows,
+and no basin appears twice. Ditch treatment was fixed for the whole basin, so
+each basin contributes a single yes/no outcome to a single cell of the table.
+
+## Groups
+
+| Ditch treatment | Basins | Re-established | Proportion | Mean area (ha) | Median peat depth (cm) |
+| --- | --- | --- | --- | --- | --- |
+| blocked | 12 | 9 | 0.750 | 14.58 | 207.5 |
+| open | 12 | 3 | 0.250 | 14.25 | 207.5 |
+
+## Test
+
+Fisher's exact test (two-sided) on the 2x2 table of ditch treatment by
+Sphagnum re-establishment. Fisher's exact test was chosen over a chi-square
+test because several expected cell counts are small.
+
+Contingency table (rows: blocked, open; columns: yes, no): [[9, 3], [3, 9]]
+
+- Sample odds ratio: 9.000
+- Two-sided p-value: 0.0391
+- Risk difference (blocked minus open): 0.500
+
+## Result
+
+[selected-result] Fisher's exact test on 24 independent peat basins: Sphagnum re-established in 9 of 12 basins with blocked ditches versus 3 of 12 basins with open ditches (sample odds ratio 9.000, two-sided p = 0.0391), a significant difference at alpha = 0.05.
+
+## Notes
+
+Basin area and peat depth are reported only as descriptive balance checks;
+neither was entered into the test.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-b-reviewer-fable-18", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:bf08b2218ca9cef1db2d"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

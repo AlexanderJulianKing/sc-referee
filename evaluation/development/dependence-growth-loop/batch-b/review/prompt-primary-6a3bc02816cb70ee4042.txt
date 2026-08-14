@@ -1,0 +1,380 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-b-reviewer-fable-18
+
+=== workflow 1: case:6a3bc02816cb70ee4042 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Kettle Creek terrace groundwater monitoring data
+
+This note describes `data/input.csv`, the nitrate record collected from eighteen
+shallow monitoring wells on the Kettle Creek terrace before and after a riparian
+wetland was reconnected to its floodplain.
+
+Every well was visited on six survey rounds: three rounds in the baseline year
+(study days 12, 40 and 68) and three rounds in the first post-restoration year
+(study days 215, 243 and 271). The table is kept in long format, so a single well
+contributes six rows, one per visit, and the file holds 108 data rows beneath a
+single header row.
+
+One row is: one water sample drawn from one monitoring well on one survey round
+Independent unit column: well_id
+
+The eighteen wells are the independent units of the study. The six rounds
+recorded for a given well are repeated measurements of the same piece of aquifer
+and are not independent of one another, so an analysis that reports a claim about
+the restoration should reduce each well to a single value (for example a
+baseline-to-post change score) before comparing units.
+
+## Columns
+
+- `well_id` - identifier of the monitoring well, W-01 to W-18. Repeated on the six rows belonging to that well.
+- `screen_depth_m` - depth of the middle of the well screen below ground surface, in metres. A fixed property of the well, so it is constant within a well_id.
+- `period` - `baseline` for rounds collected before reconnection, `post_restoration` for rounds collected afterwards.
+- `survey_round` - label of the survey campaign, R1 to R6.
+- `study_day` - day of the study on which that round was sampled, counted from the start of baseline monitoring.
+- `nitrate_mg_per_l` - nitrate concentration of the sample, in milligrams of nitrate-N per litre.
+
+## Reading notes
+
+Concentrations were measured by ion chromatography on filtered samples and are
+reported to one decimal place. There are no missing values and no ragged rows:
+each of the eighteen wells has exactly three baseline rows and three
+post-restoration rows.
+
+--- file data/input.csv ---
+well_id,screen_depth_m,period,survey_round,study_day,nitrate_mg_per_l
+W-01,6.5,baseline,R1,12,11.2
+W-02,7.2,baseline,R1,12,7.8
+W-03,5.8,baseline,R1,12,5.4
+W-04,8.1,baseline,R1,12,13.1
+W-05,6.0,baseline,R1,12,4.2
+W-06,7.6,baseline,R1,12,9.6
+W-07,6.8,baseline,R1,12,10.4
+W-08,5.4,baseline,R1,12,6.3
+W-09,7.0,baseline,R1,12,8.7
+W-10,8.4,baseline,R1,12,12.0
+W-11,5.1,baseline,R1,12,3.9
+W-12,6.3,baseline,R1,12,7.2
+W-13,8.9,baseline,R1,12,14.0
+W-14,5.6,baseline,R1,12,5.1
+W-15,7.4,baseline,R1,12,9.9
+W-16,6.1,baseline,R1,12,6.9
+W-17,8.0,baseline,R1,12,11.7
+W-18,7.8,baseline,R1,12,8.1
+W-01,6.5,baseline,R2,40,10.6
+W-02,7.2,baseline,R2,40,8.4
+W-03,5.8,baseline,R2,40,6.0
+W-04,8.1,baseline,R2,40,12.5
+W-05,6.0,baseline,R2,40,4.8
+W-06,7.6,baseline,R2,40,9.0
+W-07,6.8,baseline,R2,40,11.0
+W-08,5.4,baseline,R2,40,5.7
+W-09,7.0,baseline,R2,40,9.3
+W-10,8.4,baseline,R2,40,11.4
+W-11,5.1,baseline,R2,40,4.5
+W-12,6.3,baseline,R2,40,6.6
+W-13,8.9,baseline,R2,40,13.4
+W-14,5.6,baseline,R2,40,5.7
+W-15,7.4,baseline,R2,40,9.3
+W-16,6.1,baseline,R2,40,7.5
+W-17,8.0,baseline,R2,40,11.1
+W-18,7.8,baseline,R2,40,8.7
+W-01,6.5,baseline,R3,68,11.5
+W-02,7.2,baseline,R3,68,8.1
+W-03,5.8,baseline,R3,68,5.7
+W-04,8.1,baseline,R3,68,12.8
+W-05,6.0,baseline,R3,68,4.5
+W-06,7.6,baseline,R3,68,9.3
+W-07,6.8,baseline,R3,68,10.7
+W-08,5.4,baseline,R3,68,6.0
+W-09,7.0,baseline,R3,68,9.0
+W-10,8.4,baseline,R3,68,11.7
+W-11,5.1,baseline,R3,68,4.2
+W-12,6.3,baseline,R3,68,6.9
+W-13,8.9,baseline,R3,68,13.7
+W-14,5.6,baseline,R3,68,5.4
+W-15,7.4,baseline,R3,68,9.6
+W-16,6.1,baseline,R3,68,7.2
+W-17,8.0,baseline,R3,68,11.4
+W-18,7.8,baseline,R3,68,8.4
+W-01,6.5,post_restoration,R4,215,9.4
+W-02,7.2,post_restoration,R4,215,6.9
+W-03,5.8,post_restoration,R4,215,4.8
+W-04,8.1,post_restoration,R4,215,11.3
+W-05,6.0,post_restoration,R4,215,4.7
+W-06,7.6,post_restoration,R4,215,7.9
+W-07,6.8,post_restoration,R4,215,9.2
+W-08,5.4,post_restoration,R4,215,5.2
+W-09,7.0,post_restoration,R4,215,7.6
+W-10,8.4,post_restoration,R4,215,10.1
+W-11,5.1,post_restoration,R4,215,3.4
+W-12,6.3,post_restoration,R4,215,7.1
+W-13,8.9,post_restoration,R4,215,11.9
+W-14,5.6,post_restoration,R4,215,4.3
+W-15,7.4,post_restoration,R4,215,8.3
+W-16,6.1,post_restoration,R4,215,7.4
+W-17,8.0,post_restoration,R4,215,9.8
+W-18,7.8,post_restoration,R4,215,7.0
+W-01,6.5,post_restoration,R5,243,8.8
+W-02,7.2,post_restoration,R5,243,7.2
+W-03,5.8,post_restoration,R5,243,5.1
+W-04,8.1,post_restoration,R5,243,10.9
+W-05,6.0,post_restoration,R5,243,5.0
+W-06,7.6,post_restoration,R5,243,8.2
+W-07,6.8,post_restoration,R5,243,9.5
+W-08,5.4,post_restoration,R5,243,5.5
+W-09,7.0,post_restoration,R5,243,7.9
+W-10,8.4,post_restoration,R5,243,10.4
+W-11,5.1,post_restoration,R5,243,3.7
+W-12,6.3,post_restoration,R5,243,7.4
+W-13,8.9,post_restoration,R5,243,12.2
+W-14,5.6,post_restoration,R5,243,4.6
+W-15,7.4,post_restoration,R5,243,8.6
+W-16,6.1,post_restoration,R5,243,7.7
+W-17,8.0,post_restoration,R5,243,10.1
+W-18,7.8,post_restoration,R5,243,7.3
+W-01,6.5,post_restoration,R6,271,9.7
+W-02,7.2,post_restoration,R6,271,6.6
+W-03,5.8,post_restoration,R6,271,4.5
+W-04,8.1,post_restoration,R6,271,11.7
+W-05,6.0,post_restoration,R6,271,5.3
+W-06,7.6,post_restoration,R6,271,8.5
+W-07,6.8,post_restoration,R6,271,9.8
+W-08,5.4,post_restoration,R6,271,4.9
+W-09,7.0,post_restoration,R6,271,8.2
+W-10,8.4,post_restoration,R6,271,10.7
+W-11,5.1,post_restoration,R6,271,4.0
+W-12,6.3,post_restoration,R6,271,7.7
+W-13,8.9,post_restoration,R6,271,12.5
+W-14,5.6,post_restoration,R6,271,4.9
+W-15,7.4,post_restoration,R6,271,8.9
+W-16,6.1,post_restoration,R6,271,8.0
+W-17,8.0,post_restoration,R6,271,10.4
+W-18,7.8,post_restoration,R6,271,7.6
+
+--- file workflow/analysis.py ---
+"""Nitrate response of shallow monitoring wells to riparian wetland reconnection.
+
+The survey rounds stored in data/input.csv are repeated measurements on the same
+wells.  The well, not the water sample, is the independent unit of the study, so
+this script collapses each well's rounds to a single baseline-to-post change
+score and tests those well-level scores.  No well contributes more than one
+number to the reported comparison.
+"""
+
+import csv
+import statistics
+from collections import defaultdict
+from pathlib import Path
+
+from scipy.stats import binomtest
+
+INPUT_PATH = Path("data") / "input.csv"
+OUTPUT_PATH = Path("results") / "report.md"
+
+BASELINE_LABEL = "baseline"
+POST_LABEL = "post_restoration"
+
+
+def read_long_table(path):
+    """Group the long-format file as {well: {period: [nitrate, ...]}}."""
+    readings = defaultdict(lambda: defaultdict(list))
+    screen_depth = {}
+    with path.open(newline="", encoding="ascii") as handle:
+        for record in csv.DictReader(handle):
+            well = record["well_id"]
+            readings[well][record["period"]].append(float(record["nitrate_mg_per_l"]))
+            screen_depth[well] = float(record["screen_depth_m"])
+    return readings, screen_depth
+
+
+def collapse_to_wells(readings):
+    """One paired change score per well: post-period mean minus baseline mean."""
+    contrasts = []
+    for well in sorted(readings):
+        baseline = readings[well][BASELINE_LABEL]
+        post = readings[well][POST_LABEL]
+        baseline_mean = statistics.fmean(baseline)
+        post_mean = statistics.fmean(post)
+        contrasts.append(
+            {
+                "well": well,
+                "n_baseline": len(baseline),
+                "n_post": len(post),
+                "baseline_mean": baseline_mean,
+                "post_mean": post_mean,
+                "change": post_mean - baseline_mean,
+            }
+        )
+    return contrasts
+
+
+def direction_label(change):
+    if change < 0.0:
+        return "decrease"
+    if change > 0.0:
+        return "increase"
+    return "no change"
+
+
+def compose_report(contrasts, screen_depth):
+    changes = [item["change"] for item in contrasts]
+    n_wells = len(contrasts)
+
+    signed = [value for value in changes if value != 0.0]
+    n_tested = len(signed)
+    n_down = sum(1 for value in signed if value < 0.0)
+    n_up = n_tested - n_down
+    n_flat = n_wells - n_tested
+
+    outcome = binomtest(n_down, n_tested, 0.5, alternative="two-sided")
+    median_change = statistics.median(changes)
+    mean_change = statistics.fmean(changes)
+    steepest = min(changes)
+    share_down = 100.0 * n_down / n_tested
+
+    rounds_baseline = contrasts[0]["n_baseline"]
+    rounds_post = contrasts[0]["n_post"]
+    occasions = rounds_baseline + rounds_post
+    total_rows = sum(item["n_baseline"] + item["n_post"] for item in contrasts)
+    depth_lo = min(screen_depth.values())
+    depth_hi = max(screen_depth.values())
+    base_lo = min(item["baseline_mean"] for item in contrasts)
+    base_hi = max(item["baseline_mean"] for item in contrasts)
+
+    lines = [
+        "# Nitrate response of shallow monitoring wells to riparian wetland reconnection",
+        "",
+        "## Design and data",
+        "",
+        f"{n_wells} shallow groundwater monitoring wells on the Kettle Creek terrace were sampled on "
+        f"{occasions} survey rounds each: {rounds_baseline} rounds before the riparian wetland was "
+        f"reconnected to its floodplain and {rounds_post} rounds during the first post-restoration year. "
+        f"`data/input.csv` stores the record in long format, one row per well and round ({total_rows} rows "
+        f"under a single header). Screen depth ({depth_lo:.1f}-{depth_hi:.1f} m) is a property of the well "
+        f"and is repeated on every row belonging to it.",
+        "",
+        "Rounds taken from the same well are not independent observations of the aquifer: they share a "
+        "screen interval, the same lithology and the same local recharge history. The well is the "
+        "independent unit, so the sample-level values of each well are collapsed into a single paired "
+        f"contrast before anything is tested, and exactly {n_wells} numbers, one per well, enter the "
+        "inference.",
+        "",
+        "## Analysis",
+        "",
+        "For each well the mean baseline nitrate concentration was subtracted from the mean "
+        "post-restoration concentration, giving one change score per well. The signs of these "
+        f"{n_tested} well-level change scores were then tested against the null hypothesis of an even "
+        "split (probability 0.5 of a decrease) with an exact two-sided binomial sign test. No individual "
+        "water sample enters the test on its own, and no well contributes more than one number.",
+        "",
+        "## Well-level contrasts",
+        "",
+        "| well | rounds (baseline / post) | baseline mean | post mean | change | direction |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+
+    for item in contrasts:
+        lines.append(
+            f"| {item['well']} | {item['n_baseline']} / {item['n_post']} | "
+            f"{item['baseline_mean']:.2f} | {item['post_mean']:.2f} | "
+            f"{item['change']:+.2f} | {direction_label(item['change'])} |"
+        )
+
+    lines.extend(
+        [
+            "",
+            "All concentrations are milligrams of nitrate-N per litre.",
+            "",
+            "## Result",
+            "",
+            f"{n_down} of the {n_wells} wells ({share_down:.1f}%) had a lower mean nitrate concentration "
+            f"after reconnection, {n_up} had a higher mean, and {n_flat} were unchanged. Across wells the "
+            f"median change was {median_change:+.2f} mg/L and the mean change was {mean_change:+.2f} mg/L; "
+            f"the largest single-well decline was {steepest:+.2f} mg/L.",
+            "",
+            f"[selected-result] Exact two-sided binomial sign test on {n_tested} independent well-level "
+            f"change scores: {n_down}/{n_tested} wells declined (estimated proportion "
+            f"{outcome.proportion_estimate:.3f}), p = {outcome.pvalue:.6f}; median well-level change "
+            f"{median_change:+.2f} mg/L.",
+            "",
+            "## Notes",
+            "",
+            f"The test treats wells, not individual water samples, as replicates. Pooling all {total_rows} "
+            f"sample-level records into a sample-by-sample comparison would count every well {occasions} "
+            f"times and would overstate the evidence; the reported p-value rests on the {n_tested} "
+            "well-level scores alone. Because the sign test uses only the direction of each well's change, "
+            "it is insensitive to the size of individual shifts and to the spread of baseline "
+            f"concentrations across wells ({base_lo:.2f}-{base_hi:.2f} mg/L).",
+        ]
+    )
+
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    readings, screen_depth = read_long_table(INPUT_PATH)
+    contrasts = collapse_to_wells(readings)
+    report = compose_report(contrasts, screen_depth)
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with OUTPUT_PATH.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(report)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Nitrate response of shallow monitoring wells to riparian wetland reconnection
+
+## Design and data
+
+18 shallow groundwater monitoring wells on the Kettle Creek terrace were sampled on 6 survey rounds each: 3 rounds before the riparian wetland was reconnected to its floodplain and 3 rounds during the first post-restoration year. `data/input.csv` stores the record in long format, one row per well and round (108 rows under a single header). Screen depth (5.1-8.9 m) is a property of the well and is repeated on every row belonging to it.
+
+Rounds taken from the same well are not independent observations of the aquifer: they share a screen interval, the same lithology and the same local recharge history. The well is the independent unit, so the sample-level values of each well are collapsed into a single paired contrast before anything is tested, and exactly 18 numbers, one per well, enter the inference.
+
+## Analysis
+
+For each well the mean baseline nitrate concentration was subtracted from the mean post-restoration concentration, giving one change score per well. The signs of these 18 well-level change scores were then tested against the null hypothesis of an even split (probability 0.5 of a decrease) with an exact two-sided binomial sign test. No individual water sample enters the test on its own, and no well contributes more than one number.
+
+## Well-level contrasts
+
+| well | rounds (baseline / post) | baseline mean | post mean | change | direction |
+| --- | --- | --- | --- | --- | --- |
+| W-01 | 3 / 3 | 11.10 | 9.30 | -1.80 | decrease |
+| W-02 | 3 / 3 | 8.10 | 6.90 | -1.20 | decrease |
+| W-03 | 3 / 3 | 5.70 | 4.80 | -0.90 | decrease |
+| W-04 | 3 / 3 | 12.80 | 11.30 | -1.50 | decrease |
+| W-05 | 3 / 3 | 4.50 | 5.00 | +0.50 | increase |
+| W-06 | 3 / 3 | 9.30 | 8.20 | -1.10 | decrease |
+| W-07 | 3 / 3 | 10.70 | 9.50 | -1.20 | decrease |
+| W-08 | 3 / 3 | 6.00 | 5.20 | -0.80 | decrease |
+| W-09 | 3 / 3 | 9.00 | 7.90 | -1.10 | decrease |
+| W-10 | 3 / 3 | 11.70 | 10.40 | -1.30 | decrease |
+| W-11 | 3 / 3 | 4.20 | 3.70 | -0.50 | decrease |
+| W-12 | 3 / 3 | 6.90 | 7.40 | +0.50 | increase |
+| W-13 | 3 / 3 | 13.70 | 12.20 | -1.50 | decrease |
+| W-14 | 3 / 3 | 5.40 | 4.60 | -0.80 | decrease |
+| W-15 | 3 / 3 | 9.60 | 8.60 | -1.00 | decrease |
+| W-16 | 3 / 3 | 7.20 | 7.70 | +0.50 | increase |
+| W-17 | 3 / 3 | 11.40 | 10.10 | -1.30 | decrease |
+| W-18 | 3 / 3 | 8.40 | 7.30 | -1.10 | decrease |
+
+All concentrations are milligrams of nitrate-N per litre.
+
+## Result
+
+15 of the 18 wells (83.3%) had a lower mean nitrate concentration after reconnection, 3 had a higher mean, and 0 were unchanged. Across wells the median change was -1.10 mg/L and the mean change was -0.87 mg/L; the largest single-well decline was -1.80 mg/L.
+
+[selected-result] Exact two-sided binomial sign test on 18 independent well-level change scores: 15/18 wells declined (estimated proportion 0.833), p = 0.007538; median well-level change -1.10 mg/L.
+
+## Notes
+
+The test treats wells, not individual water samples, as replicates. Pooling all 108 sample-level records into a sample-by-sample comparison would count every well 6 times and would overstate the evidence; the reported p-value rests on the 18 well-level scores alone. Because the sign test uses only the direction of each well's change, it is insensitive to the size of individual shifts and to the spread of baseline concentrations across wells (4.20-13.70 mg/L).
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-b-reviewer-fable-18", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:6a3bc02816cb70ee4042"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

@@ -1,0 +1,25 @@
+basin_id,catchment,ditch_treatment,basin_area_ha,peat_depth_cm,sphagnum_reestablished
+PB-01,Lang Fell,blocked,12.4,210,yes
+PB-02,Lang Fell,open,16.2,165,no
+PB-03,Lang Fell,blocked,8.7,145,yes
+PB-04,Tarn Moss,open,9.9,230,yes
+PB-05,Tarn Moss,blocked,21.3,320,yes
+PB-06,Corrie Burn,open,13.5,190,no
+PB-07,Tarn Moss,blocked,15.0,180,no
+PB-08,Lang Fell,open,22.7,275,no
+PB-09,Corrie Burn,blocked,9.6,265,yes
+PB-10,Tarn Moss,open,8.4,140,no
+PB-11,Corrie Burn,blocked,18.2,155,yes
+PB-12,Corrie Burn,open,17.6,250,yes
+PB-13,Lang Fell,blocked,11.1,290,yes
+PB-14,Lang Fell,open,11.8,200,no
+PB-15,Tarn Moss,blocked,26.5,205,no
+PB-16,Tarn Moss,open,20.3,160,no
+PB-17,Corrie Burn,blocked,7.8,175,yes
+PB-18,Corrie Burn,open,10.6,285,no
+PB-19,Lang Fell,blocked,14.9,240,yes
+PB-20,Lang Fell,open,14.2,215,yes
+PB-21,Tarn Moss,blocked,19.4,195,no
+PB-22,Tarn Moss,open,19.1,170,no
+PB-23,Corrie Burn,blocked,10.1,260,yes
+PB-24,Corrie Burn,open,6.7,225,no

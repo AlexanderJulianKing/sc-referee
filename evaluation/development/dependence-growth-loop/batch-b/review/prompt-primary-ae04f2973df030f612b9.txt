@@ -1,0 +1,200 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-b-reviewer-fable-18
+
+=== workflow 1: case:ae04f2973df030f612b9 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Hooked-stick choice assay in juvenile New Caledonian crows
+
+Six hand-raised juvenile crows were each offered the same two-option foraging
+puzzle four times: a baited log with one hooked stick and one straight stick
+laid beside it. An observer recorded which stick the bird lifted first and how
+long it took to make that first lift.
+
+The file data/input.csv has 24 rows and six columns:
+
+- bird_id: identity code of the crow (NC01 through NC06).
+- trial_no: the trial number for that bird, 1 to 4.
+- session: whether the trial ran in the morning or the afternoon block.
+- hooked_stick_side: the side of the log the hooked stick was laid on.
+- chose_hooked: 1 if the bird lifted the hooked stick first, 0 if it lifted the
+  straight stick first.
+- latency_s: seconds from the bird landing on the log to the first lift.
+
+One row is: one tool-choice trial performed by one crow.
+Independent unit column: bird_id
+
+Every crow contributes four trials, so the rows arrive in clusters of four that
+share the same bird, and birds differ markedly in how strongly they favour the
+hooked stick.
+
+--- file data/input.csv ---
+bird_id,trial_no,session,hooked_stick_side,chose_hooked,latency_s
+NC01,1,morning,left,1,14.2
+NC01,2,morning,right,1,11.8
+NC01,3,afternoon,left,1,9.6
+NC01,4,afternoon,right,1,10.3
+NC02,1,morning,right,1,18.7
+NC02,2,morning,left,1,15.4
+NC02,3,afternoon,right,1,13.9
+NC02,4,afternoon,left,1,12.6
+NC03,1,morning,left,1,21.5
+NC03,2,morning,right,1,19.2
+NC03,3,afternoon,left,0,26.8
+NC03,4,afternoon,right,1,17.4
+NC04,1,morning,right,1,8.9
+NC04,2,morning,left,1,7.5
+NC04,3,afternoon,right,1,8.1
+NC04,4,afternoon,left,1,6.7
+NC05,1,morning,left,1,24.3
+NC05,2,morning,right,0,31.6
+NC05,3,afternoon,left,0,29.4
+NC05,4,afternoon,right,1,22.8
+NC06,1,morning,right,0,33.1
+NC06,2,morning,left,0,35.7
+NC06,3,afternoon,right,1,28.2
+NC06,4,afternoon,left,0,30.5
+
+--- file workflow/analysis.py ---
+"""Pooled trial-level analysis of a two-option tool-choice assay in juvenile crows.
+
+Reads data/input.csv, counts how often the hooked stick was lifted first, and
+writes results/report.md.
+"""
+
+import csv
+from pathlib import Path
+
+from scipy.stats import binomtest
+
+DATA_FILE = Path("data") / "input.csv"
+REPORT_FILE = Path("results") / "report.md"
+CHANCE_RATE = 0.5
+OUTCOME_COLUMN = "chose_hooked"
+BIRD_COLUMN = "bird_id"
+
+
+def read_trials(path):
+    """Return every recorded trial as a plain dictionary, in file order."""
+    with open(str(path), "r", encoding="ascii", newline="") as handle:
+        return [dict(row) for row in csv.DictReader(handle)]
+
+
+def tally_per_bird(trials):
+    """Map each bird to a (trials, hooked choices) pair, keeping first-seen order."""
+    tally = {}
+    for row in trials:
+        bird = row[BIRD_COLUMN]
+        attempts, hooked = tally.get(bird, (0, 0))
+        tally[bird] = (attempts + 1, hooked + int(row[OUTCOME_COLUMN]))
+    return tally
+
+
+def count_hooked(trials):
+    return sum(int(row[OUTCOME_COLUMN]) for row in trials)
+
+
+def build_report(tally, successes, trials, pvalue):
+    lines = []
+    lines.append("# Hooked-stick preference in juvenile New Caledonian crows")
+    lines.append("")
+    lines.append("## Trials")
+    lines.append("")
+    lines.append(
+        "{0} two-option tool-choice trials were recorded from {1} hand-raised"
+        " juvenile crows.".format(trials, len(tally))
+    )
+    lines.append(
+        "Each trial was scored 1 when the bird lifted the hooked stick and 0 when it lifted"
+    )
+    lines.append("the straight stick.")
+    lines.append("")
+    lines.append("## Per-bird tally")
+    lines.append("")
+    lines.append("| bird_id | trials | hooked choices |")
+    lines.append("| --- | --- | --- |")
+    for bird in tally:
+        attempts, hooked = tally[bird]
+        lines.append("| {0} | {1} | {2} |".format(bird, attempts, hooked))
+    lines.append("")
+    lines.append("## Test")
+    lines.append("")
+    lines.append(
+        "Every recorded trial was entered as one observation and the pooled outcomes were"
+    )
+    lines.append(
+        "compared with a chance rate of {0:.3f} using an exact two-sided binomial"
+        " test.".format(CHANCE_RATE)
+    )
+    lines.append("")
+    lines.append("- Hooked choices: {0} of {1}".format(successes, trials))
+    lines.append("- Observed proportion: {0:.4f}".format(successes / trials))
+    lines.append("- Exact two-sided p-value: {0:.6f}".format(pvalue))
+    lines.append("")
+    lines.append("## Conclusion")
+    lines.append("")
+    lines.append(
+        "[selected-result] Juvenile New Caledonian crows chose the hooked stick on "
+        "{0} of {1} trials ({2:.2f}%), and an exact two-sided binomial test against a "
+        "chance rate of {3:.3f} rejects chance responding at the 5% level "
+        "(p = {4:.6f}).".format(
+            successes, trials, 100.0 * successes / trials, CHANCE_RATE, pvalue
+        )
+    )
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    trials = read_trials(DATA_FILE)
+    tally = tally_per_bird(trials)
+    n_trials = len(trials)
+    n_hooked = count_hooked(trials)
+    outcome = binomtest(n_hooked, n_trials, CHANCE_RATE, alternative="two-sided")
+    report = build_report(tally, n_hooked, n_trials, outcome.pvalue)
+    REPORT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(str(REPORT_FILE), "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(report)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Hooked-stick preference in juvenile New Caledonian crows
+
+## Trials
+
+24 two-option tool-choice trials were recorded from 6 hand-raised juvenile crows.
+Each trial was scored 1 when the bird lifted the hooked stick and 0 when it lifted
+the straight stick.
+
+## Per-bird tally
+
+| bird_id | trials | hooked choices |
+| --- | --- | --- |
+| NC01 | 4 | 4 |
+| NC02 | 4 | 4 |
+| NC03 | 4 | 3 |
+| NC04 | 4 | 4 |
+| NC05 | 4 | 2 |
+| NC06 | 4 | 1 |
+
+## Test
+
+Every recorded trial was entered as one observation and the pooled outcomes were
+compared with a chance rate of 0.500 using an exact two-sided binomial test.
+
+- Hooked choices: 18 of 24
+- Observed proportion: 0.7500
+- Exact two-sided p-value: 0.022656
+
+## Conclusion
+
+[selected-result] Juvenile New Caledonian crows chose the hooked stick on 18 of 24 trials (75.00%), and an exact two-sided binomial test against a chance rate of 0.500 rejects chance responding at the 5% level (p = 0.022656).
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-b-reviewer-fable-18", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:ae04f2973df030f612b9"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

@@ -1,0 +1,261 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-b-reviewer-fable-18
+
+=== workflow 1: case:3c2b93c9545d8518e1f3 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+Kessel Glacier ablation-stake survey (data/input.csv)
+
+Over one week in late July, a two-person field team drilled eight aluminium
+stakes into the bare-ice zone of Kessel Glacier: four on a north-facing bench
+and four on the south-facing flank across the valley. Every morning for six
+mornings the team measured how far the ice surface had dropped below the collar
+of each stake since the previous morning, and logged the shaded air temperature
+at the stake at the moment of the reading.
+
+One row is: one morning melt reading at one ablation stake, that is, the surface lowering measured at that stake over the preceding 24 hours
+Independent unit column: stake_id
+
+Columns
+- stake_id: label of the ablation stake the reading came from. The same eight
+  stakes are revisited, so each label appears on all six survey mornings.
+- slope_aspect: whether the stake sits on the north-facing or the south-facing
+  side of the valley. Fixed for a given stake.
+- survey_day: survey morning, numbered 1 to 6 from the start of the week.
+- ablation_mm: surface lowering in millimetres over the preceding 24 hours.
+- air_temp_c: shaded air temperature in degrees Celsius at the stake when the
+  reading was taken.
+
+The stakes were placed once and left in the ice for the whole week; nothing was
+re-randomised between mornings.
+
+--- file data/input.csv ---
+stake_id,slope_aspect,survey_day,ablation_mm,air_temp_c
+KG-N01,north,1,7.5,2.4
+KG-N01,north,2,8.1,3.1
+KG-N01,north,3,8.7,4.0
+KG-N01,north,4,9.3,3.6
+KG-N01,north,5,9.9,2.9
+KG-N01,north,6,10.5,4.4
+KG-N02,north,1,9.5,2.6
+KG-N02,north,2,10.1,3.0
+KG-N02,north,3,10.7,4.2
+KG-N02,north,4,11.3,3.5
+KG-N02,north,5,11.9,3.1
+KG-N02,north,6,12.5,4.3
+KG-N03,north,1,11.5,2.3
+KG-N03,north,2,12.1,3.3
+KG-N03,north,3,12.7,3.9
+KG-N03,north,4,13.3,3.8
+KG-N03,north,5,13.9,2.8
+KG-N03,north,6,14.5,4.6
+KG-N04,north,1,13.5,2.7
+KG-N04,north,2,14.1,3.2
+KG-N04,north,3,14.7,4.1
+KG-N04,north,4,15.3,3.4
+KG-N04,north,5,15.9,3.0
+KG-N04,north,6,16.5,4.5
+KG-S01,south,1,15.25,3.9
+KG-S01,south,2,16.15,4.6
+KG-S01,south,3,17.05,5.5
+KG-S01,south,4,17.95,5.1
+KG-S01,south,5,18.85,4.4
+KG-S01,south,6,19.75,5.9
+KG-S02,south,1,18.25,4.1
+KG-S02,south,2,19.15,4.5
+KG-S02,south,3,20.05,5.7
+KG-S02,south,4,20.95,5.0
+KG-S02,south,5,21.85,4.6
+KG-S02,south,6,22.75,5.8
+KG-S03,south,1,20.25,3.8
+KG-S03,south,2,21.15,4.8
+KG-S03,south,3,22.05,5.4
+KG-S03,south,4,22.95,5.3
+KG-S03,south,5,23.85,4.3
+KG-S03,south,6,24.75,6.1
+KG-S04,south,1,23.25,4.2
+KG-S04,south,2,24.15,4.7
+KG-S04,south,3,25.05,5.6
+KG-S04,south,4,25.95,4.9
+KG-S04,south,5,26.85,4.5
+KG-S04,south,6,27.75,6.0
+
+--- file workflow/analysis.py ---
+"""Slope aspect and daily melt at Kessel Glacier ablation stakes.
+
+Reads data/input.csv, contrasts north-facing with south-facing readings, and
+writes results/report.md.
+"""
+
+import csv
+import os
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = os.path.join("data", "input.csv")
+OUTPUT_PATH = os.path.join("results", "report.md")
+RESPONSE = "ablation_mm"
+GROUPING = "slope_aspect"
+
+
+def load_readings(path):
+    """Return every stake-day melt reading as a small dictionary."""
+    readings = []
+    with open(path, newline="", encoding="ascii") as handle:
+        for record in csv.DictReader(handle):
+            readings.append(
+                {
+                    "stake": record["stake_id"],
+                    "aspect": record[GROUPING],
+                    "day": int(record["survey_day"]),
+                    "melt": float(record[RESPONSE]),
+                }
+            )
+    return readings
+
+
+def split_by_aspect(readings):
+    """Bucket the melt values under the aspect label of their reading."""
+    buckets = {}
+    for reading in readings:
+        buckets.setdefault(reading["aspect"], []).append(reading["melt"])
+    return {label: np.asarray(vals, dtype=float) for label, vals in buckets.items()}
+
+
+def welch_dof(first, second):
+    """Welch-Satterthwaite degrees of freedom for two samples."""
+    term_a = first.var(ddof=1) / first.size
+    term_b = second.var(ddof=1) / second.size
+    spread = term_a ** 2 / (first.size - 1) + term_b ** 2 / (second.size - 1)
+    return (term_a + term_b) ** 2 / spread
+
+
+def summary_rows(buckets):
+    """Markdown lines for the per-aspect summary table."""
+    table = [
+        "| {} | n | mean {} | sd {} |".format(GROUPING, RESPONSE, RESPONSE),
+        "| --- | --- | --- | --- |",
+    ]
+    for label in sorted(buckets):
+        sample = buckets[label]
+        table.append(
+            "| {} | {} | {:.3f} | {:.3f} |".format(
+                label, sample.size, sample.mean(), sample.std(ddof=1)
+            )
+        )
+    return table
+
+
+def compose(readings, buckets, result, dof):
+    """Assemble the whole report as one string."""
+    north = buckets["north"]
+    south = buckets["south"]
+    gap = south.mean() - north.mean()
+    if result.pvalue < 1e-4:
+        p_text = "p < 0.0001"
+    else:
+        p_text = "p = {:.4f}".format(result.pvalue)
+
+    lines = [
+        "# Slope aspect and daily melt at Kessel Glacier ablation stakes",
+        "",
+        "## Data",
+        "",
+        "Table `data/input.csv` holds {} melt readings taken with a folding rule at".format(
+            len(readings)
+        ),
+        "ablation stakes drilled into the glacier surface. Each reading gives the",
+        "surface lowering `{}` measured on one survey day, together with the".format(
+            RESPONSE
+        ),
+        "aspect of the slope the stake sits on.",
+        "",
+    ]
+    lines.extend(summary_rows(buckets))
+    lines.extend(
+        [
+            "",
+            "## Analysis",
+            "",
+            "Welch's two-sample t-test (two-sided, unequal variances) on `{}`,".format(
+                RESPONSE
+            ),
+            "contrasting south-facing against north-facing readings. Each row of the table",
+            "supplied one observation to the test, so the two samples held {} values each.".format(
+                north.size
+            ),
+            "",
+            "## Result",
+            "",
+            "[selected-result] Welch's two-sample t-test on {} stake-day readings gives mean"
+            " {} of {:.3f} mm on south-facing slopes against {:.3f} mm on north-facing"
+            " slopes, a gap of {:.3f} mm (t = {:.3f}, df = {:.3f}, {}).".format(
+                len(readings),
+                RESPONSE,
+                south.mean(),
+                north.mean(),
+                gap,
+                result.statistic,
+                dof,
+                p_text,
+            ),
+            "",
+            "The melt gap of {:.3f} mm per day between the two aspects is far larger than the".format(
+                gap
+            ),
+            "spread within either group (sd {:.3f} mm south, {:.3f} mm north).".format(
+                south.std(ddof=1), north.std(ddof=1)
+            ),
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    readings = load_readings(INPUT_PATH)
+    buckets = split_by_aspect(readings)
+    result = stats.ttest_ind(buckets["south"], buckets["north"], equal_var=False)
+    dof = welch_dof(buckets["south"], buckets["north"])
+    os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
+    with open(OUTPUT_PATH, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(compose(readings, buckets, result, dof))
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Slope aspect and daily melt at Kessel Glacier ablation stakes
+
+## Data
+
+Table `data/input.csv` holds 48 melt readings taken with a folding rule at
+ablation stakes drilled into the glacier surface. Each reading gives the
+surface lowering `ablation_mm` measured on one survey day, together with the
+aspect of the slope the stake sits on.
+
+| slope_aspect | n | mean ablation_mm | sd ablation_mm |
+| --- | --- | --- | --- |
+| north | 24 | 12.000 | 2.513 |
+| south | 24 | 21.500 | 3.367 |
+
+## Analysis
+
+Welch's two-sample t-test (two-sided, unequal variances) on `ablation_mm`,
+contrasting south-facing against north-facing readings. Each row of the table
+supplied one observation to the test, so the two samples held 24 values each.
+
+## Result
+
+[selected-result] Welch's two-sample t-test on 48 stake-day readings gives mean ablation_mm of 21.500 mm on south-facing slopes against 12.000 mm on north-facing slopes, a gap of 9.500 mm (t = 11.079, df = 42.554, p < 0.0001).
+
+The melt gap of 9.500 mm per day between the two aspects is far larger than the
+spread within either group (sd 3.367 mm south, 2.513 mm north).
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-b-reviewer-fable-18", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:3c2b93c9545d8518e1f3"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

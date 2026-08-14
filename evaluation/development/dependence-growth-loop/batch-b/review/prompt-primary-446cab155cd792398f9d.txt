@@ -1,0 +1,246 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-b-reviewer-fable-18
+
+=== workflow 1: case:446cab155cd792398f9d ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Fernbrook bioretention monitoring pilot: storm-event effluent samples
+
+Eight bioretention cells built as part of the Fernbrook stormwater retrofit
+were monitored through the 2024 wet season. Every cell has an underdrain
+sampling port, and a grab sample of the cell's effluent was collected during
+each of three monitored storms (S1 on 2024-05-14, S2 on 2024-07-02, and S3 on
+2024-09-19). Each cell therefore contributes three samples to the file, and
+the same eight cells reappear across the three storms.
+
+Columns:
+
+- cell_id: label of the bioretention cell the sample came from, BR-01 through BR-08. Each cell is a separate structure with its own soil column, planting and drainage.
+- storm_id: label of the monitored storm during which the sample was taken (S1, S2 or S3). The same three storms were sampled at every cell.
+- sample_date: calendar date of that storm.
+- media_mix: filter media blend installed in the cell, either sand-compost or sand-biochar. This is a fixed property of the cell, so it repeats across all three of that cell's samples.
+- antecedent_dry_days: whole days without measurable rainfall before the storm, recorded at the site rain gauge that serves all eight cells.
+- effluent_tp_mgl: total phosphorus concentration measured in that effluent grab sample, in milligrams per litre.
+
+The interim discharge target used by the pilot is 0.100 mg/L of total
+phosphorus; a sample is spoken of as an exceedance when its measured
+concentration is strictly above that value.
+
+One row is: one storm-event effluent grab sample taken from one bioretention cell during one monitored storm
+Independent unit column: cell_id
+
+--- file data/input.csv ---
+cell_id,storm_id,sample_date,media_mix,antecedent_dry_days,effluent_tp_mgl
+BR-01,S1,2024-05-14,sand-compost,4,0.14
+BR-01,S2,2024-07-02,sand-compost,11,0.16
+BR-01,S3,2024-09-19,sand-compost,6,0.13
+BR-02,S1,2024-05-14,sand-compost,4,0.07
+BR-02,S2,2024-07-02,sand-compost,11,0.06
+BR-02,S3,2024-09-19,sand-compost,6,0.09
+BR-03,S1,2024-05-14,sand-biochar,4,0.19
+BR-03,S2,2024-07-02,sand-biochar,11,0.22
+BR-03,S3,2024-09-19,sand-biochar,6,0.17
+BR-04,S1,2024-05-14,sand-biochar,4,0.12
+BR-04,S2,2024-07-02,sand-biochar,11,0.15
+BR-04,S3,2024-09-19,sand-biochar,6,0.11
+BR-05,S1,2024-05-14,sand-biochar,4,0.05
+BR-05,S2,2024-07-02,sand-biochar,11,0.08
+BR-05,S3,2024-09-19,sand-biochar,6,0.04
+BR-06,S1,2024-05-14,sand-compost,4,0.21
+BR-06,S2,2024-07-02,sand-compost,11,0.18
+BR-06,S3,2024-09-19,sand-compost,6,0.24
+BR-07,S1,2024-05-14,sand-biochar,4,0.13
+BR-07,S2,2024-07-02,sand-biochar,11,0.11
+BR-07,S3,2024-09-19,sand-biochar,6,0.16
+BR-08,S1,2024-05-14,sand-compost,4,0.26
+BR-08,S2,2024-07-02,sand-compost,11,0.23
+BR-08,S3,2024-09-19,sand-compost,6,0.20
+
+--- file workflow/analysis.py ---
+"""Interim exceedance screening for the Fernbrook bioretention pilot.
+
+Reads the 2024 storm-event effluent records and writes a short markdown
+summary of how often cell effluent sat above the interim discharge target.
+"""
+
+import csv
+from pathlib import Path
+
+from scipy import stats
+
+INPUT_PATH = Path("data") / "input.csv"
+OUTPUT_PATH = Path("results") / "report.md"
+
+TARGET_TP_MGL = 0.10
+NULL_EXCEEDANCE_PROB = 0.5
+
+
+def read_records(path):
+    """Return every row of the monitoring file as a dictionary."""
+    with path.open("r", encoding="ascii", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def is_exceedance(record):
+    """True when the record sits strictly above the interim target."""
+    return float(record["effluent_tp_mgl"]) > TARGET_TP_MGL
+
+
+def cell_rollup(records):
+    """Record and exceedance counts per cell, in first-appearance order."""
+    order = []
+    counts = {}
+    for record in records:
+        cell = record["cell_id"]
+        if cell not in counts:
+            order.append(cell)
+            counts[cell] = {
+                "media_mix": record["media_mix"],
+                "records": 0,
+                "exceedances": 0,
+            }
+        counts[cell]["records"] += 1
+        if is_exceedance(record):
+            counts[cell]["exceedances"] += 1
+    return [(cell, counts[cell]) for cell in order]
+
+
+def build_report(records):
+    """Render the markdown report text for the supplied records."""
+    n_records = len(records)
+    n_exceed = sum(1 for record in records if is_exceedance(record))
+    n_cells = len({record["cell_id"] for record in records})
+    n_storms = len({record["storm_id"] for record in records})
+    share = n_exceed / n_records
+    mean_tp = sum(
+        float(record["effluent_tp_mgl"]) for record in records
+    ) / n_records
+    test = stats.binomtest(
+        n_exceed, n_records, NULL_EXCEEDANCE_PROB, alternative="two-sided"
+    )
+    p_value = test.pvalue
+
+    lines = [
+        "# Fernbrook bioretention pilot: interim exceedance screening",
+        "",
+        "## What was measured",
+        "",
+        "Each record in `data/input.csv` is one storm-event grab sample of the",
+        "effluent leaving one bioretention cell. A record carries the cell, the",
+        "sampled storm, the cell's filter media mix, the antecedent dry period,",
+        "and the effluent total phosphorus concentration in mg/L.",
+        "",
+        f"- Records analysed: {n_records}",
+        f"- Cells represented: {n_cells}",
+        f"- Storms represented: {n_storms}",
+        f"- Interim discharge target: {TARGET_TP_MGL:.3f} mg/L; a record counts as",
+        "  an exceedance when its concentration is strictly above the target",
+        f"- Mean effluent total phosphorus: {mean_tp:.4f} mg/L",
+        f"- Records above the target: {n_exceed} of {n_records} (share {share:.4f})",
+        "",
+        "Records and exceedances by cell:",
+        "",
+        "| cell_id | media_mix | records | exceedances |",
+        "| --- | --- | --- | --- |",
+    ]
+    for cell, info in cell_rollup(records):
+        lines.append(
+            "| {0} | {1} | {2} | {3} |".format(
+                cell, info["media_mix"], info["records"], info["exceedances"]
+            )
+        )
+    lines.extend([
+        "",
+        "## Analysis",
+        "",
+        "Every record in the file was supplied as one trial to an exact two-sided",
+        "binomial test (`scipy.stats.binomtest`) of the null hypothesis that a",
+        f"record exceeds the target with probability {NULL_EXCEEDANCE_PROB}, that is,",
+        "that exceedance and compliance are equally likely for a record. The test",
+        f"statistic is the number of records above the target, {n_exceed} out of",
+        f"{n_records} trials.",
+        "",
+        "## Result",
+        "",
+        f"The observed exceedance share is {share:.4f} ({n_exceed}/{n_records}),",
+        f"against the benchmark share of {NULL_EXCEEDANCE_PROB}. The exact two-sided",
+        f"binomial p-value is {p_value:.4f}. At the 5% level the record-level",
+        "exceedance share is therefore distinguishable from the break-even",
+        "benchmark, with exceedances outnumbering compliant records.",
+        "",
+        "[selected-result] Exact two-sided binomial test of record-level"
+        f" exceedance of the {TARGET_TP_MGL:.3f} mg/L interim total phosphorus"
+        f" target: {n_exceed} of {n_records} records exceeded (share"
+        f" {share:.4f}) against a null exceedance probability of"
+        f" {NULL_EXCEEDANCE_PROB}; p = {p_value:.4f}.",
+    ])
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    records = read_records(INPUT_PATH)
+    report = build_report(records)
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with OUTPUT_PATH.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(report)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Fernbrook bioretention pilot: interim exceedance screening
+
+## What was measured
+
+Each record in `data/input.csv` is one storm-event grab sample of the
+effluent leaving one bioretention cell. A record carries the cell, the
+sampled storm, the cell's filter media mix, the antecedent dry period,
+and the effluent total phosphorus concentration in mg/L.
+
+- Records analysed: 24
+- Cells represented: 8
+- Storms represented: 3
+- Interim discharge target: 0.100 mg/L; a record counts as
+  an exceedance when its concentration is strictly above the target
+- Mean effluent total phosphorus: 0.1458 mg/L
+- Records above the target: 18 of 24 (share 0.7500)
+
+Records and exceedances by cell:
+
+| cell_id | media_mix | records | exceedances |
+| --- | --- | --- | --- |
+| BR-01 | sand-compost | 3 | 3 |
+| BR-02 | sand-compost | 3 | 0 |
+| BR-03 | sand-biochar | 3 | 3 |
+| BR-04 | sand-biochar | 3 | 3 |
+| BR-05 | sand-biochar | 3 | 0 |
+| BR-06 | sand-compost | 3 | 3 |
+| BR-07 | sand-biochar | 3 | 3 |
+| BR-08 | sand-compost | 3 | 3 |
+
+## Analysis
+
+Every record in the file was supplied as one trial to an exact two-sided
+binomial test (`scipy.stats.binomtest`) of the null hypothesis that a
+record exceeds the target with probability 0.5, that is,
+that exceedance and compliance are equally likely for a record. The test
+statistic is the number of records above the target, 18 out of
+24 trials.
+
+## Result
+
+The observed exceedance share is 0.7500 (18/24),
+against the benchmark share of 0.5. The exact two-sided
+binomial p-value is 0.0227. At the 5% level the record-level
+exceedance share is therefore distinguishable from the break-even
+benchmark, with exceedances outnumbering compliant records.
+
+[selected-result] Exact two-sided binomial test of record-level exceedance of the 0.100 mg/L interim total phosphorus target: 18 of 24 records exceeded (share 0.7500) against a null exceedance probability of 0.5; p = 0.0227.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-b-reviewer-fable-18", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:446cab155cd792398f9d"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}
