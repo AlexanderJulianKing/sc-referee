@@ -153,8 +153,7 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
         if _module_string_alternative_used(tree, imports, constants):
             raise _Refusal("procedure-alternative-not-default")
         flattened, renames, dead = _flatten_functions(executable, functions, constants, imports)
-        flattened = _normalize_live_annotations(flattened, imports)
-        _refuse_unsupported_live_assignment_syntax(flattened)
+        _refuse_unmodeled_nonannotation_syntax(flattened)
         if _core_construct_is_conditionally_wrapped(flattened, imports):
             raise _Refusal("sink-controls-operand-flow")
     except _Refusal as refusal:
@@ -398,73 +397,16 @@ def _refuse_unsupported_live_assignment_syntax(body: list[ast.stmt]) -> None:
         raise _Refusal("delete-not-modeled")
 
 
-def _normalize_live_annotations(body: list[ast.stmt], imports: dict[str, str]) -> list[ast.stmt]:
-    """Lower only annotations proven outside the existing operand partition."""
+def _refuse_unmodeled_nonannotation_syntax(body: list[ast.stmt]) -> None:
+    """Preserve the eager named refusals unrelated to annotation partitioning."""
 
-    procedures = [
-        node
-        for statement in body
-        for node in ast.walk(statement)
-        if isinstance(node, ast.Call) and _resolved_procedure(node.func, imports) in _REGISTERED
-    ]
-    operand_names = {
-        node.id
-        for call in procedures
-        for argument in call.args
-        for node in ast.walk(argument)
-        if isinstance(node, ast.Name)
-    }
-    definitions: dict[str, ast.expr] = {}
-    for statement in body:
-        if (
-            isinstance(statement, ast.Assign)
-            and len(statement.targets) == 1
-            and isinstance(statement.targets[0], ast.Name)
-        ):
-            definitions[statement.targets[0].id] = statement.value
-        elif (
-            isinstance(statement, ast.AnnAssign)
-            and isinstance(statement.target, ast.Name)
-            and statement.value is not None
-        ):
-            definitions.setdefault(statement.target.id, statement.value)
-    changed = True
-    while changed:
-        changed = False
-        for name in tuple(operand_names):
-            value = definitions.get(name)
-            if value is None:
-                continue
-            for node in ast.walk(value):
-                if isinstance(node, ast.Name) and node.id not in operand_names:
-                    operand_names.add(node.id)
-                    changed = True
-        for name, value in definitions.items():
-            if (
-                isinstance(value, ast.Name)
-                and value.id in operand_names
-                and name not in operand_names
-            ):
-                operand_names.add(name)
-                changed = True
-    normalized: list[ast.stmt] = []
-    for statement in body:
-        if not isinstance(statement, ast.AnnAssign):
-            normalized.append(statement)
-            continue
-        if not isinstance(statement.target, ast.Name):
-            raise _Refusal("annotated-assignment-not-modeled")
-        if statement.value is None:
-            continue
-        if statement.target.id in operand_names:
-            raise _Refusal("annotated-assignment-not-modeled")
-        normalized.append(
-            ast.copy_location(
-                ast.Assign(targets=[copy.deepcopy(statement.target)], value=statement.value),
-                statement,
-            )
-        )
-    return normalized
+    nodes = tuple(node for statement in body for node in ast.walk(statement))
+    if any(isinstance(node, ast.AugAssign) for node in nodes):
+        raise _Refusal("augmented-assignment-not-modeled")
+    if any(isinstance(node, ast.NamedExpr) for node in nodes):
+        raise _Refusal("named-expression-not-modeled")
+    if any(isinstance(node, ast.Delete) for node in nodes):
+        raise _Refusal("delete-not-modeled")
 
 
 def _trusted_v2_authorizations(
@@ -1699,10 +1641,18 @@ def _validate_function(
         reasons.add("function-rename-collision")
     if (parameters | locals_ | set(constants)) & set(imports):
         reasons.add("import-name-collision")
+    annotation_nodes = {
+        node
+        for statement in ast.walk(function)
+        if isinstance(statement, ast.AnnAssign)
+        for node in ast.walk(statement.annotation)
+    }
     loads = {
         node.id
         for node in ast.walk(function)
-        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+        if isinstance(node, ast.Name)
+        and isinstance(node.ctx, ast.Load)
+        and node not in annotation_nodes
     }
     definitions = {
         statement.targets[0].id: statement.value
@@ -2881,6 +2831,10 @@ def _partition_sink_bound(
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     if not isinstance(procedure_statement.value, ast.Call):
         raise _Refusal("sink-classification-unresolved")
+    operand_names = _partition_operand_names(body, procedure_statement, initial_operand_names)
+    annotation_protected_names = operand_names | _partition_operand_aliases(body, operand_names)
+    body = _lower_annotations_for_partition(body, annotation_protected_names)
+    _refuse_unsupported_live_assignment_syntax(body)
     scalar_sequences = {
         argument.id for argument in procedure_statement.value.args if isinstance(argument, ast.Name)
     }
@@ -2896,21 +2850,6 @@ def _partition_sink_bound(
     ):
         raise _Refusal("sink-controls-operand-flow")
     definitions = _assignment_definitions(body)
-    operand_names = set(initial_operand_names)
-    operand_names.update(
-        node.id for node in ast.walk(procedure_statement.value) if isinstance(node, ast.Name)
-    )
-    changed = True
-    while changed:
-        changed = False
-        for name in tuple(operand_names):
-            value = definitions.get(name)
-            if value is None:
-                continue
-            for node in ast.walk(value):
-                if isinstance(node, ast.Name) and node.id not in operand_names:
-                    operand_names.add(node.id)
-                    changed = True
     operand_indices: set[int] = set()
     for index, statement in enumerate(body):
         stores = {
@@ -2987,6 +2926,118 @@ def _partition_sink_bound(
         tuple(_statement_token(body[index], index) for index in sorted(operand_indices)),
         tuple(_statement_token(body[index], index) for index in sorted(sink_indices)),
     )
+
+
+def _partition_operand_names(
+    body: list[ast.stmt],
+    procedure_statement: ast.Assign,
+    initial_operand_names: set[str],
+) -> set[str]:
+    """Derive the sole analyzer-side operand definition used by the sink partition."""
+
+    definitions: dict[str, list[ast.expr]] = {}
+    for statement in body:
+        if (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+        ):
+            definitions.setdefault(statement.targets[0].id, []).append(statement.value)
+        elif (
+            isinstance(statement, ast.AnnAssign)
+            and isinstance(statement.target, ast.Name)
+            and statement.value is not None
+        ):
+            definitions.setdefault(statement.target.id, []).append(statement.value)
+    operand_names = set(initial_operand_names)
+    operand_names.update(
+        node.id for node in ast.walk(procedure_statement.value) if isinstance(node, ast.Name)
+    )
+    operand_names.update(
+        node.id
+        for statement in body
+        if isinstance(statement, ast.With | ast.For)
+        for node in ast.walk(statement)
+        if isinstance(node, ast.Name)
+    )
+    changed = True
+    while changed:
+        changed = False
+        for name in tuple(operand_names):
+            values = definitions.get(name)
+            if values is None:
+                continue
+            for value in values:
+                for node in ast.walk(value):
+                    if isinstance(node, ast.Name) and node.id not in operand_names:
+                        operand_names.add(node.id)
+                        changed = True
+        for name, values in definitions.items():
+            if name in operand_names:
+                continue
+            if any(
+                isinstance(value, ast.Subscript)
+                and isinstance(value.value, ast.Name)
+                and value.value.id in operand_names
+                and not isinstance(value.slice, ast.Slice)
+                for value in values
+            ):
+                operand_names.add(name)
+                changed = True
+    return operand_names
+
+
+def _partition_operand_aliases(body: list[ast.stmt], operand_names: set[str]) -> set[str]:
+    """Find aliases without reclassifying them as operand-slice statements."""
+
+    aliases: set[str] = set()
+    changed = True
+    while changed:
+        changed = False
+        protected = operand_names | aliases
+        for statement in body:
+            target: ast.Name | None = None
+            value: ast.expr | None = None
+            if (
+                isinstance(statement, ast.Assign)
+                and len(statement.targets) == 1
+                and isinstance(statement.targets[0], ast.Name)
+            ):
+                target, value = statement.targets[0], statement.value
+            elif isinstance(statement, ast.AnnAssign) and isinstance(statement.target, ast.Name):
+                target, value = statement.target, statement.value
+            if (
+                target is not None
+                and isinstance(value, ast.Name)
+                and value.id in protected
+                and target.id not in protected
+            ):
+                aliases.add(target.id)
+                changed = True
+    return aliases
+
+
+def _lower_annotations_for_partition(
+    body: list[ast.stmt], operand_names: set[str]
+) -> list[ast.stmt]:
+    """Lower annotations only after the sole operand partition is known."""
+
+    normalized: list[ast.stmt] = []
+    for statement in body:
+        if not isinstance(statement, ast.AnnAssign):
+            normalized.append(statement)
+            continue
+        if not isinstance(statement.target, ast.Name) or statement.target.id in operand_names:
+            raise _Refusal("annotated-assignment-not-modeled")
+        if statement.value is None:
+            continue
+        normalized.append(
+            ast.copy_location(
+                ast.Assign(targets=[copy.deepcopy(statement.target)], value=statement.value),
+                statement,
+            )
+        )
+    return normalized
 
 
 def _independent_wall_scan(

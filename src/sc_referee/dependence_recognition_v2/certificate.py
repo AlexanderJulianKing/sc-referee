@@ -490,14 +490,10 @@ def _kernel_replay_count_claims(tree: ast.Module, certificate: CountDependenceCe
     constants = _kernel_constants(tree)
     if not _kernel_module_collection_uses_closed(tree, constants):
         return False
-    flattened = _kernel_flattened_module(tree, certificate)
-    if flattened is None:
+    partition = _kernel_partition_body(tree, certificate)
+    if partition is None:
         return False
-    flattened = _kernel_normalize_live_annotations(
-        flattened, imports, certificate.resolved_callable
-    )
-    if flattened is None:
-        return False
+    flattened, _operand_names = partition
     tree = ast.Module(body=flattened, type_ignores=[])
     if not _kernel_count_live_syntax_closed(tree, certificate, imports, constants):
         return False
@@ -1238,14 +1234,10 @@ def _kernel_replay_source_claims(
     if not _kernel_import_forms_closed(tree):
         return False
     imports = _kernel_imports(tree)
-    flattened = _kernel_flattened_module(tree, certificate)
-    if flattened is None:
+    partition = _kernel_partition_body(tree, certificate)
+    if partition is None:
         return False
-    flattened = _kernel_normalize_live_annotations(
-        flattened, imports, certificate.resolved_callable
-    )
-    if flattened is None:
-        return False
+    flattened, _operand_names = partition
     tree = ast.Module(body=flattened, type_ignores=[])
     if not _kernel_live_syntax_closed(tree, certificate, fact):
         return False
@@ -1690,70 +1682,98 @@ def _kernel_import_forms_closed(tree: ast.Module) -> bool:
     return True
 
 
-def _kernel_normalize_live_annotations(
-    body: list[ast.stmt], imports: dict[str, str], resolved_callable: str
-) -> list[ast.stmt] | None:
-    """Replay annotation lowering only outside the kernel-derived operand closure."""
+def _kernel_partition_operand_names(body: list[ast.stmt], procedure: ast.Assign) -> set[str]:
+    """Derive the sole kernel-side operand definition used by the sink partition."""
 
-    procedures = [
-        node
-        for statement in body
-        for node in ast.walk(statement)
-        if isinstance(node, ast.Call)
-        and _kernel_resolved_call(node.func, imports) == resolved_callable
-    ]
-    if len(procedures) != 1:
-        return None
-    operand_names = {
-        node.id
-        for argument in procedures[0].args
-        for node in ast.walk(argument)
-        if isinstance(node, ast.Name)
-    }
-    definitions: dict[str, ast.expr] = {}
+    definitions: dict[str, list[ast.expr]] = {}
     for statement in body:
         if (
             isinstance(statement, ast.Assign)
             and len(statement.targets) == 1
             and isinstance(statement.targets[0], ast.Name)
         ):
-            definitions[statement.targets[0].id] = statement.value
+            definitions.setdefault(statement.targets[0].id, []).append(statement.value)
         elif (
             isinstance(statement, ast.AnnAssign)
             and isinstance(statement.target, ast.Name)
             and statement.value is not None
         ):
-            definitions.setdefault(statement.target.id, statement.value)
+            definitions.setdefault(statement.target.id, []).append(statement.value)
+    operands = {node.id for node in ast.walk(procedure.value) if isinstance(node, ast.Name)}
+    operands.update(
+        node.id
+        for statement in body
+        if isinstance(statement, ast.With | ast.For)
+        for node in ast.walk(statement)
+        if isinstance(node, ast.Name)
+    )
     changed = True
     while changed:
         changed = False
-        for name in tuple(operand_names):
-            value = definitions.get(name)
-            if value is None:
+        for name in tuple(operands):
+            values = definitions.get(name)
+            if values is None:
                 continue
-            for node in ast.walk(value):
-                if isinstance(node, ast.Name) and node.id not in operand_names:
-                    operand_names.add(node.id)
-                    changed = True
-        for name, value in definitions.items():
-            if (
-                isinstance(value, ast.Name)
-                and value.id in operand_names
-                and name not in operand_names
+            for value in values:
+                for node in ast.walk(value):
+                    if isinstance(node, ast.Name) and node.id not in operands:
+                        operands.add(node.id)
+                        changed = True
+        for name, values in definitions.items():
+            if name in operands:
+                continue
+            if any(
+                isinstance(value, ast.Subscript)
+                and isinstance(value.value, ast.Name)
+                and value.value.id in operands
+                and not isinstance(value.slice, ast.Slice)
+                for value in values
             ):
-                operand_names.add(name)
+                operands.add(name)
                 changed = True
+    return operands
+
+
+def _kernel_partition_operand_aliases(body: list[ast.stmt], operands: set[str]) -> set[str]:
+    aliases: set[str] = set()
+    changed = True
+    while changed:
+        changed = False
+        protected = operands | aliases
+        for statement in body:
+            target: ast.Name | None = None
+            value: ast.expr | None = None
+            if (
+                isinstance(statement, ast.Assign)
+                and len(statement.targets) == 1
+                and isinstance(statement.targets[0], ast.Name)
+            ):
+                target, value = statement.targets[0], statement.value
+            elif isinstance(statement, ast.AnnAssign) and isinstance(statement.target, ast.Name):
+                target, value = statement.target, statement.value
+            if (
+                target is not None
+                and isinstance(value, ast.Name)
+                and value.id in protected
+                and target.id not in protected
+            ):
+                aliases.add(target.id)
+                changed = True
+    return aliases
+
+
+def _kernel_lower_annotations_for_partition(
+    body: list[ast.stmt], operands: set[str]
+) -> list[ast.stmt] | None:
     normalized: list[ast.stmt] = []
     for statement in body:
         if not isinstance(statement, ast.AnnAssign):
             normalized.append(statement)
             continue
-        if not isinstance(statement.target, ast.Name):
+        if not isinstance(statement.target, ast.Name) or statement.target.id in operands:
             return None
         if statement.value is None:
             continue
-        if statement.target.id in operand_names:
-            return None
         normalized.append(
             ast.copy_location(
                 ast.Assign(targets=[copy.deepcopy(statement.target)], value=statement.value),
@@ -1761,6 +1781,31 @@ def _kernel_normalize_live_annotations(
             )
         )
     return normalized
+
+
+def _kernel_partition_body(
+    tree: ast.Module,
+    certificate: DependenceGrowthCertificate | CountDependenceCertificate,
+) -> tuple[list[ast.stmt], set[str]] | None:
+    body = _kernel_flattened_module(tree, certificate)
+    if body is None:
+        return None
+    imports = _kernel_imports(tree)
+    procedures = [
+        statement
+        for statement in body
+        if isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and isinstance(statement.value, ast.Call)
+        and _kernel_resolved_call(statement.value.func, imports) == certificate.resolved_callable
+    ]
+    if len(procedures) != 1:
+        return None
+    operands = _kernel_partition_operand_names(body, procedures[0])
+    annotation_protected_names = operands | _kernel_partition_operand_aliases(body, operands)
+    normalized = _kernel_lower_annotations_for_partition(body, annotation_protected_names)
+    return (normalized, operands) if normalized is not None else None
 
 
 def _kernel_live_syntax_closed(
@@ -2536,13 +2581,11 @@ def _kernel_sink_expression_closed(
 def _kernel_sink_partition_matches(
     tree: ast.Module, certificate: DependenceGrowthCertificate | CountDependenceCertificate
 ) -> bool:
-    body = _kernel_flattened_module(tree, certificate)
-    if body is None:
+    partition = _kernel_partition_body(tree, certificate)
+    if partition is None:
         return False
+    body, operands = partition
     imports = _kernel_imports(tree)
-    body = _kernel_normalize_live_annotations(body, imports, certificate.resolved_callable)
-    if body is None:
-        return False
     procedures = [
         statement
         for statement in body
@@ -2592,42 +2635,6 @@ def _kernel_sink_partition_matches(
             definitions[statement.body[0].targets[0].id] = ast.IfExp(
                 statement.test, statement.body[0].value, statement.orelse[0].value
             )
-    operands = {node.id for node in ast.walk(procedure.value) if isinstance(node, ast.Name)}
-    operands.update(
-        node.id
-        for statement in body
-        if isinstance(statement, ast.With | ast.For)
-        for node in ast.walk(statement)
-        if isinstance(node, ast.Name)
-    )
-    changed = True
-    while changed:
-        changed = False
-        for name in tuple(operands):
-            if name not in definitions:
-                continue
-            for node in ast.walk(definitions[name]):
-                if isinstance(node, ast.Name) and node.id not in operands:
-                    operands.add(node.id)
-                    changed = True
-        for statement in body:
-            if not isinstance(statement, ast.Assign):
-                continue
-            reads = {node.id for node in ast.walk(statement.value) if isinstance(node, ast.Name)}
-            if reads & operands and (
-                isinstance(statement.value, ast.Name)
-                or (
-                    isinstance(statement.value, ast.Subscript)
-                    and isinstance(statement.value.value, ast.Name)
-                    and statement.value.value.id in operands
-                    and not isinstance(statement.value.slice, ast.Slice)
-                )
-            ):
-                for target in statement.targets:
-                    for node in ast.walk(target):
-                        if isinstance(node, ast.Name) and node.id not in operands:
-                            operands.add(node.id)
-                            changed = True
     operand_indices: set[int] = set()
     for index, statement in enumerate(body):
         stores = {
@@ -2794,10 +2801,18 @@ def _kernel_function_shape_closed(
     }
     if parameters & stored or (parameters | stored) & import_names:
         return False
+    annotation_nodes = {
+        node
+        for statement in ast.walk(function)
+        if isinstance(statement, ast.AnnAssign)
+        for node in ast.walk(statement.annotation)
+    }
     loads = {
         node.id
         for node in ast.walk(function)
-        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+        if isinstance(node, ast.Name)
+        and isinstance(node.ctx, ast.Load)
+        and node not in annotation_nodes
     }
     allowed = (
         parameters

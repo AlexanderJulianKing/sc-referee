@@ -392,6 +392,44 @@ def test_group_kernel_live_syntax_guard_rejects_annotated_rebind() -> None:
         )
         is None
     )
+    reader_rebind = context.documents[0].content.replace(
+        b"        rows = list(csv.DictReader(handle))",
+        b"        rows = list(csv.DictReader(handle))\n    rows: list = rows[:4]",
+    )
+    reader_digest = sha256_digest(reader_rebind)
+    reader_certificate = replace(
+        certificate,
+        source_digest=reader_digest,
+        source_extent=(0, len(reader_rebind)),
+    )
+    reader_certificate = replace(
+        reader_certificate,
+        certificate_id="dependence-growth-certificate:"
+        + semantic_digest(
+            {
+                "source_digest": reader_digest,
+                "fact": verified.fact.evidence_id,
+                "bindings": [
+                    {
+                        "position": item.position,
+                        "argument_name": item.argument_name,
+                        "group_key": item.group_key,
+                    }
+                    for item in reader_certificate.operand_bindings
+                ],
+                "conclusion": reader_certificate.conclusion,
+            }
+        ),
+    )
+    assert (
+        verify_dependence_growth_certificate(
+            reader_certificate,
+            trusted_group_facts=(verified.fact,),
+            trusted_authorizations=_trusted_v2_authorizations(context),
+            source_bytes=reader_rebind,
+        )
+        is None
+    )
 
 
 def test_sink_flow_escape_unknown_method_and_raising_sink_routes(tmp_path: Path) -> None:
@@ -750,11 +788,38 @@ def test_growth5_harmless_annotations_lower_but_operand_aliases_still_refuse() -
         )
     )
     assert _inspect(sink_bound)["outcome"] == "evaluation_candidate"
+    sink_scalar = _source().replace(
+        '    REPORT.write_text(str(result), encoding="utf-8")',
+        '    n: int = 0\n    REPORT.write_text(str(result) + str(n), encoding="utf-8")',
+    )
+    assert _inspect(sink_scalar)["outcome"] == "evaluation_candidate"
     operand_alias = _source().replace(
         "    right = groups[RIGHT]",
         "    shadow = left\n    shadow: list = []\n    right = groups[RIGHT]",
     )
     assert _inspect(operand_alias)["abstention_reasons"] == ["annotated-assignment-not-modeled"]
+
+
+@pytest.mark.parametrize("replacement", ["rows[:4]", "[]", "rows[:6]"])
+def test_growth5_partition_seed_rejects_annotated_reader_frame_rebinds(
+    replacement: str,
+) -> None:
+    data = b"unit_id,arm,value\nu1,A,1\nu2,A,2\nu3,B,3\nu4,B,4\nu1,A,5\nu5,A,6\nu6,B,7\nu7,B,8\n"
+    source = _source().replace(
+        "        rows = list(csv.DictReader(handle))",
+        f"        rows = list(csv.DictReader(handle))\n    rows: list = {replacement}",
+    )
+    payload = _inspect(source, data)
+    assert payload["outcome"] == "unsupported"
+    assert payload["abstention_reasons"] == ["annotated-assignment-not-modeled"]
+
+
+def test_growth5_partition_seed_rejects_annotated_group_rebind_specifically() -> None:
+    source = _source().replace(
+        "    left = groups[LEFT]",
+        '    groups: dict = {"A": [0.0], "B": [1.0]}\n    left = groups[LEFT]',
+    )
+    assert _inspect(source)["abstention_reasons"] == ["annotated-assignment-not-modeled"]
 
 
 @pytest.mark.parametrize(

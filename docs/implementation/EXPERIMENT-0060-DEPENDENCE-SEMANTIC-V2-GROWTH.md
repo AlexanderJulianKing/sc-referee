@@ -265,3 +265,16 @@ and certificate kernel from entry counting, flattening, sink partitioning, and
 completeness replay. It binds no name and contributes no flow. A bare string
 expression in any non-leading position remains outside the modeled statement
 class.
+
+### 2026-08-15 Growth-5 annotation-partition correction
+
+Annotation lowering now consumes the sole operand definition produced by the
+existing sink partition, independently in the analyzer and certificate kernel.
+There is no annotation-specific operand closure. An annotated target in that
+partition, including the frozen reader frame, grouping container, or any proven
+alias, abstains as `annotated-assignment-not-modeled`; only a target outside the
+partition may lower to its equivalent plain assignment.
+
+Process tier rule: any ticket that introduces or duplicates a classification is
+a heavy-process change requiring the corresponding design and adversarial
+review. Such a ticket is never a vocabulary-only round.
