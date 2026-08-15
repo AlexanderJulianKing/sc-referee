@@ -1,0 +1,304 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-f2-reviewer-fable-30
+
+=== workflow 1: case:d288f3b6bbda69d32acf ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What is in data/input.csv
+
+Twelve Avicennia marina (grey mangrove) seedlings were raised in a glasshouse
+for eight weeks: six pots were watered with a 15 ppt saline solution and six
+with a 35 ppt solution. At the end of the growth period a portable infrared gas
+analyser was clamped onto eight fully expanded leaves of every seedling, one
+leaf at a time, and the steady-state net CO2 assimilation rate was logged for
+each leaf. The file therefore holds eight readings for each of the twelve
+seedlings, 96 readings in all.
+
+Columns:
+
+- measurement_id: label for a single leaf reading (M001 through M096).
+- seedling_id: the potted seedling that the clamped leaf grew on (MG01 through
+  MG12). Readings sharing a seedling_id come from the same plant.
+- salinity_regime: the watering solution the pot received, either
+  ambient_15ppt or elevated_35ppt. A whole seedling sits in one regime, so all
+  eight readings from a seedling carry the same label.
+- leaf_rank: which leaf on that seedling was clamped, counted from the shoot
+  apex downwards (1 to 8).
+- anet_umol_m2_s: net CO2 assimilation rate for that leaf, in umol CO2 per
+  square metre of leaf area per second.
+
+One row is: one gas-exchange reading taken from one leaf of one mangrove seedling
+Independent unit column: seedling_id
+
+The salinity treatment was applied to whole pots rather than to individual
+leaves, so the treatment label varies between seedlings and never within one.
+
+--- file data/input.csv ---
+measurement_id,seedling_id,salinity_regime,leaf_rank,anet_umol_m2_s
+M001,MG01,ambient_15ppt,1,11.60
+M002,MG01,ambient_15ppt,2,11.35
+M003,MG01,ambient_15ppt,3,11.70
+M004,MG01,ambient_15ppt,4,11.45
+M005,MG01,ambient_15ppt,5,11.30
+M006,MG01,ambient_15ppt,6,11.65
+M007,MG01,ambient_15ppt,7,11.40
+M008,MG01,ambient_15ppt,8,11.55
+M009,MG02,ambient_15ppt,1,12.05
+M010,MG02,ambient_15ppt,2,12.30
+M011,MG02,ambient_15ppt,3,11.85
+M012,MG02,ambient_15ppt,4,12.20
+M013,MG02,ambient_15ppt,5,12.10
+M014,MG02,ambient_15ppt,6,12.35
+M015,MG02,ambient_15ppt,7,11.95
+M016,MG02,ambient_15ppt,8,12.00
+M017,MG03,ambient_15ppt,1,12.65
+M018,MG03,ambient_15ppt,2,12.45
+M019,MG03,ambient_15ppt,3,12.75
+M020,MG03,ambient_15ppt,4,12.25
+M021,MG03,ambient_15ppt,5,12.55
+M022,MG03,ambient_15ppt,6,12.35
+M023,MG03,ambient_15ppt,7,12.55
+M024,MG03,ambient_15ppt,8,12.45
+M025,MG04,ambient_15ppt,1,12.70
+M026,MG04,ambient_15ppt,2,12.85
+M027,MG04,ambient_15ppt,3,12.60
+M028,MG04,ambient_15ppt,4,12.95
+M029,MG04,ambient_15ppt,5,13.00
+M030,MG04,ambient_15ppt,6,12.75
+M031,MG04,ambient_15ppt,7,12.90
+M032,MG04,ambient_15ppt,8,12.65
+M033,MG05,ambient_15ppt,1,13.65
+M034,MG05,ambient_15ppt,2,13.30
+M035,MG05,ambient_15ppt,3,13.50
+M036,MG05,ambient_15ppt,4,13.15
+M037,MG05,ambient_15ppt,5,13.35
+M038,MG05,ambient_15ppt,6,13.60
+M039,MG05,ambient_15ppt,7,13.40
+M040,MG05,ambient_15ppt,8,13.25
+M041,MG06,ambient_15ppt,1,13.75
+M042,MG06,ambient_15ppt,2,14.15
+M043,MG06,ambient_15ppt,3,13.95
+M044,MG06,ambient_15ppt,4,13.85
+M045,MG06,ambient_15ppt,5,14.05
+M046,MG06,ambient_15ppt,6,13.65
+M047,MG06,ambient_15ppt,7,13.85
+M048,MG06,ambient_15ppt,8,13.95
+M049,MG07,elevated_35ppt,1,10.75
+M050,MG07,elevated_35ppt,2,10.40
+M051,MG07,elevated_35ppt,3,10.65
+M052,MG07,elevated_35ppt,4,10.70
+M053,MG07,elevated_35ppt,5,10.45
+M054,MG07,elevated_35ppt,6,10.55
+M055,MG07,elevated_35ppt,7,10.80
+M056,MG07,elevated_35ppt,8,10.50
+M057,MG08,elevated_35ppt,1,10.65
+M058,MG08,elevated_35ppt,2,11.00
+M059,MG08,elevated_35ppt,3,11.15
+M060,MG08,elevated_35ppt,4,10.75
+M061,MG08,elevated_35ppt,5,10.90
+M062,MG08,elevated_35ppt,6,10.85
+M063,MG08,elevated_35ppt,7,11.10
+M064,MG08,elevated_35ppt,8,10.80
+M065,MG09,elevated_35ppt,1,11.45
+M066,MG09,elevated_35ppt,2,11.15
+M067,MG09,elevated_35ppt,3,11.55
+M068,MG09,elevated_35ppt,4,11.45
+M069,MG09,elevated_35ppt,5,11.35
+M070,MG09,elevated_35ppt,6,11.65
+M071,MG09,elevated_35ppt,7,11.25
+M072,MG09,elevated_35ppt,8,11.35
+M073,MG10,elevated_35ppt,1,12.05
+M074,MG10,elevated_35ppt,2,12.30
+M075,MG10,elevated_35ppt,3,11.95
+M076,MG10,elevated_35ppt,4,12.15
+M077,MG10,elevated_35ppt,5,12.20
+M078,MG10,elevated_35ppt,6,11.90
+M079,MG10,elevated_35ppt,7,12.00
+M080,MG10,elevated_35ppt,8,12.25
+M081,MG11,elevated_35ppt,1,12.60
+M082,MG11,elevated_35ppt,2,12.25
+M083,MG11,elevated_35ppt,3,12.35
+M084,MG11,elevated_35ppt,4,12.65
+M085,MG11,elevated_35ppt,5,12.30
+M086,MG11,elevated_35ppt,6,12.40
+M087,MG11,elevated_35ppt,7,12.15
+M088,MG11,elevated_35ppt,8,12.50
+M089,MG12,elevated_35ppt,1,12.75
+M090,MG12,elevated_35ppt,2,12.95
+M091,MG12,elevated_35ppt,3,12.55
+M092,MG12,elevated_35ppt,4,12.85
+M093,MG12,elevated_35ppt,5,13.05
+M094,MG12,elevated_35ppt,6,12.65
+M095,MG12,elevated_35ppt,7,12.85
+M096,MG12,elevated_35ppt,8,12.75
+
+--- file workflow/analysis.py ---
+"""Salinity contrast in leaf gas exchange of glasshouse mangrove seedlings.
+
+Reads data/input.csv, compares net CO2 assimilation between the two salinity
+regimes, and writes results/report.md.
+"""
+
+import csv
+from collections import OrderedDict
+from pathlib import Path
+from statistics import mean, stdev
+
+from scipy import stats
+
+INPUT_PATH = Path("data") / "input.csv"
+REPORT_PATH = Path("results") / "report.md"
+
+REGIME_COLUMN = "salinity_regime"
+UNIT_COLUMN = "seedling_id"
+VALUE_COLUMN = "anet_umol_m2_s"
+REGIMES = ("ambient_15ppt", "elevated_35ppt")
+UNITS = "umol CO2 m^-2 s^-1"
+P_LADDER = (
+    (0.0001, "p < 0.0001"),
+    (0.001, "p < 0.001"),
+    (0.01, "p < 0.01"),
+    (0.05, "p < 0.05"),
+)
+
+
+def read_table(path):
+    with path.open(encoding="ascii", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def values_by_regime(rows):
+    buckets = OrderedDict((name, []) for name in REGIMES)
+    for row in rows:
+        buckets[row[REGIME_COLUMN]].append(float(row[VALUE_COLUMN]))
+    return buckets
+
+
+def seedlings_by_regime(rows):
+    owner = OrderedDict()
+    for row in rows:
+        owner.setdefault(row[UNIT_COLUMN], row[REGIME_COLUMN])
+    tally = OrderedDict((name, 0) for name in REGIMES)
+    for regime in owner.values():
+        tally[regime] += 1
+    return owner, tally
+
+
+def phrase_for_p(pvalue):
+    for cutoff, phrase in P_LADDER:
+        if pvalue < cutoff:
+            return phrase
+    return "p = {0:.3f}".format(pvalue)
+
+
+def compose(rows):
+    buckets = values_by_regime(rows)
+    seedlings, per_regime = seedlings_by_regime(rows)
+    ambient, elevated = REGIMES
+    per_seedling = len(rows) // len(seedlings)
+
+    averages = OrderedDict((name, mean(vals)) for name, vals in buckets.items())
+    spreads = OrderedDict((name, stdev(vals)) for name, vals in buckets.items())
+    gap = averages[ambient] - averages[elevated]
+
+    outcome = stats.ttest_ind(buckets[ambient], buckets[elevated], equal_var=True)
+    tstat = float(outcome.statistic)
+    pvalue = float(outcome.pvalue)
+    df = len(buckets[ambient]) + len(buckets[elevated]) - 2
+
+    lines = [
+        "# Net photosynthesis of mangrove seedlings under two salinity regimes",
+        "",
+        "## Data",
+        "",
+        "Input: data/input.csv, {0} leaf-level rows.".format(len(rows)),
+        "Response: {0}, net CO2 assimilation in {1}.".format(VALUE_COLUMN, UNITS),
+        "Design: {0} Avicennia marina seedlings, {1} gas-exchange readings per seedling;".format(
+            len(seedlings), per_seedling),
+        "{0} seedlings at 15 ppt ({1}) and {2} at 35 ppt ({3}).".format(
+            per_regime[ambient], ambient, per_regime[elevated], elevated),
+        "",
+        "## Group summaries",
+        "",
+        "| {0} | rows | mean | SD |".format(REGIME_COLUMN),
+        "| --- | ---: | ---: | ---: |",
+    ]
+    for name in REGIMES:
+        lines.append("| {0} | {1} | {2:.3f} | {3:.3f} |".format(
+            name, len(buckets[name]), averages[name], spreads[name]))
+    lines.extend([
+        "",
+        "Difference of means ({0} - {1}): {2:.3f} {3}.".format(
+            ambient, elevated, gap, UNITS),
+        "",
+        "## Test",
+        "",
+        "Two-sided two-sample Student t-test with pooled variance",
+        "(scipy.stats.ttest_ind, equal_var=True). Each row of data/input.csv supplies",
+        "one observation, giving {0} observations per regime and {1} degrees of freedom.".format(
+            len(buckets[ambient]), df),
+        "",
+        "[selected-result] Two-sample pooled t-test of {0} by {1}: t({2}) = {3:.2f}, {4}; "
+        "{5} mean {6:.3f} vs {7} mean {8:.3f}, difference {9:.3f} {10}.".format(
+            VALUE_COLUMN, REGIME_COLUMN, df, tstat, phrase_for_p(pvalue),
+            ambient, averages[ambient], elevated, averages[elevated], gap, UNITS),
+        "",
+        "## Interpretation",
+        "",
+        "Assimilation averages {0:.3f} {1} higher under ambient than under".format(gap, UNITS),
+        "elevated salinity; the pooled t-test rejects equality of the two regime means",
+        "at the conventional 5 percent level.",
+    ])
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    rows = read_table(INPUT_PATH)
+    report = compose(rows)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(report)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Net photosynthesis of mangrove seedlings under two salinity regimes
+
+## Data
+
+Input: data/input.csv, 96 leaf-level rows.
+Response: anet_umol_m2_s, net CO2 assimilation in umol CO2 m^-2 s^-1.
+Design: 12 Avicennia marina seedlings, 8 gas-exchange readings per seedling;
+6 seedlings at 15 ppt (ambient_15ppt) and 6 at 35 ppt (elevated_35ppt).
+
+## Group summaries
+
+| salinity_regime | rows | mean | SD |
+| --- | ---: | ---: | ---: |
+| ambient_15ppt | 48 | 12.700 | 0.816 |
+| elevated_35ppt | 48 | 11.700 | 0.818 |
+
+Difference of means (ambient_15ppt - elevated_35ppt): 1.000 umol CO2 m^-2 s^-1.
+
+## Test
+
+Two-sided two-sample Student t-test with pooled variance
+(scipy.stats.ttest_ind, equal_var=True). Each row of data/input.csv supplies
+one observation, giving 48 observations per regime and 94 degrees of freedom.
+
+[selected-result] Two-sample pooled t-test of anet_umol_m2_s by salinity_regime: t(94) = 5.99, p < 0.0001; ambient_15ppt mean 12.700 vs elevated_35ppt mean 11.700, difference 1.000 umol CO2 m^-2 s^-1.
+
+## Interpretation
+
+Assimilation averages 1.000 umol CO2 m^-2 s^-1 higher under ambient than under
+elevated salinity; the pooled t-test rejects equality of the two regime means
+at the conventional 5 percent level.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-f2-reviewer-fable-30", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:d288f3b6bbda69d32acf"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

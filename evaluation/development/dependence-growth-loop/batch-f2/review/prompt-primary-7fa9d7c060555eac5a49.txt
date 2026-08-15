@@ -1,0 +1,228 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-f2-reviewer-fable-30
+
+=== workflow 1: case:7fa9d7c060555eac5a49 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What is in data/input.csv
+
+The file records a single outdoor mesocosm experiment run over one summer
+season at a freshwater field station. Twenty-four garden ponds of roughly one
+thousand litres were filled from the same source water, stocked once with a
+founder population of Daphnia pulex, and assigned to one of two canopy
+treatments: "shaded", in which a floating duckweed mat was left to cover the
+surface, or "open", in which the mat was skimmed off each week. At the close
+of the season every pond was scored a single time, as "persisted" if a
+reproducing Daphnia population was still present and "collapsed" otherwise.
+
+One row is: one outdoor mesocosm pond, with its assigned canopy treatment and its single end-of-season persistence outcome
+Independent unit column: pond_id
+One trial is: one row
+
+Columns:
+
+- pond_id: the pond label; unique across the file, so each pond appears once
+- canopy: the assigned treatment, either "shaded" or "open"
+- volume_l: working volume of the pond in litres
+- stocking_density_per_l: founder Daphnia stocked per litre at the start
+- mean_surface_temp_c: mean surface temperature over the season, degrees Celsius
+- outcome: "persisted" or "collapsed" at the end-of-season scoring
+
+The ponds stood apart from one another, were filled and stocked separately,
+and never exchanged water, so the 24 rows are 24 independent units and no pond
+supplies more than one outcome. Volume, stocking density and mean surface
+temperature are recorded as context; they describe the pond as a whole and are
+not repeated measurements within a pond.
+
+--- file data/input.csv ---
+pond_id,canopy,volume_l,stocking_density_per_l,mean_surface_temp_c,outcome
+P01,shaded,1000,10.5,20.4,persisted
+P02,open,980,10.2,22.1,collapsed
+P03,shaded,1020,11.0,20.8,persisted
+P04,shaded,995,9.8,20.1,persisted
+P05,open,1010,10.9,21.7,persisted
+P06,shaded,1005,10.1,20.6,collapsed
+P07,open,970,9.6,22.4,collapsed
+P08,shaded,1030,11.3,19.9,persisted
+P09,shaded,990,10.4,20.3,persisted
+P10,open,1000,10.0,22.8,collapsed
+P11,open,1015,11.1,22.0,collapsed
+P12,shaded,975,9.9,20.7,persisted
+P13,open,1025,10.7,21.5,persisted
+P14,shaded,1000,10.6,20.0,persisted
+P15,shaded,985,9.7,21.2,collapsed
+P16,open,1005,10.3,23.1,collapsed
+P17,open,995,10.8,22.6,collapsed
+P18,shaded,1010,11.2,19.7,persisted
+P19,open,980,9.5,22.9,collapsed
+P20,shaded,1020,10.0,21.0,collapsed
+P21,open,990,10.5,21.9,persisted
+P22,open,1000,11.4,23.3,collapsed
+P23,shaded,1015,10.2,20.2,persisted
+P24,open,985,9.4,22.7,collapsed
+
+--- file workflow/analysis.py ---
+"""Does a floating duckweed canopy help founder Daphnia populations persist?
+
+Each outdoor mesocosm pond was assigned to one canopy treatment and scored
+once at the end of the season, so every pond supplies exactly one row of
+data/input.csv and exactly one trial for the exact test performed here.
+"""
+
+from __future__ import annotations
+
+import csv
+from collections import Counter
+from pathlib import Path
+
+from scipy.stats import fisher_exact
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+CANOPY_LEVELS = ("shaded", "open")
+OUTCOME_LEVELS = ("persisted", "collapsed")
+
+
+def read_ponds():
+    with INPUT_PATH.open(newline="", encoding="ascii") as handle:
+        ponds = [dict(record) for record in csv.DictReader(handle)]
+    labels = [pond["pond_id"] for pond in ponds]
+    if len(set(labels)) != len(labels):
+        raise ValueError("pond_id must be unique: one pond, one row, one trial")
+    for pond in ponds:
+        if pond["canopy"] not in CANOPY_LEVELS:
+            raise ValueError("unexpected canopy level: " + pond["canopy"])
+        if pond["outcome"] not in OUTCOME_LEVELS:
+            raise ValueError("unexpected outcome level: " + pond["outcome"])
+    return ponds
+
+
+def contingency(ponds):
+    tally = Counter((pond["canopy"], pond["outcome"]) for pond in ponds)
+    return [
+        [tally[(canopy, outcome)] for outcome in OUTCOME_LEVELS]
+        for canopy in CANOPY_LEVELS
+    ]
+
+
+def sample_odds_ratio(table):
+    (yes_a, no_a), (yes_b, no_b) = table
+    if no_a == 0 or yes_b == 0:
+        return float("inf")
+    return (yes_a * no_b) / (no_a * yes_b)
+
+
+def compose(ponds, table, odds_ratio, p_value):
+    (shaded_yes, shaded_no), (open_yes, open_no) = table
+    shaded_n = shaded_yes + shaded_no
+    open_n = open_yes + open_no
+    shaded_rate = shaded_yes / shaded_n
+    open_rate = open_yes / open_n
+    n_ponds = len(ponds)
+    lines = [
+        "# Canopy shading and Daphnia persistence in outdoor mesocosms",
+        "",
+        "## Design",
+        "",
+        f"Each of the {n_ponds} outdoor mesocosm ponds was stocked once with a founder",
+        "Daphnia pulex population, assigned to one canopy treatment, and scored once",
+        "at the end of the season as either persisted or collapsed. The pond is both",
+        "the unit of assignment and the unit of analysis: every pond_id value appears",
+        "in exactly one row, so no pond contributes more than a single outcome to the",
+        "table below.",
+        "",
+        "## Counts",
+        "",
+        "| canopy | persisted | collapsed | ponds | persistence rate |",
+        "| --- | --- | --- | --- | --- |",
+        f"| shaded | {shaded_yes} | {shaded_no} | {shaded_n} | {shaded_rate * 100:.1f}% |",
+        f"| open | {open_yes} | {open_no} | {open_n} | {open_rate * 100:.1f}% |",
+        "",
+        "## Test",
+        "",
+        "Two-sided Fisher exact test on the 2x2 table of independent ponds, one trial",
+        "per pond.",
+        "",
+        f"- sample odds ratio: {odds_ratio:.3f}",
+        f"- two-sided p-value: {p_value:.6f}",
+        f"- difference in persistence rate (shaded - open): {shaded_rate - open_rate:.3f}",
+        "",
+        f"[selected-result] Two-sided Fisher exact test on {n_ponds} independent mesocosm"
+        f" ponds: shaded ponds persisted in {shaded_yes} of {shaded_n} cases versus"
+        f" {open_yes} of {open_n} open ponds (sample odds ratio {odds_ratio:.3f},"
+        f" p = {p_value:.6f}), so canopy shading is associated with higher persistence"
+        " at the 5% level.",
+        "",
+        "## Reading the result",
+        "",
+        "The exact p-value is the sum of hypergeometric probabilities no larger than",
+        "that of the observed table under fixed row and column margins. Each pond",
+        "enters the table once, so the fixed margins refer to independent ponds and no",
+        "within-pond replication inflates the counts. Volume, stocking density and",
+        "mean surface temperature were recorded but not used as strata, so the",
+        f"association is unadjusted, and with {n_ponds} ponds in total the odds ratio is",
+        "imprecise.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    ponds = read_ponds()
+    table = contingency(ponds)
+    _, p_value = fisher_exact(table, alternative="two-sided")
+    odds_ratio = sample_odds_ratio(table)
+    report = compose(ponds, table, odds_ratio, p_value)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Canopy shading and Daphnia persistence in outdoor mesocosms
+
+## Design
+
+Each of the 24 outdoor mesocosm ponds was stocked once with a founder
+Daphnia pulex population, assigned to one canopy treatment, and scored once
+at the end of the season as either persisted or collapsed. The pond is both
+the unit of assignment and the unit of analysis: every pond_id value appears
+in exactly one row, so no pond contributes more than a single outcome to the
+table below.
+
+## Counts
+
+| canopy | persisted | collapsed | ponds | persistence rate |
+| --- | --- | --- | --- | --- |
+| shaded | 9 | 3 | 12 | 75.0% |
+| open | 3 | 9 | 12 | 25.0% |
+
+## Test
+
+Two-sided Fisher exact test on the 2x2 table of independent ponds, one trial
+per pond.
+
+- sample odds ratio: 9.000
+- two-sided p-value: 0.039126
+- difference in persistence rate (shaded - open): 0.500
+
+[selected-result] Two-sided Fisher exact test on 24 independent mesocosm ponds: shaded ponds persisted in 9 of 12 cases versus 3 of 12 open ponds (sample odds ratio 9.000, p = 0.039126), so canopy shading is associated with higher persistence at the 5% level.
+
+## Reading the result
+
+The exact p-value is the sum of hypergeometric probabilities no larger than
+that of the observed table under fixed row and column margins. Each pond
+enters the table once, so the fixed margins refer to independent ponds and no
+within-pond replication inflates the counts. Volume, stocking density and
+mean surface temperature were recorded but not used as strata, so the
+association is unadjusted, and with 24 ponds in total the odds ratio is
+imprecise.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-f2-reviewer-fable-30", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:7fa9d7c060555eac5a49"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

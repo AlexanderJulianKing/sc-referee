@@ -1,0 +1,242 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-f1-reviewer-fable-28
+
+=== workflow 1: case:f68415be40b9234987de ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What data/input.csv holds
+
+A peatland methane survey. Twenty-four static-chamber gas-flux collars were
+installed across twenty-four separate raised-bog basins in the same region,
+one collar per basin, with basins chosen far enough apart that their water
+tables are hydrologically disconnected. Twelve of the basins still drain
+through nineteenth-century ditches (management = drained); the other twelve
+were ditch-blocked and rewetted at least eight years before the survey
+(management = restored).
+
+Each collar was visited once, on a single dry midsummer morning, and one
+closed static chamber was seated on it for one thirty-minute closure. The
+methane efflux computed from that one closure is the only response value the
+collar ever contributes. Nothing was measured twice on a collar, and no value
+in the file is an average of several readings, so the twenty-four response
+numbers are twenty-four separate observations rather than repeats.
+
+Columns:
+- collar_id: unique label of the gas-flux collar, which also identifies the
+  basin it sits in (each label appears on exactly one row)
+- management: drained or restored
+- peat_depth_cm: peat thickness probed beside the collar, recorded for site
+  context only and not used in the comparison
+- ch4_flux_mg_m2_h: methane efflux from that collar's single chamber closure,
+  in milligrams of CH4 per square metre per hour
+
+One row is: one gas-flux collar in its own peat basin, together with the single methane efflux measured during that collar's one and only chamber closure
+Independent unit column: collar_id
+
+--- file data/input.csv ---
+collar_id,management,peat_depth_cm,ch4_flux_mg_m2_h
+CLR-01,drained,182,4.5
+CLR-02,restored,214,17.0
+CLR-03,drained,246,8.0
+CLR-04,restored,168,23.0
+CLR-05,drained,309,0.5
+CLR-06,restored,275,15.0
+CLR-07,drained,141,6.0
+CLR-08,restored,332,19.0
+CLR-09,drained,228,9.5
+CLR-10,restored,197,9.0
+CLR-11,drained,264,3.5
+CLR-12,restored,153,20.0
+CLR-13,drained,205,6.0
+CLR-14,restored,288,27.0
+CLR-15,drained,176,11.5
+CLR-16,restored,241,16.0
+CLR-17,drained,318,2.5
+CLR-18,restored,159,19.0
+CLR-19,drained,193,7.5
+CLR-20,restored,301,13.0
+CLR-21,drained,257,8.5
+CLR-22,restored,186,21.0
+CLR-23,drained,222,4.0
+CLR-24,restored,270,17.0
+
+--- file workflow/analysis.py ---
+"""Midsummer methane efflux from drained versus rewetted peat collars.
+
+The script reads data/input.csv, which stores exactly one gas-flux collar per
+row, and writes results/report.md with a Welch two-sample comparison of the two
+management classes.
+"""
+
+from __future__ import annotations
+
+import csv
+import math
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = Path("data") / "input.csv"
+OUTPUT_PATH = Path("results") / "report.md"
+
+UNIT_COLUMN = "collar_id"
+GROUP_COLUMN = "management"
+VALUE_COLUMN = "ch4_flux_mg_m2_h"
+
+BASELINE = "drained"
+REWETTED = "restored"
+
+
+def read_table(path):
+    with path.open("r", encoding="ascii", newline="") as handle:
+        return [dict(record) for record in csv.DictReader(handle)]
+
+
+def split_by_management(table):
+    collars = [record[UNIT_COLUMN] for record in table]
+    if len(set(collars)) != len(collars):
+        raise ValueError("every collar must occupy exactly one row")
+
+    buckets = {BASELINE: [], REWETTED: []}
+    for record in table:
+        label = record[GROUP_COLUMN]
+        if label not in buckets:
+            raise ValueError("unrecognised management label: " + repr(label))
+        buckets[label].append(float(record[VALUE_COLUMN]))
+    return {name: np.asarray(vals, dtype=float) for name, vals in buckets.items()}
+
+
+def welch_df(a, b):
+    va = a.var(ddof=1) / a.size
+    vb = b.var(ddof=1) / b.size
+    return (va + vb) ** 2 / (va * va / (a.size - 1) + vb * vb / (b.size - 1))
+
+
+def welch_se(a, b):
+    return math.sqrt(a.var(ddof=1) / a.size + b.var(ddof=1) / b.size)
+
+
+def pooled_sd(a, b):
+    ss = (a.size - 1) * a.var(ddof=1) + (b.size - 1) * b.var(ddof=1)
+    return math.sqrt(ss / (a.size + b.size - 2))
+
+
+def build_report(table, drained, rewetted):
+    diff = float(rewetted.mean() - drained.mean())
+    se = welch_se(rewetted, drained)
+    dof = welch_df(rewetted, drained)
+
+    outcome = stats.ttest_ind(rewetted, drained, equal_var=False)
+    tstat = float(outcome.statistic)
+    pvalue = float(outcome.pvalue)
+
+    half = float(stats.t.ppf(0.975, dof)) * se
+    spooled = pooled_sd(rewetted, drained)
+    dvalue = diff / spooled
+    ptext = "p < 0.0001" if pvalue < 1e-4 else "p = {:.4f}".format(pvalue)
+
+    lines = [
+        "# Methane efflux from drained versus rewetted peat collars",
+        "",
+        "## Design",
+        "",
+        "Twenty-four gas-flux collars were installed, one collar per independently",
+        "selected raised-bog basin, and every collar contributed exactly one midsummer",
+        "chamber closure. The analysed table holds {} rows and {} distinct collars, so".format(
+            len(table), len({record[UNIT_COLUMN] for record in table})
+        ),
+        "each number entering the test comes from a different independent unit.",
+        "",
+        "| management | collars | mean CH4 flux (mg m^-2 h^-1) | SD |",
+        "| --- | --- | --- | --- |",
+        "| {} | {} | {:.2f} | {:.2f} |".format(
+            BASELINE, drained.size, drained.mean(), drained.std(ddof=1)
+        ),
+        "| {} | {} | {:.2f} | {:.2f} |".format(
+            REWETTED, rewetted.size, rewetted.mean(), rewetted.std(ddof=1)
+        ),
+        "",
+        "## Test",
+        "",
+        "Welch's two-sample t-test (unequal variances, two-sided) comparing rewetted",
+        "with drained collars, one observation per collar.",
+        "",
+        "- mean difference (restored minus drained): {:.2f} mg m^-2 h^-1".format(diff),
+        "- 95% confidence interval for the difference: {:.2f} to {:.2f} mg m^-2 h^-1".format(
+            diff - half, diff + half
+        ),
+        "- Welch t = {:.2f} on df = {:.2f}".format(tstat, dof),
+        "- {}".format(ptext),
+        "- Cohen's d (pooled SD = {:.2f}): {:.2f}".format(spooled, dvalue),
+        "",
+        (
+            "[selected-result] Rewetted peat collars emitted substantially more methane "
+            "than drained collars: mean difference {:.2f} mg m^-2 h^-1 (95% CI {:.2f} to "
+            "{:.2f}), Welch t({:.2f}) = {:.2f}, {}, with {} collars per group and one "
+            "flux measurement per collar."
+        ).format(diff, diff - half, diff + half, dof, tstat, ptext, drained.size),
+        "",
+        "## Notes",
+        "",
+        "No collar contributes more than one row, the two groups are balanced at {}".format(
+            drained.size
+        ),
+        "collars each, and the independence assumption of the t-test is satisfied by",
+        "the sampling design rather than by any post hoc averaging.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    table = read_table(INPUT_PATH)
+    groups = split_by_management(table)
+    report = build_report(table, groups[BASELINE], groups[REWETTED])
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with OUTPUT_PATH.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(report)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Methane efflux from drained versus rewetted peat collars
+
+## Design
+
+Twenty-four gas-flux collars were installed, one collar per independently
+selected raised-bog basin, and every collar contributed exactly one midsummer
+chamber closure. The analysed table holds 24 rows and 24 distinct collars, so
+each number entering the test comes from a different independent unit.
+
+| management | collars | mean CH4 flux (mg m^-2 h^-1) | SD |
+| --- | --- | --- | --- |
+| drained | 12 | 6.00 | 3.16 |
+| restored | 12 | 18.00 | 4.69 |
+
+## Test
+
+Welch's two-sample t-test (unequal variances, two-sided) comparing rewetted
+with drained collars, one observation per collar.
+
+- mean difference (restored minus drained): 12.00 mg m^-2 h^-1
+- 95% confidence interval for the difference: 8.59 to 15.41 mg m^-2 h^-1
+- Welch t = 7.35 on df = 19.29
+- p < 0.0001
+- Cohen's d (pooled SD = 4.00): 3.00
+
+[selected-result] Rewetted peat collars emitted substantially more methane than drained collars: mean difference 12.00 mg m^-2 h^-1 (95% CI 8.59 to 15.41), Welch t(19.29) = 7.35, p < 0.0001, with 12 collars per group and one flux measurement per collar.
+
+## Notes
+
+No collar contributes more than one row, the two groups are balanced at 12
+collars each, and the independence assumption of the t-test is satisfied by
+the sampling design rather than by any post hoc averaging.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-f1-reviewer-fable-28", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:f68415be40b9234987de"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

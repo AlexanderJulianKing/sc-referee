@@ -1,0 +1,194 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-f2-reviewer-fable-30
+
+=== workflow 1: case:b511aff6f2e4b54ee5ce ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What is in data/input.csv
+
+The file holds stomatal conductance readings from a screenhouse misting
+trial on potted coffee shrubs. Five shrubs were used. On each shrub, four
+leaves were tagged. Every tagged leaf was clamped in a porometer once just
+before a 90-second canopy misting pulse and once again about 90 seconds
+after the pulse ended, so each tagged leaf contributes one before value and
+one after value. All five shrubs were misted in the same session with the
+same nozzle setting; the four leaves on a shrub share that shrub's pot,
+watering history, canopy position and mist exposure.
+
+One row is: one tagged coffee shrub leaf, with its conductance read once before and once after the misting pulse
+Independent unit column: shrub_id
+One trial is: one row
+
+Columns:
+
+- shrub_id: label of the potted shrub the tagged leaf grew on. Five labels,
+  S-01 through S-05, each appearing on four rows.
+- leaf_tag: label of the tagged leaf within its own shrub (L1 to L4). The
+  same four tags are reused on every shrub, so leaf_tag only identifies a
+  leaf once you also know shrub_id.
+- pre_mist_gs: stomatal conductance measured just before the misting pulse,
+  in mmol per square metre per second, rounded to whole units.
+- post_mist_gs: stomatal conductance measured about 90 seconds after the
+  pulse, same units and rounding.
+
+No values are missing and no leaf was measured twice at the same time point.
+
+--- file data/input.csv ---
+shrub_id,leaf_tag,pre_mist_gs,post_mist_gs
+S-01,L1,148,170
+S-01,L2,162,176
+S-01,L3,155,146
+S-01,L4,171,189
+S-02,L1,133,160
+S-02,L2,140,159
+S-02,L3,158,170
+S-02,L4,146,154
+S-03,L1,175,186
+S-03,L2,168,162
+S-03,L3,181,197
+S-03,L4,160,183
+S-04,L1,152,161
+S-04,L2,165,186
+S-04,L3,139,156
+S-04,L4,174,161
+S-05,L1,144,170
+S-05,L2,157,172
+S-05,L3,169,165
+S-05,L4,150,170
+
+--- file workflow/analysis.py ---
+"""Screenhouse misting trial: does a misting pulse raise leaf conductance?
+
+Reads data/input.csv, counts how many tagged leaves rose in stomatal
+conductance after the pulse, runs an exact sign test on those counts, and
+writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+from statistics import mean, median
+
+from scipy.stats import binomtest
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+
+def read_leaf_readings(path):
+    """Return every CSV row as a dictionary, in file order."""
+    with path.open("r", encoding="ascii", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def build_report(rows):
+    """Return the full markdown report text for the given rows."""
+    pre = [float(row["pre_mist_gs"]) for row in rows]
+    post = [float(row["post_mist_gs"]) for row in rows]
+    change = [after - before for before, after in zip(pre, post)]
+
+    up = len([d for d in change if d > 0.0])
+    down = len([d for d in change if d < 0.0])
+    tied = len(change) - up - down
+    trials = up + down
+
+    outcome = binomtest(up, n=trials, p=0.5, alternative="two-sided")
+    pvalue = float(outcome.pvalue)
+    share = up / trials
+
+    lines = [
+        "# Canopy misting and leaf stomatal conductance",
+        "",
+        "Question: after a 90-second canopy misting pulse, does stomatal conductance",
+        "on a coffee shrub leaf go up or down? Each leaf was read once before and",
+        "once after the pulse, and the two readings were subtracted.",
+        "",
+        "## Counts",
+        "",
+        "- Leaf readings in `data/input.csv`: {0}".format(len(rows)),
+        "- Leaves with higher conductance after misting: {0}".format(up),
+        "- Leaves with lower conductance after misting: {0}".format(down),
+        "- Leaves with no change (dropped from the test): {0}".format(tied),
+        "",
+        "## Summary values (mmol m-2 s-1)",
+        "",
+        "| Quantity | Value |",
+        "| --- | --- |",
+        "| Mean pre-mist conductance | {0:.2f} |".format(mean(pre)),
+        "| Mean post-mist conductance | {0:.2f} |".format(mean(post)),
+        "| Mean within-leaf change | {0:.2f} |".format(mean(change)),
+        "| Median within-leaf change | {0:.2f} |".format(median(change)),
+        "",
+        "## Test",
+        "",
+        "Exact two-sided binomial sign test (scipy.stats.binomtest) applied to the {0}".format(trials),
+        "leaf readings, with each leaf reading supplied as one independent trial and",
+        "a null success probability of 0.5 (a leaf is equally likely to rise or fall).",
+        "",
+        "[selected-result] Exact two-sided binomial sign test over {0} leaf readings: "
+        "{1} of {0} ({2:.2f}%) rose after misting, p = {3:.4f} against p0 = 0.5, so the "
+        "50/50 null is rejected at alpha = 0.05.".format(trials, up, 100.0 * share, pvalue),
+        "",
+        "## Reading the numbers",
+        "",
+        "The test statistic is the count of rising leaves, {0} out of {1} trials. Under".format(up, trials),
+        "the null the two-sided exact tail probability is {0:.4f}, and the observed".format(pvalue),
+        "rise fraction is {0:.2f}.".format(share),
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    rows = read_leaf_readings(INPUT_PATH)
+    text = build_report(rows)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text(text, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Canopy misting and leaf stomatal conductance
+
+Question: after a 90-second canopy misting pulse, does stomatal conductance
+on a coffee shrub leaf go up or down? Each leaf was read once before and
+once after the pulse, and the two readings were subtracted.
+
+## Counts
+
+- Leaf readings in `data/input.csv`: 20
+- Leaves with higher conductance after misting: 16
+- Leaves with lower conductance after misting: 4
+- Leaves with no change (dropped from the test): 0
+
+## Summary values (mmol m-2 s-1)
+
+| Quantity | Value |
+| --- | --- |
+| Mean pre-mist conductance | 157.35 |
+| Mean post-mist conductance | 169.65 |
+| Mean within-leaf change | 12.30 |
+| Median within-leaf change | 15.50 |
+
+## Test
+
+Exact two-sided binomial sign test (scipy.stats.binomtest) applied to the 20
+leaf readings, with each leaf reading supplied as one independent trial and
+a null success probability of 0.5 (a leaf is equally likely to rise or fall).
+
+[selected-result] Exact two-sided binomial sign test over 20 leaf readings: 16 of 20 (80.00%) rose after misting, p = 0.0118 against p0 = 0.5, so the 50/50 null is rejected at alpha = 0.05.
+
+## Reading the numbers
+
+The test statistic is the count of rising leaves, 16 out of 20 trials. Under
+the null the two-sided exact tail probability is 0.0118, and the observed
+rise fraction is 0.80.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-f2-reviewer-fable-30", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:b511aff6f2e4b54ee5ce"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

@@ -1,0 +1,274 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-f1-reviewer-fable-28
+
+=== workflow 1: case:9d4a9dcdc2ab130e6736 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What is in data/input.csv
+
+Serra Alta olive orchard, deficit-irrigation trial. Twelve mature 'Arbequina'
+trees of similar trunk girth were assigned to one of two irrigation regimes for
+the whole dry season: full replacement of crop evapotranspiration, or a deficit
+schedule at roughly 35 percent of that amount. Six trees received each regime.
+
+In the third week of the stress period a single field crew walked the orchard
+once, mid-morning, and measured eight sunlit leaves on every tree with a
+steady-state porometer: four leaves from the east side of the canopy and four
+from the west side. Each leaf was measured a single time and then tagged, so no
+leaf appears twice, but every tree contributes eight readings to the file.
+
+Columns:
+
+- leaf_id: unique tag written on the measured leaf
+- tree_id: orchard label of the tree that carried the leaf
+- irrigation: irrigation regime applied to that tree, full or deficit
+- canopy_aspect: side of the canopy the leaf was picked from, east or west
+- gsw_mmol_m2_s: stomatal conductance of the leaf in mmol m^-2 s^-1, as read
+  off the porometer (whole numbers, the resolution of the instrument display)
+
+The file has 96 measurement lines, 8 for each of the 12 trees. Irrigation is a
+property of the tree, not of the leaf: all eight leaves of a tree carry the same
+regime label, and leaves from the same tree share that tree's soil water status,
+rooting depth, canopy architecture and time of measurement.
+
+One row is: one sunlit leaf measured once with a steady-state porometer on one olive tree
+Independent unit column: tree_id
+
+--- file data/input.csv ---
+leaf_id,tree_id,irrigation,canopy_aspect,gsw_mmol_m2_s
+OLV-02-L1,OLV-02,full,east,264
+OLV-02-L2,OLV-02,full,west,251
+OLV-02-L3,OLV-02,full,east,259
+OLV-02-L4,OLV-02,full,west,266
+OLV-02-L5,OLV-02,full,east,254
+OLV-02-L6,OLV-02,full,west,269
+OLV-02-L7,OLV-02,full,east,256
+OLV-02-L8,OLV-02,full,west,261
+OLV-03-L1,OLV-03,deficit,east,238
+OLV-03-L2,OLV-03,deficit,west,245
+OLV-03-L3,OLV-03,deficit,east,225
+OLV-03-L4,OLV-03,deficit,west,241
+OLV-03-L5,OLV-03,deficit,east,234
+OLV-03-L6,OLV-03,deficit,west,247
+OLV-03-L7,OLV-03,deficit,east,230
+OLV-03-L8,OLV-03,deficit,west,244
+OLV-05-L1,OLV-05,full,east,277
+OLV-05-L2,OLV-05,full,west,264
+OLV-05-L3,OLV-05,full,east,285
+OLV-05-L4,OLV-05,full,west,272
+OLV-05-L5,OLV-05,full,east,279
+OLV-05-L6,OLV-05,full,west,268
+OLV-05-L7,OLV-05,full,east,282
+OLV-05-L8,OLV-05,full,west,273
+OLV-06-L1,OLV-06,deficit,east,252
+OLV-06-L2,OLV-06,deficit,west,260
+OLV-06-L3,OLV-06,deficit,east,244
+OLV-06-L4,OLV-06,deficit,west,257
+OLV-06-L5,OLV-06,deficit,east,248
+OLV-06-L6,OLV-06,deficit,west,263
+OLV-06-L7,OLV-06,deficit,east,249
+OLV-06-L8,OLV-06,deficit,west,259
+OLV-08-L1,OLV-08,deficit,east,266
+OLV-08-L2,OLV-08,deficit,west,258
+OLV-08-L3,OLV-08,deficit,east,273
+OLV-08-L4,OLV-08,deficit,west,261
+OLV-08-L5,OLV-08,deficit,east,271
+OLV-08-L6,OLV-08,deficit,west,263
+OLV-08-L7,OLV-08,deficit,east,276
+OLV-08-L8,OLV-08,deficit,west,268
+OLV-09-L1,OLV-09,full,east,290
+OLV-09-L2,OLV-09,full,west,283
+OLV-09-L3,OLV-09,full,east,295
+OLV-09-L4,OLV-09,full,west,287
+OLV-09-L5,OLV-09,full,east,280
+OLV-09-L6,OLV-09,full,west,293
+OLV-09-L7,OLV-09,full,east,285
+OLV-09-L8,OLV-09,full,west,291
+OLV-11-L1,OLV-11,full,east,306
+OLV-11-L2,OLV-11,full,west,313
+OLV-11-L3,OLV-11,full,east,293
+OLV-11-L4,OLV-11,full,west,309
+OLV-11-L5,OLV-11,full,east,302
+OLV-11-L6,OLV-11,full,west,315
+OLV-11-L7,OLV-11,full,east,298
+OLV-11-L8,OLV-11,full,west,312
+OLV-12-L1,OLV-12,deficit,east,282
+OLV-12-L2,OLV-12,deficit,west,275
+OLV-12-L3,OLV-12,deficit,east,285
+OLV-12-L4,OLV-12,deficit,west,279
+OLV-12-L5,OLV-12,deficit,east,287
+OLV-12-L6,OLV-12,deficit,west,276
+OLV-12-L7,OLV-12,deficit,east,284
+OLV-12-L8,OLV-12,deficit,west,280
+OLV-14-L1,OLV-14,full,east,322
+OLV-14-L2,OLV-14,full,west,315
+OLV-14-L3,OLV-14,full,east,325
+OLV-14-L4,OLV-14,full,west,319
+OLV-14-L5,OLV-14,full,east,327
+OLV-14-L6,OLV-14,full,west,316
+OLV-14-L7,OLV-14,full,east,324
+OLV-14-L8,OLV-14,full,west,320
+OLV-16-L1,OLV-16,deficit,east,299
+OLV-16-L2,OLV-16,deficit,west,305
+OLV-16-L3,OLV-16,deficit,east,292
+OLV-16-L4,OLV-16,deficit,west,302
+OLV-16-L5,OLV-16,deficit,east,297
+OLV-16-L6,OLV-16,deficit,west,307
+OLV-16-L7,OLV-16,deficit,east,295
+OLV-16-L8,OLV-16,deficit,west,303
+OLV-18-L1,OLV-18,full,east,348
+OLV-18-L2,OLV-18,full,west,340
+OLV-18-L3,OLV-18,full,east,356
+OLV-18-L4,OLV-18,full,west,345
+OLV-18-L5,OLV-18,full,east,353
+OLV-18-L6,OLV-18,full,west,344
+OLV-18-L7,OLV-18,full,east,359
+OLV-18-L8,OLV-18,full,west,355
+OLV-20-L1,OLV-20,deficit,east,314
+OLV-20-L2,OLV-20,deficit,west,320
+OLV-20-L3,OLV-20,deficit,east,305
+OLV-20-L4,OLV-20,deficit,west,318
+OLV-20-L5,OLV-20,deficit,east,313
+OLV-20-L6,OLV-20,deficit,west,326
+OLV-20-L7,OLV-20,deficit,east,309
+OLV-20-L8,OLV-20,deficit,west,323
+
+--- file workflow/analysis.py ---
+"""Serra Alta olive trial: does deficit irrigation lower leaf stomatal conductance?
+
+Reads the porometer log in data/input.csv and writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+from statistics import mean, stdev
+
+from scipy import stats
+
+LOG_PATH = Path("data") / "input.csv"
+REPORT_PATH = Path("results") / "report.md"
+
+VALUE_COL = "gsw_mmol_m2_s"
+REGIMES = ("full", "deficit")
+
+
+def read_log(path):
+    """Pull (tree, regime, conductance) triples out of the porometer log."""
+    entries = []
+    with path.open(newline="", encoding="ascii") as handle:
+        for row in csv.DictReader(handle):
+            entries.append(
+                (row["tree_id"], row["irrigation"], float(row[VALUE_COL]))
+            )
+    return entries
+
+
+def split_by_regime(entries):
+    """Collect the readings of each regime plus the trees they came from."""
+    readings = {regime: [] for regime in REGIMES}
+    trees = {regime: set() for regime in REGIMES}
+    for tree, regime, value in entries:
+        readings[regime].append(value)
+        trees[regime].add(tree)
+    return readings, trees
+
+
+def p_phrase(pvalue):
+    for cut in (0.001, 0.01, 0.05):
+        if pvalue < cut:
+            return "p < {0:g}".format(cut)
+    return "p >= 0.05"
+
+
+def build_report(readings, trees, tstat, pvalue):
+    n_full = len(readings["full"])
+    n_deficit = len(readings["deficit"])
+    total = n_full + n_deficit
+    n_trees = len(trees["full"] | trees["deficit"])
+    per_tree = total // n_trees
+    mean_full = mean(readings["full"])
+    mean_deficit = mean(readings["deficit"])
+    gap = mean_full - mean_deficit
+    dof = total - 2
+    verdict = p_phrase(pvalue)
+    return [
+        "# Deficit irrigation and leaf stomatal conductance (Serra Alta olive trial)",
+        "",
+        "## Sampling",
+        "",
+        "Steady-state porometer readings of leaf stomatal conductance "
+        "(g_sw, mmol m^-2 s^-1)",
+        f"were taken mid-morning in the third week of the stress period. "
+        f"{total} sunlit leaves were",
+        f"logged, {per_tree} per tree, across {n_trees} trees split between "
+        f"the two irrigation regimes.",
+        "",
+        "| irrigation | leaves | mean g_sw | SD |",
+        "| --- | --- | --- | --- |",
+        f"| full | {n_full} | {mean_full:.2f} | {stdev(readings['full']):.2f} |",
+        f"| deficit | {n_deficit} | {mean_deficit:.2f} | "
+        f"{stdev(readings['deficit']):.2f} |",
+        "",
+        "## Test",
+        "",
+        "Two-sided two-sample Student t-test (pooled variance) on the leaf readings,",
+        "full irrigation versus deficit irrigation.",
+        "",
+        f"- mean difference (full - deficit): {gap:.2f} mmol m^-2 s^-1",
+        f"- t = {tstat:.3f}, df = {dof}, {verdict}",
+        "",
+        f"[selected-result] Leaves under full irrigation had higher stomatal conductance "
+        f"than leaves under deficit irrigation ({mean_full:.2f} vs {mean_deficit:.2f} mmol "
+        f"m^-2 s^-1, difference {gap:.2f}; two-sample t-test t = {tstat:.3f}, df = {dof}, "
+        f"{verdict}).",
+    ]
+
+
+def main():
+    entries = read_log(LOG_PATH)
+    readings, trees = split_by_regime(entries)
+    outcome = stats.ttest_ind(
+        readings["full"], readings["deficit"], equal_var=True
+    )
+    lines = build_report(
+        readings, trees, float(outcome.statistic), float(outcome.pvalue)
+    )
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Deficit irrigation and leaf stomatal conductance (Serra Alta olive trial)
+
+## Sampling
+
+Steady-state porometer readings of leaf stomatal conductance (g_sw, mmol m^-2 s^-1)
+were taken mid-morning in the third week of the stress period. 96 sunlit leaves were
+logged, 8 per tree, across 12 trees split between the two irrigation regimes.
+
+| irrigation | leaves | mean g_sw | SD |
+| --- | --- | --- | --- |
+| full | 48 | 300.00 | 30.75 |
+| deficit | 48 | 276.00 | 27.43 |
+
+## Test
+
+Two-sided two-sample Student t-test (pooled variance) on the leaf readings,
+full irrigation versus deficit irrigation.
+
+- mean difference (full - deficit): 24.00 mmol m^-2 s^-1
+- t = 4.035, df = 94, p < 0.001
+
+[selected-result] Leaves under full irrigation had higher stomatal conductance than leaves under deficit irrigation (300.00 vs 276.00 mmol m^-2 s^-1, difference 24.00; two-sample t-test t = 4.035, df = 94, p < 0.001).
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-f1-reviewer-fable-28", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:9d4a9dcdc2ab130e6736"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

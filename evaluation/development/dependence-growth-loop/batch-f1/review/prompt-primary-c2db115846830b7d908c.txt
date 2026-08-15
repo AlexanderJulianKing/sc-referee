@@ -1,0 +1,206 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-f1-reviewer-fable-28
+
+=== workflow 1: case:c2db115846830b7d908c ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What is in data/input.csv
+
+The file records a night-time amphibian survey of urban stormwater ponds run
+across one frog breeding season. A field crew visited each pond once, waited
+through dusk, and logged the moment continuous calling started at that pond.
+
+One row is: one urban stormwater pond, described by the single night on which it was surveyed
+
+Independent unit column: pond_id
+
+## Columns
+
+- pond_id: unique code for the pond; each code occurs on exactly one line.
+- survey_date: calendar date of that pond's one and only visit.
+- lighting_regime: "lit" when permanent street lighting falls on the pond margin, "unlit" otherwise.
+- pond_area_ha: open-water surface area in hectares, traced from aerial imagery.
+- water_temp_c: water temperature in degrees Celsius, taken on arrival.
+- chorus_onset_min_after_sunset: minutes between local sunset and the start of continuous calling.
+
+## How independence works here
+
+Twelve ponds contribute twelve lines, one apiece. No pond was revisited, no
+pond is split across lines, and no two ponds were surveyed on the same date,
+so every onset value comes from a different source. Ponds are separate water
+bodies in separate catchments and were not paired or matched with each other.
+A procedure that treats the lines as independent observations therefore suits
+this table, and the grouping variable (lighting regime) varies between ponds
+rather than within any pond.
+
+--- file data/input.csv ---
+pond_id,survey_date,lighting_regime,pond_area_ha,water_temp_c,chorus_onset_min_after_sunset
+BRW-01,2025-05-04,unlit,0.42,17.4,19
+BRW-02,2025-05-06,lit,0.55,17.9,44
+BRW-03,2025-05-08,unlit,0.31,16.8,12
+BRW-04,2025-05-09,lit,0.28,18.2,58
+BRW-05,2025-05-11,unlit,0.74,17.1,31
+BRW-06,2025-05-13,lit,0.66,17.6,35
+BRW-07,2025-05-15,unlit,0.19,16.5,23
+BRW-08,2025-05-16,lit,0.47,18.0,70
+BRW-09,2025-05-18,unlit,0.88,17.8,38
+BRW-10,2025-05-20,lit,0.35,17.2,51
+BRW-11,2025-05-22,unlit,0.61,16.9,27
+BRW-12,2025-05-24,lit,0.52,18.4,63
+
+--- file workflow/analysis.py ---
+"""Chorus onset at street-lit versus unlit urban stormwater ponds.
+
+Reads data/input.csv, which carries one line per pond and one survey night
+per pond, and writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+import statistics
+from pathlib import Path
+
+from scipy import stats
+
+INPUT_PATH = Path("data") / "input.csv"
+REPORT_PATH = Path("results") / "report.md"
+
+GROUP_COLUMN = "lighting_regime"
+ONSET_COLUMN = "chorus_onset_min_after_sunset"
+LIT = "lit"
+UNLIT = "unlit"
+
+
+def read_onsets():
+    """Collect onset minutes per lighting regime, one value per pond."""
+    onsets = {LIT: [], UNLIT: []}
+    seen = set()
+    with INPUT_PATH.open(newline="", encoding="ascii") as handle:
+        for row in csv.DictReader(handle):
+            pond = row["pond_id"]
+            if pond in seen:
+                raise ValueError("pond appears more than once: " + pond)
+            seen.add(pond)
+            onsets[row[GROUP_COLUMN]].append(float(row[ONSET_COLUMN]))
+    return onsets
+
+
+def describe(values):
+    """Return count, mean and median of one regime's onset times."""
+    return len(values), statistics.mean(values), statistics.median(values)
+
+
+def build_report(onsets):
+    lit = onsets[LIT]
+    unlit = onsets[UNLIT]
+    n_lit, mean_lit, median_lit = describe(lit)
+    n_unlit, mean_unlit, median_unlit = describe(unlit)
+
+    outcome = stats.mannwhitneyu(lit, unlit, alternative="two-sided",
+                                 method="exact")
+    u_stat = float(outcome.statistic)
+    p_value = float(outcome.pvalue)
+    rank_biserial = 2.0 * u_stat / (n_lit * n_unlit) - 1.0
+
+    selected = (
+        "[selected-result] Mann-Whitney U test of chorus onset, "
+        "lit (n = {0}) versus unlit (n = {1}) ponds: "
+        "U = {2:.1f}, exact two-sided p = {3:.5f}, "
+        "rank-biserial correlation = {4:.3f}; onset is later at lit ponds "
+        "(median {5:.1f} versus {6:.1f} minutes after sunset)."
+    ).format(n_lit, n_unlit, u_stat, p_value, rank_biserial,
+             median_lit, median_unlit)
+
+    return "\n".join([
+        "# Chorus onset at lit and unlit urban ponds",
+        "",
+        "## Design",
+        "",
+        "Twelve urban stormwater ponds were each visited on a single night of one",
+        "breeding season. One chorus onset time, the number of minutes after local",
+        "sunset at which continuous calling began, was logged per pond. Six ponds",
+        "border continuously burning street lighting and six are unlit. Every pond",
+        "appears exactly once, so the twelve onset values are mutually independent.",
+        "",
+        "## Group summary",
+        "",
+        "| Lighting regime | Ponds | Mean onset (min) | Median onset (min) |",
+        "| --- | --- | --- | --- |",
+        "| {0} | {1} | {2:.2f} | {3:.1f} |".format(
+            LIT, n_lit, mean_lit, median_lit),
+        "| {0} | {1} | {2:.2f} | {3:.1f} |".format(
+            UNLIT, n_unlit, mean_unlit, median_unlit),
+        "",
+        "Median shift (lit minus unlit): {0:.1f} minutes.".format(
+            median_lit - median_unlit),
+        "",
+        "## Test",
+        "",
+        "The two lighting regimes were compared with a two-sided Mann-Whitney U test",
+        "evaluated against the exact null distribution; no ties occur in the pooled",
+        "sample of twelve onset times.",
+        "",
+        selected,
+        "",
+        "## Reading of the result",
+        "",
+        "At the 5 percent level the onset distributions differ: calling at lit ponds",
+        "starts about half an hour later relative to sunset than at unlit ponds. The",
+        "comparison is observational, so lighting is not separated from whatever else",
+        "distinguishes lit sites from unlit ones; pond area and water temperature were",
+        "recorded but are not modelled here.",
+    ]) + "\n"
+
+
+def main():
+    report = build_report(read_onsets())
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Chorus onset at lit and unlit urban ponds
+
+## Design
+
+Twelve urban stormwater ponds were each visited on a single night of one
+breeding season. One chorus onset time, the number of minutes after local
+sunset at which continuous calling began, was logged per pond. Six ponds
+border continuously burning street lighting and six are unlit. Every pond
+appears exactly once, so the twelve onset values are mutually independent.
+
+## Group summary
+
+| Lighting regime | Ponds | Mean onset (min) | Median onset (min) |
+| --- | --- | --- | --- |
+| lit | 6 | 53.50 | 54.5 |
+| unlit | 6 | 25.00 | 25.0 |
+
+Median shift (lit minus unlit): 29.5 minutes.
+
+## Test
+
+The two lighting regimes were compared with a two-sided Mann-Whitney U test
+evaluated against the exact null distribution; no ties occur in the pooled
+sample of twelve onset times.
+
+[selected-result] Mann-Whitney U test of chorus onset, lit (n = 6) versus unlit (n = 6) ponds: U = 35.0, exact two-sided p = 0.00433, rank-biserial correlation = 0.944; onset is later at lit ponds (median 54.5 versus 25.0 minutes after sunset).
+
+## Reading of the result
+
+At the 5 percent level the onset distributions differ: calling at lit ponds
+starts about half an hour later relative to sunset than at unlit ponds. The
+comparison is observational, so lighting is not separated from whatever else
+distinguishes lit sites from unlit ones; pond area and water temperature were
+recorded but are not modelled here.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-f1-reviewer-fable-28", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:c2db115846830b7d908c"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

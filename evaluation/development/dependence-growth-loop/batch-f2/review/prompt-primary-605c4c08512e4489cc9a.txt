@@ -1,0 +1,217 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-f2-reviewer-fable-30
+
+=== workflow 1: case:605c4c08512e4489cc9a ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What is in data/input.csv
+
+This table records a nest-choice survey of the rock ant Temnothorax rugatulus
+carried out along one ridge during a single field season. Twenty-four
+queenright colonies were located, each living under a different granite
+outcrop, and no two sampled outcrops were closer than fifty metres. Each
+colony was lifted intact into a plaster arena offering two identical cavities,
+one shaded by a dark filter and one left open to ambient light, and was scored
+once for the cavity into which it completed its emigration. After scoring, the
+colony was returned to its outcrop and was never tested again.
+
+Columns:
+
+- colony_id: the label of the colony; every label appears on exactly one row.
+- collection_outcrop: the granite outcrop the colony was taken from; every
+  outcrop supplied exactly one colony.
+- worker_count: number of workers censused in the colony before the assay.
+- assay_temp_c: arena air temperature in degrees Celsius during the trial.
+- cavity_chosen: the cavity the colony settled in, "shaded" or "exposed".
+
+One row is: one field-collected ant colony scored once in a single two-cavity nest-choice trial
+Independent unit column: colony_id
+One trial is: one row
+
+Because a colony is measured a single time and no two colonies share an
+outcrop, the table holds no repeated measurements and no nesting. The twenty-
+four recorded choices are twenty-four independent yes/no outcomes, which is
+exactly what the binomial sampling model in the analysis assumes.
+
+--- file data/input.csv ---
+colony_id,collection_outcrop,worker_count,assay_temp_c,cavity_chosen
+TR-01,OC-112,168,22.4,shaded
+TR-02,OC-118,204,22.1,shaded
+TR-03,OC-125,151,22.6,exposed
+TR-04,OC-131,187,22.3,shaded
+TR-05,OC-137,233,22.0,shaded
+TR-06,OC-142,119,22.5,shaded
+TR-07,OC-149,176,22.2,exposed
+TR-08,OC-155,198,22.7,shaded
+TR-09,OC-160,142,22.4,shaded
+TR-10,OC-166,215,22.1,shaded
+TR-11,OC-173,163,22.3,shaded
+TR-12,OC-179,127,22.6,exposed
+TR-13,OC-184,191,22.5,shaded
+TR-14,OC-190,225,22.2,shaded
+TR-15,OC-197,138,22.4,shaded
+TR-16,OC-203,172,22.0,shaded
+TR-17,OC-208,209,22.3,exposed
+TR-18,OC-214,155,22.6,shaded
+TR-19,OC-221,183,22.1,shaded
+TR-20,OC-227,146,22.5,shaded
+TR-21,OC-233,196,22.4,shaded
+TR-22,OC-238,131,22.2,exposed
+TR-23,OC-245,178,22.7,shaded
+TR-24,OC-251,212,22.3,shaded
+
+--- file workflow/analysis.py ---
+"""Nest-site choice assay in field-collected Temnothorax rugatulus colonies.
+
+Every colony in the table came from its own granite outcrop and was released
+into the two-cavity arena exactly once, so a colony, a row and a trial are the
+same thing. The script reads data/input.csv, runs an exact two-sided binomial
+test on the shaded-cavity count and writes results/report.md.
+"""
+
+import csv
+from pathlib import Path
+
+from scipy.stats import binomtest
+
+INPUT_PATH = Path("data/input.csv")
+OUTPUT_PATH = Path("results/report.md")
+
+UNIT_COLUMN = "colony_id"
+OUTCOME_COLUMN = "cavity_chosen"
+PREFERRED_CAVITY = "shaded"
+ALTERNATIVE_CAVITY = "exposed"
+NULL_PROBABILITY = 0.5
+ALPHA = 0.05
+
+
+def read_trials(path):
+    """Return the assay rows, refusing anything that is not one row per colony."""
+    with path.open(newline="", encoding="ascii") as handle:
+        trials = list(csv.DictReader(handle))
+    if not trials:
+        raise ValueError("no assay rows found")
+    colonies = [trial[UNIT_COLUMN] for trial in trials]
+    if len(set(colonies)) != len(colonies):
+        raise ValueError("each colony must contribute exactly one assay row")
+    outcrops = [trial["collection_outcrop"] for trial in trials]
+    if len(set(outcrops)) != len(outcrops):
+        raise ValueError("each outcrop must supply exactly one colony")
+    for trial in trials:
+        choice = trial[OUTCOME_COLUMN]
+        if choice not in (PREFERRED_CAVITY, ALTERNATIVE_CAVITY):
+            raise ValueError("unrecognised cavity code: " + choice)
+    return trials
+
+
+def build_report(n_trials, n_preferred, p_value):
+    n_alternative = n_trials - n_preferred
+    proportion = n_preferred / n_trials
+    verdict = "rejected" if p_value < ALPHA else "not rejected"
+    selected = (
+        "[selected-result] Exact two-sided binomial test on {0} independent"
+        " colonies: {1} of {0} (proportion {2:.4f}) chose the shaded cavity"
+        " against a null of {3:g}, p = {4:.5f}, so the no-preference null is"
+        " {5} at alpha = {6:g}."
+    ).format(
+        n_trials,
+        n_preferred,
+        proportion,
+        NULL_PROBABILITY,
+        p_value,
+        verdict,
+        ALPHA,
+    )
+    lines = [
+        "# Nest-site choice in field-collected Temnothorax rugatulus colonies",
+        "",
+        "## Design",
+        "",
+        "Each colony in this survey was collected from its own granite outcrop, at",
+        "least fifty metres from the next, and was released into the two-cavity arena",
+        "exactly once. One row of the data table is therefore one colony and one",
+        "trial: no colony was retested, and no colony contributes a second choice.",
+        "",
+        "## Analysis",
+        "",
+        "Exact two-sided binomial test (scipy.stats.binomtest) on the number of",
+        "colonies that emigrated into the shaded cavity, against the no-preference",
+        "expectation of {0:g}.".format(NULL_PROBABILITY),
+        "",
+        "## Numbers",
+        "",
+        "- Colonies assayed: {0}".format(n_trials),
+        "- Emigrated to the shaded cavity: {0}".format(n_preferred),
+        "- Emigrated to the exposed cavity: {0}".format(n_alternative),
+        "- Observed proportion choosing shaded: {0:.4f}".format(proportion),
+        "- Null proportion: {0:g}".format(NULL_PROBABILITY),
+        "- Exact two-sided p-value: {0:.5f}".format(p_value),
+        "",
+        selected,
+        "",
+        "## Reading",
+        "",
+        "The bias toward the dim cavity is strong and unlikely under indifference. The",
+        "count that enters the test is a count of separate colonies, so the exact",
+        "binomial sampling model matches the way the data were collected.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    trials = read_trials(INPUT_PATH)
+    n_trials = len(trials)
+    n_preferred = 0
+    for trial in trials:
+        if trial[OUTCOME_COLUMN] == PREFERRED_CAVITY:
+            n_preferred += 1
+    result = binomtest(
+        n_preferred, n_trials, NULL_PROBABILITY, alternative="two-sided"
+    )
+    report = build_report(n_trials, n_preferred, result.pvalue)
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Nest-site choice in field-collected Temnothorax rugatulus colonies
+
+## Design
+
+Each colony in this survey was collected from its own granite outcrop, at
+least fifty metres from the next, and was released into the two-cavity arena
+exactly once. One row of the data table is therefore one colony and one
+trial: no colony was retested, and no colony contributes a second choice.
+
+## Analysis
+
+Exact two-sided binomial test (scipy.stats.binomtest) on the number of
+colonies that emigrated into the shaded cavity, against the no-preference
+expectation of 0.5.
+
+## Numbers
+
+- Colonies assayed: 24
+- Emigrated to the shaded cavity: 19
+- Emigrated to the exposed cavity: 5
+- Observed proportion choosing shaded: 0.7917
+- Null proportion: 0.5
+- Exact two-sided p-value: 0.00661
+
+[selected-result] Exact two-sided binomial test on 24 independent colonies: 19 of 24 (proportion 0.7917) chose the shaded cavity against a null of 0.5, p = 0.00661, so the no-preference null is rejected at alpha = 0.05.
+
+## Reading
+
+The bias toward the dim cavity is strong and unlikely under indifference. The
+count that enters the test is a count of separate colonies, so the exact
+binomial sampling model matches the way the data were collected.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-f2-reviewer-fable-30", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:605c4c08512e4489cc9a"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}
