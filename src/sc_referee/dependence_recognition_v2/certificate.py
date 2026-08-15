@@ -1941,7 +1941,7 @@ def _kernel_replay_function_bookkeeping(
     if any(_kernel_graph_depth(root, graph) > 3 for root in roots):
         return False
     sites = _kernel_call_sites(tree, functions)
-    expected_pairs: set[tuple[str, str, str, tuple[int, int, int, int]]] = set()
+    expected_pairs: set[tuple[str, str, str, str, tuple[int, int, int, int]]] = set()
     for name, call_path_id, span in sites:
         function = functions[name]
         originals = {item.arg for item in function.args.args}
@@ -1950,9 +1950,25 @@ def _kernel_replay_function_bookkeeping(
             for node in ast.walk(function)
             if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store)
         )
-        expected_pairs.update((name, call_path_id, original, span) for original in originals)
+        call_number = call_path_id.rsplit(":", 1)[-1]
+        expected_pairs.update(
+            (
+                name,
+                call_path_id,
+                original,
+                f"__dependence_v2_{call_number}_{original}",
+                span,
+            )
+            for original in originals
+        )
     actual_pairs = {
-        (item.function_name, item.call_path_id, item.original_name, item.call_span)
+        (
+            item.function_name,
+            item.call_path_id,
+            item.original_name,
+            item.fresh_name,
+            item.call_span,
+        )
         for item in certificate.alpha_renames
     }
     caller_visible = (
@@ -2342,6 +2358,8 @@ def _kernel_sink_partition_matches(
                 isinstance(statement.value, ast.Name)
                 or (
                     isinstance(statement.value, ast.Subscript)
+                    and isinstance(statement.value.value, ast.Name)
+                    and statement.value.value.id in operands
                     and not isinstance(statement.value.slice, ast.Slice)
                 )
             ):
@@ -2535,7 +2553,11 @@ def _kernel_function_shape_closed(
             "sorted",
             "str",
             "len",
+            "min",
+            "max",
             "sum",
+            "round",
+            "abs",
             "range",
             "enumerate",
         }

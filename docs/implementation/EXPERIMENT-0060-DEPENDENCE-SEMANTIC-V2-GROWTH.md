@@ -197,10 +197,13 @@ write remain unconditional.  The pure sink function whitelist takes no
 keywords; ordinary string methods may take keywords.  User helpers in the sink
 slice remain unsupported.
 
-The sink slice makes flow claims about frozen source only and makes no claim
-that report-value computation succeeds.  A sink-bound expression that would
-raise at execution is therefore accepted when its source flow is otherwise
-closed; this is the same consumability boundary used by the v1.1.0 assessment.
+The sink slice makes static-source flow claims about frozen source only and
+makes no claim that report-value computation succeeds.  A raising sink-bound
+statement can prevent the report write at execution; nevertheless, its
+certified sink-reachability claim is only that the source expression is on the
+closed static path to that write.  Accepting such a statement is consistent
+with the static-relationship wording ceiling and the v1.1.0 consumability
+precedent.
 
 Multi-site inlining is identified by `(source span, call_path_id)`.  Alpha
 renames are keyed by function, call path, and original name; the kernel proves

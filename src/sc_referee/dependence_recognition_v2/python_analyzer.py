@@ -62,7 +62,22 @@ _REGISTERED = {
 }
 _COUNT_PROCEDURES = frozenset({"scipy.stats.binomtest", "scipy.stats.fisher_exact"})
 _BUILTINS = frozenset(
-    {"list", "set", "float", "int", "sorted", "str", "len", "sum", "range", "enumerate"}
+    {
+        "list",
+        "set",
+        "float",
+        "int",
+        "sorted",
+        "str",
+        "len",
+        "min",
+        "max",
+        "sum",
+        "round",
+        "abs",
+        "range",
+        "enumerate",
+    }
 )
 _SCIPY_PIN = re.compile(r"(?m)^\s*scipy\s*==\s*1\.14\.0\s*(?:#.*)?$")
 
@@ -265,14 +280,14 @@ def discharge_dependence_growth_analysis(
     )
     if fact is None:
         return _discharged_unsupported(reason or "group-domain-unproven")
-    if len(fact.groups) != _REGISTERED[certificate.resolved_callable]:
-        return _discharged_unsupported("group-operand-arity-mismatch")
     keys = tuple(item.group_key for item in fact.groups)
     if certificate.group_container_kind == "defaultdict_list" and any(
         not item.group_key.startswith("__sorted_group_position_") and item.group_key not in keys
         for item in certificate.operand_bindings
     ):
         return _discharged_unsupported("defaultdict-key-not-proven")
+    if len(fact.groups) != _REGISTERED[certificate.resolved_callable]:
+        return _discharged_unsupported("group-operand-arity-mismatch")
     resolved_bindings: list[OperandGroupBinding] = []
     for binding in certificate.operand_bindings:
         key = binding.group_key
@@ -1467,7 +1482,54 @@ def _validate_function(
         for node in ast.walk(function)
         if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
     }
-    allowed = parameters | locals_ | set(constants) | set(imports) | function_names | set(_BUILTINS)
+    definitions = {
+        statement.targets[0].id: statement.value
+        for statement in function.body
+        if isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+    }
+    sink_expressions = [
+        node.args[0]
+        for node in ast.walk(function)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "write_text"
+        and node.args
+    ]
+    sink_reads = set().union(
+        *(_transitive_reads(expression, definitions) for expression in sink_expressions)
+    )
+    # Defer only sink-position callable admission to the sink classifier, which
+    # can issue the specific closed-whitelist reason.  Calls elsewhere retain
+    # the module-data/global-read refusal.
+    callable_loads = {
+        node.func.id
+        for statement in function.body
+        if (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and statement.targets[0].id in sink_reads
+        )
+        for node in ast.walk(statement.value)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    }
+    callable_loads.update(
+        node.func.id
+        for expression in sink_expressions
+        for node in ast.walk(expression)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    )
+    allowed = (
+        parameters
+        | locals_
+        | set(constants)
+        | set(imports)
+        | function_names
+        | set(_BUILTINS)
+        | callable_loads
+    )
     if loads - allowed:
         reasons.add("function-globals-read")
     returns = [node for node in ast.walk(function) if isinstance(node, ast.Return)]
@@ -2497,7 +2559,7 @@ def _sink_expression_closed(
         raise _Refusal("sink-classification-unresolved")
     if isinstance(expression.func, ast.Name):
         if expression.func.id not in _SINK_NAME_CALLS:
-            raise _Refusal("sink-helper-call")
+            raise _Refusal("sink-call-not-whitelisted")
         if expression.keywords:
             raise _Refusal("sink-call-keyword-argument")
         if (
@@ -2617,6 +2679,16 @@ def _partition_sink_bound(
             for node in ast.walk(target)
         ):
             raise _Refusal("sink-flow-escapes")
+        if (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and isinstance(statement.value, ast.Name)
+            and statement.value.id in operand_names
+        ):
+            # Object identity is disqualifying even when the alias is not on
+            # the later report-value read chain.
+            raise _Refusal("sink-aliases-operand-object")
         if not (
             isinstance(statement, ast.Assign)
             and len(statement.targets) == 1
@@ -2624,8 +2696,6 @@ def _partition_sink_bound(
             and statement.targets[0].id in sink_names
         ):
             raise _Refusal("sink-classification-unresolved")
-        if isinstance(statement.value, ast.Name) and statement.value.id in operand_names:
-            raise _Refusal("sink-aliases-operand-object")
         _sink_expression_closed(statement.value, operand_names, scalar_sequences)
         sink_indices.add(index)
     _sink_expression_closed(sink.args[0], operand_names, scalar_sequences)

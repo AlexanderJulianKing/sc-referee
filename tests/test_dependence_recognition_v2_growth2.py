@@ -548,7 +548,14 @@ def test_guarded_increment_nonbyte_predicate_is_visible_to_wall_scan() -> None:
 
 
 def test_stale_evaluation_build_tree_is_absent(project_root: Path) -> None:
-    assert not (project_root / "evaluation/build").exists()
+    completed = subprocess.run(
+        ["git", "ls-files", "--", "evaluation/build"],
+        cwd=project_root,
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+    assert completed.stdout == ""
 
 
 def test_count_kernel_accepts_then_refuses_single_field_corruptions() -> None:

@@ -151,6 +151,47 @@ def test_kernel_rejects_identical_multisite_identity_and_rename_collision() -> N
     assert _inspect(author_collision)["abstention_reasons"] == ["function-rename-collision"]
 
 
+def test_kernel_rejects_swapped_positive_rename_mapping_at_rename_obligation() -> None:
+    source = (
+        _source()
+        .replace("def main():", "def select(groups, key):\n    return groups[key]\n\ndef main():")
+        .replace(
+            "    left = groups[LEFT]\n    right = groups[RIGHT]",
+            "    left = select(groups, LEFT)\n    right = select(groups, RIGHT)",
+        )
+    )
+    context = _context(source, _ADVERSE)
+    proposal = analyze_dependence_growth_python(context)
+    discharged = discharge_dependence_growth_analysis(proposal, context)
+    assert discharged.verified_certificate is not None
+    certificate = proposal.certificate
+    assert certificate is not None
+    renames = list(certificate.alpha_renames)
+    first, second = next(
+        (left, right)
+        for left in range(len(renames))
+        for right in range(left + 1, len(renames))
+        if renames[left].original_name == renames[right].original_name
+        and renames[left].call_path_id != renames[right].call_path_id
+    )
+    renames[first] = replace(renames[first], fresh_name=renames[second].fresh_name)
+    renames[second] = replace(
+        renames[second], fresh_name=certificate.alpha_renames[first].fresh_name
+    )
+    failures: list[str] = []
+    assert (
+        verify_dependence_growth_certificate(
+            replace(certificate, alpha_renames=tuple(renames)),
+            trusted_group_facts=(discharged.verified_certificate.fact,),
+            trusted_authorizations=_trusted_v2_authorizations(context),
+            source_bytes=context.documents[0].content,
+            _failure_reasons=failures,
+        )
+        is None
+    )
+    assert failures == ["rename-injectivity"]
+
+
 def test_defaultdict_list_certifies_and_phantom_key_abstains(tmp_path: Path) -> None:
     source = (
         _source()
@@ -163,6 +204,10 @@ def test_defaultdict_list_certifies_and_phantom_key_abstains(tmp_path: Path) -> 
     phantom = source.replace("left = groups[LEFT]", 'left = groups["missing"]')
     _execute(phantom, _ADVERSE, tmp_path / "phantom")
     assert _inspect(phantom)["abstention_reasons"] == ["defaultdict-key-not-proven"]
+    one_observed_group = b"unit_id,arm,value\nu1,A,1\nu2,A,2\n"
+    assert _inspect(phantom, one_observed_group)["abstention_reasons"] == [
+        "defaultdict-key-not-proven"
+    ]
     unpacked = source.replace(
         "    left = groups[LEFT]\n    right = groups[RIGHT]",
         "    (_, left), (_, right) = sorted(groups.items())",
@@ -200,7 +245,7 @@ def test_defaultdict_list_certifies_and_phantom_key_abstains(tmp_path: Path) -> 
         (
             "    summary = statistics.mean(left)\n    rendered = set([summary])\n"
             '    REPORT.write_text(str(result) + str(rendered), encoding="utf-8")',
-            "sink-helper-call",
+            "sink-call-not-whitelisted",
         ),
         (
             "    summary = sorted(left, key=str)\n"
@@ -285,6 +330,13 @@ def test_sink_flow_escape_unknown_method_and_raising_sink_routes(tmp_path: Path)
     )
     _execute(unknown, _ADVERSE, tmp_path / "unknown")
     assert _inspect(unknown)["abstention_reasons"] == ["sink-call-not-whitelisted"]
+    unknown_name = _source().replace(
+        '    REPORT.write_text(str(result), encoding="utf-8")',
+        '    rendered = mystery(result)\n    REPORT.write_text(str(rendered), encoding="utf-8")',
+    )
+    unknown_payload = _inspect(unknown_name)
+    assert unknown_payload["abstention_reasons"] == ["sink-call-not-whitelisted"]
+    assert "function-globals-read" not in unknown_payload["abstention_reasons"]
     raising = _source().replace(
         '    REPORT.write_text(str(result), encoding="utf-8")',
         "    ratio = 1 / len(left)\n"
@@ -314,6 +366,42 @@ def test_fresh_scalar_container_principle_is_uniform(expression: str, tmp_path: 
     )
     _execute(source, _ADVERSE, tmp_path)
     assert _inspect(source)["outcome"] == "evaluation_candidate"
+
+
+@pytest.mark.parametrize(
+    "expression",
+    ["min(left)", "max(left)", "round(sum(left), 2)", "abs(sum(left))"],
+)
+def test_scalar_sink_callable_whitelist_certifies(expression: str, tmp_path: Path) -> None:
+    source = _source().replace(
+        '    REPORT.write_text(str(result), encoding="utf-8")',
+        f"    summary = {expression}\n"
+        '    REPORT.write_text(str(result) + str(summary), encoding="utf-8")',
+    )
+    _execute(source, _ADVERSE, tmp_path)
+    assert _inspect(source)["outcome"] == "evaluation_candidate"
+
+
+def test_fresh_sorted_subscript_certifies_symmetrically(tmp_path: Path) -> None:
+    source = _source().replace(
+        '    REPORT.write_text(str(result), encoding="utf-8")',
+        "    smallest = sorted(left)[0]\n"
+        '    REPORT.write_text(str(result) + str(smallest), encoding="utf-8")',
+    )
+    _execute(source, _ADVERSE, tmp_path)
+    analysis = analyze_dependence_growth_python(_context(source, _ADVERSE))
+    assert analysis.certificate is not None
+    discharged = discharge_dependence_growth_analysis(analysis, _context(source, _ADVERSE))
+    assert discharged.verified_certificate is not None
+    assert _inspect(source)["outcome"] == "evaluation_candidate"
+
+
+def test_unused_bare_operand_alias_reports_identity_reason() -> None:
+    source = _source().replace(
+        '    REPORT.write_text(str(result), encoding="utf-8")',
+        '    unused_alias = left\n    REPORT.write_text(str(result), encoding="utf-8")',
+    )
+    assert _inspect(source)["abstention_reasons"] == ["sink-aliases-operand-object"]
 
 
 def test_container_holding_operand_object_is_not_sink_bound(tmp_path: Path) -> None:
