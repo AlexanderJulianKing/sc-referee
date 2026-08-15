@@ -172,3 +172,13 @@ Growth-2 adds batch C at
 opus-39 through opus-44, blind reviewer fable-20, hostile reviewer fable-21,
 and escalation opus-15.  Like batch B, v1 alone is scored and the v2 result is
 retained side by side as non-qualification development evidence.
+
+## 2026-08-14 development review-response retention amendment
+
+For development-loop envelopes only, a primary blind-review response that is
+not valid JSON or does not satisfy the frozen response schema is retained as a
+per-case `review-response-malformed` refusal.  It is never interpreted as a
+label, receives no retry, remains in the development denominator, and is
+excluded from detector measurement as `burned_review_response_malformed`.
+Re-entry reprojects the same digest-bound process capture to the same refusal.
+Qualification envelopes retain their pre-existing strict failure behavior.

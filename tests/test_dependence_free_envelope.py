@@ -941,6 +941,247 @@ def test_review_key_is_presealed_and_primary_calls_are_stateless_per_case(
     assert len(hostile_prompts) == 6
 
 
+def _direct_review_inputs(
+    config: Any, review_root: Path
+) -> tuple[str, dict[str, dict[str, Any]], dict[str, dict[str, bytes]]]:
+    case_id = "case:malformed_review_fixture"
+    payloads = {
+        str(item["path"]): f"fixture content for {item['path']}\n".encode()
+        for item in lean_pipeline._visible_files(config)
+    }
+    manifest: dict[str, Any] = {
+        "record_type": "evaluation_blind_workspace_manifest",
+        "workspace_id": "workspace:malformed-review-fixture",
+        "created_at": "2026-08-14T00:00:00Z",
+        "source_snapshot_ref": {
+            "record_type": "repository_snapshot",
+            "record_id": "snapshot:malformed-review-fixture",
+        },
+        "source_snapshot_digest": "sha256:" + "a" * 64,
+        "files": [
+            {
+                "path": path,
+                "content_digest": sha256_digest(payload),
+                "byte_size": len(payload),
+            }
+            for path, payload in sorted(payloads.items())
+        ],
+        "answer_side_content_copied": False,
+        "project_code_executed": False,
+    }
+    manifest["manifest_digest"] = semantic_digest(manifest)
+    review_root.mkdir()
+    return case_id, {case_id: {"workspace_manifest": manifest}}, {case_id: payloads}
+
+
+def test_malformed_primary_capture_replays_as_the_same_per_case_refusal(
+    tmp_path: Path, project_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config = default_dependence_free_config()
+    review_root = tmp_path / "review"
+    case_id, preparations, workspaces = _direct_review_inputs(config, review_root)
+    fresh_calls = 0
+
+    def retained_prose_transport(
+        _config: Any,
+        participant: Any,
+        prompt: str,
+        session_id: str,
+        capture_root: Path,
+    ) -> dict[str, Any]:
+        nonlocal fresh_calls
+        retained = lean_pipeline._retained_call(participant, prompt, session_id, capture_root)
+        if retained is not None:
+            return retained
+        fresh_calls += 1
+        capture_root.mkdir(parents=True)
+        stdout = canonical_json({"result": "A prose answer, not JSON."}).encode()
+        lean_pipeline.atomic_write_bytes(capture_root / "stdout.bin", stdout)
+        lean_pipeline.atomic_write_bytes(capture_root / "stderr.bin", b"")
+        capture = {
+            "participant_id": participant.participant_id,
+            "session_id": session_id,
+            "prompt_digest": sha256_digest(prompt),
+            "transport_error": None,
+            "stdout_digest": sha256_digest(stdout),
+            "started_at": "2026-08-14T00:00:01Z",
+            "completed_at": "2026-08-14T00:00:02Z",
+        }
+        capture["capture_digest"] = semantic_digest(capture)
+        lean_pipeline.write_normalized_json_once(capture_root / "capture.json", capture)
+        replayed = lean_pipeline._retained_call(participant, prompt, session_id, capture_root)
+        assert replayed is not None
+        return replayed
+
+    monkeypatch.setattr(lean_pipeline, "_call_cli", retained_prose_transport)
+    monkeypatch.setattr(lean_pipeline, "_now", lambda: "2026-08-14T00:00:02Z")
+    arguments = (
+        project_root,
+        config,
+        review_root,
+        config.reviewer,
+        [case_id],
+        preparations,
+        workspaces,
+        "sha256:" + "b" * 64,
+        "primary-malformed-review-fixture",
+    )
+    first = lean_pipeline._run_review_call(*arguments)
+    second = lean_pipeline._run_review_call(*arguments)
+    assert first == second
+    assert fresh_calls == 1
+    assert first["entries"] == []
+    assert first["review_response_refusals"][0]["response_state"] == ("review-response-malformed")
+    assert "A prose answer" not in canonical_json(first)
+
+
+def test_qualification_review_path_still_raises_on_prose_response(
+    tmp_path: Path, project_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config = default_dependence_config()
+    review_root = tmp_path / "qualification-review"
+    case_id, preparations, workspaces = _direct_review_inputs(config, review_root)
+    monkeypatch.setattr(
+        lean_pipeline,
+        "_call_cli",
+        lambda *_args, **_kwargs: {
+            "raw_response": "A prose answer, not JSON.",
+            "transport_error": None,
+            "completed_at": "2026-08-14T00:00:02Z",
+        },
+    )
+    with pytest.raises(json.JSONDecodeError):
+        lean_pipeline._run_review_call(
+            project_root,
+            config,
+            review_root,
+            config.reviewer,
+            [case_id],
+            preparations,
+            workspaces,
+            "sha256:" + "c" * 64,
+            "primary",
+        )
+
+
+def test_development_primary_schema_failure_is_a_per_case_refusal(
+    tmp_path: Path, project_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config = default_dependence_free_config()
+    review_root = tmp_path / "schema-invalid-review"
+    case_id, preparations, workspaces = _direct_review_inputs(config, review_root)
+    monkeypatch.setattr(
+        lean_pipeline,
+        "_call_cli",
+        lambda *_args, **_kwargs: {
+            "raw_response": canonical_json(
+                {
+                    "reviewer_participant_id": config.reviewer.participant_id,
+                    "reviews": [],
+                }
+            ),
+            "transport_error": None,
+            "process_record": {"capture_digest": "sha256:" + "d" * 64},
+            "completed_at": "2026-08-14T00:00:02Z",
+        },
+    )
+    result = lean_pipeline._run_review_call(
+        project_root,
+        config,
+        review_root,
+        config.reviewer,
+        [case_id],
+        preparations,
+        workspaces,
+        "sha256:" + "e" * 64,
+        "primary-schema-invalid-fixture",
+    )
+    assert result["entries"] == []
+    assert result["review_response_refusals"][0]["failure_class"] == ("response-schema-invalid")
+
+
+@pytest.mark.skipif(not _RUNTIME_AVAILABLE, reason="dedicated SciPy 1.14.0 runtime is absent")
+def test_malformed_primary_burns_one_case_while_labels_and_detector_continue(
+    tmp_path: Path, project_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    isolated = _isolated_root(tmp_path, project_root)
+    roles = ("rq1", "rq4")
+    config = replace(
+        _fixture_config(roles),
+        pipeline_relative=Path("evaluation/development-fixtures/malformed-primary"),
+        hostile_answer_key_reviewer=None,
+    )
+    _freeze_fixture_inputs(isolated, config)
+    step_intake(isolated, config)
+    step_authority(isolated, config)
+    monkeypatch.setattr(lean_pipeline, "ensure_calibrations", lambda _root, _config: {})
+    monkeypatch.setattr(
+        lean_pipeline, "_run_hostile_answer_key_review", lambda *_args, **_kwargs: None
+    )
+
+    def review_call(
+        _root: Path,
+        selected: Any,
+        _review_root: Path,
+        participant: Any,
+        case_subset: list[str],
+        _preparations: dict[str, dict[str, Any]],
+        _workspaces: dict[str, dict[str, bytes]],
+        _binding_digest: str,
+        label: str,
+    ) -> dict[str, Any]:
+        case_id = case_subset[0]
+        standard = {
+            "call_identity_id": label,
+            "prompt_digest": "sha256:" + "4" * 64,
+            "output_schema_digest": "sha256:" + "5" * 64,
+            "shared_transcript_digest": "sha256:" + "6" * 64,
+            "packet_digests": {case_id: "sha256:" + "2" * 64},
+        }
+        if case_id == _CASE_BY_ROLE["rq1"]:
+            refusal = {
+                "case_id": case_id,
+                "response_state": "review-response-malformed",
+                "failure_class": "invalid-json",
+                "refusal_digest": "sha256:" + "7" * 64,
+            }
+            return {"entries": [], **standard, "review_response_refusals": [refusal]}
+        return {
+            "entries": [
+                {
+                    "case_id": case_id,
+                    "review_role": label,
+                    "participant_id": participant.participant_id,
+                    "review_id": f"review:{case_id}",
+                    "review_digest": "sha256:" + "8" * 64,
+                    "packet_digest": "sha256:" + "2" * 64,
+                    "capture_digest": "sha256:" + "9" * 64,
+                    "verdict": selected.expected_verdict("rq4"),
+                    "issue_class": None,
+                    "unresolved_material_question_count": 0,
+                }
+            ],
+            **standard,
+        }
+
+    monkeypatch.setattr(lean_pipeline, "_run_review_call", review_call)
+    review = step_review(isolated, config)
+    assert review["burned_case_ids"] == [_CASE_BY_ROLE["rq1"]]
+    assert review["review_response_refusals"][0]["response_state"] == ("review-response-malformed")
+    assert [entry["case_id"] for entry in review["entries"]] == [_CASE_BY_ROLE["rq4"]]
+    labels = step_labels(isolated, config)
+    labels_by_role = {entry["case_role"]: entry for entry in labels["entries"]}
+    assert labels_by_role["rq1"]["measurement_state"] == ("burned_review_response_malformed")
+    assert labels_by_role["rq1"]["review_basis"] == (
+        "primary_blind_review_response_malformed_retained_without_label"
+    )
+    detector = step_detector(isolated, config)
+    detector_by_role = {entry["case_role"]: entry for entry in detector["entries"]}
+    assert detector_by_role["rq1"]["comparison_outcome"] == "burned_before_measurement"
+    assert detector_by_role["rq1"]["shadow_payload"] is None
+    assert detector_by_role["rq4"]["comparison_outcome"] != "burned_before_measurement"
+
+
 @pytest.mark.skipif(not _RUNTIME_AVAILABLE, reason="dedicated SciPy 1.14.0 runtime is absent")
 def test_false_accusation_halts_and_preserves_per_case_outputs(
     tmp_path: Path, project_root: Path

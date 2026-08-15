@@ -1,0 +1,217 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-c-reviewer-fable-20
+
+=== workflow 1: case:0815b8de6b7fd34cdbfc ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What data/input.csv contains
+
+Each line of the table is one fallen log (a single piece of coarse woody
+debris) that a two-person crew located, measured, and inspected a single time
+during one summer survey of a temperate mixed forest. Twenty logs were
+surveyed: ten in old-growth stands and ten in second-growth stands. Every log
+came from its own survey site, the sites were chosen at least 500 m apart, and
+no site contributed more than one log, so the logs do not share a plot, a stand
+patch, or a visit with one another, and none of them was measured twice.
+
+Columns:
+
+- log_id: the label of the log, unique in the file (OG-xx for logs in
+  old-growth stands, SG-xx for logs in second-growth stands).
+- stand_type: which kind of stand the log came from, old_growth or
+  second_growth.
+- log_diameter_cm: the diameter of the log at its midpoint in centimetres,
+  taken once with a diameter tape.
+- fruiting_bodies_present: 1 if fruiting bodies of the target polypore were
+  seen anywhere on the log during that inspection, 0 if none were seen.
+
+Nothing in the file is a repeat visit, a subsample, or a second reading of a
+log listed earlier; the twenty lines are twenty separate logs.
+
+One row is: one fallen log, from its own survey site, inspected exactly once
+Independent unit column: log_id
+One trial is: one row
+
+--- file data/input.csv ---
+log_id,stand_type,log_diameter_cm,fruiting_bodies_present
+OG-01,old_growth,42.5,1
+OG-02,old_growth,38.1,1
+OG-03,old_growth,55.0,1
+OG-04,old_growth,29.7,0
+OG-05,old_growth,47.3,1
+OG-06,old_growth,61.2,1
+OG-07,old_growth,33.8,1
+OG-08,old_growth,50.4,1
+OG-09,old_growth,44.9,1
+OG-10,old_growth,36.6,1
+SG-01,second_growth,27.4,0
+SG-02,second_growth,31.9,1
+SG-03,second_growth,24.8,0
+SG-04,second_growth,35.2,0
+SG-05,second_growth,22.6,0
+SG-06,second_growth,29.1,0
+SG-07,second_growth,33.5,1
+SG-08,second_growth,26.0,0
+SG-09,second_growth,30.7,0
+SG-10,second_growth,21.3,0
+
+--- file workflow/analysis.py ---
+"""Do target-polypore fruiting bodies occur more often on old-growth logs?
+
+Reads data/input.csv (one surveyed log per row) and writes results/report.md.
+"""
+
+import csv
+import os
+
+from scipy.stats import fisher_exact
+
+INPUT_PATH = os.path.join("data", "input.csv")
+REPORT_PATH = os.path.join("results", "report.md")
+
+STANDS = ("old_growth", "second_growth")
+PRESENCE_COLUMN = "fruiting_bodies_present"
+
+
+def read_logs(path):
+    """Return the survey records, one per surveyed log."""
+    with open(path, newline="", encoding="ascii") as handle:
+        records = list(csv.DictReader(handle))
+    labels = [record["log_id"] for record in records]
+    if len(set(labels)) != len(labels):
+        raise ValueError("log_id repeats: the file is not one row per log")
+    return records
+
+
+def contingency(records):
+    """Build [[present, absent], ...] with one table row per stand type."""
+    counts = dict((stand, [0, 0]) for stand in STANDS)
+    for record in records:
+        stand = record["stand_type"]
+        if stand not in counts:
+            raise ValueError("unknown stand_type: " + stand)
+        flag = int(record[PRESENCE_COLUMN])
+        if flag not in (0, 1):
+            raise ValueError("presence must be coded 0 or 1")
+        counts[stand][0 if flag == 1 else 1] += 1
+    return [counts[stand] for stand in STANDS]
+
+
+def build_report(table, odds_ratio, p_value):
+    """Render the whole report as one string."""
+    old, second = table
+    totals = [old[0] + old[1], second[0] + second[1]]
+    n_logs = totals[0] + totals[1]
+    shares = [old[0] / float(totals[0]), second[0] / float(totals[1])]
+    lines = [
+        "# Fruiting-body occurrence on coarse woody debris",
+        "",
+        "## Data",
+        "",
+        "Source: data/input.csv. One row per surveyed log (log_id), %d logs in total,"
+        % n_logs,
+        "each from its own survey site and inspected exactly once. The column",
+        "fruiting_bodies_present records whether fruiting bodies of the target polypore",
+        "were found on that log.",
+        "",
+        "| stand_type | logs | with fruiting bodies | proportion |",
+        "| --- | --- | --- | --- |",
+        "| %s | %d | %d | %.3f |" % (STANDS[0], totals[0], old[0], shares[0]),
+        "| %s | %d | %d | %.3f |" % (STANDS[1], totals[1], second[0], shares[1]),
+        "",
+        "Difference in proportions (old_growth minus second_growth): %.3f"
+        % (shares[0] - shares[1]),
+        "",
+        "## Analysis",
+        "",
+        "Two-sided Fisher's exact test on the 2x2 table of stand type by fruiting-body",
+        "presence. Each of the %d rows is a different log, so each row contributes one"
+        % n_logs,
+        "independent observation to the table.",
+        "",
+        "Contingency table: [[%d, %d], [%d, %d]] (rows: old_growth, second_growth;"
+        % (old[0], old[1], second[0], second[1]),
+        "columns: fruiting bodies present, absent).",
+        "",
+        "Sample odds ratio: %.2f" % odds_ratio,
+        "",
+        "[selected-result] Two-sided Fisher's exact test, stand type by fruiting-body "
+        "presence over %d independent logs: p = %.6f, sample odds ratio %.2f, "
+        "occurrence %.3f (old_growth) vs %.3f (second_growth)."
+        % (n_logs, p_value, odds_ratio, shares[0], shares[1]),
+        "",
+        "## Interpretation",
+        "",
+        "Fruiting bodies were found on %d of %d old-growth logs and %d of %d"
+        % (old[0], totals[0], second[0], totals[1]),
+        "second-growth logs. The association between stand type and fruiting-body",
+        "presence is significant at the 0.05 level (p = %.6f). Because the %d logs"
+        % (p_value, n_logs),
+        "were surveyed once each at separate sites, the %d rows are the %d independent"
+        % (n_logs, n_logs),
+        "units of the design and no unit is represented more than once.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    records = read_logs(INPUT_PATH)
+    table = contingency(records)
+    (present_old, absent_old), (present_second, absent_second) = table
+    odds_ratio = (present_old * absent_second) / float(absent_old * present_second)
+    p_value = fisher_exact(table, alternative="two-sided")[1]
+    report = build_report(table, odds_ratio, p_value)
+    folder = os.path.dirname(REPORT_PATH)
+    if folder:
+        os.makedirs(folder, exist_ok=True)
+    with open(REPORT_PATH, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(report)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Fruiting-body occurrence on coarse woody debris
+
+## Data
+
+Source: data/input.csv. One row per surveyed log (log_id), 20 logs in total,
+each from its own survey site and inspected exactly once. The column
+fruiting_bodies_present records whether fruiting bodies of the target polypore
+were found on that log.
+
+| stand_type | logs | with fruiting bodies | proportion |
+| --- | --- | --- | --- |
+| old_growth | 10 | 9 | 0.900 |
+| second_growth | 10 | 2 | 0.200 |
+
+Difference in proportions (old_growth minus second_growth): 0.700
+
+## Analysis
+
+Two-sided Fisher's exact test on the 2x2 table of stand type by fruiting-body
+presence. Each of the 20 rows is a different log, so each row contributes one
+independent observation to the table.
+
+Contingency table: [[9, 1], [2, 8]] (rows: old_growth, second_growth;
+columns: fruiting bodies present, absent).
+
+Sample odds ratio: 36.00
+
+[selected-result] Two-sided Fisher's exact test, stand type by fruiting-body presence over 20 independent logs: p = 0.005477, sample odds ratio 36.00, occurrence 0.900 (old_growth) vs 0.200 (second_growth).
+
+## Interpretation
+
+Fruiting bodies were found on 9 of 10 old-growth logs and 2 of 10
+second-growth logs. The association between stand type and fruiting-body
+presence is significant at the 0.05 level (p = 0.005477). Because the 20 logs
+were surveyed once each at separate sites, the 20 rows are the 20 independent
+units of the design and no unit is represented more than once.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-c-reviewer-fable-20", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:0815b8de6b7fd34cdbfc"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

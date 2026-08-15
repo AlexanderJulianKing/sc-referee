@@ -2574,19 +2574,53 @@ def _run_review_call(
             f"The {label} review call failed and was retained: {call['transport_error']}"
         )
     raw_response = str(call["raw_response"]).encode("utf-8")
-    anchored_payload = _anchor_review_spans(json.loads(raw_response), workspace_payloads)
-    reviews = project_stage1_semantic_batch_v2(
-        anchored_payload,
-        output_schema=schema,
-        participant_id=participant.participant_id,
-        participant_reviewer_agent=reviewer_agent,
-        packets_by_case=packets,
-        workspace_payloads_by_case=workspace_payloads,
-        canonical_issue_class=config.canonical_issue_class,
-        transcript=raw_response,
-        completed_at=str(call["completed_at"]),
-        schema_root=project_root / SCHEMA_RELATIVE,
-    )
+    try:
+        parsed_payload = json.loads(raw_response)
+        if not isinstance(parsed_payload, dict):
+            raise ValueError("review response root is not an object")
+        anchored_payload = _anchor_review_spans(parsed_payload, workspace_payloads)
+        reviews = project_stage1_semantic_batch_v2(
+            anchored_payload,
+            output_schema=schema,
+            participant_id=participant.participant_id,
+            participant_reviewer_agent=reviewer_agent,
+            packets_by_case=packets,
+            workspace_payloads_by_case=workspace_payloads,
+            canonical_issue_class=config.canonical_issue_class,
+            transcript=raw_response,
+            completed_at=str(call["completed_at"]),
+            schema_root=project_root / SCHEMA_RELATIVE,
+        )
+    except (json.JSONDecodeError, ValueError, TypeError, KeyError, AttributeError) as error:
+        if not (config.development_loop and label.startswith("primary") and len(case_subset) == 1):
+            raise
+        case_id = case_subset[0]
+        refusal = {
+            "case_id": case_id,
+            "response_state": "review-response-malformed",
+            "failure_class": (
+                "invalid-json"
+                if isinstance(error, json.JSONDecodeError)
+                else "response-schema-invalid"
+            ),
+            "participant_id": participant.participant_id,
+            "call_identity_id": call_identity,
+            "prompt_digest": sha256_digest(prompt),
+            "output_schema_digest": semantic_digest(schema),
+            "shared_transcript_digest": sha256_digest(raw_response),
+            "packet_digest": packets[case_id]["packet_digest"],
+            "process_capture_digest": call.get("process_record", {}).get("capture_digest"),
+        }
+        refusal["refusal_digest"] = semantic_digest(refusal)
+        return {
+            "entries": [],
+            "call_identity_id": call_identity,
+            "prompt_digest": sha256_digest(prompt),
+            "output_schema_digest": semantic_digest(schema),
+            "shared_transcript_digest": sha256_digest(raw_response),
+            "packet_digests": {case_id: packets[case_id]["packet_digest"]},
+            "review_response_refusals": [refusal],
+        }
     entries = []
     with tempfile.TemporaryDirectory(prefix="sc-referee-lean-review-") as temporary:
         transcript_path = Path(temporary) / "transcript.bin"
@@ -2643,6 +2677,22 @@ def _entry_clean(config: EnvelopeConfig, entry: dict[str, Any], role: str) -> bo
         entry["unresolved_material_question_count"] == 0 or role in config.mq_tolerant_roles
     )
     return bool(entry["verdict"] == expected and issue_clean and questions_clean)
+
+
+def _review_call_ledger_projection(call: dict[str, Any]) -> dict[str, Any]:
+    projected = {
+        key: call[key]
+        for key in (
+            "call_identity_id",
+            "prompt_digest",
+            "output_schema_digest",
+            "shared_transcript_digest",
+            "packet_digests",
+        )
+    }
+    if call.get("review_response_refusals"):
+        projected["review_response_refusals"] = call["review_response_refusals"]
+    return projected
 
 
 def _run_hostile_answer_key_review(
@@ -2936,18 +2986,11 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 for call in primary_calls
                 for entry in call["entries"]
             ],
-            "per_case_calls": [
-                {
-                    key: call[key]
-                    for key in (
-                        "call_identity_id",
-                        "prompt_digest",
-                        "output_schema_digest",
-                        "shared_transcript_digest",
-                        "packet_digests",
-                    )
-                }
+            "per_case_calls": [_review_call_ledger_projection(call) for call in primary_calls],
+            "review_response_refusals": [
+                refusal
                 for call in primary_calls
+                for refusal in call.get("review_response_refusals", [])
             ],
         }
     else:
@@ -2963,6 +3006,13 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             "primary",
         )
     primary_by_case = {str(entry["case_id"]): entry for entry in primary["entries"]}
+    review_response_refusals = list(primary.get("review_response_refusals", []))
+    malformed_case_ids = {
+        str(entry["case_id"])
+        for entry in review_response_refusals
+        if entry.get("response_state") == "review-response-malformed"
+    }
+    burned_case_ids.update(malformed_case_ids)
     non_clean = sorted(
         case_id
         for case_id, entry in primary_by_case.items()
@@ -3024,6 +3074,22 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     unresolved: list[str] = []
     for case_id in case_order:
         role = roles[case_id]
+        if case_id in malformed_case_ids:
+            unblinding.append(
+                {
+                    "case_id": case_id,
+                    "case_role": role,
+                    "expected_verdict": config.expected_verdict(role),
+                    "primary_verdict": None,
+                    "primary_issue_class": None,
+                    "primary_clean": None,
+                    "escalation_verdict": None,
+                    "escalation_clean": None,
+                    "review_response_state": "review-response-malformed",
+                    "resolution": "burned_review_response_malformed",
+                }
+            )
+            continue
         if case_id in burned_case_ids:
             unblinding.append(
                 {
@@ -3134,6 +3200,8 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         ledger["authority_ledger_digest"] = authority["ledger_digest"]
     if hostile is not None:
         ledger["hostile_answer_key_ledger_digest"] = hostile["ledger_digest"]
+    if review_response_refusals:
+        ledger["review_response_refusals"] = review_response_refusals
     _stamp_record_purpose(ledger, config)
     ledger["ledger_digest"] = semantic_digest(ledger)
     write_normalized_json_once(review_root / "REVIEW_LEDGER.json", ledger)
@@ -3180,12 +3248,18 @@ def step_labels(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     resolving_role = {
         case_id: (
             None
-            if resolution == "burned_by_hostile_answer_key_review"
+            if resolution
+            in {"burned_by_hostile_answer_key_review", "burned_review_response_malformed"}
             else "primary"
             if resolution in {"clean", "authored_role_ratified", "authored_role_refuted"}
             else "escalation"
         )
         for case_id, resolution in resolutions.items()
+    }
+    malformed_refusals = {
+        str(entry["case_id"]): entry
+        for entry in review_ledger.get("review_response_refusals", [])
+        if entry.get("response_state") == "review-response-malformed"
     }
     family_by_participant = {
         config.reviewer.participant_id: (
@@ -3222,6 +3296,10 @@ def step_labels(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
             continue
         role = roles[case_id]
         label_status = config.label_status(role)
+        malformed = resolutions[case_id] == "burned_review_response_malformed"
+        refusal = malformed_refusals.get(case_id)
+        if malformed and refusal is None:
+            raise LeanPipelineError("A malformed-review burn lacks its retained refusal record.")
         label_rows.append(
             {
                 "case_id": case_id,
@@ -3232,12 +3310,29 @@ def step_labels(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                     if label_status == "positive_demonstrated"
                     else None
                 ),
-                "measurement_state": "burned_before_blind_review",
-                "review_basis": "hostile_answer_key_review_refuted_frozen_role",
+                "measurement_state": (
+                    "burned_review_response_malformed"
+                    if malformed
+                    else "burned_before_blind_review"
+                ),
+                "review_basis": (
+                    "primary_blind_review_response_malformed_retained_without_label"
+                    if malformed
+                    else "hostile_answer_key_review_refuted_frozen_role"
+                ),
                 "review_id": None,
-                "review_digest": review_ledger["hostile_answer_key_ledger_digest"],
+                "review_digest": (
+                    refusal["refusal_digest"]
+                    if refusal is not None
+                    else review_ledger["hostile_answer_key_ledger_digest"]
+                ),
                 "reviewer_model_family": None,
-                "agent_only_disclosure": "Burned before blind review; authored role retained.",
+                "agent_only_disclosure": (
+                    "Primary blind-review output was malformed; no response content was parsed "
+                    "as a label, and the case was burned before measurement."
+                    if malformed
+                    else "Burned before blind review; authored role retained."
+                ),
             }
         )
     for entry in review_ledger["entries"]:
