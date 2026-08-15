@@ -1,0 +1,350 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-h1-reviewer-fable-36
+
+=== workflow 1: case:cc45f160070a5cdcd6b9 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Weekly monitoring log of the pilot digester trial
+
+`data/input.csv` records the routine weekly gas analysis of a twelve-vessel
+pilot plant for anaerobic digestion. Each of the twelve digesters (D01-D12) was
+seeded, sealed, fed and monitored separately; the vessels share only the
+feedstock recipe and the laboratory that runs the gas chromatography. The trial
+ran for eight weeks per digester: weeks 1-4 on the standard maize-silage feed,
+weeks 5-8 on the same feed blended with a cobalt/selenium trace-element
+supplement.
+
+The file is stored in long form, one reading per line, so each digester appears
+on eight separate lines. Those eight lines are repeated measurements of the same
+vessel and track its individual inoculum, headspace and loading history; they
+are not eight independent pieces of evidence about the supplement.
+
+One row is: one weekly biogas methane reading taken from one digester during one phase of the trial
+Independent unit column: digester_id
+
+Columns:
+
+- `digester_id`: label of the pilot digester the sample came from (D01-D12);
+  twelve distinct vessels, eight rows each.
+- `run_week`: week of the trial in which the sample was drawn, 1 to 8.
+- `phase`: `baseline` for weeks 1-4 (standard feed) or `amended` for weeks 5-8
+  (feed plus trace-element supplement).
+- `ch4_percent`: methane content of the biogas at that weekly sampling, percent
+  by volume, measured on a single grab sample.
+
+Anything reported about the supplement should treat the digester as the unit of
+analysis: collapse a digester's weekly readings to one value per digester per
+phase, or to one paired change per digester, before applying a procedure that
+assumes independent rows.
+
+--- file data/input.csv ---
+digester_id,run_week,phase,ch4_percent
+D01,1,baseline,58.4
+D01,2,baseline,59.3
+D01,3,baseline,58.7
+D01,4,baseline,59.2
+D01,5,amended,60.8
+D01,6,amended,61.4
+D01,7,amended,61.1
+D01,8,amended,61.7
+D02,1,baseline,59.7
+D02,2,baseline,60.5
+D02,3,baseline,60.1
+D02,4,baseline,60.3
+D02,5,amended,61.4
+D02,6,amended,62.2
+D02,7,amended,61.9
+D02,8,amended,62.3
+D03,1,baseline,57.0
+D03,2,baseline,57.8
+D03,3,baseline,57.3
+D03,4,baseline,57.7
+D03,5,amended,59.9
+D03,6,amended,60.7
+D03,7,amended,60.4
+D03,8,amended,61.0
+D04,1,baseline,60.7
+D04,2,baseline,61.5
+D04,3,baseline,61.0
+D04,4,baseline,61.6
+D04,5,amended,62.2
+D04,6,amended,63.1
+D04,7,amended,62.4
+D04,8,amended,63.3
+D05,1,baseline,59.1
+D05,2,baseline,59.9
+D05,3,baseline,59.5
+D05,4,baseline,59.9
+D05,5,amended,61.6
+D05,6,amended,62.4
+D05,7,amended,62.0
+D05,8,amended,62.6
+D06,1,baseline,57.7
+D06,2,baseline,58.6
+D06,3,baseline,58.1
+D06,4,baseline,58.6
+D06,5,amended,60.5
+D06,6,amended,61.3
+D06,7,amended,61.0
+D06,8,amended,61.6
+D07,1,baseline,60.2
+D07,2,baseline,61.1
+D07,3,baseline,60.6
+D07,4,baseline,61.1
+D07,5,amended,62.3
+D07,6,amended,63.1
+D07,7,amended,62.6
+D07,8,amended,63.2
+D08,1,baseline,57.4
+D08,2,baseline,58.2
+D08,3,baseline,57.7
+D08,4,baseline,58.3
+D08,5,amended,60.6
+D08,6,amended,61.4
+D08,7,amended,61.0
+D08,8,amended,61.6
+D09,1,baseline,58.5
+D09,2,baseline,59.4
+D09,3,baseline,58.9
+D09,4,baseline,59.4
+D09,5,amended,61.2
+D09,6,amended,62.0
+D09,7,amended,61.6
+D09,8,amended,62.2
+D10,1,baseline,59.9
+D10,2,baseline,60.8
+D10,3,baseline,60.3
+D10,4,baseline,60.6
+D10,5,amended,62.1
+D10,6,amended,62.9
+D10,7,amended,62.4
+D10,8,amended,63.0
+D11,1,baseline,58.0
+D11,2,baseline,58.9
+D11,3,baseline,58.4
+D11,4,baseline,58.9
+D11,5,amended,61.2
+D11,6,amended,62.1
+D11,7,amended,61.5
+D11,8,amended,62.2
+D12,1,baseline,59.4
+D12,2,baseline,60.3
+D12,3,baseline,59.8
+D12,4,baseline,60.3
+D12,5,amended,61.9
+D12,6,amended,62.7
+D12,7,amended,62.3
+D12,8,amended,62.7
+
+--- file workflow/analysis.py ---
+#!/usr/bin/env python3
+"""Pilot digester trial: does trace-element dosing raise biogas methane content?
+
+Reads the weekly monitoring log in data/input.csv, collapses every digester to a
+single paired change, tests those changes across digesters, and writes
+results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+UNIT_COLUMN = "digester_id"
+PHASE_COLUMN = "phase"
+VALUE_COLUMN = "ch4_percent"
+PHASES = ("baseline", "amended")
+
+
+def read_weekly_log(path):
+    """Group the weekly readings as {digester: {phase: [ch4_percent, ...]}}."""
+    log = {}
+    n_rows = 0
+    with path.open("r", encoding="ascii", newline="") as handle:
+        for record in csv.DictReader(handle):
+            unit = record[UNIT_COLUMN].strip()
+            phase = record[PHASE_COLUMN].strip()
+            if phase not in PHASES:
+                raise ValueError("unexpected phase label: " + phase)
+            bucket = log.setdefault(unit, {name: [] for name in PHASES})
+            bucket[phase].append(float(record[VALUE_COLUMN]))
+            n_rows += 1
+    return log, n_rows
+
+
+def collapse_to_digesters(log):
+    """Reduce the repeated weekly rows to one analysed record per digester."""
+    records = []
+    for unit in sorted(log):
+        weeks = log[unit]
+        baseline = np.asarray(weeks[PHASES[0]], dtype=float)
+        amended = np.asarray(weeks[PHASES[1]], dtype=float)
+        if baseline.size == 0 or amended.size == 0:
+            raise ValueError("digester " + unit + " is missing a phase")
+        baseline_mean = float(baseline.mean())
+        amended_mean = float(amended.mean())
+        records.append(
+            {
+                "unit": unit,
+                "n_baseline": int(baseline.size),
+                "n_amended": int(amended.size),
+                "baseline_mean": baseline_mean,
+                "amended_mean": amended_mean,
+                "change": amended_mean - baseline_mean,
+            }
+        )
+    return records
+
+
+def build_report(records, n_rows, changes, test):
+    """Render the markdown report text."""
+    n_units = len(records)
+    n_up = int(np.sum(changes > 0.0))
+    lines = [
+        "# Trace-element dosing and biogas methane content in pilot anaerobic digesters",
+        "",
+        "## Design and unit of analysis",
+        "",
+        "The file `data/input.csv` is the weekly monitoring log of a pilot digester",
+        "trial: {0} rows, one row per digester-week gas reading. Twelve independently".format(n_rows),
+        "seeded and independently operated digesters (D01-D12) were each monitored for",
+        "four weeks on the standard maize-silage feed (phase `baseline`) and then for",
+        "four weeks after a cobalt/selenium trace-element supplement was blended into",
+        "the same feed (phase `amended`).",
+        "",
+        "The weekly rows are repeated measurements drawn from the same vessel and carry",
+        "that vessel's own inoculum, sealing and loading history, so they are not",
+        "independent of one another. The digester, not the digester-week, is the",
+        "independent unit. Each digester was therefore collapsed to a single paired",
+        "contrast (its mean methane content across the amended weeks minus its mean",
+        "methane content across the baseline weeks) before any test statistic was",
+        "computed, so exactly one analysed value per digester enters the comparison and",
+        "n = {0}.".format(n_units),
+        "",
+        "## Per-digester summary",
+        "",
+        "| digester | weeks (baseline/amended) | mean CH4 baseline (%) | mean CH4 amended (%) | change (pp) |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for record in records:
+        lines.append(
+            "| {unit} | {nb}/{na} | {base:.2f} | {amend:.2f} | {delta:+.2f} |".format(
+                unit=record["unit"],
+                nb=record["n_baseline"],
+                na=record["n_amended"],
+                base=record["baseline_mean"],
+                amend=record["amended_mean"],
+                delta=record["change"],
+            )
+        )
+    lines.extend(
+        [
+            "",
+            "## Test and result",
+            "",
+            "The {0} per-digester changes were tested against a null median of zero with a".format(n_units),
+            "two-sided Wilcoxon signed-rank test evaluated on its exact null distribution;",
+            "there are no zero changes and no ties among the absolute changes. The {0}".format(n_rows),
+            "weekly readings were never entered as {0} independent observations.".format(n_rows),
+            "",
+            "[selected-result] Two-sided Wilcoxon signed-rank test on one paired change per "
+            "digester (n = {n} digesters, {rows} weekly readings collapsed): W = {w:.1f}, "
+            "p = {p:.6f}; biogas methane content rose in all {up} digesters, mean change "
+            "{mean:+.3f} percentage points (median {median:+.3f}, range {lo:+.2f} to "
+            "{hi:+.2f}).".format(
+                n=n_units,
+                rows=n_rows,
+                w=float(test.statistic),
+                p=float(test.pvalue),
+                up=n_up,
+                mean=float(np.mean(changes)),
+                median=float(np.median(changes)),
+                lo=float(np.min(changes)),
+                hi=float(np.max(changes)),
+            ),
+            "",
+            "Interpretation: with the digester as the unit of analysis, the trace-element",
+            "supplement is associated with a consistent gain of about 2.5 percentage points",
+            "in biogas methane content; the effect appeared in every digester monitored.",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    log, n_rows = read_weekly_log(INPUT_PATH)
+    records = collapse_to_digesters(log)
+    changes = np.array([record["change"] for record in records], dtype=float)
+    test = stats.wilcoxon(changes, alternative="two-sided")
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text(
+        build_report(records, n_rows, changes, test), encoding="utf-8"
+    )
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Trace-element dosing and biogas methane content in pilot anaerobic digesters
+
+## Design and unit of analysis
+
+The file `data/input.csv` is the weekly monitoring log of a pilot digester
+trial: 96 rows, one row per digester-week gas reading. Twelve independently
+seeded and independently operated digesters (D01-D12) were each monitored for
+four weeks on the standard maize-silage feed (phase `baseline`) and then for
+four weeks after a cobalt/selenium trace-element supplement was blended into
+the same feed (phase `amended`).
+
+The weekly rows are repeated measurements drawn from the same vessel and carry
+that vessel's own inoculum, sealing and loading history, so they are not
+independent of one another. The digester, not the digester-week, is the
+independent unit. Each digester was therefore collapsed to a single paired
+contrast (its mean methane content across the amended weeks minus its mean
+methane content across the baseline weeks) before any test statistic was
+computed, so exactly one analysed value per digester enters the comparison and
+n = 12.
+
+## Per-digester summary
+
+| digester | weeks (baseline/amended) | mean CH4 baseline (%) | mean CH4 amended (%) | change (pp) |
+| --- | --- | --- | --- | --- |
+| D01 | 4/4 | 58.90 | 61.25 | +2.35 |
+| D02 | 4/4 | 60.15 | 61.95 | +1.80 |
+| D03 | 4/4 | 57.45 | 60.50 | +3.05 |
+| D04 | 4/4 | 61.20 | 62.75 | +1.55 |
+| D05 | 4/4 | 59.60 | 62.15 | +2.55 |
+| D06 | 4/4 | 58.25 | 61.10 | +2.85 |
+| D07 | 4/4 | 60.75 | 62.80 | +2.05 |
+| D08 | 4/4 | 57.90 | 61.15 | +3.25 |
+| D09 | 4/4 | 59.05 | 61.75 | +2.70 |
+| D10 | 4/4 | 60.40 | 62.60 | +2.20 |
+| D11 | 4/4 | 58.55 | 61.75 | +3.20 |
+| D12 | 4/4 | 59.95 | 62.40 | +2.45 |
+
+## Test and result
+
+The 12 per-digester changes were tested against a null median of zero with a
+two-sided Wilcoxon signed-rank test evaluated on its exact null distribution;
+there are no zero changes and no ties among the absolute changes. The 96
+weekly readings were never entered as 96 independent observations.
+
+[selected-result] Two-sided Wilcoxon signed-rank test on one paired change per digester (n = 12 digesters, 96 weekly readings collapsed): W = 0.0, p = 0.000488; biogas methane content rose in all 12 digesters, mean change +2.500 percentage points (median +2.500, range +1.55 to +3.25).
+
+Interpretation: with the digester as the unit of analysis, the trace-element
+supplement is associated with a consistent gain of about 2.5 percentage points
+in biogas methane content; the effect appeared in every digester monitored.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-h1-reviewer-fable-36", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:cc45f160070a5cdcd6b9"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

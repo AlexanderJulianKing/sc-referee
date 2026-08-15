@@ -1,0 +1,11 @@
+basin_id,treatment,basin_area_ha,doc_mg_per_l
+PB-01,rewetted,41.6,21.5
+PB-02,drained,58.2,15.2
+PB-03,rewetted,33.9,17.6
+PB-04,drained,47.5,12.3
+PB-05,rewetted,62.8,28.3
+PB-06,drained,29.4,24.7
+PB-07,rewetted,55.1,23.2
+PB-08,drained,38.7,14.1
+PB-09,rewetted,44.3,26.1
+PB-10,drained,51.9,18.4

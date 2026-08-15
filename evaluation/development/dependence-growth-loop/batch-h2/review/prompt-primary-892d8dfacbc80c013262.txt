@@ -1,0 +1,286 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-h2-reviewer-fable-38
+
+=== workflow 1: case:892d8dfacbc80c013262 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# About data/input.csv
+
+This table comes from a bench-scale anaerobic digestion trial. Twelve identical
+5-litre laboratory digesters were charged with the same food-waste feedstock.
+Six of the vessels received untreated seed sludge ("control") and six received
+seed sludge that had been thermally pretreated at 70 degrees Celsius for one
+hour ("thermal"). Pretreatment was assigned to the vessel once, at start-up, and
+never changed during the run.
+
+Each vessel was then sampled four times, on run days 6, 10, 14 and 18. Every
+sampling visit produced one stored record holding the specific methane yield
+measured for that vessel on that day, together with the digestate pH and the
+acetate concentration measured in the same sample. The file is therefore in long
+format: the same digester appears four times, once per monitoring session.
+
+One row is: one monitoring session on one digester, i.e. a single sampling visit to one vessel on one run day
+
+Independent unit column: digester_id
+
+The four rows that share a digester_id are repeated measurements of the same
+physical reactor and are not independent of one another; they differ only in the
+day the sample was drawn. Independent replication in this experiment is the
+vessel, of which there are twelve, six per pretreatment arm.
+
+## Columns
+
+- digester_id: label of the physical reactor (DG01 to DG12).
+- pretreatment: inoculum treatment assigned to that reactor, "control" or
+  "thermal"; constant within a digester.
+- session_day: run day on which the sample was drawn (6, 10, 14 or 18).
+- ch4_yield_ml_per_g_vs: specific methane yield for that session, in millilitres
+  of methane per gram of volatile solids fed.
+- digestate_ph: pH of the digestate in the same sample.
+- vfa_acetate_mg_per_l: acetate concentration in the digestate, mg per litre.
+
+## Intended use
+
+Any comparison between the control and thermal arms should be made at the level
+of the digester. The usual route is to average each vessel's four session yields
+into a single vessel-level value and then compare the twelve vessel-level values
+between arms, so that each independent reactor contributes exactly one number to
+the comparison.
+
+--- file data/input.csv ---
+digester_id,pretreatment,session_day,ch4_yield_ml_per_g_vs,digestate_ph,vfa_acetate_mg_per_l
+DG01,control,6,268.3,7.42,812
+DG01,control,10,251.1,7.38,894
+DG01,control,14,271.4,7.45,760
+DG01,control,18,258.4,7.51,705
+DG02,thermal,6,301.3,7.55,690
+DG02,thermal,10,316.3,7.49,742
+DG02,thermal,14,292.6,7.58,651
+DG02,thermal,18,311.4,7.61,604
+DG03,control,6,245.6,7.31,941
+DG03,control,10,259.3,7.35,887
+DG03,control,14,236.2,7.29,1002
+DG03,control,18,252.1,7.40,838
+DG04,thermal,6,296.2,7.52,715
+DG04,thermal,10,279.1,7.47,768
+DG04,thermal,14,302.5,7.60,662
+DG04,thermal,18,287.4,7.56,699
+DG05,control,6,276.5,7.48,774
+DG05,control,10,281.5,7.44,803
+DG05,control,14,259.4,7.50,731
+DG05,control,18,268.2,7.53,688
+DG06,thermal,6,314.6,7.62,641
+DG06,thermal,10,304.3,7.57,673
+DG06,thermal,14,330.5,7.66,588
+DG06,thermal,18,324.2,7.69,559
+DG07,thermal,6,292.4,7.50,726
+DG07,thermal,10,307.1,7.54,681
+DG07,thermal,14,286.2,7.46,749
+DG07,thermal,18,303.1,7.59,634
+DG08,control,6,250.1,7.36,902
+DG08,control,10,265.2,7.41,845
+DG08,control,14,244.3,7.33,958
+DG08,control,18,261.2,7.47,796
+DG09,control,6,244.6,7.28,989
+DG09,control,10,228.5,7.24,1046
+DG09,control,14,250.6,7.32,931
+DG09,control,18,234.3,7.30,1013
+DG10,thermal,6,289.3,7.45,758
+DG10,thermal,10,271.5,7.41,812
+DG10,thermal,14,293.2,7.51,704
+DG10,thermal,18,279.2,7.55,677
+DG11,thermal,6,307.2,7.58,662
+DG11,thermal,10,322.3,7.63,615
+DG11,thermal,14,298.4,7.53,708
+DG11,thermal,18,317.3,7.67,571
+DG12,control,6,262.7,7.43,826
+DG12,control,10,277.2,7.49,769
+DG12,control,14,254.2,7.39,873
+DG12,control,18,271.1,7.52,742
+
+--- file workflow/analysis.py ---
+"""Does thermal inoculum pretreatment raise specific methane yield?
+
+The monitoring table in data/input.csv is stored long: one row per
+digester-session, four sessions per vessel. Those rows are repeated measures on
+the same reactor, so they are collapsed to one analysed value per vessel before
+the two pretreatment arms are compared. Output goes to results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = Path("data") / "input.csv"
+REPORT_PATH = Path("results") / "report.md"
+
+UNIT_COL = "digester_id"
+ARM_COL = "pretreatment"
+YIELD_COL = "ch4_yield_ml_per_g_vs"
+
+
+def read_sessions(path):
+    """Return digester id -> (arm, list of that vessel's session yields)."""
+    sessions = {}
+    with path.open(newline="", encoding="ascii") as handle:
+        for record in csv.DictReader(handle):
+            unit = record[UNIT_COL].strip()
+            if unit not in sessions:
+                sessions[unit] = (record[ARM_COL].strip(), [])
+            sessions[unit][1].append(float(record[YIELD_COL]))
+    return sessions
+
+
+def digester_table(sessions):
+    """One analysed row per independent vessel: its across-session mean yield."""
+    table = []
+    for unit in sorted(sessions):
+        arm, yields = sessions[unit]
+        table.append((unit, arm, len(yields), float(np.mean(yields))))
+    return table
+
+
+def arm_values(table, arm):
+    return np.array([row[3] for row in table if row[1] == arm], dtype=float)
+
+
+def build_report(table, n_sessions, control, thermal, u_stat, p_value, gap):
+    n_units = len(table)
+    lines = [
+        "# Inoculum pretreatment and specific methane yield in bench-scale digesters",
+        "",
+        "## Data",
+        "",
+        "The file data/input.csv stores {0} monitoring records collected from {1} bench-scale".format(n_sessions, n_units),
+        "anaerobic digesters. Each digester was sampled on four monitoring sessions (run days",
+        "6, 10, 14 and 18), so the records are repeated measurements nested within vessels",
+        "rather than {0} independent observations. Six digesters were run on untreated".format(n_sessions),
+        "inoculum (control) and six on thermally pretreated inoculum (thermal).",
+        "",
+        "## Analysis",
+        "",
+        "Each digester is collapsed to a single analysed value, the mean specific methane",
+        "yield across its four sessions. The resulting {0} digester means, one per".format(n_units),
+        "independent vessel, are compared between the two pretreatment arms with a",
+        "two-sided exact Mann-Whitney U test ({0} vessels vs {1} vessels).".format(control.size, thermal.size),
+        "",
+        "## Digester-level values",
+        "",
+        "| digester | pretreatment | sessions | mean yield (mL CH4 / g VS) |",
+        "| --- | --- | --- | --- |",
+    ]
+    for unit, arm, n_rows, mean_yield in table:
+        lines.append("| {0} | {1} | {2} | {3:.1f} |".format(unit, arm, n_rows, mean_yield))
+    lines.extend([
+        "",
+        "## Results",
+        "",
+        "Monitoring records read: {0}".format(n_sessions),
+        "Independent digesters analysed: {0}".format(n_units),
+        "Control arm: n = {0} digesters, mean of digester means = {1:.2f} mL CH4 / g VS, median = {2:.2f}".format(
+            control.size, control.mean(), np.median(control)),
+        "Thermal arm: n = {0} digesters, mean of digester means = {1:.2f} mL CH4 / g VS, median = {2:.2f}".format(
+            thermal.size, thermal.mean(), np.median(thermal)),
+        "Difference in medians (thermal - control): {0:.2f} mL CH4 / g VS".format(gap),
+        "Mann-Whitney U (thermal vs control): {0:.1f}".format(u_stat),
+        "Exact two-sided p-value: {0:.6f}".format(p_value),
+        "",
+        "[selected-result] Thermally pretreated digesters produced higher specific methane yield than control digesters (Mann-Whitney U = {0:.1f}, n = {1} vs {2} digester means, exact two-sided p = {3:.6f}); the median digester mean was {4:.2f} mL CH4 / g VS higher in the thermal arm.".format(
+            u_stat, thermal.size, control.size, p_value, gap),
+        "",
+        "## Unit of analysis",
+        "",
+        "The {0} stored rows are four repeated sessions from each of {1} vessels. The reported".format(n_sessions, n_units),
+        "comparison is run on the {0} vessel-level means, so every independent digester enters".format(n_units),
+        "the test exactly once and the repeated sessions contribute only to the precision of",
+        "each vessel's own value.",
+    ])
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    sessions = read_sessions(INPUT_PATH)
+    table = digester_table(sessions)
+    n_sessions = sum(row[2] for row in table)
+
+    control = arm_values(table, "control")
+    thermal = arm_values(table, "thermal")
+
+    u_stat, p_value = stats.mannwhitneyu(
+        thermal, control, alternative="two-sided", method="exact")
+    gap = float(np.median(thermal) - np.median(control))
+
+    report = build_report(
+        table, n_sessions, control, thermal, float(u_stat), float(p_value), gap)
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Inoculum pretreatment and specific methane yield in bench-scale digesters
+
+## Data
+
+The file data/input.csv stores 48 monitoring records collected from 12 bench-scale
+anaerobic digesters. Each digester was sampled on four monitoring sessions (run days
+6, 10, 14 and 18), so the records are repeated measurements nested within vessels
+rather than 48 independent observations. Six digesters were run on untreated
+inoculum (control) and six on thermally pretreated inoculum (thermal).
+
+## Analysis
+
+Each digester is collapsed to a single analysed value, the mean specific methane
+yield across its four sessions. The resulting 12 digester means, one per
+independent vessel, are compared between the two pretreatment arms with a
+two-sided exact Mann-Whitney U test (6 vessels vs 6 vessels).
+
+## Digester-level values
+
+| digester | pretreatment | sessions | mean yield (mL CH4 / g VS) |
+| --- | --- | --- | --- |
+| DG01 | control | 4 | 262.3 |
+| DG02 | thermal | 4 | 305.4 |
+| DG03 | control | 4 | 248.3 |
+| DG04 | thermal | 4 | 291.3 |
+| DG05 | control | 4 | 271.4 |
+| DG06 | thermal | 4 | 318.4 |
+| DG07 | thermal | 4 | 297.2 |
+| DG08 | control | 4 | 255.2 |
+| DG09 | control | 4 | 239.5 |
+| DG10 | thermal | 4 | 283.3 |
+| DG11 | thermal | 4 | 311.3 |
+| DG12 | control | 4 | 266.3 |
+
+## Results
+
+Monitoring records read: 48
+Independent digesters analysed: 12
+Control arm: n = 6 digesters, mean of digester means = 257.17 mL CH4 / g VS, median = 258.75
+Thermal arm: n = 6 digesters, mean of digester means = 301.15 mL CH4 / g VS, median = 301.30
+Difference in medians (thermal - control): 42.55 mL CH4 / g VS
+Mann-Whitney U (thermal vs control): 36.0
+Exact two-sided p-value: 0.002165
+
+[selected-result] Thermally pretreated digesters produced higher specific methane yield than control digesters (Mann-Whitney U = 36.0, n = 6 vs 6 digester means, exact two-sided p = 0.002165); the median digester mean was 42.55 mL CH4 / g VS higher in the thermal arm.
+
+## Unit of analysis
+
+The 48 stored rows are four repeated sessions from each of 12 vessels. The reported
+comparison is run on the 12 vessel-level means, so every independent digester enters
+the test exactly once and the repeated sessions contribute only to the precision of
+each vessel's own value.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-h2-reviewer-fable-38", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:892d8dfacbc80c013262"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

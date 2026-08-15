@@ -1,0 +1,184 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-h1-reviewer-fable-36
+
+=== workflow 1: case:46f08f48dfee5b1142a4 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Bumble bee array-choice bouts
+
+Eight queenright Bombus impatiens colonies were each connected in turn to a
+flight arena holding two artificial flower arrays: one whose corolla discs are
+UV-reflective and one plain white. Every colony was watched during three
+separate foraging bouts on three different mornings, and an observer tallied
+every landing on each array during the bout. The side of the arena holding the
+UV-reflective array was swapped between bouts.
+
+One row is: one foraging bout by one colony, with the landing tallies for both arrays
+Independent unit column: colony_id
+One trial is: one row
+
+Columns:
+- colony_id: label of the source colony, C01 through C08; three rows carry each label
+- bout_index: 1, 2 or 3, the order of the bout for that colony
+- array_side: side of the arena that held the UV-reflective array during the bout
+- visits_uv: number of landings on the UV-reflective array
+- visits_white: number of landings on the plain white array
+- bout_minutes: length of the observation window, in minutes
+
+The three bouts belonging to a colony draw on the same set of foragers and the
+same colony-level state, so rows sharing a colony_id are related to one another
+rather than free-standing observations.
+
+--- file data/input.csv ---
+colony_id,bout_index,array_side,visits_uv,visits_white,bout_minutes
+C01,1,left,41,17,20
+C01,2,right,38,22,22
+C01,3,left,44,15,18
+C02,1,right,36,19,21
+C02,2,left,45,21,19
+C02,3,right,39,14,20
+C03,1,left,33,20,22
+C03,2,right,40,18,20
+C03,3,left,47,25,18
+C04,1,right,29,16,19
+C04,2,left,35,23,21
+C04,3,right,42,19,20
+C05,1,left,31,12,18
+C05,2,right,37,26,22
+C05,3,left,43,18,20
+C06,1,right,34,21,21
+C06,2,left,28,30,19
+C06,3,right,39,17,20
+C07,1,left,26,33,22
+C07,2,right,30,19,18
+C07,3,left,22,35,21
+C08,1,right,18,31,20
+C08,2,left,24,36,19
+C08,3,right,20,29,22
+
+--- file workflow/analysis.py ---
+"""Array-choice scoring for bumble bee foraging bouts.
+
+Reads the bout tallies, decides which array won each bout, and tests the
+overall pick rate against an even null preference.
+"""
+
+from __future__ import annotations
+
+import csv
+from collections import Counter
+from pathlib import Path
+
+from scipy.stats import binomtest
+
+DATA = Path("data/input.csv")
+REPORT = Path("results/report.md")
+NULL_PREFERENCE = 0.5
+
+
+def load_bouts(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def picked_uv(row):
+    return int(row["visits_uv"]) > int(row["visits_white"])
+
+
+def main():
+    bouts = load_bouts(DATA)
+    picks = [picked_uv(row) for row in bouts]
+    n_bouts = len(picks)
+    n_uv = sum(picks)
+
+    totals = Counter()
+    uv_by_colony = Counter()
+    for row, pick in zip(bouts, picks):
+        totals[row["colony_id"]] += 1
+        uv_by_colony[row["colony_id"]] += int(pick)
+
+    test = binomtest(n_uv, n_bouts, NULL_PREFERENCE, alternative="two-sided")
+    share = n_uv / n_bouts
+
+    lines = [
+        "# UV-reflective array preference in bumble bee foraging bouts",
+        "",
+        "## Data",
+        "",
+        f"{n_bouts} foraging bouts were scored across {len(totals)} queenright colonies.",
+        "A bout counts as a UV pick when the forager delivered more visits to the",
+        "UV-reflective array than to the plain white array.",
+        "",
+        f"UV picks: {n_uv} of {n_bouts} bouts ({share * 100:.1f}%).",
+        "",
+        "| colony | UV picks | bouts |",
+        "| --- | --- | --- |",
+    ]
+    for colony in sorted(totals):
+        lines.append(f"| {colony} | {uv_by_colony[colony]} | {totals[colony]} |")
+
+    lines += [
+        "",
+        "## Analysis",
+        "",
+        f"Exact two-sided binomial test on the {n_bouts} bout outcomes against a null",
+        f"UV-pick probability of {NULL_PREFERENCE:.3f}; each bout enters the test as one",
+        "independent trial.",
+        "",
+        "## Result",
+        "",
+        f"[selected-result] Exact binomial test: {n_uv} UV picks in {n_bouts} bouts "
+        f"(observed share {share:.3f}), two-sided p = {test.pvalue:.4f} against "
+        f"p0 = {NULL_PREFERENCE:.3f}; foragers picked the UV-reflective array more "
+        "often than the null preference.",
+        "",
+        f"Null hypothesis rejected at alpha = 0.05: {'yes' if test.pvalue < 0.05 else 'no'}.",
+    ]
+
+    REPORT.parent.mkdir(parents=True, exist_ok=True)
+    REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# UV-reflective array preference in bumble bee foraging bouts
+
+## Data
+
+24 foraging bouts were scored across 8 queenright colonies.
+A bout counts as a UV pick when the forager delivered more visits to the
+UV-reflective array than to the plain white array.
+
+UV picks: 18 of 24 bouts (75.0%).
+
+| colony | UV picks | bouts |
+| --- | --- | --- |
+| C01 | 3 | 3 |
+| C02 | 3 | 3 |
+| C03 | 3 | 3 |
+| C04 | 3 | 3 |
+| C05 | 3 | 3 |
+| C06 | 2 | 3 |
+| C07 | 1 | 3 |
+| C08 | 0 | 3 |
+
+## Analysis
+
+Exact two-sided binomial test on the 24 bout outcomes against a null
+UV-pick probability of 0.500; each bout enters the test as one
+independent trial.
+
+## Result
+
+[selected-result] Exact binomial test: 18 UV picks in 24 bouts (observed share 0.750), two-sided p = 0.0227 against p0 = 0.500; foragers picked the UV-reflective array more often than the null preference.
+
+Null hypothesis rejected at alpha = 0.05: yes.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-h1-reviewer-fable-36", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:46f08f48dfee5b1142a4"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

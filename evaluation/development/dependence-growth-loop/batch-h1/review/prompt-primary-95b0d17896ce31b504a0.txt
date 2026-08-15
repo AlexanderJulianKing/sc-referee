@@ -1,0 +1,185 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-h1-reviewer-fable-36
+
+=== workflow 1: case:95b0d17896ce31b504a0 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Mason bee nest-departure directions
+
+One nesting female mason bee was followed at each of 23 widely separated meadow
+patches during a single spring. A patch held exactly one monitored bee, and no
+bee was watched at more than one patch, so the bees are the independent units of
+the study and the file holds one line per bee.
+
+For every bee an observer scored a run of departures from the nest entrance and
+noted, for each departure, whether the bee circled clockwise or counterclockwise
+before flying off. Those repeated within-bee departures appear in the file only
+as two summary counts; the analysis reduces them to a single majority-direction
+call for that bee before anything is tested, so no individual departure is ever
+treated as its own observation.
+
+One row is: one individual mason bee, summarised over all of the nest departures scored for her at her own meadow patch
+Independent unit column: bee_id
+One trial is: one row
+
+Columns
+
+- bee_id: unique label for the individual bee; each label appears on a single line
+- meadow_patch: the patch where that bee nested; every patch holds exactly one bee
+- forewing_length_mm: right forewing length of the bee, in millimetres
+- departures_scored: how many departures were watched for that bee (always an odd number, so a majority direction always exists)
+- clockwise_departures: how many of those departures were clockwise; the remainder were counterclockwise
+
+The question is whether mason bees as a group favour one circling direction. The
+count handed to the exact binomial test is the number of bees whose majority
+call is clockwise, out of the number of bees, compared against an unbiased
+expectation of one half.
+
+--- file data/input.csv ---
+bee_id,meadow_patch,forewing_length_mm,departures_scored,clockwise_departures
+B01,M01,9.4,13,9
+B02,M02,8.9,11,4
+B03,M03,9.8,15,10
+B04,M04,9.1,9,6
+B05,M05,10.2,17,12
+B06,M06,8.6,11,7
+B07,M07,9.5,13,5
+B08,M08,9.9,15,9
+B09,M09,8.8,9,7
+B10,M10,10.0,19,11
+B11,M11,9.3,11,3
+B12,M12,9.6,13,8
+B13,M13,8.5,9,5
+B14,M14,10.4,17,10
+B15,M15,9.2,15,6
+B16,M16,9.7,11,8
+B17,M17,8.7,13,7
+B18,M18,10.1,9,4
+B19,M19,9.0,15,11
+B20,M20,9.4,11,6
+B21,M21,10.3,19,13
+B22,M22,8.4,13,6
+B23,M23,9.9,17,9
+
+--- file workflow/analysis.py ---
+"""Circling direction at nest departure in solitary mason bees.
+
+One nesting female per meadow patch, one row per female.  The departures scored
+for a bee are pooled inside that bee into a single majority-direction call, so
+the binomial test sees exactly one value from each independent bee.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+from scipy.stats import binomtest
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+ALPHA = 0.05
+NULL_SHARE = 0.5
+
+
+def read_rows(path: Path) -> list[dict[str, str]]:
+    with path.open(newline="", encoding="ascii") as handle:
+        rows = list(csv.DictReader(handle))
+    if not rows:
+        raise ValueError("no bees found in " + str(path))
+    return rows
+
+
+def majority_call(row: dict[str, str]) -> str:
+    scored = int(row["departures_scored"])
+    clockwise = int(row["clockwise_departures"])
+    counterclockwise = scored - clockwise
+    if counterclockwise < 0:
+        raise ValueError("impossible counts for bee " + row["bee_id"])
+    if clockwise == counterclockwise:
+        raise ValueError("tied bee has no majority: " + row["bee_id"])
+    return "clockwise" if clockwise > counterclockwise else "counterclockwise"
+
+
+def main() -> None:
+    rows = read_rows(INPUT_PATH)
+    if len({row["bee_id"] for row in rows}) != len(rows):
+        raise ValueError("bee_id must identify exactly one row")
+
+    calls = [majority_call(row) for row in rows]
+    n_bees = len(calls)
+    n_clockwise = calls.count("clockwise")
+    departures = sum(int(row["departures_scored"]) for row in rows)
+
+    test = binomtest(n_clockwise, n_bees, NULL_SHARE, alternative="two-sided")
+    share = n_clockwise / n_bees
+    verdict = "rejected" if test.pvalue < ALPHA else "not rejected"
+
+    lines = [
+        "# Circling direction at nest departure in solitary mason bees",
+        "",
+        "## Design",
+        "",
+        f"Each of the {n_bees} bees in `data/input.csv` occupied its own meadow patch and",
+        f"contributes exactly one row. The {departures} scored departures are not analysed",
+        "individually: within a bee the departures are collapsed to a single majority",
+        "call (clockwise or counterclockwise), so the analysed sample is one call per",
+        "bee.",
+        "",
+        "## Analysis",
+        "",
+        "Exact two-sided binomial test (`scipy.stats.binomtest`) of the number of",
+        f"clockwise-majority bees against a no-bias expectation of {NULL_SHARE}, alpha = {ALPHA}.",
+        "",
+        "## Result",
+        "",
+        f"- Clockwise-majority bees: {n_clockwise} of {n_bees} ({share:.3f})",
+        f"- Counterclockwise-majority bees: {n_bees - n_clockwise}",
+        f"- Exact two-sided p-value: {test.pvalue:.4f}",
+        "",
+        f"[selected-result] Exact two-sided binomial test on one majority-direction call per bee: {n_clockwise}/{n_bees} bees ({share:.3f}) circled clockwise more often than counterclockwise, p = {test.pvalue:.4f}; the 50:50 no-bias null is {verdict} at alpha = {ALPHA}.",
+        "",
+        "The bees, not the individual departures, are the replicated units, so the",
+        f"test statistic rests on {n_bees} independent observations.",
+    ]
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Circling direction at nest departure in solitary mason bees
+
+## Design
+
+Each of the 23 bees in `data/input.csv` occupied its own meadow patch and
+contributes exactly one row. The 305 scored departures are not analysed
+individually: within a bee the departures are collapsed to a single majority
+call (clockwise or counterclockwise), so the analysed sample is one call per
+bee.
+
+## Analysis
+
+Exact two-sided binomial test (`scipy.stats.binomtest`) of the number of
+clockwise-majority bees against a no-bias expectation of 0.5, alpha = 0.05.
+
+## Result
+
+- Clockwise-majority bees: 17 of 23 (0.739)
+- Counterclockwise-majority bees: 6
+- Exact two-sided p-value: 0.0347
+
+[selected-result] Exact two-sided binomial test on one majority-direction call per bee: 17/23 bees (0.739) circled clockwise more often than counterclockwise, p = 0.0347; the 50:50 no-bias null is rejected at alpha = 0.05.
+
+The bees, not the individual departures, are the replicated units, so the
+test statistic rests on 23 independent observations.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-h1-reviewer-fable-36", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:95b0d17896ce31b504a0"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

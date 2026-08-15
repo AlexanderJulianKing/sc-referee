@@ -1,0 +1,275 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-h2-reviewer-fable-38
+
+=== workflow 1: case:0fa763234c3e29b7b57e ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Peatland rewetting survey of dissolved organic carbon
+
+The table comes from a boreal restoration survey of ten peat basins. The basins
+are hydrologically isolated from one another and each drains to its own outlet.
+Five basins had their drainage ditches blocked (rewetted) and five were left
+drained. At the end of the growing season a single composite water sample was
+collected at each basin's outlet and analysed once for dissolved organic carbon,
+so the table holds ten rows for ten basins with no repeated sampling.
+
+Columns:
+
+- basin_id: the survey code of the basin; every code appears on exactly one row.
+- treatment: whether the basin was rewetted by ditch blocking or left drained.
+- basin_area_ha: the drainage area of the basin in hectares.
+- doc_mg_per_l: dissolved organic carbon in that basin's single end-of-season
+  composite outlet sample, in milligrams per litre.
+
+One row is: one peat basin, measured once at the end of the growing season
+Independent unit column: basin_id
+
+Because the number of rows equals the number of basins, each basin contributes a
+single observation and the rows can be treated as independent of one another.
+
+--- file data/input.csv ---
+basin_id,treatment,basin_area_ha,doc_mg_per_l
+PB-01,rewetted,41.6,21.5
+PB-02,drained,58.2,15.2
+PB-03,rewetted,33.9,17.6
+PB-04,drained,47.5,12.3
+PB-05,rewetted,62.8,28.3
+PB-06,drained,29.4,24.7
+PB-07,rewetted,55.1,23.2
+PB-08,drained,38.7,14.1
+PB-09,rewetted,44.3,26.1
+PB-10,drained,51.9,18.4
+
+--- file workflow/analysis.py ---
+"""Whole-basin comparison of dissolved organic carbon export in a boreal
+peatland restoration survey.
+
+Each surveyed basin drains to its own outlet and is sampled once at the end of
+the growing season, so a row of the input table is a single independent
+hydrological unit.  With only five basins per treatment the group contrast is
+referred to the complete enumeration of basin-to-treatment splits instead of an
+asymptotic approximation.
+"""
+
+from __future__ import annotations
+
+import csv
+from dataclasses import dataclass
+from itertools import combinations
+from pathlib import Path
+from typing import List, Sequence, Tuple
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+UNIT_COLUMN = "basin_id"
+GROUP_COLUMN = "treatment"
+RESPONSE_COLUMN = "doc_mg_per_l"
+FOCAL_GROUP = "rewetted"
+REFERENCE_GROUP = "drained"
+
+# Slack for the ">= observed" comparison so that a split tied with the observed
+# contrast stays in the tail instead of being lost to binary rounding.
+TIE_SLACK = 1e-9
+
+Basin = Tuple[str, str, float]
+
+
+@dataclass(frozen=True)
+class Outcome:
+    n_focal: int
+    n_reference: int
+    mean_focal: float
+    mean_reference: float
+    observed: float
+    extreme: int
+    total: int
+    p_value: float
+
+    @property
+    def n_total(self) -> int:
+        return self.n_focal + self.n_reference
+
+
+def read_basins(path: Path) -> List[Basin]:
+    with path.open(newline="", encoding="ascii") as handle:
+        records = list(csv.DictReader(handle))
+    basins = [
+        (
+            row[UNIT_COLUMN].strip(),
+            row[GROUP_COLUMN].strip(),
+            float(row[RESPONSE_COLUMN]),
+        )
+        for row in records
+    ]
+    codes = [basin[0] for basin in basins]
+    if len(set(codes)) != len(codes):
+        raise ValueError("each basin must occupy exactly one row")
+    labels = {basin[1] for basin in basins}
+    if labels != {FOCAL_GROUP, REFERENCE_GROUP}:
+        raise ValueError("unexpected treatment labels: {0}".format(sorted(labels)))
+    return basins
+
+
+def average(values: Sequence[float]) -> float:
+    return sum(values) / len(values)
+
+
+def split_contrast(values: Sequence[float], focal: Sequence[int]) -> float:
+    chosen = set(focal)
+    inside = [value for position, value in enumerate(values) if position in chosen]
+    outside = [value for position, value in enumerate(values) if position not in chosen]
+    return average(inside) - average(outside)
+
+
+def analyse(basins: Sequence[Basin]) -> Outcome:
+    values = [basin[2] for basin in basins]
+    focal = [i for i, basin in enumerate(basins) if basin[1] == FOCAL_GROUP]
+    reference = [i for i, basin in enumerate(basins) if basin[1] == REFERENCE_GROUP]
+    observed = split_contrast(values, focal)
+    cutoff = abs(observed) - TIE_SLACK
+
+    total = 0
+    extreme = 0
+    for candidate in combinations(range(len(values)), len(focal)):
+        total += 1
+        if abs(split_contrast(values, candidate)) >= cutoff:
+            extreme += 1
+
+    return Outcome(
+        n_focal=len(focal),
+        n_reference=len(reference),
+        mean_focal=average([values[i] for i in focal]),
+        mean_reference=average([values[i] for i in reference]),
+        observed=observed,
+        extreme=extreme,
+        total=total,
+        p_value=extreme / total,
+    )
+
+
+def build_report(outcome: Outcome) -> str:
+    verdict = (
+        "[selected-result] Exact two-sided permutation test over {0} "
+        "basin-to-treatment splits: mean DOC is {1:+.2f} mg/L higher in rewetted "
+        "basins ({2:.2f} vs {3:.2f} mg/L), p = {4:.4f} ({5}/{0} splits at least "
+        "as extreme), which does not reach the 0.05 level."
+    ).format(
+        outcome.total,
+        outcome.observed,
+        outcome.mean_focal,
+        outcome.mean_reference,
+        outcome.p_value,
+        outcome.extreme,
+    )
+    lines = [
+        "# Dissolved organic carbon export after peatland rewetting",
+        "",
+        "## Data",
+        "",
+        "A boreal restoration survey of hydrologically isolated peat basins. Each",
+        "basin contributes exactly one row of the table: a single end-of-season",
+        "composite sample drawn at that basin's own outlet and measured once. Half",
+        "of the basins were rewetted by ditch blocking, the rest were left drained.",
+        "",
+        "| group | basins | mean DOC (mg/L) |",
+        "| --- | --- | --- |",
+        "| {0} | {1} | {2:.2f} |".format(
+            FOCAL_GROUP, outcome.n_focal, outcome.mean_focal
+        ),
+        "| {0} | {1} | {2:.2f} |".format(
+            REFERENCE_GROUP, outcome.n_reference, outcome.mean_reference
+        ),
+        "",
+        "## Analysis",
+        "",
+        "Exact two-sided permutation test on the difference between group mean DOC.",
+        "All {0} ways of splitting the {1} basins into a rewetted set of {2} and a".format(
+            outcome.total, outcome.n_total, outcome.n_focal
+        ),
+        "drained set of {0} were enumerated, and the observed contrast was compared".format(
+            outcome.n_reference
+        ),
+        "with the resulting distribution of absolute mean differences. The basin is",
+        "both the randomisation unit and the unit of analysis: no basin is entered",
+        "more than once, so the permutation reference set is the correct one.",
+        "",
+        "## Result",
+        "",
+        "Observed contrast (rewetted minus drained): {0:+.2f} mg/L.".format(
+            outcome.observed
+        ),
+        "Splits at least as extreme as the observed one: {0} of {1}.".format(
+            outcome.extreme, outcome.total
+        ),
+        "",
+        verdict,
+        "",
+        "## Reading",
+        "",
+        "The point estimate is a substantial rise in DOC export after rewetting, but",
+        "with five basins per arm the exact test cannot separate it from assignment",
+        "noise: about one split in sixteen reproduces a contrast this large. The",
+        "finding is best read as suggestive and underpowered rather than as evidence",
+        "of no effect.",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def main() -> None:
+    basins = read_basins(INPUT_PATH)
+    outcome = analyse(basins)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(build_report(outcome))
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Dissolved organic carbon export after peatland rewetting
+
+## Data
+
+A boreal restoration survey of hydrologically isolated peat basins. Each
+basin contributes exactly one row of the table: a single end-of-season
+composite sample drawn at that basin's own outlet and measured once. Half
+of the basins were rewetted by ditch blocking, the rest were left drained.
+
+| group | basins | mean DOC (mg/L) |
+| --- | --- | --- |
+| rewetted | 5 | 23.34 |
+| drained | 5 | 16.94 |
+
+## Analysis
+
+Exact two-sided permutation test on the difference between group mean DOC.
+All 252 ways of splitting the 10 basins into a rewetted set of 5 and a
+drained set of 5 were enumerated, and the observed contrast was compared
+with the resulting distribution of absolute mean differences. The basin is
+both the randomisation unit and the unit of analysis: no basin is entered
+more than once, so the permutation reference set is the correct one.
+
+## Result
+
+Observed contrast (rewetted minus drained): +6.40 mg/L.
+Splits at least as extreme as the observed one: 16 of 252.
+
+[selected-result] Exact two-sided permutation test over 252 basin-to-treatment splits: mean DOC is +6.40 mg/L higher in rewetted basins (23.34 vs 16.94 mg/L), p = 0.0635 (16/252 splits at least as extreme), which does not reach the 0.05 level.
+
+## Reading
+
+The point estimate is a substantial rise in DOC export after rewetting, but
+with five basins per arm the exact test cannot separate it from assignment
+noise: about one split in sixteen reproduces a contrast this large. The
+finding is best read as suggestive and underpowered rather than as evidence
+of no effect.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-h2-reviewer-fable-38", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:0fa763234c3e29b7b57e"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

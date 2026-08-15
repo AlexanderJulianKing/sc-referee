@@ -1,0 +1,219 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-h2-reviewer-fable-38
+
+=== workflow 1: case:c80463fdc728955797e6 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Leaf thermal tolerance screen: what is in data/input.csv
+
+The file records a heat-tolerance screen of two field-grown coffee cultivars,
+Catuai and Obata, at a single research farm. Twelve shrubs were sampled, six per
+cultivar. From each shrub, four leaves were cut, one from each of four canopy
+positions (sun_upper, sun_mid, shade_mid, shade_lower). Every leaf went through
+the same chlorophyll-fluorescence temperature ramp, and `tcrit_c` records the
+critical temperature in degrees Celsius at which basal fluorescence begins to
+rise steeply. Because four leaves come from each shrub, the file holds 48 rows
+but only 12 shrubs; the four leaves sharing a shrub_id share that shrub's
+genotype, soil, water status, and microclimate.
+
+Columns:
+
+- leaf_id: unique label for the individual leaf that was measured (L001-L048)
+- shrub_id: label of the shrub the leaf was cut from (S01-S12)
+- cultivar: Catuai or Obata
+- block: field block the shrub grows in (north_slope or valley_floor)
+- canopy_layer: canopy position the leaf came from
+- tcrit_c: critical temperature of that leaf, in degrees Celsius
+
+One row is: one leaf cut from one coffee shrub and put through a single temperature ramp
+Independent unit column: shrub_id
+
+--- file data/input.csv ---
+leaf_id,shrub_id,cultivar,block,canopy_layer,tcrit_c
+L001,S01,Catuai,north_slope,sun_upper,49.5
+L002,S01,Catuai,north_slope,sun_mid,49.3
+L003,S01,Catuai,north_slope,shade_mid,49.1
+L004,S01,Catuai,north_slope,shade_lower,48.9
+L005,S02,Catuai,north_slope,sun_upper,49.1
+L006,S02,Catuai,north_slope,sun_mid,48.7
+L007,S02,Catuai,north_slope,shade_mid,48.6
+L008,S02,Catuai,north_slope,shade_lower,48.4
+L009,S03,Catuai,north_slope,sun_upper,48.4
+L010,S03,Catuai,north_slope,sun_mid,48.4
+L011,S03,Catuai,north_slope,shade_mid,48.1
+L012,S03,Catuai,north_slope,shade_lower,47.9
+L013,S04,Catuai,valley_floor,sun_upper,48.3
+L014,S04,Catuai,valley_floor,sun_mid,47.7
+L015,S04,Catuai,valley_floor,shade_mid,47.7
+L016,S04,Catuai,valley_floor,shade_lower,47.5
+L017,S05,Catuai,valley_floor,sun_upper,47.6
+L018,S05,Catuai,valley_floor,sun_mid,47.5
+L019,S05,Catuai,valley_floor,shade_mid,47.1
+L020,S05,Catuai,valley_floor,shade_lower,47.0
+L021,S06,Catuai,valley_floor,sun_upper,46.9
+L022,S06,Catuai,valley_floor,sun_mid,46.9
+L023,S06,Catuai,valley_floor,shade_mid,46.8
+L024,S06,Catuai,valley_floor,shade_lower,46.6
+L025,S07,Obata,north_slope,sun_upper,48.4
+L026,S07,Obata,north_slope,sun_mid,48.1
+L027,S07,Obata,north_slope,shade_mid,47.8
+L028,S07,Obata,north_slope,shade_lower,47.7
+L029,S08,Obata,north_slope,sun_upper,47.5
+L030,S08,Obata,north_slope,sun_mid,47.4
+L031,S08,Obata,north_slope,shade_mid,47.2
+L032,S08,Obata,north_slope,shade_lower,47.1
+L033,S09,Obata,north_slope,sun_upper,47.4
+L034,S09,Obata,north_slope,sun_mid,47.0
+L035,S09,Obata,north_slope,shade_mid,46.7
+L036,S09,Obata,north_slope,shade_lower,46.5
+L037,S10,Obata,valley_floor,sun_upper,46.4
+L038,S10,Obata,valley_floor,sun_mid,46.1
+L039,S10,Obata,valley_floor,shade_mid,46.0
+L040,S10,Obata,valley_floor,shade_lower,45.9
+L041,S11,Obata,valley_floor,sun_upper,45.9
+L042,S11,Obata,valley_floor,sun_mid,45.9
+L043,S11,Obata,valley_floor,shade_mid,45.6
+L044,S11,Obata,valley_floor,shade_lower,45.4
+L045,S12,Obata,valley_floor,sun_upper,45.4
+L046,S12,Obata,valley_floor,sun_mid,44.9
+L047,S12,Obata,valley_floor,shade_mid,44.9
+L048,S12,Obata,valley_floor,shade_lower,44.8
+
+--- file workflow/analysis.py ---
+"""Cultivar comparison of leaf critical temperature (Tcrit).
+
+Reads data/input.csv, compares the two cultivars, and writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+GROUP_COLUMN = "cultivar"
+TRAIT_COLUMN = "tcrit_c"
+ORDER = ("Catuai", "Obata")
+
+
+def read_leaf_table(path):
+    """Collect Tcrit readings per cultivar, plus the shrub labels seen."""
+    readings = {name: [] for name in ORDER}
+    shrubs = {name: set() for name in ORDER}
+    with path.open("r", encoding="ascii", newline="") as handle:
+        for record in csv.DictReader(handle):
+            cultivar = record[GROUP_COLUMN]
+            readings[cultivar].append(float(record[TRAIT_COLUMN]))
+            shrubs[cultivar].add(record["shrub_id"])
+    return readings, shrubs
+
+
+def welch_df(first, second):
+    """Welch-Satterthwaite degrees of freedom for two independent samples."""
+    term_a = first.var(ddof=1) / first.size
+    term_b = second.var(ddof=1) / second.size
+    denom = term_a ** 2 / (first.size - 1) + term_b ** 2 / (second.size - 1)
+    return (term_a + term_b) ** 2 / denom
+
+
+def main():
+    readings, shrubs = read_leaf_table(INPUT_PATH)
+    first = np.asarray(readings[ORDER[0]], dtype=float)
+    second = np.asarray(readings[ORDER[1]], dtype=float)
+
+    mean_a = float(first.mean())
+    mean_b = float(second.mean())
+    sd_a = float(first.std(ddof=1))
+    sd_b = float(second.std(ddof=1))
+
+    outcome = stats.ttest_ind(first, second, equal_var=False)
+    t_stat = float(outcome.statistic)
+    p_value = float(outcome.pvalue)
+    dof = float(welch_df(first, second))
+
+    total = int(first.size + second.size)
+    gap = mean_a - mean_b
+    p_text = "< 0.0001" if p_value < 1e-4 else "= {:.4f}".format(p_value)
+
+    lines = [
+        "# Leaf critical temperature in two coffee cultivars",
+        "",
+        "## Data",
+        "",
+        "Each row of `data/input.csv` is one leaf sampled for a chlorophyll-fluorescence",
+        "temperature ramp; `tcrit_c` is the critical temperature (C) at which the rapid",
+        f"rise in basal fluorescence begins. The file contains {total} leaf measurements",
+        f"collected from field-grown shrubs of the cultivars {ORDER[0]} and {ORDER[1]}.",
+        "",
+        "## Analysis",
+        "",
+        "Every leaf measurement in the file was entered as a single observation, and the",
+        "two cultivars were compared with Welch's two-sample t-test (unequal variances,",
+        "two-sided) on `tcrit_c`.",
+        "",
+        "## Group summaries",
+        "",
+        "| cultivar | leaf measurements | shrubs sampled | mean tcrit_c (C) | SD (C) |",
+        "| --- | --- | --- | --- | --- |",
+        f"| {ORDER[0]} | {first.size} | {len(shrubs[ORDER[0]])} | {mean_a:.3f} | {sd_a:.3f} |",
+        f"| {ORDER[1]} | {second.size} | {len(shrubs[ORDER[1]])} | {mean_b:.3f} | {sd_b:.3f} |",
+        "",
+        "## Result",
+        "",
+        f"[selected-result] Welch two-sample t-test on {total} leaf measurements: "
+        f"t = {t_stat:.3f}, df = {dof:.2f}, two-sided p {p_text}; mean tcrit_c is "
+        f"{gap:.3f} C higher in {ORDER[0]} ({mean_a:.3f} C, n = {first.size}) than in "
+        f"{ORDER[1]} ({mean_b:.3f} C, n = {second.size}).",
+        "",
+        "The test statistic above spends one degree of freedom per leaf measurement, so",
+        f"the reported df of {dof:.2f} comes from the {total} rows in the file.",
+    ]
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Leaf critical temperature in two coffee cultivars
+
+## Data
+
+Each row of `data/input.csv` is one leaf sampled for a chlorophyll-fluorescence
+temperature ramp; `tcrit_c` is the critical temperature (C) at which the rapid
+rise in basal fluorescence begins. The file contains 48 leaf measurements
+collected from field-grown shrubs of the cultivars Catuai and Obata.
+
+## Analysis
+
+Every leaf measurement in the file was entered as a single observation, and the
+two cultivars were compared with Welch's two-sample t-test (unequal variances,
+two-sided) on `tcrit_c`.
+
+## Group summaries
+
+| cultivar | leaf measurements | shrubs sampled | mean tcrit_c (C) | SD (C) |
+| --- | --- | --- | --- | --- |
+| Catuai | 24 | 6 | 48.000 | 0.862 |
+| Obata | 24 | 6 | 46.500 | 1.059 |
+
+## Result
+
+[selected-result] Welch two-sample t-test on 48 leaf measurements: t = 5.382, df = 44.17, two-sided p < 0.0001; mean tcrit_c is 1.500 C higher in Catuai (48.000 C, n = 24) than in Obata (46.500 C, n = 24).
+
+The test statistic above spends one degree of freedom per leaf measurement, so
+the reported df of 44.17 comes from the 48 rows in the file.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-h2-reviewer-fable-38", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:c80463fdc728955797e6"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

@@ -1,0 +1,21 @@
+colony_id,source_woodlot,worker_count,arena_temp_c,chosen_cavity,latency_min
+TMN-01,Bracken Hollow,118,22.4,narrow,41.5
+TMN-02,Bracken Hollow,96,22.1,narrow,58.0
+TMN-03,Bracken Hollow,143,22.6,wide,73.2
+TMN-04,Bracken Hollow,102,22.3,narrow,36.9
+TMN-05,Bracken Hollow,127,22.5,narrow,49.4
+TMN-06,Sedge Knoll,88,21.9,narrow,62.7
+TMN-07,Sedge Knoll,134,22.2,wide,80.1
+TMN-08,Sedge Knoll,111,22.0,narrow,45.3
+TMN-09,Sedge Knoll,99,21.8,wide,91.6
+TMN-10,Sedge Knoll,125,22.4,narrow,38.2
+TMN-11,Alder Ridge,140,22.7,narrow,44.8
+TMN-12,Alder Ridge,107,22.5,narrow,52.1
+TMN-13,Alder Ridge,93,22.2,narrow,67.4
+TMN-14,Alder Ridge,152,22.8,wide,76.5
+TMN-15,Alder Ridge,116,22.6,narrow,40.0
+TMN-16,Quarry Copse,104,22.1,narrow,55.6
+TMN-17,Quarry Copse,131,22.3,narrow,47.9
+TMN-18,Quarry Copse,89,21.7,wide,84.3
+TMN-19,Quarry Copse,145,22.9,narrow,33.7
+TMN-20,Quarry Copse,113,22.4,narrow,59.2

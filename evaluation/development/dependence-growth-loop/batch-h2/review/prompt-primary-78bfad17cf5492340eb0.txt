@@ -1,0 +1,297 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-h2-reviewer-fable-38
+
+=== workflow 1: case:78bfad17cf5492340eb0 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Photovoltaic anti-soiling field trial
+
+This file records a dust-accumulation trial run on a single utility-scale solar
+array in a semi-arid site. Twelve photovoltaic modules were enrolled in the
+trial: six of them received a nanocoat anti-soiling surface layer, and six were
+left bare to serve as controls. Every enrolled module was visited once a week
+for five consecutive weeks. At each visit the field crew measured how much
+power that module was losing to accumulated dust, expressed as a percentage of
+what the same module produces when freshly cleaned.
+
+What the columns mean:
+
+- module_id: the label stencilled on the physical module that was inspected.
+  PV-C01 through PV-C06 are the coated modules; PV-U01 through PV-U06 are the
+  bare controls.
+- coating: whether that module carries the nanocoat layer ("nanocoat") or no
+  treatment at all ("bare").
+- inspection_week: which of the five weekly inspection rounds the reading comes
+  from, numbered 1 through 5.
+- power_loss_pct: the soiling-induced power loss recorded at that inspection,
+  in percent.
+
+Because the same twelve modules were revisited week after week rather than
+replaced, each module supplies five separate rows to the file, and readings
+that share a module label describe the same piece of hardware at different
+points in time.
+
+One row is: one weekly soiling inspection of one photovoltaic module
+Independent unit column: module_id
+
+--- file data/input.csv ---
+module_id,coating,inspection_week,power_loss_pct
+PV-C01,nanocoat,1,1.5
+PV-C01,nanocoat,2,1.6
+PV-C01,nanocoat,3,1.7
+PV-C01,nanocoat,4,1.6
+PV-C01,nanocoat,5,1.6
+PV-C02,nanocoat,1,1.7
+PV-C02,nanocoat,2,1.8
+PV-C02,nanocoat,3,1.9
+PV-C02,nanocoat,4,1.8
+PV-C02,nanocoat,5,1.8
+PV-C03,nanocoat,1,1.9
+PV-C03,nanocoat,2,2.0
+PV-C03,nanocoat,3,2.1
+PV-C03,nanocoat,4,2.0
+PV-C03,nanocoat,5,2.0
+PV-C04,nanocoat,1,2.0
+PV-C04,nanocoat,2,2.1
+PV-C04,nanocoat,3,2.2
+PV-C04,nanocoat,4,2.1
+PV-C04,nanocoat,5,2.1
+PV-C05,nanocoat,1,2.2
+PV-C05,nanocoat,2,2.3
+PV-C05,nanocoat,3,2.4
+PV-C05,nanocoat,4,2.3
+PV-C05,nanocoat,5,2.3
+PV-C06,nanocoat,1,2.1
+PV-C06,nanocoat,2,2.2
+PV-C06,nanocoat,3,2.3
+PV-C06,nanocoat,4,2.2
+PV-C06,nanocoat,5,2.2
+PV-U01,bare,1,4.4
+PV-U01,bare,2,4.5
+PV-U01,bare,3,4.6
+PV-U01,bare,4,4.5
+PV-U01,bare,5,4.5
+PV-U02,bare,1,4.7
+PV-U02,bare,2,4.8
+PV-U02,bare,3,4.9
+PV-U02,bare,4,4.8
+PV-U02,bare,5,4.8
+PV-U03,bare,1,5.0
+PV-U03,bare,2,5.1
+PV-U03,bare,3,5.2
+PV-U03,bare,4,5.1
+PV-U03,bare,5,5.1
+PV-U04,bare,1,4.9
+PV-U04,bare,2,5.0
+PV-U04,bare,3,5.1
+PV-U04,bare,4,5.0
+PV-U04,bare,5,5.0
+PV-U05,bare,1,5.3
+PV-U05,bare,2,5.4
+PV-U05,bare,3,5.5
+PV-U05,bare,4,5.4
+PV-U05,bare,5,5.4
+PV-U06,bare,1,5.1
+PV-U06,bare,2,5.2
+PV-U06,bare,3,5.3
+PV-U06,bare,4,5.2
+PV-U06,bare,5,5.2
+
+--- file workflow/analysis.py ---
+"""Coated vs. bare photovoltaic modules: soiling-induced power loss.
+
+Reads the weekly inspection export and writes the trial report.
+"""
+
+from __future__ import annotations
+
+import csv
+import statistics
+from pathlib import Path
+
+from scipy import stats
+
+INPUT_PATH = Path("data/input.csv")
+OUTPUT_PATH = Path("results/report.md")
+
+TREATED = "nanocoat"
+CONTROL = "bare"
+
+
+def read_inspections(path):
+    """Load every inspection record from the trial export."""
+    with path.open(newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def module_ids_in_order(records):
+    """Module labels in the order they first appear in the export."""
+    ordered = []
+    for row in records:
+        if row["module_id"] not in ordered:
+            ordered.append(row["module_id"])
+    return ordered
+
+
+def losses(records, coating=None, module_id=None):
+    """Power-loss readings, optionally restricted to a coating or a module."""
+    picked = []
+    for row in records:
+        if coating is not None and row["coating"] != coating:
+            continue
+        if module_id is not None and row["module_id"] != module_id:
+            continue
+        picked.append(float(row["power_loss_pct"]))
+    return picked
+
+
+def coating_of(records, module_id):
+    for row in records:
+        if row["module_id"] == module_id:
+            return row["coating"]
+    raise KeyError(module_id)
+
+
+def p_phrase(pvalue):
+    if pvalue < 0.001:
+        return "p < 0.001"
+    return "p = {0:.3f}".format(pvalue)
+
+
+def build_report(records):
+    treated = losses(records, coating=TREATED)
+    control = losses(records, coating=CONTROL)
+
+    outcome = stats.ttest_ind(treated, control, equal_var=True)
+    tstat = float(outcome.statistic)
+    pval = float(outcome.pvalue)
+    dof = len(treated) + len(control) - 2
+
+    treated_mean = statistics.fmean(treated)
+    control_mean = statistics.fmean(control)
+    gap = treated_mean - control_mean
+    n_rows = len(records)
+
+    out = []
+    out.append(
+        "# Soiling-Induced Power Loss in Coated and Bare Photovoltaic Modules")
+    out.append("")
+    out.append("## Data")
+    out.append("")
+    out.append(
+        "Field trial at one utility-scale array: 12 modules (6 treated with"
+        " the nanocoat")
+    out.append(
+        "anti-soiling layer, 6 bare controls) were inspected once per week"
+        " for 5")
+    out.append(
+        "consecutive weeks, yielding {0} inspection records. The response"
+        " variable is".format(n_rows))
+    out.append(
+        "the soiling-induced power loss relative to a clean-module reference,"
+        " in percent.")
+    out.append("")
+    out.append("## Per-module mean power loss")
+    out.append("")
+    out.append("| module_id | coating | inspections | mean loss (%) |")
+    out.append("| --- | --- | --- | --- |")
+    for module in module_ids_in_order(records):
+        vals = losses(records, module_id=module)
+        out.append("| {0} | {1} | {2} | {3:.3f} |".format(
+            module, coating_of(records, module), len(vals),
+            statistics.fmean(vals)))
+    out.append("")
+    out.append("## Group summary")
+    out.append("")
+    out.append("| coating | inspection records | mean (%) | SD (%) |")
+    out.append("| --- | --- | --- | --- |")
+    out.append("| {0} | {1} | {2:.3f} | {3:.3f} |".format(
+        TREATED, len(treated), treated_mean, statistics.stdev(treated)))
+    out.append("| {0} | {1} | {2:.3f} | {3:.3f} |".format(
+        CONTROL, len(control), control_mean, statistics.stdev(control)))
+    out.append("")
+    out.append("## Test")
+    out.append("")
+    out.append(
+        "Two-sample Student t-test (equal variances assumed) comparing"
+        " nanocoat against")
+    out.append(
+        "bare power-loss values, with each of the {0} inspection records"
+        " entered as one".format(n_rows))
+    out.append("independent observation.")
+    out.append("")
+    out.append(
+        "- Mean difference (nanocoat minus bare): {0:.3f} percentage"
+        " points".format(gap))
+    out.append("- t({0}) = {1:.3f}, {2}".format(dof, tstat, p_phrase(pval)))
+    out.append("")
+    out.append(
+        "[selected-result] Two-sample Student t-test over {0} weekly"
+        " inspection records: nanocoat modules averaged {1:.3f}% soiling"
+        " power loss versus {2:.3f}% for bare modules, a difference of"
+        " {3:.3f} percentage points (t({4}) = {5:.3f}, {6}).".format(
+            n_rows, treated_mean, control_mean, gap, dof, tstat,
+            p_phrase(pval)))
+    return "\n".join(out) + "\n"
+
+
+def main():
+    records = read_inspections(INPUT_PATH)
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.write_text(build_report(records), encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Soiling-Induced Power Loss in Coated and Bare Photovoltaic Modules
+
+## Data
+
+Field trial at one utility-scale array: 12 modules (6 treated with the nanocoat
+anti-soiling layer, 6 bare controls) were inspected once per week for 5
+consecutive weeks, yielding 60 inspection records. The response variable is
+the soiling-induced power loss relative to a clean-module reference, in percent.
+
+## Per-module mean power loss
+
+| module_id | coating | inspections | mean loss (%) |
+| --- | --- | --- | --- |
+| PV-C01 | nanocoat | 5 | 1.600 |
+| PV-C02 | nanocoat | 5 | 1.800 |
+| PV-C03 | nanocoat | 5 | 2.000 |
+| PV-C04 | nanocoat | 5 | 2.100 |
+| PV-C05 | nanocoat | 5 | 2.300 |
+| PV-C06 | nanocoat | 5 | 2.200 |
+| PV-U01 | bare | 5 | 4.500 |
+| PV-U02 | bare | 5 | 4.800 |
+| PV-U03 | bare | 5 | 5.100 |
+| PV-U04 | bare | 5 | 5.000 |
+| PV-U05 | bare | 5 | 5.400 |
+| PV-U06 | bare | 5 | 5.200 |
+
+## Group summary
+
+| coating | inspection records | mean (%) | SD (%) |
+| --- | --- | --- | --- |
+| nanocoat | 30 | 2.000 | 0.251 |
+| bare | 30 | 5.000 | 0.301 |
+
+## Test
+
+Two-sample Student t-test (equal variances assumed) comparing nanocoat against
+bare power-loss values, with each of the 60 inspection records entered as one
+independent observation.
+
+- Mean difference (nanocoat minus bare): -3.000 percentage points
+- t(58) = -41.994, p < 0.001
+
+[selected-result] Two-sample Student t-test over 60 weekly inspection records: nanocoat modules averaged 2.000% soiling power loss versus 5.000% for bare modules, a difference of -3.000 percentage points (t(58) = -41.994, p < 0.001).
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-h2-reviewer-fable-38", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:78bfad17cf5492340eb0"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

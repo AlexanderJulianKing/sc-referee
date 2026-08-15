@@ -1,0 +1,257 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-h2-reviewer-fable-38
+
+=== workflow 1: case:4da6848cdd3a5d975d87 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Proglacial stream carbon dataset
+
+The file `data/input.csv` holds one record per proglacial stream in a survey of glaciated headwater catchments in a single mountain range. Twenty-four streams were visited twice during the same melt year, early in the season (June) and late in the season (September). Both visit values sit side by side in the same record, so a stream never occupies more than one line of the file.
+
+One row is: one proglacial stream, carrying its catchment descriptors together with its single June and its single September dissolved organic carbon measurement
+Independent unit column: stream_code
+One trial is: one row
+
+Columns:
+
+- `stream_code` - unique label for the stream and the catchment it drains; no code repeats anywhere in the file.
+- `catchment_area_km2` - drainage area upstream of the sampling point, in square kilometres.
+- `glacier_cover_pct` - percentage of the catchment surface still under ice.
+- `mean_elev_m` - area-weighted mean elevation of the catchment, in metres.
+- `doc_june_mg_per_l` - dissolved organic carbon measured at the June visit, in milligrams per litre.
+- `doc_sept_mg_per_l` - dissolved organic carbon measured at the September visit, in milligrams per litre.
+
+The two visits to a stream are repeated measurements of the same unit, so the analysis first subtracts them into one signed change per stream and then tests those twenty-four changes. The paired values are never entered into the test as separate observations, and the number of trials in the test equals the number of streams.
+
+The catchments are hydrologically separate: none drains into another, they were sampled on independent field days, and no site is represented by more than one stream. Coding of the outcome is simply the direction of the seasonal change, positive when September exceeds June.
+
+--- file data/input.csv ---
+stream_code,catchment_area_km2,glacier_cover_pct,mean_elev_m,doc_june_mg_per_l,doc_sept_mg_per_l
+PG01,4.82,31.5,2418,2.14,2.63
+PG02,12.60,18.2,2185,1.77,2.05
+PG03,7.35,44.9,2604,3.02,3.48
+PG04,2.91,62.3,2871,1.05,1.31
+PG05,19.44,9.6,1962,4.31,3.92
+PG06,5.08,27.8,2337,2.55,2.94
+PG07,9.72,38.1,2529,1.92,2.40
+PG08,3.46,55.0,2760,1.38,1.66
+PG09,14.87,12.4,2043,3.77,3.41
+PG10,6.19,33.7,2466,2.28,2.81
+PG11,8.53,21.9,2251,1.64,1.95
+PG12,11.07,47.6,2648,2.86,3.29
+PG13,4.25,58.4,2812,1.19,1.52
+PG14,16.30,15.1,2107,4.02,3.70
+PG15,7.88,29.3,2392,2.41,2.90
+PG16,10.44,41.2,2573,1.83,2.27
+PG17,3.77,66.8,2905,0.98,1.24
+PG18,21.05,7.3,1894,4.55,4.18
+PG19,5.63,35.6,2429,2.09,2.58
+PG20,13.19,24.5,2298,1.71,2.12
+PG21,17.62,11.0,2016,3.89,3.55
+PG22,6.94,49.7,2687,2.73,3.16
+PG23,9.11,52.8,2734,1.47,1.79
+PG24,18.36,13.8,2071,4.24,3.86
+
+--- file workflow/analysis.py ---
+"""Seasonal change in dissolved organic carbon across proglacial streams.
+
+Reads data/input.csv and writes results/report.md. Every catchment occupies
+exactly one line of the source file, and the pair of visits belonging to a
+stream is reduced to a single signed change before any test is run, so the
+sample size of the test equals the number of independent catchments.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+from scipy.stats import binomtest
+
+SOURCE = Path("data") / "input.csv"
+TARGET = Path("results") / "report.md"
+
+
+def read_records(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def classify(delta):
+    if delta > 0.0:
+        return "increase"
+    if delta < 0.0:
+        return "decrease"
+    return "no change"
+
+
+def build_report(records):
+    codes = [row["stream_code"] for row in records]
+    if len(set(codes)) != len(codes):
+        raise ValueError("stream_code repeats; one row per catchment is required")
+
+    changes = []
+    for row in records:
+        june = float(row["doc_june_mg_per_l"])
+        sept = float(row["doc_sept_mg_per_l"])
+        changes.append((row["stream_code"], sept - june))
+
+    n_units = len(changes)
+    risers = sum(1 for _, delta in changes if delta > 0.0)
+    fallers = sum(1 for _, delta in changes if delta < 0.0)
+    ties = n_units - risers - fallers
+    informative = risers + fallers
+    if informative == 0:
+        raise ValueError("every stream tied; the sign test has nothing to work on")
+
+    outcome = binomtest(risers, informative, 0.5, alternative="two-sided")
+    p_value = outcome.pvalue
+    share = risers / informative
+
+    lines = [
+        "# Late-season carbon enrichment in proglacial streams",
+        "",
+        "## Design",
+        "",
+        (
+            f"{n_units} proglacial streams draining separate glaciated headwater "
+            "catchments were each sampled once in June and once in September of the "
+            "same melt year. No catchment appears twice in the file and no stream "
+            "drains into another."
+        ),
+        "",
+        (
+            "The June and September values belonging to a stream are collapsed into "
+            "one signed change before anything is tested, so each catchment supplies "
+            "exactly one analysed observation and the sample size of the test is the "
+            "number of catchments rather than the number of water samples."
+        ),
+        "",
+        "## Per-stream direction of change",
+        "",
+        "| stream_code | delta_doc_mg_per_l | direction |",
+        "|---|---|---|",
+    ]
+
+    for code, delta in changes:
+        lines.append(f"| {code} | {delta:+.2f} | {classify(delta)} |")
+
+    lines.extend(
+        [
+            "",
+            "## Test",
+            "",
+            (
+                "The null hypothesis is that a stream is as likely to fall as to rise "
+                "between June and September, that is, that the probability of an "
+                "increase equals one half. The number of rising streams is compared "
+                "with that null by an exact two-sided binomial test, the sign test for "
+                "these paired changes, which assumes only that the per-stream changes "
+                "are mutually independent."
+            ),
+            "",
+            f"- independent catchments analysed: {n_units}",
+            f"- streams with higher September DOC: {risers}",
+            f"- streams with lower September DOC: {fallers}",
+            f"- ties excluded: {ties}",
+            f"- proportion of streams increasing: {share:.3f}",
+            f"- exact two-sided p-value: {p_value:.4f}",
+            "",
+            (
+                "[selected-result] Exact two-sided sign test (binomial test, null "
+                f"probability 0.5) on {n_units} independent proglacial catchments, one "
+                f"paired June-to-September change each: {risers} of {n_units} streams "
+                "had higher September dissolved organic carbon, proportion "
+                f"{share:.3f}, p = {p_value:.4f}, so the 50/50 null is rejected at the "
+                "0.05 level."
+            ),
+            "",
+            "## Interpretation",
+            "",
+            (
+                "Late-season enrichment is the prevailing pattern: three quarters of "
+                "the catchments carried more dissolved organic carbon in September "
+                "than in June, and a split this lopsided would arise under the 50/50 "
+                "null in about two studies in a hundred. The inference rests on "
+                f"{n_units} independent units because the two visits to a stream were "
+                "reduced to a single change; counting both visits as separate "
+                "observations would have doubled the apparent sample size without "
+                "adding any independent information."
+            ),
+        ]
+    )
+
+    return lines
+
+
+def main():
+    records = read_records(SOURCE)
+    lines = build_report(records)
+    TARGET.parent.mkdir(parents=True, exist_ok=True)
+    TARGET.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Late-season carbon enrichment in proglacial streams
+
+## Design
+
+24 proglacial streams draining separate glaciated headwater catchments were each sampled once in June and once in September of the same melt year. No catchment appears twice in the file and no stream drains into another.
+
+The June and September values belonging to a stream are collapsed into one signed change before anything is tested, so each catchment supplies exactly one analysed observation and the sample size of the test is the number of catchments rather than the number of water samples.
+
+## Per-stream direction of change
+
+| stream_code | delta_doc_mg_per_l | direction |
+|---|---|---|
+| PG01 | +0.49 | increase |
+| PG02 | +0.28 | increase |
+| PG03 | +0.46 | increase |
+| PG04 | +0.26 | increase |
+| PG05 | -0.39 | decrease |
+| PG06 | +0.39 | increase |
+| PG07 | +0.48 | increase |
+| PG08 | +0.28 | increase |
+| PG09 | -0.36 | decrease |
+| PG10 | +0.53 | increase |
+| PG11 | +0.31 | increase |
+| PG12 | +0.43 | increase |
+| PG13 | +0.33 | increase |
+| PG14 | -0.32 | decrease |
+| PG15 | +0.49 | increase |
+| PG16 | +0.44 | increase |
+| PG17 | +0.26 | increase |
+| PG18 | -0.37 | decrease |
+| PG19 | +0.49 | increase |
+| PG20 | +0.41 | increase |
+| PG21 | -0.34 | decrease |
+| PG22 | +0.43 | increase |
+| PG23 | +0.32 | increase |
+| PG24 | -0.38 | decrease |
+
+## Test
+
+The null hypothesis is that a stream is as likely to fall as to rise between June and September, that is, that the probability of an increase equals one half. The number of rising streams is compared with that null by an exact two-sided binomial test, the sign test for these paired changes, which assumes only that the per-stream changes are mutually independent.
+
+- independent catchments analysed: 24
+- streams with higher September DOC: 18
+- streams with lower September DOC: 6
+- ties excluded: 0
+- proportion of streams increasing: 0.750
+- exact two-sided p-value: 0.0227
+
+[selected-result] Exact two-sided sign test (binomial test, null probability 0.5) on 24 independent proglacial catchments, one paired June-to-September change each: 18 of 24 streams had higher September dissolved organic carbon, proportion 0.750, p = 0.0227, so the 50/50 null is rejected at the 0.05 level.
+
+## Interpretation
+
+Late-season enrichment is the prevailing pattern: three quarters of the catchments carried more dissolved organic carbon in September than in June, and a split this lopsided would arise under the 50/50 null in about two studies in a hundred. The inference rests on 24 independent units because the two visits to a stream were reduced to a single change; counting both visits as separate observations would have doubled the apparent sample size without adding any independent information.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-h2-reviewer-fable-38", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:4da6848cdd3a5d975d87"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

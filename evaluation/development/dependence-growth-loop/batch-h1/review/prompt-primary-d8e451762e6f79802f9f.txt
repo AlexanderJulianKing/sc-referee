@@ -1,0 +1,194 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-h1-reviewer-fable-36
+
+=== workflow 1: case:d8e451762e6f79802f9f ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Y-maze colour-choice assay on marked bumblebee foragers
+
+Six individually paint-marked bumblebee foragers from one commercial colony were
+tested in a Y-maze that offered a UV-bright artificial corolla in one arm and a
+visually matched UV-dull corolla in the other arm. The arm holding the UV-bright
+corolla was swapped between releases so that a bee could not solve the task by
+position alone. For every release we recorded which corolla received the bee's
+first landing and how long that landing took. Foragers were run in up to four
+test blocks, so most bees appear in the file several times; the number of
+releases per bee differs because some individuals stopped foraging early.
+
+One row is: one Y-maze release in which a single marked forager made a first landing on either the UV-bright or the UV-dull artificial corolla
+Independent unit column: forager_id
+One trial is: one row
+
+Column guide:
+
+- trial_uid: unique label for the release, numbered in the order the releases were run
+- forager_id: paint mark of the bee that was released
+- test_block: which of the four test blocks the release belongs to (B1 to B4)
+- arena_arm_uv_bright: maze arm, L or R, that held the UV-bright corolla for that release
+- first_visit_choice: corolla that received the first landing, either uv_bright or uv_dull
+- latency_s: seconds from release to that first landing
+
+The file contains 20 releases contributed by 6 bees, with between two and four
+releases per bee.
+
+--- file data/input.csv ---
+trial_uid,forager_id,test_block,arena_arm_uv_bright,first_visit_choice,latency_s
+T001,FOR-01,B1,L,uv_bright,4.2
+T002,FOR-02,B1,R,uv_bright,6.8
+T003,FOR-03,B1,L,uv_bright,3.9
+T004,FOR-04,B1,R,uv_bright,9.1
+T005,FOR-05,B1,L,uv_dull,12.4
+T006,FOR-06,B1,R,uv_bright,7.7
+T007,FOR-01,B2,R,uv_bright,3.6
+T008,FOR-02,B2,L,uv_dull,11.2
+T009,FOR-03,B2,R,uv_bright,4.4
+T010,FOR-04,B2,L,uv_dull,10.5
+T011,FOR-05,B2,R,uv_bright,8.9
+T012,FOR-06,B2,L,uv_dull,13.6
+T013,FOR-01,B3,L,uv_bright,3.1
+T014,FOR-02,B3,R,uv_bright,5.9
+T015,FOR-03,B3,L,uv_bright,4.8
+T016,FOR-04,B3,R,uv_bright,8.3
+T017,FOR-05,B3,L,uv_dull,14.0
+T018,FOR-01,B4,R,uv_bright,2.9
+T019,FOR-02,B4,L,uv_bright,6.1
+T020,FOR-03,B4,R,uv_bright,4.0
+
+--- file workflow/analysis.py ---
+"""Exact binomial test of first-landing colour choice in a Y-maze assay.
+
+Reads data/input.csv and writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+from scipy.stats import binomtest
+
+INPUT_PATH = Path("data/input.csv")
+OUTPUT_PATH = Path("results/report.md")
+BRIGHT_LABEL = "uv_bright"
+CHANCE = 0.5
+
+
+def read_trials(path):
+    with path.open("r", encoding="ascii", newline="") as handle:
+        reader = csv.DictReader(handle)
+        return [dict(row) for row in reader]
+
+
+def tally_by_forager(trials):
+    tally = {}
+    for row in trials:
+        forager = row["forager_id"]
+        counts = tally.setdefault(forager, {"trials": 0, "bright": 0})
+        counts["trials"] += 1
+        if row["first_visit_choice"] == BRIGHT_LABEL:
+            counts["bright"] += 1
+    return tally
+
+
+def compose_report(tally, bright, total, pvalue):
+    share = bright / total
+    foragers = len(tally)
+    lines = [
+        "# UV-bright corolla preference in a two-choice Y-maze assay",
+        "",
+        "## Data",
+        "",
+        "Each row of `data/input.csv` is one Y-maze trial, scored by the artificial",
+        f"corolla that received the first landing. The file holds {total} trials contributed",
+        f"by {foragers} marked foragers.",
+        "",
+        "| forager_id | trials | uv_bright first visits |",
+        "| --- | --- | --- |",
+    ]
+    for forager, counts in tally.items():
+        lines.append(f"| {forager} | {counts['trials']} | {counts['bright']} |")
+    lines.extend([
+        "",
+        "## Analysis",
+        "",
+        "Every trial row was entered as one Bernoulli observation and the pooled counts",
+        "were submitted to an exact two-sided binomial test (`scipy.stats.binomtest`)",
+        f"against the chance expectation p = {CHANCE}.",
+        "",
+        "## Result",
+        "",
+        f"Foragers landed first on the UV-bright corolla in {bright} of {total} trials (observed",
+        f"share {share:.3f}).",
+        "",
+        f"[selected-result] Exact two-sided binomial test of {bright} uv_bright"
+        f" first visits out of {total} trials against p = {CHANCE}:"
+        f" p = {pvalue:.6f} (observed share {share:.3f});"
+        " the deviation from chance is significant at the 5% level.",
+        "",
+        "## Notes",
+        "",
+        f"The {total} trials come from {foragers} foragers, so several rows describe the same insect",
+        "tested again; the test above nonetheless weighs each row as one independent",
+        "draw. Trial order within a forager was not modelled.",
+        "",
+    ])
+    return "\n".join(lines)
+
+
+def main():
+    trials = read_trials(INPUT_PATH)
+    total = len(trials)
+    bright = sum(1 for row in trials if row["first_visit_choice"] == BRIGHT_LABEL)
+    tally = tally_by_forager(trials)
+    outcome = binomtest(bright, total, CHANCE, alternative="two-sided")
+    report = compose_report(tally, bright, total, outcome.pvalue)
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# UV-bright corolla preference in a two-choice Y-maze assay
+
+## Data
+
+Each row of `data/input.csv` is one Y-maze trial, scored by the artificial
+corolla that received the first landing. The file holds 20 trials contributed
+by 6 marked foragers.
+
+| forager_id | trials | uv_bright first visits |
+| --- | --- | --- |
+| FOR-01 | 4 | 4 |
+| FOR-02 | 4 | 3 |
+| FOR-03 | 4 | 4 |
+| FOR-04 | 3 | 2 |
+| FOR-05 | 3 | 1 |
+| FOR-06 | 2 | 1 |
+
+## Analysis
+
+Every trial row was entered as one Bernoulli observation and the pooled counts
+were submitted to an exact two-sided binomial test (`scipy.stats.binomtest`)
+against the chance expectation p = 0.5.
+
+## Result
+
+Foragers landed first on the UV-bright corolla in 15 of 20 trials (observed
+share 0.750).
+
+[selected-result] Exact two-sided binomial test of 15 uv_bright first visits out of 20 trials against p = 0.5: p = 0.041389 (observed share 0.750); the deviation from chance is significant at the 5% level.
+
+## Notes
+
+The 20 trials come from 6 foragers, so several rows describe the same insect
+tested again; the test above nonetheless weighs each row as one independent
+draw. Trial order within a forager was not modelled.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-h1-reviewer-fable-36", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:d8e451762e6f79802f9f"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

@@ -1,0 +1,237 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-h1-reviewer-fable-36
+
+=== workflow 1: case:e1c190d24275becc0db4 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What is in data/input.csv
+
+This file records a nest-cavity choice assay run on field-collected colonies of the
+acorn ant Temnothorax. Twenty colonies were collected from four woodlots, held for a
+week under common laboratory conditions, and then each colony was released once into a
+test arena that offered two empty nest cavities: one with a narrow entrance and one
+with a wide entrance. Whichever cavity the colony had fully moved into 24 hours after
+release was recorded as that colony's choice.
+
+Columns:
+
+- colony_id: unique label for the colony. Each colony appears on exactly one row.
+- source_woodlot: the woodlot the colony was collected from (four woodlots in all).
+- worker_count: number of workers censused in the colony just before the assay.
+- arena_temp_c: air temperature inside the arena during the assay, in degrees Celsius.
+- chosen_cavity: which cavity the colony occupied, either narrow or wide.
+- latency_min: minutes from release until the colony had fully moved into a cavity.
+
+One row is: one field-collected ant colony, assayed once in the two-cavity choice arena
+Independent unit column: colony_id
+One trial is: one row
+
+Every colony was tested a single time, so the file holds no repeated measurements of
+the same colony: the 20 rows are 20 independent observations, one per colony. The
+woodlot label is background information about where a colony came from and does not
+turn any row into a repeat of another row.
+
+--- file data/input.csv ---
+colony_id,source_woodlot,worker_count,arena_temp_c,chosen_cavity,latency_min
+TMN-01,Bracken Hollow,118,22.4,narrow,41.5
+TMN-02,Bracken Hollow,96,22.1,narrow,58.0
+TMN-03,Bracken Hollow,143,22.6,wide,73.2
+TMN-04,Bracken Hollow,102,22.3,narrow,36.9
+TMN-05,Bracken Hollow,127,22.5,narrow,49.4
+TMN-06,Sedge Knoll,88,21.9,narrow,62.7
+TMN-07,Sedge Knoll,134,22.2,wide,80.1
+TMN-08,Sedge Knoll,111,22.0,narrow,45.3
+TMN-09,Sedge Knoll,99,21.8,wide,91.6
+TMN-10,Sedge Knoll,125,22.4,narrow,38.2
+TMN-11,Alder Ridge,140,22.7,narrow,44.8
+TMN-12,Alder Ridge,107,22.5,narrow,52.1
+TMN-13,Alder Ridge,93,22.2,narrow,67.4
+TMN-14,Alder Ridge,152,22.8,wide,76.5
+TMN-15,Alder Ridge,116,22.6,narrow,40.0
+TMN-16,Quarry Copse,104,22.1,narrow,55.6
+TMN-17,Quarry Copse,131,22.3,narrow,47.9
+TMN-18,Quarry Copse,89,21.7,wide,84.3
+TMN-19,Quarry Copse,145,22.9,narrow,33.7
+TMN-20,Quarry Copse,113,22.4,narrow,59.2
+
+--- file workflow/analysis.py ---
+"""Nest-cavity choice assay for field-collected Temnothorax colonies.
+
+Reads data/input.csv and writes results/report.md.  Every colony was run through
+the arena exactly once, so each analysed row is a separate independent unit and
+an exact binomial test on the row counts is the right tool.
+"""
+
+from __future__ import annotations
+
+import csv
+from collections import Counter
+from pathlib import Path
+
+from scipy.stats import binomtest
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+UNIT_COLUMN = "colony_id"
+GROUP_COLUMN = "source_woodlot"
+CHOICE_COLUMN = "chosen_cavity"
+
+PREFERRED = "narrow"
+ALTERNATE = "wide"
+NULL_P = 0.5
+ALPHA = 0.05
+
+
+def read_assay(path):
+    with path.open(newline="", encoding="utf-8") as handle:
+        return [dict(record) for record in csv.DictReader(handle)]
+
+
+def check_one_row_per_colony(rows):
+    """Confirm the file holds a single assayed row per colony."""
+    per_colony = Counter(row[UNIT_COLUMN] for row in rows)
+    worst = max(per_colony.values())
+    if worst != 1:
+        repeated = sorted(cid for cid, k in per_colony.items() if k > 1)
+        raise SystemExit(
+            "expected one assayed row per colony; repeated: " + ", ".join(repeated)
+        )
+    return len(per_colony), worst
+
+
+def tally_by_woodlot(rows, choices):
+    tallies = {}
+    for row, choice in zip(rows, choices):
+        woodlot = row[GROUP_COLUMN]
+        if woodlot not in tallies:
+            tallies[woodlot] = Counter()
+        tallies[woodlot][choice] += 1
+    return tallies
+
+
+def main():
+    rows = read_assay(INPUT_PATH)
+    if not rows:
+        raise SystemExit("data/input.csv contains no data rows")
+
+    n_rows = len(rows)
+    n_colonies, max_rows_per_colony = check_one_row_per_colony(rows)
+
+    choices = [row[CHOICE_COLUMN].strip() for row in rows]
+    strange = sorted(set(choices) - {PREFERRED, ALTERNATE})
+    if strange:
+        raise SystemExit("unrecognised cavity labels: " + ", ".join(strange))
+
+    successes = choices.count(PREFERRED)
+    result = binomtest(successes, n_rows, NULL_P, alternative="two-sided")
+    proportion = successes / n_rows
+
+    by_woodlot = tally_by_woodlot(rows, choices)
+
+    prop_txt = "%.4f" % proportion
+    p_txt = "%.6f" % result.pvalue
+    verdict = "rejected" if result.pvalue < ALPHA else "not rejected"
+
+    selected = (
+        "[selected-result] Exact two-sided binomial test: %d of %d colonies chose the "
+        "narrow cavity (proportion %s), p = %s against the no-preference null of %g; "
+        "at alpha = %g the null of no cavity preference is %s."
+        % (successes, n_rows, prop_txt, p_txt, NULL_P, ALPHA, verdict)
+    )
+
+    out = []
+    out.append("# Nest-cavity choice in Temnothorax colonies")
+    out.append("")
+    out.append("## Design")
+    out.append("")
+    out.append("Each field-collected colony was offered a single two-way choice between a")
+    out.append("narrow-entrance cavity and a wide-entrance cavity. A colony was assayed once")
+    out.append("and contributes exactly one row, so the rows entering the test are mutually")
+    out.append("independent; no colony is counted twice.")
+    out.append("")
+    out.append("- Rows analysed: %d" % n_rows)
+    out.append("- Distinct colonies (colony_id): %d" % n_colonies)
+    out.append("- Maximum rows contributed by any one colony: %d" % max_rows_per_colony)
+    out.append("")
+    out.append("## Analysis")
+    out.append("")
+    out.append("Exact two-sided binomial test (scipy.stats.binomtest) on the number of")
+    out.append(
+        "colonies choosing the narrow cavity, against a no-preference null of p = %g."
+        % NULL_P
+    )
+    out.append("")
+    out.append("- Colonies choosing narrow: %d of %d" % (successes, n_rows))
+    out.append("- Observed proportion choosing narrow: %s" % prop_txt)
+    out.append("- Exact two-sided p-value: %s" % p_txt)
+    out.append("")
+    out.append(selected)
+    out.append("")
+    out.append("## Choice by source woodlot (descriptive only)")
+    out.append("")
+    out.append("| source woodlot | narrow | wide | colonies | proportion narrow |")
+    out.append("| --- | --- | --- | --- | --- |")
+    for woodlot in sorted(by_woodlot):
+        tally = by_woodlot[woodlot]
+        n_narrow = tally[PREFERRED]
+        n_wide = tally[ALTERNATE]
+        n_here = n_narrow + n_wide
+        out.append(
+            "| %s | %d | %d | %d | %.3f |"
+            % (woodlot, n_narrow, n_wide, n_here, n_narrow / n_here)
+        )
+    out.append("")
+    out.append("Woodlot tallies are descriptive; they are not tested. The single test above")
+    out.append("uses one observation per colony, which is the independent unit of this study.")
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(out) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Nest-cavity choice in Temnothorax colonies
+
+## Design
+
+Each field-collected colony was offered a single two-way choice between a
+narrow-entrance cavity and a wide-entrance cavity. A colony was assayed once
+and contributes exactly one row, so the rows entering the test are mutually
+independent; no colony is counted twice.
+
+- Rows analysed: 20
+- Distinct colonies (colony_id): 20
+- Maximum rows contributed by any one colony: 1
+
+## Analysis
+
+Exact two-sided binomial test (scipy.stats.binomtest) on the number of
+colonies choosing the narrow cavity, against a no-preference null of p = 0.5.
+
+- Colonies choosing narrow: 15 of 20
+- Observed proportion choosing narrow: 0.7500
+- Exact two-sided p-value: 0.041389
+
+[selected-result] Exact two-sided binomial test: 15 of 20 colonies chose the narrow cavity (proportion 0.7500), p = 0.041389 against the no-preference null of 0.5; at alpha = 0.05 the null of no cavity preference is rejected.
+
+## Choice by source woodlot (descriptive only)
+
+| source woodlot | narrow | wide | colonies | proportion narrow |
+| --- | --- | --- | --- | --- |
+| Alder Ridge | 4 | 1 | 5 | 0.800 |
+| Bracken Hollow | 4 | 1 | 5 | 0.800 |
+| Quarry Copse | 4 | 1 | 5 | 0.800 |
+| Sedge Knoll | 3 | 2 | 5 | 0.600 |
+
+Woodlot tallies are descriptive; they are not tested. The single test above
+uses one observation per colony, which is the independent unit of this study.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-h1-reviewer-fable-36", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:e1c190d24275becc0db4"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}
