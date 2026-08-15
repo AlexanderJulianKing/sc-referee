@@ -1,0 +1,257 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-g2-reviewer-fable-34
+
+=== workflow 1: case:34c19f723e535aa477ad ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Bumblebee microcolony gyne-production dataset
+
+data/input.csv records a caged-rearing experiment on Bombus terrestris. Twenty-eight
+commercially reared, queenright colonies were each installed in a separate sealed
+flight arena and fed one syrup diet for their entire colony cycle: half plain sugar
+syrup, half sugar syrup dosed at 2 ppb thiamethoxam. At nest teardown every colony was
+dismantled once and all new queens (gynes) were counted, giving a single lifetime
+total per colony.
+
+One row is: one bumblebee colony, with its diet arm, its starting worker force, and its single end-of-cycle gyne total
+Independent unit column: colony_id
+
+Columns
+
+- colony_id: colony label, unique across the file; no colony is entered twice.
+- arena_id: the sealed flight arena the colony occupied; one arena held one colony.
+- treatment: diet arm, either control (plain syrup) or exposed (2 ppb thiamethoxam).
+- founding_workers: number of workers present when the colony was installed, a baseline
+  size covariate used only to check that the two arms started out comparable.
+- gyne_count: total new queens counted at teardown; a whole-colony lifetime total, not a
+  repeated observation.
+
+Because each colony is measured once and contributes exactly one row, the twenty-eight
+rows are twenty-eight independent units, and a row-independent two-sample test applies
+directly, with no pooling of within-colony repeats.
+
+--- file data/input.csv ---
+colony_id,arena_id,treatment,founding_workers,gyne_count
+BT-01,ARENA-01,control,42,14
+BT-02,ARENA-02,exposed,40,5
+BT-03,ARENA-03,control,38,9
+BT-04,ARENA-04,exposed,43,8
+BT-05,ARENA-05,control,45,17
+BT-06,ARENA-06,exposed,39,0
+BT-07,ARENA-07,control,40,11
+BT-08,ARENA-08,exposed,45,11
+BT-09,ARENA-09,control,44,21
+BT-10,ARENA-10,exposed,37,3
+BT-11,ARENA-11,control,36,6
+BT-12,ARENA-12,exposed,42,7
+BT-13,ARENA-13,control,41,13
+BT-14,ARENA-14,exposed,38,2
+BT-15,ARENA-15,control,47,19
+BT-16,ARENA-16,exposed,46,13
+BT-17,ARENA-17,control,39,8
+BT-18,ARENA-18,exposed,41,6
+BT-19,ARENA-19,control,43,15
+BT-20,ARENA-20,exposed,36,4
+BT-21,ARENA-21,control,40,12
+BT-22,ARENA-22,exposed,44,9
+BT-23,ARENA-23,control,46,23
+BT-24,ARENA-24,exposed,35,1
+BT-25,ARENA-25,control,37,10
+BT-26,ARENA-26,exposed,43,10
+BT-27,ARENA-27,control,42,16
+BT-28,ARENA-28,exposed,39,5
+
+--- file workflow/analysis.py ---
+#!/usr/bin/env python3
+"""Colony-level test of dietary thiamethoxam on bumblebee gyne production.
+
+Reads data/input.csv and writes results/report.md. One colony contributes one row,
+so the two-sample tests below are applied to independent units.
+"""
+
+from __future__ import annotations
+
+import csv
+import statistics
+from collections import Counter
+from pathlib import Path
+
+from scipy import stats
+
+CSV_REL = "data/input.csv"
+OUT_REL = "results/report.md"
+ARMS = ("control", "exposed")
+
+
+def base_dir() -> Path:
+    guess = Path(__file__).resolve().parent.parent
+    if (guess / CSV_REL).is_file():
+        return guess
+    return Path.cwd()
+
+
+def load_rows(path: Path) -> list:
+    with path.open(newline="", encoding="ascii") as handle:
+        return [dict(row) for row in csv.DictReader(handle)]
+
+
+def welch_df(a: list, b: list) -> float:
+    va = statistics.variance(a) / len(a)
+    vb = statistics.variance(b) / len(b)
+    return (va + vb) ** 2 / (va * va / (len(a) - 1) + vb * vb / (len(b) - 1))
+
+
+def show_p(p: float) -> str:
+    return "< 0.001" if p < 0.001 else "= " + format(p, ".3f")
+
+
+def main() -> None:
+    root = base_dir()
+    rows = load_rows(root / CSV_REL)
+
+    gynes = {
+        arm: [int(r["gyne_count"]) for r in rows if r["treatment"] == arm]
+        for arm in ARMS
+    }
+    workers = {
+        arm: [int(r["founding_workers"]) for r in rows if r["treatment"] == arm]
+        for arm in ARMS
+    }
+
+    per_colony = Counter(r["colony_id"] for r in rows)
+    n_arenas = len({r["arena_id"] for r in rows})
+
+    tt = stats.ttest_ind(gynes["control"], gynes["exposed"], equal_var=False)
+    df = welch_df(gynes["control"], gynes["exposed"])
+    mw = stats.mannwhitneyu(
+        gynes["control"],
+        gynes["exposed"],
+        alternative="two-sided",
+        method="asymptotic",
+    )
+
+    mean_c = statistics.mean(gynes["control"])
+    mean_e = statistics.mean(gynes["exposed"])
+    sd_c = statistics.stdev(gynes["control"])
+    sd_e = statistics.stdev(gynes["exposed"])
+    gap = mean_c - mean_e
+
+    lines = [
+        "# Neonicotinoid microdosing and gyne production in caged bumblebee colonies",
+        "",
+        "## Design",
+        "",
+        "Twenty-eight queenright Bombus terrestris colonies were reared, each in its own sealed",
+        "flight arena, and each colony was held on a single diet for the whole colony cycle:",
+        f"{len(gynes['control'])} colonies received untreated sugar syrup (control) and {len(gynes['exposed'])} received syrup dosed at",
+        "2 ppb thiamethoxam (exposed). The response is the lifetime gyne count, a single",
+        "whole-colony census taken at nest teardown. Each colony is censused once and appears",
+        "once, so every analysed row is one independent unit.",
+        "",
+        f"Independence check: {len(rows)} data rows, {len(per_colony)} distinct colony identifiers, {n_arenas} distinct arena",
+        f"identifiers, at most {max(per_colony.values())} row per colony.",
+        "",
+        "## Baseline balance",
+        "",
+        "| treatment | colonies | mean founding workers |",
+        "| --- | --- | --- |",
+    ]
+
+    for arm in ARMS:
+        lines.append(
+            "| {0} | {1} | {2:.2f} |".format(
+                arm, len(workers[arm]), statistics.mean(workers[arm])
+            )
+        )
+
+    lines += [
+        "",
+        "## Gyne production",
+        "",
+        "| treatment | colonies | mean gynes | SD |",
+        "| --- | --- | --- | --- |",
+        "| control | {0} | {1:.2f} | {2:.2f} |".format(len(gynes["control"]), mean_c, sd_c),
+        "| exposed | {0} | {1:.2f} | {2:.2f} |".format(len(gynes["exposed"]), mean_e, sd_e),
+        "",
+        f"Welch's two-sample t-test (two-sided) on lifetime gyne count: t = {tt.statistic:.2f}, df = {df:.1f},",
+        f"p {show_p(float(tt.pvalue))}. The control minus exposed difference in means is {gap:.2f} gynes.",
+        "",
+        "Mann-Whitney U test (two-sided, normal approximation) as a distribution-free check:",
+        f"U = {mw.statistic:.1f}, p {show_p(float(mw.pvalue))}.",
+        "",
+        (
+            "[selected-result] Welch's two-sided two-sample t-test on lifetime gyne count with "
+            f"one colony per row: control colonies produced {mean_c:.2f} gynes on average against "
+            f"{mean_e:.2f} for thiamethoxam-exposed colonies, a difference of {gap:.2f} gynes "
+            f"(t = {tt.statistic:.2f}, df = {df:.1f}, p {show_p(float(tt.pvalue))}), so 2 ppb dietary "
+            "thiamethoxam is associated with markedly reduced gyne output."
+        ),
+        "",
+        "## Notes",
+        "",
+        "The gyne count is a whole-colony lifetime total, so there are no repeated measures to",
+        "pool and no within-colony correlation for the test to absorb. The degrees of freedom",
+        "in the Welch approximation count colonies, not observations. The two arms are close on",
+        f"founding worker number ({statistics.mean(workers['control']):.2f} against {statistics.mean(workers['exposed']):.2f}), so the contrast is not driven by",
+        "an obvious size imbalance.",
+    ]
+
+    out = root / OUT_REL
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Neonicotinoid microdosing and gyne production in caged bumblebee colonies
+
+## Design
+
+Twenty-eight queenright Bombus terrestris colonies were reared, each in its own sealed
+flight arena, and each colony was held on a single diet for the whole colony cycle:
+14 colonies received untreated sugar syrup (control) and 14 received syrup dosed at
+2 ppb thiamethoxam (exposed). The response is the lifetime gyne count, a single
+whole-colony census taken at nest teardown. Each colony is censused once and appears
+once, so every analysed row is one independent unit.
+
+Independence check: 28 data rows, 28 distinct colony identifiers, 28 distinct arena
+identifiers, at most 1 row per colony.
+
+## Baseline balance
+
+| treatment | colonies | mean founding workers |
+| --- | --- | --- |
+| control | 14 | 41.43 |
+| exposed | 14 | 40.57 |
+
+## Gyne production
+
+| treatment | colonies | mean gynes | SD |
+| --- | --- | --- | --- |
+| control | 14 | 13.86 | 4.99 |
+| exposed | 14 | 6.00 | 3.88 |
+
+Welch's two-sample t-test (two-sided) on lifetime gyne count: t = 4.65, df = 24.5,
+p < 0.001. The control minus exposed difference in means is 7.86 gynes.
+
+Mann-Whitney U test (two-sided, normal approximation) as a distribution-free check:
+U = 176.0, p < 0.001.
+
+[selected-result] Welch's two-sided two-sample t-test on lifetime gyne count with one colony per row: control colonies produced 13.86 gynes on average against 6.00 for thiamethoxam-exposed colonies, a difference of 7.86 gynes (t = 4.65, df = 24.5, p < 0.001), so 2 ppb dietary thiamethoxam is associated with markedly reduced gyne output.
+
+## Notes
+
+The gyne count is a whole-colony lifetime total, so there are no repeated measures to
+pool and no within-colony correlation for the test to absorb. The degrees of freedom
+in the Welch approximation count colonies, not observations. The two arms are close on
+founding worker number (41.43 against 40.57), so the contrast is not driven by
+an obvious size imbalance.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-g2-reviewer-fable-34", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:34c19f723e535aa477ad"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

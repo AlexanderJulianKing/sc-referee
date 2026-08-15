@@ -1,0 +1,253 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-g1-reviewer-fable-32
+
+=== workflow 1: case:8b55946a92793ebcd387 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Kilda Sound kelp growline seeding-density trial
+
+Eight suspended kelp growlines were deployed side by side in Kilda Sound at the
+start of the same growing season. Four growlines were seeded at the sparse
+density and four at the dense density; the density is fixed for a whole
+growline. After twelve weeks, divers sampled five blades from five fixed slots
+along each growline and recorded how fast each sampled blade had been
+elongating.
+
+One row is: one sampled kelp blade taken from one growline, with its measured elongation rate
+Independent unit column: growline_id
+
+Columns:
+- growline_id: the growline the blade was taken from (L01 through L08)
+- seeding_density: the seeding treatment applied to that entire growline, either sparse or dense
+- blade_slot: which of the five fixed sampling positions along the growline the blade came from (1 to 5)
+- elongation_cm_per_day: the blade's elongation rate in centimetres per day
+
+Every growline contributes five rows, one per sampled blade, so the same
+growline appears repeatedly in the file. Blades from one growline shared the
+same rope, the same mooring depth and the same water column for the whole
+season.
+
+--- file data/input.csv ---
+growline_id,seeding_density,blade_slot,elongation_cm_per_day
+L01,sparse,1,2.02
+L01,sparse,2,2.06
+L01,sparse,3,2.11
+L01,sparse,4,2.14
+L01,sparse,5,2.17
+L02,sparse,1,2.25
+L02,sparse,2,2.28
+L02,sparse,3,2.29
+L02,sparse,4,2.33
+L02,sparse,5,2.35
+L03,sparse,1,1.93
+L03,sparse,2,1.97
+L03,sparse,3,2.02
+L03,sparse,4,2.03
+L03,sparse,5,2.05
+L04,sparse,1,2.54
+L04,sparse,2,2.56
+L04,sparse,3,2.60
+L04,sparse,4,2.64
+L04,sparse,5,2.66
+L05,dense,1,1.61
+L05,dense,2,1.68
+L05,dense,3,1.71
+L05,dense,4,1.74
+L05,dense,5,1.76
+L06,dense,1,1.46
+L06,dense,2,1.47
+L06,dense,3,1.49
+L06,dense,4,1.53
+L06,dense,5,1.55
+L07,dense,1,1.84
+L07,dense,2,1.88
+L07,dense,3,1.91
+L07,dense,4,1.92
+L07,dense,5,1.95
+L08,dense,1,1.25
+L08,dense,2,1.26
+L08,dense,3,1.31
+L08,dense,4,1.33
+L08,dense,5,1.35
+
+--- file workflow/analysis.py ---
+"""Seeding-density comparison for the Kilda Sound kelp growline trial.
+
+Reads data/input.csv, compares blade elongation rates between the sparse and
+dense seeding treatments, and writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = Path("data/input.csv")
+OUTPUT_PATH = Path("results/report.md")
+
+UNIT_COL = "growline_id"
+GROUP_COL = "seeding_density"
+SLOT_COL = "blade_slot"
+VALUE_COL = "elongation_cm_per_day"
+LEVELS = ("sparse", "dense")
+
+
+def read_blades(path):
+    """Return every blade record in the survey file as a dictionary."""
+    with path.open("r", encoding="ascii", newline="") as handle:
+        reader = csv.DictReader(handle)
+        return [dict(row) for row in reader]
+
+
+def p_value_phrase(pvalue):
+    """Place the p-value on a fixed threshold ladder so the wording is stable."""
+    for threshold in (1e-8, 1e-6, 1e-4, 1e-3, 1e-2, 5e-2):
+        if pvalue < threshold:
+            return "p < %g" % threshold
+    return "p = %.3f" % pvalue
+
+
+def main():
+    records = read_blades(INPUT_PATH)
+
+    by_group = {level: [] for level in LEVELS}
+    by_unit = {}
+    for row in records:
+        value = float(row[VALUE_COL])
+        by_group[row[GROUP_COL]].append(value)
+        by_unit.setdefault(row[UNIT_COL], {"group": row[GROUP_COL], "values": []})
+        by_unit[row[UNIT_COL]]["values"].append(value)
+
+    samples = {level: np.asarray(by_group[level], dtype=float) for level in LEVELS}
+    tstat, pvalue = stats.ttest_ind(
+        samples["sparse"], samples["dense"], equal_var=True
+    )
+    dof = samples["sparse"].size + samples["dense"].size - 2
+    mean_sparse = float(samples["sparse"].mean())
+    mean_dense = float(samples["dense"].mean())
+    difference = mean_sparse - mean_dense
+    phrase = p_value_phrase(float(pvalue))
+
+    counts = [len(entry["values"]) for entry in by_unit.values()]
+
+    lines = ["# Kilda Sound kelp growline seeding-density trial", ""]
+
+    lines.append("## Data")
+    lines.append("Source: %s" % INPUT_PATH.as_posix())
+    lines.append("Blade records: %d" % len(records))
+    lines.append("Growlines: %d" % len(by_unit))
+    if min(counts) == max(counts):
+        lines.append("Blade records per growline: %d" % counts[0])
+    else:
+        lines.append(
+            "Blade records per growline: %d to %d" % (min(counts), max(counts))
+        )
+    lines.append("")
+
+    lines.append("## Per-growline means")
+    for unit in sorted(by_unit):
+        entry = by_unit[unit]
+        lines.append(
+            "%s  %-6s  mean = %.2f cm/day  (n = %d)"
+            % (
+                unit,
+                entry["group"],
+                float(np.mean(entry["values"])),
+                len(entry["values"]),
+            )
+        )
+    lines.append("")
+
+    lines.append("## Method")
+    lines.append("Response: %s (blade elongation rate)." % VALUE_COL)
+    lines.append("Groups: %s, sparse versus dense." % GROUP_COL)
+    lines.append("Test: two-sample Student t-test with a pooled variance estimate")
+    lines.append(
+        "(scipy.stats.ttest_ind, equal_var=True) over the %d blade records."
+        % len(records)
+    )
+    lines.append("")
+
+    lines.append("## Group summaries")
+    for level in LEVELS:
+        sample = samples[level]
+        lines.append(
+            "%-7s n = %d, mean = %.2f cm/day, sd = %.3f cm/day"
+            % (level + ":", sample.size, sample.mean(), sample.std(ddof=1))
+        )
+    lines.append("Mean difference (sparse - dense): %.2f cm/day" % difference)
+    lines.append("")
+
+    lines.append("## Result")
+    lines.append("t(%d) = %.3f, %s" % (dof, float(tstat), phrase))
+    lines.append("")
+
+    lines.append(
+        "[selected-result] Two-sample Student t-test over %d blade elongation "
+        "records from %d growlines: sparse-seeded blades elongated %.2f cm/day "
+        "faster on average than dense-seeded blades (%.2f versus %.2f cm/day), "
+        "t(%d) = %.3f, %s."
+        % (
+            len(records),
+            len(by_unit),
+            difference,
+            mean_sparse,
+            mean_dense,
+            dof,
+            float(tstat),
+            phrase,
+        )
+    )
+
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with OUTPUT_PATH.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write("\n".join(lines) + "\n")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Kilda Sound kelp growline seeding-density trial
+
+## Data
+Source: data/input.csv
+Blade records: 40
+Growlines: 8
+Blade records per growline: 5
+
+## Per-growline means
+L01  sparse  mean = 2.10 cm/day  (n = 5)
+L02  sparse  mean = 2.30 cm/day  (n = 5)
+L03  sparse  mean = 2.00 cm/day  (n = 5)
+L04  sparse  mean = 2.60 cm/day  (n = 5)
+L05  dense   mean = 1.70 cm/day  (n = 5)
+L06  dense   mean = 1.50 cm/day  (n = 5)
+L07  dense   mean = 1.90 cm/day  (n = 5)
+L08  dense   mean = 1.30 cm/day  (n = 5)
+
+## Method
+Response: elongation_cm_per_day (blade elongation rate).
+Groups: seeding_density, sparse versus dense.
+Test: two-sample Student t-test with a pooled variance estimate
+(scipy.stats.ttest_ind, equal_var=True) over the 40 blade records.
+
+## Group summaries
+sparse: n = 20, mean = 2.25 cm/day, sd = 0.240 cm/day
+dense:  n = 20, mean = 1.60 cm/day, sd = 0.233 cm/day
+Mean difference (sparse - dense): 0.65 cm/day
+
+## Result
+t(38) = 8.691, p < 1e-08
+
+[selected-result] Two-sample Student t-test over 40 blade elongation records from 8 growlines: sparse-seeded blades elongated 0.65 cm/day faster on average than dense-seeded blades (2.25 versus 1.60 cm/day), t(38) = 8.691, p < 1e-08.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-g1-reviewer-fable-32", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:8b55946a92793ebcd387"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

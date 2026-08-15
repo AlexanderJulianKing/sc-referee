@@ -1,0 +1,329 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-g2-reviewer-fable-34
+
+=== workflow 1: case:2cb900277aeb9722b368 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Fouling inspection log: moored sensor housings
+
+Eighteen oceanographic sensor housings were deployed on their own moorings across
+the Kelso Bank shelf array for one summer. Nine carry the yard-standard epoxy
+finish and nine carry an experimental silicone-hydrogel topcoat, assigned before
+deployment; a housing keeps its coating for the whole season. A diver visited each
+housing once a month, four times in all, and photographed the same shoulder panel;
+an image analyst later scored the percentage of that panel covered by biofilm.
+
+Columns:
+
+- housing_id: label of the physical housing (H01 through H18). Each housing sits on
+  its own mooring and is the independently deployed thing being studied.
+- coating: the finish that housing carries, either epoxy_control or
+  silicone_hydrogel. Constant within a housing.
+- month_index: which monthly inspection this row records, 0 through 3.
+- water_temp_c: water temperature in degrees Celsius measured at that inspection.
+- biofilm_cover_pct: percentage of the photographed panel covered by biofilm at
+  that inspection.
+
+The file is in long format, so the four rows sharing a housing_id are four repeated
+looks at the same mooring rather than four separate moorings. They describe how
+fast that one housing fouled; they do not add four independent cases to a
+comparison between coatings. Anything compared across coatings has to be built from
+one summary value per housing.
+
+One row is: one monthly dive inspection of one moored sensor housing
+Independent unit column: housing_id
+
+--- file data/input.csv ---
+housing_id,coating,month_index,water_temp_c,biofilm_cover_pct
+H01,epoxy_control,0,13.8,4.2
+H01,epoxy_control,1,15.4,12.0
+H01,epoxy_control,2,16.7,19.1
+H01,epoxy_control,3,18.0,27.3
+H02,silicone_hydrogel,0,14.0,3.0
+H02,silicone_hydrogel,1,15.6,7.1
+H02,silicone_hydrogel,2,16.9,10.9
+H02,silicone_hydrogel,3,18.2,15.2
+H03,epoxy_control,0,14.2,5.8
+H03,epoxy_control,1,15.8,13.9
+H03,epoxy_control,2,17.1,22.4
+H03,epoxy_control,3,18.4,29.6
+H04,silicone_hydrogel,0,14.4,2.4
+H04,silicone_hydrogel,1,16.0,5.9
+H04,silicone_hydrogel,2,17.3,9.3
+H04,silicone_hydrogel,3,18.6,12.6
+H05,epoxy_control,0,14.6,3.1
+H05,epoxy_control,1,16.2,10.2
+H05,epoxy_control,2,17.5,18.5
+H05,epoxy_control,3,18.8,25.0
+H06,silicone_hydrogel,0,13.8,4.1
+H06,silicone_hydrogel,1,15.4,8.2
+H06,silicone_hydrogel,2,16.7,12.5
+H06,silicone_hydrogel,3,18.0,16.8
+H07,epoxy_control,0,14.0,6.5
+H07,epoxy_control,1,15.6,15.1
+H07,epoxy_control,2,16.9,23.8
+H07,epoxy_control,3,18.2,32.2
+H08,silicone_hydrogel,0,14.2,1.8
+H08,silicone_hydrogel,1,15.8,5.0
+H08,silicone_hydrogel,2,17.1,8.1
+H08,silicone_hydrogel,3,18.4,11.4
+H09,epoxy_control,0,14.4,2.9
+H09,epoxy_control,1,16.0,9.4
+H09,epoxy_control,2,17.3,16.8
+H09,epoxy_control,3,18.6,23.1
+H10,silicone_hydrogel,0,14.6,3.5
+H10,silicone_hydrogel,1,16.2,8.0
+H10,silicone_hydrogel,2,17.5,12.1
+H10,silicone_hydrogel,3,18.8,16.0
+H11,epoxy_control,0,13.8,7.0
+H11,epoxy_control,1,15.4,16.2
+H11,epoxy_control,2,16.7,24.9
+H11,epoxy_control,3,18.0,33.5
+H12,silicone_hydrogel,0,14.0,2.7
+H12,silicone_hydrogel,1,15.6,6.4
+H12,silicone_hydrogel,2,16.9,9.8
+H12,silicone_hydrogel,3,18.2,13.5
+H13,epoxy_control,0,14.2,4.6
+H13,epoxy_control,1,15.8,11.8
+H13,epoxy_control,2,17.1,20.3
+H13,epoxy_control,3,18.4,26.9
+H14,silicone_hydrogel,0,14.4,4.4
+H14,silicone_hydrogel,1,16.0,9.1
+H14,silicone_hydrogel,2,17.3,13.6
+H14,silicone_hydrogel,3,18.6,18.2
+H15,epoxy_control,0,14.6,5.2
+H15,epoxy_control,1,16.2,14.0
+H15,epoxy_control,2,17.5,21.7
+H15,epoxy_control,3,18.8,30.4
+H16,silicone_hydrogel,0,13.8,2.1
+H16,silicone_hydrogel,1,15.4,5.5
+H16,silicone_hydrogel,2,16.7,8.8
+H16,silicone_hydrogel,3,18.0,12.0
+H17,epoxy_control,0,14.0,3.7
+H17,epoxy_control,1,15.6,10.9
+H17,epoxy_control,2,16.9,17.6
+H17,epoxy_control,3,18.2,24.8
+H18,silicone_hydrogel,0,14.2,3.3
+H18,silicone_hydrogel,1,15.8,7.4
+H18,silicone_hydrogel,2,17.1,11.2
+H18,silicone_hydrogel,3,18.4,15.5
+
+--- file workflow/analysis.py ---
+"""Fouling trial on moored sensor housings.
+
+Reads the long-format inspection log in data/input.csv, reduces the repeated
+inspections of each housing to a single fouling accumulation rate, compares the
+two coatings on those per-housing rates, and writes results/report.md.
+"""
+
+import csv
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = Path("data") / "input.csv"
+REPORT_PATH = Path("results") / "report.md"
+
+CONTROL = "epoxy_control"
+TOPCOAT = "silicone_hydrogel"
+
+COL_W = (7, 17, 4)
+
+
+def read_log(path):
+    """Group the inspection log by housing, keeping (month, cover) pairs."""
+    inspections = {}
+    coating_of = {}
+    with path.open("r", newline="", encoding="ascii") as handle:
+        for row in csv.DictReader(handle):
+            housing = row["housing_id"]
+            inspections.setdefault(housing, []).append(
+                (float(row["month_index"]), float(row["biofilm_cover_pct"]))
+            )
+            coating_of[housing] = row["coating"]
+    return inspections, coating_of
+
+
+def accumulation_rate(records):
+    """OLS slope of biofilm cover on month index, in points per month."""
+    months = np.array([m for m, _ in records], dtype=float)
+    cover = np.array([c for _, c in records], dtype=float)
+    slope, _intercept = np.polyfit(months, cover, 1)
+    return float(slope)
+
+
+def welch_dof(first, second):
+    """Welch-Satterthwaite degrees of freedom for two independent samples."""
+    a = first.var(ddof=1) / first.size
+    b = second.var(ddof=1) / second.size
+    return float(
+        (a + b) ** 2 / (a * a / (first.size - 1) + b * b / (second.size - 1))
+    )
+
+
+def row_line(cells):
+    padded = (
+        cells[0].ljust(COL_W[0]),
+        cells[1].ljust(COL_W[1]),
+        cells[2].rjust(COL_W[2]),
+    )
+    return "| " + " | ".join(padded) + " |"
+
+
+def rule_line():
+    return "|" + "|".join("-" * (width + 2) for width in COL_W) + "|"
+
+
+def main():
+    inspections, coating_of = read_log(INPUT_PATH)
+    housings = sorted(inspections)
+
+    visit_counts = set(len(records) for records in inspections.values())
+    if len(visit_counts) != 1:
+        raise ValueError("housings do not share a common inspection schedule")
+    per_housing = visit_counts.pop()
+    n_sessions = per_housing * len(housings)
+
+    # One analysed number per independently moored housing.
+    rate = dict((h, accumulation_rate(inspections[h])) for h in housings)
+    control = np.array([rate[h] for h in housings if coating_of[h] == CONTROL])
+    topcoat = np.array([rate[h] for h in housings if coating_of[h] == TOPCOAT])
+
+    tstat, pval = stats.ttest_ind(control, topcoat, equal_var=False)
+    dof = welch_dof(control, topcoat)
+    diff = float(control.mean() - topcoat.mean())
+    stderr = float(
+        np.sqrt(
+            control.var(ddof=1) / control.size + topcoat.var(ddof=1) / topcoat.size
+        )
+    )
+    margin = float(stats.t.ppf(0.975, dof)) * stderr
+    low = diff - margin
+    high = diff + margin
+    p_text = "p < 0.0001" if pval < 1e-4 else "p = {:.4f}".format(pval)
+
+    lines = [
+        "# Biofilm accumulation on moored sensor housings under two hull coatings",
+        "",
+        "## Study and data",
+        "",
+        "The array holds {} oceanographic sensor housings moored independently on the Kelso".format(len(housings)),
+        "Bank shelf: {} finished with the yard-standard epoxy ({}) and {} with an".format(control.size, CONTROL, topcoat.size),
+        "experimental silicone-hydrogel topcoat ({}). Each housing was".format(TOPCOAT),
+        "photographed by a diver at four monthly inspections (month 0 to month 3) and the",
+        "fraction of the housing shoulder covered by biofilm was scored from each image.",
+        "The file therefore holds {} session records, {} per housing.".format(n_sessions, per_housing),
+        "",
+        "## Statistical approach",
+        "",
+        "The four inspections of a given housing are repeated measurements of the same",
+        "mooring and are not independent of one another, so they were not entered into the",
+        "group comparison as separate observations. Each housing was first summarised by",
+        "the ordinary least-squares slope of biofilm cover on month index, that is, its",
+        "fouling accumulation rate in percentage points per month. That reduction yields",
+        "exactly one analysed value per independently moored housing, and the {} rates were".format(len(housings)),
+        "compared between coatings with Welch's two-sample t-test for unequal variances",
+        "(two-sided).",
+        "",
+        "## Per-housing fouling accumulation rate",
+        "",
+        row_line(("housing", "coating", "rate")),
+        rule_line(),
+    ]
+    for housing in housings:
+        lines.append(
+            row_line(
+                (housing, coating_of[housing], "{:.2f}".format(rate[housing]))
+            )
+        )
+    lines.extend(
+        [
+            "",
+            "Rate is in percentage points of cover per month; {} housings, one rate each.".format(len(housings)),
+            "",
+            "## Result",
+            "",
+            "Epoxy control: mean rate {:.2f} pp/month (SD {:.2f}, n = {} housings).".format(control.mean(), control.std(ddof=1), control.size),
+            "Silicone-hydrogel topcoat: mean rate {:.2f} pp/month (SD {:.2f}, n = {} housings).".format(topcoat.mean(), topcoat.std(ddof=1), topcoat.size),
+            "Difference (control minus topcoat): {:.2f} pp/month, 95% CI [{:.2f}, {:.2f}].".format(diff, low, high),
+            "",
+            "[selected-result] Welch's two-sample t-test on {} independent per-housing fouling accumulation rates ({} {} vs {} {}, one OLS slope per housing over its {} monthly inspections): t = {:.2f}, df = {:.1f}, {}; the silicone-hydrogel topcoat accumulates biofilm {:.2f} pp/month more slowly (95% CI [{:.2f}, {:.2f}]).".format(len(housings), control.size, CONTROL, topcoat.size, TOPCOAT, per_housing, tstat, dof, p_text, diff, low, high),
+            "",
+            "The {} session-level records were used only to estimate the within-housing slopes;".format(n_sessions),
+            "no inference was drawn from them as if they were {} independent observations.".format(n_sessions),
+        ]
+    )
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Biofilm accumulation on moored sensor housings under two hull coatings
+
+## Study and data
+
+The array holds 18 oceanographic sensor housings moored independently on the Kelso
+Bank shelf: 9 finished with the yard-standard epoxy (epoxy_control) and 9 with an
+experimental silicone-hydrogel topcoat (silicone_hydrogel). Each housing was
+photographed by a diver at four monthly inspections (month 0 to month 3) and the
+fraction of the housing shoulder covered by biofilm was scored from each image.
+The file therefore holds 72 session records, 4 per housing.
+
+## Statistical approach
+
+The four inspections of a given housing are repeated measurements of the same
+mooring and are not independent of one another, so they were not entered into the
+group comparison as separate observations. Each housing was first summarised by
+the ordinary least-squares slope of biofilm cover on month index, that is, its
+fouling accumulation rate in percentage points per month. That reduction yields
+exactly one analysed value per independently moored housing, and the 18 rates were
+compared between coatings with Welch's two-sample t-test for unequal variances
+(two-sided).
+
+## Per-housing fouling accumulation rate
+
+| housing | coating           | rate |
+|---------|-------------------|------|
+| H01     | epoxy_control     | 7.64 |
+| H02     | silicone_hydrogel | 4.04 |
+| H03     | epoxy_control     | 7.99 |
+| H04     | silicone_hydrogel | 3.40 |
+| H05     | epoxy_control     | 7.40 |
+| H06     | silicone_hydrogel | 4.24 |
+| H07     | epoxy_control     | 8.58 |
+| H08     | silicone_hydrogel | 3.19 |
+| H09     | epoxy_control     | 6.80 |
+| H10     | silicone_hydrogel | 4.16 |
+| H11     | epoxy_control     | 8.82 |
+| H12     | silicone_hydrogel | 3.58 |
+| H13     | epoxy_control     | 7.54 |
+| H14     | silicone_hydrogel | 4.59 |
+| H15     | epoxy_control     | 8.33 |
+| H16     | silicone_hydrogel | 3.30 |
+| H17     | epoxy_control     | 7.00 |
+| H18     | silicone_hydrogel | 4.04 |
+
+Rate is in percentage points of cover per month; 18 housings, one rate each.
+
+## Result
+
+Epoxy control: mean rate 7.79 pp/month (SD 0.69, n = 9 housings).
+Silicone-hydrogel topcoat: mean rate 3.84 pp/month (SD 0.48, n = 9 housings).
+Difference (control minus topcoat): 3.95 pp/month, 95% CI [3.35, 4.56].
+
+[selected-result] Welch's two-sample t-test on 18 independent per-housing fouling accumulation rates (9 epoxy_control vs 9 silicone_hydrogel, one OLS slope per housing over its 4 monthly inspections): t = 14.00, df = 14.3, p < 0.0001; the silicone-hydrogel topcoat accumulates biofilm 3.95 pp/month more slowly (95% CI [3.35, 4.56]).
+
+The 72 session-level records were used only to estimate the within-housing slopes;
+no inference was drawn from them as if they were 72 independent observations.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-g2-reviewer-fable-34", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:2cb900277aeb9722b368"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

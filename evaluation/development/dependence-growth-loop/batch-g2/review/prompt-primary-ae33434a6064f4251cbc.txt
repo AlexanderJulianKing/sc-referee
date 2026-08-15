@@ -1,0 +1,263 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-g2-reviewer-fable-34
+
+=== workflow 1: case:ae33434a6064f4251cbc ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Limpet thermal tolerance survey
+
+Twelve rocky-shore limpets were collected by hand from a single granite shore
+platform: six from the low-shore zone, which is submerged for most of the
+tidal cycle, and six from the high-shore zone, which is exposed to air and sun
+for long stretches. Each animal was held in a common flow-through aquarium and
+then placed in a heated seawater bath on four consecutive days. On each day
+the bath temperature was raised at a steady rate and the temperature at which
+the animal lost its grip on the substrate was recorded as its critical thermal
+maximum for that ramp. Every animal therefore appears in the file four times,
+once per ramp day, and the four values for an animal are repeated readings of
+the same individual rather than readings of four different animals.
+
+Columns:
+
+- `limpet_id`: tag code of the individual animal, LP01 through LP12.
+- `shore_zone`: tidal zone the animal was collected from, `low` or `high`.
+- `trial_no`: which of the four ramp days the reading came from, 1 to 4.
+- `shell_length_mm`: shell length of the animal in millimetres, measured once
+  at collection and repeated on each of that animal's rows.
+- `ctmax_c`: critical thermal maximum in degrees Celsius for that ramp.
+
+One row is: one heated-bath temperature ramp of one limpet on one day
+Independent unit column: limpet_id
+
+--- file data/input.csv ---
+limpet_id,shore_zone,trial_no,shell_length_mm,ctmax_c
+LP01,low,1,21.4,32.9
+LP01,low,2,21.4,33.0
+LP01,low,3,21.4,33.1
+LP01,low,4,21.4,33.0
+LP02,low,1,23.8,33.5
+LP02,low,2,23.8,33.3
+LP02,low,3,23.8,33.4
+LP02,low,4,23.8,33.4
+LP03,low,1,19.6,32.8
+LP03,low,2,19.6,32.9
+LP03,low,3,19.6,32.7
+LP03,low,4,19.6,32.8
+LP04,low,1,22.5,33.1
+LP04,low,2,22.5,33.3
+LP04,low,3,22.5,33.2
+LP04,low,4,22.5,33.2
+LP05,low,1,24.1,33.6
+LP05,low,2,24.1,33.5
+LP05,low,3,24.1,33.7
+LP05,low,4,24.1,33.6
+LP06,low,1,20.8,33.3
+LP06,low,2,20.8,33.2
+LP06,low,3,20.8,33.1
+LP06,low,4,20.8,33.2
+LP07,high,1,22.9,35.5
+LP07,high,2,22.9,35.3
+LP07,high,3,22.9,35.4
+LP07,high,4,22.9,35.4
+LP08,high,1,25.3,35.7
+LP08,high,2,25.3,35.9
+LP08,high,3,25.3,35.8
+LP08,high,4,25.3,35.8
+LP09,high,1,20.2,35.3
+LP09,high,2,20.2,35.2
+LP09,high,3,20.2,35.1
+LP09,high,4,20.2,35.2
+LP10,high,1,23.6,35.9
+LP10,high,2,23.6,36.0
+LP10,high,3,23.6,36.1
+LP10,high,4,23.6,36.0
+LP11,high,1,21.7,35.6
+LP11,high,2,21.7,35.7
+LP11,high,3,21.7,35.5
+LP11,high,4,21.7,35.6
+LP12,high,1,24.4,35.6
+LP12,high,2,24.4,35.5
+LP12,high,3,24.4,35.7
+LP12,high,4,24.4,35.6
+
+--- file workflow/analysis.py ---
+"""Critical thermal maximum of shore limpets in two tidal zones.
+
+Reads data/input.csv, compares the CTmax column between the low-shore and
+high-shore groups with a two-sample t-test, and writes results/report.md.
+"""
+
+import csv
+import math
+import os
+from collections import OrderedDict
+
+from scipy import stats
+
+INPUT_PATH = os.path.join("data", "input.csv")
+OUTPUT_PATH = os.path.join("results", "report.md")
+
+ZONES = ("low", "high")
+ZONE_TITLE = {"low": "Low shore", "high": "High shore"}
+
+
+def read_table(path):
+    with open(path, newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def split_by_zone(rows):
+    ctmax = OrderedDict((zone, []) for zone in ZONES)
+    animals = OrderedDict((zone, []) for zone in ZONES)
+    for row in rows:
+        zone = row["shore_zone"].strip()
+        ctmax[zone].append(float(row["ctmax_c"]))
+        tag = row["limpet_id"].strip()
+        if tag not in animals[zone]:
+            animals[zone].append(tag)
+    return ctmax, animals
+
+
+def mean_sd(values):
+    n = len(values)
+    mean = math.fsum(values) / n
+    ss = math.fsum((value - mean) ** 2 for value in values)
+    return mean, math.sqrt(ss / (n - 1))
+
+
+def build_report(ctmax, animals):
+    summary = OrderedDict()
+    for zone in ZONES:
+        values = ctmax[zone]
+        mean, sd = mean_sd(values)
+        summary[zone] = {
+            "animals": len(animals[zone]),
+            "n": len(values),
+            "reps": len(values) // len(animals[zone]),
+            "mean": mean,
+            "sd": sd,
+        }
+
+    outcome = stats.ttest_ind(ctmax["low"], ctmax["high"], equal_var=True)
+    t_stat = float(outcome.statistic)
+    p_value = float(outcome.pvalue)
+    total = summary["low"]["n"] + summary["high"]["n"]
+    df = total - 2
+    gap = summary["high"]["mean"] - summary["low"]["mean"]
+    p_text = "p < 0.0001" if p_value < 1e-4 else "p = {0:.4f}".format(p_value)
+
+    lines = [
+        "# Critical thermal maximum of shore limpets in two tidal zones",
+        "",
+        "## Data",
+        "",
+        "Column `ctmax_c` of `data/input.csv` records the critical thermal maximum, in",
+        "degrees Celsius, reached by intertidal limpets during a heated-seawater ramp.",
+        "Animals were collected from one granite shore platform in two tidal zones and",
+        "each animal was ramped on several consecutive days.",
+        "",
+        "| Shore zone | Animals | Measurements | Ramps per animal | Mean CTmax (C) | SD (C) |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    for zone in ZONES:
+        item = summary[zone]
+        lines.append(
+            "| {0} | {1} | {2} | {3} | {4:.3f} | {5:.3f} |".format(
+                ZONE_TITLE[zone],
+                item["animals"],
+                item["n"],
+                item["reps"],
+                item["mean"],
+                item["sd"],
+            )
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Analysis",
+            "",
+            "Two-sided two-sample Student t-test (pooled variance) comparing `ctmax_c`",
+            "between the low-shore and high-shore groups. Every measurement in the file",
+            "was entered into the test as one observation of its group.",
+            "",
+            "## Result",
+            "",
+            "High-shore limpets reached a mean CTmax {0:.3f} C above low-shore limpets.".format(
+                gap
+            ),
+            "",
+            (
+                "[selected-result] Two-sample t-test of ctmax_c by shore zone: "
+                "t({0}) = {1:.3f}, {2} (low shore {3:.3f} C, n = {4}; "
+                "high shore {5:.3f} C, n = {6}; difference {7:.3f} C)."
+            ).format(
+                df,
+                t_stat,
+                p_text,
+                summary["low"]["mean"],
+                summary["low"]["n"],
+                summary["high"]["mean"],
+                summary["high"]["n"],
+                gap,
+            ),
+            "",
+            "All {0} measurements were treated as independent observations, giving {1}".format(
+                total, df
+            ),
+            "degrees of freedom.",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    rows = read_table(INPUT_PATH)
+    ctmax, animals = split_by_zone(rows)
+    report = build_report(ctmax, animals)
+    directory = os.path.dirname(OUTPUT_PATH)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    with open(OUTPUT_PATH, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(report)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Critical thermal maximum of shore limpets in two tidal zones
+
+## Data
+
+Column `ctmax_c` of `data/input.csv` records the critical thermal maximum, in
+degrees Celsius, reached by intertidal limpets during a heated-seawater ramp.
+Animals were collected from one granite shore platform in two tidal zones and
+each animal was ramped on several consecutive days.
+
+| Shore zone | Animals | Measurements | Ramps per animal | Mean CTmax (C) | SD (C) |
+| --- | --- | --- | --- | --- | --- |
+| Low shore | 6 | 24 | 4 | 33.200 | 0.273 |
+| High shore | 6 | 24 | 4 | 35.600 | 0.273 |
+
+## Analysis
+
+Two-sided two-sample Student t-test (pooled variance) comparing `ctmax_c`
+between the low-shore and high-shore groups. Every measurement in the file
+was entered into the test as one observation of its group.
+
+## Result
+
+High-shore limpets reached a mean CTmax 2.400 C above low-shore limpets.
+
+[selected-result] Two-sample t-test of ctmax_c by shore zone: t(46) = -30.402, p < 0.0001 (low shore 33.200 C, n = 24; high shore 35.600 C, n = 24; difference 2.400 C).
+
+All 48 measurements were treated as independent observations, giving 46
+degrees of freedom.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-g2-reviewer-fable-34", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:ae33434a6064f4251cbc"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

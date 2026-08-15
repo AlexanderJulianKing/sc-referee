@@ -1,0 +1,222 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-g2-reviewer-fable-34
+
+=== workflow 1: case:ff99e13110aad17a7fd0 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Cold-brew steeping trial
+
+Twelve laboratory cold-brew vessels were prepared in a temperature-controlled
+cabinet. Each vessel was filled with coffee ground at a single setting, either
+coarse or fine, and then sampled four times as the brew steeped: at 6, 12, 18
+and 24 hours. At every sampling a small aliquot was drawn and its total
+dissolved solids (TDS) measured with a refractometer, and the water temperature
+of the vessel was noted. Six vessels used the coarse setting and six used the
+fine setting, giving 48 measurement records in all.
+
+Columns in data/input.csv:
+
+- vessel_id: label of the steeping vessel, V01 through V12. Each vessel appears
+  in four rows, one per draw time.
+- grind: the grind setting loaded into that vessel, "coarse" or "fine". The
+  setting is a property of the vessel, so it is the same in all four of a
+  vessel's rows.
+- steep_hours: hours of steeping elapsed when the aliquot was drawn (6, 12, 18
+  or 24).
+- water_temp_c: water temperature of the vessel in degrees Celsius.
+- tds_percent: total dissolved solids of the drawn aliquot, percent by mass.
+
+One row is: one aliquot drawn from one steeping vessel at one draw time
+Independent unit column: vessel_id
+
+--- file data/input.csv ---
+vessel_id,grind,steep_hours,water_temp_c,tds_percent
+V01,coarse,6,4.1,1.06
+V01,coarse,12,4.1,1.13
+V01,coarse,18,4.1,1.23
+V01,coarse,24,4.1,1.26
+V02,coarse,6,4.3,0.99
+V02,coarse,12,4.3,1.06
+V02,coarse,18,4.3,1.12
+V02,coarse,24,4.3,1.19
+V03,coarse,6,3.9,1.09
+V03,coarse,12,3.9,1.20
+V03,coarse,18,3.9,1.26
+V03,coarse,24,3.9,1.33
+V04,coarse,6,4.2,1.00
+V04,coarse,12,4.2,1.11
+V04,coarse,18,4.2,1.17
+V04,coarse,24,4.2,1.20
+V05,coarse,6,4.0,1.03
+V05,coarse,12,4.0,1.09
+V05,coarse,18,4.0,1.18
+V05,coarse,24,4.0,1.24
+V06,coarse,6,4.4,0.95
+V06,coarse,12,4.4,1.06
+V06,coarse,18,4.4,1.14
+V06,coarse,24,4.4,1.17
+V07,fine,6,4.2,1.21
+V07,fine,12,4.2,1.31
+V07,fine,18,4.2,1.37
+V07,fine,24,4.2,1.46
+V08,fine,6,3.9,1.29
+V08,fine,12,3.9,1.43
+V08,fine,18,3.9,1.49
+V08,fine,24,3.9,1.56
+V09,fine,6,4.1,1.26
+V09,fine,12,4.1,1.38
+V09,fine,18,4.1,1.46
+V09,fine,24,4.1,1.49
+V10,fine,6,4.3,1.19
+V10,fine,12,4.3,1.27
+V10,fine,18,4.3,1.36
+V10,fine,24,4.3,1.44
+V11,fine,6,4.0,1.33
+V11,fine,12,4.0,1.45
+V11,fine,18,4.0,1.51
+V11,fine,24,4.0,1.58
+V12,fine,6,4.2,1.24
+V12,fine,12,4.2,1.32
+V12,fine,18,4.2,1.43
+V12,fine,24,4.2,1.48
+
+--- file workflow/analysis.py ---
+"""Cold-brew steeping trial: grind coarseness versus total dissolved solids.
+
+Reads data/input.csv, compares the TDS readings of the two grind settings and
+writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+DATA_FILE = Path("data") / "input.csv"
+REPORT_FILE = Path("results") / "report.md"
+
+SETTINGS = ("coarse", "fine")
+
+
+def read_table(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def tds_for(table, setting):
+    picked = [float(row["tds_percent"]) for row in table if row["grind"] == setting]
+    return np.asarray(picked, dtype=float)
+
+
+def welch_dof(left, right):
+    a = left.var(ddof=1) / left.size
+    b = right.var(ddof=1) / right.size
+    return (a + b) ** 2 / (a * a / (left.size - 1) + b * b / (right.size - 1))
+
+
+def p_phrase(pval):
+    return "< 0.0001" if pval < 1e-4 else "= {:.4f}".format(pval)
+
+
+def summary_line(setting, values):
+    return "- {:<13} n = {:d}, mean TDS = {:.4f} %, SD = {:.4f} %".format(
+        setting + " grind:", values.size, values.mean(), values.std(ddof=1)
+    )
+
+
+def main():
+    table = read_table(DATA_FILE)
+    samples = {setting: tds_for(table, setting) for setting in SETTINGS}
+    coarse = samples["coarse"]
+    fine = samples["fine"]
+
+    tstat, pval = stats.ttest_ind(fine, coarse, equal_var=False)
+    dof = welch_dof(fine, coarse)
+    gap = float(fine.mean() - coarse.mean())
+    stat_line = "t = {:.3f}, df = {:.1f}, p {}".format(
+        float(tstat), dof, p_phrase(float(pval))
+    )
+
+    lines = [
+        "# Cold-brew steeping: grind coarseness and total dissolved solids",
+        "",
+        "## Data",
+        "",
+        "{:d} total-dissolved-solids (TDS) readings taken from laboratory cold-brew".format(
+            len(table)
+        ),
+        "steeping vessels. Each vessel was loaded with a single grind setting and",
+        "sampled at draw times of 6, 12, 18 and 24 hours.",
+        "",
+        summary_line("coarse", coarse),
+        summary_line("fine", fine),
+        "",
+        "## Analysis",
+        "",
+        "Welch two-sample t-test (two-sided, unequal variances) comparing the TDS",
+        "readings recorded at the fine grind setting with those recorded at the",
+        "coarse setting. Every row of the data file was supplied to the test as one",
+        "observation.",
+        "",
+        "Mean difference (fine minus coarse): {:.4f} percentage points".format(gap),
+        stat_line,
+        "",
+        "## Result",
+        "",
+        "[selected-result] Welch two-sample t-test on {:d} TDS readings ({:d} fine, {:d} coarse): mean difference fine minus coarse = {:.4f} percentage points, {}.".format(
+            len(table), fine.size, coarse.size, gap, stat_line
+        ),
+        "",
+        "## Interpretation",
+        "",
+        "Vessels filled with the fine grind returned higher total dissolved solids",
+        "than vessels filled with the coarse grind across the sampled draw times.",
+    ]
+
+    REPORT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Cold-brew steeping: grind coarseness and total dissolved solids
+
+## Data
+
+48 total-dissolved-solids (TDS) readings taken from laboratory cold-brew
+steeping vessels. Each vessel was loaded with a single grind setting and
+sampled at draw times of 6, 12, 18 and 24 hours.
+
+- coarse grind: n = 24, mean TDS = 1.1358 %, SD = 0.0959 %
+- fine grind:   n = 24, mean TDS = 1.3879 %, SD = 0.1101 %
+
+## Analysis
+
+Welch two-sample t-test (two-sided, unequal variances) comparing the TDS
+readings recorded at the fine grind setting with those recorded at the
+coarse setting. Every row of the data file was supplied to the test as one
+observation.
+
+Mean difference (fine minus coarse): 0.2521 percentage points
+t = 8.456, df = 45.1, p < 0.0001
+
+## Result
+
+[selected-result] Welch two-sample t-test on 48 TDS readings (24 fine, 24 coarse): mean difference fine minus coarse = 0.2521 percentage points, t = 8.456, df = 45.1, p < 0.0001.
+
+## Interpretation
+
+Vessels filled with the fine grind returned higher total dissolved solids
+than vessels filled with the coarse grind across the sampled draw times.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-g2-reviewer-fable-34", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:ff99e13110aad17a7fd0"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

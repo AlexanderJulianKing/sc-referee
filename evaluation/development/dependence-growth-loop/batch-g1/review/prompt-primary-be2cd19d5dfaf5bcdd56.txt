@@ -1,0 +1,252 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-g1-reviewer-fable-32
+
+=== workflow 1: case:be2cd19d5dfaf5bcdd56 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Fern spore cryobank germination trial
+
+Sixteen fern spore accessions were collected between 2021 and 2024, each from a
+single maternal sporophyte growing at its own site, and each spore lot was split
+into two aliquots. One aliquot was kept in a conventional -20 C freezer and the
+other in liquid-nitrogen vapour at -196 C. After 18 months, one plate of 100
+spores per aliquot was sown and germination was scored once, giving every
+accession a matched pair of germination percentages on a single line of the CSV.
+
+One row is: one fern spore accession, carrying its matched freezer and cryogenic germination percentages after 18 months of storage
+Independent unit column: accession_id
+
+Columns:
+- accession_id: unique code for the accession; it appears on exactly one row
+- taxon: fern species the spores came from
+- collection_site: place where the parent sporophyte was found
+- collection_year: year the spores were harvested
+- spores_scored: number of spores sown on each of the two plates (100)
+- germ_pct_freezer_minus20c: percent germinated after storage at -20 C
+- germ_pct_cryo_minus196c: percent germinated after storage at -196 C
+
+Accessions came from different sites and were never subsampled or re-measured,
+so no accession is represented twice and no two rows share a source lot. The two
+percentages inside a row are matched measurements on the same lot, which is why
+the analysis works with the within-row difference instead of treating the two
+columns as independent samples.
+
+--- file data/input.csv ---
+accession_id,taxon,collection_site,collection_year,spores_scored,germ_pct_freezer_minus20c,germ_pct_cryo_minus196c
+FSB-101,Dryopteris filix-mas,Craigmore Glen,2021,100,52,56
+FSB-102,Athyrium filix-femina,Blackwater Ravine,2021,100,44,56
+FSB-103,Polystichum aculeatum,Stonefall Wood,2021,100,61,62
+FSB-104,Asplenium trichomanes,Kestrel Scar,2022,100,38,56
+FSB-105,Blechnum spicant,Larkin Moss,2022,100,47,54
+FSB-106,Polypodium vulgare,Ashen Dyke,2022,100,66,68
+FSB-107,Osmunda regalis,Hallow Fen,2022,100,41,51
+FSB-108,Cystopteris fragilis,Nether Clough,2022,100,58,59
+FSB-109,Gymnocarpium dryopteris,Windfell Beck,2023,100,33,49
+FSB-110,Phegopteris connectilis,Selby Carr,2023,100,55,60
+FSB-111,Oreopteris limbosperma,Thrushgill Bank,2023,100,49,57
+FSB-112,Asplenium scolopendrium,Marrow Ghyll,2023,100,29,48
+FSB-113,Dryopteris affinis,Redlaw Spinney,2023,100,63,64
+FSB-114,Athyrium distentifolium,Corrie Tarn,2024,100,45,54
+FSB-115,Woodsia ilvensis,Pike Edge,2024,100,57,61
+FSB-116,Pteridium aquilinum,Harrow Common,2024,100,34,45
+
+--- file workflow/analysis.py ---
+"""Fern spore cryobank trial: accession-level paired germination analysis.
+
+Reads data/input.csv and writes results/report.md. Each accession occupies one
+row and contributes one matched pair of germination scores, so the test has
+exactly as many observations as the design has independent units.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = Path("data") / "input.csv"
+REPORT_PATH = Path("results") / "report.md"
+
+UNIT_COL = "accession_id"
+FREEZER_COL = "germ_pct_freezer_minus20c"
+CRYO_COL = "germ_pct_cryo_minus196c"
+SCORED_COL = "spores_scored"
+
+
+def read_accessions(path):
+    with path.open("r", encoding="ascii", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    if len(rows) < 2:
+        raise SystemExit("need at least two accessions")
+    codes = [row[UNIT_COL] for row in rows]
+    if len(set(codes)) != len(codes):
+        raise SystemExit("every accession must appear on exactly one row")
+    return rows
+
+
+def column(rows, name):
+    return np.array([float(row[name]) for row in rows], dtype=float)
+
+
+def format_p(value):
+    if value < 1e-4:
+        return "p < 0.0001"
+    return "p = {0:.4f}".format(value)
+
+
+def main():
+    rows = read_accessions(INPUT_PATH)
+    freezer = column(rows, FREEZER_COL)
+    cryo = column(rows, CRYO_COL)
+    gain = cryo - freezer
+
+    n = int(gain.size)
+    df = n - 1
+    mean_gain = float(np.mean(gain))
+    sd_gain = float(np.std(gain, ddof=1))
+    se_gain = sd_gain / float(np.sqrt(n))
+    tstat, pval = stats.ttest_rel(cryo, freezer)
+    tcrit = float(stats.t.ppf(0.975, df))
+    lo = mean_gain - tcrit * se_gain
+    hi = mean_gain + tcrit * se_gain
+    dz = mean_gain / sd_gain
+    wstat, wpval = stats.wilcoxon(cryo, freezer)
+
+    scored = sorted({int(row[SCORED_COL]) for row in rows})
+    scored_text = ", ".join(str(value) for value in scored)
+    n_improved = int(np.sum(gain >= 0.0))
+
+    lines = [
+        "# Cryobank germination trial: paired comparison of two storage regimes",
+        "",
+        "## Data",
+        "",
+        "- Source file: data/input.csv",
+        "- Independent units (fern spore accessions): {0}".format(n),
+        "- Rows analysed: {0} (exactly one row per accession)".format(len(rows)),
+        "- Spores scored per aliquot: {0}".format(scored_text),
+        "",
+        "## Design and analysis",
+        "",
+        "Each accession is a spore lot harvested from one maternal sporophyte at its",
+        "own site. Every lot was split into two aliquots: one held at -20 C and one",
+        "held at -196 C. After 18 months a single plate per aliquot was sown and",
+        "scored, so an accession yields exactly one matched pair and exactly one",
+        "analysed difference (cryo minus freezer, in percentage points).",
+        "",
+        "The primary test is a two-sided paired t-test on the {0} accession-level".format(n),
+        "differences (df = {0}). A Wilcoxon signed-rank test on the same differences".format(df),
+        "is reported as a distribution-free check.",
+        "",
+        "## Results",
+        "",
+        "| quantity | value |",
+        "| --- | --- |",
+        "| mean germination at -20 C (%) | {0:.2f} |".format(float(np.mean(freezer))),
+        "| mean germination at -196 C (%) | {0:.2f} |".format(float(np.mean(cryo))),
+        "| mean paired difference (pp) | {0:.2f} |".format(mean_gain),
+        "| SD of paired differences (pp) | {0:.2f} |".format(sd_gain),
+        "| standard error of the mean difference (pp) | {0:.2f} |".format(se_gain),
+        "| 95% CI for the mean difference (pp) | {0:.2f} to {1:.2f} |".format(lo, hi),
+        "| Cohen's dz | {0:.2f} |".format(dz),
+        "",
+        "Paired t-test: t({0}) = {1:.3f}, {2} (two-sided).".format(
+            df, float(tstat), format_p(float(pval))
+        ),
+        "Wilcoxon signed-rank test: W = {0:.1f}, {1} (two-sided).".format(
+            float(wstat), format_p(float(wpval))
+        ),
+        "",
+        (
+            "[selected-result] Paired t-test on {0} accession-level differences "
+            "(one difference per accession): cryogenic storage at -196 C raised "
+            "18-month spore germination by {1:.2f} percentage points relative to "
+            "-20 C storage (95% CI {2:.2f} to {3:.2f} pp; t({4}) = {5:.3f}, {6}, "
+            "two-sided)."
+        ).format(n, mean_gain, lo, hi, df, float(tstat), format_p(float(pval))),
+        "",
+        "## Reading the numbers",
+        "",
+        "All {0} of the {1} accessions germinated at least as well after cryogenic".format(
+            n_improved, n
+        ),
+        "storage; the smallest single-accession gain was {0:.0f} pp and the largest".format(
+            float(np.min(gain))
+        ),
+        "was {0:.0f} pp. The accession is the unit of replication: no accession".format(
+            float(np.max(gain))
+        ),
+        "contributes more than one row, nothing is pooled across accessions before",
+        "testing, and the {0} differences entering the test are the {0} independent".format(n),
+        "observations the design provides. The interval describes a within-accession",
+        "contrast, not the spread of absolute germination between accessions, which",
+        "runs from {0:.0f} to {1:.0f} percent under freezer storage.".format(
+            float(np.min(freezer)), float(np.max(freezer))
+        ),
+    ]
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Cryobank germination trial: paired comparison of two storage regimes
+
+## Data
+
+- Source file: data/input.csv
+- Independent units (fern spore accessions): 16
+- Rows analysed: 16 (exactly one row per accession)
+- Spores scored per aliquot: 100
+
+## Design and analysis
+
+Each accession is a spore lot harvested from one maternal sporophyte at its
+own site. Every lot was split into two aliquots: one held at -20 C and one
+held at -196 C. After 18 months a single plate per aliquot was sown and
+scored, so an accession yields exactly one matched pair and exactly one
+analysed difference (cryo minus freezer, in percentage points).
+
+The primary test is a two-sided paired t-test on the 16 accession-level
+differences (df = 15). A Wilcoxon signed-rank test on the same differences
+is reported as a distribution-free check.
+
+## Results
+
+| quantity | value |
+| --- | --- |
+| mean germination at -20 C (%) | 48.25 |
+| mean germination at -196 C (%) | 56.25 |
+| mean paired difference (pp) | 8.00 |
+| SD of paired differences (pp) | 6.00 |
+| standard error of the mean difference (pp) | 1.50 |
+| 95% CI for the mean difference (pp) | 4.80 to 11.20 |
+| Cohen's dz | 1.33 |
+
+Paired t-test: t(15) = 5.333, p < 0.0001 (two-sided).
+Wilcoxon signed-rank test: W = 0.0, p < 0.0001 (two-sided).
+
+[selected-result] Paired t-test on 16 accession-level differences (one difference per accession): cryogenic storage at -196 C raised 18-month spore germination by 8.00 percentage points relative to -20 C storage (95% CI 4.80 to 11.20 pp; t(15) = 5.333, p < 0.0001, two-sided).
+
+## Reading the numbers
+
+All 16 of the 16 accessions germinated at least as well after cryogenic
+storage; the smallest single-accession gain was 1 pp and the largest
+was 19 pp. The accession is the unit of replication: no accession
+contributes more than one row, nothing is pooled across accessions before
+testing, and the 16 differences entering the test are the 16 independent
+observations the design provides. The interval describes a within-accession
+contrast, not the spread of absolute germination between accessions, which
+runs from 29 to 66 percent under freezer storage.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-g1-reviewer-fable-32", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:be2cd19d5dfaf5bcdd56"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

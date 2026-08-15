@@ -1,0 +1,194 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-g1-reviewer-fable-32
+
+=== workflow 1: case:30108f0d34292b11cab8 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Weekly paired methane-yield log from a digester fleet
+
+Five full-scale anaerobic digesters at a municipal water-resource recovery
+facility were followed for four consecutive weeks. Each digester is plumbed
+with two parallel feed trains: one is fed thermally hydrolysed sludge, the
+other is fed the same sludge with no pretreatment. Once per week an operator
+walks a sampling round, draws a matched pair of biogas samples (one from each
+train of the same digester), and records the specific methane yield of both.
+The file therefore holds four weekly sampling sessions for every digester, and
+the two yield columns in a row always come from the same digester in the same
+week.
+
+One row is: one weekly paired sampling session on a single digester, holding that week's pretreated and control specific methane yields side by side
+Independent unit column: digester_id
+One trial is: one row
+
+Columns:
+- digester_id: label of the digester the session belongs to (D-01 through D-05); the same digester contributes four rows, one per study week
+- week: study week number, 1 through 4
+- operator_shift: whether that sampling round was walked on the day or the night shift
+- pretreated_yield_m3_per_kgvs: specific methane yield of the thermally hydrolysed train, in cubic metres of methane per kilogram of volatile solids fed
+- control_yield_m3_per_kgvs: specific methane yield of the untreated control train, same units
+
+Digesters differ from one another in sludge blend, mixing regime and retention
+time, so the weekly readings taken from one digester tend to move together.
+
+--- file data/input.csv ---
+digester_id,week,operator_shift,pretreated_yield_m3_per_kgvs,control_yield_m3_per_kgvs
+D-01,1,day,0.462,0.401
+D-01,2,night,0.455,0.398
+D-01,3,day,0.471,0.410
+D-01,4,night,0.449,0.395
+D-02,1,day,0.398,0.352
+D-02,2,day,0.407,0.361
+D-02,3,night,0.389,0.344
+D-02,4,day,0.412,0.370
+D-03,1,night,0.436,0.418
+D-03,2,day,0.421,0.430
+D-03,3,day,0.444,0.409
+D-03,4,night,0.429,0.415
+D-04,1,day,0.375,0.360
+D-04,2,night,0.368,0.381
+D-04,3,day,0.391,0.372
+D-04,4,day,0.383,0.366
+D-05,1,night,0.344,0.359
+D-05,2,day,0.352,0.371
+D-05,3,day,0.361,0.348
+D-05,4,night,0.339,0.366
+
+--- file workflow/analysis.py ---
+"""Weekly check on a thermal-hydrolysis pretreatment step at a digester fleet.
+
+Reads the paired weekly methane-yield log and asks whether the pretreated feed
+train beats its untreated control train more often than a fair coin would
+explain.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+from scipy.stats import binomtest
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+NULL_WIN_RATE = 0.5
+
+
+def read_sessions(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def tally_wins(sessions):
+    """Count pretreatment wins overall and per digester, in first-seen order."""
+    per_unit = {}
+    order = []
+    wins = 0
+    for row in sessions:
+        pretreated = float(row["pretreated_yield_m3_per_kgvs"])
+        control = float(row["control_yield_m3_per_kgvs"])
+        won = 1 if pretreated > control else 0
+        wins += won
+        unit = row["digester_id"]
+        if unit not in per_unit:
+            per_unit[unit] = [0, 0]
+            order.append(unit)
+        per_unit[unit][0] += 1
+        per_unit[unit][1] += won
+    breakdown = [(unit, per_unit[unit][0], per_unit[unit][1]) for unit in order]
+    return wins, breakdown
+
+
+def build_report(n_sessions, wins, breakdown, proportion, pvalue):
+    lines = [
+        "# Does thermal-hydrolysis pretreatment lift weekly methane yield?",
+        "",
+        "Each logged session pairs a pretreated train against a control train fed in",
+        "parallel on the same day, so every session returns one win-or-loss verdict",
+        "for the pretreatment step.",
+        "",
+        "## Session counts",
+        "",
+        "- Sessions read from `data/input.csv`: {}".format(n_sessions),
+        "- Distinct digester identifiers in the file: {}".format(len(breakdown)),
+        "- Sessions won by the pretreated train: {}".format(wins),
+        "",
+        "| digester_id | sessions | pretreated wins |",
+        "| --- | --- | --- |",
+    ]
+    for unit, seen, hit in breakdown:
+        lines.append("| {} | {} | {} |".format(unit, seen, hit))
+    lines += [
+        "",
+        "## Analysis",
+        "",
+        "Every logged session is treated as one independent Bernoulli trial and the",
+        "win tally is tested against a fair-coin null of 0.5 with the exact two-sided",
+        "binomial test `scipy.stats.binomtest`.",
+        "",
+        "- Observed win proportion: {:.3f}".format(proportion),
+        "- Exact two-sided p-value: {:.4f}".format(pvalue),
+        "",
+        (
+            "[selected-result] Exact two-sided binomial test (scipy.stats.binomtest) "
+            "over {} weekly sampling sessions: the pretreated train won {} of {} "
+            "sessions, proportion {:.3f}, p = {:.4f}, which is below 0.05, so the "
+            "log is read as evidence that thermal-hydrolysis pretreatment raises "
+            "specific methane yield."
+        ).format(n_sessions, wins, n_sessions, proportion, pvalue),
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    sessions = read_sessions(INPUT_PATH)
+    wins, breakdown = tally_wins(sessions)
+    n_sessions = len(sessions)
+    result = binomtest(wins, n_sessions, NULL_WIN_RATE, alternative="two-sided")
+    proportion = wins / n_sessions
+    report = build_report(n_sessions, wins, breakdown, proportion, result.pvalue)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(report)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Does thermal-hydrolysis pretreatment lift weekly methane yield?
+
+Each logged session pairs a pretreated train against a control train fed in
+parallel on the same day, so every session returns one win-or-loss verdict
+for the pretreatment step.
+
+## Session counts
+
+- Sessions read from `data/input.csv`: 20
+- Distinct digester identifiers in the file: 5
+- Sessions won by the pretreated train: 15
+
+| digester_id | sessions | pretreated wins |
+| --- | --- | --- |
+| D-01 | 4 | 4 |
+| D-02 | 4 | 4 |
+| D-03 | 4 | 3 |
+| D-04 | 4 | 3 |
+| D-05 | 4 | 1 |
+
+## Analysis
+
+Every logged session is treated as one independent Bernoulli trial and the
+win tally is tested against a fair-coin null of 0.5 with the exact two-sided
+binomial test `scipy.stats.binomtest`.
+
+- Observed win proportion: 0.750
+- Exact two-sided p-value: 0.0414
+
+[selected-result] Exact two-sided binomial test (scipy.stats.binomtest) over 20 weekly sampling sessions: the pretreated train won 15 of 20 sessions, proportion 0.750, p = 0.0414, which is below 0.05, so the log is read as evidence that thermal-hydrolysis pretreatment raises specific methane yield.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-g1-reviewer-fable-32", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:30108f0d34292b11cab8"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

@@ -1,0 +1,231 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-g2-reviewer-fable-34
+
+=== workflow 1: case:93d89748fb42073e79bd ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What is in data/input.csv
+
+Every hawkmoth in this study was captured, given a unique mark, measured once,
+released once into the Y-tube choice arena, scored, and then let go. No animal
+entered the arena a second time, so the file is simply a list of animals, each
+with the single choice it made.
+
+One row is: one wild-caught hawkmoth tested a single time in the Y-tube choice arena
+Independent unit column: moth_id
+One trial is: one row
+
+Columns:
+
+- `moth_id`: the unique mark code painted on the thorax; each code appears once.
+- `sex`: female or male, scored from the antennae at capture.
+- `forewing_length_mm`: right forewing length in millimetres, measured once at
+  capture, before the trial.
+- `amber_arm_position`: which arm of the Y held the amber lamp during that
+  animal's trial, left or right; the two positions were counterbalanced across
+  animals so that a side bias could not masquerade as a colour preference.
+- `chosen_spectrum`: the lamp the animal walked toward, amber or white. This is
+  the single outcome the analysis counts.
+
+Because one animal supplies exactly one yes/no outcome, the twenty rows are
+twenty independent Bernoulli trials and can be fed directly into a procedure
+that assumes independent rows.
+
+--- file data/input.csv ---
+moth_id,sex,forewing_length_mm,amber_arm_position,chosen_spectrum
+M01,female,18.4,left,amber
+M02,female,19.1,right,amber
+M03,male,17.6,left,white
+M04,female,18.8,right,amber
+M05,male,16.9,left,amber
+M06,male,17.2,right,amber
+M07,female,20.0,left,amber
+M08,male,18.3,right,white
+M09,female,19.5,left,amber
+M10,female,17.4,right,amber
+M11,male,16.7,left,amber
+M12,female,18.6,right,amber
+M13,male,19.8,left,white
+M14,male,17.0,right,amber
+M15,female,18.1,left,amber
+M16,male,19.3,right,amber
+M17,female,16.5,left,amber
+M18,female,17.7,right,white
+M19,male,18.9,left,amber
+M20,male,17.4,right,amber
+
+--- file workflow/analysis.py ---
+"""Y-tube spectral choice assay: one hawkmoth, one trial, one row.
+
+Reads data/input.csv and writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+import statistics
+from pathlib import Path
+
+from scipy.stats import binomtest
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+UNIT_COLUMN = "moth_id"
+CHOICE_COLUMN = "chosen_spectrum"
+AMBER = "amber"
+NULL_P = 0.5
+ALPHA = 0.05
+
+
+def read_trials(path: Path) -> list[dict[str, str]]:
+    """Load the trial table and refuse anything that is not one row per moth."""
+    with path.open(newline="", encoding="ascii") as handle:
+        trials = [dict(row) for row in csv.DictReader(handle)]
+    if not trials:
+        raise ValueError("data/input.csv contains no trials")
+    marks = [row[UNIT_COLUMN] for row in trials]
+    if len(set(marks)) != len(marks):
+        raise ValueError("a moth mark is repeated; the rows would not be independent")
+    return trials
+
+
+def amber_count(trials, keep) -> tuple[int, int]:
+    """Return (amber choices, trials) over the rows selected by ``keep``."""
+    subset = [row for row in trials if keep(row)]
+    chosen = sum(1 for row in subset if row[CHOICE_COLUMN] == AMBER)
+    return chosen, len(subset)
+
+
+def build_report(trials: list[dict[str, str]]) -> str:
+    wings = [float(row["forewing_length_mm"]) for row in trials]
+    n_amber, n_total = amber_count(trials, lambda row: True)
+    n_marks = len({row[UNIT_COLUMN] for row in trials})
+    result = binomtest(n_amber, n_total, NULL_P, alternative="two-sided")
+    proportion = n_amber / n_total
+    verdict = "is" if result.pvalue < ALPHA else "is not"
+
+    left_amber, left_n = amber_count(
+        trials, lambda row: row["amber_arm_position"] == "left"
+    )
+    right_amber, right_n = amber_count(
+        trials, lambda row: row["amber_arm_position"] == "right"
+    )
+    female_amber, female_n = amber_count(trials, lambda row: row["sex"] == "female")
+    male_amber, male_n = amber_count(trials, lambda row: row["sex"] == "male")
+
+    lines = [
+        "# Spectral choice in nocturnal hawkmoths: a single-trial Y-tube assay",
+        "",
+        "## Design",
+        "",
+        "Twenty wild-caught hawkmoths were released one at a time into a Y-tube choice",
+        "arena with an amber (590 nm) lamp at the end of one arm and a cool-white lamp at",
+        "the end of the other. A moth was scored the moment it crossed a line 20 cm into",
+        "one arm, and it was then retired from the study. Every row of `data/input.csv`",
+        "is therefore one animal and one trial: the independent unit and the observation",
+        "are the same thing, and no moth contributes twice.",
+        "",
+        "## Cohort",
+        "",
+        "| quantity | value |",
+        "| --- | --- |",
+        f"| trials (rows) | {n_total} |",
+        f"| distinct moth identifiers | {n_marks} |",
+        f"| mean forewing length (mm) | {statistics.mean(wings):.2f} |",
+        f"| shortest / longest forewing (mm) | {min(wings):.1f} / {max(wings):.1f} |",
+        "",
+        "## Analysis",
+        "",
+        "With one Bernoulli outcome per moth, the number of amber choices is binomial",
+        f"with n = {n_total}, and the null hypothesis of no spectral preference fixes the success",
+        f"probability at {NULL_P:.3f}. The two-sided exact binomial test",
+        "(`scipy.stats.binomtest`) is applied to the raw count; no normal approximation",
+        "and no clustering correction are needed, because there is nothing to cluster.",
+        "",
+        f"Amber was chosen in {n_amber} of {n_total} trials (proportion {proportion:.3f}).",
+        "",
+        f"[selected-result] Two-sided exact binomial test of no spectral preference: "
+        f"{n_amber} of {n_total} hawkmoths chose the amber arm (proportion {proportion:.3f} "
+        f"against a null of {NULL_P:.3f}), p = {result.pvalue:.6f}, so the preference for amber "
+        f"{verdict} statistically significant at alpha = {ALPHA:.2f}.",
+        "",
+        "## Balance checks (descriptive only)",
+        "",
+        "| stratum | amber choices | trials |",
+        "| --- | --- | --- |",
+        f"| amber lamp on the left arm | {left_amber} | {left_n} |",
+        f"| amber lamp on the right arm | {right_amber} | {right_n} |",
+        f"| female | {female_amber} | {female_n} |",
+        f"| male | {male_amber} | {male_n} |",
+        "",
+        "The counterbalanced lamp positions produced the same amber count, so the result",
+        "is not an artefact of a side bias. The sex strata are reported for completeness",
+        "and are not tested.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main() -> None:
+    trials = read_trials(INPUT_PATH)
+    report = build_report(trials)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(report)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Spectral choice in nocturnal hawkmoths: a single-trial Y-tube assay
+
+## Design
+
+Twenty wild-caught hawkmoths were released one at a time into a Y-tube choice
+arena with an amber (590 nm) lamp at the end of one arm and a cool-white lamp at
+the end of the other. A moth was scored the moment it crossed a line 20 cm into
+one arm, and it was then retired from the study. Every row of `data/input.csv`
+is therefore one animal and one trial: the independent unit and the observation
+are the same thing, and no moth contributes twice.
+
+## Cohort
+
+| quantity | value |
+| --- | --- |
+| trials (rows) | 20 |
+| distinct moth identifiers | 20 |
+| mean forewing length (mm) | 18.16 |
+| shortest / longest forewing (mm) | 16.5 / 20.0 |
+
+## Analysis
+
+With one Bernoulli outcome per moth, the number of amber choices is binomial
+with n = 20, and the null hypothesis of no spectral preference fixes the success
+probability at 0.500. The two-sided exact binomial test
+(`scipy.stats.binomtest`) is applied to the raw count; no normal approximation
+and no clustering correction are needed, because there is nothing to cluster.
+
+Amber was chosen in 16 of 20 trials (proportion 0.800).
+
+[selected-result] Two-sided exact binomial test of no spectral preference: 16 of 20 hawkmoths chose the amber arm (proportion 0.800 against a null of 0.500), p = 0.011818, so the preference for amber is statistically significant at alpha = 0.05.
+
+## Balance checks (descriptive only)
+
+| stratum | amber choices | trials |
+| --- | --- | --- |
+| amber lamp on the left arm | 8 | 10 |
+| amber lamp on the right arm | 8 | 10 |
+| female | 9 | 10 |
+| male | 7 | 10 |
+
+The counterbalanced lamp positions produced the same amber count, so the result
+is not an artefact of a side bias. The sex strata are reported for completeness
+and are not tested.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-g2-reviewer-fable-34", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:93d89748fb42073e79bd"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

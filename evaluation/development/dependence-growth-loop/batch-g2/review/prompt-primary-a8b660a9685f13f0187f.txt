@@ -1,0 +1,259 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-g2-reviewer-fable-34
+
+=== workflow 1: case:a8b660a9685f13f0187f ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Nightly echolocation recordings at two summer bat roosts
+
+A field crew worked at two summer roosts of a small insectivorous bat: an old
+quarry adit on the ridge and a road culvert near Halden. Six individually
+marked bats were followed at each roost, and every marked bat was recorded on
+four separate emergence nights. For each bat on each night the crew counted how
+many clean search-phase calls could be extracted from that night's recording and
+measured the peak frequency of the call spectrum, in kilohertz.
+
+One row is: one night of echolocation recording from one marked bat at its roost
+Independent unit column: bat_id
+
+Columns:
+
+- bat_id: the individually marked bat the recording came from. There are 12
+  bats in the file and each one appears on four rows, one per recording night.
+- roost_site: the roost where that bat was recorded, either quarry_adit or
+  halden_culvert. A bat was only ever recorded at one roost.
+- night_index: which of the four recording nights the row describes, 1 to 4.
+- calls_analyzed: how many clean search-phase calls were measured that night.
+- peak_frequency_khz: peak frequency of that night's call spectrum for that
+  bat, in kilohertz.
+
+--- file data/input.csv ---
+bat_id,roost_site,night_index,calls_analyzed,peak_frequency_khz
+QA01,quarry_adit,1,62,38.5
+QA01,quarry_adit,2,58,38.8
+QA01,quarry_adit,3,71,38.4
+QA01,quarry_adit,4,66,38.7
+QA02,quarry_adit,1,54,39.6
+QA02,quarry_adit,2,49,39.3
+QA02,quarry_adit,3,77,39.7
+QA02,quarry_adit,4,60,39.4
+QA03,quarry_adit,1,83,40.6
+QA03,quarry_adit,2,45,40.2
+QA03,quarry_adit,3,52,40.2
+QA03,quarry_adit,4,64,40.2
+QA04,quarry_adit,1,70,41.9
+QA04,quarry_adit,2,68,41.7
+QA04,quarry_adit,3,59,41.7
+QA04,quarry_adit,4,74,41.5
+QA05,quarry_adit,1,48,42.4
+QA05,quarry_adit,2,55,42.7
+QA05,quarry_adit,3,61,42.3
+QA05,quarry_adit,4,57,42.6
+QA06,quarry_adit,1,66,43.5
+QA06,quarry_adit,2,72,43.2
+QA06,quarry_adit,3,50,43.6
+QA06,quarry_adit,4,63,43.3
+HC01,halden_culvert,1,58,41.9
+HC01,halden_culvert,2,64,41.6
+HC01,halden_culvert,3,47,42.0
+HC01,halden_culvert,4,69,41.7
+HC02,halden_culvert,1,75,39.2
+HC02,halden_culvert,2,53,39.5
+HC02,halden_culvert,3,61,39.1
+HC02,halden_culvert,4,44,39.4
+HC03,halden_culvert,1,67,37.7
+HC03,halden_culvert,2,59,37.4
+HC03,halden_culvert,3,73,37.8
+HC03,halden_culvert,4,51,37.5
+HC04,halden_culvert,1,62,37.4
+HC04,halden_culvert,2,46,37.7
+HC04,halden_culvert,3,80,37.3
+HC04,halden_culvert,4,57,37.6
+HC05,halden_culvert,1,55,37.3
+HC05,halden_culvert,2,68,37.1
+HC05,halden_culvert,3,49,37.1
+HC05,halden_culvert,4,71,36.9
+HC06,halden_culvert,1,60,37.4
+HC06,halden_culvert,2,52,37.0
+HC06,halden_culvert,3,65,37.0
+HC06,halden_culvert,4,43,37.0
+
+--- file workflow/analysis.py ---
+"""Compare peak echolocation frequency between two summer bat roosts.
+
+Reads data/input.csv and writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+import math
+from pathlib import Path
+
+from scipy import stats
+
+INPUT_PATH = Path("data") / "input.csv"
+REPORT_PATH = Path("results") / "report.md"
+
+BAT_COL = "bat_id"
+SITE_COL = "roost_site"
+FREQ_COL = "peak_frequency_khz"
+
+
+def read_sessions():
+    """One tuple per recording night: (bat, roost, peak frequency in kHz)."""
+    sessions = []
+    with INPUT_PATH.open("r", encoding="ascii", newline="") as handle:
+        for row in csv.DictReader(handle):
+            sessions.append((row[BAT_COL], row[SITE_COL], float(row[FREQ_COL])))
+    return sessions
+
+
+def mean(values):
+    return sum(values) / len(values)
+
+
+def sample_sd(values):
+    centre = mean(values)
+    spread = sum((value - centre) ** 2 for value in values)
+    return math.sqrt(spread / (len(values) - 1))
+
+
+def main():
+    sessions = read_sessions()
+    if not sessions:
+        raise SystemExit("data/input.csv holds no recording sessions")
+
+    site_order = []
+    freq = {}
+    bats = {}
+    per_bat = {}
+    for bat, site, khz in sessions:
+        if site not in site_order:
+            site_order.append(site)
+            freq[site] = []
+            bats[site] = set()
+        freq[site].append(khz)
+        bats[site].add(bat)
+        per_bat[bat] = per_bat.get(bat, 0) + 1
+
+    if len(site_order) != 2:
+        raise SystemExit("expected recordings from exactly two roost sites")
+
+    first, second = site_order
+    counts = sorted(set(per_bat.values()))
+    if len(counts) == 1:
+        per_bat_label = str(counts[0])
+    else:
+        per_bat_label = "{0}-{1}".format(counts[0], counts[-1])
+
+    left = freq[first]
+    right = freq[second]
+
+    outcome = stats.ttest_ind(left, right, equal_var=True)
+    tstat = float(outcome.statistic)
+    pvalue = float(outcome.pvalue)
+    dof = len(left) + len(right) - 2
+
+    pooled_sd = math.sqrt(
+        ((len(left) - 1) * sample_sd(left) ** 2
+         + (len(right) - 1) * sample_sd(right) ** 2) / dof
+    )
+    difference = mean(left) - mean(right)
+    cohens_d = difference / pooled_sd
+    direction = "higher" if difference > 0 else "lower"
+    p_text = "< 0.0001" if pvalue < 1e-4 else "= {0:.4f}".format(pvalue)
+
+    lines = [
+        "# Peak echolocation frequency at two summer roosts",
+        "",
+        "## Data",
+        "",
+        "- Input file: `data/input.csv`",
+        f"- Nightly recording sessions: {len(sessions)}",
+        f"- Individual bats: {len(per_bat)}",
+        f"- Sessions contributed per bat: {per_bat_label}",
+        "",
+        "| Roost site | Sessions | Bats | Mean peak frequency (kHz) | SD (kHz) |",
+        "| --- | ---: | ---: | ---: | ---: |",
+    ]
+    for site in site_order:
+        values = freq[site]
+        lines.append(
+            f"| {site} | {len(values)} | {len(bats[site])} |"
+            f" {mean(values):.3f} | {sample_sd(values):.3f} |"
+        )
+    lines += [
+        "",
+        "## Analysis",
+        "",
+        f"Each of the {len(sessions)} rows in `data/input.csv` was entered as one observation in a",
+        "two-sample Student t test (pooled variance, two-sided) comparing mean peak",
+        f"echolocation frequency between the {first} sessions and the",
+        f"{second} sessions.",
+        "",
+        "## Result",
+        "",
+        f"- Mean difference ({first} minus {second}): {difference:.3f} kHz",
+        f"- Pooled standard deviation: {pooled_sd:.3f} kHz",
+        f"- Standardised difference (Cohen's d): {cohens_d:.3f}",
+        f"- Test statistic: t = {tstat:.3f} on df = {dof}",
+        f"- Two-sided p-value: p {p_text}",
+        "",
+        f"[selected-result] Two-sample t test over {len(sessions)} nightly recording"
+        f" sessions entered as {len(sessions)} observations: mean peak echolocation"
+        f" frequency is {abs(difference):.3f} kHz {direction} at {first} than at {second}"
+        f" (t = {tstat:.3f}, df = {dof}, p {p_text}).",
+        "",
+        f"The {len(per_bat)} bats each contributed {per_bat_label} nightly sessions, and those individual sessions",
+        "were the units entered into the test reported above.",
+    ]
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Peak echolocation frequency at two summer roosts
+
+## Data
+
+- Input file: `data/input.csv`
+- Nightly recording sessions: 48
+- Individual bats: 12
+- Sessions contributed per bat: 4
+
+| Roost site | Sessions | Bats | Mean peak frequency (kHz) | SD (kHz) |
+| --- | ---: | ---: | ---: | ---: |
+| quarry_adit | 24 | 6 | 41.000 | 1.727 |
+| halden_culvert | 24 | 6 | 38.400 | 1.737 |
+
+## Analysis
+
+Each of the 48 rows in `data/input.csv` was entered as one observation in a
+two-sample Student t test (pooled variance, two-sided) comparing mean peak
+echolocation frequency between the quarry_adit sessions and the
+halden_culvert sessions.
+
+## Result
+
+- Mean difference (quarry_adit minus halden_culvert): 2.600 kHz
+- Pooled standard deviation: 1.732 kHz
+- Standardised difference (Cohen's d): 1.501
+- Test statistic: t = 5.200 on df = 46
+- Two-sided p-value: p < 0.0001
+
+[selected-result] Two-sample t test over 48 nightly recording sessions entered as 48 observations: mean peak echolocation frequency is 2.600 kHz higher at quarry_adit than at halden_culvert (t = 5.200, df = 46, p < 0.0001).
+
+The 12 bats each contributed 4 nightly sessions, and those individual sessions
+were the units entered into the test reported above.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-g2-reviewer-fable-34", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:a8b660a9685f13f0187f"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

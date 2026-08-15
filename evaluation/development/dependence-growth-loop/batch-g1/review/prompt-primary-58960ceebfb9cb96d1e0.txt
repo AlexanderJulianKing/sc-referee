@@ -1,0 +1,278 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-g1-reviewer-fable-32
+
+=== workflow 1: case:58960ceebfb9cb96d1e0 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# data/input.csv - midday gas-exchange sessions in a deficit-irrigation crossover
+
+Sixteen two-year-old potted olive saplings (cv. Arbequina) were grown in a ventilated
+screenhouse and put through a two-phase irrigation crossover during the summer of
+2025. Each sapling spent one phase on a deficit schedule (about 35% of estimated crop
+evapotranspiration) and one phase on a full schedule (100% of estimated crop
+evapotranspiration). Half of the saplings started on the deficit schedule and half
+started on the full schedule, so the order of the two schedules is counterbalanced
+across saplings.
+
+Midday leaf gas exchange was measured on four dates spaced two weeks apart, two dates
+inside each irrigation phase, always between 12:00 and 13:30 local time on the
+youngest fully expanded sun-exposed leaf of the sapling. The file is stored in long
+format: the four sessions of a sapling appear as four separate rows, so every sapling
+contributes four rows to the file.
+
+Columns:
+
+- sapling_id: label of the potted sapling that was measured (OLV-01 to OLV-16). The
+  same label appears on all four session rows of that sapling.
+- orchard_block: screenhouse bench the pot stood on (B1 to B4), four pots per bench.
+- session_index: 1 to 4, the ordinal position of the measurement date.
+- session_date: calendar date of the measurement session.
+- irrigation_regime: the schedule the sapling was on during that session, either
+  "deficit" or "full".
+- leaf_temp_c: leaf temperature in the cuvette at the time of the reading, in degrees
+  Celsius.
+- stomatal_conductance_mmol_m2_s: midday stomatal conductance to water vapour, in
+  mmol m^-2 s^-1.
+
+Each sapling is its own pot with its own dripper and is the experimental unit of the
+study. The four rows carrying the same sapling label are repeated measurements of one
+plant, not measurements of four different plants.
+
+One row is: one midday gas-exchange session on one potted olive sapling on one date
+Independent unit column: sapling_id
+
+--- file data/input.csv ---
+sapling_id,orchard_block,session_index,session_date,irrigation_regime,leaf_temp_c,stomatal_conductance_mmol_m2_s
+OLV-01,B1,1,2025-06-03,deficit,32.4,190
+OLV-01,B1,2,2025-06-17,full,29.8,232
+OLV-01,B1,3,2025-07-01,full,30.2,244
+OLV-01,B1,4,2025-07-15,deficit,32.9,202
+OLV-02,B1,1,2025-06-03,full,29.6,205
+OLV-02,B1,2,2025-06-17,deficit,31.8,188
+OLV-02,B1,3,2025-07-01,deficit,32.2,198
+OLV-02,B1,4,2025-07-15,full,30.1,217
+OLV-03,B1,1,2025-06-03,deficit,31.5,209
+OLV-03,B1,2,2025-06-17,full,29.2,248
+OLV-03,B1,3,2025-07-01,full,30.6,226
+OLV-03,B1,4,2025-07-15,deficit,32.7,203
+OLV-04,B1,1,2025-06-03,full,30.4,176
+OLV-04,B1,2,2025-06-17,deficit,32.5,172
+OLV-04,B1,3,2025-07-01,deficit,31.9,184
+OLV-04,B1,4,2025-07-15,full,29.9,190
+OLV-05,B2,1,2025-06-03,deficit,33.1,197
+OLV-05,B2,2,2025-06-17,full,29.4,251
+OLV-05,B2,3,2025-07-01,full,30.0,239
+OLV-05,B2,4,2025-07-15,deficit,32.6,205
+OLV-06,B2,1,2025-06-03,full,29.7,214
+OLV-06,B2,2,2025-06-17,deficit,32.8,189
+OLV-06,B2,3,2025-07-01,deficit,32.1,195
+OLV-06,B2,4,2025-07-15,full,30.3,222
+OLV-07,B2,1,2025-06-03,deficit,31.7,190
+OLV-07,B2,2,2025-06-17,full,30.5,199
+OLV-07,B2,3,2025-07-01,full,30.8,207
+OLV-07,B2,4,2025-07-15,deficit,31.4,198
+OLV-08,B2,1,2025-06-03,full,28.9,262
+OLV-08,B2,2,2025-06-17,deficit,33.4,202
+OLV-08,B2,3,2025-07-01,deficit,33.8,194
+OLV-08,B2,4,2025-07-15,full,29.3,254
+OLV-09,B3,1,2025-06-03,deficit,32.0,199
+OLV-09,B3,2,2025-06-17,full,30.1,221
+OLV-09,B3,3,2025-07-01,full,29.8,229
+OLV-09,B3,4,2025-07-15,deficit,31.6,207
+OLV-10,B3,1,2025-06-03,full,30.7,183
+OLV-10,B3,2,2025-06-17,deficit,33.0,171
+OLV-10,B3,3,2025-07-01,deficit,32.4,179
+OLV-10,B3,4,2025-07-15,full,30.2,195
+OLV-11,B3,1,2025-06-03,deficit,32.9,198
+OLV-11,B3,2,2025-06-17,full,29.5,236
+OLV-11,B3,3,2025-07-01,full,29.1,244
+OLV-11,B3,4,2025-07-15,deficit,32.2,208
+OLV-12,B3,1,2025-06-03,full,30.6,192
+OLV-12,B3,2,2025-06-17,deficit,31.3,190
+OLV-12,B3,3,2025-07-01,deficit,31.1,200
+OLV-12,B3,4,2025-07-15,full,30.0,204
+OLV-13,B4,1,2025-06-03,deficit,33.2,196
+OLV-13,B4,2,2025-06-17,full,29.0,244
+OLV-13,B4,3,2025-07-01,full,28.7,256
+OLV-13,B4,4,2025-07-15,deficit,32.5,208
+OLV-14,B4,1,2025-06-03,full,30.2,209
+OLV-14,B4,2,2025-06-17,deficit,32.6,188
+OLV-14,B4,3,2025-07-01,deficit,31.8,200
+OLV-14,B4,4,2025-07-15,full,29.9,217
+OLV-15,B4,1,2025-06-03,deficit,31.0,174
+OLV-15,B4,2,2025-06-17,full,31.2,168
+OLV-15,B4,3,2025-07-01,full,30.9,178
+OLV-15,B4,4,2025-07-15,deficit,30.5,184
+OLV-16,B4,1,2025-06-03,full,29.6,226
+OLV-16,B4,2,2025-06-17,deficit,31.2,212
+OLV-16,B4,3,2025-07-01,deficit,30.7,224
+OLV-16,B4,4,2025-07-15,full,29.4,234
+
+--- file workflow/analysis.py ---
+"""Deficit-irrigation crossover in potted olive saplings.
+
+Reads the long-format midday session log in data/input.csv, collapses the repeated
+sessions of each sapling into one mean per irrigation schedule, and writes the
+sapling-level paired comparison to results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+import math
+from collections import defaultdict
+from pathlib import Path
+
+from scipy import stats
+
+INPUT_PATH = Path("data/input.csv")
+OUTPUT_PATH = Path("results/report.md")
+
+DEFICIT = "deficit"
+FULL = "full"
+CONDUCTANCE_COLUMN = "stomatal_conductance_mmol_m2_s"
+
+
+def average(values):
+    return sum(values) / len(values)
+
+
+def read_sessions(path):
+    """Return ({sapling_id: {regime: [conductance, ...]}}, number of session rows)."""
+    by_sapling = defaultdict(lambda: defaultdict(list))
+    session_rows = 0
+    with path.open(newline="", encoding="ascii") as handle:
+        for row in csv.DictReader(handle):
+            sapling = row["sapling_id"].strip()
+            regime = row["irrigation_regime"].strip()
+            by_sapling[sapling][regime].append(float(row[CONDUCTANCE_COLUMN]))
+            session_rows += 1
+    if not by_sapling:
+        raise ValueError("no session rows found in " + path.as_posix())
+    return by_sapling, session_rows
+
+
+def collapse_to_saplings(by_sapling):
+    """Reduce repeated sessions to one deficit mean and one full mean per sapling."""
+    sapling_ids = sorted(by_sapling)
+    deficit_means = []
+    full_means = []
+    for sapling in sapling_ids:
+        regimes = by_sapling[sapling]
+        if sorted(regimes) != [DEFICIT, FULL]:
+            raise ValueError("sapling " + sapling + " is missing an irrigation schedule")
+        deficit_means.append(average(regimes[DEFICIT]))
+        full_means.append(average(regimes[FULL]))
+    return sapling_ids, deficit_means, full_means
+
+
+def build_report(session_rows, sapling_ids, deficit_means, full_means):
+    n = len(sapling_ids)
+    sessions_per_sapling = session_rows // n
+    diffs = [d - f for d, f in zip(deficit_means, full_means)]
+    mean_diff = average(diffs)
+    sd_diff = math.sqrt(sum((d - mean_diff) ** 2 for d in diffs) / (n - 1))
+    se_diff = sd_diff / math.sqrt(n)
+    df = n - 1
+
+    test = stats.ttest_rel(deficit_means, full_means)
+    half_width = stats.t.ppf(0.975, df) * se_diff
+    lo = mean_diff - half_width
+    hi = mean_diff + half_width
+    if test.pvalue < 0.001:
+        p_text = "p < 0.001"
+    else:
+        p_text = "p = {0:.3f}".format(test.pvalue)
+
+    selected = (
+        "[selected-result] Midday stomatal conductance was {0:.2f} mmol m^-2 s^-1 lower"
+        " on the deficit schedule than on the full schedule (95% CI [{1:.2f}, {2:.2f}];"
+        " two-sided paired t-test on {3} sapling-level means, t({4}) = {5:.2f}, {6})."
+    ).format(abs(mean_diff), lo, hi, n, df, test.statistic, p_text)
+
+    lines = [
+        "# Midday stomatal conductance under deficit irrigation in potted olive saplings",
+        "",
+        "## Data",
+        "",
+        "Source: {0}, {1} midday gas-exchange sessions recorded in".format(
+            INPUT_PATH.as_posix(), session_rows
+        ),
+        "long format. The {0} potted olive saplings were each measured on {1} dates: two sessions".format(
+            n, sessions_per_sapling
+        ),
+        "on the deficit schedule and two on the full schedule, in a counterbalanced crossover",
+        "order.",
+        "",
+        "## Analysis",
+        "",
+        "Sessions repeated on the same sapling are not independent observations, so the {0}".format(
+            sessions_per_sapling
+        ),
+        "sessions belonging to a sapling were first collapsed into one deficit mean and one",
+        "full mean for that sapling. The reported comparison is a two-sided paired t-test on",
+        "the {0} sapling-level regime means, giving exactly one analysed row per sapling.".format(n),
+        "",
+        "## Result",
+        "",
+        "- Sapling-level mean conductance, deficit schedule: {0:.2f} mmol m^-2 s^-1".format(
+            average(deficit_means)
+        ),
+        "- Sapling-level mean conductance, full schedule: {0:.2f} mmol m^-2 s^-1".format(
+            average(full_means)
+        ),
+        "- Mean within-sapling difference (deficit minus full): {0:.2f} mmol m^-2 s^-1 (SD {1:.2f})".format(
+            mean_diff, sd_diff
+        ),
+        "- 95% CI for the mean difference: [{0:.2f}, {1:.2f}]".format(lo, hi),
+        "- Paired t-test: t({0}) = {1:.2f}, {2}".format(df, test.statistic, p_text),
+        "",
+        selected,
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    by_sapling, session_rows = read_sessions(INPUT_PATH)
+    sapling_ids, deficit_means, full_means = collapse_to_saplings(by_sapling)
+    report = build_report(session_rows, sapling_ids, deficit_means, full_means)
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Midday stomatal conductance under deficit irrigation in potted olive saplings
+
+## Data
+
+Source: data/input.csv, 64 midday gas-exchange sessions recorded in
+long format. The 16 potted olive saplings were each measured on 4 dates: two sessions
+on the deficit schedule and two on the full schedule, in a counterbalanced crossover
+order.
+
+## Analysis
+
+Sessions repeated on the same sapling are not independent observations, so the 4
+sessions belonging to a sapling were first collapsed into one deficit mean and one
+full mean for that sapling. The reported comparison is a two-sided paired t-test on
+the 16 sapling-level regime means, giving exactly one analysed row per sapling.
+
+## Result
+
+- Sapling-level mean conductance, deficit schedule: 195.44 mmol m^-2 s^-1
+- Sapling-level mean conductance, full schedule: 219.44 mmol m^-2 s^-1
+- Mean within-sapling difference (deficit minus full): -24.00 mmol m^-2 s^-1 (SD 18.36)
+- 95% CI for the mean difference: [-33.78, -14.22]
+- Paired t-test: t(15) = -5.23, p < 0.001
+
+[selected-result] Midday stomatal conductance was 24.00 mmol m^-2 s^-1 lower on the deficit schedule than on the full schedule (95% CI [-33.78, -14.22]; two-sided paired t-test on 16 sapling-level means, t(15) = -5.23, p < 0.001).
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-g1-reviewer-fable-32", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:58960ceebfb9cb96d1e0"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

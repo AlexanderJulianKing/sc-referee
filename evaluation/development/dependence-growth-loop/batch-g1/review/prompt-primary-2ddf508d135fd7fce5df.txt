@@ -1,0 +1,234 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-g1-reviewer-fable-32
+
+=== workflow 1: case:2ddf508d135fd7fce5df ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What is in data/input.csv
+
+Twenty-four abandoned slate and gravel quarry ponds across one upland survey
+region were screened for great crested newt environmental DNA during a single
+spring campaign. Each pond was visited exactly once and yielded exactly one
+pooled water sample, so a pond never appears on more than one line of the file.
+Half of the ponds had been regraded years earlier to give a gently shelving
+littoral margin; the other half kept their original steep-sided profile.
+
+Columns:
+
+- pond_id: the unique code for the quarry pond, for example QP-07. No code is
+  repeated anywhere in the file.
+- shelf_status: "restored" if the pond has a regraded gently shelving littoral
+  margin, "unrestored" if it retains its original steep-sided profile.
+- pond_area_m2: open-water surface area of the pond in square metres.
+- mean_depth_cm: mean water depth in centimetres, averaged over a five-point
+  transect walked during the same single visit.
+- edna_result: "detected" or "not_detected", the great crested newt eDNA result
+  for that pond's one pooled water sample.
+
+One row is: one abandoned quarry pond surveyed a single time, with one pooled water sample screened for great crested newt eDNA
+Independent unit column: pond_id
+One trial is: one row
+
+Every pond is its own independent unit. There are no repeat visits, no split or
+replicate samples written out as extra lines, and no grouping of ponds inside
+larger clusters recorded in this file, so the rows can be treated as separate
+observations of separate ponds.
+
+--- file data/input.csv ---
+pond_id,shelf_status,pond_area_m2,mean_depth_cm,edna_result
+QP-01,restored,1840,72,detected
+QP-02,unrestored,2210,118,not_detected
+QP-03,restored,960,55,detected
+QP-04,unrestored,1475,131,not_detected
+QP-05,restored,3120,88,not_detected
+QP-06,unrestored,880,96,detected
+QP-07,restored,2465,64,detected
+QP-08,unrestored,1990,142,not_detected
+QP-09,restored,1130,47,detected
+QP-10,unrestored,3340,127,not_detected
+QP-11,restored,2755,79,detected
+QP-12,unrestored,1265,83,detected
+QP-13,restored,1580,105,not_detected
+QP-14,unrestored,2870,139,not_detected
+QP-15,restored,2040,58,detected
+QP-16,unrestored,1710,124,not_detected
+QP-17,restored,905,41,detected
+QP-18,unrestored,2520,115,not_detected
+QP-19,restored,3610,112,not_detected
+QP-20,unrestored,1395,91,detected
+QP-21,restored,1225,49,detected
+QP-22,unrestored,2085,133,not_detected
+QP-23,restored,2930,67,detected
+QP-24,unrestored,1650,120,not_detected
+
+--- file workflow/analysis.py ---
+"""Littoral shelf restoration and great crested newt eDNA in quarry ponds.
+
+Reads data/input.csv (one abandoned quarry pond per row, one survey per pond)
+and writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+from scipy.stats import fisher_exact
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+SHELF_LEVELS = ("restored", "unrestored")
+POSITIVE = "detected"
+NEGATIVE = "not_detected"
+
+
+def read_surveys(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        surveys = list(csv.DictReader(handle))
+    if not surveys:
+        raise ValueError("data/input.csv contains no survey rows")
+    return surveys
+
+
+def check_one_survey_per_pond(surveys):
+    pond_ids = [row["pond_id"] for row in surveys]
+    if len(set(pond_ids)) != len(pond_ids):
+        raise ValueError("pond_id values repeat; the design is one survey per pond")
+
+
+def cross_tabulate(surveys):
+    counts = {level: {POSITIVE: 0, NEGATIVE: 0} for level in SHELF_LEVELS}
+    for row in surveys:
+        shelf = row["shelf_status"]
+        outcome = row["edna_result"]
+        if shelf not in counts:
+            raise ValueError("unrecognised shelf_status: " + shelf)
+        if outcome not in (POSITIVE, NEGATIVE):
+            raise ValueError("unrecognised edna_result: " + outcome)
+        counts[shelf][outcome] += 1
+    return counts
+
+
+def compose(counts, odds_ratio, p_value):
+    hits = {lv: counts[lv][POSITIVE] for lv in SHELF_LEVELS}
+    misses = {lv: counts[lv][NEGATIVE] for lv in SHELF_LEVELS}
+    sizes = {lv: hits[lv] + misses[lv] for lv in SHELF_LEVELS}
+    rates = {lv: hits[lv] / sizes[lv] for lv in SHELF_LEVELS}
+    total = sizes["restored"] + sizes["unrestored"]
+    gap = rates["restored"] - rates["unrestored"]
+
+    lines = [
+        "# Littoral shelf restoration and great crested newt eDNA detection",
+        "",
+        "## Design",
+        "",
+        "Each row of `data/input.csv` is one abandoned quarry pond. Every pond was",
+        "visited once and contributed exactly one pooled water sample, screened for",
+        "great crested newt eDNA. Pond identifiers are unique, so the "
+        + str(total)
+        + " ponds",
+        "supply "
+        + str(total)
+        + " mutually independent observations with no repeated measures.",
+        "",
+        "## Analysis",
+        "",
+        "Two-sided Fisher exact test on the 2 x 2 table of shelf status by eDNA result.",
+        "",
+        "| Shelf status | Detected | Not detected | Ponds | Detection rate |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+
+    for lv in SHELF_LEVELS:
+        lines.append(
+            "| {0} | {1} | {2} | {3} | {4:.3f} |".format(
+                lv, hits[lv], misses[lv], sizes[lv], rates[lv]
+            )
+        )
+
+    lines += [
+        "",
+        "## Result",
+        "",
+        "- Sample odds ratio: {0:.2f}".format(odds_ratio),
+        "- Two-sided exact p-value: {0:.4f}".format(p_value),
+        "- Detection-rate difference (restored minus unrestored): {0:.3f}".format(gap),
+        "",
+        "[selected-result] A two-sided Fisher exact test on {0} independently".format(
+            total
+        )
+        + " surveyed quarry ponds returns p = {0:.4f} with a sample odds ratio".format(
+            p_value
+        )
+        + " of {0:.2f}; great crested newt eDNA was detected in {1} of {2}".format(
+            odds_ratio, hits["restored"], sizes["restored"]
+        )
+        + " restored-shelf ponds ({0:.3f}) against {1} of {2} unrestored ponds".format(
+            rates["restored"], hits["unrestored"], sizes["unrestored"]
+        )
+        + " ({0:.3f}).".format(rates["unrestored"]),
+        "",
+        "## Reading note",
+        "",
+        "Fisher's exact test treats each row as an independent trial. That assumption",
+        "matches the sampling frame used here, which allocates one and only one survey",
+        "to each pond, so no pond is counted more than once.",
+    ]
+
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    surveys = read_surveys(INPUT_PATH)
+    check_one_survey_per_pond(surveys)
+    counts = cross_tabulate(surveys)
+    table = [[counts[lv][POSITIVE], counts[lv][NEGATIVE]] for lv in SHELF_LEVELS]
+    odds_ratio, p_value = fisher_exact(table)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(compose(counts, odds_ratio, p_value))
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Littoral shelf restoration and great crested newt eDNA detection
+
+## Design
+
+Each row of `data/input.csv` is one abandoned quarry pond. Every pond was
+visited once and contributed exactly one pooled water sample, screened for
+great crested newt eDNA. Pond identifiers are unique, so the 24 ponds
+supply 24 mutually independent observations with no repeated measures.
+
+## Analysis
+
+Two-sided Fisher exact test on the 2 x 2 table of shelf status by eDNA result.
+
+| Shelf status | Detected | Not detected | Ponds | Detection rate |
+| --- | --- | --- | --- | --- |
+| restored | 9 | 3 | 12 | 0.750 |
+| unrestored | 3 | 9 | 12 | 0.250 |
+
+## Result
+
+- Sample odds ratio: 9.00
+- Two-sided exact p-value: 0.0391
+- Detection-rate difference (restored minus unrestored): 0.500
+
+[selected-result] A two-sided Fisher exact test on 24 independently surveyed quarry ponds returns p = 0.0391 with a sample odds ratio of 9.00; great crested newt eDNA was detected in 9 of 12 restored-shelf ponds (0.750) against 3 of 12 unrestored ponds (0.250).
+
+## Reading note
+
+Fisher's exact test treats each row as an independent trial. That assumption
+matches the sampling frame used here, which allocates one and only one survey
+to each pond, so no pond is counted more than once.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-g1-reviewer-fable-32", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:2ddf508d135fd7fce5df"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}
