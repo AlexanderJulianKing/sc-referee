@@ -182,3 +182,37 @@ label, receives no retry, remains in the development denominator, and is
 excluded from detector measurement as `burned_review_response_malformed`.
 Re-entry reprojects the same digest-bound process capture to the same refusal.
 Qualification envelopes retain their pre-existing strict failure behavior.
+
+## 2026-08-15 growth-3 amendment: proven sink slice, multi-site identities, imports
+
+Growth-3 leaves the operand and count grammars unchanged.  The completeness
+equation now partitions the independently flattened live module into the
+backward operand slice and a proven sink-bound slice.  The kernel re-derives
+that exact partition and its statement tokens.  Residue that is not fully
+classified abstains; sink bindings are positive pure-expression constructions,
+never aliases to operand objects.  Fresh containers (`sorted`, `list`, and a
+full slice) are eligible only over the proven-cast immutable scalar sequences.
+The reader, accumulation/count construction, registered call, and sole report
+write remain unconditional.  The pure sink function whitelist takes no
+keywords; ordinary string methods may take keywords.  User helpers in the sink
+slice remain unsupported.
+
+The sink slice makes flow claims about frozen source only and makes no claim
+that report-value computation succeeds.  A sink-bound expression that would
+raise at execution is therefore accepted when its source flow is otherwise
+closed; this is the same consumability boundary used by the v1.1.0 assessment.
+
+Multi-site inlining is identified by `(source span, call_path_id)`.  Alpha
+renames are keyed by function, call path, and original name; the kernel proves
+fresh-name injectivity across sites and disjointness from caller-visible names.
+`import statistics` is admitted only in the proven sink slice.
+`from collections import defaultdict` is admitted only as `defaultdict(list)`
+for grouping; sorted unpack is forbidden and every constant operand key must be
+an observed frozen group key.
+
+Batch D is the same v1-scored/v2-development-shadow envelope at
+`evaluation/development/dependence-growth-loop/batch-d/`, with fresh author and
+review seats.  The pinned Claude CLI exposes `--json-schema`; batch D therefore
+passes the frozen primary and hostile review schemas to the transport.  The
+retained malformed-response burn remains fail-closed.  Qualification lanes and
+their historical call identities are unchanged.

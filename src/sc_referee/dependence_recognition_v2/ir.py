@@ -32,6 +32,8 @@ DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS = frozenset(
         "observation-identity",
         "operand-binding",
         "operand-disjointness",
+        "rename-injectivity",
+        "sink-partition",
         "source-parse",
         "source-semantic-replay",
         "source-size",
@@ -56,6 +58,7 @@ DEPENDENCE_V2_REASON_REGISTRY = frozenset(
         "count-procedure-trial-declaration-missing",
         "count-set-degenerate",
         "count-success-not-subset",
+        "defaultdict-key-not-proven",
         "dependence-v2-shadow-abstention",
         "duplicate-header",
         "function-argument-not-simple",
@@ -65,7 +68,7 @@ DEPENDENCE_V2_REASON_REGISTRY = frozenset(
         "function-globals-read",
         "function-globals-write",
         "function-inline-depth-exceeded",
-        "function-multiple-call-sites",
+        "function-rename-collision",
         "function-nonpositional-params",
         "function-not-provably-dead",
         "function-parameter-rebound",
@@ -91,13 +94,6 @@ DEPENDENCE_V2_REASON_REGISTRY = frozenset(
         "import-use-outside-grammar",
         "independent-unit-definition-unresolved",
         "module-constant-not-closed",
-        "noninterference-unproven:alias-assignment",
-        "noninterference-unproven:assignment",
-        "noninterference-unproven:attribute-call",
-        "noninterference-unproven:expression",
-        "noninterference-unproven:name-call",
-        "noninterference-unproven:statement",
-        "noninterference-unproven:with-body",
         "one-observation-per-unit-in-disjoint-bound-operands",
         "one-row-per-unit-in-proven-count-sets",
         "procedure-call-unresolved",
@@ -111,6 +107,15 @@ DEPENDENCE_V2_REASON_REGISTRY = frozenset(
         "repeated-unit-rows-counted-as-independent-binomtest-trials",
         "repeated-unit-rows-enter-independent-fisher-cells",
         "report-composition-not-modeled",
+        "sink-aliases-operand-object",
+        "sink-call-keyword-argument",
+        "sink-call-not-whitelisted",
+        "sink-classification-unresolved",
+        "sink-controls-operand-flow",
+        "sink-flow-escapes",
+        "sink-helper-call",
+        "sink-mutates-operand-name",
+        "sink-writes-outside-report",
         "single-python-module-required",
         "source-binding-mismatch",
         "source-byte-ceiling",
@@ -290,10 +295,11 @@ class OperandGroupBinding:
 
 @dataclass(frozen=True, order=True)
 class AlphaRename:
-    """One mandatory fresh-name witness for a single inlined call site."""
+    """One fresh-name witness keyed by function and acyclic call path."""
 
     function_name: str
-    call_token: str
+    call_path_id: str
+    call_span: tuple[int, int, int, int]
     original_name: str
     fresh_name: str
 
@@ -316,8 +322,11 @@ class DependenceGrowthCertificate:
     result_name: str
     sink_token: str
     group_container_name: str
+    group_container_kind: Literal["dict", "defaultdict_list"]
     operand_bindings: tuple[OperandGroupBinding, ...]
     alpha_renames: tuple[AlphaRename, ...]
+    operand_slice_statement_tokens: tuple[str, ...]
+    sink_bound_statement_tokens: tuple[str, ...]
     dead_syntactic_construct_tokens: tuple[str, ...]
     conclusion: GrowthConclusion
 
@@ -340,6 +349,8 @@ class CountDependenceCertificate:
     result_name: str
     sink_token: str
     alpha_renames: tuple[AlphaRename, ...]
+    operand_slice_statement_tokens: tuple[str, ...]
+    sink_bound_statement_tokens: tuple[str, ...]
     dead_syntactic_construct_tokens: tuple[str, ...]
     conclusion: GrowthConclusion
 
@@ -357,6 +368,8 @@ class VerifiedDependenceGrowthCertificate:
     operand_bindings: tuple[OperandGroupBinding, ...]
     repeated_unit_ids: tuple[str, ...]
     alpha_renames: tuple[AlphaRename, ...]
+    operand_slice_statement_tokens: tuple[str, ...]
+    sink_bound_statement_tokens: tuple[str, ...]
     dead_syntactic_construct_tokens: tuple[str, ...]
 
 
@@ -372,6 +385,8 @@ class VerifiedCountDependenceCertificate:
     fact: CountProcedureFact
     repeated_unit_ids: tuple[str, ...]
     alpha_renames: tuple[AlphaRename, ...]
+    operand_slice_statement_tokens: tuple[str, ...]
+    sink_bound_statement_tokens: tuple[str, ...]
     dead_syntactic_construct_tokens: tuple[str, ...]
 
 

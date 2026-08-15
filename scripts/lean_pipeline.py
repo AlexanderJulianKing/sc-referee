@@ -910,6 +910,7 @@ def default_dependence_config() -> EnvelopeConfig:
 DEPENDENCE_FREE_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-a")
 DEPENDENCE_FREE_B_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-b")
 DEPENDENCE_FREE_C_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-c")
+DEPENDENCE_FREE_D_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-d")
 _DEPENDENCE_FREE_ROLES = ("rq1", "rq2", "rq3", "rq4", "rq5", "rq6")
 _DEPENDENCE_FREE_COMMON_TASK = """Study one narrowly defined error class: repeated measurements from the same independent unit entered into a row-independent statistical procedure as if independent. Invent the scientific domain, study story, vocabulary, column names, data values, number of rows, and coding style yourself. Do not copy any prior-lane material.
 
@@ -1173,6 +1174,50 @@ def default_dependence_free_c_config() -> EnvelopeConfig:
             model_name="Claude Opus 5",
             model_alias="claude-opus-5",
         ),
+    )
+
+
+def default_dependence_free_d_config() -> EnvelopeConfig:
+    """Return batch D with CLI-enforced structured blind-review responses."""
+
+    base = default_dependence_free_c_config()
+    authors = {
+        f"actor:dependence-free-batch-d-author-opus-{ordinal}": ModelParticipant(
+            participant_id=f"actor:dependence-free-batch-d-author-opus-{ordinal}",
+            model_id="claude-opus-5",
+            model_name="Claude Opus 5",
+            model_alias="claude-opus-5",
+        )
+        for ordinal in range(45, 51)
+    }
+    return replace(
+        base,
+        envelope_id="development-dependence-growth-loop-batch-d-v1",
+        pipeline_relative=DEPENDENCE_FREE_D_LANE_RELATIVE,
+        authors=authors,
+        author_roles={
+            participant_id: [role]
+            for participant_id, role in zip(sorted(authors), _DEPENDENCE_FREE_ROLES, strict=True)
+        },
+        reviewer=ModelParticipant(
+            participant_id="actor:dependence-free-batch-d-reviewer-fable-22",
+            model_id="claude-fable-5",
+            model_name="Claude Fable 5",
+            model_alias="fable",
+        ),
+        hostile_answer_key_reviewer=ModelParticipant(
+            participant_id="actor:dependence-free-batch-d-hostile-fable-23",
+            model_id="claude-fable-5",
+            model_name="Claude Fable 5",
+            model_alias="fable",
+        ),
+        escalation_reviewer=ModelParticipant(
+            participant_id="actor:dependence-free-batch-d-escalation-opus-16",
+            model_id="claude-opus-5",
+            model_name="Claude Opus 5",
+            model_alias="claude-opus-5",
+        ),
+        enforce_cli_review_json_schema=True,
     )
 
 
@@ -1452,6 +1497,7 @@ ENVELOPE_CONFIGS = {
     "dependence-free": default_dependence_free_config,
     "dependence-free-b": default_dependence_free_b_config,
     "dependence-free-c": default_dependence_free_c_config,
+    "dependence-free-d": default_dependence_free_d_config,
     "dosage": default_dosage_config,
     "founder-orientation": default_founder_orientation_config,
     "founder-orientation-b": default_founder_orientation_b_config,

@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 import ast
+import copy
 import posixpath
 from collections import Counter
 from dataclasses import asdict
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 from sc_referee.core.ids import semantic_digest, sha256_digest
 from sc_referee.dependence_recognition.ir import HumanMethodAuthorization
 from sc_referee.dependence_recognition_v2.ir import (
     DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS,
     MAX_V2_AST_NODES,
+    MAX_V2_INLINE_DEPTH,
     CountDependenceCertificate,
     CountGroupDomainObligation,
     CountOperandObligation,
@@ -107,8 +109,12 @@ def verify_dependence_growth_certificate(
         return refuse("source-parse")
     if sum(1 for _ in ast.walk(tree)) > MAX_V2_AST_NODES:
         return refuse("source-size")
+    if not _kernel_replay_function_bookkeeping(tree, certificate):
+        return refuse("rename-injectivity")
     if not _kernel_replay_source_claims(tree, certificate, fact):
         return refuse("source-semantic-replay")
+    if not _kernel_sink_partition_matches(tree, certificate):
+        return refuse("sink-partition")
 
     groups = {item.group_key: item for item in fact.groups}
     if len(groups) != len(fact.groups) or not groups:
@@ -162,7 +168,8 @@ def verify_dependence_growth_certificate(
     if any(
         not item.fresh_name.startswith("__dependence_v2_")
         or item.original_name == item.fresh_name
-        or not item.call_token
+        or not item.call_path_id
+        or len(item.call_span) != 4
         for item in renames
     ):
         return refuse("alpha-renaming")
@@ -186,6 +193,8 @@ def verify_dependence_growth_certificate(
         operand_bindings=bindings,
         repeated_unit_ids=tuple(sorted(repeated)),
         alpha_renames=renames,
+        operand_slice_statement_tokens=certificate.operand_slice_statement_tokens,
+        sink_bound_statement_tokens=certificate.sink_bound_statement_tokens,
         dead_syntactic_construct_tokens=certificate.dead_syntactic_construct_tokens,
     )
 
@@ -318,8 +327,12 @@ def verify_count_dependence_certificate(
         return refuse("source-parse")
     if sum(1 for _ in ast.walk(tree)) > MAX_V2_AST_NODES:
         return refuse("source-size")
+    if not _kernel_replay_function_bookkeeping(tree, certificate):
+        return refuse("rename-injectivity")
     if not _kernel_replay_count_claims(tree, certificate):
         return refuse("count-source-semantic-replay")
+    if not _kernel_sink_partition_matches(tree, certificate):
+        return refuse("sink-partition")
 
     proofs = {item.position: item for item in fact.operands}
     repeated: set[str] = set()
@@ -379,6 +392,8 @@ def verify_count_dependence_certificate(
         fact=fact,
         repeated_unit_ids=tuple(sorted(repeated)),
         alpha_renames=certificate.alpha_renames,
+        operand_slice_statement_tokens=certificate.operand_slice_statement_tokens,
+        sink_bound_statement_tokens=certificate.sink_bound_statement_tokens,
         dead_syntactic_construct_tokens=certificate.dead_syntactic_construct_tokens,
     )
 
@@ -449,6 +464,10 @@ def _kernel_replay_count_claims(tree: ast.Module, certificate: CountDependenceCe
     if set(module_assignment_names) & set(imports):
         return False
     constants = _kernel_constants(tree)
+    flattened = _kernel_flattened_module(tree, certificate)
+    if flattened is None:
+        return False
+    tree = ast.Module(body=flattened, type_ignores=[])
     if _kernel_count_group_obligations(tree, certificate) != certificate.obligation.group_domains:
         return False
     assignments = [node for node in ast.walk(tree) if isinstance(node, ast.Assign)]
@@ -464,6 +483,8 @@ def _kernel_replay_count_claims(tree: ast.Module, certificate: CountDependenceCe
     if len(procedures) != 1:
         return False
     procedure = procedures[0]
+    if not isinstance(procedure.value, ast.Call):
+        return False
     call = procedure.value
     assert isinstance(call, ast.Call)
     resolved = _kernel_callable(call.func, imports)
@@ -514,9 +535,7 @@ def _kernel_replay_count_claims(tree: ast.Module, certificate: CountDependenceCe
         return False
     if not _kernel_count_reader_matches(tree, certificate, constants):
         return False
-    return _kernel_count_sink_matches(
-        tree, certificate, constants
-    ) and _kernel_count_live_syntax_closed(tree, certificate, imports, constants)
+    return _kernel_count_sink_matches(tree, certificate, constants)
 
 
 def _kernel_count_group_obligations(
@@ -1156,16 +1175,7 @@ def _kernel_count_sink_matches(
     if len(writes) != 1:
         return False
     write = writes[0]
-    if not (
-        len(write.args) == 1
-        and isinstance(write.args[0], ast.Call)
-        and isinstance(write.args[0].func, ast.Name)
-        and write.args[0].func.id == "str"
-        and len(write.args[0].args) == 1
-        and isinstance(write.args[0].args[0], ast.Name)
-        and _kernel_renamed_name(tree, certificate, write, write.args[0].args[0].id)
-        == certificate.result_name
-    ):
+    if len(write.args) != 1:
         return False
     return (
         _kernel_path_value(cast(ast.Attribute, write.func).value, constants)
@@ -1190,6 +1200,10 @@ def _kernel_replay_source_claims(
     if not _kernel_import_forms_closed(tree):
         return False
     imports = _kernel_imports(tree)
+    flattened = _kernel_flattened_module(tree, certificate)
+    if flattened is None:
+        return False
+    tree = ast.Module(body=flattened, type_ignores=[])
     appends = [
         node
         for node in ast.walk(tree)
@@ -1246,6 +1260,32 @@ def _kernel_replay_source_claims(
         or key_column != fact.group_key_column
     ):
         return False
+    declarations = [
+        node.value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and _kernel_renamed_name(tree, certificate, node, node.targets[0].id)
+        == certificate.group_container_name
+    ]
+    if len(declarations) != 1:
+        return False
+    declared_kind = (
+        "defaultdict_list"
+        if isinstance(declarations[0], ast.Call)
+        and isinstance(declarations[0].func, ast.Name)
+        and imports.get(declarations[0].func.id) == "collections.defaultdict"
+        and len(declarations[0].args) == 1
+        and isinstance(declarations[0].args[0], ast.Name)
+        and declarations[0].args[0].id == "list"
+        and not declarations[0].keywords
+        else "dict"
+        if isinstance(declarations[0], ast.Dict)
+        else None
+    )
+    if declared_kind != certificate.group_container_kind:
+        return False
 
     procedure_assignments: list[tuple[ast.Assign, str]] = []
     for node in ast.walk(tree):
@@ -1295,20 +1335,9 @@ def _kernel_replay_source_claims(
     if len(writes) != 1:
         return False
     write = writes[0]
-    if not (
-        len(write.args) == 1
-        and isinstance(write.args[0], ast.Call)
-        and isinstance(write.args[0].func, ast.Name)
-        and write.args[0].func.id == "str"
-        and len(write.args[0].args) == 1
-        and isinstance(write.args[0].args[0], ast.Name)
-        and _kernel_renamed_name(tree, certificate, write, write.args[0].args[0].id)
-        == certificate.result_name
-    ):
+    if len(write.args) != 1:
         return False
-    return _kernel_reader_matches(tree, fact, constants) and _kernel_live_syntax_closed(
-        tree, certificate, fact, dict(constants), imports
-    )
+    return _kernel_reader_matches(tree, fact, constants)
 
 
 def _kernel_renamed_name(
@@ -1466,6 +1495,7 @@ def _kernel_import_forms_closed(tree: ast.Module) -> bool:
         ("pathlib", None),
         ("csv", None),
         ("os", None),
+        ("statistics", None),
     }
     for statement in tree.body:
         if isinstance(statement, ast.Import):
@@ -1483,6 +1513,7 @@ def _kernel_import_forms_closed(tree: ast.Module) -> bool:
             if (statement.module, alias.name) not in {
                 ("pathlib", "Path"),
                 ("scipy", "stats"),
+                ("collections", "defaultdict"),
                 *(("scipy.stats", name.rsplit(".", 1)[1]) for name in _ALL_PROCEDURES),
             }:
                 return False
@@ -1880,15 +1911,6 @@ def _kernel_replay_function_bookkeeping(
     }
     if _kernel_graph_cyclic(graph):
         return False
-    call_counts = Counter(
-        node.func.id
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id in functions
-    )
-    if any(count > 1 for count in call_counts.values()):
-        return False
     roots = {
         node.func.id
         for statement in tree.body
@@ -1898,18 +1920,16 @@ def _kernel_replay_function_bookkeeping(
         and isinstance(node.func, ast.Name)
         and node.func.id in functions
     }
-    if functions:
-        entries = [
-            node
-            for statement in tree.body
-            if not isinstance(statement, ast.FunctionDef)
-            for node in ast.walk(statement)
-            if isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Name)
-            and node.func.id in functions
-        ]
-        if len(entries) != 1 or entries[0].args or entries[0].keywords:
-            return False
+    if functions and any(
+        node.args or node.keywords
+        for statement in tree.body
+        if not isinstance(statement, ast.FunctionDef)
+        for node in ast.walk(statement)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in functions
+    ):
+        return False
     called: set[str] = set()
     pending = list(roots)
     while pending:
@@ -1920,8 +1940,9 @@ def _kernel_replay_function_bookkeeping(
         pending.extend(graph[name])
     if any(_kernel_graph_depth(root, graph) > 3 for root in roots):
         return False
-    expected_pairs: set[tuple[str, str]] = set()
-    for name in called:
+    sites = _kernel_call_sites(tree, functions)
+    expected_pairs: set[tuple[str, str, str, tuple[int, int, int, int]]] = set()
+    for name, call_path_id, span in sites:
         function = functions[name]
         originals = {item.arg for item in function.args.args}
         originals.update(
@@ -1929,13 +1950,537 @@ def _kernel_replay_function_bookkeeping(
             for node in ast.walk(function)
             if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store)
         )
-        expected_pairs.update((name, original) for original in originals)
-    actual_pairs = {(item.function_name, item.original_name) for item in certificate.alpha_renames}
+        expected_pairs.update((name, call_path_id, original, span) for original in originals)
+    actual_pairs = {
+        (item.function_name, item.call_path_id, item.original_name, item.call_span)
+        for item in certificate.alpha_renames
+    }
+    caller_visible = (
+        {
+            node.id
+            for statement in tree.body
+            for node in ast.walk(statement)
+            if isinstance(node, ast.Name)
+        }
+        | set(functions)
+        | import_names
+        | constants
+    )
+    fresh = [item.fresh_name for item in certificate.alpha_renames]
     expected_dead = tuple(sorted(f"dead-function:{name}" for name in set(functions) - called))
     return (
         actual_pairs == expected_pairs
+        and len(fresh) == len(set(fresh))
+        and not set(fresh) & caller_visible
         and certificate.dead_syntactic_construct_tokens == expected_dead
     )
+
+
+class _KernelInlineTransformer(ast.NodeTransformer):
+    def __init__(self, arguments: dict[str, ast.expr], names: dict[str, str]) -> None:
+        self.arguments = arguments
+        self.names = names
+
+    def visit_Name(self, node: ast.Name) -> ast.expr:
+        if isinstance(node.ctx, ast.Load) and node.id in self.arguments:
+            return ast.copy_location(copy.deepcopy(self.arguments[node.id]), node)
+        if node.id in self.names:
+            return ast.copy_location(ast.Name(self.names[node.id], node.ctx), node)
+        return node
+
+
+def _kernel_flattened_module(
+    tree: ast.Module, certificate: DependenceGrowthCertificate | CountDependenceCertificate
+) -> list[ast.stmt] | None:
+    """Independently replay inlining; certificate names are used only after injectivity replay."""
+
+    functions = {item.name: item for item in tree.body if isinstance(item, ast.FunctionDef)}
+    constants = _kernel_constants(tree)
+    rename_map = {
+        (item.function_name, item.call_path_id, item.original_name): item.fresh_name
+        for item in certificate.alpha_renames
+    }
+    counter = 0
+
+    def inline(
+        statements: list[ast.stmt], parent: tuple[str, ...], depth: int
+    ) -> list[ast.stmt] | None:
+        nonlocal counter
+        result: list[ast.stmt] = []
+        for statement in statements:
+            target: ast.expr | None = None
+            call: ast.Call | None = None
+            if isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Call):
+                call = statement.value
+            elif (
+                isinstance(statement, ast.Assign)
+                and len(statement.targets) == 1
+                and isinstance(statement.value, ast.Call)
+            ):
+                target, call = statement.targets[0], statement.value
+            if not (
+                call is not None and isinstance(call.func, ast.Name) and call.func.id in functions
+            ):
+                result.append(copy.deepcopy(statement))
+                continue
+            if depth >= MAX_V2_INLINE_DEPTH:
+                return None
+            function = functions[call.func.id]
+            if call.keywords or len(call.args) != len(function.args.args):
+                return None
+            counter += 1
+            path = (*parent, f"{call.func.id}:{counter}")
+            path_id = "inline-call-path:" + "/".join(path)
+            parameters = [item.arg for item in function.args.args]
+            arguments = {
+                name: copy.deepcopy(ast.Constant(cast(Any, constants[item.id])))
+                if isinstance(item, ast.Name) and item.id in constants
+                else copy.deepcopy(item)
+                for name, item in zip(parameters, call.args, strict=True)
+            }
+            stored = {
+                node.id
+                for node in ast.walk(function)
+                if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store)
+            }
+            originals = [*parameters, *sorted(stored - set(parameters))]
+            names = {
+                name: rename_map[(function.name, path_id, name)]
+                for name in originals
+                if (function.name, path_id, name) in rename_map
+            }
+            if len(names) != len(originals):
+                return None
+            transformer = _KernelInlineTransformer(arguments, names)
+            nested = [
+                ast.fix_missing_locations(cast(ast.stmt, transformer.visit(copy.deepcopy(item))))
+                for item in function.body
+            ]
+            return_value: ast.expr | None = None
+            nested_return: str | None = None
+            if nested and isinstance(nested[-1], ast.Return):
+                return_value = cast(ast.Return, nested.pop()).value
+            elif (
+                nested
+                and isinstance(nested[-1], ast.With)
+                and nested[-1].body
+                and isinstance(nested[-1].body[-1], ast.Return)
+            ):
+                returned = cast(ast.Return, nested[-1].body.pop())
+                if returned.value is not None:
+                    nested_return = f"__dependence_v2_{counter}_return"
+                    nested[-1].body.append(
+                        ast.Assign([ast.Name(nested_return, ast.Store())], returned.value)
+                    )
+            flattened = inline(nested, path, depth + 1)
+            if flattened is None:
+                return None
+            result.extend(flattened)
+            if target is not None:
+                value = (
+                    ast.Name(nested_return, ast.Load())
+                    if nested_return is not None
+                    else return_value
+                    if return_value is not None
+                    else ast.Constant(None)
+                )
+                result.append(ast.Assign([copy.deepcopy(target)], value))
+            elif nested_return is not None:
+                result.append(ast.Expr(ast.Name(nested_return, ast.Load())))
+            elif return_value is not None:
+                result.append(ast.Expr(return_value))
+        return result
+
+    executable: list[ast.stmt] = []
+    for item in tree.body:
+        if isinstance(item, ast.FunctionDef | ast.Import | ast.ImportFrom):
+            continue
+        if (
+            isinstance(item, ast.Assign)
+            and len(item.targets) == 1
+            and isinstance(item.targets[0], ast.Name)
+            and item.targets[0].id in constants
+        ):
+            continue
+        if isinstance(item, ast.If) and _kernel_main_guard(item):
+            executable.extend(item.body)
+        else:
+            executable.append(item)
+    flattened = inline(executable, (), 0)
+    if flattened is None:
+        return None
+    transformer = _KernelConstantTransformer(constants)
+    return [
+        ast.fix_missing_locations(cast(ast.stmt, transformer.visit(copy.deepcopy(item))))
+        for item in flattened
+    ]
+
+
+class _KernelConstantTransformer(ast.NodeTransformer):
+    def __init__(self, constants: dict[str, object]) -> None:
+        self.constants = constants
+
+    def visit_Name(self, node: ast.Name) -> ast.expr:
+        if isinstance(node.ctx, ast.Load) and node.id in self.constants:
+            return ast.copy_location(ast.Constant(cast(Any, self.constants[node.id])), node)
+        return node
+
+
+def _kernel_statement_token(statement: ast.stmt, index: int) -> str:
+    return "flattened-statement:" + semantic_digest(
+        {"index": index, "syntax": ast.dump(statement, include_attributes=False)}
+    )
+
+
+def _kernel_sink_expression_closed(
+    expression: ast.expr, operands: set[str], scalar_sequences: set[str]
+) -> bool:
+    if isinstance(expression, ast.Name | ast.Constant):
+        return True
+    if isinstance(expression, ast.Slice):
+        return all(
+            item is None or _kernel_sink_expression_closed(item, operands, scalar_sequences)
+            for item in (expression.lower, expression.upper, expression.step)
+        )
+    if isinstance(expression, ast.Subscript):
+        return (
+            (
+                not (isinstance(expression.value, ast.Name) and expression.value.id in operands)
+                or (
+                    isinstance(expression.slice, ast.Slice)
+                    and expression.value.id in scalar_sequences
+                )
+            )
+            and _kernel_sink_expression_closed(expression.value, operands, scalar_sequences)
+            and _kernel_sink_expression_closed(expression.slice, operands, scalar_sequences)
+        )
+    if isinstance(expression, ast.List | ast.Tuple | ast.Set):
+        return all(
+            not (isinstance(item, ast.Name) and item.id in operands)
+            and _kernel_sink_expression_closed(item, operands, scalar_sequences)
+            for item in expression.elts
+        )
+    if isinstance(expression, ast.Dict):
+        return all(
+            item is None
+            or (
+                not (isinstance(item, ast.Name) and item.id in operands)
+                and _kernel_sink_expression_closed(item, operands, scalar_sequences)
+            )
+            for item in (*expression.keys, *expression.values)
+        )
+    if isinstance(expression, ast.BinOp):
+        return _kernel_sink_expression_closed(
+            expression.left, operands, scalar_sequences
+        ) and _kernel_sink_expression_closed(expression.right, operands, scalar_sequences)
+    if isinstance(expression, ast.UnaryOp):
+        return _kernel_sink_expression_closed(expression.operand, operands, scalar_sequences)
+    if isinstance(expression, ast.BoolOp):
+        return all(
+            _kernel_sink_expression_closed(item, operands, scalar_sequences)
+            for item in expression.values
+        )
+    if isinstance(expression, ast.Compare):
+        return _kernel_sink_expression_closed(expression.left, operands, scalar_sequences) and all(
+            _kernel_sink_expression_closed(item, operands, scalar_sequences)
+            for item in expression.comparators
+        )
+    if isinstance(expression, ast.JoinedStr):
+        return all(
+            not isinstance(item, ast.FormattedValue)
+            or (
+                _kernel_sink_expression_closed(item.value, operands, scalar_sequences)
+                and (
+                    item.format_spec is None
+                    or _kernel_sink_expression_closed(item.format_spec, operands, scalar_sequences)
+                )
+            )
+            for item in expression.values
+        )
+    if isinstance(expression, ast.IfExp):
+        return all(
+            _kernel_sink_expression_closed(item, operands, scalar_sequences)
+            for item in (expression.test, expression.body, expression.orelse)
+        )
+    if not isinstance(expression, ast.Call):
+        return False
+    name_calls = {"len", "min", "max", "sum", "sorted", "round", "abs", "list", "str"}
+    module_calls = {
+        "statistics.mean",
+        "statistics.fmean",
+        "statistics.stdev",
+        "statistics.median",
+        "np.mean",
+        "np.std",
+        "np.var",
+        "np.median",
+        "math.sqrt",
+        "math.isnan",
+    }
+    string_methods = {
+        "format",
+        "join",
+        "lower",
+        "upper",
+        "strip",
+        "lstrip",
+        "rstrip",
+        "replace",
+        "split",
+    }
+    if isinstance(expression.func, ast.Name):
+        if expression.func.id not in name_calls or expression.keywords:
+            return False
+        if (
+            expression.func.id in {"list", "sorted"}
+            and expression.args
+            and isinstance(expression.args[0], ast.Name)
+            and expression.args[0].id in operands
+            and expression.args[0].id not in scalar_sequences
+        ):
+            return False
+    elif isinstance(expression.func, ast.Attribute):
+        if (
+            isinstance(expression.func.value, ast.Name)
+            and f"{expression.func.value.id}.{expression.func.attr}" in module_calls
+        ):
+            if expression.keywords:
+                return False
+        elif expression.func.attr not in string_methods:
+            return False
+        if not _kernel_sink_expression_closed(expression.func.value, operands, scalar_sequences):
+            return False
+    else:
+        return False
+    return all(
+        _kernel_sink_expression_closed(item, operands, scalar_sequences) for item in expression.args
+    ) and all(
+        _kernel_sink_expression_closed(item.value, operands, scalar_sequences)
+        for item in expression.keywords
+    )
+
+
+def _kernel_sink_partition_matches(
+    tree: ast.Module, certificate: DependenceGrowthCertificate | CountDependenceCertificate
+) -> bool:
+    body = _kernel_flattened_module(tree, certificate)
+    if body is None:
+        return False
+    imports = _kernel_imports(tree)
+    procedures = [
+        statement
+        for statement in body
+        if isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and isinstance(statement.value, ast.Call)
+        and _kernel_resolved_call(statement.value.func, imports) == certificate.resolved_callable
+    ]
+    writes = [
+        (statement, node)
+        for statement in body
+        for node in ast.walk(statement)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "write_text"
+    ]
+    if len(procedures) != 1 or len(writes) != 1:
+        return False
+    procedure = procedures[0]
+    if not isinstance(procedure.value, ast.Call):
+        return False
+    scalar_sequences = {
+        argument.id for argument in procedure.value.args if isinstance(argument, ast.Name)
+    }
+    sink_statement, sink = writes[0]
+    if not isinstance(sink_statement, ast.Expr) or len(sink.args) != 1:
+        return False
+    definitions = {
+        statement.targets[0].id: statement.value
+        for statement in body
+        if isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+    }
+    for statement in body:
+        if (
+            isinstance(statement, ast.If)
+            and len(statement.body) == len(statement.orelse) == 1
+            and isinstance(statement.body[0], ast.Assign)
+            and isinstance(statement.orelse[0], ast.Assign)
+            and len(statement.body[0].targets) == len(statement.orelse[0].targets) == 1
+            and isinstance(statement.body[0].targets[0], ast.Name)
+            and isinstance(statement.orelse[0].targets[0], ast.Name)
+            and statement.body[0].targets[0].id == statement.orelse[0].targets[0].id
+        ):
+            definitions[statement.body[0].targets[0].id] = ast.IfExp(
+                statement.test, statement.body[0].value, statement.orelse[0].value
+            )
+    operands = {node.id for node in ast.walk(procedure.value) if isinstance(node, ast.Name)}
+    operands.update(
+        node.id
+        for statement in body
+        if isinstance(statement, ast.With | ast.For)
+        for node in ast.walk(statement)
+        if isinstance(node, ast.Name)
+    )
+    changed = True
+    while changed:
+        changed = False
+        for name in tuple(operands):
+            if name not in definitions:
+                continue
+            for node in ast.walk(definitions[name]):
+                if isinstance(node, ast.Name) and node.id not in operands:
+                    operands.add(node.id)
+                    changed = True
+        for statement in body:
+            if not isinstance(statement, ast.Assign):
+                continue
+            reads = {node.id for node in ast.walk(statement.value) if isinstance(node, ast.Name)}
+            if reads & operands and (
+                isinstance(statement.value, ast.Name)
+                or (
+                    isinstance(statement.value, ast.Subscript)
+                    and not isinstance(statement.value.slice, ast.Slice)
+                )
+            ):
+                for target in statement.targets:
+                    for node in ast.walk(target):
+                        if isinstance(node, ast.Name) and node.id not in operands:
+                            operands.add(node.id)
+                            changed = True
+    operand_indices: set[int] = set()
+    for index, statement in enumerate(body):
+        stores = {
+            node.id
+            for node in ast.walk(statement)
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store)
+        }
+        if statement is procedure or isinstance(statement, ast.With | ast.For) or stores & operands:
+            operand_indices.add(index)
+    sink_index = body.index(sink_statement)
+    sink_indices = {sink_index}
+    pending = [node.id for node in ast.walk(sink.args[0]) if isinstance(node, ast.Name)]
+    sink_names: set[str] = set()
+    while pending:
+        name = pending.pop()
+        if name in sink_names:
+            continue
+        sink_names.add(name)
+        if name in definitions:
+            pending.extend(
+                node.id for node in ast.walk(definitions[name]) if isinstance(node, ast.Name)
+            )
+    sink_names -= operands
+    for index, statement in enumerate(body):
+        if index in operand_indices or index in sink_indices:
+            continue
+        if (
+            isinstance(statement, ast.Expr)
+            and isinstance(statement.value, ast.Call)
+            and _kernel_closed_makedirs(statement.value, _kernel_constants(tree))
+        ):
+            sink_indices.add(index)
+            continue
+        if isinstance(statement, ast.If):
+            branches = [*statement.body, *statement.orelse]
+            if not (
+                len(statement.body) == len(statement.orelse) == 1
+                and all(
+                    isinstance(branch, ast.Assign)
+                    and len(branch.targets) == 1
+                    and isinstance(branch.targets[0], ast.Name)
+                    and branch.targets[0].id in sink_names
+                    and _kernel_sink_expression_closed(branch.value, operands, scalar_sequences)
+                    for branch in branches
+                )
+                and _kernel_sink_expression_closed(statement.test, operands, scalar_sequences)
+            ):
+                return False
+            sink_indices.add(index)
+            continue
+        if not (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and statement.targets[0].id in sink_names
+            and not (isinstance(statement.value, ast.Name) and statement.value.id in operands)
+            and _kernel_sink_expression_closed(statement.value, operands, scalar_sequences)
+        ):
+            return False
+        sink_indices.add(index)
+    if not _kernel_sink_expression_closed(sink.args[0], operands, scalar_sequences):
+        return False
+    return certificate.operand_slice_statement_tokens == tuple(
+        _kernel_statement_token(body[index], index) for index in sorted(operand_indices)
+    ) and certificate.sink_bound_statement_tokens == tuple(
+        _kernel_statement_token(body[index], index) for index in sorted(sink_indices)
+    )
+
+
+def _kernel_resolved_call(expression: ast.expr, imports: dict[str, str]) -> str | None:
+    if isinstance(expression, ast.Name):
+        return imports.get(expression.id)
+    if isinstance(expression, ast.Attribute) and isinstance(expression.value, ast.Name):
+        prefix = imports.get(expression.value.id)
+        return f"{prefix}.{expression.attr}" if prefix is not None else None
+    return None
+
+
+def _kernel_call_sites(
+    tree: ast.Module, functions: dict[str, ast.FunctionDef]
+) -> tuple[tuple[str, str, tuple[int, int, int, int]], ...]:
+    """Independently enumerate the bounded acyclic call-path identities."""
+
+    counter = 0
+    result: list[tuple[str, str, tuple[int, int, int, int]]] = []
+
+    def walk(statements: list[ast.stmt], parent: tuple[str, ...], depth: int) -> None:
+        nonlocal counter
+        if depth > MAX_V2_INLINE_DEPTH:
+            return
+        for statement in statements:
+            call: ast.Call | None = None
+            if isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Call):
+                call = statement.value
+            elif (
+                isinstance(statement, ast.Assign)
+                and len(statement.targets) == 1
+                and isinstance(statement.value, ast.Call)
+            ):
+                call = statement.value
+            if not (
+                call is not None and isinstance(call.func, ast.Name) and call.func.id in functions
+            ):
+                continue
+            counter += 1
+            component = f"{call.func.id}:{counter}"
+            path = (*parent, component)
+            result.append(
+                (
+                    call.func.id,
+                    "inline-call-path:" + "/".join(path),
+                    (
+                        getattr(call, "lineno", 0),
+                        getattr(call, "col_offset", 0),
+                        getattr(call, "end_lineno", 0),
+                        getattr(call, "end_col_offset", 0),
+                    ),
+                )
+            )
+            walk(functions[call.func.id].body, path, depth + 1)
+
+    executable: list[ast.stmt] = []
+    for item in tree.body:
+        if isinstance(item, ast.FunctionDef | ast.Import | ast.ImportFrom):
+            continue
+        if isinstance(item, ast.If) and _kernel_main_guard(item):
+            executable.extend(item.body)
+        else:
+            executable.append(item)
+    walk(executable, (), 0)
+    return tuple(result)
 
 
 def _kernel_function_shape_closed(

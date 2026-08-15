@@ -473,7 +473,7 @@ def test_three_group_tuple_unpack_abstains_on_registered_arity() -> None:
     assert payload["abstention_reasons"] == ["group-operand-arity-mismatch"]
 
 
-def test_final_with_return_zero_return_and_dead_function_are_certified() -> None:
+def test_final_with_return_dead_function_and_sink_helper_are_classified() -> None:
     source = (
         _source()
         .replace('    REPORT.write_text(str(result), encoding="utf-8")', "    emit(result)")
@@ -494,10 +494,10 @@ def main():
         )
     )
     analysis = analyze_dependence_growth_python(_context(source, _ADVERSE))
-    assert analysis.certificate is not None
-    assert analysis.certificate.dead_syntactic_construct_tokens == ("dead-function:unused",)
+    assert analysis.abstention_reasons == ("sink-helper-call",)
     payload = DependenceRecognitionV2ShadowAdapter().inspect(_context(source, _ADVERSE))
-    assert payload["outcome"] == "evaluation_candidate"
+    assert payload["outcome"] == "unsupported"
+    assert payload["abstention_reasons"] == ["sink-helper-call"]
 
 
 def test_batch_a_rq1_rq3_are_executable_and_pin_full_sorted_wall_sets(
@@ -507,16 +507,12 @@ def test_batch_a_rq1_rq3_are_executable_and_pin_full_sorted_wall_sets(
         "rq1": (
             "6da5419523f5f9dbedf9",
             "jar_id",
-            [
-                "function-multiple-call-sites",
-                "import-use-outside-grammar",
-                "report-composition-not-modeled",
-            ],
+            ["function-entry-not-closed", "function-return-shape", "sink-helper-call"],
         ),
         "rq3": (
             "d1d4ed0e518ad533a2dc",
             "tank_id",
-            ["function-multiple-call-sites", "report-composition-not-modeled"],
+            ["function-entry-not-closed", "sink-helper-call"],
         ),
     }
     frozen_root = (
@@ -722,10 +718,6 @@ def test_function_and_import_granular_reasons() -> None:
             _source().replace("def main():", "def main():\n    return 1"),
         ),
         (
-            "function-multiple-call-sites",
-            _source().replace("\nmain()\n", "\nmain()\nmain()\n"),
-        ),
-        (
             "function-not-provably-dead",
             _source().replace(
                 "def main():",
@@ -740,7 +732,7 @@ def test_function_and_import_granular_reasons() -> None:
             ),
         ),
         (
-            "import-use-outside-grammar",
+            "sink-classification-unresolved",
             _source()
             .replace("import csv", "import csv\nimport math")
             .replace("def main():", "def main():\n    math.sqrt(4)"),
@@ -783,7 +775,7 @@ def test_live_mutation_outside_closed_basis_abstains_and_kernel_replays_it() -> 
         "    left = right\n    result = stats.ttest_ind(left, right)",
     )
     analysis = analyze_dependence_growth_python(_context(source, _ADVERSE))
-    assert analysis.abstention_reasons == ("noninterference-unproven:alias-assignment",)
+    assert analysis.abstention_reasons == ("group-container-aliased",)
 
 
 def test_development_hook_is_opt_in_and_cannot_be_enabled_for_production() -> None:
@@ -963,7 +955,7 @@ def test_adapter_exception_keeps_the_full_common_payload(monkeypatch: pytest.Mon
     assert payload["report_only"] is True
     assert payload["production_finding_permitted"] is False
     assert payload["adapter_id"] == "dependence-recognition-semantic-v2-growth-shadow"
-    assert payload["adapter_version"] == "2.1.0-development"
+    assert payload["adapter_version"] == "2.2.0-development"
     assert payload["adapter_implementation_digest"].startswith("sha256:")
     assert payload["implementation_dependency_closure"]
 

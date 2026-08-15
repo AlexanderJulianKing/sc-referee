@@ -321,9 +321,7 @@ main()
     )
     refused = _inspect(doubled, b"unit_id,arm,success\nu1,A,yes\nu2,A,no\nu3,B,yes\n")
     assert refused["outcome"] == "unsupported"
-    assert refused["abstention_reasons"] == [
-        "certificate-kernel-refusal:count-source-semantic-replay"
-    ]
+    assert refused["abstention_reasons"] == ["count-multiple-increment-sites"]
 
 
 def test_single_column_t_groups_do_not_supply_two_factor_cell_atoms(tmp_path: Path) -> None:
@@ -868,35 +866,26 @@ def test_missing_count_trial_line_is_a_named_controller_side_abstention() -> Non
 
 
 _FROZEN_BATCH_REASONS = {
-    "batch-a/112bd1e61aa4fc1bec86": (
-        "function-multiple-call-sites",
-        "report-composition-not-modeled",
-        "unsupported-import-form",
-    ),
-    "batch-a/a520ddbd23df9d699e60": (
-        "report-composition-not-modeled",
-        "unsupported-import-form",
-    ),
+    "batch-a/112bd1e61aa4fc1bec86": ("unsupported-import-form",),
+    "batch-a/a520ddbd23df9d699e60": ("unsupported-import-form",),
     "batch-b/446cab155cd792398f9d": (
         "count-predicate-not-closed",
-        "function-multiple-call-sites",
         "module-constant-not-closed",
     ),
     "batch-b/3c2b93c9545d8518e1f3": (
         "function-entry-not-closed",
         "function-globals-read",
     ),
-    "batch-b/6a3bc02816cb70ee4042": ("unsupported-import-form",),
+    "batch-b/6a3bc02816cb70ee4042": ("module-constant-not-closed",),
     "batch-b/8b01b6d08e58aa5cce6f": (
-        "report-composition-not-modeled",
-        "unsupported-import-form",
+        "function-entry-not-closed",
+        "function-globals-read",
+        "sink-helper-call",
     ),
     "batch-b/ae04f2973df030f612b9": ("module-constant-not-closed",),
     "batch-b/bf08b2218ca9cef1db2d": (
         "count-predicate-not-closed",
-        "function-multiple-call-sites",
-        "report-composition-not-modeled",
-        "unsupported-import-form",
+        "module-constant-not-closed",
     ),
 }
 

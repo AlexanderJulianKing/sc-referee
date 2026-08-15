@@ -135,6 +135,8 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
         if _module_string_alternative_used(tree, imports, constants):
             raise _Refusal("procedure-alternative-not-default")
         flattened, renames, dead = _flatten_functions(executable, functions, constants, imports)
+        if _core_construct_is_conditionally_wrapped(flattened, imports):
+            raise _Refusal("sink-controls-operand-flow")
     except _Refusal as refusal:
         reasons.update(refusal.reasons)
         # Report composition and multi-site are independently useful fuel.
@@ -165,9 +167,9 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
     try:
         read = _recognize_reader(flattened, constants)
         grouping = _recognize_grouping(flattened, read[0], constants)
-        procedure = _recognize_procedure(flattened, imports, grouping[0], constants)
+        procedure = _recognize_procedure(flattened, imports, grouping[0], constants, grouping[5])
         sink = _recognize_sink(flattened, procedure[2], constants, _trusted_result_path(context))
-        _verify_closed_flattened_statements(
+        operand_tokens, sink_tokens = _verify_closed_flattened_statements(
             flattened,
             rows_name=read[0],
             group_name=grouping[0],
@@ -180,7 +182,7 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
     if reasons:
         return _unsupported(*reasons)
 
-    group_name, key_column, value_column, cast_kind, bucket_keys = grouping
+    group_name, key_column, value_column, cast_kind, bucket_keys, container_kind = grouping
     if key_column == value_column:
         return _unsupported("group-key-equals-value-column")
     if key_column == authority.authorized_key_columns[0]:
@@ -214,9 +216,12 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
         result_name=result_name,
         sink_token=_node_token(document.path, sink, "selected-sink"),
         group_container_name=group_name,
+        group_container_kind=container_kind,
         operand_bindings=argument_bindings,
         alpha_renames=tuple(renames),
         dead_syntactic_construct_tokens=tuple(sorted(dead)),
+        operand_slice_statement_tokens=operand_tokens,
+        sink_bound_statement_tokens=sink_tokens,
         conclusion=placeholder_conclusion,
     )
     return GrowthAnalysis(
@@ -263,6 +268,11 @@ def discharge_dependence_growth_analysis(
     if len(fact.groups) != _REGISTERED[certificate.resolved_callable]:
         return _discharged_unsupported("group-operand-arity-mismatch")
     keys = tuple(item.group_key for item in fact.groups)
+    if certificate.group_container_kind == "defaultdict_list" and any(
+        not item.group_key.startswith("__sorted_group_position_") and item.group_key not in keys
+        for item in certificate.operand_bindings
+    ):
+        return _discharged_unsupported("defaultdict-key-not-proven")
     resolved_bindings: list[OperandGroupBinding] = []
     for binding in certificate.operand_bindings:
         key = binding.group_key
@@ -332,6 +342,28 @@ def _count_procedure_present(body: list[ast.stmt], imports: dict[str, str]) -> b
     )
 
 
+def _core_construct_is_conditionally_wrapped(body: list[ast.stmt], imports: dict[str, str]) -> bool:
+    """Reject control parents around reader, accumulation, procedure, or sink."""
+
+    for statement in body:
+        if not isinstance(statement, ast.If | ast.While | ast.Try | ast.Match):
+            continue
+        for node in ast.walk(statement):
+            if node is statement:
+                continue
+            if isinstance(node, ast.With | ast.For):
+                return True
+            if isinstance(node, ast.Call):
+                if _resolved_procedure(node.func, imports) in _REGISTERED:
+                    return True
+                if isinstance(node.func, ast.Attribute) and node.func.attr in {
+                    "DictReader",
+                    "write_text",
+                }:
+                    return True
+    return False
+
+
 def _trusted_v2_authorizations(
     context: FrozenInspectionContext,
 ) -> tuple[HumanMethodAuthorization, ...]:
@@ -393,7 +425,7 @@ def _analyze_count_proposal(
     operands = _count_call_operands(call, resolved, derivations, body)
     result_name = statement.targets[0].id
     sink = _recognize_sink(body, result_name, constants, expected_result_path)
-    _verify_closed_count_statements(
+    operand_tokens, sink_tokens = _verify_closed_count_statements(
         body,
         rows_name=rows_name,
         domains=domains,
@@ -431,6 +463,8 @@ def _analyze_count_proposal(
         sink_token=_node_token(document_path, sink, "selected-sink"),
         alpha_renames=renames,
         dead_syntactic_construct_tokens=dead,
+        operand_slice_statement_tokens=operand_tokens,
+        sink_bound_statement_tokens=sink_tokens,
         conclusion="one_observation_per_unit",
     )
     return GrowthAnalysis(
@@ -834,75 +868,27 @@ def _verify_closed_count_statements(
     procedure_statement: ast.Assign,
     sink: ast.Call,
     constants: dict[str, ast.Constant],
-) -> None:
-    allowed_count_nodes = {id(item.node) for item in derivations.values()}
-    for statement in body:
-        if statement is procedure_statement:
-            continue
-        if isinstance(statement, ast.With):
-            continue
-        if isinstance(statement, ast.Expr) and statement.value is sink:
-            continue
-        if isinstance(statement, ast.Expr) and _closed_makedirs_call(statement.value, constants):
-            continue
-        if id(statement) in allowed_count_nodes:
-            continue
-        if isinstance(statement, ast.Assign):
-            if (
-                len(statement.targets) == 1
-                and isinstance(statement.targets[0], ast.Name)
-                and statement.targets[0].id == rows_name
-            ):
-                continue
-            if (
-                len(statement.targets) == 1
-                and isinstance(statement.targets[0], ast.Name)
-                and statement.targets[0].id in domains
-            ):
-                continue
-            if (
-                len(statement.targets) == 1
-                and isinstance(statement.targets[0], ast.Name)
-                and isinstance(statement.value, ast.Dict)
-                and statement.value.keys
-                and all(
-                    isinstance(key, ast.Constant)
-                    and isinstance(key.value, str)
-                    and isinstance(value, ast.List)
-                    and not value.elts
-                    for key, value in zip(statement.value.keys, statement.value.values, strict=True)
-                )
-                and any(
-                    token.startswith(f"__group__:{statement.targets[0].id}:") for token in domains
-                )
-            ):
-                continue
-            if isinstance(statement.value, ast.List) and any(
-                isinstance(node, ast.Name) and node.id in derivations
-                for node in ast.walk(statement.value)
-            ):
-                continue
-            if (
-                len(statement.targets) == 1
-                and isinstance(statement.targets[0], ast.Name)
-                and isinstance(statement.value, ast.Constant)
-                and statement.targets[0].id in derivations
-            ):
-                continue
-        if isinstance(statement, ast.For):
-            if any(id(node) in allowed_count_nodes for node in ast.walk(statement)):
-                continue
-            if _closed_count_group_loop(statement, rows_name, domains):
-                continue
-        kind = _unmodeled_statement_kind(statement)
-        raise _Refusal(f"noninterference-unproven:{kind}")
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    group_loops = [
+        statement for statement in body if _closed_count_group_loop(statement, rows_name, domains)
+    ]
+    if len(group_loops) != len(
+        {ast.dump(statement, include_attributes=False) for statement in group_loops}
+    ):
+        raise _Refusal("count-multiple-increment-sites")
+    operand_names = {rows_name, *domains, *derivations}
+    for node in ast.walk(procedure_statement.value):
+        if isinstance(node, ast.Name):
+            operand_names.add(node.id)
+    return _partition_sink_bound(body, procedure_statement, sink, operand_names)
 
 
 def _closed_count_group_loop(
-    statement: ast.For, rows_name: str, domains: dict[str, _CountDomain]
+    statement: ast.stmt, rows_name: str, domains: dict[str, _CountDomain]
 ) -> bool:
     if not (
-        isinstance(statement.target, ast.Name)
+        isinstance(statement, ast.For)
+        and isinstance(statement.target, ast.Name)
         and isinstance(statement.iter, ast.Name)
         and statement.iter.id == rows_name
         and not statement.orelse
@@ -1104,6 +1090,7 @@ def _closed_import(statement: ast.Import | ast.ImportFrom) -> tuple[str, str]:
             ("pathlib", None): ("pathlib", "pathlib"),
             ("csv", None): ("csv", "csv"),
             ("os", None): ("os", "os"),
+            ("statistics", None): ("statistics", "statistics"),
         }
         result = allowed.get((alias.name, alias.asname))
         if result is None:
@@ -1116,6 +1103,8 @@ def _closed_import(statement: ast.Import | ast.ImportFrom) -> tuple[str, str]:
         raise _Refusal("unsupported-import-form")
     if statement.module == "pathlib" and alias.name == "Path":
         return "Path", "pathlib.Path"
+    if statement.module == "collections" and alias.name == "defaultdict":
+        return "defaultdict", "collections.defaultdict"
     if statement.module == "scipy" and alias.name == "stats":
         return "stats", "scipy.stats"
     if statement.module == "scipy.stats" and f"scipy.stats.{alias.name}" in _REGISTERED:
@@ -1199,8 +1188,20 @@ def _validate_import_uses(
         if isinstance(parent, ast.alias | ast.Import | ast.ImportFrom):
             continue
         target = imports[node.id]
-        if target == "math":
-            raise _Refusal("import-use-outside-grammar")
+        if target in {"math", "statistics"}:
+            if not (
+                isinstance(parent, ast.Attribute)
+                and parent.value is node
+                and (
+                    (target == "math" and parent.attr in {"sqrt", "isnan"})
+                    or (
+                        target == "statistics"
+                        and parent.attr in {"mean", "fmean", "stdev", "median"}
+                    )
+                )
+            ):
+                raise _Refusal("import-use-outside-grammar")
+            continue
         if target == "os":
             call = next(
                 (
@@ -1237,14 +1238,28 @@ def _validate_import_uses(
             raise _Refusal("import-use-outside-grammar")
         if target == "pathlib.Path" and not (isinstance(parent, ast.Call) and parent.func is node):
             raise _Refusal("import-use-outside-grammar")
+        if target == "collections.defaultdict" and not (
+            isinstance(parent, ast.Call)
+            and parent.func is node
+            and len(parent.args) == 1
+            and not parent.keywords
+            and isinstance(parent.args[0], ast.Name)
+            and parent.args[0].id in {"list", "set", "int"}
+        ):
+            raise _Refusal("import-use-outside-grammar")
         if target == "numpy":
             if not (
                 isinstance(parent, ast.Attribute)
                 and parent.value is node
                 and parent.attr in {"array", "asarray"}
             ):
-                if isinstance(parent, ast.Attribute) and parent.attr in {"mean", "var"}:
-                    raise _Refusal("report-composition-not-modeled")
+                if isinstance(parent, ast.Attribute) and parent.attr in {
+                    "mean",
+                    "std",
+                    "var",
+                    "median",
+                }:
+                    continue
                 raise _Refusal("import-use-outside-grammar")
 
 
@@ -1275,16 +1290,8 @@ def _flatten_functions(
     function_names = set(functions)
     for function in functions.values():
         reasons.update(_validate_function(function, constants, imports, function_names))
-    call_sites = Counter(
-        node.func.id
-        for statement in [*executable, *functions.values()]
-        for node in ast.walk(statement)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id in functions
-    )
-    if any(count > 1 for count in call_sites.values()):
-        reasons.add("function-multiple-call-sites")
+    if _user_helper_reaches_sink(functions, imports):
+        reasons.add("sink-helper-call")
     graph = {
         name: {
             node.func.id
@@ -1322,8 +1329,100 @@ def _flatten_functions(
         raise _Refusal(*reasons)
     renames: list[AlphaRename] = []
     counter = [0]
-    flattened = _inline_statements(executable, functions, constants, 0, counter, renames)
+    flattened = _inline_statements(executable, functions, constants, 0, counter, renames, ())
+    caller_visible = (
+        {
+            node.id
+            for statement in [*executable, *functions.values()]
+            for node in ast.walk(statement)
+            if isinstance(node, ast.Name)
+        }
+        | set(functions)
+        | set(constants)
+        | set(imports)
+    )
+    fresh = [item.fresh_name for item in renames]
+    if len(fresh) != len(set(fresh)) or set(fresh) & caller_visible:
+        raise _Refusal("function-rename-collision")
     return _substitute_constants(flattened, constants), renames, dead
+
+
+def _user_helper_reaches_sink(
+    functions: dict[str, ast.FunctionDef], imports: dict[str, str]
+) -> bool:
+    for function in functions.values():
+        definitions = {
+            statement.targets[0].id: statement.value
+            for statement in function.body
+            if isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+        }
+        operand_names = {
+            node.id
+            for statement in function.body
+            for node in ast.walk(statement)
+            if isinstance(node, ast.Name)
+            and (
+                isinstance(statement, ast.With | ast.For)
+                or any(
+                    isinstance(call, ast.Call)
+                    and _resolved_procedure(call.func, imports) in _REGISTERED
+                    for call in ast.walk(statement)
+                )
+            )
+        }
+        changed = True
+        while changed:
+            changed = False
+            for name in tuple(operand_names):
+                if name not in definitions:
+                    continue
+                for node in ast.walk(definitions[name]):
+                    if isinstance(node, ast.Name) and node.id not in operand_names:
+                        operand_names.add(node.id)
+                        changed = True
+        writes = [
+            node
+            for node in ast.walk(function)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "write_text"
+        ]
+        sink_names: set[str] = set()
+        for write in writes:
+            sink_names.update(_transitive_reads(write, definitions))
+        for node in ast.walk(function):
+            if not (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id in functions
+            ):
+                continue
+            callee = functions[node.func.id]
+            callee_writes = any(
+                isinstance(item, ast.Call)
+                and isinstance(item.func, ast.Attribute)
+                and item.func.attr == "write_text"
+                for item in ast.walk(callee)
+            )
+            parent_assignment = next(
+                (
+                    statement
+                    for statement in function.body
+                    if isinstance(statement, ast.Assign) and node in set(ast.walk(statement.value))
+                ),
+                None,
+            )
+            assigned_sink = bool(
+                parent_assignment is not None
+                and len(parent_assignment.targets) == 1
+                and isinstance(parent_assignment.targets[0], ast.Name)
+                and parent_assignment.targets[0].id in sink_names - operand_names
+            )
+            if callee_writes or assigned_sink:
+                return True
+    return False
 
 
 def _validate_function(
@@ -1360,7 +1459,7 @@ def _validate_function(
         reasons.add("function-parameter-rebound")
     locals_ = stored - parameters
     if any(name.startswith("__dependence_v2_") for name in parameters | locals_):
-        reasons.add("import-name-collision")
+        reasons.add("function-rename-collision")
     if (parameters | locals_ | set(constants)) & set(imports):
         reasons.add("import-name-collision")
     loads = {
@@ -1423,6 +1522,7 @@ def _inline_statements(
     depth: int,
     counter: list[int],
     renames: list[AlphaRename],
+    call_path: tuple[str, ...],
 ) -> list[ast.stmt]:
     result: list[ast.stmt] = []
     for statement in statements:
@@ -1440,7 +1540,18 @@ def _inline_statements(
         if call is not None and isinstance(call.func, ast.Name) and call.func.id in functions:
             if depth >= MAX_V2_INLINE_DEPTH:
                 raise _Refusal("function-inline-depth-exceeded")
-            result.extend(_inline_call(call, target, functions, constants, depth, counter, renames))
+            result.extend(
+                _inline_call(
+                    call,
+                    target,
+                    functions,
+                    constants,
+                    depth,
+                    counter,
+                    renames,
+                    call_path,
+                )
+            )
         else:
             result.append(copy.deepcopy(statement))
     return result
@@ -1454,6 +1565,7 @@ def _inline_call(
     depth: int,
     counter: list[int],
     renames: list[AlphaRename],
+    parent_call_path: tuple[str, ...],
 ) -> list[ast.stmt]:
     assert isinstance(call.func, ast.Name)
     function = functions[call.func.id]
@@ -1463,7 +1575,15 @@ def _inline_call(
         raise _Refusal("function-argument-not-simple")
     counter[0] += 1
     call_number = counter[0]
-    call_token = f"inline-call:{call.func.id}:{call_number}"
+    component = f"{call.func.id}:{call_number}"
+    call_path = (*parent_call_path, component)
+    call_path_id = "inline-call-path:" + "/".join(call_path)
+    call_span = (
+        getattr(call, "lineno", 0),
+        getattr(call, "col_offset", 0),
+        getattr(call, "end_lineno", 0),
+        getattr(call, "end_col_offset", 0),
+    )
     parameters = [item.arg for item in function.args.args]
     arguments = {
         name: copy.deepcopy(constants[item.id])
@@ -1479,7 +1599,7 @@ def _inline_call(
     locals_ = sorted(stored - set(parameters))
     local_map = {name: f"__dependence_v2_{call_number}_{name}" for name in [*parameters, *locals_]}
     for original, fresh in local_map.items():
-        renames.append(AlphaRename(function.name, call_token, original, fresh))
+        renames.append(AlphaRename(function.name, call_path_id, call_span, original, fresh))
     transformer = _InlineTransformer(arguments, local_map)
     body = [transformer.visit(copy.deepcopy(item)) for item in function.body]
     body = [ast.fix_missing_locations(cast(ast.stmt, item)) for item in body]
@@ -1504,7 +1624,7 @@ def _inline_call(
                     value=returned.value,
                 )
             )
-    body = _inline_statements(body, functions, constants, depth + 1, counter, renames)
+    body = _inline_statements(body, functions, constants, depth + 1, counter, renames, call_path)
     if target is not None:
         body.append(
             ast.Assign(
@@ -1771,8 +1891,9 @@ def _encoding(expression: ast.expr) -> str | None:
 
 def _recognize_grouping(
     body: list[ast.stmt], rows_name: str, constants: dict[str, ast.Constant]
-) -> tuple[str, str, str, str, tuple[str, ...]]:
+) -> tuple[str, str, str, str, tuple[str, ...], Literal["dict", "defaultdict_list"]]:
     declarations: dict[str, tuple[str, ...]] = {}
+    defaultdict_names: set[str] = set()
     for statement in (item for root in body for item in ast.walk(root)):
         if (
             isinstance(statement, ast.Assign)
@@ -1795,6 +1916,22 @@ def _recognize_grouping(
                 for key in statement.value.keys
                 if isinstance(key, ast.Constant) and isinstance(key.value, str)
             )
+        elif (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and isinstance(statement.value, ast.Call)
+            and isinstance(statement.value.func, ast.Name)
+            and statement.value.func.id == "defaultdict"
+        ):
+            if (
+                len(statement.value.args) != 1
+                or statement.value.keywords
+                or not isinstance(statement.value.args[0], ast.Name)
+                or statement.value.args[0].id != "list"
+            ):
+                raise _Refusal("group-container-not-list")
+            defaultdict_names.add(statement.targets[0].id)
         elif isinstance(statement, ast.Assign) and isinstance(statement.value, ast.Set):
             raise _Refusal("group-container-not-list")
     loops = [
@@ -1874,7 +2011,7 @@ def _recognize_grouping(
         group_name = receiver.value.id
         key_column = _row_subscript(receiver.slice, row_name)
         bucket_keys = declarations.get(group_name, ())
-        if not bucket_keys:
+        if not bucket_keys and group_name not in defaultdict_names:
             raise _Refusal("group-accumulator-not-total")
     if group_name is None or key_column is None:
         raise _Refusal("group-accumulator-not-total")
@@ -1895,7 +2032,14 @@ def _recognize_grouping(
                 and node.func.attr not in {"setdefault", "items"}
             ):
                 raise _Refusal("group-accumulator-not-total")
-    return group_name, key_column, value_column, cast_kind, bucket_keys
+    return (
+        group_name,
+        key_column,
+        value_column,
+        cast_kind,
+        bucket_keys,
+        "defaultdict_list" if group_name in defaultdict_names else "dict",
+    )
 
 
 def _direct_row_value(expression: ast.expr, row_name: str) -> tuple[str, str] | None:
@@ -1942,6 +2086,7 @@ def _recognize_procedure(
     imports: dict[str, str],
     group_name: str,
     constants: dict[str, ast.Constant],
+    group_container_kind: Literal["dict", "defaultdict_list"] = "dict",
 ) -> tuple[str, tuple[OperandGroupBinding, ...], str, ast.Call]:
     container_aliases = {
         statement.targets[0].id
@@ -1963,6 +2108,10 @@ def _recognize_procedure(
             if key is not None:
                 aliases[statement.targets[0].id] = key
         if isinstance(statement, ast.Assign):
+            if group_container_kind == "defaultdict_list" and _sorted_group_unpack(
+                statement, group_name
+            ):
+                raise _Refusal("defaultdict-key-not-proven")
             unpacked = _sorted_group_unpack(statement, group_name)
             aliases.update(unpacked)
     matches: list[tuple[str, str, ast.Call]] = []
@@ -2125,17 +2274,19 @@ def _recognize_sink(
         and isinstance(node.func, ast.Attribute)
         and node.func.attr == "write_text"
     ]
-    if len(writes) != 1:
-        raise _Refusal("report-composition-not-modeled")
+    other_writes = [
+        node
+        for root in body
+        for node in ast.walk(root)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in {"write", "writelines"}
+    ]
+    if len(writes) != 1 or other_writes:
+        raise _Refusal("sink-writes-outside-report")
     call = writes[0]
     if not (
         len(call.args) == 1
-        and isinstance(call.args[0], ast.Call)
-        and isinstance(call.args[0].func, ast.Name)
-        and call.args[0].func.id == "str"
-        and len(call.args[0].args) == 1
-        and isinstance(call.args[0].args[0], ast.Name)
-        and call.args[0].args[0].id == result_name
         and len(call.keywords) == 1
         and call.keywords[0].arg == "encoding"
         and _encoding(call.keywords[0].value) == "utf-8"
@@ -2150,6 +2301,14 @@ def _recognize_sink(
         or _path_value(function.value, constants) != expected_result_path
     ):
         raise _Refusal("report-composition-not-modeled")
+    # The exact report expression is classified by the sink partition below.  At
+    # this point require only a syntactic flow from the procedure result.
+    if not any(
+        isinstance(node, ast.Name) and node.id == result_name for node in ast.walk(call.args[0])
+    ):
+        definitions = _assignment_definitions(body)
+        if result_name not in _transitive_reads(call.args[0], definitions):
+            raise _Refusal("sink-flow-escapes")
     return call
 
 
@@ -2160,93 +2319,325 @@ def _verify_closed_flattened_statements(
     group_name: str,
     result_name: str,
     sink: ast.Call,
-) -> None:
-    """Require the live flattened module to contain only modeled statements."""
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Partition the flattened module into operand and proven-sink-bound slices."""
 
+    procedure = next(
+        (
+            statement
+            for statement in body
+            if isinstance(statement, ast.Assign)
+            and any(
+                isinstance(node, ast.Name) and node.id == result_name for node in statement.targets
+            )
+        ),
+        None,
+    )
+    if procedure is None:
+        raise _Refusal("sink-controls-operand-flow")
+    operand_names = {rows_name, group_name}
+    operand_names.update(
+        node.id for node in ast.walk(procedure.value) if isinstance(node, ast.Name)
+    )
+    procedure_reads = {node.id for node in ast.walk(procedure.value) if isinstance(node, ast.Name)}
+    if any(
+        isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and isinstance(statement.value, ast.Name)
+        and statement.targets[0].id in procedure_reads
+        and statement.value.id in procedure_reads
+        for statement in body
+    ):
+        raise _Refusal("group-container-aliased")
     for statement in body:
-        if isinstance(statement, ast.With):
-            if len(statement.items) != 1 or len(statement.body) != 1:
-                raise _Refusal("noninterference-unproven:with-body")
-            nested = statement.body[0]
-            if not (
-                isinstance(nested, ast.Assign)
-                and len(nested.targets) == 1
-                and isinstance(nested.targets[0], ast.Name)
-                and isinstance(nested.value, ast.Call)
-                and isinstance(nested.value.func, ast.Name)
-                and nested.value.func.id == "list"
-            ):
-                raise _Refusal("noninterference-unproven:with-body")
-            continue
-        if isinstance(statement, ast.For):
-            # _recognize_grouping has already proved the exact total append body.
-            continue
-        if isinstance(statement, ast.Expr):
-            if _closed_makedirs_call(statement.value, {}):
-                continue
-            if statement.value is not sink:
-                if isinstance(statement.value, ast.Call) and isinstance(
-                    statement.value.func, ast.Attribute
-                ):
-                    raise _Refusal("noninterference-unproven:attribute-call")
-                if isinstance(statement.value, ast.Call):
-                    raise _Refusal("noninterference-unproven:name-call")
-                raise _Refusal("noninterference-unproven:expression")
-            continue
-        if not isinstance(statement, ast.Assign) or len(statement.targets) != 1:
-            raise _Refusal("noninterference-unproven:statement")
-        target = statement.targets[0]
-        value = statement.value
-        if isinstance(target, ast.Name) and target.id == rows_name:
-            if isinstance(value, ast.Call | ast.Name):
-                continue
-        if isinstance(target, ast.Name) and target.id == group_name and isinstance(value, ast.Dict):
-            continue
-        if (
-            isinstance(target, ast.Name)
-            and target.id == result_name
-            and isinstance(value, ast.Call)
+        if isinstance(statement, ast.Assign) and (
+            _sorted_group_unpack(statement, group_name)
+            or _group_argument_key(statement.value, group_name, {}) is not None
         ):
+            operand_names.update(
+                node.id
+                for target in statement.targets
+                for node in ast.walk(target)
+                if isinstance(node, ast.Name)
+            )
+    return _partition_sink_bound(body, procedure, sink, operand_names)
+
+
+_SINK_NAME_CALLS = frozenset({"len", "min", "max", "sum", "sorted", "round", "abs", "list", "str"})
+_SINK_MODULE_CALLS = frozenset(
+    {
+        "statistics.mean",
+        "statistics.fmean",
+        "statistics.stdev",
+        "statistics.median",
+        "np.mean",
+        "np.std",
+        "np.var",
+        "np.median",
+        "math.sqrt",
+        "math.isnan",
+    }
+)
+_SINK_STRING_METHODS = frozenset(
+    {"format", "join", "lower", "upper", "strip", "lstrip", "rstrip", "replace", "split"}
+)
+
+
+def _statement_token(statement: ast.stmt, index: int) -> str:
+    return "flattened-statement:" + semantic_digest(
+        {"index": index, "syntax": ast.dump(statement, include_attributes=False)}
+    )
+
+
+def _assignment_definitions(body: list[ast.stmt]) -> dict[str, ast.expr]:
+    result: dict[str, ast.expr] = {}
+    for statement in body:
+        if (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+        ):
+            result[statement.targets[0].id] = statement.value
+        elif (
+            isinstance(statement, ast.If)
+            and len(statement.body) == len(statement.orelse) == 1
+            and isinstance(statement.body[0], ast.Assign)
+            and isinstance(statement.orelse[0], ast.Assign)
+            and len(statement.body[0].targets) == len(statement.orelse[0].targets) == 1
+            and isinstance(statement.body[0].targets[0], ast.Name)
+            and isinstance(statement.orelse[0].targets[0], ast.Name)
+            and statement.body[0].targets[0].id == statement.orelse[0].targets[0].id
+        ):
+            result[statement.body[0].targets[0].id] = ast.IfExp(
+                statement.test, statement.body[0].value, statement.orelse[0].value
+            )
+    return result
+
+
+def _transitive_reads(expression: ast.AST, definitions: dict[str, ast.expr]) -> set[str]:
+    pending = [node.id for node in ast.walk(expression) if isinstance(node, ast.Name)]
+    seen: set[str] = set()
+    while pending:
+        name = pending.pop()
+        if name in seen:
             continue
-        if isinstance(target, ast.Name) and _group_argument_key(value, group_name, {}) is not None:
+        seen.add(name)
+        if name in definitions:
+            pending.extend(
+                node.id for node in ast.walk(definitions[name]) if isinstance(node, ast.Name)
+            )
+    return seen
+
+
+def _sink_expression_closed(
+    expression: ast.expr,
+    operand_names: set[str],
+    scalar_sequences: set[str],
+) -> None:
+    """Recognize only fresh/scalar report expressions; values are never certified."""
+
+    if isinstance(expression, ast.Name | ast.Constant):
+        return
+    if isinstance(expression, ast.Slice):
+        for item in (expression.lower, expression.upper, expression.step):
+            if item is not None:
+                _sink_expression_closed(item, operand_names, scalar_sequences)
+        return
+    if isinstance(expression, ast.Subscript):
+        if isinstance(expression.value, ast.Name) and expression.value.id in operand_names:
+            if not isinstance(expression.slice, ast.Slice):
+                raise _Refusal("sink-classification-unresolved")
+            if expression.value.id not in scalar_sequences:
+                raise _Refusal("sink-classification-unresolved")
+        _sink_expression_closed(expression.value, operand_names, scalar_sequences)
+        _sink_expression_closed(expression.slice, operand_names, scalar_sequences)
+        return
+    if isinstance(expression, ast.List | ast.Tuple | ast.Set):
+        for item in expression.elts:
+            if isinstance(item, ast.Name) and item.id in operand_names:
+                raise _Refusal("sink-classification-unresolved")
+            _sink_expression_closed(item, operand_names, scalar_sequences)
+        return
+    if isinstance(expression, ast.Dict):
+        for item in (*expression.keys, *expression.values):
+            if item is not None:
+                if isinstance(item, ast.Name) and item.id in operand_names:
+                    raise _Refusal("sink-classification-unresolved")
+                _sink_expression_closed(item, operand_names, scalar_sequences)
+        return
+    if isinstance(expression, ast.BinOp):
+        _sink_expression_closed(expression.left, operand_names, scalar_sequences)
+        _sink_expression_closed(expression.right, operand_names, scalar_sequences)
+        return
+    if isinstance(expression, ast.UnaryOp):
+        _sink_expression_closed(expression.operand, operand_names, scalar_sequences)
+        return
+    if isinstance(expression, ast.BoolOp):
+        for item in expression.values:
+            _sink_expression_closed(item, operand_names, scalar_sequences)
+        return
+    if isinstance(expression, ast.Compare):
+        _sink_expression_closed(expression.left, operand_names, scalar_sequences)
+        for item in expression.comparators:
+            _sink_expression_closed(item, operand_names, scalar_sequences)
+        return
+    if isinstance(expression, ast.JoinedStr):
+        for item in expression.values:
+            if isinstance(item, ast.FormattedValue):
+                _sink_expression_closed(item.value, operand_names, scalar_sequences)
+                if item.format_spec is not None:
+                    _sink_expression_closed(item.format_spec, operand_names, scalar_sequences)
+        return
+    if isinstance(expression, ast.IfExp):
+        for item in (expression.test, expression.body, expression.orelse):
+            _sink_expression_closed(item, operand_names, scalar_sequences)
+        return
+    if not isinstance(expression, ast.Call):
+        raise _Refusal("sink-classification-unresolved")
+    if isinstance(expression.func, ast.Name):
+        if expression.func.id not in _SINK_NAME_CALLS:
+            raise _Refusal("sink-helper-call")
+        if expression.keywords:
+            raise _Refusal("sink-call-keyword-argument")
+        if (
+            expression.func.id in {"list", "sorted"}
+            and expression.args
+            and isinstance(expression.args[0], ast.Name)
+            and expression.args[0].id in operand_names
+            and expression.args[0].id not in scalar_sequences
+        ):
+            raise _Refusal("sink-classification-unresolved")
+    elif isinstance(expression.func, ast.Attribute):
+        if isinstance(expression.func.value, ast.Name):
+            resolved = f"{expression.func.value.id}.{expression.func.attr}"
+            if resolved in _SINK_MODULE_CALLS:
+                if expression.keywords:
+                    raise _Refusal("sink-call-keyword-argument")
+            elif expression.func.attr not in _SINK_STRING_METHODS:
+                raise _Refusal("sink-call-not-whitelisted")
+        elif expression.func.attr not in _SINK_STRING_METHODS:
+            raise _Refusal("sink-call-not-whitelisted")
+        _sink_expression_closed(expression.func.value, operand_names, scalar_sequences)
+    else:
+        raise _Refusal("sink-call-not-whitelisted")
+    for item in expression.args:
+        _sink_expression_closed(item, operand_names, scalar_sequences)
+    for keyword in expression.keywords:
+        _sink_expression_closed(keyword.value, operand_names, scalar_sequences)
+
+
+def _partition_sink_bound(
+    body: list[ast.stmt],
+    procedure_statement: ast.Assign,
+    sink: ast.Call,
+    initial_operand_names: set[str],
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    if not isinstance(procedure_statement.value, ast.Call):
+        raise _Refusal("sink-classification-unresolved")
+    scalar_sequences = {
+        argument.id for argument in procedure_statement.value.args if isinstance(argument, ast.Name)
+    }
+    sink_statement = next(
+        (statement for statement in body if sink in set(ast.walk(statement))), None
+    )
+    if not isinstance(sink_statement, ast.Expr):
+        raise _Refusal("sink-classification-unresolved")
+    if any(
+        isinstance(statement, ast.If | ast.For | ast.With)
+        and (procedure_statement in set(ast.walk(statement)) or sink in set(ast.walk(statement)))
+        for statement in body
+    ):
+        raise _Refusal("sink-controls-operand-flow")
+    definitions = _assignment_definitions(body)
+    operand_names = set(initial_operand_names)
+    operand_names.update(
+        node.id for node in ast.walk(procedure_statement.value) if isinstance(node, ast.Name)
+    )
+    changed = True
+    while changed:
+        changed = False
+        for name in tuple(operand_names):
+            value = definitions.get(name)
+            if value is None:
+                continue
+            for node in ast.walk(value):
+                if isinstance(node, ast.Name) and node.id not in operand_names:
+                    operand_names.add(node.id)
+                    changed = True
+    operand_indices: set[int] = set()
+    for index, statement in enumerate(body):
+        stores = {
+            node.id
+            for node in ast.walk(statement)
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store)
+        }
+        if (
+            statement is procedure_statement
+            or isinstance(statement, ast.With | ast.For)
+            or stores & operand_names
+        ):
+            operand_indices.add(index)
+    sink_indices: set[int] = {body.index(sink_statement)}
+    sink_names = _transitive_reads(sink.args[0], definitions) - operand_names
+    for index, statement in enumerate(body):
+        if index in operand_indices or index in sink_indices:
             continue
-        if isinstance(target, ast.Tuple) and _sorted_group_unpack(statement, group_name):
+        if isinstance(statement, ast.Expr) and _closed_makedirs_call(statement.value, {}):
+            sink_indices.add(index)
             continue
-        if isinstance(value, ast.Name):
-            raise _Refusal("noninterference-unproven:alias-assignment")
-        raise _Refusal("noninterference-unproven:assignment")
+        if isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Call):
+            call = statement.value
+            if (
+                isinstance(call.func, ast.Attribute)
+                and isinstance(call.func.value, ast.Name)
+                and call.func.value.id in operand_names
+                and call.func.attr
+                in {"append", "extend", "insert", "pop", "remove", "clear", "sort", "update"}
+            ):
+                raise _Refusal("sink-mutates-operand-name")
+        if isinstance(statement, ast.If):
+            branches = [*statement.body, *statement.orelse]
+            if len(statement.body) == len(statement.orelse) == 1 and all(
+                isinstance(branch, ast.Assign)
+                and len(branch.targets) == 1
+                and isinstance(branch.targets[0], ast.Name)
+                and branch.targets[0].id in sink_names
+                for branch in branches
+            ):
+                _sink_expression_closed(statement.test, operand_names, scalar_sequences)
+                for branch in branches:
+                    assert isinstance(branch, ast.Assign)
+                    _sink_expression_closed(branch.value, operand_names, scalar_sequences)
+                sink_indices.add(index)
+                continue
+        if isinstance(statement, ast.Assign) and any(
+            isinstance(node, ast.Subscript | ast.Attribute)
+            for target in statement.targets
+            for node in ast.walk(target)
+        ):
+            raise _Refusal("sink-flow-escapes")
+        if not (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and statement.targets[0].id in sink_names
+        ):
+            raise _Refusal("sink-classification-unresolved")
+        if isinstance(statement.value, ast.Name) and statement.value.id in operand_names:
+            raise _Refusal("sink-aliases-operand-object")
+        _sink_expression_closed(statement.value, operand_names, scalar_sequences)
+        sink_indices.add(index)
+    _sink_expression_closed(sink.args[0], operand_names, scalar_sequences)
+    return (
+        tuple(_statement_token(body[index], index) for index in sorted(operand_indices)),
+        tuple(_statement_token(body[index], index) for index in sorted(sink_indices)),
+    )
 
 
 def _independent_wall_scan(tree: ast.Module) -> set[str]:
     reasons: set[str] = set()
     nonbyte_predicate_helpers = _nonbyte_predicate_helpers(tree)
-    function_names = {node.name for node in tree.body if isinstance(node, ast.FunctionDef)}
-    counts = Counter(
-        node.func.id
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id in function_names
-    )
-    if any(count > 1 for count in counts.values()):
-        reasons.add("function-multiple-call-sites")
-    writes = [
-        node
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and node.func.attr == "write_text"
-    ]
-    if writes and any(
-        not (
-            len(call.args) == 1
-            and isinstance(call.args[0], ast.Call)
-            and isinstance(call.args[0].func, ast.Name)
-            and call.args[0].func.id == "str"
-        )
-        for call in writes
-    ):
-        reasons.add("report-composition-not-modeled")
     if any(
         _counting_predicate_is_outside_wall(node, nonbyte_predicate_helpers)
         for node in ast.walk(tree)

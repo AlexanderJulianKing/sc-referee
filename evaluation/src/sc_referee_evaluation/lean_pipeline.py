@@ -362,6 +362,9 @@ class EnvelopeConfig:
     # Opt-in outside dependence, whose authority lock already requires it.
     # False preserves every pre-existing envelope's intake projection.
     record_expected_audit_snapshot_digest: bool = False
+    # Development-loop formatting hardening. Qualification envelopes retain
+    # their historical transport and retained-call identities byte-for-byte.
+    enforce_cli_review_json_schema: bool = False
 
     @property
     def roles(self) -> list[str]:
@@ -525,11 +528,14 @@ def _call_cli(
     prompt: str,
     session_id: str,
     capture_root: Path,
+    response_schema: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Dispatch one one-shot model call onto the participant's transport."""
 
     if participant.transport == "claude-cli":
-        return _call_claude_cli(config, participant, prompt, session_id, capture_root)
+        return _call_claude_cli(
+            config, participant, prompt, session_id, capture_root, response_schema
+        )
     if participant.transport == "codex-cli":
         return _call_codex(config, participant, prompt, session_id, capture_root)
     raise LeanPipelineError(f"Unknown participant transport {participant.transport!r}.")
@@ -541,6 +547,7 @@ def _call_claude_cli(
     prompt: str,
     session_id: str,
     capture_root: Path,
+    response_schema: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     retained = _retained_call(participant, prompt, session_id, capture_root)
     if retained is not None:
@@ -570,8 +577,10 @@ def _call_claude_cli(
             "json",
             "--session-id",
             session_id,
-            prompt,
         ]
+        if response_schema is not None:
+            argv.extend(["--json-schema", canonical_json(response_schema)])
+        argv.append(prompt)
         completed = subprocess.run(
             argv,
             cwd=temporary,
@@ -2562,12 +2571,17 @@ def _run_review_call(
         )
     )
     atomic_write_bytes(review_root / f"prompt-{label}.txt", prompt.encode("utf-8"))
-    call = _call_cli(
+    call_arguments = (
         config,
         participant,
         prompt,
         call_identity,
         review_root / "process-captures" / f"{label}-{participant.slug}",
+    )
+    call = (
+        _call_cli(*call_arguments, response_schema=schema)
+        if config.development_loop and config.enforce_cli_review_json_schema
+        else _call_cli(*call_arguments)
     )
     if call["transport_error"] is not None:
         raise LeanPipelineError(
@@ -2774,7 +2788,7 @@ def _run_hostile_answer_key_review(
             ) != sha256_digest(prompt):
                 raise LeanPipelineError("The retained hostile answer-key prompts do not match.")
             continue
-        call = _call_cli(
+        call_arguments = (
             config,
             participant,
             prompt,
@@ -2785,6 +2799,36 @@ def _run_hostile_answer_key_review(
                 )
             ),
             review_root / "hostile-answer-key" / "process-captures" / slug,
+        )
+        hostile_schema: dict[str, Any] = {
+            "type": "object",
+            "additionalProperties": False,
+            "required": [
+                "declaration_consistent",
+                "selected_report_demonstration",
+                "lock_follows_declaration",
+                "reasons",
+            ],
+            "properties": {
+                "declaration_consistent": {"type": "boolean"},
+                "selected_report_demonstration": {
+                    "type": "string",
+                    "enum": ["issue", "absence", "neither"],
+                },
+                "lock_follows_declaration": (
+                    {"type": "boolean"} if has_lock else {"const": "not-applicable-no-lock"}
+                ),
+                "reasons": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {"type": "string", "minLength": 1},
+                },
+            },
+        }
+        call = (
+            _call_cli(*call_arguments, response_schema=hostile_schema)
+            if config.development_loop and config.enforce_cli_review_json_schema
+            else _call_cli(*call_arguments)
         )
         if call["transport_error"] is not None:
             raise LeanPipelineError(

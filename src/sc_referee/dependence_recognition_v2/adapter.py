@@ -50,7 +50,7 @@ class DependenceRecognitionV2ShadowAdapter:
     """Inspect one frozen context; every uncertainty is non-accusatory."""
 
     adapter_id: str = "dependence-recognition-semantic-v2-growth-shadow"
-    adapter_version: str = "2.1.0-development"
+    adapter_version: str = "2.2.0-development"
 
     def controller_abstention(self, reason: str) -> dict[str, Any]:
         """Project one closed controller-side v2 authority refusal."""
