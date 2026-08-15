@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import inspect
 import os
 import re
 import runpy
@@ -12,6 +13,7 @@ from typing import Any, cast
 
 import pytest
 
+import sc_referee.dependence_recognition_v2.python_analyzer as python_analyzer
 from sc_referee.dependence_recognition_v2.adapter import DependenceRecognitionV2ShadowAdapter
 from sc_referee.dependence_recognition_v2.python_analyzer import (
     _flatten_functions,
@@ -152,15 +154,49 @@ def test_growth9_argument_hoists_preserve_left_to_right_source_order() -> None:
     assert names == ["left", "right"]
 
 
+@pytest.mark.parametrize(
+    "source,bypass_bare_alias_guard",
+    [
+        pytest.param(_helper_source("groups['A'], result"), False, id="subscript"),
+        pytest.param(
+            _helper_source(
+                "left, len(right) + 0, result",
+                "def fmt(a, b, result):\n    return str(a) + str(b) + str(result)",
+            ),
+            True,
+            id="bare-name",
+        ),
+    ],
+)
 def test_growth9_kernel_independently_rejects_operand_container_hoist(
     monkeypatch: pytest.MonkeyPatch,
+    source: str,
+    bypass_bare_alias_guard: bool,
 ) -> None:
-    source = _helper_source("groups['A'], result")
     monkeypatch.setattr(
         "sc_referee.dependence_recognition_v2.python_analyzer."
         "_expression_roots_in_operand_container",
         lambda _expression, _operands: False,
     )
+    if bypass_bare_alias_guard:
+        partition_source = inspect.getsource(python_analyzer._partition_sink_bound_set)
+        bare_alias_condition = (
+            "            and isinstance(statement.value, ast.Name)\n"
+            "            and statement.value.id in operand_names\n"
+        )
+        assert partition_source.count(bare_alias_condition) == 1
+        partition_source = partition_source.replace(
+            bare_alias_condition,
+            "            and False  # test-only bypass of the legacy bare-name guard\n"
+            + bare_alias_condition,
+        )
+        namespace: dict[str, Any] = {}
+        exec(partition_source, python_analyzer.__dict__, namespace)
+        monkeypatch.setattr(
+            python_analyzer,
+            "_partition_sink_bound_set",
+            namespace["_partition_sink_bound_set"],
+        )
     context = _context(source, _ADVERSE)
     proposal = analyze_dependence_growth_python(context)
     assert proposal.certificate is not None
