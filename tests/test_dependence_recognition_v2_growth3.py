@@ -29,6 +29,8 @@ from scripts.lean_pipeline import (
     default_dependence_free_d_config,
     default_dependence_free_e1_config,
     default_dependence_free_e2_config,
+    default_dependence_free_f1_config,
+    default_dependence_free_f2_config,
 )
 
 _BASE = runpy.run_path(str(Path(__file__).with_name("test_dependence_recognition_v2.py")))
@@ -490,26 +492,84 @@ def test_container_holding_operand_object_is_not_sink_bound(tmp_path: Path) -> N
     assert _inspect(source)["abstention_reasons"] == ["sink-classification-unresolved"]
 
 
-def test_batch_c_and_d_full_sorted_observed_sets_and_rq6_guard(project_root: Path) -> None:
+def test_batches_a_through_e_full_sorted_observed_sets_and_rq6_guard(project_root: Path) -> None:
     expected_by_batch = {
+        "batch-a": {
+            "112bd1e61aa4fc1bec86": ["unsupported-import-form"],
+            "6da5419523f5f9dbedf9": [
+                "function-return-shape",
+                "sink-helper-call",
+            ],
+            "76373b4a2b2f380d43da": ["unsupported-import-form"],
+            "a520ddbd23df9d699e60": ["unsupported-import-form"],
+            "d1d4ed0e518ad533a2dc": ["sink-helper-call"],
+            "e2ecaca2651276963b12": ["unsupported-import-form"],
+        },
+        "batch-b": {
+            "3c2b93c9545d8518e1f3": ["function-globals-read"],
+            "446cab155cd792398f9d": ["count-predicate-not-closed", "reader-form-unsupported"],
+            "6a3bc02816cb70ee4042": ["import-use-outside-grammar"],
+            "8b01b6d08e58aa5cce6f": [
+                "function-globals-read",
+                "sink-helper-call",
+            ],
+            "ae04f2973df030f612b9": ["function-globals-read"],
+            "bf08b2218ca9cef1db2d": [
+                "count-predicate-not-closed",
+                "function-globals-read",
+                "sink-helper-call",
+            ],
+        },
         "batch-c": {
-            "0815b8de6b7fd34cdbfc": ["module-constant-not-closed"],
-            "41cfd59360a1ca24ca4b": ["module-constant-not-closed"],
-            "5eeb6e5adc4fc675c771": ["module-constant-not-closed"],
+            "0815b8de6b7fd34cdbfc": ["import-use-outside-grammar"],
+            "41cfd59360a1ca24ca4b": ["import-use-outside-grammar"],
+            "5eeb6e5adc4fc675c771": ["module-collection-use-not-modeled"],
             "822e4d560d778dc26fb0": ["unsupported-import-form"],
-            "b98cd6e8d9f893450053": ["module-constant-not-closed"],
-            "d674ebb8c31ed83be287": ["function-entry-not-closed", "sink-helper-call"],
+            "b98cd6e8d9f893450053": ["import-use-outside-grammar"],
+            "d674ebb8c31ed83be287": ["sink-helper-call"],
         },
         "batch-d": {
             "396f4dceee2b19f08009": ["dataclass-use-not-modeled"],
-            "465d8368b0cdc3b167fd": ["module-constant-not-closed"],
+            "465d8368b0cdc3b167fd": ["module-collection-use-not-modeled"],
             "6e47ef090eb8989d547d": [
-                "function-entry-not-closed",
                 "function-return-shape",
                 "sink-helper-call",
             ],
             "7da68ec265e1bb2f6640": ["import-use-outside-grammar"],
             "f75b02bd61e813195904": ["unsupported-import-form"],
+        },
+        "batch-e1": {
+            "407236062264ca895ef3": ["import-use-outside-grammar"],
+            "47b6fb6bf1d4fbcefd7c": ["sink-helper-call"],
+            "7afb4508b0d957f51ca7": [
+                "function-globals-read",
+                "function-return-shape",
+                "sink-helper-call",
+            ],
+            "acea1e7265fd2ac91a43": [
+                "function-globals-read",
+                "sink-helper-call",
+            ],
+            "d3f093e9da995ca1027a": ["sink-helper-call"],
+            "f203d7292f9530cbdf48": ["function-globals-read"],
+        },
+        "batch-e2": {
+            "102f7842bc112abba84f": [
+                "function-globals-read",
+                "sink-helper-call",
+            ],
+            "128c2bd7128bc67b5964": ["function-globals-read"],
+            "18f0af8326d59d579c43": [
+                "function-globals-read",
+                "function-return-shape",
+                "sink-helper-call",
+            ],
+            "c38b4b95d2ca5a382f67": ["unsupported-import-form"],
+            "e57e3c73264eda49b3cc": [
+                "function-globals-read",
+                "sink-helper-call",
+            ],
+            "fa5259eb594c121b4dac": ["function-argument-not-simple"],
         },
     }
     for batch, expected in expected_by_batch.items():
@@ -614,13 +674,99 @@ def test_growth4_inert_imports_and_literal_path_division_are_closed(tmp_path: Pa
 
 
 @pytest.mark.parametrize(
+    ("declarations", "left", "right"),
+    [
+        ('BANDS = ("A", "B")', "BANDS[0]", "BANDS[1]"),
+        ('BANDS = {"left": "A", "right": "B"}', 'BANDS["left"]', 'BANDS["right"]'),
+    ],
+)
+def test_growth5_collection_constants_fold_only_plain_subscript_reads(
+    declarations: str, left: str, right: str
+) -> None:
+    source = (
+        _source()
+        .replace('LEFT = "A"', f"{declarations}\nLEFT = {left}")
+        .replace('RIGHT = "B"', f"RIGHT = {right}")
+    )
+    assert _inspect(source)["outcome"] == "evaluation_candidate"
+    if declarations.startswith("BANDS = ("):
+        membership = source.replace(
+            "    result =",
+            "    known = LEFT in BANDS\n    result =",
+        ).replace("str(result),", "str(result) + str(known),")
+        assert _inspect(membership)["outcome"] == "evaluation_candidate"
+    refused = source.replace("def main():", "COPY = BANDS\n\ndef main():")
+    assert _inspect(refused)["abstention_reasons"] == ["module-collection-use-not-modeled"]
+
+
+@pytest.mark.parametrize("name", ["fmean", "mean", "stdev", "median", "variance"])
+def test_growth5_direct_statistics_imports_are_sink_bound_only(name: str) -> None:
+    source = (
+        _source()
+        .replace(
+            "from scipy import stats", f"from scipy import stats\nfrom statistics import {name}"
+        )
+        .replace(
+            '    REPORT.write_text(str(result), encoding="utf-8")',
+            f"    summary = {name}(left)\n"
+            '    REPORT.write_text(str(result) + str(summary), encoding="utf-8")',
+        )
+    )
+    assert _inspect(source)["outcome"] == "evaluation_candidate"
+    bad_import = source.replace(f"from statistics import {name}", "from statistics import mode")
+    assert _inspect(bad_import)["abstention_reasons"] == ["unsupported-import-form"]
+
+
+def test_growth5_leading_module_and_function_docstrings_are_inert() -> None:
+    module_docstring = '"""Module documentation."""\n' + _source().replace(
+        "main()\n", 'if __name__ == "__main__":\n    main()\n'
+    )
+    assert _inspect(module_docstring)["outcome"] == "evaluation_candidate"
+
+    function_docstring = _source().replace(
+        "def main():", 'def main():\n    """Function documentation."""'
+    )
+    assert _inspect(function_docstring)["outcome"] == "evaluation_candidate"
+
+
+def test_growth5_nonleading_string_and_docstring_only_module_keep_closed_behavior() -> None:
+    nonleading = _source().replace("    result =", '    "not a docstring"\n    result =')
+    assert _inspect(nonleading)["abstention_reasons"] == ["sink-classification-unresolved"]
+    assert _inspect('"""Documentation only."""\n')["abstention_reasons"] == [
+        "reader-form-unsupported"
+    ]
+
+
+def test_growth5_harmless_annotations_lower_but_operand_aliases_still_refuse() -> None:
+    annotation_only = _source().replace("    result =", "    note: str\n    result =")
+    assert _inspect(annotation_only)["outcome"] == "evaluation_candidate"
+    sink_bound = (
+        _source()
+        .replace("from scipy import stats", "from scipy import stats\nfrom statistics import mean")
+        .replace(
+            '    REPORT.write_text(str(result), encoding="utf-8")',
+            "    summary: float = mean(left)\n"
+            '    REPORT.write_text(str(result) + str(summary), encoding="utf-8")',
+        )
+    )
+    assert _inspect(sink_bound)["outcome"] == "evaluation_candidate"
+    operand_alias = _source().replace(
+        "    right = groups[RIGHT]",
+        "    shadow = left\n    shadow: list = []\n    right = groups[RIGHT]",
+    )
+    assert _inspect(operand_alias)["abstention_reasons"] == ["annotated-assignment-not-modeled"]
+
+
+@pytest.mark.parametrize(
     ("factory", "author_range", "reviewer", "hostile", "escalation", "suffix"),
     [
         (default_dependence_free_e1_config, range(51, 57), 24, 25, 17, "batch-e1"),
         (default_dependence_free_e2_config, range(57, 63), 26, 27, 18, "batch-e2"),
+        (default_dependence_free_f1_config, range(63, 69), 28, 29, 19, "batch-f1"),
+        (default_dependence_free_f2_config, range(69, 75), 30, 31, 20, "batch-f2"),
     ],
 )
-def test_batch_e_configs_clone_batch_d_structure_with_fresh_seats(
+def test_batch_e_and_f_configs_clone_batch_d_structure_with_fresh_seats(
     factory: Any,
     author_range: range,
     reviewer: int,

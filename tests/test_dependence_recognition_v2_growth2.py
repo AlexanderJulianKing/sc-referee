@@ -577,6 +577,26 @@ def test_module_constant_alternative_is_rejected_by_the_analyzer() -> None:
     assert payload["abstention_reasons"] == ["procedure-alternative-not-default"]
 
 
+@pytest.mark.parametrize(
+    "declaration",
+    [
+        'RIGHT_ARM = "yes"',
+        'ARMS = ("no", "yes")\nRIGHT_ARM = ARMS[1]',
+    ],
+)
+def test_count_predicate_module_string_constants_fold_before_validation(
+    declaration: str,
+) -> None:
+    source = (
+        _binomial_source()
+        .replace("P = 0.5", f"P = 0.5\n{declaration}")
+        .replace('row["success"] == "yes"', 'row["success"] == RIGHT_ARM')
+    )
+    payload = _inspect(source, b"unit_id,success\nu1,yes\nu1,no\nu2,yes\n")
+    assert payload["outcome"] == "evaluation_candidate"
+    assert payload["abstention_reasons"] == []
+
+
 def test_guarded_increment_nonbyte_predicate_is_visible_to_wall_scan() -> None:
     source = _binomial_source().replace(
         '    k = sum(1 for row in rows if row["success"] == "yes")',
@@ -918,25 +938,17 @@ _FROZEN_BATCH_REASONS = {
     "batch-a/a520ddbd23df9d699e60": ("unsupported-import-form",),
     "batch-b/446cab155cd792398f9d": (
         "count-predicate-not-closed",
-        "function-entry-not-closed",
+        "reader-form-unsupported",
     ),
-    "batch-b/3c2b93c9545d8518e1f3": (
-        "function-entry-not-closed",
-        "function-globals-read",
-    ),
+    "batch-b/3c2b93c9545d8518e1f3": ("function-globals-read",),
     "batch-b/6a3bc02816cb70ee4042": ("import-use-outside-grammar",),
     "batch-b/8b01b6d08e58aa5cce6f": (
-        "function-entry-not-closed",
         "function-globals-read",
         "sink-helper-call",
     ),
-    "batch-b/ae04f2973df030f612b9": (
-        "function-entry-not-closed",
-        "function-globals-read",
-    ),
+    "batch-b/ae04f2973df030f612b9": ("function-globals-read",),
     "batch-b/bf08b2218ca9cef1db2d": (
         "count-predicate-not-closed",
-        "function-entry-not-closed",
         "function-globals-read",
         "sink-helper-call",
     ),

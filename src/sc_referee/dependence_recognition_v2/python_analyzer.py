@@ -80,6 +80,7 @@ _BUILTINS = frozenset(
     }
 )
 _SCIPY_PIN = re.compile(r"(?m)^\s*scipy\s*==\s*1\.14\.0\s*(?:#.*)?$")
+ModuleConstant = ast.Constant | ast.Tuple | ast.Dict
 
 
 class _Refusal(Exception):
@@ -112,6 +113,7 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
     document = documents[0]
     if len(document.content) > MAX_V2_SOURCE_BYTES:
         return _unsupported("source-byte-ceiling")
+    constants: dict[str, ModuleConstant] = {}
     try:
         source = document.content.decode("utf-8", errors="strict")
         tree = ast.parse(source)
@@ -147,19 +149,21 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
     try:
         imports, constants, functions, executable = _module_parts(tree)
         _validate_import_uses(tree, imports, constants)
+        _validate_module_collection_uses(tree, constants)
         if _module_string_alternative_used(tree, imports, constants):
             raise _Refusal("procedure-alternative-not-default")
         flattened, renames, dead = _flatten_functions(executable, functions, constants, imports)
+        flattened = _normalize_live_annotations(flattened, imports)
         _refuse_unsupported_live_assignment_syntax(flattened)
         if _core_construct_is_conditionally_wrapped(flattened, imports):
             raise _Refusal("sink-controls-operand-flow")
     except _Refusal as refusal:
         reasons.update(refusal.reasons)
         # Report composition and multi-site are independently useful fuel.
-        reasons.update(_independent_wall_scan(tree))
+        reasons.update(_independent_wall_scan(tree, constants))
         return _unsupported(*reasons)
 
-    reasons.update(_independent_wall_scan(tree))
+    reasons.update(_independent_wall_scan(tree, constants))
     if _count_procedure_present(flattened, imports):
         try:
             proposal = _analyze_count_proposal(
@@ -394,6 +398,75 @@ def _refuse_unsupported_live_assignment_syntax(body: list[ast.stmt]) -> None:
         raise _Refusal("delete-not-modeled")
 
 
+def _normalize_live_annotations(body: list[ast.stmt], imports: dict[str, str]) -> list[ast.stmt]:
+    """Lower only annotations proven outside the existing operand partition."""
+
+    procedures = [
+        node
+        for statement in body
+        for node in ast.walk(statement)
+        if isinstance(node, ast.Call) and _resolved_procedure(node.func, imports) in _REGISTERED
+    ]
+    operand_names = {
+        node.id
+        for call in procedures
+        for argument in call.args
+        for node in ast.walk(argument)
+        if isinstance(node, ast.Name)
+    }
+    definitions: dict[str, ast.expr] = {}
+    for statement in body:
+        if (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+        ):
+            definitions[statement.targets[0].id] = statement.value
+        elif (
+            isinstance(statement, ast.AnnAssign)
+            and isinstance(statement.target, ast.Name)
+            and statement.value is not None
+        ):
+            definitions.setdefault(statement.target.id, statement.value)
+    changed = True
+    while changed:
+        changed = False
+        for name in tuple(operand_names):
+            value = definitions.get(name)
+            if value is None:
+                continue
+            for node in ast.walk(value):
+                if isinstance(node, ast.Name) and node.id not in operand_names:
+                    operand_names.add(node.id)
+                    changed = True
+        for name, value in definitions.items():
+            if (
+                isinstance(value, ast.Name)
+                and value.id in operand_names
+                and name not in operand_names
+            ):
+                operand_names.add(name)
+                changed = True
+    normalized: list[ast.stmt] = []
+    for statement in body:
+        if not isinstance(statement, ast.AnnAssign):
+            normalized.append(statement)
+            continue
+        if not isinstance(statement.target, ast.Name):
+            raise _Refusal("annotated-assignment-not-modeled")
+        if statement.value is None:
+            continue
+        if statement.target.id in operand_names:
+            raise _Refusal("annotated-assignment-not-modeled")
+        normalized.append(
+            ast.copy_location(
+                ast.Assign(targets=[copy.deepcopy(statement.target)], value=statement.value),
+                statement,
+            )
+        )
+    return normalized
+
+
 def _trusted_v2_authorizations(
     context: FrozenInspectionContext,
 ) -> tuple[HumanMethodAuthorization, ...]:
@@ -427,7 +500,7 @@ def _analyze_count_proposal(
     source_length: int,
     body: list[ast.stmt],
     imports: dict[str, str],
-    constants: dict[str, ast.Constant],
+    constants: dict[str, ModuleConstant],
     authority: HumanMethodAuthorization,
     renames: tuple[AlphaRename, ...],
     dead: tuple[str, ...],
@@ -508,7 +581,7 @@ def _analyze_count_proposal(
 
 
 def _count_row_domains(
-    body: list[ast.stmt], rows_name: str, constants: dict[str, ast.Constant]
+    body: list[ast.stmt], rows_name: str, constants: dict[str, ModuleConstant]
 ) -> tuple[dict[str, _CountDomain], tuple[CountGroupDomainObligation, ...]]:
     domains: dict[str, _CountDomain] = {rows_name: _CountDomain("rows", ())}
     group_domains: list[CountGroupDomainObligation] = []
@@ -604,7 +677,7 @@ def _count_row_domains(
 def _count_domain_expression(
     expression: ast.expr,
     domains: dict[str, _CountDomain],
-    constants: dict[str, ast.Constant],
+    constants: dict[str, ModuleConstant],
 ) -> _CountDomain | None:
     if isinstance(expression, ast.Name):
         return domains.get(expression.id)
@@ -629,7 +702,7 @@ def _count_domain_expression(
 def _count_derivations(
     body: list[ast.stmt],
     domains: dict[str, _CountDomain],
-    constants: dict[str, ast.Constant],
+    constants: dict[str, ModuleConstant],
 ) -> dict[str, _CountDerivation]:
     derivations: dict[str, _CountDerivation] = {}
     for statement in body:
@@ -688,7 +761,7 @@ def _count_expression(
     expression: ast.expr,
     name: str,
     domains: dict[str, _CountDomain],
-    constants: dict[str, ast.Constant],
+    constants: dict[str, ModuleConstant],
 ) -> _CountDerivation | None:
     if (
         isinstance(expression, ast.Call)
@@ -736,7 +809,7 @@ def _count_increment_loop(
     name: str,
     loop: ast.For,
     domains: dict[str, _CountDomain],
-    constants: dict[str, ast.Constant],
+    constants: dict[str, ModuleConstant],
 ) -> _CountDerivation:
     if (
         loop.orelse
@@ -880,11 +953,11 @@ def _numeric_constant(expression: ast.expr) -> bool:
     return isinstance(expression, ast.Constant) and type(expression.value) in {int, float}
 
 
-def _constant_string(expression: ast.expr, constants: dict[str, ast.Constant]) -> str | None:
+def _constant_string(expression: ast.expr, constants: dict[str, ModuleConstant]) -> str | None:
     if isinstance(expression, ast.Constant) and isinstance(expression.value, str):
         return expression.value
-    if isinstance(expression, ast.Name) and expression.id in constants:
-        value = constants[expression.id].value
+    if isinstance(expression, ast.Name) and isinstance(constants.get(expression.id), ast.Constant):
+        value = cast(ast.Constant, constants[expression.id]).value
         return value if isinstance(value, str) else None
     return None
 
@@ -897,7 +970,7 @@ def _verify_closed_count_statements(
     derivations: dict[str, _CountDerivation],
     procedure_statement: ast.Assign,
     sink: ast.Call,
-    constants: dict[str, ast.Constant],
+    constants: dict[str, ModuleConstant],
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     group_loops = [
         statement for statement in body if _closed_count_group_loop(statement, rows_name, domains)
@@ -1075,12 +1148,12 @@ def _fisher_operands_are_factorial(
 
 def _module_parts(
     tree: ast.Module,
-) -> tuple[dict[str, str], dict[str, ast.Constant], dict[str, ast.FunctionDef], list[ast.stmt]]:
+) -> tuple[dict[str, str], dict[str, ModuleConstant], dict[str, ast.FunctionDef], list[ast.stmt]]:
     imports: dict[str, str] = {}
-    constants: dict[str, ast.Constant] = {}
+    constants: dict[str, ModuleConstant] = {}
     functions: dict[str, ast.FunctionDef] = {}
     executable: list[ast.stmt] = []
-    for statement in _live_main_guard_body(tree.body):
+    for statement in _live_main_guard_body(_without_leading_docstring(tree.body)):
         if isinstance(statement, ast.Import | ast.ImportFrom):
             if (
                 isinstance(statement, ast.ImportFrom)
@@ -1102,7 +1175,9 @@ def _module_parts(
                 or statement.name in functions
             ):
                 raise _Refusal("import-name-collision")
-            functions[statement.name] = statement
+            function = copy.deepcopy(statement)
+            function.body = _without_leading_docstring(function.body)
+            functions[statement.name] = function
         elif (
             isinstance(statement, ast.Assign)
             and len(statement.targets) == 1
@@ -1110,12 +1185,31 @@ def _module_parts(
         ):
             name = statement.targets[0].id
             value = _module_constant(statement.value, constants)
+            if (
+                value is None
+                and isinstance(statement.value, ast.Name)
+                and isinstance(constants.get(statement.value.id), ast.Tuple | ast.Dict)
+            ):
+                raise _Refusal("module-collection-use-not-modeled")
             if value is None or name in imports or name in constants or name in functions:
                 raise _Refusal("module-constant-not-closed")
             constants[name] = value
         else:
             executable.append(statement)
     return imports, constants, functions, executable
+
+
+def _without_leading_docstring(body: list[ast.stmt]) -> list[ast.stmt]:
+    """Exclude only Python's inert leading string-literal docstring position."""
+
+    if (
+        body
+        and isinstance(body[0], ast.Expr)
+        and isinstance(body[0].value, ast.Constant)
+        and isinstance(body[0].value.value, str)
+    ):
+        return body[1:]
+    return body
 
 
 def _closed_import(statement: ast.Import | ast.ImportFrom) -> tuple[str, str]:
@@ -1146,6 +1240,14 @@ def _closed_import(statement: ast.Import | ast.ImportFrom) -> tuple[str, str]:
         return "defaultdict", "collections.defaultdict"
     if statement.module == "dataclasses" and alias.name == "dataclass":
         return "dataclass", "dataclasses.dataclass"
+    if statement.module == "statistics" and alias.name in {
+        "fmean",
+        "mean",
+        "stdev",
+        "median",
+        "variance",
+    }:
+        return alias.name, f"statistics.{alias.name}"
     if statement.module == "scipy" and alias.name == "stats":
         return "stats", "scipy.stats"
     if statement.module == "scipy.stats" and f"scipy.stats.{alias.name}" in _REGISTERED:
@@ -1153,9 +1255,36 @@ def _closed_import(statement: ast.Import | ast.ImportFrom) -> tuple[str, str]:
     raise _Refusal("unsupported-import-form")
 
 
-def _module_constant(value: ast.expr, constants: dict[str, ast.Constant]) -> ast.Constant | None:
+def _module_constant(
+    value: ast.expr, constants: dict[str, ModuleConstant]
+) -> ModuleConstant | None:
     if isinstance(value, ast.Constant) and type(value.value) in {str, int, float}:
         return copy.deepcopy(value)
+    if (
+        isinstance(value, ast.Tuple)
+        and value.elts
+        and all(
+            isinstance(item, ast.Constant) and isinstance(item.value, str) for item in value.elts
+        )
+    ):
+        return copy.deepcopy(value)
+    if (
+        isinstance(value, ast.Dict)
+        and value.keys
+        and all(
+            isinstance(key, ast.Constant)
+            and isinstance(key.value, str)
+            and isinstance(item, ast.Constant)
+            and isinstance(item.value, str)
+            for key, item in zip(value.keys, value.values, strict=True)
+        )
+        and len({cast(ast.Constant, key).value for key in value.keys}) == len(value.keys)
+    ):
+        return copy.deepcopy(value)
+    if isinstance(value, ast.Subscript) and isinstance(value.value, ast.Name):
+        collection = constants.get(value.value.id)
+        if isinstance(collection, ast.Tuple | ast.Dict):
+            return _module_collection_subscript(collection, value.slice, constants)
     folded_path = _path_value(value, constants)
     if folded_path is not None:
         return ast.Constant(value=folded_path)
@@ -1213,7 +1342,7 @@ def _main_guard(statement: ast.If) -> bool:
 
 
 def _validate_import_uses(
-    tree: ast.Module, imports: dict[str, str], constants: dict[str, ast.Constant]
+    tree: ast.Module, imports: dict[str, str], constants: dict[str, ModuleConstant]
 ) -> None:
     parents: dict[ast.AST, ast.AST] = {
         child: parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)
@@ -1229,6 +1358,10 @@ def _validate_import_uses(
         if isinstance(parent, ast.alias | ast.Import | ast.ImportFrom):
             continue
         target = imports[node.id]
+        if target in _SINK_MODULE_CALLS:
+            if not (isinstance(parent, ast.Call) and parent.func is node):
+                raise _Refusal("import-use-outside-grammar")
+            continue
         if target in {"math", "statistics"}:
             if not (
                 isinstance(parent, ast.Attribute)
@@ -1237,7 +1370,7 @@ def _validate_import_uses(
                     (target == "math" and parent.attr in {"sqrt", "isnan"})
                     or (
                         target == "statistics"
-                        and parent.attr in {"mean", "fmean", "stdev", "median"}
+                        and parent.attr in {"mean", "fmean", "stdev", "median", "variance"}
                     )
                 )
             ):
@@ -1306,10 +1439,71 @@ def _validate_import_uses(
                 raise _Refusal("import-use-outside-grammar")
 
 
+def _validate_module_collection_uses(
+    tree: ast.Module, constants: dict[str, ModuleConstant]
+) -> None:
+    """Permit collection constants only in the three reviewed plain-read positions."""
+
+    collections = {
+        name: value for name, value in constants.items() if isinstance(value, ast.Tuple | ast.Dict)
+    }
+    if not collections:
+        return
+    parents = {child: parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)}
+    for node in ast.walk(tree):
+        if not (
+            isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) and node.id in collections
+        ):
+            continue
+        parent = parents.get(node)
+        if isinstance(parent, ast.Subscript) and parent.value is node:
+            if _module_collection_subscript(collections[node.id], parent.slice, constants) is None:
+                raise _Refusal("module-collection-use-not-modeled")
+            continue
+        if isinstance(parent, ast.For | ast.comprehension) and parent.iter is node:
+            continue
+        if (
+            isinstance(parent, ast.Compare)
+            and node in parent.comparators
+            and any(isinstance(operator, ast.In | ast.NotIn) for operator in parent.ops)
+        ):
+            continue
+        raise _Refusal("module-collection-use-not-modeled")
+
+
+def _module_collection_subscript(
+    collection: ast.Tuple | ast.Dict,
+    key: ast.expr,
+    constants: dict[str, ModuleConstant],
+) -> ast.Constant | None:
+    if isinstance(key, ast.Name):
+        key = constants.get(key.id, key)
+    if isinstance(collection, ast.Tuple):
+        if not isinstance(key, ast.Constant) or type(key.value) is not int:
+            return None
+        index = key.value
+        if index < 0 or index >= len(collection.elts):
+            return None
+        item = collection.elts[index]
+        return copy.deepcopy(item) if isinstance(item, ast.Constant) else None
+    if not isinstance(key, ast.Constant) or not isinstance(key.value, str):
+        return None
+    matches = [
+        item
+        for candidate, item in zip(collection.keys, collection.values, strict=True)
+        if isinstance(candidate, ast.Constant) and candidate.value == key.value
+    ]
+    return (
+        copy.deepcopy(matches[0])
+        if len(matches) == 1 and isinstance(matches[0], ast.Constant)
+        else None
+    )
+
+
 def _flatten_functions(
     executable: list[ast.stmt],
     functions: dict[str, ast.FunctionDef],
-    constants: dict[str, ast.Constant],
+    constants: dict[str, ModuleConstant],
     imports: dict[str, str],
 ) -> tuple[list[ast.stmt], list[AlphaRename], set[str]]:
     # This is a proof-oriented flattened IR, not executable Python: synthetic
@@ -1470,7 +1664,7 @@ def _user_helper_reaches_sink(
 
 def _validate_function(
     function: ast.FunctionDef,
-    constants: dict[str, ast.Constant],
+    constants: dict[str, ModuleConstant],
     imports: dict[str, str],
     function_names: set[str],
 ) -> set[str]:
@@ -1608,7 +1802,7 @@ def _reachable(roots: set[str], graph: dict[str, set[str]]) -> set[str]:
 def _inline_statements(
     statements: list[ast.stmt],
     functions: dict[str, ast.FunctionDef],
-    constants: dict[str, ast.Constant],
+    constants: dict[str, ModuleConstant],
     depth: int,
     counter: list[int],
     renames: list[AlphaRename],
@@ -1651,7 +1845,7 @@ def _inline_call(
     call: ast.Call,
     target: ast.expr | None,
     functions: dict[str, ast.FunctionDef],
-    constants: dict[str, ast.Constant],
+    constants: dict[str, ModuleConstant],
     depth: int,
     counter: list[int],
     renames: list[AlphaRename],
@@ -1749,7 +1943,7 @@ class _InlineTransformer(ast.NodeTransformer):
 
 
 class _ConstantTransformer(ast.NodeTransformer):
-    def __init__(self, constants: dict[str, ast.Constant]) -> None:
+    def __init__(self, constants: dict[str, ModuleConstant]) -> None:
         self.constants = constants
 
     def visit_Name(self, node: ast.Name) -> ast.expr:
@@ -1757,9 +1951,20 @@ class _ConstantTransformer(ast.NodeTransformer):
             return ast.copy_location(copy.deepcopy(self.constants[node.id]), node)
         return node
 
+    def visit_Subscript(self, node: ast.Subscript) -> ast.expr:
+        original_value = node.value
+        visited = cast(ast.Subscript, self.generic_visit(node))
+        if isinstance(original_value, ast.Name):
+            collection = self.constants.get(original_value.id)
+            if isinstance(collection, ast.Tuple | ast.Dict):
+                folded = _module_collection_subscript(collection, visited.slice, self.constants)
+                if folded is not None:
+                    return ast.copy_location(folded, node)
+        return visited
+
 
 def _substitute_constants(
-    statements: list[ast.stmt], constants: dict[str, ast.Constant]
+    statements: list[ast.stmt], constants: dict[str, ModuleConstant]
 ) -> list[ast.stmt]:
     transformer = _ConstantTransformer(constants)
     return [
@@ -1768,7 +1973,7 @@ def _substitute_constants(
     ]
 
 
-def _simple_argument(expression: ast.expr, constants: dict[str, ast.Constant]) -> bool:
+def _simple_argument(expression: ast.expr, constants: dict[str, ModuleConstant]) -> bool:
     return isinstance(expression, ast.Constant) or (
         isinstance(expression, ast.Name)
         and (expression.id in constants or expression.id.isidentifier())
@@ -1776,7 +1981,7 @@ def _simple_argument(expression: ast.expr, constants: dict[str, ast.Constant]) -
 
 
 def _recognize_reader(
-    body: list[ast.stmt], constants: dict[str, ast.Constant]
+    body: list[ast.stmt], constants: dict[str, ModuleConstant]
 ) -> tuple[str, str, str, str, str]:
     handles: dict[str, tuple[str, str]] = {}
     for node in (item for statement in body for item in ast.walk(statement)):
@@ -1851,7 +2056,9 @@ def _recognize_reader(
     return current, *match[1:]
 
 
-def _open_call(expression: ast.expr, constants: dict[str, ast.Constant]) -> tuple[str, str] | None:
+def _open_call(
+    expression: ast.expr, constants: dict[str, ModuleConstant]
+) -> tuple[str, str] | None:
     if not (
         isinstance(expression, ast.Call)
         and isinstance(expression.func, ast.Attribute)
@@ -1870,7 +2077,7 @@ def _open_call(expression: ast.expr, constants: dict[str, ast.Constant]) -> tupl
 
 
 def _splitlines_source(
-    expression: ast.expr, constants: dict[str, ast.Constant]
+    expression: ast.expr, constants: dict[str, ModuleConstant]
 ) -> tuple[str, str] | None:
     if not (
         isinstance(expression, ast.Call)
@@ -1892,14 +2099,14 @@ def _splitlines_source(
     return (path, encoding) if path is not None and encoding is not None else None
 
 
-def _path_value(expression: ast.expr, constants: dict[str, ast.Constant]) -> str | None:
+def _path_value(expression: ast.expr, constants: dict[str, ModuleConstant]) -> str | None:
     divided = _path_division_value(expression)
     if divided is not None:
         return divided
     if isinstance(expression, ast.Constant) and isinstance(expression.value, str):
         return expression.value
-    if isinstance(expression, ast.Name) and expression.id in constants:
-        value = constants[expression.id].value
+    if isinstance(expression, ast.Name) and isinstance(constants.get(expression.id), ast.Constant):
+        value = cast(ast.Constant, constants[expression.id]).value
         return value if isinstance(value, str) else None
     if (
         isinstance(expression, ast.Call)
@@ -1961,7 +2168,7 @@ def _path_division_value(expression: ast.expr) -> str | None:
     return posixpath.join(left, expression.right.value) if left is not None else None
 
 
-def _dirname_value(expression: ast.expr, constants: dict[str, ast.Constant]) -> str | None:
+def _dirname_value(expression: ast.expr, constants: dict[str, ModuleConstant]) -> str | None:
     if not (
         isinstance(expression, ast.Call)
         and _attribute_chain(expression.func) == ("os", "path", "dirname")
@@ -1973,7 +2180,7 @@ def _dirname_value(expression: ast.expr, constants: dict[str, ast.Constant]) -> 
     return posixpath.dirname(path) if path is not None else None
 
 
-def _closed_makedirs_call(expression: ast.expr, constants: dict[str, ast.Constant]) -> bool:
+def _closed_makedirs_call(expression: ast.expr, constants: dict[str, ModuleConstant]) -> bool:
     if not (
         isinstance(expression, ast.Call)
         and _attribute_chain(expression.func) == ("os", "makedirs")
@@ -2010,7 +2217,7 @@ def _encoding(expression: ast.expr) -> str | None:
 
 
 def _recognize_grouping(
-    body: list[ast.stmt], rows_name: str, constants: dict[str, ast.Constant]
+    body: list[ast.stmt], rows_name: str, constants: dict[str, ModuleConstant]
 ) -> tuple[str, str, str, str, tuple[str, ...], Literal["dict", "defaultdict_list"]]:
     declarations: dict[str, tuple[str, ...]] = {}
     defaultdict_names: set[str] = set()
@@ -2205,7 +2412,7 @@ def _recognize_procedure(
     body: list[ast.stmt],
     imports: dict[str, str],
     group_name: str,
-    constants: dict[str, ast.Constant],
+    constants: dict[str, ModuleConstant],
     group_container_kind: Literal["dict", "defaultdict_list"] = "dict",
 ) -> tuple[str, tuple[OperandGroupBinding, ...], str, ast.Call]:
     container_aliases = {
@@ -2318,7 +2525,7 @@ def _resolved_procedure(expression: ast.expr, imports: dict[str, str]) -> str | 
 
 
 def _group_argument_key(
-    expression: ast.expr, group_name: str, constants: dict[str, ast.Constant]
+    expression: ast.expr, group_name: str, constants: dict[str, ModuleConstant]
 ) -> str | None:
     if (
         isinstance(expression, ast.Call)
@@ -2345,8 +2552,9 @@ def _group_argument_key(
     key = expression.slice
     if isinstance(key, ast.Constant) and isinstance(key.value, str):
         return key.value
-    if isinstance(key, ast.Name) and key.id in constants:
-        return cast(str, constants[key.id].value)
+    if isinstance(key, ast.Name) and isinstance(constants.get(key.id), ast.Constant):
+        value = cast(ast.Constant, constants[key.id]).value
+        return value if isinstance(value, str) else None
     return None
 
 
@@ -2383,7 +2591,7 @@ def _sorted_group_unpack(statement: ast.Assign, group_name: str) -> dict[str, st
 def _recognize_sink(
     body: list[ast.stmt],
     result_name: str,
-    constants: dict[str, ast.Constant],
+    constants: dict[str, ModuleConstant],
     expected_result_path: str | None,
 ) -> ast.Call:
     writes = [
@@ -2484,13 +2692,31 @@ def _verify_closed_flattened_statements(
     return _partition_sink_bound(body, procedure, sink, operand_names)
 
 
-_SINK_NAME_CALLS = frozenset({"len", "min", "max", "sum", "sorted", "round", "abs", "list", "str"})
+_SINK_NAME_CALLS = frozenset(
+    {
+        "len",
+        "min",
+        "max",
+        "sum",
+        "sorted",
+        "round",
+        "abs",
+        "list",
+        "str",
+        "fmean",
+        "mean",
+        "stdev",
+        "median",
+        "variance",
+    }
+)
 _SINK_MODULE_CALLS = frozenset(
     {
         "statistics.mean",
         "statistics.fmean",
         "statistics.stdev",
         "statistics.median",
+        "statistics.variance",
         "np.mean",
         "np.std",
         "np.var",
@@ -2763,11 +2989,13 @@ def _partition_sink_bound(
     )
 
 
-def _independent_wall_scan(tree: ast.Module) -> set[str]:
+def _independent_wall_scan(
+    tree: ast.Module, constants: dict[str, ModuleConstant] | None = None
+) -> set[str]:
     reasons: set[str] = set()
     nonbyte_predicate_helpers = _nonbyte_predicate_helpers(tree)
     if any(
-        _counting_predicate_is_outside_wall(node, nonbyte_predicate_helpers)
+        _counting_predicate_is_outside_wall(node, nonbyte_predicate_helpers, constants or {})
         for node in ast.walk(tree)
     ):
         reasons.add("count-predicate-not-closed")
@@ -2775,7 +3003,9 @@ def _independent_wall_scan(tree: ast.Module) -> set[str]:
 
 
 def _counting_predicate_is_outside_wall(
-    node: ast.AST, nonbyte_predicate_helpers: frozenset[str]
+    node: ast.AST,
+    nonbyte_predicate_helpers: frozenset[str],
+    constants: dict[str, ModuleConstant],
 ) -> bool:
     if (
         isinstance(node, ast.Call)
@@ -2793,7 +3023,7 @@ def _counting_predicate_is_outside_wall(
                 not isinstance(generator.target, ast.Name)
                 or any(
                     _wall_predicate_is_relevant_and_unclosed(
-                        predicate, generator.target.id, nonbyte_predicate_helpers
+                        predicate, generator.target.id, nonbyte_predicate_helpers, constants
                     )
                     for predicate in generator.ifs
                 )
@@ -2811,7 +3041,7 @@ def _counting_predicate_is_outside_wall(
                 for statement in guard.body
             )
             and _wall_predicate_is_relevant_and_unclosed(
-                guard.test, node.target.id, nonbyte_predicate_helpers
+                guard.test, node.target.id, nonbyte_predicate_helpers, constants
             )
             for guard in guarded
         )
@@ -2819,9 +3049,12 @@ def _counting_predicate_is_outside_wall(
 
 
 def _wall_predicate_is_relevant_and_unclosed(
-    expression: ast.expr, row_name: str, nonbyte_predicate_helpers: frozenset[str]
+    expression: ast.expr,
+    row_name: str,
+    nonbyte_predicate_helpers: frozenset[str],
+    constants: dict[str, ModuleConstant],
 ) -> bool:
-    if _wall_byte_predicate(expression, row_name):
+    if _wall_byte_predicate(expression, row_name, constants):
         return False
     if any(
         isinstance(node, ast.Call)
@@ -2860,7 +3093,7 @@ def _nonbyte_predicate_helpers(tree: ast.Module) -> frozenset[str]:
 def _module_string_alternative_used(
     tree: ast.Module,
     imports: dict[str, str],
-    constants: dict[str, ast.Constant],
+    constants: dict[str, ModuleConstant],
 ) -> bool:
     for call in (node for node in ast.walk(tree) if isinstance(node, ast.Call)):
         if _resolved_procedure(call.func, imports) not in _COUNT_PROCEDURES:
@@ -2870,14 +3103,18 @@ def _module_string_alternative_used(
         )
         if (
             isinstance(alternative, ast.Name)
-            and alternative.id in constants
-            and isinstance(constants[alternative.id].value, str)
+            and isinstance(constants.get(alternative.id), ast.Constant)
+            and isinstance(cast(ast.Constant, constants[alternative.id]).value, str)
         ):
             return True
     return False
 
 
-def _wall_byte_predicate(expression: ast.expr, row_name: str) -> bool:
+def _wall_byte_predicate(
+    expression: ast.expr,
+    row_name: str,
+    constants: dict[str, ModuleConstant] | None = None,
+) -> bool:
     parts = (
         expression.values
         if isinstance(expression, ast.BoolOp) and isinstance(expression.op, ast.And)
@@ -2888,8 +3125,19 @@ def _wall_byte_predicate(expression: ast.expr, row_name: str) -> bool:
         and len(part.ops) == len(part.comparators) == 1
         and isinstance(part.ops[0], ast.Eq | ast.NotEq)
         and _row_subscript(part.left, row_name) is not None
-        and isinstance(part.comparators[0], ast.Constant)
-        and isinstance(part.comparators[0].value, str)
+        and (
+            (
+                isinstance(part.comparators[0], ast.Constant)
+                and isinstance(part.comparators[0].value, str)
+            )
+            or (
+                isinstance(part.comparators[0], ast.Name)
+                and isinstance((constants or {}).get(part.comparators[0].id), ast.Constant)
+                and isinstance(
+                    cast(ast.Constant, (constants or {})[part.comparators[0].id]).value, str
+                )
+            )
+        )
         for part in parts
     )
 

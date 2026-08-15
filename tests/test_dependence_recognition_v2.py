@@ -507,12 +507,12 @@ def test_batch_a_rq1_rq3_are_executable_and_pin_full_sorted_wall_sets(
         "rq1": (
             "6da5419523f5f9dbedf9",
             "jar_id",
-            ["function-entry-not-closed", "function-return-shape", "sink-helper-call"],
+            ["function-return-shape", "sink-helper-call"],
         ),
         "rq3": (
             "d1d4ed0e518ad533a2dc",
             "tank_id",
-            ["function-entry-not-closed", "sink-helper-call"],
+            ["sink-helper-call"],
         ),
     }
     frozen_root = (

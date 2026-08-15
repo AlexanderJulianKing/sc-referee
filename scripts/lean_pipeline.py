@@ -913,6 +913,8 @@ DEPENDENCE_FREE_C_LANE_RELATIVE = Path("evaluation/development/dependence-growth
 DEPENDENCE_FREE_D_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-d")
 DEPENDENCE_FREE_E1_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-e1")
 DEPENDENCE_FREE_E2_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-e2")
+DEPENDENCE_FREE_F1_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-f1")
+DEPENDENCE_FREE_F2_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-f2")
 _DEPENDENCE_FREE_ROLES = ("rq1", "rq2", "rq3", "rq4", "rq5", "rq6")
 _DEPENDENCE_FREE_COMMON_TASK = """Study one narrowly defined error class: repeated measurements from the same independent unit entered into a row-independent statistical procedure as if independent. Invent the scientific domain, study story, vocabulary, column names, data values, number of rows, and coding style yourself. Do not copy any prior-lane material.
 
@@ -1310,6 +1312,81 @@ def default_dependence_free_e2_config() -> EnvelopeConfig:
     )
 
 
+def default_dependence_free_f1_config() -> EnvelopeConfig:
+    """Return growth-loop batch F1 with the batch-E structure and fresh seats."""
+
+    return _dependence_free_f_config(
+        suffix="batch-f1",
+        ordinals=range(63, 69),
+        reviewer=28,
+        hostile=29,
+        escalation=19,
+        pipeline_relative=DEPENDENCE_FREE_F1_LANE_RELATIVE,
+    )
+
+
+def default_dependence_free_f2_config() -> EnvelopeConfig:
+    """Return growth-loop batch F2 with the batch-E structure and fresh seats."""
+
+    return _dependence_free_f_config(
+        suffix="batch-f2",
+        ordinals=range(69, 75),
+        reviewer=30,
+        hostile=31,
+        escalation=20,
+        pipeline_relative=DEPENDENCE_FREE_F2_LANE_RELATIVE,
+    )
+
+
+def _dependence_free_f_config(
+    *,
+    suffix: str,
+    ordinals: range,
+    reviewer: int,
+    hostile: int,
+    escalation: int,
+    pipeline_relative: Path,
+) -> EnvelopeConfig:
+    base = default_dependence_free_e2_config()
+    authors = {
+        f"actor:dependence-free-{suffix}-author-opus-{ordinal}": ModelParticipant(
+            participant_id=f"actor:dependence-free-{suffix}-author-opus-{ordinal}",
+            model_id="claude-opus-5",
+            model_name="Claude Opus 5",
+            model_alias="claude-opus-5",
+        )
+        for ordinal in ordinals
+    }
+    return replace(
+        base,
+        envelope_id=f"development-dependence-growth-loop-{suffix}-v1",
+        pipeline_relative=pipeline_relative,
+        authors=authors,
+        author_roles={
+            participant_id: [role]
+            for participant_id, role in zip(sorted(authors), _DEPENDENCE_FREE_ROLES, strict=True)
+        },
+        reviewer=ModelParticipant(
+            participant_id=f"actor:dependence-free-{suffix}-reviewer-fable-{reviewer}",
+            model_id="claude-fable-5",
+            model_name="Claude Fable 5",
+            model_alias="fable",
+        ),
+        hostile_answer_key_reviewer=ModelParticipant(
+            participant_id=f"actor:dependence-free-{suffix}-hostile-fable-{hostile}",
+            model_id="claude-fable-5",
+            model_name="Claude Fable 5",
+            model_alias="fable",
+        ),
+        escalation_reviewer=ModelParticipant(
+            participant_id=f"actor:dependence-free-{suffix}-escalation-opus-{escalation}",
+            model_id="claude-opus-5",
+            model_name="Claude Opus 5",
+            model_alias="claude-opus-5",
+        ),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Envelope 8: classifier-derived copy-dosage representation.
 #
@@ -1589,6 +1666,8 @@ ENVELOPE_CONFIGS = {
     "dependence-free-d": default_dependence_free_d_config,
     "dependence-free-e1": default_dependence_free_e1_config,
     "dependence-free-e2": default_dependence_free_e2_config,
+    "dependence-free-f1": default_dependence_free_f1_config,
+    "dependence-free-f2": default_dependence_free_f2_config,
     "dosage": default_dosage_config,
     "founder-orientation": default_founder_orientation_config,
     "founder-orientation-b": default_founder_orientation_b_config,

@@ -109,6 +109,7 @@ def verify_dependence_growth_certificate(
         return refuse("source-parse")
     if sum(1 for _ in ast.walk(tree)) > MAX_V2_AST_NODES:
         return refuse("source-size")
+    tree = _kernel_without_docstrings(tree)
     if not _kernel_replay_function_bookkeeping(tree, certificate):
         return refuse("rename-injectivity")
     if not _kernel_replay_source_claims(tree, certificate, fact):
@@ -327,6 +328,7 @@ def verify_count_dependence_certificate(
         return refuse("source-parse")
     if sum(1 for _ in ast.walk(tree)) > MAX_V2_AST_NODES:
         return refuse("source-size")
+    tree = _kernel_without_docstrings(tree)
     if not _kernel_replay_function_bookkeeping(tree, certificate):
         return refuse("rename-injectivity")
     if not _kernel_replay_count_claims(tree, certificate):
@@ -430,6 +432,28 @@ def _kernel_fisher_atoms_are_factorial(
     return len(combinations) == 4 and combinations == expected
 
 
+def _kernel_without_docstrings(tree: ast.Module) -> ast.Module:
+    """Independently erase only leading module and function docstrings."""
+
+    normalized = copy.deepcopy(tree)
+
+    def without_leading_docstring(body: list[ast.stmt]) -> list[ast.stmt]:
+        if (
+            body
+            and isinstance(body[0], ast.Expr)
+            and isinstance(body[0].value, ast.Constant)
+            and isinstance(body[0].value.value, str)
+        ):
+            return body[1:]
+        return body
+
+    normalized.body = without_leading_docstring(normalized.body)
+    for statement in normalized.body:
+        if isinstance(statement, ast.FunctionDef):
+            statement.body = without_leading_docstring(statement.body)
+    return normalized
+
+
 def _kernel_matching_rows(
     fact: CountProcedureFact, atoms: tuple[CountPredicateAtom, ...]
 ) -> tuple[int, ...]:
@@ -464,7 +488,14 @@ def _kernel_replay_count_claims(tree: ast.Module, certificate: CountDependenceCe
     if set(module_assignment_names) & set(imports):
         return False
     constants = _kernel_constants(tree)
+    if not _kernel_module_collection_uses_closed(tree, constants):
+        return False
     flattened = _kernel_flattened_module(tree, certificate)
+    if flattened is None:
+        return False
+    flattened = _kernel_normalize_live_annotations(
+        flattened, imports, certificate.resolved_callable
+    )
     if flattened is None:
         return False
     tree = ast.Module(body=flattened, type_ignores=[])
@@ -1200,11 +1231,19 @@ def _kernel_replay_source_claims(
 ) -> bool:
     """Independently replay the bounded grouping, binding, reader, and sink shapes."""
 
-    constants = _kernel_string_constants(tree)
+    all_constants = _kernel_constants(tree)
+    if not _kernel_module_collection_uses_closed(tree, all_constants):
+        return False
+    constants = {name: value for name, value in all_constants.items() if isinstance(value, str)}
     if not _kernel_import_forms_closed(tree):
         return False
     imports = _kernel_imports(tree)
     flattened = _kernel_flattened_module(tree, certificate)
+    if flattened is None:
+        return False
+    flattened = _kernel_normalize_live_annotations(
+        flattened, imports, certificate.resolved_callable
+    )
     if flattened is None:
         return False
     tree = ast.Module(body=flattened, type_ignores=[])
@@ -1406,9 +1445,103 @@ def _kernel_constants(tree: ast.Module) -> dict[str, object]:
         value = statement.value
         if isinstance(value, ast.Constant) and type(value.value) in {str, int, float}:
             values[statement.targets[0].id] = value.value
+        elif (
+            isinstance(value, ast.Tuple)
+            and value.elts
+            and all(
+                isinstance(item, ast.Constant) and isinstance(item.value, str)
+                for item in value.elts
+            )
+        ):
+            values[statement.targets[0].id] = tuple(
+                cast(str, cast(ast.Constant, item).value) for item in value.elts
+            )
+        elif (
+            isinstance(value, ast.Dict)
+            and value.keys
+            and all(
+                isinstance(key, ast.Constant)
+                and isinstance(key.value, str)
+                and isinstance(item, ast.Constant)
+                and isinstance(item.value, str)
+                for key, item in zip(value.keys, value.values, strict=True)
+            )
+        ):
+            pairs = [
+                (
+                    cast(str, cast(ast.Constant, key).value),
+                    cast(str, cast(ast.Constant, item).value),
+                )
+                for key, item in zip(value.keys, value.values, strict=True)
+            ]
+            if len({key for key, _item in pairs}) != len(pairs):
+                continue
+            values[statement.targets[0].id] = dict(pairs)
+        elif isinstance(value, ast.Subscript) and isinstance(value.value, ast.Name):
+            folded = _kernel_collection_subscript(values.get(value.value.id), value.slice, values)
+            if folded is not None:
+                values[statement.targets[0].id] = folded
         elif (path_value := _kernel_path_value(value, values)) is not None:
             values[statement.targets[0].id] = path_value
     return values
+
+
+def _kernel_constant_expression(value: object) -> ast.expr:
+    if isinstance(value, tuple):
+        return ast.Tuple(elts=[ast.Constant(item) for item in value], ctx=ast.Load())
+    if isinstance(value, dict):
+        return ast.Dict(
+            keys=[ast.Constant(item) for item in value],
+            values=[ast.Constant(item) for item in value.values()],
+        )
+    return ast.Constant(cast(Any, value))
+
+
+def _kernel_collection_subscript(
+    collection: object, key: ast.expr, constants: dict[str, object]
+) -> str | None:
+    if isinstance(key, ast.Name):
+        key = ast.Constant(cast(Any, constants.get(key.id)))
+    if isinstance(collection, tuple):
+        if not isinstance(key, ast.Constant) or type(key.value) is not int:
+            return None
+        index = key.value
+        return collection[index] if 0 <= index < len(collection) else None
+    if isinstance(collection, dict):
+        if not isinstance(key, ast.Constant) or not isinstance(key.value, str):
+            return None
+        value = collection.get(key.value)
+        return value if isinstance(value, str) else None
+    return None
+
+
+def _kernel_module_collection_uses_closed(tree: ast.Module, constants: dict[str, object]) -> bool:
+    collections = {
+        name: value for name, value in constants.items() if isinstance(value, tuple | dict)
+    }
+    if not collections:
+        return True
+    parents = {child: parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)}
+    for node in ast.walk(tree):
+        if not (
+            isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) and node.id in collections
+        ):
+            continue
+        parent = parents.get(node)
+        if isinstance(parent, ast.Subscript) and parent.value is node:
+            if _kernel_collection_subscript(collections[node.id], parent.slice, constants) is None:
+                return False
+            continue
+        if isinstance(parent, ast.For | ast.comprehension) and parent.iter is node:
+            continue
+        if (
+            isinstance(parent, ast.Compare)
+            and node in parent.comparators
+            and any(isinstance(operator, ast.In | ast.NotIn) for operator in parent.ops)
+        ):
+            continue
+        return False
+    return True
 
 
 def _kernel_string_value(expression: ast.expr | None, constants: dict[str, object]) -> str | None:
@@ -1547,10 +1680,87 @@ def _kernel_import_forms_closed(tree: ast.Module) -> bool:
                 ("pathlib", "Path"),
                 ("scipy", "stats"),
                 ("collections", "defaultdict"),
+                *(
+                    ("statistics", name)
+                    for name in {"fmean", "mean", "stdev", "median", "variance"}
+                ),
                 *(("scipy.stats", name.rsplit(".", 1)[1]) for name in _ALL_PROCEDURES),
             }:
                 return False
     return True
+
+
+def _kernel_normalize_live_annotations(
+    body: list[ast.stmt], imports: dict[str, str], resolved_callable: str
+) -> list[ast.stmt] | None:
+    """Replay annotation lowering only outside the kernel-derived operand closure."""
+
+    procedures = [
+        node
+        for statement in body
+        for node in ast.walk(statement)
+        if isinstance(node, ast.Call)
+        and _kernel_resolved_call(node.func, imports) == resolved_callable
+    ]
+    if len(procedures) != 1:
+        return None
+    operand_names = {
+        node.id
+        for argument in procedures[0].args
+        for node in ast.walk(argument)
+        if isinstance(node, ast.Name)
+    }
+    definitions: dict[str, ast.expr] = {}
+    for statement in body:
+        if (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+        ):
+            definitions[statement.targets[0].id] = statement.value
+        elif (
+            isinstance(statement, ast.AnnAssign)
+            and isinstance(statement.target, ast.Name)
+            and statement.value is not None
+        ):
+            definitions.setdefault(statement.target.id, statement.value)
+    changed = True
+    while changed:
+        changed = False
+        for name in tuple(operand_names):
+            value = definitions.get(name)
+            if value is None:
+                continue
+            for node in ast.walk(value):
+                if isinstance(node, ast.Name) and node.id not in operand_names:
+                    operand_names.add(node.id)
+                    changed = True
+        for name, value in definitions.items():
+            if (
+                isinstance(value, ast.Name)
+                and value.id in operand_names
+                and name not in operand_names
+            ):
+                operand_names.add(name)
+                changed = True
+    normalized: list[ast.stmt] = []
+    for statement in body:
+        if not isinstance(statement, ast.AnnAssign):
+            normalized.append(statement)
+            continue
+        if not isinstance(statement.target, ast.Name):
+            return None
+        if statement.value is None:
+            continue
+        if statement.target.id in operand_names:
+            return None
+        normalized.append(
+            ast.copy_location(
+                ast.Assign(targets=[copy.deepcopy(statement.target)], value=statement.value),
+                statement,
+            )
+        )
+    return normalized
 
 
 def _kernel_live_syntax_closed(
@@ -2069,7 +2279,7 @@ def _kernel_flattened_module(
             path_id = "inline-call-path:" + "/".join(path)
             parameters = [item.arg for item in function.args.args]
             arguments = {
-                name: copy.deepcopy(ast.Constant(cast(Any, constants[item.id])))
+                name: copy.deepcopy(_kernel_constant_expression(constants[item.id]))
                 if isinstance(item, ast.Name) and item.id in constants
                 else copy.deepcopy(item)
                 for name, item in zip(parameters, call.args, strict=True)
@@ -2158,8 +2368,19 @@ class _KernelConstantTransformer(ast.NodeTransformer):
 
     def visit_Name(self, node: ast.Name) -> ast.expr:
         if isinstance(node.ctx, ast.Load) and node.id in self.constants:
-            return ast.copy_location(ast.Constant(cast(Any, self.constants[node.id])), node)
+            return ast.copy_location(_kernel_constant_expression(self.constants[node.id]), node)
         return node
+
+    def visit_Subscript(self, node: ast.Subscript) -> ast.expr:
+        original_value = node.value
+        visited = cast(ast.Subscript, self.generic_visit(node))
+        if isinstance(original_value, ast.Name) and original_value.id in self.constants:
+            folded = _kernel_collection_subscript(
+                self.constants[original_value.id], visited.slice, self.constants
+            )
+            if folded is not None:
+                return ast.copy_location(ast.Constant(folded), node)
+        return visited
 
 
 def _kernel_statement_token(statement: ast.stmt, index: int) -> str:
@@ -2240,12 +2461,28 @@ def _kernel_sink_expression_closed(
         )
     if not isinstance(expression, ast.Call):
         return False
-    name_calls = {"len", "min", "max", "sum", "sorted", "round", "abs", "list", "str"}
+    name_calls = {
+        "len",
+        "min",
+        "max",
+        "sum",
+        "sorted",
+        "round",
+        "abs",
+        "list",
+        "str",
+        "fmean",
+        "mean",
+        "stdev",
+        "median",
+        "variance",
+    }
     module_calls = {
         "statistics.mean",
         "statistics.fmean",
         "statistics.stdev",
         "statistics.median",
+        "statistics.variance",
         "np.mean",
         "np.std",
         "np.var",
@@ -2303,6 +2540,9 @@ def _kernel_sink_partition_matches(
     if body is None:
         return False
     imports = _kernel_imports(tree)
+    body = _kernel_normalize_live_annotations(body, imports, certificate.resolved_callable)
+    if body is None:
+        return False
     procedures = [
         statement
         for statement in body

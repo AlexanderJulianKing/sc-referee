@@ -98,6 +98,7 @@ DEPENDENCE_V2_REASON_REGISTRY = frozenset(
         "import-use-outside-grammar",
         "independent-unit-definition-unresolved",
         "module-constant-not-closed",
+        "module-collection-use-not-modeled",
         "named-expression-not-modeled",
         "one-observation-per-unit-in-disjoint-bound-operands",
         "one-row-per-unit-in-proven-count-sets",

@@ -230,3 +230,38 @@ review seats.  The pinned Claude CLI exposes `--json-schema`; batch D therefore
 passes the frozen primary and hostile review schemas to the transport.  The
 retained malformed-response burn remains fail-closed.  Qualification lanes and
 their historical call identities are unchanged.
+
+## 2026-08-15 growth-5 vocabulary amendment
+
+This light-process round adds no proof obligation or claim shape. Module
+constants may additionally be nonempty tuples of string literals or nonempty
+dicts with unique string-literal keys and string-literal values. Their only
+admitted reads are a proven literal/constant subscript, iteration in an already
+modeled loop position, or membership in an already modeled comparison;
+everything else abstains as `module-collection-use-not-modeled`. A subscripted
+string value and an ordinary module string constant are folded before the
+existing byte-predicate replay, so the kernel continues to receive literal
+string atoms only.
+
+The five already sink-bound statistics callables (`fmean`, `mean`, `stdev`,
+`median`, and `variance`) may be imported directly from `statistics`; their use
+ceiling is unchanged. Annotation-only statements are erased as runtime-no-op
+syntax. An annotated assignment is lowered to its plain assignment only when
+the existing kernel-derived operand partition proves its target is neither an
+operand-slice name nor an alias of one; all other annotations retain the
+`annotated-assignment-not-modeled` refusal.
+
+`scipy.stats.wilcoxon` remains a named paired-procedure gap alongside
+`ttest_rel`; neither procedure is admitted to the v2 authorization-lock
+registry. Batches F1 and F2 retain the batch-E development-only structure with
+fresh author, blind-review, hostile-review, and escalation seats.
+
+### Growth-5 addendum G5-9: inert docstrings
+
+A leading string-literal expression at module scope, and a leading
+string-literal expression in an otherwise inlinable function body, is treated
+only as its Python docstring role. It is excluded independently by the analyzer
+and certificate kernel from entry counting, flattening, sink partitioning, and
+completeness replay. It binds no name and contributes no flow. A bare string
+expression in any non-leading position remains outside the modeled statement
+class.
