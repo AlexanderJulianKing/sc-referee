@@ -1,0 +1,13 @@
+treatment,day,height_cm
+low_light,0,5.2
+low_light,7,6.1
+low_light,14,7.8
+low_light,21,8.5
+medium_light,0,5.1
+medium_light,7,6.8
+medium_light,14,9.1
+medium_light,21,10.2
+high_light,0,5.3
+high_light,7,8.2
+high_light,14,11.9
+high_light,21,14.1

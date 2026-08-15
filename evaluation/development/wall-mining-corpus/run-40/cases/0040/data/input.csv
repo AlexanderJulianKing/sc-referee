@@ -1,0 +1,16 @@
+Plot_ID,pH,Nitrogen_ppm,Phosphorus_ppm,Potassium_ppm,Organic_Matter_percent,Soil_Texture
+A1,6.2,35,22,180,4.2,loam
+A2,6.8,28,18,145,3.1,clay loam
+A3,7.1,42,31,220,5.5,loam
+B1,5.9,15,12,120,2.1,sandy loam
+B2,6.5,38,25,195,4.8,loam
+B3,7.2,22,14,155,2.8,clay
+C1,6.0,18,16,140,3.3,sandy loam
+C2,6.7,45,28,240,5.9,loam
+C3,6.3,32,20,175,3.7,loam
+D1,7.0,40,26,210,5.1,loam
+D2,5.8,12,10,100,1.9,sandy
+D3,6.9,36,23,185,4.4,loam
+E1,6.4,30,19,160,3.5,clay loam
+E2,6.6,44,30,235,5.6,loam
+E3,7.1,25,17,150,2.6,clay

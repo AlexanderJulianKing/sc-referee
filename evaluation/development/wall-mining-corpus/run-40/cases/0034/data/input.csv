@@ -1,0 +1,41 @@
+timestamp,location,noise_db,hour
+2026-08-15 08:00,Open Office,58.2,8
+2026-08-15 08:15,Open Office,59.1,8
+2026-08-15 08:30,Conference Room,52.4,8
+2026-08-15 08:45,Conference Room,51.8,8
+2026-08-15 09:00,Open Office,60.3,9
+2026-08-15 09:15,Open Office,61.2,9
+2026-08-15 09:30,Breakroom,64.5,9
+2026-08-15 09:45,Breakroom,65.2,9
+2026-08-15 10:00,Conference Room,53.1,10
+2026-08-15 10:15,Conference Room,52.8,10
+2026-08-15 10:30,Open Office,62.1,10
+2026-08-15 10:45,Open Office,63.4,10
+2026-08-15 11:00,Breakroom,66.1,11
+2026-08-15 11:15,Breakroom,67.3,11
+2026-08-15 11:30,Open Office,64.5,11
+2026-08-15 11:45,Open Office,65.2,11
+2026-08-15 12:00,Conference Room,54.2,12
+2026-08-15 12:15,Open Office,68.9,12
+2026-08-15 12:30,Breakroom,72.3,12
+2026-08-15 12:45,Breakroom,71.8,12
+2026-08-15 13:00,Open Office,69.1,13
+2026-08-15 13:15,Open Office,70.2,13
+2026-08-15 13:30,Conference Room,55.1,13
+2026-08-15 13:45,Breakroom,73.5,13
+2026-08-15 14:00,Open Office,67.8,14
+2026-08-15 14:15,Open Office,68.4,14
+2026-08-15 14:30,Breakroom,71.2,14
+2026-08-15 14:45,Conference Room,56.3,14
+2026-08-15 15:00,Open Office,66.5,15
+2026-08-15 15:15,Breakroom,70.1,15
+2026-08-15 15:30,Open Office,67.3,15
+2026-08-15 15:45,Conference Room,57.2,15
+2026-08-15 16:00,Breakroom,69.8,16
+2026-08-15 16:15,Open Office,65.4,16
+2026-08-15 16:30,Open Office,64.9,16
+2026-08-15 16:45,Conference Room,58.1,16
+2026-08-15 17:00,Open Office,62.3,17
+2026-08-15 17:15,Breakroom,68.2,17
+2026-08-15 17:30,Open Office,61.8,17
+2026-08-15 17:45,Conference Room,53.9,17

@@ -1,6 +1,6 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
-Updated: 2026-08-15 (handoff from the Fable orchestrator session).
+Updated: 2026-08-15 (Growth-9 closed; first wall-corpus census recorded).
 
 ## Scoreboard
 
@@ -14,16 +14,44 @@ Updated: 2026-08-15 (handoff from the Fable orchestrator session).
   all assignment forms through one partition test).
 - v1.1.0 qualified detector + installed pins: untouched and live throughout.
 
-## In flight at handoff
+## Closed this iteration
 
-- Growth-9 build (G9-L vocabulary: builtins dict/any/all/tuple, reader-form
-  [dict(row) for row in csv.DictReader(handle)], list-literal string constants;
-  G9-H: argument-expression hoisting with refuse-at-binding container rule) +
-  wall-mining corpus harness (scripts/wall_mining_corpus.py) + batch J configs
-  (j1: opus-111..116/fable-44,45/opus-27; j2: opus-117..122/fable-46,47/opus-28,
-  ready-but-unrun; checkpoint cadence). Fresh-session build launched from the
-  implementer brief; on completion: full-suite gate, commit+manifest, push, fresh
-  reviewer code review with probes, then first corpus census run.
+- Growth-9 G9-L + amended G9-H shipped on `dev/dependence-growth` through
+  `4ca0532`: builtins dict/any/all/tuple, DictReader shallow-copy form,
+  list-literal string constants, and positional argument-expression hoisting with
+  the one partition reused and operand-container identity refused at binding time.
+- Frozen A-I2 re-measure: 83 materialized cases, 29 reason-set movements, zero
+  outcome-class movements, accusations `0 -> 0`. Both installed pins remained live;
+  protected v1, EXPERIMENT-0058, registry/grants/pins/capability/qualification, and
+  frozen lanes had zero changed paths.
+- Fresh adversarial review demonstrated both subscript and bare-name analyzer-bypass
+  proposals reach certificates and the kernel independently refuses each with
+  `certificate-kernel-refusal:sink-partition`. Alias/mutation, all rebind sibling
+  forms, paired/crossover, vacuous clearance, runtime operand equality,
+  compile-validity, reason-registry, cardinality, production-unreachability, and
+  pin-liveness probes passed. Final fresh reviewer verdict: `CLEAR FOR BATCHES`.
+- Orchestrator full-suite gates reached 100% with verified `PYTEST_EXIT=0` before
+  each accepted push. One intermediate gate failed only because the reviewed test
+  changed before manifest regeneration; release identity and the repeated full gate
+  passed after the manifest was rebuilt.
+- First open wall-corpus census completed at
+  `evaluation/development/wall-mining-corpus/run-40/`: 40 Haiku generations, cap 3,
+  122/122 JSON files purpose-stamped `development_wall_mining`, no measurement
+  authority. It is NOT useful for ranking: all 40 descriptions omitted the optional
+  exact `Independent unit column:` declaration, all translations were `no-lock`, all
+  outcomes were `question` / `independent-unit-definition-unresolved`, and the wall
+  frequency map is empty. Do not infer a grammar priority from this run.
+
+## In flight
+
+- Checkpoint batch J configs are reviewed and ready but unrun: j1 uses
+  opus-111..116/fable-44,45/opus-27; j2 uses
+  opus-117..122/fable-46,47/opus-28. Run both only from the cleared `4ca0532`-or-later
+  snapshot, then halt immediately on any scored false accusation.
+- Before another wall-corpus run, write and review a narrow harness design that makes
+  authority projection usable without planting error classes or recognition labels.
+  The current empty census is preserved as evidence of the boundary, not retried or
+  rescored.
 
 ## Heavy queue (evidence-ranked; measure premises before designing)
 
@@ -43,6 +71,15 @@ Authors spent through opus-110; blind reviewers through fable-43; hostile review
 interleaved (fable odd/even per envelope config); escalation through opus-26.
 Batch J seats reserved above. Blind-batch seats may move to codex-cli transports
 (model change is a harness config change: review it).
+
+## Process-control record
+
+- The inherited Growth-9 builder attempt committed and pushed despite the implementer
+  brief. Fresh review covered the exact pushed snapshot and found no code-safety
+  consequence, but the role-separation breach is recorded. Subsequent builder and
+  reviewer sessions ran with `.git` made read-only and restored by an orchestrator
+  shell trap. Continue that technical control for every delegated session; only the
+  orchestrator may commit or push.
 
 ## Key file map
 
