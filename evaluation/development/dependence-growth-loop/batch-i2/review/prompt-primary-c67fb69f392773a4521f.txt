@@ -1,0 +1,310 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-i2-reviewer-fable-42
+
+=== workflow 1: case:c67fb69f392773a4521f ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Rain garden infiltration surveys
+
+Sixteen street-side rain gardens in the Lower Kepple stormwater district were retrofitted during the same construction season. Every garden contains two cells of equal footprint, side by side and fed from the same kerb inlet: one cell whose soil was blended with green-waste compost, and one untreated reference cell. Field crews revisited each garden three or four times across the following summer, and on every visit they ran a double-ring infiltrometer once in each cell.
+
+`data/input.csv` stores those visits in long format: one line per visit, with the two cell readings from that visit sitting on the same line.
+
+Columns:
+
+- `garden_id` - label of the rain garden that was visited (RG-01 through RG-16).
+- `survey_round` - which visit to that garden the line describes (1, 2, 3 or 4).
+- `rainfall_prior_7d_mm` - rain recorded at the district gauge during the seven days before the visit, in millimetres.
+- `amended_mm_per_h` - steady infiltration rate measured in the compost-amended cell on that visit, in millimetres per hour.
+- `reference_mm_per_h` - steady infiltration rate measured in the untreated reference cell on that visit, in millimetres per hour.
+
+One row is: one infiltrometer visit to a single rain garden, holding the paired amended-cell and reference-cell readings taken during that visit
+
+Independent unit column: garden_id
+
+Repeated visits to the same garden re-measure the same construction, the same soil profile and the same inlet, so they are not separate independent cases; only the gardens themselves were sited and built independently of one another. An analysis should reduce each garden's visits to a single value before testing, which leaves sixteen values for sixteen gardens. The number of visits is not balanced across gardens, because four sites were inaccessible during the third survey round.
+
+--- file data/input.csv ---
+garden_id,survey_round,rainfall_prior_7d_mm,amended_mm_per_h,reference_mm_per_h
+RG-01,1,12,28.1,24.6
+RG-01,2,8,27.0,22.9
+RG-01,3,21,29.3,26.1
+RG-01,4,15,27.8,23.4
+RG-02,1,9,36.2,31.2
+RG-02,2,17,35.4,29.8
+RG-02,3,6,37.2,32.5
+RG-02,4,23,35.9,30.4
+RG-03,1,14,21.0,19.4
+RG-03,2,11,21.0,18.7
+RG-03,3,19,21.6,20.2
+RG-03,4,7,21.4,19.1
+RG-04,1,16,33.3,27.5
+RG-04,2,10,32.5,26.1
+RG-04,3,25,34.4,28.3
+RG-05,1,13,27.0,22.8
+RG-05,2,20,26.5,21.6
+RG-05,3,5,27.3,23.5
+RG-05,4,18,26.8,22.1
+RG-06,1,22,37.8,35.4
+RG-06,2,9,37.2,34.1
+RG-06,3,14,38.8,36.2
+RG-07,1,11,34.3,29.1
+RG-07,2,26,33.7,27.8
+RG-07,3,8,35.4,30.3
+RG-07,4,16,34.4,28.6
+RG-08,1,19,18.9,17.9
+RG-08,2,7,18.5,16.8
+RG-08,3,24,19.3,18.5
+RG-08,4,12,18.5,17.2
+RG-09,1,15,29.9,25.3
+RG-09,2,10,29.3,24.1
+RG-09,3,20,30.7,26.4
+RG-09,4,6,29.9,24.8
+RG-10,1,18,23.7,20.7
+RG-10,2,13,23.1,19.5
+RG-10,3,27,24.7,21.4
+RG-11,1,8,40.4,33.6
+RG-11,2,22,39.6,32.2
+RG-11,3,14,41.3,34.8
+RG-11,4,17,40.4,33.1
+RG-12,1,21,37.3,38.2
+RG-12,2,9,36.7,36.9
+RG-12,3,16,38.3,39.4
+RG-12,4,11,37.3,37.5
+RG-13,1,12,27.3,23.4
+RG-13,2,25,26.6,22.1
+RG-13,3,7,28.2,24.6
+RG-13,4,19,27.4,23.0
+RG-14,1,10,36.0,30.5
+RG-14,2,23,35.3,29.2
+RG-14,3,15,37.4,31.6
+RG-15,1,17,23.3,21.2
+RG-15,2,6,23.2,20.4
+RG-15,3,21,24.3,22.1
+RG-15,4,13,23.4,20.9
+RG-16,1,9,30.1,26.8
+RG-16,2,18,29.4,25.4
+RG-16,3,24,30.9,27.7
+RG-16,4,11,30.1,26.2
+
+--- file workflow/analysis.py ---
+"""Infiltration gain in compost-amended rain gardens.
+
+Reads data/input.csv, which stores one row per infiltrometer visit, collapses
+the repeated visits of each garden into a single garden-level gain, and writes
+results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+import math
+import statistics
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from scipy import stats
+
+INPUT_PATH = Path("data/input.csv")
+OUTPUT_PATH = Path("results/report.md")
+UNIT_COLUMN = "garden_id"
+AMENDED_COLUMN = "amended_mm_per_h"
+REFERENCE_COLUMN = "reference_mm_per_h"
+NULL_GAIN = 0.0
+CONF_LEVEL = 0.95
+
+
+@dataclass
+class Garden:
+    """One retrofitted rain garden: the independent unit of this study."""
+
+    garden_id: str
+    session_gains: list = field(default_factory=list)
+
+    def add_session(self, amended, reference):
+        self.session_gains.append(amended - reference)
+
+    @property
+    def n_sessions(self):
+        return len(self.session_gains)
+
+    @property
+    def mean_gain(self):
+        return statistics.fmean(self.session_gains)
+
+
+def collect_gardens(path):
+    """Group the visit rows by garden, keeping first-seen garden order."""
+    gardens = {}
+    n_rows = 0
+    with path.open(newline="", encoding="ascii") as handle:
+        for row in csv.DictReader(handle):
+            n_rows += 1
+            label = row[UNIT_COLUMN]
+            if label not in gardens:
+                gardens[label] = Garden(label)
+            gardens[label].add_session(
+                float(row[AMENDED_COLUMN]), float(row[REFERENCE_COLUMN])
+            )
+    return list(gardens.values()), n_rows
+
+
+def format_p(pvalue):
+    for cut in (0.0001, 0.001, 0.01):
+        if pvalue < cut:
+            return "p < {0:g}".format(cut)
+    return "p = {0:.3f}".format(pvalue)
+
+
+def build_report(gardens, n_rows):
+    unit_means = [garden.mean_gain for garden in gardens]
+    session_counts = [garden.n_sessions for garden in gardens]
+    n_units = len(unit_means)
+    df = n_units - 1
+    mean_gain = statistics.fmean(unit_means)
+    sd_gain = statistics.stdev(unit_means)
+    se_gain = sd_gain / math.sqrt(n_units)
+    tstat, pvalue = stats.ttest_1samp(unit_means, NULL_GAIN)
+    margin = float(stats.t.ppf(0.5 + CONF_LEVEL / 2.0, df)) * se_gain
+    low = mean_gain - margin
+    high = mean_gain + margin
+    p_text = format_p(float(pvalue))
+
+    lines = []
+    lines.append("# Infiltration gain in compost-amended rain gardens")
+    lines.append("")
+    lines.append("## Data")
+    lines.append("")
+    lines.append("Source table: `data/input.csv`")
+    lines.append("")
+    lines.append(
+        "The file holds {0} infiltrometer survey sessions recorded at {1} rain"
+        " gardens, with {2} to {3} sessions per garden (mean {4:.2f}). Each"
+        " session pairs one measurement in the compost-amended cell with one"
+        " measurement in the untreated reference cell of the same garden; the"
+        " session gain is amended minus reference, in mm/h.".format(
+            n_rows,
+            n_units,
+            min(session_counts),
+            max(session_counts),
+            statistics.fmean(session_counts),
+        )
+    )
+    lines.append("")
+    lines.append(
+        "Sessions repeated at the same garden are not independent of one"
+        " another, so the session gains are averaged within each garden before"
+        " testing. The reported test therefore uses {0} garden means, one"
+        " analysed value per independent garden.".format(n_units)
+    )
+    lines.append("")
+    lines.append("## Per-garden means")
+    lines.append("")
+    lines.append("| garden_id | sessions | mean gain (mm/h) |")
+    lines.append("| --- | --- | --- |")
+    for garden in gardens:
+        lines.append(
+            "| {0} | {1} | {2:.2f} |".format(
+                garden.garden_id, garden.n_sessions, garden.mean_gain
+            )
+        )
+    lines.append("")
+    lines.append("## Test")
+    lines.append("")
+    lines.append(
+        "Two-sided one-sample t-test of the {0} garden mean gains against a"
+        " null gain of {1:.1f} mm/h.".format(n_units, NULL_GAIN)
+    )
+    lines.append("")
+    lines.append("- Mean garden gain: {0:.3f} mm/h".format(mean_gain))
+    lines.append("- SD across gardens: {0:.3f} mm/h".format(sd_gain))
+    lines.append("- Standard error of the mean: {0:.3f} mm/h".format(se_gain))
+    lines.append(
+        "- 95% confidence interval: {0:.3f} to {1:.3f} mm/h".format(low, high)
+    )
+    lines.append("- t({0}) = {1:.3f}, {2}".format(df, float(tstat), p_text))
+    lines.append("")
+    lines.append(
+        "[selected-result] Compost-amended cells infiltrated faster than their"
+        " paired reference cells by {0:.3f} mm/h on average (95% CI {1:.3f} to"
+        " {2:.3f} mm/h; two-sided one-sample t-test on {3} garden means,"
+        " t({4}) = {5:.3f}, {6}).".format(
+            mean_gain, low, high, n_units, df, float(tstat), p_text
+        )
+    )
+    lines.append("")
+    lines.append("## Reading note")
+    lines.append("")
+    lines.append(
+        "The {0} rows are repeated visits rather than {0} independent gardens."
+        " The sample size for the reported test is {1} gardens, which fixes the"
+        " degrees of freedom at {2}.".format(n_rows, n_units, df)
+    )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def main():
+    gardens, n_rows = collect_gardens(INPUT_PATH)
+    report = build_report(gardens, n_rows)
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Infiltration gain in compost-amended rain gardens
+
+## Data
+
+Source table: `data/input.csv`
+
+The file holds 60 infiltrometer survey sessions recorded at 16 rain gardens, with 3 to 4 sessions per garden (mean 3.75). Each session pairs one measurement in the compost-amended cell with one measurement in the untreated reference cell of the same garden; the session gain is amended minus reference, in mm/h.
+
+Sessions repeated at the same garden are not independent of one another, so the session gains are averaged within each garden before testing. The reported test therefore uses 16 garden means, one analysed value per independent garden.
+
+## Per-garden means
+
+| garden_id | sessions | mean gain (mm/h) |
+| --- | --- | --- |
+| RG-01 | 4 | 3.80 |
+| RG-02 | 4 | 5.20 |
+| RG-03 | 4 | 1.90 |
+| RG-04 | 3 | 6.10 |
+| RG-05 | 4 | 4.40 |
+| RG-06 | 3 | 2.70 |
+| RG-07 | 4 | 5.50 |
+| RG-08 | 4 | 1.20 |
+| RG-09 | 4 | 4.80 |
+| RG-10 | 3 | 3.30 |
+| RG-11 | 4 | 7.00 |
+| RG-12 | 4 | -0.60 |
+| RG-13 | 4 | 4.10 |
+| RG-14 | 3 | 5.80 |
+| RG-15 | 4 | 2.40 |
+| RG-16 | 4 | 3.60 |
+
+## Test
+
+Two-sided one-sample t-test of the 16 garden mean gains against a null gain of 0.0 mm/h.
+
+- Mean garden gain: 3.825 mm/h
+- SD across gardens: 1.983 mm/h
+- Standard error of the mean: 0.496 mm/h
+- 95% confidence interval: 2.768 to 4.882 mm/h
+- t(15) = 7.714, p < 0.0001
+
+[selected-result] Compost-amended cells infiltrated faster than their paired reference cells by 3.825 mm/h on average (95% CI 2.768 to 4.882 mm/h; two-sided one-sample t-test on 16 garden means, t(15) = 7.714, p < 0.0001).
+
+## Reading note
+
+The 60 rows are repeated visits rather than 60 independent gardens. The sample size for the reported test is 16 gardens, which fixes the degrees of freedom at 15.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-i2-reviewer-fable-42", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:c67fb69f392773a4521f"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

@@ -1,0 +1,207 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-i2-reviewer-fable-42
+
+=== workflow 1: case:5f4ec238d04074266e32 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Sourdough starter acidity study
+
+Twelve sourdough starter jars were kept side by side in a single incubator held at
+26 C. Six of the jars were refreshed with wholegrain rye flour and six with white
+wheat flour. Apart from the flour, every jar got the same hydration, the same
+starting mass and the same 24 h refresh schedule.
+
+At the end of the 24 h window a technician drew four separate aliquots out of each
+jar and titrated every aliquot with 0.1 M NaOH to the phenolphthalein endpoint,
+writing down the volume of base in millilitres. The four aliquots taken from one jar
+are four measurements of the same batch of starter, not four separate batches.
+
+Columns in the file:
+
+- jar_id: label of the starter jar the aliquot came from; R01-R06 are the rye jars
+  and W01-W06 are the wheat jars
+- flour_type: refresh flour used for that jar, either rye or wheat
+- starter_age_d: age of the starter culture, in days, at the time of the refresh
+- aliquot: which of the four aliquots from that jar this row records, numbered 1 to 4
+- acidity_ml: titratable acidity of that aliquot, in mL of 0.1 M NaOH
+
+One row is: one titration of one aliquot drawn from one starter jar
+Independent unit column: jar_id
+
+--- file data/input.csv ---
+jar_id,flour_type,starter_age_d,aliquot,acidity_ml
+R01,rye,14,1,9.5
+R01,rye,14,2,9.1
+R01,rye,14,3,9.7
+R01,rye,14,4,9.3
+R02,rye,14,1,9.7
+R02,rye,14,2,10.1
+R02,rye,14,3,9.5
+R02,rye,14,4,9.9
+R03,rye,21,1,10.1
+R03,rye,21,2,9.7
+R03,rye,21,3,10.3
+R03,rye,21,4,9.9
+R04,rye,21,1,9.9
+R04,rye,21,2,10.5
+R04,rye,21,3,10.1
+R04,rye,21,4,10.3
+R05,rye,28,1,10.5
+R05,rye,28,2,10.1
+R05,rye,28,3,10.7
+R05,rye,28,4,10.3
+R06,rye,28,1,10.3
+R06,rye,28,2,9.9
+R06,rye,28,3,10.5
+R06,rye,28,4,10.1
+W01,wheat,14,1,8.1
+W01,wheat,14,2,8.5
+W01,wheat,14,3,7.9
+W01,wheat,14,4,8.3
+W02,wheat,14,1,8.5
+W02,wheat,14,2,8.1
+W02,wheat,14,3,8.7
+W02,wheat,14,4,8.3
+W03,wheat,21,1,8.7
+W03,wheat,21,2,8.3
+W03,wheat,21,3,8.9
+W03,wheat,21,4,8.5
+W04,wheat,21,1,8.5
+W04,wheat,21,2,8.9
+W04,wheat,21,3,8.3
+W04,wheat,21,4,8.7
+W05,wheat,28,1,8.9
+W05,wheat,28,2,8.5
+W05,wheat,28,3,9.1
+W05,wheat,28,4,8.7
+W06,wheat,28,1,8.9
+W06,wheat,28,2,9.3
+W06,wheat,28,3,8.7
+W06,wheat,28,4,9.1
+
+--- file workflow/analysis.py ---
+"""Compare titratable acidity of rye- and wheat-refreshed sourdough starters.
+
+Reads the titration sheet at data/input.csv and writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+import statistics
+from pathlib import Path
+
+from scipy import stats
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+
+def read_groups():
+    """Return {flour_type: [acidity_ml, ...]} from the titration sheet."""
+    groups = {}
+    with INPUT_PATH.open(newline="", encoding="ascii") as handle:
+        for row in csv.DictReader(handle):
+            groups.setdefault(row["flour_type"], []).append(float(row["acidity_ml"]))
+    return groups
+
+
+def welch_dof(first, second):
+    """Welch-Satterthwaite degrees of freedom for two samples."""
+    term_a = statistics.variance(first) / len(first)
+    term_b = statistics.variance(second) / len(second)
+    return (term_a + term_b) ** 2 / (
+        term_a**2 / (len(first) - 1) + term_b**2 / (len(second) - 1)
+    )
+
+
+def build_report(rye, wheat):
+    """Assemble the report lines for the two acidity samples."""
+    n_rye = len(rye)
+    n_wheat = len(wheat)
+    n_total = n_rye + n_wheat
+
+    mean_rye = statistics.fmean(rye)
+    mean_wheat = statistics.fmean(wheat)
+    sd_rye = statistics.stdev(rye)
+    sd_wheat = statistics.stdev(wheat)
+
+    outcome = stats.ttest_ind(rye, wheat, equal_var=False)
+    tstat = float(outcome.statistic)
+    pval = float(outcome.pvalue)
+    dof = welch_dof(rye, wheat)
+    diff = mean_rye - mean_wheat
+    p_text = "< 0.0001" if pval < 0.0001 else "= {:.4f}".format(pval)
+
+    return [
+        "# Sourdough starter acidity: rye vs. wheat refresh flour",
+        "",
+        "## Data",
+        "",
+        "{} aliquots were titrated after a 24 h refresh; the response is titratable acidity in".format(
+            n_total
+        ),
+        "mL of 0.1 M NaOH to the phenolphthalein endpoint.",
+        "",
+        "| Refresh flour | Aliquots | Mean acidity (mL) | SD (mL) |",
+        "| --- | --- | --- | --- |",
+        "| Rye | {} | {:.3f} | {:.3f} |".format(n_rye, mean_rye, sd_rye),
+        "| Wheat | {} | {:.3f} | {:.3f} |".format(n_wheat, mean_wheat, sd_wheat),
+        "",
+        "## Analysis",
+        "",
+        "Welch's two-sample t-test (two-sided, unequal variances) comparing the acidity of every",
+        "rye aliquot with the acidity of every wheat aliquot.",
+        "",
+        "## Result",
+        "",
+        "Mean difference (rye - wheat) = {:.3f} mL; t = {:.2f}, df = {:.1f}, p {}.".format(
+            diff, tstat, dof, p_text
+        ),
+        "",
+        "[selected-result] Welch's two-sample t-test on {} aliquots shows that rye-refreshed starters reach a higher titratable acidity than wheat-refreshed starters, by {:.3f} mL of 0.1 M NaOH (t = {:.2f}, df = {:.1f}, p {}).".format(
+            n_total, diff, tstat, dof, p_text
+        ),
+    ]
+
+
+def main():
+    groups = read_groups()
+    lines = build_report(groups["rye"], groups["wheat"])
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Sourdough starter acidity: rye vs. wheat refresh flour
+
+## Data
+
+48 aliquots were titrated after a 24 h refresh; the response is titratable acidity in
+mL of 0.1 M NaOH to the phenolphthalein endpoint.
+
+| Refresh flour | Aliquots | Mean acidity (mL) | SD (mL) |
+| --- | --- | --- | --- |
+| Rye | 24 | 10.000 | 0.404 |
+| Wheat | 24 | 8.600 | 0.349 |
+
+## Analysis
+
+Welch's two-sample t-test (two-sided, unequal variances) comparing the acidity of every
+rye aliquot with the acidity of every wheat aliquot.
+
+## Result
+
+Mean difference (rye - wheat) = 1.400 mL; t = 12.84, df = 45.0, p < 0.0001.
+
+[selected-result] Welch's two-sample t-test on 48 aliquots shows that rye-refreshed starters reach a higher titratable acidity than wheat-refreshed starters, by 1.400 mL of 0.1 M NaOH (t = 12.84, df = 45.0, p < 0.0001).
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-i2-reviewer-fable-42", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:5f4ec238d04074266e32"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

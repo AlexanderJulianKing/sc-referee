@@ -1,0 +1,204 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-i2-reviewer-fable-42
+
+=== workflow 1: case:6aac19a2a2aa18f85740 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What data/input.csv contains
+
+A single midsummer field campaign visited twelve upland peat bogs, each sitting in its own
+catchment, and took one closed-chamber methane flux reading at each bog. Six of the bogs still
+hold an intact water table; the other six were drained by historic ditching. No bog was visited
+twice, and no two rows describe the same bog, so the twelve rows are twelve separate sites.
+
+One row is: one surveyed peat bog together with its single midsummer methane flux reading
+Independent unit column: bog_id
+
+Columns
+- bog_id: site code of the bog; each code appears on exactly one row
+- catchment: name of the catchment the bog sits in; each catchment holds exactly one of the bogs
+- hydrology: management state of the bog, either intact or drained
+- peat_depth_cm: depth of the peat column at the chamber position, in centimetres
+- ch4_flux_mg_m2_h: methane flux measured at the chamber, in milligrams per square metre per hour
+
+Because measurement, bog, and row are one and the same thing here, the readings can be compared
+between the two hydrology classes without any grouping or repeated-measures structure to account
+for. Peat depth is recorded for context only and is not used by the analysis.
+
+--- file data/input.csv ---
+bog_id,catchment,hydrology,peat_depth_cm,ch4_flux_mg_m2_h
+PB-101,Coire Moss,intact,412,3.20
+PB-102,Ardvarn Flats,drained,388,2.55
+PB-103,Glen Rannoch,intact,455,3.50
+PB-104,Braemore Basin,drained,401,2.95
+PB-105,Sruth Bealach,intact,367,2.90
+PB-106,Tarn Machair,drained,352,2.30
+PB-107,Kilbrae Hollow,intact,498,3.40
+PB-108,Dunmore Levels,drained,437,3.10
+PB-109,Feorlin Mire,intact,421,3.00
+PB-110,Auchtree Carr,drained,396,2.45
+PB-111,Balloch Sike,intact,433,3.20
+PB-112,Ravenhaugh Fen,drained,410,2.85
+
+--- file workflow/analysis.py ---
+"""Midsummer methane flux in intact versus drained peat bogs.
+
+Reads the bog survey in data/input.csv (one bog per row) and writes results/report.md.
+"""
+
+import csv
+import math
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = Path("data") / "input.csv"
+REPORT_PATH = Path("results") / "report.md"
+
+UNIT_COLUMN = "bog_id"
+GROUP_COLUMN = "hydrology"
+FLUX_COLUMN = "ch4_flux_mg_m2_h"
+GROUP_ORDER = ("intact", "drained")
+
+
+def read_survey(path):
+    """Collect bog identifiers and per-bog flux readings, keyed by hydrology class."""
+    identifiers = []
+    fluxes = {label: [] for label in GROUP_ORDER}
+    with path.open(newline="", encoding="ascii") as handle:
+        for record in csv.DictReader(handle):
+            label = record[GROUP_COLUMN].strip()
+            if label not in fluxes:
+                raise ValueError("unrecognised hydrology class: {0}".format(label))
+            identifiers.append(record[UNIT_COLUMN].strip())
+            fluxes[label].append(float(record[FLUX_COLUMN]))
+    if not identifiers:
+        raise ValueError("no bogs found in {0}".format(path))
+    if len(set(identifiers)) != len(identifiers):
+        raise ValueError("a bog identifier is repeated; every row must be a separate bog")
+    samples = {}
+    for label in GROUP_ORDER:
+        samples[label] = np.asarray(fluxes[label], dtype=float)
+    return identifiers, samples
+
+
+def main():
+    identifiers, samples = read_survey(INPUT_PATH)
+    intact = samples["intact"]
+    drained = samples["drained"]
+
+    n_intact = int(intact.size)
+    n_drained = int(drained.size)
+    mean_intact = float(intact.mean())
+    mean_drained = float(drained.mean())
+    sd_intact = float(intact.std(ddof=1))
+    sd_drained = float(drained.std(ddof=1))
+
+    dof = n_intact + n_drained - 2
+    pooled_var = ((n_intact - 1) * sd_intact ** 2 + (n_drained - 1) * sd_drained ** 2) / dof
+    pooled_sd = math.sqrt(pooled_var)
+    difference = mean_intact - mean_drained
+    effect = difference / pooled_sd
+
+    outcome = stats.ttest_ind(intact, drained, equal_var=True)
+    t_stat = float(outcome.statistic)
+    p_value = float(outcome.pvalue)
+
+    selected = (
+        "[selected-result] Intact bogs emitted more methane than drained bogs: "
+        "mean flux {0:.3f} vs {1:.3f} mg m-2 h-1 (difference {2:.3f}), "
+        "pooled two-sample t-test t({3}) = {4:.4f}, two-sided p = {5:.5f}, "
+        "standardised effect size {6:.3f}."
+    ).format(mean_intact, mean_drained, difference, dof, t_stat, p_value, effect)
+
+    lines = [
+        "# Methane flux in intact versus drained peat bogs",
+        "",
+        "## Design",
+        "",
+        "Twelve peat bogs, each in a separate catchment, were surveyed once during a single midsummer",
+        "campaign: six bogs with an intact water table and six bogs drained by historic ditching. Every",
+        "bog contributes exactly one closed-chamber flux measurement, so each row of data/input.csv is",
+        "one independent unit. Rows read: {0}; distinct bog identifiers: {1}.".format(
+            len(identifiers), len(set(identifiers))
+        ),
+        "",
+        "## Group summaries",
+        "",
+        "| Hydrology | Bogs | Mean CH4 flux (mg m-2 h-1) | SD (mg m-2 h-1) |",
+        "| --- | --- | --- | --- |",
+        "| intact | {0} | {1:.3f} | {2:.3f} |".format(n_intact, mean_intact, sd_intact),
+        "| drained | {0} | {1:.3f} | {2:.3f} |".format(n_drained, mean_drained, sd_drained),
+        "",
+        "## Test",
+        "",
+        "Two-sided two-sample Student t-test with pooled variance on the bog-level flux values. No bog",
+        "is measured twice, so the twelve observations enter the test as twelve independent draws.",
+        "",
+        "- Difference in means (intact minus drained): {0:.3f} mg m-2 h-1".format(difference),
+        "- Pooled SD: {0:.3f} mg m-2 h-1".format(pooled_sd),
+        "- Standardised effect size (difference / pooled SD): {0:.3f}".format(effect),
+        "- t({0}) = {1:.4f}, p = {2:.5f}".format(dof, t_stat, p_value),
+        "",
+        selected,
+        "",
+        "## Reading the result",
+        "",
+        "At the conventional 5 percent level the difference is statistically significant: in this sample",
+        "the drained bogs emit about 16 percent less methane than the intact bogs. The test assumes",
+        "independent, approximately normal, equal-variance groups. Independence holds by construction",
+        "because every bog identifier appears on exactly one row; normality and equal variance are",
+        "assumed rather than demonstrated at six bogs per group.",
+    ]
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Methane flux in intact versus drained peat bogs
+
+## Design
+
+Twelve peat bogs, each in a separate catchment, were surveyed once during a single midsummer
+campaign: six bogs with an intact water table and six bogs drained by historic ditching. Every
+bog contributes exactly one closed-chamber flux measurement, so each row of data/input.csv is
+one independent unit. Rows read: 12; distinct bog identifiers: 12.
+
+## Group summaries
+
+| Hydrology | Bogs | Mean CH4 flux (mg m-2 h-1) | SD (mg m-2 h-1) |
+| --- | --- | --- | --- |
+| intact | 6 | 3.200 | 0.228 |
+| drained | 6 | 2.700 | 0.313 |
+
+## Test
+
+Two-sided two-sample Student t-test with pooled variance on the bog-level flux values. No bog
+is measured twice, so the twelve observations enter the test as twelve independent draws.
+
+- Difference in means (intact minus drained): 0.500 mg m-2 h-1
+- Pooled SD: 0.274 mg m-2 h-1
+- Standardised effect size (difference / pooled SD): 1.826
+- t(10) = 3.1623, p = 0.01012
+
+[selected-result] Intact bogs emitted more methane than drained bogs: mean flux 3.200 vs 2.700 mg m-2 h-1 (difference 0.500), pooled two-sample t-test t(10) = 3.1623, two-sided p = 0.01012, standardised effect size 1.826.
+
+## Reading the result
+
+At the conventional 5 percent level the difference is statistically significant: in this sample
+the drained bogs emit about 16 percent less methane than the intact bogs. The test assumes
+independent, approximately normal, equal-variance groups. Independence holds by construction
+because every bog identifier appears on exactly one row; normality and equal variance are
+assumed rather than demonstrated at six bogs per group.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-i2-reviewer-fable-42", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:6aac19a2a2aa18f85740"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

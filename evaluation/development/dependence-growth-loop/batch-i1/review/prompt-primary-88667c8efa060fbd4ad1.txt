@@ -1,0 +1,303 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-i1-reviewer-fable-40
+
+=== workflow 1: case:88667c8efa060fbd4ad1 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Boreal fen drainage experiment: chamber methane flux sessions
+
+Each line of `data/input.csv` records one static-chamber methane flux session carried out at one permanent collar in a boreal fen. Twelve collars were installed, six in intact peat and six inside an experimental drainage block, and every collar was visited in three seasonal sessions (early summer, midsummer, late summer), which gives 36 lines in total.
+
+One row is: one seasonal chamber flux session measured at one permanent collar
+Independent unit column: collar_id
+
+Columns:
+
+- `collar_id` - identifier of the permanent chamber collar. The same collar appears on three lines, once per session.
+- `treatment` - water-table treatment of the collar, either `intact` or `drained`. It is a property of the collar and is fixed across all of that collar's sessions.
+- `session` - seasonal visit number, 1 to 3, in chronological order within a collar.
+- `water_table_depth_cm` - depth of the water table below the peat surface at the moment of the session, in centimetres. Larger numbers mean a drier profile.
+- `ch4_flux_mg_m2_h` - methane flux measured by the chamber, in milligrams of CH4 per square metre per hour.
+
+Because the three sessions of a collar are repeated measurements of the same physical plot, they are not independent of one another: they share the collar's peat depth, vegetation and microtopography. A treatment comparison should use a single value per collar, and the analysis averages a collar's sessions before testing, so the twelve collars are the values that enter the test.
+
+--- file data/input.csv ---
+collar_id,treatment,session,water_table_depth_cm,ch4_flux_mg_m2_h
+INT-01,intact,1,6,13.1
+INT-01,intact,2,4,14.8
+INT-01,intact,3,5,14.7
+INT-02,intact,1,9,12.2
+INT-02,intact,2,7,13.5
+INT-02,intact,3,8,13.0
+INT-03,intact,1,4,14.9
+INT-03,intact,2,3,16.2
+INT-03,intact,3,4,15.7
+INT-04,intact,1,8,12.6
+INT-04,intact,2,6,14.1
+INT-04,intact,3,7,13.5
+INT-05,intact,1,11,10.7
+INT-05,intact,2,9,12.4
+INT-05,intact,3,10,12.3
+INT-06,intact,1,3,15.2
+INT-06,intact,2,2,16.8
+INT-06,intact,3,3,16.3
+DRN-01,drained,1,29,8.6
+DRN-01,drained,2,34,9.9
+DRN-01,drained,3,31,9.4
+DRN-02,drained,1,38,7.1
+DRN-02,drained,2,42,8.0
+DRN-02,drained,3,40,7.7
+DRN-03,drained,1,26,9.8
+DRN-03,drained,2,30,11.1
+DRN-03,drained,3,28,10.3
+DRN-04,drained,1,22,11.4
+DRN-04,drained,2,25,13.0
+DRN-04,drained,3,24,12.5
+DRN-05,drained,1,36,7.4
+DRN-05,drained,2,41,8.7
+DRN-05,drained,3,39,8.2
+DRN-06,drained,1,44,6.2
+DRN-06,drained,2,48,7.5
+DRN-06,drained,3,46,7.0
+
+--- file workflow/analysis.py ---
+"""Boreal fen drainage experiment: collar-level methane flux comparison.
+
+The input table stores three seasonal chamber sessions per permanent collar in
+long format. The sessions of one collar are repeated measurements of the same
+plot, so every collar is collapsed to a single analysed value before the two
+water-table treatments are compared with an exact Mann-Whitney U test.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+from statistics import fmean, median
+
+from scipy.stats import mannwhitneyu
+
+INPUT_PATH = Path("data") / "input.csv"
+REPORT_PATH = Path("results") / "report.md"
+TREATMENTS = ("intact", "drained")
+
+
+def read_sessions(path):
+    """Group the long-format session rows by collar, preserving file order."""
+    order = []
+    bundles = {}
+    with path.open(newline="", encoding="ascii") as handle:
+        for record in csv.DictReader(handle):
+            collar = record["collar_id"]
+            if collar not in bundles:
+                order.append(collar)
+                bundles[collar] = {
+                    "treatment": record["treatment"],
+                    "flux": [],
+                    "depth": [],
+                }
+            bundles[collar]["flux"].append(float(record["ch4_flux_mg_m2_h"]))
+            bundles[collar]["depth"].append(float(record["water_table_depth_cm"]))
+    return [(collar, bundles[collar]) for collar in order]
+
+
+def collapse_to_collars(grouped):
+    """One analysed value per collar: the mean of its repeated sessions."""
+    collars = []
+    for collar, bundle in grouped:
+        flux = bundle["flux"]
+        collars.append(
+            {
+                "collar": collar,
+                "treatment": bundle["treatment"],
+                "sessions": len(flux),
+                "mean_flux": fmean(flux),
+                "mean_depth": fmean(bundle["depth"]),
+                "flux_range": max(flux) - min(flux),
+            }
+        )
+    return collars
+
+
+def group_means(collars):
+    return {
+        t: [c["mean_flux"] for c in collars if c["treatment"] == t] for t in TREATMENTS
+    }
+
+
+def build_report(collars, test):
+    n_rows = sum(c["sessions"] for c in collars)
+    by_group = {t: [c for c in collars if c["treatment"] == t] for t in TREATMENTS}
+    flux = {t: [c["mean_flux"] for c in rows] for t, rows in by_group.items()}
+    depth = {t: [c["mean_depth"] for c in rows] for t, rows in by_group.items()}
+    ranges = [c["flux_range"] for c in collars]
+
+    n_intact = len(flux["intact"])
+    n_drained = len(flux["drained"])
+    cles = test.statistic / (n_intact * n_drained)
+    mean_gap = fmean(flux["intact"]) - fmean(flux["drained"])
+    median_gap = median(flux["intact"]) - median(flux["drained"])
+
+    lines = [
+        "# Water-table drawdown and methane efflux in a boreal fen",
+        "",
+        "## Design and unit of analysis",
+        "",
+        (
+            "Twelve permanent chamber collars were installed in a boreal fen: six in "
+            "intact peat and six inside an experimental drainage block. Each collar was "
+            "revisited in three seasonal flux sessions, so the source table holds "
+            f"{n_rows} measurement rows for {len(collars)} collars."
+        ),
+        "",
+        (
+            "The three sessions recorded for a collar are repeated measurements of the "
+            "same physical collar; they share its peat profile, vegetation and "
+            "microtopography and are not independent replicates of the drainage "
+            "treatment. Each collar is therefore reduced to one analysed value, the mean "
+            "of its session fluxes, before any test is applied. The independent unit is "
+            f"the collar, so the comparison rests on {len(collars)} values, not "
+            f"{n_rows}."
+        ),
+        "",
+        "## Collar-level values",
+        "",
+        (
+            "| collar | treatment | sessions | mean water table (cm below surface) | "
+            "mean CH4 flux (mg m^-2 h^-1) | session range |"
+        ),
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    for c in collars:
+        lines.append(
+            "| {collar} | {treatment} | {sessions} | {depth:.2f} | {flux:.2f} | "
+            "{spread:.2f} |".format(
+                collar=c["collar"],
+                treatment=c["treatment"],
+                sessions=c["sessions"],
+                depth=c["mean_depth"],
+                flux=c["mean_flux"],
+                spread=c["flux_range"],
+            )
+        )
+    lines += [
+        "",
+        "## Group summary (collar means)",
+        "",
+        (
+            f"- intact: n = {n_intact} collars, mean of collar means = "
+            f"{fmean(flux['intact']):.2f}, median = {median(flux['intact']):.2f}, "
+            f"mean water table = {fmean(depth['intact']):.2f} cm"
+        ),
+        (
+            f"- drained: n = {n_drained} collars, mean of collar means = "
+            f"{fmean(flux['drained']):.2f}, median = {median(flux['drained']):.2f}, "
+            f"mean water table = {fmean(depth['drained']):.2f} cm"
+        ),
+        (
+            f"- intact minus drained: {mean_gap:.2f} mg m^-2 h^-1 in means, "
+            f"{median_gap:.2f} mg m^-2 h^-1 in medians"
+        ),
+        "",
+        "## Test",
+        "",
+        (
+            f"A two-sided exact Mann-Whitney U test was run on the {len(collars)} "
+            "collar-level mean fluxes, six per treatment, with the collar as the "
+            "independent unit. The exact null distribution is used because the group "
+            "sizes are small and no collar mean is tied."
+        ),
+        "",
+        (
+            f"U = {test.statistic:.0f}, exact two-sided p = {test.pvalue:.6f}, "
+            f"common-language effect size = {cles:.3f} (the probability that a randomly "
+            "chosen intact collar exceeds a randomly chosen drained collar)."
+        ),
+        "",
+        (
+            "[selected-result] Collar-mean CH4 flux was higher in intact fen than in "
+            f"drained fen (exact two-sided Mann-Whitney U = {test.statistic:.0f}, n = "
+            f"{n_intact} vs {n_drained} collars, p = {test.pvalue:.6f}; group means "
+            f"{fmean(flux['intact']):.2f} vs {fmean(flux['drained']):.2f} mg m^-2 h^-1, "
+            f"difference {mean_gap:.2f})."
+        ),
+        "",
+        "## Notes",
+        "",
+        (
+            "Session-to-session variation within a collar is small (ranges of "
+            f"{min(ranges):.2f} to {max(ranges):.2f} mg m^-2 h^-1) next to the spread "
+            "between collars, so averaging the three sessions loses little information "
+            "while keeping one row per independent unit in the test. Water-table depth "
+            "is reported as a manipulation check and was not used in the test."
+        ),
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    grouped = read_sessions(INPUT_PATH)
+    collars = collapse_to_collars(grouped)
+    flux = group_means(collars)
+    test = mannwhitneyu(
+        flux["intact"], flux["drained"], alternative="two-sided", method="exact"
+    )
+    report = build_report(collars, test)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(report)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Water-table drawdown and methane efflux in a boreal fen
+
+## Design and unit of analysis
+
+Twelve permanent chamber collars were installed in a boreal fen: six in intact peat and six inside an experimental drainage block. Each collar was revisited in three seasonal flux sessions, so the source table holds 36 measurement rows for 12 collars.
+
+The three sessions recorded for a collar are repeated measurements of the same physical collar; they share its peat profile, vegetation and microtopography and are not independent replicates of the drainage treatment. Each collar is therefore reduced to one analysed value, the mean of its session fluxes, before any test is applied. The independent unit is the collar, so the comparison rests on 12 values, not 36.
+
+## Collar-level values
+
+| collar | treatment | sessions | mean water table (cm below surface) | mean CH4 flux (mg m^-2 h^-1) | session range |
+| --- | --- | --- | --- | --- | --- |
+| INT-01 | intact | 3 | 5.00 | 14.20 | 1.70 |
+| INT-02 | intact | 3 | 8.00 | 12.90 | 1.30 |
+| INT-03 | intact | 3 | 3.67 | 15.60 | 1.30 |
+| INT-04 | intact | 3 | 7.00 | 13.40 | 1.50 |
+| INT-05 | intact | 3 | 10.00 | 11.80 | 1.70 |
+| INT-06 | intact | 3 | 2.67 | 16.10 | 1.60 |
+| DRN-01 | drained | 3 | 31.33 | 9.30 | 1.30 |
+| DRN-02 | drained | 3 | 40.00 | 7.60 | 0.90 |
+| DRN-03 | drained | 3 | 28.00 | 10.40 | 1.30 |
+| DRN-04 | drained | 3 | 23.67 | 12.30 | 1.60 |
+| DRN-05 | drained | 3 | 38.67 | 8.10 | 1.30 |
+| DRN-06 | drained | 3 | 46.00 | 6.90 | 1.30 |
+
+## Group summary (collar means)
+
+- intact: n = 6 collars, mean of collar means = 14.00, median = 13.80, mean water table = 6.06 cm
+- drained: n = 6 collars, mean of collar means = 9.10, median = 8.70, mean water table = 34.61 cm
+- intact minus drained: 4.90 mg m^-2 h^-1 in means, 5.10 mg m^-2 h^-1 in medians
+
+## Test
+
+A two-sided exact Mann-Whitney U test was run on the 12 collar-level mean fluxes, six per treatment, with the collar as the independent unit. The exact null distribution is used because the group sizes are small and no collar mean is tied.
+
+U = 35, exact two-sided p = 0.004329, common-language effect size = 0.972 (the probability that a randomly chosen intact collar exceeds a randomly chosen drained collar).
+
+[selected-result] Collar-mean CH4 flux was higher in intact fen than in drained fen (exact two-sided Mann-Whitney U = 35, n = 6 vs 6 collars, p = 0.004329; group means 14.00 vs 9.10 mg m^-2 h^-1, difference 4.90).
+
+## Notes
+
+Session-to-session variation within a collar is small (ranges of 0.90 to 1.70 mg m^-2 h^-1) next to the spread between collars, so averaging the three sessions loses little information while keeping one row per independent unit in the test. Water-table depth is reported as a manipulation check and was not used in the test.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-i1-reviewer-fable-40", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:88667c8efa060fbd4ad1"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

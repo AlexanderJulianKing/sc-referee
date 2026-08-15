@@ -1,0 +1,220 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-i1-reviewer-fable-40
+
+=== workflow 1: case:125813c0f228fcecd435 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Nest-tube choice assay: what the data file contains
+
+Over two weeks of late spring, twenty wild-caught female mason bees (*Osmia
+bicornis*) were released one at a time into a private mesh arena. Each arena
+held two otherwise identical nesting tubes: one whose entrance rim carried a
+UV-reflective paint mark, and one left plain, with the left/right placement
+alternated from arena to arena. The observer recorded which tube the female
+landed on first and how long she took to get there, then retired both the bee
+and the arena from the experiment. No bee was tested twice and no arena was
+reused, so the file has exactly as many data lines as there were bees.
+
+One row is: one wild-caught female mason bee tested once in her own two-tube choice arena
+Independent unit column: bee_id
+One trial is: one row
+
+Columns:
+
+- bee_id: label of the individual female; unique across the file.
+- arena_id: label of the mesh arena she was tested in; also unique across the
+  file, because each arena served a single bee.
+- intertegular_span_mm: distance between the wing bases in millimetres, the
+  usual body-size proxy for bees.
+- latency_min: minutes from release until the first landing on either tube.
+- first_choice: which tube she landed on first, either uv_marked (the tube with
+  the UV-reflective rim) or plain (the unmarked tube).
+
+The question asked of these data is whether first landings fall on the
+UV-marked tube more often than the even split expected if the mark made no
+difference. Because each bee supplies a single yes/no outcome, the twenty
+outcomes can be counted straight into an exact binomial test without any
+adjustment for grouping.
+
+--- file data/input.csv ---
+bee_id,arena_id,intertegular_span_mm,latency_min,first_choice
+OB-01,ARN-101,2.1,7.4,uv_marked
+OB-02,ARN-102,2.5,12.1,uv_marked
+OB-03,ARN-103,2.3,5.8,uv_marked
+OB-04,ARN-104,2.4,18.6,plain
+OB-05,ARN-105,2.2,9.3,uv_marked
+OB-06,ARN-106,2.6,4.7,uv_marked
+OB-07,ARN-107,2.3,11.2,uv_marked
+OB-08,ARN-108,2.4,15.9,plain
+OB-09,ARN-109,2.5,6.5,uv_marked
+OB-10,ARN-110,2.2,8.8,uv_marked
+OB-11,ARN-111,2.4,10.4,uv_marked
+OB-12,ARN-112,2.3,3.9,uv_marked
+OB-13,ARN-113,2.2,21.3,plain
+OB-14,ARN-114,2.1,13.7,uv_marked
+OB-15,ARN-115,2.5,7.1,uv_marked
+OB-16,ARN-116,2.3,9.9,uv_marked
+OB-17,ARN-117,2.4,16.8,plain
+OB-18,ARN-118,2.2,5.2,uv_marked
+OB-19,ARN-119,2.6,19.5,plain
+OB-20,ARN-120,2.3,8.1,uv_marked
+
+--- file workflow/analysis.py ---
+"""Does a UV-reflective entrance rim bias where a solitary bee lands first?
+
+Twenty female mason bees, twenty arenas, twenty first landings. One bee gives
+one Bernoulli outcome, so the exact binomial test below runs over genuinely
+independent trials.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+from scipy.stats import binomtest
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+MARKED = "uv_marked"
+PLAIN = "plain"
+NULL_SHARE = 0.5
+ALPHA = 0.05
+REQUIRED = ("bee_id", "arena_id", "intertegular_span_mm", "first_choice")
+
+
+def read_trials(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        trials = [dict(row) for row in csv.DictReader(handle)]
+    if not trials:
+        raise ValueError("data file contains no trials")
+    for column in REQUIRED:
+        if any(not row.get(column) for row in trials):
+            raise ValueError("missing value in column " + column)
+    return trials
+
+
+def check_one_row_per_bee(trials):
+    """Confirm no bee and no arena contributes more than a single row."""
+    bees = [row["bee_id"] for row in trials]
+    arenas = [row["arena_id"] for row in trials]
+    if len(set(bees)) != len(bees):
+        raise ValueError("a bee_id occurs twice: rows would not be independent")
+    if len(set(arenas)) != len(arenas):
+        raise ValueError("an arena_id occurs twice: rows would not be independent")
+    return len(set(bees)), len(set(arenas))
+
+
+def compose_report(n, n_bees, n_arenas, marked, plain, span_mean, p_value):
+    decision = "rejecting" if p_value < ALPHA else "failing to reject"
+    share = marked / n
+    lines = [
+        "# UV-marked nest tubes and first-landing choice in solitary bees",
+        "",
+        "## Design",
+        "",
+        "Twenty wild-caught *Osmia bicornis* females were each tested once, alone, in a",
+        "private two-tube arena. Every female contributed exactly one observation: the",
+        "tube she landed on first. No female was retested, and no arena hosted more than",
+        "one female, so each row of the data file is one independent unit.",
+        "",
+        "## Data summary",
+        "",
+        "- Females analysed: %d" % n,
+        "- Distinct female identifiers: %d" % n_bees,
+        "- Distinct arenas: %d" % n_arenas,
+        "- Mean intertegular span: %.2f mm" % span_mean,
+        "- First landings on the UV-marked tube: %d" % marked,
+        "- First landings on the plain tube: %d" % plain,
+        "",
+        "## Analysis",
+        "",
+        "An exact two-sided binomial test (scipy.stats.binomtest) compares the number of",
+        "UV-marked first landings with the no-preference expectation of 0.5. Because one",
+        "female supplies one Bernoulli outcome, the twenty trials entering the test are",
+        "mutually independent and no clustering correction is needed.",
+        "",
+        "- Observed proportion choosing the UV-marked tube: %.3f" % share,
+        "- Two-sided exact p-value: %.6f" % p_value,
+        "",
+        "[selected-result] Exact two-sided binomial test on %d independent females: "
+        "%d of %d (%.3f) landed first on the UV-marked tube, p = %.6f against a null "
+        "proportion of 0.5, %s indifference at the 5%% level."
+        % (n, marked, n, share, p_value, decision),
+        "",
+        "## Interpretation",
+        "",
+        "The data are consistent with a modest attraction to UV-marked tube entrances.",
+        "Because the test consumes one observation per bee, its nominal error rate is",
+        "the actual error rate; pooling several approaches per bee would have inflated",
+        "the trial count without adding independent information.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    trials = read_trials(INPUT_PATH)
+    n_bees, n_arenas = check_one_row_per_bee(trials)
+    n = len(trials)
+    marked = sum(1 for row in trials if row["first_choice"] == MARKED)
+    plain = sum(1 for row in trials if row["first_choice"] == PLAIN)
+    if marked + plain != n:
+        raise ValueError("first_choice holds a value outside the two coded options")
+    span_mean = sum(float(row["intertegular_span_mm"]) for row in trials) / n
+    outcome = binomtest(marked, n=n, p=NULL_SHARE, alternative="two-sided")
+    report = compose_report(
+        n, n_bees, n_arenas, marked, plain, span_mean, float(outcome.pvalue)
+    )
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(report)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# UV-marked nest tubes and first-landing choice in solitary bees
+
+## Design
+
+Twenty wild-caught *Osmia bicornis* females were each tested once, alone, in a
+private two-tube arena. Every female contributed exactly one observation: the
+tube she landed on first. No female was retested, and no arena hosted more than
+one female, so each row of the data file is one independent unit.
+
+## Data summary
+
+- Females analysed: 20
+- Distinct female identifiers: 20
+- Distinct arenas: 20
+- Mean intertegular span: 2.34 mm
+- First landings on the UV-marked tube: 15
+- First landings on the plain tube: 5
+
+## Analysis
+
+An exact two-sided binomial test (scipy.stats.binomtest) compares the number of
+UV-marked first landings with the no-preference expectation of 0.5. Because one
+female supplies one Bernoulli outcome, the twenty trials entering the test are
+mutually independent and no clustering correction is needed.
+
+- Observed proportion choosing the UV-marked tube: 0.750
+- Two-sided exact p-value: 0.041389
+
+[selected-result] Exact two-sided binomial test on 20 independent females: 15 of 20 (0.750) landed first on the UV-marked tube, p = 0.041389 against a null proportion of 0.5, rejecting indifference at the 5% level.
+
+## Interpretation
+
+The data are consistent with a modest attraction to UV-marked tube entrances.
+Because the test consumes one observation per bee, its nominal error rate is
+the actual error rate; pooling several approaches per bee would have inflated
+the trial count without adding independent information.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-i1-reviewer-fable-40", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:125813c0f228fcecd435"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

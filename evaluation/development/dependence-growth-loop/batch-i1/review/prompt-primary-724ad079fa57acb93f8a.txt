@@ -1,0 +1,224 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-i1-reviewer-fable-40
+
+=== workflow 1: case:724ad079fa57acb93f8a ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Laugafell geothermal spring survey
+
+During the 2024 summer season a two-person crew visited 24 geothermal springs in
+the Laugafell field. Each spring was visited once. At the vent the crew recorded
+the host rock the outflow cuts through (basalt or rhyolite), the water
+temperature, dissolved sulfate, the discharge rate, and whether a visible
+cyanobacterial filament mat was growing in the outflow channel.
+
+One row is: one geothermal spring, visited and scored a single time
+Independent unit column: spring_id
+One trial is: one row
+
+Each spring is a separate water body with its own outflow channel. No spring was
+visited twice, nothing was measured in replicate, and no reading is copied across
+rows, so the spring label appears exactly once and the 24 rows stand for 24
+independent springs.
+
+Columns:
+- spring_id: unique label for the spring, LGF-01 through LGF-24
+- bedrock_class: host rock at the outflow, either basalt or rhyolite
+- outflow_temp_c: vent water temperature in degrees Celsius
+- sulfate_mg_l: dissolved sulfate in milligrams per litre
+- discharge_l_s: outflow discharge in litres per second
+- filament_mat: yes if a visible filament mat was present, no otherwise
+
+--- file data/input.csv ---
+spring_id,bedrock_class,outflow_temp_c,sulfate_mg_l,discharge_l_s,filament_mat
+LGF-01,basalt,61.4,88,2.1,yes
+LGF-02,rhyolite,72.8,214,0.9,no
+LGF-03,basalt,58.9,74,3.4,yes
+LGF-04,rhyolite,69.2,187,1.2,yes
+LGF-05,basalt,66.1,102,1.8,no
+LGF-06,rhyolite,78.5,243,0.6,no
+LGF-07,basalt,54.7,65,4.2,yes
+LGF-08,rhyolite,74.0,198,1.5,no
+LGF-09,basalt,63.2,91,2.7,yes
+LGF-10,rhyolite,70.6,176,1.1,no
+LGF-11,basalt,59.5,80,3.0,yes
+LGF-12,rhyolite,81.3,259,0.4,no
+LGF-13,basalt,68.4,118,1.6,no
+LGF-14,rhyolite,66.9,165,2.0,yes
+LGF-15,basalt,57.3,71,3.8,yes
+LGF-16,rhyolite,75.8,221,0.8,no
+LGF-17,basalt,62.0,86,2.4,yes
+LGF-18,rhyolite,73.1,205,1.0,no
+LGF-19,basalt,60.8,95,2.9,yes
+LGF-20,rhyolite,79.4,238,0.5,no
+LGF-21,basalt,71.2,129,1.3,no
+LGF-22,rhyolite,68.0,158,1.7,yes
+LGF-23,basalt,55.6,68,4.0,yes
+LGF-24,rhyolite,76.7,229,0.7,no
+
+--- file workflow/analysis.py ---
+"""Bedrock class and filament-mat occupancy in Laugafell geothermal springs.
+
+Reads data/input.csv, where every row is one spring visited exactly once, and
+writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+from typing import Dict, List
+
+from scipy.stats import fisher_exact
+
+INPUT_PATH = Path("data/input.csv")
+OUTPUT_PATH = Path("results/report.md")
+
+BEDROCK_ORDER = ["basalt", "rhyolite"]
+MAT_PRESENT = "yes"
+
+
+def read_springs(path: Path) -> List[Dict[str, str]]:
+    """Return one dictionary per surveyed spring."""
+    with path.open(newline="", encoding="ascii") as handle:
+        springs = [dict(row) for row in csv.DictReader(handle)]
+    if not springs:
+        raise ValueError("no spring records found")
+    labels = [spring["spring_id"] for spring in springs]
+    if len(set(labels)) != len(labels):
+        raise ValueError("spring_id repeats; the design assumes one row per spring")
+    return springs
+
+
+def cross_tabulate(springs: List[Dict[str, str]]) -> Dict[str, List[int]]:
+    """Count [mat present, mat absent] springs within each bedrock class."""
+    table = {name: [0, 0] for name in BEDROCK_ORDER}
+    for spring in springs:
+        bedrock = spring["bedrock_class"].strip()
+        if bedrock not in table:
+            raise ValueError("unrecognised bedrock_class: " + bedrock)
+        column = 0 if spring["filament_mat"].strip() == MAT_PRESENT else 1
+        table[bedrock][column] += 1
+    return table
+
+
+def build_report(
+    table: Dict[str, List[int]],
+    odds_ratio: float,
+    p_value: float,
+    n_total: int,
+) -> str:
+    lines = [
+        "# Bedrock class and filament-mat occupancy in Laugafell geothermal springs",
+        "",
+        "## Design",
+        "",
+        "Each row is one geothermal spring, surveyed once during the 2024 summer season.",
+        "Springs were sampled at separate outflows, and every spring contributes exactly",
+        "one row, so the {0} rows are {0} independent units.".format(n_total),
+        "",
+        "- Springs surveyed: {0}".format(n_total),
+    ]
+    for bedrock in BEDROCK_ORDER:
+        present, absent = table[bedrock]
+        group_total = present + absent
+        share = 100.0 * present / group_total
+        lines.append(
+            "- {0}-hosted springs: {1}, filament mats present in {2} ({3:.1f}%)".format(
+                bedrock, group_total, present, share
+            )
+        )
+    lines += [
+        "",
+        "## Analysis",
+        "",
+        "Bedrock class (basalt vs. rhyolite) was cross-tabulated against filament-mat",
+        "presence and tested with Fisher's exact test, two-sided. An exact test suits the",
+        "small per-cell counts, and the one-spring-per-row layout means each cell entry",
+        "is an independent observation.",
+        "",
+        "| bedrock class | mat present | mat absent |",
+        "| --- | --- | --- |",
+    ]
+    for bedrock in BEDROCK_ORDER:
+        present, absent = table[bedrock]
+        lines.append("| {0} | {1} | {2} |".format(bedrock, present, absent))
+    basalt_present, basalt_absent = table["basalt"]
+    rhyolite_present, rhyolite_absent = table["rhyolite"]
+    lines += [
+        "",
+        "## Result",
+        "",
+        "[selected-result] Fisher's exact test (two-sided) on {0} independent "
+        "springs: odds ratio = {1:.2f}, p = {2:.4f}; filament mats occur "
+        "significantly more often at basalt-hosted springs "
+        "({3}/{4}) than at rhyolite-hosted springs "
+        "({5}/{6}) at the 0.05 level.".format(
+            n_total,
+            odds_ratio,
+            p_value,
+            basalt_present,
+            basalt_present + basalt_absent,
+            rhyolite_present,
+            rhyolite_present + rhyolite_absent,
+        ),
+        "",
+        "The association is significant, but with {0} springs the odds-ratio estimate is".format(
+            n_total
+        ),
+        "imprecise; the direction, not the magnitude, is the durable finding.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main() -> None:
+    springs = read_springs(INPUT_PATH)
+    table = cross_tabulate(springs)
+    counts = [table[name] for name in BEDROCK_ORDER]
+    odds_ratio, p_value = fisher_exact(counts, alternative="two-sided")
+    report = build_report(table, float(odds_ratio), float(p_value), len(springs))
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Bedrock class and filament-mat occupancy in Laugafell geothermal springs
+
+## Design
+
+Each row is one geothermal spring, surveyed once during the 2024 summer season.
+Springs were sampled at separate outflows, and every spring contributes exactly
+one row, so the 24 rows are 24 independent units.
+
+- Springs surveyed: 24
+- basalt-hosted springs: 12, filament mats present in 9 (75.0%)
+- rhyolite-hosted springs: 12, filament mats present in 3 (25.0%)
+
+## Analysis
+
+Bedrock class (basalt vs. rhyolite) was cross-tabulated against filament-mat
+presence and tested with Fisher's exact test, two-sided. An exact test suits the
+small per-cell counts, and the one-spring-per-row layout means each cell entry
+is an independent observation.
+
+| bedrock class | mat present | mat absent |
+| --- | --- | --- |
+| basalt | 9 | 3 |
+| rhyolite | 3 | 9 |
+
+## Result
+
+[selected-result] Fisher's exact test (two-sided) on 24 independent springs: odds ratio = 9.00, p = 0.0391; filament mats occur significantly more often at basalt-hosted springs (9/12) than at rhyolite-hosted springs (3/12) at the 0.05 level.
+
+The association is significant, but with 24 springs the odds-ratio estimate is
+imprecise; the direction, not the magnitude, is the durable finding.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-i1-reviewer-fable-40", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:724ad079fa57acb93f8a"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

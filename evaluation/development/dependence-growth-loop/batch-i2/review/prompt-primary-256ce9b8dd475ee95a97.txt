@@ -1,0 +1,188 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-i2-reviewer-fable-42
+
+=== workflow 1: case:256ce9b8dd475ee95a97 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Mason bee homing trips at a rotated nest block
+
+Eight individually tagged mason bee (Osmia) females were filmed at a shared
+nesting block after the block was turned on its mount, so the familiar landmark
+cues no longer lined up with the tube openings. Each time a female came back
+from a foraging run, observers wrote down whether she finally entered her own
+(natal) tube or a different tube, how long she hovered at the block face before
+committing, and the air temperature at that moment. Females differed in how
+busy they were during the observation session, so most females appear in
+several lines of the table.
+
+Columns:
+
+- bee_tag: paint-and-number tag of the female making the trip (B-01 through B-08)
+- trip_index: order of that trip within the same female's session, starting at 1
+- ambient_temp_c: air temperature at the block face, degrees Celsius
+- search_time_s: seconds spent hovering in front of the block before entering a tube
+- natal_tube_return: 1 if she entered her own tube, 0 if she entered another tube
+
+One row is: one provisioning trip by one tagged female bee, scored for whether she returned to her own nest tube
+Independent unit column: bee_tag
+One trial is: one row
+
+--- file data/input.csv ---
+bee_tag,trip_index,ambient_temp_c,search_time_s,natal_tube_return
+B-01,1,19.4,12.6,1
+B-01,2,20.1,10.8,1
+B-01,3,21.0,47.2,0
+B-01,4,21.6,14.3,1
+B-02,1,18.9,9.7,1
+B-02,2,19.8,11.2,1
+B-02,3,20.7,8.9,1
+B-03,1,22.3,52.4,0
+B-03,2,22.8,19.5,1
+B-03,3,23.1,61.0,0
+B-04,1,19.1,7.4,1
+B-04,2,19.9,8.1,1
+B-04,3,20.5,10.2,1
+B-04,4,21.2,9.6,1
+B-05,1,20.8,13.9,1
+B-05,2,21.4,12.1,1
+B-06,1,18.6,11.5,1
+B-06,2,19.2,10.0,1
+B-06,3,20.0,12.8,1
+B-07,1,23.5,58.7,0
+B-07,2,23.9,64.2,0
+B-07,3,24.2,55.1,0
+B-08,1,20.3,9.9,1
+B-08,2,20.9,11.7,1
+
+--- file workflow/analysis.py ---
+"""Homing accuracy of tagged mason bee females at a rotated nest block."""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+from scipy.stats import binomtest
+
+TABLE = Path("data/input.csv")
+REPORT = Path("results/report.md")
+CHANCE = 0.5
+ALPHA = 0.05
+
+
+def read_trips(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        return [dict(row) for row in csv.DictReader(handle)]
+
+
+def tally_by_female(trips):
+    counts = {}
+    for trip in trips:
+        tag = trip["bee_tag"]
+        hits, total = counts.get(tag, (0, 0))
+        counts[tag] = (hits + int(trip["natal_tube_return"]), total + 1)
+    return counts
+
+
+def build_report(trips):
+    hits = sum(int(trip["natal_tube_return"]) for trip in trips)
+    n_trips = len(trips)
+    accuracy = hits / n_trips
+    per_female = tally_by_female(trips)
+    outcome = binomtest(hits, n_trips, CHANCE, alternative="two-sided")
+    verdict = "significant" if outcome.pvalue < ALPHA else "not significant"
+    trip_counts = [total for _, total in per_female.values()]
+
+    lines = [
+        "# Natal-tube homing accuracy in tagged Osmia females",
+        "",
+        "## Data",
+        "",
+        f"- Source table: `{TABLE.as_posix()}`",
+        f"- Provisioning trips scored: {n_trips}",
+        f"- Tagged females contributing trips: {len(per_female)}",
+        f"- Trips ending in the natal tube: {hits}",
+        f"- Pooled accuracy: {accuracy:.3f}",
+        "",
+        "## Procedure",
+        "",
+        "Every provisioning trip in the table was treated as one Bernoulli trial, scored",
+        "1 when the female re-entered her own tube and 0 when she entered a different",
+        f"tube. The {n_trips} trips were pooled into a single count and compared with the chance",
+        f"expectation of {CHANCE:.3f} using an exact two-sided binomial test",
+        '(`scipy.stats.binomtest`, alternative "two-sided").',
+        "",
+        "## Result",
+        "",
+        (
+            f"[selected-result] Exact two-sided binomial test of {hits} natal-tube returns "
+            f"in {n_trips} pooled trips against p0 = {CHANCE:.3f}: accuracy = {accuracy:.3f}, "
+            f"p = {outcome.pvalue:.6f}, {verdict} at alpha = {ALPHA:.2f}."
+        ),
+        "",
+        "## Per-female tallies",
+        "",
+        "| bee_tag | trips | natal returns | accuracy |",
+        "| --- | --- | --- | --- |",
+    ]
+    for tag, (tag_hits, tag_total) in per_female.items():
+        lines.append(f"| {tag} | {tag_total} | {tag_hits} | {tag_hits / tag_total:.3f} |")
+    lines.append("")
+    lines.append(f"Trip counts per female range from {min(trip_counts)} to {max(trip_counts)}.")
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    trips = read_trips(TABLE)
+    text = build_report(trips)
+    REPORT.parent.mkdir(parents=True, exist_ok=True)
+    REPORT.write_text(text, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Natal-tube homing accuracy in tagged Osmia females
+
+## Data
+
+- Source table: `data/input.csv`
+- Provisioning trips scored: 24
+- Tagged females contributing trips: 8
+- Trips ending in the natal tube: 18
+- Pooled accuracy: 0.750
+
+## Procedure
+
+Every provisioning trip in the table was treated as one Bernoulli trial, scored
+1 when the female re-entered her own tube and 0 when she entered a different
+tube. The 24 trips were pooled into a single count and compared with the chance
+expectation of 0.500 using an exact two-sided binomial test
+(`scipy.stats.binomtest`, alternative "two-sided").
+
+## Result
+
+[selected-result] Exact two-sided binomial test of 18 natal-tube returns in 24 pooled trips against p0 = 0.500: accuracy = 0.750, p = 0.022656, significant at alpha = 0.05.
+
+## Per-female tallies
+
+| bee_tag | trips | natal returns | accuracy |
+| --- | --- | --- | --- |
+| B-01 | 4 | 3 | 0.750 |
+| B-02 | 3 | 3 | 1.000 |
+| B-03 | 3 | 1 | 0.333 |
+| B-04 | 4 | 4 | 1.000 |
+| B-05 | 2 | 2 | 1.000 |
+| B-06 | 3 | 3 | 1.000 |
+| B-07 | 3 | 0 | 0.000 |
+| B-08 | 2 | 2 | 1.000 |
+
+Trip counts per female range from 2 to 4.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-i2-reviewer-fable-42", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:256ce9b8dd475ee95a97"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

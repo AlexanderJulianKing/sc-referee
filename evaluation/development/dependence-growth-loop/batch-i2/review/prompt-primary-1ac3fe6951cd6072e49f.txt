@@ -1,0 +1,286 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-i2-reviewer-fable-42
+
+=== workflow 1: case:1ac3fe6951cd6072e49f ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Berry skin anthocyanin across Syrah vineyard blocks
+
+This file comes from a harvest-season survey of commercial Syrah plantings in a
+warm inland growing region. Growers there train their vines either on vertical
+shoot positioning, which holds the canopy in a narrow upright wall and leaves
+fruit relatively exposed, or on a sprawl system, which lets shoots fall outward
+and shades the fruit zone more heavily. The survey asked a simple question:
+does the trellis system go along with a difference in anthocyanin, the pigment
+that gives red wine its colour, in the berry skins at harvest?
+
+Twenty-four blocks were surveyed. Each block sits at a different estate, is
+owned and farmed separately, and is trained entirely on one system, so the
+blocks do not share management, irrigation, or picking decisions with one
+another. Fieldwork in each block was done once, on the morning that block was
+picked. A crew walked a zigzag transect and collected 100 berries spread across
+the block; those berries were pooled into a single composite before the skins
+were ever extracted, so the laboratory produced one anthocyanin number per
+block rather than many. The canopy density figure was likewise averaged in the
+field across a fixed set of point-quadrat insertions and written down once.
+
+One row is: one independently owned and managed Syrah vineyard block, summarized by the single 100-berry composite sample collected in that block on its harvest day
+Independent unit column: block_id
+
+## Columns
+
+- `block_id`: the survey code for the vineyard block, for example BLK-07. Each
+  code appears on exactly one row; there are as many rows as blocks.
+- `trellis_system`: how the block is trained, either `vsp` (vertical shoot
+  positioning) or `sprawl`. Twelve blocks of each. This is a property of the
+  block, not something that varies within it.
+- `vine_age_years`: age of the planting in whole years at the time of the
+  survey.
+- `canopy_leaf_layers`: mean number of leaf layers between the outside of the
+  canopy and the fruit, from point-quadrat counts already averaged to the block
+  level. Higher values mean shadier fruit.
+- `anthocyanin_mg_per_g`: total anthocyanin in the pooled berry-skin composite,
+  in milligrams per gram of skin.
+
+## How to read the file for analysis
+
+Because the pooling and averaging happened in the field, the file is already at
+the level at which the science operates: one block, one line, one anthocyanin
+value. Nothing needs to be collapsed or averaged before comparing the two
+trellis groups, and no block can contribute more than one value to a group. The
+vine age and canopy density columns are background context for interpreting the
+comparison; they are not required to carry it out.
+
+--- file data/input.csv ---
+block_id,trellis_system,vine_age_years,canopy_leaf_layers,anthocyanin_mg_per_g
+BLK-01,vsp,14,1.3,1.42
+BLK-02,sprawl,12,2.4,1.18
+BLK-03,vsp,18,1.1,1.58
+BLK-04,sprawl,16,2.7,1.35
+BLK-05,vsp,9,1.6,1.31
+BLK-06,sprawl,11,3.0,1.09
+BLK-07,vsp,22,0.9,1.67
+BLK-08,sprawl,20,2.2,1.41
+BLK-09,vsp,15,1.4,1.49
+BLK-10,sprawl,13,2.6,1.26
+BLK-11,vsp,25,0.8,1.75
+BLK-12,sprawl,24,3.1,1.12
+BLK-13,vsp,10,1.7,1.38
+BLK-14,sprawl,17,2.3,1.33
+BLK-15,vsp,19,1.2,1.61
+BLK-16,sprawl,8,2.8,1.21
+BLK-17,vsp,16,1.3,1.53
+BLK-18,sprawl,21,3.2,1.05
+BLK-19,vsp,12,1.5,1.44
+BLK-20,sprawl,19,2.1,1.39
+BLK-21,vsp,23,1.0,1.70
+BLK-22,sprawl,15,2.5,1.28
+BLK-23,vsp,11,1.8,1.29
+BLK-24,sprawl,9,2.9,1.16
+
+--- file workflow/analysis.py ---
+"""Trellis system and berry skin anthocyanin in Syrah vineyard blocks.
+
+Reads data/input.csv, in which every independently managed vineyard block
+contributes exactly one row, compares composite berry skin anthocyanin
+between the two trellis systems with Welch's t-test, and writes
+results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+import os
+from typing import Dict, List, Tuple
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = os.path.join("data", "input.csv")
+REPORT_PATH = os.path.join("results", "report.md")
+
+UNIT_COLUMN = "block_id"
+GROUP_COLUMN = "trellis_system"
+RESPONSE_COLUMN = "anthocyanin_mg_per_g"
+
+GROUP_ORDER = ("vsp", "sprawl")
+GROUP_LABEL = {"vsp": "vertical shoot positioning", "sprawl": "sprawl"}
+
+
+def read_blocks(path: str) -> List[Dict[str, str]]:
+    """Return one dictionary per vineyard block, checking unit uniqueness."""
+    with open(path, newline="", encoding="ascii") as handle:
+        blocks = list(csv.DictReader(handle))
+    if not blocks:
+        raise ValueError("no vineyard blocks found in " + path)
+    identifiers = [block[UNIT_COLUMN] for block in blocks]
+    if len(set(identifiers)) != len(identifiers):
+        raise ValueError(UNIT_COLUMN + " does not uniquely identify a row")
+    return blocks
+
+
+def collect(blocks: List[Dict[str, str]], group: str) -> np.ndarray:
+    """Pull the response values belonging to one trellis system."""
+    values = [
+        float(block[RESPONSE_COLUMN])
+        for block in blocks
+        if block[GROUP_COLUMN].strip().lower() == group
+    ]
+    return np.asarray(values, dtype=float)
+
+
+def welch(a: np.ndarray, b: np.ndarray) -> Tuple[float, float, float]:
+    """Welch t statistic, two-sided p value, and Satterthwaite d.f."""
+    va = a.var(ddof=1) / a.size
+    vb = b.var(ddof=1) / b.size
+    pooled = va + vb
+    df = pooled * pooled / (va * va / (a.size - 1) + vb * vb / (b.size - 1))
+    t_stat, p_value = stats.ttest_ind(a, b, equal_var=False)
+    return float(t_stat), float(p_value), float(df)
+
+
+def p_text(p_value: float) -> str:
+    if p_value < 0.001:
+        return "p < 0.001"
+    return "p = {:.3f}".format(p_value)
+
+
+def main() -> None:
+    blocks = read_blocks(INPUT_PATH)
+    samples = {group: collect(blocks, group) for group in GROUP_ORDER}
+    for group in GROUP_ORDER:
+        if samples[group].size < 2:
+            raise ValueError("too few blocks in group " + group)
+    if sum(samples[g].size for g in GROUP_ORDER) != len(blocks):
+        raise ValueError("unrecognised " + GROUP_COLUMN + " label in input")
+
+    a = samples["vsp"]
+    b = samples["sprawl"]
+    t_stat, p_value, df = welch(a, b)
+    difference = float(a.mean() - b.mean())
+
+    lines = []
+    lines.append("# Trellis system and berry skin anthocyanin in Syrah")
+    lines.append("")
+    lines.append("## Data")
+    lines.append("")
+    lines.append(
+        (
+            "The file records {n} Syrah vineyard blocks, each at a different "
+            "estate and each trained on a single trellis system. Each block "
+            "contributes exactly one analyzed row: a 100-berry composite drawn "
+            "across the block at harvest and assayed once. Rows therefore "
+            "correspond one-to-one with independent blocks, and no block "
+            "appears twice."
+        ).format(n=len(blocks))
+    )
+    lines.append("")
+    lines.append("| trellis system | blocks | mean anthocyanin (mg/g skin) | SD |")
+    lines.append("| --- | ---: | ---: | ---: |")
+    for group in GROUP_ORDER:
+        sample = samples[group]
+        lines.append(
+            "| {label} | {n} | {mean:.3f} | {sd:.3f} |".format(
+                label=GROUP_LABEL[group],
+                n=sample.size,
+                mean=sample.mean(),
+                sd=sample.std(ddof=1),
+            )
+        )
+    lines.append("")
+    lines.append("## Analysis")
+    lines.append("")
+    lines.append(
+        (
+            "Welch's two-sided two-sample t-test (unequal variances, "
+            "Welch-Satterthwaite degrees of freedom) comparing block-level "
+            "composite anthocyanin concentration between the two trellis "
+            "systems. The block is the unit of assignment, the unit of "
+            "measurement, and the unit of analysis, so the {n} values entering "
+            "the test are mutually independent."
+        ).format(n=len(blocks))
+    )
+    lines.append("")
+    lines.append("## Result")
+    lines.append("")
+    lines.append(
+        (
+            "[selected-result] Welch two-sample t-test on {n} independent "
+            "vineyard blocks ({na} vertical shoot positioning, {nb} sprawl): "
+            "mean berry skin anthocyanin was {ma:.3f} mg/g under vertical "
+            "shoot positioning versus {mb:.3f} mg/g under sprawl, a difference "
+            "of {d:.3f} mg/g (t = {t:.2f}, df = {df:.2f}, {p}); anthocyanin "
+            "was higher under vertical shoot positioning."
+        ).format(
+            n=len(blocks),
+            na=a.size,
+            nb=b.size,
+            ma=a.mean(),
+            mb=b.mean(),
+            d=difference,
+            t=t_stat,
+            df=df,
+            p=p_text(p_value),
+        )
+    )
+    lines.append("")
+    lines.append("## Notes")
+    lines.append("")
+    lines.append(
+        (
+            "- Group sizes are balanced ({na} and {nb}); the unequal-variance "
+            "(Welch) form of the test was used because the two sample standard "
+            "deviations differ."
+        ).format(na=a.size, nb=b.size)
+    )
+    lines.append(
+        "- The columns vine_age_years and canopy_leaf_layers are recorded for "
+        "context and take no part in the reported test."
+    )
+    lines.append(
+        "- A single pre-specified two-sided comparison was made, so no "
+        "adjustment for multiplicity applies."
+    )
+
+    parent = os.path.dirname(REPORT_PATH)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    with open(REPORT_PATH, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write("\n".join(lines) + "\n")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Trellis system and berry skin anthocyanin in Syrah
+
+## Data
+
+The file records 24 Syrah vineyard blocks, each at a different estate and each trained on a single trellis system. Each block contributes exactly one analyzed row: a 100-berry composite drawn across the block at harvest and assayed once. Rows therefore correspond one-to-one with independent blocks, and no block appears twice.
+
+| trellis system | blocks | mean anthocyanin (mg/g skin) | SD |
+| --- | ---: | ---: | ---: |
+| vertical shoot positioning | 12 | 1.514 | 0.152 |
+| sprawl | 12 | 1.236 | 0.120 |
+
+## Analysis
+
+Welch's two-sided two-sample t-test (unequal variances, Welch-Satterthwaite degrees of freedom) comparing block-level composite anthocyanin concentration between the two trellis systems. The block is the unit of assignment, the unit of measurement, and the unit of analysis, so the 24 values entering the test are mutually independent.
+
+## Result
+
+[selected-result] Welch two-sample t-test on 24 independent vineyard blocks (12 vertical shoot positioning, 12 sprawl): mean berry skin anthocyanin was 1.514 mg/g under vertical shoot positioning versus 1.236 mg/g under sprawl, a difference of 0.278 mg/g (t = 4.99, df = 20.86, p < 0.001); anthocyanin was higher under vertical shoot positioning.
+
+## Notes
+
+- Group sizes are balanced (12 and 12); the unequal-variance (Welch) form of the test was used because the two sample standard deviations differ.
+- The columns vine_age_years and canopy_leaf_layers are recorded for context and take no part in the reported test.
+- A single pre-specified two-sided comparison was made, so no adjustment for multiplicity applies.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-i2-reviewer-fable-42", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:1ac3fe6951cd6072e49f"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

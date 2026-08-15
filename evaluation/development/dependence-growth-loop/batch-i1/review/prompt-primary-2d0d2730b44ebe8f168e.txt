@@ -1,0 +1,231 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-i1-reviewer-fable-40
+
+=== workflow 1: case:2d0d2730b44ebe8f168e ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Hydrant flush register: chlorine residual around main relining
+
+This file records free chlorine residual readings taken at fire hydrants in a
+municipal drinking-water distribution system, before and after the ageing
+cast-iron mains feeding those hydrants were cleaned and cement-mortar relined.
+
+Twelve hydrants were enrolled. A field crew visited every enrolled hydrant on
+three separate occasions and ran the same standardised flush each time, so each
+hydrant contributes three rows to the file and the hydrant identifier repeats
+down the table.
+
+One row is: one standardised flush event at one hydrant, carrying the free chlorine residual measured at that hydrant before the upstream main was relined and the residual measured at the same hydrant after relining
+Independent unit column: hydrant_id
+
+Columns:
+
+- hydrant_id: identifier of the fire hydrant that was flushed. Twelve hydrants
+  appear, each on three rows.
+- pressure_zone: the distribution pressure zone the hydrant sits in. All rows
+  for a given hydrant carry the same zone.
+- flush_event: which of that hydrant's three visits this row records (1, 2 or 3).
+  Visit numbers are ordered in time but the spacing between visits is not
+  recorded here.
+- pre_reline_residual_mg_l: free chlorine residual in milligrams per litre
+  measured at the hydrant during the flush, before the upstream main was
+  relined.
+- post_reline_residual_mg_l: free chlorine residual in milligrams per litre
+  measured at the same hydrant during the matching flush after the upstream
+  main was relined.
+
+Units and conventions: residuals are in mg/L as free chlorine, reported to two
+decimal places from a field colorimeter. There are no missing values, and every
+row has both a pre-reline and a post-reline reading.
+
+--- file data/input.csv ---
+hydrant_id,pressure_zone,flush_event,pre_reline_residual_mg_l,post_reline_residual_mg_l
+HYD-01,ZN-1,1,0.62,0.80
+HYD-01,ZN-1,2,0.58,0.76
+HYD-01,ZN-1,3,0.65,0.83
+HYD-02,ZN-1,1,0.70,0.88
+HYD-02,ZN-1,2,0.66,0.84
+HYD-02,ZN-1,3,0.71,0.90
+HYD-03,ZN-2,1,0.81,1.01
+HYD-03,ZN-2,2,0.77,0.97
+HYD-03,ZN-2,3,0.84,1.04
+HYD-04,ZN-2,1,0.55,0.75
+HYD-04,ZN-2,2,0.60,0.80
+HYD-04,ZN-2,3,0.52,0.72
+HYD-05,ZN-2,1,0.90,1.12
+HYD-05,ZN-2,2,0.94,1.16
+HYD-05,ZN-2,3,0.88,1.10
+HYD-06,ZN-3,1,0.73,0.95
+HYD-06,ZN-3,2,0.69,0.92
+HYD-06,ZN-3,3,0.75,1.03
+HYD-07,ZN-3,1,0.86,1.18
+HYD-07,ZN-3,2,0.82,1.19
+HYD-07,ZN-3,3,0.89,1.27
+HYD-08,ZN-3,1,0.64,1.02
+HYD-08,ZN-3,2,0.68,1.06
+HYD-08,ZN-3,3,0.61,0.99
+HYD-09,ZN-4,1,0.79,1.19
+HYD-09,ZN-4,2,0.75,1.15
+HYD-09,ZN-4,3,0.83,1.23
+HYD-10,ZN-4,1,0.92,1.32
+HYD-10,ZN-4,2,0.87,1.27
+HYD-10,ZN-4,3,0.95,1.35
+HYD-11,ZN-5,1,0.58,0.99
+HYD-11,ZN-5,2,0.63,1.05
+HYD-11,ZN-5,3,0.56,0.98
+HYD-12,ZN-5,1,0.86,1.28
+HYD-12,ZN-5,2,0.91,1.33
+HYD-12,ZN-5,3,0.95,1.37
+
+--- file workflow/analysis.py ---
+"""Chlorine residual around cement-mortar relining of distribution mains.
+
+Reads the hydrant flush register and asks whether the free chlorine residual
+measured at a hydrant is higher after the upstream main has been relined.
+"""
+
+from __future__ import annotations
+
+import csv
+import math
+import os
+
+from scipy import stats
+
+INPUT_PATH = os.path.join("data", "input.csv")
+OUTPUT_DIR = "results"
+OUTPUT_PATH = os.path.join(OUTPUT_DIR, "report.md")
+
+PRE_FIELD = "pre_reline_residual_mg_l"
+POST_FIELD = "post_reline_residual_mg_l"
+
+
+def read_pairs(path):
+    """Return the pre- and post-relining residual readings, row by row."""
+    before = []
+    after = []
+    with open(path, "r", encoding="ascii", newline="") as handle:
+        for record in csv.DictReader(handle):
+            before.append(float(record[PRE_FIELD]))
+            after.append(float(record[POST_FIELD]))
+    return before, after
+
+
+def mean(values):
+    return sum(values) / len(values)
+
+
+def sample_sd(values):
+    centre = mean(values)
+    return math.sqrt(sum((v - centre) ** 2 for v in values) / (len(values) - 1))
+
+
+def describe_p(pvalue):
+    if pvalue < 0.0001:
+        return "p < 0.0001"
+    return "p = {0:.4f}".format(pvalue)
+
+
+def build_report(n, mean_before, mean_after, mean_gain, sd_gain, t_stat, df, p_text):
+    selected = (
+        "[selected-result] Paired t-test on {0} flush-event pairs: mean free chlorine "
+        "gain after relining = {1:.3f} mg/L (SD {2:.3f} mg/L), t({3}) = {4:.3f}, {5}."
+    ).format(n, mean_gain, sd_gain, df, t_stat, p_text)
+    lines = [
+        "# Free chlorine residual before and after main relining",
+        "",
+        "## Data",
+        "",
+        "Each row of `data/input.csv` is one hydrant flush event recorded during the",
+        "cement-mortar relining programme: the free chlorine residual measured at the",
+        "hydrant before the upstream main was relined, and the residual measured at",
+        "the same hydrant after relining.",
+        "",
+        "## Analysis",
+        "",
+        "The two readings attached to a flush event form a natural pair, so the",
+        "post-minus-pre gain was analysed with a two-sided paired t-test",
+        "(`scipy.stats.ttest_rel`) over the {0} event-level pairs.".format(n),
+        "",
+        "## Result",
+        "",
+        "- Flush events analysed: {0}".format(n),
+        "- Mean pre-reline residual: {0:.3f} mg/L".format(mean_before),
+        "- Mean post-reline residual: {0:.3f} mg/L".format(mean_after),
+        "- Mean gain (post - pre): {0:.3f} mg/L".format(mean_gain),
+        "- Standard deviation of gains: {0:.3f} mg/L".format(sd_gain),
+        "- Paired t({0}) = {1:.3f}, {2}".format(df, t_stat, p_text),
+        "",
+        selected,
+        "",
+        "## Reading",
+        "",
+        "Relining is associated with a mean free chlorine residual gain of about",
+        "0.30 mg/L per flush event, and the paired test rejects the no-change null",
+        "at the conventional 5 percent level.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    before, after = read_pairs(INPUT_PATH)
+    n = len(before)
+    gains = [b - a for a, b in zip(before, after)]
+    outcome = stats.ttest_rel(after, before)
+    report = build_report(
+        n,
+        mean(before),
+        mean(after),
+        mean(gains),
+        sample_sd(gains),
+        float(outcome.statistic),
+        n - 1,
+        describe_p(float(outcome.pvalue)),
+    )
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    with open(OUTPUT_PATH, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(report)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Free chlorine residual before and after main relining
+
+## Data
+
+Each row of `data/input.csv` is one hydrant flush event recorded during the
+cement-mortar relining programme: the free chlorine residual measured at the
+hydrant before the upstream main was relined, and the residual measured at
+the same hydrant after relining.
+
+## Analysis
+
+The two readings attached to a flush event form a natural pair, so the
+post-minus-pre gain was analysed with a two-sided paired t-test
+(`scipy.stats.ttest_rel`) over the 36 event-level pairs.
+
+## Result
+
+- Flush events analysed: 36
+- Mean pre-reline residual: 0.750 mg/L
+- Mean post-reline residual: 1.050 mg/L
+- Mean gain (post - pre): 0.300 mg/L
+- Standard deviation of gains: 0.100 mg/L
+- Paired t(35) = 18.000, p < 0.0001
+
+[selected-result] Paired t-test on 36 flush-event pairs: mean free chlorine gain after relining = 0.300 mg/L (SD 0.100 mg/L), t(35) = 18.000, p < 0.0001.
+
+## Reading
+
+Relining is associated with a mean free chlorine residual gain of about
+0.30 mg/L per flush event, and the paired test rejects the no-change null
+at the conventional 5 percent level.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-i1-reviewer-fable-40", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:2d0d2730b44ebe8f168e"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}
