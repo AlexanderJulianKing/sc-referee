@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import inspect
+import json
 import os
 import re
 import runpy
@@ -247,7 +248,7 @@ def test_growth9_batch_i_target_cases_pin_honest_next_walls(project_root: Path) 
         (default_dependence_free_j2_config, "batch-j2", range(117, 123), 46, 47, 28),
     ],
 )
-def test_growth9_batch_j_checkpoint_envelopes_are_ready_and_unrun(
+def test_growth9_batch_j_checkpoint_lanes_are_completed_and_frozen(
     project_root: Path,
     factory: Any,
     suffix: str,
@@ -258,12 +259,59 @@ def test_growth9_batch_j_checkpoint_envelopes_are_ready_and_unrun(
 ) -> None:
     config = factory()
     assert config.pipeline_relative.as_posix().endswith(suffix)
-    assert not (project_root / config.pipeline_relative).exists()
-    assert sorted(config.authors) == sorted(
+    lane = project_root / config.pipeline_relative
+    assert lane.is_dir()
+    expected_authors = [
         f"actor:dependence-free-{suffix}-author-opus-{ordinal}" for ordinal in authors
-    )
-    assert config.reviewer.participant_id.endswith(f"fable-{reviewer}")
+    ]
+    expected_reviewer = f"actor:dependence-free-{suffix}-reviewer-fable-{reviewer}"
+    expected_hostile = f"actor:dependence-free-{suffix}-hostile-fable-{hostile}"
+    expected_escalation = f"actor:dependence-free-{suffix}-escalation-opus-{escalation}"
+    assert sorted(config.authors) == expected_authors
+    assert config.reviewer.participant_id == expected_reviewer
     assert config.hostile_answer_key_reviewer is not None
-    assert config.hostile_answer_key_reviewer.participant_id.endswith(f"fable-{hostile}")
-    assert config.escalation_reviewer.participant_id.endswith(f"opus-{escalation}")
+    assert config.hostile_answer_key_reviewer.participant_id == expected_hostile
+    assert config.escalation_reviewer.participant_id == expected_escalation
     assert ENVELOPE_CONFIGS[f"dependence-free-{suffix.removeprefix('batch-')}"] is factory
+
+    manifest = json.loads((lane / "MANIFEST.json").read_text(encoding="utf-8"))
+    authoring = json.loads((lane / "authoring/AUTHORING_PROTOCOL.json").read_text(encoding="utf-8"))
+    review = json.loads((lane / "review/REVIEW_PROTOCOL.json").read_text(encoding="utf-8"))
+    hostile_review = json.loads(
+        (lane / "review/hostile-answer-key/HOSTILE_REVIEW_LEDGER.json").read_text(encoding="utf-8")
+    )
+    detector = json.loads(
+        (lane / "detector-run/DETECTOR_RUN_LEDGER.json").read_text(encoding="utf-8")
+    )
+    assert set(manifest["steps"]) == {
+        "authoring",
+        "authority",
+        "detector",
+        "intake",
+        "labels",
+        "review",
+    }
+    assert [
+        assignment["participant"]["participant_id"]
+        for assignment in authoring["author_assignments"]
+    ] == expected_authors
+    assert review["reviewer"]["participant_id"] == expected_reviewer
+    assert hostile_review["reviewer"]["participant_id"] == expected_hostile
+    assert review["escalation_reviewer"]["participant_id"] == expected_escalation
+
+    case_results = sorted((lane / "detector-run/case-results").glob("*.json"))
+    assert len(case_results) == 6
+    assert len(detector["entries"]) == 6
+    assert detector["pilot_metrics"]["opportunity_count"] == 6
+    assert detector["pilot_metrics"]["false_accusation_count"] == 0
+    assert detector["pilot_metrics"]["rates_published"] is False
+    assert detector["qualification_authority"] == "none_pilot_detector_run_only"
+    assert detector["production_finding_count"] == 0
+    assert {
+        manifest["record_purpose"],
+        authoring["record_purpose"],
+        review["record_purpose"],
+        hostile_review["record_purpose"],
+        detector["record_purpose"],
+        *(json.loads(path.read_text(encoding="utf-8"))["record_purpose"] for path in case_results),
+    } == {"development_growth_loop"}
