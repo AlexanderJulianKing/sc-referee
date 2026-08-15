@@ -934,8 +934,8 @@ def test_missing_count_trial_line_is_a_named_controller_side_abstention() -> Non
 
 
 _FROZEN_BATCH_REASONS = {
-    "batch-a/112bd1e61aa4fc1bec86": ("unsupported-import-form",),
-    "batch-a/a520ddbd23df9d699e60": ("unsupported-import-form",),
+    "batch-a/112bd1e61aa4fc1bec86": ("module-constant-not-closed",),
+    "batch-a/a520ddbd23df9d699e60": ("dataclass-use-not-modeled",),
     "batch-b/446cab155cd792398f9d": (
         "count-predicate-not-closed",
         "reader-form-unsupported",

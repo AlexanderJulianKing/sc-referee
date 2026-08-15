@@ -39,6 +39,8 @@ from scripts.lean_pipeline import (
     default_dependence_free_e2_config,
     default_dependence_free_f1_config,
     default_dependence_free_f2_config,
+    default_dependence_free_g1_config,
+    default_dependence_free_g2_config,
     default_founder_orientation_config,
     default_founder_orientation_f_config,
 )
@@ -368,6 +370,8 @@ def test_dependence_free_config_conforms_to_closed_growth_envelope() -> None:
     assert ENVELOPE_CONFIGS["dependence-free-e2"] is default_dependence_free_e2_config
     assert ENVELOPE_CONFIGS["dependence-free-f1"] is default_dependence_free_f1_config
     assert ENVELOPE_CONFIGS["dependence-free-f2"] is default_dependence_free_f2_config
+    assert ENVELOPE_CONFIGS["dependence-free-g1"] is default_dependence_free_g1_config
+    assert ENVELOPE_CONFIGS["dependence-free-g2"] is default_dependence_free_g2_config
 
 
 def test_task_binding_disclosure_is_digest_bound_only_for_development_loop(

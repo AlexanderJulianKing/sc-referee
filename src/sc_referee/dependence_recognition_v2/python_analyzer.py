@@ -185,7 +185,7 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
         return proposal
     try:
         read = _recognize_reader(flattened, constants)
-        grouping = _recognize_grouping(flattened, read[0], constants)
+        grouping = _recognize_grouping(flattened, read[0], constants, imports)
         procedure = _recognize_procedure(flattened, imports, grouping[0], constants, grouping[5])
         sink = _recognize_sink(flattened, procedure[2], constants, _trusted_result_path(context))
         operand_tokens, sink_tokens = _verify_closed_flattened_statements(
@@ -1095,6 +1095,7 @@ def _module_parts(
     constants: dict[str, ModuleConstant] = {}
     functions: dict[str, ast.FunctionDef] = {}
     executable: list[ast.stmt] = []
+    future_annotations = _future_annotations_present(tree)
     for statement in _live_main_guard_body(_without_leading_docstring(tree.body)):
         if isinstance(statement, ast.Import | ast.ImportFrom):
             if (
@@ -1106,10 +1107,10 @@ def _module_parts(
                 and statement.names[0].asname is None
             ):
                 continue
-            name, target = _closed_import(statement)
-            if name in imports or name in constants or name in functions:
-                raise _Refusal("import-name-collision")
-            imports[name] = target
+            for name, target in _closed_import(statement, future_annotations):
+                if name in imports or name in constants or name in functions:
+                    raise _Refusal("import-name-collision")
+                imports[name] = target
         elif isinstance(statement, ast.FunctionDef):
             if (
                 statement.name in imports
@@ -1154,7 +1155,21 @@ def _without_leading_docstring(body: list[ast.stmt]) -> list[ast.stmt]:
     return body
 
 
-def _closed_import(statement: ast.Import | ast.ImportFrom) -> tuple[str, str]:
+def _future_annotations_present(tree: ast.Module) -> bool:
+    return any(
+        isinstance(statement, ast.ImportFrom)
+        and statement.level == 0
+        and statement.module == "__future__"
+        and len(statement.names) == 1
+        and statement.names[0].name == "annotations"
+        and statement.names[0].asname is None
+        for statement in tree.body
+    )
+
+
+def _closed_import(
+    statement: ast.Import | ast.ImportFrom, future_annotations: bool
+) -> tuple[tuple[str, str], ...]:
     if isinstance(statement, ast.Import):
         if len(statement.names) != 1:
             raise _Refusal("unsupported-import-form")
@@ -1170,31 +1185,42 @@ def _closed_import(statement: ast.Import | ast.ImportFrom) -> tuple[str, str]:
         result = allowed.get((alias.name, alias.asname))
         if result is None:
             raise _Refusal("unsupported-import-form")
-        return result
-    if statement.level or len(statement.names) != 1:
+        return (result,)
+    if (
+        statement.level
+        or not statement.names
+        or any(alias.asname is not None for alias in statement.names)
+    ):
         raise _Refusal("unsupported-import-form")
-    alias = statement.names[0]
-    if alias.asname is not None:
+    if statement.module in {"__future__", "dataclasses", "scipy"} and len(statement.names) != 1:
         raise _Refusal("unsupported-import-form")
-    if statement.module == "pathlib" and alias.name == "Path":
-        return "Path", "pathlib.Path"
-    if statement.module == "collections" and alias.name == "defaultdict":
-        return "defaultdict", "collections.defaultdict"
-    if statement.module == "dataclasses" and alias.name == "dataclass":
-        return "dataclass", "dataclasses.dataclass"
-    if statement.module == "statistics" and alias.name in {
-        "fmean",
-        "mean",
-        "stdev",
-        "median",
-        "variance",
-    }:
-        return alias.name, f"statistics.{alias.name}"
-    if statement.module == "scipy" and alias.name == "stats":
-        return "stats", "scipy.stats"
-    if statement.module == "scipy.stats" and f"scipy.stats.{alias.name}" in _REGISTERED:
-        return alias.name, f"scipy.stats.{alias.name}"
-    raise _Refusal("unsupported-import-form")
+    results: list[tuple[str, str]] = []
+    for alias in statement.names:
+        if alias.name == "*":
+            raise _Refusal("unsupported-import-form")
+        if statement.module == "pathlib" and alias.name == "Path":
+            results.append(("Path", "pathlib.Path"))
+        elif statement.module == "collections" and alias.name in {"defaultdict", "OrderedDict"}:
+            results.append((alias.name, f"collections.{alias.name}"))
+        elif statement.module == "dataclasses" and alias.name == "dataclass":
+            results.append(("dataclass", "dataclasses.dataclass"))
+        elif statement.module == "statistics" and alias.name in {
+            "fmean",
+            "mean",
+            "stdev",
+            "median",
+            "variance",
+        }:
+            results.append((alias.name, f"statistics.{alias.name}"))
+        elif statement.module == "scipy" and alias.name == "stats":
+            results.append(("stats", "scipy.stats"))
+        elif statement.module == "scipy.stats" and f"scipy.stats.{alias.name}" in _REGISTERED:
+            results.append((alias.name, f"scipy.stats.{alias.name}"))
+        elif statement.module == "typing" and future_annotations:
+            results.append((alias.name, f"typing.{alias.name}"))
+        else:
+            raise _Refusal("unsupported-import-form")
+    return tuple(results)
 
 
 def _module_constant(
@@ -1289,6 +1315,7 @@ def _validate_import_uses(
     parents: dict[ast.AST, ast.AST] = {
         child: parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)
     }
+    annotation_nodes = _annotation_nodes(tree)
     for node in ast.walk(tree):
         if (
             not isinstance(node, ast.Name)
@@ -1300,6 +1327,10 @@ def _validate_import_uses(
         if isinstance(parent, ast.alias | ast.Import | ast.ImportFrom):
             continue
         target = imports[node.id]
+        if target.startswith("typing."):
+            if node not in annotation_nodes:
+                raise _Refusal("import-use-outside-grammar")
+            continue
         if target in _SINK_MODULE_CALLS:
             if not (isinstance(parent, ast.Call) and parent.func is node):
                 raise _Refusal("import-use-outside-grammar")
@@ -1363,6 +1394,13 @@ def _validate_import_uses(
             and parent.args[0].id in {"list", "set", "int"}
         ):
             raise _Refusal("import-use-outside-grammar")
+        if target == "collections.OrderedDict" and not (
+            isinstance(parent, ast.Call)
+            and parent.func is node
+            and not parent.args
+            and not parent.keywords
+        ):
+            raise _Refusal("import-use-outside-grammar")
         if target == "dataclasses.dataclass":
             raise _Refusal("dataclass-use-not-modeled")
         if target == "numpy":
@@ -1379,6 +1417,20 @@ def _validate_import_uses(
                 }:
                     continue
                 raise _Refusal("import-use-outside-grammar")
+
+
+def _annotation_nodes(root: ast.AST) -> set[ast.AST]:
+    """Return syntax whose names are inert under the admitted future import."""
+
+    expressions: list[ast.expr] = []
+    for node in ast.walk(root):
+        if isinstance(node, ast.AnnAssign):
+            expressions.append(node.annotation)
+        elif isinstance(node, ast.arg) and node.annotation is not None:
+            expressions.append(node.annotation)
+        elif isinstance(node, ast.FunctionDef) and node.returns is not None:
+            expressions.append(node.returns)
+    return {node for expression in expressions for node in ast.walk(expression)}
 
 
 def _validate_module_collection_uses(
@@ -1641,12 +1693,7 @@ def _validate_function(
         reasons.add("function-rename-collision")
     if (parameters | locals_ | set(constants)) & set(imports):
         reasons.add("import-name-collision")
-    annotation_nodes = {
-        node
-        for statement in ast.walk(function)
-        if isinstance(statement, ast.AnnAssign)
-        for node in ast.walk(statement.annotation)
-    }
+    annotation_nodes = _annotation_nodes(function)
     loads = {
         node.id
         for node in ast.walk(function)
@@ -2167,7 +2214,10 @@ def _encoding(expression: ast.expr) -> str | None:
 
 
 def _recognize_grouping(
-    body: list[ast.stmt], rows_name: str, constants: dict[str, ModuleConstant]
+    body: list[ast.stmt],
+    rows_name: str,
+    constants: dict[str, ModuleConstant],
+    imports: dict[str, str],
 ) -> tuple[str, str, str, str, tuple[str, ...], Literal["dict", "defaultdict_list"]]:
     declarations: dict[str, tuple[str, ...]] = {}
     defaultdict_names: set[str] = set()
@@ -2209,6 +2259,17 @@ def _recognize_grouping(
             ):
                 raise _Refusal("group-container-not-list")
             defaultdict_names.add(statement.targets[0].id)
+        elif (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and isinstance(statement.value, ast.Call)
+            and isinstance(statement.value.func, ast.Name)
+            and imports.get(statement.value.func.id) == "collections.OrderedDict"
+        ):
+            if statement.value.args or statement.value.keywords:
+                raise _Refusal("group-container-not-list")
+            declarations[statement.targets[0].id] = ()
         elif isinstance(statement, ast.Assign) and isinstance(statement.value, ast.Set):
             raise _Refusal("group-container-not-list")
     loops = [

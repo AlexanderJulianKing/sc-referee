@@ -278,3 +278,19 @@ partition may lower to its equivalent plain assignment.
 Process tier rule: any ticket that introduces or duplicates a classification is
 a heavy-process change requiring the corresponding design and adversarial
 review. Such a ticket is never a vocabulary-only round.
+
+## 2026-08-15 growth-6 vocabulary amendment
+
+This light-process round adds no proof obligation, classification, or claim
+shape. Existing per-module `from`-import vocabularies may share one statement;
+every imported name remains independently subject to the same closed whitelist,
+and one unlisted name refuses the complete statement. Typing imports are inert
+only when the same module contains `from __future__ import annotations`, and
+their names may occur only inside annotation syntax.
+
+`collections.OrderedDict()` is admitted only as the empty constructor for the
+existing plain-dict grouping proof. It receives no distinct container kind or
+obligation: key closure, length equations, operand binding, and sorted unpack
+are exactly the plain-dict path. OrderedDict-specific methods remain outside the
+group accumulator grammar. Batches G1 and G2 retain the batch-F development
+structure with fresh author, blind-review, hostile-review, and escalation seats.

@@ -473,7 +473,7 @@ def _kernel_matching_rows(
 def _kernel_replay_count_claims(tree: ast.Module, certificate: CountDependenceCertificate) -> bool:
     """Independently reconstruct the symbolic count shapes from source AST."""
 
-    if not _kernel_import_forms_closed(tree):
+    if not _kernel_import_forms_closed(tree) or not _kernel_typing_uses_closed(tree):
         return False
     module_assignment_names = [
         node.targets[0].id
@@ -1231,7 +1231,7 @@ def _kernel_replay_source_claims(
     if not _kernel_module_collection_uses_closed(tree, all_constants):
         return False
     constants = {name: value for name, value in all_constants.items() if isinstance(value, str)}
-    if not _kernel_import_forms_closed(tree):
+    if not _kernel_import_forms_closed(tree) or not _kernel_typing_uses_closed(tree):
         return False
     imports = _kernel_imports(tree)
     partition = _kernel_partition_body(tree, certificate)
@@ -1319,6 +1319,13 @@ def _kernel_replay_source_claims(
         and not declarations[0].keywords
         else "dict"
         if isinstance(declarations[0], ast.Dict)
+        or (
+            isinstance(declarations[0], ast.Call)
+            and isinstance(declarations[0].func, ast.Name)
+            and imports.get(declarations[0].func.id) == "collections.OrderedDict"
+            and not declarations[0].args
+            and not declarations[0].keywords
+        )
         else None
     )
     if declared_kind != certificate.group_container_kind:
@@ -1653,6 +1660,15 @@ def _kernel_import_forms_closed(tree: ast.Module) -> bool:
         ("os", None),
         ("statistics", None),
     }
+    future_annotations = any(
+        isinstance(statement, ast.ImportFrom)
+        and statement.level == 0
+        and statement.module == "__future__"
+        and len(statement.names) == 1
+        and statement.names[0].name == "annotations"
+        and statement.names[0].asname is None
+        for statement in tree.body
+    )
     for statement in tree.body:
         if isinstance(statement, ast.Import):
             if len(statement.names) != 1:
@@ -1661,25 +1677,62 @@ def _kernel_import_forms_closed(tree: ast.Module) -> bool:
             if (alias.name, alias.asname) not in allowed_imports:
                 return False
         elif isinstance(statement, ast.ImportFrom):
-            if statement.level or len(statement.names) != 1:
+            if statement.level or not statement.names:
                 return False
-            alias = statement.names[0]
-            if alias.asname is not None:
+            if (
+                statement.module in {"__future__", "dataclasses", "scipy"}
+                and len(statement.names) != 1
+            ):
                 return False
-            if (statement.module, alias.name) not in {
-                ("__future__", "annotations"),
-                ("dataclasses", "dataclass"),
-                ("pathlib", "Path"),
-                ("scipy", "stats"),
-                ("collections", "defaultdict"),
-                *(
-                    ("statistics", name)
-                    for name in {"fmean", "mean", "stdev", "median", "variance"}
-                ),
-                *(("scipy.stats", name.rsplit(".", 1)[1]) for name in _ALL_PROCEDURES),
-            }:
-                return False
+            for alias in statement.names:
+                if alias.asname is not None or alias.name == "*":
+                    return False
+                if statement.module == "typing":
+                    if not future_annotations:
+                        return False
+                    continue
+                if (statement.module, alias.name) not in {
+                    ("__future__", "annotations"),
+                    ("dataclasses", "dataclass"),
+                    ("pathlib", "Path"),
+                    ("scipy", "stats"),
+                    ("collections", "defaultdict"),
+                    ("collections", "OrderedDict"),
+                    *(
+                        ("statistics", name)
+                        for name in {"fmean", "mean", "stdev", "median", "variance"}
+                    ),
+                    *(("scipy.stats", name.rsplit(".", 1)[1]) for name in _ALL_PROCEDURES),
+                }:
+                    return False
     return True
+
+
+def _kernel_annotation_nodes(root: ast.AST) -> set[ast.AST]:
+    expressions: list[ast.expr] = []
+    for node in ast.walk(root):
+        if isinstance(node, ast.AnnAssign):
+            expressions.append(node.annotation)
+        elif isinstance(node, ast.arg) and node.annotation is not None:
+            expressions.append(node.annotation)
+        elif isinstance(node, ast.FunctionDef) and node.returns is not None:
+            expressions.append(node.returns)
+    return {node for expression in expressions for node in ast.walk(expression)}
+
+
+def _kernel_typing_uses_closed(tree: ast.Module) -> bool:
+    imports = _kernel_imports(tree)
+    typing_names = {name for name, target in imports.items() if target.startswith("typing.")}
+    if not typing_names:
+        return True
+    annotation_nodes = _kernel_annotation_nodes(tree)
+    return not any(
+        isinstance(node, ast.Name)
+        and isinstance(node.ctx, ast.Load)
+        and node.id in typing_names
+        and node not in annotation_nodes
+        for node in ast.walk(tree)
+    )
 
 
 def _kernel_partition_operand_names(body: list[ast.stmt], procedure: ast.Assign) -> set[str]:
@@ -2167,10 +2220,14 @@ def _kernel_replay_function_bookkeeping(
     certificate: DependenceGrowthCertificate | CountDependenceCertificate,
 ) -> bool:
     functions = {item.name: item for item in tree.body if isinstance(item, ast.FunctionDef)}
-    import_names = set(_kernel_imports(tree))
+    imports = _kernel_imports(tree)
+    import_names = set(imports)
+    typing_names = {name for name, target in imports.items() if target.startswith("typing.")}
     constants = set(_kernel_constants(tree))
     if any(
-        not _kernel_function_shape_closed(item, import_names, constants, set(functions))
+        not _kernel_function_shape_closed(
+            item, import_names, typing_names, constants, set(functions)
+        )
         for item in functions.values()
     ):
         return False
@@ -2771,6 +2828,7 @@ def _kernel_call_sites(
 def _kernel_function_shape_closed(
     function: ast.FunctionDef,
     import_names: set[str],
+    typing_names: set[str],
     constants: set[str],
     function_names: set[str],
 ) -> bool:
@@ -2801,12 +2859,7 @@ def _kernel_function_shape_closed(
     }
     if parameters & stored or (parameters | stored) & import_names:
         return False
-    annotation_nodes = {
-        node
-        for statement in ast.walk(function)
-        if isinstance(statement, ast.AnnAssign)
-        for node in ast.walk(statement.annotation)
-    }
+    annotation_nodes = _kernel_annotation_nodes(function)
     loads = {
         node.id
         for node in ast.walk(function)
@@ -2814,6 +2867,8 @@ def _kernel_function_shape_closed(
         and isinstance(node.ctx, ast.Load)
         and node not in annotation_nodes
     }
+    if loads & typing_names:
+        return False
     allowed = (
         parameters
         | stored

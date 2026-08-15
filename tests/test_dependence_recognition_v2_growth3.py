@@ -31,6 +31,8 @@ from scripts.lean_pipeline import (
     default_dependence_free_e2_config,
     default_dependence_free_f1_config,
     default_dependence_free_f2_config,
+    default_dependence_free_g1_config,
+    default_dependence_free_g2_config,
 )
 
 _BASE = runpy.run_path(str(Path(__file__).with_name("test_dependence_recognition_v2.py")))
@@ -530,16 +532,16 @@ def test_container_holding_operand_object_is_not_sink_bound(tmp_path: Path) -> N
     assert _inspect(source)["abstention_reasons"] == ["sink-classification-unresolved"]
 
 
-def test_batches_a_through_e_full_sorted_observed_sets_and_rq6_guard(project_root: Path) -> None:
+def test_batches_a_through_f_full_sorted_observed_sets_and_rq6_guard(project_root: Path) -> None:
     expected_by_batch = {
         "batch-a": {
-            "112bd1e61aa4fc1bec86": ["unsupported-import-form"],
+            "112bd1e61aa4fc1bec86": ["module-constant-not-closed"],
             "6da5419523f5f9dbedf9": [
                 "function-return-shape",
                 "sink-helper-call",
             ],
             "76373b4a2b2f380d43da": ["unsupported-import-form"],
-            "a520ddbd23df9d699e60": ["unsupported-import-form"],
+            "a520ddbd23df9d699e60": ["dataclass-use-not-modeled"],
             "d1d4ed0e518ad533a2dc": ["sink-helper-call"],
             "e2ecaca2651276963b12": ["unsupported-import-form"],
         },
@@ -602,12 +604,32 @@ def test_batches_a_through_e_full_sorted_observed_sets_and_rq6_guard(project_roo
                 "function-return-shape",
                 "sink-helper-call",
             ],
-            "c38b4b95d2ca5a382f67": ["unsupported-import-form"],
+            "c38b4b95d2ca5a382f67": ["import-use-outside-grammar"],
             "e57e3c73264eda49b3cc": [
                 "function-globals-read",
                 "sink-helper-call",
             ],
             "fa5259eb594c121b4dac": ["function-argument-not-simple"],
+        },
+        "batch-f1": {
+            "99fa42046e8fc8cc47de": ["function-return-shape"],
+            "9d4a9dcdc2ab130e6736": ["function-return-shape", "sink-helper-call"],
+            "c2db115846830b7d908c": ["function-globals-read", "sink-helper-call"],
+            "ca3125c6ca6002055d70": ["import-use-outside-grammar"],
+            "ce821630fbd906ad6d07": ["module-constant-not-closed"],
+            "f68415be40b9234987de": ["import-use-outside-grammar"],
+        },
+        "batch-f2": {
+            "605c4c08512e4489cc9a": [
+                "count-predicate-not-closed",
+                "function-globals-read",
+                "sink-helper-call",
+            ],
+            "7fa9d7c060555eac5a49": ["unsupported-import-form"],
+            "b24355b160cf4665b929": ["function-globals-read"],
+            "b511aff6f2e4b54ee5ce": ["function-globals-read", "sink-helper-call"],
+            "d288f3b6bbda69d32acf": ["module-constant-not-closed"],
+            "e0b267c13e8a30d07b48": ["function-globals-read", "function-return-shape"],
         },
     }
     for batch, expected in expected_by_batch.items():
@@ -630,7 +652,7 @@ def test_batches_a_through_e_full_sorted_observed_sets_and_rq6_guard(project_roo
                     data_path="data/input.csv",
                 )
             )
-            assert payload["abstention_reasons"] == reasons
+            assert payload["abstention_reasons"] == reasons, (batch, slug, payload)
     rq6 = project_root / (
         "evaluation/development/dependence-growth-loop/batch-b/authoring/cases/6a3bc02816cb70ee4042"
     )
@@ -822,6 +844,72 @@ def test_growth5_partition_seed_rejects_annotated_group_rebind_specifically() ->
     assert _inspect(source)["abstention_reasons"] == ["annotated-assignment-not-modeled"]
 
 
+def test_growth6_multi_name_from_imports_are_individually_closed() -> None:
+    statistics_source = (
+        _source()
+        .replace(
+            "from scipy import stats",
+            "from scipy import stats\nfrom statistics import mean, stdev",
+        )
+        .replace(
+            '    REPORT.write_text(str(result), encoding="utf-8")',
+            "    summary = mean(left)\n"
+            '    REPORT.write_text(str(result) + str(summary), encoding="utf-8")',
+        )
+    )
+    assert _inspect(statistics_source)["outcome"] == "evaluation_candidate"
+    assert _inspect(statistics_source.replace("mean, stdev", "mean, mode"))[
+        "abstention_reasons"
+    ] == ["unsupported-import-form"]
+
+    scipy_source = (
+        _source()
+        .replace("from scipy import stats", "from scipy.stats import ttest_ind, mannwhitneyu")
+        .replace("stats.ttest_ind", "ttest_ind")
+    )
+    assert _inspect(scipy_source)["outcome"] == "evaluation_candidate"
+    assert _inspect(scipy_source.replace("mannwhitneyu", "wilcoxon"))["abstention_reasons"] == [
+        "unsupported-import-form"
+    ]
+
+    assert _inspect(
+        _source().replace("from pathlib import Path", "from pathlib import Path, PurePath")
+    )["abstention_reasons"] == ["unsupported-import-form"]
+
+
+def test_growth6_typing_imports_are_future_gated_and_annotation_only() -> None:
+    source = "from __future__ import annotations\n" + _source().replace(
+        "from scipy import stats", "from scipy import stats\nfrom typing import List, Optional"
+    ).replace("    result =", "    note: Optional[List[str]]\n    result =")
+    assert _inspect(source)["outcome"] == "evaluation_candidate"
+    assert _inspect(source.replace("from __future__ import annotations\n", ""))[
+        "abstention_reasons"
+    ] == ["unsupported-import-form"]
+    live = source.replace("    result =", "    marker = List\n    result =")
+    assert _inspect(live)["abstention_reasons"] == ["import-use-outside-grammar"]
+
+
+@pytest.mark.parametrize("method", ["move_to_end(LEFT)", "popitem()"])
+def test_growth6_ordered_dict_reuses_plain_dict_proof_and_specific_methods_abstain(
+    method: str,
+) -> None:
+    source = (
+        _source()
+        .replace("import csv", "import csv\nfrom collections import defaultdict, OrderedDict")
+        .replace("    groups = {}", "    groups = OrderedDict()")
+    )
+    assert _inspect(source)["outcome"] == "evaluation_candidate"
+    sorted_unpack = source.replace(
+        "    left = groups[LEFT]\n    right = groups[RIGHT]",
+        "    (_, left), (_, right) = sorted(groups.items())",
+    )
+    assert _inspect(sorted_unpack)["outcome"] == "evaluation_candidate"
+    specific = source.replace(
+        "    left = groups[LEFT]", f"    groups.{method}\n    left = groups[LEFT]"
+    )
+    assert _inspect(specific)["abstention_reasons"] == ["group-accumulator-not-total"]
+
+
 @pytest.mark.parametrize(
     ("factory", "author_range", "reviewer", "hostile", "escalation", "suffix"),
     [
@@ -829,9 +917,11 @@ def test_growth5_partition_seed_rejects_annotated_group_rebind_specifically() ->
         (default_dependence_free_e2_config, range(57, 63), 26, 27, 18, "batch-e2"),
         (default_dependence_free_f1_config, range(63, 69), 28, 29, 19, "batch-f1"),
         (default_dependence_free_f2_config, range(69, 75), 30, 31, 20, "batch-f2"),
+        (default_dependence_free_g1_config, range(75, 81), 32, 33, 21, "batch-g1"),
+        (default_dependence_free_g2_config, range(81, 87), 34, 35, 22, "batch-g2"),
     ],
 )
-def test_batch_e_and_f_configs_clone_batch_d_structure_with_fresh_seats(
+def test_batch_e_through_g_configs_clone_batch_d_structure_with_fresh_seats(
     factory: Any,
     author_range: range,
     reviewer: int,

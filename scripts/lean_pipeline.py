@@ -915,6 +915,8 @@ DEPENDENCE_FREE_E1_LANE_RELATIVE = Path("evaluation/development/dependence-growt
 DEPENDENCE_FREE_E2_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-e2")
 DEPENDENCE_FREE_F1_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-f1")
 DEPENDENCE_FREE_F2_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-f2")
+DEPENDENCE_FREE_G1_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-g1")
+DEPENDENCE_FREE_G2_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-g2")
 _DEPENDENCE_FREE_ROLES = ("rq1", "rq2", "rq3", "rq4", "rq5", "rq6")
 _DEPENDENCE_FREE_COMMON_TASK = """Study one narrowly defined error class: repeated measurements from the same independent unit entered into a row-independent statistical procedure as if independent. Invent the scientific domain, study story, vocabulary, column names, data values, number of rows, and coding style yourself. Do not copy any prior-lane material.
 
@@ -1338,6 +1340,32 @@ def default_dependence_free_f2_config() -> EnvelopeConfig:
     )
 
 
+def default_dependence_free_g1_config() -> EnvelopeConfig:
+    """Return growth-loop batch G1 with the batch-F structure and fresh seats."""
+
+    return _dependence_free_f_config(
+        suffix="batch-g1",
+        ordinals=range(75, 81),
+        reviewer=32,
+        hostile=33,
+        escalation=21,
+        pipeline_relative=DEPENDENCE_FREE_G1_LANE_RELATIVE,
+    )
+
+
+def default_dependence_free_g2_config() -> EnvelopeConfig:
+    """Return growth-loop batch G2 with the batch-F structure and fresh seats."""
+
+    return _dependence_free_f_config(
+        suffix="batch-g2",
+        ordinals=range(81, 87),
+        reviewer=34,
+        hostile=35,
+        escalation=22,
+        pipeline_relative=DEPENDENCE_FREE_G2_LANE_RELATIVE,
+    )
+
+
 def _dependence_free_f_config(
     *,
     suffix: str,
@@ -1668,6 +1696,8 @@ ENVELOPE_CONFIGS = {
     "dependence-free-e2": default_dependence_free_e2_config,
     "dependence-free-f1": default_dependence_free_f1_config,
     "dependence-free-f2": default_dependence_free_f2_config,
+    "dependence-free-g1": default_dependence_free_g1_config,
+    "dependence-free-g2": default_dependence_free_g2_config,
     "dosage": default_dosage_config,
     "founder-orientation": default_founder_orientation_config,
     "founder-orientation-b": default_founder_orientation_b_config,
