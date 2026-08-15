@@ -1,0 +1,298 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-d-reviewer-fable-22
+
+=== workflow 1: case:396f4dceee2b19f08009 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Cave cricket stridulation recordings
+
+Twelve adult cave crickets from a single laboratory colony were kept for eight
+weeks in one of two rearing chambers: an ambient chamber and a water-saturated
+chamber, six animals in each. At the end of the rearing period every cricket
+was moved to a recording box and its stridulation was recorded four separate
+times, with the animal returned to its chamber between takes. From each
+recording the peak frequency of the dominant stridulation band was read off the
+spectrum and written down in kilohertz.
+
+The file data/input.csv has a header and 48 data lines, with these columns:
+
+- cricket_tag: the permanent paint tag of the animal (CK-01 to CK-12). The same
+  tag appears on four lines, one line per recording of that animal.
+- chamber_humidity: the rearing chamber the animal lived in, either "ambient"
+  or "saturated". It is a property of the animal, not of the single recording,
+  so it is the same on all four lines that carry a given tag.
+- take_no: which of that animal's four recordings the line reports (1 to 4).
+- peak_khz: peak frequency of the dominant stridulation band in that recording,
+  in kilohertz, to one decimal place.
+
+One row is: one stridulation recording (one take) of one cricket
+Independent unit column: cricket_tag
+
+--- file data/input.csv ---
+cricket_tag,chamber_humidity,take_no,peak_khz
+CK-01,ambient,1,11.2
+CK-01,ambient,2,11.3
+CK-01,ambient,3,11.3
+CK-01,ambient,4,11.4
+CK-02,ambient,1,11.5
+CK-02,ambient,2,11.5
+CK-02,ambient,3,11.7
+CK-02,ambient,4,11.7
+CK-03,ambient,1,11.9
+CK-03,ambient,2,12.1
+CK-03,ambient,3,12.2
+CK-03,ambient,4,12.2
+CK-04,ambient,1,12.8
+CK-04,ambient,2,12.8
+CK-04,ambient,3,13.0
+CK-04,ambient,4,13.0
+CK-05,ambient,1,13.4
+CK-05,ambient,2,13.5
+CK-05,ambient,3,13.7
+CK-05,ambient,4,13.8
+CK-06,ambient,1,14.1
+CK-06,ambient,2,14.0
+CK-06,ambient,3,14.1
+CK-06,ambient,4,14.2
+CK-07,saturated,1,12.1
+CK-07,saturated,2,12.3
+CK-07,saturated,3,12.4
+CK-07,saturated,4,12.4
+CK-08,saturated,1,13.0
+CK-08,saturated,2,13.1
+CK-08,saturated,3,13.1
+CK-08,saturated,4,13.2
+CK-09,saturated,1,13.3
+CK-09,saturated,2,13.3
+CK-09,saturated,3,13.5
+CK-09,saturated,4,13.5
+CK-10,saturated,1,13.9
+CK-10,saturated,2,13.9
+CK-10,saturated,3,14.0
+CK-10,saturated,4,14.2
+CK-11,saturated,1,14.5
+CK-11,saturated,2,14.7
+CK-11,saturated,3,14.7
+CK-11,saturated,4,14.9
+CK-12,saturated,1,15.3
+CK-12,saturated,2,15.2
+CK-12,saturated,3,15.4
+CK-12,saturated,4,15.3
+
+--- file workflow/analysis.py ---
+"""Peak stridulation frequency of cave crickets reared at two humidity levels.
+
+Reads data/input.csv, which holds one row per recorded take, and writes a short
+markdown summary to results/report.md.
+"""
+
+import csv
+import math
+from dataclasses import dataclass
+from pathlib import Path
+
+from scipy import stats
+
+INPUT_PATH = Path("data") / "input.csv"
+REPORT_PATH = Path("results") / "report.md"
+
+AMBIENT = "ambient"
+SATURATED = "saturated"
+
+
+@dataclass(frozen=True)
+class Take:
+    """A single stridulation recording."""
+
+    cricket_tag: str
+    chamber_humidity: str
+    take_no: int
+    peak_khz: float
+
+
+def read_takes(path):
+    """Load every recorded take from the CSV."""
+    takes = []
+    with path.open("r", encoding="ascii", newline="") as handle:
+        for row in csv.DictReader(handle):
+            takes.append(
+                Take(
+                    cricket_tag=row["cricket_tag"],
+                    chamber_humidity=row["chamber_humidity"],
+                    take_no=int(row["take_no"]),
+                    peak_khz=float(row["peak_khz"]),
+                )
+            )
+    return takes
+
+
+def peaks_in(takes, chamber):
+    return [take.peak_khz for take in takes if take.chamber_humidity == chamber]
+
+
+def tags_in(takes, chamber):
+    tags = []
+    for take in takes:
+        if take.chamber_humidity == chamber and take.cricket_tag not in tags:
+            tags.append(take.cricket_tag)
+    return tags
+
+
+def mean_of(values):
+    return sum(values) / len(values)
+
+
+def variance_of(values):
+    centre = mean_of(values)
+    return sum((value - centre) ** 2 for value in values) / (len(values) - 1)
+
+
+def by_cricket(takes):
+    grouped = {}
+    for take in takes:
+        grouped.setdefault(take.cricket_tag, []).append(take)
+    return grouped
+
+
+def p_phrase(p_value):
+    if p_value < 0.001:
+        return "p < 0.001"
+    return "p = {:.3f}".format(p_value)
+
+
+def build_report(takes):
+    ambient = peaks_in(takes, AMBIENT)
+    saturated = peaks_in(takes, SATURATED)
+
+    n_amb, n_sat = len(ambient), len(saturated)
+    mean_amb, mean_sat = mean_of(ambient), mean_of(saturated)
+    var_amb, var_sat = variance_of(ambient), variance_of(saturated)
+
+    df = n_amb + n_sat - 2
+    pooled_sd = math.sqrt(((n_amb - 1) * var_amb + (n_sat - 1) * var_sat) / df)
+    difference = mean_sat - mean_amb
+
+    outcome = stats.ttest_ind(saturated, ambient, equal_var=True)
+
+    lines = [
+        "# Rearing humidity and stridulation peak frequency in cave crickets",
+        "",
+        "Cave crickets from one laboratory colony were reared either in an ambient",
+        "chamber or in a water-saturated chamber. Each animal was recorded four times,",
+        "and the peak frequency of the dominant stridulation band was read from each",
+        "recording.",
+        "",
+        "## Recordings",
+        "",
+        "- takes analysed: {}".format(len(takes)),
+        "- ambient chamber: {} takes from {} crickets, mean peak {:.2f} kHz (SD {:.2f} kHz)".format(
+            n_amb, len(tags_in(takes, AMBIENT)), mean_amb, math.sqrt(var_amb)
+        ),
+        "- saturated chamber: {} takes from {} crickets, mean peak {:.2f} kHz (SD {:.2f} kHz)".format(
+            n_sat, len(tags_in(takes, SATURATED)), mean_sat, math.sqrt(var_sat)
+        ),
+        "",
+        "| cricket | chamber | takes | mean peak (kHz) |",
+        "| --- | --- | --- | --- |",
+    ]
+
+    for tag, rows in sorted(by_cricket(takes).items()):
+        lines.append(
+            "| {} | {} | {} | {:.2f} |".format(
+                tag,
+                rows[0].chamber_humidity,
+                len(rows),
+                mean_of([row.peak_khz for row in rows]),
+            )
+        )
+
+    verdict = (
+        "[selected-result] Peak stridulation frequency was higher in the saturated"
+        " chamber ({:.2f} kHz) than in the ambient chamber ({:.2f} kHz), a difference"
+        " of {:.2f} kHz: two-sample t-test over {} takes, t({}) = {:.3f}, {}."
+    ).format(
+        mean_sat,
+        mean_amb,
+        difference,
+        len(takes),
+        df,
+        outcome.statistic,
+        p_phrase(outcome.pvalue),
+    )
+
+    lines += [
+        "",
+        "## Test",
+        "",
+        "Each take was entered as a separate observation in a two-sided two-sample",
+        "Student t-test with pooled variance, comparing peak frequency in the",
+        "saturated chamber with the ambient chamber.",
+        "",
+        "- difference of means (saturated - ambient): {:.2f} kHz".format(difference),
+        "- pooled SD: {:.3f} kHz".format(pooled_sd),
+        "- t({}) = {:.3f}".format(df, outcome.statistic),
+        "- {}".format(p_phrase(outcome.pvalue)),
+        "",
+        verdict,
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    takes = read_takes(INPUT_PATH)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(build_report(takes))
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Rearing humidity and stridulation peak frequency in cave crickets
+
+Cave crickets from one laboratory colony were reared either in an ambient
+chamber or in a water-saturated chamber. Each animal was recorded four times,
+and the peak frequency of the dominant stridulation band was read from each
+recording.
+
+## Recordings
+
+- takes analysed: 48
+- ambient chamber: 24 takes from 6 crickets, mean peak 12.60 kHz (SD 1.05 kHz)
+- saturated chamber: 24 takes from 6 crickets, mean peak 13.80 kHz (SD 1.03 kHz)
+
+| cricket | chamber | takes | mean peak (kHz) |
+| --- | --- | --- | --- |
+| CK-01 | ambient | 4 | 11.30 |
+| CK-02 | ambient | 4 | 11.60 |
+| CK-03 | ambient | 4 | 12.10 |
+| CK-04 | ambient | 4 | 12.90 |
+| CK-05 | ambient | 4 | 13.60 |
+| CK-06 | ambient | 4 | 14.10 |
+| CK-07 | saturated | 4 | 12.30 |
+| CK-08 | saturated | 4 | 13.10 |
+| CK-09 | saturated | 4 | 13.40 |
+| CK-10 | saturated | 4 | 14.00 |
+| CK-11 | saturated | 4 | 14.70 |
+| CK-12 | saturated | 4 | 15.30 |
+
+## Test
+
+Each take was entered as a separate observation in a two-sided two-sample
+Student t-test with pooled variance, comparing peak frequency in the
+saturated chamber with the ambient chamber.
+
+- difference of means (saturated - ambient): 1.20 kHz
+- pooled SD: 1.039 kHz
+- t(46) = 4.000
+- p < 0.001
+
+[selected-result] Peak stridulation frequency was higher in the saturated chamber (13.80 kHz) than in the ambient chamber (12.60 kHz), a difference of 1.20 kHz: two-sample t-test over 48 takes, t(46) = 4.000, p < 0.001.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-d-reviewer-fable-22", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:396f4dceee2b19f08009"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

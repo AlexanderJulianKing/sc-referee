@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from jsonschema import Draft7Validator
 from sc_referee_evaluation import lean_pipeline as evaluation_pipeline
 
 from sc_referee.dependence_recognition_v2.adapter import (
@@ -497,13 +498,78 @@ def test_batch_d_transport_passes_schema_without_changing_default(
         )
 
     monkeypatch.setattr(evaluation_pipeline.subprocess, "run", fake_run)
-    schema = {"type": "object", "properties": {"ok": {"type": "boolean"}}}
+    schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {"ok": {"type": "boolean"}},
+    }
     result = evaluation_pipeline._call_cli(
         config, participant, "prompt", "session", tmp_path / "capture", response_schema=schema
     )
     assert result["transport_error"] is None
-    assert observed[observed.index("--json-schema") + 1] == evaluation_pipeline.canonical_json(
-        schema
-    )
+    emitted = __import__("json").loads(observed[observed.index("--json-schema") + 1])
+    assert "$schema" not in emitted
+    Draft7Validator.check_schema(emitted)
+    assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
     assert default_dependence_free_d_config().development_loop
     assert not default_dependence_free_config().enforce_cli_review_json_schema
+
+
+def test_retained_client_schema_rejection_is_preserved_and_retried_once(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    config = default_dependence_free_d_config()
+    participant = config.reviewer
+    prompt = "prompt"
+    session_id = "session"
+    capture = tmp_path / "capture"
+    capture.mkdir()
+    stdout = b""
+    stderr = (evaluation_pipeline._CLAUDE_SCHEMA_META_REJECTION + "\n").encode()
+    record = {
+        "participant_id": participant.participant_id,
+        "session_id": session_id,
+        "prompt_digest": evaluation_pipeline.sha256_digest(prompt),
+        "transport_error": "provider_cli_exit_code:1",
+        "stdout_digest": evaluation_pipeline.sha256_digest(stdout),
+        "stderr_digest": evaluation_pipeline.sha256_digest(stderr),
+    }
+    (capture / "capture.json").write_text(
+        evaluation_pipeline.canonical_json(record) + "\n", encoding="utf-8"
+    )
+    (capture / "stdout.bin").write_bytes(stdout)
+    (capture / "stderr.bin").write_bytes(stderr)
+    original = {path.name: path.read_bytes() for path in capture.iterdir() if path.is_file()}
+    calls = 0
+
+    def fake_run(argv: list[str], **_: object) -> subprocess.CompletedProcess[bytes]:
+        nonlocal calls
+        calls += 1
+        payload = {
+            "is_error": False,
+            "session_id": session_id,
+            "modelUsage": {participant.model_id: {}},
+            "result": '{"ok":true}',
+        }
+        return subprocess.CompletedProcess(
+            argv, 0, str.encode(__import__("json").dumps(payload)), b""
+        )
+
+    monkeypatch.setattr(evaluation_pipeline.subprocess, "run", fake_run)
+    result = evaluation_pipeline._call_cli(
+        config,
+        participant,
+        prompt,
+        session_id,
+        capture,
+        response_schema={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+        },
+    )
+    assert result["transport_error"] is None
+    assert calls == 1
+    assert {
+        path.name: path.read_bytes() for path in capture.iterdir() if path.is_file()
+    } == original
+    assert (capture / "schema-compatible-retry/capture.json").is_file()

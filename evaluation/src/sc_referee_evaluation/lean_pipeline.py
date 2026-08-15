@@ -549,10 +549,17 @@ def _call_claude_cli(
     capture_root: Path,
     response_schema: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    retained = _retained_call(participant, prompt, session_id, capture_root)
+    active_capture_root = capture_root
+    if response_schema is not None and _retained_claude_schema_meta_rejection(
+        participant, prompt, session_id, capture_root
+    ):
+        # Client-side schema validation reached no model, so it consumed no
+        # reviewer attempt; preserve that capture and bind the retry separately.
+        active_capture_root = capture_root / "schema-compatible-retry"
+    retained = _retained_call(participant, prompt, session_id, active_capture_root)
     if retained is not None:
         return retained
-    capture_root.mkdir(parents=True, exist_ok=True)
+    active_capture_root.mkdir(parents=True, exist_ok=True)
     started_at = _now()
     environment = dict(os.environ)
     environment["NO_COLOR"] = "1"
@@ -579,7 +586,9 @@ def _call_claude_cli(
             session_id,
         ]
         if response_schema is not None:
-            argv.extend(["--json-schema", canonical_json(response_schema)])
+            argv.extend(
+                ["--json-schema", canonical_json(_claude_cli_response_schema(response_schema))]
+            )
         argv.append(prompt)
         completed = subprocess.run(
             argv,
@@ -590,8 +599,8 @@ def _call_claude_cli(
             timeout=CLI_TIMEOUT_SECONDS,
         )
     completed_at = _now()
-    atomic_write_bytes(capture_root / "stdout.bin", completed.stdout)
-    atomic_write_bytes(capture_root / "stderr.bin", completed.stderr)
+    atomic_write_bytes(active_capture_root / "stdout.bin", completed.stdout)
+    atomic_write_bytes(active_capture_root / "stderr.bin", completed.stderr)
     transport_error = None
     raw_response = ""
     metadata: dict[str, Any] = {}
@@ -639,7 +648,7 @@ def _call_claude_cli(
         "qualification_authority": "none_process_capture_only",
     }
     process_record["capture_digest"] = semantic_digest(process_record)
-    write_normalized_json_once(capture_root / "capture.json", process_record)
+    write_normalized_json_once(active_capture_root / "capture.json", process_record)
     return {
         "raw_response": raw_response,
         "transport_error": transport_error,
@@ -647,6 +656,46 @@ def _call_claude_cli(
         "started_at": started_at,
         "completed_at": completed_at,
     }
+
+
+_CLAUDE_SCHEMA_META_REJECTION = (
+    "Error: --json-schema is not a valid JSON Schema: no schema with key or ref "
+    '"https://json-schema.org/draft/2020-12/schema"'
+)
+
+
+def _claude_cli_response_schema(schema: dict[str, Any]) -> dict[str, Any]:
+    """Return the installed Claude CLI's accepted implicit-dialect form."""
+
+    return {key: value for key, value in schema.items() if key != "$schema"}
+
+
+def _retained_claude_schema_meta_rejection(
+    participant: ModelParticipant,
+    prompt: str,
+    session_id: str,
+    capture_root: Path,
+) -> bool:
+    """Recognize only the retained, pre-model 2020-12 meta-schema rejection."""
+
+    capture_path = capture_root / "capture.json"
+    if not capture_path.exists():
+        return False
+    record = _load(capture_path)
+    if (
+        record.get("participant_id") != participant.participant_id
+        or record.get("session_id") != session_id
+        or record.get("prompt_digest") != sha256_digest(prompt)
+        or record.get("transport_error") != "provider_cli_exit_code:1"
+    ):
+        return False
+    stderr = (capture_root / "stderr.bin").read_bytes()
+    stdout = (capture_root / "stdout.bin").read_bytes()
+    if sha256_digest(stderr) != record.get("stderr_digest") or sha256_digest(stdout) != record.get(
+        "stdout_digest"
+    ):
+        raise LeanPipelineError("A retained schema-rejection capture's bytes drifted.")
+    return _CLAUDE_SCHEMA_META_REJECTION in stderr.decode("utf-8", errors="replace")
 
 
 def _retained_call(
