@@ -1,0 +1,232 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-d-reviewer-fable-22
+
+=== workflow 1: case:6e47ef090eb8989d547d ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What data/input.csv contains
+
+A glasshouse trial comparing two quinoa cultivars, Pasankalla and Titicaca, for
+leaf-level photosynthetic performance. Twelve potted plants were raised under a
+common light and irrigation regime, six plants of each cultivar. On every plant,
+four tagged leaves at stem nodes 3, 5, 7 and 9 were measured once each with a
+portable gas-exchange cuvette during a single mid-morning session. Each plant
+therefore contributes four measurement rows to the table, and the table has 48
+rows in total.
+
+Columns:
+
+- plant_id: tag of the potted plant that the measured leaf grew on. Twelve
+  distinct plants appear, each on four rows.
+- cultivar: the cultivar of that plant, either Pasankalla or Titicaca. All rows
+  from a given plant carry the same value.
+- leaf_node: stem node position of the measured leaf (3, 5, 7 or 9), counted from
+  the base of the main stem.
+- leaf_area_cm2: one-sided area of the measured leaf in square centimetres.
+- assimilation_umol_m2_s: net CO2 assimilation rate of that leaf in micromoles of
+  CO2 per square metre of leaf per second. This is the response of interest.
+
+Because the four leaves on a plant share the same pot, root system and microclimate,
+their assimilation values are more alike than values taken from different plants.
+
+One row is: one tagged leaf measured once on one potted quinoa plant
+Independent unit column: plant_id
+
+--- file data/input.csv ---
+plant_id,cultivar,leaf_node,leaf_area_cm2,assimilation_umol_m2_s
+PK-01,Pasankalla,3,34.2,15.4
+PK-01,Pasankalla,5,36.8,16.3
+PK-01,Pasankalla,7,31.5,14.6
+PK-01,Pasankalla,9,33.9,15.7
+PK-02,Pasankalla,3,38.1,17.2
+PK-02,Pasankalla,5,35.4,16.1
+PK-02,Pasankalla,7,39.6,17.8
+PK-02,Pasankalla,9,37.0,16.9
+PK-03,Pasankalla,3,33.7,16.6
+PK-03,Pasankalla,5,36.2,17.7
+PK-03,Pasankalla,7,35.8,17.4
+PK-03,Pasankalla,9,38.4,18.3
+PK-04,Pasankalla,3,40.5,19.3
+PK-04,Pasankalla,5,38.9,18.4
+PK-04,Pasankalla,7,39.2,18.7
+PK-04,Pasankalla,9,36.7,17.6
+PK-05,Pasankalla,3,37.6,18.9
+PK-05,Pasankalla,5,36.1,18.1
+PK-05,Pasankalla,7,41.3,19.8
+PK-05,Pasankalla,9,38.8,19.2
+PK-06,Pasankalla,3,42.0,20.7
+PK-06,Pasankalla,5,43.5,21.3
+PK-06,Pasankalla,7,39.8,19.6
+PK-06,Pasankalla,9,41.6,20.4
+TT-01,Titicaca,3,30.4,19.3
+TT-01,Titicaca,5,28.9,17.6
+TT-01,Titicaca,7,29.7,18.4
+TT-01,Titicaca,9,30.1,18.7
+TT-02,Titicaca,3,32.6,19.4
+TT-02,Titicaca,5,33.0,19.7
+TT-02,Titicaca,7,34.2,20.3
+TT-02,Titicaca,9,31.8,18.6
+TT-03,Titicaca,3,35.1,20.1
+TT-03,Titicaca,5,36.9,21.8
+TT-03,Titicaca,7,36.0,21.2
+TT-03,Titicaca,9,35.6,20.9
+TT-04,Titicaca,3,37.2,21.7
+TT-04,Titicaca,5,36.8,21.4
+TT-04,Titicaca,7,35.9,20.6
+TT-04,Titicaca,9,38.0,22.3
+TT-05,Titicaca,3,39.4,23.3
+TT-05,Titicaca,5,38.6,22.7
+TT-05,Titicaca,7,38.2,22.4
+TT-05,Titicaca,9,37.1,21.6
+TT-06,Titicaca,3,40.8,22.1
+TT-06,Titicaca,5,41.2,22.9
+TT-06,Titicaca,7,42.5,23.8
+TT-06,Titicaca,9,41.9,23.2
+
+--- file workflow/analysis.py ---
+"""Compare leaf-level net CO2 assimilation between two quinoa cultivars.
+
+Reads data/input.csv and writes results/report.md.
+"""
+
+import csv
+import pathlib
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = pathlib.Path("data/input.csv")
+OUTPUT_PATH = pathlib.Path("results/report.md")
+
+GROUP_COLUMN = "cultivar"
+RATE_COLUMN = "assimilation_umol_m2_s"
+REFERENCE = "Pasankalla"
+CONTRAST = "Titicaca"
+ALPHA = 0.05
+
+
+def read_table(path):
+    with path.open("r", encoding="ascii", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def rates(table, cultivar):
+    picked = [
+        float(row[RATE_COLUMN])
+        for row in table
+        if row[GROUP_COLUMN] == cultivar
+    ]
+    return np.asarray(picked, dtype=float)
+
+
+def welch_df(first, second):
+    term_a = first.var(ddof=1) / first.size
+    term_b = second.var(ddof=1) / second.size
+    numerator = (term_a + term_b) ** 2
+    denominator = (term_a ** 2) / (first.size - 1) + (term_b ** 2) / (second.size - 1)
+    return numerator / denominator
+
+
+def group_row(label, values):
+    return "| {0} | {1} | {2:.3f} | {3:.3f} |".format(
+        label, values.size, values.mean(), values.std(ddof=1)
+    )
+
+
+def p_text(pvalue):
+    if pvalue < 1e-4:
+        return "p < 0.0001"
+    return "p = {0:.4f}".format(pvalue)
+
+
+def build_report(table, ref, con):
+    tstat, pvalue = stats.ttest_ind(con, ref, equal_var=False)
+    dof = welch_df(con, ref)
+    diff = con.mean() - ref.mean()
+    ptext = p_text(pvalue)
+
+    summary = (
+        "[selected-result] Welch's two-sample t-test over {0} leaf observations"
+        " gives t = {1:.3f}, df = {2:.1f}, {3}: mean net assimilation is higher"
+        " in {4} ({5:.3f}) than in {6} ({7:.3f}) umol m-2 s-1."
+    ).format(
+        len(table), tstat, dof, ptext, CONTRAST, con.mean(), REFERENCE, ref.mean()
+    )
+
+    lines = [
+        "# Leaf-level carbon assimilation in two quinoa cultivars",
+        "",
+        "## Data",
+        "",
+        "Source table: `data/input.csv` ({0} measurement rows).".format(len(table)),
+        "",
+        "Measured variable: net CO2 assimilation rate (assimilation_umol_m2_s), recorded on",
+        "individually tagged leaves of greenhouse-grown quinoa plants.",
+        "",
+        "| Cultivar | Rows | Mean | SD |",
+        "| --- | ---: | ---: | ---: |",
+        group_row(REFERENCE, ref),
+        group_row(CONTRAST, con),
+        "",
+        "## Analysis",
+        "",
+        "Each measured leaf was entered as one observation and the two cultivar groups were",
+        "compared with Welch's two-sample t-test (scipy.stats.ttest_ind, equal_var=False),",
+        "two-sided, alpha = {0}.".format(ALPHA),
+        "",
+        "## Result",
+        "",
+        "Mean difference (Titicaca minus Pasankalla): {0:.3f} umol m-2 s-1".format(diff),
+        "t = {0:.3f}, df = {1:.1f}, {2}".format(tstat, dof, ptext),
+        "",
+        summary,
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    table = read_table(INPUT_PATH)
+    ref = rates(table, REFERENCE)
+    con = rates(table, CONTRAST)
+    report = build_report(table, ref, con)
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Leaf-level carbon assimilation in two quinoa cultivars
+
+## Data
+
+Source table: `data/input.csv` (48 measurement rows).
+
+Measured variable: net CO2 assimilation rate (assimilation_umol_m2_s), recorded on
+individually tagged leaves of greenhouse-grown quinoa plants.
+
+| Cultivar | Rows | Mean | SD |
+| --- | ---: | ---: | ---: |
+| Pasankalla | 24 | 18.000 | 1.732 |
+| Titicaca | 24 | 21.000 | 1.732 |
+
+## Analysis
+
+Each measured leaf was entered as one observation and the two cultivar groups were
+compared with Welch's two-sample t-test (scipy.stats.ttest_ind, equal_var=False),
+two-sided, alpha = 0.05.
+
+## Result
+
+Mean difference (Titicaca minus Pasankalla): 3.000 umol m-2 s-1
+t = 6.000, df = 46.0, p < 0.0001
+
+[selected-result] Welch's two-sample t-test over 48 leaf observations gives t = 6.000, df = 46.0, p < 0.0001: mean net assimilation is higher in Titicaca (21.000) than in Pasankalla (18.000) umol m-2 s-1.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-d-reviewer-fable-22", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:6e47ef090eb8989d547d"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

@@ -1,0 +1,246 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-d-reviewer-fable-22
+
+=== workflow 1: case:7da68ec265e1bb2f6640 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What data/input.csv contains
+
+This file comes from a survey of fungal mycelial ingrowth in a montane Norway
+spruce landscape. Twenty-four stands were selected across the survey area, each
+at least two kilometres from the nearest other stand and each sitting on its own
+soil block, so the stands are treated as independent of one another.
+
+In every stand, four nylon-mesh ingrowth bags filled with acid-washed sand were
+buried in the organic horizon in June and lifted in September. The four bags
+from a stand were combined into a single composite sample in the field, and that
+one composite was dried and weighed once in the laboratory. A stand therefore
+yields exactly one ingrowth number, and it occupies exactly one line of the
+file.
+
+One row is: one surveyed spruce stand, described by the single pooled ingrowth-bag composite collected in that stand
+Independent unit column: stand_id
+
+Columns:
+
+- stand_id: the code of the stand, unique across the file (ST-01 through ST-24).
+- canopy_state: whether the stand has a closed canopy ("intact") or is a
+  wind-thrown canopy gap ("gap"). Twelve stands of each kind.
+- elevation_m: elevation of the stand centre in metres above sea level. Recorded
+  for context only; it is not used in the comparison.
+- bags_pooled: how many ingrowth bags were merged into that stand's composite.
+  It is four everywhere, so it is bookkeeping rather than a measurement.
+- hyphal_ingrowth_mg: the dry mass, in milligrams, of fungal mycelium washed out
+  of that composite. This is the quantity compared between canopy states.
+
+Nothing in the file is a repeated measurement of the same stand. The bags were
+merged before weighing, so the file holds 24 measurements from 24 stands, and a
+two-group comparison across rows compares independent stands.
+
+--- file data/input.csv ---
+stand_id,canopy_state,elevation_m,bags_pooled,hyphal_ingrowth_mg
+ST-01,intact,1180,4,40
+ST-02,gap,1245,4,27
+ST-03,gap,1010,4,33
+ST-04,intact,962,4,46
+ST-05,intact,1408,4,32
+ST-06,gap,1372,4,21
+ST-07,intact,1094,4,43
+ST-08,gap,905,4,34
+ST-09,gap,1156,4,28
+ST-10,intact,878,4,48
+ST-11,intact,1301,4,37
+ST-12,gap,1027,4,33
+ST-13,gap,1460,4,20
+ST-14,intact,1223,4,40
+ST-15,intact,1339,4,35
+ST-16,gap,1068,4,30
+ST-17,gap,1284,4,25
+ST-18,intact,941,4,45
+ST-19,intact,1417,4,38
+ST-20,gap,993,4,33
+ST-21,intact,1135,4,46
+ST-22,gap,1198,4,29
+ST-23,gap,1356,4,23
+ST-24,intact,1052,4,42
+
+--- file workflow/analysis.py ---
+"""Do canopy gaps depress fungal mycelial ingrowth?
+
+Reads data/input.csv, which lists one surveyed spruce stand per row, and writes
+results/report.md with a stand-level two-group comparison.
+"""
+
+import csv
+import math
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+DATA_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+UNIT_KEY = "stand_id"
+GROUP_KEY = "canopy_state"
+RESPONSE_KEY = "hyphal_ingrowth_mg"
+REFERENCE = "intact"
+CONTRAST = "gap"
+
+
+def read_stands(path):
+    """Return the CSV rows, refusing any file in which a stand is listed twice."""
+    with path.open(newline="", encoding="ascii") as handle:
+        rows = list(csv.DictReader(handle))
+    if not rows:
+        raise ValueError("no stands in {0}".format(path))
+    stands = [row[UNIT_KEY] for row in rows]
+    if len(set(stands)) != len(stands):
+        raise ValueError("a stand is listed more than once; one row per stand is required")
+    return rows
+
+
+def ingrowth(rows, state):
+    return np.asarray(
+        [float(row[RESPONSE_KEY]) for row in rows if row[GROUP_KEY] == state],
+        dtype=float,
+    )
+
+
+def describe(values):
+    return {
+        "n": int(values.size),
+        "mean": float(np.mean(values)),
+        "sd": float(np.std(values, ddof=1)),
+        "median": float(np.median(values)),
+    }
+
+
+def welch_df(var_a, n_a, var_b, n_b):
+    a = var_a / n_a
+    b = var_b / n_b
+    return (a + b) ** 2 / (a * a / (n_a - 1) + b * b / (n_b - 1))
+
+
+def p_phrase(pvalue):
+    return "< 0.0001" if pvalue < 1e-4 else "= {0:.4f}".format(pvalue)
+
+
+def table_row(label, summary):
+    return "| {0} | {1} | {2:.3f} | {3:.3f} | {4:.3f} |".format(
+        label, summary["n"], summary["mean"], summary["sd"], summary["median"]
+    )
+
+
+def main():
+    rows = read_stands(DATA_PATH)
+    a = ingrowth(rows, REFERENCE)
+    b = ingrowth(rows, CONTRAST)
+    sum_a = describe(a)
+    sum_b = describe(b)
+
+    n_a = sum_a["n"]
+    n_b = sum_b["n"]
+    var_a = float(np.var(a, ddof=1))
+    var_b = float(np.var(b, ddof=1))
+
+    tstat, pvalue = stats.ttest_ind(a, b, equal_var=False)
+    diff = sum_a["mean"] - sum_b["mean"]
+    se = math.sqrt(var_a / n_a + var_b / n_b)
+    dof = welch_df(var_a, n_a, var_b, n_b)
+    margin = float(stats.t.ppf(0.975, dof)) * se
+    pooled_sd = math.sqrt(((n_a - 1) * var_a + (n_b - 1) * var_b) / (n_a + n_b - 2))
+    effect = diff / pooled_sd
+
+    result = (
+        "[selected-result] Welch's two-sample t-test on {0} intact-canopy stands "
+        "versus {1} canopy-gap stands: mean difference {2:.3f} mg (intact minus "
+        "gap), 95% CI [{3:.2f}, {4:.2f}] mg, SE {5:.3f} mg, t = {6:.4f}, "
+        "df = {7:.2f}, two-sided p {8}; mycelial ingrowth is higher in "
+        "intact-canopy stands."
+    ).format(
+        n_a,
+        n_b,
+        diff,
+        diff - margin,
+        diff + margin,
+        se,
+        float(tstat),
+        dof,
+        p_phrase(float(pvalue)),
+    )
+
+    lines = [
+        "# Mycelial ingrowth in intact-canopy versus canopy-gap spruce stands",
+        "",
+        "## Data",
+        "",
+        "The file holds {0} rows, one per surveyed stand: {1} intact-canopy and".format(len(rows), n_a),
+        "{0} canopy-gap. Each stand contributed a single pooled four-bag ingrowth".format(n_b),
+        "composite, so every stand supplies exactly one analysed measurement and no",
+        "stand appears twice in the file.",
+        "",
+        "| canopy_state | stands | mean (mg) | SD (mg) | median (mg) |",
+        "| --- | --- | --- | --- | --- |",
+        table_row(REFERENCE, sum_a),
+        table_row(CONTRAST, sum_b),
+        "",
+        "## Analysis",
+        "",
+        "Welch's two-sided two-sample t-test on stand-level mycelial dry mass,",
+        "comparing intact-canopy stands with canopy-gap stands. The independent",
+        "unit is the stand, and each stand enters the test exactly once.",
+        "",
+        "## Result",
+        "",
+        result,
+        "",
+        "Cohen's d = {0:.3f}, using a pooled SD of {1:.3f} mg.".format(effect, pooled_sd),
+        "",
+        "The two groups happen to share the same sample SD, so the Welch correction",
+        "returns the equal-variance degrees of freedom.",
+    ]
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Mycelial ingrowth in intact-canopy versus canopy-gap spruce stands
+
+## Data
+
+The file holds 24 rows, one per surveyed stand: 12 intact-canopy and
+12 canopy-gap. Each stand contributed a single pooled four-bag ingrowth
+composite, so every stand supplies exactly one analysed measurement and no
+stand appears twice in the file.
+
+| canopy_state | stands | mean (mg) | SD (mg) | median (mg) |
+| --- | --- | --- | --- | --- |
+| intact | 12 | 41.000 | 4.899 | 41.000 |
+| gap | 12 | 28.000 | 4.899 | 28.500 |
+
+## Analysis
+
+Welch's two-sided two-sample t-test on stand-level mycelial dry mass,
+comparing intact-canopy stands with canopy-gap stands. The independent
+unit is the stand, and each stand enters the test exactly once.
+
+## Result
+
+[selected-result] Welch's two-sample t-test on 12 intact-canopy stands versus 12 canopy-gap stands: mean difference 13.000 mg (intact minus gap), 95% CI [8.85, 17.15] mg, SE 2.000 mg, t = 6.5000, df = 22.00, two-sided p < 0.0001; mycelial ingrowth is higher in intact-canopy stands.
+
+Cohen's d = 2.654, using a pooled SD of 4.899 mg.
+
+The two groups happen to share the same sample SD, so the Welch correction
+returns the equal-variance degrees of freedom.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-d-reviewer-fable-22", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:7da68ec265e1bb2f6640"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

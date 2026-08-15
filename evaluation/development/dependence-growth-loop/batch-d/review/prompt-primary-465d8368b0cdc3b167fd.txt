@@ -1,0 +1,229 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-d-reviewer-fable-22
+
+=== workflow 1: case:465d8368b0cdc3b167fd ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Dune slack restoration survey
+
+A coastal dune system was restored in phases between 2015 and 2022. Twenty-four
+separate dune slacks (the damp hollows lying between dune ridges) were
+re-created, each by one of two engineering methods: deep topsoil inversion,
+which buries the nutrient-enriched surface layer and brings calcareous sand back
+to the top, or turf stripping, which simply scrapes the enriched layer away.
+Which method a slack received was fixed by its phase contract and was not chosen
+by the surveyor.
+
+In July 2025 every slack was walked once and scored for the presence of marsh
+helleborine, the target orchid of the scheme. A slack was scored `yes` if at
+least one flowering spike was found anywhere inside its mapped boundary and `no`
+otherwise. The slacks are separated by dune ridges, were restored under separate
+contracts, and none of them was surveyed or entered twice, so each site yields a
+single yes/no outcome and nothing more.
+
+## Columns
+
+- `site_id` - unique code for the slack, DS01 to DS24; appears on one row only.
+- `restoration_method` - `inversion` or `stripping`.
+- `slack_area_m2` - mapped area of the restored hollow, in square metres.
+- `years_since_works` - whole years between the restoration works and the 2025
+  survey.
+- `helleborine_present` - `yes` or `no`, the single survey outcome for that
+  slack.
+
+The area and age columns are recorded for context and are not used by the test.
+
+One row is: one restored dune slack, surveyed once in July 2025
+Independent unit column: site_id
+One trial is: one row
+
+--- file data/input.csv ---
+site_id,restoration_method,slack_area_m2,years_since_works,helleborine_present
+DS01,inversion,1840,6,yes
+DS02,stripping,2110,7,no
+DS03,inversion,960,5,yes
+DS04,stripping,1475,6,yes
+DS05,inversion,2380,8,no
+DS06,stripping,1290,5,no
+DS07,inversion,1615,7,yes
+DS08,stripping,870,4,no
+DS09,inversion,1120,4,yes
+DS10,stripping,1930,8,no
+DS11,inversion,2045,9,yes
+DS12,stripping,1560,6,yes
+DS13,inversion,745,3,no
+DS14,stripping,2260,9,no
+DS15,inversion,1385,5,yes
+DS16,stripping,1015,4,no
+DS17,inversion,1720,7,yes
+DS18,stripping,1845,7,no
+DS19,inversion,1250,6,yes
+DS20,stripping,2405,10,no
+DS21,inversion,1975,8,no
+DS22,stripping,690,3,yes
+DS23,inversion,1530,6,yes
+DS24,stripping,1180,5,no
+
+--- file workflow/analysis.py ---
+"""Marsh helleborine recovery in restored dune slacks.
+
+Twenty-four coastal dune slacks were re-created by one of two engineering
+methods and each was surveyed once, so a single row carries a single site's
+single presence/absence outcome. That makes the rows independent units and a
+2 x 2 exact test the natural summary.
+"""
+
+import csv
+from pathlib import Path
+
+from scipy.stats import fisher_exact
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+METHOD_ORDER = ("inversion", "stripping")
+METHOD_LABEL = {
+    "inversion": "Deep topsoil inversion",
+    "stripping": "Turf stripping",
+}
+
+
+def read_slacks(path):
+    """One dict per restored slack; duplicated site codes are a hard error."""
+    with path.open(newline="", encoding="ascii") as handle:
+        slacks = list(csv.DictReader(handle))
+    codes = [slack["site_id"] for slack in slacks]
+    if len(codes) != len(set(codes)):
+        raise ValueError("site_id must appear on exactly one row")
+    return slacks
+
+
+def cross_tabulate(slacks):
+    """Rows follow METHOD_ORDER, columns are [present, absent]."""
+    counts = {method: [0, 0] for method in METHOD_ORDER}
+    for slack in slacks:
+        method = slack["restoration_method"]
+        if method not in counts:
+            raise ValueError("unknown restoration method: " + method)
+        found = slack["helleborine_present"]
+        if found not in ("yes", "no"):
+            raise ValueError("helleborine_present must be yes or no")
+        counts[method][0 if found == "yes" else 1] += 1
+    return [counts[method] for method in METHOD_ORDER]
+
+
+def render(n_sites, table, odds_ratio, p_value):
+    (present_a, absent_a), (present_b, absent_b) = table
+    rate_a = present_a / (present_a + absent_a)
+    rate_b = present_b / (present_b + absent_b)
+
+    lines = [
+        "# Marsh helleborine recovery in restored dune slacks",
+        "",
+        "## Design",
+        "",
+        "Each row of `data/input.csv` is one restored dune slack, walked once during the",
+        f"2025 flowering season. No slack contributes more than one row, so the {n_sites} rows",
+        f"are {n_sites} independent units and a row-independent test is appropriate.",
+        "",
+        "## Analysis",
+        "",
+        "Presence or absence of marsh helleborine (*Epipactis palustris*) was",
+        "cross-tabulated against restoration method, and the resulting 2 x 2 table was",
+        "assessed with Fisher's exact test (two-sided).",
+        "",
+        "## Counts",
+        "",
+        "| Restoration method | Present | Absent | Slacks | Detection rate |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for method, (present, absent) in zip(METHOD_ORDER, table):
+        total = present + absent
+        lines.append(
+            f"| {METHOD_LABEL[method]} | {present} | {absent} | {total} |"
+            f" {100.0 * present / total:.1f}% |"
+        )
+    lines += [
+        "",
+        "## Result",
+        "",
+        f"- Sample odds ratio (inversion vs stripping): {odds_ratio:.2f}",
+        f"- Difference in detection rate: {rate_a - rate_b:.3f}",
+        f"- Fisher's exact test, two-sided: p = {p_value:.4f}",
+        "",
+        (
+            f"[selected-result] Fisher's exact test on {n_sites} independently restored dune"
+            f" slacks: marsh helleborine was present at {present_a} of"
+            f" {present_a + absent_a} inversion slacks and {present_b} of"
+            f" {present_b + absent_b} turf-stripped slacks (sample odds ratio"
+            f" {odds_ratio:.2f}, two-sided p = {p_value:.4f}), a statistically significant"
+            " advantage for deep topsoil inversion at the 5% level."
+        ),
+        "",
+        "## Reading the result",
+        "",
+        "With one survey per slack there is no within-site replication to inflate the",
+        f"count of independent observations: each of the {n_sites} sites contributes exactly one",
+        "Bernoulli outcome to the table. The effect is estimated from a small sample, so",
+        "the interval around the odds ratio is wide even though the two-sided p-value",
+        "falls below 0.05.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    slacks = read_slacks(INPUT_PATH)
+    table = cross_tabulate(slacks)
+    odds_ratio, p_value = fisher_exact(table, alternative="two-sided")
+    report = render(len(slacks), table, odds_ratio, p_value)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Marsh helleborine recovery in restored dune slacks
+
+## Design
+
+Each row of `data/input.csv` is one restored dune slack, walked once during the
+2025 flowering season. No slack contributes more than one row, so the 24 rows
+are 24 independent units and a row-independent test is appropriate.
+
+## Analysis
+
+Presence or absence of marsh helleborine (*Epipactis palustris*) was
+cross-tabulated against restoration method, and the resulting 2 x 2 table was
+assessed with Fisher's exact test (two-sided).
+
+## Counts
+
+| Restoration method | Present | Absent | Slacks | Detection rate |
+| --- | --- | --- | --- | --- |
+| Deep topsoil inversion | 9 | 3 | 12 | 75.0% |
+| Turf stripping | 3 | 9 | 12 | 25.0% |
+
+## Result
+
+- Sample odds ratio (inversion vs stripping): 9.00
+- Difference in detection rate: 0.500
+- Fisher's exact test, two-sided: p = 0.0391
+
+[selected-result] Fisher's exact test on 24 independently restored dune slacks: marsh helleborine was present at 9 of 12 inversion slacks and 3 of 12 turf-stripped slacks (sample odds ratio 9.00, two-sided p = 0.0391), a statistically significant advantage for deep topsoil inversion at the 5% level.
+
+## Reading the result
+
+With one survey per slack there is no within-site replication to inflate the
+count of independent observations: each of the 24 sites contributes exactly one
+Bernoulli outcome to the table. The effect is estimated from a small sample, so
+the interval around the odds ratio is wide even though the two-sided p-value
+falls below 0.05.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-d-reviewer-fable-22", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:465d8368b0cdc3b167fd"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

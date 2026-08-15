@@ -1,0 +1,299 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-d-reviewer-fable-22
+
+=== workflow 1: case:f75b02bd61e813195904 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Biocrust monitoring data: inoculated rangeland plots
+
+Twelve degraded rangeland plots, each 5 m x 5 m, were seeded once in September
+2022 with a locally cultured cyanobacterial slurry. The plots lie at least 200 m
+apart across the same station; each plot was fenced, treated and sampled on its
+own, so no two plots share a treatment application, a fence or a handler.
+
+Every plot was visited four times: immediately before seeding (the baseline
+visit, month 0) and again 6, 12 and 18 months later. At each visit a composite of
+ten shallow surface cores was assayed for chlorophyll a, consolidated crust cover
+was scored inside the plot frame, and the surface temperature was read while the
+cores were taken. The table is stored long, so the four visits to a plot appear
+as four separate lines carrying the same plot identifier; those four lines are
+repeated measurements of the same patch of ground, not four separate plots.
+
+One row is: one monitoring visit to one restoration plot at one time point
+Independent unit column: plot_id
+
+Columns
+- plot_id: label of the restoration plot; repeats across that plot's four visits.
+- session_label: which visit the line records (baseline, followup_1, followup_2, followup_3).
+- months_since_inoculation: whole months between seeding and the visit (0, 6, 12, 18).
+- survey_date: calendar date of the visit (YYYY-MM-DD).
+- chlorophyll_a_mg_m2: areal chlorophyll a density of the crust, in mg per square metre.
+- crust_cover_pct: percentage of the plot frame covered by consolidated crust.
+- surface_temp_c: soil surface temperature in degrees Celsius at the time of sampling.
+
+Anything claimed about the effect of inoculation is a statement about plots, of
+which there are twelve; the forty-eight lines are not forty-eight independent
+observations, so the visits belonging to a plot have to be pooled into a single
+plot-level value before any test that assumes independent rows is applied.
+
+--- file data/input.csv ---
+plot_id,session_label,months_since_inoculation,survey_date,chlorophyll_a_mg_m2,crust_cover_pct,surface_temp_c
+PLT-01,baseline,0,2022-09-19,41,18.4,23.5
+PLT-01,followup_1,6,2023-03-20,47,21.0,30.2
+PLT-01,followup_2,12,2023-09-18,52,24.6,22.8
+PLT-01,followup_3,18,2024-03-18,54,26.1,31.0
+PLT-02,baseline,0,2022-09-19,56,26.2,24.1
+PLT-02,followup_1,6,2023-03-20,58,27.9,29.6
+PLT-02,followup_2,12,2023-09-18,63,30.4,23.4
+PLT-02,followup_3,18,2024-03-18,65,31.8,30.5
+PLT-03,baseline,0,2022-09-19,38,16.9,25.0
+PLT-03,followup_1,6,2023-03-20,46,20.8,31.4
+PLT-03,followup_2,12,2023-09-18,53,25.1,24.2
+PLT-03,followup_3,18,2024-03-18,57,27.6,32.1
+PLT-04,baseline,0,2022-09-19,63,29.7,22.8
+PLT-04,followup_1,6,2023-03-20,64,30.1,28.9
+PLT-04,followup_2,12,2023-09-18,68,32.5,21.9
+PLT-04,followup_3,18,2024-03-18,69,33.0,29.8
+PLT-05,baseline,0,2022-09-19,45,19.8,24.6
+PLT-05,followup_1,6,2023-03-20,56,25.4,30.8
+PLT-05,followup_2,12,2023-09-18,65,30.9,23.7
+PLT-05,followup_3,18,2024-03-18,71,34.2,31.6
+PLT-06,baseline,0,2022-09-19,52,23.1,23.2
+PLT-06,followup_1,6,2023-03-20,55,25.0,29.4
+PLT-06,followup_2,12,2023-09-18,62,29.3,22.5
+PLT-06,followup_3,18,2024-03-18,66,31.5,30.3
+PLT-07,baseline,0,2022-09-19,34,14.7,25.8
+PLT-07,followup_1,6,2023-03-20,48,21.6,32.0
+PLT-07,followup_2,12,2023-09-18,57,26.8,24.9
+PLT-07,followup_3,18,2024-03-18,63,30.2,33.1
+PLT-08,baseline,0,2022-09-19,59,27.4,22.3
+PLT-08,followup_1,6,2023-03-20,61,28.6,28.5
+PLT-08,followup_2,12,2023-09-18,67,31.9,21.6
+PLT-08,followup_3,18,2024-03-18,70,33.4,29.2
+PLT-09,baseline,0,2022-09-19,47,20.5,24.9
+PLT-09,followup_1,6,2023-03-20,54,24.3,31.1
+PLT-09,followup_2,12,2023-09-18,64,30.0,23.9
+PLT-09,followup_3,18,2024-03-18,71,34.0,32.4
+PLT-10,baseline,0,2022-09-19,50,22.0,23.7
+PLT-10,followup_1,6,2023-03-20,53,23.8,29.9
+PLT-10,followup_2,12,2023-09-18,62,28.9,22.9
+PLT-10,followup_3,18,2024-03-18,68,32.3,30.8
+PLT-11,baseline,0,2022-09-19,43,18.9,25.3
+PLT-11,followup_1,6,2023-03-20,49,22.2,31.7
+PLT-11,followup_2,12,2023-09-18,57,26.5,24.4
+PLT-11,followup_3,18,2024-03-18,62,29.4,32.6
+PLT-12,baseline,0,2022-09-19,55,24.8,23.0
+PLT-12,followup_1,6,2023-03-20,66,30.6,29.1
+PLT-12,followup_2,12,2023-09-18,74,35.1,22.2
+PLT-12,followup_3,18,2024-03-18,79,37.9,30.0
+
+--- file workflow/analysis.py ---
+"""Biocrust recovery after cyanobacterial inoculation: plot-level paired analysis.
+
+The monitoring table is stored long, one line per plot per survey visit. The
+repeated visits to a plot are pooled first, so that the statistical test is
+handed exactly one number per independently inoculated plot.
+"""
+
+import csv
+import statistics
+from pathlib import Path
+
+from scipy.stats import wilcoxon
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+UNIT_COLUMN = "plot_id"
+SESSION_COLUMN = "session_label"
+RESPONSE_COLUMN = "chlorophyll_a_mg_m2"
+BASELINE_LABEL = "baseline"
+
+
+def read_visits(path):
+    """Return ({plot_id: {session_label: response}}, number of data rows)."""
+    visits = {}
+    n_rows = 0
+    with path.open(newline="", encoding="utf-8") as handle:
+        for row in csv.DictReader(handle):
+            plot = row[UNIT_COLUMN].strip()
+            label = row[SESSION_COLUMN].strip()
+            visits.setdefault(plot, {})[label] = float(row[RESPONSE_COLUMN])
+            n_rows += 1
+    return visits, n_rows
+
+
+def collapse_to_plots(visits):
+    """Reduce each plot to (plot_id, baseline, follow-up mean, follow-up count)."""
+    records = []
+    for plot in sorted(visits):
+        by_session = visits[plot]
+        baseline = by_session[BASELINE_LABEL]
+        follow_ups = [v for label, v in by_session.items() if label != BASELINE_LABEL]
+        if not follow_ups:
+            raise ValueError("plot %s has no follow-up visit" % plot)
+        records.append((plot, baseline, statistics.fmean(follow_ups), len(follow_ups)))
+    return records
+
+
+def build_report(records, changes, outcome, n_rows):
+    n_plots = len(records)
+    n_follow = records[0][3]
+    n_up = sum(1 for c in changes if c > 0)
+    n_down = sum(1 for c in changes if c < 0)
+    mean_baseline = statistics.fmean([rec[1] for rec in records])
+    mean_final = statistics.fmean([rec[2] for rec in records])
+    mean_change = statistics.fmean(changes)
+    median_change = statistics.median(changes)
+
+    lines = [
+        "# Chlorophyll a recovery in inoculated biocrust plots",
+        "",
+        "## Monitoring data",
+        "",
+        "- Long-format monitoring table: %d plot-survey records from %d restoration plots."
+        % (n_rows, n_plots),
+        "- Every plot was surveyed %d times: one pre-inoculation baseline plus %d follow-up surveys at 6, 12 and 18 months."
+        % (n_follow + 1, n_follow),
+        "- Response: areal chlorophyll a density of the soil surface crust (mg m^-2).",
+        "",
+        "## Reduction to independent units",
+        "",
+        "Surveys repeated on the same plot are not independent observations of the",
+        "treatment, so the follow-up surveys of a plot are first averaged into a single",
+        "post-inoculation value. Each plot then contributes exactly one number to the",
+        "test, the plot-level change",
+        "",
+        "    change = mean(follow-up surveys) - baseline survey.",
+        "",
+        "The %d plots were inoculated, tended and sampled separately and lie at least" % n_plots,
+        "200 m apart, so the plot-level changes are the independent replicates.",
+        "",
+        "## Plot-level summary",
+        "",
+        "| plot | baseline | follow-up mean | change |",
+        "| --- | --- | --- | --- |",
+    ]
+
+    for (plot, baseline, final, _count), change in zip(records, changes):
+        lines.append(
+            "| %s | %.1f | %.1f | %+.1f |" % (plot, baseline, final, change)
+        )
+
+    lines.extend([
+        "",
+        "All values are mg m^-2.",
+        "",
+        "## Test and result",
+        "",
+        "Exact two-sided Wilcoxon signed-rank test on the %d plot-level changes; the" % n_plots,
+        "null hypothesis is that the change is distributed symmetrically about zero.",
+        "",
+        "- plots analysed (one paired change each): %d" % n_plots,
+        "- plots that increased / decreased: %d / %d" % (n_up, n_down),
+        "- mean baseline: %.1f mg m^-2" % mean_baseline,
+        "- mean follow-up: %.1f mg m^-2" % mean_final,
+        "- mean change: %+.1f mg m^-2" % mean_change,
+        "- median change: %+.1f mg m^-2 (range %+.1f to %+.1f)"
+        % (median_change, min(changes), max(changes)),
+        "- signed-rank statistic W = %.1f, exact two-sided p = %.6f"
+        % (outcome.statistic, outcome.pvalue),
+        "",
+        "[selected-result] Crust chlorophyll a increased in %d of %d independently inoculated plots; the plot-level change (median %+.1f mg m^-2, mean %+.1f mg m^-2, n = %d plots) differs from zero, exact two-sided Wilcoxon signed-rank test W = %.1f, p = %.6f."
+        % (n_up, n_plots, median_change, mean_change, n_plots, outcome.statistic, outcome.pvalue),
+        "",
+        "## Caveats",
+        "",
+        "The design is a before-after comparison without untreated controls, so the",
+        "change cannot be separated from background seasonal recovery; the follow-up",
+        "surveys were also averaged rather than modelled, which discards information",
+        "about the shape of the recovery trajectory.",
+        "",
+    ])
+    return "\n".join(lines)
+
+
+def main():
+    visits, n_rows = read_visits(INPUT_PATH)
+    records = collapse_to_plots(visits)
+    baselines = [rec[1] for rec in records]
+    finals = [rec[2] for rec in records]
+    changes = [final - base for base, final in zip(baselines, finals)]
+    outcome = wilcoxon(finals, baselines, alternative="two-sided")
+    report = build_report(records, changes, outcome, n_rows)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(report)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Chlorophyll a recovery in inoculated biocrust plots
+
+## Monitoring data
+
+- Long-format monitoring table: 48 plot-survey records from 12 restoration plots.
+- Every plot was surveyed 4 times: one pre-inoculation baseline plus 3 follow-up surveys at 6, 12 and 18 months.
+- Response: areal chlorophyll a density of the soil surface crust (mg m^-2).
+
+## Reduction to independent units
+
+Surveys repeated on the same plot are not independent observations of the
+treatment, so the follow-up surveys of a plot are first averaged into a single
+post-inoculation value. Each plot then contributes exactly one number to the
+test, the plot-level change
+
+    change = mean(follow-up surveys) - baseline survey.
+
+The 12 plots were inoculated, tended and sampled separately and lie at least
+200 m apart, so the plot-level changes are the independent replicates.
+
+## Plot-level summary
+
+| plot | baseline | follow-up mean | change |
+| --- | --- | --- | --- |
+| PLT-01 | 41.0 | 51.0 | +10.0 |
+| PLT-02 | 56.0 | 62.0 | +6.0 |
+| PLT-03 | 38.0 | 52.0 | +14.0 |
+| PLT-04 | 63.0 | 67.0 | +4.0 |
+| PLT-05 | 45.0 | 64.0 | +19.0 |
+| PLT-06 | 52.0 | 61.0 | +9.0 |
+| PLT-07 | 34.0 | 56.0 | +22.0 |
+| PLT-08 | 59.0 | 66.0 | +7.0 |
+| PLT-09 | 47.0 | 63.0 | +16.0 |
+| PLT-10 | 50.0 | 61.0 | +11.0 |
+| PLT-11 | 43.0 | 56.0 | +13.0 |
+| PLT-12 | 55.0 | 73.0 | +18.0 |
+
+All values are mg m^-2.
+
+## Test and result
+
+Exact two-sided Wilcoxon signed-rank test on the 12 plot-level changes; the
+null hypothesis is that the change is distributed symmetrically about zero.
+
+- plots analysed (one paired change each): 12
+- plots that increased / decreased: 12 / 0
+- mean baseline: 48.6 mg m^-2
+- mean follow-up: 61.0 mg m^-2
+- mean change: +12.4 mg m^-2
+- median change: +12.0 mg m^-2 (range +4.0 to +22.0)
+- signed-rank statistic W = 0.0, exact two-sided p = 0.000488
+
+[selected-result] Crust chlorophyll a increased in 12 of 12 independently inoculated plots; the plot-level change (median +12.0 mg m^-2, mean +12.4 mg m^-2, n = 12 plots) differs from zero, exact two-sided Wilcoxon signed-rank test W = 0.0, p = 0.000488.
+
+## Caveats
+
+The design is a before-after comparison without untreated controls, so the
+change cannot be separated from background seasonal recovery; the follow-up
+surveys were also averaged rather than modelled, which discards information
+about the shape of the recovery trajectory.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-d-reviewer-fable-22", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:f75b02bd61e813195904"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}
