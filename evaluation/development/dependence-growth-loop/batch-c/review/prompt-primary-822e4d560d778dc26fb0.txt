@@ -1,0 +1,273 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-c-reviewer-fable-20
+
+=== workflow 1: case:822e4d560d778dc26fb0 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What data/input.csv contains
+
+A wildfire burned a contiguous block of montane pine forest on Kelsang Ridge.
+For post-fire management the burned block was split into 26 compartments of
+roughly equal size, separated from one another by ridgelines and drainages.
+Thirteen compartments, drawn by lot before any survey work began, were treated
+with aerial seeding of locally collected pine seed; the other thirteen were
+left to regenerate on their own.
+
+Three growing seasons later, each compartment was flown once with a drone and
+the whole compartment was censused for surviving pine stems, which yields a
+single regeneration density for that compartment. Nothing inside a compartment
+was measured twice and no compartment was flown twice, so each compartment
+shows up in the file exactly once and the file has 26 data rows.
+
+One row is: one burn compartment, censused once by drone three growing seasons after the fire
+Independent unit column: compartment_id
+
+Columns
+
+- compartment_id: label of the burn compartment, unique across the file
+- aerial_seeding: "yes" if the compartment was aerially seeded, "no" if it was left to natural recovery
+- elevation_m: mean elevation of the compartment, in metres above sea level
+- pine_stems_per_ha: surviving pine stems per hectare from the drone census
+
+The seeding treatment was applied to whole compartments, and the outcome is
+measured at the same whole-compartment scale, so a comparison between the two
+treatment groups has 13 independent values on each side.
+
+--- file data/input.csv ---
+compartment_id,aerial_seeding,elevation_m,pine_stems_per_ha
+BC-01,yes,1180,1210
+BC-02,no,1205,860
+BC-03,yes,1240,1685
+BC-04,no,1150,1240
+BC-05,yes,1095,1390
+BC-06,no,1290,705
+BC-07,yes,1310,1820
+BC-08,no,1100,1120
+BC-09,yes,1150,1105
+BC-10,no,1265,1385
+BC-11,yes,1275,1560
+BC-12,no,1175,940
+BC-13,yes,1205,1475
+BC-14,no,1330,1010
+BC-15,yes,1340,1930
+BC-16,no,1090,1290
+BC-17,yes,1120,1345
+BC-18,no,1240,620
+BC-19,yes,1260,1620
+BC-20,no,1160,1155
+BC-21,yes,1085,1015
+BC-22,no,1300,880
+BC-23,yes,1295,1755
+BC-24,no,1215,1075
+BC-25,yes,1225,1490
+BC-26,no,1135,1330
+
+--- file workflow/analysis.py ---
+"""Post-fire pine regeneration after aerial seeding.
+
+Reads data/input.csv, which holds one row per burn compartment, and writes
+results/report.md.
+"""
+
+import csv
+from collections import Counter
+from pathlib import Path
+from statistics import mean, stdev
+
+from scipy import stats
+
+DATA_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+UNIT_COL = "compartment_id"
+GROUP_COL = "aerial_seeding"
+OUTCOME_COL = "pine_stems_per_ha"
+ELEV_COL = "elevation_m"
+
+
+def read_rows(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def count_units(rows):
+    """A compartment may contribute at most one row; refuse anything else."""
+    tally = Counter(row[UNIT_COL] for row in rows)
+    repeated = sorted(unit for unit, n in tally.items() if n > 1)
+    if repeated:
+        raise ValueError(
+            "compartments appearing more than once: " + ", ".join(repeated)
+        )
+    return len(tally)
+
+
+def numbers(rows, column):
+    return [float(row[column]) for row in rows]
+
+
+def welch_df(first, second):
+    a = stdev(first) ** 2 / len(first)
+    b = stdev(second) ** 2 / len(second)
+    return (a + b) ** 2 / (a * a / (len(first) - 1) + b * b / (len(second) - 1))
+
+
+def p_phrase(p):
+    if p < 0.001:
+        return "p < 0.001"
+    return "p = {0:.4f}".format(p)
+
+
+def main():
+    rows = read_rows(DATA_PATH)
+    n_units = count_units(rows)
+
+    seeded = [row for row in rows if row[GROUP_COL] == "yes"]
+    natural = [row for row in rows if row[GROUP_COL] == "no"]
+
+    stems_seeded = numbers(seeded, OUTCOME_COL)
+    stems_natural = numbers(natural, OUTCOME_COL)
+    elev_seeded = numbers(seeded, ELEV_COL)
+    elev_natural = numbers(natural, ELEV_COL)
+
+    t_stat, p_value = stats.ttest_ind(
+        stems_seeded, stems_natural, equal_var=False
+    )
+    df = welch_df(stems_seeded, stems_natural)
+    difference = mean(stems_seeded) - mean(stems_natural)
+
+    headline = (
+        "[selected-result] Welch's two-sample t-test across {0} independent burn"
+        " compartments ({1} seeded, {2} naturally recovering, one row per"
+        " compartment): seeded compartments held {3:.1f} more pine stems per"
+        " hectare than naturally recovering compartments ({4:.1f} vs {5:.1f}),"
+        " t = {6:.2f}, df = {7:.1f}, {8}, a statistically significant increase."
+    ).format(
+        n_units,
+        len(stems_seeded),
+        len(stems_natural),
+        difference,
+        mean(stems_seeded),
+        mean(stems_natural),
+        t_stat,
+        df,
+        p_phrase(p_value),
+    )
+
+    lines = [
+        "# Aerial seeding and pine regeneration in burned compartments",
+        "",
+        "## Design",
+        "",
+        "Twenty-six burn compartments were surveyed once each by drone",
+        "photogrammetry three growing seasons after the fire. Thirteen",
+        "compartments received aerial seeding of pine seed; thirteen were left to",
+        "recover naturally. The compartment is both the unit that received the",
+        "treatment and the unit that was measured, and each compartment",
+        "contributes exactly one row to the analysis.",
+        "",
+        "## Independence check",
+        "",
+        "- Rows read: {0}".format(len(rows)),
+        "- Distinct compartments: {0}".format(n_units),
+        "- Rows per compartment: 1 (no compartment appears more than once)",
+        "",
+        "## Group summaries",
+        "",
+        "| aerial_seeding | compartments | mean pine_stems_per_ha | sd | mean elevation_m |",
+        "| --- | --- | --- | --- | --- |",
+        "| yes | {0} | {1:.1f} | {2:.1f} | {3:.1f} |".format(
+            len(stems_seeded),
+            mean(stems_seeded),
+            stdev(stems_seeded),
+            mean(elev_seeded),
+        ),
+        "| no | {0} | {1:.1f} | {2:.1f} | {3:.1f} |".format(
+            len(stems_natural),
+            mean(stems_natural),
+            stdev(stems_natural),
+            mean(elev_natural),
+        ),
+        "",
+        "## Test",
+        "",
+        "Welch's two-sample t-test (unequal variances, two-sided) comparing",
+        "pine_stems_per_ha between seeded and naturally recovering compartments,",
+        "seeded minus naturally recovering.",
+        "",
+        "- Mean difference: {0:.1f} stems per hectare".format(difference),
+        "- t = {0:.2f}, df = {1:.1f}, {2}".format(t_stat, df, p_phrase(p_value)),
+        "",
+        headline,
+        "",
+        "## Notes",
+        "",
+        "Elevation was recorded as context; the two groups are closely matched on it",
+        "({0:.1f} m versus {1:.1f} m) and the reported test is unadjusted. No".format(
+            mean(elev_seeded), mean(elev_natural)
+        ),
+        "sub-compartment plot, transect, or repeat visit enters the test: the {0} rows".format(
+            len(rows)
+        ),
+        "are {0} independent compartments, so the row count and the number of".format(
+            n_units
+        ),
+        "independent units are the same.",
+    ]
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Aerial seeding and pine regeneration in burned compartments
+
+## Design
+
+Twenty-six burn compartments were surveyed once each by drone
+photogrammetry three growing seasons after the fire. Thirteen
+compartments received aerial seeding of pine seed; thirteen were left to
+recover naturally. The compartment is both the unit that received the
+treatment and the unit that was measured, and each compartment
+contributes exactly one row to the analysis.
+
+## Independence check
+
+- Rows read: 26
+- Distinct compartments: 26
+- Rows per compartment: 1 (no compartment appears more than once)
+
+## Group summaries
+
+| aerial_seeding | compartments | mean pine_stems_per_ha | sd | mean elevation_m |
+| --- | --- | --- | --- | --- |
+| yes | 13 | 1492.3 | 276.3 | 1213.8 |
+| no | 13 | 1046.9 | 238.6 | 1204.2 |
+
+## Test
+
+Welch's two-sample t-test (unequal variances, two-sided) comparing
+pine_stems_per_ha between seeded and naturally recovering compartments,
+seeded minus naturally recovering.
+
+- Mean difference: 445.4 stems per hectare
+- t = 4.40, df = 23.5, p < 0.001
+
+[selected-result] Welch's two-sample t-test across 26 independent burn compartments (13 seeded, 13 naturally recovering, one row per compartment): seeded compartments held 445.4 more pine stems per hectare than naturally recovering compartments (1492.3 vs 1046.9), t = 4.40, df = 23.5, p < 0.001, a statistically significant increase.
+
+## Notes
+
+Elevation was recorded as context; the two groups are closely matched on it
+(1213.8 m versus 1204.2 m) and the reported test is unadjusted. No
+sub-compartment plot, transect, or repeat visit enters the test: the 26 rows
+are 26 independent compartments, so the row count and the number of
+independent units are the same.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-c-reviewer-fable-20", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:822e4d560d778dc26fb0"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

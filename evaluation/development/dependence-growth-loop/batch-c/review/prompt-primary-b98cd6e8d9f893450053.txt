@@ -1,0 +1,189 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-c-reviewer-fable-20
+
+=== workflow 1: case:b98cd6e8d9f893450053 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Sourdough acidification data
+
+Eight fermentation vessels were built for this bakery trial: four with
+wholemeal rye flour and four with strong wheat flour. All eight were fed on the
+same schedule from the same mother culture and held in one 26 C proofing
+cabinet. Thirty-six hours after the final build, a calibrated probe measured pH
+at four separate locations in each vessel's dough, so every vessel contributes
+four readings to the file.
+
+Columns:
+
+- `vessel_id`: label of the fermentation vessel the reading came from (V01 to V08).
+- `flour_type`: the flour that vessel was built with, either `rye` or `wheat`.
+- `sample_point`: which of the four dough locations inside that vessel was probed (p1 to p4).
+- `ph_36h`: the pH recorded at that location, 36 hours after the final build.
+
+The file is 32 data rows plus a header. Values are plain ASCII, pH recorded to
+two decimal places.
+
+One row is: one pH reading taken at one dough location inside one fermentation vessel
+Independent unit column: vessel_id
+
+--- file data/input.csv ---
+vessel_id,flour_type,sample_point,ph_36h
+V01,rye,p1,3.71
+V01,rye,p2,3.74
+V01,rye,p3,3.69
+V01,rye,p4,3.72
+V02,rye,p1,3.66
+V02,rye,p2,3.64
+V02,rye,p3,3.68
+V02,rye,p4,3.65
+V03,rye,p1,3.78
+V03,rye,p2,3.75
+V03,rye,p3,3.80
+V03,rye,p4,3.77
+V04,rye,p1,3.62
+V04,rye,p2,3.60
+V04,rye,p3,3.63
+V04,rye,p4,3.59
+V05,wheat,p1,3.92
+V05,wheat,p2,3.95
+V05,wheat,p3,3.90
+V05,wheat,p4,3.93
+V06,wheat,p1,4.02
+V06,wheat,p2,3.99
+V06,wheat,p3,4.04
+V06,wheat,p4,4.01
+V07,wheat,p1,3.86
+V07,wheat,p2,3.88
+V07,wheat,p3,3.84
+V07,wheat,p4,3.87
+V08,wheat,p1,3.96
+V08,wheat,p2,3.94
+V08,wheat,p3,3.98
+V08,wheat,p4,3.97
+
+--- file workflow/analysis.py ---
+"""Rye versus wheat sourdough builds: 36-hour pH comparison."""
+
+import csv
+import math
+import statistics
+from pathlib import Path
+
+from scipy.stats import mannwhitneyu
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+FLOURS = ("rye", "wheat")
+
+
+def read_table(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def split_by_flour(rows):
+    readings = {flour: [] for flour in FLOURS}
+    vessels = {flour: [] for flour in FLOURS}
+    for row in rows:
+        flour = row["flour_type"]
+        readings[flour].append(float(row["ph_36h"]))
+        if row["vessel_id"] not in vessels[flour]:
+            vessels[flour].append(row["vessel_id"])
+    return readings, vessels
+
+
+def summary_row(flour, values, vessel_ids):
+    return "| {} | {} | {} | {:.3f} | {:.4f} |".format(
+        flour,
+        len(vessel_ids),
+        len(values),
+        statistics.mean(values),
+        statistics.median(values),
+    )
+
+
+def main():
+    rows = read_table(INPUT_PATH)
+    readings, vessels = split_by_flour(rows)
+    rye = readings["rye"]
+    wheat = readings["wheat"]
+    u_stat, p_value = mannwhitneyu(
+        rye, wheat, alternative="two-sided", method="exact"
+    )
+    arrangements = math.comb(len(rye) + len(wheat), len(rye))
+    gap = statistics.median(wheat) - statistics.median(rye)
+
+    lines = [
+        "# Sourdough acidification: rye versus wheat starter builds",
+        "",
+        "## Data",
+        "",
+        "`data/input.csv` holds {} pH readings taken 36 hours after the final build.".format(len(rows)),
+        "Each vessel was sampled at four separate points in the dough, and every",
+        "reading enters the comparison as one observation.",
+        "",
+        "| Flour | Vessels | Readings | Mean pH | Median pH |",
+        "| --- | ---: | ---: | ---: | ---: |",
+        summary_row("rye", rye, vessels["rye"]),
+        summary_row("wheat", wheat, vessels["wheat"]),
+        "",
+        "Median difference (wheat minus rye): {:.3f} pH units.".format(gap),
+        "",
+        "## Analysis",
+        "",
+        "A two-sided Mann-Whitney U test with the exact null distribution over the",
+        "{} equally likely rank assignments compares the {} rye readings with the".format(arrangements, len(rye)),
+        "{} wheat readings.".format(len(wheat)),
+        "",
+        "## Result",
+        "",
+        "[selected-result] Mann-Whitney U = {:.1f} for rye versus wheat ({} vs {} readings), two-sided exact p = {:.3e}.".format(u_stat, len(rye), len(wheat), p_value),
+        "",
+        "No rye reading exceeds any wheat reading, so U sits at the boundary of its",
+        "exact null distribution and the p-value is the smallest the test can return",
+        "at these sample sizes.",
+    ]
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Sourdough acidification: rye versus wheat starter builds
+
+## Data
+
+`data/input.csv` holds 32 pH readings taken 36 hours after the final build.
+Each vessel was sampled at four separate points in the dough, and every
+reading enters the comparison as one observation.
+
+| Flour | Vessels | Readings | Mean pH | Median pH |
+| --- | ---: | ---: | ---: | ---: |
+| rye | 4 | 16 | 3.689 | 3.6850 |
+| wheat | 4 | 16 | 3.941 | 3.9450 |
+
+Median difference (wheat minus rye): 0.260 pH units.
+
+## Analysis
+
+A two-sided Mann-Whitney U test with the exact null distribution over the
+601080390 equally likely rank assignments compares the 16 rye readings with the
+16 wheat readings.
+
+## Result
+
+[selected-result] Mann-Whitney U = 0.0 for rye versus wheat (16 vs 16 readings), two-sided exact p = 3.327e-09.
+
+No rye reading exceeds any wheat reading, so U sits at the boundary of its
+exact null distribution and the p-value is the smallest the test can return
+at these sample sizes.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-c-reviewer-fable-20", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:b98cd6e8d9f893450053"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}
