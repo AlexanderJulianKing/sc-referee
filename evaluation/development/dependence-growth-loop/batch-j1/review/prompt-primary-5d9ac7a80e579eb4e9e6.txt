@@ -1,0 +1,361 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-j1-reviewer-fable-44
+
+=== workflow 1: case:5d9ac7a80e579eb4e9e6 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What is in data/input.csv
+
+The file records an alpine warming-chamber foraging assay on ten bumblebee (*Bombus sylvicola*) colonies collected from three cirque sites. Every colony was tested twice over: two sessions in a chamber held near 19 C (ambient) and two sessions in a chamber held near 26 C (warmed), with two 30-minute observation trials inside each session. Half of the colonies ran the ambient block first and half ran the warmed block first. During each trial an observer counted foragers returning to the nest entrance and converted the count to a rate per hour.
+
+One row is: one 30-minute foraging trial for one colony during one chamber session
+Independent unit column: colony_id
+
+## Columns
+
+- colony_id: label of the colony that was observed (C01 to C10). Colonies were collected and housed separately, so different colonies are independent of one another.
+- site: alpine site the colony came from (Wheeler Cirque, Trapper Basin, or Sundog Pass).
+- block_order: AW if the colony completed its ambient block first, WA if it completed its warmed block first.
+- condition: chamber setting during the trial, either ambient or warmed.
+- session: chronological session number for that colony, 1 to 4. Sessions 1 and 2 are the colony's first block, sessions 3 and 4 its second block.
+- trial: which of the two observation trials within the session, 1 or 2.
+- chamber_temp_c: air temperature inside the chamber during the trial, in degrees Celsius.
+- sorties_per_hour: returning foragers per hour counted at the nest entrance during the trial. This is the measured outcome.
+
+## How the rows relate to each other
+
+Each colony contributes eight rows (2 conditions x 2 sessions x 2 trials), so rows within a colony are repeated measurements of the same nest and are correlated: they describe how precisely that colony's foraging rate was measured, not how many colonies responded to warming. The four trials of a colony within a condition should therefore be averaged into a single value per colony per condition, leaving ten independent paired observations, one per colony, for any comparison of the two chamber settings. There are 80 rows in total.
+
+--- file data/input.csv ---
+colony_id,site,block_order,condition,session,trial,chamber_temp_c,sorties_per_hour
+C01,Wheeler Cirque,AW,ambient,1,1,18.9,21.8
+C01,Wheeler Cirque,AW,ambient,1,2,19.1,22.9
+C01,Wheeler Cirque,AW,ambient,2,1,18.6,22.1
+C01,Wheeler Cirque,AW,ambient,2,2,18.8,22.8
+C01,Wheeler Cirque,AW,warmed,3,1,26.4,19.9
+C01,Wheeler Cirque,AW,warmed,3,2,26.6,18.8
+C01,Wheeler Cirque,AW,warmed,4,1,26.2,18.7
+C01,Wheeler Cirque,AW,warmed,4,2,26.5,19.4
+C02,Wheeler Cirque,WA,warmed,1,1,26.3,17.5
+C02,Wheeler Cirque,WA,warmed,1,2,26.7,17.7
+C02,Wheeler Cirque,WA,warmed,2,1,26.5,16.4
+C02,Wheeler Cirque,WA,warmed,2,2,26.1,16.8
+C02,Wheeler Cirque,WA,ambient,3,1,19.0,18.7
+C02,Wheeler Cirque,WA,ambient,3,2,18.7,19.9
+C02,Wheeler Cirque,WA,ambient,4,1,19.2,20.4
+C02,Wheeler Cirque,WA,ambient,4,2,18.9,19.4
+C03,Wheeler Cirque,AW,ambient,1,1,18.8,24.6
+C03,Wheeler Cirque,AW,ambient,1,2,19.0,25.0
+C03,Wheeler Cirque,AW,ambient,2,1,19.3,26.0
+C03,Wheeler Cirque,AW,ambient,2,2,18.5,24.8
+C03,Wheeler Cirque,AW,warmed,3,1,26.8,21.2
+C03,Wheeler Cirque,AW,warmed,3,2,26.4,20.2
+C03,Wheeler Cirque,AW,warmed,4,1,26.0,21.1
+C03,Wheeler Cirque,AW,warmed,4,2,26.9,21.5
+C04,Trapper Basin,WA,warmed,1,1,26.2,16.8
+C04,Trapper Basin,WA,warmed,1,2,26.6,15.8
+C04,Trapper Basin,WA,warmed,2,1,26.9,15.1
+C04,Trapper Basin,WA,warmed,2,2,26.3,16.3
+C04,Trapper Basin,WA,ambient,3,1,18.6,17.4
+C04,Trapper Basin,WA,ambient,3,2,19.1,18.7
+C04,Trapper Basin,WA,ambient,4,1,18.9,17.2
+C04,Trapper Basin,WA,ambient,4,2,19.4,17.9
+C05,Trapper Basin,AW,ambient,1,1,19.2,22.8
+C05,Trapper Basin,AW,ambient,1,2,18.7,23.9
+C05,Trapper Basin,AW,ambient,2,1,18.9,24.1
+C05,Trapper Basin,AW,ambient,2,2,19.0,23.2
+C05,Trapper Basin,AW,warmed,3,1,26.5,20.4
+C05,Trapper Basin,AW,warmed,3,2,26.1,19.3
+C05,Trapper Basin,AW,warmed,4,1,26.7,20.3
+C05,Trapper Basin,AW,warmed,4,2,26.3,19.6
+C06,Trapper Basin,WA,warmed,1,1,26.6,17.9
+C06,Trapper Basin,WA,warmed,1,2,26.2,17.0
+C06,Trapper Basin,WA,warmed,2,1,26.4,16.9
+C06,Trapper Basin,WA,warmed,2,2,26.8,17.4
+C06,Trapper Basin,WA,ambient,3,1,18.8,20.0
+C06,Trapper Basin,WA,ambient,3,2,19.3,20.9
+C06,Trapper Basin,WA,ambient,4,1,18.5,19.4
+C06,Trapper Basin,WA,ambient,4,2,19.1,20.5
+C07,Sundog Pass,AW,ambient,1,1,18.7,17.5
+C07,Sundog Pass,AW,ambient,1,2,19.0,18.5
+C07,Sundog Pass,AW,ambient,2,1,19.4,18.8
+C07,Sundog Pass,AW,ambient,2,2,18.6,18.4
+C07,Sundog Pass,AW,warmed,3,1,26.1,17.9
+C07,Sundog Pass,AW,warmed,3,2,26.5,18.0
+C07,Sundog Pass,AW,warmed,4,1,26.9,16.7
+C07,Sundog Pass,AW,warmed,4,2,26.3,17.8
+C08,Sundog Pass,WA,warmed,1,1,26.7,21.5
+C08,Sundog Pass,WA,warmed,1,2,26.0,19.9
+C08,Sundog Pass,WA,warmed,2,1,26.4,20.8
+C08,Sundog Pass,WA,warmed,2,2,26.6,20.2
+C08,Sundog Pass,WA,ambient,3,1,19.1,23.9
+C08,Sundog Pass,WA,ambient,3,2,18.8,23.5
+C08,Sundog Pass,WA,ambient,4,1,19.3,24.7
+C08,Sundog Pass,WA,ambient,4,2,18.6,23.9
+C09,Sundog Pass,AW,ambient,1,1,18.9,21.4
+C09,Sundog Pass,AW,ambient,1,2,19.2,22.5
+C09,Sundog Pass,AW,ambient,2,1,18.5,21.5
+C09,Sundog Pass,AW,ambient,2,2,19.0,21.4
+C09,Sundog Pass,AW,warmed,3,1,26.2,19.6
+C09,Sundog Pass,AW,warmed,3,2,26.8,18.6
+C09,Sundog Pass,AW,warmed,4,1,26.5,20.1
+C09,Sundog Pass,AW,warmed,4,2,26.0,19.7
+C10,Wheeler Cirque,WA,warmed,1,1,26.9,22.1
+C10,Wheeler Cirque,WA,warmed,1,2,26.3,21.2
+C10,Wheeler Cirque,WA,warmed,2,1,26.1,21.5
+C10,Wheeler Cirque,WA,warmed,2,2,26.6,22.0
+C10,Wheeler Cirque,WA,ambient,3,1,19.3,25.7
+C10,Wheeler Cirque,WA,ambient,3,2,18.7,26.6
+C10,Wheeler Cirque,WA,ambient,4,1,19.0,26.7
+C10,Wheeler Cirque,WA,ambient,4,2,18.8,26.2
+
+--- file workflow/analysis.py ---
+#!/usr/bin/env python3
+"""Colony-level analysis of the alpine warming-chamber foraging assay.
+
+data/input.csv stores one row per 30-minute foraging trial. The trials belonging
+to a colony are repeated measurements of that same colony, so they are averaged
+into a single value per colony per chamber setting before anything is tested.
+The paired comparison therefore runs over colonies, one analyzed pair each, and
+the summary is written to results/report.md.
+"""
+
+import csv
+from collections import OrderedDict
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+CONDITIONS = ("ambient", "warmed")
+MEASURE_COLUMN = "sorties_per_hour"
+ALPHA = 0.05
+
+
+def read_trials(path):
+    """Return colony metadata in file order, trial values per cell, and the row count."""
+    colonies = OrderedDict()
+    cells = {}
+    n_rows = 0
+    with path.open("r", encoding="ascii", newline="") as handle:
+        for row in csv.DictReader(handle):
+            n_rows += 1
+            colony = row["colony_id"]
+            if colony not in colonies:
+                colonies[colony] = (row["site"], row["block_order"])
+            condition = row["condition"]
+            if condition not in CONDITIONS:
+                raise ValueError("unexpected condition label: " + condition)
+            cells.setdefault((colony, condition), []).append(
+                float(row[MEASURE_COLUMN])
+            )
+    if not colonies:
+        raise ValueError("no trial rows found in " + str(path))
+    return colonies, cells, n_rows
+
+
+def collapse_to_colony_means(colonies, cells):
+    """Average the repeated trials into one value per colony per condition."""
+    per_condition = dict((condition, []) for condition in CONDITIONS)
+    trial_counts = set()
+    for colony in colonies:
+        for condition in CONDITIONS:
+            values = cells.get((colony, condition), [])
+            if not values:
+                raise ValueError(
+                    "colony %s has no %s trials" % (colony, condition)
+                )
+            trial_counts.add(len(values))
+            per_condition[condition].append(sum(values) / len(values))
+    if len(trial_counts) != 1:
+        raise ValueError("colonies differ in the number of trials per condition")
+    ambient = np.asarray(per_condition["ambient"], dtype=float)
+    warmed = np.asarray(per_condition["warmed"], dtype=float)
+    return ambient, warmed, trial_counts.pop()
+
+
+def table_rows(colonies, ambient, warmed):
+    rows = [
+        "| colony | site | block order | ambient | warmed | warmed - ambient |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    for index, colony in enumerate(colonies):
+        site, block_order = colonies[colony]
+        cool = float(ambient[index])
+        hot = float(warmed[index])
+        rows.append(
+            "| %s | %s | %s | %.2f | %.2f | %.2f |"
+            % (colony, site, block_order, cool, hot, hot - cool)
+        )
+    return rows
+
+
+def build_report(colonies, ambient, warmed, n_rows, trials_per_cell):
+    n_colonies = int(ambient.size)
+    differences = warmed - ambient
+    mean_diff = float(differences.mean())
+    sd_diff = float(differences.std(ddof=1))
+    se_diff = sd_diff / float(np.sqrt(n_colonies))
+    df = n_colonies - 1
+    outcome = stats.ttest_rel(warmed, ambient)
+    t_stat = float(outcome.statistic)
+    p_value = float(outcome.pvalue)
+    half_width = float(stats.t.ppf(1.0 - ALPHA / 2.0, df)) * se_diff
+    ci_low = mean_diff - half_width
+    ci_high = mean_diff + half_width
+    dz = mean_diff / sd_diff
+    n_sites = len(set(site for site, _ in colonies.values()))
+    n_lower = int((differences < 0.0).sum())
+    smallest_drop = -float(differences.max())
+    largest_drop = -float(differences.min())
+
+    lines = []
+    lines.append("# Warming and colony foraging output in *Bombus sylvicola*")
+    lines.append("")
+    lines.append("## Study")
+    lines.append("")
+    lines.append(
+        "Ten queenright *Bombus sylvicola* colonies from three alpine sites were run "
+        "through a paired warming assay. Each colony foraged under an ambient chamber "
+        "setting (about 19 C) and under a warmed setting (about 26 C). Each setting was "
+        "split across two sessions of two 30-minute trials, and block order was "
+        "counterbalanced (AW = ambient block first, WA = warmed block first). The outcome "
+        "is the rate of returning foragers at the nest entrance, in sorties per hour."
+    )
+    lines.append("")
+    lines.append(
+        "The input table `data/input.csv` holds %d trial rows: %d colonies x %d "
+        "conditions x %d trials per condition."
+        % (n_rows, n_colonies, len(CONDITIONS), trials_per_cell)
+    )
+    lines.append("")
+    lines.append("## Unit of analysis")
+    lines.append("")
+    lines.append(
+        "The %d trials a colony contributes within a condition are repeated measurements "
+        "of the same colony; they replicate the measurement, not the warming manipulation. "
+        "Every colony is therefore collapsed to one ambient mean and one warmed mean before "
+        "any test is run, and the inferential comparison uses the %d colony-level "
+        "differences - one analyzed observation per independent unit."
+        % (trials_per_cell, n_colonies)
+    )
+    lines.append("")
+    lines.append("## Colony-level means (sorties per hour)")
+    lines.append("")
+    lines.extend(table_rows(colonies, ambient, warmed))
+    lines.append("")
+    lines.append(
+        "- ambient colony means: %.2f +/- %.2f SD (n = %d colonies)"
+        % (ambient.mean(), ambient.std(ddof=1), n_colonies)
+    )
+    lines.append(
+        "- warmed colony means: %.2f +/- %.2f SD (n = %d colonies)"
+        % (warmed.mean(), warmed.std(ddof=1), n_colonies)
+    )
+    lines.append("")
+    lines.append("## Test")
+    lines.append("")
+    lines.append(
+        "Two-sided paired t-test (scipy.stats.ttest_rel) on the %d colony-level "
+        "differences (warmed minus ambient)." % n_colonies
+    )
+    lines.append("")
+    lines.append(
+        "- mean difference: %.3f sorties/hour (SD %.3f, SE %.3f)"
+        % (mean_diff, sd_diff, se_diff)
+    )
+    lines.append(
+        "- 95%% confidence interval: %.3f to %.3f sorties/hour" % (ci_low, ci_high)
+    )
+    lines.append("- t(%d) = %.3f, p = %.1e" % (df, t_stat, p_value))
+    lines.append("- standardized paired effect size dz = %.2f" % dz)
+    lines.append("")
+    lines.append(
+        "[selected-result] Paired t-test on colony-level mean foraging rates "
+        "(n = %d colonies): warming lowered foraging by %.3f sorties/hour "
+        "(95%% CI %.3f to %.3f), t(%d) = %.3f, p = %.1e."
+        % (n_colonies, abs(mean_diff), ci_low, ci_high, df, t_stat, p_value)
+    )
+    lines.append("")
+    lines.append("## Reading of the result")
+    lines.append("")
+    lines.append(
+        "Every colony (%d of %d) foraged less under the warmed setting; the smallest "
+        "colony-level drop was %.2f and the largest %.2f sorties per hour. The confidence "
+        "interval excludes zero, so these colonies foraged less under the warmer chamber "
+        "setting. The trial-to-trial and session-to-session spread inside a colony feeds "
+        "into the colony means but is not counted as replication of the manipulation; with "
+        "%d colonies from %d collection sites, site effects are not separable from colony "
+        "identity in this design."
+        % (n_lower, n_colonies, smallest_drop, largest_drop, n_colonies, n_sites)
+    )
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    colonies, cells, n_rows = read_trials(INPUT_PATH)
+    ambient, warmed, trials_per_cell = collapse_to_colony_means(colonies, cells)
+    report = build_report(colonies, ambient, warmed, n_rows, trials_per_cell)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(report)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Warming and colony foraging output in *Bombus sylvicola*
+
+## Study
+
+Ten queenright *Bombus sylvicola* colonies from three alpine sites were run through a paired warming assay. Each colony foraged under an ambient chamber setting (about 19 C) and under a warmed setting (about 26 C). Each setting was split across two sessions of two 30-minute trials, and block order was counterbalanced (AW = ambient block first, WA = warmed block first). The outcome is the rate of returning foragers at the nest entrance, in sorties per hour.
+
+The input table `data/input.csv` holds 80 trial rows: 10 colonies x 2 conditions x 4 trials per condition.
+
+## Unit of analysis
+
+The 4 trials a colony contributes within a condition are repeated measurements of the same colony; they replicate the measurement, not the warming manipulation. Every colony is therefore collapsed to one ambient mean and one warmed mean before any test is run, and the inferential comparison uses the 10 colony-level differences - one analyzed observation per independent unit.
+
+## Colony-level means (sorties per hour)
+
+| colony | site | block order | ambient | warmed | warmed - ambient |
+| --- | --- | --- | --- | --- | --- |
+| C01 | Wheeler Cirque | AW | 22.40 | 19.20 | -3.20 |
+| C02 | Wheeler Cirque | WA | 19.60 | 17.10 | -2.50 |
+| C03 | Wheeler Cirque | AW | 25.10 | 21.00 | -4.10 |
+| C04 | Trapper Basin | WA | 17.80 | 16.00 | -1.80 |
+| C05 | Trapper Basin | AW | 23.50 | 19.90 | -3.60 |
+| C06 | Trapper Basin | WA | 20.20 | 17.30 | -2.90 |
+| C07 | Sundog Pass | AW | 18.30 | 17.60 | -0.70 |
+| C08 | Sundog Pass | WA | 24.00 | 20.60 | -3.40 |
+| C09 | Sundog Pass | AW | 21.70 | 19.50 | -2.20 |
+| C10 | Wheeler Cirque | WA | 26.30 | 21.70 | -4.60 |
+
+- ambient colony means: 21.89 +/- 2.88 SD (n = 10 colonies)
+- warmed colony means: 18.99 +/- 1.90 SD (n = 10 colonies)
+
+## Test
+
+Two-sided paired t-test (scipy.stats.ttest_rel) on the 10 colony-level differences (warmed minus ambient).
+
+- mean difference: -2.900 sorties/hour (SD 1.148, SE 0.363)
+- 95% confidence interval: -3.721 to -2.079 sorties/hour
+- t(9) = -7.989, p = 2.2e-05
+- standardized paired effect size dz = -2.53
+
+[selected-result] Paired t-test on colony-level mean foraging rates (n = 10 colonies): warming lowered foraging by 2.900 sorties/hour (95% CI -3.721 to -2.079), t(9) = -7.989, p = 2.2e-05.
+
+## Reading of the result
+
+Every colony (10 of 10) foraged less under the warmed setting; the smallest colony-level drop was 0.70 and the largest 4.60 sorties per hour. The confidence interval excludes zero, so these colonies foraged less under the warmer chamber setting. The trial-to-trial and session-to-session spread inside a colony feeds into the colony means but is not counted as replication of the manipulation; with 10 colonies from 3 collection sites, site effects are not separable from colony identity in this design.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-j1-reviewer-fable-44", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:5d9ac7a80e579eb4e9e6"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

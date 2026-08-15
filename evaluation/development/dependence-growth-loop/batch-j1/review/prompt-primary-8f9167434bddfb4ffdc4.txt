@@ -1,0 +1,242 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-j1-reviewer-fable-44
+
+=== workflow 1: case:8f9167434bddfb4ffdc4 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What this table records
+
+The single-cell-protein pilot line ran twenty bench fermentations. Each run
+used one 2-liter methanotroph bioreactor: the vessel was filled with one of two
+growth media, inoculated once, fed simulated biogas for 96 hours, harvested
+once, assayed once for crude protein, and then stripped and retired. No vessel
+was reused, and no vessel was sampled or assayed more than once.
+
+One row is: one bioreactor vessel, run once from inoculation to harvest, together with its single end-of-run protein titer
+Independent unit column: vessel_id
+
+Columns:
+
+- vessel_id: the vessel label. It is unique across the file, so the twenty
+  labels correspond to twenty distinct pieces of hardware and twenty rows.
+- medium: which growth medium that vessel received, either "baseline" or
+  "cu_amended" (the copper-supplemented formulation). The medium was chosen
+  vessel by vessel before inoculation, ten vessels per medium.
+- seed_od600: optical density of the inoculum at 600 nm at the moment of
+  seeding, kept as a provenance record of how heavily the vessel was started.
+- final_titer_g_per_l: crude protein measured in the harvested broth, in grams
+  per liter, from the single end-of-run assay for that vessel.
+
+Because treatment assignment, the run itself, and the measurement all happen at
+the level of the vessel, and because each vessel shows up exactly once, the
+twenty rows are twenty independent observations: ten under the baseline medium
+and ten under the copper-amended medium. Comparing the two media therefore
+means comparing two independent groups of ten vessels.
+
+--- file data/input.csv ---
+vessel_id,medium,seed_od600,final_titer_g_per_l
+V01,baseline,0.41,4.8
+V02,cu_amended,0.39,5.5
+V03,cu_amended,0.44,6.0
+V04,baseline,0.37,5.2
+V05,baseline,0.43,5.0
+V06,cu_amended,0.40,5.7
+V07,cu_amended,0.36,5.2
+V08,baseline,0.45,4.6
+V09,baseline,0.38,5.4
+V10,cu_amended,0.42,6.1
+V11,cu_amended,0.47,5.9
+V12,baseline,0.40,5.1
+V13,baseline,0.35,4.9
+V14,cu_amended,0.46,5.5
+V15,cu_amended,0.43,6.0
+V16,baseline,0.39,5.3
+V17,baseline,0.44,4.7
+V18,cu_amended,0.38,5.4
+V19,cu_amended,0.41,5.7
+V20,baseline,0.42,5.0
+
+--- file workflow/analysis.py ---
+#!/usr/bin/env python3
+"""Copper amendment vs baseline medium in bench-scale methanotroph runs.
+
+Reads data/input.csv and writes results/report.md.  Every 2-L vessel is
+inoculated, harvested and assayed exactly once, so each vessel contributes a
+single analyzed row and the two arms are independent samples.
+"""
+
+from __future__ import annotations
+
+import csv
+import math
+from collections import Counter, defaultdict
+from pathlib import Path
+from statistics import mean, stdev
+
+from scipy import stats
+
+INPUT_PATH = Path("data") / "input.csv"
+OUTPUT_PATH = Path("results") / "report.md"
+
+UNIT_COLUMN = "vessel_id"
+ARM_COLUMN = "medium"
+VALUE_COLUMN = "final_titer_g_per_l"
+ARMS = ("baseline", "cu_amended")
+
+
+def read_table(path):
+    with path.open(newline="", encoding="utf-8") as handle:
+        return list(csv.DictReader(handle))
+
+
+def variance_of_mean(sample):
+    return stdev(sample) ** 2 / len(sample)
+
+
+def welch_se(first, second):
+    return math.sqrt(variance_of_mean(first) + variance_of_mean(second))
+
+
+def welch_df(first, second):
+    v1 = variance_of_mean(first)
+    v2 = variance_of_mean(second)
+    return (v1 + v2) ** 2 / (
+        v1 * v1 / (len(first) - 1) + v2 * v2 / (len(second) - 1)
+    )
+
+
+def hedges_g(control, treated):
+    n1, n2 = len(control), len(treated)
+    pooled = ((n1 - 1) * stdev(control) ** 2 + (n2 - 1) * stdev(treated) ** 2) / (
+        n1 + n2 - 2
+    )
+    cohens_d = (mean(treated) - mean(control)) / math.sqrt(pooled)
+    return cohens_d * (1.0 - 3.0 / (4.0 * (n1 + n2) - 9.0))
+
+
+def main():
+    rows = read_table(INPUT_PATH)
+
+    seen = Counter(row[UNIT_COLUMN] for row in rows)
+    repeated = sorted(unit for unit, hits in seen.items() if hits > 1)
+    repeated_note = ", ".join(repeated) if repeated else "none"
+
+    titers = defaultdict(list)
+    for row in rows:
+        titers[row[ARM_COLUMN]].append(float(row[VALUE_COLUMN]))
+
+    control, treated = titers[ARMS[0]], titers[ARMS[1]]
+
+    outcome = stats.ttest_ind(treated, control, equal_var=False)
+    difference = mean(treated) - mean(control)
+    standard_error = welch_se(control, treated)
+    dof = welch_df(control, treated)
+    effect = hedges_g(control, treated)
+
+    summary_rows = [
+        "| {0} | {1} | {2:.3f} | {3:.3f} |".format(
+            arm, len(titers[arm]), mean(titers[arm]), stdev(titers[arm])
+        )
+        for arm in ARMS
+    ]
+
+    selected = (
+        "[selected-result] Welch two-sample t-test on {0} independent vessels"
+        " (one titer per vessel): copper amendment raised final"
+        " single-cell-protein titer by {1:.3f} g/L (t = {2:.3f}, df = {3:.2f},"
+        " two-sided p = {4:.3g}, Hedges' g = {5:.3f})."
+    ).format(len(rows), difference, outcome.statistic, dof, outcome.pvalue, effect)
+
+    lines = [
+        "# Copper amendment and single-cell-protein titer in methanotroph bench runs",
+        "",
+        "## Data",
+        "",
+        "- Source file: `data/input.csv`",
+        "- Rows read: {0}".format(len(rows)),
+        "- Independent vessels: {0}".format(len(seen)),
+        "- Vessels appearing more than once: {0}".format(repeated_note),
+        "",
+        "| medium | vessels | mean titer (g/L) | sd (g/L) |",
+        "| --- | ---: | ---: | ---: |",
+        *summary_rows,
+        "",
+        "## Analysis",
+        "",
+        "Each 2-L bioreactor was inoculated once, run to harvest once, and assayed",
+        "once, so the ten baseline titers and the ten copper-amended titers are ten",
+        "independent observations per arm. The arms were compared with a Welch",
+        "two-sample t-test (unequal variances, two-sided).",
+        "",
+        "## Result",
+        "",
+        "- Mean difference (cu_amended minus baseline): {0:.3f} g/L".format(difference),
+        "- Standard error of the difference: {0:.4f} g/L".format(standard_error),
+        "- Welch t statistic: {0:.3f}".format(outcome.statistic),
+        "- Welch-Satterthwaite df: {0:.2f}".format(dof),
+        "- Two-sided p-value: {0:.3g}".format(outcome.pvalue),
+        "- Hedges' g: {0:.3f}".format(effect),
+        "",
+        selected,
+        "",
+        "## Notes",
+        "",
+        "The vessel is both the unit of randomization and the unit of analysis: no",
+        "vessel is counted twice, and no within-vessel replicate measurements enter",
+        "the test. The seed-density column is recorded for provenance and was not",
+        "used in the comparison.",
+    ]
+
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Copper amendment and single-cell-protein titer in methanotroph bench runs
+
+## Data
+
+- Source file: `data/input.csv`
+- Rows read: 20
+- Independent vessels: 20
+- Vessels appearing more than once: none
+
+| medium | vessels | mean titer (g/L) | sd (g/L) |
+| --- | ---: | ---: | ---: |
+| baseline | 10 | 5.000 | 0.258 |
+| cu_amended | 10 | 5.700 | 0.298 |
+
+## Analysis
+
+Each 2-L bioreactor was inoculated once, run to harvest once, and assayed
+once, so the ten baseline titers and the ten copper-amended titers are ten
+independent observations per arm. The arms were compared with a Welch
+two-sample t-test (unequal variances, two-sided).
+
+## Result
+
+- Mean difference (cu_amended minus baseline): 0.700 g/L
+- Standard error of the difference: 0.1247 g/L
+- Welch t statistic: 5.612
+- Welch-Satterthwaite df: 17.64
+- Two-sided p-value: 2.71e-05
+- Hedges' g: 2.404
+
+[selected-result] Welch two-sample t-test on 20 independent vessels (one titer per vessel): copper amendment raised final single-cell-protein titer by 0.700 g/L (t = 5.612, df = 17.64, two-sided p = 2.71e-05, Hedges' g = 2.404).
+
+## Notes
+
+The vessel is both the unit of randomization and the unit of analysis: no
+vessel is counted twice, and no within-vessel replicate measurements enter
+the test. The seed-density column is recorded for provenance and was not
+used in the comparison.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-j1-reviewer-fable-44", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:8f9167434bddfb4ffdc4"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

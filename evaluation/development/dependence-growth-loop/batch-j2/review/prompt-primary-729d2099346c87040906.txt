@@ -1,0 +1,222 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-j2-reviewer-fable-46
+
+=== workflow 1: case:729d2099346c87040906 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Porosity screening of laser powder-bed fusion coupons
+
+Eight print runs of Ti-6Al-4V test coupons were built on a laser powder-bed
+fusion machine. Four runs were built at the nominal laser-power setting and
+four at the elevated setting. The setting is a property of the whole run: it
+is programmed once before the build starts and cannot vary within a run, so
+every coupon in a run also shares that run's powder lot, recoater condition,
+chamber gas flow, and thermal history.
+
+After each build, three coupons were cut from the plate, one from each of the
+three plate zones, and every coupon was scored pass or fail on a CT porosity
+screen. That gives 3 coupon rows per run and 24 rows in total.
+
+Columns:
+- coupon_id: identifier for a single cut coupon (C001 through C024).
+- print_run_id: identifier of the print run the coupon was cut from; eight
+  runs, R01 through R08, three coupons each.
+- laser_setting: nominal or elevated; fixed for an entire print run.
+- plate_zone: build-plate zone the coupon came from (A, B, or C).
+- coupon_mass_g: as-cut coupon mass in grams.
+- porosity_screen: pass or fail on the CT porosity screen.
+
+Because the treatment is applied at the run level and the three coupons from a
+run share all of that run's build conditions, coupon outcomes within a run are
+not expected to be independent of each other.
+
+One row is: one cut coupon scored pass or fail on the CT porosity screen
+Independent unit column: print_run_id
+One trial is: one row
+
+--- file data/input.csv ---
+coupon_id,print_run_id,laser_setting,plate_zone,coupon_mass_g,porosity_screen
+C001,R01,nominal,A,12.41,pass
+C002,R01,nominal,B,12.38,pass
+C003,R01,nominal,C,12.44,pass
+C004,R02,nominal,A,12.29,pass
+C005,R02,nominal,B,12.33,fail
+C006,R02,nominal,C,12.27,fail
+C007,R03,nominal,A,12.18,fail
+C008,R03,nominal,B,12.21,fail
+C009,R03,nominal,C,12.16,fail
+C010,R04,nominal,A,12.09,fail
+C011,R04,nominal,B,12.13,fail
+C012,R04,nominal,C,12.05,fail
+C013,R05,elevated,A,12.62,pass
+C014,R05,elevated,B,12.58,pass
+C015,R05,elevated,C,12.65,pass
+C016,R06,elevated,A,12.55,pass
+C017,R06,elevated,B,12.60,pass
+C018,R06,elevated,C,12.57,pass
+C019,R07,elevated,A,12.71,pass
+C020,R07,elevated,B,12.68,pass
+C021,R07,elevated,C,12.74,pass
+C022,R08,elevated,A,12.49,pass
+C023,R08,elevated,B,12.52,pass
+C024,R08,elevated,C,12.46,fail
+
+--- file workflow/analysis.py ---
+"""Porosity screening of laser powder-bed fusion (LPBF) test coupons.
+
+Reads data/input.csv and writes results/report.md. The question is whether the
+elevated laser-power setting changes the fraction of coupons that clear the CT
+porosity screen.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+from scipy.stats import fisher_exact
+
+INPUT_PATH = Path("data/input.csv")
+OUTPUT_PATH = Path("results/report.md")
+
+SETTINGS = ("nominal", "elevated")
+PASS_LABEL = "pass"
+
+
+def read_coupons(path):
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = [dict(row) for row in csv.DictReader(handle)]
+    if not rows:
+        raise SystemExit("no coupon rows found in " + str(path))
+    return rows
+
+
+def outcome_counts(rows, setting):
+    """Return (passed, failed) coupon counts for one laser-power setting."""
+    total = sum(1 for row in rows if row["laser_setting"] == setting)
+    passed = sum(
+        1
+        for row in rows
+        if row["laser_setting"] == setting and row["porosity_screen"] == PASS_LABEL
+    )
+    return passed, total - passed
+
+
+def build_report(rows):
+    counts = {setting: outcome_counts(rows, setting) for setting in SETTINGS}
+    table = [list(counts[setting]) for setting in SETTINGS]
+    odds_ratio, p_value = fisher_exact(table, alternative="two-sided")
+
+    rates = {}
+    table_lines = []
+    for setting in SETTINGS:
+        passed, failed = counts[setting]
+        total = passed + failed
+        rate = 100.0 * passed / total
+        rates[setting] = rate
+        table_lines.append(
+            "| {0} | {1} | {2} | {3} | {4:.1f}% |".format(
+                setting, total, passed, failed, rate
+            )
+        )
+
+    n_rows = len(rows)
+    runs = sorted({row["print_run_id"] for row in rows})
+    diff = rates["elevated"] - rates["nominal"]
+
+    nom_pass, nom_fail = counts["nominal"]
+    ele_pass, ele_fail = counts["elevated"]
+    nom_n = nom_pass + nom_fail
+    ele_n = ele_pass + ele_fail
+
+    lines = [
+        "# Porosity screen pass rates for laser powder-bed fusion coupons",
+        "",
+        "## Data",
+        "",
+        "Source: data/input.csv -- {0} coupon rows spanning {1} print runs.".format(
+            n_rows, len(runs)
+        ),
+        "",
+        "| Laser setting | Coupons | Passed | Failed | Pass rate |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    lines.extend(table_lines)
+    lines.extend(
+        [
+            "",
+            "Pass-rate difference (elevated minus nominal): {0:.1f} percentage points.".format(
+                diff
+            ),
+            "",
+            "## Analysis",
+            "",
+            "Two-sided Fisher exact test applied to the 2x2 table of porosity-screen",
+            "outcome by laser-power setting; each coupon row supplies one observation.",
+            "",
+            "## Result",
+            "",
+            (
+                "[selected-result] Two-sided Fisher exact test on {0} coupons: "
+                "{1}/{2} ({3:.1f}%) passed at the nominal setting versus "
+                "{4}/{5} ({6:.1f}%) at the elevated setting; odds ratio {7:.4f}, "
+                "p = {8:.4f}."
+            ).format(
+                n_rows,
+                nom_pass,
+                nom_n,
+                rates["nominal"],
+                ele_pass,
+                ele_n,
+                rates["elevated"],
+                odds_ratio,
+                p_value,
+            ),
+            "",
+            "Print runs represented: {0}.".format(", ".join(runs)),
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    rows = read_coupons(INPUT_PATH)
+    report = build_report(rows)
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Porosity screen pass rates for laser powder-bed fusion coupons
+
+## Data
+
+Source: data/input.csv -- 24 coupon rows spanning 8 print runs.
+
+| Laser setting | Coupons | Passed | Failed | Pass rate |
+| --- | --- | --- | --- | --- |
+| nominal | 12 | 4 | 8 | 33.3% |
+| elevated | 12 | 11 | 1 | 91.7% |
+
+Pass-rate difference (elevated minus nominal): 58.3 percentage points.
+
+## Analysis
+
+Two-sided Fisher exact test applied to the 2x2 table of porosity-screen
+outcome by laser-power setting; each coupon row supplies one observation.
+
+## Result
+
+[selected-result] Two-sided Fisher exact test on 24 coupons: 4/12 (33.3%) passed at the nominal setting versus 11/12 (91.7%) at the elevated setting; odds ratio 0.0455, p = 0.0094.
+
+Print runs represented: R01, R02, R03, R04, R05, R06, R07, R08.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-j2-reviewer-fable-46", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:729d2099346c87040906"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

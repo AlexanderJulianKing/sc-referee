@@ -4,9 +4,9 @@ Updated: 2026-08-15 (Growth-9 closed; first wall-corpus census recorded).
 
 ## Scoreboard
 
-- 84 lifetime blind free-form cases (batches A-I under
+- 96 lifetime blind free-form cases (batches A-J under
   evaluation/development/dependence-growth-loop/), ZERO false accusations, zero
-  regressions. 83 measurable (batch-D case dc2b31d5 was intake-refused, never
+  regressions. 95 measurable (batch-D case dc2b31d5 was intake-refused, never
   materialized). No blind catch yet; misses are honest named abstentions.
 - Six demonstrated false-accusation routes killed in review before measurement
   (filter-predicate, paired/crossover, alias-then-mutate, counted-domain, AnnAssign
@@ -41,13 +41,22 @@ Updated: 2026-08-15 (Growth-9 closed; first wall-corpus census recorded).
   exact `Independent unit column:` declaration, all translations were `no-lock`, all
   outcomes were `question` / `independent-unit-definition-unresolved`, and the wall
   frequency map is empty. Do not infer a grammar priority from this run.
+- Checkpoint J1 + J2 completed: 12 new blind cases, 12 opportunities, zero false
+  accusations, zero catches. J1 outcomes were one `abstained_no_authority`, two
+  `abstained_unsupported`, one `missed_no_authority`, and two
+  `missed_unsupported`; J2 had two, one, two, and one respectively. Exact planted
+  miss walls: J1 `module-constant-not-closed`, `import-use-outside-grammar`, and
+  `function-return-shape`; J2 `import-use-outside-grammar`,
+  `augmented-assignment-not-modeled`, and
+  `count-predicate-not-closed;raise-guard-not-modeled`. Non-error abstention walls
+  also included `unsupported-import-form`, module constants, and the combined
+  function closure/globals/return/raise set. No rates were published.
 
 ## In flight
 
-- Checkpoint batch J configs are reviewed and ready but unrun: j1 uses
-  opus-111..116/fable-44,45/opus-27; j2 uses
-  opus-117..122/fable-46,47/opus-28. Run both only from the cleared `4ca0532`-or-later
-  snapshot, then halt immediately on any scored false accusation.
+- Persist and gate the completed J1/J2 frozen development lanes, then begin the next
+  census/design iteration. Do not run another blind checkpoint until roughly three to
+  four additional reviewed growth rounds have accumulated.
 - Before another wall-corpus run, write and review a narrow harness design that makes
   authority projection usable without planting error classes or recognition labels.
   The current empty census is preserved as evidence of the boundary, not retried or
@@ -58,18 +67,20 @@ Updated: 2026-08-15 (Growth-9 closed; first wall-corpus census recorded).
 1. Paired-procedure family (ttest_rel/wilcoxon lock gap; recurring since batch C) —
    maintainer go-ahead required (different independence semantics = new claim shape).
 2. Numeric comparison predicates for counts (float(row[x]) > CONST; batch-B 446cab
-   flagship + recurring).
+   flagship + recurring, including J2 rq2).
 3. raise/validation guards inside helpers (part of the globals-read decomposition).
-4. Position-sensitive rebind relaxation (allow rebinding after last consumer) — only
+4. Module-constant closure variants (J1 rq2 and J2 rq6) and import-use decomposition
+   (J1 rq1, J2 rq3) — measure exact syntax before deciding whether any slice is LIGHT.
+5. Position-sensitive rebind relaxation (allow rebinding after last consumer) — only
    if corpus census shows it matters; dataflow judgment = heavy.
-5. Q3 two-branch sink returns (detached from growth-8; buys little).
-6. class-defs/dataclass modeling (batch-D rq2's real wall).
+6. Q3 two-branch sink returns (detached from growth-8; buys little).
+7. class-defs/dataclass modeling (batch-D rq2's real wall).
 
 ## Actor inventory (one-use identities; continue numbering)
 
-Authors spent through opus-110; blind reviewers through fable-43; hostile reviewers
-interleaved (fable odd/even per envelope config); escalation through opus-26.
-Batch J seats reserved above. Blind-batch seats may move to codex-cli transports
+Authors spent through opus-122; primary blind reviewers through fable-46; hostile
+reviewer identities through fable-47; escalation identities through opus-28.
+Blind-batch seats may move to codex-cli transports
 (model change is a harness config change: review it).
 
 ## Process-control record

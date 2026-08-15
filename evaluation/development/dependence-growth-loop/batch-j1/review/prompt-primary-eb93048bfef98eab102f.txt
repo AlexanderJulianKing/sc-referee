@@ -1,0 +1,223 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-j1-reviewer-fable-44
+
+=== workflow 1: case:eb93048bfef98eab102f ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Alpine rock-glacier creep survey
+
+A regional inventory catalogued 25 active rock glaciers in the crystalline
+basement of one mountain range. Each landform occupies its own catchment, and
+each was surveyed exactly once: a five-year satellite radar displacement field
+was reduced to a single mean downslope creep velocity for that landform. No
+landform was resurveyed and none appears twice, so the file holds 25 rows and
+25 distinct landforms.
+
+One row is: one rock glacier, surveyed once and summarised by a single mean creep velocity
+Independent unit column: landform_id
+
+Columns:
+
+- landform_id: inventory code for the rock glacier; unique across the file.
+- bedrock_class: lithology of the source headwall, either micaschist or
+  orthogneiss.
+- crest_elevation_m: elevation of the rooting zone in metres above sea level.
+- mean_slope_deg: mean surface slope of the landform, in degrees.
+- creep_velocity_cm_yr: mean downslope surface velocity, in centimetres per
+  year.
+
+The question is whether creep velocity differs between the two bedrock classes.
+Because every landform contributes exactly one velocity and the landforms sit in
+separate catchments, the rows are mutually independent and a row-independent
+two-sample procedure is appropriate.
+
+--- file data/input.csv ---
+landform_id,bedrock_class,crest_elevation_m,mean_slope_deg,creep_velocity_cm_yr
+RG-01,micaschist,2685,17.4,24.7
+RG-02,orthogneiss,2914,15.2,13.0
+RG-03,micaschist,2540,21.0,30.9
+RG-04,orthogneiss,2761,13.8,16.9
+RG-05,micaschist,2803,14.6,18.9
+RG-06,orthogneiss,2596,19.3,20.1
+RG-07,micaschist,2472,23.1,33.1
+RG-08,orthogneiss,3042,12.7,9.6
+RG-09,micaschist,2738,16.2,22.0
+RG-10,orthogneiss,2650,18.5,17.9
+RG-11,micaschist,2921,13.4,14.8
+RG-12,orthogneiss,2884,14.1,11.9
+RG-13,micaschist,2617,19.8,27.6
+RG-14,orthogneiss,2705,17.0,15.2
+RG-15,micaschist,2569,20.4,29.3
+RG-16,orthogneiss,2833,16.6,14.3
+RG-17,micaschist,2760,15.9,20.6
+RG-18,orthogneiss,2488,22.2,22.3
+RG-19,micaschist,2645,18.1,25.8
+RG-20,orthogneiss,2957,13.2,10.8
+RG-21,micaschist,2872,14.9,17.2
+RG-22,orthogneiss,2531,21.5,21.2
+RG-23,micaschist,2704,17.7,23.1
+RG-24,orthogneiss,2799,15.6,18.8
+RG-25,orthogneiss,2678,18.9,16.0
+
+--- file workflow/analysis.py ---
+"""Do rock glaciers rooted in micaschist creep faster than those in orthogneiss?
+
+Reads data/input.csv (one surveyed rock glacier per row) and writes
+results/report.md. Every landform contributes exactly one velocity, so the rows
+going into the two-sample test are mutually independent.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+DATA_PATH = Path("data") / "input.csv"
+REPORT_PATH = Path("results") / "report.md"
+
+UNIT_COL = "landform_id"
+GROUP_COL = "bedrock_class"
+VALUE_COL = "creep_velocity_cm_yr"
+
+
+def read_rows(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def p_bracket(pvalue):
+    for cutoff in (0.001, 0.01, 0.05):
+        if pvalue < cutoff:
+            return "p < %g" % cutoff
+    return "p >= 0.05"
+
+
+def main():
+    rows = read_rows(DATA_PATH)
+
+    ids = [row[UNIT_COL] for row in rows]
+    if len(set(ids)) != len(ids):
+        raise ValueError("landform_id must be unique: one row per landform")
+
+    labels = sorted({row[GROUP_COL] for row in rows})
+    if len(labels) != 2:
+        raise ValueError("expected exactly two bedrock classes")
+    first, second = labels
+
+    def velocities(label):
+        return np.array(
+            [float(row[VALUE_COL]) for row in rows if row[GROUP_COL] == label],
+            dtype=float,
+        )
+
+    x = velocities(first)
+    y = velocities(second)
+
+    n_x, n_y = x.size, y.size
+    mean_x, mean_y = float(x.mean()), float(y.mean())
+    var_x, var_y = float(x.var(ddof=1)), float(y.var(ddof=1))
+    gap = mean_x - mean_y
+
+    result = stats.ttest_ind(x, y, equal_var=False)
+
+    term_x = var_x / n_x
+    term_y = var_y / n_y
+    welch_df = (term_x + term_y) ** 2 / (
+        term_x ** 2 / (n_x - 1) + term_y ** 2 / (n_y - 1)
+    )
+
+    pooled_sd = (((n_x - 1) * var_x + (n_y - 1) * var_y) / (n_x + n_y - 2)) ** 0.5
+    cohen_d = gap / pooled_sd
+    verdict = p_bracket(float(result.pvalue))
+
+    lines = []
+    lines.append("# Bedrock lithology and downslope creep of alpine rock glaciers")
+    lines.append("")
+    lines.append("## Design")
+    lines.append("")
+    lines.append(
+        "Each row of `data/input.csv` is one rock glacier, surveyed once. No landform"
+    )
+    lines.append(
+        "contributes more than one row, so the %d velocity values are %d independent"
+        % (len(rows), len(rows))
+    )
+    lines.append("observations.")
+    lines.append("")
+    lines.append("## Groups")
+    lines.append("")
+    lines.append("| bedrock_class | n | mean creep (cm/yr) | SD (cm/yr) |")
+    lines.append("| --- | --- | --- | --- |")
+    lines.append(
+        "| %s | %d | %.2f | %.2f |" % (first, n_x, mean_x, var_x ** 0.5)
+    )
+    lines.append(
+        "| %s | %d | %.2f | %.2f |" % (second, n_y, mean_y, var_y ** 0.5)
+    )
+    lines.append("")
+    lines.append("## Test")
+    lines.append("")
+    lines.append("Welch's two-sample t-test (unequal variances, two-sided) on")
+    lines.append("%s by %s." % (VALUE_COL, GROUP_COL))
+    lines.append("")
+    lines.append(
+        "Difference in means (%s - %s): %.2f cm/yr" % (first, second, gap)
+    )
+    lines.append(
+        "t = %.2f, Welch-Satterthwaite df = %.1f, %s"
+        % (result.statistic, welch_df, verdict)
+    )
+    lines.append("Cohen's d (pooled SD) = %.2f" % cohen_d)
+    lines.append("")
+    lines.append(
+        "[selected-result] Welch two-sided t-test: %s-hosted rock glaciers creep"
+        " %.2f cm/yr faster than %s-hosted ones (%.2f vs %.2f cm/yr; t = %.2f,"
+        " df = %.1f, %s, Cohen's d = %.2f), one row per landform."
+        % (first, gap, second, mean_x, mean_y, result.statistic, welch_df,
+           verdict, cohen_d)
+    )
+    lines.append("")
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines), encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Bedrock lithology and downslope creep of alpine rock glaciers
+
+## Design
+
+Each row of `data/input.csv` is one rock glacier, surveyed once. No landform
+contributes more than one row, so the 25 velocity values are 25 independent
+observations.
+
+## Groups
+
+| bedrock_class | n | mean creep (cm/yr) | SD (cm/yr) |
+| --- | --- | --- | --- |
+| micaschist | 12 | 24.00 | 5.63 |
+| orthogneiss | 13 | 16.00 | 4.01 |
+
+## Test
+
+Welch's two-sample t-test (unequal variances, two-sided) on
+creep_velocity_cm_yr by bedrock_class.
+
+Difference in means (micaschist - orthogneiss): 8.00 cm/yr
+t = 4.06, Welch-Satterthwaite df = 19.8, p < 0.001
+Cohen's d (pooled SD) = 1.65
+
+[selected-result] Welch two-sided t-test: micaschist-hosted rock glaciers creep 8.00 cm/yr faster than orthogneiss-hosted ones (24.00 vs 16.00 cm/yr; t = 4.06, df = 19.8, p < 0.001, Cohen's d = 1.65), one row per landform.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-j1-reviewer-fable-44", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:eb93048bfef98eab102f"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

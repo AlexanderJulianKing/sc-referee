@@ -1,0 +1,208 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-j2-reviewer-fable-46
+
+=== workflow 1: case:56e4106c5ef7a44d29c8 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Sarvisuo mire ebullition survey
+
+`data/input.csv` holds the field log from a single growing season on the
+Sarvisuo mire, where methane ebullition was scored during static-chamber
+closures on six permanent collars. Three collars sit in an intact fen section
+and three sit in a block that was ditch-drained for forestry in the 1970s.
+Each collar was revisited in survey weeks 24, 27 and 31; two collars were not
+reachable in week 31, so those collars contribute two deployments instead of
+three.
+
+Columns:
+
+- `deployment_id`: label for one chamber closure, unique across the file.
+- `collar_id`: the permanent collar the chamber was seated on (FEN-* collars
+  are intact, DRN-* collars are drained). The same collar appears in several
+  rows of the file.
+- `drainage_status`: `intact` or `drained`, a property of the collar's block
+  rather than of the individual visit.
+- `survey_week`: ISO week number of the visit.
+- `peat_temp_c`: peat temperature at 10 cm depth, degrees Celsius.
+- `water_table_cm`: water table position relative to the peat surface, in
+  centimetres (negative values are below the surface).
+- `ebullition_detected`: `yes` if at least one bubble release was seen or
+  logged during the closure, otherwise `no`.
+
+One row is: one static-chamber closure on one permanent collar in one survey week
+Independent unit column: collar_id
+One trial is: one row
+
+--- file data/input.csv ---
+deployment_id,collar_id,drainage_status,survey_week,peat_temp_c,water_table_cm,ebullition_detected
+D001,FEN-01,intact,24,13.8,-3.5,yes
+D002,FEN-02,intact,24,14.1,-2.9,yes
+D003,FEN-03,intact,24,13.6,-4.2,yes
+D004,DRN-01,drained,24,15.2,-24.6,no
+D005,DRN-02,drained,24,15.7,-27.1,no
+D006,DRN-03,drained,24,15.0,-23.4,no
+D007,FEN-01,intact,27,17.4,-5.8,yes
+D008,FEN-02,intact,27,17.9,-6.4,no
+D009,FEN-03,intact,27,17.1,-7.0,yes
+D010,DRN-01,drained,27,18.6,-31.2,yes
+D011,DRN-02,drained,27,18.9,-33.8,no
+D012,DRN-03,drained,27,18.2,-30.5,yes
+D013,FEN-01,intact,31,14.6,-4.7,yes
+D014,FEN-02,intact,31,14.9,-5.1,yes
+D015,DRN-01,drained,31,15.8,-28.9,no
+D016,DRN-02,drained,31,16.3,-30.2,no
+
+--- file workflow/analysis.py ---
+"""Screen static-chamber deployments on the Sarvisuo mire for ebullition."""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+from scipy.stats import fisher_exact
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+DETECTED = "yes"
+
+
+def read_deployments(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def split_counts(rows, status):
+    subset = [row for row in rows if row["drainage_status"] == status]
+    hits = sum(1 for row in subset if row["ebullition_detected"] == DETECTED)
+    return hits, len(subset) - hits
+
+
+def per_collar(rows):
+    order = []
+    table = {}
+    for row in rows:
+        collar = row["collar_id"]
+        if collar not in table:
+            table[collar] = {"status": row["drainage_status"], "n": 0, "hits": 0}
+            order.append(collar)
+        table[collar]["n"] += 1
+        if row["ebullition_detected"] == DETECTED:
+            table[collar]["hits"] += 1
+    return [(collar, table[collar]) for collar in order]
+
+
+def compose(rows):
+    hit_i, miss_i = split_counts(rows, "intact")
+    hit_d, miss_d = split_counts(rows, "drained")
+    n_i = hit_i + miss_i
+    n_d = hit_d + miss_d
+    n_total = n_i + n_d
+    _, p_value = fisher_exact([[hit_i, miss_i], [hit_d, miss_d]],
+                              alternative="two-sided")
+    odds_ratio = (hit_i * miss_d) / (miss_i * hit_d)
+    collars = per_collar(rows)
+
+    out = [
+        "# Ebullition detection on intact and drained peat: Sarvisuo mire",
+        "",
+        "## What the table holds",
+        "",
+        "Each row is one static-chamber deployment scored for a visible ebullition",
+        "(bubble release) event during the closure window. Deployments were made on",
+        "permanent collars, and every collar was visited on more than one survey week.",
+        "",
+        "## Deployments by collar",
+        "",
+        "| collar | drainage status | deployments | with ebullition |",
+        "| --- | --- | --- | --- |",
+    ]
+    for collar, info in collars:
+        out.append(f"| {collar} | {info['status']} | {info['n']} | {info['hits']} |")
+    out += [
+        "",
+        "## Analysis",
+        "",
+        f"The {n_total} deployments were cross-tabulated by drainage status and ebullition",
+        "outcome, and the 2x2 table was submitted to a two-sided Fisher exact test.",
+        "Every deployment row entered the table as one independent trial.",
+        "",
+        "|  | ebullition | no ebullition |",
+        "| --- | --- | --- |",
+        f"| intact | {hit_i} | {miss_i} |",
+        f"| drained | {hit_d} | {miss_d} |",
+        "",
+        f"Detection frequency was {hit_i}/{n_i} ({100 * hit_i / n_i:.1f}%) on intact collars"
+        f" and {hit_d}/{n_d} ({100 * hit_d / n_d:.1f}%) on",
+        f"drained collars; the sample odds ratio is {odds_ratio:.2f}.",
+        "",
+        "## Result",
+        "",
+        f"[selected-result] Two-sided Fisher exact test on {n_total} chamber deployments:"
+        f" odds ratio {odds_ratio:.2f} for ebullition on intact versus drained peat"
+        f" ({hit_i}/{n_i} against {hit_d}/{n_d} deployments), p = {p_value:.4f}.",
+        "",
+        f"Deployments were treated as independent trials, so the test counts {n_total} rows",
+        f"across the {len(collars)} collars that produced them.",
+    ]
+    return "\n".join(out) + "\n"
+
+
+def main():
+    rows = read_deployments(INPUT_PATH)
+    report = compose(rows)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Ebullition detection on intact and drained peat: Sarvisuo mire
+
+## What the table holds
+
+Each row is one static-chamber deployment scored for a visible ebullition
+(bubble release) event during the closure window. Deployments were made on
+permanent collars, and every collar was visited on more than one survey week.
+
+## Deployments by collar
+
+| collar | drainage status | deployments | with ebullition |
+| --- | --- | --- | --- |
+| FEN-01 | intact | 3 | 3 |
+| FEN-02 | intact | 3 | 2 |
+| FEN-03 | intact | 2 | 2 |
+| DRN-01 | drained | 3 | 1 |
+| DRN-02 | drained | 3 | 0 |
+| DRN-03 | drained | 2 | 1 |
+
+## Analysis
+
+The 16 deployments were cross-tabulated by drainage status and ebullition
+outcome, and the 2x2 table was submitted to a two-sided Fisher exact test.
+Every deployment row entered the table as one independent trial.
+
+|  | ebullition | no ebullition |
+| --- | --- | --- |
+| intact | 7 | 1 |
+| drained | 2 | 6 |
+
+Detection frequency was 7/8 (87.5%) on intact collars and 2/8 (25.0%) on
+drained collars; the sample odds ratio is 21.00.
+
+## Result
+
+[selected-result] Two-sided Fisher exact test on 16 chamber deployments: odds ratio 21.00 for ebullition on intact versus drained peat (7/8 against 2/8 deployments), p = 0.0406.
+
+Deployments were treated as independent trials, so the test counts 16 rows
+across the 6 collars that produced them.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-j2-reviewer-fable-46", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:56e4106c5ef7a44d29c8"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

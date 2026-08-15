@@ -1,0 +1,229 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-j1-reviewer-fable-44
+
+=== workflow 1: case:e38216a09d49fd3302f4 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Coupon tensile testing records
+
+data/input.csv holds the measurements from a small additive-manufacturing
+study. Twelve metal build plates were produced on the same laser powder-bed
+fusion machine: six plates were printed lying flat and six were printed on
+edge. After printing, each plate was sectioned into four tensile coupons taken
+from fixed positions A, B, C and D across the plate, and every coupon was
+pulled to failure on the same test frame.
+
+Columns in the file:
+
+- coupon_id: label for the individual tensile coupon.
+- plate_id: label of the build plate the coupon was cut from. Each plate label
+  appears four times, once per coupon cut from that plate.
+- build_orientation: how the plate was oriented during printing, either flat
+  or edge. The value is a property of the plate, so it is the same for all
+  four coupons from a plate.
+- coupon_slot: which of the four positions on the plate the coupon came from.
+- tensile_strength_mpa: ultimate tensile strength of the coupon in megapascals.
+
+One row is: one tensile coupon cut from a build plate and pulled to failure
+Independent unit column: plate_id
+
+--- file data/input.csv ---
+coupon_id,plate_id,build_orientation,coupon_slot,tensile_strength_mpa
+C001,PLT-F1,flat,A,293.5
+C002,PLT-F1,flat,B,295.5
+C003,PLT-F1,flat,C,297.5
+C004,PLT-F1,flat,D,299.5
+C005,PLT-F2,flat,A,297.5
+C006,PLT-F2,flat,B,299.5
+C007,PLT-F2,flat,C,301.5
+C008,PLT-F2,flat,D,303.5
+C009,PLT-F3,flat,A,301.5
+C010,PLT-F3,flat,B,303.5
+C011,PLT-F3,flat,C,305.5
+C012,PLT-F3,flat,D,307.5
+C013,PLT-F4,flat,A,289.5
+C014,PLT-F4,flat,B,291.5
+C015,PLT-F4,flat,C,293.5
+C016,PLT-F4,flat,D,295.5
+C017,PLT-F5,flat,A,305.5
+C018,PLT-F5,flat,B,307.5
+C019,PLT-F5,flat,C,309.5
+C020,PLT-F5,flat,D,311.5
+C021,PLT-F6,flat,A,297.5
+C022,PLT-F6,flat,B,299.5
+C023,PLT-F6,flat,C,301.5
+C024,PLT-F6,flat,D,303.5
+C025,PLT-E1,edge,A,332.5
+C026,PLT-E1,edge,B,335.5
+C027,PLT-E1,edge,C,337.5
+C028,PLT-E1,edge,D,340.5
+C029,PLT-E2,edge,A,336.5
+C030,PLT-E2,edge,B,339.5
+C031,PLT-E2,edge,C,341.5
+C032,PLT-E2,edge,D,344.5
+C033,PLT-E3,edge,A,340.5
+C034,PLT-E3,edge,B,343.5
+C035,PLT-E3,edge,C,345.5
+C036,PLT-E3,edge,D,348.5
+C037,PLT-E4,edge,A,328.5
+C038,PLT-E4,edge,B,331.5
+C039,PLT-E4,edge,C,333.5
+C040,PLT-E4,edge,D,336.5
+C041,PLT-E5,edge,A,344.5
+C042,PLT-E5,edge,B,347.5
+C043,PLT-E5,edge,C,349.5
+C044,PLT-E5,edge,D,352.5
+C045,PLT-E6,edge,A,336.5
+C046,PLT-E6,edge,B,339.5
+C047,PLT-E6,edge,C,341.5
+C048,PLT-E6,edge,D,344.5
+
+--- file workflow/analysis.py ---
+"""Build-orientation effect on the tensile strength of printed metal coupons.
+
+Reads data/input.csv, compares ultimate tensile strength between the two build
+orientations, and writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+import statistics
+from pathlib import Path
+
+from scipy import stats
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+
+def read_rows(path):
+    with path.open("r", encoding="ascii", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def uts_by_orientation(rows, orientation):
+    return [
+        float(row["tensile_strength_mpa"])
+        for row in rows
+        if row["build_orientation"] == orientation
+    ]
+
+
+def format_p(p_value):
+    if p_value < 1e-4:
+        return "p < 0.0001"
+    return "p = {0:.4f}".format(p_value)
+
+
+def build_report(rows):
+    flat = uts_by_orientation(rows, "flat")
+    edge = uts_by_orientation(rows, "edge")
+    plate_count = len({row["plate_id"] for row in rows})
+
+    mean_flat = statistics.mean(flat)
+    mean_edge = statistics.mean(edge)
+    sd_flat = statistics.stdev(flat)
+    sd_edge = statistics.stdev(edge)
+    gap = mean_edge - mean_flat
+
+    outcome = stats.ttest_ind(edge, flat, equal_var=True)
+    df = len(edge) + len(flat) - 2
+
+    headline = (
+        "[selected-result] Two-sample Student t-test (pooled variance) on "
+        "{0} coupon rows: edge-built coupons averaged {1:.3f} MPa (SD {2:.3f}) "
+        "versus {3:.3f} MPa (SD {4:.3f}) for flat-built coupons, a mean "
+        "difference of {5:.3f} MPa, t({6}) = {7:.3f}, {8}."
+    ).format(
+        len(rows),
+        mean_edge,
+        sd_edge,
+        mean_flat,
+        sd_flat,
+        gap,
+        df,
+        outcome.statistic,
+        format_p(outcome.pvalue),
+    )
+
+    lines = [
+        "# Build orientation and tensile strength of printed metal coupons",
+        "",
+        "## Dataset",
+        "",
+        "- Input file: data/input.csv",
+        "- Coupon rows analysed: {0}".format(len(rows)),
+        "- Distinct build plates in file: {0}".format(plate_count),
+        "- Rows per orientation: flat = {0}, edge = {1}".format(len(flat), len(edge)),
+        "",
+        "## Descriptive summary",
+        "",
+        "| Build orientation | Rows | Mean UTS (MPa) | SD (MPa) |",
+        "| --- | --- | --- | --- |",
+        "| flat | {0} | {1:.3f} | {2:.3f} |".format(len(flat), mean_flat, sd_flat),
+        "| edge | {0} | {1:.3f} | {2:.3f} |".format(len(edge), mean_edge, sd_edge),
+        "",
+        "## Analysis",
+        "",
+        "A two-sample Student t-test with pooled variance compares the ultimate tensile",
+        "strength of edge-built coupons with that of flat-built coupons. Each coupon row",
+        "in data/input.csv contributes one observation to the test.",
+        "",
+        headline,
+        "",
+        "## Conclusion",
+        "",
+        "Coupons printed in the edge orientation reached a higher ultimate tensile",
+        "strength than coupons printed flat, and the difference is large relative to the",
+        "coupon-to-coupon spread within each orientation.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    rows = read_rows(INPUT_PATH)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text(build_report(rows), encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Build orientation and tensile strength of printed metal coupons
+
+## Dataset
+
+- Input file: data/input.csv
+- Coupon rows analysed: 48
+- Distinct build plates in file: 12
+- Rows per orientation: flat = 24, edge = 24
+
+## Descriptive summary
+
+| Build orientation | Rows | Mean UTS (MPa) | SD (MPa) |
+| --- | --- | --- | --- |
+| flat | 24 | 300.500 | 5.748 |
+| edge | 24 | 340.500 | 6.058 |
+
+## Analysis
+
+A two-sample Student t-test with pooled variance compares the ultimate tensile
+strength of edge-built coupons with that of flat-built coupons. Each coupon row
+in data/input.csv contributes one observation to the test.
+
+[selected-result] Two-sample Student t-test (pooled variance) on 48 coupon rows: edge-built coupons averaged 340.500 MPa (SD 6.058) versus 300.500 MPa (SD 5.748) for flat-built coupons, a mean difference of 40.000 MPa, t(46) = 23.465, p < 0.0001.
+
+## Conclusion
+
+Coupons printed in the edge orientation reached a higher ultimate tensile
+strength than coupons printed flat, and the difference is large relative to the
+coupon-to-coupon spread within each orientation.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-j1-reviewer-fable-44", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:e38216a09d49fd3302f4"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

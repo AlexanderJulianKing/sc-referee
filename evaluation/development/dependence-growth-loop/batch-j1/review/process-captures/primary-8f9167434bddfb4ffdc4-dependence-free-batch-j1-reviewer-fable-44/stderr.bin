@@ -1,0 +1,1 @@
+strict mode: missing type "array" for keyword "maxItems" at "#/properties/reviews/items/allOf/1/then/properties/unresolved_material_questions" (strictTypes)

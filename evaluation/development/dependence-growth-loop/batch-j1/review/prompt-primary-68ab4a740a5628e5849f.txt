@@ -1,0 +1,224 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-j1-reviewer-fable-44
+
+=== workflow 1: case:68ab4a740a5628e5849f ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Coral nubbin calcification data
+
+The file `data/input.csv` comes from a 28-day aquarium heat-stress trial on the
+branching coral Acropora. Six parent colonies were collected from a single reef
+flat and assigned to tanks: three colonies were held at the ambient summer
+temperature and three were held at an elevated temperature. Two nubbins were cut
+from each colony, mounted separately, and weighed by the buoyant-weight method at
+the start and the end of the trial, giving one net calcification rate per nubbin
+in milligrams of CaCO3 per gram of skeleton per day.
+
+The temperature treatment was applied to whole colonies, and the two nubbins from
+a colony share that colony's genotype and its tank, so the two rows carrying the
+same colony label are repeated measurements of the same coral rather than
+separate corals.
+
+Columns:
+
+- colony_id: label of the parent colony that a nubbin was cut from
+- thermal_regime: tank temperature treatment applied to that colony, either
+  "ambient" or "heated"
+- nubbin_id: label of the individual nubbin
+- nubbin_area_cm2: skeletal surface area of the nubbin in square centimetres
+- net_calcification_mg_g_d: measured net calcification rate of the nubbin
+
+One row is: one nubbin's net calcification measurement, taken from one parent colony
+Independent unit column: colony_id
+
+--- file data/input.csv ---
+colony_id,thermal_regime,nubbin_id,nubbin_area_cm2,net_calcification_mg_g_d
+CL01,ambient,CL01N1,18.4,13.0
+CL01,ambient,CL01N2,17.9,13.0
+CL02,ambient,CL02N1,20.2,14.0
+CL02,ambient,CL02N2,19.6,16.0
+CL03,ambient,CL03N1,16.8,17.0
+CL03,ambient,CL03N2,18.1,17.0
+CL04,heated,CL04N1,19.0,10.0
+CL04,heated,CL04N2,18.7,11.0
+CL05,heated,CL05N1,17.5,11.0
+CL05,heated,CL05N2,20.9,13.0
+CL06,heated,CL06N1,18.3,13.0
+CL06,heated,CL06N2,19.4,14.0
+
+--- file workflow/analysis.py ---
+"""Net calcification of coral nubbins under two aquarium thermal regimes."""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = Path("data/input.csv")
+OUTPUT_PATH = Path("results/report.md")
+
+UNIT_COLUMN = "colony_id"
+REGIME_COLUMN = "thermal_regime"
+RATE_COLUMN = "net_calcification_mg_g_d"
+REGIMES = ("ambient", "heated")
+ALPHA = 0.05
+
+
+def read_table(path):
+    with path.open("r", encoding="ascii", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def rates_by_regime(table):
+    collected = {name: [] for name in REGIMES}
+    for record in table:
+        collected[record[REGIME_COLUMN]].append(float(record[RATE_COLUMN]))
+    return {
+        name: np.array(values, dtype=float) for name, values in collected.items()
+    }
+
+
+def rows_per_colony(table):
+    tally = {}
+    for record in table:
+        key = record[UNIT_COLUMN]
+        tally[key] = tally.get(key, 0) + 1
+    return tally
+
+
+def describe(name, values):
+    return "- {}: n = {}, mean = {:.3f} mg CaCO3 g^-1 d^-1, sd = {:.3f}".format(
+        name, values.size, float(values.mean()), float(values.std(ddof=1))
+    )
+
+
+def main():
+    table = read_table(INPUT_PATH)
+    rates = rates_by_regime(table)
+    ambient = rates["ambient"]
+    heated = rates["heated"]
+
+    n_ambient = int(ambient.size)
+    n_heated = int(heated.size)
+    dof = n_ambient + n_heated - 2
+
+    pooled_var = (
+        (n_ambient - 1) * float(ambient.var(ddof=1))
+        + (n_heated - 1) * float(heated.var(ddof=1))
+    ) / dof
+    stderr = float(np.sqrt(pooled_var * (1.0 / n_ambient + 1.0 / n_heated)))
+    difference = float(ambient.mean() - heated.mean())
+    margin = float(stats.t.ppf(1.0 - ALPHA / 2.0, dof)) * stderr
+    low = difference - margin
+    high = difference + margin
+
+    outcome = stats.ttest_ind(ambient, heated, equal_var=True)
+    t_stat = float(outcome.statistic)
+    p_value = float(outcome.pvalue)
+
+    tally = rows_per_colony(table)
+    counts = sorted(tally.values())
+    if counts[0] == counts[-1]:
+        spread = "{} measurements each".format(counts[0])
+    else:
+        spread = "{} to {} measurements each".format(counts[0], counts[-1])
+
+    headline = (
+        "[selected-result] Two-sample Student t-test comparing the {} nubbin "
+        "calcification measurements between thermal regimes: ambient nubbins "
+        "calcified {:.3f} mg CaCO3 g^-1 d^-1 faster than heated nubbins, "
+        "t({}) = {:.4f}, p = {:.4f} (two-sided, 95% CI {:.4f} to {:.4f})."
+    ).format(len(table), difference, dof, t_stat, p_value, low, high)
+
+    lines = [
+        "# Thermal regime and net calcification in Acropora nubbins",
+        "",
+        "## Data",
+        "",
+        "Source file: `data/input.csv` ({} measurement rows).".format(len(table)),
+        "",
+        describe("ambient", ambient),
+        describe("heated", heated),
+        "- {} parent colonies contributed {}.".format(len(tally), spread),
+        "",
+        "## Analysis",
+        "",
+        "Each measurement row in the file was entered as one observation in a",
+        "two-sample Student t-test with pooled variance (two-sided), comparing net",
+        "calcification under the ambient regime with net calcification under the",
+        "heated regime (scipy.stats.ttest_ind, equal_var=True).",
+        "",
+        "## Result",
+        "",
+        "- Mean difference (ambient - heated): {:.3f} mg CaCO3 g^-1 d^-1".format(
+            difference
+        ),
+        "- 95% confidence interval: {:.4f} to {:.4f}".format(low, high),
+        "- Test statistic: t({}) = {:.4f}".format(dof, t_stat),
+        "- Two-sided p-value: {:.4f}".format(p_value),
+        "",
+        headline,
+        "",
+        "## Interpretation",
+        "",
+        "At the 0.05 level the ambient-heated difference in net calcification is",
+        "statistically significant. The {} analysed rows are the {} nubbins measured".format(
+            len(table), counts[0]
+        ),
+        "on each of the {} parent colonies, and the test used all {} rows as its".format(
+            len(tally), len(table)
+        ),
+        "observations, which is where its {} degrees of freedom come from.".format(dof),
+    ]
+
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with OUTPUT_PATH.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write("\n".join(lines) + "\n")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Thermal regime and net calcification in Acropora nubbins
+
+## Data
+
+Source file: `data/input.csv` (12 measurement rows).
+
+- ambient: n = 6, mean = 15.000 mg CaCO3 g^-1 d^-1, sd = 1.897
+- heated: n = 6, mean = 12.000 mg CaCO3 g^-1 d^-1, sd = 1.549
+- 6 parent colonies contributed 2 measurements each.
+
+## Analysis
+
+Each measurement row in the file was entered as one observation in a
+two-sample Student t-test with pooled variance (two-sided), comparing net
+calcification under the ambient regime with net calcification under the
+heated regime (scipy.stats.ttest_ind, equal_var=True).
+
+## Result
+
+- Mean difference (ambient - heated): 3.000 mg CaCO3 g^-1 d^-1
+- 95% confidence interval: 0.7719 to 5.2281
+- Test statistic: t(10) = 3.0000
+- Two-sided p-value: 0.0133
+
+[selected-result] Two-sample Student t-test comparing the 12 nubbin calcification measurements between thermal regimes: ambient nubbins calcified 3.000 mg CaCO3 g^-1 d^-1 faster than heated nubbins, t(10) = 3.0000, p = 0.0133 (two-sided, 95% CI 0.7719 to 5.2281).
+
+## Interpretation
+
+At the 0.05 level the ambient-heated difference in net calcification is
+statistically significant. The 12 analysed rows are the 2 nubbins measured
+on each of the 6 parent colonies, and the test used all 12 rows as its
+observations, which is where its 10 degrees of freedom come from.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-j1-reviewer-fable-44", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:68ab4a740a5628e5849f"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

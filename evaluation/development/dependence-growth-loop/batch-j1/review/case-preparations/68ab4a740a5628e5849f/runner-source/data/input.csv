@@ -1,0 +1,13 @@
+colony_id,thermal_regime,nubbin_id,nubbin_area_cm2,net_calcification_mg_g_d
+CL01,ambient,CL01N1,18.4,13.0
+CL01,ambient,CL01N2,17.9,13.0
+CL02,ambient,CL02N1,20.2,14.0
+CL02,ambient,CL02N2,19.6,16.0
+CL03,ambient,CL03N1,16.8,17.0
+CL03,ambient,CL03N2,18.1,17.0
+CL04,heated,CL04N1,19.0,10.0
+CL04,heated,CL04N2,18.7,11.0
+CL05,heated,CL05N1,17.5,11.0
+CL05,heated,CL05N2,20.9,13.0
+CL06,heated,CL06N1,18.3,13.0
+CL06,heated,CL06N2,19.4,14.0

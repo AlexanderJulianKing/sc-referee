@@ -1,0 +1,582 @@
+
+
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sc-referee audit</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    body { max-width: 72rem; margin: 0 auto; padding: 2rem; line-height: 1.5; }
+    header, section { margin-bottom: 2rem; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem; }
+    .card { border: 1px solid #8886; border-radius: .5rem; padding: 1rem; margin-bottom: 1rem; }
+    .count { font-size: 1.8rem; font-weight: 700; }
+    code, pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+    details { margin: .75rem 0; }
+    .notice { border: 1px solid #8888; border-radius: .5rem; padding: .75rem 1rem; }
+    .source-excerpt { border: 1px solid #8886; border-radius: .5rem; padding: .75rem 1rem; scroll-margin-top: 1rem; }
+    .decision-panel { background: #8881; border-radius: .5rem; padding: 1rem; margin: 1rem 0; }
+    .decision-panel h4 { margin-top: 0; }
+    blockquote { margin-left: 0; padding: .75rem; background: #8881; }
+  </style>
+</head>
+<body>
+
+
+
+
+
+<header>
+  <h1>sc-referee scientific audit</h1>
+  
+  <p><strong>Coverage-limited audit: the deterministic run completed, but required evidence or supported detector coverage was unavailable.</strong></p>
+  <p>Zero Findings is not evidence that uncovered claims or operations are correct.</p>
+  
+  <p class="notice">This report is not a determination that the analysis is correct, safe, publication-ready, or free of uninspected scientific issues.</p>
+</header>
+<section class="summary" aria-label="Assessment counts">
+  <div class="card"><div class="count">0</div><div>Findings</div></div>
+  <div class="card"><div class="count">0</div><div>Conditional concerns</div></div>
+  <div class="card"><div class="count">0</div><div>Material questions</div></div>
+  <div class="card"><div class="count">8</div><div>Material disclosures</div></div>
+  <div class="card"><div class="count">18</div><div>Routine not-applicable checks</div></div>
+</section>
+<section>
+  <h2>Claims needing correction</h2>
+  <p>None in the inspected detector path.</p>
+</section>
+<section>
+  <h2>Coverage and completion</h2>
+  <p><strong>Run coverage state:</strong> partial evidence unavailable</p>
+  <p>6 of 6 inventoried files were classified; 4 were deeply inspected.</p>
+  <p>0 of 0 claims were inspected; 0 had complete lineage.</p>
+  <h3>Parser surfaces</h3>
+  <ul><li>parser:markdown-inventory:data-description.md: covered. State parsed; 0 syntax issue(s) and 0 opaque construct(s).</li><li>parser:markdown-inventory:results/report.md: covered. State parsed; 0 syntax issue(s) and 0 opaque construct(s).</li><li>parser:markdown-inventory:task.md: covered. State parsed; 0 syntax issue(s) and 0 opaque construct(s).</li><li>parser:python-ast-tokenize:workflow/analysis.py: covered. State parsed; 0 syntax issue(s) and 0 opaque construct(s).</li></ul>
+  <h3>Detector targets</h3>
+  <ul><li><code>detector:bounded-analysis-method-conflict</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:bounded-report-mean-direction</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:bounded-reported-method-contract-conflict</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:bounded-feature-identifier-identity</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:population-comparison-estimand</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:denominator-control-set</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:explicit-dependence</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:lineage-completeness</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li></ul>
+  <h3>Pending or unprocessed work</h3><ul><li>If claim-level review is required, provide a supported provenance-bearing Claim representation for the selected publication surface.</li><li>Run only detectors whose qualified envelopes apply to the locked records.</li></ul>
+  <h3>Known coverage gaps</h3><ul><li>No SelectionEnvelope was reconstructed.</li><li>No final claim was bound to a complete ScientificContract.</li><li>No qualified production detector target was eligible.</li><li>2 asset(s) are unidentified; dependent conclusions remain unavailable.</li><li>1 delimited table(s) have header-only structural inventory; row shape, values, storage types, and scientific meanings remain unknown.</li></ul>
+</section>
+<section>
+  <h2>Experimental detector outputs</h2>
+  <p>These are deterministic development outputs, not Findings. An evaluation candidate cannot enter production Finding admission unless a later, independently supported qualification promotes the exact detector version.</p>
+  <p>No experimental detector target was evaluated.</p>
+</section>
+<section>
+  <h2>Answer-side adjudicated root causes</h2>
+  <p>These qualification records preserve exact cross-provider panel decisions. They are not Findings in this audit and do not establish detector equivalence, global correctness, or publication readiness.</p>
+  <p>No answer-side adjudicated root-cause records are carried by this bundle.</p>
+</section>
+<section>
+  <h2>Detector qualification evidence</h2>
+  <p>These records are qualification-only evidence. Evaluation candidates are not Findings, case outcomes are not detector qualifications, and no metric shown here permits promotion.</p>
+  <h3>Scientific-label review basis</h3>
+  <p>No scientific-label adjudications are carried by this bundle.</p>
+  <h3>Evaluation candidates</h3>
+  <p>No qualification-only detector candidates are carried by this bundle.</p>
+  <h3>Fresh Stage-3 comparisons</h3>
+  <p>No Stage-3 comparison reviews are carried by this bundle.</p>
+  <h3>Deterministic case outcomes</h3>
+  <p>No reconciled detector case outcomes are carried by this bundle.</p>
+  <h3>Clustered metric sets</h3>
+  <p>No clustered qualification metric set is carried by this bundle.</p>
+  <h3>Static qualification proof records</h3>
+  <p>No static qualification profile is carried by this bundle.</p>
+  
+</section>
+<section>
+  <h2>Conditional concerns requiring scientific review</h2>
+  <p>None recorded.</p>
+</section>
+<section>
+  <h2>Material questions</h2>
+  <p>None recorded.</p>
+</section>
+<section>
+  <h2>Coverage and trust disclosures</h2>
+  
+  
+  
+  <article class="card" id="disclosure-1"><h3>No production detector was eligible in the general static audit</h3><p>The repository was inventoried and supported source files were parsed, but a qualified production detector envelope was not available; incomplete claim contracts or lineage may additionally restrict targets.</p>
+    <p><strong>Importance:</strong> material</p><p><strong>Interpretive consequence:</strong> Zero Findings from this run cannot be interpreted as evidence that the scientific workflow is correct.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-2"><h3>Some Python operations remain opaque to static inspection</h3><p>43 operation(s) were preserved with unresolved callable or runtime semantics.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> The internal scientific behavior of those operations was not established.</p>
+    
+<div class="evidence-package">
+  <p><strong>Source navigation:</strong></p>
+  <ul>
+  
+    <li><a href="#disclosure-2-source-1"><code>workflow/analysis.py:49-52</code></a></li>
+  
+    <li><a href="#disclosure-2-source-2"><code>workflow/analysis.py:127-127</code></a></li>
+  
+    <li><a href="#disclosure-2-source-3"><code>workflow/analysis.py:40-40</code></a></li>
+  
+    <li><a href="#disclosure-2-source-4"><code>workflow/analysis.py:100-100</code></a></li>
+  
+    <li><a href="#disclosure-2-source-5"><code>workflow/analysis.py:103-103</code></a></li>
+  
+    <li><a href="#disclosure-2-source-6"><code>workflow/analysis.py:112-112</code></a></li>
+  
+    <li><a href="#disclosure-2-source-7"><code>workflow/analysis.py:120-120</code></a></li>
+  
+    <li><a href="#disclosure-2-source-8"><code>workflow/analysis.py:76-76</code></a></li>
+  
+    <li><a href="#disclosure-2-source-9"><code>workflow/analysis.py:78-78</code></a></li>
+  
+    <li><a href="#disclosure-2-source-10"><code>workflow/analysis.py:87-87</code></a></li>
+  
+    <li><a href="#disclosure-2-source-11"><code>workflow/analysis.py:89-89</code></a></li>
+  
+    <li><a href="#disclosure-2-source-12"><code>workflow/analysis.py:98-98</code></a></li>
+  
+    <li><a href="#disclosure-2-source-13"><code>workflow/analysis.py:54-54</code></a></li>
+  
+    <li><a href="#disclosure-2-source-14"><code>workflow/analysis.py:55-55</code></a></li>
+  
+    <li><a href="#disclosure-2-source-15"><code>workflow/analysis.py:99-99</code></a></li>
+  
+    <li><a href="#disclosure-2-source-16"><code>workflow/analysis.py:77-77</code></a></li>
+  
+    <li><a href="#disclosure-2-source-17"><code>workflow/analysis.py:88-88</code></a></li>
+  
+    <li><a href="#disclosure-2-source-18"><code>workflow/analysis.py:37-37</code></a></li>
+  
+    <li><a href="#disclosure-2-source-19"><code>workflow/analysis.py:86-86</code></a></li>
+  
+    <li><a href="#disclosure-2-source-20"><code>workflow/analysis.py:58-58</code></a></li>
+  
+    <li><a href="#disclosure-2-source-21"><code>workflow/analysis.py:59-59</code></a></li>
+  
+    <li><a href="#disclosure-2-source-22"><code>workflow/analysis.py:123-123</code></a></li>
+  
+    <li><a href="#disclosure-2-source-23"><code>workflow/analysis.py:72-72</code></a></li>
+  
+    <li><a href="#disclosure-2-source-24"><code>workflow/analysis.py:91-91</code></a></li>
+  
+    <li><a href="#disclosure-2-source-25"><code>workflow/analysis.py:62-62</code></a></li>
+  
+    <li><a href="#disclosure-2-source-26"><code>workflow/analysis.py:58-58</code></a></li>
+  
+    <li><a href="#disclosure-2-source-27"><code>workflow/analysis.py:43-43</code></a></li>
+  
+    <li><a href="#disclosure-2-source-28"><code>workflow/analysis.py:102-102</code></a></li>
+  
+    <li><a href="#disclosure-2-source-29"><code>workflow/analysis.py:122-122</code></a></li>
+  
+    <li><a href="#disclosure-2-source-30"><code>workflow/analysis.py:111-111</code></a></li>
+  
+    <li><a href="#disclosure-2-source-31"><code>workflow/analysis.py:104-106</code></a></li>
+  
+    <li><a href="#disclosure-2-source-32"><code>workflow/analysis.py:107-110</code></a></li>
+  
+    <li><a href="#disclosure-2-source-33"><code>workflow/analysis.py:113-119</code></a></li>
+  
+    <li><a href="#disclosure-2-source-34"><code>workflow/analysis.py:79-81</code></a></li>
+  
+    <li><a href="#disclosure-2-source-35"><code>workflow/analysis.py:82-85</code></a></li>
+  
+    <li><a href="#disclosure-2-source-36"><code>workflow/analysis.py:92-94</code></a></li>
+  
+    <li><a href="#disclosure-2-source-37"><code>workflow/analysis.py:95-97</code></a></li>
+  
+    <li><a href="#disclosure-2-source-38"><code>workflow/analysis.py:59-59</code></a></li>
+  
+    <li><a href="#disclosure-2-source-39"><code>workflow/analysis.py:45-45</code></a></li>
+  
+    <li><a href="#disclosure-2-source-40"><code>workflow/analysis.py:90-90</code></a></li>
+  
+    <li><a href="#disclosure-2-source-41"><code>workflow/analysis.py:41-41</code></a></li>
+  
+    <li><a href="#disclosure-2-source-42"><code>workflow/analysis.py:101-101</code></a></li>
+  
+    <li><a href="#disclosure-2-source-43"><code>workflow/analysis.py:75-75</code></a></li>
+  
+  </ul>
+  
+  <div class="source-excerpt" id="disclosure-2-source-1">
+    <p><code>workflow/analysis.py:49-52</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>np.array(
+            [float(row[VALUE_COL]) for row in rows if row[GROUP_COL] == label],
+            dtype=float,
+        )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-2">
+    <p><code>workflow/analysis.py:127-127</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>main()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-3">
+    <p><code>workflow/analysis.py:40-40</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>set(ids)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-4">
+    <p><code>workflow/analysis.py:100-100</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-5">
+    <p><code>workflow/analysis.py:103-103</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-6">
+    <p><code>workflow/analysis.py:112-112</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-7">
+    <p><code>workflow/analysis.py:120-120</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-8">
+    <p><code>workflow/analysis.py:76-76</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-9">
+    <p><code>workflow/analysis.py:78-78</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-10">
+    <p><code>workflow/analysis.py:87-87</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-11">
+    <p><code>workflow/analysis.py:89-89</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-12">
+    <p><code>workflow/analysis.py:98-98</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-13">
+    <p><code>workflow/analysis.py:54-54</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>velocities(first)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-14">
+    <p><code>workflow/analysis.py:55-55</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>velocities(second)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-15">
+    <p><code>workflow/analysis.py:99-99</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("## Test")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-16">
+    <p><code>workflow/analysis.py:77-77</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("## Design")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-17">
+    <p><code>workflow/analysis.py:88-88</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("## Groups")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-18">
+    <p><code>workflow/analysis.py:37-37</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>read_rows(DATA_PATH)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-19">
+    <p><code>workflow/analysis.py:86-86</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("observations.")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-20">
+    <p><code>workflow/analysis.py:58-58</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>x.mean()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-21">
+    <p><code>workflow/analysis.py:59-59</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>x.var(ddof=1)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-22">
+    <p><code>workflow/analysis.py:123-123</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>"\n".join(lines)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-23">
+    <p><code>workflow/analysis.py:72-72</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>p_bracket(float(result.pvalue))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-24">
+    <p><code>workflow/analysis.py:91-91</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("| --- | --- | --- | --- |")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-25">
+    <p><code>workflow/analysis.py:62-62</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>stats.ttest_ind(x, y, equal_var=False)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-26">
+    <p><code>workflow/analysis.py:58-58</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>y.mean()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-27">
+    <p><code>workflow/analysis.py:43-43</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>sorted({row[GROUP_COL] for row in rows})</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-28">
+    <p><code>workflow/analysis.py:102-102</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("%s by %s." % (VALUE_COL, GROUP_COL))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-29">
+    <p><code>workflow/analysis.py:122-122</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-30">
+    <p><code>workflow/analysis.py:111-111</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("Cohen's d (pooled SD) = %.2f" % cohen_d)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-31">
+    <p><code>workflow/analysis.py:104-106</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append(
+        "Difference in means (%s - %s): %.2f cm/yr" % (first, second, gap)
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-32">
+    <p><code>workflow/analysis.py:107-110</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append(
+        "t = %.2f, Welch-Satterthwaite df = %.1f, %s"
+        % (result.statistic, welch_df, verdict)
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-33">
+    <p><code>workflow/analysis.py:113-119</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append(
+        "[selected-result] Welch two-sided t-test: %s-hosted rock glaciers creep"
+        " %.2f cm/yr faster than %s-hosted ones (%.2f vs %.2f cm/yr; t = %.2f,"
+        " df = %.1f, %s, Cohen's d = %.2f), one row per landform."
+        % (first, gap, second, mean_x, mean_y, result.statistic, welch_df,
+           verdict, cohen_d)
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-34">
+    <p><code>workflow/analysis.py:79-81</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append(
+        "Each row of `data/input.csv` is one rock glacier, surveyed once. No landform"
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-35">
+    <p><code>workflow/analysis.py:82-85</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append(
+        "contributes more than one row, so the %d velocity values are %d independent"
+        % (len(rows), len(rows))
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-36">
+    <p><code>workflow/analysis.py:92-94</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append(
+        "| %s | %d | %.2f | %.2f |" % (first, n_x, mean_x, var_x ** 0.5)
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-37">
+    <p><code>workflow/analysis.py:95-97</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append(
+        "| %s | %d | %.2f | %.2f |" % (second, n_y, mean_y, var_y ** 0.5)
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-38">
+    <p><code>workflow/analysis.py:59-59</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>y.var(ddof=1)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-39">
+    <p><code>workflow/analysis.py:45-45</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>ValueError("expected exactly two bedrock classes")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-40">
+    <p><code>workflow/analysis.py:90-90</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("| bedrock_class | n | mean creep (cm/yr) | SD (cm/yr) |")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-41">
+    <p><code>workflow/analysis.py:41-41</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>ValueError("landform_id must be unique: one row per landform")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-42">
+    <p><code>workflow/analysis.py:101-101</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("Welch's two-sample t-test (unequal variances, two-sided) on")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-43">
+    <p><code>workflow/analysis.py:75-75</code> · <code>sha256:9601b79d22cec12e744bf6c6c38e9a493fd1620ddc3db8f6f4df33d115438c85</code></p>
+    <blockquote><code>lines.append("# Bedrock lithology and downslope creep of alpine rock glaciers")</code></blockquote>
+  </div>
+  
+</div>
+
+  </article>
+  
+  
+  <article class="card" id="disclosure-3"><h3>A bounded human dependence-authorization lock was applied</h3><p>The controller applied one digest-sealed four-record human authorization bundle before question-only static scientific-check evaluation. Writer scope was established from the human-approved declared execution root, not from execution evidence.</p>
+    <p><strong>Importance:</strong> informational</p><p><strong>Interpretive consequence:</strong> The lock supplies only its stated case-, snapshot-, input-, procedure-, and ordered-key authority; it establishes no execution, correctness, numerical impact, or production Finding eligibility.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-4"><h3>Scientific check representation is unsupported</h3><p>check:authorized-independent-unit-entry-into-row-independent-procedure: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-5"><h3>Scientific check representation is unsupported</h3><p>check:classifier-derived-copy-dosage-representation: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-6"><h3>Scientific check representation is unsupported</h3><p>check:complete-domain-exposure-denominator: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-7"><h3>Scientific check representation is unsupported</h3><p>check:complete-family-correction-over-performed-test-battery: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-8"><h3>Scientific check representation is unsupported</h3><p>check:founder-orientation-before-hmm-emission: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  
+  <details>
+    <summary>18 routine not-applicable scientific-check records</summary>
+    <p>These negative applicability records are retained for deterministic replay. They are coverage bookkeeping, not concerns about the workflow.</p>
+    <ul><li><code>check:casrx-isoform-axis-model</code>: check:casrx-isoform-axis-model: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:direct-standardization-conditioning-set</code>: check:direct-standardization-conditioning-set: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:directional-measurement-error-interpretation</code>: check:directional-measurement-error-interpretation: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:expected-count-background-construction</code>: check:expected-count-background-construction: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:expected-count-focal-target-handling</code>: check:expected-count-focal-target-handling: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:full-map-ancestry-exposure</code>: check:full-map-ancestry-exposure: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:ld-covariance-whitening-before-robust-fit</code>: check:ld-covariance-whitening-before-robust-fit: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:local-perturbation-primary-row-scope</code>: check:local-perturbation-primary-row-scope: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:local-perturbation-regression-specification</code>: check:local-perturbation-regression-specification: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:mvmr-cross-exposure-covariance</code>: check:mvmr-cross-exposure-covariance: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:mvmr-residual-heterogeneity-estimator</code>: check:mvmr-residual-heterogeneity-estimator: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:paired-bridge-location-alignment</code>: check:paired-bridge-location-alignment: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:phase-split-mvmr-instrument-construction</code>: check:phase-split-mvmr-instrument-construction: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:poststratified-misclassification-estimator</code>: check:poststratified-misclassification-estimator: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:posttreatment-missingness-strategy</code>: check:posttreatment-missingness-strategy: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:recoverable-technical-group-adjustment</code>: check:recoverable-technical-group-adjustment: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:somatic-clonality-representation</code>: check:somatic-clonality-representation: Every completed adapter determined that its exact representation does not apply.</li><li><code>check:within-sequence-transition-path-continuity</code>: check:within-sequence-transition-path-continuity: Every completed adapter determined that its exact representation does not apply.</li></ul>
+  </details>
+  
+</section>
+<section>
+  <h2>External reproduction requests</h2>
+  <p>These are proposed evidence requests only. They do not authorize sc-referee to execute project code, use credentials, or submit work to a scheduler.</p>
+  <p>No external reproduction request was generated for the selected scope.</p>
+</section>
+<section>
+  <h2>Claim lineage</h2>
+  <p>Each grade is independent. A partial aggregate does not show that the project workflow executed or that the report was reproduced.</p>
+  
+</section>
+<section>
+  <h2>Asset identity</h2>
+  <p>Identity strength limits only claims, lineage, or detector conclusions for which exact asset identity is a material premise. A weak or unidentified asset is a coverage and reproducibility limitation, not a scientific defect.</p>
+  
+  <article class="card"><h3><code>file:e796ce9dd6ae392d6b25</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>file:0e12b52335b0fecbef03</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>file:318d32cc1ea6fe7491f4</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>file:5de3f30a07ec8ee7300b</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>file:e09bc33c466e7991b83b</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>file:c7b149d167fa266413f7</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>artifact-publication:2cd492b2ce8274f203e0</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>artifact:ce349abdb685d3be0126</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>artifact:c05cf4f0108d84e7081b</code></h3>
+    <p>Tier: unidentified.</p>
+    <ul><li>No output bytes existed in the immutable source snapshot.</li></ul>
+  </article>
+  
+  <article class="card"><h3><code>artifact-publication:a31e05f365f049d57fd9</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>artifact:4a9ef57103be625f3a19</code></h3>
+    <p>Tier: unidentified.</p>
+    <ul><li>No output bytes existed in the immutable source snapshot.</li></ul>
+  </article>
+  
+  <article class="card"><h3><code>artifact-publication:26e953b4e3401cfa2aa4</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+</section>
+<section>
+  <h2>Audit identity and provenance</h2>
+  <p>Run: <code>audit:1b65c4c8523c4c448e976bf0c5d97683</code></p><p>Semantic lock: <code>sha256:7b426f16025761fa250e6a26a07cf44965a4f3ea2f7b948d69d1c9c244965a68</code></p>
+  <p>Snapshot: <code>sha256:3819a78b2497dd33979ae4add903442cc1f8a729140d3046ee8894b7636a68d1</code>; live workspace: unchanged.</p>
+  <p>External evidence records: 0. Project/auditor environments: 1. Environment reconstructions: 0. Reproduction requests: 0.</p>
+  
+  <article class="card">
+    <h3>Performance measurement through semantic lock</h3>
+    <p>This is a replayable boundary measurement, not total run duration. Post-lock report, storage, and integrity time is excluded.</p>
+    <p>User-visible elapsed: 0.14887991617433727 seconds; paused for scientist: 0.0 seconds.</p>
+    <p>Controller-observed model calls: 0; parser-cache hits: 0; misses: 4; invalidations: 0.</p>
+    <p>Metered snapshot full-digest reads: 6171 bytes; sampled-fingerprint reads: 0 bytes. Other I/O is not included.</p>
+  </article>
+  
+</section>
+</body>
+</html>

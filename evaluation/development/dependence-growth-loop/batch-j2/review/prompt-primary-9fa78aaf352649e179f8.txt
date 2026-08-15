@@ -1,0 +1,300 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-j2-reviewer-fable-46
+
+=== workflow 1: case:9fa78aaf352649e179f8 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Overnight respirometry log: beta-glucan feeding trial in juvenile Atlantic salmon
+
+Twelve 400 L recirculating tanks were stocked with juvenile Atlantic salmon of similar
+size. Six tanks were randomly assigned the standard ration and six the same ration with a
+beta-glucan supplement blended in. After a two-week acclimation the tanks were placed on
+an intermittent-flow respirometry loop and routine oxygen uptake was logged overnight.
+Each tank was measured on up to four separate nights during one trial week; two tanks lost
+a night to a chiller fault, so the log is unbalanced.
+
+One row is: one overnight respirometry session for one tank
+Independent unit column: tank_id
+
+Columns
+
+- tank_id: label of the tank (T01 to T12). Diet was assigned to whole tanks, and each tank
+  has its own water loop, feeder and biofilter, so tanks share no fish, water or handling.
+- diet: ration fed to that tank, either control or bglucan (beta-glucan supplemented). The
+  value is fixed for a tank across all of its nights.
+- night: index of the measurement night within the trial week, 1 to 4.
+- water_temp_c: mean water temperature during the session, in degrees Celsius.
+- n_fish: number of fish held in the tank during the session.
+- mo2_mg_kg_h: mass-specific oxygen uptake of the tank during the session, in milligrams
+  of oxygen per kilogram of fish per hour.
+
+Because the same tank appears on several rows, the rows are repeated measurements of the
+same unit: the 46 rows come from only 12 tanks, and six tanks per diet is the replication
+available for any diet comparison. Session values should therefore be summarised within a
+tank before a between-diet comparison is made.
+
+--- file data/input.csv ---
+tank_id,diet,night,water_temp_c,n_fish,mo2_mg_kg_h
+T01,control,1,12.1,24,205.6
+T02,bglucan,1,12.1,24,224.6
+T03,control,1,12.0,24,194.5
+T04,bglucan,1,12.2,23,208.7
+T05,control,1,12.1,24,216.4
+T06,bglucan,1,12.0,24,236.8
+T07,control,1,12.2,23,200.7
+T08,bglucan,1,12.1,24,220.3
+T09,control,1,12.0,24,211.8
+T10,bglucan,1,12.2,24,229.8
+T11,control,1,12.1,24,198.6
+T12,bglucan,1,12.1,23,233.5
+T01,control,2,12.4,24,211.2
+T02,bglucan,2,12.3,24,230.1
+T03,control,2,12.4,24,199.1
+T04,bglucan,2,12.5,23,214.1
+T05,control,2,12.3,24,221.2
+T06,bglucan,2,12.4,24,243.4
+T07,control,2,12.5,23,208.2
+T08,bglucan,2,12.4,24,226.5
+T09,control,2,12.3,24,217.3
+T11,control,2,12.4,24,204.2
+T12,bglucan,2,12.5,23,239.8
+T01,control,3,12.2,24,208.4
+T02,bglucan,3,12.2,24,227.4
+T03,control,3,12.3,24,201.3
+T04,bglucan,3,12.1,23,210.6
+T06,bglucan,3,12.2,24,239.7
+T07,control,3,12.3,23,203.9
+T08,bglucan,3,12.2,24,222.9
+T09,control,3,12.1,24,214.5
+T10,bglucan,3,12.3,24,235.4
+T11,control,3,12.2,24,200.9
+T12,bglucan,3,12.2,23,236.4
+T01,control,4,12.5,24,213.8
+T02,bglucan,4,12.6,24,232.9
+T03,control,4,12.4,24,197.9
+T04,bglucan,4,12.5,23,215.8
+T05,control,4,12.6,24,220.3
+T06,bglucan,4,12.5,24,245.1
+T07,control,4,12.4,23,207.6
+T08,bglucan,4,12.6,24,227.9
+T09,control,4,12.5,24,218.8
+T10,bglucan,4,12.4,24,234.1
+T11,control,4,12.6,24,206.1
+T12,bglucan,4,12.5,23,241.9
+
+--- file workflow/analysis.py ---
+"""Tank-level comparison of routine oxygen uptake in juvenile Atlantic salmon.
+
+Reads data/input.csv (one row per overnight respirometry session) and writes
+results/report.md. The overnight sessions are repeated measurements on the same
+tanks, so they are averaged within a tank before any test is run.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = Path("data") / "input.csv"
+OUTPUT_PATH = Path("results") / "report.md"
+
+CONTROL = "control"
+SUPPLEMENT = "bglucan"
+DIET_LABEL = {CONTROL: "control", SUPPLEMENT: "beta-glucan"}
+
+
+def read_sessions(path):
+    """Return one (tank_id, diet, mo2) tuple per session row."""
+    sessions = []
+    with path.open(newline="", encoding="ascii") as handle:
+        for record in csv.DictReader(handle):
+            sessions.append(
+                (
+                    record["tank_id"],
+                    record["diet"],
+                    float(record["mo2_mg_kg_h"]),
+                )
+            )
+    return sessions
+
+
+def collapse_to_tanks(sessions):
+    """Average the repeated sessions of a tank into a single tank-level value."""
+    diet_of = {}
+    readings = {}
+    for tank_id, diet, mo2 in sessions:
+        diet_of[tank_id] = diet
+        readings.setdefault(tank_id, []).append(mo2)
+    tanks = []
+    for tank_id in sorted(readings):
+        values = readings[tank_id]
+        tanks.append(
+            {
+                "tank_id": tank_id,
+                "diet": diet_of[tank_id],
+                "sessions": len(values),
+                "mean_mo2": float(np.mean(values)),
+            }
+        )
+    return tanks
+
+
+def group_means(tanks, diet):
+    """One value per tank for the requested diet."""
+    return np.array(
+        [tank["mean_mo2"] for tank in tanks if tank["diet"] == diet], dtype=float
+    )
+
+
+def build_report(tanks, n_sessions):
+    control = group_means(tanks, CONTROL)
+    supplemented = group_means(tanks, SUPPLEMENT)
+    n_tanks = len(tanks)
+    n_control = control.size
+    n_supp = supplemented.size
+
+    test = stats.mannwhitneyu(
+        supplemented, control, alternative="two-sided", method="exact"
+    )
+    u_stat = float(test.statistic)
+    p_value = float(test.pvalue)
+    rank_biserial = 2.0 * u_stat / float(n_control * n_supp) - 1.0
+
+    ctrl_mean = float(np.mean(control))
+    supp_mean = float(np.mean(supplemented))
+    ctrl_median = float(np.median(control))
+    supp_median = float(np.median(supplemented))
+    median_gap = supp_median - ctrl_median
+
+    lines = [
+        "# Routine metabolic rate of juvenile Atlantic salmon on a beta-glucan diet",
+        "",
+        "## Design and data",
+        "",
+        f"The file data/input.csv contains {n_sessions} overnight respirometry sessions recorded on",
+        f"{n_tanks} recirculating tanks: {n_control} fed the control ration and {n_supp} fed the same ration with a",
+        "beta-glucan supplement. Each tank was measured on three or four separate nights, so the",
+        f"{n_sessions} rows are repeated sessions rather than {n_sessions} independent observations. Diet was",
+        "randomised to whole tanks, and each tank ran on its own water loop, feeder and biofilter,",
+        "so the tank is the independent experimental unit.",
+        "",
+        "## Analysis",
+        "",
+        "Sessions were averaged within each tank before any test was run, so every tank",
+        "contributes exactly one value (mass-specific oxygen uptake, MO2, in mg O2 kg^-1 h^-1) to",
+        "the comparison. The two diets were then compared with a two-sided exact Mann-Whitney U",
+        f"test on the {n_tanks} tank means ({n_control} control vs {n_supp} beta-glucan). The individual session rows were",
+        "never entered into the test.",
+        "",
+        "## Tank-level summary",
+        "",
+        "| tank | diet | sessions | mean MO2 (mg O2 kg^-1 h^-1) |",
+        "| --- | --- | --- | --- |",
+    ]
+
+    for tank in tanks:
+        lines.append(
+            "| {0} | {1} | {2} | {3:.2f} |".format(
+                tank["tank_id"],
+                DIET_LABEL[tank["diet"]],
+                tank["sessions"],
+                tank["mean_mo2"],
+            )
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Result",
+            "",
+            f"Averaged over tanks, MO2 was {supp_mean:.2f} mg O2 kg^-1 h^-1 on the beta-glucan diet and {ctrl_mean:.2f}",
+            f"on the control diet; the tank medians were {supp_median:.1f} and {ctrl_median:.1f}, a median difference of {median_gap:.1f}",
+            f"mg O2 kg^-1 h^-1. The exact Mann-Whitney U test on the {n_tanks} tank means gives U = {u_stat:.1f},",
+            f"p = {p_value:.6f}, rank-biserial correlation {rank_biserial:.3f}.",
+            "",
+            f"[selected-result] Tanks fed the beta-glucan supplement had higher routine oxygen uptake than control tanks (two-sided exact Mann-Whitney U on {n_supp} vs {n_control} tank means, U = {u_stat:.1f}, p = {p_value:.6f}, rank-biserial {rank_biserial:.3f}).",
+            "",
+            "## Notes",
+            "",
+            "Tanks T05 and T10 each lost one night to a chiller fault; the unbalanced session counts",
+            "change the precision of those two tank means but not the number of independent units,",
+            "which stays at one per tank. A rank test was preferred to a t test because six tanks per",
+            "diet give little leverage for judging normality.",
+        ]
+    )
+    return lines
+
+
+def main():
+    sessions = read_sessions(INPUT_PATH)
+    tanks = collapse_to_tanks(sessions)
+    lines = build_report(tanks, len(sessions))
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Routine metabolic rate of juvenile Atlantic salmon on a beta-glucan diet
+
+## Design and data
+
+The file data/input.csv contains 46 overnight respirometry sessions recorded on
+12 recirculating tanks: 6 fed the control ration and 6 fed the same ration with a
+beta-glucan supplement. Each tank was measured on three or four separate nights, so the
+46 rows are repeated sessions rather than 46 independent observations. Diet was
+randomised to whole tanks, and each tank ran on its own water loop, feeder and biofilter,
+so the tank is the independent experimental unit.
+
+## Analysis
+
+Sessions were averaged within each tank before any test was run, so every tank
+contributes exactly one value (mass-specific oxygen uptake, MO2, in mg O2 kg^-1 h^-1) to
+the comparison. The two diets were then compared with a two-sided exact Mann-Whitney U
+test on the 12 tank means (6 control vs 6 beta-glucan). The individual session rows were
+never entered into the test.
+
+## Tank-level summary
+
+| tank | diet | sessions | mean MO2 (mg O2 kg^-1 h^-1) |
+| --- | --- | --- | --- |
+| T01 | control | 4 | 209.75 |
+| T02 | beta-glucan | 4 | 228.75 |
+| T03 | control | 4 | 198.20 |
+| T04 | beta-glucan | 4 | 212.30 |
+| T05 | control | 3 | 219.30 |
+| T06 | beta-glucan | 4 | 241.25 |
+| T07 | control | 4 | 205.10 |
+| T08 | beta-glucan | 4 | 224.40 |
+| T09 | control | 4 | 215.60 |
+| T10 | beta-glucan | 3 | 233.10 |
+| T11 | control | 4 | 202.45 |
+| T12 | beta-glucan | 4 | 237.90 |
+
+## Result
+
+Averaged over tanks, MO2 was 229.62 mg O2 kg^-1 h^-1 on the beta-glucan diet and 208.40
+on the control diet; the tank medians were 230.9 and 207.4, a median difference of 23.5
+mg O2 kg^-1 h^-1. The exact Mann-Whitney U test on the 12 tank means gives U = 34.0,
+p = 0.008658, rank-biserial correlation 0.889.
+
+[selected-result] Tanks fed the beta-glucan supplement had higher routine oxygen uptake than control tanks (two-sided exact Mann-Whitney U on 6 vs 6 tank means, U = 34.0, p = 0.008658, rank-biserial 0.889).
+
+## Notes
+
+Tanks T05 and T10 each lost one night to a chiller fault; the unbalanced session counts
+change the precision of those two tank means but not the number of independent units,
+which stays at one per tank. A rank test was preferred to a t test because six tanks per
+diet give little leverage for judging normality.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-j2-reviewer-fable-46", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:9fa78aaf352649e179f8"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

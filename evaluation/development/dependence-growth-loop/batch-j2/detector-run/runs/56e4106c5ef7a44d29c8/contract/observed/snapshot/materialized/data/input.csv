@@ -1,0 +1,17 @@
+deployment_id,collar_id,drainage_status,survey_week,peat_temp_c,water_table_cm,ebullition_detected
+D001,FEN-01,intact,24,13.8,-3.5,yes
+D002,FEN-02,intact,24,14.1,-2.9,yes
+D003,FEN-03,intact,24,13.6,-4.2,yes
+D004,DRN-01,drained,24,15.2,-24.6,no
+D005,DRN-02,drained,24,15.7,-27.1,no
+D006,DRN-03,drained,24,15.0,-23.4,no
+D007,FEN-01,intact,27,17.4,-5.8,yes
+D008,FEN-02,intact,27,17.9,-6.4,no
+D009,FEN-03,intact,27,17.1,-7.0,yes
+D010,DRN-01,drained,27,18.6,-31.2,yes
+D011,DRN-02,drained,27,18.9,-33.8,no
+D012,DRN-03,drained,27,18.2,-30.5,yes
+D013,FEN-01,intact,31,14.6,-4.7,yes
+D014,FEN-02,intact,31,14.9,-5.1,yes
+D015,DRN-01,drained,31,15.8,-28.9,no
+D016,DRN-02,drained,31,16.3,-30.2,no

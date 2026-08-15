@@ -1,0 +1,333 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-j2-reviewer-fable-46
+
+=== workflow 1: case:e388fb42ef8a65964476 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What `data/input.csv` contains
+
+The file holds the 2024 end-of-season shoreline survey of restored coastal foredunes.
+Field crews walked a 350 km stretch of open coast and stopped at a fixed marker every
+3.5 km, which gave 100 restoration sites separated by at least 3.5 km of shoreline.
+Each site was visited once, and the surveyor wrote down a single summary judgement of
+the dune vegetation found there.
+
+Columns:
+
+- `site_id`: the permanent identifier of the restoration site, FD-001 through FD-100.
+  Each identifier appears on exactly one line of the file.
+- `shore_marker_km`: how far the site sits from the northern end of the surveyed coast,
+  in kilometres.
+- `foredune_width_m`: width of the vegetated foredune at the site, in metres.
+- `sand_ph`: pH of a composite surface sand sample taken at the site.
+- `cover_class`: the single vegetation cover class assigned to the site during the
+  visit, one of `sparse`, `patchy` or `closed`.
+
+There are no repeat visits, no subplots and no sub-samples anywhere in the file. Nothing
+is nested inside anything else: the survey recorded one line per site, so the 100 lines
+are 100 separate sites, and the cover-class tally is a tally over separate sites.
+
+One row is: one restored coastal foredune site, visited once during the 2024 end-of-season survey and given a single vegetation cover class
+Independent unit column: site_id
+
+--- file data/input.csv ---
+site_id,shore_marker_km,foredune_width_m,sand_ph,cover_class
+FD-001,4.2,14,8.1,sparse
+FD-002,7.7,22,8.4,patchy
+FD-003,11.2,31,7.9,sparse
+FD-004,14.7,12,8.6,closed
+FD-005,18.2,27,8.2,sparse
+FD-006,21.7,19,8.8,patchy
+FD-007,25.2,36,7.7,sparse
+FD-008,28.7,17,8.3,patchy
+FD-009,32.2,25,8.0,sparse
+FD-010,35.7,21,8.5,patchy
+FD-011,39.2,18,7.8,patchy
+FD-012,42.7,33,8.7,sparse
+FD-013,46.2,29,8.2,sparse
+FD-014,49.7,16,9.0,patchy
+FD-015,53.2,41,7.6,sparse
+FD-016,56.7,11,8.4,closed
+FD-017,60.2,24,8.1,patchy
+FD-018,63.7,38,8.9,sparse
+FD-019,67.2,20,8.3,patchy
+FD-020,70.7,34,8.6,sparse
+FD-021,74.2,26,8.0,sparse
+FD-022,77.7,15,8.5,patchy
+FD-023,81.2,10,8.3,closed
+FD-024,84.7,30,7.8,sparse
+FD-025,88.2,23,8.7,patchy
+FD-026,91.7,44,8.1,sparse
+FD-027,95.2,17,8.9,patchy
+FD-028,98.7,13,8.2,closed
+FD-029,102.2,35,7.9,sparse
+FD-030,105.7,19,8.6,patchy
+FD-031,109.2,28,8.4,sparse
+FD-032,112.7,47,8.0,sparse
+FD-033,116.2,21,9.1,patchy
+FD-034,119.7,32,7.7,sparse
+FD-035,123.2,18,8.5,patchy
+FD-036,126.7,12,8.3,closed
+FD-037,130.2,39,8.8,sparse
+FD-038,133.7,22,8.1,patchy
+FD-039,137.2,43,8.2,sparse
+FD-040,140.7,16,7.9,patchy
+FD-041,144.2,20,8.6,patchy
+FD-042,147.7,37,8.2,sparse
+FD-043,151.2,29,8.9,sparse
+FD-044,154.7,11,7.8,closed
+FD-045,158.2,45,8.4,sparse
+FD-046,161.7,24,8.7,patchy
+FD-047,165.2,33,8.0,sparse
+FD-048,168.7,14,8.3,closed
+FD-049,172.2,40,8.5,sparse
+FD-050,175.7,18,7.6,patchy
+FD-051,179.2,27,9.0,sparse
+FD-052,182.7,23,8.1,patchy
+FD-053,186.2,36,8.8,sparse
+FD-054,189.7,21,8.2,patchy
+FD-055,193.2,13,7.9,closed
+FD-056,196.7,42,8.6,sparse
+FD-057,200.2,19,8.4,patchy
+FD-058,203.7,15,8.3,closed
+FD-059,207.2,48,8.7,sparse
+FD-060,210.7,25,8.0,patchy
+FD-061,214.2,34,8.5,sparse
+FD-062,217.7,22,7.7,patchy
+FD-063,221.2,38,8.9,sparse
+FD-064,224.7,17,8.2,patchy
+FD-065,228.2,46,8.1,sparse
+FD-066,231.7,12,8.6,closed
+FD-067,235.2,31,8.3,sparse
+FD-068,238.7,26,9.0,patchy
+FD-069,242.2,44,7.8,sparse
+FD-070,245.7,20,8.4,patchy
+FD-071,249.2,23,8.7,patchy
+FD-072,252.7,35,8.0,sparse
+FD-073,256.2,41,8.2,sparse
+FD-074,259.7,18,8.8,patchy
+FD-075,263.2,50,8.5,sparse
+FD-076,266.7,24,7.9,patchy
+FD-077,270.2,37,8.6,sparse
+FD-078,273.7,14,8.1,closed
+FD-079,277.2,43,8.3,sparse
+FD-080,280.7,21,8.4,patchy
+FD-081,284.2,32,8.7,sparse
+FD-082,287.7,27,8.0,patchy
+FD-083,291.2,39,8.2,sparse
+FD-084,294.7,45,8.9,sparse
+FD-085,298.2,19,7.7,patchy
+FD-086,301.7,16,8.5,closed
+FD-087,305.2,28,8.3,patchy
+FD-088,308.7,47,8.6,sparse
+FD-089,312.2,22,8.1,patchy
+FD-090,315.7,49,9.1,sparse
+FD-091,319.2,30,7.8,sparse
+FD-092,322.7,25,8.4,patchy
+FD-093,326.2,42,8.8,sparse
+FD-094,329.7,20,8.2,patchy
+FD-095,333.2,52,8.0,sparse
+FD-096,336.7,26,8.6,patchy
+FD-097,340.2,15,7.9,closed
+FD-098,343.7,40,8.5,sparse
+FD-099,347.2,23,8.3,patchy
+FD-100,350.7,51,8.7,sparse
+
+--- file workflow/analysis.py ---
+"""Foredune restoration monitoring: cover-class composition test.
+
+Reads data/input.csv (one surveyed restoration site per row) and writes
+results/report.md.  Each site was visited once and carries a single cover-class
+label, so the class tally is a tally over independent sites.
+"""
+
+from __future__ import annotations
+
+import csv
+from collections import Counter
+from pathlib import Path
+from typing import Dict, List
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = Path("data") / "input.csv"
+REPORT_PATH = Path("results") / "report.md"
+
+CLASS_ORDER = ("sparse", "patchy", "closed")
+REFERENCE_SHARE = {"sparse": 0.60, "patchy": 0.30, "closed": 0.10}
+ALPHA = 0.05
+
+
+def read_sites(path: Path) -> List[Dict[str, str]]:
+    """Return the survey rows, checking that every site appears exactly once."""
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        rows = [dict(record) for record in csv.DictReader(handle)]
+    if not rows:
+        raise ValueError("no survey rows found")
+    seen = set()
+    for row in rows:
+        site = row["site_id"].strip()
+        if not site:
+            raise ValueError("blank site_id")
+        if site in seen:
+            raise ValueError("site_id appears more than once: {0}".format(site))
+        seen.add(site)
+        label = row["cover_class"].strip()
+        if label not in CLASS_ORDER:
+            raise ValueError("unexpected cover_class: {0}".format(label))
+    return rows
+
+
+def tally_classes(rows: List[Dict[str, str]]) -> np.ndarray:
+    """Count sites per cover class, in the fixed reporting order."""
+    counts = Counter(row["cover_class"].strip() for row in rows)
+    return np.array([counts[name] for name in CLASS_ORDER], dtype=float)
+
+
+def build_report(observed, expected, contributions, statistic, pvalue, effect):
+    """Render the markdown report as one string."""
+    n = int(round(float(observed.sum())))
+    verdict = "reject" if pvalue < ALPHA else "do not reject"
+    outcome = "differs from" if pvalue < ALPHA else "is compatible with"
+
+    lines = []
+    lines.append(
+        "# Cover-class composition of restored foredunes, 2024 shoreline survey"
+    )
+    lines.append("")
+    lines.append("## Data")
+    lines.append("")
+    lines.append("- Source file: `data/input.csv`")
+    lines.append(
+        "- Independent units: {0} restoration sites, one row per site "
+        "(site identifiers verified unique).".format(n)
+    )
+    lines.append(
+        "- Response: `cover_class`, one end-of-season classification per site."
+    )
+    lines.append("")
+    lines.append("## Observed versus reference composition")
+    lines.append("")
+    lines.append(
+        "| Cover class | Sites | Observed share | Reference share | "
+        "Expected sites | Chi-square contribution |"
+    )
+    lines.append("| --- | --- | --- | --- | --- | --- |")
+    for idx, name in enumerate(CLASS_ORDER):
+        lines.append(
+            "| {0} | {1} | {2:.3f} | {3:.2f} | {4:.1f} | {5:.4f} |".format(
+                name,
+                int(observed[idx]),
+                observed[idx] / n,
+                REFERENCE_SHARE[name],
+                expected[idx],
+                contributions[idx],
+            )
+        )
+    lines.append("")
+    lines.append("## Test")
+    lines.append("")
+    lines.append(
+        "Pearson chi-square goodness-of-fit test of the {0} site classifications "
+        "against the 2019 regional reference composition.".format(n)
+    )
+    lines.append("")
+    lines.append("- Chi-square statistic: {0:.4f}".format(statistic))
+    lines.append("- Degrees of freedom: {0}".format(len(CLASS_ORDER) - 1))
+    lines.append("- p-value: {0:.6f}".format(pvalue))
+    lines.append("- Effect size (Cohen's w): {0:.4f}".format(effect))
+    lines.append(
+        "- Decision at alpha = {0:.2f}: {1} the reference composition.".format(
+            ALPHA, verdict
+        )
+    )
+    lines.append("")
+    lines.append(
+        "[selected-result] Chi-square goodness-of-fit on {0} independent restoration "
+        "sites (one classification per site): chi-square(2) = {1:.4f}, p = {2:.6f}, "
+        "Cohen's w = {3:.4f}; the 2024 cover-class composition ({4} sparse / "
+        "{5} patchy / {6} closed) {7} the 2019 reference composition of "
+        "0.60 / 0.30 / 0.10 at alpha = 0.05.".format(
+            n,
+            statistic,
+            pvalue,
+            effect,
+            int(observed[0]),
+            int(observed[1]),
+            int(observed[2]),
+            outcome,
+        )
+    )
+    lines.append("")
+    lines.append("## Notes")
+    lines.append("")
+    lines.append(
+        "Every site contributes exactly one classification, so the tallied counts are "
+        "{0} independent observations. The columns `shore_marker_km`, "
+        "`foredune_width_m` and `sand_ph` describe the sites and were not used by "
+        "this test.".format(n)
+    )
+    return "\n".join(lines) + "\n"
+
+
+def main() -> None:
+    rows = read_sites(INPUT_PATH)
+    observed = tally_classes(rows)
+    n = float(observed.sum())
+    expected = np.array([REFERENCE_SHARE[name] * n for name in CLASS_ORDER])
+    result = stats.chisquare(f_obs=observed, f_exp=expected)
+    statistic = float(result.statistic)
+    pvalue = float(result.pvalue)
+    contributions = (observed - expected) ** 2 / expected
+    effect = float(np.sqrt(statistic / n))
+    report = build_report(
+        observed, expected, contributions, statistic, pvalue, effect
+    )
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(report)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Cover-class composition of restored foredunes, 2024 shoreline survey
+
+## Data
+
+- Source file: `data/input.csv`
+- Independent units: 100 restoration sites, one row per site (site identifiers verified unique).
+- Response: `cover_class`, one end-of-season classification per site.
+
+## Observed versus reference composition
+
+| Cover class | Sites | Observed share | Reference share | Expected sites | Chi-square contribution |
+| --- | --- | --- | --- | --- | --- |
+| sparse | 48 | 0.480 | 0.60 | 60.0 | 2.4000 |
+| patchy | 39 | 0.390 | 0.30 | 30.0 | 2.7000 |
+| closed | 13 | 0.130 | 0.10 | 10.0 | 0.9000 |
+
+## Test
+
+Pearson chi-square goodness-of-fit test of the 100 site classifications against the 2019 regional reference composition.
+
+- Chi-square statistic: 6.0000
+- Degrees of freedom: 2
+- p-value: 0.049787
+- Effect size (Cohen's w): 0.2449
+- Decision at alpha = 0.05: reject the reference composition.
+
+[selected-result] Chi-square goodness-of-fit on 100 independent restoration sites (one classification per site): chi-square(2) = 6.0000, p = 0.049787, Cohen's w = 0.2449; the 2024 cover-class composition (48 sparse / 39 patchy / 13 closed) differs from the 2019 reference composition of 0.60 / 0.30 / 0.10 at alpha = 0.05.
+
+## Notes
+
+Every site contributes exactly one classification, so the tallied counts are 100 independent observations. The columns `shore_marker_km`, `foredune_width_m` and `sand_ph` describe the sites and were not used by this test.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-j2-reviewer-fable-46", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:e388fb42ef8a65964476"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

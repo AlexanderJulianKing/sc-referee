@@ -1,0 +1,237 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-j2-reviewer-fable-46
+
+=== workflow 1: case:0746e42a0faa024f7f29 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What is in data/input.csv
+
+Twenty-four juvenile mangrove mud crabs were hand-collected from the tidal
+creeks behind a mangrove fringe, held individually in aerated bins, and then
+released once at the base of a two-armed water flume. One arm carried water
+carrying the outgoing-tide chemical cue; the other arm carried filtered
+seawater as a control. The arm the crab entered first was recorded, the crab
+was removed, and it was never tested again. Every crab therefore appears on
+exactly one line of the file, and no line summarises more than one crab.
+
+One row is: one juvenile mud crab that completed a single Y-maze arm-choice trial
+Independent unit column: crab_id
+One trial is: one row
+
+Columns:
+
+- crab_id: the code painted on the crab's carapace; each code appears on
+  exactly one row, so the codes are all distinct.
+- sex: F or M, scored from the shape of the abdominal flap before testing.
+- carapace_width_mm: carapace width in millimetres, measured with calipers
+  on the day of the trial.
+- arm_choice: which arm the crab entered first, written as "tidal" for the
+  arm with the tide cue and "control" for the filtered-seawater arm.
+
+Because each crab supplies one binary choice and nothing else, the rows can
+be counted as independent trials without any grouping or averaging step.
+
+--- file data/input.csv ---
+crab_id,sex,carapace_width_mm,arm_choice
+MC01,F,38.4,tidal
+MC02,M,41.7,tidal
+MC03,F,35.2,control
+MC04,M,44.1,tidal
+MC05,F,39.8,tidal
+MC06,M,36.5,tidal
+MC07,F,42.3,control
+MC08,M,40.0,tidal
+MC09,F,37.6,tidal
+MC10,M,45.2,tidal
+MC11,F,34.9,tidal
+MC12,M,43.4,control
+MC13,F,40.7,tidal
+MC14,M,38.1,tidal
+MC15,F,36.8,tidal
+MC16,M,46.0,tidal
+MC17,F,41.2,control
+MC18,M,39.3,tidal
+MC19,F,35.7,tidal
+MC20,M,42.9,tidal
+MC21,F,37.1,control
+MC22,M,44.6,tidal
+MC23,F,38.9,tidal
+MC24,M,40.4,tidal
+
+--- file workflow/analysis.py ---
+"""Tidal-cue arm choice in juvenile mangrove mud crabs.
+
+Reads data/input.csv, in which every row is one crab that completed exactly
+one Y-maze trial, and writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+from collections import Counter
+from pathlib import Path
+
+from scipy.stats import binomtest
+
+INPUT_PATH = Path("data/input.csv")
+OUTPUT_PATH = Path("results/report.md")
+TIDAL = "tidal"
+NULL_P = 0.5
+ALPHA = 0.05
+
+
+def read_trials(path):
+    """Return one row per crab, refusing input with a repeated crab code."""
+    with path.open(newline="", encoding="ascii") as handle:
+        rows = [row for row in csv.DictReader(handle)]
+    if not rows:
+        raise ValueError("no trials found in " + str(path))
+    codes = [row["crab_id"].strip() for row in rows]
+    if len(set(codes)) != len(codes):
+        raise ValueError("each crab_id must appear on exactly one row")
+    return rows
+
+
+def main():
+    rows = read_trials(INPUT_PATH)
+
+    choices = [row["arm_choice"].strip() for row in rows]
+    sexes = [row["sex"].strip() for row in rows]
+    widths = [float(row["carapace_width_mm"]) for row in rows]
+
+    n_units = len(rows)
+    n_tidal = sum(1 for choice in choices if choice == TIDAL)
+    n_control = n_units - n_tidal
+    proportion = n_tidal / n_units
+    mean_width = sum(widths) / n_units
+    sex_counts = Counter(sexes)
+
+    by_sex = {}
+    for sex, choice in zip(sexes, choices):
+        hits, total = by_sex.get(sex, (0, 0))
+        by_sex[sex] = (hits + int(choice == TIDAL), total + 1)
+
+    outcome = binomtest(n_tidal, n_units, NULL_P, alternative="two-sided")
+    p_value = outcome.pvalue
+    if p_value < ALPHA:
+        verdict = "the preference is significant at alpha = 0.05."
+    else:
+        verdict = "the preference is not significant at alpha = 0.05."
+
+    lines = [
+        "# Tidal-cue arm choice in juvenile mangrove mud crabs",
+        "",
+        "## Design",
+        "",
+        "Each of the {0} crabs contributed exactly one Y-maze trial, so every row in".format(n_units),
+        "the data file is an independent experimental unit. No crab was retested and",
+        "no trial was split across rows, so the counted choices are {0} independent".format(n_units),
+        "Bernoulli outcomes.",
+        "",
+        "## Sample",
+        "",
+        "- Crabs tested (independent units): {0}".format(n_units),
+        "- Rows in data file: {0}".format(n_units),
+        "- Females / males: {0} / {1}".format(sex_counts["F"], sex_counts["M"]),
+        "- Mean carapace width: {0:.2f} mm (range {1:.1f}-{2:.1f} mm)".format(
+            mean_width, min(widths), max(widths)
+        ),
+        "",
+        "## Outcome",
+        "",
+        "- Chose the tidal-cue arm: {0}".format(n_tidal),
+        "- Chose the control arm: {0}".format(n_control),
+        "- Observed proportion choosing the tidal-cue arm: {0:.4f}".format(proportion),
+        "",
+        "Descriptive split by sex (no inferential test was run on the subgroups):",
+        "",
+        "| Sex | Tidal-cue choices | Trials | Proportion |",
+        "| --- | --- | --- | --- |",
+    ]
+
+    for sex in sorted(by_sex):
+        hits, total = by_sex[sex]
+        lines.append(
+            "| {0} | {1} | {2} | {3:.4f} |".format(sex, hits, total, hits / total)
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Analysis",
+            "",
+            "Exact two-sided binomial test (scipy.stats.binomtest) of the {0} tidal-cue".format(n_tidal),
+            "choices among {0} crabs against the no-preference expectation p = {1}.".format(
+                n_units, NULL_P
+            ),
+            "",
+            "[selected-result] Exact two-sided binomial test, {0}/{1} crabs chose the "
+            "tidal-cue arm (proportion {2:.4f}) against the chance expectation of {3}: "
+            "p = {4:.6f}; {5}".format(n_tidal, n_units, proportion, NULL_P, p_value, verdict),
+            "",
+            "## Interpretation",
+            "",
+            "Juvenile crabs entered the arm carrying the tidal cue more often than",
+            "chance predicts. Because each crab supplied exactly one trial, the",
+            "independence assumption of the binomial test is met by the design itself",
+            "and no clustering correction is needed.",
+        ]
+    )
+
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Tidal-cue arm choice in juvenile mangrove mud crabs
+
+## Design
+
+Each of the 24 crabs contributed exactly one Y-maze trial, so every row in
+the data file is an independent experimental unit. No crab was retested and
+no trial was split across rows, so the counted choices are 24 independent
+Bernoulli outcomes.
+
+## Sample
+
+- Crabs tested (independent units): 24
+- Rows in data file: 24
+- Females / males: 12 / 12
+- Mean carapace width: 40.03 mm (range 34.9-46.0 mm)
+
+## Outcome
+
+- Chose the tidal-cue arm: 19
+- Chose the control arm: 5
+- Observed proportion choosing the tidal-cue arm: 0.7917
+
+Descriptive split by sex (no inferential test was run on the subgroups):
+
+| Sex | Tidal-cue choices | Trials | Proportion |
+| --- | --- | --- | --- |
+| F | 8 | 12 | 0.6667 |
+| M | 11 | 12 | 0.9167 |
+
+## Analysis
+
+Exact two-sided binomial test (scipy.stats.binomtest) of the 19 tidal-cue
+choices among 24 crabs against the no-preference expectation p = 0.5.
+
+[selected-result] Exact two-sided binomial test, 19/24 crabs chose the tidal-cue arm (proportion 0.7917) against the chance expectation of 0.5: p = 0.006611; the preference is significant at alpha = 0.05.
+
+## Interpretation
+
+Juvenile crabs entered the arm carrying the tidal cue more often than
+chance predicts. Because each crab supplied exactly one trial, the
+independence assumption of the binomial test is met by the design itself
+and no clustering correction is needed.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-j2-reviewer-fable-46", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:0746e42a0faa024f7f29"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

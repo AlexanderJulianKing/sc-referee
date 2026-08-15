@@ -1,0 +1,278 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-j2-reviewer-fable-46
+
+=== workflow 1: case:219c020158a9081bab54 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Berth 7 four-year gauge survey
+
+Berth 7 is a steel sheet-pile quay wall. Twelve pilings along the berth were
+picked for a coating trial: alternate pilings were recoated with the yard's
+usual coal tar epoxy, the others with a glass-flake polyester system. Four
+years later a diver crew re-gauged every piling with an ultrasonic thickness
+probe at four fixed depth bands below mean sea level, and each reading was
+turned into an average annual thickness loss.
+
+The table holds one line per gauge reading, so a single piling appears on four
+consecutive lines - once for each of its depth bands. All four readings from a
+piling share that piling's coating system, its position on the berth, and its
+exposure to the tide and to passing traffic.
+
+Columns:
+
+- piling_id: which piling was gauged, PIL-01 through PIL-12.
+- coating_system: the protective system that piling carries, either
+  coal_tar_epoxy or glassflake_polyester. A piling carries the same system on
+  every one of its readings.
+- depth_band_m: depth of the gauge spot below mean sea level, in metres. The
+  same four bands (0.5, 1.5, 3.0, 5.0) were used on every piling.
+- wall_thickness_mm: steel wall thickness left at that spot, in millimetres,
+  against a 14.00 mm as-built wall.
+- corrosion_rate_um_per_yr: thickness loss at that spot averaged over the four
+  service years, in micrometres per year. This is the response of interest;
+  bigger numbers mean the steel is being eaten away faster.
+
+One row is: one ultrasonic thickness reading on one piling at one depth band
+Independent unit column: piling_id
+
+--- file data/input.csv ---
+piling_id,coating_system,depth_band_m,wall_thickness_mm,corrosion_rate_um_per_yr
+PIL-01,coal_tar_epoxy,0.5,13.77,58.4
+PIL-01,coal_tar_epoxy,1.5,13.78,55.4
+PIL-01,coal_tar_epoxy,3.0,13.79,53.4
+PIL-01,coal_tar_epoxy,5.0,13.80,50.4
+PIL-02,glassflake_polyester,0.5,13.82,44.4
+PIL-02,glassflake_polyester,1.5,13.83,42.4
+PIL-02,glassflake_polyester,3.0,13.84,39.4
+PIL-02,glassflake_polyester,5.0,13.86,35.4
+PIL-03,coal_tar_epoxy,0.5,13.75,61.4
+PIL-03,coal_tar_epoxy,1.5,13.76,60.4
+PIL-03,coal_tar_epoxy,3.0,13.77,56.4
+PIL-03,coal_tar_epoxy,5.0,13.78,55.4
+PIL-04,glassflake_polyester,0.5,13.81,47.4
+PIL-04,glassflake_polyester,1.5,13.82,45.4
+PIL-04,glassflake_polyester,3.0,13.83,43.4
+PIL-04,glassflake_polyester,5.0,13.83,41.4
+PIL-05,coal_tar_epoxy,0.5,13.75,63.4
+PIL-05,coal_tar_epoxy,1.5,13.75,61.4
+PIL-05,coal_tar_epoxy,3.0,13.76,59.4
+PIL-05,coal_tar_epoxy,5.0,13.77,57.4
+PIL-06,glassflake_polyester,0.5,13.79,51.4
+PIL-06,glassflake_polyester,1.5,13.80,49.4
+PIL-06,glassflake_polyester,3.0,13.82,44.4
+PIL-06,glassflake_polyester,5.0,13.84,40.4
+PIL-07,coal_tar_epoxy,0.5,13.74,64.4
+PIL-07,coal_tar_epoxy,1.5,13.75,63.4
+PIL-07,coal_tar_epoxy,3.0,13.75,61.4
+PIL-07,coal_tar_epoxy,5.0,13.76,60.4
+PIL-08,glassflake_polyester,0.5,13.78,54.4
+PIL-08,glassflake_polyester,1.5,13.79,51.4
+PIL-08,glassflake_polyester,3.0,13.80,49.4
+PIL-08,glassflake_polyester,5.0,13.81,46.4
+PIL-09,coal_tar_epoxy,0.5,13.72,70.4
+PIL-09,coal_tar_epoxy,1.5,13.73,68.4
+PIL-09,coal_tar_epoxy,3.0,13.74,65.4
+PIL-09,coal_tar_epoxy,5.0,13.75,61.4
+PIL-10,glassflake_polyester,0.5,13.78,54.4
+PIL-10,glassflake_polyester,1.5,13.79,53.4
+PIL-10,glassflake_polyester,3.0,13.79,51.4
+PIL-10,glassflake_polyester,5.0,13.80,50.4
+PIL-11,coal_tar_epoxy,0.5,13.69,77.4
+PIL-11,coal_tar_epoxy,1.5,13.70,75.4
+PIL-11,coal_tar_epoxy,3.0,13.72,70.4
+PIL-11,coal_tar_epoxy,5.0,13.73,66.4
+PIL-12,glassflake_polyester,0.5,13.76,59.4
+PIL-12,glassflake_polyester,1.5,13.77,58.4
+PIL-12,glassflake_polyester,3.0,13.78,54.4
+PIL-12,glassflake_polyester,5.0,13.79,53.4
+
+--- file workflow/analysis.py ---
+#!/usr/bin/env python3
+"""Berth 7 recoating trial.
+
+Reads the four-year gauge survey from data/input.csv, compares the corrosion
+rate recorded under the two protective coating systems, and writes a short
+markdown report to results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = Path("data/input.csv")
+OUTPUT_PATH = Path("results/report.md")
+
+GROUP_COL = "coating_system"
+UNIT_COL = "piling_id"
+RATE_COL = "corrosion_rate_um_per_yr"
+ALPHA = 0.05
+
+
+def read_survey(path: Path) -> list:
+    with path.open("r", encoding="ascii", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def bucket(records: list, key_fn) -> dict:
+    """Collect the corrosion rates under whatever key key_fn returns."""
+    grouped: dict = {}
+    for rec in records:
+        grouped.setdefault(key_fn(rec), []).append(float(rec[RATE_COL]))
+    return {key: np.asarray(vals, dtype=float) for key, vals in sorted(grouped.items())}
+
+
+def main() -> None:
+    records = read_survey(INPUT_PATH)
+    if not records:
+        raise SystemExit("data/input.csv contains no readings")
+
+    by_coating = bucket(records, lambda r: r[GROUP_COL])
+    by_piling = bucket(records, lambda r: (r[GROUP_COL], r[UNIT_COL]))
+
+    names = list(by_coating)
+    if len(names) != 2:
+        raise SystemExit("expected exactly two coating systems")
+
+    ref, alt = names
+    a = by_coating[ref]
+    b = by_coating[alt]
+
+    outcome = stats.ttest_ind(a, b, equal_var=True)
+    tstat = float(outcome.statistic)
+    pval = float(outcome.pvalue)
+    df = a.size + b.size - 2
+    delta = float(a.mean() - b.mean())
+
+    p_text = "p < 0.001" if pval < 0.001 else "p = %.3f" % pval
+    verdict = "significant" if pval < ALPHA else "not significant"
+    n_rows = len(records)
+    n_pilings = len(by_piling)
+
+    lines = [
+        "# Berth 7 coating trial: four-year corrosion rates",
+        "",
+        "Source table: `data/input.csv` - %d ultrasonic gauge readings from %d pilings."
+        % (n_rows, n_pilings),
+        "",
+        "## What was surveyed",
+        "",
+        "Twelve steel sheet pilings at Berth 7 were re-gauged after four years in",
+        "service. Alternate pilings along the berth carry one of two protective",
+        "coating systems. Every piling was gauged in the same four depth bands",
+        "(0.5 m, 1.5 m, 3.0 m and 5.0 m below mean sea level), and each gauge",
+        "reading is converted to a mean annual thickness loss in micrometres per",
+        "year.",
+        "",
+        "## Reading-level summary",
+        "",
+        "| coating system | readings | mean rate (um/yr) | sd (um/yr) |",
+        "| --- | ---: | ---: | ---: |",
+    ]
+    for name in names:
+        vals = by_coating[name]
+        lines.append(
+            "| %s | %d | %.2f | %.2f |"
+            % (name, vals.size, vals.mean(), vals.std(ddof=1))
+        )
+
+    lines += [
+        "",
+        "## Piling-level means",
+        "",
+        "| piling | coating system | readings | mean rate (um/yr) |",
+        "| --- | --- | ---: | ---: |",
+    ]
+    for (coat, piling), vals in by_piling.items():
+        lines.append("| %s | %s | %d | %.2f |" % (piling, coat, vals.size, vals.mean()))
+
+    lines += [
+        "",
+        "## Test",
+        "",
+        "Two-sample Student t test (equal variances assumed), one observation per",
+        "gauge reading, comparing %s against %s." % (ref, alt),
+        "",
+        "[selected-result] Two-sample t test on %d gauge readings: %s mean %.2f um/yr"
+        " vs %s mean %.2f um/yr, difference %.2f um/yr, t(%d) = %.2f, %s, %s at"
+        " alpha = %.2f."
+        % (
+            n_rows,
+            ref,
+            a.mean(),
+            alt,
+            b.mean(),
+            delta,
+            df,
+            tstat,
+            p_text,
+            verdict,
+            ALPHA,
+        ),
+        "",
+        "All %d rows were entered into the test as separate observations." % n_rows,
+    ]
+
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Berth 7 coating trial: four-year corrosion rates
+
+Source table: `data/input.csv` - 48 ultrasonic gauge readings from 12 pilings.
+
+## What was surveyed
+
+Twelve steel sheet pilings at Berth 7 were re-gauged after four years in
+service. Alternate pilings along the berth carry one of two protective
+coating systems. Every piling was gauged in the same four depth bands
+(0.5 m, 1.5 m, 3.0 m and 5.0 m below mean sea level), and each gauge
+reading is converted to a mean annual thickness loss in micrometres per
+year.
+
+## Reading-level summary
+
+| coating system | readings | mean rate (um/yr) | sd (um/yr) |
+| --- | ---: | ---: | ---: |
+| coal_tar_epoxy | 24 | 62.40 | 6.63 |
+| glassflake_polyester | 24 | 48.40 | 6.19 |
+
+## Piling-level means
+
+| piling | coating system | readings | mean rate (um/yr) |
+| --- | --- | ---: | ---: |
+| PIL-01 | coal_tar_epoxy | 4 | 54.40 |
+| PIL-03 | coal_tar_epoxy | 4 | 58.40 |
+| PIL-05 | coal_tar_epoxy | 4 | 60.40 |
+| PIL-07 | coal_tar_epoxy | 4 | 62.40 |
+| PIL-09 | coal_tar_epoxy | 4 | 66.40 |
+| PIL-11 | coal_tar_epoxy | 4 | 72.40 |
+| PIL-02 | glassflake_polyester | 4 | 40.40 |
+| PIL-04 | glassflake_polyester | 4 | 44.40 |
+| PIL-06 | glassflake_polyester | 4 | 46.40 |
+| PIL-08 | glassflake_polyester | 4 | 50.40 |
+| PIL-10 | glassflake_polyester | 4 | 52.40 |
+| PIL-12 | glassflake_polyester | 4 | 56.40 |
+
+## Test
+
+Two-sample Student t test (equal variances assumed), one observation per
+gauge reading, comparing coal_tar_epoxy against glassflake_polyester.
+
+[selected-result] Two-sample t test on 48 gauge readings: coal_tar_epoxy mean 62.40 um/yr vs glassflake_polyester mean 48.40 um/yr, difference 14.00 um/yr, t(46) = 7.56, p < 0.001, significant at alpha = 0.05.
+
+All 48 rows were entered into the test as separate observations.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-j2-reviewer-fable-46", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:219c020158a9081bab54"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}
