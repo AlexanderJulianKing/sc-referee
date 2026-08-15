@@ -392,7 +392,7 @@ def test_annotated_count_rebind_abstains_and_kernel_guard_is_independent() -> No
     unsafe = source.replace("    k =", "    n: int = 1\n    k =")
     payload = _inspect(unsafe, data)
     assert payload["outcome"] == "unsupported"
-    assert payload["abstention_reasons"] == ["annotated-assignment-not-modeled"]
+    assert payload["abstention_reasons"] == ["operand-name-rebound"]
 
     context, certificate, fact = _count_kernel_inputs(source, data)
     unsafe_bytes = context.documents[0].content.replace(
@@ -942,15 +942,11 @@ _FROZEN_BATCH_REASONS = {
     ),
     "batch-b/3c2b93c9545d8518e1f3": ("function-globals-read",),
     "batch-b/6a3bc02816cb70ee4042": ("import-use-outside-grammar",),
-    "batch-b/8b01b6d08e58aa5cce6f": (
-        "function-globals-read",
-        "sink-helper-call",
-    ),
+    "batch-b/8b01b6d08e58aa5cce6f": ("function-globals-read",),
     "batch-b/ae04f2973df030f612b9": ("function-globals-read",),
     "batch-b/bf08b2218ca9cef1db2d": (
         "count-predicate-not-closed",
         "function-globals-read",
-        "sink-helper-call",
     ),
 }
 

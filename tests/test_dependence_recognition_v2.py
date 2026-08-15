@@ -473,7 +473,7 @@ def test_three_group_tuple_unpack_abstains_on_registered_arity() -> None:
     assert payload["abstention_reasons"] == ["group-operand-arity-mismatch"]
 
 
-def test_final_with_return_dead_function_and_sink_helper_are_classified() -> None:
+def test_final_with_return_dead_function_and_sink_helper_inline_and_certify() -> None:
     source = (
         _source()
         .replace('    REPORT.write_text(str(result), encoding="utf-8")', "    emit(result)")
@@ -494,10 +494,10 @@ def main():
         )
     )
     analysis = analyze_dependence_growth_python(_context(source, _ADVERSE))
-    assert analysis.abstention_reasons == ("sink-helper-call",)
+    assert analysis.certificate is not None
     payload = DependenceRecognitionV2ShadowAdapter().inspect(_context(source, _ADVERSE))
-    assert payload["outcome"] == "unsupported"
-    assert payload["abstention_reasons"] == ["sink-helper-call"]
+    assert payload["outcome"] == "evaluation_candidate"
+    assert payload["abstention_reasons"] == []
 
 
 def test_batch_a_rq1_rq3_are_executable_and_pin_full_sorted_wall_sets(
@@ -507,12 +507,12 @@ def test_batch_a_rq1_rq3_are_executable_and_pin_full_sorted_wall_sets(
         "rq1": (
             "6da5419523f5f9dbedf9",
             "jar_id",
-            ["function-return-shape", "sink-helper-call"],
+            ["function-return-shape"],
         ),
         "rq3": (
             "d1d4ed0e518ad533a2dc",
             "tank_id",
-            ["sink-helper-call"],
+            ["reader-form-unsupported"],
         ),
     }
     frozen_root = (
@@ -650,6 +650,51 @@ def test_kernel_rejects_length_binding_conclusion_and_source_mutations() -> None
         )
         is None
     )
+
+
+@pytest.mark.parametrize(
+    ("insertion", "data"),
+    [
+        (
+            "    rows = rows[:4]\n    groups = {}",
+            b"unit_id,arm,value\nu1,A,1\nu2,A,2\nu3,B,3\nu4,B,4\nu1,A,5\n",
+        ),
+        ("    left = groups[LEFT]\n    left = [0.0]", _ADVERSE),
+        ("    right = groups[RIGHT]\n    right = []", _ADVERSE),
+        ("    rows = list(rows)\n    groups = {}", _ADVERSE),
+    ],
+)
+def test_plain_operand_name_rebindings_abstain(
+    insertion: str,
+    data: bytes,
+) -> None:
+    source = _source()
+    if insertion.startswith("    rows"):
+        source = source.replace("    groups = {}", insertion)
+    elif insertion.startswith("    left"):
+        source = source.replace("    left = groups[LEFT]", insertion)
+    else:
+        source = source.replace("    right = groups[RIGHT]", insertion)
+    payload = DependenceRecognitionV2ShadowAdapter().inspect(_context(source, data))
+    assert payload["abstention_reasons"] == ["operand-name-rebound"]
+
+
+def test_kernel_independently_rejects_analyzer_bypass_certificate_with_rebind(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = _source().replace(
+        "    left = groups[LEFT]", "    left = groups[LEFT]\n    left = [0.0]"
+    )
+    monkeypatch.setattr(
+        "sc_referee.dependence_recognition_v2.python_analyzer._rebound_operand_names",
+        lambda _body, _operands: set(),
+    )
+    context = _context(source, _ADVERSE)
+    proposal = analyze_dependence_growth_python(context)
+    assert proposal.certificate is not None
+    discharged = discharge_dependence_growth_analysis(proposal, context)
+    assert discharged.verified_certificate is None
+    assert discharged.abstention_reasons == ("certificate-kernel-refusal:source-semantic-replay",)
 
 
 def test_discharger_surfaces_the_specific_kernel_obligation(
@@ -955,7 +1000,7 @@ def test_adapter_exception_keeps_the_full_common_payload(monkeypatch: pytest.Mon
     assert payload["report_only"] is True
     assert payload["production_finding_permitted"] is False
     assert payload["adapter_id"] == "dependence-recognition-semantic-v2-growth-shadow"
-    assert payload["adapter_version"] == "2.3.0-development"
+    assert payload["adapter_version"] == "2.4.0-development"
     assert payload["adapter_implementation_digest"].startswith("sha256:")
     assert payload["implementation_dependency_closure"]
 

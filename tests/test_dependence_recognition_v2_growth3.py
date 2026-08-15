@@ -310,7 +310,7 @@ def test_conditional_procedure_and_depth_four_abstain(tmp_path: Path) -> None:
         )
     )
     _execute(sink_helper, _ADVERSE, tmp_path / "sink-helper")
-    assert _inspect(sink_helper)["abstention_reasons"] == ["sink-helper-call"]
+    assert _inspect(sink_helper)["outcome"] == "evaluation_candidate"
 
 
 @pytest.mark.parametrize("value", ["99.0", "-1000000.0"])
@@ -329,7 +329,7 @@ def test_alias_then_mutate_variants_permanently_abstain(value: str, tmp_path: Pa
 @pytest.mark.parametrize(
     ("statement", "reason"),
     [
-        ("left: list = [0.0]", "annotated-assignment-not-modeled"),
+        ("left: list = [0.0]", "operand-name-rebound"),
         ("left += [0.0]", "augmented-assignment-not-modeled"),
         ("(left := [0.0])", "named-expression-not-modeled"),
         ("del left", "delete-not-modeled"),
@@ -536,28 +536,21 @@ def test_batches_a_through_f_full_sorted_observed_sets_and_rq6_guard(project_roo
     expected_by_batch = {
         "batch-a": {
             "112bd1e61aa4fc1bec86": ["module-constant-not-closed"],
-            "6da5419523f5f9dbedf9": [
-                "function-return-shape",
-                "sink-helper-call",
-            ],
+            "6da5419523f5f9dbedf9": ["function-return-shape"],
             "76373b4a2b2f380d43da": ["unsupported-import-form"],
             "a520ddbd23df9d699e60": ["dataclass-use-not-modeled"],
-            "d1d4ed0e518ad533a2dc": ["sink-helper-call"],
+            "d1d4ed0e518ad533a2dc": ["reader-form-unsupported"],
             "e2ecaca2651276963b12": ["unsupported-import-form"],
         },
         "batch-b": {
             "3c2b93c9545d8518e1f3": ["function-globals-read"],
             "446cab155cd792398f9d": ["count-predicate-not-closed", "reader-form-unsupported"],
             "6a3bc02816cb70ee4042": ["import-use-outside-grammar"],
-            "8b01b6d08e58aa5cce6f": [
-                "function-globals-read",
-                "sink-helper-call",
-            ],
+            "8b01b6d08e58aa5cce6f": ["function-globals-read"],
             "ae04f2973df030f612b9": ["function-globals-read"],
             "bf08b2218ca9cef1db2d": [
                 "count-predicate-not-closed",
                 "function-globals-read",
-                "sink-helper-call",
             ],
         },
         "batch-c": {
@@ -566,59 +559,44 @@ def test_batches_a_through_f_full_sorted_observed_sets_and_rq6_guard(project_roo
             "5eeb6e5adc4fc675c771": ["module-collection-use-not-modeled"],
             "822e4d560d778dc26fb0": ["unsupported-import-form"],
             "b98cd6e8d9f893450053": ["import-use-outside-grammar"],
-            "d674ebb8c31ed83be287": ["sink-helper-call"],
+            "d674ebb8c31ed83be287": ["group-accumulator-not-total"],
         },
         "batch-d": {
             "396f4dceee2b19f08009": ["dataclass-use-not-modeled"],
             "465d8368b0cdc3b167fd": ["module-collection-use-not-modeled"],
-            "6e47ef090eb8989d547d": [
-                "function-return-shape",
-                "sink-helper-call",
-            ],
-            "7da68ec265e1bb2f6640": ["function-globals-read", "sink-helper-call"],
+            "6e47ef090eb8989d547d": ["function-return-shape"],
+            "7da68ec265e1bb2f6640": ["function-globals-read"],
             "f75b02bd61e813195904": ["unsupported-import-form"],
         },
         "batch-e1": {
             "407236062264ca895ef3": ["import-use-outside-grammar"],
-            "47b6fb6bf1d4fbcefd7c": ["sink-helper-call"],
+            "47b6fb6bf1d4fbcefd7c": ["function-argument-not-simple"],
             "7afb4508b0d957f51ca7": [
                 "function-globals-read",
                 "function-return-shape",
-                "sink-helper-call",
             ],
-            "acea1e7265fd2ac91a43": [
-                "function-globals-read",
-                "sink-helper-call",
-            ],
-            "d3f093e9da995ca1027a": ["sink-helper-call"],
+            "acea1e7265fd2ac91a43": ["function-globals-read"],
+            "d3f093e9da995ca1027a": ["group-accumulator-not-total"],
             "f203d7292f9530cbdf48": ["function-globals-read"],
         },
         "batch-e2": {
-            "102f7842bc112abba84f": [
-                "function-globals-read",
-                "sink-helper-call",
-            ],
+            "102f7842bc112abba84f": ["function-globals-read"],
             "128c2bd7128bc67b5964": ["function-globals-read"],
             "18f0af8326d59d579c43": [
                 "function-globals-read",
                 "function-return-shape",
-                "sink-helper-call",
             ],
             "c38b4b95d2ca5a382f67": [
                 "function-closure",
                 "function-return-shape",
-                "sink-helper-call",
             ],
-            "e57e3c73264eda49b3cc": [
-                "function-globals-read",
-                "sink-helper-call",
-            ],
+            "e57e3c73264eda49b3cc": ["function-globals-read"],
             "fa5259eb594c121b4dac": ["function-argument-not-simple"],
         },
         "batch-f1": {
             "99fa42046e8fc8cc47de": ["function-return-shape"],
-            "9d4a9dcdc2ab130e6736": ["function-return-shape", "sink-helper-call"],
-            "c2db115846830b7d908c": ["function-globals-read", "sink-helper-call"],
+            "9d4a9dcdc2ab130e6736": ["function-return-shape"],
+            "c2db115846830b7d908c": ["function-globals-read"],
             "ca3125c6ca6002055d70": ["import-use-outside-grammar"],
             "ce821630fbd906ad6d07": ["module-constant-not-closed"],
             "f68415be40b9234987de": ["function-globals-read"],
@@ -627,11 +605,10 @@ def test_batches_a_through_f_full_sorted_observed_sets_and_rq6_guard(project_roo
             "605c4c08512e4489cc9a": [
                 "count-predicate-not-closed",
                 "function-globals-read",
-                "sink-helper-call",
             ],
             "7fa9d7c060555eac5a49": ["unsupported-import-form"],
             "b24355b160cf4665b929": ["function-globals-read"],
-            "b511aff6f2e4b54ee5ce": ["function-globals-read", "sink-helper-call"],
+            "b511aff6f2e4b54ee5ce": ["function-globals-read"],
             "d288f3b6bbda69d32acf": ["module-constant-not-closed"],
             "e0b267c13e8a30d07b48": ["function-globals-read", "function-return-shape"],
         },
@@ -837,7 +814,7 @@ def test_growth5_partition_seed_rejects_annotated_reader_frame_rebinds(
     )
     payload = _inspect(source, data)
     assert payload["outcome"] == "unsupported"
-    assert payload["abstention_reasons"] == ["annotated-assignment-not-modeled"]
+    assert payload["abstention_reasons"] == ["operand-name-rebound"]
 
 
 def test_growth5_partition_seed_rejects_annotated_group_rebind_specifically() -> None:
@@ -845,7 +822,7 @@ def test_growth5_partition_seed_rejects_annotated_group_rebind_specifically() ->
         "    left = groups[LEFT]",
         '    groups: dict = {"A": [0.0], "B": [1.0]}\n    left = groups[LEFT]',
     )
-    assert _inspect(source)["abstention_reasons"] == ["annotated-assignment-not-modeled"]
+    assert _inspect(source)["abstention_reasons"] == ["operand-name-rebound"]
 
 
 def test_growth6_multi_name_from_imports_are_individually_closed() -> None:

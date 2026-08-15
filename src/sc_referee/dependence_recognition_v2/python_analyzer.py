@@ -1637,8 +1637,6 @@ def _flatten_functions(
     function_names = set(functions)
     for function in functions.values():
         reasons.update(_validate_function(function, constants, imports, function_names))
-    if _user_helper_reaches_sink(functions, imports):
-        reasons.add("sink-helper-call")
     graph = {
         name: {
             node.func.id
@@ -1692,84 +1690,6 @@ def _flatten_functions(
     if len(fresh) != len(set(fresh)) or set(fresh) & caller_visible:
         raise _Refusal("function-rename-collision")
     return _substitute_constants(flattened, constants), renames, dead
-
-
-def _user_helper_reaches_sink(
-    functions: dict[str, ast.FunctionDef], imports: dict[str, str]
-) -> bool:
-    for function in functions.values():
-        definitions = {
-            statement.targets[0].id: statement.value
-            for statement in function.body
-            if isinstance(statement, ast.Assign)
-            and len(statement.targets) == 1
-            and isinstance(statement.targets[0], ast.Name)
-        }
-        operand_names = {
-            node.id
-            for statement in function.body
-            for node in ast.walk(statement)
-            if isinstance(node, ast.Name)
-            and (
-                isinstance(statement, ast.With | ast.For)
-                or any(
-                    isinstance(call, ast.Call)
-                    and _resolved_procedure(call.func, imports) in _REGISTERED
-                    for call in ast.walk(statement)
-                )
-            )
-        }
-        changed = True
-        while changed:
-            changed = False
-            for name in tuple(operand_names):
-                if name not in definitions:
-                    continue
-                for node in ast.walk(definitions[name]):
-                    if isinstance(node, ast.Name) and node.id not in operand_names:
-                        operand_names.add(node.id)
-                        changed = True
-        writes = [
-            node
-            for node in ast.walk(function)
-            if isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and node.func.attr == "write_text"
-        ]
-        sink_names: set[str] = set()
-        for write in writes:
-            sink_names.update(_transitive_reads(write, definitions))
-        for node in ast.walk(function):
-            if not (
-                isinstance(node, ast.Call)
-                and isinstance(node.func, ast.Name)
-                and node.func.id in functions
-            ):
-                continue
-            callee = functions[node.func.id]
-            callee_writes = any(
-                isinstance(item, ast.Call)
-                and isinstance(item.func, ast.Attribute)
-                and item.func.attr == "write_text"
-                for item in ast.walk(callee)
-            )
-            parent_assignment = next(
-                (
-                    statement
-                    for statement in function.body
-                    if isinstance(statement, ast.Assign) and node in set(ast.walk(statement.value))
-                ),
-                None,
-            )
-            assigned_sink = bool(
-                parent_assignment is not None
-                and len(parent_assignment.targets) == 1
-                and isinstance(parent_assignment.targets[0], ast.Name)
-                and parent_assignment.targets[0].id in sink_names - operand_names
-            )
-            if callee_writes or assigned_sink:
-                return True
-    return False
 
 
 def _validate_function(
@@ -1923,6 +1843,32 @@ def _inline_statements(
 ) -> list[ast.stmt]:
     result: list[ast.stmt] = []
     for statement in statements:
+        if (
+            isinstance(statement, ast.Expr)
+            and isinstance(statement.value, ast.Call)
+            and isinstance(statement.value.func, ast.Attribute)
+            and statement.value.func.attr == "write_text"
+            and statement.value.args
+        ):
+            prefix, payload = _inline_sink_expression(
+                statement.value.args[0],
+                functions,
+                constants,
+                depth,
+                counter,
+                renames,
+                call_path,
+            )
+            if prefix or ast.dump(payload, include_attributes=False) != ast.dump(
+                statement.value.args[0], include_attributes=False
+            ):
+                sink_statement = copy.deepcopy(statement)
+                assert isinstance(sink_statement, ast.Expr)
+                assert isinstance(sink_statement.value, ast.Call)
+                sink_statement.value.args[0] = payload
+                result.extend(prefix)
+                result.append(sink_statement)
+                continue
         target: ast.expr | None = None
         call: ast.Call | None = None
         if isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Call):
@@ -1952,6 +1898,70 @@ def _inline_statements(
         else:
             result.append(copy.deepcopy(statement))
     return result
+
+
+def _inline_sink_expression(
+    expression: ast.expr,
+    functions: dict[str, ast.FunctionDef],
+    constants: dict[str, ModuleConstant],
+    depth: int,
+    counter: list[int],
+    renames: list[AlphaRename],
+    call_path: tuple[str, ...],
+) -> tuple[list[ast.stmt], ast.expr]:
+    """Inline user calls only inside the selected write payload expression."""
+
+    if isinstance(expression, ast.Call) and isinstance(expression.func, ast.Name):
+        if expression.func.id in functions:
+            placeholder = ast.Name(id="__dependence_v2_sink_placeholder", ctx=ast.Store())
+            flattened = _inline_call(
+                expression,
+                placeholder,
+                functions,
+                constants,
+                depth,
+                counter,
+                renames,
+                call_path,
+            )
+            if not flattened or not isinstance(flattened[-1], ast.Assign):
+                raise _Refusal("function-return-shape")
+            final_assignment = flattened.pop()
+            assert isinstance(final_assignment, ast.Assign)
+            replacement = final_assignment.value
+            nested_prefix, replacement = _inline_sink_expression(
+                replacement,
+                functions,
+                constants,
+                depth + 1,
+                counter,
+                renames,
+                call_path,
+            )
+            return [*flattened, *nested_prefix], replacement
+
+    prefix: list[ast.stmt] = []
+    normalized = copy.deepcopy(expression)
+    for field, value in ast.iter_fields(normalized):
+        if isinstance(value, ast.expr):
+            nested, replacement = _inline_sink_expression(
+                value, functions, constants, depth, counter, renames, call_path
+            )
+            prefix.extend(nested)
+            setattr(normalized, field, replacement)
+        elif isinstance(value, list):
+            replacements: list[object] = []
+            for item in value:
+                if isinstance(item, ast.expr):
+                    nested, replacement = _inline_sink_expression(
+                        item, functions, constants, depth, counter, renames, call_path
+                    )
+                    prefix.extend(nested)
+                    replacements.append(replacement)
+                else:
+                    replacements.append(item)
+            setattr(normalized, field, replacements)
+    return prefix, normalized
 
 
 def _inline_call(
@@ -1997,8 +2007,14 @@ def _inline_call(
     local_map = {name: f"__dependence_v2_{call_number}_{name}" for name in [*parameters, *locals_]}
     for original, fresh in local_map.items():
         renames.append(AlphaRename(function.name, call_path_id, call_span, original, fresh))
+    # Module constants are substituted in the callee's lexical scope before
+    # hygiene renaming; parameter/local shadows are excluded from substitution.
+    bound_names = set(parameters) | stored
+    callee_constants = {name: value for name, value in constants.items() if name not in bound_names}
+    constant_transformer = _ConstantTransformer(callee_constants)
+    constant_body = [constant_transformer.visit(copy.deepcopy(item)) for item in function.body]
     transformer = _InlineTransformer(arguments, local_map)
-    body = [transformer.visit(copy.deepcopy(item)) for item in function.body]
+    body = [transformer.visit(item) for item in constant_body]
     body = [ast.fix_missing_locations(cast(ast.stmt, item)) for item in body]
     return_value: ast.expr | None = None
     nested_return_name: str | None = None
@@ -2022,6 +2038,17 @@ def _inline_call(
                 )
             )
     body = _inline_statements(body, functions, constants, depth + 1, counter, renames, call_path)
+    if return_value is not None:
+        return_prefix, return_value = _inline_sink_expression(
+            return_value,
+            functions,
+            constants,
+            depth + 1,
+            counter,
+            renames,
+            call_path,
+        )
+        body.extend(return_prefix)
     if target is not None:
         body.append(
             ast.Assign(
@@ -3197,6 +3224,8 @@ def _partition_sink_bound_set(
     ):
         raise _Refusal("sink-classification-unresolved")
     operand_names = _partition_operand_names_set(body, procedure_statements, initial_operand_names)
+    if _rebound_operand_names(body, operand_names):
+        raise _Refusal("operand-name-rebound")
     annotation_protected_names = operand_names | _partition_operand_aliases(body, operand_names)
     body = _lower_annotations_for_partition(body, annotation_protected_names)
     _refuse_unsupported_live_assignment_syntax(body)
@@ -3297,6 +3326,44 @@ def _partition_sink_bound_set(
         tuple(_statement_token(body[index], index) for index in sorted(operand_indices)),
         tuple(_statement_token(body[index], index) for index in sorted(sink_indices)),
     )
+
+
+def _rebound_operand_names(body: list[ast.stmt], operand_names: set[str]) -> set[str]:
+    """Find every operand name bound more than once, independent of binding syntax.
+
+    The partition is the sole operand definition. Each syntactic binding operation
+    contributes one site per target name, preserving repeated discard targets in
+    one tuple-unpack while still finding multiple bindings nested in one compound
+    statement. Comprehension targets retain their Python-local scope. A first
+    binding still has to pass its existing statement-specific replayer.
+    """
+
+    def bound_names(target: ast.expr) -> set[str]:
+        if isinstance(target, ast.Name):
+            return {target.id}
+        if isinstance(target, ast.List | ast.Tuple):
+            return set().union(*(bound_names(item) for item in target.elts))
+        if isinstance(target, ast.Starred):
+            return bound_names(target.value)
+        return set()
+
+    counts: Counter[str] = Counter()
+    for statement in body:
+        for node in ast.walk(statement):
+            targets: tuple[ast.expr, ...] = ()
+            if isinstance(node, ast.Assign):
+                targets = tuple(node.targets)
+            elif isinstance(node, ast.AnnAssign | ast.AugAssign | ast.NamedExpr):
+                targets = (node.target,)
+            elif isinstance(node, ast.For | ast.AsyncFor):
+                targets = (node.target,)
+            elif isinstance(node, ast.With | ast.AsyncWith):
+                targets = tuple(
+                    item.optional_vars for item in node.items if item.optional_vars is not None
+                )
+            for target in targets:
+                counts.update(bound_names(target) & operand_names)
+    return {name for name, count in counts.items() if count > 1}
 
 
 def _partition_operand_names_set(

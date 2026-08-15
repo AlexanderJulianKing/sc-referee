@@ -489,7 +489,7 @@ def test_growth7_batch_g_cases_pin_full_observed_reason_sets(project_root: Path)
             ],
             "a8b660a9685f13f0187f": ["function-globals-read"],
             "ae33434a6064f4251cbc": ["import-use-outside-grammar"],
-            "ff99e13110aad17a7fd0": ["sink-helper-call"],
+            "ff99e13110aad17a7fd0": ["group-accumulator-not-total"],
         },
     }
     for batch, cases in expected.items():

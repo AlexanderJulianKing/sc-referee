@@ -2029,6 +2029,8 @@ def _kernel_partition_body(
             return None
         procedures, helpers = census
     operands = _kernel_partition_operand_names(body, procedures)
+    if _kernel_rebound_operand_names(body, operands):
+        return None
     if not isinstance(certificate, CountDependenceCertificate) and any(
         target in operands for _statement, target, _call in helpers
     ):
@@ -2036,6 +2038,37 @@ def _kernel_partition_body(
     annotation_protected_names = operands | _kernel_partition_operand_aliases(body, operands)
     normalized = _kernel_lower_annotations_for_partition(body, annotation_protected_names)
     return (normalized, operands) if normalized is not None else None
+
+
+def _kernel_rebound_operand_names(body: list[ast.stmt], operands: set[str]) -> set[str]:
+    """Independently reject every multiply bound partition operand name."""
+
+    def bound_names(target: ast.expr) -> set[str]:
+        if isinstance(target, ast.Name):
+            return {target.id}
+        if isinstance(target, ast.List | ast.Tuple):
+            return set().union(*(bound_names(item) for item in target.elts))
+        if isinstance(target, ast.Starred):
+            return bound_names(target.value)
+        return set()
+
+    counts: Counter[str] = Counter()
+    for statement in body:
+        for node in ast.walk(statement):
+            targets: tuple[ast.expr, ...] = ()
+            if isinstance(node, ast.Assign):
+                targets = tuple(node.targets)
+            elif isinstance(node, ast.AnnAssign | ast.AugAssign | ast.NamedExpr):
+                targets = (node.target,)
+            elif isinstance(node, ast.For | ast.AsyncFor):
+                targets = (node.target,)
+            elif isinstance(node, ast.With | ast.AsyncWith):
+                targets = tuple(
+                    item.optional_vars for item in node.items if item.optional_vars is not None
+                )
+            for target in targets:
+                counts.update(bound_names(target) & operands)
+    return {name for name, count in counts.items() if count > 1}
 
 
 def _kernel_live_syntax_closed(
@@ -2538,6 +2571,27 @@ def _kernel_flattened_module(
         nonlocal counter
         result: list[ast.stmt] = []
         for statement in statements:
+            if (
+                isinstance(statement, ast.Expr)
+                and isinstance(statement.value, ast.Call)
+                and isinstance(statement.value.func, ast.Attribute)
+                and statement.value.func.attr == "write_text"
+                and statement.value.args
+            ):
+                sink_result = inline_sink_expression(statement.value.args[0], parent, depth)
+                if sink_result is None:
+                    return None
+                prefix, payload = sink_result
+                if prefix or ast.dump(payload, include_attributes=False) != ast.dump(
+                    statement.value.args[0], include_attributes=False
+                ):
+                    sink_statement = copy.deepcopy(statement)
+                    assert isinstance(sink_statement, ast.Expr)
+                    assert isinstance(sink_statement.value, ast.Call)
+                    sink_statement.value.args[0] = payload
+                    result.extend(prefix)
+                    result.append(sink_statement)
+                    continue
             target: ast.expr | None = None
             call: ast.Call | None = None
             if isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Call):
@@ -2581,10 +2635,20 @@ def _kernel_flattened_module(
             }
             if len(names) != len(originals):
                 return None
+            # Replay module-constant substitution in callee scope before alpha
+            # renaming, excluding parameter/local shadows.
+            bound_names = set(parameters) | stored
+            callee_constants = {
+                name: value for name, value in constants.items() if name not in bound_names
+            }
+            constant_transformer = _KernelConstantTransformer(callee_constants)
+            constant_body = [
+                constant_transformer.visit(copy.deepcopy(item)) for item in function.body
+            ]
             transformer = _KernelInlineTransformer(arguments, names)
             nested = [
-                ast.fix_missing_locations(cast(ast.stmt, transformer.visit(copy.deepcopy(item))))
-                for item in function.body
+                ast.fix_missing_locations(cast(ast.stmt, transformer.visit(item)))
+                for item in constant_body
             ]
             return_value: ast.expr | None = None
             nested_return: str | None = None
@@ -2606,6 +2670,12 @@ def _kernel_flattened_module(
             if flattened is None:
                 return None
             result.extend(flattened)
+            if return_value is not None:
+                return_result = inline_sink_expression(return_value, path, depth + 1)
+                if return_result is None:
+                    return None
+                return_prefix, return_value = return_result
+                result.extend(return_prefix)
             if target is not None:
                 value = (
                     ast.Name(nested_return, ast.Load())
@@ -2620,6 +2690,54 @@ def _kernel_flattened_module(
             elif return_value is not None:
                 result.append(ast.Expr(return_value))
         return result
+
+    def inline_sink_expression(
+        expression: ast.expr, parent: tuple[str, ...], depth: int
+    ) -> tuple[list[ast.stmt], ast.expr] | None:
+        if (
+            isinstance(expression, ast.Call)
+            and isinstance(expression.func, ast.Name)
+            and expression.func.id in functions
+        ):
+            placeholder = ast.Name("__dependence_v2_sink_placeholder", ast.Store())
+            flattened = inline(
+                [ast.Assign([placeholder], copy.deepcopy(expression))], parent, depth
+            )
+            if not flattened or not isinstance(flattened[-1], ast.Assign):
+                return None
+            final_assignment = flattened.pop()
+            assert isinstance(final_assignment, ast.Assign)
+            replacement = final_assignment.value
+            nested_result = inline_sink_expression(replacement, parent, depth)
+            if nested_result is None:
+                return None
+            nested_prefix, replacement = nested_result
+            return [*flattened, *nested_prefix], replacement
+
+        prefix: list[ast.stmt] = []
+        normalized = copy.deepcopy(expression)
+        for field, value in ast.iter_fields(normalized):
+            if isinstance(value, ast.expr):
+                nested_result = inline_sink_expression(value, parent, depth)
+                if nested_result is None:
+                    return None
+                nested, replacement = nested_result
+                prefix.extend(nested)
+                setattr(normalized, field, replacement)
+            elif isinstance(value, list):
+                replacements: list[object] = []
+                for item in value:
+                    if isinstance(item, ast.expr):
+                        nested_result = inline_sink_expression(item, parent, depth)
+                        if nested_result is None:
+                            return None
+                        nested, replacement = nested_result
+                        prefix.extend(nested)
+                        replacements.append(replacement)
+                    else:
+                        replacements.append(item)
+                setattr(normalized, field, replacements)
+        return prefix, normalized
 
     executable: list[ast.stmt] = []
     for item in tree.body:
@@ -2991,35 +3109,55 @@ def _kernel_call_sites(
         if depth > MAX_V2_INLINE_DEPTH:
             return
         for statement in statements:
-            call: ast.Call | None = None
+            calls: list[ast.Call] = []
             if isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Call):
-                call = statement.value
+                if isinstance(statement.value.func, ast.Name):
+                    calls.append(statement.value)
+                elif (
+                    isinstance(statement.value.func, ast.Attribute)
+                    and statement.value.func.attr == "write_text"
+                    and statement.value.args
+                ):
+                    calls.extend(
+                        node
+                        for node in ast.walk(statement.value.args[0])
+                        if isinstance(node, ast.Call)
+                        and isinstance(node.func, ast.Name)
+                        and node.func.id in functions
+                    )
             elif (
                 isinstance(statement, ast.Assign)
                 and len(statement.targets) == 1
                 and isinstance(statement.value, ast.Call)
             ):
-                call = statement.value
-            if not (
-                call is not None and isinstance(call.func, ast.Name) and call.func.id in functions
-            ):
-                continue
-            counter += 1
-            component = f"{call.func.id}:{counter}"
-            path = (*parent, component)
-            result.append(
-                (
-                    call.func.id,
-                    "inline-call-path:" + "/".join(path),
-                    (
-                        getattr(call, "lineno", 0),
-                        getattr(call, "col_offset", 0),
-                        getattr(call, "end_lineno", 0),
-                        getattr(call, "end_col_offset", 0),
-                    ),
+                calls.append(statement.value)
+            elif isinstance(statement, ast.Return) and statement.value is not None:
+                calls.extend(
+                    node
+                    for node in ast.walk(statement.value)
+                    if isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id in functions
                 )
-            )
-            walk(functions[call.func.id].body, path, depth + 1)
+            for call in calls:
+                if not isinstance(call.func, ast.Name) or call.func.id not in functions:
+                    continue
+                counter += 1
+                component = f"{call.func.id}:{counter}"
+                path = (*parent, component)
+                result.append(
+                    (
+                        call.func.id,
+                        "inline-call-path:" + "/".join(path),
+                        (
+                            getattr(call, "lineno", 0),
+                            getattr(call, "col_offset", 0),
+                            getattr(call, "end_lineno", 0),
+                            getattr(call, "end_col_offset", 0),
+                        ),
+                    )
+                )
+                walk(functions[call.func.id].body, path, depth + 1)
 
     executable: list[ast.stmt] = []
     for item in tree.body:

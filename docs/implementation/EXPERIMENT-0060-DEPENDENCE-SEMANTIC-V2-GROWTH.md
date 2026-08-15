@@ -349,3 +349,33 @@ the report sink therefore abstains as `distribution-helper-not-bound`, even
 though that position cannot feed an inferential operand. This is conservative
 over-abstention, not evidence of dependence, and is expected to recur in Batch H
 fuel measurements until a separately reviewed expression-shape extension exists.
+
+## 2026-08-15 operand-rebinding correction and growth-8 amendment
+
+The analyzer and certificate kernel now route every statement-level binding
+form through the one independently derived operand partition. An operand name
+appearing as a store target in more than one statement abstains as
+`operand-name-rebound`; the rule covers plain and annotated assignments and is
+binding-form agnostic. Comprehension targets remain scoped to their individual
+comprehensions, and repeated discard targets inside one tuple-unpack remain one
+statement. This closes the false-accusation route where reader frames or bound
+procedure operands were replaced after the recognizer had selected an earlier
+definition.
+
+Growth 8 admits module-level helpers called on the proven sink path under the
+unchanged Part-F/M restrictions: positional simple arguments, no defaults,
+acyclic call graphs, the existing depth bound, and independently replayed
+multi-site alpha-renaming. Helper bodies are flattened before the sole sink
+partition, so operand reads, aliases, mutations, control, and extra writes remain
+subject to the same existing refusals as their hand-inlined forms. Module
+constants may be read by a helper; they are substituted in the callee's lexical
+scope before hygiene renaming, excluding parameter and local shadows. Reads of
+module data names remain outside the module-constant grammar and currently
+surface as `module-constant-not-closed` at module parsing.
+
+The reviewed Q3 two-branch return proposal is deliberately detached from this
+build. Both the `if`/`else` return form and the early-return form continue to
+abstain as `function-return-shape`; no conditional-return production or claim
+was added. Batches I1 and I2 retain the v1-scored/v2-development-shadow structure
+with fresh author, blind-review, hostile-review, and escalation seats. The v2
+adapter remains unregistered, report-only, and labeled `2.4.0-development`.
