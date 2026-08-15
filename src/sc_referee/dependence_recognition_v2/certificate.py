@@ -1660,14 +1660,22 @@ def _kernel_import_forms_closed(tree: ast.Module) -> bool:
         ("os", None),
         ("statistics", None),
     }
-    future_annotations = any(
-        isinstance(statement, ast.ImportFrom)
-        and statement.level == 0
-        and statement.module == "__future__"
-        and len(statement.names) == 1
-        and statement.names[0].name == "annotations"
-        and statement.names[0].asname is None
-        for statement in tree.body
+    future_index = (
+        1
+        if tree.body
+        and isinstance(tree.body[0], ast.Expr)
+        and isinstance(tree.body[0].value, ast.Constant)
+        and isinstance(tree.body[0].value.value, str)
+        else 0
+    )
+    future_statement = tree.body[future_index] if future_index < len(tree.body) else None
+    future_annotations = bool(
+        isinstance(future_statement, ast.ImportFrom)
+        and future_statement.level == 0
+        and future_statement.module == "__future__"
+        and len(future_statement.names) == 1
+        and future_statement.names[0].name == "annotations"
+        and future_statement.names[0].asname is None
     )
     for statement in tree.body:
         if isinstance(statement, ast.Import):

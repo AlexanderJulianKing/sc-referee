@@ -882,9 +882,16 @@ def test_growth6_typing_imports_are_future_gated_and_annotation_only() -> None:
         "from scipy import stats", "from scipy import stats\nfrom typing import List, Optional"
     ).replace("    result =", "    note: Optional[List[str]]\n    result =")
     assert _inspect(source)["outcome"] == "evaluation_candidate"
+    docstring_source = '"""Module documentation."""\n' + source
+    assert _inspect(docstring_source)["outcome"] == "evaluation_candidate"
     assert _inspect(source.replace("from __future__ import annotations\n", ""))[
         "abstention_reasons"
     ] == ["unsupported-import-form"]
+    misplaced = _source().replace(
+        "import csv",
+        "import csv\nfrom __future__ import annotations\nfrom typing import Dict",
+    )
+    assert _inspect(misplaced)["abstention_reasons"] == ["unsupported-import-form"]
     live = source.replace("    result =", "    marker = List\n    result =")
     assert _inspect(live)["abstention_reasons"] == ["import-use-outside-grammar"]
 

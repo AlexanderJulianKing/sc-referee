@@ -1156,14 +1156,25 @@ def _without_leading_docstring(body: list[ast.stmt]) -> list[ast.stmt]:
 
 
 def _future_annotations_present(tree: ast.Module) -> bool:
-    return any(
+    index = 1 if tree.body and _is_docstring_statement(tree.body[0]) else 0
+    if index >= len(tree.body):
+        return False
+    statement = tree.body[index]
+    return bool(
         isinstance(statement, ast.ImportFrom)
         and statement.level == 0
         and statement.module == "__future__"
         and len(statement.names) == 1
         and statement.names[0].name == "annotations"
         and statement.names[0].asname is None
-        for statement in tree.body
+    )
+
+
+def _is_docstring_statement(statement: ast.stmt) -> bool:
+    return bool(
+        isinstance(statement, ast.Expr)
+        and isinstance(statement.value, ast.Constant)
+        and isinstance(statement.value.value, str)
     )
 
 

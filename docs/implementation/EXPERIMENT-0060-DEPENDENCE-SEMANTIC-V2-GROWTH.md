@@ -277,7 +277,9 @@ partition may lower to its equivalent plain assignment.
 
 Process tier rule: any ticket that introduces or duplicates a classification is
 a heavy-process change requiring the corresponding design and adversarial
-review. Such a ticket is never a vocabulary-only round.
+review. Such a ticket is never a vocabulary-only round. A conditional admission
+whose premise is a claim about Python semantics likewise requires that premise
+to be verified with design-round rigor before the admission ships.
 
 ## 2026-08-15 growth-6 vocabulary amendment
 
