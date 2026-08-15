@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import os
 import re
@@ -60,15 +61,30 @@ def _inspect(source: str, data: bytes = _ADVERSE, *, set_authority: bool = False
                     "record_id": "procedure-v2:test",
                 }
             records.append(FrozenBaseRecord.from_record(record.ref, value))
+        procedure_calls = sorted(
+            (
+                node
+                for node in ast.walk(ast.parse(source))
+                if isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr in {"mannwhitneyu", "ttest_ind"}
+            ),
+            key=lambda node: (node.lineno, node.col_offset),
+        )
         procedures = []
-        if "mannwhitneyu" in source:
-            procedures.append("scipy.stats.mannwhitneyu")
-        if "ttest_ind" in source:
-            procedures.insert(
-                0,
+        for call in procedure_calls:
+            assert isinstance(call.func, ast.Attribute)
+            if call.func.attr == "mannwhitneyu":
+                procedures.append("scipy.stats.mannwhitneyu")
+                continue
+            equal_var = next(
+                (keyword.value for keyword in call.keywords if keyword.arg == "equal_var"),
+                None,
+            )
+            procedures.append(
                 "scipy.stats.ttest_ind:welch"
-                if "equal_var=False" in source
-                else "scipy.stats.ttest_ind",
+                if isinstance(equal_var, ast.Constant) and equal_var.value is False
+                else "scipy.stats.ttest_ind"
             )
         records.append(
             FrozenBaseRecord.from_record(
@@ -85,6 +101,13 @@ def _inspect(source: str, data: bytes = _ADVERSE, *, set_authority: bool = False
 
 
 def _multi_source(*, reverse: bool = False, same_callable: bool = False) -> str:
+    """Build two calls whose results both reach the sole report sink.
+
+    That last property is the sensitive difference from independent review probes
+    that computed a second result but reported only the first: the latter correctly
+    abstain as ``sink-flow-escapes`` before procedure-variant reasoning matters.
+    """
+
     second = "stats.ttest_ind" if same_callable else "stats.mannwhitneyu"
     arguments = "right, left" if reverse else "left, right"
     return (
@@ -92,6 +115,20 @@ def _multi_source(*, reverse: bool = False, same_callable: bool = False) -> str:
         .replace(
             "    result = stats.ttest_ind(left, right)",
             f"    result = stats.ttest_ind(left, right)\n    robustness = {second}({arguments})",
+        )
+        .replace("str(result)", 'str(result) + "\\n" + str(robustness)')
+    )
+
+
+def _ttest_variant_pair_source(*, first_welch: bool, second_welch: bool) -> str:
+    first_suffix = ", equal_var=False" if first_welch else ""
+    second_suffix = ", equal_var=False" if second_welch else ""
+    return (
+        _source()
+        .replace(
+            "    result = stats.ttest_ind(left, right)",
+            f"    result = stats.ttest_ind(left, right{first_suffix})\n"
+            f"    robustness = stats.ttest_ind(left, right{second_suffix})",
         )
         .replace("str(result)", 'str(result) + "\\n" + str(robustness)')
     )
@@ -229,6 +266,58 @@ def test_growth7_joint_procedure_set_quantifies_shared_operands(
     ]
 
 
+def test_growth7_plain_and_welch_variants_share_operands_and_preserve_runtime_keywords(
+    tmp_path: Path,
+) -> None:
+    data = b"unit_id,arm,value\nu1,A,1\nu1,A,2\nu2,A,100\nu3,B,3\nu4,B,4\n"
+    plain = _source()
+    welch = plain.replace(
+        "stats.ttest_ind(left, right)", "stats.ttest_ind(left, right, equal_var=False)"
+    )
+    source = _ttest_variant_pair_source(first_welch=False, second_welch=True)
+
+    plain_report = _execute(plain, data, tmp_path / "plain")
+    welch_report = _execute(welch, data, tmp_path / "welch")
+    pair_report = _execute(source, data, tmp_path / "plain-welch")
+    assert pair_report.splitlines() == [plain_report, welch_report]
+    assert plain_report != welch_report
+
+    payload = _inspect(source, data, set_authority=True)
+    assert payload["outcome"] == "evaluation_candidate"
+    assert payload["payload"]["resolved_callables"] == [
+        "scipy.stats.ttest_ind",
+        "scipy.stats.ttest_ind:welch",
+    ]
+
+
+def test_growth7_two_welch_calls_share_operands_and_preserve_runtime_keywords(
+    tmp_path: Path,
+) -> None:
+    data = b"unit_id,arm,value\nu1,A,1\nu1,A,2\nu2,A,100\nu3,B,3\nu4,B,4\n"
+    welch = _source().replace(
+        "stats.ttest_ind(left, right)", "stats.ttest_ind(left, right, equal_var=False)"
+    )
+    source = _ttest_variant_pair_source(first_welch=True, second_welch=True)
+
+    welch_report = _execute(welch, data, tmp_path / "single-welch")
+    pair_report = _execute(source, data, tmp_path / "welch-welch")
+    assert pair_report.splitlines() == [welch_report, welch_report]
+
+    payload = _inspect(source, data, set_authority=True)
+    assert payload["outcome"] == "evaluation_candidate"
+    assert payload["payload"]["resolved_callables"] == [
+        "scipy.stats.ttest_ind:welch",
+        "scipy.stats.ttest_ind:welch",
+    ]
+
+
+def test_growth7_unreported_second_variant_is_a_sink_flow_escape() -> None:
+    source = _ttest_variant_pair_source(first_welch=False, second_welch=True).replace(
+        'str(result) + "\\n" + str(robustness)', "str(result)"
+    )
+    assert _inspect(source, set_authority=True)["abstention_reasons"] == ["sink-flow-escapes"]
+
+
 def test_growth7_same_callable_degenerate_and_divergence_gates() -> None:
     assert _inspect(_multi_source(same_callable=True), set_authority=True)["outcome"] == (
         "evaluation_candidate"
@@ -353,6 +442,32 @@ def test_growth7_batch_h_envelopes_have_fresh_seats(
 
 
 def test_growth7_batch_g_cases_pin_full_observed_reason_sets(project_root: Path) -> None:
+    """Pin 59 measurable cases from a 60-case A--G lifetime denominator.
+
+    Batch D case ``dc2b31d5da33d148736a`` was retained at intake after its
+    then-forbidden ``__future__`` import, so it has no materialized case directory
+    and cannot be statically re-measured. It remains the sixtieth lifetime case.
+    """
+
+    batch_names = ("a", "b", "c", "d", "e1", "e2", "f1", "f2", "g1", "g2")
+    growth_root = project_root / "evaluation/development/dependence-growth-loop"
+    measurable_count = sum(
+        len(tuple((growth_root / f"batch-{batch}" / "authoring/cases").iterdir()))
+        for batch in batch_names
+    )
+    intake_d = json.loads(
+        (growth_root / "batch-d/authoring/INTAKE_LEDGER.json").read_text(encoding="utf-8")
+    )
+    refused = [
+        entry
+        for entry in intake_d["entries"]
+        if entry["intake_admission_state"] == "refused_but_case_retained"
+    ]
+    assert measurable_count == 59
+    assert intake_d["case_count"] == 6
+    assert [entry["case_id"] for entry in refused] == ["case:dc2b31d5da33d148736a"]
+    assert not (growth_root / "batch-d/authoring/cases/dc2b31d5da33d148736a").exists()
+
     expected = {
         "batch-g1": {
             "2ddf508d135fd7fce5df": ["function-globals-read"],

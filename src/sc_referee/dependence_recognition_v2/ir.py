@@ -106,10 +106,14 @@ DEPENDENCE_V2_REASON_REGISTRY = frozenset(
         "procedure-call-unresolved",
         "distribution-helper-not-bound",
         "distribution-helper-reaches-operand",
+        # No registered inferential call plus a contested scipy.stats call leaves
+        # the entire procedure census unresolved.
         "procedure-census-unresolved",
         "procedure-alternative-not-default",
         "procedure-keyword-not-closed",
         "procedure-set-count-member-unsupported",
+        # Once a registered member establishes a procedure set, any additional
+        # contested/unregistered member is a specifically unregistered set member.
         "procedure-set-member-unregistered",
         "procedure-set-mixed-independence-models",
         "procedure-set-operands-diverge",

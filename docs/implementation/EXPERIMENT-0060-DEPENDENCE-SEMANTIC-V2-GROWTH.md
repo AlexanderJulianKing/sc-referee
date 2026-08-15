@@ -342,3 +342,10 @@ load-bearing and may not grow without a new reviewed premise.
 Batches H1 and H2 retain the v1-scored/v2-development-shadow structure with
 fresh author, blind-review, hostile-review, and escalation seats. The v2 adapter
 remains unregistered and report-only.
+
+Known Growth-7 fuel-reading wall: a distribution-helper call is required to be
+the complete right-hand side of one assignment. The same call written inline in
+the report sink therefore abstains as `distribution-helper-not-bound`, even
+though that position cannot feed an inferential operand. This is conservative
+over-abstention, not evidence of dependence, and is expected to recur in Batch H
+fuel measurements until a separately reviewed expression-shape extension exists.
