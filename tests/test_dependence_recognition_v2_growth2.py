@@ -356,7 +356,7 @@ main()
     assert unexpected["abstention_reasons"] == ["group-set-not-closed"]
 
 
-def test_single_total_increment_site_is_admitted_but_two_sites_refuse(tmp_path: Path) -> None:
+def test_augmented_count_increments_are_now_closed_before_certification(tmp_path: Path) -> None:
     source = """import csv
 from pathlib import Path
 from scipy import stats
@@ -374,16 +374,57 @@ main()
 """
     data = b"unit_id,success\nu1,yes\nu1,no\nu2,yes\n"
     _execute(source, data, tmp_path)
-    assert _inspect(source, data)["outcome"] == "evaluation_candidate"
+    assert _inspect(source, data)["abstention_reasons"] == ["augmented-assignment-not-modeled"]
     two_sites = source.replace(
         "    result = stats.binomtest",
         '    for row in rows:\n        if row["success"] == "no":\n            k += 1\n'
         "    result = stats.binomtest",
     )
-    assert _inspect(two_sites, data)["abstention_reasons"] == ["count-multiple-increment-sites"]
+    assert _inspect(two_sites, data)["abstention_reasons"] == ["augmented-assignment-not-modeled"]
     assert _inspect(source.replace("k += 1", "k += 2"), data)["abstention_reasons"] == [
-        "count-increment-not-total"
+        "augmented-assignment-not-modeled"
     ]
+
+
+def test_annotated_count_rebind_abstains_and_kernel_guard_is_independent() -> None:
+    source = _binomial_source()
+    data = b"unit_id,success\nu1,yes\nu1,no\nu2,yes\n"
+    unsafe = source.replace("    k =", "    n: int = 1\n    k =")
+    payload = _inspect(unsafe, data)
+    assert payload["outcome"] == "unsupported"
+    assert payload["abstention_reasons"] == ["annotated-assignment-not-modeled"]
+
+    context, certificate, fact = _count_kernel_inputs(source, data)
+    unsafe_bytes = context.documents[0].content.replace(
+        b"    n = len(rows)", b"    n = len(rows); n: int = 1"
+    )
+    unsafe_digest = sha256_digest(unsafe_bytes)
+    unsafe_certificate = replace(
+        certificate,
+        source_digest=unsafe_digest,
+        source_extent=(0, len(unsafe_bytes)),
+    )
+    unsafe_certificate = replace(
+        unsafe_certificate,
+        certificate_id="dependence-growth-count-certificate:"
+        + semantic_digest(
+            {
+                "source_digest": unsafe_digest,
+                "fact": fact.evidence_id,
+                "procedure": unsafe_certificate.resolved_callable,
+                "conclusion": unsafe_certificate.conclusion,
+            }
+        ),
+    )
+    assert (
+        verify_count_dependence_certificate(
+            unsafe_certificate,
+            trusted_count_facts=(fact,),
+            trusted_authorizations=_trusted_authorizations(context),
+            source_bytes=unsafe_bytes,
+        )
+        is None
+    )
 
 
 def test_nondefault_alternative_refuses() -> None:

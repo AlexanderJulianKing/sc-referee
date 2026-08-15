@@ -12,6 +12,7 @@ import pytest
 from jsonschema import Draft7Validator
 from sc_referee_evaluation import lean_pipeline as evaluation_pipeline
 
+from sc_referee.core.ids import semantic_digest, sha256_digest
 from sc_referee.dependence_recognition_v2.adapter import (
     DependenceRecognitionV2ShadowAdapter,
 )
@@ -234,7 +235,10 @@ def test_defaultdict_list_certifies_and_phantom_key_abstains(tmp_path: Path) -> 
             refused = refused.replace("left = groups[LEFT]", "left = [groups[LEFT]]")
             refused = refused.replace("right = groups[RIGHT]", "right = [groups[RIGHT]]")
         _execute(refused, _ADVERSE, tmp_path / factory)
-        assert _inspect(refused)["abstention_reasons"] == ["group-container-not-list"]
+        expected = (
+            "augmented-assignment-not-modeled" if factory == "int" else "group-container-not-list"
+        )
+        assert _inspect(refused)["abstention_reasons"] == [expected]
 
 
 @pytest.mark.parametrize(
@@ -316,6 +320,76 @@ def test_alias_then_mutate_variants_permanently_abstain(value: str, tmp_path: Pa
     payload = _inspect(source)
     assert payload["outcome"] == "unsupported"
     assert payload["abstention_reasons"] == ["sink-aliases-operand-object"]
+
+
+@pytest.mark.parametrize(
+    ("statement", "reason"),
+    [
+        ("left: list = [0.0]", "annotated-assignment-not-modeled"),
+        ("left += [0.0]", "augmented-assignment-not-modeled"),
+        ("(left := [0.0])", "named-expression-not-modeled"),
+        ("del left", "delete-not-modeled"),
+    ],
+)
+def test_unmodeled_operand_rebinding_statements_abstain(statement: str, reason: str) -> None:
+    source = _source().replace(
+        "    right = groups[RIGHT]", f"    {statement}\n    right = groups[RIGHT]"
+    )
+    payload = _inspect(source)
+    assert payload["outcome"] == "unsupported"
+    assert payload["abstention_reasons"] == [reason]
+
+
+def test_group_kernel_live_syntax_guard_rejects_annotated_rebind() -> None:
+    context = _context(_source(), _ADVERSE)
+    analysis = analyze_dependence_growth_python(context)
+    discharged = discharge_dependence_growth_analysis(analysis, context)
+    verified = discharged.verified_certificate
+    assert analysis.certificate is not None
+    assert verified is not None
+    certificate = replace(
+        analysis.certificate,
+        certificate_id=verified.certificate_id,
+        operand_bindings=verified.operand_bindings,
+        conclusion=verified.conclusion,
+    )
+    unsafe_bytes = context.documents[0].content.replace(
+        b"    left = groups[LEFT]", b"    left = groups[LEFT]; left: list = [0.0]"
+    )
+    unsafe_digest = sha256_digest(unsafe_bytes)
+    unsafe_certificate = replace(
+        certificate,
+        source_digest=unsafe_digest,
+        source_extent=(0, len(unsafe_bytes)),
+    )
+    unsafe_certificate = replace(
+        unsafe_certificate,
+        certificate_id="dependence-growth-certificate:"
+        + semantic_digest(
+            {
+                "source_digest": unsafe_digest,
+                "fact": verified.fact.evidence_id,
+                "bindings": [
+                    {
+                        "position": item.position,
+                        "argument_name": item.argument_name,
+                        "group_key": item.group_key,
+                    }
+                    for item in unsafe_certificate.operand_bindings
+                ],
+                "conclusion": unsafe_certificate.conclusion,
+            }
+        ),
+    )
+    assert (
+        verify_dependence_growth_certificate(
+            unsafe_certificate,
+            trusted_group_facts=(verified.fact,),
+            trusted_authorizations=_trusted_v2_authorizations(context),
+            source_bytes=unsafe_bytes,
+        )
+        is None
+    )
 
 
 def test_sink_flow_escape_unknown_method_and_raising_sink_routes(tmp_path: Path) -> None:

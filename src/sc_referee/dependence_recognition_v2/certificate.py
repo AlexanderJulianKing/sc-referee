@@ -468,6 +468,8 @@ def _kernel_replay_count_claims(tree: ast.Module, certificate: CountDependenceCe
     if flattened is None:
         return False
     tree = ast.Module(body=flattened, type_ignores=[])
+    if not _kernel_count_live_syntax_closed(tree, certificate, imports, constants):
+        return False
     if _kernel_count_group_obligations(tree, certificate) != certificate.obligation.group_domains:
         return False
     assignments = [node for node in ast.walk(tree) if isinstance(node, ast.Assign)]
@@ -629,6 +631,8 @@ def _kernel_count_live_syntax_closed(
         ast.Yield,
         ast.YieldFrom,
         ast.Await,
+        ast.AugAssign,
+        ast.AnnAssign,
         ast.NamedExpr,
         ast.Delete,
     )
@@ -1204,6 +1208,8 @@ def _kernel_replay_source_claims(
     if flattened is None:
         return False
     tree = ast.Module(body=flattened, type_ignores=[])
+    if not _kernel_live_syntax_closed(tree, certificate, fact):
+        return False
     appends = [
         node
         for node in ast.walk(tree)
@@ -1551,12 +1557,9 @@ def _kernel_live_syntax_closed(
     tree: ast.Module,
     certificate: DependenceGrowthCertificate,
     fact: GroupValueSequenceFact,
-    constants: dict[str, object],
-    imports: dict[str, str],
 ) -> bool:
-    """Reject any live call or assignment outside the bounded semantic basis."""
+    """Close statement syntax before the dedicated semantic replayers run."""
 
-    functions = {item.name for item in tree.body if isinstance(item, ast.FunctionDef)}
     if sum(isinstance(node, ast.For) for node in ast.walk(tree)) != 1:
         return False
     if any(
@@ -1585,18 +1588,8 @@ def _kernel_live_syntax_closed(
         for item in certificate.alpha_renames
         if item.fresh_name == certificate.group_container_name
     }
-    group_names = group_originals or {certificate.group_container_name}
+    group_names = {*group_originals, certificate.group_container_name}
     for node in ast.walk(tree):
-        if isinstance(node, ast.If) and not _kernel_main_guard(node):
-            return False
-        if isinstance(node, ast.Call):
-            if _kernel_call_allowed(node, functions, group_names, imports, constants):
-                continue
-            return False
-        if isinstance(node, ast.Assign) and not _kernel_assignment_allowed(
-            node, functions, group_names, constants, imports
-        ):
-            return False
         if isinstance(node, ast.AugAssign | ast.AnnAssign | ast.NamedExpr | ast.Delete):
             return False
     return set(fact.predeclared_bucket_keys) == _kernel_predeclared_keys(tree, group_names)

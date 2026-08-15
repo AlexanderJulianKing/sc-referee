@@ -150,6 +150,7 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
         if _module_string_alternative_used(tree, imports, constants):
             raise _Refusal("procedure-alternative-not-default")
         flattened, renames, dead = _flatten_functions(executable, functions, constants, imports)
+        _refuse_unsupported_live_assignment_syntax(flattened)
         if _core_construct_is_conditionally_wrapped(flattened, imports):
             raise _Refusal("sink-controls-operand-flow")
     except _Refusal as refusal:
@@ -377,6 +378,20 @@ def _core_construct_is_conditionally_wrapped(body: list[ast.stmt], imports: dict
                 }:
                     return True
     return False
+
+
+def _refuse_unsupported_live_assignment_syntax(body: list[ast.stmt]) -> None:
+    """Name every statement form excluded by both certified v2 paths."""
+
+    nodes = tuple(node for statement in body for node in ast.walk(statement))
+    if any(isinstance(node, ast.AnnAssign) for node in nodes):
+        raise _Refusal("annotated-assignment-not-modeled")
+    if any(isinstance(node, ast.AugAssign) for node in nodes):
+        raise _Refusal("augmented-assignment-not-modeled")
+    if any(isinstance(node, ast.NamedExpr) for node in nodes):
+        raise _Refusal("named-expression-not-modeled")
+    if any(isinstance(node, ast.Delete) for node in nodes):
+        raise _Refusal("delete-not-modeled")
 
 
 def _trusted_v2_authorizations(
@@ -1921,6 +1936,9 @@ def _path_value(expression: ast.expr, constants: dict[str, ast.Constant]) -> str
 
 def _path_division_value(expression: ast.expr) -> str | None:
     """Fold only ``Path(<literal>) / <literal>`` POSIX chains."""
+
+    # pathlib can only shorten this literal chain through normalization; this
+    # fold never normalizes, so fold == frozen path implies runtime == fold.
 
     if (
         isinstance(expression, ast.Call)

@@ -44,6 +44,8 @@ DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS = frozenset(
 DEPENDENCE_V2_REASON_REGISTRY = frozenset(
     {
         "ast-node-ceiling",
+        "annotated-assignment-not-modeled",
+        "augmented-assignment-not-modeled",
         "authority-material-binding-mismatch",
         "authorized-composite-unit-key-unsupported",
         "bom-unsupported",
@@ -62,6 +64,7 @@ DEPENDENCE_V2_REASON_REGISTRY = frozenset(
         "defaultdict-key-not-proven",
         "dependence-v2-shadow-abstention",
         "duplicate-header",
+        "delete-not-modeled",
         "function-argument-not-simple",
         "function-closure",
         "function-default-params",
@@ -95,6 +98,7 @@ DEPENDENCE_V2_REASON_REGISTRY = frozenset(
         "import-use-outside-grammar",
         "independent-unit-definition-unresolved",
         "module-constant-not-closed",
+        "named-expression-not-modeled",
         "one-observation-per-unit-in-disjoint-bound-operands",
         "one-row-per-unit-in-proven-count-sets",
         "procedure-call-unresolved",
