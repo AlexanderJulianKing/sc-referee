@@ -13,7 +13,12 @@ from typing import Any, cast
 import pytest
 
 from sc_referee.dependence_recognition_v2.adapter import DependenceRecognitionV2ShadowAdapter
-from sc_referee.dependence_recognition_v2.python_analyzer import _flatten_functions, _module_parts
+from sc_referee.dependence_recognition_v2.python_analyzer import (
+    _flatten_functions,
+    _module_parts,
+    analyze_dependence_growth_python,
+    discharge_dependence_growth_analysis,
+)
 from scripts.lean_pipeline import (
     ENVELOPE_CONFIGS,
     default_dependence_free_j1_config,
@@ -145,6 +150,23 @@ def test_growth9_argument_hoists_preserve_left_to_right_source_order() -> None:
         for statement in hoists
     ]
     assert names == ["left", "right"]
+
+
+def test_growth9_kernel_independently_rejects_operand_container_hoist(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = _helper_source("groups['A'], result")
+    monkeypatch.setattr(
+        "sc_referee.dependence_recognition_v2.python_analyzer."
+        "_expression_roots_in_operand_container",
+        lambda _expression, _operands: False,
+    )
+    context = _context(source, _ADVERSE)
+    proposal = analyze_dependence_growth_python(context)
+    assert proposal.certificate is not None
+    discharged = discharge_dependence_growth_analysis(proposal, context)
+    assert discharged.verified_certificate is None
+    assert discharged.abstention_reasons == ("certificate-kernel-refusal:sink-partition",)
 
 
 def test_growth9_batch_i_target_cases_pin_honest_next_walls(project_root: Path) -> None:

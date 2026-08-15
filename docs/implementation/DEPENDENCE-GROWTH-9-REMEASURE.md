@@ -1,9 +1,9 @@
 # Dependence growth-9 frozen-corpus re-measure
 
 Date: 2026-08-15  
-Baseline: committed growth-8 `HEAD`  
+Baseline: committed growth-8 `e356345`  
 Corpus: all 83 materialized cases in batches A through I2  
-Result: 29 reason-set movements; zero outcome-class movements
+Result: 29 reason-set movements; zero outcome-class movements; accusations `0 -> 0`
 
 All moved cases remained `unsupported`. Unlisted cases retained their exact
 sorted reason sets.

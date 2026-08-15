@@ -251,15 +251,19 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
             flattened, inferential_calls, distribution_helpers
         ):
             raise _Refusal("distribution-helper-reaches-operand")
-        sink = _recognize_sink_set(
-            flattened,
-            tuple(item.result_name for item in inferential_calls),
-            constants,
-            _trusted_result_path(context),
-        )
         # Only the new expression-argument path moves the sole partition ahead
         # of the older group-shape replayers. The degenerate no-expression path
         # retains the exact pre-G9 order and behavior.
+        sink = (
+            _recognize_sink_set(
+                flattened,
+                tuple(item.result_name for item in inferential_calls),
+                constants,
+                _trusted_result_path(context),
+            )
+            if has_argument_hoists
+            else None
+        )
         precomputed_partition = (
             _partition_sink_bound_set(
                 flattened,
@@ -267,7 +271,7 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
                 sink,
                 {read[0]},
             )
-            if has_argument_hoists
+            if sink is not None
             else None
         )
         if grouping is None:
@@ -280,6 +284,13 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
             grouping[5],
             inferential_calls,
         )
+        if sink is None:
+            sink = _recognize_sink_set(
+                flattened,
+                tuple(item.result_name for item in procedure[0]),
+                constants,
+                _trusted_result_path(context),
+            )
         operand_tokens, sink_tokens = _verify_closed_flattened_statements(
             flattened,
             rows_name=read[0],
