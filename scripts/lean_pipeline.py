@@ -911,6 +911,8 @@ DEPENDENCE_FREE_LANE_RELATIVE = Path("evaluation/development/dependence-growth-l
 DEPENDENCE_FREE_B_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-b")
 DEPENDENCE_FREE_C_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-c")
 DEPENDENCE_FREE_D_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-d")
+DEPENDENCE_FREE_E1_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-e1")
+DEPENDENCE_FREE_E2_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-e2")
 _DEPENDENCE_FREE_ROLES = ("rq1", "rq2", "rq3", "rq4", "rq5", "rq6")
 _DEPENDENCE_FREE_COMMON_TASK = """Study one narrowly defined error class: repeated measurements from the same independent unit entered into a row-independent statistical procedure as if independent. Invent the scientific domain, study story, vocabulary, column names, data values, number of rows, and coding style yourself. Do not copy any prior-lane material.
 
@@ -919,6 +921,7 @@ Build a real runnable Python analysis that reads exactly `data/input.csv` and wr
 Do not mention sc-referee or any case-role label in any authored artifact. The Python module must execute cleanly and deterministically in the pinned SciPy runtime. No workflow template, reader idiom, procedure, literals, or source structure is prescribed."""
 _DEPENDENCE_FREE_ALLOWED_IMPORT_ROOTS = frozenset(
     {
+        "__future__",
         "collections",
         "csv",
         "dataclasses",
@@ -952,7 +955,7 @@ _DEPENDENCE_FREE_CASE_REQUIREMENTS = """Produce exactly four authored files.
 
 `data-description.md`: a UTF-8 plain-language description with exactly one line `One row is: DESCRIPTION` and exactly one line `Independent unit column: COLUMN`, replacing DESCRIPTION with what a row represents and COLUMN with the actual single CSV header name.
 
-The CSV and workflow must be ASCII. The report and data description may be UTF-8 prose. The only allowed import roots are exactly: collections, csv, dataclasses, datetime, functools, itertools, json, math, numpy, operator, os, pathlib, random, scipy, statistics, statsmodels, string, sys, textwrap, typing, warnings.
+The CSV and workflow must be ASCII. The report and data description may be UTF-8 prose. The only allowed import roots are exactly: __future__, collections, csv, dataclasses, datetime, functools, itertools, json, math, numpy, operator, os, pathlib, random, scipy, statistics, statsmodels, string, sys, textwrap, typing, warnings.
 
 Return the description in the `data_description` response field. Do not include a frozen workflow template, prescribed data literals, or a prescribed statistical procedure."""
 _DEPENDENCE_FREE_V2_CASE_REQUIREMENTS = (
@@ -1218,6 +1221,92 @@ def default_dependence_free_d_config() -> EnvelopeConfig:
             model_alias="claude-opus-5",
         ),
         enforce_cli_review_json_schema=True,
+    )
+
+
+def default_dependence_free_e1_config() -> EnvelopeConfig:
+    """Return growth-loop batch E1 with the batch-D structure and fresh seats."""
+
+    base = default_dependence_free_d_config()
+    authors = {
+        f"actor:dependence-free-batch-e1-author-opus-{ordinal}": ModelParticipant(
+            participant_id=f"actor:dependence-free-batch-e1-author-opus-{ordinal}",
+            model_id="claude-opus-5",
+            model_name="Claude Opus 5",
+            model_alias="claude-opus-5",
+        )
+        for ordinal in range(51, 57)
+    }
+    return replace(
+        base,
+        envelope_id="development-dependence-growth-loop-batch-e1-v1",
+        pipeline_relative=DEPENDENCE_FREE_E1_LANE_RELATIVE,
+        authors=authors,
+        author_roles={
+            participant_id: [role]
+            for participant_id, role in zip(sorted(authors), _DEPENDENCE_FREE_ROLES, strict=True)
+        },
+        reviewer=ModelParticipant(
+            participant_id="actor:dependence-free-batch-e1-reviewer-fable-24",
+            model_id="claude-fable-5",
+            model_name="Claude Fable 5",
+            model_alias="fable",
+        ),
+        hostile_answer_key_reviewer=ModelParticipant(
+            participant_id="actor:dependence-free-batch-e1-hostile-fable-25",
+            model_id="claude-fable-5",
+            model_name="Claude Fable 5",
+            model_alias="fable",
+        ),
+        escalation_reviewer=ModelParticipant(
+            participant_id="actor:dependence-free-batch-e1-escalation-opus-17",
+            model_id="claude-opus-5",
+            model_name="Claude Opus 5",
+            model_alias="claude-opus-5",
+        ),
+    )
+
+
+def default_dependence_free_e2_config() -> EnvelopeConfig:
+    """Return growth-loop batch E2 with the batch-D structure and fresh seats."""
+
+    base = default_dependence_free_d_config()
+    authors = {
+        f"actor:dependence-free-batch-e2-author-opus-{ordinal}": ModelParticipant(
+            participant_id=f"actor:dependence-free-batch-e2-author-opus-{ordinal}",
+            model_id="claude-opus-5",
+            model_name="Claude Opus 5",
+            model_alias="claude-opus-5",
+        )
+        for ordinal in range(57, 63)
+    }
+    return replace(
+        base,
+        envelope_id="development-dependence-growth-loop-batch-e2-v1",
+        pipeline_relative=DEPENDENCE_FREE_E2_LANE_RELATIVE,
+        authors=authors,
+        author_roles={
+            participant_id: [role]
+            for participant_id, role in zip(sorted(authors), _DEPENDENCE_FREE_ROLES, strict=True)
+        },
+        reviewer=ModelParticipant(
+            participant_id="actor:dependence-free-batch-e2-reviewer-fable-26",
+            model_id="claude-fable-5",
+            model_name="Claude Fable 5",
+            model_alias="fable",
+        ),
+        hostile_answer_key_reviewer=ModelParticipant(
+            participant_id="actor:dependence-free-batch-e2-hostile-fable-27",
+            model_id="claude-fable-5",
+            model_name="Claude Fable 5",
+            model_alias="fable",
+        ),
+        escalation_reviewer=ModelParticipant(
+            participant_id="actor:dependence-free-batch-e2-escalation-opus-18",
+            model_id="claude-opus-5",
+            model_name="Claude Opus 5",
+            model_alias="claude-opus-5",
+        ),
     )
 
 
@@ -1498,6 +1587,8 @@ ENVELOPE_CONFIGS = {
     "dependence-free-b": default_dependence_free_b_config,
     "dependence-free-c": default_dependence_free_c_config,
     "dependence-free-d": default_dependence_free_d_config,
+    "dependence-free-e1": default_dependence_free_e1_config,
+    "dependence-free-e2": default_dependence_free_e2_config,
     "dosage": default_dosage_config,
     "founder-orientation": default_founder_orientation_config,
     "founder-orientation-b": default_founder_orientation_b_config,

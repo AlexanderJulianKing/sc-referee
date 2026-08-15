@@ -213,6 +213,17 @@ fresh-name injectivity across sites and disjointness from caller-visible names.
 for grouping; sorted unpack is forbidden and every constant operand key must be
 an observed frozen group key.
 
+## 2026-08-15 growth-4 vocabulary amendment
+
+This light-process vocabulary round changes no proof obligation or claim
+shape.  `from __future__ import annotations` is inert; every other future form
+abstains.  `from dataclasses import dataclass` may be bound but any live use
+abstains as `dataclass-use-not-modeled`, and class definitions remain outside
+the grammar.  Module constants additionally fold literal-only POSIX
+`Path("segment") / "segment"` chains under the existing frozen path-binding
+equality.  `scipy.stats.wilcoxon` remains a named paired-procedure gap, in the
+same unsupported class as `ttest_rel`; it is not admitted.
+
 Batch D is the same v1-scored/v2-development-shadow envelope at
 `evaluation/development/dependence-growth-loop/batch-d/`, with fresh author and
 review seats.  The pinned Claude CLI exposes `--json-schema`; batch D therefore

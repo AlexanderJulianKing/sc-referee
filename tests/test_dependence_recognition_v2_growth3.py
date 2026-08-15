@@ -26,6 +26,8 @@ from sc_referee.dependence_recognition_v2.python_analyzer import (
 from scripts.lean_pipeline import (
     default_dependence_free_config,
     default_dependence_free_d_config,
+    default_dependence_free_e1_config,
+    default_dependence_free_e2_config,
 )
 
 _BASE = runpy.run_path(str(Path(__file__).with_name("test_dependence_recognition_v2.py")))
@@ -414,30 +416,49 @@ def test_container_holding_operand_object_is_not_sink_bound(tmp_path: Path) -> N
     assert _inspect(source)["abstention_reasons"] == ["sink-classification-unresolved"]
 
 
-def test_batch_c_full_sorted_observed_sets_and_rq6_guard(project_root: Path) -> None:
-    expected = {
-        "0815b8de6b7fd34cdbfc": ["module-constant-not-closed"],
-        "41cfd59360a1ca24ca4b": ["module-constant-not-closed"],
-        "5eeb6e5adc4fc675c771": ["module-constant-not-closed"],
-        "822e4d560d778dc26fb0": ["unsupported-import-form"],
-        "b98cd6e8d9f893450053": ["module-constant-not-closed"],
-        "d674ebb8c31ed83be287": ["function-entry-not-closed", "sink-helper-call"],
+def test_batch_c_and_d_full_sorted_observed_sets_and_rq6_guard(project_root: Path) -> None:
+    expected_by_batch = {
+        "batch-c": {
+            "0815b8de6b7fd34cdbfc": ["module-constant-not-closed"],
+            "41cfd59360a1ca24ca4b": ["module-constant-not-closed"],
+            "5eeb6e5adc4fc675c771": ["module-constant-not-closed"],
+            "822e4d560d778dc26fb0": ["unsupported-import-form"],
+            "b98cd6e8d9f893450053": ["module-constant-not-closed"],
+            "d674ebb8c31ed83be287": ["function-entry-not-closed", "sink-helper-call"],
+        },
+        "batch-d": {
+            "396f4dceee2b19f08009": ["dataclass-use-not-modeled"],
+            "465d8368b0cdc3b167fd": ["module-constant-not-closed"],
+            "6e47ef090eb8989d547d": [
+                "function-entry-not-closed",
+                "function-return-shape",
+                "sink-helper-call",
+            ],
+            "7da68ec265e1bb2f6640": ["import-use-outside-grammar"],
+            "f75b02bd61e813195904": ["unsupported-import-form"],
+        },
     }
-    root = project_root / "evaluation/development/dependence-growth-loop/batch-c/authoring/cases"
-    for slug, reasons in expected.items():
-        case = root / slug
-        description = (case / "data-description.md").read_text(encoding="utf-8")
-        unit = re.search(r"(?mi)^Independent unit column:[ \t]*([^\r\n]+)", description)
-        assert unit is not None
-        payload = DependenceRecognitionV2ShadowAdapter().inspect(
-            _context(
-                (case / "workflow/analysis.py").read_text(encoding="ascii"),
-                (case / "data/input.csv").read_bytes(),
-                unit_column=unit.group(1).strip(),
-                data_path="data/input.csv",
-            )
+    for batch, expected in expected_by_batch.items():
+        root = (
+            project_root
+            / "evaluation/development/dependence-growth-loop"
+            / batch
+            / "authoring/cases"
         )
-        assert payload["abstention_reasons"] == reasons
+        for slug, reasons in expected.items():
+            case = root / slug
+            description = (case / "data-description.md").read_text(encoding="utf-8")
+            unit = re.search(r"(?mi)^Independent unit column:[ \t]*([^\r\n]+)", description)
+            assert unit is not None
+            payload = DependenceRecognitionV2ShadowAdapter().inspect(
+                _context(
+                    (case / "workflow/analysis.py").read_text(encoding="ascii"),
+                    (case / "data/input.csv").read_bytes(),
+                    unit_column=unit.group(1).strip(),
+                    data_path="data/input.csv",
+                )
+            )
+            assert payload["abstention_reasons"] == reasons
     rq6 = project_root / (
         "evaluation/development/dependence-growth-loop/batch-b/authoring/cases/6a3bc02816cb70ee4042"
     )
@@ -455,7 +476,7 @@ def test_batch_c_full_sorted_observed_sets_and_rq6_guard(project_root: Path) -> 
         )
     )
     assert payload["outcome"] not in {"evaluation_candidate", "covered_negative"}
-    assert payload["abstention_reasons"] == ["module-constant-not-closed"]
+    assert payload["abstention_reasons"] == ["import-use-outside-grammar"]
 
 
 def test_batch_d_config_and_claude_schema_option_are_closed() -> None:
@@ -476,6 +497,83 @@ def test_batch_d_config_and_claude_schema_option_are_closed() -> None:
         [str(config.cli_binary), "--help"], capture_output=True, text=True, check=True
     ).stdout
     assert "--json-schema" in help_text
+
+
+def test_growth4_inert_imports_and_literal_path_division_are_closed(tmp_path: Path) -> None:
+    future_source = "from __future__ import annotations\n" + _source()
+    _execute(future_source, _ADVERSE, tmp_path / "future")
+    assert _inspect(future_source)["outcome"] == "evaluation_candidate"
+    other_future = future_source.replace("annotations", "division", 1)
+    assert _inspect(other_future)["abstention_reasons"] == ["unsupported-import-form"]
+
+    unused_dataclass = _source().replace(
+        "import csv", "import csv\nfrom dataclasses import dataclass"
+    )
+    _execute(unused_dataclass, _ADVERSE, tmp_path / "unused-dataclass")
+    assert _inspect(unused_dataclass)["outcome"] == "evaluation_candidate"
+    used_dataclass = unused_dataclass.replace(
+        "def main():", "@dataclass\nclass Marker:\n    value: int\n\ndef main():"
+    )
+    assert _inspect(used_dataclass)["abstention_reasons"] == ["dataclass-use-not-modeled"]
+    plain_class = _source().replace("def main():", "class Marker:\n    pass\n\ndef main():")
+    assert _inspect(plain_class)["abstention_reasons"] == ["function-entry-not-closed"]
+
+    divided_paths = (
+        _source()
+        .replace('INPUT = Path("inputs/data.csv")', 'INPUT = Path("inputs") / "data.csv"')
+        .replace(
+            'REPORT = Path("results/report.md")',
+            'REPORT = Path("results") / "" / "report.md"',
+        )
+    )
+    _execute(divided_paths, _ADVERSE, tmp_path / "divided")
+    assert _inspect(divided_paths)["outcome"] == "evaluation_candidate"
+    named_segment = divided_paths.replace(
+        'INPUT = Path("inputs") / "data.csv"',
+        'SEGMENT = "data.csv"\nINPUT = Path("inputs") / SEGMENT',
+    )
+    assert _inspect(named_segment)["abstention_reasons"] == ["module-constant-not-closed"]
+    wrong_path = divided_paths.replace(
+        'INPUT = Path("inputs") / "data.csv"', 'INPUT = Path("inputs") / "other.csv"'
+    )
+    assert _inspect(wrong_path)["abstention_reasons"] == ["group-domain-binding-mismatch"]
+
+
+@pytest.mark.parametrize(
+    ("factory", "author_range", "reviewer", "hostile", "escalation", "suffix"),
+    [
+        (default_dependence_free_e1_config, range(51, 57), 24, 25, 17, "batch-e1"),
+        (default_dependence_free_e2_config, range(57, 63), 26, 27, 18, "batch-e2"),
+    ],
+)
+def test_batch_e_configs_clone_batch_d_structure_with_fresh_seats(
+    factory: Any,
+    author_range: range,
+    reviewer: int,
+    hostile: int,
+    escalation: int,
+    suffix: str,
+) -> None:
+    config = factory()
+    baseline = default_dependence_free_d_config()
+    assert config.pipeline_relative.as_posix().endswith(suffix)
+    assert sorted(config.authors) == [
+        f"actor:dependence-free-{suffix}-author-opus-{item}" for item in author_range
+    ]
+    assert config.reviewer.participant_id.endswith(f"fable-{reviewer}")
+    assert config.hostile_answer_key_reviewer is not None
+    assert config.hostile_answer_key_reviewer.participant_id.endswith(f"fable-{hostile}")
+    assert config.escalation_reviewer.participant_id.endswith(f"opus-{escalation}")
+    for field in (
+        "dependence_v2_development_shadow",
+        "dependence_v2_lock_line",
+        "enforce_cli_review_json_schema",
+        "stateless_review_per_case",
+        "development_loop",
+        "author_case_requirements",
+        "allowed_import_roots",
+    ):
+        assert getattr(config, field) == getattr(baseline, field)
 
 
 def test_batch_d_transport_passes_schema_without_changing_default(

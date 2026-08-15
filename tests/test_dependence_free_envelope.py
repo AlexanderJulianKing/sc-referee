@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import threading
+import time
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -33,6 +35,8 @@ from scripts.lean_pipeline import (
     default_dependence_config,
     default_dependence_free_b_config,
     default_dependence_free_config,
+    default_dependence_free_e1_config,
+    default_dependence_free_e2_config,
     default_founder_orientation_config,
     default_founder_orientation_f_config,
 )
@@ -306,6 +310,7 @@ def test_dependence_free_config_conforms_to_closed_growth_envelope() -> None:
     assert config.hostile_answer_key_reviewer is not None
     assert config.hostile_answer_key_reviewer.participant_id.endswith("fable-17")
     assert set(config.allowed_import_roots) >= {"numpy", "scipy", "statsmodels"}
+    assert "__future__" in config.allowed_import_roots
     assert {
         "os",
         "sys",
@@ -343,6 +348,12 @@ def test_dependence_free_config_conforms_to_closed_growth_envelope() -> None:
     assert default_dependence_config().frozen_workflow_template is not None
     assert default_dependence_config().authored_input_csv_path == "inputs/data.csv"
     assert default_dependence_config().development_loop is False
+    lean_pipeline._static_guard("from __future__ import annotations\n", config.allowed_import_roots)
+    with pytest.raises(LeanPipelineError, match="imports a forbidden module"):
+        lean_pipeline._static_guard(
+            "from __future__ import annotations\n",
+            default_dependence_config().allowed_import_roots,
+        )
     assert default_founder_orientation_f_config().frozen_workflow_template is None
 
     batch_b = default_dependence_free_b_config()
@@ -351,6 +362,8 @@ def test_dependence_free_config_conforms_to_closed_growth_envelope() -> None:
         "evaluation/development/dependence-growth-loop/batch-b"
     )
     assert batch_b.dependence_v2_development_shadow is True
+    assert ENVELOPE_CONFIGS["dependence-free-e1"] is default_dependence_free_e1_config
+    assert ENVELOPE_CONFIGS["dependence-free-e2"] is default_dependence_free_e2_config
 
 
 def test_task_binding_disclosure_is_digest_bound_only_for_development_loop(
@@ -1098,6 +1111,94 @@ def test_development_primary_schema_failure_is_a_per_case_refusal(
     )
     assert result["entries"] == []
     assert result["review_response_refusals"][0]["failure_class"] == ("response-schema-invalid")
+
+
+def test_development_primary_anchoring_failure_has_specific_refusal(
+    tmp_path: Path, project_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config = default_dependence_free_config()
+    review_root = tmp_path / "anchoring-invalid-review"
+    case_id, preparations, workspaces = _direct_review_inputs(config, review_root)
+    monkeypatch.setattr(
+        lean_pipeline,
+        "_call_cli",
+        lambda *_args, **_kwargs: {
+            "raw_response": canonical_json(
+                {
+                    "reviewer_participant_id": config.reviewer.participant_id,
+                    "reviews": [{"case_id": case_id}],
+                }
+            ),
+            "transport_error": None,
+            "process_record": {"capture_digest": "sha256:" + "a" * 64},
+            "completed_at": "2026-08-15T00:00:02Z",
+        },
+    )
+
+    def anchoring_failure(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        raise ValueError("fixture evidence span does not anchor")
+
+    monkeypatch.setattr(lean_pipeline, "_anchor_review_spans", anchoring_failure)
+    result = lean_pipeline._run_review_call(
+        project_root,
+        config,
+        review_root,
+        config.reviewer,
+        [case_id],
+        preparations,
+        workspaces,
+        "sha256:" + "f" * 64,
+        "primary-anchoring-invalid-fixture",
+    )
+    assert result["entries"] == []
+    assert result["review_response_refusals"][0]["failure_class"] == ("evidence-anchoring-failed")
+
+
+def test_development_call_concurrency_preserves_fixture_captures_and_ledger_order(
+    tmp_path: Path,
+) -> None:
+    case_ids = [f"case:fixture_concurrency_{index}" for index in range(6)]
+
+    def run(config: Any, root: Path) -> tuple[dict[str, bytes], bytes, int]:
+        active = 0
+        maximum = 0
+        lock = threading.Lock()
+
+        def callback(case_id: str) -> dict[str, str]:
+            nonlocal active, maximum
+            with lock:
+                active += 1
+                maximum = max(maximum, active)
+            try:
+                time.sleep(0.02)
+                row = {"case_id": case_id, "state": "retained"}
+                destination = root / "process-captures" / case_id.removeprefix("case:")
+                destination.mkdir(parents=True)
+                (destination / "capture.json").write_text(
+                    canonical_json(row) + "\n", encoding="utf-8"
+                )
+                return row
+            finally:
+                with lock:
+                    active -= 1
+
+        rows = lean_pipeline._run_stage_model_calls(config, callback, case_ids)
+        ledger = (
+            canonical_json({"entries": sorted(rows, key=lambda row: row["case_id"])}) + "\n"
+        ).encode()
+        captures = {
+            path.relative_to(root).as_posix(): path.read_bytes()
+            for path in sorted(root.rglob("capture.json"))
+        }
+        return captures, ledger, maximum
+
+    development = default_dependence_free_config()
+    sequential = replace(development, development_loop=False)
+    concurrent_artifacts = run(development, tmp_path / "fixture-lane-concurrent")
+    sequential_artifacts = run(sequential, tmp_path / "fixture-lane-sequential")
+    assert concurrent_artifacts[:2] == sequential_artifacts[:2]
+    assert concurrent_artifacts[2] == 3
+    assert sequential_artifacts[2] == 1
 
 
 @pytest.mark.skipif(not _RUNTIME_AVAILABLE, reason="dedicated SciPy 1.14.0 runtime is absent")

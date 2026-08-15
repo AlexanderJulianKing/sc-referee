@@ -76,6 +76,7 @@ from sc_referee_evaluation.review_semantic_payload_v2 import (
 from sc_referee_evaluation.workspace import build_blind_workspace
 
 SCHEMA_RELATIVE = Path("reference/schemas-v0.19.0")
+DEVELOPMENT_MODEL_CALL_CONCURRENCY = 3
 CALIBRATION_REGISTRY_RELATIVE = Path("evaluation/qualification/calibration-registry.json")
 MANIFEST_NAME = "MANIFEST.json"
 DETECTOR_ID = "detector:bounded-analysis-method-conflict"
@@ -539,6 +540,21 @@ def _call_cli(
     if participant.transport == "codex-cli":
         return _call_codex(config, participant, prompt, session_id, capture_root)
     raise LeanPipelineError(f"Unknown participant transport {participant.transport!r}.")
+
+
+def _run_stage_model_calls(
+    config: EnvelopeConfig,
+    callback: Callable[[Any], Any],
+    items: list[Any],
+) -> list[Any]:
+    """Run development-only stateless calls concurrently, preserving item order."""
+
+    if not config.development_loop or len(items) < 2:
+        return [callback(item) for item in items]
+    with ThreadPoolExecutor(
+        max_workers=min(DEVELOPMENT_MODEL_CALL_CONCURRENCY, len(items))
+    ) as executor:
+        return list(executor.map(callback, items))
 
 
 def _call_claude_cli(
@@ -1096,8 +1112,7 @@ def step_authoring(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
             ),
         }
 
-    with ThreadPoolExecutor(max_workers=len(assignments)) as executor:
-        results = list(executor.map(_run, assignments))
+    results = _run_stage_model_calls(config, _run, assignments)
     failures = [
         f"{result['assignment']['participant']['participant_id']}:"
         f"{result['call']['transport_error']}"
@@ -2637,11 +2652,14 @@ def _run_review_call(
             f"The {label} review call failed and was retained: {call['transport_error']}"
         )
     raw_response = str(call["raw_response"]).encode("utf-8")
+    response_stage = "json"
     try:
         parsed_payload = json.loads(raw_response)
         if not isinstance(parsed_payload, dict):
             raise ValueError("review response root is not an object")
+        response_stage = "evidence-anchoring"
         anchored_payload = _anchor_review_spans(parsed_payload, workspace_payloads)
+        response_stage = "response-schema"
         reviews = project_stage1_semantic_batch_v2(
             anchored_payload,
             output_schema=schema,
@@ -2664,6 +2682,8 @@ def _run_review_call(
             "failure_class": (
                 "invalid-json"
                 if isinstance(error, json.JSONDecodeError)
+                else "evidence-anchoring-failed"
+                if response_stage == "evidence-anchoring"
                 else "response-schema-invalid"
             ),
             "participant_id": participant.participant_id,
@@ -2780,11 +2800,11 @@ def _run_hostile_answer_key_review(
     ):
         raise LeanPipelineError("The hostile review authority states do not cover its cases.")
     authority_by_case = {case_id: all_authority_by_case[case_id] for case_id in case_order}
-    entries: list[dict[str, Any]] = []
-    for case_id in case_order:
+
+    def _prepare(case_id: str) -> dict[str, Any]:
         slug = case_id.removeprefix("case:")
         case_root = root / "authoring" / "cases" / slug
-        visible = []
+        visible: list[str] = []
         for item in _visible_files(config):
             path = str(item["path"])
             if path == "task.md":
@@ -2830,25 +2850,6 @@ def _run_hostile_answer_key_review(
             "selected_report_demonstration is exactly issue, absence, or neither; reasons "
             "is a nonempty array of strings."
         )
-        if retained is not None:
-            retained_entries = {str(item["case_id"]): item for item in retained.get("entries", [])}
-            if set(retained_entries) != set(case_order) or retained_entries[case_id].get(
-                "prompt_digest"
-            ) != sha256_digest(prompt):
-                raise LeanPipelineError("The retained hostile answer-key prompts do not match.")
-            continue
-        call_arguments = (
-            config,
-            participant,
-            prompt,
-            str(
-                uuid5(
-                    NAMESPACE_URL,
-                    f"sc-referee:dependence-free-hostile:{config.envelope_id}:{case_id}",
-                )
-            ),
-            review_root / "hostile-answer-key" / "process-captures" / slug,
-        )
         hostile_schema: dict[str, Any] = {
             "type": "object",
             "additionalProperties": False,
@@ -2874,10 +2875,52 @@ def _run_hostile_answer_key_review(
                 },
             },
         }
+        return {
+            "case_id": case_id,
+            "has_lock": has_lock,
+            "prompt": prompt,
+            "schema": hostile_schema,
+            "session_id": str(
+                uuid5(
+                    NAMESPACE_URL,
+                    f"sc-referee:dependence-free-hostile:{config.envelope_id}:{case_id}",
+                )
+            ),
+            "capture_root": review_root / "hostile-answer-key" / "process-captures" / slug,
+        }
+
+    prepared = [_prepare(case_id) for case_id in case_order]
+    if retained is not None:
+        retained_entries = {str(item["case_id"]): item for item in retained.get("entries", [])}
+        if set(retained_entries) != set(case_order) or any(
+            retained_entries[str(item["case_id"])].get("prompt_digest")
+            != sha256_digest(str(item["prompt"]))
+            for item in prepared
+        ):
+            raise LeanPipelineError("The retained hostile answer-key prompts do not match.")
+        supplied = retained.pop("ledger_digest", None)
+        if supplied != semantic_digest(retained):
+            raise LeanPipelineError("The retained hostile answer-key ledger does not replay.")
+        retained["ledger_digest"] = supplied
+        return retained
+
+    def _run(prepared_case: dict[str, Any]) -> dict[str, Any]:
+        case_id = str(prepared_case["case_id"])
+        has_lock = bool(prepared_case["has_lock"])
+        prompt = str(prepared_case["prompt"])
+        session_id = str(prepared_case["session_id"])
+        capture_root = cast(Path, prepared_case["capture_root"])
         call = (
-            _call_cli(*call_arguments, response_schema=hostile_schema)
+            _call_cli(
+                config,
+                participant,
+                prompt,
+                session_id,
+                capture_root,
+                response_schema=cast(dict[str, Any], prepared_case["schema"]),
+            )
             if config.development_loop and config.enforce_cli_review_json_schema
-            else _call_cli(*call_arguments)
+            else _call_cli(config, participant, prompt, session_id, capture_root)
         )
         if call["transport_error"] is not None:
             raise LeanPipelineError(
@@ -2929,13 +2972,9 @@ def _run_hostile_answer_key_review(
             "process_capture_digest": call["process_record"]["capture_digest"],
         }
         entry["entry_digest"] = semantic_digest(entry)
-        entries.append(entry)
-    if retained is not None:
-        supplied = retained.pop("ledger_digest", None)
-        if supplied != semantic_digest(retained):
-            raise LeanPipelineError("The retained hostile answer-key ledger does not replay.")
-        retained["ledger_digest"] = supplied
-        return retained
+        return entry
+
+    entries = _run_stage_model_calls(config, _run, prepared)
     ledger: dict[str, Any] = {
         "artifact_kind": "dependence_free_hostile_answer_key_ledger",
         "ledger_version": "1.0.0",
@@ -3059,8 +3098,9 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
         else str(protocol["detector_tuple_digest"])
     )
     if config.stateless_review_per_case:
-        primary_calls = [
-            _run_review_call(
+
+        def _run_primary(case_id: str) -> dict[str, Any]:
+            return _run_review_call(
                 project_root,
                 config,
                 review_root,
@@ -3071,8 +3111,8 @@ def step_review(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 review_call_binding,
                 f"primary-{case_id.removeprefix('case:')}",
             )
-            for case_id in blind_case_order
-        ]
+
+        primary_calls = _run_stage_model_calls(config, _run_primary, blind_case_order)
         primary = {
             "entries": [
                 {**entry, "review_role": "primary"}

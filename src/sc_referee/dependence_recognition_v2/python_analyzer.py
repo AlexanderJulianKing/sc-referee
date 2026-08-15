@@ -1067,6 +1067,15 @@ def _module_parts(
     executable: list[ast.stmt] = []
     for statement in _live_main_guard_body(tree.body):
         if isinstance(statement, ast.Import | ast.ImportFrom):
+            if (
+                isinstance(statement, ast.ImportFrom)
+                and statement.level == 0
+                and statement.module == "__future__"
+                and len(statement.names) == 1
+                and statement.names[0].name == "annotations"
+                and statement.names[0].asname is None
+            ):
+                continue
             name, target = _closed_import(statement)
             if name in imports or name in constants or name in functions:
                 raise _Refusal("import-name-collision")
@@ -1120,6 +1129,8 @@ def _closed_import(statement: ast.Import | ast.ImportFrom) -> tuple[str, str]:
         return "Path", "pathlib.Path"
     if statement.module == "collections" and alias.name == "defaultdict":
         return "defaultdict", "collections.defaultdict"
+    if statement.module == "dataclasses" and alias.name == "dataclass":
+        return "dataclass", "dataclasses.dataclass"
     if statement.module == "scipy" and alias.name == "stats":
         return "stats", "scipy.stats"
     if statement.module == "scipy.stats" and f"scipy.stats.{alias.name}" in _REGISTERED:
@@ -1262,6 +1273,8 @@ def _validate_import_uses(
             and parent.args[0].id in {"list", "set", "int"}
         ):
             raise _Refusal("import-use-outside-grammar")
+        if target == "dataclasses.dataclass":
+            raise _Refusal("dataclass-use-not-modeled")
         if target == "numpy":
             if not (
                 isinstance(parent, ast.Attribute)
@@ -1865,6 +1878,9 @@ def _splitlines_source(
 
 
 def _path_value(expression: ast.expr, constants: dict[str, ast.Constant]) -> str | None:
+    divided = _path_division_value(expression)
+    if divided is not None:
+        return divided
     if isinstance(expression, ast.Constant) and isinstance(expression.value, str):
         return expression.value
     if isinstance(expression, ast.Name) and expression.id in constants:
@@ -1901,6 +1917,30 @@ def _path_value(expression: ast.expr, constants: dict[str, ast.Constant]) -> str
     ):
         return expression.args[0].value
     return None
+
+
+def _path_division_value(expression: ast.expr) -> str | None:
+    """Fold only ``Path(<literal>) / <literal>`` POSIX chains."""
+
+    if (
+        isinstance(expression, ast.Call)
+        and isinstance(expression.func, ast.Name)
+        and expression.func.id == "Path"
+        and len(expression.args) == 1
+        and not expression.keywords
+        and isinstance(expression.args[0], ast.Constant)
+        and isinstance(expression.args[0].value, str)
+    ):
+        return expression.args[0].value
+    if not (
+        isinstance(expression, ast.BinOp)
+        and isinstance(expression.op, ast.Div)
+        and isinstance(expression.right, ast.Constant)
+        and isinstance(expression.right.value, str)
+    ):
+        return None
+    left = _path_division_value(expression.left)
+    return posixpath.join(left, expression.right.value) if left is not None else None
 
 
 def _dirname_value(expression: ast.expr, constants: dict[str, ast.Constant]) -> str | None:

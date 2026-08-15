@@ -58,6 +58,7 @@ DEPENDENCE_V2_REASON_REGISTRY = frozenset(
         "count-procedure-trial-declaration-missing",
         "count-set-degenerate",
         "count-success-not-subset",
+        "dataclass-use-not-modeled",
         "defaultdict-key-not-proven",
         "dependence-v2-shadow-abstention",
         "duplicate-header",

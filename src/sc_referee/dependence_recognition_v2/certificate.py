@@ -1426,6 +1426,9 @@ def _kernel_numeric_constant(
 
 
 def _kernel_path_value(expression: ast.expr, constants: dict[str, object]) -> str | None:
+    divided = _kernel_path_division_value(expression)
+    if divided is not None:
+        return divided
     direct = _kernel_string_value(expression, constants)
     if direct is not None:
         return direct
@@ -1465,6 +1468,28 @@ def _kernel_path_value(expression: ast.expr, constants: dict[str, object]) -> st
         path = _kernel_path_value(expression.args[0], constants)
         return posixpath.dirname(path) if path is not None else None
     return None
+
+
+def _kernel_path_division_value(expression: ast.expr) -> str | None:
+    if (
+        isinstance(expression, ast.Call)
+        and isinstance(expression.func, ast.Name)
+        and expression.func.id == "Path"
+        and len(expression.args) == 1
+        and not expression.keywords
+        and isinstance(expression.args[0], ast.Constant)
+        and isinstance(expression.args[0].value, str)
+    ):
+        return expression.args[0].value
+    if not (
+        isinstance(expression, ast.BinOp)
+        and isinstance(expression.op, ast.Div)
+        and isinstance(expression.right, ast.Constant)
+        and isinstance(expression.right.value, str)
+    ):
+        return None
+    left = _kernel_path_division_value(expression.left)
+    return posixpath.join(left, expression.right.value) if left is not None else None
 
 
 def _kernel_attribute_chain(expression: ast.expr) -> tuple[str, ...] | None:
@@ -1511,6 +1536,8 @@ def _kernel_import_forms_closed(tree: ast.Module) -> bool:
             if alias.asname is not None:
                 return False
             if (statement.module, alias.name) not in {
+                ("__future__", "annotations"),
+                ("dataclasses", "dataclass"),
                 ("pathlib", "Path"),
                 ("scipy", "stats"),
                 ("collections", "defaultdict"),
