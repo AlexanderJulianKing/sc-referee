@@ -135,20 +135,24 @@ positions; it carries no traced operand value.  The trusted prover returns
 ordered frozen rows, and the kernel independently evaluates predicates,
 cardinalities, observation identities, and authorized-unit multiplicities.
 Binomial success rows must be a row-level subset of trial rows.  Fisher cells
-must be nonempty, pairwise disjoint, collectively exhaustive over the proven
-universe, and no authorized unit may span cells.  Arithmetic/subtraction cells
-are outside the grammar.
+must be pairwise disjoint, collectively exhaustive over the proven universe,
+and form the exact product of two string-valued columns with two levels each;
+no authorized unit may span cells.  Arithmetic/subtraction cells are outside
+the grammar.
 
-The C-3 v3 design choice is explicit: every corrected or adverse count set must
-be nonempty, but an adverse branch does not require a proper subset of another
-set.  Repetition is determined solely from authorized-unit multiplicity in the
-procedure-relevant proven sets.  No `count-derivation-not-closed` catch-all is
-defined; each refusal uses the closed growth-2 reason vocabulary.
+The C-3 v3 design choice, as corrected before batch C, is explicit: both
+binomial operands must be nonempty, while Fisher requires only a nonempty
+universe and permits empty individual cells.  An adverse branch does not
+require a proper subset of another set.  Repetition is determined solely from
+authorized-unit multiplicity in the procedure-relevant proven sets.  No
+`count-derivation-not-closed` catch-all is defined; each refusal uses the
+closed growth-2 reason vocabulary.
 
 That vocabulary adds exactly `count-domain-not-row-bound`,
 `count-predicate-literal-not-string`, `count-predicate-not-closed`,
 `count-set-degenerate`, `count-cell-derived-by-arithmetic`,
 `count-success-not-subset`, `count-cells-not-partition`,
+`count-cells-not-factorial`,
 `unit-spans-multiple-cells`, `count-increment-not-total`,
 `count-multiple-increment-sites`, `procedure-alternative-not-default`, and
 `count-procedure-trial-declaration-missing`.  Path-form refusals retain the

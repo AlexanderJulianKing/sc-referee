@@ -132,6 +132,8 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
     try:
         imports, constants, functions, executable = _module_parts(tree)
         _validate_import_uses(tree, imports, constants)
+        if _module_string_alternative_used(tree, imports, constants):
+            raise _Refusal("procedure-alternative-not-default")
         flattened, renames, dead = _flatten_functions(executable, functions, constants, imports)
     except _Refusal as refusal:
         reasons.update(refusal.reasons)
@@ -948,20 +950,24 @@ def _discharge_count_analysis(
     fact, reason = prove_count_procedure_domain_with_reason(materials[0], obligation=obligation)
     if fact is None:
         return _discharged_unsupported(reason or "group-domain-unproven")
-    if any(not operand.row_indices for operand in fact.operands):
-        return _discharged_unsupported("count-set-degenerate")
     by_position = {item.position: item for item in fact.operands}
     relevant: tuple[CountSetProof, ...]
     if certificate.resolved_callable == "scipy.stats.binomtest":
+        if any(not operand.row_indices for operand in fact.operands):
+            return _discharged_unsupported("count-set-degenerate")
         if not set(by_position[0].row_indices) <= set(by_position[1].row_indices):
             return _discharged_unsupported("count-success-not-subset")
         relevant = (by_position[1],)
     else:
+        if not fact.universe_row_indices:
+            return _discharged_unsupported("count-set-degenerate")
         sets = [set(by_position[position].row_indices) for position in range(4)]
         if any(
             left & right for index, left in enumerate(sets) for right in sets[index + 1 :]
         ) or set().union(*sets) != set(fact.universe_row_indices):
             return _discharged_unsupported("count-cells-not-partition")
+        if not _fisher_operands_are_factorial(certificate.obligation.operands):
+            return _discharged_unsupported("count-cells-not-factorial")
         unit_cells: dict[str, set[int]] = {}
         for proof in fact.operands:
             for unit in proof.authorized_unit_ids:
@@ -1017,6 +1023,38 @@ def _discharge_count_analysis(
         candidate_key_columns=analysis.candidate_key_columns,
         basis="The trusted count fact and growth-2 kernel discharged every symbolic equation.",
     )
+
+
+def _fisher_operands_are_factorial(
+    operands: tuple[CountOperandObligation, ...],
+) -> bool:
+    """Check the exact two-column, two-level product from predicate atoms only."""
+
+    if len(operands) != 4:
+        return False
+    combinations: set[tuple[tuple[str, str], ...]] = set()
+    values_by_column: dict[str, set[str]] = {}
+    for operand in operands:
+        atoms = operand.predicate_atoms
+        if (
+            len(atoms) != 2
+            or any(atom.operator != "eq" for atom in atoms)
+            or len({atom.column for atom in atoms}) != 2
+        ):
+            return False
+        combination = tuple(sorted((atom.column, atom.literal) for atom in atoms))
+        combinations.add(combination)
+        for column, literal in combination:
+            values_by_column.setdefault(column, set()).add(literal)
+    if len(values_by_column) != 2 or any(len(values) != 2 for values in values_by_column.values()):
+        return False
+    columns = tuple(sorted(values_by_column))
+    expected = {
+        tuple(sorted(((columns[0], left), (columns[1], right))))
+        for left in values_by_column[columns[0]]
+        for right in values_by_column[columns[1]]
+    }
+    return len(combinations) == 4 and combinations == expected
 
 
 def _module_parts(
@@ -2181,6 +2219,7 @@ def _verify_closed_flattened_statements(
 
 def _independent_wall_scan(tree: ast.Module) -> set[str]:
     reasons: set[str] = set()
+    nonbyte_predicate_helpers = _nonbyte_predicate_helpers(tree)
     function_names = {node.name for node in tree.body if isinstance(node, ast.FunctionDef)}
     counts = Counter(
         node.func.id
@@ -2208,7 +2247,132 @@ def _independent_wall_scan(tree: ast.Module) -> set[str]:
         for call in writes
     ):
         reasons.add("report-composition-not-modeled")
+    if any(
+        _counting_predicate_is_outside_wall(node, nonbyte_predicate_helpers)
+        for node in ast.walk(tree)
+    ):
+        reasons.add("count-predicate-not-closed")
     return reasons
+
+
+def _counting_predicate_is_outside_wall(
+    node: ast.AST, nonbyte_predicate_helpers: frozenset[str]
+) -> bool:
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "sum"
+        and len(node.args) == 1
+        and not node.keywords
+        and isinstance(node.args[0], ast.GeneratorExp)
+        and len(node.args[0].generators) == 1
+    ):
+        generator = node.args[0].generators[0]
+        return bool(
+            generator.ifs
+            and (
+                not isinstance(generator.target, ast.Name)
+                or any(
+                    _wall_predicate_is_relevant_and_unclosed(
+                        predicate, generator.target.id, nonbyte_predicate_helpers
+                    )
+                    for predicate in generator.ifs
+                )
+            )
+        )
+    if isinstance(node, ast.For) and isinstance(node.target, ast.Name):
+        guarded = [statement for statement in node.body if isinstance(statement, ast.If)]
+        return any(
+            any(
+                isinstance(statement, ast.AugAssign)
+                and isinstance(statement.op, ast.Add)
+                and isinstance(statement.value, ast.Constant)
+                and type(statement.value.value) is int
+                and statement.value.value == 1
+                for statement in guard.body
+            )
+            and _wall_predicate_is_relevant_and_unclosed(
+                guard.test, node.target.id, nonbyte_predicate_helpers
+            )
+            for guard in guarded
+        )
+    return False
+
+
+def _wall_predicate_is_relevant_and_unclosed(
+    expression: ast.expr, row_name: str, nonbyte_predicate_helpers: frozenset[str]
+) -> bool:
+    if _wall_byte_predicate(expression, row_name):
+        return False
+    if any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in nonbyte_predicate_helpers
+        for node in ast.walk(expression)
+    ):
+        return True
+    return any(
+        isinstance(node, ast.Subscript)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == row_name
+        for node in ast.walk(expression)
+    )
+
+
+def _nonbyte_predicate_helpers(tree: ast.Module) -> frozenset[str]:
+    names: set[str] = set()
+    for function in (node for node in tree.body if isinstance(node, ast.FunctionDef)):
+        parameters = {argument.arg for argument in function.args.args}
+        for returned in (
+            node.value
+            for node in ast.walk(function)
+            if isinstance(node, ast.Return) and node.value is not None
+        ):
+            if any(
+                isinstance(node, ast.Subscript)
+                and isinstance(node.value, ast.Name)
+                and node.value.id in parameters
+                for node in ast.walk(returned)
+            ) and not any(_wall_byte_predicate(returned, parameter) for parameter in parameters):
+                names.add(function.name)
+    return frozenset(names)
+
+
+def _module_string_alternative_used(
+    tree: ast.Module,
+    imports: dict[str, str],
+    constants: dict[str, ast.Constant],
+) -> bool:
+    for call in (node for node in ast.walk(tree) if isinstance(node, ast.Call)):
+        if _resolved_procedure(call.func, imports) not in _COUNT_PROCEDURES:
+            continue
+        alternative = next(
+            (keyword.value for keyword in call.keywords if keyword.arg == "alternative"), None
+        )
+        if (
+            isinstance(alternative, ast.Name)
+            and alternative.id in constants
+            and isinstance(constants[alternative.id].value, str)
+        ):
+            return True
+    return False
+
+
+def _wall_byte_predicate(expression: ast.expr, row_name: str) -> bool:
+    parts = (
+        expression.values
+        if isinstance(expression, ast.BoolOp) and isinstance(expression.op, ast.And)
+        else [expression]
+    )
+    return bool(parts) and all(
+        isinstance(part, ast.Compare)
+        and len(part.ops) == len(part.comparators) == 1
+        and isinstance(part.ops[0], ast.Eq | ast.NotEq)
+        and _row_subscript(part.left, row_name) is not None
+        and isinstance(part.comparators[0], ast.Constant)
+        and isinstance(part.comparators[0].value, str)
+        for part in parts
+    )
 
 
 def _candidate_columns(context: FrozenInspectionContext) -> tuple[str, ...]:

@@ -312,8 +312,6 @@ def verify_count_dependence_certificate(
             or not set(expected_rows) <= set(expected_domain_rows)
         ):
             return refuse("count-set-equations")
-        if not proof.row_indices:
-            return refuse("count-set-equations")
     try:
         tree = ast.parse(source_bytes.decode("utf-8", errors="strict"))
     except (SyntaxError, UnicodeDecodeError, ValueError, RecursionError):
@@ -326,19 +324,25 @@ def verify_count_dependence_certificate(
     proofs = {item.position: item for item in fact.operands}
     repeated: set[str] = set()
     if certificate.resolved_callable == "scipy.stats.binomtest":
-        if set(proofs) != {0, 1} or not set(proofs[0].row_indices) <= set(proofs[1].row_indices):
+        if (
+            set(proofs) != {0, 1}
+            or any(not proofs[position].row_indices for position in (0, 1))
+            or not set(proofs[0].row_indices) <= set(proofs[1].row_indices)
+        ):
             return refuse("count-subset-partition")
         repeated.update(
             unit for unit, count in Counter(proofs[1].authorized_unit_ids).items() if count > 1
         )
     else:
-        if set(proofs) != {0, 1, 2, 3}:
+        if set(proofs) != {0, 1, 2, 3} or not fact.universe_row_indices:
             return refuse("count-subset-partition")
         cell_sets = [set(proofs[index].row_indices) for index in range(4)]
         if any(
             left & right for index, left in enumerate(cell_sets) for right in cell_sets[index + 1 :]
         ) or set().union(*cell_sets) != set(fact.universe_row_indices):
             return refuse("count-subset-partition")
+        if not _kernel_fisher_atoms_are_factorial(certificate.obligation.operands):
+            return refuse("count-cells-factorial")
         unit_cells: dict[str, set[int]] = {}
         for proof in fact.operands:
             for unit in proof.authorized_unit_ids:
@@ -377,6 +381,38 @@ def verify_count_dependence_certificate(
         alpha_renames=certificate.alpha_renames,
         dead_syntactic_construct_tokens=certificate.dead_syntactic_construct_tokens,
     )
+
+
+def _kernel_fisher_atoms_are_factorial(
+    operands: tuple[CountOperandObligation, ...],
+) -> bool:
+    """Independently establish the exact two-column, two-level cell product."""
+
+    if len(operands) != 4:
+        return False
+    combinations: set[tuple[tuple[str, str], ...]] = set()
+    levels: dict[str, set[str]] = {}
+    for operand in operands:
+        atoms = operand.predicate_atoms
+        if (
+            len(atoms) != 2
+            or any(atom.operator != "eq" for atom in atoms)
+            or len({atom.column for atom in atoms}) != 2
+        ):
+            return False
+        combination = tuple(sorted((atom.column, atom.literal) for atom in atoms))
+        combinations.add(combination)
+        for column, literal in combination:
+            levels.setdefault(column, set()).add(literal)
+    if len(levels) != 2 or any(len(values) != 2 for values in levels.values()):
+        return False
+    columns = tuple(sorted(levels))
+    expected = {
+        tuple(sorted(((columns[0], left), (columns[1], right))))
+        for left in levels[columns[0]]
+        for right in levels[columns[1]]
+    }
+    return len(combinations) == 4 and combinations == expected
 
 
 def _kernel_matching_rows(

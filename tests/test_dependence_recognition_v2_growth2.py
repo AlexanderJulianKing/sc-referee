@@ -326,7 +326,7 @@ main()
     ]
 
 
-def test_fisher_cells_can_be_lengths_of_four_proven_t_groups(tmp_path: Path) -> None:
+def test_single_column_t_groups_do_not_supply_two_factor_cell_atoms(tmp_path: Path) -> None:
     source = """import csv
 from pathlib import Path
 from scipy import stats
@@ -348,7 +348,8 @@ main()
     data = b"unit_id,cell\nu1,AY\nu2,AN\nu3,BY\nu4,BN\n"
     _execute(source, data, tmp_path)
     payload = _inspect(source, data)
-    assert payload["outcome"] == "covered_negative"
+    assert payload["outcome"] == "unsupported"
+    assert payload["abstention_reasons"] == ["count-cells-not-factorial"]
     unexpected = _inspect(
         source,
         b"unit_id,cell\nu1,AY\nu2,AN\nu3,BY\nu4,BN\nu5,OTHER\n",
@@ -426,13 +427,29 @@ def test_posix_join_requires_literal_components_and_exact_frozen_paths() -> None
     assert _inspect(wrong_sink, data)["abstention_reasons"] == ["report-composition-not-modeled"]
 
 
-def test_rq6_collapsed_values_remain_a_permanent_must_not_accuse(tmp_path: Path) -> None:
+def test_collapsed_value_domain_abstains(tmp_path: Path) -> None:
     source = _binomial_source(n='len([float(row["value"]) for row in rows])')
     data = b"unit_id,success,value\nu1,yes,1\nu2,no,2\n"
     _execute(source, data, tmp_path)
     payload = _inspect(source, data)
     assert payload["outcome"] == "unsupported"
     assert payload["abstention_reasons"] == ["count-domain-not-row-bound"]
+
+
+def test_real_batch_b_rq6_must_never_accuse(project_root: Path) -> None:
+    root = (
+        project_root
+        / "evaluation/development/dependence-growth-loop/batch-b/authoring/cases"
+        / "6a3bc02816cb70ee4042"
+    )
+    source = (root / "workflow/analysis.py").read_text(encoding="ascii")
+    data = (root / "data/input.csv").read_bytes()
+    payload = DependenceRecognitionV2ShadowAdapter().inspect(
+        _context(source, data, unit_column="well_id", data_path="data/input.csv")
+    )
+    # If the statistics/defaultdict import wall is later lifted, the expected
+    # refusal must become count-domain-not-row-bound; accusation remains forbidden.
+    assert payload["outcome"] != "evaluation_candidate"
 
 
 @pytest.mark.parametrize(
@@ -463,6 +480,77 @@ def test_overlapping_nonempty_fisher_cells_reach_neither_branch(tmp_path: Path) 
     payload = _inspect(source, data)
     assert payload["outcome"] == "unsupported"
     assert payload["abstention_reasons"] == ["count-cells-not-partition"]
+
+
+def test_nonfactorial_three_arm_table_abstains(tmp_path: Path) -> None:
+    source = _fisher_source().replace(
+        'row["arm"] == "B" and row["success"] == "no"',
+        'row["arm"] == "C" and row["success"] == "no"',
+    )
+    data = b"unit_id,arm,success\nu1,A,yes\nu2,A,no\nu3,B,yes\nu4,C,no\n"
+    _execute(source, data, tmp_path)
+    payload = _inspect(source, data)
+    assert payload["outcome"] == "unsupported"
+    assert payload["abstention_reasons"] == ["count-cells-not-factorial"]
+
+
+def test_sparse_factorial_fisher_table_clears(tmp_path: Path) -> None:
+    source = _fisher_source()
+    data = b"unit_id,arm,success\nu1,A,yes\nu2,A,no\nu3,B,yes\n"
+    _execute(source, data, tmp_path)
+    payload = _inspect(source, data)
+    assert payload["outcome"] == "covered_negative"
+    assert payload["reason_code"] == "one-row-per-unit-in-proven-count-sets"
+
+
+def test_kernel_independently_rejects_nonfactorial_fisher_atoms() -> None:
+    source = _fisher_source().replace(
+        'row["arm"] == "B" and row["success"] == "no"',
+        'row["arm"] == "C" and row["success"] == "no"',
+    )
+    data = b"unit_id,arm,success\nu1,A,yes\nu2,A,no\nu3,B,yes\nu4,C,no\n"
+    context, certificate, fact = _count_kernel_inputs(source, data)
+    failures: list[str] = []
+    assert (
+        verify_count_dependence_certificate(
+            certificate,
+            trusted_count_facts=(fact,),
+            trusted_authorizations=_trusted_authorizations(context),
+            source_bytes=source.encode("ascii"),
+            _failure_reasons=failures,
+        )
+        is None
+    )
+    assert failures == ["count-cells-factorial"]
+
+
+def test_module_constant_alternative_is_rejected_by_the_analyzer() -> None:
+    source = (
+        _binomial_source()
+        .replace(
+            "P = 0.5",
+            'P = 0.5\nALTERNATIVE = "two-sided"',
+        )
+        .replace('alternative="two-sided"', "alternative=ALTERNATIVE")
+    )
+    payload = _inspect(source, b"unit_id,success\nu1,yes\nu2,no\n")
+    assert payload["outcome"] == "unsupported"
+    assert payload["abstention_reasons"] == ["procedure-alternative-not-default"]
+
+
+def test_guarded_increment_nonbyte_predicate_is_visible_to_wall_scan() -> None:
+    source = _binomial_source().replace(
+        '    k = sum(1 for row in rows if row["success"] == "yes")',
+        '    k = 0\n    for row in rows:\n        if float(row["value"]) > 1.0:\n'
+        "            k += 1",
+    )
+    payload = _inspect(source, b"unit_id,success,value\nu1,yes,2\nu2,no,1\n")
+    assert payload["outcome"] == "unsupported"
+    assert "count-predicate-not-closed" in payload["abstention_reasons"]
+
+
+def test_stale_evaluation_build_tree_is_absent(project_root: Path) -> None:
+    assert not (project_root / "evaluation/build").exists()
 
 
 def test_count_kernel_accepts_then_refuses_single_field_corruptions() -> None:
@@ -790,6 +878,7 @@ _FROZEN_BATCH_REASONS = {
         "unsupported-import-form",
     ),
     "batch-b/446cab155cd792398f9d": (
+        "count-predicate-not-closed",
         "function-multiple-call-sites",
         "module-constant-not-closed",
     ),
@@ -804,6 +893,7 @@ _FROZEN_BATCH_REASONS = {
     ),
     "batch-b/ae04f2973df030f612b9": ("module-constant-not-closed",),
     "batch-b/bf08b2218ca9cef1db2d": (
+        "count-predicate-not-closed",
         "function-multiple-call-sites",
         "report-composition-not-modeled",
         "unsupported-import-form",
