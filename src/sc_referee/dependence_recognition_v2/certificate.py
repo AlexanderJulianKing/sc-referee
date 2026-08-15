@@ -15,6 +15,7 @@ from sc_referee.dependence_recognition_v2.ir import (
     DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS,
     MAX_V2_AST_NODES,
     MAX_V2_INLINE_DEPTH,
+    AuthorizedProcedureSet,
     CountDependenceCertificate,
     CountGroupDomainObligation,
     CountOperandObligation,
@@ -28,10 +29,19 @@ from sc_referee.dependence_recognition_v2.ir import (
 
 _PROCEDURE_ARITY = {
     "scipy.stats.ttest_ind": 2,
+    "scipy.stats.ttest_ind:welch": 2,
     "scipy.stats.mannwhitneyu": 2,
 }
+_ROW_INDEPENDENT_VARIANTS = frozenset(_PROCEDURE_ARITY)
+_GROUP_BASE_PROCEDURES = frozenset({"scipy.stats.ttest_ind", "scipy.stats.mannwhitneyu"})
 _COUNT_PROCEDURES = frozenset({"scipy.stats.binomtest", "scipy.stats.fisher_exact"})
 _ALL_PROCEDURES = frozenset((*_PROCEDURE_ARITY, *_COUNT_PROCEDURES))
+_DISTRIBUTION_HELPER_METHODS = frozenset(
+    f"scipy.stats.{distribution}.{method}"
+    for distribution in ("t", "norm")
+    for method in ("ppf", "cdf", "sf")
+)
+assert not (_GROUP_BASE_PROCEDURES | _COUNT_PROCEDURES) & _DISTRIBUTION_HELPER_METHODS
 
 
 def verify_dependence_growth_certificate(
@@ -39,6 +49,7 @@ def verify_dependence_growth_certificate(
     *,
     trusted_group_facts: tuple[GroupValueSequenceFact, ...],
     trusted_authorizations: tuple[HumanMethodAuthorization, ...],
+    trusted_procedure_sets: tuple[AuthorizedProcedureSet, ...] = (),
     source_bytes: bytes,
     _failure_reasons: list[str] | None = None,
 ) -> VerifiedDependenceGrowthCertificate | None:
@@ -56,7 +67,10 @@ def verify_dependence_growth_certificate(
         or len(trusted_authorizations) != 1
         or sha256_digest(source_bytes) != certificate.source_digest
         or certificate.source_extent != (0, len(source_bytes))
-        or certificate.resolved_callable not in _PROCEDURE_ARITY
+        or not certificate.resolved_callables
+        or any(item not in _PROCEDURE_ARITY for item in certificate.resolved_callables)
+        or len(certificate.resolved_callables) != len(certificate.procedure_call_tokens)
+        or len(certificate.resolved_callables) != len(certificate.result_names)
         or not certificate.authority_record_id
         or not certificate.independent_unit_definition_id
     ):
@@ -76,6 +90,20 @@ def verify_dependence_growth_certificate(
         or authority.input_content_digest != obligation.content_digest
     ):
         return refuse("authority-binding")
+    if trusted_procedure_sets:
+        if (
+            len(trusted_procedure_sets) != 1
+            or trusted_procedure_sets[0].record_id != authority.procedure_ref.record_id
+            or trusted_procedure_sets[0].resolved_callables
+            != tuple(dict.fromkeys(certificate.resolved_callables))
+        ):
+            return refuse("authority-binding")
+    elif len(certificate.resolved_callables) != 1:
+        # Legacy hand-built single-call certificates predate the set channel;
+        # no multi-call claim can use that compatibility path.
+        return refuse("authority-binding")
+    if any(item not in _ROW_INDEPENDENT_VARIANTS for item in certificate.resolved_callables):
+        return refuse("procedure-set-homogeneity")
     if (
         fact.evidence_id != f"dependence-growth-group-proof:{semantic_digest(asdict(obligation))}"
         or fact.row_count <= 0
@@ -139,7 +167,9 @@ def verify_dependence_growth_certificate(
         ):
             return refuse("group-length-equation")
 
-    arity = _PROCEDURE_ARITY[certificate.resolved_callable]
+    if len({_PROCEDURE_ARITY[item] for item in certificate.resolved_callables}) != 1:
+        return refuse("operand-binding")
+    arity = _PROCEDURE_ARITY[certificate.resolved_callables[0]]
     bindings = certificate.operand_bindings
     if (
         len(bindings) != arity
@@ -188,7 +218,7 @@ def verify_dependence_growth_certificate(
         certificate_id=certificate.certificate_id,
         source_path=certificate.source_path,
         source_digest=certificate.source_digest,
-        resolved_callable=certificate.resolved_callable,
+        resolved_callables=certificate.resolved_callables,
         conclusion=conclusion,
         fact=fact,
         operand_bindings=bindings,
@@ -1331,43 +1361,33 @@ def _kernel_replay_source_claims(
     if declared_kind != certificate.group_container_kind:
         return False
 
-    procedure_assignments: list[tuple[ast.Assign, str]] = []
-    for node in ast.walk(tree):
-        if (
-            isinstance(node, ast.Assign)
-            and len(node.targets) == 1
-            and isinstance(node.targets[0], ast.Name)
-            and isinstance(node.value, ast.Call)
-        ):
-            resolved = _kernel_callable(node.value.func, imports)
-            if resolved is not None:
-                procedure_assignments.append((node, resolved))
-    if len(procedure_assignments) != 1:
+    census = _kernel_group_census(tree.body, imports, certificate)
+    if census is None:
         return False
-    procedure_assignment, resolved = procedure_assignments[0]
-    call = procedure_assignment.value
-    assert isinstance(call, ast.Call)
-    target = procedure_assignment.targets[0]
-    assert isinstance(target, ast.Name)
-    if (
-        resolved != certificate.resolved_callable
-        or _kernel_renamed_name(tree, certificate, procedure_assignment, target.id)
-        != certificate.result_name
-        or call.keywords
-        or len(call.args) != len(certificate.operand_bindings)
-    ):
-        return False
+    procedure_assignments, _helpers = census
     aliases = _kernel_group_aliases(tree, group_name, constants, fact)
-    replayed_keys: list[str] = []
-    for argument in call.args:
-        key = _kernel_group_key(argument, group_name, constants)
-        if isinstance(argument, ast.Name):
-            key = aliases.get(argument.id, key)
-        if key is None:
+    expected_keys = tuple(item.group_key for item in certificate.operand_bindings)
+    expected_shapes: tuple[str, ...] | None = None
+    for procedure_assignment in procedure_assignments:
+        call = cast(ast.Call, procedure_assignment.value)
+        if len(call.args) != len(certificate.operand_bindings):
             return False
-        replayed_keys.append(key)
-    if tuple(replayed_keys) != tuple(item.group_key for item in certificate.operand_bindings):
-        return False
+        replayed_keys: list[str] = []
+        shapes: list[str] = []
+        for argument in call.args:
+            key = _kernel_group_key(argument, group_name, constants)
+            if isinstance(argument, ast.Name):
+                key = aliases.get(argument.id, key)
+            if key is None:
+                return False
+            replayed_keys.append(key)
+            shapes.append(ast.dump(argument, include_attributes=False))
+        if tuple(replayed_keys) != expected_keys:
+            return False
+        if expected_shapes is None:
+            expected_shapes = tuple(shapes)
+        elif tuple(shapes) != expected_shapes:
+            return False
 
     writes = [
         node
@@ -1710,7 +1730,10 @@ def _kernel_import_forms_closed(tree: ast.Module) -> bool:
                         ("statistics", name)
                         for name in {"fmean", "mean", "stdev", "median", "variance"}
                     ),
-                    *(("scipy.stats", name.rsplit(".", 1)[1]) for name in _ALL_PROCEDURES),
+                    *(
+                        ("scipy.stats", name.rsplit(".", 1)[1])
+                        for name in (_GROUP_BASE_PROCEDURES | _COUNT_PROCEDURES)
+                    ),
                 }:
                     return False
     return True
@@ -1743,7 +1766,9 @@ def _kernel_typing_uses_closed(tree: ast.Module) -> bool:
     )
 
 
-def _kernel_partition_operand_names(body: list[ast.stmt], procedure: ast.Assign) -> set[str]:
+def _kernel_partition_operand_names(
+    body: list[ast.stmt], procedures: tuple[ast.Assign, ...]
+) -> set[str]:
     """Derive the sole kernel-side operand definition used by the sink partition."""
 
     definitions: dict[str, list[ast.expr]] = {}
@@ -1760,7 +1785,12 @@ def _kernel_partition_operand_names(body: list[ast.stmt], procedure: ast.Assign)
             and statement.value is not None
         ):
             definitions.setdefault(statement.target.id, []).append(statement.value)
-    operands = {node.id for node in ast.walk(procedure.value) if isinstance(node, ast.Name)}
+    operands = {
+        node.id
+        for procedure in procedures
+        for node in ast.walk(procedure.value)
+        if isinstance(node, ast.Name)
+    }
     operands.update(
         node.id
         for statement in body
@@ -1823,6 +1853,134 @@ def _kernel_partition_operand_aliases(body: list[ast.stmt], operands: set[str]) 
     return aliases
 
 
+def _kernel_scipy_stats_callable(expression: ast.expr, imports: dict[str, str]) -> str | None:
+    parts: list[str] = []
+    while isinstance(expression, ast.Attribute):
+        parts.append(expression.attr)
+        expression = expression.value
+    if not isinstance(expression, ast.Name):
+        return None
+    root = imports.get(expression.id)
+    if root is None:
+        return None
+    value = ".".join((root, *reversed(parts)))
+    return value if value.startswith("scipy.stats.") else None
+
+
+def _kernel_group_variant(call: ast.Call, resolved: str) -> str | None:
+    if resolved == "scipy.stats.ttest_ind":
+        if len(call.args) != 2 or any(
+            item.arg not in {"equal_var", "alternative"} for item in call.keywords
+        ):
+            return None
+        equal_var = True
+        for item in call.keywords:
+            if item.arg == "equal_var":
+                if not isinstance(item.value, ast.Constant) or type(item.value.value) is not bool:
+                    return None
+                equal_var = bool(item.value.value)
+            elif item.arg == "alternative" and not (
+                isinstance(item.value, ast.Constant)
+                and item.value.value in {"two-sided", "less", "greater"}
+            ):
+                return None
+        return resolved if equal_var else "scipy.stats.ttest_ind:welch"
+    if resolved == "scipy.stats.mannwhitneyu":
+        if len(call.args) != 2:
+            return None
+        allowed = {
+            "alternative": {"two-sided", "less", "greater"},
+            "method": {"auto", "exact", "asymptotic"},
+        }
+        if any(item.arg not in allowed for item in call.keywords):
+            return None
+        if any(
+            not isinstance(item.value, ast.Constant)
+            or not isinstance(item.value.value, str)
+            or item.value.value not in allowed[cast(str, item.arg)]
+            for item in call.keywords
+        ):
+            return None
+        return resolved
+    return None
+
+
+def _kernel_group_census(
+    body: list[ast.stmt],
+    imports: dict[str, str],
+    certificate: DependenceGrowthCertificate,
+) -> tuple[tuple[ast.Assign, ...], tuple[tuple[ast.Assign, str, ast.Call], ...]] | None:
+    """Re-derive H-1's ordered census without trusting analyzer classification."""
+
+    parents = {
+        child: parent
+        for statement in body
+        for parent in ast.walk(statement)
+        for child in ast.iter_child_nodes(parent)
+    }
+    procedures: list[ast.Assign] = []
+    variants: list[str] = []
+    helpers: list[tuple[ast.Assign, str, ast.Call]] = []
+    for statement in body:
+        for call in (node for node in ast.walk(statement) if isinstance(node, ast.Call)):
+            resolved = _kernel_scipy_stats_callable(call.func, imports)
+            if resolved is None:
+                continue
+            if resolved in _GROUP_BASE_PROCEDURES:
+                if not (
+                    isinstance(statement, ast.Assign)
+                    and len(statement.targets) == 1
+                    and isinstance(statement.targets[0], ast.Name)
+                    and statement.value is call
+                ):
+                    return None
+                variant = _kernel_group_variant(call, resolved)
+                if variant is None:
+                    return None
+                procedures.append(statement)
+                variants.append(variant)
+            elif resolved in _COUNT_PROCEDURES:
+                return None
+            elif resolved in _DISTRIBUTION_HELPER_METHODS:
+                if not (
+                    isinstance(statement, ast.Assign)
+                    and len(statement.targets) == 1
+                    and isinstance(statement.targets[0], ast.Name)
+                    and statement.value is call
+                ):
+                    return None
+                helpers.append((statement, statement.targets[0].id, call))
+            elif not (isinstance(parents.get(call), ast.Attribute) and parents[call] is call.func):
+                return None
+    if (
+        not procedures
+        or tuple(variants) != certificate.resolved_callables
+        or tuple(
+            _kernel_node_token(certificate.source_path, statement.value, "procedure-call")
+            for statement in procedures
+            if isinstance(statement.value, ast.Call)
+        )
+        != certificate.procedure_call_tokens
+        or tuple(cast(ast.Name, statement.targets[0]).id for statement in procedures)
+        != certificate.result_names
+    ):
+        return None
+    helper_targets = {target for _statement, target, _call in helpers}
+    if any(
+        sum(
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and statement.targets[0].id == target
+            for statement in body
+        )
+        != 1
+        for target in helper_targets
+    ):
+        return None
+    return tuple(procedures), tuple(helpers)
+
+
 def _kernel_lower_annotations_for_partition(
     body: list[ast.stmt], operands: set[str]
 ) -> list[ast.stmt] | None:
@@ -1852,18 +2010,29 @@ def _kernel_partition_body(
     if body is None:
         return None
     imports = _kernel_imports(tree)
-    procedures = [
-        statement
-        for statement in body
-        if isinstance(statement, ast.Assign)
-        and len(statement.targets) == 1
-        and isinstance(statement.targets[0], ast.Name)
-        and isinstance(statement.value, ast.Call)
-        and _kernel_resolved_call(statement.value.func, imports) == certificate.resolved_callable
-    ]
-    if len(procedures) != 1:
+    if isinstance(certificate, CountDependenceCertificate):
+        procedures = tuple(
+            statement
+            for statement in body
+            if isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and isinstance(statement.value, ast.Call)
+            and _kernel_resolved_call(statement.value.func, imports)
+            == certificate.resolved_callable
+        )
+        if len(procedures) != 1:
+            return None
+    else:
+        census = _kernel_group_census(body, imports, certificate)
+        if census is None:
+            return None
+        procedures, helpers = census
+    operands = _kernel_partition_operand_names(body, procedures)
+    if not isinstance(certificate, CountDependenceCertificate) and any(
+        target in operands for _statement, target, _call in helpers
+    ):
         return None
-    operands = _kernel_partition_operand_names(body, procedures[0])
     annotation_protected_names = operands | _kernel_partition_operand_aliases(body, operands)
     normalized = _kernel_lower_annotations_for_partition(body, annotation_protected_names)
     return (normalized, operands) if normalized is not None else None
@@ -1941,6 +2110,9 @@ def _kernel_call_allowed(
         )
     if not isinstance(node.func, ast.Attribute):
         return False
+    resolved_stats = _kernel_scipy_stats_callable(node.func, imports)
+    if resolved_stats in _DISTRIBUTION_HELPER_METHODS:
+        return True
     if isinstance(node.func.value, ast.Name):
         base = node.func.value.id
         if base in group_names and node.func.attr in {"setdefault", "items"}:
@@ -2018,7 +2190,9 @@ def _kernel_assignment_allowed(
     if isinstance(node.value, ast.Call):
         if isinstance(node.value.func, ast.Name) and node.value.func.id in functions | {"list"}:
             return True
-        if _kernel_callable(node.value.func, imports) is not None:
+        if _kernel_callable(node.value.func, imports) is not None or (
+            _kernel_scipy_stats_callable(node.value.func, imports) in _DISTRIBUTION_HELPER_METHODS
+        ):
             return True
     return any(
         _kernel_group_key(node.value, group_name, cast(dict[str, str], constants)) is not None
@@ -2571,6 +2745,19 @@ def _kernel_sink_expression_closed(
         )
     if not isinstance(expression, ast.Call):
         return False
+    helper_chain = _kernel_attribute_chain(expression.func)
+    if (
+        helper_chain is not None
+        and len(helper_chain) == 3
+        and (f"scipy.stats.{helper_chain[1]}.{helper_chain[2]}" in _DISTRIBUTION_HELPER_METHODS)
+    ):
+        return all(
+            _kernel_sink_expression_closed(item, operands, scalar_sequences)
+            for item in expression.args
+        ) and all(
+            _kernel_sink_expression_closed(item.value, operands, scalar_sequences)
+            for item in expression.keywords
+        )
     name_calls = {
         "len",
         "min",
@@ -2651,15 +2838,24 @@ def _kernel_sink_partition_matches(
         return False
     body, operands = partition
     imports = _kernel_imports(tree)
-    procedures = [
-        statement
-        for statement in body
-        if isinstance(statement, ast.Assign)
-        and len(statement.targets) == 1
-        and isinstance(statement.targets[0], ast.Name)
-        and isinstance(statement.value, ast.Call)
-        and _kernel_resolved_call(statement.value.func, imports) == certificate.resolved_callable
-    ]
+    if isinstance(certificate, CountDependenceCertificate):
+        procedures = tuple(
+            statement
+            for statement in body
+            if isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and isinstance(statement.value, ast.Call)
+            and _kernel_resolved_call(statement.value.func, imports)
+            == certificate.resolved_callable
+        )
+        if len(procedures) != 1:
+            return False
+    else:
+        census = _kernel_group_census(body, imports, certificate)
+        if census is None:
+            return False
+        procedures, _helpers = census
     writes = [
         (statement, node)
         for statement in body
@@ -2668,13 +2864,13 @@ def _kernel_sink_partition_matches(
         and isinstance(node.func, ast.Attribute)
         and node.func.attr == "write_text"
     ]
-    if len(procedures) != 1 or len(writes) != 1:
-        return False
-    procedure = procedures[0]
-    if not isinstance(procedure.value, ast.Call):
+    if not procedures or len(writes) != 1:
         return False
     scalar_sequences = {
-        argument.id for argument in procedure.value.args if isinstance(argument, ast.Name)
+        argument.id
+        for procedure in procedures
+        for argument in cast(ast.Call, procedure.value).args
+        if isinstance(argument, ast.Name)
     }
     sink_statement, sink = writes[0]
     if not isinstance(sink_statement, ast.Expr) or len(sink.args) != 1:
@@ -2707,7 +2903,11 @@ def _kernel_sink_partition_matches(
             for node in ast.walk(statement)
             if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store)
         }
-        if statement is procedure or isinstance(statement, ast.With | ast.For) or stores & operands:
+        if (
+            statement in procedures
+            or isinstance(statement, ast.With | ast.For)
+            or stores & operands
+        ):
             operand_indices.add(index)
     sink_index = body.index(sink_statement)
     sink_indices = {sink_index}

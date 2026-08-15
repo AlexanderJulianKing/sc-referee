@@ -562,7 +562,7 @@ def test_batches_a_through_f_full_sorted_observed_sets_and_rq6_guard(project_roo
         },
         "batch-c": {
             "0815b8de6b7fd34cdbfc": ["import-use-outside-grammar"],
-            "41cfd59360a1ca24ca4b": ["import-use-outside-grammar"],
+            "41cfd59360a1ca24ca4b": ["function-globals-read", "function-return-shape"],
             "5eeb6e5adc4fc675c771": ["module-collection-use-not-modeled"],
             "822e4d560d778dc26fb0": ["unsupported-import-form"],
             "b98cd6e8d9f893450053": ["import-use-outside-grammar"],
@@ -575,7 +575,7 @@ def test_batches_a_through_f_full_sorted_observed_sets_and_rq6_guard(project_roo
                 "function-return-shape",
                 "sink-helper-call",
             ],
-            "7da68ec265e1bb2f6640": ["import-use-outside-grammar"],
+            "7da68ec265e1bb2f6640": ["function-globals-read", "sink-helper-call"],
             "f75b02bd61e813195904": ["unsupported-import-form"],
         },
         "batch-e1": {
@@ -604,7 +604,11 @@ def test_batches_a_through_f_full_sorted_observed_sets_and_rq6_guard(project_roo
                 "function-return-shape",
                 "sink-helper-call",
             ],
-            "c38b4b95d2ca5a382f67": ["import-use-outside-grammar"],
+            "c38b4b95d2ca5a382f67": [
+                "function-closure",
+                "function-return-shape",
+                "sink-helper-call",
+            ],
             "e57e3c73264eda49b3cc": [
                 "function-globals-read",
                 "sink-helper-call",
@@ -617,7 +621,7 @@ def test_batches_a_through_f_full_sorted_observed_sets_and_rq6_guard(project_roo
             "c2db115846830b7d908c": ["function-globals-read", "sink-helper-call"],
             "ca3125c6ca6002055d70": ["import-use-outside-grammar"],
             "ce821630fbd906ad6d07": ["module-constant-not-closed"],
-            "f68415be40b9234987de": ["import-use-outside-grammar"],
+            "f68415be40b9234987de": ["function-globals-read"],
         },
         "batch-f2": {
             "605c4c08512e4489cc9a": [

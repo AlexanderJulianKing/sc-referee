@@ -36,6 +36,7 @@ from sc_referee.dependence_recognition_v2.ir import (
     MAX_V2_INLINE_DEPTH,
     MAX_V2_SOURCE_BYTES,
     AlphaRename,
+    AuthorizedProcedureSet,
     CastKind,
     CountDependenceCertificate,
     CountGroupDomainObligation,
@@ -61,6 +62,17 @@ _REGISTERED = {
     "scipy.stats.fisher_exact": 1,
 }
 _COUNT_PROCEDURES = frozenset({"scipy.stats.binomtest", "scipy.stats.fisher_exact"})
+_GROUP_PROCEDURES = frozenset({"scipy.stats.ttest_ind", "scipy.stats.mannwhitneyu"})
+_ROW_INDEPENDENT_PROCEDURE_VARIANTS = frozenset(
+    {"scipy.stats.ttest_ind", "scipy.stats.ttest_ind:welch", "scipy.stats.mannwhitneyu"}
+)
+_DISTRIBUTION_HELPER_METHODS = frozenset(
+    f"scipy.stats.{distribution}.{method}"
+    for distribution in ("t", "norm")
+    for method in ("ppf", "cdf", "sf")
+)
+# Registration always wins.  Keep this load-bearing classification disjoint.
+assert not (_GROUP_PROCEDURES | _COUNT_PROCEDURES) & _DISTRIBUTION_HELPER_METHODS
 _BUILTINS = frozenset(
     {
         "list",
@@ -101,6 +113,21 @@ class _CountDerivation:
     domain: _CountDomain
     predicates: tuple[CountPredicateAtom, ...]
     node: ast.AST
+
+
+@dataclass(frozen=True)
+class _ProcedureMatch:
+    variant: str
+    result_name: str
+    call: ast.Call
+    statement: ast.Assign
+
+
+@dataclass(frozen=True)
+class _DistributionHelper:
+    result_name: str
+    call: ast.Call
+    statement: ast.Assign
 
 
 def analyze_dependence_growth_python(context: FrozenInspectionContext) -> GrowthAnalysis:
@@ -151,7 +178,16 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
         _validate_import_uses(tree, imports, constants)
         _validate_module_collection_uses(tree, constants)
         if _module_string_alternative_used(tree, imports, constants):
-            raise _Refusal("procedure-alternative-not-default")
+            has_count_alternative = any(
+                isinstance(node, ast.Call)
+                and _resolved_procedure(node.func, imports) in _COUNT_PROCEDURES
+                for node in ast.walk(tree)
+            )
+            raise _Refusal(
+                "procedure-alternative-not-default"
+                if has_count_alternative
+                else "procedure-keyword-not-closed"
+            )
         flattened, renames, dead = _flatten_functions(executable, functions, constants, imports)
         _refuse_unmodeled_nonannotation_syntax(flattened)
         if _core_construct_is_conditionally_wrapped(flattened, imports):
@@ -164,6 +200,15 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
 
     reasons.update(_independent_wall_scan(tree, constants))
     if _count_procedure_present(flattened, imports):
+        try:
+            inferential_calls, _distribution_helpers = _procedure_census(
+                flattened, imports, constants
+            )
+        except _Refusal as refusal:
+            reasons.update(refusal.reasons)
+            return _unsupported(*reasons)
+        if len(inferential_calls) != 1:
+            return _unsupported(*reasons, "procedure-set-count-member-unsupported")
         try:
             proposal = _analyze_count_proposal(
                 document_path=document.path,
@@ -186,13 +231,31 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
     try:
         read = _recognize_reader(flattened, constants)
         grouping = _recognize_grouping(flattened, read[0], constants, imports)
-        procedure = _recognize_procedure(flattened, imports, grouping[0], constants, grouping[5])
-        sink = _recognize_sink(flattened, procedure[2], constants, _trusted_result_path(context))
+        inferential_calls, distribution_helpers = _procedure_census(flattened, imports, constants)
+        if _distribution_helper_reaches_operands(
+            flattened, inferential_calls, distribution_helpers
+        ):
+            raise _Refusal("distribution-helper-reaches-operand")
+        procedure = _recognize_procedure_set(
+            flattened,
+            imports,
+            grouping[0],
+            constants,
+            grouping[5],
+            inferential_calls,
+        )
+        sink = _recognize_sink_set(
+            flattened,
+            tuple(item.result_name for item in procedure[0]),
+            constants,
+            _trusted_result_path(context),
+        )
         operand_tokens, sink_tokens = _verify_closed_flattened_statements(
             flattened,
             rows_name=read[0],
             group_name=grouping[0],
-            result_name=procedure[2],
+            procedures=tuple(item.statement for item in procedure[0]),
+            distribution_helpers=distribution_helpers,
             sink=sink,
         )
     except _Refusal as refusal:
@@ -206,7 +269,8 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
         return _unsupported("group-key-equals-value-column")
     if key_column == authority.authorized_key_columns[0]:
         return _unsupported("group-key-is-unit-column")
-    resolved_callable, argument_bindings, result_name, call_node = procedure
+    procedure_matches, argument_bindings = procedure
+    resolved_callables = tuple(item.variant for item in procedure_matches)
     obligation = GroupValueSequenceObligation(
         path=read[1],
         content_digest=authority.input_content_digest,
@@ -230,9 +294,11 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
         authority_record_id=authority.record_id,
         independent_unit_definition_id=authority.independent_unit_definition_id,
         obligation=obligation,
-        resolved_callable=resolved_callable,
-        procedure_call_token=_node_token(document.path, call_node, "procedure-call"),
-        result_name=result_name,
+        resolved_callables=resolved_callables,
+        procedure_call_tokens=tuple(
+            _node_token(document.path, item.call, "procedure-call") for item in procedure_matches
+        ),
+        result_names=tuple(item.result_name for item in procedure_matches),
         sink_token=_node_token(document.path, sink, "selected-sink"),
         group_container_name=group_name,
         group_container_kind=container_kind,
@@ -290,7 +356,7 @@ def discharge_dependence_growth_analysis(
         for item in certificate.operand_bindings
     ):
         return _discharged_unsupported("defaultdict-key-not-proven")
-    if len(fact.groups) != _REGISTERED[certificate.resolved_callable]:
+    if not certificate.resolved_callables or len(fact.groups) != 2:
         return _discharged_unsupported("group-operand-arity-mismatch")
     resolved_bindings: list[OperandGroupBinding] = []
     for binding in certificate.operand_bindings:
@@ -338,6 +404,7 @@ def discharge_dependence_growth_analysis(
         certificate,
         trusted_group_facts=(fact,),
         trusted_authorizations=_trusted_v2_authorizations(context),
+        trusted_procedure_sets=_trusted_v2_procedure_sets(context),
         source_bytes=source_matches[0].content,
         _failure_reasons=kernel_failures,
     )
@@ -433,6 +500,37 @@ def _trusted_result_path(context: FrozenInspectionContext) -> str | None:
     if v2_paths:
         return v2_paths[0] if len(v2_paths) == 1 else None
     return paths[0][1] if len(paths) == 1 else None
+
+
+def _trusted_v2_procedure_sets(
+    context: FrozenInspectionContext,
+) -> tuple[AuthorizedProcedureSet, ...]:
+    values: list[AuthorizedProcedureSet] = []
+    for record in context.base_records:
+        if record.ref.record_type != "procedure" or not record.ref.record_id.startswith(
+            "procedure-v2:"
+        ):
+            continue
+        try:
+            value = json.loads(record.canonical_payload)
+        except (TypeError, ValueError):
+            return ()
+        if not isinstance(value, dict):
+            return ()
+        singular = value.get("resolved_callable")
+        plural = value.get("resolved_callables")
+        if isinstance(singular, str) and plural is None:
+            callables = (singular,)
+        elif (
+            singular is None
+            and isinstance(plural, list)
+            and all(isinstance(item, str) for item in plural)
+        ):
+            callables = tuple(plural)
+        else:
+            return ()
+        values.append(AuthorizedProcedureSet(record.ref.record_id, callables))
+    return tuple(values)
 
 
 def _analyze_count_proposal(
@@ -925,7 +1023,7 @@ def _verify_closed_count_statements(
     for node in ast.walk(procedure_statement.value):
         if isinstance(node, ast.Name):
             operand_names.add(node.id)
-    return _partition_sink_bound(body, procedure_statement, sink, operand_names)
+    return _partition_sink_bound_set(body, (procedure_statement,), sink, operand_names)
 
 
 def _closed_count_group_loop(
@@ -1386,12 +1484,19 @@ def _validate_import_uses(
             and parent.attr == "DictReader"
         ):
             raise _Refusal("import-use-outside-grammar")
-        if target == "scipy.stats" and not (
-            isinstance(parent, ast.Attribute)
-            and parent.value is node
-            and f"scipy.stats.{parent.attr}" in _REGISTERED
-        ):
-            raise _Refusal("import-use-outside-grammar")
+        if target == "scipy.stats":
+            owning_calls = [
+                candidate
+                for candidate in ast.walk(tree)
+                if isinstance(candidate, ast.Call) and node in set(ast.walk(candidate.func))
+            ]
+            if not owning_calls or any(
+                not (_scipy_stats_callable(candidate.func, imports) or "").startswith(
+                    "scipy.stats."
+                )
+                for candidate in owning_calls
+            ):
+                raise _Refusal("import-use-outside-grammar")
         if target in _REGISTERED and not (isinstance(parent, ast.Call) and parent.func is node):
             raise _Refusal("import-use-outside-grammar")
         if target == "pathlib.Path" and not (isinstance(parent, ast.Call) and parent.func is node):
@@ -2430,13 +2535,161 @@ def _row_subscript(expression: ast.expr, row_name: str) -> str | None:
     )
 
 
-def _recognize_procedure(
+def _scipy_stats_callable(expression: ast.expr, imports: dict[str, str]) -> str | None:
+    """Resolve a dotted scipy.stats call without deciding its semantic class."""
+
+    parts: list[str] = []
+    while isinstance(expression, ast.Attribute):
+        parts.append(expression.attr)
+        expression = expression.value
+    if not isinstance(expression, ast.Name):
+        return None
+    root = imports.get(expression.id)
+    if root is None:
+        return None
+    value = ".".join((root, *reversed(parts)))
+    return value if value.startswith("scipy.stats.") else None
+
+
+def _procedure_variant(call: ast.Call, resolved: str, constants: dict[str, ModuleConstant]) -> str:
+    if resolved == "scipy.stats.ttest_ind":
+        if len(call.args) != 2:
+            raise _Refusal("group-operand-arity-mismatch")
+        allowed = {"equal_var", "alternative"}
+        if any(item.arg not in allowed for item in call.keywords):
+            raise _Refusal("procedure-keyword-not-closed")
+        equal_var = True
+        for item in call.keywords:
+            if item.arg == "equal_var":
+                if not isinstance(item.value, ast.Constant) or type(item.value.value) is not bool:
+                    raise _Refusal("procedure-keyword-not-closed")
+                equal_var = bool(item.value.value)
+            elif item.arg == "alternative" and not (
+                isinstance(item.value, ast.Constant)
+                and item.value.value in {"two-sided", "less", "greater"}
+            ):
+                raise _Refusal("procedure-keyword-not-closed")
+        return resolved if equal_var else "scipy.stats.ttest_ind:welch"
+    if resolved == "scipy.stats.mannwhitneyu":
+        if len(call.args) != 2:
+            raise _Refusal("group-operand-arity-mismatch")
+        allowed_values = {
+            "alternative": {"two-sided", "less", "greater"},
+            "method": {"auto", "exact", "asymptotic"},
+        }
+        if any(item.arg not in allowed_values for item in call.keywords):
+            raise _Refusal("procedure-keyword-not-closed")
+        for item in call.keywords:
+            if not (
+                isinstance(item.value, ast.Constant)
+                and isinstance(item.value.value, str)
+                and item.value.value in allowed_values[cast(str, item.arg)]
+            ):
+                raise _Refusal("procedure-keyword-not-closed")
+        return resolved
+    return resolved
+
+
+def _procedure_census(
+    body: list[ast.stmt],
+    imports: dict[str, str],
+    constants: dict[str, ModuleConstant],
+) -> tuple[tuple[_ProcedureMatch, ...], tuple[_DistributionHelper, ...]]:
+    """Apply H-1's partition-independent census before operand seeding."""
+
+    parents = {
+        child: parent
+        for statement in body
+        for parent in ast.walk(statement)
+        for child in ast.iter_child_nodes(parent)
+    }
+    procedures: list[_ProcedureMatch] = []
+    helpers: list[_DistributionHelper] = []
+    contested = 0
+    for statement in body:
+        for call in (node for node in ast.walk(statement) if isinstance(node, ast.Call)):
+            resolved = _scipy_stats_callable(call.func, imports)
+            if resolved is None:
+                continue
+            parent = parents.get(call)
+            if resolved in _GROUP_PROCEDURES | _COUNT_PROCEDURES:
+                if not (
+                    isinstance(statement, ast.Assign)
+                    and len(statement.targets) == 1
+                    and isinstance(statement.targets[0], ast.Name)
+                    and statement.value is call
+                ):
+                    raise _Refusal("procedure-call-unresolved")
+                procedures.append(
+                    _ProcedureMatch(
+                        variant=_procedure_variant(call, resolved, constants),
+                        result_name=statement.targets[0].id,
+                        call=call,
+                        statement=statement,
+                    )
+                )
+                continue
+            if resolved in _DISTRIBUTION_HELPER_METHODS:
+                if not (
+                    isinstance(statement, ast.Assign)
+                    and len(statement.targets) == 1
+                    and isinstance(statement.targets[0], ast.Name)
+                    and statement.value is call
+                ):
+                    raise _Refusal("distribution-helper-not-bound")
+                helpers.append(_DistributionHelper(statement.targets[0].id, call, statement))
+                continue
+            # Calls under a recognized scipy call are argument expressions, not a
+            # second top-level census member. Helpers are the only admitted nested form.
+            if isinstance(parent, ast.Attribute) and parent is call.func:
+                continue
+            contested += 1
+    if contested:
+        if procedures:
+            raise _Refusal("procedure-set-member-unregistered")
+        raise _Refusal("procedure-census-unresolved")
+    helper_targets = {item.result_name for item in helpers}
+    if any(
+        sum(
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and statement.targets[0].id == target
+            for statement in body
+        )
+        != 1
+        for target in helper_targets
+    ):
+        raise _Refusal("distribution-helper-not-bound")
+    if not procedures:
+        raise _Refusal("procedure-call-unresolved")
+    return tuple(procedures), tuple(helpers)
+
+
+def _distribution_helper_reaches_operands(
+    body: list[ast.stmt],
+    procedures: tuple[_ProcedureMatch, ...],
+    helpers: tuple[_DistributionHelper, ...],
+) -> bool:
+    helper_names = {item.result_name for item in helpers}
+    if not helper_names:
+        return False
+    definitions = _assignment_definitions(body)
+    return any(
+        helper_names & _transitive_reads(argument, definitions)
+        for procedure in procedures
+        for argument in procedure.call.args
+    )
+
+
+def _recognize_procedure_set(
     body: list[ast.stmt],
     imports: dict[str, str],
     group_name: str,
     constants: dict[str, ModuleConstant],
     group_container_kind: Literal["dict", "defaultdict_list"] = "dict",
-) -> tuple[str, tuple[OperandGroupBinding, ...], str, ast.Call]:
+    matches: tuple[_ProcedureMatch, ...] = (),
+) -> tuple[tuple[_ProcedureMatch, ...], tuple[OperandGroupBinding, ...]]:
     container_aliases = {
         statement.targets[0].id
         for statement in (item for root in body for item in ast.walk(root))
@@ -2463,23 +2716,10 @@ def _recognize_procedure(
                 raise _Refusal("defaultdict-key-not-proven")
             unpacked = _sorted_group_unpack(statement, group_name)
             aliases.update(unpacked)
-    matches: list[tuple[str, str, ast.Call]] = []
-    for statement in (item for root in body for item in ast.walk(root)):
-        if not (
-            isinstance(statement, ast.Assign)
-            and len(statement.targets) == 1
-            and isinstance(statement.targets[0], ast.Name)
-            and isinstance(statement.value, ast.Call)
-        ):
-            continue
-        resolved = _resolved_procedure(statement.value.func, imports)
-        if resolved is not None:
-            matches.append((resolved, statement.targets[0].id, statement.value))
-    if len(matches) != 1:
+    if not matches:
         raise _Refusal("procedure-call-unresolved")
-    resolved, result_name, call = matches[0]
-    if call.keywords or len(call.args) != _REGISTERED[resolved]:
-        raise _Refusal("group-operand-arity-mismatch")
+    if any(item.variant not in _ROW_INDEPENDENT_PROCEDURE_VARIANTS for item in matches):
+        raise _Refusal("procedure-set-mixed-independence-models")
     if container_aliases and any(
         isinstance(node, ast.Subscript)
         and isinstance(node.value, ast.Name)
@@ -2488,7 +2728,11 @@ def _recognize_procedure(
         for node in ast.walk(root)
     ):
         raise _Refusal("group-container-aliased")
-    if any(_uses_group_container_alias(argument, container_aliases) for argument in call.args):
+    if any(
+        _uses_group_container_alias(argument, container_aliases)
+        for match in matches
+        for argument in match.call.args
+    ):
         raise _Refusal("group-container-aliased")
     if any(
         _group_operand_is_sliced(node, group_name)
@@ -2497,16 +2741,32 @@ def _recognize_procedure(
         if isinstance(node, ast.expr)
     ):
         raise _Refusal("group-operand-sliced")
-    bindings: list[OperandGroupBinding] = []
-    for position, argument in enumerate(call.args):
-        key = _group_argument_key(argument, group_name, constants)
-        argument_name = ast.unparse(argument)
-        if isinstance(argument, ast.Name) and argument.id in aliases:
-            key = aliases[argument.id]
-        if key is None:
-            raise _Refusal("group-operand-arity-mismatch")
-        bindings.append(OperandGroupBinding(position, argument_name, key))
-    return resolved, tuple(bindings), result_name, call
+    all_bindings: list[tuple[OperandGroupBinding, ...]] = []
+    all_argument_shapes: list[tuple[str, ...]] = []
+    for match in matches:
+        bindings: list[OperandGroupBinding] = []
+        shapes: list[str] = []
+        for position, argument in enumerate(match.call.args):
+            key = _group_argument_key(argument, group_name, constants)
+            argument_name = ast.unparse(argument)
+            if isinstance(argument, ast.Name) and argument.id in aliases:
+                key = aliases[argument.id]
+            if key is None:
+                raise _Refusal(
+                    "procedure-set-operands-diverge"
+                    if len(matches) > 1
+                    else "group-operand-arity-mismatch"
+                )
+            bindings.append(OperandGroupBinding(position, argument_name, key))
+            shapes.append(ast.dump(argument, include_attributes=False))
+        all_bindings.append(tuple(bindings))
+        all_argument_shapes.append(tuple(shapes))
+    if any(
+        bindings != all_bindings[0] or shapes != all_argument_shapes[0]
+        for bindings, shapes in zip(all_bindings[1:], all_argument_shapes[1:], strict=True)
+    ):
+        raise _Refusal("procedure-set-operands-diverge")
+    return matches, all_bindings[0]
 
 
 def _uses_group_container_alias(expression: ast.expr, aliases: set[str]) -> bool:
@@ -2610,9 +2870,9 @@ def _sorted_group_unpack(statement: ast.Assign, group_name: str) -> dict[str, st
     return result
 
 
-def _recognize_sink(
+def _recognize_sink_set(
     body: list[ast.stmt],
-    result_name: str,
+    result_names: tuple[str, ...],
     constants: dict[str, ModuleConstant],
     expected_result_path: str | None,
 ) -> ast.Call:
@@ -2653,13 +2913,29 @@ def _recognize_sink(
         raise _Refusal("report-composition-not-modeled")
     # The exact report expression is classified by the sink partition below.  At
     # this point require only a syntactic flow from the procedure result.
-    if not any(
-        isinstance(node, ast.Name) and node.id == result_name for node in ast.walk(call.args[0])
-    ):
-        definitions = _assignment_definitions(body)
-        if result_name not in _transitive_reads(call.args[0], definitions):
+    definitions = _assignment_definitions(body)
+    sink_reads = _transitive_reads(call.args[0], definitions)
+    for result_name in result_names:
+        if (
+            not any(
+                isinstance(node, ast.Name) and node.id == result_name
+                for node in ast.walk(call.args[0])
+            )
+            and result_name not in sink_reads
+        ):
             raise _Refusal("sink-flow-escapes")
     return call
+
+
+def _recognize_sink(
+    body: list[ast.stmt],
+    result_name: str,
+    constants: dict[str, ModuleConstant],
+    expected_result_path: str | None,
+) -> ast.Call:
+    """Retain the singular count-path sink entry unchanged."""
+
+    return _recognize_sink_set(body, (result_name,), constants, expected_result_path)
 
 
 def _verify_closed_flattened_statements(
@@ -2667,29 +2943,25 @@ def _verify_closed_flattened_statements(
     *,
     rows_name: str,
     group_name: str,
-    result_name: str,
+    procedures: tuple[ast.Assign, ...],
+    distribution_helpers: tuple[_DistributionHelper, ...],
     sink: ast.Call,
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Partition the flattened module into operand and proven-sink-bound slices."""
 
-    procedure = next(
-        (
-            statement
-            for statement in body
-            if isinstance(statement, ast.Assign)
-            and any(
-                isinstance(node, ast.Name) and node.id == result_name for node in statement.targets
-            )
-        ),
-        None,
-    )
-    if procedure is None:
+    if not procedures:
         raise _Refusal("sink-controls-operand-flow")
     operand_names = {rows_name, group_name}
-    operand_names.update(
-        node.id for node in ast.walk(procedure.value) if isinstance(node, ast.Name)
-    )
-    procedure_reads = {node.id for node in ast.walk(procedure.value) if isinstance(node, ast.Name)}
+    for procedure in procedures:
+        operand_names.update(
+            node.id for node in ast.walk(procedure.value) if isinstance(node, ast.Name)
+        )
+    procedure_reads = {
+        node.id
+        for procedure in procedures
+        for node in ast.walk(procedure.value)
+        if isinstance(node, ast.Name)
+    }
     if any(
         isinstance(statement, ast.Assign)
         and len(statement.targets) == 1
@@ -2711,7 +2983,15 @@ def _verify_closed_flattened_statements(
                 for node in ast.walk(target)
                 if isinstance(node, ast.Name)
             )
-    return _partition_sink_bound(body, procedure, sink, operand_names)
+    operand_tokens, sink_tokens = _partition_sink_bound_set(body, procedures, sink, operand_names)
+    sink_token_set = set(sink_tokens)
+    helper_statement_tokens = {
+        _statement_token(helper.statement, body.index(helper.statement))
+        for helper in distribution_helpers
+    }
+    if not helper_statement_tokens <= sink_token_set:
+        raise _Refusal("distribution-helper-reaches-operand")
+    return operand_tokens, sink_tokens
 
 
 _SINK_NAME_CALLS = frozenset(
@@ -2863,6 +3143,17 @@ def _sink_expression_closed(
         return
     if not isinstance(expression, ast.Call):
         raise _Refusal("sink-classification-unresolved")
+    chain = _attribute_chain(expression.func)
+    if (
+        chain is not None
+        and len(chain) == 3
+        and (f"scipy.stats.{chain[1]}.{chain[2]}" in _DISTRIBUTION_HELPER_METHODS)
+    ):
+        for item in expression.args:
+            _sink_expression_closed(item, operand_names, scalar_sequences)
+        for keyword in expression.keywords:
+            _sink_expression_closed(keyword.value, operand_names, scalar_sequences)
+        return
     if isinstance(expression.func, ast.Name):
         if expression.func.id not in _SINK_NAME_CALLS:
             raise _Refusal("sink-call-not-whitelisted")
@@ -2895,20 +3186,25 @@ def _sink_expression_closed(
         _sink_expression_closed(keyword.value, operand_names, scalar_sequences)
 
 
-def _partition_sink_bound(
+def _partition_sink_bound_set(
     body: list[ast.stmt],
-    procedure_statement: ast.Assign,
+    procedure_statements: tuple[ast.Assign, ...],
     sink: ast.Call,
     initial_operand_names: set[str],
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
-    if not isinstance(procedure_statement.value, ast.Call):
+    if not procedure_statements or any(
+        not isinstance(statement.value, ast.Call) for statement in procedure_statements
+    ):
         raise _Refusal("sink-classification-unresolved")
-    operand_names = _partition_operand_names(body, procedure_statement, initial_operand_names)
+    operand_names = _partition_operand_names_set(body, procedure_statements, initial_operand_names)
     annotation_protected_names = operand_names | _partition_operand_aliases(body, operand_names)
     body = _lower_annotations_for_partition(body, annotation_protected_names)
     _refuse_unsupported_live_assignment_syntax(body)
     scalar_sequences = {
-        argument.id for argument in procedure_statement.value.args if isinstance(argument, ast.Name)
+        argument.id
+        for procedure_statement in procedure_statements
+        for argument in cast(ast.Call, procedure_statement.value).args
+        if isinstance(argument, ast.Name)
     }
     sink_statement = next(
         (statement for statement in body if sink in set(ast.walk(statement))), None
@@ -2917,7 +3213,10 @@ def _partition_sink_bound(
         raise _Refusal("sink-classification-unresolved")
     if any(
         isinstance(statement, ast.If | ast.For | ast.With)
-        and (procedure_statement in set(ast.walk(statement)) or sink in set(ast.walk(statement)))
+        and (
+            any(procedure in set(ast.walk(statement)) for procedure in procedure_statements)
+            or sink in set(ast.walk(statement))
+        )
         for statement in body
     ):
         raise _Refusal("sink-controls-operand-flow")
@@ -2930,7 +3229,7 @@ def _partition_sink_bound(
             if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store)
         }
         if (
-            statement is procedure_statement
+            statement in procedure_statements
             or isinstance(statement, ast.With | ast.For)
             or stores & operand_names
         ):
@@ -3000,9 +3299,9 @@ def _partition_sink_bound(
     )
 
 
-def _partition_operand_names(
+def _partition_operand_names_set(
     body: list[ast.stmt],
-    procedure_statement: ast.Assign,
+    procedure_statements: tuple[ast.Assign, ...],
     initial_operand_names: set[str],
 ) -> set[str]:
     """Derive the sole analyzer-side operand definition used by the sink partition."""
@@ -3023,7 +3322,10 @@ def _partition_operand_names(
             definitions.setdefault(statement.target.id, []).append(statement.value)
     operand_names = set(initial_operand_names)
     operand_names.update(
-        node.id for node in ast.walk(procedure_statement.value) if isinstance(node, ast.Name)
+        node.id
+        for procedure_statement in procedure_statements
+        for node in ast.walk(procedure_statement.value)
+        if isinstance(node, ast.Name)
     )
     operand_names.update(
         node.id

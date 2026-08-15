@@ -955,7 +955,7 @@ def test_adapter_exception_keeps_the_full_common_payload(monkeypatch: pytest.Mon
     assert payload["report_only"] is True
     assert payload["production_finding_permitted"] is False
     assert payload["adapter_id"] == "dependence-recognition-semantic-v2-growth-shadow"
-    assert payload["adapter_version"] == "2.2.0-development"
+    assert payload["adapter_version"] == "2.3.0-development"
     assert payload["adapter_implementation_digest"].startswith("sha256:")
     assert payload["implementation_dependency_closure"]
 

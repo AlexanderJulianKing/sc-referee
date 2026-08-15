@@ -1902,6 +1902,76 @@ def _registered_dependence_callable(
     return calls[0], "lock-minted"
 
 
+_V2_DISTRIBUTION_HELPERS = frozenset(
+    f"scipy.stats.{distribution}.{method}"
+    for distribution in ("t", "norm")
+    for method in ("ppf", "cdf", "sf")
+)
+
+
+def _registered_dependence_callable_set_v2(source: str) -> tuple[tuple[str, ...] | None, str]:
+    """Translate only the reviewed v2 procedure-set census into a lock record."""
+
+    from sc_referee.dependence_recognition_v2.authority_lock import V2_PROCEDURES
+
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return None, "procedure-unresolved-by-lock-schema-resolver"
+    bindings: dict[str, str] = {}
+    for statement in tree.body:
+        if isinstance(statement, ast.Import):
+            for alias in statement.names:
+                if alias.name == "scipy.stats":
+                    bindings[alias.asname or "scipy"] = "scipy.stats" if alias.asname else "scipy"
+        elif isinstance(statement, ast.ImportFrom) and statement.level == 0:
+            if statement.module == "scipy":
+                for alias in statement.names:
+                    if alias.name == "stats":
+                        bindings[alias.asname or alias.name] = "scipy.stats"
+            elif statement.module == "scipy.stats":
+                for alias in statement.names:
+                    bindings[alias.asname or alias.name] = f"scipy.stats.{alias.name}"
+
+    def resolve(node: ast.expr) -> str | None:
+        attributes: list[str] = []
+        while isinstance(node, ast.Attribute):
+            attributes.append(node.attr)
+            node = node.value
+        if not isinstance(node, ast.Name) or node.id not in bindings:
+            return None
+        return ".".join((bindings[node.id], *reversed(attributes)))
+
+    procedures: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        resolved = resolve(node.func)
+        if resolved is None or not resolved.startswith("scipy.stats."):
+            continue
+        if resolved in _V2_DISTRIBUTION_HELPERS:
+            continue
+        if resolved not in V2_PROCEDURES:
+            return None, "procedure-unavailable-to-closed-lock-schema"
+        variant = resolved
+        if resolved == "scipy.stats.ttest_ind":
+            for keyword in node.keywords:
+                if (
+                    keyword.arg == "equal_var"
+                    and isinstance(keyword.value, ast.Constant)
+                    and keyword.value.value is False
+                ):
+                    variant = "scipy.stats.ttest_ind:welch"
+        procedures.append(variant)
+    if not procedures:
+        return None, "procedure-unresolved-by-lock-schema-resolver"
+    if any(item in {"scipy.stats.binomtest", "scipy.stats.fisher_exact"} for item in procedures):
+        if len(procedures) != 1:
+            return None, "procedure-set-count-member-unsupported"
+    ordered_unique = tuple(dict.fromkeys(procedures))
+    return ordered_unique, "lock-minted"
+
+
 def _description_authority_lock(
     *,
     case_id: str,
@@ -2003,7 +2073,6 @@ def _description_v2_authority_lock(
     """Translate the same declaration into the distinct development v2 line."""
 
     from sc_referee.dependence_recognition_v2.authority_lock import (
-        V2_PROCEDURES,
         build_dependence_v2_authorization_lock,
     )
 
@@ -2023,14 +2092,13 @@ def _description_v2_authority_lock(
         or unit_column not in header
     ):
         return None, "unit-column-absent-from-frozen-header", unit_column
-    procedure, reason = _registered_dependence_callable(
-        (case_root / "workflow/analysis.py").read_text(encoding="ascii"),
-        V2_PROCEDURES,
+    procedures, reason = _registered_dependence_callable_set_v2(
+        (case_root / "workflow/analysis.py").read_text(encoding="ascii")
     )
-    if procedure is None:
+    if procedures is None:
         return None, reason, unit_column
     if (
-        procedure in {"scipy.stats.binomtest", "scipy.stats.fisher_exact"}
+        procedures[0] in {"scipy.stats.binomtest", "scipy.stats.fisher_exact"}
         and len(_DESCRIPTION_TRIAL_ROW.findall(description)) != 1
     ):
         return None, "count-procedure-trial-declaration-missing", unit_column
@@ -2039,7 +2107,7 @@ def _description_v2_authority_lock(
             case_id=case_id,
             snapshot_digest=str(intake_row["expected_audit_snapshot_digest"]),
             intake_recorded_at=intake_recorded_at,
-            procedure=procedure,
+            procedure=procedures[0] if len(procedures) == 1 else procedures,
             unit_column=unit_column,
             input_path=input_path,
             input_content_digest=str(intake_row["file_digests"][input_path]),

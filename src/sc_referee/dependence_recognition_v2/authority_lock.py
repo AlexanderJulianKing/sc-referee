@@ -35,6 +35,10 @@ V2_PROCEDURES = frozenset(
         "scipy.stats.ttest_ind",
     }
 )
+V2_PROCEDURE_VARIANTS = frozenset({"scipy.stats.ttest_ind:welch"})
+V2_GROUP_PROCEDURES = frozenset(
+    {"scipy.stats.ttest_ind", "scipy.stats.ttest_ind:welch", "scipy.stats.mannwhitneyu"}
+)
 AUTHORITY_LIMITATIONS = (
     "This lock is development-shadow-only and cannot authorize v1 or production output.",
     "Authorization is limited to this case, snapshot, input digest, procedure and unit key.",
@@ -98,14 +102,20 @@ def build_dependence_v2_authorization_lock(
     case_id: str,
     snapshot_digest: str,
     intake_recorded_at: str,
-    procedure: str,
+    procedure: str | tuple[str, ...],
     unit_column: str,
     input_path: str,
     input_content_digest: str,
 ) -> dict[str, Any]:
     """Build the sole closed v2 lock shape from controller-frozen declarations."""
 
-    if procedure not in V2_PROCEDURES:
+    procedures = (procedure,) if isinstance(procedure, str) else procedure
+    if (
+        not procedures
+        or any(item not in V2_PROCEDURES | V2_PROCEDURE_VARIANTS for item in procedures)
+        or len(procedures) != len(set(procedures))
+        or (len(procedures) > 1 and any(item not in V2_GROUP_PROCEDURES for item in procedures))
+    ):
         raise DependenceV2AuthorizationLockError("v2 procedure is outside the closed registry")
     slug = case_id.removeprefix("case:")
     actor_id = f"scientist:dependence-free-author-{slug}"
@@ -122,11 +132,19 @@ def build_dependence_v2_authorization_lock(
                 "record_id": f"analysis-v2:{slug}",
                 "path": "workflow/analysis.py",
             },
-            {
-                "record_type": "procedure",
-                "record_id": f"procedure-v2:{slug}",
-                "resolved_callable": procedure,
-            },
+            (
+                {
+                    "record_type": "procedure",
+                    "record_id": f"procedure-v2:{slug}",
+                    "resolved_callable": procedures[0],
+                }
+                if len(procedures) == 1
+                else {
+                    "record_type": "procedure",
+                    "record_id": f"procedure-v2:{slug}",
+                    "resolved_callables": list(procedures),
+                }
+            ),
             {
                 "record_type": "result",
                 "record_id": f"result-v2:{slug}",
@@ -214,11 +232,19 @@ def verify_dependence_v2_authorization_lock(
         "path": "results/report.md",
     }:
         raise DependenceV2AuthorizationLockError("v2 result record is invalid")
-    if (
-        frozenset(procedure) != {"record_type", "record_id", "resolved_callable"}
-        or procedure.get("record_type") != "procedure"
-        or procedure.get("resolved_callable") not in V2_PROCEDURES
-    ):
+    singular = (
+        frozenset(procedure) == {"record_type", "record_id", "resolved_callable"}
+        and procedure.get("resolved_callable") in V2_PROCEDURES | V2_PROCEDURE_VARIANTS
+    )
+    plural = procedure.get("resolved_callables")
+    set_form = (
+        frozenset(procedure) == {"record_type", "record_id", "resolved_callables"}
+        and isinstance(plural, list)
+        and len(plural) > 1
+        and len(plural) == len(set(plural))
+        and all(item in V2_GROUP_PROCEDURES for item in plural)
+    )
+    if procedure.get("record_type") != "procedure" or not (singular or set_form):
         raise DependenceV2AuthorizationLockError("v2 procedure record is invalid")
     if frozenset(authority) != {
         "record_type",

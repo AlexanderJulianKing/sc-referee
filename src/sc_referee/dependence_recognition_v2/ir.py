@@ -32,6 +32,7 @@ DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS = frozenset(
         "observation-identity",
         "operand-binding",
         "operand-disjointness",
+        "procedure-set-homogeneity",
         "rename-injectivity",
         "sink-partition",
         "source-parse",
@@ -103,7 +104,15 @@ DEPENDENCE_V2_REASON_REGISTRY = frozenset(
         "one-observation-per-unit-in-disjoint-bound-operands",
         "one-row-per-unit-in-proven-count-sets",
         "procedure-call-unresolved",
+        "distribution-helper-not-bound",
+        "distribution-helper-reaches-operand",
+        "procedure-census-unresolved",
         "procedure-alternative-not-default",
+        "procedure-keyword-not-closed",
+        "procedure-set-count-member-unsupported",
+        "procedure-set-member-unregistered",
+        "procedure-set-mixed-independence-models",
+        "procedure-set-operands-diverge",
         "procedure-version-unpinned",
         "python-parse-unsupported",
         "ragged-row",
@@ -310,6 +319,14 @@ class AlphaRename:
     fresh_name: str
 
 
+@dataclass(frozen=True, order=True)
+class AuthorizedProcedureSet:
+    """Controller-decoded callable set from the digest-sealed v2 procedure record."""
+
+    record_id: str
+    resolved_callables: tuple[str, ...]
+
+
 @dataclass(frozen=True)
 class DependenceGrowthCertificate:
     """Untrusted proposal checked against source and a trusted group fact."""
@@ -323,9 +340,9 @@ class DependenceGrowthCertificate:
     authority_record_id: str
     independent_unit_definition_id: str
     obligation: GroupValueSequenceObligation
-    resolved_callable: str
-    procedure_call_token: str
-    result_name: str
+    resolved_callables: tuple[str, ...]
+    procedure_call_tokens: tuple[str, ...]
+    result_names: tuple[str, ...]
     sink_token: str
     group_container_name: str
     group_container_kind: Literal["dict", "defaultdict_list"]
@@ -368,7 +385,7 @@ class VerifiedDependenceGrowthCertificate:
     certificate_id: str
     source_path: str
     source_digest: str
-    resolved_callable: str
+    resolved_callables: tuple[str, ...]
     conclusion: GrowthConclusion
     fact: GroupValueSequenceFact
     operand_bindings: tuple[OperandGroupBinding, ...]

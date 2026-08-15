@@ -296,3 +296,49 @@ obligation: key closure, length equations, operand binding, and sorted unpack
 are exactly the plain-dict path. OrderedDict-specific methods remain outside the
 group accumulator grammar. Batches G1 and G2 retain the batch-F development
 structure with fresh author, blind-review, hostile-review, and escalation seats.
+
+## 2026-08-15 growth-7 heavy amendment: procedure census and joint group calls
+
+The group path now performs one four-step, independently replayed procedure
+census. It first collects every syntactic SciPy-stats call; then classifies only
+`t`/`norm` `ppf`, `cdf`, and `sf` method forms as distribution helpers, with
+registered procedure names taking precedence and a startup disjointness
+assertion. It next seeds the sole operand closure from the union of every
+remaining registered inferential call's arguments. Only after the partition is
+complete does it require each helper to be the entire right-hand side of one
+assignment and to lie wholly in the proven sink-bound slice. Helper chains may
+compose there. A helper reaching the operand closure, an inline helper, or a
+contested SciPy-stats census abstains. These are static flow claims only; helper
+numeric success is not certified.
+
+Multiple inferential calls are admitted on the group path only when every call
+is a registry-flagged row-independent procedure and the kernel replays identical
+ordered operand syntax and group bindings for all members. Operand divergence is
+checked before either adverse or clearance conclusion is derived. The adverse
+statement therefore quantifies over each bound procedure; clearance requires the
+same proven-clean shared operands for all. The single-call case uses exactly the
+same union seed as the former singular seed. Count procedures remain singular:
+mixing a count procedure with any other inferential member abstains as
+`procedure-set-count-member-unsupported`.
+
+Development v2 locks may carry a digest-sealed `resolved_callables` set form.
+That set form is unavailable to the v1 lock and production controller. The
+existing growth-2 trial-declaration limitation remains: count locks additionally
+require the exact `One trial is: one row` declaration. Duplicate calls of one
+callable authorize the one unique callable while retaining distinct call tokens
+in the certificate.
+
+The closed keyword registry admits only intake-neutral SciPy 1.14.0 settings:
+`ttest_ind` literal `equal_var` and `alternative`, and `mannwhitneyu` literal
+`alternative` and `method` (`auto`, `exact`, or `asymptotic`). `equal_var=False`
+is the distinct Welch registry variant with the same operand semantics. Review
+verified that these settings do not change which rows enter the operands.
+`nan_policy='omit'` and `trim` are excluded because they drop or trim input
+observations; permutation settings and `random_state` are excluded because they
+change the computation's intake/determinism contract. Nonliteral or unlisted
+keywords abstain as `procedure-keyword-not-closed`; this whitelist is
+load-bearing and may not grow without a new reviewed premise.
+
+Batches H1 and H2 retain the v1-scored/v2-development-shadow structure with
+fresh author, blind-review, hostile-review, and escalation seats. The v2 adapter
+remains unregistered and report-only.

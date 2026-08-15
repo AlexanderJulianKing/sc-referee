@@ -50,7 +50,7 @@ class DependenceRecognitionV2ShadowAdapter:
     """Inspect one frozen context; every uncertainty is non-accusatory."""
 
     adapter_id: str = "dependence-recognition-semantic-v2-growth-shadow"
-    adapter_version: str = "2.2.0-development"
+    adapter_version: str = "2.3.0-development"
 
     def controller_abstention(self, reason: str) -> dict[str, Any]:
         """Project one closed controller-side v2 authority refusal."""
@@ -146,7 +146,7 @@ class DependenceRecognitionV2ShadowAdapter:
         projection = {
             "source_path": verified.source_path,
             "source_digest": verified.source_digest,
-            "resolved_callable": verified.resolved_callable,
+            "resolved_callables": list(verified.resolved_callables),
             "input_path": group_fact.path,
             "input_content_digest": group_fact.content_digest,
             "authorized_unit_column": group_fact.authorized_unit_column,
@@ -161,6 +161,10 @@ class DependenceRecognitionV2ShadowAdapter:
                 "payload_type": "shadow_candidate",
                 "outcome": "evaluation_candidate",
                 "reason_code": "repeated-unit-within-bound-operand",
+                "wording": (
+                    "Static code enters repeated-unit rows into each of the bound "
+                    "row-independent procedures as separate observations."
+                ),
                 "abstention_reasons": [],
                 "repeated_unit_ids": list(verified.repeated_unit_ids),
                 "payload": projection,
