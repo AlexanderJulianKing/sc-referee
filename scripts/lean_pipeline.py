@@ -921,6 +921,8 @@ DEPENDENCE_FREE_H1_LANE_RELATIVE = Path("evaluation/development/dependence-growt
 DEPENDENCE_FREE_H2_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-h2")
 DEPENDENCE_FREE_I1_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-i1")
 DEPENDENCE_FREE_I2_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-i2")
+DEPENDENCE_FREE_J1_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-j1")
+DEPENDENCE_FREE_J2_LANE_RELATIVE = Path("evaluation/development/dependence-growth-loop/batch-j2")
 _DEPENDENCE_FREE_ROLES = ("rq1", "rq2", "rq3", "rq4", "rq5", "rq6")
 _DEPENDENCE_FREE_COMMON_TASK = """Study one narrowly defined error class: repeated measurements from the same independent unit entered into a row-independent statistical procedure as if independent. Invent the scientific domain, study story, vocabulary, column names, data values, number of rows, and coding style yourself. Do not copy any prior-lane material.
 
@@ -1422,6 +1424,32 @@ def default_dependence_free_i2_config() -> EnvelopeConfig:
     )
 
 
+def default_dependence_free_j1_config() -> EnvelopeConfig:
+    """Return the unrun growth-9 checkpoint batch J1 envelope."""
+
+    return _dependence_free_f_config(
+        suffix="batch-j1",
+        ordinals=range(111, 117),
+        reviewer=44,
+        hostile=45,
+        escalation=27,
+        pipeline_relative=DEPENDENCE_FREE_J1_LANE_RELATIVE,
+    )
+
+
+def default_dependence_free_j2_config() -> EnvelopeConfig:
+    """Return the unrun growth-9 checkpoint batch J2 envelope."""
+
+    return _dependence_free_f_config(
+        suffix="batch-j2",
+        ordinals=range(117, 123),
+        reviewer=46,
+        hostile=47,
+        escalation=28,
+        pipeline_relative=DEPENDENCE_FREE_J2_LANE_RELATIVE,
+    )
+
+
 def _dependence_free_f_config(
     *,
     suffix: str,
@@ -1758,6 +1786,8 @@ ENVELOPE_CONFIGS = {
     "dependence-free-h2": default_dependence_free_h2_config,
     "dependence-free-i1": default_dependence_free_i1_config,
     "dependence-free-i2": default_dependence_free_i2_config,
+    "dependence-free-j1": default_dependence_free_j1_config,
+    "dependence-free-j2": default_dependence_free_j2_config,
     "dosage": default_dosage_config,
     "founder-orientation": default_founder_orientation_config,
     "founder-orientation-b": default_founder_orientation_b_config,

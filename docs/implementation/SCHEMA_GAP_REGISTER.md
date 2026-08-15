@@ -341,6 +341,20 @@ Public v0.9.0 permits `created`, `cancelled`, and `failed_controller` records wi
 snapshot reference. The controller creates its append-only journal before capture, and a dedicated
 test verifies a schema-valid terminal record when snapshot capture fails.
 
+## Open growth-9 fuel-order conflict (development shadow only)
+
+The binding amendment's parenthetical expects Batch-I case
+`ce7daed01bb0fa178e26` to reach `sink-aliases-operand-object` at the
+`plants["biochar"]` helper argument. The frozen case first reaches the older
+`procedure-call-unresolved` wall because its registered Mann-Whitney call binds
+the result through tuple unpacking, a procedure-result shape not admitted by
+EXPERIMENT-0060 or the growth-9 amendment. Admitting tuple-unpacked procedure
+results, or deriving a second operand classification solely to leap over that
+wall, would widen beyond the authorized round. The dedicated reviewer probe
+therefore verifies the amended bare-name/subscript container rule, while the
+frozen case retains its honest next wall. A future reviewed grammar round is
+required to change that case's ordering.
+
 ## Rule
 
 Historical provisional schemas remain under `provisional-schemas/` solely for migration evidence.

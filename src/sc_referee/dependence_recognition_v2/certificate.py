@@ -1465,15 +1465,16 @@ def _kernel_constants(tree: ast.Module) -> dict[str, object]:
         if isinstance(value, ast.Constant) and type(value.value) in {str, int, float}:
             values[statement.targets[0].id] = value.value
         elif (
-            isinstance(value, ast.Tuple)
+            isinstance(value, ast.Tuple | ast.List)
             and value.elts
             and all(
                 isinstance(item, ast.Constant) and isinstance(item.value, str)
                 for item in value.elts
             )
         ):
-            values[statement.targets[0].id] = tuple(
-                cast(str, cast(ast.Constant, item).value) for item in value.elts
+            items = [cast(str, cast(ast.Constant, item).value) for item in value.elts]
+            values[statement.targets[0].id] = (
+                tuple(items) if isinstance(value, ast.Tuple) else items
             )
         elif (
             isinstance(value, ast.Dict)
@@ -1508,6 +1509,8 @@ def _kernel_constants(tree: ast.Module) -> dict[str, object]:
 def _kernel_constant_expression(value: object) -> ast.expr:
     if isinstance(value, tuple):
         return ast.Tuple(elts=[ast.Constant(item) for item in value], ctx=ast.Load())
+    if isinstance(value, list):
+        return ast.List(elts=[ast.Constant(item) for item in value], ctx=ast.Load())
     if isinstance(value, dict):
         return ast.Dict(
             keys=[ast.Constant(item) for item in value],
@@ -1521,7 +1524,7 @@ def _kernel_collection_subscript(
 ) -> str | None:
     if isinstance(key, ast.Name):
         key = ast.Constant(cast(Any, constants.get(key.id)))
-    if isinstance(collection, tuple):
+    if isinstance(collection, tuple | list):
         if not isinstance(key, ast.Constant) or type(key.value) is not int:
             return None
         index = key.value
@@ -1536,7 +1539,7 @@ def _kernel_collection_subscript(
 
 def _kernel_module_collection_uses_closed(tree: ast.Module, constants: dict[str, object]) -> bool:
     collections = {
-        name: value for name, value in constants.items() if isinstance(value, tuple | dict)
+        name: value for name, value in constants.items() if isinstance(value, tuple | list | dict)
     }
     if not collections:
         return True
@@ -2088,7 +2091,6 @@ def _kernel_live_syntax_closed(
             | ast.AsyncWith
             | ast.Try
             | ast.Match
-            | ast.ListComp
             | ast.SetComp
             | ast.DictComp
             | ast.GeneratorExp
@@ -2098,6 +2100,11 @@ def _kernel_live_syntax_closed(
             | ast.YieldFrom
             | ast.Await,
         )
+        for node in ast.walk(tree)
+    ):
+        return False
+    if any(
+        isinstance(node, ast.ListComp) and not _kernel_reader_copy_comprehension(node)
         for node in ast.walk(tree)
     ):
         return False
@@ -2111,6 +2118,31 @@ def _kernel_live_syntax_closed(
         if isinstance(node, ast.AugAssign | ast.AnnAssign | ast.NamedExpr | ast.Delete):
             return False
     return set(fact.predeclared_bucket_keys) == _kernel_predeclared_keys(tree, group_names)
+
+
+def _kernel_reader_copy_comprehension(node: ast.ListComp) -> bool:
+    """Replay the exact G9-L DictReader shallow-copy materialization premise."""
+
+    return bool(
+        len(node.generators) == 1
+        and not node.generators[0].is_async
+        and not node.generators[0].ifs
+        and isinstance(node.generators[0].target, ast.Name)
+        and isinstance(node.generators[0].iter, ast.Call)
+        and isinstance(node.generators[0].iter.func, ast.Attribute)
+        and isinstance(node.generators[0].iter.func.value, ast.Name)
+        and node.generators[0].iter.func.value.id == "csv"
+        and node.generators[0].iter.func.attr == "DictReader"
+        and len(node.generators[0].iter.args) == 1
+        and not node.generators[0].iter.keywords
+        and isinstance(node.elt, ast.Call)
+        and isinstance(node.elt.func, ast.Name)
+        and node.elt.func.id == "dict"
+        and len(node.elt.args) == 1
+        and not node.elt.keywords
+        and isinstance(node.elt.args[0], ast.Name)
+        and node.elt.args[0].id == node.generators[0].target.id
+    )
 
 
 def _kernel_main_guard(node: ast.If) -> bool:
@@ -2138,7 +2170,9 @@ def _kernel_call_allowed(
         return True
     if isinstance(node.func, ast.Name):
         return (
-            node.func.id in functions | {"Path", "list", "float", "int", "str", "sorted"}
+            node.func.id
+            in functions
+            | {"Path", "list", "float", "int", "str", "sorted", "dict", "any", "all", "tuple"}
             or imports.get(node.func.id) in _PROCEDURE_ARITY
         )
     if not isinstance(node.func, ast.Attribute):
@@ -2440,6 +2474,11 @@ def _kernel_replay_function_bookkeeping(
     typing_names = {name for name, target in imports.items() if target.startswith("typing.")}
     constants = set(_kernel_constants(tree))
     if any(
+        isinstance(node, ast.Name) and node.id.startswith("__dependence_v2_")
+        for node in ast.walk(tree)
+    ):
+        return False
+    if any(
         not _kernel_function_shape_closed(
             item, import_names, typing_names, constants, set(functions)
         )
@@ -2467,16 +2506,25 @@ def _kernel_replay_function_bookkeeping(
         and isinstance(node.func, ast.Name)
         and node.func.id in functions
     }
-    if functions and any(
-        node.args or node.keywords
-        for statement in tree.body
-        if not isinstance(statement, ast.FunctionDef)
-        for node in ast.walk(statement)
+    user_calls = [
+        node
+        for node in ast.walk(tree)
         if isinstance(node, ast.Call)
         and isinstance(node.func, ast.Name)
         and node.func.id in functions
-    ):
-        return False
+    ]
+    for call in user_calls:
+        function = functions[cast(ast.Name, call.func).id]
+        if (
+            call.keywords
+            or len(call.args) != len(function.args.args)
+            or any(isinstance(item, ast.Starred) for item in call.args)
+        ):
+            return False
+        if any(not _kernel_simple_argument(item, constants) for item in call.args) and any(
+            not _kernel_sink_expression_closed(item, set(), set()) for item in call.args
+        ):
+            return False
     called: set[str] = set()
     pending = list(roots)
     while pending:
@@ -2552,6 +2600,13 @@ class _KernelInlineTransformer(ast.NodeTransformer):
         return node
 
 
+def _kernel_simple_argument(expression: ast.expr, constants: set[str]) -> bool:
+    return isinstance(expression, ast.Constant) or (
+        isinstance(expression, ast.Name)
+        and (expression.id in constants or expression.id.isidentifier())
+    )
+
+
 def _kernel_flattened_module(
     tree: ast.Module, certificate: DependenceGrowthCertificate | CountDependenceCertificate
 ) -> list[ast.stmt] | None:
@@ -2610,18 +2665,44 @@ def _kernel_flattened_module(
             if depth >= MAX_V2_INLINE_DEPTH:
                 return None
             function = functions[call.func.id]
-            if call.keywords or len(call.args) != len(function.args.args):
+            if (
+                call.keywords
+                or len(call.args) != len(function.args.args)
+                or any(isinstance(item, ast.Starred) for item in call.args)
+            ):
+                return None
+            has_expression_argument = any(
+                not _kernel_simple_argument(item, set(constants)) for item in call.args
+            )
+            if has_expression_argument and any(
+                not _kernel_sink_expression_closed(item, set(), set()) for item in call.args
+            ):
                 return None
             counter += 1
             path = (*parent, f"{call.func.id}:{counter}")
             path_id = "inline-call-path:" + "/".join(path)
             parameters = [item.arg for item in function.args.args]
-            arguments = {
-                name: copy.deepcopy(_kernel_constant_expression(constants[item.id]))
-                if isinstance(item, ast.Name) and item.id in constants
-                else copy.deepcopy(item)
-                for name, item in zip(parameters, call.args, strict=True)
-            }
+            argument_prefix: list[ast.stmt] = []
+            arguments: dict[str, ast.expr]
+            if has_expression_argument:
+                argument_names: list[ast.Name] = []
+                for index, item in enumerate(call.args):
+                    temporary = f"__dependence_v2_argument_{counter}_{index}"
+                    value = (
+                        copy.deepcopy(_kernel_constant_expression(constants[item.id]))
+                        if isinstance(item, ast.Name) and item.id in constants
+                        else copy.deepcopy(item)
+                    )
+                    argument_prefix.append(ast.Assign([ast.Name(temporary, ast.Store())], value))
+                    argument_names.append(ast.Name(temporary, ast.Load()))
+                arguments = dict(zip(parameters, argument_names, strict=True))
+            else:
+                arguments = {
+                    name: copy.deepcopy(_kernel_constant_expression(constants[item.id]))
+                    if isinstance(item, ast.Name) and item.id in constants
+                    else copy.deepcopy(item)
+                    for name, item in zip(parameters, call.args, strict=True)
+                }
             stored = {
                 node.id
                 for node in ast.walk(function)
@@ -2669,6 +2750,7 @@ def _kernel_flattened_module(
             flattened = inline(nested, path, depth + 1)
             if flattened is None:
                 return None
+            result.extend(argument_prefix)
             result.extend(flattened)
             if return_value is not None:
                 return_result = inline_sink_expression(return_value, path, depth + 1)
@@ -2891,6 +2973,9 @@ def _kernel_sink_expression_closed(
         "stdev",
         "median",
         "variance",
+        "any",
+        "all",
+        "tuple",
     }
     module_calls = {
         "statistics.mean",
@@ -2990,6 +3075,15 @@ def _kernel_sink_partition_matches(
         for argument in cast(ast.Call, procedure.value).args
         if isinstance(argument, ast.Name)
     }
+    if any(
+        isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and statement.targets[0].id.startswith("__dependence_v2_argument_")
+        and _kernel_expression_roots_in_operand_container(statement.value, operands)
+        for statement in body
+    ):
+        return False
     sink_statement, sink = writes[0]
     if not isinstance(sink_statement, ast.Expr) or len(sink.args) != 1:
         return False
@@ -3085,6 +3179,13 @@ def _kernel_sink_partition_matches(
     ) and certificate.sink_bound_statement_tokens == tuple(
         _kernel_statement_token(body[index], index) for index in sorted(sink_indices)
     )
+
+
+def _kernel_expression_roots_in_operand_container(expression: ast.expr, operands: set[str]) -> bool:
+    value = expression
+    while isinstance(value, ast.Subscript):
+        value = value.value
+    return isinstance(value, ast.Name) and value.id in operands
 
 
 def _kernel_resolved_call(expression: ast.expr, imports: dict[str, str]) -> str | None:
@@ -3236,6 +3337,10 @@ def _kernel_function_shape_closed(
             "abs",
             "range",
             "enumerate",
+            "dict",
+            "any",
+            "all",
+            "tuple",
         }
     )
     if loads - allowed:

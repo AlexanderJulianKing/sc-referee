@@ -379,3 +379,42 @@ abstain as `function-return-shape`; no conditional-return production or claim
 was added. Batches I1 and I2 retain the v1-scored/v2-development-shadow structure
 with fresh author, blind-review, hostile-review, and escalation seats. The v2
 adapter remains unregistered, report-only, and labeled `2.4.0-development`.
+
+## 2026-08-15 growth-9 binding amendment: vocabulary and argument expressions
+
+Growth 9 implements only the design memo's binding amendments. Part R1 is
+withdrawn. G9-L admits `dict`, `any`, `all`, and `tuple` only in their existing
+grammar-appropriate positions; the exact
+`[dict(row) for row in csv.DictReader(handle)]` reader materialization; and
+nonempty string-list module constants under the existing collection-use rules.
+The analyzer and kernel independently verify that the reader comprehension is
+one unfiltered, non-async iteration and that `dict(row)` is a one-for-one shallow
+copy preserving row multiplicity. Raise guards remain unsupported and surface as
+`raise-guard-not-modeled`.
+
+G9-H admits positional argument expressions only through the existing T-3/S3
+pure-expression grammar. Mutation remains inexpressible. If any positional
+argument is an expression, all arguments are hoisted into deterministic fresh
+bindings in source order before substitution, preserving Python's left-to-right
+evaluation. Keywords remain forbidden by the existing inlinable-call rule and
+starred arguments abstain as `function-argument-starred`. A nested call is still
+`function-argument-not-simple` unless it is already an S3 pure call. After the
+sole operand partition is derived, a hoisted bare name or subscript rooted in an
+operand-slice container abstains at binding time as
+`sink-aliases-operand-object`. Calls with no expression arguments retain the
+pre-growth-9 flattening and refusal order.
+
+Batches J1 and J2 are checkpoint-cadence configurations only and remain unrun.
+J1 reserves authors opus-111 through opus-116, reviewer fable-44, hostile
+reviewer fable-45, and escalation opus-27. J2 reserves authors opus-117 through
+opus-122, reviewer fable-46, hostile reviewer fable-47, and escalation opus-28.
+
+The separate `scripts/wall_mining_corpus.py` lane is open development fuel, not
+measurement. It makes one Haiku generation call per requested script with at
+most three concurrent calls, stores only under
+`evaluation/development/wall-mining-corpus/run-<n>/`, stamps every emitted JSON
+record `record_purpose: development_wall_mining`, applies a deterministic
+best-effort declaration translation, and reports v2 shadow wall frequencies.
+Its prompts contain no recognizer name or issue taxonomy. It is not registered
+in lean, qualification, production, grant, or capability surfaces. The growth-9
+shadow identity is `2.5.0-development`.

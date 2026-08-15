@@ -470,10 +470,10 @@ def test_growth7_batch_g_cases_pin_full_observed_reason_sets(project_root: Path)
 
     expected = {
         "batch-g1": {
-            "2ddf508d135fd7fce5df": ["function-globals-read"],
+            "2ddf508d135fd7fce5df": ["raise-guard-not-modeled"],
             "30108f0d34292b11cab8": ["function-argument-not-simple"],
             "58960ceebfb9cb96d1e0": ["import-use-outside-grammar"],
-            "8b55946a92793ebcd387": ["function-globals-read", "function-return-shape"],
+            "8b55946a92793ebcd387": ["function-return-shape"],
             "aec630c60b86af0d2a96": [
                 "count-predicate-not-closed",
                 "module-constant-not-closed",
@@ -487,7 +487,7 @@ def test_growth7_batch_g_cases_pin_full_observed_reason_sets(project_root: Path)
                 "count-predicate-not-closed",
                 "import-use-outside-grammar",
             ],
-            "a8b660a9685f13f0187f": ["function-globals-read"],
+            "a8b660a9685f13f0187f": ["raise-guard-not-modeled"],
             "ae33434a6064f4251cbc": ["import-use-outside-grammar"],
             "ff99e13110aad17a7fd0": ["group-accumulator-not-total"],
         },

@@ -942,11 +942,11 @@ _FROZEN_BATCH_REASONS = {
     ),
     "batch-b/3c2b93c9545d8518e1f3": ("function-globals-read",),
     "batch-b/6a3bc02816cb70ee4042": ("import-use-outside-grammar",),
-    "batch-b/8b01b6d08e58aa5cce6f": ("function-globals-read",),
+    "batch-b/8b01b6d08e58aa5cce6f": ("raise-guard-not-modeled",),
     "batch-b/ae04f2973df030f612b9": ("function-globals-read",),
     "batch-b/bf08b2218ca9cef1db2d": (
         "count-predicate-not-closed",
-        "function-globals-read",
+        "raise-guard-not-modeled",
     ),
 }
 

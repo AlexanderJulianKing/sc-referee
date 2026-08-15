@@ -252,7 +252,7 @@ def test_growth8_batches_h1_h2_pin_all_measurable_reason_sets(project_root: Path
             "95b0d17896ce31b504a0": ["import-use-outside-grammar"],
             "a7abfa9adc44baaea6d6": ["unsupported-import-form"],
             "cc45f160070a5cdcd6b9": ["import-use-outside-grammar"],
-            "d8e451762e6f79802f9f": ["function-globals-read"],
+            "d8e451762e6f79802f9f": ["function-argument-not-simple"],
             "e1c190d24275becc0db4": ["unsupported-import-form"],
         },
         "batch-h2": {
@@ -260,13 +260,13 @@ def test_growth8_batches_h1_h2_pin_all_measurable_reason_sets(project_root: Path
             "2c76f6934e057bc62ce3": ["module-constant-not-closed"],
             "4da6848cdd3a5d975d87": [
                 "count-predicate-not-closed",
-                "function-globals-read",
                 "function-return-shape",
+                "raise-guard-not-modeled",
             ],
             "78bfad17cf5492340eb0": [
                 "function-default-params",
-                "function-globals-read",
                 "function-return-shape",
+                "raise-guard-not-modeled",
             ],
             "892d8dfacbc80c013262": ["function-argument-not-simple"],
             "c80463fdc728955797e6": ["reader-form-unsupported"],

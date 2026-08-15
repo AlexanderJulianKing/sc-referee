@@ -89,10 +89,14 @@ _BUILTINS = frozenset(
         "abs",
         "range",
         "enumerate",
+        "dict",
+        "any",
+        "all",
+        "tuple",
     }
 )
 _SCIPY_PIN = re.compile(r"(?m)^\s*scipy\s*==\s*1\.14\.0\s*(?:#.*)?$")
-ModuleConstant = ast.Constant | ast.Tuple | ast.Dict
+ModuleConstant = ast.Constant | ast.Tuple | ast.List | ast.Dict
 
 
 class _Refusal(Exception):
@@ -230,12 +234,44 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
         return proposal
     try:
         read = _recognize_reader(flattened, constants)
-        grouping = _recognize_grouping(flattened, read[0], constants, imports)
+        has_argument_hoists = any(
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and statement.targets[0].id.startswith("__dependence_v2_argument_")
+            for statement in flattened
+        )
+        grouping = (
+            None
+            if has_argument_hoists
+            else _recognize_grouping(flattened, read[0], constants, imports)
+        )
         inferential_calls, distribution_helpers = _procedure_census(flattened, imports, constants)
         if _distribution_helper_reaches_operands(
             flattened, inferential_calls, distribution_helpers
         ):
             raise _Refusal("distribution-helper-reaches-operand")
+        sink = _recognize_sink_set(
+            flattened,
+            tuple(item.result_name for item in inferential_calls),
+            constants,
+            _trusted_result_path(context),
+        )
+        # Only the new expression-argument path moves the sole partition ahead
+        # of the older group-shape replayers. The degenerate no-expression path
+        # retains the exact pre-G9 order and behavior.
+        precomputed_partition = (
+            _partition_sink_bound_set(
+                flattened,
+                tuple(item.statement for item in inferential_calls),
+                sink,
+                {read[0]},
+            )
+            if has_argument_hoists
+            else None
+        )
+        if grouping is None:
+            grouping = _recognize_grouping(flattened, read[0], constants, imports)
         procedure = _recognize_procedure_set(
             flattened,
             imports,
@@ -244,12 +280,6 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
             grouping[5],
             inferential_calls,
         )
-        sink = _recognize_sink_set(
-            flattened,
-            tuple(item.result_name for item in procedure[0]),
-            constants,
-            _trusted_result_path(context),
-        )
         operand_tokens, sink_tokens = _verify_closed_flattened_statements(
             flattened,
             rows_name=read[0],
@@ -257,6 +287,7 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
             procedures=tuple(item.statement for item in procedure[0]),
             distribution_helpers=distribution_helpers,
             sink=sink,
+            precomputed_partition=precomputed_partition,
         )
     except _Refusal as refusal:
         reasons.update(refusal.reasons)
@@ -474,6 +505,8 @@ def _refuse_unmodeled_nonannotation_syntax(body: list[ast.stmt]) -> None:
         raise _Refusal("named-expression-not-modeled")
     if any(isinstance(node, ast.Delete) for node in nodes):
         raise _Refusal("delete-not-modeled")
+    if any(isinstance(node, ast.Raise) for node in nodes):
+        raise _Refusal("raise-guard-not-modeled")
 
 
 def _trusted_v2_authorizations(
@@ -1229,7 +1262,7 @@ def _module_parts(
             if (
                 value is None
                 and isinstance(statement.value, ast.Name)
-                and isinstance(constants.get(statement.value.id), ast.Tuple | ast.Dict)
+                and isinstance(constants.get(statement.value.id), ast.Tuple | ast.List | ast.Dict)
             ):
                 raise _Refusal("module-collection-use-not-modeled")
             if value is None or name in imports or name in constants or name in functions:
@@ -1338,7 +1371,7 @@ def _module_constant(
     if isinstance(value, ast.Constant) and type(value.value) in {str, int, float}:
         return copy.deepcopy(value)
     if (
-        isinstance(value, ast.Tuple)
+        isinstance(value, ast.Tuple | ast.List)
         and value.elts
         and all(
             isinstance(item, ast.Constant) and isinstance(item.value, str) for item in value.elts
@@ -1360,7 +1393,7 @@ def _module_constant(
         return copy.deepcopy(value)
     if isinstance(value, ast.Subscript) and isinstance(value.value, ast.Name):
         collection = constants.get(value.value.id)
-        if isinstance(collection, ast.Tuple | ast.Dict):
+        if isinstance(collection, ast.Tuple | ast.List | ast.Dict):
             return _module_collection_subscript(collection, value.slice, constants)
     folded_path = _path_value(value, constants)
     if folded_path is not None:
@@ -1555,7 +1588,9 @@ def _validate_module_collection_uses(
     """Permit collection constants only in the three reviewed plain-read positions."""
 
     collections = {
-        name: value for name, value in constants.items() if isinstance(value, ast.Tuple | ast.Dict)
+        name: value
+        for name, value in constants.items()
+        if isinstance(value, ast.Tuple | ast.List | ast.Dict)
     }
     if not collections:
         return
@@ -1582,13 +1617,13 @@ def _validate_module_collection_uses(
 
 
 def _module_collection_subscript(
-    collection: ast.Tuple | ast.Dict,
+    collection: ast.Tuple | ast.List | ast.Dict,
     key: ast.expr,
     constants: dict[str, ModuleConstant],
 ) -> ast.Constant | None:
     if isinstance(key, ast.Name):
         key = constants.get(key.id, key)
-    if isinstance(collection, ast.Tuple):
+    if isinstance(collection, ast.Tuple | ast.List):
         if not isinstance(key, ast.Constant) or type(key.value) is not int:
             return None
         index = key.value
@@ -1620,6 +1655,12 @@ def _flatten_functions(
     # fresh names and return carriers exist only for bounded semantic replay.
     if not functions:
         return _substitute_constants(executable, constants), [], set()
+    if any(
+        isinstance(node, ast.Name) and node.id.startswith("__dependence_v2_")
+        for statement in [*executable, *functions.values()]
+        for node in ast.walk(statement)
+    ):
+        raise _Refusal("function-rename-collision")
     reasons: set[str] = set()
     entry_call = (
         executable[0].value
@@ -1737,6 +1778,18 @@ def _validate_function(
         and isinstance(node.ctx, ast.Load)
         and node not in annotation_nodes
     }
+    raises = [node for node in ast.walk(function) if isinstance(node, ast.Raise)]
+    if raises:
+        reasons.add("raise-guard-not-modeled")
+        # The raise statement is already refused. Exclude constructor/name loads
+        # contained only in that refused syntax so they do not collapse the wall
+        # back into the broader module-data-name reason withdrawn by G9 R1.
+        loads -= {
+            node.id
+            for raised in raises
+            for node in ast.walk(raised)
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+        }
     definitions = {
         statement.targets[0].id: statement.value
         for statement in function.body
@@ -1976,9 +2029,14 @@ def _inline_call(
 ) -> list[ast.stmt]:
     assert isinstance(call.func, ast.Name)
     function = functions[call.func.id]
+    if any(isinstance(item, ast.Starred) for item in call.args):
+        raise _Refusal("function-argument-starred")
     if call.keywords or len(call.args) != len(function.args.args):
         raise _Refusal("function-argument-not-simple")
-    if any(not _simple_argument(item, constants) for item in call.args):
+    has_expression_argument = any(not _simple_argument(item, constants) for item in call.args)
+    if has_expression_argument and any(
+        not _argument_expression_admissible(item) for item in call.args
+    ):
         raise _Refusal("function-argument-not-simple")
     counter[0] += 1
     call_number = counter[0]
@@ -1992,12 +2050,32 @@ def _inline_call(
         getattr(call, "end_col_offset", 0),
     )
     parameters = [item.arg for item in function.args.args]
-    arguments = {
-        name: copy.deepcopy(constants[item.id])
-        if isinstance(item, ast.Name) and item.id in constants
-        else copy.deepcopy(item)
-        for name, item in zip(parameters, call.args, strict=True)
-    }
+    argument_prefix: list[ast.stmt] = []
+    arguments: dict[str, ast.expr]
+    if has_expression_argument:
+        # Growth-9 T-3 purity carrier: every admitted expression is already in
+        # the mutation-inexpressible sink grammar.  Hoisting *all* arguments in
+        # source order preserves Python's left-to-right positional evaluation.
+        argument_names: list[ast.Name] = []
+        for index, item in enumerate(call.args):
+            temporary = f"__dependence_v2_argument_{call_number}_{index}"
+            value = (
+                copy.deepcopy(constants[item.id])
+                if isinstance(item, ast.Name) and item.id in constants
+                else copy.deepcopy(item)
+            )
+            argument_prefix.append(
+                ast.Assign(targets=[ast.Name(id=temporary, ctx=ast.Store())], value=value)
+            )
+            argument_names.append(ast.Name(id=temporary, ctx=ast.Load()))
+        arguments = dict(zip(parameters, argument_names, strict=True))
+    else:
+        arguments = {
+            name: copy.deepcopy(constants[item.id])
+            if isinstance(item, ast.Name) and item.id in constants
+            else copy.deepcopy(item)
+            for name, item in zip(parameters, call.args, strict=True)
+        }
     stored = {
         node.id
         for node in ast.walk(function)
@@ -2066,7 +2144,7 @@ def _inline_call(
         body.append(ast.Expr(value=ast.Name(id=nested_return_name, ctx=ast.Load())))
     elif return_value is not None:
         body.append(ast.Expr(value=return_value))
-    return body
+    return [*argument_prefix, *body]
 
 
 class _InlineTransformer(ast.NodeTransformer):
@@ -2096,7 +2174,7 @@ class _ConstantTransformer(ast.NodeTransformer):
         visited = cast(ast.Subscript, self.generic_visit(node))
         if isinstance(original_value, ast.Name):
             collection = self.constants.get(original_value.id)
-            if isinstance(collection, ast.Tuple | ast.Dict):
+            if isinstance(collection, ast.Tuple | ast.List | ast.Dict):
                 folded = _module_collection_subscript(collection, visited.slice, self.constants)
                 if folded is not None:
                     return ast.copy_location(folded, node)
@@ -2120,6 +2198,16 @@ def _simple_argument(expression: ast.expr, constants: dict[str, ModuleConstant])
     )
 
 
+def _argument_expression_admissible(expression: ast.expr) -> bool:
+    """Carry only the existing T-3/S3 pure-expression grammar into a hoist."""
+
+    try:
+        _sink_expression_closed(expression, set(), set())
+    except _Refusal:
+        return False
+    return True
+
+
 def _recognize_reader(
     body: list[ast.stmt], constants: dict[str, ModuleConstant]
 ) -> tuple[str, str, str, str, str]:
@@ -2137,14 +2225,36 @@ def _recognize_reader(
             isinstance(statement, ast.Assign)
             and len(statement.targets) == 1
             and isinstance(statement.targets[0], ast.Name)
-            and isinstance(statement.value, ast.Call)
+        ):
+            continue
+        dict_call: ast.expr | None = None
+        if (
+            isinstance(statement.value, ast.Call)
             and isinstance(statement.value.func, ast.Name)
             and statement.value.func.id == "list"
             and len(statement.value.args) == 1
             and not statement.value.keywords
         ):
+            dict_call = statement.value.args[0]
+        elif (
+            isinstance(statement.value, ast.ListComp)
+            and len(statement.value.generators) == 1
+            and not statement.value.generators[0].is_async
+            and not statement.value.generators[0].ifs
+            and isinstance(statement.value.generators[0].target, ast.Name)
+            and isinstance(statement.value.elt, ast.Call)
+            and isinstance(statement.value.elt.func, ast.Name)
+            and statement.value.elt.func.id == "dict"
+            and len(statement.value.elt.args) == 1
+            and not statement.value.elt.keywords
+            and isinstance(statement.value.elt.args[0], ast.Name)
+            and statement.value.elt.args[0].id == statement.value.generators[0].target.id
+        ):
+            # A shallow dict(row) copy preserves one source-row identity for
+            # the kernel's multiplicity equations; it does not add or merge rows.
+            dict_call = statement.value.generators[0].iter
+        if dict_call is None:
             continue
-        dict_call = statement.value.args[0]
         if not (
             isinstance(dict_call, ast.Call)
             and isinstance(dict_call.func, ast.Attribute)
@@ -2973,6 +3083,7 @@ def _verify_closed_flattened_statements(
     procedures: tuple[ast.Assign, ...],
     distribution_helpers: tuple[_DistributionHelper, ...],
     sink: ast.Call,
+    precomputed_partition: tuple[tuple[str, ...], tuple[str, ...]] | None = None,
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Partition the flattened module into operand and proven-sink-bound slices."""
 
@@ -3010,7 +3121,11 @@ def _verify_closed_flattened_statements(
                 for node in ast.walk(target)
                 if isinstance(node, ast.Name)
             )
-    operand_tokens, sink_tokens = _partition_sink_bound_set(body, procedures, sink, operand_names)
+    operand_tokens, sink_tokens = (
+        precomputed_partition
+        if precomputed_partition is not None
+        else _partition_sink_bound_set(body, procedures, sink, operand_names)
+    )
     sink_token_set = set(sink_tokens)
     helper_statement_tokens = {
         _statement_token(helper.statement, body.index(helper.statement))
@@ -3037,6 +3152,9 @@ _SINK_NAME_CALLS = frozenset(
         "stdev",
         "median",
         "variance",
+        "any",
+        "all",
+        "tuple",
     }
 )
 _SINK_MODULE_CALLS = frozenset(
@@ -3235,6 +3353,17 @@ def _partition_sink_bound_set(
         for argument in cast(ast.Call, procedure_statement.value).args
         if isinstance(argument, ast.Name)
     }
+    if any(
+        isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and statement.targets[0].id.startswith("__dependence_v2_argument_")
+        and _expression_roots_in_operand_container(statement.value, operand_names)
+        for statement in body
+    ):
+        # Apply at binding time even when the sole partition consequently puts
+        # the temporary itself into the operand closure.
+        raise _Refusal("sink-aliases-operand-object")
     sink_statement = next(
         (statement for statement in body if sink in set(ast.walk(statement))), None
     )
@@ -3326,6 +3455,15 @@ def _partition_sink_bound_set(
         tuple(_statement_token(body[index], index) for index in sorted(operand_indices)),
         tuple(_statement_token(body[index], index) for index in sorted(sink_indices)),
     )
+
+
+def _expression_roots_in_operand_container(expression: ast.expr, operand_names: set[str]) -> bool:
+    """Identify the two G9-H hoist shapes that preserve operand-container identity."""
+
+    value = expression
+    while isinstance(value, ast.Subscript):
+        value = value.value
+    return isinstance(value, ast.Name) and value.id in operand_names
 
 
 def _rebound_operand_names(body: list[ast.stmt], operand_names: set[str]) -> set[str]:
