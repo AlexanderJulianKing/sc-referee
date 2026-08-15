@@ -1,0 +1,355 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-e2-reviewer-fable-26
+
+=== workflow 1: case:c38b4b95d2ca5a382f67 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What is in data/input.csv
+
+These are the daily water-use logs from a small crossover trial on a rooftop
+planter array. Fourteen modular planters (P01 to P14) were metered on six
+consecutive days in July 2025. Each planter spent three of those days under a
+perforated shade screen and three days with its top open. Which days were
+screened was counterbalanced across the array: P01 to P07 were screened on the
+odd-numbered dates and P08 to P14 on the even-numbered dates.
+
+Because every planter appears six times, the file is in long format and the
+rows are repeated measurements of the same fourteen planters, not eighty-four
+independent observations.
+
+One row is: one planter module's water-use log for a single day, under whichever top treatment that module had on that day
+
+Independent unit column: module_id
+
+Columns
+
+- module_id: label of the planter module, P01 to P14; each label appears six times
+- screen_state: "screened" if the perforated shade screen was fitted that day, "open" if the module was uncovered
+- session_index: 1, 2 or 3, counting the module's logging days within the given screen_state
+- log_date: calendar date of the log, ISO format
+- mean_air_temp_c: mean daytime air temperature at the module, in degrees Celsius
+- et_mm_day: measured evapotranspiration for that module-day, in millimetres per day
+
+Any comparison of the screened and open conditions has to respect that
+structure: the fourteen planters, and not the eighty-four daily logs, are the
+independent units of the trial.
+
+--- file data/input.csv ---
+module_id,screen_state,session_index,log_date,mean_air_temp_c,et_mm_day
+P01,open,1,2025-07-08,28.9,4.74
+P01,screened,1,2025-07-09,30.4,4.46
+P01,open,2,2025-07-10,31.2,4.89
+P01,screened,2,2025-07-11,30.1,4.24
+P01,open,3,2025-07-12,28.4,4.95
+P01,screened,3,2025-07-13,29.6,4.47
+P02,open,1,2025-07-08,29.1,5.07
+P02,screened,1,2025-07-09,30.6,5.06
+P02,open,2,2025-07-10,31.4,5.23
+P02,screened,2,2025-07-11,30.3,4.90
+P02,open,3,2025-07-12,28.6,5.06
+P02,screened,3,2025-07-13,29.8,4.80
+P03,open,1,2025-07-08,28.6,4.31
+P03,screened,1,2025-07-09,30.1,3.82
+P03,open,2,2025-07-10,30.9,4.39
+P03,screened,2,2025-07-11,29.8,3.87
+P03,open,3,2025-07-12,28.1,4.50
+P03,screened,3,2025-07-13,29.3,3.65
+P04,open,1,2025-07-08,29.3,5.39
+P04,screened,1,2025-07-09,30.8,5.67
+P04,open,2,2025-07-10,31.6,5.62
+P04,screened,2,2025-07-11,30.5,5.50
+P04,open,3,2025-07-12,28.8,5.64
+P04,screened,3,2025-07-13,30.0,5.51
+P05,open,1,2025-07-08,28.8,5.05
+P05,screened,1,2025-07-09,30.3,4.54
+P05,open,2,2025-07-10,31.1,4.83
+P05,screened,2,2025-07-11,30.0,4.69
+P05,open,3,2025-07-12,28.3,5.06
+P05,screened,3,2025-07-13,29.5,4.75
+P06,open,1,2025-07-08,29.2,4.39
+P06,screened,1,2025-07-09,30.7,3.49
+P06,open,2,2025-07-10,31.5,4.23
+P06,screened,2,2025-07-11,30.4,3.65
+P06,open,3,2025-07-12,28.7,4.13
+P06,screened,3,2025-07-13,29.9,3.48
+P07,open,1,2025-07-08,28.7,5.34
+P07,screened,1,2025-07-09,30.2,5.07
+P07,open,2,2025-07-10,31.0,5.39
+P07,screened,2,2025-07-11,29.9,5.15
+P07,open,3,2025-07-12,28.2,5.17
+P07,screened,3,2025-07-13,29.4,5.26
+P08,screened,1,2025-07-08,29.0,4.06
+P08,open,1,2025-07-09,30.5,4.83
+P08,screened,2,2025-07-10,31.3,4.29
+P08,open,2,2025-07-11,30.2,4.66
+P08,screened,3,2025-07-12,28.5,4.31
+P08,open,3,2025-07-13,29.7,4.67
+P09,screened,1,2025-07-08,28.5,4.70
+P09,open,1,2025-07-09,30.0,4.92
+P09,screened,2,2025-07-10,30.8,4.86
+P09,open,2,2025-07-11,29.7,5.07
+P09,screened,3,2025-07-12,28.0,4.69
+P09,open,3,2025-07-13,29.2,5.13
+P10,screened,1,2025-07-08,29.4,5.24
+P10,open,1,2025-07-09,30.9,5.48
+P10,screened,2,2025-07-10,31.7,5.32
+P10,open,2,2025-07-11,30.6,5.26
+P10,screened,3,2025-07-12,28.9,5.43
+P10,open,3,2025-07-13,30.1,5.49
+P11,screened,1,2025-07-08,28.4,4.09
+P11,open,1,2025-07-09,29.9,4.75
+P11,screened,2,2025-07-10,30.7,4.14
+P11,open,2,2025-07-11,29.6,4.59
+P11,screened,3,2025-07-12,27.9,3.92
+P11,open,3,2025-07-13,29.1,4.49
+P12,screened,1,2025-07-08,29.1,4.40
+P12,open,1,2025-07-09,30.6,4.74
+P12,screened,2,2025-07-10,31.4,4.55
+P12,open,2,2025-07-11,30.3,4.97
+P12,screened,3,2025-07-12,28.6,4.61
+P12,open,3,2025-07-13,29.8,4.99
+P13,screened,1,2025-07-08,28.8,5.06
+P13,open,1,2025-07-09,30.3,5.13
+P13,screened,2,2025-07-10,31.1,4.89
+P13,open,2,2025-07-11,30.0,5.29
+P13,screened,3,2025-07-12,28.3,4.90
+P13,open,3,2025-07-13,29.5,5.12
+P14,screened,1,2025-07-08,29.2,4.45
+P14,open,1,2025-07-09,30.7,4.70
+P14,screened,2,2025-07-10,31.5,4.23
+P14,open,2,2025-07-11,30.4,4.78
+P14,screened,3,2025-07-12,28.7,4.46
+P14,open,3,2025-07-13,29.9,4.89
+
+--- file workflow/analysis.py ---
+"""Rooftop planter crossover: do perforated shade screens cut daily water use?
+
+Reads the session-level logs in data/input.csv and writes results/report.md.
+Each planter module is logged on six days, so the daily rows are repeated
+measurements of the same unit; the reported test therefore runs on
+module-level contrasts, one analysed row per planter.
+"""
+
+from __future__ import annotations
+
+import csv
+from collections import defaultdict
+from pathlib import Path
+from statistics import fmean, stdev
+
+from scipy import stats
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+UNIT_COL = "module_id"
+STATE_COL = "screen_state"
+RESPONSE_COL = "et_mm_day"
+SCREENED = "screened"
+OPEN_TOP = "open"
+
+
+def read_sessions(path):
+    """Group the raw daily water-use logs by planter module and top treatment."""
+    logs = defaultdict(list)
+    with path.open(newline="", encoding="utf-8") as handle:
+        for row in csv.DictReader(handle):
+            logs[(row[UNIT_COL], row[STATE_COL])].append(float(row[RESPONSE_COL]))
+    return logs
+
+
+def collapse_to_modules(logs):
+    """Reduce each module's repeated logging days to one analysed row."""
+    records = []
+    for unit in sorted({unit for unit, _state in logs}):
+        screened_days = logs[(unit, SCREENED)]
+        open_days = logs[(unit, OPEN_TOP)]
+        screened_mean = fmean(screened_days)
+        open_mean = fmean(open_days)
+        records.append(
+            {
+                "module": unit,
+                "logged_days": len(screened_days) + len(open_days),
+                "screened": screened_mean,
+                "open": open_mean,
+                "contrast": screened_mean - open_mean,
+            }
+        )
+    return records
+
+
+def format_p(pvalue):
+    if pvalue < 0.001:
+        return "p < 0.001"
+    return "p = {:.3f}".format(pvalue)
+
+
+def build_report(records, n_sessions):
+    screened = [record["screened"] for record in records]
+    open_top = [record["open"] for record in records]
+    contrasts = [record["contrast"] for record in records]
+    n_modules = len(records)
+    df = n_modules - 1
+
+    outcome = stats.ttest_rel(screened, open_top)
+    tstat = float(outcome.statistic)
+    p_text = format_p(float(outcome.pvalue))
+    mean_contrast = fmean(contrasts)
+    sd_contrast = stdev(contrasts)
+    negative = sum(1 for value in contrasts if value < 0.0)
+    exception = max(records, key=lambda record: record["contrast"])
+
+    lines = [
+        "# Perforated shade screens and daily water use in rooftop planter modules",
+        "",
+        "## Design",
+        "",
+        "Fourteen modular rooftop planters (module_id P01-P14) were logged on six",
+        "consecutive days in July 2025. Each module spent three of those days under a",
+        "perforated shade screen and three days with an open top; the day order was",
+        "counterbalanced, so half the array was screened on the even-numbered days and",
+        "half on the odd-numbered days. Daily evapotranspiration was metered once per",
+        "module-day, giving {} session rows in total.".format(n_sessions),
+        "",
+        "## Analysis",
+        "",
+        "The {n} session rows are repeated measurements rather than {n} independent".format(
+            n=n_sessions
+        ),
+        "observations: six of them belong to each planter. Every module's three",
+        "screened days and three open days were therefore averaged first, and the",
+        "module-level contrast (screened mean minus open mean) was what entered the",
+        "test. That leaves exactly one analysed row per planter module, so the units",
+        "in the reported comparison are the {} modules, not the {} daily logs.".format(
+            n_modules, n_sessions
+        ),
+        "",
+        "The {} module-level pairs were compared with a two-sided paired t-test".format(
+            n_modules
+        ),
+        "(scipy.stats.ttest_rel), which is equivalent to a one-sample t-test on the {}".format(
+            n_modules
+        ),
+        "contrasts.",
+        "",
+        "## Module-level summary (mm/day)",
+        "",
+        "| module_id | logged days | screened mean | open mean | contrast |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+
+    for record in records:
+        lines.append(
+            "| {module} | {logged_days} | {screened:.3f} | {open:.3f} |"
+            " {contrast:+.3f} |".format(**record)
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Result",
+            "",
+            "- Grand mean, screened days: {:.3f} mm/day".format(fmean(screened)),
+            "- Grand mean, open days: {:.3f} mm/day".format(fmean(open_top)),
+            "- Mean contrast: {:+.3f} mm/day (SD {:.3f}, n = {} modules)".format(
+                mean_contrast, sd_contrast, n_modules
+            ),
+            "- Paired t-test: t({}) = {:.2f}, {}".format(df, tstat, p_text),
+            "",
+            "[selected-result] Averaging each planter's repeated days into one"
+            " analysed row per module (n = {} independent modules from {} session"
+            " rows), a two-sided paired t-test shows that screened days use less"
+            " water than open days: mean contrast {:+.3f} mm/day (SD {:.3f}),"
+            " t({}) = {:.2f}, {}.".format(
+                n_modules, n_sessions, mean_contrast, sd_contrast, df, tstat, p_text
+            ),
+            "",
+            "## Notes",
+            "",
+            "{} of the {} modules had a negative contrast; module {} was the"
+            " single".format(negative, n_modules, exception["module"]),
+            "exception ({:+.3f} mm/day). The within-module spread across logging"
+            " days is".format(exception["contrast"]),
+            "not treated as replication, and no claim is made about individual days.",
+        ]
+    )
+    return lines
+
+
+def main():
+    logs = read_sessions(INPUT_PATH)
+    n_sessions = sum(len(values) for values in logs.values())
+    records = collapse_to_modules(logs)
+    lines = build_report(records, n_sessions)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Perforated shade screens and daily water use in rooftop planter modules
+
+## Design
+
+Fourteen modular rooftop planters (module_id P01-P14) were logged on six
+consecutive days in July 2025. Each module spent three of those days under a
+perforated shade screen and three days with an open top; the day order was
+counterbalanced, so half the array was screened on the even-numbered days and
+half on the odd-numbered days. Daily evapotranspiration was metered once per
+module-day, giving 84 session rows in total.
+
+## Analysis
+
+The 84 session rows are repeated measurements rather than 84 independent
+observations: six of them belong to each planter. Every module's three
+screened days and three open days were therefore averaged first, and the
+module-level contrast (screened mean minus open mean) was what entered the
+test. That leaves exactly one analysed row per planter module, so the units
+in the reported comparison are the 14 modules, not the 84 daily logs.
+
+The 14 module-level pairs were compared with a two-sided paired t-test
+(scipy.stats.ttest_rel), which is equivalent to a one-sample t-test on the 14
+contrasts.
+
+## Module-level summary (mm/day)
+
+| module_id | logged days | screened mean | open mean | contrast |
+| --- | --- | --- | --- | --- |
+| P01 | 6 | 4.390 | 4.860 | -0.470 |
+| P02 | 6 | 4.920 | 5.120 | -0.200 |
+| P03 | 6 | 3.780 | 4.400 | -0.620 |
+| P04 | 6 | 5.560 | 5.550 | +0.010 |
+| P05 | 6 | 4.660 | 4.980 | -0.320 |
+| P06 | 6 | 3.540 | 4.250 | -0.710 |
+| P07 | 6 | 5.160 | 5.300 | -0.140 |
+| P08 | 6 | 4.220 | 4.720 | -0.500 |
+| P09 | 6 | 4.750 | 5.040 | -0.290 |
+| P10 | 6 | 5.330 | 5.410 | -0.080 |
+| P11 | 6 | 4.050 | 4.610 | -0.560 |
+| P12 | 6 | 4.520 | 4.900 | -0.380 |
+| P13 | 6 | 4.950 | 5.180 | -0.230 |
+| P14 | 6 | 4.380 | 4.790 | -0.410 |
+
+## Result
+
+- Grand mean, screened days: 4.586 mm/day
+- Grand mean, open days: 4.936 mm/day
+- Mean contrast: -0.350 mm/day (SD 0.210, n = 14 modules)
+- Paired t-test: t(13) = -6.22, p < 0.001
+
+[selected-result] Averaging each planter's repeated days into one analysed row per module (n = 14 independent modules from 84 session rows), a two-sided paired t-test shows that screened days use less water than open days: mean contrast -0.350 mm/day (SD 0.210), t(13) = -6.22, p < 0.001.
+
+## Notes
+
+13 of the 14 modules had a negative contrast; module P04 was the single
+exception (+0.010 mm/day). The within-module spread across logging days is
+not treated as replication, and no claim is made about individual days.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-e2-reviewer-fable-26", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:c38b4b95d2ca5a382f67"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

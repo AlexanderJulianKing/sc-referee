@@ -1,0 +1,220 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-e1-reviewer-fable-24
+
+=== workflow 1: case:7afb4508b0d957f51ca7 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What is in data/input.csv
+
+Each heat-ramp trial run on a tagged shore periwinkle is recorded on its own
+line. Twelve snails were collected from one rocky platform, six from the
+high-shore band and six from the low-shore band, and each snail was ramped on
+four separate trial days. A line gives the snail tag, the shore band the snail
+was collected from, which of the four trial days the ramp happened on, the
+snail's shell length in millimetres, and ctmax_c, the body temperature in
+degrees Celsius at which that snail lost its righting response during that
+particular ramp.
+
+One row is: one heat-ramp trial on one tagged periwinkle on one trial day
+Independent unit column: snail_id
+
+Column guide:
+- snail_id: tag of the individual snail (12 distinct tags, 4 lines each)
+- shore_zone: "high" or "low", the band the snail was collected from
+- trial_day: 1 to 4, which repeat ramp the line comes from
+- shell_length_mm: shell length of that snail, in millimetres
+- ctmax_c: critical thermal maximum on that ramp, in degrees Celsius
+
+--- file data/input.csv ---
+snail_id,shore_zone,trial_day,shell_length_mm,ctmax_c
+HS-01,high,1,12.4,40.7
+HS-01,high,2,12.4,40.9
+HS-01,high,3,12.4,41.1
+HS-01,high,4,12.4,41.3
+HS-02,high,1,13.1,41.0
+HS-02,high,2,13.1,41.4
+HS-02,high,3,13.1,41.5
+HS-02,high,4,13.1,41.7
+HS-03,high,1,11.8,40.4
+HS-03,high,2,11.8,40.4
+HS-03,high,3,11.8,40.7
+HS-03,high,4,11.8,40.9
+HS-04,high,1,12.9,42.0
+HS-04,high,2,12.9,41.5
+HS-04,high,3,12.9,42.2
+HS-04,high,4,12.9,41.5
+HS-05,high,1,13.6,40.1
+HS-05,high,2,13.6,40.6
+HS-05,high,3,13.6,40.0
+HS-05,high,4,13.6,40.1
+HS-06,high,1,12.2,41.3
+HS-06,high,2,12.2,40.6
+HS-06,high,3,12.2,41.2
+HS-06,high,4,12.2,40.9
+LS-01,low,1,14.0,39.0
+LS-01,low,2,14.0,39.3
+LS-01,low,3,14.0,39.4
+LS-01,low,4,14.0,39.1
+LS-02,low,1,13.3,39.9
+LS-02,low,2,13.3,39.4
+LS-02,low,3,13.3,39.3
+LS-02,low,4,13.3,39.8
+LS-03,low,1,14.6,38.7
+LS-03,low,2,14.6,38.7
+LS-03,low,3,14.6,39.1
+LS-03,low,4,14.6,38.7
+LS-04,low,1,12.8,39.9
+LS-04,low,2,12.8,39.3
+LS-04,low,3,12.8,39.5
+LS-04,low,4,12.8,39.3
+LS-05,low,1,13.9,38.6
+LS-05,low,2,13.9,39.2
+LS-05,low,3,13.9,39.0
+LS-05,low,4,13.9,38.8
+LS-06,low,1,14.2,39.4
+LS-06,low,2,14.2,39.4
+LS-06,low,3,14.2,39.0
+LS-06,low,4,14.2,39.0
+
+--- file workflow/analysis.py ---
+"""Compare critical thermal maxima of high-shore and low-shore periwinkles."""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+BANDS = ("high", "low")
+
+
+def read_trials():
+    with INPUT_PATH.open(newline="", encoding="ascii") as handle:
+        return [dict(row) for row in csv.DictReader(handle)]
+
+
+def split_by_band(trials):
+    pooled = {band: [] for band in BANDS}
+    for trial in trials:
+        pooled[trial["shore_zone"]].append(float(trial["ctmax_c"]))
+    return {band: np.asarray(vals, dtype=float) for band, vals in pooled.items()}
+
+
+def welch_df(a, b):
+    va = a.var(ddof=1) / a.size
+    vb = b.var(ddof=1) / b.size
+    return (va + vb) ** 2 / (va ** 2 / (a.size - 1) + vb ** 2 / (b.size - 1))
+
+
+def show_p(pvalue):
+    if pvalue < 1e-6:
+        return "p < 1e-06"
+    return "p = {0:.6f}".format(pvalue)
+
+
+def band_row(band, values):
+    return "| {0} | {1} | {2:.3f} | {3:.2f} |".format(
+        band, values.size, values.mean(), values.std(ddof=1)
+    )
+
+
+def build_report(samples, tstat, dof, pvalue):
+    high = samples["high"]
+    low = samples["low"]
+    gap = high.mean() - low.mean()
+    verdict = (
+        "[selected-result] Welch two-sample t-test on ctmax_c comparing "
+        "high-shore with low-shore heat-ramp trials: "
+        "t = {0:.2f}, df = {1:.2f}, {2}. High-shore snails lost righting at a "
+        "mean critical thermal maximum {3:.3f} C above low-shore snails."
+    ).format(tstat, dof, show_p(pvalue), gap)
+    return [
+        "# Critical thermal maximum of shore periwinkles across tidal bands",
+        "",
+        "## Data",
+        "",
+        "data/input.csv holds 48 heat-ramp trials on 12 individually tagged periwinkles:",
+        "6 snails collected from the high-shore band and 6 from the low-shore band. Each",
+        "snail was ramped on 4 separate trial days, and every ramp records the body",
+        "temperature at which the snail lost its righting response (ctmax_c, in C).",
+        "",
+        "## Analysis",
+        "",
+        "Each heat-ramp trial in the table was entered as one observation and the two",
+        "shore bands were compared with Welch's two-sample t-test (two-sided) on the",
+        "ctmax_c column.",
+        "",
+        "## Result",
+        "",
+        "| shore band | trials | mean ctmax_c (C) | SD (C) |",
+        "| --- | --- | --- | --- |",
+        band_row("high", high),
+        band_row("low", low),
+        "",
+        "Mean difference (high - low) = {0:.3f} C.".format(gap),
+        "",
+        verdict,
+        "",
+        "## Reading note",
+        "",
+        "The table above is the whole of the reported analysis; the shore-band contrast",
+        "is stated exactly as the trial-level test returned it.",
+    ]
+
+
+def main():
+    samples = split_by_band(read_trials())
+    outcome = stats.ttest_ind(samples["high"], samples["low"], equal_var=False)
+    dof = welch_df(samples["high"], samples["low"])
+    lines = build_report(
+        samples, float(outcome.statistic), dof, float(outcome.pvalue)
+    )
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Critical thermal maximum of shore periwinkles across tidal bands
+
+## Data
+
+data/input.csv holds 48 heat-ramp trials on 12 individually tagged periwinkles:
+6 snails collected from the high-shore band and 6 from the low-shore band. Each
+snail was ramped on 4 separate trial days, and every ramp records the body
+temperature at which the snail lost its righting response (ctmax_c, in C).
+
+## Analysis
+
+Each heat-ramp trial in the table was entered as one observation and the two
+shore bands were compared with Welch's two-sample t-test (two-sided) on the
+ctmax_c column.
+
+## Result
+
+| shore band | trials | mean ctmax_c (C) | SD (C) |
+| --- | --- | --- | --- |
+| high | 24 | 41.000 | 0.59 |
+| low | 24 | 39.200 | 0.37 |
+
+Mean difference (high - low) = 1.800 C.
+
+[selected-result] Welch two-sample t-test on ctmax_c comparing high-shore with low-shore heat-ramp trials: t = 12.74, df = 38.51, p < 1e-06. High-shore snails lost righting at a mean critical thermal maximum 1.800 C above low-shore snails.
+
+## Reading note
+
+The table above is the whole of the reported analysis; the shore-band contrast
+is stated exactly as the trial-level test returned it.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-e1-reviewer-fable-24", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:7afb4508b0d957f51ca7"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

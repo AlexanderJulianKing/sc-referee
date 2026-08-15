@@ -1,0 +1,225 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-e1-reviewer-fable-24
+
+=== workflow 1: case:f203d7292f9530cbdf48 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Single-seed emergence trial for sagebrush-steppe restoration
+
+Twenty-four nursery pots were filled from one batch of screened field soil, and
+each pot received exactly one sulphur buckwheat (Eriogonum umbellatum) seed.
+Every seed came from a different wild maternal plant, so no maternal plant is
+represented twice. Half of the seeds were coated in a clay-and-compost pellet
+before sowing; the other half were sown bare. All pots shared the same watering
+schedule and were scored a single time, on day 28, for whether a seedling had
+broken the soil surface.
+
+Columns:
+
+- pot_id: unique label for the pot (P01 through P24).
+- maternal_plant_id: the wild plant that supplied the seed; every pot has a
+  different one.
+- seed_treatment: "pelleted" if the seed carried the clay-and-compost coating,
+  "bare" otherwise.
+- seed_mass_mg: mass of the sown seed in milligrams, weighed before sowing.
+- emerged_by_day28: 1 if a seedling had emerged by day 28, 0 if not.
+
+Each pot holds one seed, receives one treatment, and yields one yes/no outcome,
+so nothing in the file is a repeated measurement of the same pot, seed, or
+maternal plant. The comparison of interest is the emergence rate of pelleted
+versus bare seed.
+
+One row is: one nursery pot holding a single sown seed, scored once for seedling emergence at day 28
+Independent unit column: pot_id
+One trial is: one row
+
+--- file data/input.csv ---
+pot_id,maternal_plant_id,seed_treatment,seed_mass_mg,emerged_by_day28
+P01,M01,pelleted,4.2,1
+P02,M02,bare,3.9,0
+P03,M03,pelleted,3.6,1
+P04,M04,bare,4.4,1
+P05,M05,pelleted,4.0,0
+P06,M06,bare,3.5,0
+P07,M07,pelleted,4.7,1
+P08,M08,bare,4.1,0
+P09,M09,pelleted,3.8,1
+P10,M10,bare,3.7,0
+P11,M11,pelleted,4.5,1
+P12,M12,bare,4.6,1
+P13,M13,pelleted,3.4,0
+P14,M14,bare,4.0,0
+P15,M15,pelleted,4.3,1
+P16,M16,bare,3.6,0
+P17,M17,pelleted,3.9,1
+P18,M18,bare,4.2,0
+P19,M19,pelleted,4.1,1
+P20,M20,bare,3.8,1
+P21,M21,pelleted,3.7,0
+P22,M22,bare,4.5,0
+P23,M23,pelleted,4.4,1
+P24,M24,bare,3.3,0
+
+--- file workflow/analysis.py ---
+"""Does clay pelleting change seedling emergence when every pot holds one seed?
+
+Reads data/input.csv (one nursery pot per row) and writes results/report.md.
+Each pot contributes exactly one binary outcome, so the 2x2 table of seed
+treatment by emergence has one independent Bernoulli trial per cell entry.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+from scipy.stats import fisher_exact
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+ARMS = ("pelleted", "bare")
+ALPHA = 0.05
+
+
+def read_pots(path):
+    """Return the pot records exactly as stored, in file order."""
+    with path.open("r", newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def check_one_row_per_pot(rows):
+    """Every pot, and every maternal plant, may appear at most once."""
+    pots = set()
+    mothers = set()
+    for row in rows:
+        pot = row["pot_id"].strip()
+        mother = row["maternal_plant_id"].strip()
+        if pot in pots:
+            raise ValueError("pot %s appears more than once" % pot)
+        if mother in mothers:
+            raise ValueError("maternal plant %s appears more than once" % mother)
+        pots.add(pot)
+        mothers.add(mother)
+
+
+def cross_tabulate(rows):
+    counts = {arm: {"emerged": 0, "not_emerged": 0} for arm in ARMS}
+    for row in rows:
+        arm = row["seed_treatment"].strip()
+        if arm not in counts:
+            raise ValueError("unexpected seed_treatment: %s" % arm)
+        flag = int(row["emerged_by_day28"])
+        if flag not in (0, 1):
+            raise ValueError("emerged_by_day28 must be 0 or 1")
+        counts[arm]["emerged" if flag == 1 else "not_emerged"] += 1
+    return counts
+
+
+def build_report(rows):
+    counts = cross_tabulate(rows)
+    table = [[counts[arm]["emerged"], counts[arm]["not_emerged"]] for arm in ARMS]
+    (a, b), (c, d) = table
+    if min(a + b, c + d) == 0 or b == 0 or c == 0:
+        raise ValueError("both arms need emerged and non-emerged pots")
+
+    pvalue = float(fisher_exact(table)[1])
+    odds_ratio = (a * d) / (b * c)
+    pct_pelleted = 100.0 * a / (a + b)
+    pct_bare = 100.0 * c / (c + d)
+    gap = pct_pelleted - pct_bare
+    significance = "is" if pvalue < ALPHA else "is not"
+    n = len(rows)
+
+    lines = [
+        "# Pelleted vs. bare seed: emergence in single-seed pots",
+        "",
+        "## Data",
+        "",
+        "%d pots, one seed and one maternal plant per pot, each pot scored once for" % n,
+        "seedling emergence at day 28. Each pot is an independent experimental unit and",
+        "contributes exactly one row.",
+        "",
+        "| Seed treatment | Emerged | Not emerged | Pots | Emergence |",
+        "| --- | --- | --- | --- | --- |",
+        "| pelleted | %d | %d | %d | %.1f%% |" % (a, b, a + b, pct_pelleted),
+        "| bare | %d | %d | %d | %.1f%% |" % (c, d, c + d, pct_bare),
+        "",
+        "## Analysis",
+        "",
+        "Fisher's exact test (two-sided) on the 2x2 table of seed treatment by",
+        "emergence at day 28, with one Bernoulli outcome per independent pot.",
+        "",
+        "## Result",
+        "",
+        "Sample odds ratio (pelleted vs. bare) = %.2f, two-sided p = %.4f."
+        % (odds_ratio, pvalue),
+        "Emergence was %.1f percentage points higher in pelleted pots." % gap,
+        "",
+        "[selected-result] Two-sided Fisher's exact test on %d independent single-seed "
+        "pots: emergence %d/%d (%.1f%%) with pelleted seed vs. %d/%d (%.1f%%) with bare "
+        "seed, sample odds ratio %.2f, p = %.4f; the difference %s statistically "
+        "significant at alpha = %.2f."
+        % (
+            n,
+            a,
+            a + b,
+            pct_pelleted,
+            c,
+            c + d,
+            pct_bare,
+            odds_ratio,
+            pvalue,
+            significance,
+            ALPHA,
+        ),
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    rows = read_pots(INPUT_PATH)
+    if not rows:
+        raise ValueError("no pot records found")
+    check_one_row_per_pot(rows)
+    report = build_report(rows)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with REPORT_PATH.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(report)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Pelleted vs. bare seed: emergence in single-seed pots
+
+## Data
+
+24 pots, one seed and one maternal plant per pot, each pot scored once for
+seedling emergence at day 28. Each pot is an independent experimental unit and
+contributes exactly one row.
+
+| Seed treatment | Emerged | Not emerged | Pots | Emergence |
+| --- | --- | --- | --- | --- |
+| pelleted | 9 | 3 | 12 | 75.0% |
+| bare | 3 | 9 | 12 | 25.0% |
+
+## Analysis
+
+Fisher's exact test (two-sided) on the 2x2 table of seed treatment by
+emergence at day 28, with one Bernoulli outcome per independent pot.
+
+## Result
+
+Sample odds ratio (pelleted vs. bare) = 9.00, two-sided p = 0.0391.
+Emergence was 50.0 percentage points higher in pelleted pots.
+
+[selected-result] Two-sided Fisher's exact test on 24 independent single-seed pots: emergence 9/12 (75.0%) with pelleted seed vs. 3/12 (25.0%) with bare seed, sample odds ratio 9.00, p = 0.0391; the difference is statistically significant at alpha = 0.05.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-e1-reviewer-fable-24", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:f203d7292f9530cbdf48"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

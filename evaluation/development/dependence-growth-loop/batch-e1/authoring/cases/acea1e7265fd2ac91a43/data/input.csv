@@ -1,0 +1,17 @@
+hive_id,wrap_treatment,queen_age_years,spring_cluster_mass_kg
+H01,wrapped,2,1.86
+H02,bare,1,1.21
+H03,bare,3,0.92
+H04,wrapped,1,2.07
+H05,wrapped,2,1.63
+H06,bare,2,1.40
+H07,wrapped,3,1.49
+H08,bare,1,1.05
+H09,wrapped,1,2.19
+H10,bare,2,1.52
+H11,wrapped,2,1.75
+H12,bare,3,1.14
+H13,wrapped,1,1.95
+H14,bare,2,1.61
+H15,bare,1,1.33
+H16,wrapped,3,1.57

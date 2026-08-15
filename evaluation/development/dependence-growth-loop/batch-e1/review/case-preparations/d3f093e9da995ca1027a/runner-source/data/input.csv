@@ -1,0 +1,13 @@
+run_id,nymph_id,elevation_band,run_order,mass_mg,metabolic_rate_ul_o2_per_h_mg
+R01,NY-L07,lowland,1,4.8,38.6
+R02,NY-L07,lowland,2,4.8,39.0
+R03,NY-L11,lowland,1,5.3,41.4
+R04,NY-L11,lowland,2,5.3,41.8
+R05,NY-L14,lowland,1,4.1,44.2
+R06,NY-L14,lowland,2,4.1,44.6
+R07,NY-H02,highland,1,5.0,42.5
+R08,NY-H02,highland,2,5.0,42.7
+R09,NY-H05,highland,1,4.4,45.1
+R10,NY-H05,highland,2,4.4,45.7
+R11,NY-H09,highland,1,3.9,47.9
+R12,NY-H09,highland,2,3.9,48.5

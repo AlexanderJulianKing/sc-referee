@@ -1,0 +1,205 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-e2-reviewer-fable-26
+
+=== workflow 1: case:128c2bd7128bc67b5964 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What is in data/input.csv
+
+Six adult whip spiders (Phrynus laevifrons) were released one at a time into a
+darkened T-junction arena and allowed to walk into either the left or the right
+arm. Every animal was run six times on the same evening, so the file holds
+thirty-six runs in total: six consecutive runs for each of the six individuals.
+The arena was wiped down between runs and the two arms were swapped in position
+halfway through the session.
+
+Columns:
+
+- animal_id: the code of the individual whip spider (AMB-01 through AMB-06).
+- trial_index: which of that animal's six runs this row describes (1 to 6).
+- arm_chosen: the arm the animal walked into, either "left" or "right".
+- latency_s: seconds from release to crossing the choice point.
+
+One row is: one T-junction run by one whip spider
+One trial is: one row
+Independent unit column: animal_id
+
+--- file data/input.csv ---
+animal_id,trial_index,arm_chosen,latency_s
+AMB-01,1,right,38.2
+AMB-01,2,right,41.7
+AMB-01,3,right,35.9
+AMB-01,4,right,44.1
+AMB-01,5,right,39.6
+AMB-01,6,right,42.8
+AMB-02,1,right,47.3
+AMB-02,2,right,50.1
+AMB-02,3,left,45.8
+AMB-02,4,right,52.6
+AMB-02,5,right,48.9
+AMB-02,6,right,44.2
+AMB-03,1,right,33.5
+AMB-03,2,right,36.8
+AMB-03,3,right,31.2
+AMB-03,4,left,38.4
+AMB-03,5,right,34.7
+AMB-03,6,right,37.1
+AMB-04,1,left,55.4
+AMB-04,2,right,51.9
+AMB-04,3,right,58.2
+AMB-04,4,left,49.7
+AMB-04,5,right,53.3
+AMB-04,6,right,56.8
+AMB-05,1,left,29.8
+AMB-05,2,right,32.4
+AMB-05,3,left,27.6
+AMB-05,4,right,34.9
+AMB-05,5,left,30.5
+AMB-05,6,right,33.2
+AMB-06,1,left,42.6
+AMB-06,2,left,39.4
+AMB-06,3,right,45.1
+AMB-06,4,left,40.8
+AMB-06,5,left,43.7
+AMB-06,6,right,41.3
+
+--- file workflow/analysis.py ---
+"""Pooled arm-choice analysis for the darkened T-junction assay."""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+from scipy.stats import binomtest
+
+INPUT_PATH = Path("data/input.csv")
+OUTPUT_PATH = Path("results/report.md")
+RIGHT_ARM = "right"
+NULL_RATE = 0.5
+
+
+def read_trials():
+    with INPUT_PATH.open(newline="", encoding="ascii") as handle:
+        return [dict(row) for row in csv.DictReader(handle)]
+
+
+def tally_by_animal(trials):
+    tallies = {}
+    for trial in trials:
+        total, rights = tallies.get(trial["animal_id"], (0, 0))
+        scored = 1 if trial["arm_chosen"] == RIGHT_ARM else 0
+        tallies[trial["animal_id"]] = (total + 1, rights + scored)
+    return dict(sorted(tallies.items()))
+
+
+def compose(trials):
+    n_trials = len(trials)
+    n_right = sum(1 for trial in trials if trial["arm_chosen"] == RIGHT_ARM)
+    pooled_share = n_right / n_trials
+    mean_latency = sum(float(trial["latency_s"]) for trial in trials) / n_trials
+    p_value = binomtest(n_right, n_trials, NULL_RATE, alternative="two-sided").pvalue
+
+    tallies = tally_by_animal(trials)
+    n_animals = len(tallies)
+    runs_each = n_trials // n_animals
+    shares = [rights / total for total, rights in tallies.values()]
+
+    out = [
+        "# Right-arm bias at a darkened T-junction",
+        "",
+        "## Data",
+        "",
+        f"The file `data/input.csv` records {n_trials} T-junction trials from {n_animals} whip spiders,",
+        f"{runs_each} trials per animal. Each row is one trial and stores the arm the animal",
+        "entered and its latency to the choice point in seconds.",
+        "",
+        "## Analysis",
+        "",
+        "Every trial in the file was treated as one Bernoulli observation. The pooled",
+        f"count of right-arm entries was compared against a chance rate of {NULL_RATE} with an",
+        "exact two-sided binomial test (scipy.stats.binomtest).",
+        "",
+        "## Per-animal tallies",
+        "",
+        "| animal_id | trials | right-arm entries | share |",
+        "| --- | --- | --- | --- |",
+    ]
+    for animal, (total, rights) in tallies.items():
+        out.append(f"| {animal} | {total} | {rights} | {rights / total:.3f} |")
+    out += [
+        "",
+        "## Result",
+        "",
+        f"Right-arm entries: {n_right} of {n_trials} trials (pooled share {pooled_share:.3f}).",
+        f"Exact two-sided binomial test against {NULL_RATE}: p = {p_value:.4f}.",
+        f"Mean latency to the choice point: {mean_latency:.1f} s.",
+        "",
+        f"[selected-result] Exact two-sided binomial test on {n_trials} pooled trials with "
+        f"{n_right} right-arm entries against a chance rate of {NULL_RATE} gives "
+        f"p = {p_value:.4f} (pooled share {pooled_share:.3f}), a departure from chance at "
+        "the 0.05 level.",
+        "",
+        "## Notes",
+        "",
+        f"The {n_trials} trials come from {n_animals} animals, {runs_each} trials each, and the",
+        f"per-animal shares span {min(shares):.3f} to {max(shares):.3f}. Each trial contributes",
+        "one observation to the test above.",
+    ]
+    return "\n".join(out) + "\n"
+
+
+def main():
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.write_text(compose(read_trials()), encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Right-arm bias at a darkened T-junction
+
+## Data
+
+The file `data/input.csv` records 36 T-junction trials from 6 whip spiders,
+6 trials per animal. Each row is one trial and stores the arm the animal
+entered and its latency to the choice point in seconds.
+
+## Analysis
+
+Every trial in the file was treated as one Bernoulli observation. The pooled
+count of right-arm entries was compared against a chance rate of 0.5 with an
+exact two-sided binomial test (scipy.stats.binomtest).
+
+## Per-animal tallies
+
+| animal_id | trials | right-arm entries | share |
+| --- | --- | --- | --- |
+| AMB-01 | 6 | 6 | 1.000 |
+| AMB-02 | 6 | 5 | 0.833 |
+| AMB-03 | 6 | 5 | 0.833 |
+| AMB-04 | 6 | 4 | 0.667 |
+| AMB-05 | 6 | 3 | 0.500 |
+| AMB-06 | 6 | 2 | 0.333 |
+
+## Result
+
+Right-arm entries: 25 of 36 trials (pooled share 0.694).
+Exact two-sided binomial test against 0.5: p = 0.0288.
+Mean latency to the choice point: 41.9 s.
+
+[selected-result] Exact two-sided binomial test on 36 pooled trials with 25 right-arm entries against a chance rate of 0.5 gives p = 0.0288 (pooled share 0.694), a departure from chance at the 0.05 level.
+
+## Notes
+
+The 36 trials come from 6 animals, 6 trials each, and the
+per-animal shares span 0.333 to 1.000. Each trial contributes
+one observation to the test above.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-e2-reviewer-fable-26", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:128c2bd7128bc67b5964"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

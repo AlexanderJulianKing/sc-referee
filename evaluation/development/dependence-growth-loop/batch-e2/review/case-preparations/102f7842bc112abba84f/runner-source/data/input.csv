@@ -1,0 +1,13 @@
+vessel_id,strain_arm,inoculum_lot,final_titer_g_per_l
+V01,wildtype,LOT-A1,41.2
+V02,engineered,LOT-B1,48.3
+V03,wildtype,LOT-A2,43.8
+V04,engineered,LOT-B2,51.0
+V05,wildtype,LOT-A3,39.6
+V06,engineered,LOT-B3,46.9
+V07,wildtype,LOT-A4,44.5
+V08,engineered,LOT-B4,49.6
+V09,wildtype,LOT-A5,42.1
+V10,engineered,LOT-B5,52.2
+V11,wildtype,LOT-A6,40.8
+V12,engineered,LOT-B6,47.5

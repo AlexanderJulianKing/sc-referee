@@ -1,0 +1,186 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-e2-reviewer-fable-26
+
+=== workflow 1: case:e57e3c73264eda49b3cc ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What is in data/input.csv
+
+Ten separate seagrass meadows along one coastline were mapped from aerial
+imagery in 2015 and mapped again in 2025. Each meadow occupies its own named
+stretch of coast, was surveyed once, and yields a single number: the percentage
+change in its mapped area across the decade. Five of the meadows lie inside
+voluntary no-anchoring zones; the other five are open to boat anchoring.
+
+Columns:
+
+- meadow_id: unique label for the meadow; a label appears on one row only
+- coast_sector: the named stretch of coast the meadow occupies
+- anchoring_regime: either no_anchor_zone or open_access
+- chart_depth_m: charted water depth at the meadow centre, in metres
+- baseline_area_ha: mapped meadow area in 2015, in hectares
+- area_change_pct_2015_2025: percentage change in mapped area, 2015 to 2025
+
+One row is: one seagrass meadow surveyed once, with its single decadal change in mapped area
+Independent unit column: meadow_id
+
+No meadow is measured twice and no two rows come from the same meadow, so the
+values compared between the two anchoring regimes are independent observations.
+The depth and baseline-area columns are background context and are not used by
+the test.
+
+--- file data/input.csv ---
+meadow_id,coast_sector,anchoring_regime,chart_depth_m,baseline_area_ha,area_change_pct_2015_2025
+SG-01,Tarnside Bay,no_anchor_zone,4.2,18.6,-1.5
+SG-02,Kilcarrig Sound,open_access,3.1,12.4,-14.6
+SG-03,Rundle Firth,no_anchor_zone,5.6,26.9,4.9
+SG-04,Peldon Reach,open_access,4.8,9.7,1.4
+SG-05,Ashmere Haven,no_anchor_zone,2.9,31.5,7.6
+SG-06,Gullwick Narrows,open_access,6.0,15.2,-9.2
+SG-07,Bracken Skerry,no_anchor_zone,3.7,22.1,11.3
+SG-08,Loveny Inlet,open_access,5.2,11.8,2.7
+SG-09,Marnhull Spit,no_anchor_zone,4.4,28.3,15.8
+SG-10,Stannard Cove,open_access,3.9,14.0,-6.8
+
+--- file workflow/analysis.py ---
+"""Extent change of seagrass meadows under two anchoring regimes.
+
+One CSV row is one surveyed meadow: each meadow contributes a single
+extent-change value, so the observations entering the comparison are
+independent of one another.
+"""
+
+import csv
+from pathlib import Path
+from statistics import median
+
+from scipy.stats import mannwhitneyu
+
+INPUT_PATH = Path("data/input.csv")
+OUTPUT_PATH = Path("results/report.md")
+
+UNIT_COLUMN = "meadow_id"
+REGIME_COLUMN = "anchoring_regime"
+RESPONSE_COLUMN = "area_change_pct_2015_2025"
+PROTECTED = "no_anchor_zone"
+OPEN_ACCESS = "open_access"
+
+
+def read_meadows(path):
+    """Return the survey records, expecting one record per meadow."""
+    with path.open(newline="", encoding="ascii") as handle:
+        records = list(csv.DictReader(handle))
+    labels = [record[UNIT_COLUMN] for record in records]
+    if not labels:
+        raise ValueError("no survey records found")
+    if len(set(labels)) != len(labels):
+        raise ValueError("every meadow must appear on exactly one row")
+    return records
+
+
+def split_by_regime(records):
+    """Split the decadal area changes into the two anchoring regimes."""
+    grouped = {PROTECTED: [], OPEN_ACCESS: []}
+    for record in records:
+        regime = record[REGIME_COLUMN]
+        if regime not in grouped:
+            raise ValueError("unexpected anchoring regime: " + regime)
+        grouped[regime].append(float(record[RESPONSE_COLUMN]))
+    return grouped[PROTECTED], grouped[OPEN_ACCESS]
+
+
+def compose_report(protected, open_access):
+    """Run the rank test on the meadow-level values and render the report."""
+    outcome = mannwhitneyu(
+        protected,
+        open_access,
+        alternative="two-sided",
+        method="exact",
+    )
+    u_stat = float(outcome.statistic)
+    p_value = float(outcome.pvalue)
+    rank_biserial = 2.0 * u_stat / (len(protected) * len(open_access)) - 1.0
+    med_protected = median(protected)
+    med_open = median(open_access)
+
+    lines = [
+        "# Seagrass meadow extent change under two anchoring regimes",
+        "",
+        "## Data",
+        "",
+        "Each row of `data/input.csv` is one seagrass meadow surveyed once, so the",
+        "meadow is the independent unit and contributes exactly one extent-change value.",
+        "",
+        f"- Meadows analysed: {len(protected) + len(open_access)}",
+        f"- No-anchoring zones: {len(protected)} (median extent change {med_protected:.2f} %)",
+        f"- Open-access meadows: {len(open_access)} (median extent change {med_open:.2f} %)",
+        "",
+        "## Analysis",
+        "",
+        "Two-sided Mann-Whitney U test comparing the 2015-2025 change in mapped meadow",
+        "area between no-anchoring zones and open-access meadows. The exact null",
+        f"distribution is used ({len(protected)} and {len(open_access)} meadows per regime, all values distinct), so",
+        "no normal approximation or tie correction enters the calculation.",
+        "",
+        "## Result",
+        "",
+        f"- U statistic (no-anchoring zones) = {u_stat:.1f}",
+        f"- Exact two-sided p-value = {p_value:.4f}",
+        f"- Rank-biserial correlation = {rank_biserial:.3f}",
+        "",
+        (
+            "[selected-result] Meadow extent change differed between anchoring regimes "
+            f"(exact two-sided Mann-Whitney U = {u_stat:.1f}, "
+            f"{len(protected)} vs {len(open_access)} meadows, p = {p_value:.4f}, "
+            f"rank-biserial {rank_biserial:.3f}): no-anchoring meadows gained area "
+            f"(median +{med_protected:.2f} %) while open-access meadows lost area "
+            f"(median {med_open:.2f} %)."
+        ),
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    records = read_meadows(INPUT_PATH)
+    protected, open_access = split_by_regime(records)
+    report = compose_report(protected, open_access)
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Seagrass meadow extent change under two anchoring regimes
+
+## Data
+
+Each row of `data/input.csv` is one seagrass meadow surveyed once, so the
+meadow is the independent unit and contributes exactly one extent-change value.
+
+- Meadows analysed: 10
+- No-anchoring zones: 5 (median extent change 7.60 %)
+- Open-access meadows: 5 (median extent change -6.80 %)
+
+## Analysis
+
+Two-sided Mann-Whitney U test comparing the 2015-2025 change in mapped meadow
+area between no-anchoring zones and open-access meadows. The exact null
+distribution is used (5 and 5 meadows per regime, all values distinct), so
+no normal approximation or tie correction enters the calculation.
+
+## Result
+
+- U statistic (no-anchoring zones) = 23.0
+- Exact two-sided p-value = 0.0317
+- Rank-biserial correlation = 0.840
+
+[selected-result] Meadow extent change differed between anchoring regimes (exact two-sided Mann-Whitney U = 23.0, 5 vs 5 meadows, p = 0.0317, rank-biserial 0.840): no-anchoring meadows gained area (median +7.60 %) while open-access meadows lost area (median -6.80 %).
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-e2-reviewer-fable-26", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:e57e3c73264eda49b3cc"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

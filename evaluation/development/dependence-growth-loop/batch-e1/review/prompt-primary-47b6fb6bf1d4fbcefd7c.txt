@@ -1,0 +1,272 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-e1-reviewer-fable-24
+
+=== workflow 1: case:47b6fb6bf1d4fbcefd7c ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Screen-printed graphene electrode scans
+
+Twelve screen-printed graphene sensor strips were fabricated: six were coated
+with carbon ink formulation GX7 and six with formulation GX9. Each strip was
+mounted once in the flow cell and then scanned four times in a row against a
+fixed ferrocyanide standard, so every strip contributes four consecutive
+oxidation-peak readings taken from the same piece of hardware in the same
+sitting.
+
+One row is: a single amperometric scan of one sensor strip, giving the oxidation peak current recorded on that scan
+Independent unit column: electrode_id
+
+## Columns
+
+- electrode_id: label of the sensor strip that produced the scan. There are
+  twelve distinct strips and each label appears on four rows.
+- ink_formulation: which carbon ink the strip was coated with, GX7 or GX9.
+  The formulation is a property of the strip, so it is identical across all
+  four rows that share an electrode_id.
+- scan_index: position of the scan within that strip's run, 1 through 4.
+- peak_current_ua: oxidation peak current measured on that scan, in
+  microamperes.
+- cell_temp_c: flow-cell temperature at the time of the scan, in degrees
+  Celsius.
+
+## Reading the file
+
+The file is plain ASCII CSV with a header line and 48 data rows. Readings
+from the same electrode_id are repeat measurements of one strip rather than
+measurements of separate strips.
+
+--- file data/input.csv ---
+electrode_id,ink_formulation,scan_index,peak_current_ua,cell_temp_c
+GS-01,GX7,1,41.6,24.9
+GS-01,GX7,2,42.3,24.9
+GS-01,GX7,3,41.9,25.0
+GS-01,GX7,4,42.2,25.0
+GS-02,GX7,1,45.5,25.1
+GS-02,GX7,2,46.1,25.1
+GS-02,GX7,3,45.7,25.1
+GS-02,GX7,4,45.9,25.2
+GS-03,GX7,1,39.1,24.7
+GS-03,GX7,2,39.6,24.7
+GS-03,GX7,3,39.3,24.8
+GS-03,GX7,4,39.6,24.8
+GS-04,GX7,1,43.8,25.0
+GS-04,GX7,2,44.4,25.0
+GS-04,GX7,3,44.0,25.0
+GS-04,GX7,4,44.2,25.1
+GS-05,GX7,1,40.9,24.8
+GS-05,GX7,2,41.5,24.8
+GS-05,GX7,3,41.1,24.9
+GS-05,GX7,4,41.3,24.9
+GS-06,GX7,1,46.2,25.2
+GS-06,GX7,2,46.8,25.2
+GS-06,GX7,3,46.4,25.2
+GS-06,GX7,4,46.6,25.3
+GS-07,GX9,1,48.0,24.9
+GS-07,GX9,2,48.6,24.9
+GS-07,GX9,3,48.2,25.0
+GS-07,GX9,4,48.4,25.0
+GS-08,GX9,1,50.7,25.0
+GS-08,GX9,2,51.3,25.0
+GS-08,GX9,3,50.9,25.1
+GS-08,GX9,4,51.1,25.1
+GS-09,GX9,1,46.6,24.8
+GS-09,GX9,2,47.2,24.8
+GS-09,GX9,3,46.8,24.8
+GS-09,GX9,4,47.0,24.9
+GS-10,GX9,1,49.4,25.1
+GS-10,GX9,2,50.0,25.1
+GS-10,GX9,3,49.6,25.1
+GS-10,GX9,4,49.8,25.2
+GS-11,GX9,1,52.1,25.2
+GS-11,GX9,2,52.7,25.2
+GS-11,GX9,3,52.3,25.3
+GS-11,GX9,4,52.5,25.3
+GS-12,GX9,1,47.3,24.7
+GS-12,GX9,2,47.9,24.7
+GS-12,GX9,3,47.5,24.8
+GS-12,GX9,4,47.7,24.8
+
+--- file workflow/analysis.py ---
+"""Compare oxidation peak current between two screen-printed graphene inks."""
+
+from __future__ import annotations
+
+import csv
+import statistics
+from pathlib import Path
+
+from scipy import stats
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+
+def read_scans(path):
+    """Return one tuple per recorded amperometric scan."""
+    scans = []
+    with path.open("r", encoding="ascii", newline="") as handle:
+        for row in csv.DictReader(handle):
+            scans.append(
+                (
+                    row["ink_formulation"],
+                    row["electrode_id"],
+                    float(row["peak_current_ua"]),
+                )
+            )
+    return scans
+
+
+def currents_by_ink(scans):
+    grouped = {}
+    for ink, _strip, current in scans:
+        grouped.setdefault(ink, []).append(current)
+    return grouped
+
+
+def strips_by_ink(scans):
+    grouped = {}
+    for ink, strip, _current in scans:
+        grouped.setdefault(ink, set()).add(strip)
+    return grouped
+
+
+def welch_dof(sample_a, sample_b):
+    """Welch-Satterthwaite degrees of freedom for two samples."""
+    term_a = statistics.variance(sample_a) / len(sample_a)
+    term_b = statistics.variance(sample_b) / len(sample_b)
+    numerator = (term_a + term_b) ** 2
+    denominator = (
+        term_a ** 2 / (len(sample_a) - 1) + term_b ** 2 / (len(sample_b) - 1)
+    )
+    return numerator / denominator
+
+
+def compose_report(scans):
+    currents = currents_by_ink(scans)
+    strips = strips_by_ink(scans)
+    inks = sorted(currents)
+    reference, candidate = inks[0], inks[1]
+
+    outcome = stats.ttest_ind(
+        currents[candidate], currents[reference], equal_var=False
+    )
+    t_stat = float(outcome.statistic)
+    p_value = float(outcome.pvalue)
+    dof = welch_dof(currents[candidate], currents[reference])
+
+    mean_reference = statistics.fmean(currents[reference])
+    mean_candidate = statistics.fmean(currents[candidate])
+    gap = mean_candidate - mean_reference
+
+    if p_value < 1e-06:
+        p_text = "p < 1e-06"
+    else:
+        p_text = "p = {0:.6f}".format(p_value)
+
+    lines = [
+        "# Peak Current Response of Screen-Printed Graphene Electrodes",
+        "",
+        "## Design",
+        "",
+        "Amperometric scans were collected from screen-printed graphene strips coated",
+        "with one of two carbon ink formulations, GX7 and GX9. Each strip was mounted",
+        "in the flow cell once and scanned four times in immediate succession against a",
+        "fixed ferrocyanide standard; the oxidation peak current of each scan was",
+        "recorded in microamperes (uA).",
+        "",
+        "| Formulation | Scans | Strips | Mean peak current (uA) | SD (uA) |",
+        "| --- | ---: | ---: | ---: | ---: |",
+    ]
+
+    for ink in inks:
+        lines.append(
+            "| {0} | {1} | {2} | {3:.2f} | {4:.2f} |".format(
+                ink,
+                len(currents[ink]),
+                len(strips[ink]),
+                statistics.fmean(currents[ink]),
+                statistics.stdev(currents[ink]),
+            )
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Analysis",
+            "",
+            "Each recorded scan was entered as one observation and the two formulations",
+            "were compared on peak current with a two-sided Welch two-sample t-test",
+            "(unequal variances).",
+            "",
+            "## Result",
+            "",
+            "Mean peak current was {0:.2f} uA higher under {1} than under {2}".format(
+                gap, candidate, reference
+            ),
+            "(t = {0:.2f}, df = {1:.1f}, {2}).".format(t_stat, dof, p_text),
+            "",
+            (
+                "[selected-result] Welch two-sample t-test on scan-level peak "
+                "current: {0} ({1:.2f} uA) exceeds {2} ({3:.2f} uA) by {4:.2f} uA, "
+                "t = {5:.2f}, df = {6:.1f}, {7}."
+            ).format(
+                candidate,
+                mean_candidate,
+                reference,
+                mean_reference,
+                gap,
+                t_stat,
+                dof,
+                p_text,
+            ),
+        ]
+    )
+
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    scans = read_scans(INPUT_PATH)
+    report = compose_report(scans)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Peak Current Response of Screen-Printed Graphene Electrodes
+
+## Design
+
+Amperometric scans were collected from screen-printed graphene strips coated
+with one of two carbon ink formulations, GX7 and GX9. Each strip was mounted
+in the flow cell once and scanned four times in immediate succession against a
+fixed ferrocyanide standard; the oxidation peak current of each scan was
+recorded in microamperes (uA).
+
+| Formulation | Scans | Strips | Mean peak current (uA) | SD (uA) |
+| --- | ---: | ---: | ---: | ---: |
+| GX7 | 24 | 6 | 43.17 | 2.59 |
+| GX9 | 24 | 6 | 49.32 | 1.98 |
+
+## Analysis
+
+Each recorded scan was entered as one observation and the two formulations
+were compared on peak current with a two-sided Welch two-sample t-test
+(unequal variances).
+
+## Result
+
+Mean peak current was 6.15 uA higher under GX9 than under GX7
+(t = 9.23, df = 43.0, p < 1e-06).
+
+[selected-result] Welch two-sample t-test on scan-level peak current: GX9 (49.32 uA) exceeds GX7 (43.17 uA) by 6.15 uA, t = 9.23, df = 43.0, p < 1e-06.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-e1-reviewer-fable-24", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:47b6fb6bf1d4fbcefd7c"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

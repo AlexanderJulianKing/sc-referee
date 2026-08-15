@@ -1,0 +1,201 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-e2-reviewer-fable-26
+
+=== workflow 1: case:102f7842bc112abba84f ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Pilot fermenter harvest titers
+
+A pilot-scale ethanol project compared a wild-type Zymomonas mobilis strain with an
+engineered derivative. Twelve 20 L fermenters were prepared, six for each strain, and
+each fermenter was inoculated from its own seed lot and taken through a single run to
+harvest. When a run ended, one harvest sample was drawn from that vessel and its
+ethanol concentration was measured; that single number is the vessel's entry in the
+table. No vessel was reused, split between strains, or sampled a second time, so the
+twelve rows stand for twelve separate experimental runs.
+
+Columns in data/input.csv:
+
+- vessel_id: label of the pilot fermenter, V01 through V12, each appearing once.
+- strain_arm: the strain inoculated into that vessel, either wildtype or engineered
+  (six vessels each).
+- inoculum_lot: identifier of the seed culture lot used for that vessel; every vessel
+  had a lot of its own.
+- final_titer_g_per_l: ethanol concentration in the harvest sample, in grams per litre.
+
+One row is: one pilot fermenter, described by the single ethanol titer measured in its harvest sample
+Independent unit column: vessel_id
+
+--- file data/input.csv ---
+vessel_id,strain_arm,inoculum_lot,final_titer_g_per_l
+V01,wildtype,LOT-A1,41.2
+V02,engineered,LOT-B1,48.3
+V03,wildtype,LOT-A2,43.8
+V04,engineered,LOT-B2,51.0
+V05,wildtype,LOT-A3,39.6
+V06,engineered,LOT-B3,46.9
+V07,wildtype,LOT-A4,44.5
+V08,engineered,LOT-B4,49.6
+V09,wildtype,LOT-A5,42.1
+V10,engineered,LOT-B5,52.2
+V11,wildtype,LOT-A6,40.8
+V12,engineered,LOT-B6,47.5
+
+--- file workflow/analysis.py ---
+"""Vessel-level comparison of final ethanol titer between two Zymomonas strains.
+
+Reads data/input.csv, which holds one harvest measurement per pilot fermenter, and
+writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+ROW_TEMPLATE = "| {0} | {1} | {2:.2f} | {3:.2f} | {4:.2f} | {5:.2f} | {6:.2f} |"
+
+
+def read_vessels(path):
+    """Return the CSV rows, refusing any vessel that shows up twice."""
+    with path.open("r", encoding="ascii", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    seen = set()
+    for row in rows:
+        vessel = row["vessel_id"]
+        if vessel in seen:
+            raise ValueError("vessel_id appears more than once: " + vessel)
+        seen.add(vessel)
+    return rows
+
+
+def arm_titers(rows, arm):
+    picked = [float(row["final_titer_g_per_l"]) for row in rows
+              if row["strain_arm"] == arm]
+    return np.asarray(picked, dtype=float)
+
+
+def summary_row(label, values):
+    return ROW_TEMPLATE.format(
+        label,
+        values.size,
+        values.mean(),
+        values.std(ddof=1),
+        np.median(values),
+        values.min(),
+        values.max(),
+    )
+
+
+def main():
+    rows = read_vessels(INPUT_PATH)
+    wild = arm_titers(rows, "wildtype")
+    engineered = arm_titers(rows, "engineered")
+
+    outcome = stats.mannwhitneyu(engineered, wild, alternative="two-sided",
+                                 method="exact")
+    u_stat = float(outcome.statistic)
+    p_value = float(outcome.pvalue)
+    rank_biserial = 2.0 * u_stat / float(engineered.size * wild.size) - 1.0
+    shift = float(np.median(engineered[:, None] - wild[None, :]))
+    mean_gap = float(engineered.mean() - wild.mean())
+    n_total = wild.size + engineered.size
+
+    lines = [
+        "# Final ethanol titer of an engineered Zymomonas strain in pilot fermenters",
+        "",
+        "## Design",
+        "",
+        "Twelve independent 20 L pilot fermenters were taken to harvest, six seeded with the",
+        "wild-type strain and six with the engineered strain. Each vessel received its own",
+        "inoculum lot and contributes exactly one harvest titer, so the twelve rows of",
+        "data/input.csv are twelve independent units and no vessel is measured more than once.",
+        "",
+        "## Vessel-level summary",
+        "",
+        "| Arm | Vessels | Mean (g/L) | SD (g/L) | Median (g/L) | Min (g/L) | Max (g/L) |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
+        summary_row("wild-type", wild),
+        summary_row("engineered", engineered),
+        "",
+        "## Test",
+        "",
+        "With six vessels per arm the two arms were compared with an exact two-sided",
+        "Mann-Whitney U test on the twelve vessel-level titers (no ties are present, so the",
+        "exact null distribution applies). The engineered vessels occupy the six highest ranks,",
+        f"giving U = {u_stat:.1f} with an exact two-sided p-value of {p_value:.5f}. The rank-biserial",
+        f"correlation is {rank_biserial:.3f}, the Hodges-Lehmann shift estimate is {shift:.2f} g/L, and the gap",
+        f"between arm means is {mean_gap:.2f} g/L.",
+        "",
+        (
+            "[selected-result] Exact two-sided Mann-Whitney U test on "
+            f"{n_total} independent pilot fermenters ({engineered.size} engineered vs "
+            f"{wild.size} wild-type, one harvest titer per vessel): U = {u_stat:.1f}, "
+            f"p = {p_value:.5f}, Hodges-Lehmann shift +{shift:.2f} g/L, so the engineered "
+            "strain reaches the higher final titer."
+        ),
+        "",
+        "## Reading",
+        "",
+        "The strains were assigned to whole vessels and the comparison is made at the vessel",
+        "level, so the independence assumption of the exact test is satisfied by construction",
+        "rather than by argument. Complete separation of the two arms yields the smallest",
+        "p-value this design can return, so the result is best read as evidence that is as",
+        "strong as twelve runs allow, not as a finely resolved probability.",
+    ]
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Final ethanol titer of an engineered Zymomonas strain in pilot fermenters
+
+## Design
+
+Twelve independent 20 L pilot fermenters were taken to harvest, six seeded with the
+wild-type strain and six with the engineered strain. Each vessel received its own
+inoculum lot and contributes exactly one harvest titer, so the twelve rows of
+data/input.csv are twelve independent units and no vessel is measured more than once.
+
+## Vessel-level summary
+
+| Arm | Vessels | Mean (g/L) | SD (g/L) | Median (g/L) | Min (g/L) | Max (g/L) |
+| --- | --- | --- | --- | --- | --- | --- |
+| wild-type | 6 | 42.00 | 1.86 | 41.65 | 39.60 | 44.50 |
+| engineered | 6 | 49.25 | 2.07 | 48.95 | 46.90 | 52.20 |
+
+## Test
+
+With six vessels per arm the two arms were compared with an exact two-sided
+Mann-Whitney U test on the twelve vessel-level titers (no ties are present, so the
+exact null distribution applies). The engineered vessels occupy the six highest ranks,
+giving U = 36.0 with an exact two-sided p-value of 0.00216. The rank-biserial
+correlation is 1.000, the Hodges-Lehmann shift estimate is 7.25 g/L, and the gap
+between arm means is 7.25 g/L.
+
+[selected-result] Exact two-sided Mann-Whitney U test on 12 independent pilot fermenters (6 engineered vs 6 wild-type, one harvest titer per vessel): U = 36.0, p = 0.00216, Hodges-Lehmann shift +7.25 g/L, so the engineered strain reaches the higher final titer.
+
+## Reading
+
+The strains were assigned to whole vessels and the comparison is made at the vessel
+level, so the independence assumption of the exact test is satisfied by construction
+rather than by argument. Complete separation of the two arms yields the smallest
+p-value this design can return, so the result is best read as evidence that is as
+strong as twelve runs allow, not as a finely resolved probability.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-e2-reviewer-fable-26", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:102f7842bc112abba84f"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

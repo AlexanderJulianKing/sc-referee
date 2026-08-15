@@ -1,0 +1,176 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-e2-reviewer-fable-26
+
+=== workflow 1: case:fa5259eb594c121b4dac ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Y-bridge arm-choice assay (data/input.csv)
+
+Five queenright Lasius niger colonies, each collected from a separate roadside
+verge and housed in its own nest box, were tested four times apiece on a Y-shaped
+foam bridge. In every test one arm of the bridge carried a freshly applied
+trail-pheromone extract and the other arm was left plain; the side carrying the
+extract was alternated between successive tests of a colony. A single
+paint-marked forager was released at the base of the bridge, the arm it committed
+to was recorded, and the observer logged how long the forager took to cross the
+choice line and how many nestmates were on the bridge at that moment.
+
+One row is: one Y-bridge test of a single forager from one colony, giving the arm it chose, its commitment latency, and the bridge traffic at the moment of choice
+Independent unit column: colony_id
+One trial is: one row
+
+Columns:
+
+- colony_id: the source colony (COL-01 through COL-05); each colony contributed
+  four tests, so the same colony appears on four rows
+- trial_no: position of the test within that colony's own sequence, 1 to 4
+- arm_chosen: "marked" if the forager took the pheromone-treated arm, "plain" if
+  it took the untreated arm
+- latency_s: seconds from release until the forager crossed the choice line,
+  recorded to one decimal place
+- foragers_on_bridge: count of other foragers on the bridge at the moment the
+  choice was made
+
+There are 20 rows in total: 5 colonies x 4 tests. Colonies differ noticeably from
+one another in how strongly they follow the extract, and tests from the same
+colony were run with the same nest, the same forager pool, and the same batch of
+pheromone extract.
+
+--- file data/input.csv ---
+colony_id,trial_no,arm_chosen,latency_s,foragers_on_bridge
+COL-01,1,marked,41.2,14
+COL-01,2,marked,55.8,11
+COL-01,3,marked,63.5,17
+COL-01,4,marked,79.5,9
+COL-02,1,marked,38.6,21
+COL-02,2,marked,52.4,16
+COL-02,3,marked,71.0,13
+COL-02,4,marked,78.0,10
+COL-03,1,marked,47.3,12
+COL-03,2,plain,58.7,8
+COL-03,3,marked,66.0,15
+COL-03,4,marked,68.0,11
+COL-04,1,marked,44.9,19
+COL-04,2,marked,51.1,14
+COL-04,3,plain,69.4,7
+COL-04,4,marked,74.6,12
+COL-05,1,plain,53.2,10
+COL-05,2,plain,60.8,6
+COL-05,3,marked,62.5,13
+COL-05,4,plain,63.5,9
+
+--- file workflow/analysis.py ---
+"""Y-bridge arm-choice assay: does a trail-pheromone extract steer foragers?
+
+Reads data/input.csv (one row per scored trial) and writes results/report.md.
+"""
+
+import csv
+from pathlib import Path
+
+from scipy.stats import binomtest
+
+INPUT_PATH = Path("data") / "input.csv"
+OUTPUT_PATH = Path("results") / "report.md"
+
+MARKED_ARM = "marked"
+NULL_P = 0.5
+ALPHA = 0.05
+
+
+def read_trials(path):
+    """Every scored trial in the assay log, in file order."""
+    with path.open("r", encoding="ascii", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def summarise(trials):
+    """Trial count, marked-arm choices, and mean commitment latency."""
+    n_trials = len(trials)
+    n_marked = sum(1 for row in trials if row["arm_chosen"] == MARKED_ARM)
+    latency = sum(float(row["latency_s"]) for row in trials) / n_trials
+    return n_trials, n_marked, latency
+
+
+def build_report(n_trials, n_marked, latency, p_value):
+    """Render the markdown report as a single string."""
+    proportion = n_marked / n_trials
+    verdict = (
+        "so the no-preference null is rejected"
+        if p_value < ALPHA
+        else "so the no-preference null is retained"
+    )
+    lines = [
+        "# Trail-pheromone arm choice in Lasius niger foragers",
+        "",
+        "## Analysis",
+        "",
+        "Each row of `data/input.csv` is one Y-bridge choice trial. A trial counted",
+        "as a success when the focal forager committed to the pheromone-marked arm.",
+        f"All {n_trials} trials were pooled and submitted to an exact binomial test",
+        f"(`scipy.stats.binomtest`, two-sided) against the no-preference null "
+        f"p = {NULL_P:.3f}.",
+        "",
+        "## Result",
+        "",
+        f"- Trials scored: {n_trials}",
+        f"- Choices of the marked arm: {n_marked}",
+        f"- Observed proportion: {proportion:.3f}",
+        f"- Mean commitment latency: {latency:.1f} s",
+        "",
+        f"[selected-result] Exact binomial test: {n_marked} of {n_trials} trials "
+        f"took the marked arm (proportion {proportion:.3f}) against a null "
+        f"proportion of {NULL_P:.3f}; two-sided p = {p_value:.4f}, {verdict} at "
+        f"alpha = {ALPHA:.2f}.",
+        "",
+        "## Interpretation",
+        "",
+        "Foragers took the pheromone-marked arm more often than expected under",
+        "chance, consistent with trail-pheromone guidance at the bifurcation.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    trials = read_trials(INPUT_PATH)
+    n_trials, n_marked, latency = summarise(trials)
+    outcome = binomtest(n_marked, n_trials, NULL_P, alternative="two-sided")
+    report = build_report(n_trials, n_marked, latency, outcome.pvalue)
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with OUTPUT_PATH.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(report)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Trail-pheromone arm choice in Lasius niger foragers
+
+## Analysis
+
+Each row of `data/input.csv` is one Y-bridge choice trial. A trial counted
+as a success when the focal forager committed to the pheromone-marked arm.
+All 20 trials were pooled and submitted to an exact binomial test
+(`scipy.stats.binomtest`, two-sided) against the no-preference null p = 0.500.
+
+## Result
+
+- Trials scored: 20
+- Choices of the marked arm: 15
+- Observed proportion: 0.750
+- Mean commitment latency: 60.0 s
+
+[selected-result] Exact binomial test: 15 of 20 trials took the marked arm (proportion 0.750) against a null proportion of 0.500; two-sided p = 0.0414, so the no-preference null is rejected at alpha = 0.05.
+
+## Interpretation
+
+Foragers took the pheromone-marked arm more often than expected under
+chance, consistent with trail-pheromone guidance at the bifurcation.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-e2-reviewer-fable-26", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:fa5259eb594c121b4dac"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}
