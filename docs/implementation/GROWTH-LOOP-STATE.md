@@ -1,6 +1,7 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
-Updated: 2026-08-16 (Growth-12 and Growth-13 closed; Growth-14 census/premise measurement is next).
+Updated: 2026-08-16 (Growth-12/13 closed; Growth-14 pandas-family design is in flight;
+Growth-15 abort-only raise design is sequenced next).
 
 ## Scoreboard
 
@@ -13,6 +14,12 @@ Updated: 2026-08-16 (Growth-12 and Growth-13 closed; Growth-14 census/premise me
   rebind, plain-Assign rebind). The plain-Assign fix is structural (operand-name-rebound,
   all assignment forms through one partition test).
 - v1.1.0 qualified detector + installed pins: untouched and live throughout.
+- Maintainer checkpoint trigger: every frozen re-measure now separately reports
+  whether a planted positive reaches full development analysis and emits an adverse
+  certificate. This is observation only and never rescoring. The first such event
+  triggers prompt checkpoint batch K (both envelopes, normal gates). The current
+  95-case refresh has 47 planted positives and `0/47` retroactive certifications, so
+  batch K is not triggered yet.
 
 ## Closed this iteration
 
@@ -231,6 +238,48 @@ Updated: 2026-08-16 (Growth-12 and Growth-13 closed; Growth-14 census/premise me
 
 ## In flight
 
+- Maintainer sequencing decision (Fable escalation channel, confirmed with Alex,
+  2026-08-16): after Growth-13, run Growth-14 on the twelve-case census pandas/import
+  family, then Growth-15 on the seven-case census raise family. Rank future work by
+  cases actually completed, not raw wall occurrences. Nothing in this decision
+  promises admission or relaxes a reviewer gate.
+- Fresh scratch census refresh on reviewed HEAD `dd3cebd` reproduced 40 open cases,
+  39 locks / one procedure-source no-lock, 40 unsupported, and walls
+  `unsupported-import-form 12`, `raise-guard-not-modeled 7`,
+  `function-globals-read 6`, `function-return-shape 6`,
+  `module-constant-not-closed 6`, `reader-form-unsupported 5`, and the smaller
+  recorded walls, with zero accusations, model calls, or project-code execution.
+  The frozen A-J2 refresh found 95 materialized cases, 79 authentic locks, 15
+  no-locks, one retained static replay, 80 unsupported / 15 questions, and zero
+  accusations. All 47 `positive_demonstrated` cases remained short of full analysis;
+  none emitted an adverse certificate. The first-occurrence batch-K trigger therefore
+  remains armed but inactive.
+- Growth-14 census inventory: exact cases `0004`, `0006`, `0009`, `0012`, `0014`,
+  `0016`, `0025`, `0027`, `0030`, `0035`, `0038`, and `0039` all bind `pd` only via
+  `import pandas as pd`, call `pd.read_csv` on the authorized input, and form two
+  independent operands by equality-filtering one group column and selecting one value
+  column. Optional observed forms are `.values`, `.dropna()`, dataframe
+  `dropna(subset=[...])`, a positive-value filter, and `.notna().copy()`. Strict-byte
+  replay shows eleven cases have one selected row per authorized unit; case `0025`
+  has four rows for each of six station ids and no cross-operand unit. Import-only
+  unmasking completes zero cases, so the memo must measure and name every secondary
+  wall and may promise only the exact closed subset it proves.
+- The earlier validation-guard memo is deferred evidence for Growth-15:
+  `~/Desktop/random_stuff/sc-referee-design-memos/dependence-grammar-growth-14-validation-guard-design-2026-08-16.md`.
+  Fresh reviewer session `01a00c16-faef-77a3-9443-6cf8b2730ec8` returned
+  `GUARD-INERTNESS-ONLY: REFUSE`, `SINGLE-OPERAND-CLASSIFICATION: REFUSE`, and
+  `VERDICT: BLOCKED`, without changing the repository. BLOCKER 1 demonstrated that
+  an ordinary module helper shadowing `len` (and similarly `set`) can make a runtime-
+  true guard appear mathematically false after erasure, exposing both a covered-
+  negative and an adverse candidate. This is a rejected design route, not a shipped,
+  corpus, scored, or production accusation. BLOCKER 2 showed five proposed targets
+  lacked the claimed existing sequence classification, including an undefined
+  `.strip()` normalization. A MAJOR finding requires total mixed-state refusal
+  precedence. Growth-15 amendments must prove real `len`/`set` binding in analyzer
+  and kernel, consume the sole shared classifier or narrow the target set, forbid any
+  guard-specific lineage, and specify exact mixed-state/kernel precedence before a
+  fresh design review. No guard builder is authorized.
+
 - Growth-13 is the maintainer-authorized paired-procedure family HEAVY design. Exact
   frozen census: nine workflows, seven `ttest_rel` calls, four `wilcoxon` calls, and
   eleven calls total because two workflows contain both. Stored historical authority
@@ -405,13 +454,16 @@ Updated: 2026-08-16 (Growth-12 and Growth-13 closed; Growth-14 census/premise me
   before/after filesystem digest
   `sha256:1cc36ea1bba28e643e25aafac848ed36695ab486d87cf7c3c1c8c414b492adad`.
   HEAD/remote remained `19950b2` and the repository stayed clean. Growth-13 is closed.
-- The current raw wall leader is twelve `unsupported-import-form` cases, but all twelve
-  import pandas and therefore do not present a demonstrated pure import-vocabulary
-  gain: dataframe/reader semantics remain outside the current closed recognizer. That
-  evidence does not establish an import-only round. With the paired-family go-ahead
-  now completed, numeric count predicates are the next queue premise to measure unless
-  a refreshed census demonstrates a better closed slice. No blind checkpoint is due
-  until roughly three to four additional reviewed rounds after J1/J2.
+- The current raw wall leader is twelve `unsupported-import-form` cases. All twelve
+  use exact `import pandas as pd` plus `pd.read_csv` and dataframe/series selection;
+  this is not an import-only vocabulary change. A scratch import-only unmask moved
+  eleven cases immediately to `module-constant-not-closed` and case `0027` to
+  `raise-guard-not-modeled`, so accepting the import alone completes zero cases.
+  Maintainer priority nevertheless selects this family for Growth-14 by case-
+  completion yield. The round must therefore be HEAVY and may design only a recursively
+  closed pandas-to-existing-classifier lowering, independently rederived by the
+  kernel; unknown/dynamic dataframe forms remain no-analysis. Growth-15 is the
+  separately sequenced abort-only raise round. Numeric predicates are deferred.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
@@ -473,15 +525,28 @@ Updated: 2026-08-16 (Growth-12 and Growth-13 closed; Growth-14 census/premise me
    must-not-accuse fixtures become the round's central regressions); fail-closed on any
    ambiguity between paired and independent claims; dev lanes only. Sequence after
    queue item 0 unless census evidence reorders.
-2. Numeric comparison predicates for counts (float(row[x]) > CONST; batch-B 446cab
-   flagship + recurring, including J2 rq2).
-3. raise/validation guards inside helpers (part of the globals-read decomposition).
-4. Module-constant closure variants (J1 rq2 and J2 rq6) and import-use decomposition
+2. IN FLIGHT as Growth-14 by maintainer priority (Fable escalation channel,
+   2026-08-16): `unsupported-import-form`, twelve of 39 authentic census locks. All
+   twelve are pandas workflows, so an import-only change is forbidden and measured
+   to complete zero cases. Design the smallest recursively closed pandas/read/filter/
+   operand slice that lowers into the existing sole classification; the kernel must
+   independently rederive it. No pandas execution, no dynamic forms, and no protected
+   or frozen changes.
+3. NEXT as Growth-15 by the same maintainer priority: `raise-guard-not-modeled`, seven
+   census cases. The proof premise is abort-only control flow: a raise cannot alter
+   data, and a program that survives to write its report was not changed by that
+   guard. The full HEAVY gauntlet still applies. The first draft review is BLOCKED and
+   its amendments are recorded under `In flight`; no build is authorized.
+4. Numeric comparison predicates for counts (float(row[x]) > CONST). The refreshed
+   premise has no authentic direct numeric census opportunity; `446cab...` is a
+   count-trial declaration no-lock and J2 uses a computed `delta`. Re-measure before
+   reviving.
+5. Module-constant closure variants (J1 rq2 and J2 rq6) and import-use decomposition
    (J1 rq1, J2 rq3) — measure exact syntax before deciding whether any slice is LIGHT.
-5. Position-sensitive rebind relaxation (allow rebinding after last consumer) — only
+6. Position-sensitive rebind relaxation (allow rebinding after last consumer) — only
    if corpus census shows it matters; dataflow judgment = heavy.
-6. Q3 two-branch sink returns (detached from growth-8; buys little).
-7. class-defs/dataclass modeling (batch-D rq2's real wall).
+7. Q3 two-branch sink returns (detached from growth-8; buys little).
+8. class-defs/dataclass modeling (batch-D rq2's real wall).
 
 ## Actor inventory (one-use identities; continue numbering)
 
@@ -516,3 +581,9 @@ failure). Efficiency restructure adopted (fresh sessions + briefs, corpus census
 checkpoint batches). Variable names must never carry recognition meaning (operations
 and library configurations only). Deadline asks default to polished-and-public
 (maintainer memory); nothing in this loop publishes without him.
+
+Maintainer checkpoint decision (Fable escalation channel, 2026-08-16): on every
+frozen re-measure, explicitly inspect planted positives for a new development-lane
+adverse certificate after full analysis, without rescoring. The first occurrence
+triggers checkpoint batch K promptly, both envelopes and all normal design/code gates,
+instead of waiting for the ordinary three-to-four-round cadence.
