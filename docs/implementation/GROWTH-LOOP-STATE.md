@@ -1,7 +1,7 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
-Updated: 2026-08-16 (Growth-12/13 closed; Growth-14 pandas-family design is in flight;
-Growth-15 abort-only raise design is sequenced next).
+Updated: 2026-08-16 (Growth-12/13 closed; Growth-14 pandas-family design is safely
+blocked with no build; Growth-15 abort-only raise design is now in flight).
 
 ## Scoreboard
 
@@ -464,6 +464,48 @@ Growth-15 abort-only raise design is sequenced next).
   closed pandas-to-existing-classifier lowering, independently rederived by the
   kernel; unknown/dynamic dataframe forms remain no-analysis. Growth-15 is the
   separately sequenced abort-only raise round. Numeric predicates are deferred.
+- Growth-14 HEAVY design review attempt 1 used fresh reviewer session
+  `01a00c3f-d808-7203-beee-614b3e4c9340` on exact clean local/remote HEAD `dfdb62a`
+  with `.git` read-only. The reviewer returned `PANDAS-INVARIANCE: REFUSE`,
+  `SINGLE-OPERAND-CLASSIFICATION: REFUSE`, and `VERDICT: BLOCKED`; no builder ran and
+  no frozen case was re-measured. The decisive blocker is fundamental under the
+  protected-pin constraint: original source plus frozen bytes cannot prove that
+  `import pandas as pd` resolves to the intended package or that its unpinned dtype/
+  selection semantics match the proposed strict reconstruction. Executed ordinary
+  siblings showed an adjacent `pandas.py` winning import resolution, `True`/`False`
+  group tokens becoming bool and selecting different rows from strict string
+  equality, and a huge finite decimal becoming object dtype and failing in SciPy.
+  Other blockers were a competing pandas-local operand classifier, incomplete
+  source/reason/kernel precedence (including census `0016`), and unproved real-builtin
+  `open` binding; ndarray `.median()` also demonstrated the need for projection-
+  specific summaries. These are pre-build design findings, not accusations.
+- Binding memo Section 16 records the no-build disposition. Growth-14 is deferred
+  until a separately authorized and reviewed package-identity premise exists; it may
+  not add, change, or simulate a pandas pin, and an import-only build remains
+  forbidden because its measured completion yield is zero. Reviewer validation
+  otherwise passed seven target runtime differentials, two SciPy destructuring
+  probes, a scratch independent-kernel mutation suite, 385 focused tests, all 4,178
+  repository tests, scoped static checks, pins, production isolation, v1/protected/
+  frozen identity, and the explicit frozen planted-positive observation at `0/47`.
+  The maintainer's ordering was honored by evaluating this family first; Growth-15
+  may now proceed independently through its full HEAVY gates.
+- Growth-15's active amended memo is
+  `~/Desktop/random_stuff/sc-referee-design-memos/dependence-grammar-growth-15-abort-only-raise-design-2026-08-16.md`.
+  It supersedes, but does not erase, the rejected guard-fact draft. The new proof is
+  path-relative abort-only control flow: supported conditions reuse the existing pure
+  expression boundary, every `len` must independently resolve to the real builtin,
+  `set`/seen-set/guard facts/guard-specific reader or grouping lineage are deleted,
+  and a full conclusion must map every condition name through the existing sole
+  partition and prove every guard false from the existing trusted group fact. A
+  standalone wall scan may decompose syntax only and can never create a certificate.
+  Scratch source-only deletion measured exactly nine expected reason-set movements:
+  all seven census cases plus frozen positives G2 `a8b660...` and J2 `729d20...`;
+  all remain unsupported, all seventeen non-target raise workflows retain their
+  complete current sets, and no accusation or outcome movement occurred. Because
+  Growth-14 did not unlock its forecast downstream cases, Growth-15 now completes zero
+  census cases on the unchanged base; the memo records that yield correction rather
+  than widening. A fresh HEAVY design review, with explicit fallthrough, sole-
+  classifier, and precedence assent/refusal, gates any builder.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
@@ -525,14 +567,17 @@ Growth-15 abort-only raise design is sequenced next).
    must-not-accuse fixtures become the round's central regressions); fail-closed on any
    ambiguity between paired and independent claims; dev lanes only. Sequence after
    queue item 0 unless census evidence reorders.
-2. IN FLIGHT as Growth-14 by maintainer priority (Fable escalation channel,
+2. DEFERRED / NO BUILD as Growth-14 by maintainer priority (Fable escalation channel,
    2026-08-16): `unsupported-import-form`, twelve of 39 authentic census locks. All
    twelve are pandas workflows, so an import-only change is forbidden and measured
    to complete zero cases. Design the smallest recursively closed pandas/read/filter/
    operand slice that lowers into the existing sole classification; the kernel must
    independently rederive it. No pandas execution, no dynamic forms, and no protected
-   or frozen changes.
-3. NEXT as Growth-15 by the same maintainer priority: `raise-guard-not-modeled`, seven
+   or frozen changes. Fresh HEAVY design review attempt 1 refused pandas invariance
+   and single-classifier assent; memo Section 16 is binding. No import-only or pandas
+   build is authorized. Revival requires a separately authorized package-identity
+   premise without modifying or bypassing protected pins.
+3. IN FLIGHT as Growth-15 by the same maintainer priority: `raise-guard-not-modeled`, seven
    census cases. The proof premise is abort-only control flow: a raise cannot alter
    data, and a program that survives to write its report was not changed by that
    guard. The full HEAVY gauntlet still applies. The first draft review is BLOCKED and
