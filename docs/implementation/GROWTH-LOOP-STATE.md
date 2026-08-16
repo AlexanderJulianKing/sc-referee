@@ -1,6 +1,6 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
-Updated: 2026-08-16 (Growth-12 closed; Growth-13 Section-22 repair committed as `8c8a7ce`; manifest, exact gate, push, and repaired-snapshot review remain pending).
+Updated: 2026-08-16 (Growth-12 and Growth-13 closed; Growth-14 census/premise measurement is next).
 
 ## Scoreboard
 
@@ -372,11 +372,46 @@ Updated: 2026-08-16 (Growth-12 closed; Growth-13 Section-22 repair committed as 
   The functional repair and this gate record were committed as `8c8a7ce`. Manifest
   regeneration, the exact all-test gate, push, and a different fresh code review
   remain required. No re-measure or accusation has occurred.
+- The orchestrator regenerated the manifest and committed the repaired release
+  inventory as `19950b2`, then ran the exact repository-wide suite to 100% with
+  captured `PYTEST_EXIT=0` and pushed clean `dev/dependence-growth`. Fresh repaired-
+  snapshot reviewer session `01a00bdb` independently reviewed exact local and remote
+  HEAD `19950b2` with `.git` read-only and returned no BLOCKER, MAJOR, or MINOR
+  findings, `TRANSPORT-PRECEDENCE: ASSENT`, and
+  `VERDICT: CLEAR FOR RE-MEASURE`. It re-executed all eight former transport
+  fail-opens end to end (exact reasons, zero authority, no lock file), three pinned
+  SciPy-1.14.0 replacements that printed `REPLACEMENT`, the seven-lock/two-ambiguity
+  opportunity, every paired-fact alteration and singleton kernel obligation, walrus
+  precedence, paired/crossover/runtime/CSV/Wilcoxon/phase controls, pins, production
+  isolation, reason registry, manifest identity, scoped static checks, and all 4,178
+  repository tests with captured `PYTEST_EXIT=0`. Protected and frozen differences
+  were zero, the tree stayed clean, and no re-measure or accusation occurred in review.
+- The gated scratch Growth-13 re-measure then compared committed pre-round base
+  `423346c` with reviewed head `19950b2` across the same nine immutable paired
+  workflows. Both sides rebuilt their inspection contexts from frozen audit records
+  where available, ran the description-to-v2-lock translation, persisted and applied
+  the exact generated lock records, and inspected the shadow adapter. No authored
+  project code or model ran. Transport moved exactly from nine unavailable no-locks
+  to seven singular locks plus two ambiguity no-locks. Exactly the seven singular
+  cases moved from non-accusatory `question` to non-accusatory `unsupported` at the
+  reviewed walls: `41cfd...` `function-return-shape;raise-guard-not-modeled`,
+  `f75b...` `function-globals-read;raise-guard-not-modeled`, `c38b...`
+  `function-closure;function-return-shape`, `58960...`, `cc45...`, and `5d9a...`
+  `import-use-outside-grammar`, and positive I1 `2d0d...`
+  `module-constant-not-closed`. The two dual-call cases `407236...` and `be2cd...`
+  stayed non-accusatory questions behind
+  `procedure-ambiguous-multiple-statistical-calls`. Accusations remained `0 -> 0`,
+  `REMEASURE_EXIT=0`, and the complete frozen growth-loop lane had identical
+  before/after filesystem digest
+  `sha256:1cc36ea1bba28e643e25aafac848ed36695ab486d87cf7c3c1c8c414b492adad`.
+  HEAD/remote remained `19950b2` and the repository stayed clean. Growth-13 is closed.
 - The current raw wall leader is twelve `unsupported-import-form` cases, but all twelve
   import pandas and therefore do not present a demonstrated pure import-vocabulary
   gain: dataframe/reader semantics remain outside the current closed recognizer. That
-  evidence does not reorder the explicit paired-family go-ahead. No blind checkpoint
-  is due until roughly three to four additional reviewed rounds after J1/J2.
+  evidence does not establish an import-only round. With the paired-family go-ahead
+  now completed, numeric count predicates are the next queue premise to measure unless
+  a refreshed census demonstrates a better closed slice. No blind checkpoint is due
+  until roughly three to four additional reviewed rounds after J1/J2.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
@@ -428,8 +463,10 @@ Updated: 2026-08-16 (Growth-12 closed; Growth-13 Section-22 repair committed as 
    misses; all 21 batch descriptions already declared the column and stayed at
    procedure-stage v2 no-lock. The six census translations moved exactly as reviewed,
    with zero accusations. Maintainer intent remains a first honest blind FINDING.
-1. NEXT — Paired-procedure family (ttest_rel/wilcoxon lock gap; recurring since batch C) —
-   GO-AHEAD GRANTED (maintainer decision, relayed via the Fable escalation channel,
+1. COMPLETED in Growth-13 through `19950b2`, fresh `CLEAR FOR RE-MEASURE`, and the
+   zero-accusation nine-case scratch re-measure. Paired-procedure family
+   (ttest_rel/wilcoxon lock gap; recurring since batch C) — GO-AHEAD GRANTED
+   (maintainer decision, relayed via the Fable escalation channel,
    2026-08-16): the new claim shape may be designed. Constraints: full HEAVY gauntlet;
    the memo must state the paired-design independence semantics explicitly (same unit
    measured twice is the LEGITIMATE shape there, so the growth-3-era paired/crossover
