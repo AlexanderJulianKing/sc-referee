@@ -93,6 +93,7 @@ _BUILTINS = frozenset(
         "any",
         "all",
         "tuple",
+        "open",
     }
 )
 _SCIPY_PIN = re.compile(r"(?m)^\s*scipy\s*==\s*1\.14\.0\s*(?:#.*)?$")

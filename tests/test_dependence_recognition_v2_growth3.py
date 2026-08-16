@@ -543,11 +543,11 @@ def test_batches_a_through_f_full_sorted_observed_sets_and_rq6_guard(project_roo
             "e2ecaca2651276963b12": ["unsupported-import-form"],
         },
         "batch-b": {
-            "3c2b93c9545d8518e1f3": ["function-globals-read"],
+            "3c2b93c9545d8518e1f3": ["reader-form-unsupported"],
             "446cab155cd792398f9d": ["count-predicate-not-closed", "reader-form-unsupported"],
             "6a3bc02816cb70ee4042": ["import-use-outside-grammar"],
             "8b01b6d08e58aa5cce6f": ["raise-guard-not-modeled"],
-            "ae04f2973df030f612b9": ["function-globals-read"],
+            "ae04f2973df030f612b9": ["function-argument-not-simple"],
             "bf08b2218ca9cef1db2d": [
                 "count-predicate-not-closed",
                 "raise-guard-not-modeled",
@@ -610,7 +610,7 @@ def test_batches_a_through_f_full_sorted_observed_sets_and_rq6_guard(project_roo
             "b24355b160cf4665b929": ["raise-guard-not-modeled"],
             "b511aff6f2e4b54ee5ce": ["function-globals-read"],
             "d288f3b6bbda69d32acf": ["module-constant-not-closed"],
-            "e0b267c13e8a30d07b48": ["function-globals-read", "function-return-shape"],
+            "e0b267c13e8a30d07b48": ["function-return-shape"],
         },
     }
     for batch, expected in expected_by_batch.items():

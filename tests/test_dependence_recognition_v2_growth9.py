@@ -125,11 +125,73 @@ def _battery() -> dict[str, tuple[str, str, list[str]]]:
     }
 
 
+def _growth11_battery() -> dict[str, tuple[str, str, list[str]]]:
+    source = _source()
+    return {
+        "builtin-open": (
+            source.replace("with INPUT.open(", "with open(INPUT, "),
+            "unsupported",
+            ["reader-form-unsupported"],
+        ),
+        "path-open-control": (source, "evaluation_candidate", []),
+        "eval-default-deny": (
+            source.replace("def main():", 'def main():\n    eval("None")'),
+            "unsupported",
+            ["function-globals-read"],
+        ),
+        "exec-default-deny": (
+            source.replace("def main():", 'def main():\n    exec("pass")'),
+            "unsupported",
+            ["function-globals-read"],
+        ),
+        "globals-default-deny": (
+            source.replace("def main():", "def main():\n    globals()"),
+            "unsupported",
+            ["function-globals-read"],
+        ),
+        "dunder-import-default-deny": (
+            source.replace("def main():", 'def main():\n    __import__("math")'),
+            "unsupported",
+            ["function-globals-read"],
+        ),
+        "local-open-binding": (
+            source.replace(
+                "def main():\n    with INPUT.open(",
+                "def main():\n    open = INPUT.open\n    with open(",
+            ),
+            "unsupported",
+            ["reader-form-unsupported"],
+        ),
+        "parameter-open-binding": (
+            source.replace(
+                'def main():\n    with INPUT.open(newline="", encoding="ascii") as handle:\n'
+                "        rows = list(csv.DictReader(handle))",
+                'def load(open):\n    with open(newline="", encoding="ascii") as handle:\n'
+                "        return list(csv.DictReader(handle))\n\n"
+                "def main():\n    rows = load(INPUT.open)",
+            ),
+            "unsupported",
+            ["function-argument-not-simple"],
+        ),
+    }
+
+
 @pytest.mark.parametrize("case_id", sorted(_battery()))
 def test_growth9_amended_fixture_battery_executes_and_pins_observed_outcome(
     case_id: str, tmp_path: Path
 ) -> None:
     source, outcome, reasons = _battery()[case_id]
+    _execute(source, tmp_path / case_id)
+    payload = _inspect(source)
+    assert payload["outcome"] == outcome
+    assert payload["abstention_reasons"] == reasons
+
+
+@pytest.mark.parametrize("case_id", sorted(_growth11_battery()))
+def test_growth11_open_vocabulary_boundary_executes_and_pins_observed_outcome(
+    case_id: str, tmp_path: Path
+) -> None:
+    source, outcome, reasons = _growth11_battery()[case_id]
     _execute(source, tmp_path / case_id)
     payload = _inspect(source)
     assert payload["outcome"] == outcome

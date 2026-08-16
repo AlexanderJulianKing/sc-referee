@@ -940,10 +940,10 @@ _FROZEN_BATCH_REASONS = {
         "count-predicate-not-closed",
         "reader-form-unsupported",
     ),
-    "batch-b/3c2b93c9545d8518e1f3": ("function-globals-read",),
+    "batch-b/3c2b93c9545d8518e1f3": ("reader-form-unsupported",),
     "batch-b/6a3bc02816cb70ee4042": ("import-use-outside-grammar",),
     "batch-b/8b01b6d08e58aa5cce6f": ("raise-guard-not-modeled",),
-    "batch-b/ae04f2973df030f612b9": ("function-globals-read",),
+    "batch-b/ae04f2973df030f612b9": ("function-argument-not-simple",),
     "batch-b/bf08b2218ca9cef1db2d": (
         "count-predicate-not-closed",
         "raise-guard-not-modeled",
