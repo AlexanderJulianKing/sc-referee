@@ -52,6 +52,18 @@ Updated: 2026-08-15 (Growth-10 resumed by explicit maintainer authorization).
   also included `unsupported-import-form`, module constants, and the combined
   function closure/globals/return/raise set. No rates were published.
 
+- Growth-11 code review completed CLEAR FOR BATCHES with no findings (fresh codex-cli
+  reviewer session 01a009fe, launched by the Fable escalation session during a ~3-hour
+  overlord stall after the `f035bd9` push; `.git` was locked read-only for the session
+  per the process-control record). Executed probes: shadowed/parameter/user-function
+  `open` all abstained; alias-then-mutate and sink-position probes moved to existing
+  specific walls; dynamic names stayed default-deny. Independent 40-case
+  `run-40-authority-2` re-measure: 11 reason-set movements exactly matching the memo,
+  zero outcome-class movements, zero accusations. Reason-registry equality, targeted
+  Ruff/format, `mypy src` (159 files), starter validator, both pin-liveness checks,
+  production import isolation, and the full suite (4055 passed, `PYTEST_EXIT=0`
+  against the pristine `f035bd9` archive) all passed. Protected paths untouched.
+
 ## In flight
 
 - RESUMED by Alex's explicit authorization: Growth 10 may use a recursively
@@ -191,8 +203,30 @@ Updated: 2026-08-15 (Growth-10 resumed by explicit maintainer authorization).
 
 ## Heavy queue (evidence-ranked; measure premises before designing)
 
+0. MAINTAINER-AUTHORIZED (Alex, relayed via the Fable escalation channel, 2026-08-16),
+   NEW TOP PRIORITY: unit-declaration intake broadening. Measured premise: 21 frozen
+   blind free cases and 6/40 of run-40-authority-2 died at
+   `independent-unit-definition-unresolved` because the free-form description never
+   contained the exact `Independent unit column:` string — the single largest miss
+   cause, ahead of any grammar wall. Authorized scope: a HEAVY design round letting
+   the deterministic role-blind lock translation accept ordinary declaration
+   phrasings of the independent-unit column. Constraints: translation stays
+   deterministic, role-blind, and fail-closed (ambiguous or conflicting phrasings
+   still resolve to no-lock, never to a guessed lock); this touches the authority
+   layer, so the full design gauntlet applies and the memo must enumerate refusal
+   fixtures for near-miss phrasings; no change to v1, registry, grants, pins,
+   qualification records, or any promoted surface — development lanes only. Measure
+   the exact phrasings in the 21+6 dead cases first and put them in the memo.
+   Maintainer intent on record: the loop's goal is a first honest blind FINDING, and
+   this wall currently blocks ~1/4 of all opportunities before analysis begins.
 1. Paired-procedure family (ttest_rel/wilcoxon lock gap; recurring since batch C) —
-   maintainer go-ahead required (different independence semantics = new claim shape).
+   GO-AHEAD GRANTED (maintainer decision, relayed via the Fable escalation channel,
+   2026-08-16): the new claim shape may be designed. Constraints: full HEAVY gauntlet;
+   the memo must state the paired-design independence semantics explicitly (same unit
+   measured twice is the LEGITIMATE shape there, so the growth-3-era paired/crossover
+   must-not-accuse fixtures become the round's central regressions); fail-closed on any
+   ambiguity between paired and independent claims; dev lanes only. Sequence after
+   queue item 0 unless census evidence reorders.
 2. Numeric comparison predicates for counts (float(row[x]) > CONST; batch-B 446cab
    flagship + recurring, including J2 rq2).
 3. raise/validation guards inside helpers (part of the globals-read decomposition).
