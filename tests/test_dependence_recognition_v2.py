@@ -1013,6 +1013,7 @@ def test_reason_registry_equals_the_package_emission_vocabulary(project_root: Pa
         "src/sc_referee/dependence_recognition_v2/count_domain.py",
         "src/sc_referee/dependence_recognition_v2/adapter.py",
         "src/sc_referee/dependence_recognition_v2/intake_declaration.py",
+        "src/sc_referee/dependence_recognition_v2/paired_domain.py",
     ):
         tree = ast.parse((project_root / relative).read_text(encoding="utf-8"))
         for node in ast.walk(tree):
@@ -1052,7 +1053,7 @@ def test_reason_registry_equals_the_package_emission_vocabulary(project_root: Pa
                         for argument in node.args
                         if isinstance(argument, ast.Constant) and isinstance(argument.value, str)
                     )
-            if relative.endswith("csv_domain.py") and (
+            if relative.endswith(("csv_domain.py", "paired_domain.py")) and (
                 isinstance(node, ast.Return)
                 and isinstance(node.value, ast.Tuple)
                 and len(node.value.elts) == 2
@@ -1061,7 +1062,7 @@ def test_reason_registry_equals_the_package_emission_vocabulary(project_root: Pa
             ):
                 emitted_literals.add(node.value.elts[1].value)
             if (
-                relative.endswith("csv_domain.py")
+                relative.endswith(("csv_domain.py", "paired_domain.py"))
                 and isinstance(node, ast.Return)
                 and isinstance(node.value, ast.Constant)
                 and isinstance(node.value.value, str)

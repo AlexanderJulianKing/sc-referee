@@ -1,6 +1,6 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
-Updated: 2026-08-16 (Growth-12 closed; Growth-13 paired-procedure design selected).
+Updated: 2026-08-16 (Growth-12 closed; Growth-13 build complete and code review is the next gate).
 
 ## Scoreboard
 
@@ -231,14 +231,94 @@ Updated: 2026-08-16 (Growth-12 closed; Growth-13 paired-procedure design selecte
 
 ## In flight
 
-- Growth-13 is the maintainer-authorized paired-procedure family design. Fresh census
-  found nine frozen paired cases: seven `ttest_rel` calls and four `wilcoxon` calls
-  across nine workflows. Five are direct v2
-  `procedure-unavailable-to-closed-lock-schema` opportunities; four remain
-  `procedure-ambiguous-multiple-statistical-calls` and are not promised movement.
-  The design must measure every case's current translation and recognizer walls, state
-  paired-design independence semantics explicitly, keep same-unit-across-two-measures
-  legitimate, and make the growth-3 paired/crossover must-not-accuse cases central.
+- Growth-13 is the maintainer-authorized paired-procedure family HEAVY design. Exact
+  frozen census: nine workflows, seven `ttest_rel` calls, four `wilcoxon` calls, and
+  eleven calls total because two workflows contain both. Stored historical authority
+  evidence is 5 unavailable / 4 ambiguous, but the current Growth-7+ resolver replay
+  is 9 unavailable because it returns on the first unregistered paired member. Under
+  the proposed closed paired registry and raw-call precedence, seven workflows have
+  one singular-lock opportunity and the two dual-call workflows remain mandatory
+  `procedure-ambiguous-multiple-statistical-calls` no-locks. All seven singular cases
+  have measured downstream syntax walls; no frozen-case admission or candidate is
+  promised. The design defines position-level independence: the two sides at one row
+  are one legitimate pair position, and adversity requires the same authorized unit
+  at multiple pair positions. The growth-3 paired/crossover control remains central
+  and must never accuse or clear under the paired path.
+- Growth-13 HEAVY design review round 1 used fresh reviewer session `01a00b33` on
+  exact clean HEAD `423346c` with `.git` read-only and returned `VERDICT: BLOCKED`.
+  The reviewer reproduced all census counts, proposed 7-lock/2-no-lock transport,
+  downstream walls, SciPy-1.14.0 signatures, pair-position equation, byte/value-exact
+  runtime operands, kernel architecture, wording, isolation, and protected boundary.
+  No repository file changed, no corpus ran, and no accusation occurred. Two findings
+  blocked: (1) extending the existing authority census would mint a `ttest_rel` lock
+  after ordinary root/member rebinding even though an executed pinned-runtime source
+  invoked `ReplacementStats.ttest_rel`; the same fail-open covered assignment,
+  annotated/augmented/tuple/walrus, loop/with targets, parameter/def/class shadowing,
+  later import, attribute mutation, and deletion; (2) the memo did not bind exact full
+  reason sets and precedence for all paired refusal fixtures.
+- Binding memo v2 sections 15–16 now require a recursively enumerated, scope-aware,
+  default-deny authority binding pass; one exact transport-only
+  `procedure-binding-not-closed` reason; raw call-token precedence before deduplication;
+  no lock file and zero authority records for every invalidated form; redundant direct
+  callable parentheses treated as semantically identical; a complete paired domain and
+  kernel reason vocabulary; deterministic stage precedence; and exact full sorted
+  transport, recognizer, CSV-domain, and kernel-bypass matrices. Reasonable direct
+  aliases/rebinding/mutation remain in scope; obfuscated interpreter puzzles remain out
+  of scope per the maintainer threat-model decision. A different fresh reviewer must
+  re-execute the replacement-runtime/binding probes, explicitly assent or refuse on
+  transport precedence, and return `CLEAR TO BUILD` before any builder may run.
+- Growth-13 HEAVY design review round 2 used fresh reviewer session `01a00b42` and
+  returned `VERDICT: BLOCKED` with `TRANSPORT-PRECEDENCE: ASSENT`. Its `/tmp`
+  prototype and pinned-runtime probes closed round-1 finding 1: every required
+  assignment/scope/import/deletion/member-mutation invalidator produced no lock file
+  and zero authority records; dynamic aliases stayed unresolved; raw duplicate/mixed
+  call precedence, helper exclusion, parentheses, the exact 7-lock/2-no-lock frozen
+  opportunity, paired semantics, runtime operands, kernel shape, wording, pins, v1,
+  production isolation, and protected/frozen boundaries passed. Round-1 finding 2
+  remained blocked by three phase-label contradictions only: the authority-free proxy
+  belongs in `reason_code` with empty `abstention_reasons`; clear/extend reaches the
+  earlier existing `sink-mutates-operand-name`; and material-selection mismatch,
+  paired obligation mismatch, and invalid `FrozenMaterialInput` construction are
+  different phases. Binding memo v3 section 18 corrects those exact payloads without
+  changing the grammar or transport precedence. One third fresh design reviewer must
+  clear both original findings before any builder runs; another failure reaches the
+  orchestrator brief's persistent three-attempt escalation threshold.
+- Growth-13 HEAVY design review round 3 used fresh reviewer session `01a00b4b` on
+  exact committed base `423346c` with `.git` read-only and returned unconditional
+  `VERDICT: CLEAR TO BUILD` with `TRANSPORT-PRECEDENCE: ASSENT` and no findings. It
+  independently reproduced the exact authority-free adapter payload, all four direct
+  left/right `clear`/`extend` singleton refusals at the existing partition, and the
+  material-selection / paired-obligation / constructor / kernel-fact phase split. It
+  confirmed that binding memo v3 resolves both original round-1 findings, preserves
+  the recursively enumerated default-deny transport, the seven-singular/two-ambiguity
+  opportunity, pair-position semantics, independent paired kernel, wording ceiling,
+  production isolation, and every protected boundary. No repository or memo file was
+  changed by the reviewer, no corpus ran, and no accusation occurred. A fresh builder
+  may now implement the complete cleared memo through section 18; the builder remains
+  barred from commits, pushes, frozen-lane changes, and all protected surfaces.
+- Fresh Growth-13 builder session `01a00b51` implemented the complete cleared memo on
+  exact base `423346c` with `.git` read-only. It added the recursively enumerated,
+  scope-aware, default-deny authority pass; singular-only paired transport; distinct
+  paired IR/domain/certificate/kernel/adapter paths; and the exact authority,
+  phase-precedence, pair-position, runtime, kernel-bypass, and nine-workflow census
+  regressions. The builder did not review, commit, push, run a frozen corpus, or edit
+  STATE. Its final evidence was 66/66 Growth-13 tests and 364/364 focused tests, scoped
+  Ruff/format, `mypy src` over 161 source files, starter validation over 79 public
+  examples, both installed-pin checks, production isolation, and exact seven-lock /
+  two-ambiguity census assertions. The only focused-suite exclusion was the manifest
+  inventory test reserved for the orchestrator's commit-then-regenerate sequence.
+- The orchestrator audited the handoff against `423346c`: changed paths are confined
+  to the memo-authorized development v2/harness/test/EXPERIMENT-0060 surface; protected
+  and frozen changed paths are zero; `git diff --check` passes. The exact uncommitted
+  full suite ran all 4,166 tests and had one failure only at
+  `test_manifest_builder_inventory_equals_git_tree_listing`, caused by the necessarily
+  stale pre-commit manifest. Repeating the full repository suite with only that one
+  identity test deselected passed all other 4,165 tests with verified
+  `PYTEST_EXIT=0`. The orchestrator must now commit the functional inventory, rebuild
+  and separately commit `MANIFEST.sha256`, require an exact full-suite exit 0, push a
+  clean snapshot, and send that snapshot to a different fresh code reviewer. Only
+  `CLEAR FOR RE-MEASURE` permits the nine-case scratch retranslation; no frozen case
+  has been rerun and no accusation has occurred.
 - The current raw wall leader is twelve `unsupported-import-form` cases, but all twelve
   import pandas and therefore do not present a demonstrated pure import-vocabulary
   gain: dataframe/reader semantics remain outside the current closed recognizer. That

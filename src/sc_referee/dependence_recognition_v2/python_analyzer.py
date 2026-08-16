@@ -24,6 +24,7 @@ from sc_referee.dependence_recognition.python_analyzer import _trusted_authoriza
 from sc_referee.dependence_recognition_v2.certificate import (
     verify_count_dependence_certificate,
     verify_dependence_growth_certificate,
+    verify_paired_dependence_certificate,
 )
 from sc_referee.dependence_recognition_v2.count_domain import (
     prove_count_procedure_domain_with_reason,
@@ -50,8 +51,14 @@ from sc_referee.dependence_recognition_v2.ir import (
     GrowthAnalysis,
     GrowthConclusion,
     OperandGroupBinding,
+    PairedConclusion,
+    PairedDependenceCertificate,
+    PairedValueSequenceObligation,
     VerifiedCountDependenceCertificate,
     require_registered_v2_reason,
+)
+from sc_referee.dependence_recognition_v2.paired_domain import (
+    prove_paired_value_sequence_with_reason,
 )
 from sc_referee.scientific_checks.core import FrozenInspectionContext
 
@@ -60,9 +67,12 @@ _REGISTERED = {
     "scipy.stats.mannwhitneyu": 2,
     "scipy.stats.binomtest": 2,
     "scipy.stats.fisher_exact": 1,
+    "scipy.stats.ttest_rel": 2,
+    "scipy.stats.wilcoxon": 2,
 }
 _COUNT_PROCEDURES = frozenset({"scipy.stats.binomtest", "scipy.stats.fisher_exact"})
 _GROUP_PROCEDURES = frozenset({"scipy.stats.ttest_ind", "scipy.stats.mannwhitneyu"})
+_PAIRED_PROCEDURES = frozenset({"scipy.stats.ttest_rel", "scipy.stats.wilcoxon"})
 _ROW_INDEPENDENT_PROCEDURE_VARIANTS = frozenset(
     {"scipy.stats.ttest_ind", "scipy.stats.ttest_ind:welch", "scipy.stats.mannwhitneyu"}
 )
@@ -204,6 +214,31 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
         return _unsupported(*reasons)
 
     reasons.update(_independent_wall_scan(tree, constants))
+    trusted_procedures = _trusted_v2_procedure_sets(context)
+    paired_authorized = (
+        len(trusted_procedures) == 1
+        and len(trusted_procedures[0].resolved_callables) == 1
+        and trusted_procedures[0].resolved_callables[0] in _PAIRED_PROCEDURES
+    )
+    if paired_authorized:
+        if reasons:
+            return _unsupported(*reasons)
+        try:
+            return _analyze_paired_proposal(
+                document_path=document.path,
+                document_digest=document.content_digest,
+                source_length=len(document.content),
+                body=flattened,
+                imports=imports,
+                constants=constants,
+                authority=authority,
+                authorized_callable=trusted_procedures[0].resolved_callables[0],
+                renames=tuple(renames),
+                dead=tuple(sorted(dead)),
+                expected_result_path=_trusted_result_path(context),
+            )
+        except _Refusal as refusal:
+            return _unsupported(*refusal.reasons)
     if _count_procedure_present(flattened, imports):
         try:
             inferential_calls, _distribution_helpers = _procedure_census(
@@ -378,6 +413,8 @@ def discharge_dependence_growth_analysis(
     certificate = analysis.certificate
     if isinstance(certificate, CountDependenceCertificate):
         return _discharge_count_analysis(analysis, certificate, context)
+    if isinstance(certificate, PairedDependenceCertificate):
+        return _discharge_paired_analysis(analysis, certificate, context)
     assert isinstance(certificate, DependenceGrowthCertificate)
     assert isinstance(analysis.obligation, GroupValueSequenceObligation)
     materials = [
@@ -460,6 +497,269 @@ def discharge_dependence_growth_analysis(
         abstention_reasons=(),
         candidate_key_columns=analysis.candidate_key_columns,
         basis="The trusted group fact and growth certificate kernel discharged every equation.",
+    )
+
+
+def _analyze_paired_proposal(
+    *,
+    document_path: str,
+    document_digest: str,
+    source_length: int,
+    body: list[ast.stmt],
+    imports: dict[str, str],
+    constants: dict[str, ModuleConstant],
+    authority: HumanMethodAuthorization,
+    authorized_callable: str,
+    renames: tuple[AlphaRename, ...],
+    dead: tuple[str, ...],
+    expected_result_path: str | None,
+) -> GrowthAnalysis:
+    if authorized_callable == "scipy.stats.wilcoxon":
+        raise _Refusal("paired-procedure-form-unmodeled")
+    matches = [
+        (statement, statement.value)
+        for statement in body
+        if isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and isinstance(statement.value, ast.Call)
+        and _scipy_stats_callable(statement.value.func, imports) == "scipy.stats.ttest_rel"
+    ]
+    if len(matches) != 1:
+        raise _Refusal("paired-procedure-form-unmodeled")
+    procedure, call = matches[0]
+    if len(call.args) != 2:
+        raise _Refusal("paired-operand-arity-mismatch")
+    if call.keywords or any(isinstance(item, ast.Starred) for item in call.args):
+        raise _Refusal("paired-procedure-form-unmodeled")
+    if not all(isinstance(item, ast.Name) for item in call.args):
+        if any(
+            isinstance(node, ast.Call | ast.Subscript)
+            or (isinstance(node, ast.Attribute) and node.attr in {"sort", "reverse"})
+            for item in call.args
+            for node in ast.walk(item)
+        ):
+            raise _Refusal("paired-position-unit-binding-unproven")
+        raise _Refusal("paired-procedure-form-unmodeled")
+    left = cast(ast.Name, call.args[0]).id
+    right = cast(ast.Name, call.args[1]).id
+    if left == right:
+        raise _Refusal("paired-position-unit-binding-unproven")
+    reader = _paired_reader_envelope(body, constants, left, right)
+    result_name = cast(ast.Name, procedure.targets[0]).id
+    sink = _recognize_sink(body, result_name, constants, expected_result_path)
+    operand_tokens, sink_tokens = _partition_sink_bound_set(body, (procedure,), sink, {left, right})
+    with_statement, loop, path, encoding = reader
+    initializations = {
+        name: [
+            statement
+            for statement in body[: body.index(with_statement)]
+            if isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and statement.targets[0].id == name
+            and isinstance(statement.value, ast.List)
+            and not statement.value.elts
+        ]
+        for name in (left, right)
+    }
+    if any(len(items) != 1 for items in initializations.values()):
+        raise _Refusal("paired-vector-construction-unproven")
+    if len(loop.body) != 2 or not all(isinstance(item, ast.Expr) for item in loop.body):
+        raise _Refusal("paired-vector-construction-unproven")
+    appended: dict[str, tuple[str, str]] = {}
+    for statement in loop.body:
+        assert isinstance(statement, ast.Expr)
+        expression = statement.value
+        if not (
+            isinstance(expression, ast.Call)
+            and isinstance(expression.func, ast.Attribute)
+            and isinstance(expression.func.value, ast.Name)
+            and expression.func.attr == "append"
+            and expression.func.value.id in {left, right}
+            and len(expression.args) == 1
+            and not expression.keywords
+        ):
+            raise _Refusal("paired-vector-construction-unproven")
+        if expression.func.value.id in appended:
+            raise _Refusal("paired-vector-construction-unproven")
+        value = _direct_row_value(expression.args[0], cast(ast.Name, loop.target).id)
+        if value is None:
+            raise _Refusal("paired-position-unit-binding-unproven")
+        appended[expression.func.value.id] = value
+    if set(appended) != {left, right}:
+        raise _Refusal("paired-vector-construction-unproven")
+    left_column, left_cast = appended[left]
+    right_column, right_cast = appended[right]
+    if left_column == right_column or authority.authorized_key_columns[0] in {
+        left_column,
+        right_column,
+    }:
+        raise _Refusal("paired-position-unit-binding-unproven")
+    obligation = PairedValueSequenceObligation(
+        path=path,
+        content_digest=authority.input_content_digest,
+        line_model="csv_newline",
+        reader_form="csv_dictreader_direct_file",
+        encoding=encoding,
+        authorized_unit_column=authority.authorized_key_columns[0],
+        left_value_column=left_column,
+        right_value_column=right_column,
+        left_cast_kind=cast(Any, left_cast),
+        right_cast_kind=cast(Any, right_cast),
+    )
+    certificate = PairedDependenceCertificate(
+        certificate_id="pending-controller-domain-proof",
+        source_path=document_path,
+        source_digest=document_digest,
+        source_extent=(0, source_length),
+        analysis_target_ref=authority.analysis_target_ref,
+        procedure_ref=authority.procedure_ref,
+        authority_record_id=authority.record_id,
+        independent_unit_definition_id=authority.independent_unit_definition_id,
+        obligation=obligation,
+        resolved_callable="scipy.stats.ttest_rel",
+        procedure_call_token=_node_token(document_path, call, "procedure-call"),
+        left_vector_name=left,
+        right_vector_name=right,
+        result_name=result_name,
+        sink_token=_node_token(document_path, sink, "selected-sink"),
+        alpha_renames=renames,
+        operand_slice_statement_tokens=operand_tokens,
+        sink_bound_statement_tokens=sink_tokens,
+        dead_syntactic_construct_tokens=dead,
+        conclusion="one_pair_position_per_unit",
+    )
+    return GrowthAnalysis(
+        state="proposal",
+        certificate=certificate,
+        obligation=obligation,
+        abstention_reasons=(),
+        candidate_key_columns=authority.authorized_key_columns,
+        basis="The bounded direct-row paired grammar proposed a pair-position proof.",
+    )
+
+
+def _paired_reader_envelope(
+    body: list[ast.stmt],
+    constants: dict[str, ModuleConstant],
+    left: str,
+    right: str,
+) -> tuple[ast.With, ast.For, str, str]:
+    withs = [statement for statement in body if isinstance(statement, ast.With)]
+    if len(withs) != 1 or len(withs[0].items) != 1:
+        if any(
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr in {"setdefault", "sort", "reverse"}
+            for statement in body
+            for node in ast.walk(statement)
+        ):
+            raise _Refusal("paired-position-unit-binding-unproven")
+        raise _Refusal("paired-reader-form-unsupported")
+    statement = withs[0]
+    item = statement.items[0]
+    opened = _open_call(item.context_expr, constants)
+    if opened is None or not isinstance(item.optional_vars, ast.Name):
+        raise _Refusal("paired-reader-form-unsupported")
+    loops = [node for node in statement.body if isinstance(node, ast.For)]
+    if len(loops) != 1 or len(statement.body) != 1:
+        has_group_construction = any(
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "setdefault"
+            for root in body
+            for node in ast.walk(root)
+        )
+        raise _Refusal(
+            "paired-position-unit-binding-unproven"
+            if has_group_construction or len(loops) > 1
+            else "paired-reader-form-unsupported"
+        )
+    loop = loops[0]
+    if not (
+        isinstance(loop.target, ast.Name)
+        and isinstance(loop.iter, ast.Call)
+        and isinstance(loop.iter.func, ast.Attribute)
+        and isinstance(loop.iter.func.value, ast.Name)
+        and loop.iter.func.value.id == "csv"
+        and loop.iter.func.attr == "DictReader"
+        and len(loop.iter.args) == 1
+        and isinstance(loop.iter.args[0], ast.Name)
+        and loop.iter.args[0].id == item.optional_vars.id
+        and not loop.iter.keywords
+        and not loop.orelse
+    ):
+        raise _Refusal("paired-position-unit-binding-unproven")
+    # A direct transform or additional use of either vector before the procedure
+    # cannot establish one common file-order position sequence.
+    if any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id in {left, right}
+        and node.func.attr in {"sort", "reverse"}
+        for root in body
+        for node in ast.walk(root)
+    ):
+        raise _Refusal("paired-position-unit-binding-unproven")
+    return statement, loop, opened[0], opened[1]
+
+
+def _discharge_paired_analysis(
+    analysis: GrowthAnalysis,
+    certificate: PairedDependenceCertificate,
+    context: FrozenInspectionContext,
+) -> DischargedGrowthAnalysis:
+    assert isinstance(analysis.obligation, PairedValueSequenceObligation)
+    materials = [
+        item
+        for item in context.material_inputs
+        if item.path == analysis.obligation.path
+        and item.content_digest == analysis.obligation.content_digest
+    ]
+    if len(materials) != 1:
+        return _discharged_unsupported("paired-domain-binding-mismatch")
+    fact, reason = prove_paired_value_sequence_with_reason(
+        materials[0], obligation=analysis.obligation
+    )
+    if fact is None:
+        return _discharged_unsupported(reason or "paired-domain-unproven")
+    counts = Counter(item.authorized_unit_id for item in fact.observations)
+    repeated = tuple(sorted(unit for unit, count in counts.items() if count > 1))
+    conclusion: PairedConclusion = (
+        "repeated_unit_across_pair_positions" if repeated else "one_pair_position_per_unit"
+    )
+    certificate = replace(certificate, conclusion=conclusion)
+    certificate = replace(
+        certificate,
+        certificate_id=f"dependence-growth-paired-certificate:{semantic_digest({'source_digest': certificate.source_digest, 'fact': fact.evidence_id, 'left': certificate.left_vector_name, 'right': certificate.right_vector_name, 'conclusion': conclusion})}",
+    )
+    source_matches = [
+        item
+        for item in context.documents
+        if item.path == certificate.source_path and item.content_digest == certificate.source_digest
+    ]
+    if len(source_matches) != 1:
+        return _discharged_unsupported("source-binding-mismatch")
+    failures: list[str] = []
+    verified = verify_paired_dependence_certificate(
+        certificate,
+        trusted_paired_facts=(fact,),
+        trusted_authorizations=_trusted_v2_authorizations(context),
+        trusted_procedure_sets=_trusted_v2_procedure_sets(context),
+        source_bytes=source_matches[0].content,
+        _failure_reasons=failures,
+    )
+    if verified is None:
+        obligation = failures[0] if len(failures) == 1 else "paired-fact-closure"
+        return _discharged_unsupported(f"certificate-kernel-refusal:{obligation}")
+    return DischargedGrowthAnalysis(
+        state="verified",
+        verified_certificate=verified,
+        abstention_reasons=(),
+        candidate_key_columns=analysis.candidate_key_columns,
+        basis="The trusted paired fact and independent paired kernel discharged every equation.",
     )
 
 

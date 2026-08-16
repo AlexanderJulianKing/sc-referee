@@ -38,6 +38,19 @@ DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS = frozenset(
         "source-parse",
         "source-semantic-replay",
         "source-size",
+        "paired-envelope-binding",
+        "paired-authority-binding",
+        "paired-source-parse",
+        "paired-source-size",
+        "paired-procedure-class",
+        "paired-fact-closure",
+        "paired-position-equation",
+        "paired-vector-completeness",
+        "paired-sink-partition",
+        "paired-conclusion-equation",
+        "paired-certificate-identity",
+        "paired-alpha-renaming",
+        "paired-dead-construct-completeness",
     }
 )
 
@@ -105,6 +118,17 @@ DEPENDENCE_V2_REASON_REGISTRY = frozenset(
         "one-observation-per-unit-in-disjoint-bound-operands",
         "one-row-per-unit-in-proven-count-sets",
         "operand-name-rebound",
+        "one-paired-observation-per-independent-unit",
+        "paired-domain-binding-mismatch",
+        "paired-domain-unproven",
+        "paired-operand-arity-mismatch",
+        "paired-position-unit-binding-unproven",
+        "paired-procedure-form-unmodeled",
+        "paired-reader-form-unsupported",
+        "paired-unit-cell-empty",
+        "paired-value-cast-unproven",
+        "paired-value-not-finite",
+        "paired-vector-construction-unproven",
         "procedure-call-unresolved",
         "distribution-helper-not-bound",
         "distribution-helper-reaches-operand",
@@ -126,6 +150,7 @@ DEPENDENCE_V2_REASON_REGISTRY = frozenset(
         "reader-bytes-not-ascii",
         "reader-form-unsupported",
         "repeated-unit-within-bound-operand",
+        "repeated-unit-pairs-counted-as-independent-ttest-rel-observations",
         "repeated-unit-rows-counted-as-independent-binomtest-trials",
         "repeated-unit-rows-enter-independent-fisher-cells",
         "report-composition-not-modeled",
@@ -175,6 +200,7 @@ def require_registered_v2_reason(reason: str) -> str:
 CastKind = Literal["none", "float", "int"]
 CountPredicateOperator = Literal["eq", "ne"]
 GrowthConclusion = Literal["repeated_units", "one_observation_per_unit"]
+PairedConclusion = Literal["repeated_unit_across_pair_positions", "one_pair_position_per_unit"]
 
 
 @dataclass(frozen=True, order=True)
@@ -317,6 +343,56 @@ class GroupValueSequenceObligation:
 
 
 @dataclass(frozen=True, order=True)
+class PairedValueSequenceObligation:
+    """Digest-bound request for one ordered direct-row paired sequence."""
+
+    path: str
+    content_digest: str
+    line_model: str
+    reader_form: str
+    encoding: str
+    authorized_unit_column: str
+    left_value_column: str
+    right_value_column: str
+    left_cast_kind: Literal["float", "int"]
+    right_cast_kind: Literal["float", "int"]
+
+
+@dataclass(frozen=True, order=True)
+class PairedObservation:
+    row_index: int
+    observation_id: str
+    authorized_unit_id: str
+    left_source_value: str
+    right_source_value: str
+    left_cast_value_repr: str
+    right_cast_value_repr: str
+
+
+@dataclass(frozen=True)
+class PairedValueSequenceFact:
+    """Trusted frozen-CSV fact preserving pair positions in file order."""
+
+    evidence_id: str
+    path: str
+    content_digest: str
+    file_ref: RecordRef
+    asset_identity_ref: RecordRef
+    line_model: str
+    reader_form: str
+    encoding: str
+    ascii_bytes_proven: bool
+    header: tuple[str, ...]
+    authorized_unit_column: str
+    left_value_column: str
+    right_value_column: str
+    left_cast_kind: Literal["float", "int"]
+    right_cast_kind: Literal["float", "int"]
+    row_count: int
+    observations: tuple[PairedObservation, ...]
+
+
+@dataclass(frozen=True, order=True)
 class OperandGroupBinding:
     """One procedure positional argument bound to one proven group key."""
 
@@ -396,6 +472,32 @@ class CountDependenceCertificate:
 
 
 @dataclass(frozen=True)
+class PairedDependenceCertificate:
+    """Untrusted paired-position proposal checked independently by its kernel."""
+
+    certificate_id: str
+    source_path: str
+    source_digest: str
+    source_extent: tuple[int, int]
+    analysis_target_ref: RecordRef
+    procedure_ref: RecordRef
+    authority_record_id: str
+    independent_unit_definition_id: str
+    obligation: PairedValueSequenceObligation
+    resolved_callable: Literal["scipy.stats.ttest_rel"]
+    procedure_call_token: str
+    left_vector_name: str
+    right_vector_name: str
+    result_name: str
+    sink_token: str
+    alpha_renames: tuple[AlphaRename, ...]
+    operand_slice_statement_tokens: tuple[str, ...]
+    sink_bound_statement_tokens: tuple[str, ...]
+    dead_syntactic_construct_tokens: tuple[str, ...]
+    conclusion: PairedConclusion
+
+
+@dataclass(frozen=True)
 class VerifiedDependenceGrowthCertificate:
     """Kernel-authorized growth conclusion and its exact bound fact."""
 
@@ -431,12 +533,39 @@ class VerifiedCountDependenceCertificate:
 
 
 @dataclass(frozen=True)
+class VerifiedPairedDependenceCertificate:
+    certificate_id: str
+    source_path: str
+    source_digest: str
+    resolved_callable: Literal["scipy.stats.ttest_rel"]
+    conclusion: PairedConclusion
+    fact: PairedValueSequenceFact
+    repeated_unit_ids: tuple[str, ...]
+    left_vector_name: str
+    right_vector_name: str
+    alpha_renames: tuple[AlphaRename, ...]
+    operand_slice_statement_tokens: tuple[str, ...]
+    sink_bound_statement_tokens: tuple[str, ...]
+    dead_syntactic_construct_tokens: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class GrowthAnalysis:
     """Untrusted analyzer result before controller-side proof discharge."""
 
     state: Literal["proposal", "question", "unsupported", "not_applicable"]
-    certificate: DependenceGrowthCertificate | CountDependenceCertificate | None
-    obligation: GroupValueSequenceObligation | CountProcedureObligation | None
+    certificate: (
+        DependenceGrowthCertificate
+        | CountDependenceCertificate
+        | PairedDependenceCertificate
+        | None
+    )
+    obligation: (
+        GroupValueSequenceObligation
+        | CountProcedureObligation
+        | PairedValueSequenceObligation
+        | None
+    )
     abstention_reasons: tuple[str, ...]
     candidate_key_columns: tuple[str, ...]
     basis: str
@@ -448,7 +577,10 @@ class DischargedGrowthAnalysis:
 
     state: Literal["verified", "question", "unsupported", "not_applicable"]
     verified_certificate: (
-        VerifiedDependenceGrowthCertificate | VerifiedCountDependenceCertificate | None
+        VerifiedDependenceGrowthCertificate
+        | VerifiedCountDependenceCertificate
+        | VerifiedPairedDependenceCertificate
+        | None
     )
     abstention_reasons: tuple[str, ...]
     candidate_key_columns: tuple[str, ...]

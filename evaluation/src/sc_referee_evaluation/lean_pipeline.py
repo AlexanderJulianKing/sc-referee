@@ -1910,31 +1910,162 @@ _V2_DISTRIBUTION_HELPERS = frozenset(
     for distribution in ("t", "norm")
     for method in ("ppf", "cdf", "sf")
 )
+_V2_PAIRED_PROCEDURES = frozenset({"scipy.stats.ttest_rel", "scipy.stats.wilcoxon"})
+_V2_COUNT_PROCEDURES = frozenset({"scipy.stats.binomtest", "scipy.stats.fisher_exact"})
+_V2_BINDING_AST_NODES = frozenset(
+    {
+        "Module",
+        "Interactive",
+        "Expression",
+        "FunctionDef",
+        "AsyncFunctionDef",
+        "ClassDef",
+        "Return",
+        "Delete",
+        "Assign",
+        "TypeAlias",
+        "AugAssign",
+        "AnnAssign",
+        "For",
+        "AsyncFor",
+        "While",
+        "If",
+        "With",
+        "AsyncWith",
+        "Match",
+        "Raise",
+        "Try",
+        "TryStar",
+        "Assert",
+        "Import",
+        "ImportFrom",
+        "Global",
+        "Nonlocal",
+        "Expr",
+        "Pass",
+        "Break",
+        "Continue",
+        "BoolOp",
+        "NamedExpr",
+        "BinOp",
+        "UnaryOp",
+        "Lambda",
+        "IfExp",
+        "Dict",
+        "Set",
+        "ListComp",
+        "SetComp",
+        "DictComp",
+        "GeneratorExp",
+        "Await",
+        "Yield",
+        "YieldFrom",
+        "Compare",
+        "Call",
+        "FormattedValue",
+        "JoinedStr",
+        "Constant",
+        "Attribute",
+        "Subscript",
+        "Starred",
+        "Name",
+        "List",
+        "Tuple",
+        "Slice",
+        "comprehension",
+        "ExceptHandler",
+        "arguments",
+        "arg",
+        "keyword",
+        "alias",
+        "withitem",
+        "match_case",
+        "MatchValue",
+        "MatchSingleton",
+        "MatchSequence",
+        "MatchMapping",
+        "MatchClass",
+        "MatchStar",
+        "MatchAs",
+        "MatchOr",
+        "Load",
+        "Store",
+        "Del",
+        "And",
+        "Or",
+        "Add",
+        "Sub",
+        "Mult",
+        "MatMult",
+        "Div",
+        "Mod",
+        "Pow",
+        "LShift",
+        "RShift",
+        "BitOr",
+        "BitXor",
+        "BitAnd",
+        "FloorDiv",
+        "Invert",
+        "Not",
+        "UAdd",
+        "USub",
+        "Eq",
+        "NotEq",
+        "Lt",
+        "LtE",
+        "Gt",
+        "GtE",
+        "Is",
+        "IsNot",
+        "In",
+        "NotIn",
+    }
+)
 
 
 def _registered_dependence_callable_set_v2(source: str) -> tuple[tuple[str, ...] | None, str]:
-    """Translate only the reviewed v2 procedure-set census into a lock record."""
+    """Resolve v2 procedures under the closed, scope-conservative binding pass."""
 
     from sc_referee.dependence_recognition_v2.authority_lock import V2_PROCEDURES
 
     try:
         tree = ast.parse(source)
-    except SyntaxError:
+        compile(tree, "<dependence-v2-authority>", "exec")
+    except (SyntaxError, ValueError, TypeError):
         return None, "procedure-unresolved-by-lock-schema-resolver"
+    if any(type(node).__name__ not in _V2_BINDING_AST_NODES for node in ast.walk(tree)):
+        return None, "procedure-unresolved-by-lock-schema-resolver"
+
     bindings: dict[str, str] = {}
-    for statement in tree.body:
-        if isinstance(statement, ast.Import):
-            for alias in statement.names:
-                if alias.name == "scipy.stats":
-                    bindings[alias.asname or "scipy"] = "scipy.stats" if alias.asname else "scipy"
-        elif isinstance(statement, ast.ImportFrom) and statement.level == 0:
-            if statement.module == "scipy":
-                for alias in statement.names:
-                    if alias.name == "stats":
-                        bindings[alias.asname or alias.name] = "scipy.stats"
-            elif statement.module == "scipy.stats":
-                for alias in statement.names:
-                    bindings[alias.asname or alias.name] = f"scipy.stats.{alias.name}"
+    establishing: dict[str, list[ast.AST]] = {}
+    for node in ast.walk(tree):
+        entries: list[tuple[str, str]] = []
+        if isinstance(node, ast.Import):
+            entries.extend(
+                (
+                    alias.asname or "scipy",
+                    "scipy.stats" if alias.asname else "scipy",
+                )
+                for alias in node.names
+                if alias.name == "scipy.stats"
+            )
+        elif isinstance(node, ast.ImportFrom) and node.level == 0:
+            if node.module == "scipy":
+                entries.extend(
+                    (alias.asname or "stats", "scipy.stats")
+                    for alias in node.names
+                    if alias.name == "stats"
+                )
+            elif node.module == "scipy.stats":
+                entries.extend(
+                    (alias.asname or alias.name, f"scipy.stats.{alias.name}")
+                    for alias in node.names
+                    if alias.name != "*"
+                )
+        for root, resolved in entries:
+            establishing.setdefault(root, []).append(node)
+            bindings[root] = resolved
 
     def resolve(node: ast.expr) -> str | None:
         attributes: list[str] = []
@@ -1945,19 +2076,132 @@ def _registered_dependence_callable_set_v2(source: str) -> tuple[tuple[str, ...]
             return None
         return ".".join((bindings[node.id], *reversed(attributes)))
 
+    if not bindings:
+        return None, "procedure-unresolved-by-lock-schema-resolver"
+
+    def bound_names(target: ast.AST) -> set[str]:
+        if isinstance(target, ast.Name):
+            return {target.id}
+        if isinstance(target, ast.Starred):
+            return bound_names(target.value)
+        if isinstance(target, ast.Tuple | ast.List):
+            return set().union(*(bound_names(item) for item in target.elts))
+        return set()
+
+    invalid_roots: set[str] = {root for root, nodes in establishing.items() if len(nodes) != 1}
+    roots = set(bindings)
+    for node in ast.walk(tree):
+        targets: tuple[ast.AST, ...] = ()
+        if isinstance(node, ast.Assign):
+            targets = tuple(node.targets)
+        elif isinstance(node, ast.AnnAssign | ast.AugAssign | ast.NamedExpr):
+            targets = (node.target,)
+        elif isinstance(node, ast.For | ast.AsyncFor):
+            targets = (node.target,)
+        elif isinstance(node, ast.With | ast.AsyncWith):
+            targets = tuple(item.optional_vars for item in node.items if item.optional_vars)
+        elif isinstance(node, ast.comprehension):
+            # Comprehension targets are isolated by Python lexical scoping.
+            targets = ()
+        elif isinstance(node, ast.Delete):
+            targets = tuple(node.targets)
+        elif isinstance(node, ast.ExceptHandler) and node.name:
+            invalid_roots.update({node.name} & roots)
+        elif isinstance(node, ast.MatchAs | ast.MatchStar) and node.name:
+            invalid_roots.update({node.name} & roots)
+        elif isinstance(node, ast.MatchMapping) and node.rest:
+            invalid_roots.update({node.rest} & roots)
+        for target in targets:
+            invalid_roots.update(bound_names(target) & roots)
+        if isinstance(node, ast.arguments):
+            invalid_roots.update(
+                {item.arg for item in (*node.posonlyargs, *node.args, *node.kwonlyargs)} & roots
+            )
+            if node.vararg:
+                invalid_roots.update({node.vararg.arg} & roots)
+            if node.kwarg:
+                invalid_roots.update({node.kwarg.arg} & roots)
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
+            invalid_roots.update({node.name} & roots)
+        if isinstance(node, ast.Global | ast.Nonlocal):
+            invalid_roots.update(set(node.names) & roots)
+        if isinstance(node, ast.Import | ast.ImportFrom):
+            for alias in node.names:
+                imported = alias.asname or alias.name.split(".")[0]
+                if imported in roots and node not in establishing[imported]:
+                    invalid_roots.add(imported)
+
+    def direct_chain(node: ast.expr) -> tuple[str, tuple[str, ...]] | None:
+        parts: list[str] = []
+        while isinstance(node, ast.Attribute):
+            parts.append(node.attr)
+            node = node.value
+        return (node.id, tuple(reversed(parts))) if isinstance(node, ast.Name) else None
+
+    member_binding_failure = False
+    for node in ast.walk(tree):
+        member_targets: tuple[ast.AST, ...] = ()
+        if isinstance(node, ast.Assign):
+            member_targets = tuple(node.targets)
+        elif isinstance(node, ast.AnnAssign | ast.AugAssign):
+            member_targets = (node.target,)
+        elif isinstance(node, ast.Delete):
+            member_targets = tuple(node.targets)
+        for target in member_targets:
+            chain = direct_chain(target) if isinstance(target, ast.expr) else None
+            if chain is not None and chain[0] in bindings and chain[1]:
+                member_binding_failure = True
+
+    assigned_aliases: set[str] = set()
+    for node in ast.walk(tree):
+        alias_chain = direct_chain(node.value) if isinstance(node, ast.Assign) else None
+        if (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and alias_chain is not None
+            and alias_chain[0] in bindings
+        ):
+            assigned_aliases.add(node.targets[0].id)
+
     procedures: list[str] = []
+    dynamic_candidate = False
+    parents = {child: parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)}
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
-        resolved = resolve(node.func)
-        if resolved is None or not resolved.startswith("scipy.stats."):
+        chain = direct_chain(node.func)
+        if chain is not None:
+            ancestor = parents.get(node)
+            comprehension_shadowed = False
+            while ancestor is not None:
+                if isinstance(ancestor, ast.comprehension) and chain[0] in bound_names(
+                    ancestor.target
+                ):
+                    comprehension_shadowed = True
+                    break
+                if isinstance(
+                    ancestor, ast.ListComp | ast.SetComp | ast.DictComp | ast.GeneratorExp
+                ) and any(chain[0] in bound_names(item.target) for item in ancestor.generators):
+                    comprehension_shadowed = True
+                    break
+                ancestor = parents.get(ancestor)
+            if comprehension_shadowed:
+                dynamic_candidate = True
+                continue
+        candidate = resolve(node.func)
+        if candidate is None:
+            if (isinstance(node.func, ast.Name) and node.func.id in assigned_aliases) or any(
+                isinstance(item, ast.Name) and item.id in roots for item in ast.walk(node.func)
+            ):
+                dynamic_candidate = True
             continue
-        if resolved in _V2_DISTRIBUTION_HELPERS:
+        if not candidate.startswith("scipy.stats."):
             continue
-        if resolved not in V2_PROCEDURES:
-            return None, "procedure-unavailable-to-closed-lock-schema"
-        variant = resolved
-        if resolved == "scipy.stats.ttest_ind":
+        if candidate in _V2_DISTRIBUTION_HELPERS:
+            continue
+        variant = candidate
+        if candidate == "scipy.stats.ttest_ind":
             for keyword in node.keywords:
                 if (
                     keyword.arg == "equal_var"
@@ -1966,11 +2210,18 @@ def _registered_dependence_callable_set_v2(source: str) -> tuple[tuple[str, ...]
                 ):
                     variant = "scipy.stats.ttest_ind:welch"
         procedures.append(variant)
+    if dynamic_candidate:
+        return None, "procedure-unresolved-by-lock-schema-resolver"
     if not procedures:
         return None, "procedure-unresolved-by-lock-schema-resolver"
-    if any(item in {"scipy.stats.binomtest", "scipy.stats.fisher_exact"} for item in procedures):
-        if len(procedures) != 1:
-            return None, "procedure-set-count-member-unsupported"
+    if invalid_roots or member_binding_failure:
+        return None, "procedure-binding-not-closed"
+    if any(item.split(":", 1)[0] not in V2_PROCEDURES for item in procedures):
+        return None, "procedure-unavailable-to-closed-lock-schema"
+    if any(item in _V2_COUNT_PROCEDURES for item in procedures) and len(procedures) != 1:
+        return None, "procedure-set-count-member-unsupported"
+    if len(procedures) >= 2 and any(item in _V2_PAIRED_PROCEDURES for item in procedures):
+        return None, "procedure-ambiguous-multiple-statistical-calls"
     ordered_unique = tuple(dict.fromkeys(procedures))
     return ordered_unique, "lock-minted"
 

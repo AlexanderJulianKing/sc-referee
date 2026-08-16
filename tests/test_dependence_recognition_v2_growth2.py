@@ -800,12 +800,14 @@ def test_count_trial_declaration_mints_only_on_the_exact_closed_line(
     assert reason == "count-procedure-trial-declaration-missing"
 
 
-def test_v2_lock_procedure_registry_is_exactly_the_reviewed_four() -> None:
+def test_v2_lock_procedure_registry_is_exactly_the_reviewed_six() -> None:
     assert V2_PROCEDURES == {
         "scipy.stats.ttest_ind",
         "scipy.stats.mannwhitneyu",
         "scipy.stats.binomtest",
         "scipy.stats.fisher_exact",
+        "scipy.stats.ttest_rel",
+        "scipy.stats.wilcoxon",
     }
 
 

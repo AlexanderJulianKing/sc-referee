@@ -566,7 +566,10 @@ def test_batches_a_through_f_full_sorted_observed_sets_and_rq6_guard(project_roo
             "465d8368b0cdc3b167fd": ["module-collection-use-not-modeled"],
             "6e47ef090eb8989d547d": ["function-return-shape"],
             "7da68ec265e1bb2f6640": ["raise-guard-not-modeled"],
-            "f75b02bd61e813195904": ["unsupported-import-form"],
+            "f75b02bd61e813195904": [
+                "function-globals-read",
+                "raise-guard-not-modeled",
+            ],
         },
         "batch-e1": {
             "407236062264ca895ef3": ["import-use-outside-grammar"],
@@ -849,9 +852,9 @@ def test_growth6_multi_name_from_imports_are_individually_closed() -> None:
         .replace("stats.ttest_ind", "ttest_ind")
     )
     assert _inspect(scipy_source)["outcome"] == "evaluation_candidate"
-    assert _inspect(scipy_source.replace("mannwhitneyu", "wilcoxon"))["abstention_reasons"] == [
-        "unsupported-import-form"
-    ]
+    assert _inspect(scipy_source.replace("mannwhitneyu", "wilcoxon"))["outcome"] == (
+        "evaluation_candidate"
+    )
 
     assert _inspect(
         _source().replace("from pathlib import Path", "from pathlib import Path, PurePath")

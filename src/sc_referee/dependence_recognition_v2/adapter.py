@@ -9,6 +9,7 @@ from typing import Any
 from sc_referee.core.ids import semantic_digest, sha256_digest
 from sc_referee.dependence_recognition_v2.ir import (
     VerifiedCountDependenceCertificate,
+    VerifiedPairedDependenceCertificate,
     require_registered_v2_reason,
 )
 from sc_referee.dependence_recognition_v2.python_analyzer import (
@@ -28,6 +29,7 @@ DEPENDENCE_V2_PACKAGE_FILES = (
     "count_domain.py",
     "csv_domain.py",
     "ir.py",
+    "paired_domain.py",
     "python_analyzer.py",
 )
 DEPENDENCE_V2_DEPENDENCY_FILES = (
@@ -141,6 +143,54 @@ class DependenceRecognitionV2ShadowAdapter:
                 "abstention_reasons": [],
                 "repeated_unit_ids": [],
                 "payload": projection,
+            }
+        if isinstance(verified, VerifiedPairedDependenceCertificate):
+            paired_fact = verified.fact
+            paired_projection: dict[str, Any] = {
+                "source_path": verified.source_path,
+                "source_digest": verified.source_digest,
+                "resolved_callable": verified.resolved_callable,
+                "input_path": paired_fact.path,
+                "input_content_digest": paired_fact.content_digest,
+                "authorized_unit_column": paired_fact.authorized_unit_column,
+                "left_value_column": paired_fact.left_value_column,
+                "right_value_column": paired_fact.right_value_column,
+                "row_count": paired_fact.row_count,
+                "distinct_unit_count": len(
+                    {item.authorized_unit_id for item in paired_fact.observations}
+                ),
+                "certificate_id": verified.certificate_id,
+                "development_only": True,
+                "report_only": True,
+            }
+            if verified.conclusion == "repeated_unit_across_pair_positions":
+                return {
+                    **common,
+                    "payload_type": "shadow_candidate",
+                    "outcome": "evaluation_candidate",
+                    "reason_code": (
+                        "repeated-unit-pairs-counted-as-independent-ttest-rel-observations"
+                    ),
+                    "wording": (
+                        "Static code enters multiple paired positions from the same authorized "
+                        "independent unit into `scipy.stats.ttest_rel` as separate observations."
+                    ),
+                    "abstention_reasons": [],
+                    "repeated_unit_ids": list(verified.repeated_unit_ids),
+                    "payload": paired_projection,
+                }
+            return {
+                **common,
+                "payload_type": "coverage_note",
+                "outcome": "covered_negative",
+                "reason_code": "one-paired-observation-per-independent-unit",
+                "wording": (
+                    "The certified pair positions have one distinct authorized unit each, "
+                    "and both sides of each position bind to that same unit."
+                ),
+                "abstention_reasons": [],
+                "repeated_unit_ids": [],
+                "payload": paired_projection,
             }
         group_fact = verified.fact
         projection = {

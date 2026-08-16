@@ -32,13 +32,16 @@ V2_PROCEDURES = frozenset(
         "scipy.stats.binomtest",
         "scipy.stats.fisher_exact",
         "scipy.stats.mannwhitneyu",
+        "scipy.stats.ttest_rel",
         "scipy.stats.ttest_ind",
+        "scipy.stats.wilcoxon",
     }
 )
 V2_PROCEDURE_VARIANTS = frozenset({"scipy.stats.ttest_ind:welch"})
 V2_GROUP_PROCEDURES = frozenset(
     {"scipy.stats.ttest_ind", "scipy.stats.ttest_ind:welch", "scipy.stats.mannwhitneyu"}
 )
+V2_PAIRED_PROCEDURES = frozenset({"scipy.stats.ttest_rel", "scipy.stats.wilcoxon"})
 AUTHORITY_LIMITATIONS = (
     "This lock is development-shadow-only and cannot authorize v1 or production output.",
     "Authorization is limited to this case, snapshot, input digest, procedure and unit key.",

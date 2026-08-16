@@ -418,3 +418,26 @@ best-effort declaration translation, and reports v2 shadow wall frequencies.
 Its prompts contain no recognizer name or issue taxonomy. It is not registered
 in lean, qualification, production, grant, or capability surfaces. The growth-9
 shadow identity is `2.5.0-development`.
+
+## 2026-08-16 growth-13 heavy amendment: paired-procedure shadow
+
+The development v2 authority transport adds singular-only `ttest_rel` and `wilcoxon`
+under a recursively enumerated, scope-aware, default-deny binding pass. Raw paired
+call tokens are counted before callable deduplication; any paired multi-call source
+receives no lock. Shadowing, direct rebinding, imported-member mutation, deletion,
+and dynamic callable forms remain authority-free. This changes no v1, registry,
+grant, pin, qualification, production, or frozen-lane surface.
+
+Only the exact two-vector `scipy.stats.ttest_rel` direct-row form has a new proof
+path. One unconditional `csv.DictReader` loop appends finite builtin-`float` or
+builtin-`int` values from two distinct columns for every frozen row in file order.
+Both sides of row position *i* bind to the same authorized unit and form one
+legitimate paired observation. The adverse development-only conclusion requires
+the same authorized unit at multiple pair positions; the two sides of one position
+are never counted as independent observations. `wilcoxon`, group/crossover operands,
+filters, reordering, aliases, rebinding, mutation, and unknown forms abstain.
+
+Paired obligations, facts, certificates, verified conclusions, kernel obligations,
+adapter reasons, and wording are distinct from the row-independent group path. The
+analyzer and kernel reuse the existing single operand/sink partition independently;
+the row-independent path and its cross-operand unit safeguard are unchanged.

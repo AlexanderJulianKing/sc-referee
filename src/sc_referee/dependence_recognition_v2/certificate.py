@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import ast
 import copy
+import math
 import posixpath
 from collections import Counter
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from typing import Any, Literal, cast
 
 from sc_referee.core.ids import semantic_digest, sha256_digest
@@ -15,6 +16,7 @@ from sc_referee.dependence_recognition_v2.ir import (
     DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS,
     MAX_V2_AST_NODES,
     MAX_V2_INLINE_DEPTH,
+    MAX_V2_SOURCE_BYTES,
     AuthorizedProcedureSet,
     CountDependenceCertificate,
     CountGroupDomainObligation,
@@ -23,8 +25,11 @@ from sc_referee.dependence_recognition_v2.ir import (
     CountProcedureFact,
     DependenceGrowthCertificate,
     GroupValueSequenceFact,
+    PairedDependenceCertificate,
+    PairedValueSequenceFact,
     VerifiedCountDependenceCertificate,
     VerifiedDependenceGrowthCertificate,
+    VerifiedPairedDependenceCertificate,
 )
 
 _PROCEDURE_ARITY = {
@@ -35,7 +40,8 @@ _PROCEDURE_ARITY = {
 _ROW_INDEPENDENT_VARIANTS = frozenset(_PROCEDURE_ARITY)
 _GROUP_BASE_PROCEDURES = frozenset({"scipy.stats.ttest_ind", "scipy.stats.mannwhitneyu"})
 _COUNT_PROCEDURES = frozenset({"scipy.stats.binomtest", "scipy.stats.fisher_exact"})
-_ALL_PROCEDURES = frozenset((*_PROCEDURE_ARITY, *_COUNT_PROCEDURES))
+_PAIRED_PROCEDURES = frozenset({"scipy.stats.ttest_rel", "scipy.stats.wilcoxon"})
+_ALL_PROCEDURES = frozenset((*_PROCEDURE_ARITY, *_COUNT_PROCEDURES, *_PAIRED_PROCEDURES))
 _DISTRIBUTION_HELPER_METHODS = frozenset(
     f"scipy.stats.{distribution}.{method}"
     for distribution in ("t", "norm")
@@ -227,6 +233,328 @@ def verify_dependence_growth_certificate(
         operand_slice_statement_tokens=certificate.operand_slice_statement_tokens,
         sink_bound_statement_tokens=certificate.sink_bound_statement_tokens,
         dead_syntactic_construct_tokens=certificate.dead_syntactic_construct_tokens,
+    )
+
+
+def verify_paired_dependence_certificate(
+    certificate: PairedDependenceCertificate,
+    *,
+    trusted_paired_facts: tuple[PairedValueSequenceFact, ...],
+    trusted_authorizations: tuple[HumanMethodAuthorization, ...],
+    trusted_procedure_sets: tuple[AuthorizedProcedureSet, ...],
+    source_bytes: bytes,
+    _failure_reasons: list[str] | None = None,
+) -> VerifiedPairedDependenceCertificate | None:
+    """Independently verify the direct-row paired-position equations."""
+
+    def refuse(obligation: str) -> VerifiedPairedDependenceCertificate | None:
+        if obligation not in DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS:
+            raise AssertionError(f"unknown kernel refusal obligation: {obligation}")
+        if _failure_reasons is not None:
+            _failure_reasons.append(obligation)
+        return None
+
+    if (
+        len(trusted_paired_facts) != 1
+        or sha256_digest(source_bytes) != certificate.source_digest
+        or certificate.source_extent != (0, len(source_bytes))
+        or certificate.resolved_callable != "scipy.stats.ttest_rel"
+        or not certificate.authority_record_id
+        or not certificate.independent_unit_definition_id
+    ):
+        return refuse("paired-envelope-binding")
+    fact = trusted_paired_facts[0]
+    obligation = certificate.obligation
+    if len(trusted_authorizations) != 1 or len(trusted_procedure_sets) != 1:
+        return refuse("paired-authority-binding")
+    authority = trusted_authorizations[0]
+    procedure_set = trusted_procedure_sets[0]
+    if (
+        authority.record_id != certificate.authority_record_id
+        or authority.authority_state != "authorized"
+        or authority.analysis_target_ref != certificate.analysis_target_ref
+        or authority.procedure_ref != certificate.procedure_ref
+        or authority.procedure_ref.record_id != procedure_set.record_id
+        or procedure_set.resolved_callables != ("scipy.stats.ttest_rel",)
+        or authority.independent_unit_definition_id != certificate.independent_unit_definition_id
+        or authority.authorized_key_columns != (obligation.authorized_unit_column,)
+        or authority.input_path != obligation.path
+        or authority.input_content_digest != obligation.content_digest
+    ):
+        return refuse("paired-authority-binding")
+    try:
+        tree = ast.parse(source_bytes.decode("utf-8", errors="strict"))
+        compile(tree, certificate.source_path, "exec")
+    except (SyntaxError, UnicodeDecodeError, ValueError, TypeError, RecursionError):
+        return refuse("paired-source-parse")
+    if len(source_bytes) > MAX_V2_SOURCE_BYTES or sum(1 for _ in ast.walk(tree)) > MAX_V2_AST_NODES:
+        return refuse("paired-source-size")
+    tree = _kernel_without_docstrings(tree)
+    expected_dead = _kernel_expected_dead_constructs(tree)
+    if not _kernel_replay_function_bookkeeping(
+        tree, replace(certificate, dead_syntactic_construct_tokens=expected_dead)
+    ):
+        return refuse("paired-alpha-renaming")
+    body = _kernel_flattened_module(tree, certificate)
+    if body is None:
+        return refuse("paired-alpha-renaming")
+    imports = _kernel_imports(tree)
+    matches = [
+        (statement, statement.value)
+        for statement in body
+        if isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and isinstance(statement.value, ast.Call)
+        and _kernel_resolved_call(statement.value.func, imports) == "scipy.stats.ttest_rel"
+    ]
+    all_inferential = [
+        call
+        for statement in body
+        for call in (node for node in ast.walk(statement) if isinstance(node, ast.Call))
+        if (_kernel_resolved_call(call.func, imports) or "") in _ALL_PROCEDURES
+    ]
+    if len(matches) != 1 or len(all_inferential) != 1:
+        return refuse("paired-procedure-class")
+    procedure, call = matches[0]
+    if (
+        call is not all_inferential[0]
+        or len(call.args) != 2
+        or call.keywords
+        or not all(isinstance(item, ast.Name) for item in call.args)
+        or tuple(cast(ast.Name, item).id for item in call.args)
+        != (certificate.left_vector_name, certificate.right_vector_name)
+        or cast(ast.Name, procedure.targets[0]).id != certificate.result_name
+        or _kernel_node_token(certificate.source_path, call, "procedure-call")
+        != certificate.procedure_call_token
+    ):
+        return refuse("paired-procedure-class")
+    if not _paired_fact_closed(fact, obligation):
+        return refuse("paired-fact-closure")
+    replay = _kernel_paired_vectors(body, certificate, imports)
+    if replay is None:
+        return refuse("paired-vector-completeness")
+    left_column, right_column, left_cast, right_cast = replay
+    if (
+        (left_column, right_column, left_cast, right_cast)
+        != (
+            obligation.left_value_column,
+            obligation.right_value_column,
+            obligation.left_cast_kind,
+            obligation.right_cast_kind,
+        )
+        or left_column == right_column
+        or obligation.authorized_unit_column in {left_column, right_column}
+    ):
+        return refuse("paired-position-equation")
+    if len(fact.observations) != fact.row_count or tuple(
+        item.row_index for item in fact.observations
+    ) != tuple(range(1, fact.row_count + 1)):
+        return refuse("paired-position-equation")
+    if not _kernel_sink_partition_matches(tree, certificate):
+        return refuse("paired-sink-partition")
+    counts = Counter(item.authorized_unit_id for item in fact.observations)
+    repeated = tuple(sorted(unit for unit, count in counts.items() if count > 1))
+    conclusion = "repeated_unit_across_pair_positions" if repeated else "one_pair_position_per_unit"
+    if certificate.conclusion != conclusion:
+        return refuse("paired-conclusion-equation")
+    expected_id = f"dependence-growth-paired-certificate:{semantic_digest({'source_digest': certificate.source_digest, 'fact': fact.evidence_id, 'left': certificate.left_vector_name, 'right': certificate.right_vector_name, 'conclusion': conclusion})}"
+    if certificate.certificate_id != expected_id:
+        return refuse("paired-certificate-identity")
+    if len({item.fresh_name for item in certificate.alpha_renames}) != len(
+        certificate.alpha_renames
+    ):
+        return refuse("paired-alpha-renaming")
+    if (
+        len(set(certificate.dead_syntactic_construct_tokens))
+        != len(certificate.dead_syntactic_construct_tokens)
+        or certificate.dead_syntactic_construct_tokens != expected_dead
+    ):
+        return refuse("paired-dead-construct-completeness")
+    return VerifiedPairedDependenceCertificate(
+        certificate_id=certificate.certificate_id,
+        source_path=certificate.source_path,
+        source_digest=certificate.source_digest,
+        resolved_callable="scipy.stats.ttest_rel",
+        conclusion=certificate.conclusion,
+        fact=fact,
+        repeated_unit_ids=repeated,
+        left_vector_name=certificate.left_vector_name,
+        right_vector_name=certificate.right_vector_name,
+        alpha_renames=certificate.alpha_renames,
+        operand_slice_statement_tokens=certificate.operand_slice_statement_tokens,
+        sink_bound_statement_tokens=certificate.sink_bound_statement_tokens,
+        dead_syntactic_construct_tokens=certificate.dead_syntactic_construct_tokens,
+    )
+
+
+def _paired_fact_closed(fact: PairedValueSequenceFact, obligation: Any) -> bool:
+    if (
+        fact.evidence_id != f"dependence-growth-paired-proof:{semantic_digest(asdict(obligation))}"
+        or fact.path != obligation.path
+        or fact.content_digest != obligation.content_digest
+        or fact.line_model != obligation.line_model
+        or fact.reader_form != obligation.reader_form
+        or fact.encoding != obligation.encoding
+        or fact.authorized_unit_column != obligation.authorized_unit_column
+        or fact.left_value_column != obligation.left_value_column
+        or fact.right_value_column != obligation.right_value_column
+        or fact.left_cast_kind != obligation.left_cast_kind
+        or fact.right_cast_kind != obligation.right_cast_kind
+        or not fact.header
+        or len(fact.header) != len(set(fact.header))
+        or any(not item for item in fact.header)
+        or not {
+            fact.authorized_unit_column,
+            fact.left_value_column,
+            fact.right_value_column,
+        }
+        <= set(fact.header)
+        or fact.row_count <= 0
+        or fact.row_count > 10_000
+        or len(fact.observations) != fact.row_count
+        or (fact.encoding == "ascii" and not fact.ascii_bytes_proven)
+    ):
+        return False
+    for index, item in enumerate(fact.observations, start=1):
+        expected_observation = f"paired-observation:{semantic_digest({'path': fact.path, 'digest': fact.content_digest, 'row': index})}"
+        unit_digest = item.authorized_unit_id.removeprefix("unit-key:sha256:")
+        if (
+            item.row_index != index
+            or item.observation_id != expected_observation
+            or len(unit_digest) != 64
+            or any(character not in "0123456789abcdef" for character in unit_digest)
+        ):
+            return False
+        try:
+            left = (
+                float(item.left_source_value)
+                if fact.left_cast_kind == "float"
+                else int(item.left_source_value)
+            )
+            right = (
+                float(item.right_source_value)
+                if fact.right_cast_kind == "float"
+                else int(item.right_source_value)
+            )
+        except (ValueError, OverflowError):
+            return False
+        if (
+            repr(left) != item.left_cast_value_repr
+            or repr(right) != item.right_cast_value_repr
+            or not math.isfinite(left)
+            or not math.isfinite(right)
+        ):
+            return False
+    return True
+
+
+def _kernel_expected_dead_constructs(tree: ast.Module) -> tuple[str, ...]:
+    functions = {item.name: item for item in tree.body if isinstance(item, ast.FunctionDef)}
+    graph = {
+        name: {
+            node.func.id
+            for node in ast.walk(function)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id in functions
+        }
+        for name, function in functions.items()
+    }
+    roots = {
+        node.func.id
+        for statement in tree.body
+        if not isinstance(statement, ast.FunctionDef)
+        for node in ast.walk(statement)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in functions
+    }
+    called: set[str] = set()
+    pending = list(roots)
+    while pending:
+        name = pending.pop()
+        if name in called:
+            continue
+        called.add(name)
+        pending.extend(graph[name])
+    return tuple(sorted(f"dead-function:{name}" for name in set(functions) - called))
+
+
+def _kernel_paired_vectors(
+    body: list[ast.stmt],
+    certificate: PairedDependenceCertificate,
+    imports: dict[str, str],
+) -> tuple[str, str, str, str] | None:
+    procedures = [
+        statement
+        for statement in body
+        if isinstance(statement, ast.Assign)
+        and isinstance(statement.value, ast.Call)
+        and _kernel_resolved_call(statement.value.func, imports) == "scipy.stats.ttest_rel"
+    ]
+    if len(procedures) != 1:
+        return None
+    withs = [statement for statement in body if isinstance(statement, ast.With)]
+    if len(withs) != 1 or len(withs[0].items) != 1 or len(withs[0].body) != 1:
+        return None
+    with_statement = withs[0]
+    loop = with_statement.body[0]
+    if not isinstance(loop, ast.For) or not isinstance(loop.target, ast.Name) or loop.orelse:
+        return None
+    if not (
+        isinstance(loop.iter, ast.Call)
+        and _kernel_resolved_call(loop.iter.func, imports) == "csv.DictReader"
+        and len(loop.iter.args) == 1
+        and not loop.iter.keywords
+    ):
+        return None
+    names = (certificate.left_vector_name, certificate.right_vector_name)
+    for name in names:
+        definitions = [
+            statement
+            for statement in body[: body.index(with_statement)]
+            if isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and statement.targets[0].id == name
+            and isinstance(statement.value, ast.List)
+            and not statement.value.elts
+        ]
+        if len(definitions) != 1:
+            return None
+    if len(loop.body) != 2:
+        return None
+    values: dict[str, tuple[str, str]] = {}
+    for statement in loop.body:
+        if not isinstance(statement, ast.Expr) or not isinstance(statement.value, ast.Call):
+            return None
+        append = statement.value
+        if not (
+            isinstance(append.func, ast.Attribute)
+            and isinstance(append.func.value, ast.Name)
+            and append.func.value.id in names
+            and append.func.attr == "append"
+            and len(append.args) == 1
+            and not append.keywords
+            and isinstance(append.args[0], ast.Call)
+            and isinstance(append.args[0].func, ast.Name)
+            and append.args[0].func.id in {"float", "int"}
+            and len(append.args[0].args) == 1
+            and not append.args[0].keywords
+        ):
+            return None
+        column = _kernel_row_column(append.args[0].args[0], loop.target.id)
+        if column is None or append.func.value.id in values:
+            return None
+        values[append.func.value.id] = (column, append.args[0].func.id)
+    if set(values) != set(names):
+        return None
+    return (
+        values[names[0]][0],
+        values[names[1]][0],
+        values[names[0]][1],
+        values[names[1]][1],
     )
 
 
@@ -1406,7 +1734,9 @@ def _kernel_replay_source_claims(
 
 def _kernel_renamed_name(
     tree: ast.Module,
-    certificate: DependenceGrowthCertificate | CountDependenceCertificate,
+    certificate: DependenceGrowthCertificate
+    | CountDependenceCertificate
+    | PairedDependenceCertificate,
     node: ast.AST,
     original: str,
 ) -> str:
@@ -1735,7 +2065,9 @@ def _kernel_import_forms_closed(tree: ast.Module) -> bool:
                     ),
                     *(
                         ("scipy.stats", name.rsplit(".", 1)[1])
-                        for name in (_GROUP_BASE_PROCEDURES | _COUNT_PROCEDURES)
+                        for name in (
+                            _GROUP_BASE_PROCEDURES | _COUNT_PROCEDURES | _PAIRED_PROCEDURES
+                        )
                     ),
                 }:
                     return False
@@ -2007,12 +2339,15 @@ def _kernel_lower_annotations_for_partition(
 
 def _kernel_partition_body(
     tree: ast.Module,
-    certificate: DependenceGrowthCertificate | CountDependenceCertificate,
+    certificate: DependenceGrowthCertificate
+    | CountDependenceCertificate
+    | PairedDependenceCertificate,
 ) -> tuple[list[ast.stmt], set[str]] | None:
     body = _kernel_flattened_module(tree, certificate)
     if body is None:
         return None
     imports = _kernel_imports(tree)
+    helpers: tuple[tuple[ast.Assign, str, ast.Call], ...] = ()
     if isinstance(certificate, CountDependenceCertificate):
         procedures = tuple(
             statement
@@ -2020,6 +2355,17 @@ def _kernel_partition_body(
             if isinstance(statement, ast.Assign)
             and len(statement.targets) == 1
             and isinstance(statement.targets[0], ast.Name)
+            and isinstance(statement.value, ast.Call)
+            and _kernel_resolved_call(statement.value.func, imports)
+            == certificate.resolved_callable
+        )
+        if len(procedures) != 1:
+            return None
+    elif isinstance(certificate, PairedDependenceCertificate):
+        procedures = tuple(
+            statement
+            for statement in body
+            if isinstance(statement, ast.Assign)
             and isinstance(statement.value, ast.Call)
             and _kernel_resolved_call(statement.value.func, imports)
             == certificate.resolved_callable
@@ -2034,7 +2380,7 @@ def _kernel_partition_body(
     operands = _kernel_partition_operand_names(body, procedures)
     if _kernel_rebound_operand_names(body, operands):
         return None
-    if not isinstance(certificate, CountDependenceCertificate) and any(
+    if isinstance(certificate, DependenceGrowthCertificate) and any(
         target in operands for _statement, target, _call in helpers
     ):
         return None
@@ -2466,7 +2812,9 @@ def _kernel_parameter_string(
 
 def _kernel_replay_function_bookkeeping(
     tree: ast.Module,
-    certificate: DependenceGrowthCertificate | CountDependenceCertificate,
+    certificate: DependenceGrowthCertificate
+    | CountDependenceCertificate
+    | PairedDependenceCertificate,
 ) -> bool:
     functions = {item.name: item for item in tree.body if isinstance(item, ast.FunctionDef)}
     imports = _kernel_imports(tree)
@@ -2608,7 +2956,10 @@ def _kernel_simple_argument(expression: ast.expr, constants: set[str]) -> bool:
 
 
 def _kernel_flattened_module(
-    tree: ast.Module, certificate: DependenceGrowthCertificate | CountDependenceCertificate
+    tree: ast.Module,
+    certificate: DependenceGrowthCertificate
+    | CountDependenceCertificate
+    | PairedDependenceCertificate,
 ) -> list[ast.stmt] | None:
     """Independently replay inlining; certificate names are used only after injectivity replay."""
 
@@ -3034,7 +3385,10 @@ def _kernel_sink_expression_closed(
 
 
 def _kernel_sink_partition_matches(
-    tree: ast.Module, certificate: DependenceGrowthCertificate | CountDependenceCertificate
+    tree: ast.Module,
+    certificate: DependenceGrowthCertificate
+    | CountDependenceCertificate
+    | PairedDependenceCertificate,
 ) -> bool:
     partition = _kernel_partition_body(tree, certificate)
     if partition is None:
@@ -3048,6 +3402,17 @@ def _kernel_sink_partition_matches(
             if isinstance(statement, ast.Assign)
             and len(statement.targets) == 1
             and isinstance(statement.targets[0], ast.Name)
+            and isinstance(statement.value, ast.Call)
+            and _kernel_resolved_call(statement.value.func, imports)
+            == certificate.resolved_callable
+        )
+        if len(procedures) != 1:
+            return False
+    elif isinstance(certificate, PairedDependenceCertificate):
+        procedures = tuple(
+            statement
+            for statement in body
+            if isinstance(statement, ast.Assign)
             and isinstance(statement.value, ast.Call)
             and _kernel_resolved_call(statement.value.func, imports)
             == certificate.resolved_callable

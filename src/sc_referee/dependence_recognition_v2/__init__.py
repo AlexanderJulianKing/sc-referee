@@ -4,9 +4,13 @@ from sc_referee.dependence_recognition_v2.adapter import DependenceRecognitionV2
 from sc_referee.dependence_recognition_v2.certificate import (
     verify_count_dependence_certificate,
     verify_dependence_growth_certificate,
+    verify_paired_dependence_certificate,
 )
 from sc_referee.dependence_recognition_v2.count_domain import prove_count_procedure_domain
 from sc_referee.dependence_recognition_v2.csv_domain import prove_group_value_sequences
+from sc_referee.dependence_recognition_v2.paired_domain import (
+    prove_paired_value_sequence_with_reason,
+)
 from sc_referee.dependence_recognition_v2.python_analyzer import (
     analyze_dependence_growth_python,
     discharge_dependence_growth_analysis,
@@ -18,6 +22,8 @@ __all__ = [
     "discharge_dependence_growth_analysis",
     "prove_count_procedure_domain",
     "prove_group_value_sequences",
+    "prove_paired_value_sequence_with_reason",
     "verify_count_dependence_certificate",
     "verify_dependence_growth_certificate",
+    "verify_paired_dependence_certificate",
 ]
