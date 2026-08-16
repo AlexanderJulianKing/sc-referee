@@ -1,6 +1,6 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
-Updated: 2026-08-15 (Growth-9 closed; first wall-corpus census recorded).
+Updated: 2026-08-15 (HALTED after three blocked Growth-10 harness-design reviews).
 
 ## Scoreboard
 
@@ -54,13 +54,41 @@ Updated: 2026-08-15 (Growth-9 closed; first wall-corpus census recorded).
 
 ## In flight
 
-- Persist and gate the completed J1/J2 frozen development lanes, then begin the next
-  census/design iteration. Do not run another blind checkpoint until roughly three to
-  four additional reviewed growth rounds have accumulated.
-- Before another wall-corpus run, write and review a narrow harness design that makes
-  authority projection usable without planting error classes or recognition labels.
-  The current empty census is preserved as evidence of the boundary, not retried or
-  rescored.
+- HALTED. Do not build Growth 10, run another wall corpus, change grammar, or run a
+  blind checkpoint until Alex decides how (or whether) open-census procedure authority
+  may be established. The three-fresh-attempt persistent review-failure condition in
+  the orchestrator brief is met. The current empty `run-40` census remains immutable
+  evidence and is not retried or rescored.
+- Reserved decision needed: either authorize a recursively enumerated, default-deny
+  safe AST language for the entire executable slice capable of affecting the
+  statistical call, or abandon/reframe source-derived procedure authority for this
+  wall-mining lane. Extending a blacklist is explicitly insufficient.
+
+## Halt record — Growth 10 wall-census authority transport
+
+- Design memo:
+  `~/Desktop/random_stuff/sc-referee-design-memos/dependence-grammar-growth-10-design-2026-08-15.md`.
+  No builder session was launched and no Growth-10 repository code was changed.
+- Fresh design review 1: BLOCKED. Executed probes showed duplicate headers,
+  empty/missing unit cells, repeated same-procedure calls, and stale import aliases
+  could project locks; same-content cases in distinct runs also shared downstream
+  provenance digests.
+- Fresh design review 2: BLOCKED. The first amendment's canonical `import scipy` form
+  was itself refused by the unchanged recognizer as `unsupported-import-form`; the
+  review also required symlink-safe run allocation and complete inner-reference
+  provenance assertions.
+- Fresh design review 3: BLOCKED. Although `from scipy import stats` passed the
+  recognizer import grammar and reached the honest next wall, two pinned-runtime probes
+  satisfied all seven proposed finite-root rules yet replaced `stats.ttest_ind`: one
+  aliased `exec`, and one wrote through an exception traceback frame's globals using a
+  split string. Both printed `FAKE`. The proposed rule set was therefore a blacklist,
+  not a closed executable language, and could mint false procedure authority.
+- This is a persistent design/review failure, not a scored false accusation: no new
+  corpus was run, no case was scored, no accusation was emitted, and the lifetime
+  scoreboard remains 96 blind cases / zero false accusations. Reviewers verified both
+  installed pins live, v2 production-unreachable, protected paths unchanged, and the
+  243-file `run-40` tree byte-unchanged (aggregate digest
+  `71de6d51847d65449e5393af80ae9048bfbf3e979c0a1b971111be5e23d4a240`).
 
 ## Heavy queue (evidence-ranked; measure premises before designing)
 
