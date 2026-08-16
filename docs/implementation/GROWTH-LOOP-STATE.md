@@ -1,7 +1,8 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
-Updated: 2026-08-16 (Growth-12/13 closed; Growth-14 pandas-family design is safely
-blocked with no build; Growth-15 abort-only raise design is now in flight).
+Updated: 2026-08-16 (Growth-12/13 closed; Growth-14 pandas revival is maintainer-
+authorized but queued after Growth-15; Growth-15 is persistently blocked after three
+fresh design reviews and awaits maintainer direction; no build is authorized).
 
 ## Scoreboard
 
@@ -506,6 +507,51 @@ blocked with no build; Growth-15 abort-only raise design is now in flight).
   census cases on the unchanged base; the memo records that yield correction rather
   than widening. A fresh HEAVY design review, with explicit fallthrough, sole-
   classifier, and precedence assent/refusal, gates any builder.
+- Growth-15 exhausted its three permitted fresh design-review attempts without a
+  build. Attempt 1 (`01a00c74-86c3-76c2-96ff-b7bd03544749`) returned
+  `FALLTHROUGH-INERTNESS: REFUSE`, `SINGLE-OPERAND-CLASSIFICATION: ASSENT`, and
+  `PROTOCOL-PRECEDENCE: ASSENT`: existing NumPy-array operands made cardinality-only
+  `NotName` truth testing unsound. Binding Section 13 proposed exact builtin-container
+  provenance. Attempt 2 (`01a00c9a-8485-7ac1-acaf-c679f44aace2`) returned
+  `FALLTHROUGH-INERTNESS: ASSENT`, `SINGLE-OPERAND-CLASSIFICATION: REFUSE`, and
+  `PROTOCOL-PRECEDENCE: ASSENT`: `.get(CONSTANT, [])` was outside the sole partition,
+  and true empty-container controls had to retain existing fact/domain precedence.
+  Binding Section 14 consequently made all `NotName` handling syntax-only and left
+  only exact real-builtin `LenCompare` atoms in the proposed full path.
+- Fresh attempt 3 (`01a00cb5-e886-7603-aeac-5c38cd71a715`) reviewed exact clean local
+  and remote `a0ea4e0`, returned `FALLTHROUGH-INERTNESS: REFUSE`,
+  `SINGLE-OPERAND-CLASSIFICATION: ASSENT`, `PROTOCOL-PRECEDENCE: REFUSE`, and
+  `VERDICT: BLOCKED`, and triggered persistent-failure escalation. Its executed
+  counterexample began with an adverse repeated-unit fact whose real group lengths
+  were `(1, 4)`, for which `len(left) < 2 or len(right) < 2` aborts before the
+  procedure/report. Moving one complete row-evidence tuple between supplied groups
+  produced lengths `(2, 3)` while retaining the repeated unit and `repeated_units`
+  conclusion; the existing independent kernel accepted the mutation with no failure.
+  The proposed guard evaluation would then expose an unreachable adverse
+  `evaluation_candidate`. This is a pre-build kernel-bypass route, not a shipped or
+  scored accusation. The reviewer found no other issue; reproduced the complete
+  26-workflow / 55-raise inventory, exact nine movements, seventeen freezes, zero
+  outcomes and completions, all `NotName` refusals, ordinary precedence controls,
+  protected identity, and `0/47` planted-positive observation; and passed 385 focused
+  plus all 4,178 repository tests. Memo Section 15 records the binding no-build
+  disposition. The two unselected maintainer options are complete independent
+  byte-derived group-fact reconstruction before guard evaluation, analogous to the
+  repaired paired kernel, or making `LenCompare` syntax-only too. No builder,
+  re-measure, or batch is authorized pending maintainer direction.
+- MAINTAINER-AUTHORIZED BUT SEQUENCED AFTER GROWTH-15 (Fable escalation channel,
+  confirmed with Alex, 2026-08-16): revive the Growth-14 pandas family only after
+  Growth-15 closes. The new HEAVY design may prove package identity from each frozen
+  case's complete file inventory (including absence of an adjacent shadowing module)
+  plus a declared pinned development runtime. A specific pandas version may be added
+  only to the development sandbox and treated as an immutable v2-development premise;
+  qualified v1 surfaces, grant pins, registry, and every protected path remain byte-
+  frozen. The modeled pandas subset must be narrow and default-deny against that exact
+  version. Bool group-token coercion, object-dtype huge decimals, strict-string
+  selection mismatch, and every previously demonstrated dtype/selection divergence
+  must become explicit refusal fixtures or receive a separately proved safe
+  reconstruction rule. The earlier no-build disposition remains correct. This
+  authorization does not start a build, bypass HEAVY review, relax zero-FA discipline,
+  or change the `0/47` batch-K trigger.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
@@ -567,21 +613,29 @@ blocked with no build; Growth-15 abort-only raise design is now in flight).
    must-not-accuse fixtures become the round's central regressions); fail-closed on any
    ambiguity between paired and independent claims; dev lanes only. Sequence after
    queue item 0 unless census evidence reorders.
-2. DEFERRED / NO BUILD as Growth-14 by maintainer priority (Fable escalation channel,
-   2026-08-16): `unsupported-import-form`, twelve of 39 authentic census locks. All
+2. MAINTAINER-AUTHORIZED FOR REVIVAL AFTER GROWTH-15 CLOSES (Fable escalation channel,
+   confirmed with Alex, 2026-08-16); the prior Growth-14 no-build disposition remains
+   correct: `unsupported-import-form`, twelve of 39 authentic census locks. All
    twelve are pandas workflows, so an import-only change is forbidden and measured
    to complete zero cases. Design the smallest recursively closed pandas/read/filter/
    operand slice that lowers into the existing sole classification; the kernel must
-   independently rederive it. No pandas execution, no dynamic forms, and no protected
-   or frozen changes. Fresh HEAVY design review attempt 1 refused pandas invariance
-   and single-classifier assent; memo Section 16 is binding. No import-only or pandas
-   build is authorized. Revival requires a separately authorized package-identity
-   premise without modifying or bypassing protected pins.
-3. IN FLIGHT as Growth-15 by the same maintainer priority: `raise-guard-not-modeled`, seven
-   census cases. The proof premise is abort-only control flow: a raise cannot alter
-   data, and a program that survives to write its report was not changed by that
-   guard. The full HEAVY gauntlet still applies. The first draft review is BLOCKED and
-   its amendments are recorded under `In flight`; no build is authorized.
+   independently rederive it. The authorized package-identity premise must prove
+   resolution to real pandas from the complete per-case file inventory, including no
+   adjacent shadowing module, and a specific pinned pandas version may be declared and
+   installed only in the development sandbox. Dynamic forms remain default-deny;
+   dtype/selection divergences demonstrated in review become refusal fixtures or
+   separately proved reconstruction rules. Qualified v1 surfaces, grant pins,
+   registry, every protected path, and frozen lanes remain byte-frozen. Fresh HEAVY
+   design and code reviews still gate any build or re-measure; do not start this item
+   until Growth-15 closes.
+3. PERSISTENTLY BLOCKED / MAINTAINER ESCALATION REQUIRED as Growth-15:
+   `raise-guard-not-modeled`, seven census cases. Three different fresh HEAVY design
+   reviews are BLOCKED; the final `LenCompare`-only design lacks independent closure
+   over the group-fact cardinalities it would use. No implementation exists. Memo
+   Section 15 and `In flight` record the exact counterexample and the two unselected
+   maintainer dispositions. Do not build, re-measure, run a batch, or advance queued
+   Growth-14 until the maintainer directs a new course and a fresh HEAVY review clears
+   it.
 4. Numeric comparison predicates for counts (float(row[x]) > CONST). The refreshed
    premise has no authentic direct numeric census opportunity; `446cab...` is a
    count-trial declaration no-lock and J2 uses a computed `delta`. Re-measure before
