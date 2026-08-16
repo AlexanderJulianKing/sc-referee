@@ -64,6 +64,27 @@ Updated: 2026-08-15 (Growth-10 resumed by explicit maintainer authorization).
   production import isolation, and the full suite (4055 passed, `PYTEST_EXIT=0`
   against the pristine `f035bd9` archive) all passed. Protected paths untouched.
 
+- Growth-12 (heavy-queue item 0, intake declarations) design arc completed by the
+  Fable escalation session during the continuing overlord stall, all steps via fresh
+  codex-cli sessions with the repo read-only or `.git` locked: memo authored with
+  measured premises (session 01a00a6c); round-1 review BLOCKED with an executed
+  fail-open ("Ignore this bogus example. Independent unit column: plant_id" minted a
+  lock) plus a v1/v2 lane conflation in the memo's own replay claims; v2 amendments
+  appended (protocol-precedence rule with deterministic guards, total refusal
+  precedence chain, lane-separated claims, versioned hostile-packet replay); round-2
+  fresh review returned CLEAR TO BUILD with no findings and explicit
+  PROTOCOL-PRECEDENCE: ASSENT. IMPORTANT PREMISE CORRECTION now on record: all 27
+  measured dead cases contain the exact declaration string; the 21 batch deaths are
+  procedure-stage in the v2 lane (9 ambiguous, 9 unavailable, 1 unresolved — the
+  adapter's independent-unit-definition-unresolved is a no-v2-authority proxy, working
+  as designed); only the six census cases are genuine declaration-layout misses, so
+  this round's v2-lane yield is exactly six census translations and zero batch
+  movements. Queue item 0's original aggregate premise is superseded by the memo §3.2.
+  Consequence for ranking: procedure-stage walls now likely outrank intake; the
+  paired-procedure go-ahead (queue item 1) covers part of the unavailable set.
+  Builder launch is the next step; the round-2 reviewer flagged the hostile-packet
+  replay seam at lean_pipeline.py:2961-2973 for the builder.
+
 ## In flight
 
 - RESUMED by Alex's explicit authorization: Growth 10 may use a recursively
