@@ -555,6 +555,7 @@ def test_model_free_nonmeasurement_fixture_executes_and_records_abstentions(
     assert all(
         by_role[role]["development_v2_scored_for_qualification"] is False for role in _FIXTURE_ROLES
     )
+
     assert all(
         by_role[role]["shadow_payload"]["state"]
         in {"evaluation_candidate", "applicable", "ambiguous", "unsupported"}
@@ -597,6 +598,67 @@ def test_model_free_nonmeasurement_fixture_executes_and_records_abstentions(
     lean_pipeline.write_normalized_json(retained_path, retained)
     with pytest.raises(LeanPipelineError, match="stale bindings"):
         step_detector(isolated, config)
+
+
+@pytest.mark.skipif(not _RUNTIME_AVAILABLE, reason="dedicated SciPy 1.14.0 runtime is absent")
+def test_growth_translation_receipts_are_per_lane_and_provenance_is_complete(
+    tmp_path: Path, project_root: Path
+) -> None:
+    isolated = _isolated_root(tmp_path, project_root)
+    config = replace(
+        _fixture_config(("rq1",)),
+        pipeline_relative=Path("evaluation/development-fixtures/growth12-v3-provenance"),
+        dependence_v2_development_shadow=True,
+        dependence_v2_lock_line=True,
+        development_loop=True,
+    )
+    _freeze_fixture_inputs(isolated, config)
+    incoming = (
+        isolated
+        / config.pipeline_relative
+        / "authoring/incoming/controller:nonmeasurement-fixture.json"
+    )
+    attempt = json.loads(incoming.read_text(encoding="utf-8"))
+    payload = json.loads(attempt["raw_response"])
+    payload["cases"][0]["data_description"] = (
+        "One row is: one recorded bird observation used by the analysis. "
+        "Independent unit column: bird_code"
+    )
+    attempt["raw_response"] = canonical_json(payload)
+    lean_pipeline.write_normalized_json(incoming, attempt)
+
+    step_intake(isolated, config)
+    step_authority(isolated, config)
+    case_id = _CASE_BY_ROLE["rq1"].removeprefix("case:")
+    case_root = isolated / config.pipeline_relative / "authoring/cases" / case_id
+    translation = json.loads(
+        (
+            isolated / config.pipeline_relative / "authority/translations" / f"{case_id}.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert translation["v1_translation_outcome"] == "unit-declaration-missing-or-malformed"
+    assert translation["v1_translation_receipt"] is None
+    assert translation["v2_translation_outcome"] == "lock-minted"
+    assert translation["v2_translation_receipt"]["declaration_form_id"] == (
+        "canonical-terminal-sentence-v2"
+    )
+    assert translation["translation_version"] == "2.0.0-development"
+    assert translation["description_content_digest"] == sha256_digest(
+        (case_root / "data-description.md").read_bytes()
+    )
+    assert translation["input_content_digest"] == sha256_digest(
+        (case_root / "data/input.csv").read_bytes()
+    )
+    assert translation["parsed_header_digest"] == semantic_digest(
+        ["bird_code", "session", "signal", "reference"]
+    )
+    assert (
+        translation["v2_translation_receipt"]["parsed_header_digest"]
+        == translation["parsed_header_digest"]
+    )
+    assert translation["lock_projection_digest"] == translation["v2_lock_digest"]
+    assert translation["v2_lock_projection_digest"] == translation["v2_lock_digest"]
 
 
 def test_growth_intake_retains_one_crashing_case_without_changing_shared_path(

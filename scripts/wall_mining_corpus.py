@@ -21,6 +21,7 @@ from sc_referee.dependence_recognition_v2.adapter import DependenceRecognitionV2
 from sc_referee.dependence_recognition_v2.authority_lock import (
     apply_dependence_v2_authorization_lock,
     build_dependence_v2_authorization_lock,
+    lock_projection,
 )
 from sc_referee.dependence_recognition_v2.intake_declaration import (
     receipt_dict,
@@ -571,6 +572,10 @@ def _write_case(
         "case_index": index,
         "role_information_used": False,
         "translation_version": unit_translation.translation_version,
+        "description_content_digest": sha256_digest(description.encode("utf-8")),
+        "input_content_digest": sha256_digest(data),
+        "parsed_header_digest": unit_translation.parsed_header_digest,
+        "lock_projection_digest": None,
         "declared_unit_column": unit_column,
         "resolved_procedures": list(procedures),
         "translation_outcome": "lock-projected" if projected else "no-lock",
@@ -581,8 +586,9 @@ def _write_case(
         "v2_translation_outcome": "lock-projected" if projected else "no-lock",
         "v2_translation_reasons": list(translation_reasons),
         "v2_unit_translation_reason": unit_translation.reason,
-        "v2_translation_receipt": receipt_dict(unit_translation),
+        "v2_translation_receipt": receipt_dict(unit_translation) if projected else None,
         "v2_lock_digest": None,
+        "v2_lock_projection_digest": None,
     }
     lock_digest: str | None = None
     inspection_context = base_context
@@ -607,11 +613,14 @@ def _write_case(
             expected_intake_recorded_at=_INTAKE_RECORDED_AT,
         )
         lock_digest = str(lock["lock_digest"])
+        lock_projection_digest = semantic_digest(lock_projection(lock))
         translation["authorization_lock_path"] = str(lock_path.relative_to(run_root))
         translation["authorization_case_id"] = case_id
         translation["authorization_snapshot_digest"] = lock["snapshot_digest"]
         translation["lock_digest"] = lock_digest
+        translation["lock_projection_digest"] = lock_projection_digest
         translation["v2_lock_digest"] = lock_digest
+        translation["v2_lock_projection_digest"] = lock_projection_digest
         translation["approved_projection_digest"] = lock["approval"]["approved_projection_digest"]
         translation["authorization_lock_content_digest"] = sha256_digest(lock_payload)
     translation["translation_digest"] = semantic_digest(translation)

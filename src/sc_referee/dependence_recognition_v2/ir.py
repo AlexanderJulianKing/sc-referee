@@ -149,6 +149,7 @@ DEPENDENCE_V2_REASON_REGISTRY = frozenset(
         "unit-declaration-ambiguous-multiple-candidates",
         "unit-declaration-conflicting-sentences",
         "unit-declaration-duplicate-prefix",
+        "unit-declaration-markdown-fence-present",
         "unit-declaration-missing",
         "unit-declaration-syntax-outside-closed-grammar",
         "unit-description-not-valid-utf8",

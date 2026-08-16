@@ -493,11 +493,20 @@ def test_valid_transport_observes_exact_shadow_outcome(tmp_path: Path) -> None:
     assert translation["v2_translation_outcome"] == "lock-projected"
     assert translation["v2_translation_reasons"] == []
     assert translation["v2_lock_digest"] == translation["lock_digest"]
+    assert translation["translation_version"] == "2.0.0-development"
+    assert translation["description_content_digest"] == sha256_digest(VALID_DESCRIPTION.encode())
+    assert translation["input_content_digest"] == sha256_digest(VALID_CSV.encode())
+    assert translation["parsed_header_digest"] == semantic_digest(
+        ["unit_id", "arm", "value", "include"]
+    )
+    assert translation["lock_projection_digest"] == translation["lock_digest"]
+    assert translation["v2_lock_projection_digest"] == translation["lock_digest"]
     assert translation["v2_translation_receipt"] == {
         "declaration_byte_span": [26, 58],
         "declaration_form_id": "wall-census-standalone-v1",
         "extracted_token": "unit_id",
         "logical_header": ["unit_id", "arm", "value", "include"],
+        "parsed_header_digest": semantic_digest(["unit_id", "arm", "value", "include"]),
         "quoted_declaration": "Independent unit column: unit_id",
         "translation_version": "2.0.0-development",
     }
@@ -559,6 +568,7 @@ def test_default_bound_stats_import_writes_no_lock_and_passes_authority_free_con
     translation = json.loads((case_root / "lock-translation.json").read_text())
     assert translation["translation_outcome"] == "no-lock"
     assert translation["translation_reasons"] == ["procedure-authority-root-not-closed"]
+    assert translation["v2_translation_receipt"] is None
     assert len(inspected) == 1
     authority_types = {"analysis", "procedure", "result", "human_method_authorization"}
     assert all(

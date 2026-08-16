@@ -11,7 +11,7 @@ from typing import Any
 import pytest
 from sc_referee_evaluation import lean_pipeline
 
-from sc_referee.core.ids import canonical_json, sha256_digest
+from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.dependence_recognition_v2.intake_declaration import (
     CANONICAL_TERMINAL_FORM,
     receipt_dict,
@@ -303,6 +303,37 @@ def test_growth12_near_misses_execute_with_full_sorted_reason_sets(
     assert _observed_reasons(description, data, profile) == expected
 
 
+@pytest.mark.parametrize(
+    ("description", "profile"),
+    [
+        (
+            b"A study. ```python\nIndependent unit column: plant_id\n```",
+            _WALL_PROFILE,
+        ),
+        (
+            b"```text\nIndependent unit column: plant_id\n```\n",
+            _GROWTH_PROFILE,
+        ),
+    ],
+)
+def test_markdown_fence_presence_refuses_the_entire_scan(description: bytes, profile: Any) -> None:
+    assert _observed_reasons(description, _VALID_CSV, profile) == (
+        "unit-declaration-markdown-fence-present",
+    )
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        b"plant_id,condition,height_cm\n   ,A,1\n",
+        b"plant_id,   ,height_cm\np1,A,1\n",
+    ],
+)
+def test_stripped_emptiness_is_used_only_for_csv_completeness(data: bytes) -> None:
+    description = b"A study. Independent unit column: plant_id"
+    assert _observed_reasons(description, data) == ("unit-csv-invalid-or-incomplete",)
+
+
 def test_amended_candidate_multiplicity_reasons_remain_reachable() -> None:
     same = (
         b"independent unit column: plant_id\nOne row is: a study. Independent unit column: plant_id"
@@ -494,6 +525,7 @@ def test_new_hostile_packet_digest_domain_binds_lane_qualified_receipt() -> None
             "quoted_declaration": "Independent unit column: plant_id",
             "extracted_token": "plant_id",
             "logical_header": ["plant_id", "condition", "height_cm"],
+            "parsed_header_digest": semantic_digest(["plant_id", "condition", "height_cm"]),
         },
     }
     prompt = "prefix\n" + canonical_json(disclosure)

@@ -2160,14 +2160,16 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
                 description_path=description_path,
                 input_path=config.authored_input_csv_path,
             )
+            description_bytes = (case_root / description_path).read_bytes()
+            input_bytes = (case_root / config.authored_input_csv_path).read_bytes()
             translation = {
                 "artifact_kind": "dependence_description_authority_translation",
-                "translation_version": "1.0.0",
+                "translation_version": (
+                    "2.0.0-development" if config.development_loop else "1.0.0"
+                ),
                 "case_id": case_id,
                 "description_path": description_path,
-                "description_content_digest": sha256_digest(
-                    (case_root / description_path).read_bytes()
-                ),
+                "description_content_digest": sha256_digest(description_bytes),
                 "input_path": config.authored_input_csv_path,
                 "input_content_digest": intake_rows[case_id]["file_digests"][
                     config.authored_input_csv_path
@@ -2185,19 +2187,32 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
                 )
 
                 v1_receipt_source = translate_unit_declaration(
-                    (case_root / description_path).read_bytes(),
-                    (case_root / config.authored_input_csv_path).read_bytes(),
+                    description_bytes,
+                    input_bytes,
                     "growth-loop-standalone-v1",
                 )
                 translation.update(
                     {
+                        "parsed_header_digest": v1_receipt_source.parsed_header_digest,
+                        "lock_projection_digest": (
+                            value.get("lock_digest") if value is not None else None
+                        ),
                         "v1_declared_column": declared_column,
                         "v1_translation_outcome": reason,
                         "v1_lock_digest": (value.get("lock_digest") if value is not None else None),
-                        "v1_translation_receipt": receipt_dict(v1_receipt_source),
+                        "v1_lock_projection_digest": (
+                            value.get("lock_digest") if value is not None else None
+                        ),
+                        "v1_translation_receipt": (
+                            receipt_dict(v1_receipt_source) if value is not None else None
+                        ),
                     }
                 )
             if config.dependence_v2_lock_line:
+                from sc_referee.dependence_recognition_v2.authority_lock import (
+                    lock_projection as v2_lock_projection,
+                )
+
                 v2_value, v2_reason, v2_column = _description_v2_authority_lock(
                     case_id=case_id,
                     case_root=case_root,
@@ -2205,6 +2220,14 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
                     intake_recorded_at=str(intake["recorded_at"]),
                     description_path=description_path,
                     input_path=config.authored_input_csv_path,
+                )
+                v2_receipt_source = translate_unit_declaration(
+                    description_bytes,
+                    input_bytes,
+                    "growth-loop-standalone-v1",
+                )
+                v2_lock_projection_digest = (
+                    semantic_digest(v2_lock_projection(v2_value)) if v2_value is not None else None
                 )
                 translation.update(
                     {
@@ -2214,12 +2237,19 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
                         "v2_translation_reason": (
                             None if v2_reason == "lock-minted" else v2_reason
                         ),
-                        "v2_translation_receipt": receipt_dict(v1_receipt_source),
+                        "v2_translation_receipt": (
+                            receipt_dict(v2_receipt_source) if v2_value is not None else None
+                        ),
                         "v2_lock_digest": (
                             v2_value.get("lock_digest") if v2_value is not None else None
                         ),
+                        "v2_lock_projection_digest": v2_lock_projection_digest,
                     }
                 )
+                if translation["parsed_header_digest"] is None:
+                    translation["parsed_header_digest"] = v2_receipt_source.parsed_header_digest
+                if translation["lock_projection_digest"] is None:
+                    translation["lock_projection_digest"] = v2_lock_projection_digest
                 if v2_value is not None:
                     v2_values[case_id] = v2_value
             _stamp_record_purpose(translation, config)

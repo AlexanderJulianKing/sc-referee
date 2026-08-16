@@ -8,6 +8,8 @@ import re
 from dataclasses import dataclass
 from typing import Literal
 
+from sc_referee.core.ids import semantic_digest
+
 from .ir import require_registered_v2_reason
 
 TRANSLATION_VERSION = "2.0.0-development"
@@ -51,6 +53,7 @@ class UnitTranslation:
     reason: str | None
     candidate: DeclarationCandidate | None
     logical_header: tuple[str, ...] | None
+    parsed_header_digest: str | None
     translation_version: str = TRANSLATION_VERSION
 
 
@@ -110,6 +113,7 @@ def _refusal(reason: str) -> UnitTranslation:
         reason=require_registered_v2_reason(reason),
         candidate=None,
         logical_header=None,
+        parsed_header_digest=None,
     )
 
 
@@ -117,6 +121,9 @@ def translate_unit_declaration(
     description: bytes, data: bytes, profile: CompatibilityProfile
 ) -> UnitTranslation:
     """Apply the Growth-12 amended first-match refusal chain without role input."""
+
+    if b"```" in description:
+        return _refusal("unit-declaration-markdown-fence-present")
 
     try:
         description.decode("utf-8", errors="strict")
@@ -151,14 +158,14 @@ def translate_unit_declaration(
         if "\x00" in decoded:
             raise csv.Error("NUL is outside the accepted CSV transport")
         rows = list(csv.reader(io.StringIO(decoded, newline=""), strict=True))
-        if len(rows) < 2 or not rows[0] or any(not field for field in rows[0]):
+        if len(rows) < 2 or not rows[0] or any(not field.strip() for field in rows[0]):
             raise csv.Error("CSV requires a nonempty header and at least one data row")
         header = rows[0]
         if any(len(row) != len(header) for row in rows[1:]):
             raise csv.Error("CSV rows must have equal widths")
         matching_indexes = [index for index, field in enumerate(header) if field == candidate.token]
         if matching_indexes and any(
-            not row[index] for row in rows[1:] for index in matching_indexes
+            not row[index].strip() for row in rows[1:] for index in matching_indexes
         ):
             raise csv.Error("declared unit cells must be nonempty")
     except (UnicodeDecodeError, csv.Error):
@@ -176,6 +183,7 @@ def translate_unit_declaration(
         reason=None,
         candidate=candidate,
         logical_header=tuple(header),
+        parsed_header_digest=semantic_digest(header),
     )
 
 
@@ -192,4 +200,5 @@ def receipt_dict(translation: UnitTranslation) -> dict[str, object] | None:
         "quoted_declaration": candidate.quoted_declaration,
         "extracted_token": candidate.token,
         "logical_header": list(translation.logical_header),
+        "parsed_header_digest": translation.parsed_header_digest,
     }
