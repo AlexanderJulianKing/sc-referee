@@ -559,6 +559,22 @@ fresh design reviews and awaits maintainer direction; no build is authorized).
   Growth 15 remains blocked and no implementation, re-measure, batch, or queued
   Growth-14 work may start until that principle arrives and passes the normal fresh
   HEAVY design-review gate.
+- MAINTAINER RESUMPTION PRINCIPLE (Fable escalation channel, decided under Alex's
+  delegated authority, 2026-08-16): Growth-15 Section-15.2 Option A is selected for
+  exactly one resumed design round. Before guard evaluation, the kernel must
+  independently reconstruct the complete ordinary group fact from digest-bound frozen
+  bytes, analogous to the repaired paired kernel. Guard evaluation, source replay,
+  operand equations, conclusions, certificate identity, and the verified result all
+  consume that one replayed object; supplied or certificate-carried facts never feed
+  a guard. Thus the attempt-3 `(1, 4) -> (2, 3)` row-tuple mutation becomes impossible
+  by construction, not by a mutation blacklist. Option B (`LenCompare` syntax-only)
+  is rejected. Exact builtin-container provenance remains a refusal boundary,
+  `NotName` remains syntax-only, and exact real-builtin-proven `LenCompare` atoms and
+  `Or` trees remain the only truth-evaluated forms. Memo Section 16 is binding. One
+  fresh maximum-effort HEAVY reviewer must reproduce the exact counterexample and full
+  attempt-3 inventory and return explicit fact-replay assent plus unconditional
+  `CLEAR TO BUILD`; otherwise halt and escalate directly to Alex with no fifth design
+  variation. No build, re-measure, batch, or queued Growth-14 work is yet authorized.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
@@ -635,14 +651,14 @@ fresh design reviews and awaits maintainer direction; no build is authorized).
    registry, every protected path, and frozen lanes remain byte-frozen. Fresh HEAVY
    design and code reviews still gate any build or re-measure; do not start this item
    until Growth-15 closes.
-3. PERSISTENTLY BLOCKED / MAINTAINER ESCALATION REQUIRED as Growth-15:
-   `raise-guard-not-modeled`, seven census cases. Three different fresh HEAVY design
-   reviews are BLOCKED; the final `LenCompare`-only design lacks independent closure
-   over the group-fact cardinalities it would use. No implementation exists. Memo
-   Section 15 and `In flight` record the exact counterexample and the two unselected
-   maintainer dispositions. Do not build, re-measure, run a batch, or advance queued
-   Growth-14 until the maintainer directs a new course and a fresh HEAVY review clears
-   it.
+3. RESUMED FOR ONE FINAL DESIGN REVIEW as Growth-15: `raise-guard-not-modeled`, seven
+   census cases. After three blocked reviews, the maintainer selected complete
+   independent byte-derived ordinary group-fact reconstruction (Option A). Memo
+   Section 16 requires the kernel to use only its reconstructed fact for guard and
+   conclusion, preserving every earlier syntax/provenance/binding narrowing. One
+   fresh maximum-effort HEAVY review gates any build. If it blocks, halt and escalate
+   directly to Alex; there is no fifth variation. Do not build, re-measure, run a
+   batch, or advance queued Growth-14 before unconditional clearance.
 4. Numeric comparison predicates for counts (float(row[x]) > CONST). The refreshed
    premise has no authentic direct numeric census opportunity; `446cab...` is a
    count-trial declaration no-lock and J2 uses a computed `delta`. Re-measure before
