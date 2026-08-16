@@ -5,8 +5,6 @@ from __future__ import annotations
 
 import argparse
 import ast
-import csv
-import io
 import json
 import os
 import re
@@ -23,6 +21,10 @@ from sc_referee.dependence_recognition_v2.adapter import DependenceRecognitionV2
 from sc_referee.dependence_recognition_v2.authority_lock import (
     apply_dependence_v2_authorization_lock,
     build_dependence_v2_authorization_lock,
+)
+from sc_referee.dependence_recognition_v2.intake_declaration import (
+    receipt_dict,
+    translate_unit_declaration,
 )
 from sc_referee.scientific_checks.core import (
     FrozenBaseRecord,
@@ -43,7 +45,6 @@ NON_MEASUREMENT = (
     "and is unreachable from qualification and production lanes."
 )
 _RUN_NAME = re.compile(r"run-[a-z0-9][a-z0-9-]{0,62}\Z")
-_UNIT_DECLARATION = re.compile(r"(?m)^Independent unit column:[ \t]*([^\r\n]*)$")
 _GROUP_CALLABLES = {
     "ttest_ind": "scipy.stats.ttest_ind",
     "mannwhitneyu": "scipy.stats.mannwhitneyu",
@@ -398,36 +399,11 @@ def _procedure_transport(source: str) -> tuple[tuple[str, ...], tuple[str, ...]]
 
 
 def _unit_transport(description: str, data: bytes) -> tuple[str | None, tuple[str, ...]]:
-    reasons: set[str] = set()
-    matches = [item.strip() for item in _UNIT_DECLARATION.findall(description)]
-    declaration_valid = len(matches) == 1 and bool(matches[0])
-    if not declaration_valid:
-        reasons.add("unit-declaration-missing-or-ambiguous")
-    try:
-        decoded = data.decode("utf-8", errors="strict")
-        if "\x00" in decoded:
-            raise csv.Error("NUL is outside the accepted CSV transport")
-        rows = list(csv.reader(io.StringIO(decoded, newline=""), strict=True))
-        if len(rows) < 2 or not rows[0]:
-            raise csv.Error("CSV must contain a header and data row")
-        header = rows[0]
-        trimmed_header = [item.strip() for item in header]
-        if any(not item for item in trimmed_header) or len(trimmed_header) != len(
-            set(trimmed_header)
-        ):
-            raise csv.Error("CSV header is empty or duplicated")
-        if declaration_valid and header.count(matches[0]) != 1:
-            raise csv.Error("declared unit is not an exact unique header")
-        unit_index = header.index(matches[0]) if declaration_valid else None
-        if any(len(row) != len(header) for row in rows[1:]) or (
-            unit_index is not None and any(not row[unit_index].strip() for row in rows[1:])
-        ):
-            raise csv.Error("CSV rows are ragged or unit cells are empty")
-    except (UnicodeError, csv.Error):
-        reasons.add("unit-csv-invalid-or-incomplete")
-    if reasons:
-        return None, tuple(sorted(reasons))
-    return matches[0], ()
+    translated = translate_unit_declaration(
+        description.encode("utf-8"), data, "wall-census-standalone-v1"
+    )
+    reasons = () if translated.reason is None else (translated.reason,)
+    return translated.unit_column, reasons
 
 
 def _context(
@@ -577,8 +553,12 @@ def _write_case(
     (case_root / "data/input.csv").write_bytes(data)
     (case_root / "data-description.md").write_text(description, encoding="utf-8")
     _write_json(case_root / "generation.json", generation)
-    procedures, procedure_reasons = _procedure_transport(source)
-    unit_column, unit_reasons = _unit_transport(description, data)
+    unit_translation = translate_unit_declaration(
+        description.encode("utf-8"), data, "wall-census-standalone-v1"
+    )
+    unit_column = unit_translation.unit_column
+    unit_reasons = () if unit_translation.reason is None else (unit_translation.reason,)
+    procedures, procedure_reasons = _procedure_transport(source) if not unit_reasons else ((), ())
     translation_reasons = tuple(sorted(set(procedure_reasons) | set(unit_reasons)))
     projected = unit_column is not None and len(procedures) == 1 and not translation_reasons
     base_context = _context(source, data, run_name, case_identity)
@@ -590,10 +570,19 @@ def _write_case(
         "case_identity": case_identity,
         "case_index": index,
         "role_information_used": False,
+        "translation_version": unit_translation.translation_version,
         "declared_unit_column": unit_column,
         "resolved_procedures": list(procedures),
         "translation_outcome": "lock-projected" if projected else "no-lock",
         "translation_reasons": list(translation_reasons),
+        "v1_translation_outcome": None,
+        "v1_translation_reasons": [],
+        "v1_lock_digest": None,
+        "v2_translation_outcome": "lock-projected" if projected else "no-lock",
+        "v2_translation_reasons": list(translation_reasons),
+        "v2_unit_translation_reason": unit_translation.reason,
+        "v2_translation_receipt": receipt_dict(unit_translation),
+        "v2_lock_digest": None,
     }
     lock_digest: str | None = None
     inspection_context = base_context
@@ -622,6 +611,7 @@ def _write_case(
         translation["authorization_case_id"] = case_id
         translation["authorization_snapshot_digest"] = lock["snapshot_digest"]
         translation["lock_digest"] = lock_digest
+        translation["v2_lock_digest"] = lock_digest
         translation["approved_projection_digest"] = lock["approval"]["approved_projection_digest"]
         translation["authorization_lock_content_digest"] = sha256_digest(lock_payload)
     translation["translation_digest"] = semantic_digest(translation)

@@ -1012,6 +1012,7 @@ def test_reason_registry_equals_the_package_emission_vocabulary(project_root: Pa
         "src/sc_referee/dependence_recognition_v2/csv_domain.py",
         "src/sc_referee/dependence_recognition_v2/count_domain.py",
         "src/sc_referee/dependence_recognition_v2/adapter.py",
+        "src/sc_referee/dependence_recognition_v2/intake_declaration.py",
     ):
         tree = ast.parse((project_root / relative).read_text(encoding="utf-8"))
         for node in ast.walk(tree):
@@ -1023,6 +1024,7 @@ def test_reason_registry_equals_the_package_emission_vocabulary(project_root: Pa
                 )
                 if function_name in {
                     "_Refusal",
+                    "_refusal",
                     "_abstention",
                     "_discharged_unsupported",
                     "_unsupported",

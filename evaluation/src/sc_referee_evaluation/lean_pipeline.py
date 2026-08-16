@@ -89,6 +89,9 @@ MAX_INPUT_BYTES = 65536
 MAX_PRODUCER_BYTES = 16384
 MAX_REPORT_BYTES = 32768
 SELECTED_RESULT_MARKER = "[selected-result]"
+HOSTILE_PACKET_V1 = "1.0.0"
+HOSTILE_PACKET_V2_RECEIPT = "2.0.0-receipt"
+HOSTILE_PACKET_V2_DIGEST_DOMAIN = "sc-referee:development-hostile-answer-key-packet:v2"
 
 VISIBLE_FILES = (
     {"path": "task.md", "role": "scientific_task"},
@@ -2075,23 +2078,21 @@ def _description_v2_authority_lock(
     from sc_referee.dependence_recognition_v2.authority_lock import (
         build_dependence_v2_authorization_lock,
     )
+    from sc_referee.dependence_recognition_v2.intake_declaration import translate_unit_declaration
 
-    description = (case_root / description_path).read_text(encoding="utf-8")
-    unit_column = _description_unit_column(description)
-    if unit_column is None:
-        return None, "unit-declaration-missing-or-malformed", None
-    try:
-        with (case_root / input_path).open("r", encoding="utf-8", newline="") as handle:
-            header = next(csv.reader(handle, strict=True))
-    except (OSError, StopIteration, UnicodeDecodeError, csv.Error):
-        return None, "frozen-csv-header-unavailable", unit_column
-    if (
-        not header
-        or len(header) != len(set(header))
-        or any(not item for item in header)
-        or unit_column not in header
-    ):
-        return None, "unit-column-absent-from-frozen-header", unit_column
+    description_bytes = (case_root / description_path).read_bytes()
+    translated = translate_unit_declaration(
+        description_bytes,
+        (case_root / input_path).read_bytes(),
+        "growth-loop-standalone-v1",
+    )
+    if translated.reason is not None:
+        return None, translated.reason, None
+    unit_column = translated.unit_column
+    assert unit_column is not None
+    description = description_bytes.decode("utf-8")
+    if len(_DESCRIPTION_ROW.findall(description)) != 1:
+        return None, "unit-declaration-missing-or-malformed", unit_column
     procedures, reason = _registered_dependence_callable_set_v2(
         (case_root / "workflow/analysis.py").read_text(encoding="ascii")
     )
@@ -2127,6 +2128,8 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
         raise LeanPipelineError("The authority step already has output.")
     if (authority_root / "locks").exists():
         raise LeanPipelineError("The authority freeze directory already exists.")
+    if config.dependence_v2_lock_line and not config.development_loop:
+        raise LeanPipelineError("The v2 authority line is development-loop only.")
     if config.dependence_v2_lock_line and (authority_root / "locks-v2").exists():
         raise LeanPipelineError("The v2 authority freeze directory already exists.")
     _authoring_entry, protocol = _manifest_require(project_root, config, "authoring")
@@ -2175,6 +2178,25 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
                 "role_information_used": False,
                 "translated_at": _now(),
             }
+            if config.development_loop:
+                from sc_referee.dependence_recognition_v2.intake_declaration import (
+                    receipt_dict,
+                    translate_unit_declaration,
+                )
+
+                v1_receipt_source = translate_unit_declaration(
+                    (case_root / description_path).read_bytes(),
+                    (case_root / config.authored_input_csv_path).read_bytes(),
+                    "growth-loop-standalone-v1",
+                )
+                translation.update(
+                    {
+                        "v1_declared_column": declared_column,
+                        "v1_translation_outcome": reason,
+                        "v1_lock_digest": (value.get("lock_digest") if value is not None else None),
+                        "v1_translation_receipt": receipt_dict(v1_receipt_source),
+                    }
+                )
             if config.dependence_v2_lock_line:
                 v2_value, v2_reason, v2_column = _description_v2_authority_lock(
                     case_id=case_id,
@@ -2189,6 +2211,10 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
                         "v2_lock_line": "dependence_semantic_v2_growth_2",
                         "v2_declared_column": v2_column,
                         "v2_translation_outcome": v2_reason,
+                        "v2_translation_reason": (
+                            None if v2_reason == "lock-minted" else v2_reason
+                        ),
+                        "v2_translation_receipt": receipt_dict(v1_receipt_source),
                         "v2_lock_digest": (
                             v2_value.get("lock_digest") if v2_value is not None else None
                         ),
@@ -2266,6 +2292,18 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
                             "translation_outcome": translation_by_case[case_id][
                                 "translation_outcome"
                             ],
+                            **(
+                                {
+                                    "v1_translation_outcome": translation_by_case[case_id][
+                                        "v1_translation_outcome"
+                                    ],
+                                    "v1_lock_digest": translation_by_case[case_id][
+                                        "v1_lock_digest"
+                                    ],
+                                }
+                                if config.development_loop
+                                else {}
+                            ),
                         }
                         if case_id in translation_by_case
                         else {}
@@ -2310,6 +2348,16 @@ def step_authority(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
                     {
                         "translation_digest": translation_by_case[case_id]["translation_digest"],
                         "translation_outcome": translation_by_case[case_id]["translation_outcome"],
+                        **(
+                            {
+                                "v1_translation_outcome": translation_by_case[case_id][
+                                    "v1_translation_outcome"
+                                ],
+                                "v1_lock_digest": translation_by_case[case_id]["v1_lock_digest"],
+                            }
+                            if config.development_loop
+                            else {}
+                        ),
                     }
                     if case_id in translation_by_case
                     else {}
@@ -2861,6 +2909,14 @@ def _run_hostile_answer_key_review(
     root = project_root / config.pipeline_relative
     retained_path = review_root / "hostile-answer-key" / "HOSTILE_REVIEW_LEDGER.json"
     retained = _load(retained_path) if retained_path.exists() else None
+    if retained is not None:
+        packet_version = str(retained.get("packet_version", HOSTILE_PACKET_V1))
+    elif config.development_loop:
+        packet_version = HOSTILE_PACKET_V2_RECEIPT
+    else:
+        packet_version = HOSTILE_PACKET_V1
+    if packet_version not in {HOSTILE_PACKET_V1, HOSTILE_PACKET_V2_RECEIPT}:
+        raise LeanPipelineError("The hostile answer-key packet version is unsupported.")
     authority = _load(root / "authority/AUTHORITY_LEDGER.json")
     all_authority_by_case = {str(entry["case_id"]): entry for entry in authority.get("entries", [])}
     if len(all_authority_by_case) != len(authority.get("entries", [])) or any(
@@ -2918,6 +2974,36 @@ def _run_hostile_answer_key_review(
             "selected_report_demonstration is exactly issue, absence, or neither; reasons "
             "is a nonempty array of strings."
         )
+        packet_digest: str | None = None
+        if packet_version == HOSTILE_PACKET_V2_RECEIPT:
+            translation_path = root / "authority" / "translations" / f"{slug}.json"
+            if not translation_path.is_file():
+                raise LeanPipelineError("A v2 hostile packet lacks its translation record.")
+            translation = _load(translation_path)
+            disclosure = {
+                "v1_translation_outcome": translation.get("v1_translation_outcome"),
+                "v1_lock_digest": translation.get("v1_lock_digest"),
+                "v1_translation_receipt": translation.get("v1_translation_receipt"),
+                "v2_translation_outcome": translation.get("v2_translation_outcome"),
+                "v2_translation_reason": translation.get("v2_translation_reason"),
+                "v2_lock_digest": translation.get("v2_lock_digest"),
+                "v2_translation_receipt": translation.get("v2_translation_receipt"),
+            }
+            prompt = prompt.replace(
+                "\n\nReturn only JSON",
+                "\n\n--- deterministic translation receipt (lane-qualified) ---\n"
+                + canonical_json(disclosure)
+                + "\n\nReturn only JSON",
+                1,
+            )
+            packet_digest = semantic_digest(
+                {
+                    "digest_domain": HOSTILE_PACKET_V2_DIGEST_DOMAIN,
+                    "packet_version": packet_version,
+                    "case_id": case_id,
+                    "prompt": prompt,
+                }
+            )
         hostile_schema: dict[str, Any] = {
             "type": "object",
             "additionalProperties": False,
@@ -2947,6 +3033,8 @@ def _run_hostile_answer_key_review(
             "case_id": case_id,
             "has_lock": has_lock,
             "prompt": prompt,
+            "packet_version": packet_version,
+            "packet_digest": packet_digest,
             "schema": hostile_schema,
             "session_id": str(
                 uuid5(
@@ -2963,6 +3051,11 @@ def _run_hostile_answer_key_review(
         if set(retained_entries) != set(case_order) or any(
             retained_entries[str(item["case_id"])].get("prompt_digest")
             != sha256_digest(str(item["prompt"]))
+            or (
+                packet_version == HOSTILE_PACKET_V2_RECEIPT
+                and retained_entries[str(item["case_id"])].get("packet_digest")
+                != item["packet_digest"]
+            )
             for item in prepared
         ):
             raise LeanPipelineError("The retained hostile answer-key prompts do not match.")
@@ -3039,6 +3132,13 @@ def _run_hostile_answer_key_review(
             "response_digest": sha256_digest(str(call["raw_response"])),
             "process_capture_digest": call["process_record"]["capture_digest"],
         }
+        if packet_version == HOSTILE_PACKET_V2_RECEIPT:
+            entry.update(
+                {
+                    "packet_version": packet_version,
+                    "packet_digest": prepared_case["packet_digest"],
+                }
+            )
         entry["entry_digest"] = semantic_digest(entry)
         return entry
 
@@ -3058,6 +3158,9 @@ def _run_hostile_answer_key_review(
         "qualification_authority": "none_development_answer_key_screen_only",
     }
     _stamp_record_purpose(ledger, config)
+    if packet_version == HOSTILE_PACKET_V2_RECEIPT:
+        ledger["packet_version"] = packet_version
+        ledger["packet_digest_domain"] = HOSTILE_PACKET_V2_DIGEST_DOMAIN
     ledger["ledger_digest"] = semantic_digest(ledger)
     write_normalized_json_once(
         review_root / "hostile-answer-key" / "HOSTILE_REVIEW_LEDGER.json", ledger

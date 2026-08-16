@@ -335,26 +335,26 @@ def test_uncompilable_source_has_its_own_transport_diagnostic() -> None:
 @pytest.mark.parametrize(
     ("description", "data", "expected_reasons"),
     [
-        ("No declaration\n", VALID_CSV.encode(), ("unit-declaration-missing-or-ambiguous",)),
+        ("No declaration\n", VALID_CSV.encode(), ("unit-declaration-missing",)),
         (
             "Independent unit column: unit_id\nIndependent unit column: unit_id\n",
             VALID_CSV.encode(),
-            ("unit-declaration-missing-or-ambiguous",),
+            ("unit-declaration-duplicate-prefix",),
         ),
         (
             "independent unit column: unit_id\n",
             VALID_CSV.encode(),
-            ("unit-declaration-missing-or-ambiguous",),
+            ("unit-declaration-syntax-outside-closed-grammar",),
         ),
         (
             VALID_DESCRIPTION,
             VALID_CSV.replace("unit_id", "Unit_ID").encode(),
-            ("unit-csv-invalid-or-incomplete",),
+            ("unit-column-not-in-csv-header",),
         ),
         (
             VALID_DESCRIPTION,
             b"unit_id,unit_id,value\nu1,A,1\n",
-            ("unit-csv-invalid-or-incomplete",),
+            ("unit-column-duplicated-in-csv-header",),
         ),
         (VALID_DESCRIPTION, b"unit_id,,value\nu1,A,1\n", ("unit-csv-invalid-or-incomplete",)),
         (VALID_DESCRIPTION, b"unit_id,arm,value\n,A,1\n", ("unit-csv-invalid-or-incomplete",)),
@@ -488,6 +488,19 @@ def test_valid_transport_observes_exact_shadow_outcome(tmp_path: Path) -> None:
     translation = json.loads((run_root / "cases/0001/lock-translation.json").read_text())
     assert translation["translation_outcome"] == "lock-projected"
     assert translation["translation_reasons"] == []
+    assert translation["v1_translation_outcome"] is None
+    assert translation["v1_lock_digest"] is None
+    assert translation["v2_translation_outcome"] == "lock-projected"
+    assert translation["v2_translation_reasons"] == []
+    assert translation["v2_lock_digest"] == translation["lock_digest"]
+    assert translation["v2_translation_receipt"] == {
+        "declaration_byte_span": [26, 58],
+        "declaration_form_id": "wall-census-standalone-v1",
+        "extracted_token": "unit_id",
+        "logical_header": ["unit_id", "arm", "value", "include"],
+        "quoted_declaration": "Independent unit column: unit_id",
+        "translation_version": "2.0.0-development",
+    }
     payload = shadow["shadow_payload"]
     assert payload["outcome"] == "unsupported"
     assert payload["reason_code"] == "module-constant-not-closed"
@@ -511,7 +524,7 @@ def test_invalid_transport_has_no_lock_and_observed_authority_free_question(
     assert not (case_root / "authorization-lock.json").exists()
     translation = json.loads((case_root / "lock-translation.json").read_text())
     assert translation["translation_outcome"] == "no-lock"
-    assert translation["translation_reasons"] == ["unit-declaration-missing-or-ambiguous"]
+    assert translation["translation_reasons"] == ["unit-declaration-missing"]
     payload = shadow["shadow_payload"]
     assert payload["outcome"] == "question"
     assert payload["reason_code"] == "independent-unit-definition-unresolved"
@@ -690,7 +703,7 @@ def test_census_keeps_transport_refusals_separate_from_recognizer_walls(
     assert census["case_count"] == 2
     assert census["generation_calls"] == 2
     assert census["measurement_authority"] == "none"
-    assert census["transport_failure_frequencies"] == {"unit-declaration-missing-or-ambiguous": 1}
+    assert census["transport_failure_frequencies"] == {"unit-declaration-missing": 1}
     assert "independent-unit-definition-unresolved" not in census["wall_frequencies"]
     assert sum(census["wall_frequencies"].values()) >= 1
     for path in run_root.rglob("*.json"):

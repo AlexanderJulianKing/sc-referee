@@ -514,6 +514,17 @@ def test_model_free_nonmeasurement_fixture_executes_and_records_abstentions(
     )
     assert translations["fx2"]["translation_outcome"] == "unit-declaration-missing-or-malformed"
     assert translations["fx3"]["translation_outcome"] == "lock-minted"
+    rq1_translation = json.loads(
+        (
+            isolated
+            / config.pipeline_relative
+            / "authority/translations"
+            / f"{_CASE_BY_ROLE['rq1'].removeprefix('case:')}.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert rq1_translation["v1_translation_outcome"] == "lock-minted"
+    assert rq1_translation["v1_lock_digest"] == rq1_translation["lock_digest"]
+    assert rq1_translation["v1_translation_receipt"]["extracted_token"] == "bird_code"
     _freeze_fixture_labels(isolated, config, authority)
     detector = step_detector(isolated, config)
     by_role = {entry["case_role"]: entry for entry in detector["entries"]}
@@ -835,6 +846,10 @@ def test_hostile_answer_key_lock_question_is_tri_state(
     )
     assert entries[_CASE_BY_ROLE["fx2"]]["burn_reasons"] == ["unit-declaration-inconsistent"]
     assert sum("answer exactly not-applicable-no-lock" in prompt for prompt in prompts) == 2
+    assert ledger["packet_version"] == lean_pipeline.HOSTILE_PACKET_V2_RECEIPT
+    assert ledger["packet_digest_domain"] == lean_pipeline.HOSTILE_PACKET_V2_DIGEST_DOMAIN
+    assert all("deterministic translation receipt (lane-qualified)" in prompt for prompt in prompts)
+    assert all(entry["packet_digest"].startswith("sha256:") for entry in entries.values())
 
 
 @pytest.mark.skipif(not _RUNTIME_AVAILABLE, reason="dedicated SciPy 1.14.0 runtime is absent")
