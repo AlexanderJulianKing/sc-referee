@@ -2037,8 +2037,46 @@ def _registered_dependence_callable_set_v2(source: str) -> tuple[tuple[str, ...]
     if any(type(node).__name__ not in _V2_BINDING_AST_NODES for node in ast.walk(tree)):
         return None, "procedure-unresolved-by-lock-schema-resolver"
 
-    bindings: dict[str, str] = {}
-    establishing: dict[str, list[ast.AST]] = {}
+    parents = {child: parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)}
+    scope_types = (
+        ast.Module,
+        ast.FunctionDef,
+        ast.AsyncFunctionDef,
+        ast.Lambda,
+        ast.ClassDef,
+        ast.ListComp,
+        ast.SetComp,
+        ast.DictComp,
+        ast.GeneratorExp,
+    )
+
+    def scope_owner(node: ast.AST) -> ast.AST:
+        current: ast.AST | None = node
+        while current is not None and not isinstance(current, scope_types):
+            current = parents.get(current)
+        return current if current is not None else tree
+
+    def lexical_scope_chain(node: ast.AST) -> tuple[ast.AST, ...]:
+        owner = scope_owner(node)
+        chain: list[ast.AST] = []
+        while True:
+            chain.append(owner)
+            outer = parents.get(owner)
+            while outer is not None and not isinstance(outer, scope_types):
+                outer = parents.get(outer)
+            if outer is None:
+                break
+            if isinstance(owner, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                while isinstance(outer, ast.ClassDef):
+                    outer = parents.get(outer)
+                    while outer is not None and not isinstance(outer, scope_types):
+                        outer = parents.get(outer)
+                if outer is None:
+                    break
+            owner = outer
+        return tuple(chain)
+
+    establishing: dict[str, list[tuple[ast.AST, ast.AST, str]]] = {}
     for node in ast.walk(tree):
         entries: list[tuple[str, str]] = []
         if isinstance(node, ast.Import):
@@ -2064,19 +2102,26 @@ def _registered_dependence_callable_set_v2(source: str) -> tuple[tuple[str, ...]
                     if alias.name != "*"
                 )
         for root, resolved in entries:
-            establishing.setdefault(root, []).append(node)
-            bindings[root] = resolved
+            establishing.setdefault(root, []).append((node, scope_owner(node), resolved))
 
-    def resolve(node: ast.expr) -> str | None:
+    def resolve(node: ast.expr, *, at: ast.AST) -> str | None:
         attributes: list[str] = []
         while isinstance(node, ast.Attribute):
             attributes.append(node.attr)
             node = node.value
-        if not isinstance(node, ast.Name) or node.id not in bindings:
+        if not isinstance(node, ast.Name):
             return None
-        return ".".join((bindings[node.id], *reversed(attributes)))
+        chain = lexical_scope_chain(at)
+        candidates = [
+            resolved
+            for _import_node, import_scope, resolved in establishing.get(node.id, ())
+            if import_scope in chain
+        ]
+        if len(candidates) != 1:
+            return None
+        return ".".join((candidates[0], *reversed(attributes)))
 
-    if not bindings:
+    if not establishing:
         return None, "procedure-unresolved-by-lock-schema-resolver"
 
     def bound_names(target: ast.AST) -> set[str]:
@@ -2088,8 +2133,8 @@ def _registered_dependence_callable_set_v2(source: str) -> tuple[tuple[str, ...]
             return set().union(*(bound_names(item) for item in target.elts))
         return set()
 
-    invalid_roots: set[str] = {root for root, nodes in establishing.items() if len(nodes) != 1}
-    roots = set(bindings)
+    invalid_roots: set[str] = {root for root, entries in establishing.items() if len(entries) != 1}
+    roots = set(establishing)
     for node in ast.walk(tree):
         targets: tuple[ast.AST, ...] = ()
         if isinstance(node, ast.Assign):
@@ -2128,7 +2173,9 @@ def _registered_dependence_callable_set_v2(source: str) -> tuple[tuple[str, ...]
         if isinstance(node, ast.Import | ast.ImportFrom):
             for alias in node.names:
                 imported = alias.asname or alias.name.split(".")[0]
-                if imported in roots and node not in establishing[imported]:
+                if imported in roots and all(
+                    node is not item[0] for item in establishing[imported]
+                ):
                     invalid_roots.add(imported)
 
     def direct_chain(node: ast.expr) -> tuple[str, tuple[str, ...]] | None:
@@ -2140,33 +2187,42 @@ def _registered_dependence_callable_set_v2(source: str) -> tuple[tuple[str, ...]
 
     member_binding_failure = False
     for node in ast.walk(tree):
-        member_targets: tuple[ast.AST, ...] = ()
-        if isinstance(node, ast.Assign):
-            member_targets = tuple(node.targets)
-        elif isinstance(node, ast.AnnAssign | ast.AugAssign):
-            member_targets = (node.target,)
-        elif isinstance(node, ast.Delete):
-            member_targets = tuple(node.targets)
-        for target in member_targets:
-            chain = direct_chain(target) if isinstance(target, ast.expr) else None
-            if chain is not None and chain[0] in bindings and chain[1]:
+        if isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Store | ast.Del):
+            chain = direct_chain(node)
+            if chain is not None and chain[0] in roots and chain[1]:
                 member_binding_failure = True
 
     assigned_aliases: set[str] = set()
-    for node in ast.walk(tree):
-        alias_chain = direct_chain(node.value) if isinstance(node, ast.Assign) else None
-        if (
-            isinstance(node, ast.Assign)
-            and len(node.targets) == 1
-            and isinstance(node.targets[0], ast.Name)
-            and alias_chain is not None
-            and alias_chain[0] in bindings
+
+    def collect_aliases(target: ast.AST, value: ast.AST, *, at: ast.AST) -> None:
+        if isinstance(target, ast.Starred):
+            collect_aliases(target.value, value, at=at)
+            return
+        if isinstance(target, ast.Tuple | ast.List) and isinstance(value, ast.Tuple | ast.List):
+            if len(target.elts) == len(value.elts):
+                for target_item, value_item in zip(target.elts, value.elts, strict=True):
+                    collect_aliases(target_item, value_item, at=at)
+            return
+        if not isinstance(target, ast.Name) or not isinstance(value, ast.expr):
+            return
+        resolved = resolve(value, at=at)
+        if resolved is not None and (
+            resolved == "scipy.stats" or resolved.startswith("scipy.stats.")
         ):
-            assigned_aliases.add(node.targets[0].id)
+            assigned_aliases.add(target.id)
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                collect_aliases(target, node.value, at=node)
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            collect_aliases(node.target, node.value, at=node)
+        elif isinstance(node, ast.NamedExpr):
+            collect_aliases(node.target, node.value, at=node)
 
     procedures: list[str] = []
     dynamic_candidate = False
-    parents = {child: parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)}
+    scope_binding_failure = False
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
@@ -2189,9 +2245,19 @@ def _registered_dependence_callable_set_v2(source: str) -> tuple[tuple[str, ...]
             if comprehension_shadowed:
                 dynamic_candidate = True
                 continue
-        candidate = resolve(node.func)
+        candidate = resolve(node.func, at=node)
         if candidate is None:
-            if (isinstance(node.func, ast.Name) and node.func.id in assigned_aliases) or any(
+            if chain is not None and chain[0] in roots:
+                if not any(
+                    import_scope in lexical_scope_chain(node)
+                    for _import_node, import_scope, _resolved in establishing[chain[0]]
+                ):
+                    scope_binding_failure = True
+                else:
+                    dynamic_candidate = True
+            elif chain is not None and chain[0] in assigned_aliases:
+                dynamic_candidate = True
+            elif any(
                 isinstance(item, ast.Name) and item.id in roots for item in ast.walk(node.func)
             ):
                 dynamic_candidate = True
@@ -2212,6 +2278,8 @@ def _registered_dependence_callable_set_v2(source: str) -> tuple[tuple[str, ...]
         procedures.append(variant)
     if dynamic_candidate:
         return None, "procedure-unresolved-by-lock-schema-resolver"
+    if scope_binding_failure:
+        return None, "procedure-binding-not-closed"
     if not procedures:
         return None, "procedure-unresolved-by-lock-schema-resolver"
     if invalid_roots or member_binding_failure:

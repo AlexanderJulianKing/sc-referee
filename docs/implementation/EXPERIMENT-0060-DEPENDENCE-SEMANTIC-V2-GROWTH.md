@@ -441,3 +441,20 @@ Paired obligations, facts, certificates, verified conclusions, kernel obligation
 adapter reasons, and wording are distinct from the row-independent group path. The
 analyzer and kernel reuse the existing single operand/sink partition independently;
 the row-independent path and its cross-operand unit safeguard are unchanged.
+
+### 2026-08-16 Growth-13 code-review repair retention
+
+Binding memo Section 22 closes three review-demonstrated seams without widening the
+Growth-13 grammar. The existing authority pass now owns imports and calls by Python
+lexical scope, enumerates attribute Store/Del targets across supported binding fields,
+and sends every callable or stats-module alias form through one unresolved-alias
+census. These failures produce no lock and no authority record.
+
+The paired kernel now receives the exact selected `FrozenMaterialInput` and independently
+reconstructs the complete strict-CSV paired fact from its bytes and references before
+comparing it with the supplied trusted fact. Exact header and row order, source strings,
+observation and unit ids, finite cast representations, counts, ASCII proof, file and
+asset references, and every obligation field are therefore bound at `paired-fact-closure`.
+Paired operand walrus targets reach the existing sole operand/sink partition before the
+generic named-expression refusal; non-operand named expressions remain unsupported by
+their existing reason.

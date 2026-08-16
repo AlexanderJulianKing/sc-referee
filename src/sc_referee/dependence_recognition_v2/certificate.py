@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import ast
 import copy
+import csv
+import io
 import math
 import posixpath
 from collections import Counter
@@ -11,7 +13,11 @@ from dataclasses import asdict, replace
 from typing import Any, Literal, cast
 
 from sc_referee.core.ids import semantic_digest, sha256_digest
-from sc_referee.dependence_recognition.ir import HumanMethodAuthorization
+from sc_referee.dependence_recognition.ir import (
+    MAX_V1_MEMBERSHIPS,
+    HumanMethodAuthorization,
+    RecordRef,
+)
 from sc_referee.dependence_recognition_v2.ir import (
     DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS,
     MAX_V2_AST_NODES,
@@ -26,11 +32,14 @@ from sc_referee.dependence_recognition_v2.ir import (
     DependenceGrowthCertificate,
     GroupValueSequenceFact,
     PairedDependenceCertificate,
+    PairedObservation,
     PairedValueSequenceFact,
+    PairedValueSequenceObligation,
     VerifiedCountDependenceCertificate,
     VerifiedDependenceGrowthCertificate,
     VerifiedPairedDependenceCertificate,
 )
+from sc_referee.scientific_checks.core import FrozenMaterialInput
 
 _PROCEDURE_ARITY = {
     "scipy.stats.ttest_ind": 2,
@@ -240,6 +249,7 @@ def verify_paired_dependence_certificate(
     certificate: PairedDependenceCertificate,
     *,
     trusted_paired_facts: tuple[PairedValueSequenceFact, ...],
+    trusted_material_inputs: tuple[FrozenMaterialInput, ...],
     trusted_authorizations: tuple[HumanMethodAuthorization, ...],
     trusted_procedure_sets: tuple[AuthorizedProcedureSet, ...],
     source_bytes: bytes,
@@ -256,6 +266,7 @@ def verify_paired_dependence_certificate(
 
     if (
         len(trusted_paired_facts) != 1
+        or len(trusted_material_inputs) != 1
         or sha256_digest(source_bytes) != certificate.source_digest
         or certificate.source_extent != (0, len(source_bytes))
         or certificate.resolved_callable != "scipy.stats.ttest_rel"
@@ -264,6 +275,7 @@ def verify_paired_dependence_certificate(
     ):
         return refuse("paired-envelope-binding")
     fact = trusted_paired_facts[0]
+    material = trusted_material_inputs[0]
     obligation = certificate.obligation
     if len(trusted_authorizations) != 1 or len(trusted_procedure_sets) != 1:
         return refuse("paired-authority-binding")
@@ -329,7 +341,8 @@ def verify_paired_dependence_certificate(
         != certificate.procedure_call_token
     ):
         return refuse("paired-procedure-class")
-    if not _paired_fact_closed(fact, obligation):
+    replayed_fact = _kernel_replay_paired_fact(material, obligation)
+    if replayed_fact is None or fact != replayed_fact:
         return refuse("paired-fact-closure")
     replay = _kernel_paired_vectors(body, certificate, imports)
     if replay is None:
@@ -388,65 +401,105 @@ def verify_paired_dependence_certificate(
     )
 
 
-def _paired_fact_closed(fact: PairedValueSequenceFact, obligation: Any) -> bool:
+def _kernel_replay_paired_fact(
+    material: FrozenMaterialInput,
+    obligation: PairedValueSequenceObligation,
+) -> PairedValueSequenceFact | None:
+    """Reconstruct the complete strict-CSV paired fact inside the kernel."""
+
     if (
-        fact.evidence_id != f"dependence-growth-paired-proof:{semantic_digest(asdict(obligation))}"
-        or fact.path != obligation.path
-        or fact.content_digest != obligation.content_digest
-        or fact.line_model != obligation.line_model
-        or fact.reader_form != obligation.reader_form
-        or fact.encoding != obligation.encoding
-        or fact.authorized_unit_column != obligation.authorized_unit_column
-        or fact.left_value_column != obligation.left_value_column
-        or fact.right_value_column != obligation.right_value_column
-        or fact.left_cast_kind != obligation.left_cast_kind
-        or fact.right_cast_kind != obligation.right_cast_kind
-        or not fact.header
-        or len(fact.header) != len(set(fact.header))
-        or any(not item for item in fact.header)
-        or not {
-            fact.authorized_unit_column,
-            fact.left_value_column,
-            fact.right_value_column,
-        }
-        <= set(fact.header)
-        or fact.row_count <= 0
-        or fact.row_count > 10_000
-        or len(fact.observations) != fact.row_count
-        or (fact.encoding == "ascii" and not fact.ascii_bytes_proven)
+        material.path != obligation.path
+        or material.content_digest != obligation.content_digest
+        or sha256_digest(material.content) != obligation.content_digest
+        or obligation.encoding not in {"utf-8", "ascii"}
+        or obligation.reader_form != "csv_dictreader_direct_file"
+        or obligation.line_model != "csv_newline"
     ):
-        return False
-    for index, item in enumerate(fact.observations, start=1):
-        expected_observation = f"paired-observation:{semantic_digest({'path': fact.path, 'digest': fact.content_digest, 'row': index})}"
-        unit_digest = item.authorized_unit_id.removeprefix("unit-key:sha256:")
+        return None
+    ascii_proven = material.content.isascii()
+    try:
+        text = material.content.decode("utf-8", errors="strict")
+    except UnicodeDecodeError:
+        return None
+    if text.startswith("\ufeff") or (obligation.encoding == "ascii" and not ascii_proven):
+        return None
+    try:
+        reader = csv.DictReader(io.StringIO(text, newline=""), strict=True)
+        header = tuple(reader.fieldnames or ())
+        required = {
+            obligation.authorized_unit_column,
+            obligation.left_value_column,
+            obligation.right_value_column,
+        }
         if (
-            item.row_index != index
-            or item.observation_id != expected_observation
-            or len(unit_digest) != 64
-            or any(character not in "0123456789abcdef" for character in unit_digest)
+            not header
+            or len(header) != len(set(header))
+            or any(not item for item in header)
+            or not required <= set(header)
+            or len(required) != 3
         ):
-            return False
+            return None
+        rows = list(reader)
+    except (csv.Error, UnicodeError):
+        return None
+    if not rows or len(rows) > 10_000 or len(rows) > MAX_V1_MEMBERSHIPS:
+        return None
+    observations: list[PairedObservation] = []
+    for index, row in enumerate(rows, start=1):
+        if None in row or any(row.get(column) is None for column in header):
+            return None
+        unit = row[obligation.authorized_unit_column]
+        left_source = row[obligation.left_value_column]
+        right_source = row[obligation.right_value_column]
+        if not unit or not left_source or not right_source:
+            return None
         try:
-            left = (
-                float(item.left_source_value)
-                if fact.left_cast_kind == "float"
-                else int(item.left_source_value)
+            left = _kernel_paired_cast(left_source, obligation.left_cast_kind)
+            right = _kernel_paired_cast(right_source, obligation.right_cast_kind)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        if not math.isfinite(left) or not math.isfinite(right):
+            return None
+        observations.append(
+            PairedObservation(
+                row_index=index,
+                observation_id=f"paired-observation:{semantic_digest({'path': obligation.path, 'digest': obligation.content_digest, 'row': index})}",
+                authorized_unit_id=f"unit-key:{semantic_digest({'column': obligation.authorized_unit_column, 'value': unit})}",
+                left_source_value=left_source,
+                right_source_value=right_source,
+                left_cast_value_repr=repr(left),
+                right_cast_value_repr=repr(right),
             )
-            right = (
-                float(item.right_source_value)
-                if fact.right_cast_kind == "float"
-                else int(item.right_source_value)
-            )
-        except (ValueError, OverflowError):
-            return False
-        if (
-            repr(left) != item.left_cast_value_repr
-            or repr(right) != item.right_cast_value_repr
-            or not math.isfinite(left)
-            or not math.isfinite(right)
-        ):
-            return False
-    return True
+        )
+    return PairedValueSequenceFact(
+        evidence_id=f"dependence-growth-paired-proof:{semantic_digest(asdict(obligation))}",
+        path=obligation.path,
+        content_digest=obligation.content_digest,
+        file_ref=RecordRef(material.file_ref.record_type, material.file_ref.record_id),
+        asset_identity_ref=RecordRef(
+            material.asset_identity_ref.record_type, material.asset_identity_ref.record_id
+        ),
+        line_model=obligation.line_model,
+        reader_form=obligation.reader_form,
+        encoding=obligation.encoding,
+        ascii_bytes_proven=ascii_proven,
+        header=header,
+        authorized_unit_column=obligation.authorized_unit_column,
+        left_value_column=obligation.left_value_column,
+        right_value_column=obligation.right_value_column,
+        left_cast_kind=obligation.left_cast_kind,
+        right_cast_kind=obligation.right_cast_kind,
+        row_count=len(observations),
+        observations=tuple(observations),
+    )
+
+
+def _kernel_paired_cast(value: str, kind: str) -> float | int:
+    if kind == "float":
+        return float(value)
+    if kind == "int":
+        return int(value)
+    raise ValueError("unsupported paired cast")
 
 
 def _kernel_expected_dead_constructs(tree: ast.Module) -> tuple[str, ...]:

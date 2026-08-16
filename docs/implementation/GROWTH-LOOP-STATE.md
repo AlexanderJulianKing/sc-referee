@@ -1,6 +1,6 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
-Updated: 2026-08-16 (Growth-12 closed; Growth-13 build complete and code review is the next gate).
+Updated: 2026-08-16 (Growth-12 closed; Growth-13 Section-22 repair built and passing the pre-commit gate; repaired-snapshot review remains pending).
 
 ## Scoreboard
 
@@ -319,6 +319,58 @@ Updated: 2026-08-16 (Growth-12 closed; Growth-13 build complete and code review 
   clean snapshot, and send that snapshot to a different fresh code reviewer. Only
   `CLEAR FOR RE-MEASURE` permits the nine-case scratch retranslation; no frozen case
   has been rerun and no accusation has occurred.
+- Growth-13 code review on exact clean pushed HEAD `dfa3bb1` is BLOCKED. Fresh
+  reviewer session `01a00b95` first demonstrated a Section-15 fail-open but terminated
+  when its platform filter rejected a benign review-only kernel probe, so it emitted
+  no final verdict. Different fresh completion reviewer session `01a00b9b` then
+  independently reproduced and bounded the defects, returned `VERDICT: BLOCKED`, and
+  explicitly reported `TRANSPORT-PRECEDENCE: REFUSE`. Eight of 38 closed-binding
+  probes failed: member Store targets through for/with/comprehension, an establishing
+  import in the wrong lexical scope, annotated/destructuring/named-expression callable
+  aliases beside a direct call, and a module-object alias beside a direct call all
+  minted a singular paired lock. A pinned SciPy-1.14.0 source printed `REPLACEMENT`
+  while end-to-end translation created one human authorization and an actual v2 lock
+  file. These are incorrect authority records, not recognizer or scored accusations.
+- The completion reviewer also found six paired-fact closure mutations accepted by
+  the kernel: valid-looking wrong unit ids, changed exact source strings with equal
+  numeric casts, reordered headers, reordered row values, changed frozen file refs,
+  and changed multiplicity. The last changed a valid adverse repeated-unit fact into
+  a verified `one_pair_position_per_unit` covered-negative conclusion. This is a
+  demonstrated false-accusation/clearance route at the kernel boundary, but no adapter
+  output from altered trusted evidence, production Finding, scored case, frozen case,
+  or re-measure was emitted. A paired-vector walrus rebind also returned the safe but
+  memo-wrong `named-expression-not-modeled` instead of `operand-name-rebound`.
+  All other paired semantics, Section-18 phases, exact 7-lock/2-ambiguity opportunity,
+  thirteen straightforward kernel obligations, runtime operands, wording, pins,
+  production isolation, protected/frozen identity, scoped static checks, 66/66
+  Growth-13 tests, and the full 4,166-test `PYTEST_EXIT=0` passed. Binding memo
+  Section 22 records the narrow repair. A fresh fix builder must implement only that
+  inventory; a different fresh code reviewer still gates any re-measure.
+- Fresh fix builder session `01a00bb3` implemented exactly binding memo Section 22 on
+  base `dfa3bb1`, without editing STATE, committing, pushing, or running a frozen
+  corpus. The existing authority pass now closes member Store/Del targets, lexical
+  import/call ownership, and all reviewed callable/module alias forms; the paired
+  kernel independently reconstructs the complete strict-CSV fact from the selected
+  frozen material bytes and references; and paired operand walruses reach the existing
+  sole operand/sink partition before the generic named-expression refusal. The
+  reviewer transport replay moved from 30/38 to 38/38, every reviewed end-to-end
+  source produced zero authority records and no lock file (including pinned runtime
+  replacement sources that printed `REPLACEMENT`), every valid-looking fact mutation
+  was refused at singleton `paired-fact-closure`, and the paired/non-paired walrus
+  reasons were exactly `operand-name-rebound` / `named-expression-not-modeled`.
+  Builder validation passed 78/78 Growth-13 tests (the original 66 plus twelve repair
+  regressions), 376 focused tests with only the orchestrator-owned manifest inventory
+  test deselected, scoped Ruff/format, `mypy src` over 161 files, starter validation,
+  installed pins, production isolation, and protected/frozen diff checks.
+- The orchestrator verified the repair handoff on exact `dfa3bb1`: only the five
+  authorized Growth-13 development implementation/test/EXPERIMENT-0060 files plus
+  this pre-existing living-state edit differ; `git diff --check` passes; manifest,
+  v1, EXPERIMENT-0058, authority/grants/pins/registry, qualification, protected, and
+  frozen-lane diffs are zero. The full repository functional suite, with only
+  `test_manifest_builder_inventory_equals_git_tree_listing` deselected until the
+  commit-then-regenerate sequence, reached 100% with captured `PYTEST_EXIT=0`.
+  Functional commit, manifest regeneration, exact all-test gate, push, and a different
+  fresh code review remain required. No re-measure or accusation has occurred.
 - The current raw wall leader is twelve `unsupported-import-form` cases, but all twelve
   import pandas and therefore do not present a demonstrated pure import-vocabulary
   gain: dataframe/reader semantics remain outside the current closed recognizer. That

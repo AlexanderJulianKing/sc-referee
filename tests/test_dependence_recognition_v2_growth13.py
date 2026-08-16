@@ -16,7 +16,7 @@ from sc_referee_evaluation.lean_pipeline import (
     _registered_dependence_callable_set_v2,
 )
 
-from sc_referee.core.ids import sha256_digest
+from sc_referee.core.ids import semantic_digest, sha256_digest
 from sc_referee.dependence_recognition_v2.adapter import DependenceRecognitionV2ShadowAdapter
 from sc_referee.dependence_recognition_v2.authority_lock import (
     DependenceV2AuthorizationLockError,
@@ -268,6 +268,38 @@ def test_lock_builder_rejects_paired_plural_records() -> None:
             "from scipy import stats\nstats.ttest_rel(a, b)\nstats.ttest_rel(c, d)\n",
             "procedure-ambiguous-multiple-statistical-calls",
         ),
+        (
+            "from scipy import stats\nfor stats.ttest_rel in [replacement]:\n    pass\nstats.ttest_rel(a, b)\n",
+            "procedure-binding-not-closed",
+        ),
+        (
+            "from scipy import stats\nwith manager() as stats.ttest_rel:\n    pass\nstats.ttest_rel(a, b)\n",
+            "procedure-binding-not-closed",
+        ),
+        (
+            "from scipy import stats\n[None for stats.ttest_rel in [replacement]]\nstats.ttest_rel(a, b)\n",
+            "procedure-binding-not-closed",
+        ),
+        (
+            "def establish():\n    from scipy import stats\nstats.ttest_rel(a, b)\n",
+            "procedure-binding-not-closed",
+        ),
+        (
+            "from scipy import stats\nf: object = stats.ttest_rel\nf(a, b)\nstats.ttest_rel(a, b)\n",
+            "procedure-unresolved-by-lock-schema-resolver",
+        ),
+        (
+            "from scipy import stats\n(f,) = (stats.ttest_rel,)\nf(a, b)\nstats.ttest_rel(a, b)\n",
+            "procedure-unresolved-by-lock-schema-resolver",
+        ),
+        (
+            "from scipy import stats\n(f := stats.ttest_rel)\nf(a, b)\nstats.ttest_rel(a, b)\n",
+            "procedure-unresolved-by-lock-schema-resolver",
+        ),
+        (
+            "from scipy import stats\nother = stats\nother.ttest_rel(a, b)\nstats.ttest_rel(a, b)\n",
+            "procedure-unresolved-by-lock-schema-resolver",
+        ),
     ],
 )
 def test_no_lock_translation_has_no_file_and_zero_authority_records(
@@ -361,6 +393,14 @@ def test_argument_reversal_preserves_pair_positions() -> None:
         (
             _paired_source().replace("    result =", "    before = before[:-1]\n    result ="),
             "operand-name-rebound",
+        ),
+        (
+            _paired_source().replace("    result =", "    (before := before[:-1])\n    result ="),
+            "operand-name-rebound",
+        ),
+        (
+            _paired_source().replace("    result =", "    (marker := 1)\n    result ="),
+            "named-expression-not-modeled",
         ),
     ],
 )
@@ -497,6 +537,7 @@ def test_paired_kernel_bypass_obligations_are_independent() -> None:
     )
     common = {
         "trusted_paired_facts": (verified.fact,),
+        "trusted_material_inputs": (context.material_inputs[0],),
         "trusted_authorizations": _trusted_v2_authorizations(context),
         "trusted_procedure_sets": _trusted_v2_procedure_sets(context),
         "source_bytes": context.documents[0].content,
@@ -614,6 +655,110 @@ def test_paired_kernel_bypass_obligations_are_independent() -> None:
     assert failures == ["paired-alpha-renaming"]
 
 
+def test_paired_kernel_replays_complete_fact_from_selected_material() -> None:
+    context = _paired_context(_paired_source(), _REPEATED)
+    analysis = analyze_dependence_growth_python(context)
+    discharged = discharge_dependence_growth_analysis(analysis, context)
+    verified = discharged.verified_certificate
+    assert verified is not None
+    certificate = analysis.certificate
+    assert isinstance(certificate, PairedDependenceCertificate)
+    certificate = replace(
+        certificate,
+        certificate_id=verified.certificate_id,
+        conclusion=verified.conclusion,
+    )
+    common = {
+        "trusted_material_inputs": (context.material_inputs[0],),
+        "trusted_authorizations": _trusted_v2_authorizations(context),
+        "trusted_procedure_sets": _trusted_v2_procedure_sets(context),
+        "source_bytes": context.documents[0].content,
+    }
+    observations = verified.fact.observations
+    first, second = observations
+    wrong_unit = "unit-key:sha256:" + "b" * 64
+    wrong_unit_observations = tuple(
+        replace(item, authorized_unit_id=wrong_unit) for item in observations
+    )
+    reordered_values = (
+        replace(
+            first,
+            left_source_value=second.left_source_value,
+            right_source_value=second.right_source_value,
+            left_cast_value_repr=second.left_cast_value_repr,
+            right_cast_value_repr=second.right_cast_value_repr,
+        ),
+        replace(
+            second,
+            left_source_value=first.left_source_value,
+            right_source_value=first.right_source_value,
+            left_cast_value_repr=first.left_cast_value_repr,
+            right_cast_value_repr=first.right_cast_value_repr,
+        ),
+    )
+    fact_cases = (
+        replace(
+            verified.fact,
+            observations=(
+                replace(first, observation_id="paired-observation:sha256:" + "a" * 64),
+                second,
+            ),
+        ),
+        replace(
+            verified.fact,
+            observations=(replace(first, left_cast_value_repr="999.0"), second),
+        ),
+        replace(verified.fact, observations=wrong_unit_observations),
+        replace(
+            verified.fact,
+            observations=(replace(first, left_source_value="01.0"), second),
+        ),
+        replace(verified.fact, header=tuple(reversed(verified.fact.header))),
+        replace(verified.fact, observations=reordered_values),
+        replace(verified.fact, file_ref=RecordRef("file_record", "file:wrong")),
+        replace(
+            verified.fact,
+            asset_identity_ref=RecordRef("asset_identity", "asset:wrong"),
+        ),
+    )
+    for forged_fact in fact_cases:
+        failures: list[str] = []
+        assert (
+            verify_paired_dependence_certificate(
+                certificate,
+                trusted_paired_facts=(forged_fact,),
+                **common,
+                _failure_reasons=failures,
+            )
+            is None
+        )
+        assert failures == ["paired-fact-closure"]
+
+    distinct_fact = replace(
+        verified.fact,
+        observations=(
+            first,
+            replace(second, authorized_unit_id="unit-key:sha256:" + "c" * 64),
+        ),
+    )
+    distinct_certificate = replace(certificate, conclusion="one_pair_position_per_unit")
+    distinct_certificate = replace(
+        distinct_certificate,
+        certificate_id=f"dependence-growth-paired-certificate:{semantic_digest({'source_digest': distinct_certificate.source_digest, 'fact': distinct_fact.evidence_id, 'left': distinct_certificate.left_vector_name, 'right': distinct_certificate.right_vector_name, 'conclusion': distinct_certificate.conclusion})}",
+    )
+    failures = []
+    assert (
+        verify_paired_dependence_certificate(
+            distinct_certificate,
+            trusted_paired_facts=(distinct_fact,),
+            **common,
+            _failure_reasons=failures,
+        )
+        is None
+    )
+    assert failures == ["paired-fact-closure"]
+
+
 def test_paired_kernel_dead_construct_bypass_has_its_own_obligation() -> None:
     source = _paired_source().replace(
         "def main():", 'def unused():\n    return "dead"\n\ndef main():'
@@ -636,6 +781,7 @@ def test_paired_kernel_dead_construct_bypass_has_its_own_obligation() -> None:
         verify_paired_dependence_certificate(
             certificate,
             trusted_paired_facts=(verified.fact,),
+            trusted_material_inputs=(context.material_inputs[0],),
             trusted_authorizations=_trusted_v2_authorizations(context),
             trusted_procedure_sets=_trusted_v2_procedure_sets(context),
             source_bytes=context.documents[0].content,
@@ -690,6 +836,13 @@ stats.ttest_rel([1.0], [2.0])
 def replacement(a, b):
     print("REPLACEMENT")
 stats.ttest_rel = replacement
+stats.ttest_rel([1.0], [2.0])
+""",
+        """from scipy import stats
+def replacement(a, b):
+    print("REPLACEMENT")
+for stats.ttest_rel in [replacement]:
+    pass
 stats.ttest_rel([1.0], [2.0])
 """,
     ],

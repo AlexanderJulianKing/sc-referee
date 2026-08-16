@@ -156,6 +156,12 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
     if len(document.content) > MAX_V2_SOURCE_BYTES:
         return _unsupported("source-byte-ceiling")
     constants: dict[str, ModuleConstant] = {}
+    trusted_procedures = _trusted_v2_procedure_sets(context)
+    paired_authorized = (
+        len(trusted_procedures) == 1
+        and len(trusted_procedures[0].resolved_callables) == 1
+        and trusted_procedures[0].resolved_callables[0] in _PAIRED_PROCEDURES
+    )
     try:
         source = document.content.decode("utf-8", errors="strict")
         tree = ast.parse(source)
@@ -204,7 +210,19 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
                 else "procedure-keyword-not-closed"
             )
         flattened, renames, dead = _flatten_functions(executable, functions, constants, imports)
-        _refuse_unmodeled_nonannotation_syntax(flattened)
+        deferred_paired_named_targets = {
+            argument.id
+            for statement in flattened
+            for node in ast.walk(statement)
+            if paired_authorized
+            and isinstance(node, ast.Call)
+            and _scipy_stats_callable(node.func, imports) == "scipy.stats.ttest_rel"
+            for argument in node.args
+            if isinstance(argument, ast.Name)
+        }
+        _refuse_unmodeled_nonannotation_syntax(
+            flattened, deferred_named_targets=deferred_paired_named_targets
+        )
         if _core_construct_is_conditionally_wrapped(flattened, imports):
             raise _Refusal("sink-controls-operand-flow")
     except _Refusal as refusal:
@@ -214,12 +232,6 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
         return _unsupported(*reasons)
 
     reasons.update(_independent_wall_scan(tree, constants))
-    trusted_procedures = _trusted_v2_procedure_sets(context)
-    paired_authorized = (
-        len(trusted_procedures) == 1
-        and len(trusted_procedures[0].resolved_callables) == 1
-        and trusted_procedures[0].resolved_callables[0] in _PAIRED_PROCEDURES
-    )
     if paired_authorized:
         if reasons:
             return _unsupported(*reasons)
@@ -746,6 +758,7 @@ def _discharge_paired_analysis(
     verified = verify_paired_dependence_certificate(
         certificate,
         trusted_paired_facts=(fact,),
+        trusted_material_inputs=(materials[0],),
         trusted_authorizations=_trusted_v2_authorizations(context),
         trusted_procedure_sets=_trusted_v2_procedure_sets(context),
         source_bytes=source_matches[0].content,
@@ -807,13 +820,20 @@ def _refuse_unsupported_live_assignment_syntax(body: list[ast.stmt]) -> None:
         raise _Refusal("delete-not-modeled")
 
 
-def _refuse_unmodeled_nonannotation_syntax(body: list[ast.stmt]) -> None:
+def _refuse_unmodeled_nonannotation_syntax(
+    body: list[ast.stmt], *, deferred_named_targets: set[str] | None = None
+) -> None:
     """Preserve the eager named refusals unrelated to annotation partitioning."""
 
     nodes = tuple(node for statement in body for node in ast.walk(statement))
     if any(isinstance(node, ast.AugAssign) for node in nodes):
         raise _Refusal("augmented-assignment-not-modeled")
-    if any(isinstance(node, ast.NamedExpr) for node in nodes):
+    deferred = deferred_named_targets or set()
+    if any(
+        isinstance(node, ast.NamedExpr)
+        and (not isinstance(node.target, ast.Name) or node.target.id not in deferred)
+        for node in nodes
+    ):
         raise _Refusal("named-expression-not-modeled")
     if any(isinstance(node, ast.Delete) for node in nodes):
         raise _Refusal("delete-not-modeled")
