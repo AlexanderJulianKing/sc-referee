@@ -1,6 +1,6 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
-Updated: 2026-08-15 (Growth-10 resumed by explicit maintainer authorization).
+Updated: 2026-08-16 (Growth-12 closed; Growth-13 paired-procedure design selected).
 
 ## Scoreboard
 
@@ -82,10 +82,46 @@ Updated: 2026-08-15 (Growth-10 resumed by explicit maintainer authorization).
   movements. Queue item 0's original aggregate premise is superseded by the memo §3.2.
   Consequence for ranking: procedure-stage walls now likely outrank intake; the
   paired-procedure go-ahead (queue item 1) covers part of the unavailable set.
-  Builder launch is the next step; the round-2 reviewer flagged the hostile-packet
-  replay seam at lean_pipeline.py:2961-2973 for the builder.
+  The round-2 reviewer flagged the hostile-packet replay seam at
+  `lean_pipeline.py:2961-2973` for the builder.
+- Growth-12 build and repair are complete through `7f822fc`. The initial build
+  (`f4d1bac` + manifest `095d121`) was BLOCKED in code review after markdown-fenced
+  declarations minted locks through both the terminal and legacy standalone routes,
+  plus three narrower receipt/completeness/provenance blockers. Binding memo v3
+  section 16 required a total triple-backtick presence refusal in both profiles,
+  restored stripped-emptiness completeness checks without relaxing byte-exact
+  matching, lane-local receipts, and complete versioned digest chains. A fresh fix
+  builder implemented exactly those seven-file amendments; the orchestrator's full
+  suite passed with verified `PYTEST_EXIT=0`, and the repair was committed as
+  `45104f8` with manifest `7f822fc` and pushed.
+- Fresh code reviewer session `01a00af7` reviewed exact clean HEAD `7f822fc` and
+  returned `VERDICT: CLEAR FOR RE-MEASURE`, with no BLOCKER/MAJOR/MINOR findings and
+  explicit `PROTOCOL-PRECEDENCE: ASSENT`. Executed probes covered 16 direct fence
+  profile/placement combinations, five growth-loop end-to-end cases, both wall-census
+  routes, semantic conflict/case-collision, whitespace completeness, lane receipts,
+  provenance, retained hostile replay, 27/27 evidence descriptions and 7/7 legacy
+  fixture modules marker-free, pins, production isolation, reason registry,
+  cardinality, protected paths, targeted Ruff/mypy/starter validation, and a full
+  `PYTEST_EXIT=0`. Protected/frozen changed paths were zero against both the round and
+  repair bases.
+- The gated scratch re-measure of immutable `run-40-authority-2` completed with
+  `REMEASURE_EXIT=0`, no model calls, and no project-code execution. Exactly cases
+  `0005`, `0011`, `0024`, `0026`, `0030`, and `0038` moved from `no-lock` to
+  `lock-projected`; transport counts moved `33/7 -> 39/1`. Those six moved from
+  authority `question` to honest named `unsupported` walls, so outcomes moved
+  `34 unsupported + 6 question -> 40 unsupported`; accusations remained `0`.
+  Seventeen reason sets differ from the immutable stored run: the six Growth-12
+  transport gains plus the eleven already-reviewed Growth-11 `open` decompositions.
+  The current 39-lock wall census is: `unsupported-import-form` 12,
+  `raise-guard-not-modeled` 7, `function-globals-read` 6,
+  `function-return-shape` 6, `module-constant-not-closed` 6,
+  `reader-form-unsupported` 5, `augmented-assignment-not-modeled` 2,
+  `function-closure` 2, and `import-use-outside-grammar` 2. The source corpus stayed
+  276 files with identical before/after inventory digest
+  `sha256:cfc5b235202a4a7a369c358b540c196afb221321258ab830fa537363cb98f0ac`;
+  the repository remained clean.
 
-## In flight
+## Growth-10/11 closure record
 
 - RESUMED by Alex's explicit authorization: Growth 10 may use a recursively
   enumerated, default-deny AST language for wall-census procedure authority; unknown
@@ -193,6 +229,22 @@ Updated: 2026-08-15 (Growth-10 resumed by explicit maintainer authorization).
   `function-globals-read` source forms before proposing Growth 11; no blind checkpoint
   is due yet.
 
+## In flight
+
+- Growth-13 is the maintainer-authorized paired-procedure family design. Fresh census
+  found nine frozen paired cases: seven `ttest_rel` calls and four `wilcoxon` calls
+  across nine workflows. Five are direct v2
+  `procedure-unavailable-to-closed-lock-schema` opportunities; four remain
+  `procedure-ambiguous-multiple-statistical-calls` and are not promised movement.
+  The design must measure every case's current translation and recognizer walls, state
+  paired-design independence semantics explicitly, keep same-unit-across-two-measures
+  legitimate, and make the growth-3 paired/crossover must-not-accuse cases central.
+- The current raw wall leader is twelve `unsupported-import-form` cases, but all twelve
+  import pandas and therefore do not present a demonstrated pure import-vocabulary
+  gain: dataframe/reader semantics remain outside the current closed recognizer. That
+  evidence does not reorder the explicit paired-family go-ahead. No blind checkpoint
+  is due until roughly three to four additional reviewed rounds after J1/J2.
+
 ## Resolved halt record — Growth 10 wall-census authority transport
 
 - Design memo:
@@ -224,8 +276,9 @@ Updated: 2026-08-15 (Growth-10 resumed by explicit maintainer authorization).
 
 ## Heavy queue (evidence-ranked; measure premises before designing)
 
-0. MAINTAINER-AUTHORIZED (Alex, relayed via the Fable escalation channel, 2026-08-16),
-   NEW TOP PRIORITY: unit-declaration intake broadening. Measured premise: 21 frozen
+0. COMPLETED in Growth-12 through `7f822fc` and fresh `CLEAR FOR RE-MEASURE`.
+   MAINTAINER-AUTHORIZED (Alex, relayed via the Fable escalation channel, 2026-08-16),
+   unit-declaration intake broadening. Original queue premise: 21 frozen
    blind free cases and 6/40 of run-40-authority-2 died at
    `independent-unit-definition-unresolved` because the free-form description never
    contained the exact `Independent unit column:` string — the single largest miss
@@ -238,9 +291,11 @@ Updated: 2026-08-15 (Growth-10 resumed by explicit maintainer authorization).
    fixtures for near-miss phrasings; no change to v1, registry, grants, pins,
    qualification records, or any promoted surface — development lanes only. Measure
    the exact phrasings in the 21+6 dead cases first and put them in the memo.
-   Maintainer intent on record: the loop's goal is a first honest blind FINDING, and
-   this wall currently blocks ~1/4 of all opportunities before analysis begins.
-1. Paired-procedure family (ttest_rel/wilcoxon lock gap; recurring since batch C) —
+   Memo measurement corrected the premise: only six census layouts were declaration
+   misses; all 21 batch descriptions already declared the column and stayed at
+   procedure-stage v2 no-lock. The six census translations moved exactly as reviewed,
+   with zero accusations. Maintainer intent remains a first honest blind FINDING.
+1. NEXT — Paired-procedure family (ttest_rel/wilcoxon lock gap; recurring since batch C) —
    GO-AHEAD GRANTED (maintainer decision, relayed via the Fable escalation channel,
    2026-08-16): the new claim shape may be designed. Constraints: full HEAVY gauntlet;
    the memo must state the paired-design independence semantics explicitly (same unit
