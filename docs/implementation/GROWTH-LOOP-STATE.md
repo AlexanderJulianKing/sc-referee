@@ -552,6 +552,13 @@ fresh design reviews and awaits maintainer direction; no build is authorized).
   reconstruction rule. The earlier no-build disposition remains correct. This
   authorization does not start a build, bypass HEAVY review, relax zero-FA discipline,
   or change the `0/47` batch-K trigger.
+- MAINTAINER ACKNOWLEDGMENT (Fable escalation channel, confirmed with Alex,
+  2026-08-16): the Growth-15 third-review escalation is expected and correct. The
+  exact evidence is persisted above and in memo Section 15. The maintainer response
+  will be a design principle, as in Growth 10, not authorization for an ad hoc patch.
+  Growth 15 remains blocked and no implementation, re-measure, batch, or queued
+  Growth-14 work may start until that principle arrives and passes the normal fresh
+  HEAVY design-review gate.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
@@ -662,6 +669,27 @@ Blind-batch seats may move to codex-cli transports
   reviewer sessions ran with `.git` made read-only and restored by an orchestrator
   shell trap. Continue that technical control for every delegated session; only the
   orchestrator may commit or push.
+- MAINTAINER PROCESS DECISION (Fable escalation channel, confirmed with Alex,
+  2026-08-16): full-suite gates may run across cores through `pytest-xdist` or an
+  equivalent only after the parallelization itself is treated as a reviewed harness
+  change and one clean complete serial/parallel equivalence run demonstrates test
+  isolation. Fresh contexts, executed probes, exact exit-code capture, and every gate
+  remain unchanged. On current clean `f7cf3fc`, the repository `.venv` reports
+  `ModuleNotFoundError` for `xdist`; therefore serial pytest remains the authoritative
+  gate until that reviewed equivalence is completed. Merely installing or invoking a
+  parallel runner does not satisfy this condition.
+- While a design or code reviewer is running, the orchestrator may concurrently
+  perform only the next round's read-only premise measurement: census reads, wall
+  counts, and frozen-case reads. This overlap never permits a build, state or memo
+  commit, frozen-lane write, re-measure, batch, or mutation while the reviewer gate is
+  pending. Reviewer findings still take precedence over all speculative next-round
+  measurements.
+- Reviewer reasoning effort is risk-tiered without changing the mandatory probe set
+  or any gate. Kernel-boundary, authority-layer, harness, and other HEAVY reviews use
+  maximum reasoning effort. A genuinely pure-vocabulary diff may use medium reasoning
+  effort, still in a fresh context and with the same mandatory executed probes. Risk
+  ambiguity defaults to maximum effort; effort tiering never converts a HEAVY round
+  into a LIGHT round or relaxes role separation.
 
 ## Key file map
 
