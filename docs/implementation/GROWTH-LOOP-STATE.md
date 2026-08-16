@@ -1,6 +1,6 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
-Updated: 2026-08-16 (Growth-12 closed; Growth-13 Section-22 repair built and passing the pre-commit gate; repaired-snapshot review remains pending).
+Updated: 2026-08-16 (Growth-12 closed; Growth-13 Section-22 repair committed as `8c8a7ce`; manifest, exact gate, push, and repaired-snapshot review remain pending).
 
 ## Scoreboard
 
@@ -369,8 +369,9 @@ Updated: 2026-08-16 (Growth-12 closed; Growth-13 Section-22 repair built and pas
   frozen-lane diffs are zero. The full repository functional suite, with only
   `test_manifest_builder_inventory_equals_git_tree_listing` deselected until the
   commit-then-regenerate sequence, reached 100% with captured `PYTEST_EXIT=0`.
-  Functional commit, manifest regeneration, exact all-test gate, push, and a different
-  fresh code review remain required. No re-measure or accusation has occurred.
+  The functional repair and this gate record were committed as `8c8a7ce`. Manifest
+  regeneration, the exact all-test gate, push, and a different fresh code review
+  remain required. No re-measure or accusation has occurred.
 - The current raw wall leader is twelve `unsupported-import-form` cases, but all twelve
   import pandas and therefore do not present a demonstrated pure import-vocabulary
   gain: dataframe/reader semantics remain outside the current closed recognizer. That
