@@ -1,0 +1,1 @@
+Agricultural field trial evaluating the effect of irrigation method on crop yield. Data collected from 14 farm plots in a randomized design with seven plots assigned to drip irrigation and seven to flood irrigation. Yield measurements in kilograms per hectare represent harvest output per unit area. Independent unit column: plot_id

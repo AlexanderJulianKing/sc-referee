@@ -1,0 +1,3 @@
+A comparative water quality study examining dissolved oxygen concentrations in two freshwater ecosystems. Water samples were collected from Smith River and Jones Creek over a single monitoring period. For each sample, dissolved oxygen concentration was measured in milligrams per liter (mg/L) using standard limnological techniques, and coincident water temperature was recorded in degrees Celsius. The analysis tests whether mean dissolved oxygen levels differ statistically between the two rivers, with implications for understanding ecosystem health, aquatic habitat quality, and water quality management needs.
+
+Independent unit column: sample_id

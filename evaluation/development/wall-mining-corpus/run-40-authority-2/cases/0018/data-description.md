@@ -1,0 +1,3 @@
+Water quality samples collected from two municipal treatment facilities over a three-month period (January to March 2024). Each sample measures nitrate concentration (ppm), pH level, and turbidity. Upstream samples represent water before treatment, while downstream samples represent treated water. This dataset is used to compare nitrate contamination levels between the two facility types using a non-parametric statistical test to determine if treatment effectiveness differs significantly.
+
+Independent unit column: sample_id

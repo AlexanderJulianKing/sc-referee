@@ -1,0 +1,15 @@
+plot_id,irrigation_method,yield_kg_per_hectare
+P001,drip,4780
+P002,drip,4950
+P003,drip,4620
+P004,drip,5120
+P005,drip,4810
+P006,drip,4890
+P007,drip,5040
+P008,flood,3950
+P009,flood,4100
+P010,flood,3820
+P011,flood,4280
+P012,flood,3880
+P013,flood,4050
+P014,flood,3920

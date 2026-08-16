@@ -1,0 +1,5 @@
+Plant Photosynthetic Efficiency Dataset
+
+This dataset contains chlorophyll fluorescence measurements obtained from plant leaves under two fertilizer treatment conditions. The Fv/Fm ratio (variable fluorescence to maximum fluorescence) quantifies the maximum quantum yield of photosystem II photochemistry and serves as a diagnostic indicator of photosynthetic performance. Measurements were collected from mature, fully-expanded leaves of adult plants cultivated under controlled environmental conditions with uniform lighting, temperature, and watering regimens. Two treatment groups are represented: Control (standard nutrient formulation) and Fertilizer (phosphorus-enriched supplementation). Each row documents a single plant specimen and its corresponding physiological measurement.
+
+Independent unit column: plant_id

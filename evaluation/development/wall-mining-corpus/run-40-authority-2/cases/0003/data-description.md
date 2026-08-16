@@ -1,0 +1,2 @@
+Agricultural field trial dataset comparing crop yield across two irrigation systems. Each row represents a single field plot where crop yield was measured in kilograms at the end of the growing season. The study included 12 plots total: 6 plots using drip irrigation and 6 plots using traditional sprinkler irrigation. All measurements are from plots with successful crops and positive yield values. The independent unit is the field plot, identified by a unique plot ID.
+Independent unit column: plot_id

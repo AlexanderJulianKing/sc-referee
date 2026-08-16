@@ -1,0 +1,3 @@
+This dataset contains measurements of plant height after 6 weeks of growth under two different light conditions: LED lighting (520-630 nm spectrum) and natural sunlight. Twenty herbaceous plants were randomly assigned to one of the two conditions and grown in identical pots with standard potting soil. All plants received equal water and nutrients; light condition was the sole experimental variable. Final plant height was measured in centimeters at 42 days post-germination.
+
+Independent unit column: plant_id

@@ -1,0 +1,17 @@
+plant_id,watering_schedule,height_cm,days_elapsed
+P001,daily,28.5,14
+P002,daily,31.2,14
+P003,daily,29.8,14
+P004,daily,32.1,14
+P005,daily,30.4,14
+P006,daily,33.2,14
+P007,daily,28.9,14
+P008,daily,31.5,14
+P009,weekly,22.3,14
+P010,weekly,24.1,14
+P011,weekly,23.7,14
+P012,weekly,25.2,14
+P013,weekly,21.8,14
+P014,weekly,26.3,14
+P015,weekly,23.5,14
+P016,weekly,24.9,14

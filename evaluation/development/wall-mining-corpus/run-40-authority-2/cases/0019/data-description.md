@@ -1,0 +1,3 @@
+This dataset presents stem diameter measurements from a controlled growth chamber experiment investigating the effect of light intensity on seedling development. Seedlings were grown under two light conditions: high intensity (400 μmol m⁻² s⁻¹) and low intensity (100 μmol m⁻² s⁻¹). After 30 days of growth, the diameter of the main stem was measured at a standardized height of 5 cm above the soil surface using digital calipers. Each row contains measurements from a single seedling. The light_condition column specifies the light regime to which each seedling was exposed, while stem_diameter_mm contains the measured diameter value in millimeters.
+
+Independent unit column: seedling_id

@@ -1,0 +1,3 @@
+This dataset contains recovery time measurements for patients undergoing physical therapy treatment for acute knee injuries. Patients were randomly assigned to either the standard protocol (Protocol A) or an accelerated protocol (Protocol B). Recovery time is measured in days from treatment initiation to functional recovery, defined as the ability to perform daily activities without pain or mobility limitation. Patient age is included as a demographic characteristic. Each record represents one patient's treatment outcome and recovery trajectory through the therapy program.
+
+Independent unit column: patient_id

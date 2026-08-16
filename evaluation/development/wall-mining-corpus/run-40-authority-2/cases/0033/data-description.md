@@ -1,0 +1,3 @@
+Water quality measurements from two river sections. Each row represents a single water sample collected from either the upstream or downstream section. Dissolved oxygen (DO) is measured in milligrams per liter (mg/L), a key indicator of aquatic ecosystem health and water quality. Temperature is recorded in degrees Celsius as contextual information. The study compares oxygen levels in samples collected from the pristine upstream section versus the potentially impacted downstream section to assess water quality degradation.
+
+Independent unit column: sample_id

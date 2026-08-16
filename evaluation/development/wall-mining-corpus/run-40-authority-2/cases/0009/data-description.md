@@ -1,0 +1,3 @@
+This dataset contains page load time measurements from individual network requests served by two different content delivery network (CDN) providers. Each row represents a separate HTTP request for web content, recorded with response time in milliseconds, the assigned CDN provider, request timestamp, and the geographic region where the request originated. The study compares whether there are statistically significant differences in performance (load time) between the two providers using a two-sample t-test on the load time metric.
+
+Independent unit column: request_id

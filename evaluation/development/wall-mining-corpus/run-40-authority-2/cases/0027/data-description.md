@@ -1,0 +1,3 @@
+This dataset contains zinc concentration measurements from vegetable samples collected at two agricultural farms during a 10-day harvest period in August 2026. Each observation represents a single produce sample assayed for zinc content in parts per million (ppm). Samples include three crop types (spinach, lettuce, kale) from Farm A and Farm B, collected on sequential dates. The analysis tests whether zinc accumulation differs significantly between the two farms, which could indicate differential soil conditions or environmental exposures. This comparison provides agronomic evidence for farm management and food safety considerations.
+
+Independent unit column: sample_id

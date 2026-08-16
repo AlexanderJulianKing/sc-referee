@@ -1,0 +1,15 @@
+site,date,dissolved_oxygen,ph,temperature,sample_id
+Upstream,2024-02-10,8.1,6.9,11.5,UP_001
+Upstream,2024-02-11,7.9,6.8,12.0,UP_002
+Upstream,2024-02-12,8.2,7.0,11.8,UP_003
+Upstream,2024-02-13,7.8,6.9,12.3,UP_004
+Upstream,2024-02-14,8.3,6.9,11.9,UP_005
+Upstream,2024-02-15,8.0,6.8,12.1,UP_006
+Upstream,2024-02-16,7.7,7.0,12.4,UP_007
+Downstream,2024-02-10,5.4,7.2,15.2,DN_001
+Downstream,2024-02-11,5.9,7.1,15.8,DN_002
+Downstream,2024-02-12,5.2,7.3,15.5,DN_003
+Downstream,2024-02-13,6.1,7.2,16.0,DN_004
+Downstream,2024-02-14,5.3,7.4,15.7,DN_005
+Downstream,2024-02-15,6.0,7.2,15.9,DN_006
+Downstream,2024-02-16,5.5,7.3,16.1,DN_007

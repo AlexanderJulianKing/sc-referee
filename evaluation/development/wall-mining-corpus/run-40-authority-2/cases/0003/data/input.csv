@@ -1,0 +1,13 @@
+plot_id,irrigation_method,yield_kg
+P001,drip,45.2
+P002,drip,48.7
+P003,drip,42.1
+P004,drip,50.3
+P005,drip,46.8
+P006,drip,49.1
+P007,traditional,38.5
+P008,traditional,35.2
+P009,traditional,40.1
+P010,traditional,36.8
+P011,traditional,39.3
+P012,traditional,37.6

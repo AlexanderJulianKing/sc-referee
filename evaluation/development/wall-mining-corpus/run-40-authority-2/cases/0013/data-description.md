@@ -1,0 +1,3 @@
+Air quality monitoring data comparing PM2.5 concentrations across monitoring stations in industrial and residential zones. Each row represents a single monitoring station's measurement campaign. The dataset includes station identifiers, zone classification (industrial or residential), and measured PM2.5 concentrations in micrograms per cubic meter. These measurements enable quantitative assessment of air quality differences between industrialized and residential areas.
+
+Independent unit column: station_id

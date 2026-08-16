@@ -1,0 +1,17 @@
+worker_id,work_type,sleep_quality_score,age,years_in_role,hours_per_night
+RW001,remote,75,28,3,7.4
+RW002,remote,72,35,5,7.1
+RW003,remote,78,29,2,7.5
+RW004,remote,71,41,4,7.0
+RW005,remote,76,32,6,7.3
+RW006,remote,79,31,4,7.6
+RW007,remote,74,38,5,7.2
+RW008,remote,77,27,2,7.4
+OW001,office,58,31,2,6.2
+OW002,office,55,42,7,5.9
+OW003,office,54,28,1,6.1
+OW004,office,60,38,3,6.3
+OW005,office,52,35,4,5.8
+OW006,office,56,45,10,6.0
+OW007,office,57,32,3,6.1
+OW008,office,53,29,2,5.9

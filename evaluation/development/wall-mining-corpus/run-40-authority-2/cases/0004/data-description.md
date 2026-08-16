@@ -1,0 +1,3 @@
+This dataset contains measurements of bacterial colony diameter from petri dish cultures grown on two different media formulations. Each row represents a single plate cultured for 48 hours at 37°C. The plate_id uniquely identifies each plate, media_type indicates which of the two formulations was used (A for standard control, B for experimental test), and colony_diameter_mm records the maximum diameter of the largest colony on each plate in millimeters. The analysis compares whether the experimental media formulation produces different growth characteristics compared to the standard formulation. No missing values are present in the dataset.
+
+Independent unit column: plate_id

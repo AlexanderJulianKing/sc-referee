@@ -1,0 +1,3 @@
+Air quality measurements from monitoring stations across urban and rural regions. PM2.5 (particulate matter ≤2.5 micrometers) concentration was measured at multiple stations during a single measurement cycle. Each row represents one measurement record from a monitoring station, including the station identifier, regional classification, measurement date, pollutant concentration level in micrograms per cubic meter, and ambient temperature in Celsius. Measurements are validated to exclude implausible values outside the realistic range for PM2.5 monitoring. Urban and rural stations represent independent monitoring units in geographically distinct areas.
+
+Independent unit column: station_id

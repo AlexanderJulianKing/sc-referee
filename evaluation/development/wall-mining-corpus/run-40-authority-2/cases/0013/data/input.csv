@@ -1,0 +1,11 @@
+station_id,zone_type,pm25_concentration
+S1,industrial,85.2
+S2,industrial,92.1
+S3,industrial,88.5
+S4,industrial,91.3
+S5,industrial,86.7
+S6,residential,42.3
+S7,residential,38.7
+S8,residential,45.1
+S9,residential,40.2
+S10,residential,43.5

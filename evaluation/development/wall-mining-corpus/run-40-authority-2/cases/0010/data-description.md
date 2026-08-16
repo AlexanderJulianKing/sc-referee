@@ -1,0 +1,3 @@
+This dataset measures enzyme reaction activity rates across 20 independent experimental batches conducted in a controlled laboratory setting. Each batch represents a distinct enzymatic reaction carried out under strictly controlled conditions. Enzyme activity is quantified in units per minute, a standard biochemistry measurement of reaction velocity. Two temperature conditions are compared: low temperature (20°C) and high temperature (40°C), with 10 replicate batches per condition. The data represents foundational work examining how thermal conditions affect enzyme kinetics and catalytic efficiency.
+
+Independent unit column: batch_id

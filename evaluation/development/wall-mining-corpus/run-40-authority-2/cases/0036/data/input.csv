@@ -1,0 +1,13 @@
+Sample_ID,Curing_Method,Thermal_Conductivity
+S001,Method_A,1.42
+S002,Method_A,1.48
+S003,Method_A,1.51
+S004,Method_A,1.39
+S005,Method_A,1.45
+S006,Method_A,1.53
+S007,Method_B,1.62
+S008,Method_B,1.68
+S009,Method_B,1.71
+S010,Method_B,1.65
+S011,Method_B,1.74
+S012,Method_B,1.59

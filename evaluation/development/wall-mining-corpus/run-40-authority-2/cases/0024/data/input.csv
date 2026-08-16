@@ -1,0 +1,11 @@
+employee_id,work_mode,tasks_completed,days_active
+E001,remote,12,20
+E002,remote,15,20
+E003,remote,14,20
+E004,remote,13,20
+E005,remote,16,20
+E006,onsite,17,20
+E007,onsite,19,20
+E008,onsite,18,20
+E009,onsite,20,20
+E010,onsite,21,20

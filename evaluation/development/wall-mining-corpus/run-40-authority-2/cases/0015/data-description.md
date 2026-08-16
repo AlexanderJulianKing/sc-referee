@@ -1,0 +1,3 @@
+Agricultural soil phosphorus analysis comparing two fields (A and B) based on systematic soil sampling. Each row represents a distinct soil sample collected from a unique plot location. The dataset includes phosphorus concentration (primary outcome measured in mg/kg), potassium concentration, and soil pH. The analysis compares phosphorus levels between the two fields using Mann-Whitney U test due to non-normal distribution patterns typical in soil nutrient data. Data validation filters outliers exceeding three standard deviations from the field mean to ensure robust statistical inference.
+
+Independent unit column: plot_id

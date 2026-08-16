@@ -130,6 +130,35 @@ Updated: 2026-08-15 (Growth-10 resumed by explicit maintainer authorization).
   passing, with only the two authorized functional files changed. The orchestrator
   must repeat the manifest/full-suite/push sequence and a new fresh reviewer must clear
   the repaired exact snapshot before `run-40-authority-2`.
+- The orchestrator committed fix builder 1 as `23775d2`, regenerated the manifest as
+  `ddadb1d`, verified another full-suite `PYTEST_EXIT=0`, and pushed both commits. A
+  new fresh code reviewer then returned `CLEAR FOR BATCHES` with no findings after
+  independently reproducing both former failures as `no-lock` with no lock file and
+  zero authority records, exercising dotted/multi/default/explicit import siblings,
+  passing 82/82 focused tests and the full repository suite, and rechecking the AST,
+  CSV, exact-lock replay, provenance, allocation, pin, v1, production, capability,
+  qualification, and frozen-tree invariants. `run-40` remained 243 files at exact
+  digest `71de6d51847d65449e5393af80ae9048bfbf3e979c0a1b971111be5e23d4a240`.
+  Growth 10 is now cleared to create exactly one new immutable non-measurement corpus,
+  `run-40-authority-2`; zero accusations and transport/wall separation remain gates.
+- Immutable `run-40-authority-2` completed with `CENSUS_EXIT=0`: 40/40 isolated Haiku
+  calls, concurrency cap 3, no retries, no project-code execution, 40 unique sessions,
+  and 276 purpose-stamped files (aggregate tree digest
+  `f13a2728c1e46c4e308fe731bb28ec8c54f6d31a8491b63a17f87bb33677809f`).
+  Thirty-three cases were `lock-projected`; seven were `no-lock` (six
+  `unit-declaration-missing-or-ambiguous`, one
+  `procedure-source-not-compilable`). Every lock/no-lock file-presence relation and
+  every generation/isolation stamp replayed correctly. Outcomes were 34 `unsupported`
+  and six `question`: ZERO accusations/findings. The original 243-file `run-40`
+  remained byte-identical at its recorded digest.
+- Growth-10 honest wall ranking among lock-projected cases is now usable:
+  `function-globals-read` 17, `unsupported-import-form` 10,
+  `function-return-shape` 6, `raise-guard-not-modeled` 6,
+  `module-constant-not-closed` 4, `function-closure` 2, and
+  `import-use-outside-grammar` 2. Transport refusals remain separate from recognizer
+  walls and do not enter this ranking. The next design must measure the concrete
+  `function-globals-read` source forms before proposing Growth 11; no blind checkpoint
+  is due yet.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 

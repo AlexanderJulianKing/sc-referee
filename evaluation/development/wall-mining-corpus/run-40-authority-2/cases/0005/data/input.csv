@@ -1,0 +1,17 @@
+plant_id,condition,height_cm
+P001,full_sun,45.2
+P002,full_sun,48.1
+P003,full_sun,46.8
+P004,full_sun,49.5
+P005,full_sun,47.3
+P006,full_sun,50.1
+P007,full_sun,45.9
+P008,full_sun,48.7
+P009,partial_shade,32.1
+P010,partial_shade,31.5
+P011,partial_shade,33.2
+P012,partial_shade,30.8
+P013,partial_shade,32.9
+P014,partial_shade,31.2
+P015,partial_shade,33.8
+P016,partial_shade,29.5

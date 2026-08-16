@@ -1,0 +1,3 @@
+This dataset contains results from a randomized controlled trial examining the effectiveness of a novel antihistamine medication for symptom relief. Participants were randomly assigned to receive either the active medication (treatment group) or placebo (control group). Each participant's symptom relief was measured using an effectiveness scale from 0 to 100, where higher scores indicate greater therapeutic benefit. The age column provides demographic context for each participant. Each row represents one unique study participant whose data were collected under standardized clinical conditions.
+
+Independent unit column: patient_id

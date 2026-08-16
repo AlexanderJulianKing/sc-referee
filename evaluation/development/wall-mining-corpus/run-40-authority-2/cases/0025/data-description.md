@@ -1,0 +1,3 @@
+Environmental air quality monitoring data from urban and rural measurement stations. Each row represents a single PM2.5 (particulate matter ≤2.5 micrometers) reading measured in µg/m³. Urban stations are located in metropolitan areas with higher traffic density, while rural stations are located in areas with minimal industrial and vehicular activity. Multiple readings were collected from each station over the study period.
+
+Independent unit column: station_id

@@ -1,0 +1,3 @@
+This dataset contains measurements of seedling height from a controlled plant growth experiment comparing two light intensity conditions. Each row represents one seedling observation taken at the conclusion of a 3-week cultivation period. Twenty seedlings were randomly assigned to either high or low light intensity conditions and grown under identical other conditions. Height was measured in centimeters. The seedling_id uniquely identifies each independent plant specimen studied in the experiment.
+
+Independent unit column: seedling_id

@@ -1,0 +1,3 @@
+This dataset comprises thermal conductivity measurements from concrete samples subjected to two different curing protocols. Thermal conductivity is measured in watts per meter Kelvin (W/m·K), indicating the material's capacity to conduct heat through its matrix. Method A represents accelerated air curing at ambient temperature, while Method B represents water immersion curing, a technique that enhances hydration and potentially alters the microstructure. The dataset contains 12 concrete samples total, with 6 replicates per curing method, each tested once to yield a single thermal conductivity measurement.
+
+Independent unit column: Sample_ID

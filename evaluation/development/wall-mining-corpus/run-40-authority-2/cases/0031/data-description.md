@@ -1,0 +1,3 @@
+Bee colony disease prevalence measurements comparing conventional and organic management practices. Each record represents a distinct bee colony monitored for disease indicators, weight, and productivity. Disease scores range from 0-10, with higher values indicating greater disease prevalence. The management_type variable distinguishes between conventional chemical-based treatment approaches and organic/natural treatment methods. Productivity is measured in active brood frames. This analysis examines whether apiary management approach influences disease control outcomes.
+
+Independent unit column: colony_id

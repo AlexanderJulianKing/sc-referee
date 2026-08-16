@@ -1,0 +1,15 @@
+sample_id,river,dissolved_oxygen_mg_l,temperature_c
+S001,Smith River,8.2,18.5
+S002,Smith River,8.0,19.0
+S003,Smith River,8.4,18.0
+S004,Smith River,8.1,19.5
+S005,Smith River,8.3,18.2
+S006,Smith River,7.9,19.8
+S007,Smith River,8.2,18.8
+S008,Jones Creek,6.5,22.1
+S009,Jones Creek,6.3,22.5
+S010,Jones Creek,6.7,21.8
+S011,Jones Creek,6.4,22.0
+S012,Jones Creek,6.6,22.3
+S013,Jones Creek,6.2,23.0
+S014,Jones Creek,6.8,21.5

@@ -1,0 +1,3 @@
+This dataset contains measurements of 20 urban trees located in two different maintenance contexts. Each tree is uniquely identified by tree_id. The park_type field distinguishes between trees in high-maintenance municipal parks and trees in low-maintenance neighborhood settings. Height measurements (height_m) are recorded in meters, and a visual health score (health_score, ranging 0-10) indicates canopy condition and foliage vitality. The analysis compares tree height distributions across park types using an independent samples t-test to assess whether access to maintenance resources influences tree growth outcomes.
+
+Independent unit column: tree_id
