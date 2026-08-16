@@ -335,7 +335,8 @@ def _procedure_transport(source: str) -> tuple[tuple[str, ...], tuple[str, ...]]
                 root = alias.name.split(".", 1)[0]
                 if root == "scipy" or root in _DYNAMIC_IMPORT_ROOTS or alias.name == "*":
                     reasons.add("procedure-import-not-canonical")
-                if alias.asname in _FORBIDDEN_BINDINGS:
+                bound = alias.asname if alias.asname is not None else root
+                if bound in _FORBIDDEN_BINDINGS:
                     reasons.add("procedure-authority-root-not-closed")
         elif isinstance(node, ast.ImportFrom):
             canonical = (

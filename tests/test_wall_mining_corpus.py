@@ -141,6 +141,27 @@ def test_valid_helper_procedure_transport_is_occurrence_counted() -> None:
 
 
 @pytest.mark.parametrize(
+    "import_statement",
+    [
+        "import stats",
+        "import stats.helpers",
+        "import math as stats",
+    ],
+)
+def test_procedure_transport_refuses_imports_bound_to_stats(import_statement: str) -> None:
+    source = f"from scipy import stats\n{import_statement}\nresult = stats.ttest_ind([1], [2])\n"
+    assert corpus._procedure_transport(source) == (
+        (),
+        ("procedure-authority-root-not-closed",),
+    )
+
+
+def test_procedure_transport_accepts_nonreplacing_stats_import_alias() -> None:
+    source = "from scipy import stats\nimport stats as other\nresult = stats.ttest_ind([1], [2])\n"
+    assert corpus._procedure_transport(source) == (("scipy.stats.ttest_ind",), ())
+
+
+@pytest.mark.parametrize(
     ("source", "expected_reasons"),
     [
         (
@@ -495,6 +516,41 @@ def test_invalid_transport_has_no_lock_and_observed_authority_free_question(
     assert payload["outcome"] == "question"
     assert payload["reason_code"] == "independent-unit-definition-unresolved"
     assert payload["abstention_reasons"] == []
+
+
+def test_default_bound_stats_import_writes_no_lock_and_passes_authority_free_context(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    run_root = tmp_path / "run-default-bound-import"
+    run_root.mkdir()
+    inspected: list[FrozenInspectionContext] = []
+
+    def inspect(_adapter: Any, context: FrozenInspectionContext) -> dict[str, Any]:
+        inspected.append(context)
+        return {"outcome": "question", "abstention_reasons": []}
+
+    monkeypatch.setattr(corpus.DependenceRecognitionV2ShadowAdapter, "inspect", inspect)
+    source = VALID_SOURCE.replace(
+        "from scipy import stats\n", "from scipy import stats\nimport stats\n"
+    )
+    corpus._write_case(
+        run_root,
+        "run-default-bound-import",
+        0,
+        _generated_case(source=source),
+        _fake_generation("run-default-bound-import"),
+    )
+
+    case_root = run_root / "cases/0001"
+    assert not (case_root / "authorization-lock.json").exists()
+    translation = json.loads((case_root / "lock-translation.json").read_text())
+    assert translation["translation_outcome"] == "no-lock"
+    assert translation["translation_reasons"] == ["procedure-authority-root-not-closed"]
+    assert len(inspected) == 1
+    authority_types = {"analysis", "procedure", "result", "human_method_authorization"}
+    assert all(
+        record.ref.record_type not in authority_types for record in inspected[0].base_records
+    )
 
 
 def test_run_bound_lock_translation_shadow_and_inner_refs_replay_exactly(

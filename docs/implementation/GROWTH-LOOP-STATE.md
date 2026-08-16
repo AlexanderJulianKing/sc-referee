@@ -104,6 +104,32 @@ Updated: 2026-08-15 (Growth-10 resumed by explicit maintainer authorization).
   and the new build had not yet entered the manifest sequence. The orchestrator must
   commit, regenerate the manifest, run the verified full-suite gate, and push; a
   separate fresh code review still gates `run-40-authority-2`.
+- The orchestrator committed the build as `1fb3450`, regenerated the manifest in
+  `bb050ee`, verified the full repository suite with `PYTEST_EXIT=0`, and pushed both
+  commits. A first fresh code reviewer returned `CLEAR FOR BATCHES` after 77 focused
+  tests and 20 independent ordinary binding/mutation probes. Before accepting that
+  gate, the orchestrator noticed the probe set did not visibly exercise the memo's
+  explicit default-bound `ast.Import` sibling and sent it to a second fresh reviewer.
+- The bounded fresh follow-up review returned `BLOCKED` with an executed ordinary-code
+  fail-open: both `import stats` and compile-valid `import stats.helpers` bind the name
+  `stats`, but the implementation checked only `alias.asname`. Both sources returned
+  an authorized `scipy.stats.ttest_ind` transport, and an end-to-end scratch case wrote
+  `authorization-lock.json` without executing the source. Existing 77/77 tests passed
+  because they covered explicit aliases but not default import bindings. No corpus was
+  run and no accusation was emitted. The narrow fix is to compute each `ast.Import`'s
+  actual Python binding (`asname` or the first dotted component), apply the existing
+  forbidden-binding rule to it, and add permanent `no-lock` tests for both failing
+  forms plus safe/explicit-alias contrasts. A new fresh builder must make only that
+  reviewed repair; a new fresh code reviewer still gates `run-40-authority-2`.
+- Fresh fix builder 1 made exactly that repair: `ast.Import` now checks `asname` or
+  the first dotted component, with permanent refusals for `import stats`,
+  `import stats.helpers`, and `import math as stats`; `import stats as other` remains
+  the non-rebinding contrast. An end-to-end regression verifies the default-bound
+  source writes no lock and passes an authority-free context to the adapter. The
+  builder reported 82/82 focused tests, targeted Ruff check/format, and diff checks
+  passing, with only the two authorized functional files changed. The orchestrator
+  must repeat the manifest/full-suite/push sequence and a new fresh reviewer must clear
+  the repaired exact snapshot before `run-40-authority-2`.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
