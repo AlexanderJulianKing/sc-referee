@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import ast
 import csv
+import io
 import json
 import os
 import re
@@ -20,8 +21,7 @@ from uuid import NAMESPACE_URL, uuid5
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.dependence_recognition_v2.adapter import DependenceRecognitionV2ShadowAdapter
 from sc_referee.dependence_recognition_v2.authority_lock import (
-    V2_GROUP_PROCEDURES,
-    V2_PROCEDURES,
+    apply_dependence_v2_authorization_lock,
     build_dependence_v2_authorization_lock,
 )
 from sc_referee.scientific_checks.core import (
@@ -42,9 +42,126 @@ NON_MEASUREMENT = (
     "OPEN DEVELOPMENT WALL CENSUS ONLY. This corpus is non-measurement, carries no labels, "
     "and is unreachable from qualification and production lanes."
 )
-_UNIT_DECLARATION = re.compile(r"(?mi)^Independent unit column:[ \t]*([^\r\n]+)$")
-_TRIAL_DECLARATION = re.compile(r"(?m)^One trial is: one row[ \t]*$")
-_REGISTERED = frozenset(V2_PROCEDURES)
+_RUN_NAME = re.compile(r"run-[a-z0-9][a-z0-9-]{0,62}\Z")
+_UNIT_DECLARATION = re.compile(r"(?m)^Independent unit column:[ \t]*([^\r\n]*)$")
+_GROUP_CALLABLES = {
+    "ttest_ind": "scipy.stats.ttest_ind",
+    "mannwhitneyu": "scipy.stats.mannwhitneyu",
+}
+_DYNAMIC_IDENTIFIERS = frozenset(
+    {
+        "exec",
+        "eval",
+        "compile",
+        "globals",
+        "locals",
+        "vars",
+        "__import__",
+        "getattr",
+        "setattr",
+        "delattr",
+    }
+)
+_DYNAMIC_IMPORT_ROOTS = frozenset(
+    {"builtins", "importlib", "sys", "inspect", "types", "code", "codeop", "runpy", "ctypes"}
+)
+_FORBIDDEN_BINDINGS = _DYNAMIC_IDENTIFIERS | {"stats"}
+_INTAKE_RECORDED_AT = "1970-01-01T00:00:00Z"
+
+# This is deliberately a literal Python 3.11 mapping. Runtime field drift is refusal,
+# not an invitation to inherit a newer interpreter's syntax.
+_ADMITTED_AST_FIELDS: dict[type[ast.AST], tuple[str, ...]] = {
+    ast.Module: ("body", "type_ignores"),
+    ast.Expr: ("value",),
+    ast.Import: ("names",),
+    ast.ImportFrom: ("module", "names", "level"),
+    ast.Assign: ("targets", "value", "type_comment"),
+    ast.AnnAssign: ("target", "annotation", "value", "simple"),
+    ast.AugAssign: ("target", "op", "value"),
+    ast.FunctionDef: ("name", "args", "body", "decorator_list", "returns", "type_comment"),
+    ast.ClassDef: ("name", "bases", "keywords", "body", "decorator_list"),
+    ast.Return: ("value",),
+    ast.Raise: ("exc", "cause"),
+    ast.Assert: ("test", "msg"),
+    ast.Pass: (),
+    ast.Break: (),
+    ast.Continue: (),
+    ast.If: ("test", "body", "orelse"),
+    ast.For: ("target", "iter", "body", "orelse", "type_comment"),
+    ast.While: ("test", "body", "orelse"),
+    ast.With: ("items", "body", "type_comment"),
+    ast.Try: ("body", "handlers", "orelse", "finalbody"),
+    ast.arguments: (
+        "posonlyargs",
+        "args",
+        "vararg",
+        "kwonlyargs",
+        "kw_defaults",
+        "kwarg",
+        "defaults",
+    ),
+    ast.arg: ("arg", "annotation", "type_comment"),
+    ast.keyword: ("arg", "value"),
+    ast.alias: ("name", "asname"),
+    ast.withitem: ("context_expr", "optional_vars"),
+    ast.ExceptHandler: ("type", "name", "body"),
+    ast.Constant: ("value", "kind"),
+    ast.Name: ("id", "ctx"),
+    ast.Attribute: ("value", "attr", "ctx"),
+    ast.Subscript: ("value", "slice", "ctx"),
+    ast.Slice: ("lower", "upper", "step"),
+    ast.Call: ("func", "args", "keywords"),
+    ast.BinOp: ("left", "op", "right"),
+    ast.UnaryOp: ("op", "operand"),
+    ast.BoolOp: ("op", "values"),
+    ast.Compare: ("left", "ops", "comparators"),
+    ast.IfExp: ("test", "body", "orelse"),
+    ast.List: ("elts", "ctx"),
+    ast.Tuple: ("elts", "ctx"),
+    ast.Set: ("elts",),
+    ast.Dict: ("keys", "values"),
+    ast.Starred: ("value", "ctx"),
+    ast.NamedExpr: ("target", "value"),
+    ast.Lambda: ("args", "body"),
+    ast.ListComp: ("elt", "generators"),
+    ast.SetComp: ("elt", "generators"),
+    ast.DictComp: ("key", "value", "generators"),
+    ast.GeneratorExp: ("elt", "generators"),
+    ast.comprehension: ("target", "iter", "ifs", "is_async"),
+    ast.JoinedStr: ("values",),
+    ast.FormattedValue: ("value", "conversion", "format_spec"),
+    ast.Load: (),
+    ast.Store: (),
+    ast.Add: (),
+    ast.Sub: (),
+    ast.Mult: (),
+    ast.Div: (),
+    ast.FloorDiv: (),
+    ast.Mod: (),
+    ast.Pow: (),
+    ast.MatMult: (),
+    ast.LShift: (),
+    ast.RShift: (),
+    ast.BitOr: (),
+    ast.BitXor: (),
+    ast.BitAnd: (),
+    ast.UAdd: (),
+    ast.USub: (),
+    ast.Not: (),
+    ast.Invert: (),
+    ast.And: (),
+    ast.Or: (),
+    ast.Eq: (),
+    ast.NotEq: (),
+    ast.Lt: (),
+    ast.LtE: (),
+    ast.Gt: (),
+    ast.GtE: (),
+    ast.Is: (),
+    ast.IsNot: (),
+    ast.In: (),
+    ast.NotIn: (),
+}
 
 _RESPONSE_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -54,7 +171,15 @@ _RESPONSE_SCHEMA: dict[str, Any] = {
         "domain": {"type": "string", "minLength": 3, "maxLength": 80},
         "analysis_py": {"type": "string", "minLength": 200, "maxLength": 20000},
         "data_csv": {"type": "string", "minLength": 20, "maxLength": 30000},
-        "data_description_md": {"type": "string", "minLength": 20, "maxLength": 4000},
+        "data_description_md": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 4000,
+            "description": (
+                "Plain-language study metadata ending with exactly one "
+                "Independent unit column: COLUMN line naming a complete CSV header."
+            ),
+        },
     },
 }
 
@@ -62,7 +187,11 @@ _RESPONSE_SCHEMA: dict[str, Any] = {
 def _prompt(index: int, count: int) -> str:
     return f"""Create one realistic, self-contained Python scientific analysis, item {index + 1} of {count} in a varied collection.
 
-Choose an ordinary empirical domain and coding style. Vary domains, statistical procedures, program structure, naming, validation, reporting, and data shape across the collection. The program must read data/input.csv and write a substantive Markdown report to results/report.md. Include a small realistic CSV that makes the program runnable and a plain-language data description. Prefer Python's standard library, pathlib, and scipy; do not use network access or external files. Return only the requested JSON object. Do not wrap code or CSV in Markdown fences."""
+Choose an ordinary empirical domain and coding style for a realistic analysis of two independent groups. Vary domains, program structure, naming, group construction, filtering, validation, reporting, and data shape across the collection. The program must read data/input.csv and write a substantive Markdown report to results/report.md.
+
+Use ordinary synchronous Python without exec, eval, reflection, import hooks, monkeypatching, frame or traceback access, or namespace rewriting. Include exactly one canonical module-level `from scipy import stats` import and exactly one direct call written as either `stats.ttest_ind(...)` or `stats.mannwhitneyu(...)`.
+
+Include a small realistic CSV that makes the program runnable. The plain-language data description must end with exactly one line `Independent unit column: COLUMN`, where COLUMN is the exact CSV header whose complete, nonempty values identify independent observational units. Return only the requested JSON object. Do not wrap code or CSV in Markdown fences."""
 
 
 def _now() -> str:
@@ -76,9 +205,15 @@ def _write_json(path: Path, value: dict[str, Any]) -> None:
     path.write_text(canonical_json(value) + "\n", encoding="utf-8")
 
 
-def _call_haiku(index: int, count: int) -> tuple[dict[str, Any], dict[str, Any]]:
+def _call_haiku(run_name: str, index: int, count: int) -> tuple[dict[str, Any], dict[str, Any]]:
     prompt = _prompt(index, count)
-    session_id = str(uuid5(NAMESPACE_URL, f"wall-mining:{count}:{index}:{sha256_digest(prompt)}"))
+    case_identity = f"{run_name}:{index + 1:04d}"
+    session_id = str(
+        uuid5(
+            NAMESPACE_URL,
+            f"wall-mining:{run_name}:{count}:{index}:{sha256_digest(prompt)}",
+        )
+    )
     argv = [
         str(CLAUDE_PINNED),
         "--safe-mode",
@@ -130,6 +265,8 @@ def _call_haiku(index: int, count: int) -> tuple[dict[str, Any], dict[str, Any]]
         "record_type": "development_wall_mining_generation",
         "record_purpose": RECORD_PURPOSE,
         "non_measurement_notice": NON_MEASUREMENT,
+        "run_name": run_name,
+        "case_identity": case_identity,
         "case_index": index,
         "model_alias": MODEL_ALIAS,
         "session_id": session_id,
@@ -145,55 +282,155 @@ def _call_haiku(index: int, count: int) -> tuple[dict[str, Any], dict[str, Any]]
     return cast(dict[str, Any], result), generation
 
 
-def _resolved_procedures(source: str) -> tuple[str, ...]:
+def _validate_ast_envelope(node: ast.AST) -> bool:
+    expected_fields = _ADMITTED_AST_FIELDS.get(type(node))
+    if expected_fields is None or type(node)._fields != expected_fields:
+        return False
+    for field in expected_fields:
+        value = getattr(node, field)
+        if isinstance(value, ast.AST):
+            if not _validate_ast_envelope(value):
+                return False
+        elif isinstance(value, list):
+            if any(
+                not isinstance(item, ast.AST) or not _validate_ast_envelope(item) for item in value
+            ):
+                return False
+    return True
+
+
+def _canonical_procedure_call(node: ast.AST) -> str | None:
+    if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+        return None
+    root = node.func.value
+    if (
+        not isinstance(root, ast.Name)
+        or root.id != "stats"
+        or not isinstance(root.ctx, ast.Load)
+        or not isinstance(node.func.ctx, ast.Load)
+    ):
+        return None
+    return _GROUP_CALLABLES.get(node.func.attr)
+
+
+def _procedure_transport(source: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
     try:
         tree = ast.parse(source)
     except SyntaxError:
-        return ()
-    aliases: dict[str, str] = {}
-    for node in tree.body:
-        if isinstance(node, ast.ImportFrom) and node.level == 0:
-            module = node.module or ""
-            for alias in node.names:
-                aliases[alias.asname or alias.name] = f"{module}.{alias.name}"
-        elif isinstance(node, ast.Import):
-            for alias in node.names:
-                aliases[alias.asname or alias.name.split(".")[0]] = alias.name
-    found: list[str] = []
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Call):
-            continue
-        resolved: str | None = None
-        if isinstance(node.func, ast.Name):
-            resolved = aliases.get(node.func.id)
-        elif isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name):
-            base = aliases.get(node.func.value.id)
-            resolved = f"{base}.{node.func.attr}" if base is not None else None
-        elif (
-            isinstance(node.func, ast.Attribute)
-            and isinstance(node.func.value, ast.Attribute)
-            and isinstance(node.func.value.value, ast.Name)
-        ):
-            base = aliases.get(node.func.value.value.id)
-            resolved = f"{base}.{node.func.value.attr}.{node.func.attr}" if base else None
-        if resolved in _REGISTERED and resolved not in found:
-            found.append(resolved)
-    return tuple(found)
-
-
-def _declared_unit(description: str, data: bytes) -> str | None:
-    matches = [item.strip() for item in _UNIT_DECLARATION.findall(description)]
-    if len(matches) != 1 or not matches[0]:
-        return None
+        return (), ("procedure-source-not-compilable",)
     try:
-        header = next(csv.reader(data.decode("utf-8", errors="strict").splitlines()))
-    except (UnicodeError, csv.Error, StopIteration):
-        return None
-    return matches[0] if matches[0] in header else None
+        compile(tree, "workflow/analysis.py", "exec")
+    except (SyntaxError, TypeError, ValueError):
+        return (), ("procedure-source-not-compilable",)
+    if not _validate_ast_envelope(tree):
+        return (), ("procedure-authority-ast-outside-safe-language",)
+
+    reasons: set[str] = set()
+    canonical_imports: list[ast.ImportFrom] = []
+    canonical_call_nodes: list[ast.Call] = []
+    procedures: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                root = alias.name.split(".", 1)[0]
+                if root == "scipy" or root in _DYNAMIC_IMPORT_ROOTS or alias.name == "*":
+                    reasons.add("procedure-import-not-canonical")
+                if alias.asname in _FORBIDDEN_BINDINGS:
+                    reasons.add("procedure-authority-root-not-closed")
+        elif isinstance(node, ast.ImportFrom):
+            canonical = (
+                node.module == "scipy"
+                and node.level == 0
+                and len(node.names) == 1
+                and node.names[0].name == "stats"
+                and node.names[0].asname is None
+            )
+            if canonical:
+                canonical_imports.append(node)
+            module_root = (node.module or "").split(".", 1)[0]
+            if (
+                node.level != 0
+                or any(alias.name == "*" for alias in node.names)
+                or (module_root == "scipy" and not canonical)
+                or module_root in _DYNAMIC_IMPORT_ROOTS
+            ):
+                reasons.add("procedure-import-not-canonical")
+            for alias in node.names:
+                bound = alias.asname or alias.name
+                if bound in _FORBIDDEN_BINDINGS and not canonical:
+                    reasons.add("procedure-authority-root-not-closed")
+        if isinstance(node, ast.Call):
+            procedure = _canonical_procedure_call(node)
+            if procedure is not None:
+                canonical_call_nodes.append(node)
+                procedures.append(procedure)
+        if isinstance(node, ast.Name) and node.id in _DYNAMIC_IDENTIFIERS:
+            reasons.add("procedure-authority-root-not-closed")
+        if isinstance(node, ast.Attribute) and (
+            node.attr.startswith("__")
+            or node.attr.endswith("__")
+            or node.attr in {"tb_frame", "f_globals", "f_locals"}
+        ):
+            reasons.add("procedure-authority-root-not-closed")
+        if isinstance(node, ast.arg) and node.arg in _FORBIDDEN_BINDINGS:
+            reasons.add("procedure-authority-root-not-closed")
+        if isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.name in _FORBIDDEN_BINDINGS:
+            reasons.add("procedure-authority-root-not-closed")
+        if isinstance(node, ast.ExceptHandler) and node.name in _FORBIDDEN_BINDINGS:
+            reasons.add("procedure-authority-root-not-closed")
+
+    if len(canonical_imports) != 1 or canonical_imports[0] not in tree.body:
+        reasons.add("procedure-import-not-canonical")
+    if len(canonical_call_nodes) != 1:
+        reasons.add("procedure-call-missing-or-ambiguous")
+    allowed_stats_root: ast.AST | None = None
+    if len(canonical_call_nodes) == 1 and isinstance(canonical_call_nodes[0].func, ast.Attribute):
+        allowed_stats_root = canonical_call_nodes[0].func.value
+    if any(
+        isinstance(node, ast.Name) and node.id == "stats" and node is not allowed_stats_root
+        for node in ast.walk(tree)
+    ):
+        reasons.add("procedure-authority-root-not-closed")
+    if reasons:
+        return (), tuple(sorted(reasons))
+    return (procedures[0],), ()
+
+
+def _unit_transport(description: str, data: bytes) -> tuple[str | None, tuple[str, ...]]:
+    reasons: set[str] = set()
+    matches = [item.strip() for item in _UNIT_DECLARATION.findall(description)]
+    declaration_valid = len(matches) == 1 and bool(matches[0])
+    if not declaration_valid:
+        reasons.add("unit-declaration-missing-or-ambiguous")
+    try:
+        decoded = data.decode("utf-8", errors="strict")
+        if "\x00" in decoded:
+            raise csv.Error("NUL is outside the accepted CSV transport")
+        rows = list(csv.reader(io.StringIO(decoded, newline=""), strict=True))
+        if len(rows) < 2 or not rows[0]:
+            raise csv.Error("CSV must contain a header and data row")
+        header = rows[0]
+        trimmed_header = [item.strip() for item in header]
+        if any(not item for item in trimmed_header) or len(trimmed_header) != len(
+            set(trimmed_header)
+        ):
+            raise csv.Error("CSV header is empty or duplicated")
+        if declaration_valid and header.count(matches[0]) != 1:
+            raise csv.Error("declared unit is not an exact unique header")
+        unit_index = header.index(matches[0]) if declaration_valid else None
+        if any(len(row) != len(header) for row in rows[1:]) or (
+            unit_index is not None and any(not row[unit_index].strip() for row in rows[1:])
+        ):
+            raise csv.Error("CSV rows are ragged or unit cells are empty")
+    except (UnicodeError, csv.Error):
+        reasons.add("unit-csv-invalid-or-incomplete")
+    if reasons:
+        return None, tuple(sorted(reasons))
+    return matches[0], ()
 
 
 def _context(
-    source: str, data: bytes, unit_column: str | None, procedures: tuple[str, ...]
+    source: str, data: bytes, run_name: str, case_identity: str
 ) -> FrozenInspectionContext:
     source_bytes = source.encode("utf-8")
     requirements = b"scipy==1.14.0\n"
@@ -201,20 +438,25 @@ def _context(
     source_digest = sha256_digest(source_bytes)
     requirements_digest = sha256_digest(requirements)
     snapshot_digest = semantic_digest(
-        {"source_digest": source_digest, "data_digest": data_digest, "purpose": RECORD_PURPOSE}
+        {
+            "run_name": run_name,
+            "case_identity": case_identity,
+            "source_digest": source_digest,
+            "data_digest": data_digest,
+            "requirements_digest": requirements_digest,
+            "purpose": RECORD_PURPOSE,
+        }
     )
-    surface = RecordRef("publication_surface", "surface:wall-mining")
-    artifact = RecordRef("artifact", "artifact:wall-mining-report")
-    snapshot = RecordRef("repository_snapshot", "snapshot:wall-mining")
-    source_file = RecordRef("file_record", "file:wall-mining-source")
-    parser = RecordRef("parser_result", "parser:wall-mining-source")
-    data_file = RecordRef("file_record", "file:wall-mining-data")
-    data_identity = RecordRef("asset_identity", "asset:wall-mining-data")
-    requirements_file = RecordRef("file_record", "file:wall-mining-requirements")
-    requirements_identity = RecordRef("asset_identity", "asset:wall-mining-requirements")
-    analysis = RecordRef("analysis", "analysis-v2:wall-mining")
-    procedure = RecordRef("procedure", "procedure-v2:wall-mining")
-    result = RecordRef("result", "result-v2:wall-mining")
+    identity_suffix = f"wall-mining:{case_identity}"
+    surface = RecordRef("publication_surface", f"surface:{identity_suffix}")
+    artifact = RecordRef("artifact", f"artifact:{identity_suffix}")
+    snapshot = RecordRef("repository_snapshot", f"snapshot:{identity_suffix}")
+    source_file = RecordRef("file_record", f"file:source:{identity_suffix}")
+    parser = RecordRef("parser_result", f"parser:source:{identity_suffix}")
+    data_file = RecordRef("file_record", f"file:data:{identity_suffix}")
+    data_identity = RecordRef("asset_identity", f"asset:data:{identity_suffix}")
+    requirements_file = RecordRef("file_record", f"file:requirements:{identity_suffix}")
+    requirements_identity = RecordRef("asset_identity", f"asset:requirements:{identity_suffix}")
     parser_payload = canonical_json(
         {"parser_id": "python-ast", "parser_version": "3.11", "state": "parsed"}
     ).encode()
@@ -278,38 +520,7 @@ def _context(
         ),
         (source_file, {"file_record_id": source_file.record_id}),
         (parser, {"parser_result_id": parser.record_id}),
-        (analysis, {"analysis_id": analysis.record_id}),
-        (
-            procedure,
-            {
-                "procedure_id": procedure.record_id,
-                **(
-                    {"resolved_callable": procedures[0]}
-                    if len(procedures) == 1
-                    else {"resolved_callables": list(procedures)}
-                ),
-            },
-        ),
-        (result, {"result_id": result.record_id, "path": "results/report.md"}),
     ]
-    if unit_column is not None and procedures:
-        values.append(
-            (
-                RecordRef("human_method_authorization", "authorization-v2:wall-mining"),
-                {
-                    "record_type": "human_method_authorization",
-                    "record_id": "authorization-v2:wall-mining",
-                    "actor_id": "development-wall-mining-declaration-translator",
-                    "authority_state": "authorized",
-                    "analysis_target_ref": analysis.to_dict(),
-                    "procedure_ref": procedure.to_dict(),
-                    "independent_unit_definition_id": semantic_digest({"unit_column": unit_column}),
-                    "authorized_key_columns": [unit_column],
-                    "input_path": "data/input.csv",
-                    "input_content_digest": data_digest,
-                },
-            )
-        )
     return FrozenInspectionContext(
         snapshot_digest=snapshot_digest,
         selected_surface_ref=surface,
@@ -347,9 +558,15 @@ def _context(
 
 
 def _write_case(
-    run_root: Path, index: int, result: dict[str, Any], generation: dict[str, Any]
+    run_root: Path,
+    run_name: str,
+    index: int,
+    result: dict[str, Any],
+    generation: dict[str, Any],
 ) -> dict[str, Any]:
     case_root = run_root / "cases" / f"{index + 1:04d}"
+    case_identity = f"{run_name}:{index + 1:04d}"
+    case_id = f"case:wall-mining:{case_identity}"
     source = str(result["analysis_py"])
     data = str(result["data_csv"]).encode("utf-8")
     description = str(result["data_description_md"])
@@ -359,51 +576,70 @@ def _write_case(
     (case_root / "data/input.csv").write_bytes(data)
     (case_root / "data-description.md").write_text(description, encoding="utf-8")
     _write_json(case_root / "generation.json", generation)
-    procedures = _resolved_procedures(source)
-    unit_column = _declared_unit(description, data)
-    if procedures and any(item not in V2_GROUP_PROCEDURES for item in procedures):
-        if len(procedures) != 1 or not _TRIAL_DECLARATION.search(description):
-            procedures = ()
-    if len(procedures) > 1 and any(item not in V2_GROUP_PROCEDURES for item in procedures):
-        procedures = ()
+    procedures, procedure_reasons = _procedure_transport(source)
+    unit_column, unit_reasons = _unit_transport(description, data)
+    translation_reasons = tuple(sorted(set(procedure_reasons) | set(unit_reasons)))
+    projected = unit_column is not None and len(procedures) == 1 and not translation_reasons
+    base_context = _context(source, data, run_name, case_identity)
     translation: dict[str, Any] = {
         "record_type": "development_wall_mining_lock_translation",
         "record_purpose": RECORD_PURPOSE,
         "non_measurement_notice": NON_MEASUREMENT,
+        "run_name": run_name,
+        "case_identity": case_identity,
         "case_index": index,
         "role_information_used": False,
         "declared_unit_column": unit_column,
         "resolved_procedures": list(procedures),
-        "translation_outcome": "lock-projected" if unit_column and procedures else "no-lock",
+        "translation_outcome": "lock-projected" if projected else "no-lock",
+        "translation_reasons": list(translation_reasons),
     }
-    if unit_column and procedures:
+    lock_digest: str | None = None
+    inspection_context = base_context
+    if projected:
+        assert unit_column is not None
         lock = build_dependence_v2_authorization_lock(
-            case_id=f"case:wall-mining-{index + 1:04d}",
-            snapshot_digest=semantic_digest(
-                {"source": sha256_digest(source), "data": sha256_digest(data)}
-            ),
-            intake_recorded_at="1970-01-01T00:00:00Z",
-            procedure=procedures[0] if len(procedures) == 1 else procedures,
+            case_id=case_id,
+            snapshot_digest=base_context.snapshot_digest,
+            intake_recorded_at=_INTAKE_RECORDED_AT,
+            procedure=procedures[0],
             unit_column=unit_column,
             input_path="data/input.csv",
             input_content_digest=sha256_digest(data),
         )
-        translation["lock_digest"] = lock["lock_digest"]
+        lock_path = case_root / "authorization-lock.json"
+        lock_payload = (canonical_json(lock) + "\n").encode("utf-8")
+        lock_path.write_bytes(lock_payload)
+        inspection_context = apply_dependence_v2_authorization_lock(
+            base_context,
+            lock_path,
+            expected_case_id=case_id,
+            expected_intake_recorded_at=_INTAKE_RECORDED_AT,
+        )
+        lock_digest = str(lock["lock_digest"])
+        translation["authorization_lock_path"] = str(lock_path.relative_to(run_root))
+        translation["authorization_case_id"] = case_id
+        translation["authorization_snapshot_digest"] = lock["snapshot_digest"]
+        translation["lock_digest"] = lock_digest
         translation["approved_projection_digest"] = lock["approval"]["approved_projection_digest"]
+        translation["authorization_lock_content_digest"] = sha256_digest(lock_payload)
     translation["translation_digest"] = semantic_digest(translation)
     _write_json(case_root / "lock-translation.json", translation)
-    payload = DependenceRecognitionV2ShadowAdapter().inspect(
-        _context(source, data, unit_column if procedures else None, procedures)
-    )
+    payload = DependenceRecognitionV2ShadowAdapter().inspect(inspection_context)
     payload["record_purpose"] = RECORD_PURPOSE
     payload["measurement_authority"] = "none"
     shadow = {
         "record_type": "development_wall_mining_shadow_observation",
         "record_purpose": RECORD_PURPOSE,
         "non_measurement_notice": NON_MEASUREMENT,
+        "run_name": run_name,
+        "case_identity": case_identity,
         "case_index": index,
         "domain": str(result["domain"]),
         "lock_translation_outcome": translation["translation_outcome"],
+        "translation_reasons": list(translation_reasons),
+        "lock_digest": lock_digest,
+        "translation_digest": translation["translation_digest"],
         "shadow_payload": payload,
         "measurement_authority": "none",
     }
@@ -412,41 +648,89 @@ def _write_case(
     return shadow
 
 
-def build_corpus(project_root: Path, count: int) -> Path:
+def _validate_run_request(count: int, run_name: str) -> None:
     if count < 1:
         raise ValueError("count must be positive")
+    if _RUN_NAME.fullmatch(run_name) is None:
+        raise ValueError("run_name must match run-[a-z0-9][a-z0-9-]{0,62}")
+
+
+def _allocate_run_root(project_root: Path, run_name: str) -> Path:
+    resolved_project = project_root.resolve(strict=True)
+    if not resolved_project.is_dir():
+        raise NotADirectoryError(f"project root is not a directory: {resolved_project}")
+    corpus_root = resolved_project
+    missing: list[Path] = []
+    for component in CORPUS_ROOT.parts:
+        corpus_root /= component
+        if os.path.lexists(corpus_root):
+            if corpus_root.is_symlink() or not corpus_root.is_dir():
+                raise ValueError(f"unsafe wall-mining corpus component: {corpus_root}")
+        else:
+            missing.append(corpus_root)
+    intended = corpus_root.resolve(strict=False)
+    if not intended.is_relative_to(resolved_project):
+        raise ValueError("wall-mining corpus root escapes the project root")
+    run_root = corpus_root / run_name
+    if os.path.lexists(run_root):
+        raise FileExistsError(f"wall-mining run already exists: {run_root}")
+    for directory in missing:
+        directory.mkdir()
+        if directory.is_symlink() or not directory.is_dir():
+            raise ValueError(f"unsafe wall-mining corpus component: {directory}")
+    if not corpus_root.resolve(strict=True).is_relative_to(resolved_project):
+        raise ValueError("wall-mining corpus root escapes the project root")
+    try:
+        run_root.mkdir()
+    except FileExistsError:
+        raise FileExistsError(f"wall-mining run already exists: {run_root}") from None
+    return run_root
+
+
+def build_corpus(project_root: Path, count: int, run_name: str) -> Path:
+    _validate_run_request(count, run_name)
     if not CLAUDE_PINNED.is_file():
         raise FileNotFoundError(f"Claude CLI is missing: {CLAUDE_PINNED}")
-    run_root = project_root / CORPUS_ROOT / f"run-{count}"
-    if run_root.exists():
-        raise FileExistsError(f"wall-mining run already exists: {run_root}")
-    run_root.mkdir(parents=True)
+    run_root = _allocate_run_root(project_root, run_name)
     with ThreadPoolExecutor(max_workers=min(MAX_CONCURRENCY, count)) as executor:
-        generated = list(executor.map(lambda index: _call_haiku(index, count), range(count)))
+        generated = list(
+            executor.map(lambda index: _call_haiku(run_name, index, count), range(count))
+        )
     observations = [
-        _write_case(run_root, index, result, generation)
+        _write_case(run_root, run_name, index, result, generation)
         for index, (result, generation) in enumerate(generated)
     ]
-    frequencies: dict[str, int] = {}
+    wall_frequencies: dict[str, int] = {}
+    transport_frequencies: dict[str, int] = {}
     outcomes: dict[str, int] = {}
     for observation in observations:
         payload = cast(dict[str, Any], observation["shadow_payload"])
         outcome = str(payload.get("outcome", "missing"))
         outcomes[outcome] = outcomes.get(outcome, 0) + 1
+        for reason in observation["translation_reasons"]:
+            key = str(reason)
+            transport_frequencies[key] = transport_frequencies.get(key, 0) + 1
+        if observation["lock_translation_outcome"] != "lock-projected":
+            continue
         for reason in payload.get("abstention_reasons", []):
             key = str(reason)
-            frequencies[key] = frequencies.get(key, 0) + 1
+            wall_frequencies[key] = wall_frequencies.get(key, 0) + 1
     census = {
         "record_type": "development_wall_mining_census",
         "record_purpose": RECORD_PURPOSE,
         "non_measurement_notice": NON_MEASUREMENT,
-        "run_name": f"run-{count}",
+        "run_name": run_name,
         "case_count": count,
         "model_alias": MODEL_ALIAS,
         "generation_calls": count,
         "maximum_generation_concurrency": MAX_CONCURRENCY,
         "outcome_frequencies": dict(sorted(outcomes.items())),
-        "wall_frequencies": dict(sorted(frequencies.items(), key=lambda item: (-item[1], item[0]))),
+        "transport_failure_frequencies": dict(
+            sorted(transport_frequencies.items(), key=lambda item: (-item[1], item[0]))
+        ),
+        "wall_frequencies": dict(
+            sorted(wall_frequencies.items(), key=lambda item: (-item[1], item[0]))
+        ),
         "measurement_authority": "none",
         "completed_at": _now(),
     }
@@ -461,11 +745,21 @@ def build_corpus(project_root: Path, count: int) -> Path:
         "| --- | ---: |",
         *[
             f"| `{reason}` | {frequency} |"
-            for reason, frequency in census["wall_frequencies"].items()
+            for reason, frequency in sorted(
+                wall_frequencies.items(), key=lambda item: (-item[1], item[0])
+            )
         ],
         "",
-        "Outcomes: "
-        + ", ".join(f"`{key}` {value}" for key, value in census["outcome_frequencies"].items()),
+        "| Transport refusal | Frequency |",
+        "| --- | ---: |",
+        *[
+            f"| `{reason}` | {frequency} |"
+            for reason, frequency in sorted(
+                transport_frequencies.items(), key=lambda item: (-item[1], item[0])
+            )
+        ],
+        "",
+        "Outcomes: " + ", ".join(f"`{key}` {value}" for key, value in sorted(outcomes.items())),
         "",
     ]
     (run_root / "wall-frequency-census.md").write_text("\n".join(rows), encoding="utf-8")
@@ -473,7 +767,7 @@ def build_corpus(project_root: Path, count: int) -> Path:
         "record_type": "development_wall_mining_run",
         "record_purpose": RECORD_PURPOSE,
         "non_measurement_notice": NON_MEASUREMENT,
-        "run_name": f"run-{count}",
+        "run_name": run_name,
         "case_count": count,
         "census_digest": census["census_digest"],
         "measurement_authority": "none",
@@ -486,9 +780,10 @@ def build_corpus(project_root: Path, count: int) -> Path:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("-n", "--count", type=int, default=40)
+    parser.add_argument("--run-name", required=True)
     parser.add_argument("--project-root", type=Path, default=PROJECT_ROOT)
     arguments = parser.parse_args()
-    print(build_corpus(arguments.project_root.resolve(), arguments.count))
+    print(build_corpus(arguments.project_root, arguments.count, arguments.run_name))
 
 
 if __name__ == "__main__":

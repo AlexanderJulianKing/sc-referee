@@ -1,6 +1,6 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
-Updated: 2026-08-15 (HALTED after three blocked Growth-10 harness-design reviews).
+Updated: 2026-08-15 (Growth-10 resumed by explicit maintainer authorization).
 
 ## Scoreboard
 
@@ -54,17 +54,58 @@ Updated: 2026-08-15 (HALTED after three blocked Growth-10 harness-design reviews
 
 ## In flight
 
-- HALTED. Do not build Growth 10, run another wall corpus, change grammar, or run a
-  blind checkpoint until Alex decides how (or whether) open-census procedure authority
-  may be established. The three-fresh-attempt persistent review-failure condition in
-  the orchestrator brief is met. The current empty `run-40` census remains immutable
-  evidence and is not retried or rescored.
-- Reserved decision needed: either authorize a recursively enumerated, default-deny
-  safe AST language for the entire executable slice capable of affecting the
-  statistical call, or abandon/reframe source-derived procedure authority for this
-  wall-mining lane. Extending a blacklist is explicitly insufficient.
+- RESUMED by Alex's explicit authorization: Growth 10 may use a recursively
+  enumerated, default-deny AST language for wall-census procedure authority; unknown
+  or dynamic Python forms receive `no-lock`. No recognizer, grant, pin, registry,
+  qualification, or frozen-lane change is authorized.
+- The revised Growth-10 memo must receive a fresh HEAVY `CLEAR TO BUILD` review before
+  any builder runs. If code later clears review, the next immutable corpus is
+  `run-40-authority-2`; the empty `run-40` remains frozen evidence and is never retried
+  or rescored. Do not run another blind checkpoint until roughly three to four
+  additional reviewed growth rounds accumulate.
+- Maintainer threat-model decision: future adversarial rounds should assume ordinary
+  real-researcher code written by a reasonable programmer. Reviewers still probe
+  realistic mistakes, ordinary aliases and rebinding, and direct escapes from the
+  stated default-deny boundary. They must not turn future rounds into an arms race
+  against deliberately absurd or obfuscated interpreter puzzles (for example,
+  disguising namespace corruption through `exec` or traceback frames). Unknown or
+  dynamic forms deterministically receive `no-lock`; refusal is the safety boundary,
+  not a defect the recognizer must defeat.
+- Fresh resumed design review 4 validated that boundary, the recursive AST envelope,
+  ordinary binding siblings, pinned fixture, strict-CSV approach, safe allocation,
+  prompt neutrality, pins, and production isolation, but returned `BLOCKED` on a
+  non-adversarial provenance join: the baseline records one authorization lock while
+  the shadow adapter inspects separately synthesized authority records. The memo now
+  requires one base context, one persisted and verified lock, the exact lock record
+  set applied to the adapter context, and explicit lock-to-translation-to-shadow
+  digest bindings. It also makes the canonical SciPy import module-level and requires
+  whole-stream `csv.reader(..., strict=True)` plus NUL rejection. A new fresh design
+  review gates any builder.
+- Fresh resumed design review 5 then executed the repaired exact-lock chain
+  successfully, but returned `BLOCKED` on one finite direct sibling: an additional
+  ordinary `import scipy as sp` or `import scipy.stats as spstats` could replace the
+  authorized procedure before the canonical call. The memo now requires the canonical
+  module-level import to be the only SciPy-rooted import anywhere and adds both
+  combined alias/mutation `no-lock` fixtures. It also makes dangling run-path symlink
+  refusal explicit. One final fresh resumed design review gates the build; a third
+  failure would trigger the orchestrator brief's persistent-failure halt.
+- Fresh resumed design review 6 returned `CLEAR TO BUILD` with no findings. Its
+  executed probes confirmed the 82-class exact-field AST envelope, strict CSV
+  refusals, both direct SciPy alias cases, one exact persisted lock applied into the
+  inspected context, run/dangling-symlink controls, pins, production isolation, and
+  byte-identical `run-40`.
+- A fresh Growth-10 builder implemented the cleared memo, limited to
+  `scripts/wall_mining_corpus.py` and `tests/test_wall_mining_corpus.py`. The builder
+  reported 320/320 implementation-specific and v2 regression tests passing, clean
+  targeted Ruff and mypy checks, a passing starter validator, and the frozen 243-file
+  `run-40` digest still exactly
+  `71de6d51847d65449e5393af80ae9048bfbf3e979c0a1b971111be5e23d4a240`.
+  Its combined release-identity run failed only because this orchestrator-owned state
+  and the new build had not yet entered the manifest sequence. The orchestrator must
+  commit, regenerate the manifest, run the verified full-suite gate, and push; a
+  separate fresh code review still gates `run-40-authority-2`.
 
-## Halt record — Growth 10 wall-census authority transport
+## Resolved halt record — Growth 10 wall-census authority transport
 
 - Design memo:
   `~/Desktop/random_stuff/sc-referee-design-memos/dependence-grammar-growth-10-design-2026-08-15.md`.
@@ -89,6 +130,9 @@ Updated: 2026-08-15 (HALTED after three blocked Growth-10 harness-design reviews
   installed pins live, v2 production-unreachable, protected paths unchanged, and the
   243-file `run-40` tree byte-unchanged (aggregate digest
   `71de6d51847d65449e5393af80ae9048bfbf3e979c0a1b971111be5e23d4a240`).
+- Alex resolved the halt after reviewing the meaning of the hostile probes. His exact
+  authorization is the default-deny AST decision recorded under `In flight`; the
+  prior blacklist design remains rejected and may not be built.
 
 ## Heavy queue (evidence-ranked; measure premises before designing)
 
