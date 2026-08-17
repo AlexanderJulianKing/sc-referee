@@ -14,10 +14,11 @@ clarification then authorized one final builder, which has handed off the focuse
 digest-bound manifest-bijection repair uncommitted on `e4e08a6`. Its focused gates
 are green and an orchestrator-detected v1 projection regression was corrected by that
 same builder before handoff. The corrected 4,485-test pre-manifest serial gate is now
-green with captured exit 0. Functional commit, manifest regeneration, exact serial
-full gate, push, and a fresh maximum-effort code review remain mandatory. No
-re-measure, planted-positive observation, or batch is authorized until that reviewer
-completes the entire halted matrix, gives all five assents, and returns
+green with captured exit 0; the functional repair is committed as `2dc282c`, its
+manifest as `7823dce`, and the exact 4,486-test serial gate is green with captured exit
+0. Final state/manifest closure, push, and a fresh maximum-effort code review remain
+mandatory. No re-measure, planted-positive observation, or batch is authorized until
+that reviewer completes the entire halted matrix, gives all five assents, and returns
 `CLEAR FOR RE-MEASURE`).
 
 ## Scoreboard
@@ -964,8 +965,16 @@ completes the entire halted matrix, gives all five assents, and returns
   re-entry set remained 262/262; static and boundary checks remained green; and no
   implementation, ledger, qualification, manifest, protected, or frozen path changed
   in the correction. The complete serial pre-manifest rerun then selected 4,485 tests,
-  reached 100%, and captured `PYTEST_EXIT=0`. The functional/state commit, manifest
-  regeneration, exact all-test serial gate, push, and fresh code review remain.
+  reached 100%, and captured `PYTEST_EXIT=0`. The subsequent commit and exact gate are
+  recorded next; push and fresh code review remain.
+- The orchestrator committed the focused repair and then-current STATE as
+  `2dc282ca692211659a052420fad02d1df293b7bc`, regenerated `MANIFEST.sha256`,
+  and separately committed that release inventory as
+  `7823dce0f58084d9ff86a181d4648df2217123a9`. The exact no-deselection
+  repository suite then collected 4,486 tests, reached 100%, and captured
+  `PYTEST_EXIT=0`. The final handoff-state/manifest refresh and repeated exact suite
+  still gate push; after push, only a distinct fresh maximum-effort code reviewer may
+  authorize re-measure.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
