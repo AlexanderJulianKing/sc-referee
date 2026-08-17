@@ -18,7 +18,10 @@ pipeline track, not as a trigger event. The primary mission is now trustworthy g
 audit reports: Layer-1 verified observations, then report-scoring redesign, then a
 realistic-repository population. The seven `reader-form-unsupported` singleton census
 cases remain the next Layer-3 growth priority by completion yield, queued behind the
-walking skeleton).
+walking skeleton. Checkpoint K is closed and pushed with zero accusations. Layer-1
+HEAVY review 2 is now BLOCKED at design because the exact maintainer script cannot run
+without a separately pinned `scanpy` premise and six additional closure defects remain;
+no build is authorized and no false-accusation HALT occurred).
 
 ## Scoreboard
 
@@ -205,6 +208,43 @@ walking skeleton).
   next Layer-1 review may run only after the exact world-1 bytes and measured runtime are
   available and all Section 11 contracts are written. The harness remains separately
   blocked behind a cleared Layer-1 skeleton.
+
+## Audit-report ladder HEAVY design review 2 — BLOCKED, maintainer premise needed
+
+- The exact maintainer script appeared beside the memo after review 1: 1,015 bytes,
+  `sha256:c5f3bb51457ace3e4b979b69739f212b9d0c7a12baba62033859d31f5b2ade18`.
+  The orchestrator measured a deterministic 4,000-cell by 3-gene CSR-float32 H5AD
+  fixture with exactly 2,000 `Animal_1` and 2,000 `Animal_2` rows. Two isolated
+  generations were byte-identical at 330,008 bytes and
+  `sha256:f94ddd1bc2c7d1d690d5c054caf924a2c531a0e7d191da9ca7a7b786fee0e887`.
+  Pinned reads reproduced the exact categorical, matrix, HDF5-topology, vector-length,
+  and SciPy-1.17.1 facts. Memo Section 13 then proposed closed Layer-0, observation,
+  Python-flow, premise, report, renderer, authority, runtime, and hostile contracts.
+- Fresh maximum-effort reviewer `01a011e7-fc24-7850-9f63-d9b2f289ed3a` worked on exact
+  clean base `306d582`, independently reproduced the script AST, fixture bytes, HDF5
+  tree, reader results, 21 wheel hashes, three native hashes, and 5,839 hashed RECORD
+  entries, and executed the prior injection/identity/TOCTOU/authority attack families.
+  It returned `DEVELOPMENT-PRODUCTION-ISOLATION: ASSENT`; all other requested surfaces
+  were `REFUSE`; final verdict `LAYER-1 VERDICT: BLOCKED`. This is a design-only block,
+  not a scored/corpus false accusation. No HALT condition fired and no builder may start.
+- The decisive hidden-premise counterexample is exact: the selected authorized runtime
+  has no `scanpy`, so the maintainer script raises `ModuleNotFoundError`. Supplying the
+  identical source bytes an alternate in-memory `scanpy.read_h5ad` yielded 2/2 vectors
+  while the frozen file observations stayed 2,000/2,000. Syntax plus H5AD facts plus
+  pinned `ttest_ind` semantics therefore do not entail the drafted concern. Preserving
+  the exact maintainer fixture needs a real pinned scanpy execution/semantics premise
+  under the same immutable package-identity discipline; adding it is a maintainer
+  decision, not an orchestrator assumption. Replacing the exact script is the other
+  authority-expanding option. Until Alex chooses, design review 3 is not scheduled.
+- Memo Section 14 binds the remaining narrow corrections: canonical frozen runtime
+  manifest bytes and no pyc drift; immutable in-memory H5AD payload reads instead of a
+  pathname susceptible to A-to-B-to-A swaps; a literal Layer-1
+  `finding_eligible:false`; truthful `refuted` authority state and premise-based coverage;
+  raw-byte Layer-0 path identity for invalid/non-NFC names; rejection of bidi/control
+  report slots; exhaustive nested schema bounds/templates; replay-frozen receipt times;
+  and implementation solely under `evaluation/src/sc_referee_evaluation/audit_ladder/`,
+  outside the production wheel namespace. The report-scoring harness and H5AD Tier 2
+  remain blocked and unauthorized.
 
 ## Closed this iteration
 
