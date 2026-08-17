@@ -201,6 +201,7 @@ CastKind = Literal["none", "float", "int"]
 CountPredicateOperator = Literal["eq", "ne"]
 GrowthConclusion = Literal["repeated_units", "one_observation_per_unit"]
 PairedConclusion = Literal["repeated_unit_across_pair_positions", "one_pair_position_per_unit"]
+AbortOnlyGuardRoleKind = Literal["row_sequence", "group_container", "procedure_operand"]
 
 
 @dataclass(frozen=True, order=True)
@@ -402,6 +403,33 @@ class OperandGroupBinding:
 
 
 @dataclass(frozen=True, order=True)
+class AbortOnlyGuardNameRole:
+    """One existing sole-partition role consumed by an abort-only guard."""
+
+    name: str
+    role_kind: AbortOnlyGuardRoleKind
+    operand_position: int | None = None
+
+
+@dataclass(frozen=True, order=True)
+class AbortOnlyGuardToken:
+    """Source/role closure for one syntactically admitted validation guard.
+
+    The token deliberately carries no fact, sequence, cardinality, value, or
+    analyzer-supplied truth result.
+    """
+
+    source_path: str
+    source_span: tuple[int, int, int, int]
+    lexical_scope: str
+    call_path_id: str
+    guard_ordinal: int
+    condition_ast_digest: str
+    raise_ast_digest: str
+    name_roles: tuple[AbortOnlyGuardNameRole, ...]
+
+
+@dataclass(frozen=True, order=True)
 class AlphaRename:
     """One fresh-name witness keyed by function and acyclic call path."""
 
@@ -445,6 +473,7 @@ class DependenceGrowthCertificate:
     sink_bound_statement_tokens: tuple[str, ...]
     dead_syntactic_construct_tokens: tuple[str, ...]
     conclusion: GrowthConclusion
+    abort_only_guard_tokens: tuple[AbortOnlyGuardToken, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -513,6 +542,7 @@ class VerifiedDependenceGrowthCertificate:
     operand_slice_statement_tokens: tuple[str, ...]
     sink_bound_statement_tokens: tuple[str, ...]
     dead_syntactic_construct_tokens: tuple[str, ...]
+    abort_only_guard_tokens: tuple[AbortOnlyGuardToken, ...] = ()
 
 
 @dataclass(frozen=True)

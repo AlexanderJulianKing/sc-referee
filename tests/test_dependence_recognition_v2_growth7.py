@@ -487,7 +487,7 @@ def test_growth7_batch_g_cases_pin_full_observed_reason_sets(project_root: Path)
                 "count-predicate-not-closed",
                 "import-use-outside-grammar",
             ],
-            "a8b660a9685f13f0187f": ["raise-guard-not-modeled"],
+            "a8b660a9685f13f0187f": ["augmented-assignment-not-modeled"],
             "ae33434a6064f4251cbc": ["import-use-outside-grammar"],
             "ff99e13110aad17a7fd0": ["group-accumulator-not-total"],
         },

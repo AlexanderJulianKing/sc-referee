@@ -36,6 +36,8 @@ from sc_referee.dependence_recognition_v2.ir import (
     MAX_V2_AST_NODES,
     MAX_V2_INLINE_DEPTH,
     MAX_V2_SOURCE_BYTES,
+    AbortOnlyGuardNameRole,
+    AbortOnlyGuardToken,
     AlphaRename,
     AuthorizedProcedureSet,
     CastKind,
@@ -145,6 +147,13 @@ class _DistributionHelper:
     statement: ast.Assign
 
 
+@dataclass(frozen=True)
+class _SinkPartition:
+    operand_statement_tokens: tuple[str, ...]
+    sink_statement_tokens: tuple[str, ...]
+    operand_names: frozenset[str]
+
+
 def analyze_dependence_growth_python(context: FrozenInspectionContext) -> GrowthAnalysis:
     """Propose one growth certificate or return granular sorted abstentions."""
 
@@ -169,6 +178,7 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
         return _unsupported("python-parse-unsupported")
     if sum(1 for _ in ast.walk(tree)) > MAX_V2_AST_NODES:
         return _unsupported("ast-node-ceiling")
+    abort_only_raise_wall = _analyzer_abort_only_raise_wall(tree)
 
     authorities = _trusted_v2_authorizations(context)
     if len(authorities) != 1:
@@ -221,7 +231,9 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
             if isinstance(argument, ast.Name)
         }
         _refuse_unmodeled_nonannotation_syntax(
-            flattened, deferred_named_targets=deferred_paired_named_targets
+            flattened,
+            deferred_named_targets=deferred_paired_named_targets,
+            allow_abort_only_guards=not abort_only_raise_wall,
         )
         if _core_construct_is_conditionally_wrapped(flattened, imports):
             raise _Refusal("sink-controls-operand-flow")
@@ -236,7 +248,7 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
         if reasons:
             return _unsupported(*reasons)
         try:
-            return _analyze_paired_proposal(
+            proposal = _analyze_paired_proposal(
                 document_path=document.path,
                 document_digest=document.content_digest,
                 source_length=len(document.content),
@@ -251,6 +263,9 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
             )
         except _Refusal as refusal:
             return _unsupported(*refusal.reasons)
+        if _body_contains_raise(flattened):
+            return _unsupported("raise-guard-not-modeled")
+        return proposal
     if _count_procedure_present(flattened, imports):
         try:
             inferential_calls, _distribution_helpers = _procedure_census(
@@ -279,6 +294,8 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
             return _unsupported(*reasons)
         if reasons:
             return _unsupported(*reasons)
+        if _body_contains_raise(flattened):
+            return _unsupported("raise-guard-not-modeled")
         return proposal
     try:
         read = _recognize_reader(flattened, constants)
@@ -339,7 +356,7 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
                 constants,
                 _trusted_result_path(context),
             )
-        operand_tokens, sink_tokens = _verify_closed_flattened_statements(
+        partition = _verify_closed_flattened_statements(
             flattened,
             rows_name=read[0],
             group_name=grouping[0],
@@ -360,6 +377,19 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
     if key_column == authority.authorized_key_columns[0]:
         return _unsupported("group-key-is-unit-column")
     procedure_matches, argument_bindings = procedure
+    try:
+        abort_only_guard_tokens = _collect_full_abort_only_guard_tokens(
+            flattened,
+            source_path=document.path,
+            rows_name=read[0],
+            group_name=group_name,
+            procedure_matches=procedure_matches,
+            operand_bindings=argument_bindings,
+            sink=sink,
+            operand_names=partition.operand_names,
+        )
+    except _Refusal as refusal:
+        return _unsupported(*refusal.reasons)
     resolved_callables = tuple(item.variant for item in procedure_matches)
     obligation = GroupValueSequenceObligation(
         path=read[1],
@@ -395,9 +425,10 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
         operand_bindings=argument_bindings,
         alpha_renames=tuple(renames),
         dead_syntactic_construct_tokens=tuple(sorted(dead)),
-        operand_slice_statement_tokens=operand_tokens,
-        sink_bound_statement_tokens=sink_tokens,
+        operand_slice_statement_tokens=partition.operand_statement_tokens,
+        sink_bound_statement_tokens=partition.sink_statement_tokens,
         conclusion=placeholder_conclusion,
+        abort_only_guard_tokens=abort_only_guard_tokens,
     )
     return GrowthAnalysis(
         state="proposal",
@@ -482,7 +513,7 @@ def discharge_dependence_growth_analysis(
     )
     certificate = replace(
         certificate,
-        certificate_id=f"dependence-growth-certificate:{semantic_digest({'source_digest': certificate.source_digest, 'fact': fact.evidence_id, 'bindings': [asdict(item) for item in certificate.operand_bindings], 'conclusion': conclusion})}",
+        certificate_id=f"dependence-growth-certificate:{semantic_digest({'source_digest': certificate.source_digest, 'fact': fact.evidence_id, 'bindings': [asdict(item) for item in certificate.operand_bindings], 'abort_only_guard_tokens': [asdict(item) for item in certificate.abort_only_guard_tokens], 'conclusion': conclusion})}",
     )
     source_matches = [
         item
@@ -495,12 +526,15 @@ def discharge_dependence_growth_analysis(
     verified = verify_dependence_growth_certificate(
         certificate,
         trusted_group_facts=(fact,),
+        trusted_material_inputs=(materials[0],),
         trusted_authorizations=_trusted_v2_authorizations(context),
         trusted_procedure_sets=_trusted_v2_procedure_sets(context),
         source_bytes=source_matches[0].content,
         _failure_reasons=kernel_failures,
     )
     if verified is None:
+        if kernel_failures == ["sink-controls-operand-flow"]:
+            return _discharged_unsupported("sink-controls-operand-flow")
         obligation = kernel_failures[0] if len(kernel_failures) == 1 else "unspecified"
         return _discharged_unsupported(f"certificate-kernel-refusal:{obligation}")
     return DischargedGrowthAnalysis(
@@ -560,7 +594,7 @@ def _analyze_paired_proposal(
     reader = _paired_reader_envelope(body, constants, left, right)
     result_name = cast(ast.Name, procedure.targets[0]).id
     sink = _recognize_sink(body, result_name, constants, expected_result_path)
-    operand_tokens, sink_tokens = _partition_sink_bound_set(body, (procedure,), sink, {left, right})
+    partition = _partition_sink_bound_set(body, (procedure,), sink, {left, right})
     with_statement, loop, path, encoding = reader
     initializations = {
         name: [
@@ -637,8 +671,8 @@ def _analyze_paired_proposal(
         result_name=result_name,
         sink_token=_node_token(document_path, sink, "selected-sink"),
         alpha_renames=renames,
-        operand_slice_statement_tokens=operand_tokens,
-        sink_bound_statement_tokens=sink_tokens,
+        operand_slice_statement_tokens=partition.operand_statement_tokens,
+        sink_bound_statement_tokens=partition.sink_statement_tokens,
         dead_syntactic_construct_tokens=dead,
         conclusion="one_pair_position_per_unit",
     )
@@ -821,7 +855,10 @@ def _refuse_unsupported_live_assignment_syntax(body: list[ast.stmt]) -> None:
 
 
 def _refuse_unmodeled_nonannotation_syntax(
-    body: list[ast.stmt], *, deferred_named_targets: set[str] | None = None
+    body: list[ast.stmt],
+    *,
+    deferred_named_targets: set[str] | None = None,
+    allow_abort_only_guards: bool = False,
 ) -> None:
     """Preserve the eager named refusals unrelated to annotation partitioning."""
 
@@ -837,7 +874,7 @@ def _refuse_unmodeled_nonannotation_syntax(
         raise _Refusal("named-expression-not-modeled")
     if any(isinstance(node, ast.Delete) for node in nodes):
         raise _Refusal("delete-not-modeled")
-    if any(isinstance(node, ast.Raise) for node in nodes):
+    if any(isinstance(node, ast.Raise) for node in nodes) and not allow_abort_only_guards:
         raise _Refusal("raise-guard-not-modeled")
 
 
@@ -933,7 +970,7 @@ def _analyze_count_proposal(
     operands = _count_call_operands(call, resolved, derivations, body)
     result_name = statement.targets[0].id
     sink = _recognize_sink(body, result_name, constants, expected_result_path)
-    operand_tokens, sink_tokens = _verify_closed_count_statements(
+    partition = _verify_closed_count_statements(
         body,
         rows_name=rows_name,
         domains=domains,
@@ -971,8 +1008,8 @@ def _analyze_count_proposal(
         sink_token=_node_token(document_path, sink, "selected-sink"),
         alpha_renames=renames,
         dead_syntactic_construct_tokens=dead,
-        operand_slice_statement_tokens=operand_tokens,
-        sink_bound_statement_tokens=sink_tokens,
+        operand_slice_statement_tokens=partition.operand_statement_tokens,
+        sink_bound_statement_tokens=partition.sink_statement_tokens,
         conclusion="one_observation_per_unit",
     )
     return GrowthAnalysis(
@@ -1376,7 +1413,7 @@ def _verify_closed_count_statements(
     procedure_statement: ast.Assign,
     sink: ast.Call,
     constants: dict[str, ModuleConstant],
-) -> tuple[tuple[str, ...], tuple[str, ...]]:
+) -> _SinkPartition:
     group_loops = [
         statement for statement in body if _closed_count_group_loop(statement, rows_name, domains)
     ]
@@ -1986,7 +2023,9 @@ def _flatten_functions(
     # This is a proof-oriented flattened IR, not executable Python: synthetic
     # fresh names and return carriers exist only for bounded semantic replay.
     if not functions:
-        return _substitute_constants(executable, constants), [], set()
+        flattened = _substitute_constants(executable, constants)
+        _annotate_analyzer_module_guard_context(flattened)
+        return flattened, [], set()
     if any(
         isinstance(node, ast.Name) and node.id.startswith("__dependence_v2_")
         for statement in [*executable, *functions.values()]
@@ -2048,6 +2087,7 @@ def _flatten_functions(
     renames: list[AlphaRename] = []
     counter = [0]
     flattened = _inline_statements(executable, functions, constants, 0, counter, renames, ())
+    _annotate_analyzer_module_guard_context(flattened)
     caller_visible = (
         {
             node.id
@@ -2112,10 +2152,18 @@ def _validate_function(
     }
     raises = [node for node in ast.walk(function) if isinstance(node, ast.Raise)]
     if raises:
-        reasons.add("raise-guard-not-modeled")
-        # The raise statement is already refused. Exclude constructor/name loads
-        # contained only in that refused syntax so they do not collapse the wall
-        # back into the broader module-data-name reason withdrawn by G9 R1.
+        supported_raises = {
+            statement.body[0]
+            for statement in function.body
+            if isinstance(statement, ast.If)
+            and getattr(statement, "_dependence_v2_abort_only_source_closed", False)
+            and len(statement.body) == 1
+            and isinstance(statement.body[0], ast.Raise)
+        }
+        if set(raises) != supported_raises:
+            reasons.add("raise-guard-not-modeled")
+        # Raise support is inventoried separately so exact abort-only syntax can
+        # decompose its generic wall without changing ordinary global-read fuel.
         loads -= {
             node.id
             for raised in raises
@@ -2426,6 +2474,8 @@ def _inline_call(
     transformer = _InlineTransformer(arguments, local_map)
     body = [transformer.visit(item) for item in constant_body]
     body = [ast.fix_missing_locations(cast(ast.stmt, item)) for item in body]
+    for statement in body:
+        _annotate_analyzer_guard_context(statement, function.name, call_path_id)
     return_value: ast.expr | None = None
     nested_return_name: str | None = None
     if body and isinstance(body[-1], ast.Return):
@@ -2477,6 +2527,28 @@ def _inline_call(
     elif return_value is not None:
         body.append(ast.Expr(value=return_value))
     return [*argument_prefix, *body]
+
+
+def _annotate_analyzer_guard_context(
+    statement: ast.stmt, lexical_scope: str, call_path_id: str
+) -> None:
+    for node in ast.walk(statement):
+        if isinstance(node, ast.If) and any(
+            isinstance(child, ast.Raise) for child in ast.walk(node)
+        ):
+            node.__dict__["_dependence_v2_lexical_scope"] = lexical_scope
+            node.__dict__["_dependence_v2_call_path_id"] = call_path_id
+
+
+def _annotate_analyzer_module_guard_context(body: list[ast.stmt]) -> None:
+    for statement in body:
+        for node in ast.walk(statement):
+            if isinstance(node, ast.If) and any(
+                isinstance(child, ast.Raise) for child in ast.walk(node)
+            ):
+                if not hasattr(node, "_dependence_v2_lexical_scope"):
+                    node.__dict__["_dependence_v2_lexical_scope"] = "module"
+                    node.__dict__["_dependence_v2_call_path_id"] = "module"
 
 
 class _InlineTransformer(ast.NodeTransformer):
@@ -3415,8 +3487,8 @@ def _verify_closed_flattened_statements(
     procedures: tuple[ast.Assign, ...],
     distribution_helpers: tuple[_DistributionHelper, ...],
     sink: ast.Call,
-    precomputed_partition: tuple[tuple[str, ...], tuple[str, ...]] | None = None,
-) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    precomputed_partition: _SinkPartition | None = None,
+) -> _SinkPartition:
     """Partition the flattened module into operand and proven-sink-bound slices."""
 
     if not procedures:
@@ -3453,19 +3525,19 @@ def _verify_closed_flattened_statements(
                 for node in ast.walk(target)
                 if isinstance(node, ast.Name)
             )
-    operand_tokens, sink_tokens = (
+    partition = (
         precomputed_partition
         if precomputed_partition is not None
         else _partition_sink_bound_set(body, procedures, sink, operand_names)
     )
-    sink_token_set = set(sink_tokens)
+    sink_token_set = set(partition.sink_statement_tokens)
     helper_statement_tokens = {
         _statement_token(helper.statement, body.index(helper.statement))
         for helper in distribution_helpers
     }
     if not helper_statement_tokens <= sink_token_set:
         raise _Refusal("distribution-helper-reaches-operand")
-    return operand_tokens, sink_tokens
+    return partition
 
 
 _SINK_NAME_CALLS = frozenset(
@@ -3668,7 +3740,7 @@ def _partition_sink_bound_set(
     procedure_statements: tuple[ast.Assign, ...],
     sink: ast.Call,
     initial_operand_names: set[str],
-) -> tuple[tuple[str, ...], tuple[str, ...]]:
+) -> _SinkPartition:
     if not procedure_statements or any(
         not isinstance(statement.value, ast.Call) for statement in procedure_statements
     ):
@@ -3729,6 +3801,8 @@ def _partition_sink_bound_set(
     for index, statement in enumerate(body):
         if index in operand_indices or index in sink_indices:
             continue
+        if _analyzer_abort_only_guard_statement(statement, allow_not_name=True):
+            continue
         if isinstance(statement, ast.Expr) and _closed_makedirs_call(statement.value, {}):
             sink_indices.add(index)
             continue
@@ -3783,9 +3857,14 @@ def _partition_sink_bound_set(
         _sink_expression_closed(statement.value, operand_names, scalar_sequences)
         sink_indices.add(index)
     _sink_expression_closed(sink.args[0], operand_names, scalar_sequences)
-    return (
-        tuple(_statement_token(body[index], index) for index in sorted(operand_indices)),
-        tuple(_statement_token(body[index], index) for index in sorted(sink_indices)),
+    return _SinkPartition(
+        operand_statement_tokens=tuple(
+            _statement_token(body[index], index) for index in sorted(operand_indices)
+        ),
+        sink_statement_tokens=tuple(
+            _statement_token(body[index], index) for index in sorted(sink_indices)
+        ),
+        operand_names=frozenset(operand_names),
     )
 
 
@@ -3949,6 +4028,384 @@ def _lower_annotations_for_partition(
             )
         )
     return normalized
+
+
+def _body_contains_raise(body: list[ast.stmt]) -> bool:
+    return any(isinstance(node, ast.Raise) for statement in body for node in ast.walk(statement))
+
+
+def _analyzer_abort_only_raise_wall(tree: ast.Module) -> bool:
+    """Recognize only syntax-level abort guards and annotate no scientific role."""
+
+    functions = {item.name: item for item in tree.body if isinstance(item, ast.FunctionDef)}
+    module_body = _live_main_guard_body(_without_leading_docstring(tree.body))
+    module_executable = [item for item in module_body if not isinstance(item, ast.FunctionDef)]
+    module_binds_len = _analyzer_scope_binds_len(tree)
+
+    path_states: dict[str, set[bool]] = {name: set() for name in functions}
+    pending: list[tuple[str, bool]] = []
+    for call in _analyzer_user_calls(module_executable, set(functions)):
+        assert isinstance(call.func, ast.Name)
+        pending.append((call.func.id, not _analyzer_direct_uncaught_call(call, module_executable)))
+    while pending:
+        name, obstructed = pending.pop()
+        if obstructed in path_states[name]:
+            continue
+        path_states[name].add(obstructed)
+        function = functions[name]
+        for call in _analyzer_user_calls(function.body, set(functions)):
+            assert isinstance(call.func, ast.Name)
+            pending.append(
+                (
+                    call.func.id,
+                    obstructed or not _analyzer_direct_uncaught_call(call, function.body),
+                )
+            )
+
+    reachable_raises: set[ast.Raise] = set()
+    candidate_guards: list[tuple[ast.If, ast.Module | ast.FunctionDef, bool]] = []
+    for statement in module_executable:
+        reachable_raises.update(
+            node for node in _analyzer_scope_nodes(statement) if isinstance(node, ast.Raise)
+        )
+        if isinstance(statement, ast.If):
+            candidate_guards.append((statement, tree, False))
+    for name, states in path_states.items():
+        if not states:
+            continue
+        function = functions[name]
+        for node in _analyzer_scope_nodes(function):
+            if isinstance(node, ast.Raise):
+                reachable_raises.add(node)
+        for statement in _without_leading_docstring(function.body):
+            if isinstance(statement, ast.If):
+                candidate_guards.append((statement, function, True in states))
+
+    supported_raises: set[ast.Raise] = set()
+    for guard, scope, obstructed in candidate_guards:
+        if obstructed or not _analyzer_abort_only_guard_statement(guard, allow_not_name=True):
+            continue
+        if _analyzer_condition_uses_len(guard.test) and (
+            module_binds_len
+            or (isinstance(scope, ast.FunctionDef) and _analyzer_scope_binds_len(scope))
+        ):
+            continue
+        raised = cast(ast.Raise, guard.body[0])
+        supported_raises.add(raised)
+        guard.__dict__["_dependence_v2_abort_only_source_closed"] = True
+    return reachable_raises != supported_raises
+
+
+def _analyzer_scope_nodes(root: ast.AST) -> tuple[ast.AST, ...]:
+    """Walk one ordinary lexical scope without entering nested scopes."""
+
+    nodes: list[ast.AST] = []
+
+    def visit(node: ast.AST, *, root_node: bool = False) -> None:
+        nodes.append(node)
+        if not root_node and isinstance(
+            node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef | ast.Lambda
+        ):
+            return
+        for child in ast.iter_child_nodes(node):
+            visit(child)
+
+    visit(root, root_node=True)
+    return tuple(nodes)
+
+
+def _analyzer_user_calls(body: list[ast.stmt], functions: set[str]) -> tuple[ast.Call, ...]:
+    return tuple(
+        node
+        for statement in body
+        for node in _analyzer_scope_nodes(statement)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in functions
+    )
+
+
+def _analyzer_direct_uncaught_call(call: ast.Call, body: list[ast.stmt]) -> bool:
+    owner = next((statement for statement in body if call in set(ast.walk(statement))), None)
+    if owner is None or any(
+        isinstance(node, ast.Try | ast.TryStar) and call in set(ast.walk(node))
+        for statement in body
+        for node in ast.walk(statement)
+    ):
+        return False
+    if isinstance(owner, ast.Expr) and owner.value is call:
+        return True
+    if isinstance(owner, ast.Assign) and owner.value is call:
+        return True
+    if (
+        isinstance(owner, ast.Return)
+        and owner.value is not None
+        and call in set(ast.walk(owner.value))
+    ):
+        return True
+    return bool(
+        isinstance(owner, ast.Expr)
+        and isinstance(owner.value, ast.Call)
+        and isinstance(owner.value.func, ast.Attribute)
+        and owner.value.func.attr == "write_text"
+        and owner.value.args
+        and call in set(ast.walk(owner.value.args[0]))
+    )
+
+
+def _analyzer_scope_binds_len(scope: ast.Module | ast.FunctionDef) -> bool:
+    """Conservatively enumerate every ordinary binding of ``len`` in one scope."""
+
+    if isinstance(scope, ast.FunctionDef):
+        arguments = scope.args
+        parameters = (*arguments.posonlyargs, *arguments.args, *arguments.kwonlyargs)
+        if (
+            any(item.arg == "len" for item in parameters)
+            or (arguments.vararg is not None and arguments.vararg.arg == "len")
+            or (arguments.kwarg is not None and arguments.kwarg.arg == "len")
+        ):
+            return True
+
+    class BindingVisitor(ast.NodeVisitor):
+        bound = False
+
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+            if node is scope:
+                for statement in node.body:
+                    self.visit(statement)
+            elif node.name == "len":
+                self.bound = True
+
+        def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+            if node.name == "len":
+                self.bound = True
+
+        def visit_ClassDef(self, node: ast.ClassDef) -> None:
+            if node.name == "len":
+                self.bound = True
+
+        def visit_Lambda(self, node: ast.Lambda) -> None:
+            return
+
+        def visit_Name(self, node: ast.Name) -> None:
+            if node.id == "len" and isinstance(node.ctx, ast.Store | ast.Del):
+                self.bound = True
+
+        def visit_alias(self, node: ast.alias) -> None:
+            if (node.asname or node.name.split(".", 1)[0]) == "len":
+                self.bound = True
+
+        def visit_Global(self, node: ast.Global) -> None:
+            if "len" in node.names:
+                self.bound = True
+
+        def visit_Nonlocal(self, node: ast.Nonlocal) -> None:
+            if "len" in node.names:
+                self.bound = True
+
+        def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+            if node.name == "len":
+                self.bound = True
+            self.generic_visit(node)
+
+        def visit_comprehension(self, node: ast.comprehension) -> None:
+            self.visit(node.target)
+            self.visit(node.iter)
+            for condition in node.ifs:
+                self.visit(condition)
+
+        def visit_MatchAs(self, node: ast.MatchAs) -> None:
+            if node.name == "len":
+                self.bound = True
+            self.generic_visit(node)
+
+        def visit_MatchStar(self, node: ast.MatchStar) -> None:
+            if node.name == "len":
+                self.bound = True
+
+        def visit_MatchMapping(self, node: ast.MatchMapping) -> None:
+            if node.rest == "len":
+                self.bound = True
+            self.generic_visit(node)
+
+    visitor = BindingVisitor()
+    if isinstance(scope, ast.Module):
+        for statement in scope.body:
+            visitor.visit(statement)
+    else:
+        visitor.visit(scope)
+    return visitor.bound
+
+
+def _analyzer_abort_only_guard_statement(statement: ast.stmt, *, allow_not_name: bool) -> bool:
+    if not (
+        isinstance(statement, ast.If)
+        and not statement.orelse
+        and len(statement.body) == 1
+        and isinstance(statement.body[0], ast.Raise)
+    ):
+        return False
+    raised = statement.body[0]
+    if raised.cause is not None or not isinstance(raised.exc, ast.Call):
+        return False
+    exception = raised.exc
+    if not (
+        isinstance(exception.func, ast.Name)
+        and exception.func.id in {"ValueError", "SystemExit"}
+        and len(exception.args) == 1
+        and not exception.keywords
+        and _analyzer_condition_names(statement.test, allow_not_name=allow_not_name) is not None
+    ):
+        return False
+    try:
+        _sink_expression_closed(statement.test, set(), set())
+        _sink_expression_closed(exception.args[0], set(), set())
+    except _Refusal:
+        return False
+    return True
+
+
+def _analyzer_condition_names(
+    expression: ast.expr, *, allow_not_name: bool
+) -> tuple[str, ...] | None:
+    if (
+        allow_not_name
+        and isinstance(expression, ast.UnaryOp)
+        and isinstance(expression.op, ast.Not)
+        and isinstance(expression.operand, ast.Name)
+        and isinstance(expression.operand.ctx, ast.Load)
+    ):
+        return (expression.operand.id,)
+    if isinstance(expression, ast.BoolOp) and isinstance(expression.op, ast.Or):
+        names: list[str] = []
+        for value in expression.values:
+            parsed = _analyzer_condition_names(value, allow_not_name=allow_not_name)
+            if parsed is None:
+                return None
+            names.extend(parsed)
+        return tuple(dict.fromkeys(names))
+    if not (
+        isinstance(expression, ast.Compare)
+        and len(expression.ops) == len(expression.comparators) == 1
+        and isinstance(expression.ops[0], ast.Lt | ast.NotEq)
+        and isinstance(expression.comparators[0], ast.Constant)
+        and type(expression.comparators[0].value) is int
+        and expression.comparators[0].value == 2
+        and isinstance(expression.left, ast.Call)
+        and isinstance(expression.left.func, ast.Name)
+        and expression.left.func.id == "len"
+        and len(expression.left.args) == 1
+        and not expression.left.keywords
+        and isinstance(expression.left.args[0], ast.Name)
+        and isinstance(expression.left.args[0].ctx, ast.Load)
+    ):
+        return None
+    return (expression.left.args[0].id,)
+
+
+def _analyzer_condition_uses_len(expression: ast.expr) -> bool:
+    return any(
+        isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "len"
+        for node in ast.walk(expression)
+    )
+
+
+def _collect_full_abort_only_guard_tokens(
+    body: list[ast.stmt],
+    *,
+    source_path: str,
+    rows_name: str,
+    group_name: str,
+    procedure_matches: tuple[_ProcedureMatch, ...],
+    operand_bindings: tuple[OperandGroupBinding, ...],
+    sink: ast.Call,
+    operand_names: frozenset[str],
+) -> tuple[AbortOnlyGuardToken, ...]:
+    raises = {
+        node for statement in body for node in ast.walk(statement) if isinstance(node, ast.Raise)
+    }
+    if not raises:
+        return ()
+    guards: list[ast.If] = [
+        cast(ast.If, statement)
+        for statement in body
+        if _analyzer_abort_only_guard_statement(statement, allow_not_name=False)
+    ]
+    guarded_raises = {cast(ast.Raise, guard.body[0]) for guard in guards}
+    if raises != guarded_raises or any(
+        not getattr(guard, "_dependence_v2_abort_only_source_closed", False) for guard in guards
+    ):
+        raise _Refusal("raise-guard-not-modeled")
+    procedure_indices = [body.index(item.statement) for item in procedure_matches]
+    sink_statement = next((item for item in body if sink in set(ast.walk(item))), None)
+    if not procedure_indices or sink_statement is None:
+        raise _Refusal("raise-guard-not-modeled")
+    terminal_index = min(*procedure_indices, body.index(sink_statement))
+
+    operand_role_names: dict[str, set[int]] = {}
+    for match in procedure_matches:
+        for position, argument in enumerate(match.call.args):
+            if isinstance(argument, ast.Name):
+                operand_role_names.setdefault(argument.id, set()).add(position)
+    if any(len(positions) != 1 for positions in operand_role_names.values()):
+        raise _Refusal("raise-guard-not-modeled")
+    binding_positions = {item.position for item in operand_bindings}
+    tokens: list[AbortOnlyGuardToken] = []
+    for ordinal, guard in enumerate(guards):
+        guard_index = body.index(guard)
+        if guard_index >= terminal_index:
+            raise _Refusal("raise-guard-not-modeled")
+        names = _analyzer_condition_names(guard.test, allow_not_name=False)
+        if names is None:
+            raise _Refusal("raise-guard-not-modeled")
+        roles: list[AbortOnlyGuardNameRole] = []
+        for name in names:
+            candidates: list[AbortOnlyGuardNameRole] = []
+            if name == rows_name:
+                candidates.append(AbortOnlyGuardNameRole(name, "row_sequence"))
+            if name == group_name:
+                candidates.append(AbortOnlyGuardNameRole(name, "group_container"))
+            for position in sorted(operand_role_names.get(name, ())):
+                if position in binding_positions:
+                    candidates.append(AbortOnlyGuardNameRole(name, "procedure_operand", position))
+            if (
+                len(candidates) != 1
+                or name not in operand_names
+                or not _analyzer_name_bound_before(body, name, guard_index)
+            ):
+                raise _Refusal("raise-guard-not-modeled")
+            roles.append(candidates[0])
+        raised = cast(ast.Raise, guard.body[0])
+        tokens.append(
+            AbortOnlyGuardToken(
+                source_path=source_path,
+                source_span=(
+                    getattr(guard, "lineno", 0),
+                    getattr(guard, "col_offset", 0),
+                    getattr(guard, "end_lineno", 0),
+                    getattr(guard, "end_col_offset", 0),
+                ),
+                lexical_scope=cast(str, getattr(guard, "_dependence_v2_lexical_scope", "module")),
+                call_path_id=cast(str, getattr(guard, "_dependence_v2_call_path_id", "module")),
+                guard_ordinal=ordinal,
+                condition_ast_digest=semantic_digest(
+                    {"syntax": ast.dump(guard.test, include_attributes=False)}
+                ),
+                raise_ast_digest=semantic_digest(
+                    {"syntax": ast.dump(raised, include_attributes=False)}
+                ),
+                name_roles=tuple(roles),
+            )
+        )
+    return tuple(tokens)
+
+
+def _analyzer_name_bound_before(body: list[ast.stmt], name: str, guard_index: int) -> bool:
+    return any(
+        isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store) and node.id == name
+        for statement in body[:guard_index]
+        for node in ast.walk(statement)
+    )
 
 
 def _independent_wall_scan(

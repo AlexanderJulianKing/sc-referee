@@ -9,20 +9,28 @@ import io
 import math
 import posixpath
 from collections import Counter
-from dataclasses import asdict, replace
+from dataclasses import asdict, dataclass, replace
 from typing import Any, Literal, cast
 
 from sc_referee.core.ids import semantic_digest, sha256_digest
 from sc_referee.dependence_recognition.ir import (
+    MAX_DEPENDENCE_CSV_DOMAIN_BYTES,
+    MAX_DEPENDENCE_CSV_DOMAIN_FIELD_BYTES,
+    MAX_DEPENDENCE_CSV_DOMAIN_FIELDS,
+    MAX_DEPENDENCE_CSV_DOMAIN_ROWS,
     MAX_V1_MEMBERSHIPS,
+    SPLITLINES_ONLY_SEPARATORS,
     HumanMethodAuthorization,
     RecordRef,
 )
 from sc_referee.dependence_recognition_v2.ir import (
     DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS,
     MAX_V2_AST_NODES,
+    MAX_V2_GROUPS,
     MAX_V2_INLINE_DEPTH,
     MAX_V2_SOURCE_BYTES,
+    AbortOnlyGuardNameRole,
+    AbortOnlyGuardToken,
     AuthorizedProcedureSet,
     CountDependenceCertificate,
     CountGroupDomainObligation,
@@ -30,7 +38,9 @@ from sc_referee.dependence_recognition_v2.ir import (
     CountPredicateAtom,
     CountProcedureFact,
     DependenceGrowthCertificate,
+    GroupValueSequence,
     GroupValueSequenceFact,
+    GroupValueSequenceObligation,
     PairedDependenceCertificate,
     PairedObservation,
     PairedValueSequenceFact,
@@ -59,16 +69,30 @@ _DISTRIBUTION_HELPER_METHODS = frozenset(
 assert not (_GROUP_BASE_PROCEDURES | _COUNT_PROCEDURES) & _DISTRIBUTION_HELPER_METHODS
 
 
+@dataclass(frozen=True)
+class _KernelGuardReplay:
+    token: AbortOnlyGuardToken
+    condition: ast.expr
+
+
+@dataclass(frozen=True)
+class _KernelSourceReplay:
+    body: tuple[ast.stmt, ...]
+    operand_names: frozenset[str]
+    guards: tuple[_KernelGuardReplay, ...]
+
+
 def verify_dependence_growth_certificate(
     certificate: DependenceGrowthCertificate,
     *,
     trusted_group_facts: tuple[GroupValueSequenceFact, ...],
+    trusted_material_inputs: tuple[FrozenMaterialInput, ...],
     trusted_authorizations: tuple[HumanMethodAuthorization, ...],
     trusted_procedure_sets: tuple[AuthorizedProcedureSet, ...] = (),
     source_bytes: bytes,
     _failure_reasons: list[str] | None = None,
 ) -> VerifiedDependenceGrowthCertificate | None:
-    """Discharge every equation from source bytes and one trusted fact."""
+    """Discharge every equation from source bytes and one trusted material replay."""
 
     def refuse(obligation: str) -> VerifiedDependenceGrowthCertificate | None:
         if obligation not in DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS:
@@ -79,7 +103,9 @@ def verify_dependence_growth_certificate(
 
     if (
         len(trusted_group_facts) != 1
+        or len(trusted_material_inputs) != 1
         or len(trusted_authorizations) != 1
+        or not isinstance(trusted_material_inputs[0], FrozenMaterialInput)
         or sha256_digest(source_bytes) != certificate.source_digest
         or certificate.source_extent != (0, len(source_bytes))
         or not certificate.resolved_callables
@@ -90,7 +116,8 @@ def verify_dependence_growth_certificate(
         or not certificate.independent_unit_definition_id
     ):
         return refuse("envelope-binding")
-    fact = trusted_group_facts[0]
+    supplied_fact = trusted_group_facts[0]
+    material = trusted_material_inputs[0]
     authority = trusted_authorizations[0]
     obligation = certificate.obligation
     if (
@@ -119,6 +146,10 @@ def verify_dependence_growth_certificate(
         return refuse("authority-binding")
     if any(item not in _ROW_INDEPENDENT_VARIANTS for item in certificate.resolved_callables):
         return refuse("procedure-set-homogeneity")
+    replayed_fact = _kernel_replay_group_fact(material, obligation)
+    if replayed_fact is None or supplied_fact != replayed_fact:
+        return refuse("fact-closure")
+    fact = replayed_fact
     if (
         fact.evidence_id != f"dependence-growth-group-proof:{semantic_digest(asdict(obligation))}"
         or fact.row_count <= 0
@@ -148,16 +179,25 @@ def verify_dependence_growth_certificate(
         return refuse("fact-closure")
     try:
         tree = ast.parse(source_bytes.decode("utf-8", errors="strict"))
-    except (SyntaxError, UnicodeDecodeError, ValueError, RecursionError):
+        compile(tree, certificate.source_path, "exec")
+    except (SyntaxError, UnicodeDecodeError, ValueError, TypeError, RecursionError):
         return refuse("source-parse")
-    if sum(1 for _ in ast.walk(tree)) > MAX_V2_AST_NODES:
+    if len(source_bytes) > MAX_V2_SOURCE_BYTES or sum(1 for _ in ast.walk(tree)) > MAX_V2_AST_NODES:
         return refuse("source-size")
     tree = _kernel_without_docstrings(tree)
+    if _kernel_abort_only_raise_wall(tree):
+        return refuse("source-semantic-replay")
     if not _kernel_replay_function_bookkeeping(tree, certificate):
         return refuse("rename-injectivity")
-    if not _kernel_replay_source_claims(tree, certificate, fact):
+    source_replay = _kernel_replay_source_claims(tree, certificate, fact)
+    if source_replay is None:
         return refuse("source-semantic-replay")
-    if not _kernel_sink_partition_matches(tree, certificate):
+    if not _kernel_sink_partition_matches(
+        tree,
+        certificate,
+        precomputed_partition=(list(source_replay.body), set(source_replay.operand_names)),
+        abort_only_guards=tuple(item.token for item in source_replay.guards),
+    ):
         return refuse("sink-partition")
 
     groups = {item.group_key: item for item in fact.groups}
@@ -204,6 +244,15 @@ def verify_dependence_growth_certificate(
             unit_operand_memberships.setdefault(unit, set()).add(binding.position)
     if any(len(positions) > 1 for positions in unit_operand_memberships.values()):
         return refuse("operand-disjointness")
+    guard_truths = [
+        _kernel_abort_only_guard_truth(item, fact, bindings) for item in source_replay.guards
+    ]
+    if any(item is None for item in guard_truths):
+        return refuse("source-semantic-replay")
+    if any(item is True for item in guard_truths):
+        if _failure_reasons is not None:
+            _failure_reasons.append("sink-controls-operand-flow")
+        return None
     conclusion = "repeated_units" if repeated else "one_observation_per_unit"
     if certificate.conclusion != conclusion:
         return refuse("conclusion-equation")
@@ -226,7 +275,7 @@ def verify_dependence_growth_certificate(
     if not _kernel_replay_function_bookkeeping(tree, certificate):
         return refuse("dead-construct-completeness")
 
-    expected_id = f"dependence-growth-certificate:{semantic_digest({'source_digest': certificate.source_digest, 'fact': fact.evidence_id, 'bindings': [asdict(item) for item in bindings], 'conclusion': conclusion})}"
+    expected_id = f"dependence-growth-certificate:{semantic_digest({'source_digest': certificate.source_digest, 'fact': fact.evidence_id, 'bindings': [asdict(item) for item in bindings], 'abort_only_guard_tokens': [asdict(item) for item in certificate.abort_only_guard_tokens], 'conclusion': conclusion})}"
     if certificate.certificate_id != expected_id:
         return refuse("certificate-identity")
     return VerifiedDependenceGrowthCertificate(
@@ -242,7 +291,155 @@ def verify_dependence_growth_certificate(
         operand_slice_statement_tokens=certificate.operand_slice_statement_tokens,
         sink_bound_statement_tokens=certificate.sink_bound_statement_tokens,
         dead_syntactic_construct_tokens=certificate.dead_syntactic_construct_tokens,
+        abort_only_guard_tokens=certificate.abort_only_guard_tokens,
     )
+
+
+def _kernel_replay_group_fact(
+    material: FrozenMaterialInput,
+    obligation: GroupValueSequenceObligation,
+) -> GroupValueSequenceFact | None:
+    """Reconstruct the complete ordinary group fact inside the certificate kernel."""
+
+    if (
+        material.path != obligation.path
+        or material.content_digest != obligation.content_digest
+        or sha256_digest(material.content) != obligation.content_digest
+        or not obligation.path.lower().endswith(".csv")
+        or len(material.content) > MAX_DEPENDENCE_CSV_DOMAIN_BYTES
+        or obligation.line_model not in {"splitlines", "csv_newline"}
+        or obligation.encoding not in {"utf-8", "ascii"}
+        or not obligation.authorized_unit_column
+        or obligation.group_key_column == obligation.value_column
+        or obligation.group_key_column == obligation.authorized_unit_column
+    ):
+        return None
+    ascii_proven = material.content.isascii()
+    try:
+        text = material.content.decode("utf-8", errors="strict")
+    except UnicodeDecodeError:
+        return None
+    if text.startswith("\ufeff") or (obligation.encoding == "ascii" and not ascii_proven):
+        return None
+    if obligation.line_model == "splitlines":
+        if any(separator in text for separator in SPLITLINES_ONLY_SEPARATORS):
+            return None
+        reader = csv.DictReader(text.splitlines())
+    else:
+        reader = csv.DictReader(io.StringIO(text, newline=""))
+    try:
+        header = tuple(reader.fieldnames or ())
+        required = {
+            obligation.authorized_unit_column,
+            obligation.group_key_column,
+            obligation.value_column,
+        }
+        if (
+            not header
+            or len(header) > MAX_DEPENDENCE_CSV_DOMAIN_FIELDS
+            or len(header) != len(set(header))
+            or not required <= set(header)
+            or any(
+                not item or len(item.encode("utf-8")) > MAX_DEPENDENCE_CSV_DOMAIN_FIELD_BYTES
+                for item in header
+            )
+        ):
+            return None
+        rows: list[dict[str, str]] = []
+        for row_index, row in enumerate(reader, start=1):
+            if row_index > MAX_DEPENDENCE_CSV_DOMAIN_ROWS or None in row:
+                return None
+            values = tuple(row.get(column) for column in header)
+            if any(value is None or not isinstance(value, str) for value in values):
+                return None
+            fields = tuple(value for value in values if isinstance(value, str))
+            if len(fields) != len(header) or any(
+                len(value.encode("utf-8")) > MAX_DEPENDENCE_CSV_DOMAIN_FIELD_BYTES
+                for value in fields
+            ):
+                return None
+            rows.append({column: cast(str, row[column]) for column in header})
+    except (csv.Error, UnicodeError, ValueError, OverflowError):
+        return None
+    if not rows or len(rows) > MAX_V1_MEMBERSHIPS:
+        return None
+
+    grouped: dict[str, list[tuple[int, str, str, str, str]]] = {}
+    distinct_units: set[str] = set()
+    for index, row in enumerate(rows, start=1):
+        group = row[obligation.group_key_column]
+        value = row[obligation.value_column]
+        unit = row[obligation.authorized_unit_column]
+        if not group or not unit or not value:
+            return None
+        distinct_units.add(unit)
+        if len(distinct_units) > 5_000:
+            return None
+        try:
+            converted = _kernel_group_cast(value, obligation.cast_kind)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        grouped.setdefault(group, []).append(
+            (
+                index,
+                f"observation:{semantic_digest({'path': obligation.path, 'digest': obligation.content_digest, 'row': index})}",
+                f"unit-key:{semantic_digest({'column': obligation.authorized_unit_column, 'value': unit})}",
+                value,
+                repr(converted),
+            )
+        )
+        if len(grouped) > MAX_V2_GROUPS:
+            return None
+    observed_keys = set(grouped)
+    if obligation.predeclared_bucket_keys and not observed_keys <= set(
+        obligation.predeclared_bucket_keys
+    ):
+        return None
+    if obligation.predeclared_bucket_keys and observed_keys != set(
+        obligation.predeclared_bucket_keys
+    ):
+        return None
+    groups = tuple(
+        GroupValueSequence(
+            group_key=group_key,
+            row_indices=tuple(item[0] for item in grouped[group_key]),
+            observation_ids=tuple(item[1] for item in grouped[group_key]),
+            authorized_unit_ids=tuple(item[2] for item in grouped[group_key]),
+            source_values=tuple(item[3] for item in grouped[group_key]),
+            cast_value_reprs=tuple(item[4] for item in grouped[group_key]),
+        )
+        for group_key in sorted(grouped)
+    )
+    return GroupValueSequenceFact(
+        evidence_id=f"dependence-growth-group-proof:{semantic_digest(asdict(obligation))}",
+        path=obligation.path,
+        content_digest=obligation.content_digest,
+        file_ref=RecordRef(material.file_ref.record_type, material.file_ref.record_id),
+        asset_identity_ref=RecordRef(
+            material.asset_identity_ref.record_type,
+            material.asset_identity_ref.record_id,
+        ),
+        line_model=obligation.line_model,
+        reader_form=obligation.reader_form,
+        encoding=obligation.encoding,
+        ascii_bytes_proven=ascii_proven,
+        header=header,
+        authorized_unit_column=obligation.authorized_unit_column,
+        group_key_column=obligation.group_key_column,
+        value_column=obligation.value_column,
+        cast_kind=obligation.cast_kind,
+        row_count=len(rows),
+        groups=groups,
+        predeclared_bucket_keys=obligation.predeclared_bucket_keys,
+    )
+
+
+def _kernel_group_cast(value: str, kind: str) -> float | int:
+    if kind == "float":
+        return float(value)
+    if kind == "int":
+        return int(value)
+    raise ValueError("unsupported ordinary group cast")
 
 
 def verify_paired_dependence_certificate(
@@ -1635,54 +1832,54 @@ def _kernel_replay_source_claims(
     tree: ast.Module,
     certificate: DependenceGrowthCertificate,
     fact: GroupValueSequenceFact,
-) -> bool:
+) -> _KernelSourceReplay | None:
     """Independently replay the bounded grouping, binding, reader, and sink shapes."""
 
     all_constants = _kernel_constants(tree)
     if not _kernel_module_collection_uses_closed(tree, all_constants):
-        return False
+        return None
     constants = {name: value for name, value in all_constants.items() if isinstance(value, str)}
     if not _kernel_import_forms_closed(tree) or not _kernel_typing_uses_closed(tree):
-        return False
+        return None
     imports = _kernel_imports(tree)
     partition = _kernel_partition_body(tree, certificate)
     if partition is None:
-        return False
-    flattened, _operand_names = partition
-    tree = ast.Module(body=flattened, type_ignores=[])
-    if not _kernel_live_syntax_closed(tree, certificate, fact):
-        return False
+        return None
+    flattened, operand_names = partition
+    flattened_tree = ast.Module(body=flattened, type_ignores=[])
+    if not _kernel_live_syntax_closed(flattened_tree, certificate, fact):
+        return None
     appends = [
         node
-        for node in ast.walk(tree)
+        for node in ast.walk(flattened_tree)
         if isinstance(node, ast.Call)
         and isinstance(node.func, ast.Attribute)
         and node.func.attr == "append"
     ]
     if len(appends) != 1 or len(appends[0].args) != 1 or appends[0].keywords:
-        return False
+        return None
     append = appends[0]
     loop = next(
         (
             parent
-            for parent in ast.walk(tree)
+            for parent in ast.walk(flattened_tree)
             if isinstance(parent, ast.For) and append in set(ast.walk(parent))
         ),
         None,
     )
     if loop is None or not isinstance(loop.target, ast.Name):
-        return False
+        return None
     if (
         loop.orelse
         or len(loop.body) != 1
         or not isinstance(loop.body[0], ast.Expr)
         or loop.body[0].value is not append
     ):
-        return False
+        return None
     row_name = loop.target.id
     value = _kernel_row_value(append.args[0], row_name)
     if not isinstance(append.func, ast.Attribute):
-        return False
+        return None
     receiver = append.func.value
     group_name: str | None = None
     key_column: str | None = None
@@ -1703,22 +1900,22 @@ def _kernel_replay_source_claims(
         key_column = _kernel_row_column(receiver.slice, row_name)
     if group_name is None or (
         value != (fact.value_column, fact.cast_kind)
-        or _kernel_renamed_name(tree, certificate, append, group_name)
+        or _kernel_renamed_name(flattened_tree, certificate, append, group_name)
         != certificate.group_container_name
         or key_column != fact.group_key_column
     ):
-        return False
+        return None
     declarations = [
         node.value
-        for node in ast.walk(tree)
+        for node in ast.walk(flattened_tree)
         if isinstance(node, ast.Assign)
         and len(node.targets) == 1
         and isinstance(node.targets[0], ast.Name)
-        and _kernel_renamed_name(tree, certificate, node, node.targets[0].id)
+        and _kernel_renamed_name(flattened_tree, certificate, node, node.targets[0].id)
         == certificate.group_container_name
     ]
     if len(declarations) != 1:
-        return False
+        return None
     declared_kind = (
         "defaultdict_list"
         if isinstance(declarations[0], ast.Call)
@@ -1740,19 +1937,19 @@ def _kernel_replay_source_claims(
         else None
     )
     if declared_kind != certificate.group_container_kind:
-        return False
+        return None
 
-    census = _kernel_group_census(tree.body, imports, certificate)
+    census = _kernel_group_census(flattened_tree.body, imports, certificate)
     if census is None:
-        return False
+        return None
     procedure_assignments, _helpers = census
-    aliases = _kernel_group_aliases(tree, group_name, constants, fact)
+    aliases = _kernel_group_aliases(flattened_tree, group_name, constants, fact)
     expected_keys = tuple(item.group_key for item in certificate.operand_bindings)
     expected_shapes: tuple[str, ...] | None = None
     for procedure_assignment in procedure_assignments:
         call = cast(ast.Call, procedure_assignment.value)
         if len(call.args) != len(certificate.operand_bindings):
-            return False
+            return None
         replayed_keys: list[str] = []
         shapes: list[str] = []
         for argument in call.args:
@@ -1760,29 +1957,471 @@ def _kernel_replay_source_claims(
             if isinstance(argument, ast.Name):
                 key = aliases.get(argument.id, key)
             if key is None:
-                return False
+                return None
             replayed_keys.append(key)
             shapes.append(ast.dump(argument, include_attributes=False))
         if tuple(replayed_keys) != expected_keys:
-            return False
+            return None
         if expected_shapes is None:
             expected_shapes = tuple(shapes)
         elif tuple(shapes) != expected_shapes:
-            return False
+            return None
 
     writes = [
         node
-        for node in ast.walk(tree)
+        for node in ast.walk(flattened_tree)
         if isinstance(node, ast.Call)
         and isinstance(node.func, ast.Attribute)
         and node.func.attr == "write_text"
     ]
     if len(writes) != 1:
-        return False
+        return None
     write = writes[0]
     if len(write.args) != 1:
+        return None
+    reader_claim = _kernel_reader_claim(flattened_tree, constants)
+    if (
+        reader_claim is None
+        or reader_claim[1:]
+        != (
+            fact.path,
+            fact.encoding,
+            fact.line_model,
+            fact.reader_form,
+        )
+        or not isinstance(loop.iter, ast.Name)
+        or loop.iter.id != reader_claim[0]
+    ):
+        return None
+    guards = _kernel_collect_full_abort_only_guards(
+        source_tree=tree,
+        body=flattened_tree.body,
+        certificate=certificate,
+        rows_name=reader_claim[0],
+        group_name=group_name,
+        procedure_assignments=procedure_assignments,
+        operand_names=operand_names,
+        sink=write,
+    )
+    if guards is None:
+        return None
+    return _KernelSourceReplay(tuple(flattened_tree.body), frozenset(operand_names), guards)
+
+
+def _kernel_collect_full_abort_only_guards(
+    *,
+    source_tree: ast.Module,
+    body: list[ast.stmt],
+    certificate: DependenceGrowthCertificate,
+    rows_name: str,
+    group_name: str,
+    procedure_assignments: tuple[ast.Assign, ...],
+    operand_names: set[str],
+    sink: ast.Call,
+) -> tuple[_KernelGuardReplay, ...] | None:
+    if _kernel_abort_only_raise_wall(source_tree):
+        return None
+    raises = {
+        node for statement in body for node in ast.walk(statement) if isinstance(node, ast.Raise)
+    }
+    guards: list[ast.If] = [
+        cast(ast.If, statement)
+        for statement in body
+        if _kernel_abort_only_guard_statement(statement, allow_not_name=False)
+    ]
+    if raises != {cast(ast.Raise, guard.body[0]) for guard in guards}:
+        return None
+    if not guards:
+        return () if not certificate.abort_only_guard_tokens else None
+    procedure_indices = [body.index(item) for item in procedure_assignments]
+    sink_statement = next((item for item in body if sink in set(ast.walk(item))), None)
+    if not procedure_indices or sink_statement is None:
+        return None
+    terminal_index = min(*procedure_indices, body.index(sink_statement))
+    operand_role_names: dict[str, set[int]] = {}
+    for procedure in procedure_assignments:
+        call = cast(ast.Call, procedure.value)
+        for position, argument in enumerate(call.args):
+            if isinstance(argument, ast.Name):
+                operand_role_names.setdefault(argument.id, set()).add(position)
+    if any(len(positions) != 1 for positions in operand_role_names.values()):
+        return None
+    binding_positions = {item.position for item in certificate.operand_bindings}
+    replayed: list[_KernelGuardReplay] = []
+    for ordinal, guard in enumerate(guards):
+        guard_index = body.index(guard)
+        names = _kernel_abort_condition_names(guard.test, allow_not_name=False)
+        if guard_index >= terminal_index or names is None:
+            return None
+        roles: list[AbortOnlyGuardNameRole] = []
+        for name in names:
+            candidates: list[AbortOnlyGuardNameRole] = []
+            if name == rows_name:
+                candidates.append(AbortOnlyGuardNameRole(name, "row_sequence"))
+            if name == group_name:
+                candidates.append(AbortOnlyGuardNameRole(name, "group_container"))
+            for position in sorted(operand_role_names.get(name, ())):
+                if position in binding_positions:
+                    candidates.append(AbortOnlyGuardNameRole(name, "procedure_operand", position))
+            if (
+                len(candidates) != 1
+                or name not in operand_names
+                or not _kernel_name_bound_before(body, name, guard_index)
+            ):
+                return None
+            roles.append(candidates[0])
+        raised = cast(ast.Raise, guard.body[0])
+        token = AbortOnlyGuardToken(
+            source_path=certificate.source_path,
+            source_span=(
+                getattr(guard, "lineno", 0),
+                getattr(guard, "col_offset", 0),
+                getattr(guard, "end_lineno", 0),
+                getattr(guard, "end_col_offset", 0),
+            ),
+            lexical_scope=cast(str, getattr(guard, "_dependence_v2_lexical_scope", "module")),
+            call_path_id=cast(str, getattr(guard, "_dependence_v2_call_path_id", "module")),
+            guard_ordinal=ordinal,
+            condition_ast_digest=semantic_digest(
+                {"syntax": ast.dump(guard.test, include_attributes=False)}
+            ),
+            raise_ast_digest=semantic_digest(
+                {"syntax": ast.dump(raised, include_attributes=False)}
+            ),
+            name_roles=tuple(roles),
+        )
+        replayed.append(_KernelGuardReplay(token, guard.test))
+    tokens = tuple(item.token for item in replayed)
+    return tuple(replayed) if tokens == certificate.abort_only_guard_tokens else None
+
+
+def _kernel_abort_only_raise_wall(tree: ast.Module) -> bool:
+    functions = {item.name: item for item in tree.body if isinstance(item, ast.FunctionDef)}
+    module_body = _kernel_live_main_body(tree.body)
+    module_executable = [item for item in module_body if not isinstance(item, ast.FunctionDef)]
+    module_binds_len = _kernel_scope_binds_len(tree)
+    path_states: dict[str, set[bool]] = {name: set() for name in functions}
+    pending: list[tuple[str, bool]] = []
+    for call in _kernel_user_calls(module_executable, set(functions)):
+        assert isinstance(call.func, ast.Name)
+        pending.append((call.func.id, not _kernel_direct_uncaught_call(call, module_executable)))
+    while pending:
+        name, obstructed = pending.pop()
+        if obstructed in path_states[name]:
+            continue
+        path_states[name].add(obstructed)
+        function = functions[name]
+        for call in _kernel_user_calls(function.body, set(functions)):
+            assert isinstance(call.func, ast.Name)
+            pending.append(
+                (
+                    call.func.id,
+                    obstructed or not _kernel_direct_uncaught_call(call, function.body),
+                )
+            )
+
+    reachable_raises: set[ast.Raise] = set()
+    candidates: list[tuple[ast.If, ast.Module | ast.FunctionDef, bool]] = []
+    for statement in module_executable:
+        reachable_raises.update(
+            node for node in _kernel_scope_nodes(statement) if isinstance(node, ast.Raise)
+        )
+        if isinstance(statement, ast.If):
+            candidates.append((statement, tree, False))
+    for name, states in path_states.items():
+        if not states:
+            continue
+        function = functions[name]
+        reachable_raises.update(
+            node for node in _kernel_scope_nodes(function) if isinstance(node, ast.Raise)
+        )
+        for statement in function.body:
+            if isinstance(statement, ast.If):
+                candidates.append((statement, function, True in states))
+    supported: set[ast.Raise] = set()
+    for guard, scope, obstructed in candidates:
+        if obstructed or not _kernel_abort_only_guard_statement(guard, allow_not_name=True):
+            continue
+        if _kernel_condition_uses_len(guard.test) and (
+            module_binds_len
+            or (isinstance(scope, ast.FunctionDef) and _kernel_scope_binds_len(scope))
+        ):
+            continue
+        supported.add(cast(ast.Raise, guard.body[0]))
+    return supported != reachable_raises
+
+
+def _kernel_live_main_body(body: list[ast.stmt]) -> list[ast.stmt]:
+    result: list[ast.stmt] = []
+    for statement in body:
+        if isinstance(statement, ast.If) and _kernel_main_guard(statement):
+            result.extend(statement.body)
+        elif (
+            isinstance(statement, ast.If)
+            and isinstance(statement.test, ast.Constant)
+            and not statement.test.value
+        ):
+            continue
+        else:
+            result.append(statement)
+    return result
+
+
+def _kernel_scope_nodes(root: ast.AST) -> tuple[ast.AST, ...]:
+    nodes: list[ast.AST] = []
+
+    def visit(node: ast.AST, *, root_node: bool = False) -> None:
+        nodes.append(node)
+        if not root_node and isinstance(
+            node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef | ast.Lambda
+        ):
+            return
+        for child in ast.iter_child_nodes(node):
+            visit(child)
+
+    visit(root, root_node=True)
+    return tuple(nodes)
+
+
+def _kernel_user_calls(body: list[ast.stmt], functions: set[str]) -> tuple[ast.Call, ...]:
+    return tuple(
+        node
+        for statement in body
+        for node in _kernel_scope_nodes(statement)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in functions
+    )
+
+
+def _kernel_direct_uncaught_call(call: ast.Call, body: list[ast.stmt]) -> bool:
+    owner = next((statement for statement in body if call in set(ast.walk(statement))), None)
+    if owner is None or any(
+        isinstance(node, ast.Try | ast.TryStar) and call in set(ast.walk(node))
+        for statement in body
+        for node in ast.walk(statement)
+    ):
         return False
-    return _kernel_reader_matches(tree, fact, constants)
+    if isinstance(owner, ast.Expr) and owner.value is call:
+        return True
+    if isinstance(owner, ast.Assign) and owner.value is call:
+        return True
+    if (
+        isinstance(owner, ast.Return)
+        and owner.value is not None
+        and call in set(ast.walk(owner.value))
+    ):
+        return True
+    return bool(
+        isinstance(owner, ast.Expr)
+        and isinstance(owner.value, ast.Call)
+        and isinstance(owner.value.func, ast.Attribute)
+        and owner.value.func.attr == "write_text"
+        and owner.value.args
+        and call in set(ast.walk(owner.value.args[0]))
+    )
+
+
+def _kernel_scope_binds_len(scope: ast.Module | ast.FunctionDef) -> bool:
+    if isinstance(scope, ast.FunctionDef):
+        arguments = scope.args
+        parameters = (*arguments.posonlyargs, *arguments.args, *arguments.kwonlyargs)
+        if (
+            any(item.arg == "len" for item in parameters)
+            or (arguments.vararg is not None and arguments.vararg.arg == "len")
+            or (arguments.kwarg is not None and arguments.kwarg.arg == "len")
+        ):
+            return True
+
+    class KernelBindingVisitor(ast.NodeVisitor):
+        bound = False
+
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+            if node is scope:
+                for statement in node.body:
+                    self.visit(statement)
+            elif node.name == "len":
+                self.bound = True
+
+        def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+            if node.name == "len":
+                self.bound = True
+
+        def visit_ClassDef(self, node: ast.ClassDef) -> None:
+            if node.name == "len":
+                self.bound = True
+
+        def visit_Lambda(self, node: ast.Lambda) -> None:
+            return
+
+        def visit_Name(self, node: ast.Name) -> None:
+            if node.id == "len" and isinstance(node.ctx, ast.Store | ast.Del):
+                self.bound = True
+
+        def visit_alias(self, node: ast.alias) -> None:
+            if (node.asname or node.name.split(".", 1)[0]) == "len":
+                self.bound = True
+
+        def visit_Global(self, node: ast.Global) -> None:
+            if "len" in node.names:
+                self.bound = True
+
+        def visit_Nonlocal(self, node: ast.Nonlocal) -> None:
+            if "len" in node.names:
+                self.bound = True
+
+        def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+            if node.name == "len":
+                self.bound = True
+            self.generic_visit(node)
+
+        def visit_comprehension(self, node: ast.comprehension) -> None:
+            self.visit(node.target)
+            self.visit(node.iter)
+            for condition in node.ifs:
+                self.visit(condition)
+
+        def visit_MatchAs(self, node: ast.MatchAs) -> None:
+            if node.name == "len":
+                self.bound = True
+            self.generic_visit(node)
+
+        def visit_MatchStar(self, node: ast.MatchStar) -> None:
+            if node.name == "len":
+                self.bound = True
+
+        def visit_MatchMapping(self, node: ast.MatchMapping) -> None:
+            if node.rest == "len":
+                self.bound = True
+            self.generic_visit(node)
+
+    visitor = KernelBindingVisitor()
+    if isinstance(scope, ast.Module):
+        for statement in scope.body:
+            visitor.visit(statement)
+    else:
+        visitor.visit(scope)
+    return visitor.bound
+
+
+def _kernel_abort_only_guard_statement(statement: ast.stmt, *, allow_not_name: bool) -> bool:
+    if not (
+        isinstance(statement, ast.If)
+        and not statement.orelse
+        and len(statement.body) == 1
+        and isinstance(statement.body[0], ast.Raise)
+    ):
+        return False
+    raised = statement.body[0]
+    if raised.cause is not None or not isinstance(raised.exc, ast.Call):
+        return False
+    exception = raised.exc
+    return bool(
+        isinstance(exception.func, ast.Name)
+        and exception.func.id in {"ValueError", "SystemExit"}
+        and len(exception.args) == 1
+        and not exception.keywords
+        and _kernel_abort_condition_names(statement.test, allow_not_name=allow_not_name) is not None
+        and _kernel_sink_expression_closed(statement.test, set(), set())
+        and _kernel_sink_expression_closed(exception.args[0], set(), set())
+    )
+
+
+def _kernel_abort_condition_names(
+    expression: ast.expr, *, allow_not_name: bool
+) -> tuple[str, ...] | None:
+    if (
+        allow_not_name
+        and isinstance(expression, ast.UnaryOp)
+        and isinstance(expression.op, ast.Not)
+        and isinstance(expression.operand, ast.Name)
+        and isinstance(expression.operand.ctx, ast.Load)
+    ):
+        return (expression.operand.id,)
+    if isinstance(expression, ast.BoolOp) and isinstance(expression.op, ast.Or):
+        names: list[str] = []
+        for value in expression.values:
+            parsed = _kernel_abort_condition_names(value, allow_not_name=allow_not_name)
+            if parsed is None:
+                return None
+            names.extend(parsed)
+        return tuple(dict.fromkeys(names))
+    if not (
+        isinstance(expression, ast.Compare)
+        and len(expression.ops) == len(expression.comparators) == 1
+        and isinstance(expression.ops[0], ast.Lt | ast.NotEq)
+        and isinstance(expression.comparators[0], ast.Constant)
+        and type(expression.comparators[0].value) is int
+        and expression.comparators[0].value == 2
+        and isinstance(expression.left, ast.Call)
+        and isinstance(expression.left.func, ast.Name)
+        and expression.left.func.id == "len"
+        and len(expression.left.args) == 1
+        and not expression.left.keywords
+        and isinstance(expression.left.args[0], ast.Name)
+        and isinstance(expression.left.args[0].ctx, ast.Load)
+    ):
+        return None
+    return (expression.left.args[0].id,)
+
+
+def _kernel_condition_uses_len(expression: ast.expr) -> bool:
+    return any(
+        isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "len"
+        for node in ast.walk(expression)
+    )
+
+
+def _kernel_name_bound_before(body: list[ast.stmt], name: str, guard_index: int) -> bool:
+    return any(
+        isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store) and node.id == name
+        for statement in body[:guard_index]
+        for node in ast.walk(statement)
+    )
+
+
+def _kernel_abort_only_guard_truth(
+    guard: _KernelGuardReplay,
+    fact: GroupValueSequenceFact,
+    bindings: tuple[Any, ...],
+) -> bool | None:
+    groups = {item.group_key: item for item in fact.groups}
+    binding_by_position = {item.position: item for item in bindings}
+    roles = {item.name: item for item in guard.token.name_roles}
+
+    def cardinality(name: str) -> int | None:
+        role = roles.get(name)
+        if role is None:
+            return None
+        if role.role_kind == "row_sequence":
+            return fact.row_count
+        if role.role_kind == "group_container":
+            return len(fact.groups)
+        if role.role_kind != "procedure_operand" or role.operand_position is None:
+            return None
+        binding = binding_by_position.get(role.operand_position)
+        sequence = groups.get(binding.group_key) if binding is not None else None
+        return len(sequence.row_indices) if sequence is not None else None
+
+    def evaluate(expression: ast.expr) -> bool | None:
+        if isinstance(expression, ast.BoolOp) and isinstance(expression.op, ast.Or):
+            values = [evaluate(value) for value in expression.values]
+            if any(value is None for value in values):
+                return None
+            return any(value is True for value in values)
+        names = _kernel_abort_condition_names(expression, allow_not_name=False)
+        if names is None or len(names) != 1 or not isinstance(expression, ast.Compare):
+            return None
+        length = cardinality(names[0])
+        if length is None:
+            return None
+        if isinstance(expression.ops[0], ast.Lt):
+            return length < 2
+        if isinstance(expression.ops[0], ast.NotEq):
+            return length != 2
+        return None
+
+    return evaluate(guard.condition)
 
 
 def _kernel_renamed_name(
@@ -2493,7 +3132,6 @@ def _kernel_live_syntax_closed(
             | ast.SetComp
             | ast.DictComp
             | ast.GeneratorExp
-            | ast.Raise
             | ast.Assert
             | ast.Yield
             | ast.YieldFrom
@@ -2799,30 +3437,135 @@ def _kernel_group_aliases(
     return aliases
 
 
-def _kernel_reader_matches(
-    tree: ast.Module, fact: GroupValueSequenceFact, constants: dict[str, str]
-) -> bool:
-    encodings: list[str] = []
-    paths: list[str] = []
+def _kernel_reader_claim(
+    tree: ast.Module, constants: dict[str, str]
+) -> tuple[str, str, str, str, str] | None:
+    """Independently replay the complete reader obligation from flattened source."""
+
+    def encoding(expression: ast.expr | None) -> str | None:
+        if isinstance(expression, ast.Constant) and expression.value in {"utf-8", "UTF-8"}:
+            return "utf-8"
+        if isinstance(expression, ast.Constant) and expression.value == "ascii":
+            return "ascii"
+        return None
+
+    handles: dict[str, tuple[str, str]] = {}
     for node in ast.walk(tree):
-        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+        if not isinstance(node, ast.With):
             continue
-        if node.func.attr not in {"open", "read_text"}:
+        for item in node.items:
+            call = item.context_expr
+            if not (
+                isinstance(item.optional_vars, ast.Name)
+                and isinstance(call, ast.Call)
+                and isinstance(call.func, ast.Attribute)
+                and call.func.attr == "open"
+                and not call.args
+            ):
+                continue
+            keywords = {part.arg: part.value for part in call.keywords if part.arg is not None}
+            path = _kernel_path_value(call.func.value, cast(dict[str, object], constants))
+            opened_encoding = encoding(keywords.get("encoding"))
+            if (
+                set(keywords) == {"newline", "encoding"}
+                and isinstance(keywords["newline"], ast.Constant)
+                and keywords["newline"].value == ""
+                and path is not None
+                and opened_encoding is not None
+            ):
+                handles[item.optional_vars.id] = (path, opened_encoding)
+
+    matches: list[tuple[str, str, str, str, str]] = []
+    for statement in ast.walk(tree):
+        if not (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+        ):
             continue
-        keywords = {item.arg: item.value for item in node.keywords if item.arg is not None}
-        encoding = keywords.get("encoding")
-        if isinstance(encoding, ast.Constant) and isinstance(encoding.value, str):
-            encodings.append(encoding.value.lower())
-            base = node.func.value
-            if isinstance(base, ast.Name) and base.id in constants:
-                paths.append(constants[base.id])
-            elif isinstance(base, ast.Constant) and isinstance(base.value, str):
-                paths.append(base.value)
-            elif isinstance(base, ast.Name):
-                resolved = _kernel_parameter_string(tree, node, base.id, constants)
-                if resolved is not None:
-                    paths.append(resolved)
-    return encodings == [fact.encoding] and paths == [fact.path]
+        reader_call: ast.expr | None = None
+        if (
+            isinstance(statement.value, ast.Call)
+            and isinstance(statement.value.func, ast.Name)
+            and statement.value.func.id == "list"
+            and len(statement.value.args) == 1
+            and not statement.value.keywords
+        ):
+            reader_call = statement.value.args[0]
+        elif isinstance(statement.value, ast.ListComp) and _kernel_reader_copy_comprehension(
+            statement.value
+        ):
+            reader_call = statement.value.generators[0].iter
+        if not (
+            isinstance(reader_call, ast.Call)
+            and isinstance(reader_call.func, ast.Attribute)
+            and isinstance(reader_call.func.value, ast.Name)
+            and reader_call.func.value.id == "csv"
+            and reader_call.func.attr == "DictReader"
+            and len(reader_call.args) == 1
+            and not reader_call.keywords
+        ):
+            continue
+        source = reader_call.args[0]
+        if isinstance(source, ast.Name) and source.id in handles:
+            path, claimed_encoding = handles[source.id]
+            matches.append(
+                (
+                    statement.targets[0].id,
+                    path,
+                    claimed_encoding,
+                    "csv_newline",
+                    "csv_dictreader_file",
+                )
+            )
+            continue
+        if not (
+            isinstance(source, ast.Call)
+            and isinstance(source.func, ast.Attribute)
+            and source.func.attr == "splitlines"
+            and not source.args
+            and not source.keywords
+            and isinstance(source.func.value, ast.Call)
+        ):
+            continue
+        read = source.func.value
+        if not (
+            isinstance(read.func, ast.Attribute) and read.func.attr == "read_text" and not read.args
+        ):
+            continue
+        keywords = {part.arg: part.value for part in read.keywords if part.arg is not None}
+        path = _kernel_path_value(read.func.value, cast(dict[str, object], constants))
+        split_encoding = encoding(keywords.get("encoding"))
+        if set(keywords) == {"encoding"} and path is not None and split_encoding is not None:
+            matches.append(
+                (
+                    statement.targets[0].id,
+                    path,
+                    split_encoding,
+                    "splitlines",
+                    "csv_dictreader_splitlines",
+                )
+            )
+    if len(matches) != 1:
+        return None
+    match = matches[0]
+    current = match[0]
+    while True:
+        aliases = [
+            statement.targets[0].id
+            for statement in tree.body
+            if isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and isinstance(statement.value, ast.Name)
+            and statement.value.id == current
+        ]
+        if not aliases:
+            break
+        if len(aliases) != 1:
+            return None
+        current = aliases[0]
+    return (current, *match[1:])
 
 
 def _kernel_parameter_string(
@@ -3135,6 +3878,8 @@ def _kernel_flattened_module(
                 ast.fix_missing_locations(cast(ast.stmt, transformer.visit(item)))
                 for item in constant_body
             ]
+            for statement in nested:
+                _annotate_kernel_guard_context(statement, function.name, path_id)
             return_value: ast.expr | None = None
             nested_return: str | None = None
             if nested and isinstance(nested[-1], ast.Return):
@@ -3243,11 +3988,35 @@ def _kernel_flattened_module(
     flattened = inline(executable, (), 0)
     if flattened is None:
         return None
+    _annotate_kernel_module_guard_context(flattened)
     transformer = _KernelConstantTransformer(constants)
     return [
         ast.fix_missing_locations(cast(ast.stmt, transformer.visit(copy.deepcopy(item))))
         for item in flattened
     ]
+
+
+def _annotate_kernel_guard_context(
+    statement: ast.stmt, lexical_scope: str, call_path_id: str
+) -> None:
+    for node in ast.walk(statement):
+        if isinstance(node, ast.If) and any(
+            isinstance(child, ast.Raise) for child in ast.walk(node)
+        ):
+            node.__dict__["_dependence_v2_lexical_scope"] = lexical_scope
+            node.__dict__["_dependence_v2_call_path_id"] = call_path_id
+
+
+def _annotate_kernel_module_guard_context(body: list[ast.stmt]) -> None:
+    for statement in body:
+        for node in ast.walk(statement):
+            if (
+                isinstance(node, ast.If)
+                and any(isinstance(child, ast.Raise) for child in ast.walk(node))
+                and not hasattr(node, "_dependence_v2_lexical_scope")
+            ):
+                node.__dict__["_dependence_v2_lexical_scope"] = "module"
+                node.__dict__["_dependence_v2_call_path_id"] = "module"
 
 
 class _KernelConstantTransformer(ast.NodeTransformer):
@@ -3442,8 +4211,15 @@ def _kernel_sink_partition_matches(
     certificate: DependenceGrowthCertificate
     | CountDependenceCertificate
     | PairedDependenceCertificate,
+    *,
+    precomputed_partition: tuple[list[ast.stmt], set[str]] | None = None,
+    abort_only_guards: tuple[AbortOnlyGuardToken, ...] = (),
 ) -> bool:
-    partition = _kernel_partition_body(tree, certificate)
+    partition = (
+        precomputed_partition
+        if precomputed_partition is not None
+        else _kernel_partition_body(tree, certificate)
+    )
     if partition is None:
         return False
     body, operands = partition
@@ -3555,6 +4331,12 @@ def _kernel_sink_partition_matches(
     sink_names -= operands
     for index, statement in enumerate(body):
         if index in operand_indices or index in sink_indices:
+            continue
+        if (
+            isinstance(certificate, DependenceGrowthCertificate)
+            and abort_only_guards
+            and _kernel_abort_only_guard_statement(statement, allow_not_name=False)
+        ):
             continue
         if (
             isinstance(statement, ast.Expr)
@@ -3731,6 +4513,12 @@ def _kernel_function_shape_closed(
         if isinstance(node, ast.Name)
         and isinstance(node.ctx, ast.Load)
         and node not in annotation_nodes
+    }
+    loads -= {
+        node.id
+        for raised in (item for item in ast.walk(function) if isinstance(item, ast.Raise))
+        for node in ast.walk(raised)
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
     }
     if loads & typing_names:
         return False

@@ -552,10 +552,12 @@ def test_kernel_rejects_length_binding_conclusion_and_source_mutations() -> None
     )
     source_bytes = context.documents[0].content
     authorities = _trusted_authorizations(context)
+    material = next(item for item in context.material_inputs if item.path == fact.path)
     assert (
         verify_dependence_growth_certificate(
             certificate,
             trusted_group_facts=(fact,),
+            trusted_material_inputs=(material,),
             trusted_authorizations=authorities,
             source_bytes=source_bytes,
         )
@@ -565,6 +567,7 @@ def test_kernel_rejects_length_binding_conclusion_and_source_mutations() -> None
         verify_dependence_growth_certificate(
             certificate,
             trusted_group_facts=(fact,),
+            trusted_material_inputs=(material,),
             trusted_authorizations=(replace(authorities[0], input_path="other.csv"),),
             source_bytes=source_bytes,
         )
@@ -575,6 +578,7 @@ def test_kernel_rejects_length_binding_conclusion_and_source_mutations() -> None
         verify_dependence_growth_certificate(
             certificate,
             trusted_group_facts=(fact,),
+            trusted_material_inputs=(material,),
             trusted_authorizations=(replace(authorities[0], input_path="other.csv"),),
             source_bytes=source_bytes,
             _failure_reasons=failure_reasons,
@@ -587,6 +591,7 @@ def test_kernel_rejects_length_binding_conclusion_and_source_mutations() -> None
         verify_dependence_growth_certificate(
             certificate,
             trusted_group_facts=(replace(fact, groups=(bad_sequence, *fact.groups[1:])),),
+            trusted_material_inputs=(material,),
             trusted_authorizations=authorities,
             source_bytes=source_bytes,
         )
@@ -596,6 +601,7 @@ def test_kernel_rejects_length_binding_conclusion_and_source_mutations() -> None
         verify_dependence_growth_certificate(
             replace(certificate, conclusion="one_observation_per_unit"),
             trusted_group_facts=(fact,),
+            trusted_material_inputs=(material,),
             trusted_authorizations=authorities,
             source_bytes=source_bytes,
         )
@@ -605,6 +611,7 @@ def test_kernel_rejects_length_binding_conclusion_and_source_mutations() -> None
         verify_dependence_growth_certificate(
             certificate,
             trusted_group_facts=(fact,),
+            trusted_material_inputs=(material,),
             trusted_authorizations=authorities,
             source_bytes=source_bytes + b"\n",
         )
@@ -645,6 +652,7 @@ def test_kernel_rejects_length_binding_conclusion_and_source_mutations() -> None
         verify_dependence_growth_certificate(
             mutated_certificate,
             trusted_group_facts=(fact,),
+            trusted_material_inputs=(material,),
             trusted_authorizations=authorities,
             source_bytes=mutated_source,
         )

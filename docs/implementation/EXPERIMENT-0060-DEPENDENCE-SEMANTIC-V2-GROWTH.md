@@ -458,3 +458,40 @@ asset references, and every obligation field are therefore bound at `paired-fact
 Paired operand walrus targets reach the existing sole operand/sink partition before the
 generic named-expression refusal; non-operand named expressions remain unsupported by
 their existing reason.
+
+## 2026-08-16 growth-15 heavy amendment: abort-only guard fallthrough
+
+Growth 15 admits only the fallthrough semantics of a direct, uncaught
+`if CONDITION: raise ValueError(MESSAGE)` or `SystemExit(MESSAGE)` guard before the
+row-independent procedure and selected sink. The full condition language contains
+only exact real-builtin-`len` comparisons `len(NAME) < 2` and `len(NAME) != 2`, plus
+`or` trees of those atoms. Every name must map through the one existing operand/sink
+partition to its already established row-sequence, group-container, or exact
+procedure-operand role. `not NAME` remains syntax-only wall decomposition: it creates
+no role, truth result, token, certificate, or conclusion. Attributes, subscripts,
+other operators or literals, caught or nested raises, shadowed `len`, post-sink
+guards, and incomplete raise inventories remain unsupported.
+
+The development certificate carries an ordered source/role token for each admitted
+full guard. Tokens bind source path and span, lexical and inlining call path, source
+order, complete condition and raise AST digests, and the existing role of each name.
+They carry no material fact, sequence, cardinality, value, or analyzer-supplied truth
+claim. The certificate kernel independently inventories the source guards, proves the
+real builtin binding, reconstructs their roles from its sole partition replay, and
+requires exact token equality. A true replayed guard returns only the existing
+`sink-controls-operand-flow` abstention; all-false guards merely permit the unchanged
+dependence conclusion equations to run.
+
+The ordinary group kernel now requires exactly one controller-selected
+`FrozenMaterialInput`. It independently reconstructs the complete current
+`GroupValueSequenceFact` from the obligation and digest-bound bytes under the same
+strict-CSV budgets, line models, casts, bucket closure, ordering, identities, source
+values, cast representations, and material references as the controller. The supplied
+fact is accepted only for complete equality comparison and is then discarded as a
+semantic input. Source and reader replay, operand and conclusion equations, guard
+truth, certificate identity, and the returned verified fact all consume the one
+kernel-replayed object. There is no material-free verified compatibility path.
+
+This amendment remains confined to the unregistered development v2 shadow. It changes
+no v1 recognizer, refusal registry, grant, pin, qualification, capability, production,
+public, or frozen-lane surface.

@@ -146,6 +146,13 @@ def test_kernel_rejects_identical_multisite_identity_and_rename_collision() -> N
         verify_dependence_growth_certificate(
             replace(certificate, alpha_renames=tuple(renames)),
             trusted_group_facts=(discharged.verified_certificate.fact,),
+            trusted_material_inputs=(
+                next(
+                    item
+                    for item in context.material_inputs
+                    if item.path == certificate.obligation.path
+                ),
+            ),
             trusted_authorizations=_trusted_v2_authorizations(context),
             source_bytes=context.documents[0].content,
             _failure_reasons=failures,
@@ -191,6 +198,13 @@ def test_kernel_rejects_swapped_positive_rename_mapping_at_rename_obligation() -
         verify_dependence_growth_certificate(
             replace(certificate, alpha_renames=tuple(renames)),
             trusted_group_facts=(discharged.verified_certificate.fact,),
+            trusted_material_inputs=(
+                next(
+                    item
+                    for item in context.material_inputs
+                    if item.path == certificate.obligation.path
+                ),
+            ),
             trusted_authorizations=_trusted_v2_authorizations(context),
             source_bytes=context.documents[0].content,
             _failure_reasons=failures,
@@ -389,6 +403,13 @@ def test_group_kernel_live_syntax_guard_rejects_annotated_rebind() -> None:
         verify_dependence_growth_certificate(
             unsafe_certificate,
             trusted_group_facts=(verified.fact,),
+            trusted_material_inputs=(
+                next(
+                    item
+                    for item in context.material_inputs
+                    if item.path == unsafe_certificate.obligation.path
+                ),
+            ),
             trusted_authorizations=_trusted_v2_authorizations(context),
             source_bytes=unsafe_bytes,
         )
@@ -427,6 +448,13 @@ def test_group_kernel_live_syntax_guard_rejects_annotated_rebind() -> None:
         verify_dependence_growth_certificate(
             reader_certificate,
             trusted_group_facts=(verified.fact,),
+            trusted_material_inputs=(
+                next(
+                    item
+                    for item in context.material_inputs
+                    if item.path == reader_certificate.obligation.path
+                ),
+            ),
             trusted_authorizations=_trusted_v2_authorizations(context),
             source_bytes=reader_rebind,
         )
