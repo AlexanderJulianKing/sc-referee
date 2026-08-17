@@ -1,18 +1,19 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
-Updated: 2026-08-17 (Growth-12/13/15 closed; Growth-15 Option A and its focused count
-compile-validity repair remain independently cleared and scratch-remeasured through
-`3b65b7c`, with zero accusations and `0/47` planted-positive retro-certifications.
-Growth-14's revived pandas design and first two blocked package-identity repairs are
-recorded below. Its final default-deny adjacent-candidate repair was built, closed,
-serial-gated, and pushed through exact clean `d3dbb6f`. Fresh maximum-effort reviewer
-session `01a0112d-4d9d-7933-b4eb-0f60dbbe3449` independently re-executed both historical
-routes plus three new importer-derived disguises, completed the entire required matrix
-and all gates, returned all five assents, and issued `CLEAR FOR RE-MEASURE`. The only
-finding was a non-blocking STATE typo in two expanded commit IDs, corrected below.
-No re-measure, planted-positive observation, or batch has yet occurred; the authorized
-scratch re-measure and explicit `0/47` observation follow normal state/manifest/serial/
-push closure of this review record).
+Updated: 2026-08-17 (Growth-12/13/14/15 closed. Growth-14's pandas revival, two
+review-killed package-identity routes, final default-deny adjacent-candidate repair,
+and fresh maximum-effort review are recorded below. The gated scratch re-measure
+compared pre-round `1eb74be` with reviewed head `332df0a` across all 40 census and 95
+materialized frozen cases. Transport was unchanged; all 95 frozen cases and all 47
+materialized planted positives retained zero full-analysis completions and zero
+adverse certificates. Seven intended census cases reached full analysis: six covered
+negatives and one adverse certificate in the explicitly unlabeled, non-measurement
+development census. One additional uncompilable no-lock census case changed from a
+parse abstention to an authority question but remained no-lock and non-accusatory.
+Immutable inputs stayed byte-identical and installed-pin/production-isolation probes
+passed. The planted-positive trigger remains `0/47`; batch K is not triggered. The
+next census priority by case-completion yield is the seven singleton
+`reader-form-unsupported` cases, pending exact premise measurement and design).
 
 ## Scoreboard
 
@@ -1086,6 +1087,46 @@ push closure of this review record).
   `PACKAGE-IDENTITY: ASSENT`; `PANDAS-INVARIANCE: ASSENT`;
   `SINGLE-OPERAND-CLASSIFICATION: ASSENT`; `PROTOCOL-PRECEDENCE: ASSENT`;
   `FACT-REPLAY-CLOSURE: ASSENT`; `VERDICT: CLEAR FOR RE-MEASURE`.
+- The gated Growth-14 scratch re-measure then compared exact pre-round base
+  `1eb74be6a8ed1f634f1bf08ded005b1e7440d0db` with reviewed head
+  `332df0a1ff05718163a9ef84bdb039e829ff28e6` over all 40 immutable
+  `run-40-authority-2` cases and all 95 materialized frozen A-J2 cases. Each side used
+  its own current unit/procedure translation and adapter; 81 frozen contexts were
+  rebuilt from their audit records and fourteen from byte-derived fallbacks. The
+  reviewed head additionally consumed the exact controller-frozen manifest bytes
+  required by Growth-14. All generated locks lived only in temporary scratch. No
+  model was called and no authored workflow was executed. Both sides retained 39/1
+  census lock/no-lock and 80/15 frozen lock/no-lock transport.
+- Base outcomes were 126 unsupported and nine questions. Reviewed-head outcomes were
+  118 unsupported, ten questions, six covered negatives, and one development-only
+  evaluation candidate. The intended seven pandas cases reached full analysis:
+  census `0006`, `0012`, `0030`, `0035`, `0038`, and `0039` became covered negatives,
+  while `0025` became the adverse candidate demonstrated in build/review. This census
+  is explicitly unlabeled, non-measurement, and unscored; that observation is not a
+  scored or frozen accusation and changes no public claim. Census `0017`, whose
+  procedure transport remains no-lock because its source is uncompilable, changed
+  from `python-parse-unsupported` to the non-accusatory authority question because
+  the pandas-token preflight now asks for the absent trusted authorization before
+  parsing. It neither received a lock nor reached analysis. No transport field or any
+  other non-outcome/reason field moved.
+- Exactly thirteen sorted census reason sets moved and no frozen reason set moved.
+  The twelve authorized import cases changed as follows: `0004`
+  `unsupported-import-form` -> `pandas-frame-transform-not-closed`; `0006`, `0012`,
+  `0025`, `0030`, `0035`, `0038`, and `0039` -> no wall; `0009` and `0027` ->
+  `raise-guard-not-modeled`; `0014` -> `pandas-script-function-not-closed`; and `0016`
+  -> `pandas-script-shape-not-closed`. The thirteenth was the no-lock `0017` movement
+  described above. All 95 frozen cases retained nine questions, 86 unsupported,
+  zero full-analysis completions, and zero adverse certificates. Live current-head
+  inspection of all 47 materialized planted positives produced `0/47` full-analysis
+  adverse certificates, so checkpoint batch K is not triggered.
+- The census inventory was byte-identical before and after both snapshot runs: 397
+  entries at `sha256:2107dd3dabd4681dab289f05b9eaa10b649caf0f551306bd30ace2ec74d8c9bb`.
+  The complete frozen lane was likewise identical: 15,422 entries at
+  `sha256:0006345a10d92fa80bc6e060d4e2bd049d50aa1d0ca50de474b19d37d2f10ff2`.
+  Ten installed-grant/pin and development-opt-in/production-isolation tests plus the
+  exact isolated pandas-runtime/distribution liveness test passed with captured
+  `PIN_ISOLATION_EXIT=0` and `PANDAS_PIN_EXIT=0`. Growth-14 is closed; the final
+  state/manifest/serial-suite/push closure remains the only work on this round.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
@@ -1147,10 +1188,9 @@ push closure of this review record).
    must-not-accuse fixtures become the round's central regressions); fail-closed on any
    ambiguity between paired and independent claims; dev lanes only. Sequence after
    queue item 0 unless census evidence reorders.
-2. BLOCKED IN CODE REVIEW; FINAL DEFAULT-DENY HEAVY REPAIR AUTHORIZED as Growth-14
-   after
-   maintainer-authorized pandas revival and fresh attempt-2 maximum-effort HEAVY
-   design clearance:
+2. COMPLETED in Growth-14 after maintainer-authorized pandas revival, two correctly
+   blocked package-identity repairs, a final default-deny HEAVY repair, fresh
+   maximum-effort clearance, and the gated 135-case scratch re-measure:
    `unsupported-import-form`, twelve
    of 39 authentic census locks. Import-only relaxation remains forbidden and
    completes zero cases. Binding memo Sections 17-19 define the smallest reviewed
@@ -1173,14 +1213,15 @@ push closure of this review record).
    and yielded a false clearance. Binding memo Section 20.5 now authorizes the final
    default-deny repair: enumerate every adjacent pandas import candidate from the
    pinned interpreter's own import machinery, never a hardcoded suffix list, and
-   refuse any inventory hit. A fresh fix builder and a different fresh maximum-effort
-   reviewer completing both historical probes, two new importer-derived disguises,
-   the entire halted inventory, and all five assents plus `CLEAR FOR RE-MEASURE` still
-   gate any scratch re-measure and closure. A further block parks Growth-14 with a
-   no-build disposition and moves the loop onward. Dynamic/unknown forms remain
-   default-deny. Optional terminal LF, runtime mutation, a frozen re-measure, batch,
-   or any v1/grant/pin/registry/capability/qualification/production/frozen-lane change
-   is not authorized.
+   refuse any inventory hit. The final fresh builder implemented only that rule;
+   fresh reviewer `01a0112d` re-executed both historical routes plus three new
+   importer-derived disguises, completed the entire halted matrix and serial suite,
+   returned all five assents, and issued `CLEAR FOR RE-MEASURE`. The re-measure
+   produced the reviewed seven pandas completions, zero frozen movements, zero frozen
+   adverse certificates, byte-identical inputs, and live `0/47` planted-positive
+   retro-certification. Dynamic/unknown forms remain default-deny. Optional terminal
+   LF and runtime mutation remain unauthorized; no v1, grant, pin, registry,
+   capability, qualification, production, corpus, or frozen-lane file changed.
 3. COMPLETED in Growth-15 after a correct code-review halt, focused repair, fresh
    maximum-effort clearance, and the zero-accusation 135-case scratch re-measure:
    `raise-guard-not-modeled`, seven census cases.
@@ -1204,16 +1245,22 @@ push closure of this review record).
    transport or outcome changes, zero completions, zero accusations, byte-identical
    immutable inputs, and a live `0/47` planted-positive retro-certification result.
    Growth-15 is closed and queued Growth-14 pandas design work is released.
-4. Numeric comparison predicates for counts (float(row[x]) > CONST). The refreshed
+4. NEXT BY MEASURED CENSUS CASE-COMPLETION YIELD: `reader-form-unsupported`, seven
+   singleton census cases (`0008`, `0011`, `0021`, `0024`, `0031`, `0032`, `0037`).
+   This is the highest current wall frequency and would finish seven cases if every
+   exact form proves safe; the round must measure those forms plus frozen recurrence
+   before assigning risk tier or writing an admission design. No implementation is
+   authorized by this queue entry.
+5. Numeric comparison predicates for counts (float(row[x]) > CONST). The refreshed
    premise has no authentic direct numeric census opportunity; `446cab...` is a
    count-trial declaration no-lock and J2 uses a computed `delta`. Re-measure before
    reviving.
-5. Module-constant closure variants (J1 rq2 and J2 rq6) and import-use decomposition
+6. Module-constant closure variants (J1 rq2 and J2 rq6) and import-use decomposition
    (J1 rq1, J2 rq3) — measure exact syntax before deciding whether any slice is LIGHT.
-6. Position-sensitive rebind relaxation (allow rebinding after last consumer) — only
+7. Position-sensitive rebind relaxation (allow rebinding after last consumer) — only
    if corpus census shows it matters; dataflow judgment = heavy.
-7. Q3 two-branch sink returns (detached from growth-8; buys little).
-8. class-defs/dataclass modeling (batch-D rq2's real wall).
+8. Q3 two-branch sink returns (detached from growth-8; buys little).
+9. class-defs/dataclass modeling (batch-D rq2's real wall).
 
 ## Actor inventory (one-use identities; continue numbering)
 
