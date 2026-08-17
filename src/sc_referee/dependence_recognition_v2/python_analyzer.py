@@ -10,16 +10,19 @@ from __future__ import annotations
 
 import ast
 import copy
+import io
 import json
 import posixpath
 import re
+import token
+import tokenize
 from collections import Counter
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any, Literal, cast
 
 from sc_referee.core.ids import semantic_digest
-from sc_referee.dependence_recognition.ir import HumanMethodAuthorization
+from sc_referee.dependence_recognition.ir import HumanMethodAuthorization, RecordRef
 from sc_referee.dependence_recognition.python_analyzer import _trusted_authorizations
 from sc_referee.dependence_recognition_v2.certificate import (
     verify_count_dependence_certificate,
@@ -56,13 +59,23 @@ from sc_referee.dependence_recognition_v2.ir import (
     PairedConclusion,
     PairedDependenceCertificate,
     PairedValueSequenceObligation,
+    PandasOperandProjection,
+    PandasPackageIdentity,
+    PandasSourceDescriptor,
     VerifiedCountDependenceCertificate,
     require_registered_v2_reason,
 )
 from sc_referee.dependence_recognition_v2.paired_domain import (
     prove_paired_value_sequence_with_reason,
 )
-from sc_referee.scientific_checks.core import FrozenInspectionContext
+from sc_referee.dependence_recognition_v2.pandas_runtime_premise import (
+    PANDAS_DEVELOPMENT_RUNTIME_PREMISE,
+    PANDAS_DEVELOPMENT_RUNTIME_PREMISE_DIGEST,
+)
+from sc_referee.scientific_checks.core import (
+    FrozenInspectionContext,
+    FrozenMaterialInput,
+)
 
 _REGISTERED = {
     "scipy.stats.ttest_ind": 2,
@@ -152,6 +165,113 @@ class _SinkPartition:
     operand_statement_tokens: tuple[str, ...]
     sink_statement_tokens: tuple[str, ...]
     operand_names: frozenset[str]
+    pandas_evidence: _PandasPartitionEvidence | None = None
+
+
+@dataclass(frozen=True)
+class _PandasSelection:
+    descriptor: PandasOperandProjection
+    selection_statement: ast.Assign
+    projection_statement: ast.Assign | None
+
+
+@dataclass(frozen=True)
+class _PandasProcedure:
+    variant: str
+    call: ast.Call
+    statement: ast.Assign
+    result_names: tuple[str, str]
+
+
+@dataclass(frozen=True)
+class _PandasWriter:
+    statement: ast.With
+    write_call: ast.Call
+    handle_name: str
+    path: str
+
+
+@dataclass(frozen=True)
+class _PandasPartitionRequest:
+    tree: ast.Module
+    imports: dict[str, str]
+    constants: dict[str, ModuleConstant]
+    input_path: str
+    unit_column: str
+    expected_result_path: str | None
+    trusted_procedures: tuple[AuthorizedProcedureSet, ...]
+    abort_only_guards: bool
+
+
+@dataclass(frozen=True)
+class _PandasPartitionEvidence:
+    reader_statement: ast.Assign
+    frame_name: str
+    reader_path: str
+    group_column: str
+    value_column: str
+    selections: tuple[_PandasSelection, _PandasSelection]
+    procedure: _PandasProcedure
+    writer: _PandasWriter
+    projections: dict[str, str]
+    summary_calls: tuple[ast.Call, ...]
+    directory_statements: tuple[ast.Expr, ...]
+
+
+def _source_contains_pandas_import_tokens(content: bytes) -> bool:
+    """Recognize import spellings without parsing so outer failures keep precedence."""
+
+    ignored = {
+        token.ENCODING,
+        token.INDENT,
+        token.DEDENT,
+        token.NL,
+        token.COMMENT,
+    }
+    segment: list[tokenize.TokenInfo] = []
+
+    def contains_import(items: list[tokenize.TokenInfo]) -> bool:
+        for index, item in enumerate(items):
+            if item.type != token.NAME:
+                continue
+            if item.string == "from":
+                for candidate in items[index + 1 :]:
+                    if candidate.type == token.OP and candidate.string == ".":
+                        continue
+                    if candidate.type == token.NAME:
+                        if candidate.string == "pandas":
+                            return True
+                        break
+                    if candidate.type not in ignored:
+                        break
+            if item.string != "import":
+                continue
+            expecting_module = True
+            for candidate in items[index + 1 :]:
+                if candidate.type == token.OP and candidate.string == ",":
+                    expecting_module = True
+                    continue
+                if expecting_module and candidate.type == token.NAME:
+                    if candidate.string == "pandas":
+                        return True
+                    expecting_module = False
+        return False
+
+    try:
+        for item in tokenize.tokenize(io.BytesIO(content).readline):
+            if item.type in ignored:
+                continue
+            if item.type in {token.NEWLINE, token.ENDMARKER} or (
+                item.type == token.OP and item.string == ";"
+            ):
+                if contains_import(segment):
+                    return True
+                segment = []
+                continue
+            segment.append(item)
+    except (IndentationError, SyntaxError, UnicodeDecodeError, tokenize.TokenError):
+        return contains_import(segment)
+    return contains_import(segment)
 
 
 def analyze_dependence_growth_python(context: FrozenInspectionContext) -> GrowthAnalysis:
@@ -171,6 +291,55 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
         and len(trusted_procedures[0].resolved_callables) == 1
         and trusted_procedures[0].resolved_callables[0] in _PAIRED_PROCEDURES
     )
+    pandas_import_candidate = _source_contains_pandas_import_tokens(document.content)
+    if pandas_import_candidate:
+        authorities = _trusted_v2_authorizations(context)
+        if len(authorities) != 1:
+            return GrowthAnalysis(
+                state="question",
+                certificate=None,
+                obligation=None,
+                abstention_reasons=(),
+                candidate_key_columns=_candidate_columns(context),
+                basis="Exactly one trusted independent-unit authorization was unavailable.",
+            )
+        authority = authorities[0]
+        if len(authority.authorized_key_columns) != 1:
+            return _unsupported("authorized-composite-unit-key-unsupported")
+        material_matches = [
+            item
+            for item in context.material_inputs
+            if item.path == authority.input_path
+            and item.content_digest == authority.input_content_digest
+        ]
+        if len(material_matches) != 1:
+            return _unsupported("authority-material-binding-mismatch")
+        if not _scipy_is_pinned(context):
+            return _unsupported("procedure-version-unpinned")
+        try:
+            source = document.content.decode("utf-8", errors="strict")
+            tree = ast.parse(source)
+            compile(tree, document.path, "exec")
+        except (UnicodeDecodeError, SyntaxError, ValueError, TypeError, RecursionError):
+            return _unsupported("python-parse-unsupported")
+        if sum(1 for _ in ast.walk(tree)) > MAX_V2_AST_NODES:
+            return _unsupported("ast-node-ceiling")
+        if not _contains_pandas_import(tree):
+            return _unsupported("unsupported-import-form")
+        try:
+            return _analyze_pandas_proposal(
+                context=context,
+                tree=tree,
+                document_path=document.path,
+                document_digest=document.content_digest,
+                source_length=len(document.content),
+                authority=authority,
+                material=material_matches[0],
+                trusted_procedures=trusted_procedures,
+                abort_only_raise_wall=_analyzer_abort_only_raise_wall(tree),
+            )
+        except _Refusal as refusal:
+            return _unsupported(*refusal.reasons)
     try:
         source = document.content.decode("utf-8", errors="strict")
         tree = ast.parse(source)
@@ -178,6 +347,7 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
         return _unsupported("python-parse-unsupported")
     if sum(1 for _ in ast.walk(tree)) > MAX_V2_AST_NODES:
         return _unsupported("ast-node-ceiling")
+    pandas_mode = _contains_pandas_import(tree)
     abort_only_raise_wall = _analyzer_abort_only_raise_wall(tree)
 
     authorities = _trusted_v2_authorizations(context)
@@ -203,6 +373,26 @@ def analyze_dependence_growth_python(context: FrozenInspectionContext) -> Growth
         return _unsupported("authority-material-binding-mismatch")
     if not _scipy_is_pinned(context):
         return _unsupported("procedure-version-unpinned")
+
+    if pandas_mode:
+        try:
+            compile(tree, document.path, "exec")
+        except (SyntaxError, ValueError, TypeError, RecursionError):
+            return _unsupported("python-parse-unsupported")
+        try:
+            return _analyze_pandas_proposal(
+                context=context,
+                tree=tree,
+                document_path=document.path,
+                document_digest=document.content_digest,
+                source_length=len(document.content),
+                authority=authority,
+                material=material_matches[0],
+                trusted_procedures=trusted_procedures,
+                abort_only_raise_wall=abort_only_raise_wall,
+            )
+        except _Refusal as refusal:
+            return _unsupported(*refusal.reasons)
 
     try:
         imports, constants, functions, executable = _module_parts(tree)
@@ -513,7 +703,7 @@ def discharge_dependence_growth_analysis(
     )
     certificate = replace(
         certificate,
-        certificate_id=f"dependence-growth-certificate:{semantic_digest({'source_digest': certificate.source_digest, 'fact': fact.evidence_id, 'bindings': [asdict(item) for item in certificate.operand_bindings], 'abort_only_guard_tokens': [asdict(item) for item in certificate.abort_only_guard_tokens], 'conclusion': conclusion})}",
+        certificate_id=_growth_certificate_identity(certificate, fact, conclusion),
     )
     source_matches = [
         item
@@ -529,6 +719,7 @@ def discharge_dependence_growth_analysis(
         trusted_material_inputs=(materials[0],),
         trusted_authorizations=_trusted_v2_authorizations(context),
         trusted_procedure_sets=_trusted_v2_procedure_sets(context),
+        trusted_base_records=context.base_records,
         source_bytes=source_matches[0].content,
         _failure_reasons=kernel_failures,
     )
@@ -543,6 +734,1184 @@ def discharge_dependence_growth_analysis(
         abstention_reasons=(),
         candidate_key_columns=analysis.candidate_key_columns,
         basis="The trusted group fact and growth certificate kernel discharged every equation.",
+    )
+
+
+def _growth_certificate_identity(
+    certificate: DependenceGrowthCertificate,
+    fact: Any,
+    conclusion: GrowthConclusion,
+) -> str:
+    projection: dict[str, Any] = {
+        "source_digest": certificate.source_digest,
+        "fact": fact.evidence_id,
+        "bindings": [asdict(item) for item in certificate.operand_bindings],
+        "abort_only_guard_tokens": [asdict(item) for item in certificate.abort_only_guard_tokens],
+        "conclusion": conclusion,
+    }
+    if certificate.obligation.pandas_source is not None:
+        # The pandas certificate identity binds the complete byte-replayed fact,
+        # not merely a supplied fact id with independently mutable contents.
+        projection["pandas_replayed_fact"] = asdict(fact)
+        projection["pandas_source"] = asdict(certificate.obligation.pandas_source)
+    return f"dependence-growth-certificate:{semantic_digest(projection)}"
+
+
+def _contains_pandas_import(tree: ast.Module) -> bool:
+    return any(
+        (
+            isinstance(node, ast.Import)
+            and any(
+                alias.name == "pandas" or alias.name.startswith("pandas.") for alias in node.names
+            )
+        )
+        or (
+            isinstance(node, ast.ImportFrom)
+            and isinstance(node.module, str)
+            and (node.module == "pandas" or node.module.startswith("pandas."))
+        )
+        for node in ast.walk(tree)
+    )
+
+
+def _analyze_pandas_proposal(
+    *,
+    context: FrozenInspectionContext,
+    tree: ast.Module,
+    document_path: str,
+    document_digest: str,
+    source_length: int,
+    authority: HumanMethodAuthorization,
+    material: FrozenMaterialInput,
+    trusted_procedures: tuple[AuthorizedProcedureSet, ...],
+    abort_only_raise_wall: bool,
+) -> GrowthAnalysis:
+    package_identity = _analyzer_pandas_package_identity(
+        context,
+        source_path=document_path,
+        source_digest=document_digest,
+        material=material,
+    )
+    if package_identity is None:
+        raise _Refusal("pandas-package-identity-unproven")
+
+    imports, constants, body, pandas_import = _pandas_module_stream(tree)
+    _pandas_preprocedure_assignment_wall(body, imports)
+    if abort_only_raise_wall:
+        raise _Refusal("raise-guard-not-modeled")
+    if any(
+        isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef)
+        for node in ast.walk(tree)
+    ):
+        raise _Refusal("pandas-script-function-not-closed")
+
+    partition = _partition_sink_bound_set(
+        body,
+        (),
+        None,
+        set(),
+        pandas_request=_PandasPartitionRequest(
+            tree=tree,
+            imports=imports,
+            constants=constants,
+            input_path=authority.input_path,
+            unit_column=authority.authorized_key_columns[0],
+            expected_result_path=_trusted_result_path(context),
+            trusted_procedures=trusted_procedures,
+            abort_only_guards=not abort_only_raise_wall,
+        ),
+    )
+    evidence = partition.pandas_evidence
+    if evidence is None:
+        raise _Refusal("pandas-operand-form-unsupported")
+    reader_statement = evidence.reader_statement
+    frame_name = evidence.frame_name
+    reader_path = evidence.reader_path
+    group_column = evidence.group_column
+    value_column = evidence.value_column
+    selections = evidence.selections
+    procedure = evidence.procedure
+    writer = evidence.writer
+    summary_calls = evidence.summary_calls
+    directory_statements = evidence.directory_statements
+
+    bindings_by_name = {
+        item.descriptor.operand_name: item.descriptor.group_key for item in selections
+    }
+    operand_bindings = tuple(
+        OperandGroupBinding(position, argument.id, bindings_by_name[argument.id])
+        for position, argument in enumerate(procedure.call.args)
+        if isinstance(argument, ast.Name)
+    )
+    if len(operand_bindings) != 2:
+        raise _Refusal("pandas-operand-form-unsupported")
+    procedure_match = _ProcedureMatch(
+        procedure.variant,
+        procedure.result_names[0],
+        procedure.call,
+        procedure.statement,
+    )
+    try:
+        guard_tokens = _collect_full_abort_only_guard_tokens(
+            body,
+            source_path=document_path,
+            rows_name=frame_name,
+            group_name="__pandas_no_group_container__",
+            procedure_matches=(procedure_match,),
+            operand_bindings=operand_bindings,
+            sink=writer.write_call,
+            operand_names=partition.operand_names,
+        )
+    except _Refusal:
+        raise _Refusal("raise-guard-not-modeled") from None
+
+    source_descriptor = PandasSourceDescriptor(
+        package_identity=package_identity,
+        import_span=_source_span(pandas_import),
+        reader_span=_source_span(reader_statement),
+        frame_name=frame_name,
+        reader_path=reader_path,
+        group_column=group_column,
+        value_column=value_column,
+        operands=tuple(item.descriptor for item in selections),
+        procedure_variant=procedure.variant,
+        procedure_call_span=_source_span(procedure.call),
+        procedure_target_span=_source_span(procedure.statement.targets[0]),
+        procedure_result_names=procedure.result_names,
+        summary_spans=tuple(
+            _source_span(item)
+            for item in sorted(summary_calls, key=lambda node: _source_span(node))
+        ),
+        directory_preparation_spans=tuple(_source_span(item) for item in directory_statements),
+        writer_span=_source_span(writer.statement),
+        write_span=_source_span(writer.write_call),
+        writer_handle=writer.handle_name,
+        writer_path=writer.path,
+        executable_statement_tokens=tuple(
+            _statement_token(statement, index) for index, statement in enumerate(body)
+        ),
+    )
+    obligation = GroupValueSequenceObligation(
+        path=reader_path,
+        content_digest=authority.input_content_digest,
+        line_model="pandas_no_terminal_lf",
+        reader_form="pandas_read_csv_simple",
+        encoding="ascii",
+        authorized_unit_column=authority.authorized_key_columns[0],
+        group_key_column=group_column,
+        value_column=value_column,
+        cast_kind="pandas_numeric",
+        predeclared_bucket_keys=tuple(item.descriptor.group_key for item in selections),
+        pandas_source=source_descriptor,
+    )
+    _fact, domain_reason = prove_group_value_sequences_with_reason(material, obligation=obligation)
+    if _fact is None:
+        if domain_reason is None:
+            raise _Refusal("pandas-material-domain-unproven")
+        raise _Refusal(domain_reason)
+
+    certificate = DependenceGrowthCertificate(
+        certificate_id="pending-controller-domain-proof",
+        source_path=document_path,
+        source_digest=document_digest,
+        source_extent=(0, source_length),
+        analysis_target_ref=authority.analysis_target_ref,
+        procedure_ref=authority.procedure_ref,
+        authority_record_id=authority.record_id,
+        independent_unit_definition_id=authority.independent_unit_definition_id,
+        obligation=obligation,
+        resolved_callables=(procedure.variant,),
+        procedure_call_tokens=(_node_token(document_path, procedure.call, "procedure-call"),),
+        result_names=procedure.result_names,
+        sink_token=_node_token(document_path, writer.write_call, "selected-sink"),
+        group_container_name=frame_name,
+        group_container_kind="pandas_series",
+        operand_bindings=operand_bindings,
+        alpha_renames=(),
+        operand_slice_statement_tokens=partition.operand_statement_tokens,
+        sink_bound_statement_tokens=partition.sink_statement_tokens,
+        dead_syntactic_construct_tokens=(),
+        conclusion="one_observation_per_unit",
+        abort_only_guard_tokens=guard_tokens,
+    )
+    return GrowthAnalysis(
+        state="proposal",
+        certificate=certificate,
+        obligation=obligation,
+        abstention_reasons=(),
+        candidate_key_columns=authority.authorized_key_columns,
+        basis=(
+            "The closed pandas source, complete package inventory, sole partition, "
+            "and exact byte domain proposed one row-independent proof."
+        ),
+    )
+
+
+def _analyzer_pandas_package_identity(
+    context: FrozenInspectionContext,
+    *,
+    source_path: str,
+    source_digest: str,
+    material: FrozenMaterialInput,
+) -> PandasPackageIdentity | None:
+    """Derive one complete no-shadow inventory from controller-frozen records."""
+
+    try:
+        snapshots = [
+            record
+            for record in context.base_records
+            if record.ref.record_type == "repository_snapshot"
+        ]
+        if len(snapshots) != 1:
+            return None
+        snapshot_record = snapshots[0]
+        snapshot = json.loads(snapshot_record.canonical_payload)
+        if not isinstance(snapshot, dict) or (
+            snapshot.get("included_roots") != ["."]
+            or snapshot.get("immutability") is not True
+            or snapshot.get("snapshot_digest") != context.snapshot_digest
+            or not re.fullmatch(r"sha256:[a-f0-9]{64}", context.snapshot_digest)
+            or not isinstance(snapshot.get("file_manifest_ref"), str)
+            or not snapshot["file_manifest_ref"]
+        ):
+            return None
+        snapshot_ref = snapshot_record.ref.to_dict()
+        file_records = []
+        for record in context.base_records:
+            if record.ref.record_type != "file_record":
+                continue
+            payload = json.loads(record.canonical_payload)
+            if isinstance(payload, dict) and payload.get("snapshot_ref") == snapshot_ref:
+                file_records.append(record)
+        if not file_records:
+            return None
+        identity_payloads: dict[tuple[str, str], object] = {}
+        for record in context.base_records:
+            if record.ref.record_type != "asset_identity":
+                continue
+            identity_key = (record.ref.record_type, record.ref.record_id)
+            if identity_key in identity_payloads:
+                return None
+            identity_payloads[identity_key] = json.loads(record.canonical_payload)
+        inventory: list[dict[str, str]] = []
+        paths: set[str] = set()
+        source_seen = False
+        material_seen = False
+        for record in file_records:
+            payload = json.loads(record.canonical_payload)
+            if not isinstance(payload, dict):
+                return None
+            path = payload.get("path")
+            kind = payload.get("entry_kind")
+            if (
+                not isinstance(path, str)
+                or not path
+                or path.startswith("/")
+                or ".." in path.split("/")
+                or path in paths
+                or kind != "regular_file"
+            ):
+                return None
+            paths.add(path)
+            identity_ref_value = payload.get("asset_identity_ref")
+            if not isinstance(identity_ref_value, dict):
+                return None
+            identity_ref = (
+                str(identity_ref_value.get("record_type", "")),
+                str(identity_ref_value.get("record_id", "")),
+            )
+            identity = identity_payloads.get(identity_ref)
+            evidence = identity.get("identity_evidence") if isinstance(identity, dict) else None
+            digest = evidence.get("digest") if isinstance(evidence, dict) else None
+            if (
+                not isinstance(identity, dict)
+                or identity.get("tier") != "full_digest"
+                or identity.get("asset_ref") != record.ref.to_dict()
+                or not isinstance(digest, str)
+                or not re.fullmatch(r"sha256:[a-f0-9]{64}", digest)
+            ):
+                return None
+            inventory.append({"path": path, "digest": digest})
+            source_seen = source_seen or (path == source_path and digest == source_digest)
+            material_seen = material_seen or (
+                path == material.path and digest == material.content_digest
+            )
+        if not source_seen or not material_seen or _pandas_inventory_has_shadow(paths, source_path):
+            return None
+        return PandasPackageIdentity(
+            runtime_premise_id=PANDAS_DEVELOPMENT_RUNTIME_PREMISE.premise_id,
+            runtime_premise_digest=PANDAS_DEVELOPMENT_RUNTIME_PREMISE_DIGEST,
+            snapshot_ref=RecordRef(snapshot_record.ref.record_type, snapshot_record.ref.record_id),
+            snapshot_digest=context.snapshot_digest,
+            file_manifest_ref=cast(str, snapshot["file_manifest_ref"]),
+            inventory_digest=semantic_digest(
+                sorted(inventory, key=lambda item: tuple(item["path"].split("/")))
+            ),
+            regular_file_count=len(inventory),
+        )
+    except (KeyError, TypeError, ValueError, UnicodeError, RecursionError):
+        return None
+
+
+def _pandas_inventory_has_shadow(paths: set[str], source_path: str) -> bool:
+    source_directory = posixpath.dirname(source_path)
+    reachable = {""}
+    while source_directory:
+        reachable.add(source_directory)
+        parent = posixpath.dirname(source_directory)
+        if parent == source_directory:
+            break
+        source_directory = parent
+    for path in paths:
+        parts = path.split("/")
+        directory = posixpath.dirname(path)
+        name = parts[-1]
+        if name in {"pandas.py", "pandas.pyc", "sitecustomize.py", "usercustomize.py"} and (
+            directory in reachable
+        ):
+            return True
+        if name.endswith(".pth") and directory in reachable:
+            return True
+        for index, component in enumerate(parts[:-1]):
+            if component == "pandas" and "/".join(parts[:index]) in reachable:
+                return True
+    return False
+
+
+def _pandas_module_stream(
+    tree: ast.Module,
+) -> tuple[dict[str, str], dict[str, ModuleConstant], list[ast.stmt], ast.Import]:
+    body = _without_leading_docstring(tree.body)
+    pandas_imports = [
+        statement
+        for statement in body
+        if isinstance(statement, ast.Import)
+        and len(statement.names) == 1
+        and statement.names[0].name == "pandas"
+        and statement.names[0].asname == "pd"
+    ]
+    all_pandas_imports = [
+        node
+        for node in ast.walk(tree)
+        if (
+            isinstance(node, ast.Import)
+            and any(
+                alias.name == "pandas" or alias.name.startswith("pandas.") for alias in node.names
+            )
+        )
+        or (
+            isinstance(node, ast.ImportFrom)
+            and isinstance(node.module, str)
+            and (node.module == "pandas" or node.module.startswith("pandas."))
+        )
+    ]
+    if len(pandas_imports) != 1 or len(all_pandas_imports) != 1 or _pandas_name_rebound(tree):
+        raise _Refusal("unsupported-import-form")
+    imports: dict[str, str] = {"pd": "pandas"}
+    future_annotations = _future_annotations_present(tree)
+    for statement in body:
+        if not isinstance(statement, ast.Import | ast.ImportFrom) or statement is pandas_imports[0]:
+            continue
+        if (
+            isinstance(statement, ast.ImportFrom)
+            and statement.level == 0
+            and statement.module == "__future__"
+            and len(statement.names) == 1
+            and statement.names[0].name == "annotations"
+            and statement.names[0].asname is None
+        ):
+            continue
+        for name, target in _closed_import(statement, future_annotations):
+            if name in imports:
+                raise _Refusal("import-name-collision")
+            imports[name] = target
+    import_names = set(imports)
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Name)
+            and isinstance(node.ctx, ast.Store)
+            and node.id in import_names
+        ):
+            raise _Refusal("import-name-collision")
+
+    nonimports = [
+        statement for statement in body if not isinstance(statement, ast.Import | ast.ImportFrom)
+    ]
+    reader_indices = [
+        index
+        for index, statement in enumerate(nonimports)
+        if _pandas_read_csv_call(statement) is not None
+    ]
+    reader_index = reader_indices[0] if len(reader_indices) == 1 else len(nonimports)
+    constants: dict[str, ModuleConstant] = {}
+    constant_statements: set[int] = set()
+    for index, statement in enumerate(nonimports[:reader_index]):
+        if not (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+        ):
+            continue
+        value = _module_constant(statement.value, constants)
+        if value is not None and statement.targets[0].id not in import_names:
+            constants[statement.targets[0].id] = value
+            constant_statements.add(index)
+    executable = [
+        statement for index, statement in enumerate(nonimports) if index not in constant_statements
+    ]
+    return imports, constants, executable, pandas_imports[0]
+
+
+def _pandas_name_rebound(tree: ast.Module) -> bool:
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Name)
+            and isinstance(node.ctx, ast.Store | ast.Del)
+            and node.id == "pd"
+        ):
+            return True
+        if isinstance(node, ast.arg) and node.arg == "pd":
+            return True
+        if (
+            isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef)
+            and node.name == "pd"
+        ):
+            return True
+        if isinstance(node, ast.alias):
+            bound = node.asname or node.name.split(".", 1)[0]
+            if bound == "pd" and not (node.name == "pandas" and node.asname == "pd"):
+                return True
+        if isinstance(node, ast.ExceptHandler) and node.name == "pd":
+            return True
+        if isinstance(node, ast.Global | ast.Nonlocal) and "pd" in node.names:
+            return True
+    return False
+
+
+def _pandas_read_csv_call(statement: ast.stmt) -> ast.Call | None:
+    if not (
+        isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and isinstance(statement.value, ast.Call)
+    ):
+        return None
+    call = statement.value
+    return call if _attribute_chain(call.func) == ("pd", "read_csv") else None
+
+
+def _pandas_reader(
+    body: list[ast.stmt], constants: dict[str, ModuleConstant], expected_path: str
+) -> tuple[ast.Assign, str, str]:
+    pandas_calls = [
+        node
+        for statement in body
+        for node in ast.walk(statement)
+        if isinstance(node, ast.Call)
+        and (
+            _attribute_chain(node.func) == ("pd", "read_csv")
+            or (
+                isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "pd"
+            )
+        )
+    ]
+    matches = [statement for statement in body if _pandas_read_csv_call(statement) is not None]
+    if len(matches) != 1 or len(pandas_calls) != 1:
+        raise _Refusal("pandas-reader-form-unsupported")
+    statement = cast(ast.Assign, matches[0])
+    call = cast(ast.Call, statement.value)
+    path = _path_value(call.args[0], constants) if len(call.args) == 1 else None
+    if call.keywords or path != expected_path:
+        raise _Refusal("pandas-reader-form-unsupported")
+    return statement, cast(ast.Name, statement.targets[0]).id, path
+
+
+def _pandas_selection_expression(
+    expression: ast.expr, frame_name: str, constants: dict[str, ModuleConstant]
+) -> tuple[ast.expr, str, str, str] | None:
+    projection = "series"
+    base = expression
+    if isinstance(base, ast.Attribute) and base.attr == "values":
+        projection = "values"
+        base = base.value
+    elif (
+        isinstance(base, ast.Call)
+        and isinstance(base.func, ast.Attribute)
+        and base.func.attr == "dropna"
+        and not base.args
+        and not base.keywords
+    ):
+        projection = "dropna"
+        base = base.func.value
+    if not (
+        isinstance(base, ast.Subscript)
+        and isinstance(base.slice, ast.Constant)
+        and isinstance(base.slice.value, str)
+        and isinstance(base.value, ast.Subscript)
+        and isinstance(base.value.value, ast.Name)
+        and base.value.value.id == frame_name
+        and isinstance(base.value.slice, ast.Compare)
+    ):
+        return None
+    comparison = base.value.slice
+    if not (
+        len(comparison.ops) == len(comparison.comparators) == 1
+        and isinstance(comparison.ops[0], ast.Eq)
+        and isinstance(comparison.left, ast.Subscript)
+        and isinstance(comparison.left.value, ast.Name)
+        and comparison.left.value.id == frame_name
+        and isinstance(comparison.left.slice, ast.Constant)
+        and isinstance(comparison.left.slice.value, str)
+    ):
+        return None
+    literal = _pandas_string_literal(comparison.comparators[0], constants)
+    if literal is None:
+        return None
+    return base, comparison.left.slice.value, base.slice.value, projection
+
+
+def _pandas_string_literal(
+    expression: ast.expr, constants: dict[str, ModuleConstant]
+) -> str | None:
+    if isinstance(expression, ast.Constant) and isinstance(expression.value, str):
+        return expression.value
+    if isinstance(expression, ast.Name) and isinstance(constants.get(expression.id), ast.Constant):
+        value = cast(ast.Constant, constants[expression.id]).value
+        return value if isinstance(value, str) else None
+    return None
+
+
+def _pandas_selections(
+    body: list[ast.stmt], frame_name: str, constants: dict[str, ModuleConstant]
+) -> tuple[_PandasSelection, _PandasSelection]:
+    bases: list[tuple[ast.Assign, str, str, str, str, ast.expr]] = []
+    for statement in body:
+        if not (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+        ):
+            continue
+        parsed = _pandas_selection_expression(statement.value, frame_name, constants)
+        if parsed is None:
+            continue
+        base_expression, group_column, value_column, projection = parsed
+        outer_selection = cast(ast.Subscript, base_expression)
+        inner_selection = cast(ast.Subscript, outer_selection.value)
+        comparison = cast(ast.Compare, inner_selection.slice)
+        literal = _pandas_string_literal(comparison.comparators[0], constants)
+        assert literal is not None
+        bases.append(
+            (
+                statement,
+                statement.targets[0].id,
+                group_column,
+                value_column,
+                projection,
+                base_expression,
+            )
+        )
+    if len(bases) != 2:
+        if any(
+            isinstance(node, ast.Name) and node.id == frame_name
+            for statement in body
+            for node in ast.walk(statement)
+        ):
+            raise _Refusal("pandas-operand-form-unsupported")
+        raise _Refusal("pandas-operand-form-unsupported")
+    if len({item[2] for item in bases}) != 1 or len({item[3] for item in bases}) != 1:
+        raise _Refusal("pandas-operand-form-unsupported")
+    selections: list[_PandasSelection] = []
+    for statement, base_name, _group_column, _value_column, projection, base_expression in bases:
+        outer_selection = cast(ast.Subscript, base_expression)
+        inner_selection = cast(ast.Subscript, outer_selection.value)
+        comparison = cast(ast.Compare, inner_selection.slice)
+        group_key = _pandas_string_literal(comparison.comparators[0], constants)
+        assert group_key is not None
+        projection_statement: ast.Assign | None = None
+        operand_name = base_name
+        final_projection = projection
+        if projection == "series":
+            aliases = [
+                candidate
+                for candidate in body
+                if isinstance(candidate, ast.Assign)
+                and len(candidate.targets) == 1
+                and isinstance(candidate.targets[0], ast.Name)
+                and isinstance(candidate.value, ast.Attribute)
+                and candidate.value.attr == "values"
+                and isinstance(candidate.value.value, ast.Name)
+                and candidate.value.value.id == base_name
+            ]
+            if len(aliases) > 1:
+                raise _Refusal("pandas-operand-form-unsupported")
+            if aliases:
+                projection_statement = aliases[0]
+                operand_name = cast(ast.Name, aliases[0].targets[0]).id
+                final_projection = "values_alias"
+        projection_node: ast.AST = projection_statement or statement.value
+        selections.append(
+            _PandasSelection(
+                PandasOperandProjection(
+                    base_series_name=base_name,
+                    operand_name=operand_name,
+                    group_key=group_key,
+                    projection=cast(Any, final_projection),
+                    selection_span=_source_span(statement.value),
+                    projection_span=_source_span(projection_node),
+                ),
+                statement,
+                projection_statement,
+            )
+        )
+    if (
+        len({item.descriptor.group_key for item in selections}) != 2
+        or len({item.descriptor.operand_name for item in selections}) != 2
+    ):
+        raise _Refusal("pandas-operand-form-unsupported")
+    return cast(tuple[_PandasSelection, _PandasSelection], tuple(selections))
+
+
+def _pandas_procedure(
+    body: list[ast.stmt],
+    imports: dict[str, str],
+    constants: dict[str, ModuleConstant],
+    operand_names: tuple[str, str],
+    trusted_procedures: tuple[AuthorizedProcedureSet, ...],
+) -> _PandasProcedure:
+    candidates: list[tuple[ast.Assign, ast.Call, str]] = []
+    contested = False
+    for statement in body:
+        for call in (node for node in ast.walk(statement) if isinstance(node, ast.Call)):
+            resolved = _scipy_stats_callable(call.func, imports)
+            if resolved is None:
+                continue
+            if resolved in _GROUP_PROCEDURES:
+                if not isinstance(statement, ast.Assign) or statement.value is not call:
+                    raise _Refusal("procedure-call-unresolved")
+                candidates.append((statement, call, resolved))
+            elif resolved not in _DISTRIBUTION_HELPER_METHODS:
+                contested = True
+    if contested:
+        raise _Refusal(
+            "procedure-set-member-unregistered" if candidates else "procedure-census-unresolved"
+        )
+    if len(candidates) != 1:
+        raise _Refusal("procedure-call-unresolved")
+    statement, call, resolved = candidates[0]
+    target = statement.targets[0] if len(statement.targets) == 1 else None
+    if not (
+        isinstance(target, ast.Tuple | ast.List)
+        and len(target.elts) == 2
+        and all(isinstance(item, ast.Name) for item in target.elts)
+        and len({cast(ast.Name, item).id for item in target.elts}) == 2
+    ):
+        raise _Refusal("pandas-result-binding-unproven")
+    result_names = cast(tuple[str, str], tuple(cast(ast.Name, item).id for item in target.elts))
+    statement_index = body.index(statement)
+    if any(
+        isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store) and node.id in result_names
+        for earlier in body[:statement_index]
+        for node in ast.walk(earlier)
+    ):
+        raise _Refusal("pandas-result-binding-unproven")
+    if not (
+        len(call.args) == 2
+        and all(isinstance(item, ast.Name) for item in call.args)
+        and {cast(ast.Name, item).id for item in call.args} == set(operand_names)
+    ):
+        raise _Refusal("pandas-operand-form-unsupported")
+    variant = _procedure_variant(call, resolved, constants)
+    if (
+        len(trusted_procedures) != 1
+        or len(trusted_procedures[0].resolved_callables) != 1
+        or trusted_procedures[0].resolved_callables[0].split(":", 1)[0] != resolved
+    ):
+        raise _Refusal("procedure-call-unresolved")
+    return _PandasProcedure(variant, call, statement, result_names)
+
+
+def _pandas_writer(
+    tree: ast.Module,
+    body: list[ast.stmt],
+    constants: dict[str, ModuleConstant],
+    expected_result_path: str | None,
+    result_names: tuple[str, str],
+) -> _PandasWriter:
+    with_statements = [statement for statement in body if isinstance(statement, ast.With)]
+    write_like = [
+        node
+        for statement in body
+        for node in ast.walk(statement)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in {"write", "writelines", "write_text"}
+    ]
+    if len(with_statements) != 1 or len(write_like) != 1 or not _real_builtin_unbound(tree, "open"):
+        raise _Refusal("pandas-sink-form-unsupported")
+    statement = with_statements[0]
+    if len(statement.items) != 1 or len(statement.body) != 1:
+        raise _Refusal("pandas-sink-form-unsupported")
+    item = statement.items[0]
+    if not (
+        isinstance(item.context_expr, ast.Call)
+        and isinstance(item.context_expr.func, ast.Name)
+        and item.context_expr.func.id == "open"
+        and len(item.context_expr.args) == 2
+        and not item.context_expr.keywords
+        and isinstance(item.context_expr.args[1], ast.Constant)
+        and item.context_expr.args[1].value == "w"
+        and isinstance(item.optional_vars, ast.Name)
+        and isinstance(statement.body[0], ast.Expr)
+        and isinstance(statement.body[0].value, ast.Call)
+    ):
+        raise _Refusal("pandas-sink-form-unsupported")
+    path = _path_value(item.context_expr.args[0], constants)
+    handle = item.optional_vars.id
+    write = statement.body[0].value
+    if not (
+        expected_result_path is not None
+        and path == expected_result_path
+        and isinstance(write.func, ast.Attribute)
+        and isinstance(write.func.value, ast.Name)
+        and write.func.value.id == handle
+        and write.func.attr == "write"
+        and len(write.args) == 1
+        and not write.keywords
+        and write_like[0] is write
+    ):
+        raise _Refusal("pandas-sink-form-unsupported")
+    definitions = _assignment_definitions(body)
+    reads = _transitive_reads(write.args[0], definitions)
+    if not set(result_names) <= reads | {
+        node.id for node in ast.walk(write.args[0]) if isinstance(node, ast.Name)
+    }:
+        raise _Refusal("pandas-sink-form-unsupported")
+    handle_uses = [
+        node
+        for candidate in ast.walk(tree)
+        for node in (candidate,)
+        if isinstance(node, ast.Name) and node.id == handle
+    ]
+    if len(handle_uses) != 2:
+        raise _Refusal("pandas-sink-form-unsupported")
+    return _PandasWriter(statement, write, handle, path)
+
+
+def _real_builtin_unbound(tree: ast.Module, name: str) -> bool:
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Name)
+            and isinstance(node.ctx, ast.Store | ast.Del)
+            and node.id == name
+        ):
+            return False
+        if isinstance(node, ast.arg) and node.arg == name:
+            return False
+        if (
+            isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef)
+            and node.name == name
+        ):
+            return False
+        if isinstance(node, ast.alias) and (node.asname or node.name.split(".", 1)[0]) == name:
+            return False
+        if isinstance(node, ast.ExceptHandler) and node.name == name:
+            return False
+        if isinstance(node, ast.Global | ast.Nonlocal) and name in node.names:
+            return False
+        if (
+            isinstance(node, ast.Attribute)
+            and isinstance(node.ctx, ast.Store | ast.Del)
+            and node.attr == name
+            and isinstance(node.value, ast.Name)
+            and node.value.id == "builtins"
+        ):
+            return False
+    return True
+
+
+def _pandas_projection_map(
+    selections: tuple[_PandasSelection, _PandasSelection],
+) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for item in selections:
+        result[item.descriptor.base_series_name] = "series"
+        result[item.descriptor.operand_name] = (
+            "series" if item.descriptor.projection in {"series", "dropna"} else "values"
+        )
+    return result
+
+
+def _pandas_summary_calls(
+    body: list[ast.stmt], projections: dict[str, str]
+) -> tuple[ast.Call, ...]:
+    calls: list[ast.Call] = []
+    allowed = {
+        "series": {"mean", "median", "min", "max", "std"},
+        "values": {"mean", "min", "max", "std"},
+    }
+    mutators = {
+        "drop",
+        "dropna",
+        "fillna",
+        "rename",
+        "sort_values",
+        "update",
+        "insert",
+        "pop",
+        "set_index",
+        "reset_index",
+        "clear",
+        "extend",
+    }
+    for statement in body:
+        for call in (node for node in ast.walk(statement) if isinstance(node, ast.Call)):
+            if not (
+                isinstance(call.func, ast.Attribute)
+                and isinstance(call.func.value, ast.Name)
+                and call.func.value.id in projections
+            ):
+                continue
+            method = call.func.attr
+            if method in mutators:
+                continue
+            if method not in allowed[projections[call.func.value.id]]:
+                raise _Refusal("pandas-summary-form-unsupported")
+            if method == "std":
+                valid = (not call.args and not call.keywords) or (
+                    not call.args
+                    and len(call.keywords) == 1
+                    and call.keywords[0].arg == "ddof"
+                    and isinstance(call.keywords[0].value, ast.Constant)
+                    and type(call.keywords[0].value.value) is int
+                    and call.keywords[0].value.value == 1
+                )
+            else:
+                valid = not call.args and not call.keywords
+            if not valid:
+                raise _Refusal("pandas-summary-form-unsupported")
+            calls.append(call)
+    return tuple(calls)
+
+
+def _pandas_directory_preparations(
+    body: list[ast.stmt],
+    constants: dict[str, ModuleConstant],
+    expected_result_path: str | None,
+) -> tuple[ast.Expr, ...]:
+    calls = [
+        statement
+        for statement in body
+        if isinstance(statement, ast.Expr)
+        and isinstance(statement.value, ast.Call)
+        and _attribute_chain(statement.value.func) == ("os", "makedirs")
+    ]
+    if len(calls) > 1:
+        raise _Refusal("pandas-sink-form-unsupported")
+    if calls:
+        call = cast(ast.Call, calls[0].value)
+        if not (
+            _closed_makedirs_call(call, constants)
+            and expected_result_path is not None
+            and len(call.args) == 1
+            and _path_value(call.args[0], constants) == posixpath.dirname(expected_result_path)
+        ):
+            raise _Refusal("pandas-sink-form-unsupported")
+    return tuple(calls)
+
+
+def _pandas_source_order_closure(
+    body: list[ast.stmt],
+    *,
+    imports: dict[str, str],
+    constants: dict[str, ModuleConstant],
+    reader_statement: ast.Assign,
+    frame_name: str,
+    selections: tuple[_PandasSelection, _PandasSelection],
+    procedure: _PandasProcedure,
+    writer: _PandasWriter,
+    summary_calls: tuple[ast.Call, ...],
+    directory_statements: tuple[ast.Expr, ...],
+    abort_only_guards: bool,
+) -> None:
+    allowed_core = {
+        reader_statement,
+        procedure.statement,
+        writer.statement,
+        *(item.selection_statement for item in selections),
+        *(
+            item.projection_statement
+            for item in selections
+            if item.projection_statement is not None
+        ),
+        *directory_statements,
+    }
+    summary_set = set(summary_calls)
+    for statement in body:
+        if statement in allowed_core:
+            continue
+        if abort_only_guards and _analyzer_abort_only_guard_statement(
+            statement, allow_not_name=False
+        ):
+            continue
+        if isinstance(
+            statement,
+            ast.For
+            | ast.AsyncFor
+            | ast.While
+            | ast.Assert
+            | ast.Try
+            | ast.TryStar
+            | ast.Match
+            | ast.AsyncWith
+            | ast.Global
+            | ast.Nonlocal,
+        ) or any(
+            isinstance(
+                node,
+                ast.Lambda
+                | ast.ListComp
+                | ast.SetComp
+                | ast.DictComp
+                | ast.GeneratorExp
+                | ast.Yield
+                | ast.YieldFrom
+                | ast.Await,
+            )
+            for node in ast.walk(statement)
+        ):
+            raise _Refusal("pandas-script-shape-not-closed")
+        if isinstance(statement, ast.If):
+            raise _Refusal("pandas-script-shape-not-closed")
+        if isinstance(statement, ast.With):
+            raise _Refusal("pandas-sink-form-unsupported")
+        if any(
+            isinstance(node, ast.Name) and node.id == frame_name for node in ast.walk(statement)
+        ) and not _pandas_frame_uses_closed(statement, frame_name):
+            raise _Refusal("pandas-frame-transform-not-closed")
+        if not isinstance(statement, ast.Assign | ast.Expr):
+            raise _Refusal("pandas-script-shape-not-closed")
+        if _pandas_statement_has_operand_mutator(
+            statement, set(_pandas_projection_map(selections))
+        ):
+            # The sole partition owns mutation classification and its existing
+            # reason vocabulary.
+            continue
+        if isinstance(statement, ast.Expr):
+            raise _Refusal("pandas-script-shape-not-closed")
+        for call in (node for node in ast.walk(statement.value) if isinstance(node, ast.Call)):
+            if call in summary_set:
+                continue
+            resolved = _scipy_stats_callable(call.func, imports)
+            if resolved is not None and call is not procedure.call:
+                raise _Refusal("procedure-call-unresolved")
+            if isinstance(call.func, ast.Attribute) and isinstance(call.func.value, ast.Name):
+                receiver = call.func.value.id
+                if receiver in _pandas_projection_map(selections):
+                    # Mutations are intentionally left for the one partition so
+                    # its existing mutation reason wins at the next stage.
+                    continue
+        try:
+            _sink_expression_closed(
+                statement.value,
+                set(_pandas_projection_map(selections)),
+                set(_pandas_projection_map(selections)),
+                pandas_projections=_pandas_projection_map(selections),
+            )
+        except _Refusal as refusal:
+            if refusal.reasons == ("sink-call-not-whitelisted",):
+                raise _Refusal("pandas-summary-form-unsupported") from None
+            # The sole partition owns exact sink lineage and provides its
+            # existing reason vocabulary after this source-category scan.
+
+    for builtin_name in ("len", "float"):
+        if any(
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == builtin_name
+            for statement in body
+            for node in ast.walk(statement)
+        ) and not _real_builtin_unbound(ast.Module(body=body, type_ignores=[]), builtin_name):
+            raise _Refusal("pandas-summary-form-unsupported")
+
+
+def _pandas_first_generic_source_wall(
+    body: list[ast.stmt], constants: dict[str, ModuleConstant]
+) -> None:
+    """Resolve the first generic/frame row-8 wall in original source order."""
+
+    def operand_shaped(statement: ast.stmt, name: str) -> bool:
+        if not isinstance(statement, ast.Assign):
+            return False
+        value = statement.value
+        if isinstance(value, ast.Attribute) and value.attr == "values":
+            value = value.value
+        elif isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute):
+            if value.func.attr in {"dropna", "to_numpy", "values"}:
+                value = value.func.value
+        if isinstance(value, ast.Subscript) and isinstance(value.slice, ast.Slice):
+            value = value.value
+        return bool(
+            isinstance(value, ast.Subscript)
+            and (
+                (isinstance(value.value, ast.Name) and value.value.id == name)
+                or (
+                    isinstance(value.value, ast.Subscript)
+                    and isinstance(value.value.value, ast.Name)
+                    and value.value.value.id == name
+                )
+            )
+        )
+
+    reader = next(
+        (statement for statement in body if _pandas_read_csv_call(statement) is not None),
+        None,
+    )
+    frame_name = cast(ast.Name, reader.targets[0]).id if isinstance(reader, ast.Assign) else None
+    first_frame_wall: int | None = None
+    if frame_name is not None:
+        for statement in body:
+            if not any(
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == frame_name
+                for node in ast.walk(statement)
+            ):
+                continue
+            is_selection = (
+                isinstance(statement, ast.Assign)
+                and _pandas_selection_expression(statement.value, frame_name, constants) is not None
+            )
+            if (
+                not is_selection
+                and not operand_shaped(statement, frame_name)
+                and not _pandas_frame_uses_closed(statement, frame_name)
+            ):
+                first_frame_wall = getattr(statement, "lineno", 0)
+                break
+    first_generic_wall: int | None = None
+    for statement in body:
+        generic = isinstance(
+            statement,
+            ast.For
+            | ast.AsyncFor
+            | ast.While
+            | ast.Assert
+            | ast.Try
+            | ast.TryStar
+            | ast.Match
+            | ast.AsyncWith
+            | ast.Global
+            | ast.Nonlocal,
+        ) or any(
+            isinstance(
+                node,
+                ast.Lambda
+                | ast.ListComp
+                | ast.SetComp
+                | ast.DictComp
+                | ast.GeneratorExp
+                | ast.Yield
+                | ast.YieldFrom
+                | ast.Await,
+            )
+            for node in ast.walk(statement)
+        )
+        if generic:
+            first_generic_wall = getattr(statement, "lineno", 0)
+            break
+    if first_frame_wall is not None and (
+        first_generic_wall is None or first_frame_wall < first_generic_wall
+    ):
+        raise _Refusal("pandas-frame-transform-not-closed")
+    if first_generic_wall is not None:
+        raise _Refusal("pandas-script-shape-not-closed")
+
+
+def _pandas_preprocedure_assignment_wall(body: list[ast.stmt], imports: dict[str, str]) -> None:
+    """Retain eager assignment precedence through the inferential call.
+
+    Post-procedure report composition remains in the source-ordered row-8 scan, so
+    an earlier frame, raise, or generic-shape wall cannot be displaced by a later
+    report ``+=`` in the five binding census controls.
+    """
+
+    procedure_indices = [
+        index
+        for index, statement in enumerate(body)
+        if any(
+            isinstance(node, ast.Call)
+            and _scipy_stats_callable(node.func, imports) in _GROUP_PROCEDURES
+            for node in ast.walk(statement)
+        )
+    ]
+    boundary = min(procedure_indices) + 1 if procedure_indices else len(body)
+    _refuse_unsupported_live_assignment_syntax(body[:boundary])
+
+
+def _pandas_frame_uses_closed(statement: ast.stmt, frame_name: str) -> bool:
+    parents = {
+        child: parent for parent in ast.walk(statement) for child in ast.iter_child_nodes(parent)
+    }
+    for node in ast.walk(statement):
+        if not (
+            isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) and node.id == frame_name
+        ):
+            continue
+        parent = parents.get(node)
+        if (
+            isinstance(parent, ast.Call)
+            and isinstance(parent.func, ast.Name)
+            and parent.func.id == "len"
+            and parent.args == [node]
+            and not parent.keywords
+        ):
+            continue
+        if (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and statement.value is node
+        ):
+            # The sole partition owns this direct alias and will refuse it with
+            # its existing alias reason.
+            continue
+        return False
+    return True
+
+
+def _pandas_statement_has_operand_mutator(statement: ast.stmt, operand_names: set[str]) -> bool:
+    mutators = {
+        "drop",
+        "dropna",
+        "fillna",
+        "rename",
+        "sort_values",
+        "update",
+        "insert",
+        "pop",
+        "set_index",
+        "reset_index",
+        "clear",
+        "extend",
+    }
+    return any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id in operand_names
+        and node.func.attr in mutators
+        for node in ast.walk(statement)
+    )
+
+
+def _source_span(node: ast.AST) -> tuple[int, int, int, int]:
+    return (
+        getattr(node, "lineno", 0),
+        getattr(node, "col_offset", 0),
+        getattr(node, "end_lineno", 0),
+        getattr(node, "end_col_offset", 0),
     )
 
 
@@ -3631,15 +5000,25 @@ def _sink_expression_closed(
     expression: ast.expr,
     operand_names: set[str],
     scalar_sequences: set[str],
+    *,
+    pandas_projections: dict[str, str] | None = None,
 ) -> None:
     """Recognize only fresh/scalar report expressions; values are never certified."""
+
+    def close(value: ast.expr) -> None:
+        _sink_expression_closed(
+            value,
+            operand_names,
+            scalar_sequences,
+            pandas_projections=pandas_projections,
+        )
 
     if isinstance(expression, ast.Name | ast.Constant):
         return
     if isinstance(expression, ast.Slice):
         for item in (expression.lower, expression.upper, expression.step):
             if item is not None:
-                _sink_expression_closed(item, operand_names, scalar_sequences)
+                close(item)
         return
     if isinstance(expression, ast.Subscript):
         if isinstance(expression.value, ast.Name) and expression.value.id in operand_names:
@@ -3647,48 +5026,48 @@ def _sink_expression_closed(
                 raise _Refusal("sink-classification-unresolved")
             if expression.value.id not in scalar_sequences:
                 raise _Refusal("sink-classification-unresolved")
-        _sink_expression_closed(expression.value, operand_names, scalar_sequences)
-        _sink_expression_closed(expression.slice, operand_names, scalar_sequences)
+        close(expression.value)
+        close(expression.slice)
         return
     if isinstance(expression, ast.List | ast.Tuple | ast.Set):
         for item in expression.elts:
             if isinstance(item, ast.Name) and item.id in operand_names:
                 raise _Refusal("sink-classification-unresolved")
-            _sink_expression_closed(item, operand_names, scalar_sequences)
+            close(item)
         return
     if isinstance(expression, ast.Dict):
         for item in (*expression.keys, *expression.values):
             if item is not None:
                 if isinstance(item, ast.Name) and item.id in operand_names:
                     raise _Refusal("sink-classification-unresolved")
-                _sink_expression_closed(item, operand_names, scalar_sequences)
+                close(item)
         return
     if isinstance(expression, ast.BinOp):
-        _sink_expression_closed(expression.left, operand_names, scalar_sequences)
-        _sink_expression_closed(expression.right, operand_names, scalar_sequences)
+        close(expression.left)
+        close(expression.right)
         return
     if isinstance(expression, ast.UnaryOp):
-        _sink_expression_closed(expression.operand, operand_names, scalar_sequences)
+        close(expression.operand)
         return
     if isinstance(expression, ast.BoolOp):
         for item in expression.values:
-            _sink_expression_closed(item, operand_names, scalar_sequences)
+            close(item)
         return
     if isinstance(expression, ast.Compare):
-        _sink_expression_closed(expression.left, operand_names, scalar_sequences)
+        close(expression.left)
         for item in expression.comparators:
-            _sink_expression_closed(item, operand_names, scalar_sequences)
+            close(item)
         return
     if isinstance(expression, ast.JoinedStr):
         for item in expression.values:
             if isinstance(item, ast.FormattedValue):
-                _sink_expression_closed(item.value, operand_names, scalar_sequences)
+                close(item.value)
                 if item.format_spec is not None:
-                    _sink_expression_closed(item.format_spec, operand_names, scalar_sequences)
+                    close(item.format_spec)
         return
     if isinstance(expression, ast.IfExp):
         for item in (expression.test, expression.body, expression.orelse):
-            _sink_expression_closed(item, operand_names, scalar_sequences)
+            close(item)
         return
     if not isinstance(expression, ast.Call):
         raise _Refusal("sink-classification-unresolved")
@@ -3699,12 +5078,14 @@ def _sink_expression_closed(
         and (f"scipy.stats.{chain[1]}.{chain[2]}" in _DISTRIBUTION_HELPER_METHODS)
     ):
         for item in expression.args:
-            _sink_expression_closed(item, operand_names, scalar_sequences)
+            close(item)
         for keyword in expression.keywords:
-            _sink_expression_closed(keyword.value, operand_names, scalar_sequences)
+            close(keyword.value)
         return
     if isinstance(expression.func, ast.Name):
-        if expression.func.id not in _SINK_NAME_CALLS:
+        if expression.func.id not in _SINK_NAME_CALLS and not (
+            pandas_projections is not None and expression.func.id == "float"
+        ):
             raise _Refusal("sink-call-not-whitelisted")
         if expression.keywords:
             raise _Refusal("sink-call-keyword-argument")
@@ -3718,6 +5099,29 @@ def _sink_expression_closed(
             raise _Refusal("sink-classification-unresolved")
     elif isinstance(expression.func, ast.Attribute):
         if isinstance(expression.func.value, ast.Name):
+            receiver = expression.func.value.id
+            projection = (pandas_projections or {}).get(receiver)
+            if projection is not None:
+                allowed = {
+                    "series": {"mean", "median", "min", "max", "std"},
+                    "values": {"mean", "min", "max", "std"},
+                }
+                if expression.func.attr not in allowed[projection]:
+                    raise _Refusal("sink-call-not-whitelisted")
+                if expression.func.attr == "std":
+                    valid = (not expression.args and not expression.keywords) or (
+                        not expression.args
+                        and len(expression.keywords) == 1
+                        and expression.keywords[0].arg == "ddof"
+                        and isinstance(expression.keywords[0].value, ast.Constant)
+                        and type(expression.keywords[0].value.value) is int
+                        and expression.keywords[0].value.value == 1
+                    )
+                else:
+                    valid = not expression.args and not expression.keywords
+                if not valid:
+                    raise _Refusal("sink-call-keyword-argument")
+                return
             resolved = f"{expression.func.value.id}.{expression.func.attr}"
             if resolved in _SINK_MODULE_CALLS:
                 if expression.keywords:
@@ -3726,29 +5130,142 @@ def _sink_expression_closed(
                 raise _Refusal("sink-call-not-whitelisted")
         elif expression.func.attr not in _SINK_STRING_METHODS:
             raise _Refusal("sink-call-not-whitelisted")
-        _sink_expression_closed(expression.func.value, operand_names, scalar_sequences)
+        close(expression.func.value)
     else:
         raise _Refusal("sink-call-not-whitelisted")
     for item in expression.args:
-        _sink_expression_closed(item, operand_names, scalar_sequences)
+        close(item)
     for keyword in expression.keywords:
-        _sink_expression_closed(keyword.value, operand_names, scalar_sequences)
+        close(keyword.value)
 
 
 def _partition_sink_bound_set(
     body: list[ast.stmt],
     procedure_statements: tuple[ast.Assign, ...],
-    sink: ast.Call,
+    sink: ast.Call | None,
     initial_operand_names: set[str],
+    *,
+    pandas_writer: ast.With | None = None,
+    pandas_projections: dict[str, str] | None = None,
+    pandas_alias_reason: str | None = None,
+    pandas_request: _PandasPartitionRequest | None = None,
 ) -> _SinkPartition:
+    pandas_evidence: _PandasPartitionEvidence | None = None
+    pandas_selections: tuple[_PandasSelection, _PandasSelection] | None = None
+    pandas_procedure: _PandasProcedure | None = None
+    pandas_reader_statement: ast.Assign | None = None
+    pandas_frame_name: str | None = None
+    pandas_reader_path: str | None = None
+    pandas_group_column: str | None = None
+    pandas_value_column: str | None = None
+    pandas_summary_calls: tuple[ast.Call, ...] = ()
+    pandas_directory_statements: tuple[ast.Expr, ...] = ()
+    if pandas_request is not None:
+        pandas_reader_statement, pandas_frame_name, pandas_reader_path = _pandas_reader(
+            body,
+            pandas_request.constants,
+            pandas_request.input_path,
+        )
+        _pandas_first_generic_source_wall(body, pandas_request.constants)
+        pandas_selections = _pandas_selections(
+            body,
+            pandas_frame_name,
+            pandas_request.constants,
+        )
+        parsed_selection = _pandas_selection_expression(
+            pandas_selections[0].selection_statement.value,
+            pandas_frame_name,
+            pandas_request.constants,
+        )
+        assert parsed_selection is not None
+        _, pandas_group_column, pandas_value_column, _ = parsed_selection
+        if (
+            pandas_group_column == pandas_value_column
+            or pandas_group_column == pandas_request.unit_column
+            or pandas_value_column == pandas_request.unit_column
+        ):
+            raise _Refusal("pandas-operand-form-unsupported")
+        pandas_procedure = _pandas_procedure(
+            body,
+            pandas_request.imports,
+            pandas_request.constants,
+            cast(
+                tuple[str, str],
+                tuple(item.descriptor.operand_name for item in pandas_selections),
+            ),
+            pandas_request.trusted_procedures,
+        )
+        pandas_projections = _pandas_projection_map(pandas_selections)
+        pandas_summary_calls = _pandas_summary_calls(body, pandas_projections)
+        pandas_writer_evidence = _pandas_writer(
+            pandas_request.tree,
+            body,
+            pandas_request.constants,
+            pandas_request.expected_result_path,
+            pandas_procedure.result_names,
+        )
+        pandas_directory_statements = _pandas_directory_preparations(
+            body,
+            pandas_request.constants,
+            pandas_request.expected_result_path,
+        )
+        _pandas_source_order_closure(
+            body,
+            imports=pandas_request.imports,
+            constants=pandas_request.constants,
+            reader_statement=pandas_reader_statement,
+            frame_name=pandas_frame_name,
+            selections=pandas_selections,
+            procedure=pandas_procedure,
+            writer=pandas_writer_evidence,
+            summary_calls=pandas_summary_calls,
+            directory_statements=pandas_directory_statements,
+            abort_only_guards=pandas_request.abort_only_guards,
+        )
+        procedure_statements = (pandas_procedure.statement,)
+        sink = pandas_writer_evidence.write_call
+        initial_operand_names = {pandas_frame_name}
+        pandas_writer = pandas_writer_evidence.statement
+        pandas_alias_reason = "group-container-aliased"
+        pandas_evidence = _PandasPartitionEvidence(
+            reader_statement=pandas_reader_statement,
+            frame_name=pandas_frame_name,
+            reader_path=pandas_reader_path,
+            group_column=pandas_group_column,
+            value_column=pandas_value_column,
+            selections=pandas_selections,
+            procedure=pandas_procedure,
+            writer=pandas_writer_evidence,
+            projections=pandas_projections,
+            summary_calls=pandas_summary_calls,
+            directory_statements=pandas_directory_statements,
+        )
     if not procedure_statements or any(
         not isinstance(statement.value, ast.Call) for statement in procedure_statements
     ):
         raise _Refusal("sink-classification-unresolved")
-    operand_names = _partition_operand_names_set(body, procedure_statements, initial_operand_names)
+    if sink is None:
+        raise _Refusal("sink-classification-unresolved")
+    operand_names = _partition_operand_names_set(
+        body,
+        procedure_statements,
+        initial_operand_names,
+        excluded_control_statements=(frozenset({pandas_writer}) if pandas_writer else frozenset()),
+    )
+    if pandas_selections is not None and pandas_frame_name is not None:
+        required_partition_names = {
+            pandas_frame_name,
+            *(item.descriptor.base_series_name for item in pandas_selections),
+            *(item.descriptor.operand_name for item in pandas_selections),
+        }
+        if not required_partition_names <= operand_names:
+            raise _Refusal("pandas-operand-form-unsupported")
     if _rebound_operand_names(body, operand_names):
         raise _Refusal("operand-name-rebound")
-    annotation_protected_names = operand_names | _partition_operand_aliases(body, operand_names)
+    aliases = _partition_operand_aliases(body, operand_names)
+    if pandas_alias_reason is not None and aliases:
+        raise _Refusal(pandas_alias_reason)
+    annotation_protected_names = operand_names | aliases
     body = _lower_annotations_for_partition(body, annotation_protected_names)
     _refuse_unsupported_live_assignment_syntax(body)
     scalar_sequences = {
@@ -3757,6 +5274,30 @@ def _partition_sink_bound_set(
         for argument in cast(ast.Call, procedure_statement.value).args
         if isinstance(argument, ast.Name)
     }
+    pandas_mutators = {
+        "drop",
+        "dropna",
+        "fillna",
+        "rename",
+        "sort_values",
+        "update",
+        "insert",
+        "pop",
+        "set_index",
+        "reset_index",
+        "clear",
+        "extend",
+    }
+    if pandas_projections and any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id in operand_names
+        and node.func.attr in pandas_mutators
+        for statement in body
+        for node in ast.walk(statement)
+    ):
+        raise _Refusal("sink-mutates-operand-name")
     if any(
         isinstance(statement, ast.Assign)
         and len(statement.targets) == 1
@@ -3771,10 +5312,13 @@ def _partition_sink_bound_set(
     sink_statement = next(
         (statement for statement in body if sink in set(ast.walk(statement))), None
     )
-    if not isinstance(sink_statement, ast.Expr):
+    if sink_statement is None:
+        raise _Refusal("sink-classification-unresolved")
+    if not isinstance(sink_statement, ast.Expr) and sink_statement is not pandas_writer:
         raise _Refusal("sink-classification-unresolved")
     if any(
         isinstance(statement, ast.If | ast.For | ast.With)
+        and statement is not pandas_writer
         and (
             any(procedure in set(ast.walk(statement)) for procedure in procedure_statements)
             or sink in set(ast.walk(statement))
@@ -3792,11 +5336,11 @@ def _partition_sink_bound_set(
         }
         if (
             statement in procedure_statements
-            or isinstance(statement, ast.With | ast.For)
+            or (isinstance(statement, ast.With | ast.For) and statement is not pandas_writer)
             or stores & operand_names
         ):
             operand_indices.add(index)
-    sink_indices: set[int] = {body.index(sink_statement)}
+    sink_indices: set[int] = {body.index(cast(ast.stmt, sink_statement))}
     sink_names = _transitive_reads(sink.args[0], definitions) - operand_names
     for index, statement in enumerate(body):
         if index in operand_indices or index in sink_indices:
@@ -3825,10 +5369,20 @@ def _partition_sink_bound_set(
                 and branch.targets[0].id in sink_names
                 for branch in branches
             ):
-                _sink_expression_closed(statement.test, operand_names, scalar_sequences)
+                _sink_expression_closed(
+                    statement.test,
+                    operand_names,
+                    scalar_sequences,
+                    pandas_projections=pandas_projections,
+                )
                 for branch in branches:
                     assert isinstance(branch, ast.Assign)
-                    _sink_expression_closed(branch.value, operand_names, scalar_sequences)
+                    _sink_expression_closed(
+                        branch.value,
+                        operand_names,
+                        scalar_sequences,
+                        pandas_projections=pandas_projections,
+                    )
                 sink_indices.add(index)
                 continue
         if isinstance(statement, ast.Assign) and any(
@@ -3854,9 +5408,19 @@ def _partition_sink_bound_set(
             and statement.targets[0].id in sink_names
         ):
             raise _Refusal("sink-classification-unresolved")
-        _sink_expression_closed(statement.value, operand_names, scalar_sequences)
+        _sink_expression_closed(
+            statement.value,
+            operand_names,
+            scalar_sequences,
+            pandas_projections=pandas_projections,
+        )
         sink_indices.add(index)
-    _sink_expression_closed(sink.args[0], operand_names, scalar_sequences)
+    _sink_expression_closed(
+        sink.args[0],
+        operand_names,
+        scalar_sequences,
+        pandas_projections=pandas_projections,
+    )
     return _SinkPartition(
         operand_statement_tokens=tuple(
             _statement_token(body[index], index) for index in sorted(operand_indices)
@@ -3865,6 +5429,7 @@ def _partition_sink_bound_set(
             _statement_token(body[index], index) for index in sorted(sink_indices)
         ),
         operand_names=frozenset(operand_names),
+        pandas_evidence=pandas_evidence,
     )
 
 
@@ -3919,6 +5484,8 @@ def _partition_operand_names_set(
     body: list[ast.stmt],
     procedure_statements: tuple[ast.Assign, ...],
     initial_operand_names: set[str],
+    *,
+    excluded_control_statements: frozenset[ast.stmt] = frozenset(),
 ) -> set[str]:
     """Derive the sole analyzer-side operand definition used by the sink partition."""
 
@@ -3947,6 +5514,7 @@ def _partition_operand_names_set(
         node.id
         for statement in body
         if isinstance(statement, ast.With | ast.For)
+        and statement not in excluded_control_statements
         for node in ast.walk(statement)
         if isinstance(node, ast.Name)
     )

@@ -6,8 +6,10 @@ import ast
 import copy
 import csv
 import io
+import json
 import math
 import posixpath
+import re
 from collections import Counter
 from dataclasses import asdict, dataclass, replace
 from typing import Any, Literal, cast
@@ -45,11 +47,22 @@ from sc_referee.dependence_recognition_v2.ir import (
     PairedObservation,
     PairedValueSequenceFact,
     PairedValueSequenceObligation,
+    PandasOperandProjection,
+    PandasPackageIdentity,
+    PandasSourceDescriptor,
     VerifiedCountDependenceCertificate,
     VerifiedDependenceGrowthCertificate,
     VerifiedPairedDependenceCertificate,
 )
-from sc_referee.scientific_checks.core import FrozenMaterialInput
+from sc_referee.dependence_recognition_v2.pandas_runtime_premise import (
+    PANDAS_3_0_5_DEFAULT_MISSING_TOKENS,
+    PANDAS_DEVELOPMENT_RUNTIME_PREMISE,
+    PANDAS_DEVELOPMENT_RUNTIME_PREMISE_DIGEST,
+    PANDAS_GROUP_CASEFOLD_REFUSALS,
+    PANDAS_GROUP_LITERAL_PATTERN,
+    PANDAS_VALUE_PATTERN,
+)
+from sc_referee.scientific_checks.core import FrozenBaseRecord, FrozenMaterialInput
 
 _PROCEDURE_ARITY = {
     "scipy.stats.ttest_ind": 2,
@@ -82,6 +95,62 @@ class _KernelSourceReplay:
     guards: tuple[_KernelGuardReplay, ...]
 
 
+@dataclass(frozen=True)
+class _KernelPandasSourceReplay:
+    descriptor: PandasSourceDescriptor
+    body: tuple[ast.stmt, ...]
+    procedure_statement: ast.Assign
+    procedure_call: ast.Call
+    writer_statement: ast.With
+    write_call: ast.Call
+    projections: tuple[tuple[str, str], ...]
+    operand_bindings: tuple[tuple[int, str, str], ...]
+
+
+def _kernel_pandas_source_shape(descriptor: PandasSourceDescriptor) -> tuple[object, ...]:
+    """Project only source-form fields; lineage and result flow have later rows."""
+
+    return (
+        descriptor.package_identity,
+        descriptor.import_span,
+        descriptor.reader_span,
+        descriptor.reader_path,
+        descriptor.group_column,
+        descriptor.value_column,
+        tuple(
+            (
+                item.group_key,
+                item.projection,
+                item.selection_span,
+                item.projection_span,
+            )
+            for item in descriptor.operands
+        ),
+        descriptor.procedure_variant,
+        descriptor.procedure_call_span,
+        descriptor.procedure_target_span,
+        descriptor.summary_spans,
+        descriptor.directory_preparation_spans,
+        descriptor.writer_span,
+        descriptor.write_span,
+        descriptor.writer_path,
+        descriptor.executable_statement_tokens,
+    )
+
+
+def _kernel_pandas_partition_lineage(
+    descriptor: PandasSourceDescriptor,
+) -> tuple[object, ...]:
+    return (
+        descriptor.frame_name,
+        tuple((item.base_series_name, item.operand_name) for item in descriptor.operands),
+    )
+
+
+def _kernel_pandas_result_shape(descriptor: PandasSourceDescriptor) -> tuple[object, ...]:
+    return (descriptor.procedure_result_names, descriptor.writer_handle)
+
+
 def verify_dependence_growth_certificate(
     certificate: DependenceGrowthCertificate,
     *,
@@ -90,6 +159,7 @@ def verify_dependence_growth_certificate(
     trusted_authorizations: tuple[HumanMethodAuthorization, ...],
     trusted_procedure_sets: tuple[AuthorizedProcedureSet, ...] = (),
     source_bytes: bytes,
+    trusted_base_records: tuple[FrozenBaseRecord, ...] = (),
     _failure_reasons: list[str] | None = None,
 ) -> VerifiedDependenceGrowthCertificate | None:
     """Discharge every equation from source bytes and one trusted material replay."""
@@ -101,6 +171,7 @@ def verify_dependence_growth_certificate(
             _failure_reasons.append(obligation)
         return None
 
+    pandas_mode = certificate.obligation.pandas_source is not None
     if (
         len(trusted_group_facts) != 1
         or len(trusted_material_inputs) != 1
@@ -111,7 +182,13 @@ def verify_dependence_growth_certificate(
         or not certificate.resolved_callables
         or any(item not in _PROCEDURE_ARITY for item in certificate.resolved_callables)
         or len(certificate.resolved_callables) != len(certificate.procedure_call_tokens)
-        or len(certificate.resolved_callables) != len(certificate.result_names)
+        or (
+            not pandas_mode and len(certificate.resolved_callables) != len(certificate.result_names)
+        )
+        or (
+            pandas_mode
+            and (len(certificate.resolved_callables) != 1 or len(certificate.result_names) != 2)
+        )
         or not certificate.authority_record_id
         or not certificate.independent_unit_definition_id
     ):
@@ -133,11 +210,17 @@ def verify_dependence_growth_certificate(
     ):
         return refuse("authority-binding")
     if trusted_procedure_sets:
+        authorized_callables = trusted_procedure_sets[0].resolved_callables
+        certificate_authority_callables = tuple(dict.fromkeys(certificate.resolved_callables))
+        if pandas_mode:
+            authorized_callables = tuple(item.split(":", 1)[0] for item in authorized_callables)
+            certificate_authority_callables = tuple(
+                item.split(":", 1)[0] for item in certificate_authority_callables
+            )
         if (
             len(trusted_procedure_sets) != 1
             or trusted_procedure_sets[0].record_id != authority.procedure_ref.record_id
-            or trusted_procedure_sets[0].resolved_callables
-            != tuple(dict.fromkeys(certificate.resolved_callables))
+            or authorized_callables != certificate_authority_callables
         ):
             return refuse("authority-binding")
     elif len(certificate.resolved_callables) != 1:
@@ -146,6 +229,18 @@ def verify_dependence_growth_certificate(
         return refuse("authority-binding")
     if any(item not in _ROW_INDEPENDENT_VARIANTS for item in certificate.resolved_callables):
         return refuse("procedure-set-homogeneity")
+    if pandas_mode:
+        verified, failure = _verify_pandas_dependence_certificate(
+            certificate,
+            supplied_fact=supplied_fact,
+            material=material,
+            authority=authority,
+            source_bytes=source_bytes,
+            trusted_base_records=trusted_base_records,
+        )
+        if failure is not None:
+            return refuse(failure)
+        return verified
     replayed_fact = _kernel_replay_group_fact(material, obligation)
     if replayed_fact is None or supplied_fact != replayed_fact:
         return refuse("fact-closure")
@@ -293,6 +388,1208 @@ def verify_dependence_growth_certificate(
         dead_syntactic_construct_tokens=certificate.dead_syntactic_construct_tokens,
         abort_only_guard_tokens=certificate.abort_only_guard_tokens,
     )
+
+
+def _verify_pandas_dependence_certificate(
+    certificate: DependenceGrowthCertificate,
+    *,
+    supplied_fact: GroupValueSequenceFact,
+    material: FrozenMaterialInput,
+    authority: HumanMethodAuthorization,
+    source_bytes: bytes,
+    trusted_base_records: tuple[FrozenBaseRecord, ...],
+) -> tuple[VerifiedDependenceGrowthCertificate | None, str | None]:
+    """Apply Growth-14's fixed six-obligation kernel in total order."""
+
+    obligation = certificate.obligation
+    proposed_source = obligation.pandas_source
+    if proposed_source is None:
+        return None, "pandas-source-closure"
+
+    package_identity = _kernel_pandas_package_identity(
+        trusted_base_records,
+        source_path=certificate.source_path,
+        source_digest=certificate.source_digest,
+        material=material,
+    )
+    if package_identity is None or package_identity != proposed_source.package_identity:
+        return None, "pandas-package-identity"
+
+    try:
+        source = source_bytes.decode("utf-8", errors="strict")
+        tree = ast.parse(source)
+        compile(tree, certificate.source_path, "exec")
+    except (SyntaxError, UnicodeDecodeError, ValueError, TypeError, RecursionError):
+        return None, "pandas-source-closure"
+    if len(source_bytes) > MAX_V2_SOURCE_BYTES or sum(1 for _ in ast.walk(tree)) > MAX_V2_AST_NODES:
+        return None, "pandas-source-closure"
+    replay_rows: list[_KernelPandasSourceReplay] = []
+    replay_failures: list[str] = []
+    partition = _kernel_partition_body(
+        tree,
+        certificate,
+        pandas_source_path=certificate.source_path,
+        pandas_package_identity=package_identity,
+        pandas_replay_out=replay_rows,
+        pandas_failure_out=replay_failures,
+    )
+    if replay_failures:
+        return None, replay_failures[0]
+    if len(replay_rows) != 1:
+        return None, "pandas-source-closure"
+    replay = replay_rows[0]
+    if (
+        _kernel_pandas_source_shape(replay.descriptor)
+        != _kernel_pandas_source_shape(proposed_source)
+        or certificate.resolved_callables != (replay.descriptor.procedure_variant,)
+        or certificate.procedure_call_tokens
+        != (_kernel_node_token(certificate.source_path, replay.procedure_call, "procedure-call"),)
+        or certificate.alpha_renames
+        or certificate.dead_syntactic_construct_tokens
+    ):
+        return None, "pandas-source-closure"
+
+    expected_bindings = tuple(
+        (item.position, item.argument_name, item.group_key) for item in certificate.operand_bindings
+    )
+    if (
+        partition is None
+        or _kernel_pandas_partition_lineage(replay.descriptor)
+        != _kernel_pandas_partition_lineage(proposed_source)
+        or expected_bindings != replay.operand_bindings
+        or certificate.group_container_name != replay.descriptor.frame_name
+        or certificate.group_container_kind != "pandas_series"
+        or not _kernel_sink_partition_matches(
+            tree,
+            certificate,
+            precomputed_partition=partition,
+            pandas_replay=replay,
+        )
+    ):
+        return None, "pandas-single-partition"
+
+    rebuilt_fact = _kernel_replay_pandas_group_fact(material, obligation)
+    if rebuilt_fact is None:
+        return None, "pandas-material-domain"
+    material_fields_match = (
+        supplied_fact.path == rebuilt_fact.path
+        and supplied_fact.content_digest == rebuilt_fact.content_digest
+        and supplied_fact.file_ref == rebuilt_fact.file_ref
+        and supplied_fact.asset_identity_ref == rebuilt_fact.asset_identity_ref
+        and supplied_fact.line_model == rebuilt_fact.line_model
+        and supplied_fact.reader_form == rebuilt_fact.reader_form
+        and supplied_fact.encoding == rebuilt_fact.encoding
+        and supplied_fact.ascii_bytes_proven == rebuilt_fact.ascii_bytes_proven
+        and supplied_fact.header == rebuilt_fact.header
+        and supplied_fact.authorized_unit_column == rebuilt_fact.authorized_unit_column
+        and supplied_fact.group_key_column == rebuilt_fact.group_key_column
+        and supplied_fact.value_column == rebuilt_fact.value_column
+        and supplied_fact.cast_kind == rebuilt_fact.cast_kind
+        and supplied_fact.row_count == rebuilt_fact.row_count
+        and supplied_fact.predeclared_bucket_keys == rebuilt_fact.predeclared_bucket_keys
+    )
+    if not material_fields_match:
+        return None, "pandas-material-domain"
+    if supplied_fact != rebuilt_fact:
+        return None, "pandas-operand-values"
+    fact = rebuilt_fact
+
+    if _kernel_pandas_result_shape(replay.descriptor) != _kernel_pandas_result_shape(
+        proposed_source
+    ) or not _kernel_pandas_result_sink_closed(tree, certificate, replay):
+        return None, "pandas-result-sink"
+
+    groups = {item.group_key: item for item in fact.groups}
+    if (
+        len(groups) != 2
+        or len(groups) != len(fact.groups)
+        or tuple(item.position for item in certificate.operand_bindings) != (0, 1)
+        or {item.group_key for item in certificate.operand_bindings} != set(groups)
+    ):
+        return None, "pandas-operand-values"
+    physical_rows = [index for group in fact.groups for index in group.row_indices]
+    if sorted(physical_rows) != list(range(1, fact.row_count + 1)) or len(physical_rows) != len(
+        set(physical_rows)
+    ):
+        return None, "pandas-operand-values"
+    for group in fact.groups:
+        size = len(group.row_indices)
+        if not (
+            size
+            == len(group.observation_ids)
+            == len(group.authorized_unit_ids)
+            == len(group.source_values)
+            == len(group.cast_value_reprs)
+        ):
+            return None, "pandas-operand-values"
+
+    unit_positions: dict[str, set[int]] = {}
+    repeated: set[str] = set()
+    for binding in certificate.operand_bindings:
+        counts = Counter(groups[binding.group_key].authorized_unit_ids)
+        repeated.update(unit for unit, count in counts.items() if count > 1)
+        for unit in counts:
+            unit_positions.setdefault(unit, set()).add(binding.position)
+    if any(len(positions) > 1 for positions in unit_positions.values()):
+        return None, "operand-disjointness"
+    conclusion = "repeated_units" if repeated else "one_observation_per_unit"
+    if certificate.conclusion != conclusion:
+        return None, "conclusion-equation"
+
+    expected_projection = {
+        "source_digest": certificate.source_digest,
+        "fact": fact.evidence_id,
+        "bindings": [asdict(item) for item in certificate.operand_bindings],
+        "abort_only_guard_tokens": [asdict(item) for item in certificate.abort_only_guard_tokens],
+        "conclusion": conclusion,
+        "pandas_replayed_fact": asdict(fact),
+        "pandas_source": asdict(proposed_source),
+    }
+    expected_id = f"dependence-growth-certificate:{semantic_digest(expected_projection)}"
+    if certificate.certificate_id != expected_id:
+        return None, "certificate-identity"
+    return (
+        VerifiedDependenceGrowthCertificate(
+            certificate_id=certificate.certificate_id,
+            source_path=certificate.source_path,
+            source_digest=certificate.source_digest,
+            resolved_callables=certificate.resolved_callables,
+            conclusion=cast(Any, conclusion),
+            fact=fact,
+            operand_bindings=certificate.operand_bindings,
+            repeated_unit_ids=tuple(sorted(repeated)),
+            alpha_renames=(),
+            operand_slice_statement_tokens=certificate.operand_slice_statement_tokens,
+            sink_bound_statement_tokens=certificate.sink_bound_statement_tokens,
+            dead_syntactic_construct_tokens=(),
+            abort_only_guard_tokens=certificate.abort_only_guard_tokens,
+        ),
+        None,
+    )
+
+
+def _kernel_pandas_package_identity(
+    base_records: tuple[FrozenBaseRecord, ...],
+    *,
+    source_path: str,
+    source_digest: str,
+    material: FrozenMaterialInput,
+) -> PandasPackageIdentity | None:
+    """Independently join the snapshot, complete manifest records, and identities."""
+
+    try:
+        snapshot_pairs = [
+            (record, json.loads(record.canonical_payload))
+            for record in base_records
+            if record.ref.record_type == "repository_snapshot"
+        ]
+        if len(snapshot_pairs) != 1:
+            return None
+        snapshot_record, snapshot = snapshot_pairs[0]
+        if not isinstance(snapshot, dict):
+            return None
+        snapshot_digest = snapshot.get("snapshot_digest")
+        manifest_ref = snapshot.get("file_manifest_ref")
+        if (
+            snapshot.get("included_roots") != ["."]
+            or snapshot.get("immutability") is not True
+            or not isinstance(snapshot_digest, str)
+            or not re.fullmatch(r"sha256:[a-f0-9]{64}", snapshot_digest)
+            or not isinstance(manifest_ref, str)
+            or not manifest_ref
+        ):
+            return None
+        identity_by_ref: dict[tuple[str, str], dict[str, Any]] = {}
+        for record in base_records:
+            if record.ref.record_type != "asset_identity":
+                continue
+            payload = json.loads(record.canonical_payload)
+            key = (record.ref.record_type, record.ref.record_id)
+            if not isinstance(payload, dict) or key in identity_by_ref:
+                return None
+            identity_by_ref[key] = payload
+        entries: list[tuple[str, str]] = []
+        seen_paths: set[str] = set()
+        source_match = 0
+        material_match = 0
+        expected_snapshot_ref = snapshot_record.ref.to_dict()
+        for record in base_records:
+            if record.ref.record_type != "file_record":
+                continue
+            payload = json.loads(record.canonical_payload)
+            if not isinstance(payload, dict):
+                return None
+            if payload.get("snapshot_ref") != expected_snapshot_ref:
+                continue
+            path = payload.get("path")
+            if (
+                not isinstance(path, str)
+                or not path
+                or path.startswith("/")
+                or ".." in path.split("/")
+                or path in seen_paths
+                or payload.get("entry_kind") != "regular_file"
+            ):
+                return None
+            seen_paths.add(path)
+            identity_ref = payload.get("asset_identity_ref")
+            if not isinstance(identity_ref, dict):
+                return None
+            ref = (
+                str(identity_ref.get("record_type", "")),
+                str(identity_ref.get("record_id", "")),
+            )
+            identity = identity_by_ref.get(ref)
+            evidence = identity.get("identity_evidence") if isinstance(identity, dict) else None
+            digest = evidence.get("digest") if isinstance(evidence, dict) else None
+            if (
+                not isinstance(identity, dict)
+                or identity.get("tier") != "full_digest"
+                or identity.get("asset_ref") != record.ref.to_dict()
+                or not isinstance(digest, str)
+                or not re.fullmatch(r"sha256:[a-f0-9]{64}", digest)
+            ):
+                return None
+            entries.append((path, digest))
+            source_match += int(path == source_path and digest == source_digest)
+            material_match += int(path == material.path and digest == material.content_digest)
+        if (
+            not entries
+            or source_match != 1
+            or material_match != 1
+            or _kernel_pandas_inventory_forbidden(seen_paths, source_path)
+        ):
+            return None
+        inventory_projection = [
+            {"path": path, "digest": digest}
+            for path, digest in sorted(entries, key=lambda item: tuple(item[0].split("/")))
+        ]
+        return PandasPackageIdentity(
+            runtime_premise_id=PANDAS_DEVELOPMENT_RUNTIME_PREMISE.premise_id,
+            runtime_premise_digest=PANDAS_DEVELOPMENT_RUNTIME_PREMISE_DIGEST,
+            snapshot_ref=RecordRef(snapshot_record.ref.record_type, snapshot_record.ref.record_id),
+            snapshot_digest=snapshot_digest,
+            file_manifest_ref=manifest_ref,
+            inventory_digest=semantic_digest(inventory_projection),
+            regular_file_count=len(entries),
+        )
+    except (KeyError, TypeError, ValueError, UnicodeError, RecursionError):
+        return None
+
+
+def _kernel_pandas_inventory_forbidden(paths: set[str], source_path: str) -> bool:
+    ancestors: set[str] = {""}
+    current = posixpath.dirname(source_path)
+    while current:
+        ancestors.add(current)
+        current = posixpath.dirname(current)
+    for path in paths:
+        directory, _, basename = path.rpartition("/")
+        if directory in ancestors and (
+            basename
+            in {
+                "pandas.py",
+                "pandas.pyc",
+                "sitecustomize.py",
+                "usercustomize.py",
+            }
+            or basename.endswith(".pth")
+        ):
+            return True
+        components = path.split("/")
+        if any(
+            component == "pandas" and "/".join(components[:index]) in ancestors
+            for index, component in enumerate(components[:-1])
+        ):
+            return True
+    return False
+
+
+def _kernel_pandas_source_replay(
+    tree: ast.Module,
+    source_path: str,
+    package_identity: PandasPackageIdentity,
+) -> tuple[_KernelPandasSourceReplay | None, str | None]:
+    """Independently reconstruct the closed pandas source descriptor."""
+
+    try:
+        top_level = _kernel_without_leading_docstring_statements(tree.body)
+        pandas_imports = [
+            statement
+            for statement in top_level
+            if isinstance(statement, ast.Import)
+            and len(statement.names) == 1
+            and statement.names[0].name == "pandas"
+            and statement.names[0].asname == "pd"
+        ]
+        every_pandas_import = [
+            node
+            for node in ast.walk(tree)
+            if (
+                isinstance(node, ast.Import)
+                and any(
+                    alias.name == "pandas" or alias.name.startswith("pandas.")
+                    for alias in node.names
+                )
+            )
+            or (
+                isinstance(node, ast.ImportFrom)
+                and isinstance(node.module, str)
+                and (node.module == "pandas" or node.module.startswith("pandas."))
+            )
+        ]
+        if len(pandas_imports) != 1 or len(every_pandas_import) != 1:
+            return None, "pandas-source-closure"
+        if not _kernel_pandas_imports_closed(top_level, pandas_imports[0]):
+            return None, "pandas-source-closure"
+        if any(
+            isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef)
+            for node in ast.walk(tree)
+        ):
+            return None, "pandas-source-closure"
+        if any(
+            isinstance(node, ast.AnnAssign | ast.AugAssign | ast.NamedExpr | ast.Delete)
+            for node in ast.walk(tree)
+        ):
+            return None, "pandas-source-closure"
+
+        imports = _kernel_imports(tree)
+        nonimports = [
+            statement
+            for statement in top_level
+            if not isinstance(statement, ast.Import | ast.ImportFrom)
+        ]
+        reader_candidates = [
+            (index, statement)
+            for index, statement in enumerate(nonimports)
+            if _kernel_pandas_reader_call(statement) is not None
+        ]
+        if len(reader_candidates) != 1:
+            return None, "pandas-source-closure"
+        reader_index, reader_statement_value = reader_candidates[0]
+        reader_statement = cast(ast.Assign, reader_statement_value)
+        constants, constant_indices = _kernel_pandas_constants(nonimports, reader_index)
+        body = [
+            statement for index, statement in enumerate(nonimports) if index not in constant_indices
+        ]
+        call = cast(ast.Call, reader_statement.value)
+        reader_path = _kernel_path_value(call.args[0], constants) if len(call.args) == 1 else None
+        if call.keywords or not isinstance(reader_path, str):
+            return None, "pandas-source-closure"
+        frame_name = cast(ast.Name, reader_statement.targets[0]).id
+        if (
+            sum(
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "pd"
+                for node in ast.walk(tree)
+            )
+            != 1
+        ):
+            return None, "pandas-source-closure"
+
+        selection_rows: list[tuple[ast.Assign, ast.expr, str, str, str, str]] = []
+        for statement in body:
+            if not (
+                isinstance(statement, ast.Assign)
+                and len(statement.targets) == 1
+                and isinstance(statement.targets[0], ast.Name)
+            ):
+                continue
+            parsed = _kernel_pandas_selection(statement.value, frame_name, constants)
+            if parsed is None:
+                continue
+            base, group_column, value_column, group_key, projection = parsed
+            selection_rows.append(
+                (
+                    statement,
+                    base,
+                    group_column,
+                    value_column,
+                    group_key,
+                    projection,
+                )
+            )
+        if (
+            len(selection_rows) != 2
+            or len({row[2] for row in selection_rows}) != 1
+            or len({row[3] for row in selection_rows}) != 1
+            or len({row[4] for row in selection_rows}) != 2
+        ):
+            return None, "pandas-source-closure"
+        operand_rows: list[tuple[PandasOperandProjection, ast.Assign, ast.Assign | None]] = []
+        for statement, _base, _group_column, _value_column, group_key, projection in selection_rows:
+            base_name = cast(ast.Name, statement.targets[0]).id
+            operand_name = base_name
+            projection_statement: ast.Assign | None = None
+            final_projection = projection
+            if projection == "series":
+                aliases = [
+                    item
+                    for item in body
+                    if isinstance(item, ast.Assign)
+                    and len(item.targets) == 1
+                    and isinstance(item.targets[0], ast.Name)
+                    and isinstance(item.value, ast.Attribute)
+                    and item.value.attr == "values"
+                    and isinstance(item.value.value, ast.Name)
+                    and item.value.value.id == base_name
+                ]
+                if len(aliases) > 1:
+                    return None, "pandas-source-closure"
+                if aliases:
+                    projection_statement = aliases[0]
+                    operand_name = cast(ast.Name, aliases[0].targets[0]).id
+                    final_projection = "values_alias"
+            operand_rows.append(
+                (
+                    PandasOperandProjection(
+                        base_series_name=base_name,
+                        operand_name=operand_name,
+                        group_key=group_key,
+                        projection=cast(Any, final_projection),
+                        selection_span=_kernel_source_span(statement.value),
+                        projection_span=_kernel_source_span(
+                            projection_statement or statement.value
+                        ),
+                    ),
+                    statement,
+                    projection_statement,
+                )
+            )
+        procedure_matches: list[tuple[ast.Assign, ast.Call, str]] = []
+        for statement in body:
+            for candidate in (node for node in ast.walk(statement) if isinstance(node, ast.Call)):
+                resolved = _kernel_scipy_stats_callable(candidate.func, imports)
+                if resolved in _GROUP_BASE_PROCEDURES:
+                    if not isinstance(statement, ast.Assign) or statement.value is not candidate:
+                        return None, "pandas-source-closure"
+                    procedure_matches.append((statement, candidate, resolved))
+                elif resolved is not None and resolved not in _DISTRIBUTION_HELPER_METHODS:
+                    return None, "pandas-source-closure"
+        if len(procedure_matches) != 1:
+            return None, "pandas-source-closure"
+        procedure_statement, procedure_call, resolved = procedure_matches[0]
+        variant = _kernel_group_variant(procedure_call, resolved)
+        if variant is None:
+            return None, "pandas-source-closure"
+        target = procedure_statement.targets[0] if len(procedure_statement.targets) == 1 else None
+        if not (
+            isinstance(target, ast.Tuple | ast.List)
+            and len(target.elts) == 2
+            and all(isinstance(item, ast.Name) for item in target.elts)
+            and len({cast(ast.Name, item).id for item in target.elts}) == 2
+        ):
+            return None, "pandas-result-sink"
+        result_names = cast(tuple[str, str], tuple(cast(ast.Name, item).id for item in target.elts))
+        writer_replay = _kernel_pandas_writer_structure(body, constants)
+        if writer_replay is None:
+            return None, "pandas-source-closure"
+        writer_statement, write_call, writer_handle, writer_path = writer_replay
+        projection_map = _kernel_pandas_projection_map(tuple(row[0] for row in operand_rows))
+        summary_calls = _kernel_pandas_operand_method_calls(body, projection_map)
+        directory_statements = tuple(
+            statement
+            for statement in body
+            if isinstance(statement, ast.Expr)
+            and isinstance(statement.value, ast.Call)
+            and _kernel_attribute_chain(statement.value.func) == ("os", "makedirs")
+        )
+        if len(directory_statements) > 1:
+            return None, "pandas-result-sink"
+
+        allowed = {
+            reader_statement,
+            procedure_statement,
+            writer_statement,
+            *(row[1] for row in operand_rows),
+            *(row[2] for row in operand_rows if row[2] is not None),
+            *directory_statements,
+        }
+        for statement in body:
+            if statement in allowed:
+                continue
+            if isinstance(
+                statement,
+                ast.For
+                | ast.AsyncFor
+                | ast.While
+                | ast.Assert
+                | ast.Try
+                | ast.TryStar
+                | ast.Match
+                | ast.With
+                | ast.AsyncWith
+                | ast.Global
+                | ast.Nonlocal
+                | ast.If,
+            ) or any(
+                isinstance(
+                    node,
+                    ast.Lambda
+                    | ast.ListComp
+                    | ast.SetComp
+                    | ast.DictComp
+                    | ast.GeneratorExp
+                    | ast.Yield
+                    | ast.YieldFrom
+                    | ast.Await
+                    | ast.Raise,
+                )
+                for node in ast.walk(statement)
+            ):
+                return None, "pandas-source-closure"
+            if _kernel_pandas_statement_has_operand_mutator(statement, set(projection_map)):
+                # The single partition below owns mutation classification.
+                continue
+            if not isinstance(statement, ast.Assign):
+                return None, "pandas-source-closure"
+            if not _kernel_pandas_frame_uses_closed(statement, frame_name):
+                return None, "pandas-source-closure"
+
+        descriptor = PandasSourceDescriptor(
+            package_identity=package_identity,
+            import_span=_kernel_source_span(pandas_imports[0]),
+            reader_span=_kernel_source_span(reader_statement),
+            frame_name=frame_name,
+            reader_path=reader_path,
+            group_column=selection_rows[0][2],
+            value_column=selection_rows[0][3],
+            operands=tuple(row[0] for row in operand_rows),
+            procedure_variant=variant,
+            procedure_call_span=_kernel_source_span(procedure_call),
+            procedure_target_span=_kernel_source_span(target),
+            procedure_result_names=result_names,
+            summary_spans=tuple(
+                _kernel_source_span(item) for item in sorted(summary_calls, key=_kernel_source_span)
+            ),
+            directory_preparation_spans=tuple(
+                _kernel_source_span(item) for item in directory_statements
+            ),
+            writer_span=_kernel_source_span(writer_statement),
+            write_span=_kernel_source_span(write_call),
+            writer_handle=writer_handle,
+            writer_path=writer_path,
+            executable_statement_tokens=tuple(
+                _kernel_statement_token(statement, index) for index, statement in enumerate(body)
+            ),
+        )
+        key_by_operand = {row[0].operand_name: row[0].group_key for row in operand_rows}
+        bindings = tuple(
+            (
+                position,
+                argument.id if isinstance(argument, ast.Name) else "",
+                key_by_operand.get(argument.id, "") if isinstance(argument, ast.Name) else "",
+            )
+            for position, argument in enumerate(procedure_call.args)
+        )
+        return (
+            _KernelPandasSourceReplay(
+                descriptor=descriptor,
+                body=tuple(body),
+                procedure_statement=procedure_statement,
+                procedure_call=procedure_call,
+                writer_statement=writer_statement,
+                write_call=write_call,
+                projections=tuple(sorted(projection_map.items())),
+                operand_bindings=bindings,
+            ),
+            None,
+        )
+    except (IndexError, KeyError, TypeError, ValueError, RecursionError):
+        return None, "pandas-source-closure"
+
+
+def _kernel_without_leading_docstring_statements(body: list[ast.stmt]) -> list[ast.stmt]:
+    if (
+        body
+        and isinstance(body[0], ast.Expr)
+        and isinstance(body[0].value, ast.Constant)
+        and isinstance(body[0].value.value, str)
+    ):
+        return body[1:]
+    return body
+
+
+def _kernel_pandas_imports_closed(body: list[ast.stmt], pandas_import: ast.Import) -> bool:
+    allowed_imports = {
+        ("numpy", "np"),
+        ("math", None),
+        ("pathlib", None),
+        ("csv", None),
+        ("os", None),
+        ("statistics", None),
+    }
+    for statement in body:
+        if statement is pandas_import:
+            continue
+        if isinstance(statement, ast.Import):
+            if len(statement.names) != 1:
+                return False
+            alias = statement.names[0]
+            if (alias.name, alias.asname) not in allowed_imports:
+                return False
+        elif isinstance(statement, ast.ImportFrom):
+            if statement.level or len(statement.names) != 1:
+                return False
+            alias = statement.names[0]
+            if alias.asname is not None or alias.name == "*":
+                return False
+            if (statement.module, alias.name) not in {
+                ("scipy", "stats"),
+                ("pathlib", "Path"),
+                ("collections", "defaultdict"),
+                ("collections", "OrderedDict"),
+                ("__future__", "annotations"),
+            } and not (
+                statement.module == "statistics"
+                and alias.name in {"fmean", "mean", "stdev", "median", "variance"}
+            ):
+                return False
+    if any(
+        isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store | ast.Del) and node.id == "pd"
+        for node in ast.walk(ast.Module(body=body, type_ignores=[]))
+    ):
+        return False
+    return True
+
+
+def _kernel_pandas_reader_call(statement: ast.stmt) -> ast.Call | None:
+    if not (
+        isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and isinstance(statement.value, ast.Call)
+        and _kernel_attribute_chain(statement.value.func) == ("pd", "read_csv")
+    ):
+        return None
+    return statement.value
+
+
+def _kernel_pandas_constants(
+    body: list[ast.stmt], reader_index: int
+) -> tuple[dict[str, object], set[int]]:
+    constants: dict[str, object] = {}
+    indices: set[int] = set()
+    for index, statement in enumerate(body[:reader_index]):
+        if not (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+        ):
+            continue
+        value = statement.value
+        folded: object | None = None
+        if isinstance(value, ast.Constant) and type(value.value) in {str, int, float}:
+            folded = value.value
+        elif (path := _kernel_path_value(value, constants)) is not None:
+            folded = path
+        if folded is not None:
+            constants[statement.targets[0].id] = folded
+            indices.add(index)
+    return constants, indices
+
+
+def _kernel_pandas_selection(
+    expression: ast.expr, frame_name: str, constants: dict[str, object]
+) -> tuple[ast.expr, str, str, str, str] | None:
+    projection = "series"
+    base = expression
+    if isinstance(base, ast.Attribute) and base.attr == "values":
+        projection = "values"
+        base = base.value
+    elif (
+        isinstance(base, ast.Call)
+        and isinstance(base.func, ast.Attribute)
+        and base.func.attr == "dropna"
+        and not base.args
+        and not base.keywords
+    ):
+        projection = "dropna"
+        base = base.func.value
+    if not (
+        isinstance(base, ast.Subscript)
+        and isinstance(base.slice, ast.Constant)
+        and isinstance(base.slice.value, str)
+        and isinstance(base.value, ast.Subscript)
+        and isinstance(base.value.value, ast.Name)
+        and base.value.value.id == frame_name
+        and isinstance(base.value.slice, ast.Compare)
+    ):
+        return None
+    comparison = base.value.slice
+    if not (
+        len(comparison.ops) == len(comparison.comparators) == 1
+        and isinstance(comparison.ops[0], ast.Eq)
+        and isinstance(comparison.left, ast.Subscript)
+        and isinstance(comparison.left.value, ast.Name)
+        and comparison.left.value.id == frame_name
+        and isinstance(comparison.left.slice, ast.Constant)
+        and isinstance(comparison.left.slice.value, str)
+    ):
+        return None
+    key = _kernel_string_value(comparison.comparators[0], constants)
+    if key is None:
+        return None
+    return (
+        base,
+        comparison.left.slice.value,
+        base.slice.value,
+        key,
+        projection,
+    )
+
+
+def _kernel_pandas_writer_structure(
+    body: list[ast.stmt], constants: dict[str, object]
+) -> tuple[ast.With, ast.Call, str, str] | None:
+    withs = [item for item in body if isinstance(item, ast.With)]
+    writes = [
+        node
+        for statement in body
+        for node in ast.walk(statement)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in {"write", "writelines", "write_text"}
+    ]
+    if len(withs) != 1 or len(writes) != 1:
+        return None
+    statement = withs[0]
+    if len(statement.items) != 1 or len(statement.body) != 1:
+        return None
+    item = statement.items[0]
+    if not (
+        isinstance(item.context_expr, ast.Call)
+        and isinstance(item.context_expr.func, ast.Name)
+        and item.context_expr.func.id == "open"
+        and len(item.context_expr.args) == 2
+        and not item.context_expr.keywords
+        and isinstance(item.context_expr.args[1], ast.Constant)
+        and item.context_expr.args[1].value == "w"
+        and isinstance(item.optional_vars, ast.Name)
+        and isinstance(statement.body[0], ast.Expr)
+        and isinstance(statement.body[0].value, ast.Call)
+    ):
+        return None
+    write = statement.body[0].value
+    handle = item.optional_vars.id
+    path = _kernel_path_value(item.context_expr.args[0], constants)
+    if not (
+        isinstance(path, str)
+        and isinstance(write.func, ast.Attribute)
+        and isinstance(write.func.value, ast.Name)
+        and write.func.value.id == handle
+        and write.func.attr == "write"
+        and len(write.args) == 1
+        and not write.keywords
+        and writes[0] is write
+    ):
+        return None
+    return statement, write, handle, path
+
+
+def _kernel_pandas_projection_map(operands: tuple[PandasOperandProjection, ...]) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for item in operands:
+        result[item.base_series_name] = "series"
+        result[item.operand_name] = (
+            "series" if item.projection in {"series", "dropna"} else "values"
+        )
+    return result
+
+
+def _kernel_pandas_operand_method_calls(
+    body: list[ast.stmt], projections: dict[str, str]
+) -> tuple[ast.Call, ...]:
+    return tuple(
+        node
+        for statement in body
+        for node in ast.walk(statement)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id in projections
+    )
+
+
+def _kernel_pandas_frame_uses_closed(statement: ast.stmt, frame_name: str) -> bool:
+    parents = {
+        child: parent for parent in ast.walk(statement) for child in ast.iter_child_nodes(parent)
+    }
+    for node in ast.walk(statement):
+        if not (
+            isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) and node.id == frame_name
+        ):
+            continue
+        parent = parents.get(node)
+        if (
+            isinstance(parent, ast.Call)
+            and isinstance(parent.func, ast.Name)
+            and parent.func.id == "len"
+            and parent.args == [node]
+            and not parent.keywords
+        ) or (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and statement.value is node
+        ):
+            continue
+        return False
+    return True
+
+
+def _kernel_pandas_statement_has_operand_mutator(
+    statement: ast.stmt,
+    operand_names: set[str],
+) -> bool:
+    mutators = {
+        "drop",
+        "dropna",
+        "fillna",
+        "rename",
+        "sort_values",
+        "update",
+        "insert",
+        "pop",
+        "set_index",
+        "reset_index",
+        "clear",
+        "extend",
+    }
+    return any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id in operand_names
+        and node.func.attr in mutators
+        for node in ast.walk(statement)
+    )
+
+
+def _kernel_real_builtin_unbound(tree: ast.Module, name: str) -> bool:
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Name)
+            and isinstance(node.ctx, ast.Store | ast.Del)
+            and node.id == name
+        ):
+            return False
+        if isinstance(node, ast.arg) and node.arg == name:
+            return False
+        if (
+            isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef)
+            and node.name == name
+        ):
+            return False
+        if isinstance(node, ast.alias) and (node.asname or node.name.split(".", 1)[0]) == name:
+            return False
+        if isinstance(node, ast.ExceptHandler) and node.name == name:
+            return False
+        if isinstance(node, ast.Global | ast.Nonlocal) and name in node.names:
+            return False
+        if (
+            isinstance(node, ast.Attribute)
+            and isinstance(node.ctx, ast.Store | ast.Del)
+            and isinstance(node.value, ast.Name)
+            and node.value.id == "builtins"
+            and node.attr == name
+        ):
+            return False
+    return True
+
+
+def _kernel_pandas_result_sink_closed(
+    tree: ast.Module,
+    certificate: DependenceGrowthCertificate,
+    replay: _KernelPandasSourceReplay,
+) -> bool:
+    descriptor = replay.descriptor
+    expected_descriptor = certificate.obligation.pandas_source
+    if expected_descriptor is None:
+        return False
+    projections = dict(replay.projections)
+    if (
+        certificate.result_names != descriptor.procedure_result_names
+        or certificate.sink_token
+        != _kernel_node_token(certificate.source_path, replay.write_call, "selected-sink")
+        or descriptor.writer_path != expected_descriptor.writer_path
+        or not _kernel_real_builtin_unbound(tree, "open")
+    ):
+        return False
+    for builtin_name in ("len", "float"):
+        if any(
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == builtin_name
+            for node in ast.walk(tree)
+        ) and not _kernel_real_builtin_unbound(tree, builtin_name):
+            return False
+    allowed = {
+        "series": {"mean", "median", "min", "max", "std"},
+        "values": {"mean", "min", "max", "std"},
+    }
+    for call in _kernel_pandas_operand_method_calls(list(replay.body), projections):
+        receiver = cast(ast.Name, cast(ast.Attribute, call.func).value).id
+        method = cast(ast.Attribute, call.func).attr
+        if method not in allowed[projections[receiver]]:
+            return False
+        if method == "std":
+            valid = (not call.args and not call.keywords) or (
+                not call.args
+                and len(call.keywords) == 1
+                and call.keywords[0].arg == "ddof"
+                and isinstance(call.keywords[0].value, ast.Constant)
+                and type(call.keywords[0].value.value) is int
+                and call.keywords[0].value.value == 1
+            )
+        else:
+            valid = not call.args and not call.keywords
+        if not valid:
+            return False
+    constants = _kernel_pandas_constants(
+        [
+            item
+            for item in _kernel_without_leading_docstring_statements(tree.body)
+            if not isinstance(item, ast.Import | ast.ImportFrom)
+        ],
+        next(
+            index
+            for index, item in enumerate(
+                [
+                    value
+                    for value in _kernel_without_leading_docstring_statements(tree.body)
+                    if not isinstance(value, ast.Import | ast.ImportFrom)
+                ]
+            )
+            if _kernel_pandas_reader_call(item) is not None
+        ),
+    )[0]
+    directory_calls: list[ast.Call] = [
+        item.value
+        for item in replay.body
+        if isinstance(item, ast.Expr)
+        and isinstance(item.value, ast.Call)
+        and _kernel_attribute_chain(item.value.func) == ("os", "makedirs")
+    ]
+    if any(
+        not _kernel_closed_makedirs(call, constants)
+        or not call.args
+        or _kernel_path_value(call.args[0], constants) != posixpath.dirname(descriptor.writer_path)
+        for call in directory_calls
+    ):
+        return False
+    definitions = {
+        item.targets[0].id: item.value
+        for item in replay.body
+        if isinstance(item, ast.Assign)
+        and len(item.targets) == 1
+        and isinstance(item.targets[0], ast.Name)
+    }
+    pending = [
+        node.id for node in ast.walk(replay.write_call.args[0]) if isinstance(node, ast.Name)
+    ]
+    reads: set[str] = set()
+    while pending:
+        name = pending.pop()
+        if name in reads:
+            continue
+        reads.add(name)
+        value = definitions.get(name)
+        if value is not None:
+            pending.extend(node.id for node in ast.walk(value) if isinstance(node, ast.Name))
+    return set(descriptor.procedure_result_names) <= reads
+
+
+def _kernel_source_span(node: ast.AST) -> tuple[int, int, int, int]:
+    return (
+        getattr(node, "lineno", 0),
+        getattr(node, "col_offset", 0),
+        getattr(node, "end_lineno", 0),
+        getattr(node, "end_col_offset", 0),
+    )
+
+
+def _kernel_replay_pandas_group_fact(
+    material: FrozenMaterialInput,
+    obligation: GroupValueSequenceObligation,
+) -> GroupValueSequenceFact | None:
+    """Kernel-local raw-byte scanner for the exact Growth-14 material domain."""
+
+    descriptor = obligation.pandas_source
+    try:
+        if (
+            descriptor is None
+            or material.path != obligation.path
+            or material.content_digest != obligation.content_digest
+            or sha256_digest(material.content) != obligation.content_digest
+            or obligation.line_model != "pandas_no_terminal_lf"
+            or obligation.reader_form != "pandas_read_csv_simple"
+            or obligation.encoding != "ascii"
+            or obligation.cast_kind != "pandas_numeric"
+            or obligation.path != descriptor.reader_path
+            or obligation.group_key_column != descriptor.group_column
+            or obligation.value_column != descriptor.value_column
+        ):
+            return None
+        content = material.content
+        if (
+            not content
+            or len(content) > MAX_DEPENDENCE_CSV_DOMAIN_BYTES
+            or not content.isascii()
+            or content[:3] == b"\xef\xbb\xbf"
+            or content[0] == 0x0A
+            or content[-1] == 0x0A
+            or b"\r" in content
+            or b"\x00" in content
+            or b'"' in content
+            or b"\\" in content
+        ):
+            return None
+        records: list[bytes] = []
+        record_start = 0
+        previous_lf = False
+        for offset, byte in enumerate(content):
+            if byte != 0x0A:
+                previous_lf = False
+                continue
+            if previous_lf or offset == record_start:
+                return None
+            records.append(content[record_start:offset])
+            record_start = offset + 1
+            previous_lf = True
+        if not records or record_start >= len(content):
+            return None
+        records.append(content[record_start:])
+        if any(not record for record in records):
+            return None
+        table = [record.split(b",") for record in records]
+        column_count = len(table[0])
+        if (
+            column_count == 0
+            or column_count > MAX_DEPENDENCE_CSV_DOMAIN_FIELDS
+            or len(table) - 1 > MAX_DEPENDENCE_CSV_DOMAIN_ROWS
+            or len(table) - 1 > MAX_V1_MEMBERSHIPS
+            or any(len(row) != column_count for row in table)
+            or any(
+                len(cell) > MAX_DEPENDENCE_CSV_DOMAIN_FIELD_BYTES for row in table for cell in row
+            )
+        ):
+            return None
+        header = tuple(cell.decode("ascii", errors="strict") for cell in table[0])
+        required = {
+            obligation.authorized_unit_column,
+            obligation.group_key_column,
+            obligation.value_column,
+        }
+        if (
+            any(
+                not item or item != item.strip() or item in PANDAS_3_0_5_DEFAULT_MISSING_TOKENS
+                for item in header
+            )
+            or len(header) != len(set(header))
+            or len({item.casefold() for item in header}) != len(header)
+            or len(required) != 3
+            or not required <= set(header)
+        ):
+            return None
+        positions = {name: header.index(name) for name in required}
+        group_keys = tuple(item.group_key for item in descriptor.operands)
+        if (
+            len(group_keys) != 2
+            or len(set(group_keys)) != 2
+            or obligation.predeclared_bucket_keys != group_keys
+            or any(
+                re.fullmatch(PANDAS_GROUP_LITERAL_PATTERN, item, flags=re.ASCII) is None
+                or item.casefold() in PANDAS_GROUP_CASEFOLD_REFUSALS
+                for item in group_keys
+            )
+        ):
+            return None
+        rows: list[tuple[str, ...]] = []
+        all_integer = True
+        for raw in table[1:]:
+            values = tuple(cell.decode("ascii", errors="strict") for cell in raw)
+            if any(
+                not value or value != value.strip() or value in PANDAS_3_0_5_DEFAULT_MISSING_TOKENS
+                for value in values
+            ):
+                return None
+            group = values[positions[obligation.group_key_column]]
+            value = values[positions[obligation.value_column]]
+            if (
+                group not in group_keys
+                or re.fullmatch(PANDAS_VALUE_PATTERN, value, flags=re.ASCII) is None
+            ):
+                return None
+            all_integer = all_integer and "." not in value
+            rows.append(values)
+        if not rows:
+            return None
+        grouped: dict[str, list[tuple[int, str, str, str, str]]] = {key: [] for key in group_keys}
+        seen_units: set[str] = set()
+        for row_number, row in enumerate(rows, start=1):
+            group = row[positions[obligation.group_key_column]]
+            unit = row[positions[obligation.authorized_unit_column]]
+            value = row[positions[obligation.value_column]]
+            seen_units.add(unit)
+            if len(seen_units) > 5_000:
+                return None
+            grouped[group].append(
+                (
+                    row_number,
+                    "observation:"
+                    + semantic_digest(
+                        {
+                            "path": obligation.path,
+                            "digest": obligation.content_digest,
+                            "row": row_number,
+                        }
+                    ),
+                    "unit-key:"
+                    + semantic_digest({"column": obligation.authorized_unit_column, "value": unit}),
+                    value,
+                    repr(float(value)),
+                )
+            )
+        if any(not grouped[key] for key in group_keys):
+            return None
+        groups = tuple(
+            GroupValueSequence(
+                group_key=key,
+                row_indices=tuple(value[0] for value in grouped[key]),
+                observation_ids=tuple(value[1] for value in grouped[key]),
+                authorized_unit_ids=tuple(value[2] for value in grouped[key]),
+                source_values=tuple(value[3] for value in grouped[key]),
+                cast_value_reprs=tuple(value[4] for value in grouped[key]),
+            )
+            for key in sorted(grouped)
+        )
+        return GroupValueSequenceFact(
+            evidence_id="dependence-growth-group-proof:" + semantic_digest(asdict(obligation)),
+            path=obligation.path,
+            content_digest=obligation.content_digest,
+            file_ref=RecordRef(material.file_ref.record_type, material.file_ref.record_id),
+            asset_identity_ref=RecordRef(
+                material.asset_identity_ref.record_type,
+                material.asset_identity_ref.record_id,
+            ),
+            line_model=obligation.line_model,
+            reader_form=obligation.reader_form,
+            encoding=obligation.encoding,
+            ascii_bytes_proven=True,
+            header=header,
+            authorized_unit_column=obligation.authorized_unit_column,
+            group_key_column=obligation.group_key_column,
+            value_column=obligation.value_column,
+            cast_kind=obligation.cast_kind,
+            row_count=len(rows),
+            groups=groups,
+            predeclared_bucket_keys=obligation.predeclared_bucket_keys,
+            pandas_value_dtype="int64" if all_integer else "float64",
+        )
+    except (IndexError, KeyError, TypeError, ValueError, UnicodeError, OverflowError):
+        return None
 
 
 def _kernel_replay_group_fact(
@@ -2795,7 +4092,10 @@ def _kernel_typing_uses_closed(tree: ast.Module) -> bool:
 
 
 def _kernel_partition_operand_names(
-    body: list[ast.stmt], procedures: tuple[ast.Assign, ...]
+    body: list[ast.stmt],
+    procedures: tuple[ast.Assign, ...],
+    *,
+    excluded_control_statements: frozenset[ast.stmt] = frozenset(),
 ) -> set[str]:
     """Derive the sole kernel-side operand definition used by the sink partition."""
 
@@ -2823,6 +4123,7 @@ def _kernel_partition_operand_names(
         node.id
         for statement in body
         if isinstance(statement, ast.With | ast.For)
+        and statement not in excluded_control_statements
         for node in ast.walk(statement)
         if isinstance(node, ast.Name)
     )
@@ -3035,13 +4336,65 @@ def _kernel_partition_body(
     certificate: DependenceGrowthCertificate
     | CountDependenceCertificate
     | PairedDependenceCertificate,
+    *,
+    pandas_body: list[ast.stmt] | None = None,
+    pandas_procedure: ast.Assign | None = None,
+    pandas_writer: ast.With | None = None,
+    pandas_source_path: str | None = None,
+    pandas_package_identity: PandasPackageIdentity | None = None,
+    pandas_replay_out: list[_KernelPandasSourceReplay] | None = None,
+    pandas_failure_out: list[str] | None = None,
 ) -> tuple[list[ast.stmt], set[str]] | None:
-    body = _kernel_flattened_module(tree, certificate)
-    if body is None:
-        return None
+    pandas_replay: _KernelPandasSourceReplay | None = None
+    if pandas_source_path is not None:
+        if (
+            pandas_package_identity is None
+            or pandas_replay_out is None
+            or pandas_failure_out is None
+            or pandas_body is not None
+            or pandas_procedure is not None
+            or pandas_writer is not None
+        ):
+            if pandas_failure_out is not None:
+                pandas_failure_out.append("pandas-source-closure")
+            return None
+        replay, replay_failure = _kernel_pandas_source_replay(
+            tree,
+            pandas_source_path,
+            pandas_package_identity,
+        )
+        if replay is None:
+            pandas_failure_out.append(replay_failure or "pandas-source-closure")
+            return None
+        pandas_replay = replay
+        pandas_replay_out.append(replay)
+        pandas_body = list(replay.body)
+        pandas_procedure = replay.procedure_statement
+        pandas_writer = replay.writer_statement
+    pandas_mode = pandas_body is not None
+    body: list[ast.stmt]
+    if pandas_body is not None:
+        if not (
+            isinstance(certificate, DependenceGrowthCertificate)
+            and pandas_procedure is not None
+            and pandas_writer is not None
+            and pandas_procedure in pandas_body
+            and pandas_writer in pandas_body
+        ):
+            return None
+        body = list(pandas_body)
+    else:
+        flattened_body = _kernel_flattened_module(tree, certificate)
+        if flattened_body is None:
+            return None
+        body = flattened_body
     imports = _kernel_imports(tree)
     helpers: tuple[tuple[ast.Assign, str, ast.Call], ...] = ()
-    if isinstance(certificate, CountDependenceCertificate):
+    procedures: tuple[ast.Assign, ...]
+    if pandas_mode:
+        assert pandas_procedure is not None
+        procedures = (pandas_procedure,)
+    elif isinstance(certificate, CountDependenceCertificate):
         procedures = tuple(
             statement
             for statement in body
@@ -3070,14 +4423,65 @@ def _kernel_partition_body(
         if census is None:
             return None
         procedures, helpers = census
-    operands = _kernel_partition_operand_names(body, procedures)
+    operands = _kernel_partition_operand_names(
+        body,
+        procedures,
+        excluded_control_statements=(
+            frozenset({pandas_writer}) if pandas_writer is not None else frozenset()
+        ),
+    )
+    if pandas_replay is not None:
+        expected_operand_names = {item.operand_name for item in pandas_replay.descriptor.operands}
+        actual_arguments = tuple(
+            item.id for item in pandas_replay.procedure_call.args if isinstance(item, ast.Name)
+        )
+        required_names = {
+            pandas_replay.descriptor.frame_name,
+            *(item.base_series_name for item in pandas_replay.descriptor.operands),
+            *expected_operand_names,
+        }
+        if (
+            len(actual_arguments) != len(pandas_replay.procedure_call.args)
+            or len(actual_arguments) != 2
+            or set(actual_arguments) != expected_operand_names
+            or len(set(actual_arguments)) != 2
+            or not required_names <= operands
+        ):
+            return None
     if _kernel_rebound_operand_names(body, operands):
         return None
     if isinstance(certificate, DependenceGrowthCertificate) and any(
         target in operands for _statement, target, _call in helpers
     ):
         return None
-    annotation_protected_names = operands | _kernel_partition_operand_aliases(body, operands)
+    aliases = _kernel_partition_operand_aliases(body, operands)
+    if pandas_mode and aliases:
+        return None
+    if pandas_mode and any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id in operands
+        and node.func.attr
+        in {
+            "drop",
+            "dropna",
+            "fillna",
+            "rename",
+            "sort_values",
+            "update",
+            "insert",
+            "pop",
+            "set_index",
+            "reset_index",
+            "clear",
+            "extend",
+        }
+        for statement in body
+        for node in ast.walk(statement)
+    ):
+        return None
+    annotation_protected_names = operands | aliases
     normalized = _kernel_lower_annotations_for_partition(body, annotation_protected_names)
     return (normalized, operands) if normalized is not None else None
 
@@ -4048,13 +5452,25 @@ def _kernel_statement_token(statement: ast.stmt, index: int) -> str:
 
 
 def _kernel_sink_expression_closed(
-    expression: ast.expr, operands: set[str], scalar_sequences: set[str]
+    expression: ast.expr,
+    operands: set[str],
+    scalar_sequences: set[str],
+    *,
+    pandas_projections: dict[str, str] | None = None,
 ) -> bool:
+    def closed(value: ast.expr) -> bool:
+        return _kernel_sink_expression_closed(
+            value,
+            operands,
+            scalar_sequences,
+            pandas_projections=pandas_projections,
+        )
+
     if isinstance(expression, ast.Name | ast.Constant):
         return True
     if isinstance(expression, ast.Slice):
         return all(
-            item is None or _kernel_sink_expression_closed(item, operands, scalar_sequences)
+            item is None or closed(item)
             for item in (expression.lower, expression.upper, expression.step)
         )
     if isinstance(expression, ast.Subscript):
@@ -4066,57 +5482,36 @@ def _kernel_sink_expression_closed(
                     and expression.value.id in scalar_sequences
                 )
             )
-            and _kernel_sink_expression_closed(expression.value, operands, scalar_sequences)
-            and _kernel_sink_expression_closed(expression.slice, operands, scalar_sequences)
+            and closed(expression.value)
+            and closed(expression.slice)
         )
     if isinstance(expression, ast.List | ast.Tuple | ast.Set):
         return all(
-            not (isinstance(item, ast.Name) and item.id in operands)
-            and _kernel_sink_expression_closed(item, operands, scalar_sequences)
+            not (isinstance(item, ast.Name) and item.id in operands) and closed(item)
             for item in expression.elts
         )
     if isinstance(expression, ast.Dict):
         return all(
             item is None
-            or (
-                not (isinstance(item, ast.Name) and item.id in operands)
-                and _kernel_sink_expression_closed(item, operands, scalar_sequences)
-            )
+            or (not (isinstance(item, ast.Name) and item.id in operands) and closed(item))
             for item in (*expression.keys, *expression.values)
         )
     if isinstance(expression, ast.BinOp):
-        return _kernel_sink_expression_closed(
-            expression.left, operands, scalar_sequences
-        ) and _kernel_sink_expression_closed(expression.right, operands, scalar_sequences)
+        return closed(expression.left) and closed(expression.right)
     if isinstance(expression, ast.UnaryOp):
-        return _kernel_sink_expression_closed(expression.operand, operands, scalar_sequences)
+        return closed(expression.operand)
     if isinstance(expression, ast.BoolOp):
-        return all(
-            _kernel_sink_expression_closed(item, operands, scalar_sequences)
-            for item in expression.values
-        )
+        return all(closed(item) for item in expression.values)
     if isinstance(expression, ast.Compare):
-        return _kernel_sink_expression_closed(expression.left, operands, scalar_sequences) and all(
-            _kernel_sink_expression_closed(item, operands, scalar_sequences)
-            for item in expression.comparators
-        )
+        return closed(expression.left) and all(closed(item) for item in expression.comparators)
     if isinstance(expression, ast.JoinedStr):
         return all(
             not isinstance(item, ast.FormattedValue)
-            or (
-                _kernel_sink_expression_closed(item.value, operands, scalar_sequences)
-                and (
-                    item.format_spec is None
-                    or _kernel_sink_expression_closed(item.format_spec, operands, scalar_sequences)
-                )
-            )
+            or (closed(item.value) and (item.format_spec is None or closed(item.format_spec)))
             for item in expression.values
         )
     if isinstance(expression, ast.IfExp):
-        return all(
-            _kernel_sink_expression_closed(item, operands, scalar_sequences)
-            for item in (expression.test, expression.body, expression.orelse)
-        )
+        return all(closed(item) for item in (expression.test, expression.body, expression.orelse))
     if not isinstance(expression, ast.Call):
         return False
     helper_chain = _kernel_attribute_chain(expression.func)
@@ -4125,12 +5520,8 @@ def _kernel_sink_expression_closed(
         and len(helper_chain) == 3
         and (f"scipy.stats.{helper_chain[1]}.{helper_chain[2]}" in _DISTRIBUTION_HELPER_METHODS)
     ):
-        return all(
-            _kernel_sink_expression_closed(item, operands, scalar_sequences)
-            for item in expression.args
-        ) and all(
-            _kernel_sink_expression_closed(item.value, operands, scalar_sequences)
-            for item in expression.keywords
+        return all(closed(item) for item in expression.args) and all(
+            closed(item.value) for item in expression.keywords
         )
     name_calls = {
         "len",
@@ -4151,6 +5542,8 @@ def _kernel_sink_expression_closed(
         "all",
         "tuple",
     }
+    if pandas_projections is not None:
+        name_calls.add("float")
     module_calls = {
         "statistics.mean",
         "statistics.fmean",
@@ -4187,6 +5580,15 @@ def _kernel_sink_expression_closed(
         ):
             return False
     elif isinstance(expression.func, ast.Attribute):
+        if isinstance(expression.func.value, ast.Name) and expression.func.value.id in (
+            pandas_projections or {}
+        ):
+            # The sole partition classifies this call as sink-bound.  Exact
+            # projection/method/argument semantics are checked later by the
+            # fixed pandas-result-sink obligation.
+            return all(closed(item) for item in expression.args) and all(
+                closed(item.value) for item in expression.keywords
+            )
         if (
             isinstance(expression.func.value, ast.Name)
             and f"{expression.func.value.id}.{expression.func.attr}" in module_calls
@@ -4195,15 +5597,12 @@ def _kernel_sink_expression_closed(
                 return False
         elif expression.func.attr not in string_methods:
             return False
-        if not _kernel_sink_expression_closed(expression.func.value, operands, scalar_sequences):
+        if not closed(expression.func.value):
             return False
     else:
         return False
-    return all(
-        _kernel_sink_expression_closed(item, operands, scalar_sequences) for item in expression.args
-    ) and all(
-        _kernel_sink_expression_closed(item.value, operands, scalar_sequences)
-        for item in expression.keywords
+    return all(closed(item) for item in expression.args) and all(
+        closed(item.value) for item in expression.keywords
     )
 
 
@@ -4215,17 +5614,31 @@ def _kernel_sink_partition_matches(
     *,
     precomputed_partition: tuple[list[ast.stmt], set[str]] | None = None,
     abort_only_guards: tuple[AbortOnlyGuardToken, ...] = (),
+    pandas_replay: _KernelPandasSourceReplay | None = None,
 ) -> bool:
     partition = (
         precomputed_partition
         if precomputed_partition is not None
-        else _kernel_partition_body(tree, certificate)
+        else _kernel_partition_body(
+            tree,
+            certificate,
+            pandas_body=(list(pandas_replay.body) if pandas_replay is not None else None),
+            pandas_procedure=(
+                pandas_replay.procedure_statement if pandas_replay is not None else None
+            ),
+            pandas_writer=(pandas_replay.writer_statement if pandas_replay is not None else None),
+        )
     )
     if partition is None:
         return False
     body, operands = partition
     imports = _kernel_imports(tree)
-    if isinstance(certificate, CountDependenceCertificate):
+    procedures: tuple[ast.Assign, ...]
+    if pandas_replay is not None:
+        if not isinstance(certificate, DependenceGrowthCertificate):
+            return False
+        procedures = (pandas_replay.procedure_statement,)
+    elif isinstance(certificate, CountDependenceCertificate):
         procedures = tuple(
             statement
             for statement in body
@@ -4254,14 +5667,18 @@ def _kernel_sink_partition_matches(
         if census is None:
             return False
         procedures, _helpers = census
-    writes = [
-        (statement, node)
-        for statement in body
-        for node in ast.walk(statement)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and node.func.attr == "write_text"
-    ]
+    writes = (
+        [(pandas_replay.writer_statement, pandas_replay.write_call)]
+        if pandas_replay is not None
+        else [
+            (statement, node)
+            for statement in body
+            for node in ast.walk(statement)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "write_text"
+        ]
+    )
     if not procedures or len(writes) != 1:
         return False
     scalar_sequences = {
@@ -4270,6 +5687,31 @@ def _kernel_sink_partition_matches(
         for argument in cast(ast.Call, procedure.value).args
         if isinstance(argument, ast.Name)
     }
+    pandas_projections = dict(pandas_replay.projections) if pandas_replay is not None else None
+    if pandas_projections and any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id in operands
+        and node.func.attr
+        in {
+            "drop",
+            "dropna",
+            "fillna",
+            "rename",
+            "sort_values",
+            "update",
+            "insert",
+            "pop",
+            "set_index",
+            "reset_index",
+            "clear",
+            "extend",
+        }
+        for statement in body
+        for node in ast.walk(statement)
+    ):
+        return False
     if any(
         isinstance(statement, ast.Assign)
         and len(statement.targets) == 1
@@ -4280,7 +5722,11 @@ def _kernel_sink_partition_matches(
     ):
         return False
     sink_statement, sink = writes[0]
-    if not isinstance(sink_statement, ast.Expr) or len(sink.args) != 1:
+    if (
+        (pandas_replay is None and not isinstance(sink_statement, ast.Expr))
+        or (pandas_replay is not None and sink_statement is not pandas_replay.writer_statement)
+        or len(sink.args) != 1
+    ):
         return False
     definitions = {
         statement.targets[0].id: statement.value
@@ -4312,7 +5758,10 @@ def _kernel_sink_partition_matches(
         }
         if (
             statement in procedures
-            or isinstance(statement, ast.With | ast.For)
+            or (
+                isinstance(statement, ast.With | ast.For)
+                and (pandas_replay is None or statement is not pandas_replay.writer_statement)
+            )
             or stores & operands
         ):
             operand_indices.add(index)
@@ -4355,10 +5804,20 @@ def _kernel_sink_partition_matches(
                     and len(branch.targets) == 1
                     and isinstance(branch.targets[0], ast.Name)
                     and branch.targets[0].id in sink_names
-                    and _kernel_sink_expression_closed(branch.value, operands, scalar_sequences)
+                    and _kernel_sink_expression_closed(
+                        branch.value,
+                        operands,
+                        scalar_sequences,
+                        pandas_projections=pandas_projections,
+                    )
                     for branch in branches
                 )
-                and _kernel_sink_expression_closed(statement.test, operands, scalar_sequences)
+                and _kernel_sink_expression_closed(
+                    statement.test,
+                    operands,
+                    scalar_sequences,
+                    pandas_projections=pandas_projections,
+                )
             ):
                 return False
             sink_indices.add(index)
@@ -4369,11 +5828,21 @@ def _kernel_sink_partition_matches(
             and isinstance(statement.targets[0], ast.Name)
             and statement.targets[0].id in sink_names
             and not (isinstance(statement.value, ast.Name) and statement.value.id in operands)
-            and _kernel_sink_expression_closed(statement.value, operands, scalar_sequences)
+            and _kernel_sink_expression_closed(
+                statement.value,
+                operands,
+                scalar_sequences,
+                pandas_projections=pandas_projections,
+            )
         ):
             return False
         sink_indices.add(index)
-    if not _kernel_sink_expression_closed(sink.args[0], operands, scalar_sequences):
+    if not _kernel_sink_expression_closed(
+        sink.args[0],
+        operands,
+        scalar_sequences,
+        pandas_projections=pandas_projections,
+    ):
         return False
     return certificate.operand_slice_statement_tokens == tuple(
         _kernel_statement_token(body[index], index) for index in sorted(operand_indices)

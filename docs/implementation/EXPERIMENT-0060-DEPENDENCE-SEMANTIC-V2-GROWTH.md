@@ -495,3 +495,48 @@ kernel-replayed object. There is no material-free verified compatibility path.
 This amendment remains confined to the unregistered development v2 shadow. It changes
 no v1 recognizer, refusal registry, grant, pin, qualification, capability, production,
 public, or frozen-lane surface.
+
+## 2026-08-17 growth-14 binding amendment: closed pandas source recognition
+
+Growth 14 implements only the revived contract in binding design-memo Sections 17-19.
+The development-v2 shadow carries one immutable literal runtime premise for isolated
+Python 3.11.15 with pandas 3.0.5, NumPy 2.2.6, SciPy 1.14.0, and python-dateutil
+2.9.0.post0. The premise binds the pandas distribution artifacts and complete RECORD
+counts; it is not a grant, installed pin, runtime dependency, qualification, or public
+capability. The recognizer neither imports pandas nor inspects or mutates the runtime.
+
+Before pandas source classification, the analyzer and kernel independently require one
+immutable whole-root repository snapshot, its complete associated regular-file records,
+full-digest identities, and the exact development runtime-premise identity. Missing,
+ambiguous, symlinked, shadowing, or customization-route inventories refuse. No case id
+or frozen inventory digest appears in recognizer code.
+
+The only pandas material form is the original digest-bound ASCII CSV byte stream with
+no terminal LF. Physical validation occurs before decode or record splitting and
+rejects every second representation, including terminal LF, CR/CRLF, leading or doubled
+LF, blank records, BOM, NUL, quotes, escapes, ragged rows, empty or whitespace cells,
+non-ASCII bytes, and the complete pandas-3.0.5 missing-token vocabulary. The group and
+numeric grammars are the exact tiny reviewed grammars; values reconstruct only as the
+reviewed `int64` or `float64` domain, and `.dropna()` must be proven row-preserving.
+
+Pandas syntax extends the pre-existing single operand/sink partition. Detailed frame,
+base/final Series or ndarray lineage, procedure arguments and result targets, aliases,
+rebindings, mutations, summaries, and writer flow are derived only inside that partition
+in both analyzer and kernel. There is no pandas-local classifier and no
+`pandas-binding-not-closed` reason. Source failures use the eleven fixed analyzer/domain
+reasons and their total precedence; alias, rebind, and mutation siblings retain the
+existing partition reasons.
+
+The certificate kernel applies exactly six singleton-preemptive pandas obligations in
+the reviewed order: package identity, source closure, single partition, material domain,
+operand values, and result sink. It independently reparses source, rederives the package
+and partition, scans the original bytes with logic distinct from the analyzer, returns a
+new value-equal fact object, and binds certificate identity and conclusion to that
+returned object. Supplied facts are equality checks only and never substitute for byte
+reconstruction.
+
+This build remains unregistered and report-only. It changes no v1, authority
+translation or lock, grant, installed pin, registry, capability, qualification,
+production/public, harness, wall-corpus, evaluation, or frozen-lane surface. Frozen
+re-measurement, batches, manifest regeneration, commit, and push remain orchestrator
+operations after independent code review.

@@ -51,6 +51,12 @@ DEPENDENCE_V2_KERNEL_REFUSAL_OBLIGATIONS = frozenset(
         "paired-certificate-identity",
         "paired-alpha-renaming",
         "paired-dead-construct-completeness",
+        "pandas-package-identity",
+        "pandas-source-closure",
+        "pandas-single-partition",
+        "pandas-material-domain",
+        "pandas-operand-values",
+        "pandas-result-sink",
     }
 )
 
@@ -129,6 +135,17 @@ DEPENDENCE_V2_REASON_REGISTRY = frozenset(
         "paired-value-cast-unproven",
         "paired-value-not-finite",
         "paired-vector-construction-unproven",
+        "pandas-package-identity-unproven",
+        "pandas-script-function-not-closed",
+        "pandas-script-shape-not-closed",
+        "pandas-reader-form-unsupported",
+        "pandas-frame-transform-not-closed",
+        "pandas-operand-form-unsupported",
+        "pandas-summary-form-unsupported",
+        "pandas-dropna-not-proven",
+        "pandas-material-domain-unproven",
+        "pandas-result-binding-unproven",
+        "pandas-sink-form-unsupported",
         "procedure-call-unresolved",
         "distribution-helper-not-bound",
         "distribution-helper-reaches-operand",
@@ -197,11 +214,62 @@ def require_registered_v2_reason(reason: str) -> str:
     return reason
 
 
-CastKind = Literal["none", "float", "int"]
+CastKind = Literal["none", "float", "int", "pandas_numeric"]
 CountPredicateOperator = Literal["eq", "ne"]
 GrowthConclusion = Literal["repeated_units", "one_observation_per_unit"]
 PairedConclusion = Literal["repeated_unit_across_pair_positions", "one_pair_position_per_unit"]
 AbortOnlyGuardRoleKind = Literal["row_sequence", "group_container", "procedure_operand"]
+PandasProjectionKind = Literal["series", "values", "values_alias", "dropna"]
+
+
+@dataclass(frozen=True, order=True)
+class PandasPackageIdentity:
+    """One complete controller-frozen case inventory plus the literal runtime premise."""
+
+    runtime_premise_id: str
+    runtime_premise_digest: str
+    snapshot_ref: RecordRef
+    snapshot_digest: str
+    file_manifest_ref: str
+    inventory_digest: str
+    regular_file_count: int
+
+
+@dataclass(frozen=True, order=True)
+class PandasOperandProjection:
+    """One exact pandas selection and its optional identity projection."""
+
+    base_series_name: str
+    operand_name: str
+    group_key: str
+    projection: PandasProjectionKind
+    selection_span: tuple[int, int, int, int]
+    projection_span: tuple[int, int, int, int]
+
+
+@dataclass(frozen=True, order=True)
+class PandasSourceDescriptor:
+    """Original-source closure for the tiny pandas reader/filter variant."""
+
+    package_identity: PandasPackageIdentity
+    import_span: tuple[int, int, int, int]
+    reader_span: tuple[int, int, int, int]
+    frame_name: str
+    reader_path: str
+    group_column: str
+    value_column: str
+    operands: tuple[PandasOperandProjection, ...]
+    procedure_variant: str
+    procedure_call_span: tuple[int, int, int, int]
+    procedure_target_span: tuple[int, int, int, int]
+    procedure_result_names: tuple[str, str]
+    summary_spans: tuple[tuple[int, int, int, int], ...]
+    directory_preparation_spans: tuple[tuple[int, int, int, int], ...]
+    writer_span: tuple[int, int, int, int]
+    write_span: tuple[int, int, int, int]
+    writer_handle: str
+    writer_path: str
+    executable_statement_tokens: tuple[str, ...]
 
 
 @dataclass(frozen=True, order=True)
@@ -325,6 +393,7 @@ class GroupValueSequenceFact:
     row_count: int
     groups: tuple[GroupValueSequence, ...]
     predeclared_bucket_keys: tuple[str, ...]
+    pandas_value_dtype: Literal["int64", "float64"] | None = None
 
 
 @dataclass(frozen=True, order=True)
@@ -341,6 +410,7 @@ class GroupValueSequenceObligation:
     value_column: str
     cast_kind: CastKind
     predeclared_bucket_keys: tuple[str, ...]
+    pandas_source: PandasSourceDescriptor | None = None
 
 
 @dataclass(frozen=True, order=True)
@@ -466,7 +536,7 @@ class DependenceGrowthCertificate:
     result_names: tuple[str, ...]
     sink_token: str
     group_container_name: str
-    group_container_kind: Literal["dict", "defaultdict_list"]
+    group_container_kind: Literal["dict", "defaultdict_list", "pandas_series"]
     operand_bindings: tuple[OperandGroupBinding, ...]
     alpha_renames: tuple[AlphaRename, ...]
     operand_slice_statement_tokens: tuple[str, ...]

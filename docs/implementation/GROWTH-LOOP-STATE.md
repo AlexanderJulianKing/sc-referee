@@ -5,8 +5,13 @@ focused count compile-validity repair are built, pushed, independently reviewed 
 all four assents, and scratch-remeasured through `3b65b7c`; all 135 census/frozen
 cases retained zero accusations and zero full-analysis completions, and the live
 planted-positive observation remained `0/47`. Growth-14's revived attempt-2 pandas
-design passed fresh maximum-effort HEAVY review with all five assents and is cleared
-to a fresh build; no re-measure or batch is authorized).
+design passed fresh maximum-effort HEAVY review with all five assents, and a distinct
+fresh maximum-effort builder has completed the literal implementation uncommitted on
+exact pushed base `1eb74be`. Its 184-test dedicated matrix, focused/static/isolation
+gates, protected-path check, and the orchestrator's 4,461-test pre-manifest serial
+full gate all passed. The functional commit, manifest regeneration, exact 4,462-test
+gate, push, and a different fresh maximum-effort code review still gate any
+re-measure; no frozen case or batch is authorized).
 
 ## Scoreboard
 
@@ -802,6 +807,49 @@ to a fresh build; no re-measure or batch is authorized).
   literally; a different fresh maximum-effort code reviewer still gates any
   re-measure. Optional terminal LF, runtime mutation, a batch, and all protected or
   frozen-lane changes remain unauthorized.
+- Fresh maximum-effort Growth-14 implementer session
+  `01a00f4d-a3e3-76d2-882a-04d8a7369aad`, distinct from both design reviewers,
+  built the complete binding memo through Section 19 on exact clean pushed base
+  `1eb74be6a8ed1f634f1bf08ded005b1e7440d0db`, with `.git` read-only and restored by
+  the orchestrator trap. It changed exactly eight authorized paths: EXPERIMENT-0060;
+  the development-v2 adapter, analyzer, IR, CSV domain, and certificate kernel; one
+  new immutable pandas-runtime-premise module; and one new Growth-14 test module. It
+  did not edit STATE or MANIFEST, commit, push, install or mutate a runtime, run a
+  frozen re-measure or batch, or touch any v1, grant, pin, registry, capability,
+  qualification, production/public, harness, evaluation, corpus, or frozen-lane
+  path.
+- The implementation binds isolated Python 3.11.15, pandas 3.0.5, NumPy 2.2.6,
+  SciPy 1.14.0, python-dateutil 2.9.0.post0, and exact pandas distribution artifacts
+  as one immutable development-only premise. Analyzer and kernel independently prove
+  package identity from one complete digest-bound per-case file inventory; parse the
+  exact original no-terminal-LF ASCII CSV bytes without normalization; reuse the sole
+  partition for pandas lineage/result ownership; independently rebuild the returned
+  group fact; and apply the reviewed six singleton kernel obligations. Unknown,
+  dynamic, shadowed, ambiguous, incomplete, dtype-divergent, selection-divergent,
+  lineage-mutated, or second-representation forms fail closed. No case id or frozen
+  inventory digest is embedded in recognizer code.
+- Builder evidence passed all 184 dedicated Growth-14 tests: seven original target
+  streams and operation-named runtime siblings matched pandas indexes, values, order,
+  dtypes, operands, and single report sinks; all 63 physical siblings, all nineteen
+  missing tokens, the documented bool/numeric/object/precision divergences, 35
+  alias/rebind/mutation siblings, eighteen default-deny AST classes, all 21 row-8
+  pairs, all 66 kernel-stage pairs and 220 triples, and the coordinated fact/source/
+  material mutations closed at the required boundaries. Exact target observations
+  were six covered negatives (`0006`, `0012`, `0030`, `0035`, `0038`, `0039`) and one
+  development-only evaluation candidate (`0025`); excluded `0004`, `0009`, `0014`,
+  `0016`, and `0027` retained their reviewed singleton first walls. This is build
+  evidence only, not a frozen re-measure or production Finding.
+- Builder validation also passed scoped Ruff/format, `mypy src` over 162 source files,
+  starter validation over 79 public examples, production/qualification isolation,
+  both live installed pins, `git diff --check`, and 660 of 661 focused tests; the sole
+  focused failure was the expected pre-commit manifest-content mismatch. The
+  orchestrator verified exact local/remote base identity, eight authorized changed
+  paths, restored `.git`, and zero protected/frozen changes, then ran the authoritative
+  serial whole-repository pre-manifest gate with only
+  `test_manifest_builder_inventory_equals_git_tree_listing` deselected. All 4,461
+  selected tests reached 100% with captured `PYTEST_EXIT=0`. The functional/state
+  commit, manifest regeneration, exact no-deselection 4,462-test gate, manifest
+  commit, push, and a different fresh maximum-effort code reviewer remain mandatory.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
@@ -863,8 +911,9 @@ to a fresh build; no re-measure or batch is authorized).
    must-not-accuse fixtures become the round's central regressions); fail-closed on any
    ambiguity between paired and independent claims; dev lanes only. Sequence after
    queue item 0 unless census evidence reorders.
-2. CLEARED TO BUILD as Growth-14 after maintainer-authorized pandas revival and fresh
-   attempt-2 maximum-effort HEAVY design clearance: `unsupported-import-form`, twelve
+2. BUILT UNCOMMITTED AND PRE-MANIFEST GATED as Growth-14 after maintainer-authorized
+   pandas revival and fresh attempt-2 maximum-effort HEAVY design clearance:
+   `unsupported-import-form`, twelve
    of 39 authentic census locks. Import-only relaxation remains forbidden and
    completes zero cases. Binding memo Sections 17-19 define the smallest reviewed
    pandas/read/filter/operand slice, independent kernel reconstruction, complete
@@ -872,12 +921,14 @@ to a fresh build; no re-measure or batch is authorized).
    one sole classification partition, fixed six-obligation kernel, and total
    singleton precedence. Fresh reviewer `01a00f11` returned all five assents plus
    unconditional `CLEAR TO BUILD` after the complete HEAVY probe inventory and exact
-   4,278-test serial gate. A fresh builder may implement only that contract; a
-   different fresh maximum-effort code reviewer, exact full-suite gate, and zero-
-   accusation scratch re-measure still gate closure. Dynamic/unknown forms remain
-   default-deny. Optional terminal LF, runtime mutation, a frozen re-measure, batch,
-   or any v1/grant/pin/registry/capability/qualification/production/frozen-lane change
-   is not authorized.
+   4,278-test serial gate. Fresh maximum-effort builder `01a00f4d` implemented only
+   that contract on exact pushed base `1eb74be`; its 184-test matrix and the
+   orchestrator's 4,461-test pre-manifest full gate passed with captured exit 0. The
+   functional/state commit, manifest regeneration, exact 4,462-test gate, push, and a
+   different fresh maximum-effort code reviewer still gate any zero-accusation scratch
+   re-measure and closure. Dynamic/unknown forms remain default-deny. Optional terminal
+   LF, runtime mutation, a frozen re-measure, batch, or any v1/grant/pin/registry/
+   capability/qualification/production/frozen-lane change is not authorized.
 3. COMPLETED in Growth-15 after a correct code-review halt, focused repair, fresh
    maximum-effort clearance, and the zero-accusation 135-case scratch re-measure:
    `raise-guard-not-modeled`, seven census cases.

@@ -29,6 +29,7 @@ DEPENDENCE_V2_PACKAGE_FILES = (
     "count_domain.py",
     "csv_domain.py",
     "ir.py",
+    "pandas_runtime_premise.py",
     "paired_domain.py",
     "python_analyzer.py",
 )
