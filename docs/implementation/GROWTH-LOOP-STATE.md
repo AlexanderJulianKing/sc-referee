@@ -1,25 +1,23 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
-Updated: 2026-08-17 (Growth-12/13/15 closed; Growth-15 Option A and the authorized
-focused count compile-validity repair are built, pushed, independently reviewed with
-all four assents, and scratch-remeasured through `3b65b7c`; all 135 census/frozen
-cases retained zero accusations and zero full-analysis completions, and the live
-planted-positive observation remained `0/47`. Growth-14's revived attempt-2 pandas
-design passed fresh maximum-effort HEAVY review with all five assents, was built,
-passed the 4,461-test pre-manifest and exact 4,462-test serial gates, and was pushed
-through `46b2c21`. A different reviewer then BLOCKED re-measure after proving the
-package-identity inventory-omission route. The first authorized repair builder
-correctly stopped on missing manifest bytes; the maintainer's minimum plumbing
-clarification then authorized one final builder, which has handed off the focused
-digest-bound manifest-bijection repair uncommitted on `e4e08a6`. Its focused gates
-are green and an orchestrator-detected v1 projection regression was corrected by that
-same builder before handoff. The corrected 4,485-test pre-manifest serial gate is now
-green with captured exit 0; the functional repair is committed as `2dc282c`, its
-manifest as `7823dce`, and the exact 4,486-test serial gate is green with captured exit
-0. Final state/manifest closure, push, and a fresh maximum-effort code review remain
-mandatory. No re-measure, planted-positive observation, or batch is authorized until
-that reviewer completes the entire halted matrix, gives all five assents, and returns
-`CLEAR FOR RE-MEASURE`).
+Updated: 2026-08-17 (Growth-12/13/15 closed; Growth-15 Option A and its focused count
+compile-validity repair remain independently cleared and scratch-remeasured through
+`3b65b7c`, with zero accusations and `0/47` planted-positive retro-certifications.
+Growth-14's revived pandas design, initial build, and digest-bound manifest-bijection
+repair are pushed through exact clean local/remote `bc34aa1`; both authoritative
+4,486-test serial gates were green. The subsequent fresh maximum-effort reviewer
+reproduced the original inventory-omission probe as a refusal, but then BLOCKED after
+demonstrating that manifest-listed adjacent `workflow/pandas.so` was accepted by the
+analyzer, direct kernel, and adapter even though ordinary pinned-runtime import
+resolution selected that extension candidate and failed before the report. This is
+the ninth review-killed development-only route. Alex has now authorized one final
+default-deny adjacent-candidate repair: analyzer and kernel must independently reject
+every adjacent `pandas` module or package candidate recognized by the pinned
+interpreter's own import machinery, with suffixes derived from that interpreter and
+never hardcoded. A fresh builder and then a different fresh maximum-effort reviewer
+are mandatory. No re-measure, planted-positive observation, or batch is authorized
+until all five assents and `CLEAR FOR RE-MEASURE`; a third repair block parks
+Growth-14 with a no-build disposition and moves the loop to the next queue item).
 
 ## Scoreboard
 
@@ -27,11 +25,13 @@ that reviewer completes the entire halted matrix, gives all five assents, and re
   evaluation/development/dependence-growth-loop/), ZERO false accusations, zero
   regressions. 95 measurable (batch-D case dc2b31d5 was intake-refused, never
   materialized). No blind catch yet; misses are honest named abstentions.
-- Eight demonstrated false-accusation routes killed in review before measurement
+- Nine demonstrated false-accusation or false-clearance routes killed in review
+  before measurement
   (filter-predicate, paired/crossover, alias-then-mutate, counted-domain, AnnAssign
   rebind, plain-Assign rebind, count-path compile-validity, package-identity inventory
-  omission). The plain-Assign fix is structural (operand-name-rebound, all assignment
-  forms through one partition test). The seventh route is a development-lane probe
+  omission, adjacent extension-module shadowing). The plain-Assign fix is structural
+  (`operand-name-rebound`, all assignment forms through one partition test). The
+  seventh route is a development-lane probe
   only: it was pre-existing since the count kernel's Growth-2 origin, reproduced on
   base `38bbe06`, and never reached a scored, frozen, or corpus case; every re-measure
   has retained zero accusations. The eighth is likewise a development-lane probe
@@ -40,7 +40,12 @@ that reviewer completes the entire halted matrix, gives all five assents, and re
   kernel, and adapter accept an incomplete package-identity proof. It never reached
   any scored, frozen, or corpus case. The authoritative 4,462-test gate was green on
   the blocked snapshot; this is explicit evidence that reviewer clearance outranks
-  even a complete green gate.
+  even a complete green gate. The ninth is also a development-lane probe only: on
+  Growth-14 snapshot `bc34aa1`, a complete digest-bound inventory containing
+  `workflow/pandas.so` passed both package proofs, the direct kernel, and the adapter,
+  although ordinary pinned-runtime import resolution selected the adjacent extension
+  and failed before report creation. It likewise never reached a scored, frozen, or
+  corpus case; the two green 4,486-test gates did not authorize re-measure.
 - v1.1.0 qualified detector + installed pins: untouched and live throughout.
 - Maintainer checkpoint trigger: every frozen re-measure now separately reports
   whether a planted positive reaches full development analysis and emits an adverse
@@ -975,6 +980,39 @@ that reviewer completes the entire halted matrix, gives all five assents, and re
   `PYTEST_EXIT=0`. The final handoff-state/manifest refresh and repeated exact suite
   still gate push; after push, only a distinct fresh maximum-effort code reviewer may
   authorize re-measure.
+- The orchestrator completed that handoff closure as state commit `befccad`, final
+  manifest commit `bc34aa12e582a2473bc2db56d7eec2572c6c6e58`, and an additional
+  exact 4,486-test serial run with captured exit 0, then pushed exact clean
+  local/remote `bc34aa1`. Fresh maximum-effort reviewer session
+  `01a0109d-573e-73e2-8498-61c3ae6d2d87` independently re-executed the original
+  manifest-record omission and observed analyzer, direct kernel, and adapter refusal;
+  passed the complete 205-test Growth-14 module (the original 184 plus 21 repair
+  cases), the 262-case controller/context/re-entry set, the 681-case combined focused
+  set, 41 regression-ledger/runner/baseline cases, protected-v1 and live-pin checks,
+  and independent missing/extra/duplicate/mismatch/non-regular/symlink bijection
+  probes. Before the remaining static and serial gates, it found a new mandatory
+  immediate block: a complete manifest and record bijection containing adjacent
+  `workflow/pandas.so` made both package proofs accept, made the direct kernel verify
+  `one_observation_per_unit`, and made the adapter return `covered_negative`.
+  Ordinary execution with the declared pinned interpreter selected the adjacent
+  extension candidate, raised during import, and produced no report; the `-I` control
+  used the real pandas and completed. The reviewer explicitly halted under the
+  immediate-BLOCK rule. A platform safety filter interrupted final-footer emission,
+  but no `CLEAR FOR RE-MEASURE` exists and the executed blocker controls.
+- Alex reviewed that halt directly and authorized one final default-deny
+  adjacent-candidate repair. Both analyzer and kernel must independently enumerate
+  from the pinned development interpreter's own import machinery every module suffix
+  and package form by which an adjacent entry could be imported as `pandas`, including
+  extension modules, and reject if any such candidate is present in the proven-complete
+  inventory. No suffix list may be hardcoded; if the pinned Python could import the
+  adjacent entry as `pandas`, the existing package-identity refusal kills the lock.
+  The builder may change only this proof and exact regressions. A different fresh
+  maximum-effort reviewer must re-run both the `.so` and prior omission probes, add at
+  least two importer-derived disguise siblings, complete the entire previously halted
+  matrix and all dedicated/focused/static/isolation/serial gates, return all five
+  assent lines, and issue `CLEAR FOR RE-MEASURE`. A third repair block parks Growth-14
+  with a no-build disposition; no fourth repair is allowed, and the loop proceeds to
+  the next measured queue item while pandas identity awaits redesign.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
@@ -1036,7 +1074,8 @@ that reviewer completes the entire halted matrix, gives all five assents, and re
    must-not-accuse fixtures become the round's central regressions); fail-closed on any
    ambiguity between paired and independent claims; dev lanes only. Sequence after
    queue item 0 unless census evidence reorders.
-2. BLOCKED IN CODE REVIEW; FOCUSED HEAVY REPAIR AUTHORIZED as Growth-14 after
+2. BLOCKED IN CODE REVIEW; FINAL DEFAULT-DENY HEAVY REPAIR AUTHORIZED as Growth-14
+   after
    maintainer-authorized pandas revival and fresh attempt-2 maximum-effort HEAVY
    design clearance:
    `unsupported-import-form`, twelve
@@ -1055,12 +1094,20 @@ that reviewer completes the entire halted matrix, gives all five assents, and re
    after the exact inventory-omission probe reached a false clearance through analyzer,
    kernel, and adapter. Binding memo Section 20 authorizes only a digest-bound frozen
    file manifest with exact manifest-to-record bijection, independently checked by
-   analyzer and kernel, plus the exact omission regression. A fresh fix builder and a
-   different fresh maximum-effort reviewer completing the entire halted inventory and
-   returning all five assents plus `CLEAR FOR RE-MEASURE` still gate any scratch
-   re-measure and closure. Dynamic/unknown forms remain default-deny. Optional terminal
-   LF, runtime mutation, a frozen re-measure, batch, or any v1/grant/pin/registry/
-   capability/qualification/production/frozen-lane change is not authorized.
+   analyzer and kernel, plus the exact omission regression. That repair is pushed
+   through `bc34aa1`, but its fresh reviewer found the ninth route: an adjacent
+   pinned-interpreter extension candidate `workflow/pandas.so` passed package identity
+   and yielded a false clearance. Binding memo Section 20.5 now authorizes the final
+   default-deny repair: enumerate every adjacent pandas import candidate from the
+   pinned interpreter's own import machinery, never a hardcoded suffix list, and
+   refuse any inventory hit. A fresh fix builder and a different fresh maximum-effort
+   reviewer completing both historical probes, two new importer-derived disguises,
+   the entire halted inventory, and all five assents plus `CLEAR FOR RE-MEASURE` still
+   gate any scratch re-measure and closure. A further block parks Growth-14 with a
+   no-build disposition and moves the loop onward. Dynamic/unknown forms remain
+   default-deny. Optional terminal LF, runtime mutation, a frozen re-measure, batch,
+   or any v1/grant/pin/registry/capability/qualification/production/frozen-lane change
+   is not authorized.
 3. COMPLETED in Growth-15 after a correct code-review halt, focused repair, fresh
    maximum-effort clearance, and the zero-accusation 135-case scratch re-measure:
    `raise-guard-not-modeled`, seven census cases.
