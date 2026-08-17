@@ -568,3 +568,29 @@ manifest, a completeness flag, or the other path's match result. The existing pa
 package-identity refusal boundary and all non-v2 conclusions remain unchanged.
 Growth 14 binds the independently validated manifest digest only through
 `PandasPackageIdentity` and the resulting certificate identity.
+
+### 2026-08-17 Section-20.5 adjacent-import-candidate repair build record
+
+The final focused repair derives the source, bytecode, and extension suffix categories
+from the running proof interpreter's `importlib.machinery` only when its exact Python
+version, implementation, cache tag, and SOABI match the immutable development-runtime
+premise. The categories must be nonempty, path-safe, duplicate-free, and exactly equal
+to that interpreter's combined reported suffix vocabulary; mismatch or ambiguity
+refuses at the existing pandas package-identity boundary. The recognizer does not
+import pandas, execute project code, inspect the external runtime, or carry a manually
+written suffix vocabulary.
+
+After each proof's independent exact manifest-to-record bijection, the analyzer and
+kernel separately enumerate `pandas` plus every derived module suffix in every
+import-reachable adjacent directory, together with the adjacent `pandas` package path,
+and compare those candidates with their own proven-complete inventory. Any regular,
+non-regular, or symlink entry at a candidate path refuses package identity. Neither
+proof consumes a certificate-carried path set, completeness assertion, analyzer result,
+or shared package-identity decision. Existing customization-path, all-regular-file,
+source/material identity, certificate, conclusion, and refusal semantics are unchanged.
+
+Permanent regressions retain the manifest-record omission refusal and add the exact
+`workflow/pandas.so` analyzer/direct-kernel/adapter route, ordinary-versus-`-I` runtime
+control, every suffix reported by the pinned importer, adjacent package-path entry
+kinds, mismatched running-interpreter identity, and ambiguous importer vocabulary.
+This remains unreviewed build evidence only and authorizes no re-measure or batch.

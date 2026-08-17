@@ -3,21 +3,22 @@
 Updated: 2026-08-17 (Growth-12/13/15 closed; Growth-15 Option A and its focused count
 compile-validity repair remain independently cleared and scratch-remeasured through
 `3b65b7c`, with zero accusations and `0/47` planted-positive retro-certifications.
-Growth-14's revived pandas design, initial build, and digest-bound manifest-bijection
-repair are pushed through exact clean local/remote `bc34aa1`; both authoritative
-4,486-test serial gates were green. The subsequent fresh maximum-effort reviewer
-reproduced the original inventory-omission probe as a refusal, but then BLOCKED after
-demonstrating that manifest-listed adjacent `workflow/pandas.so` was accepted by the
-analyzer, direct kernel, and adapter even though ordinary pinned-runtime import
-resolution selected that extension candidate and failed before the report. This is
-the ninth review-killed development-only route. Alex has now authorized one final
-default-deny adjacent-candidate repair: analyzer and kernel must independently reject
-every adjacent `pandas` module or package candidate recognized by the pinned
-interpreter's own import machinery, with suffixes derived from that interpreter and
-never hardcoded. A fresh builder and then a different fresh maximum-effort reviewer
-are mandatory. No re-measure, planted-positive observation, or batch is authorized
-until all five assents and `CLEAR FOR RE-MEASURE`; a third repair block parks
-Growth-14 with a no-build disposition and moves the loop to the next queue item).
+Growth-14's revived pandas design and first two blocked package-identity repairs are
+recorded below. Alex authorized one final default-deny adjacent-candidate repair on
+pushed exact clean base `7cd4c88`. Fresh maximum-effort builder session `01a010e9`
+has now implemented the build-only repair in exactly five authorized Growth-14 files:
+the pinned CPython identity and importer-derived source/bytecode/extension vocabulary,
+independent analyzer and kernel candidate checks after their respective manifest
+bijections, exact historical regressions, every importer-reported suffix, and adjacent
+package-path entry kinds. Its 215/215 dedicated, 691/691 focused, 262/262 context,
+protected/isolation/static gates all passed; the orchestrator independently reran the
+two historical probes plus the derived-suffix and package-entry cases, 9/9 green, and
+observed the pinned vocabulary `.py`, `.pyc`, `.cpython-311-darwin.so`, `.abi3.so`,
+and `.so`. The implementation remains uncommitted and unreviewed. The authoritative
+serial full-suite gate, orchestrator commit/manifest/push, and a different fresh
+maximum-effort reviewer are next. No re-measure, planted-positive observation, or
+batch is authorized until all five assents and `CLEAR FOR RE-MEASURE`; a third repair
+block parks Growth-14 with a no-build disposition and moves the loop onward).
 
 ## Scoreboard
 
@@ -1013,6 +1014,43 @@ Growth-14 with a no-build disposition and moves the loop to the next queue item)
   assent lines, and issue `CLEAR FOR RE-MEASURE`. A third repair block parks Growth-14
   with a no-build disposition; no fourth repair is allowed, and the loop proceeds to
   the next measured queue item while pandas identity awaits redesign.
+- Fresh maximum-effort final-repair builder session
+  `01a010e9-6350-72c1-bac9-f4e03045ced7`, distinct from every prior builder and
+  reviewer, worked from exact clean local/remote `7cd4c8831e0c685b59389fee7bed9c5cb8eb6393`
+  with `.git` read-only. It changed exactly five authorized paths: the Growth-14
+  experiment record, pandas runtime premise, analyzer, certificate kernel, and
+  Growth-14 tests. The premise now binds the exact CPython version, implementation,
+  cache tag, and SOABI; only a matching running proof interpreter may supply its own
+  nonempty, path-safe, duplicate-free source, bytecode, and extension suffix
+  categories, whose concatenation must equal `importlib.machinery.all_suffixes()`.
+  The analyzer and kernel each invoke that primitive only after independently proving
+  the exact manifest-to-record bijection, separately enumerate every `pandas` module
+  name at each import-reachable ancestor plus the adjacent package path, and refuse
+  every inventory hit regardless of entry kind at the existing package-identity
+  boundary. No hardcoded suffix vocabulary, new reason, syntax, conclusion, score,
+  registry, grant, pin, qualification, production, or frozen-lane change was made.
+  Permanent coverage rose from 205 to 215 cases and retains the complete 63-sibling,
+  nineteen-token, 35-partition, precedence, and fact-replay matrices. The exact `.so`
+  and inventory-omission probes refused through analyzer, direct kernel, and adapter;
+  every suffix reported by pinned CPython 3.11.15 (`.py`, `.pyc`,
+  `.cpython-311-darwin.so`, `.abi3.so`, `.so`) refused at repository root and the
+  workflow directory; regular, directory, and symlink adjacent package entries,
+  mismatched interpreter identity, and ambiguous vocabulary also refused. Builder
+  gates passed 215/215 dedicated, 691/691 focused (only the intentionally stale
+  manifest-inventory assertion deselected), 262/262 controller/context/re-entry,
+  74/74 protected, 41/41 regression-ledger, 4/4 direct isolation, scoped Ruff/format,
+  `mypy src` over 162 files, starter validation over 79 examples, diff, and protected
+  path checks. Repository-wide Ruff was attempted and reported only pre-existing
+  frozen-corpus debt; those files remained byte-unchanged. The orchestrator then
+  independently reran both historical probes, every derived-suffix case, and all
+  package-entry-kind cases, 9/9 green, and directly observed the same five-suffix
+  vocabulary. A first standalone vocabulary diagnostic omitted `PYTHONPATH` and
+  failed before import; the corrected invocation exited zero. The orchestrator's
+  authoritative serial pre-manifest suite then selected 4,495 tests (only the
+  intentionally stale manifest-inventory assertion was deselected), reached 100%,
+  and captured `PYTEST_EXIT=0`. No commit, push, re-measure, planted-positive
+  observation, or batch has yet occurred on this build. Only a different fresh
+  maximum-effort reviewer may clear it.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 

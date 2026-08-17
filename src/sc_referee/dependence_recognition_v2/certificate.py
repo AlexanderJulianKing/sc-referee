@@ -61,6 +61,7 @@ from sc_referee.dependence_recognition_v2.pandas_runtime_premise import (
     PANDAS_GROUP_CASEFOLD_REFUSALS,
     PANDAS_GROUP_LITERAL_PATTERN,
     PANDAS_VALUE_PATTERN,
+    derive_pinned_python_import_suffix_vocabulary,
 )
 from sc_referee.scientific_checks.core import FrozenBaseRecord, FrozenMaterialInput
 
@@ -621,6 +622,14 @@ def _kernel_pandas_package_identity(
         )
         if file_records is None:
             return None
+        import_suffixes = derive_pinned_python_import_suffix_vocabulary()
+        proven_paths = {cast(str, payload["path"]) for _record, payload in file_records}
+        if import_suffixes is None or _kernel_pandas_inventory_forbidden(
+            proven_paths,
+            source_path,
+            module_suffixes=import_suffixes.all_suffixes,
+        ):
+            return None
         identity_by_ref: dict[tuple[str, str], FrozenBaseRecord] = {}
         for record in base_records:
             if record.ref.record_type != "asset_identity":
@@ -640,14 +649,12 @@ def _kernel_pandas_package_identity(
             ):
                 identity_claims[("file_record", str(claimed["record_id"]))] += 1
         entries: list[tuple[str, str]] = []
-        seen_paths: set[str] = set()
         source_match = 0
         material_match = 0
         for record, payload in file_records:
             path = cast(str, payload["path"])
-            if payload["entry_kind"] != "regular_file" or path in seen_paths:
+            if payload["entry_kind"] != "regular_file":
                 return None
-            seen_paths.add(path)
             identity_ref = payload.get("asset_identity_ref")
             assert isinstance(identity_ref, dict)
             ref = (
@@ -676,12 +683,7 @@ def _kernel_pandas_package_identity(
             entries.append((path, digest))
             source_match += int(path == source_path and digest == source_digest)
             material_match += int(path == material.path and digest == material.content_digest)
-        if (
-            not entries
-            or source_match != 1
-            or material_match != 1
-            or _kernel_pandas_inventory_forbidden(seen_paths, source_path)
-        ):
+        if not entries or source_match != 1 or material_match != 1:
             return None
         inventory_projection = [
             {"path": path, "digest": digest}
@@ -798,29 +800,31 @@ def _kernel_manifest_record_bijection(
         return None
 
 
-def _kernel_pandas_inventory_forbidden(paths: set[str], source_path: str) -> bool:
+def _kernel_pandas_inventory_forbidden(
+    paths: set[str],
+    source_path: str,
+    *,
+    module_suffixes: tuple[str, ...],
+) -> bool:
     ancestors: set[str] = {""}
     current = posixpath.dirname(source_path)
     while current:
         ancestors.add(current)
         current = posixpath.dirname(current)
+    module_candidates = {f"pandas{suffix}" for suffix in module_suffixes}
+    package_candidates = {
+        f"{directory}/pandas" if directory else "pandas" for directory in ancestors
+    }
     for path in paths:
         directory, _, basename = path.rpartition("/")
-        if directory in ancestors and (
-            basename
-            in {
-                "pandas.py",
-                "pandas.pyc",
-                "sitecustomize.py",
-                "usercustomize.py",
-            }
-            or basename.endswith(".pth")
+        if directory in ancestors and basename in module_candidates:
+            return True
+        if path in package_candidates or any(
+            path.startswith(f"{candidate}/") for candidate in package_candidates
         ):
             return True
-        components = path.split("/")
-        if any(
-            component == "pandas" and "/".join(components[:index]) in ancestors
-            for index, component in enumerate(components[:-1])
+        if directory in ancestors and (
+            basename in {"sitecustomize.py", "usercustomize.py"} or basename.endswith(".pth")
         ):
             return True
     return False

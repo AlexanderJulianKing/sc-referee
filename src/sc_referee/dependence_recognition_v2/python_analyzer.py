@@ -71,6 +71,7 @@ from sc_referee.dependence_recognition_v2.paired_domain import (
 from sc_referee.dependence_recognition_v2.pandas_runtime_premise import (
     PANDAS_DEVELOPMENT_RUNTIME_PREMISE,
     PANDAS_DEVELOPMENT_RUNTIME_PREMISE_DIGEST,
+    derive_pinned_python_import_suffix_vocabulary,
 )
 from sc_referee.scientific_checks.core import (
     FrozenBaseRecord,
@@ -995,6 +996,14 @@ def _analyzer_pandas_package_identity(
         )
         if file_records is None:
             return None
+        import_suffixes = derive_pinned_python_import_suffix_vocabulary()
+        proven_paths = {cast(str, payload["path"]) for _record, payload in file_records}
+        if import_suffixes is None or _pandas_inventory_has_shadow(
+            proven_paths,
+            source_path,
+            module_suffixes=import_suffixes.all_suffixes,
+        ):
+            return None
         identity_records: dict[tuple[str, str], FrozenBaseRecord] = {}
         for record in context.base_records:
             if record.ref.record_type != "asset_identity":
@@ -1004,7 +1013,6 @@ def _analyzer_pandas_package_identity(
                 return None
             identity_records[identity_key] = record
         inventory: list[dict[str, str]] = []
-        paths: set[str] = set()
         source_seen = False
         material_seen = False
         identity_claim_counts: Counter[tuple[str, str]] = Counter()
@@ -1023,7 +1031,6 @@ def _analyzer_pandas_package_identity(
             path = cast(str, payload["path"])
             if payload["entry_kind"] != "regular_file":
                 return None
-            paths.add(path)
             identity_ref_value = payload.get("asset_identity_ref")
             assert isinstance(identity_ref_value, dict)
             identity_ref = (
@@ -1054,7 +1061,7 @@ def _analyzer_pandas_package_identity(
             material_seen = material_seen or (
                 path == material.path and digest == material.content_digest
             )
-        if not source_seen or not material_seen or _pandas_inventory_has_shadow(paths, source_path):
+        if not source_seen or not material_seen:
             return None
         return PandasPackageIdentity(
             runtime_premise_id=PANDAS_DEVELOPMENT_RUNTIME_PREMISE.premise_id,
@@ -1166,7 +1173,12 @@ def _analyzer_manifest_record_bijection(
         return None
 
 
-def _pandas_inventory_has_shadow(paths: set[str], source_path: str) -> bool:
+def _pandas_inventory_has_shadow(
+    paths: set[str],
+    source_path: str,
+    *,
+    module_suffixes: tuple[str, ...],
+) -> bool:
     source_directory = posixpath.dirname(source_path)
     reachable = {""}
     while source_directory:
@@ -1175,19 +1187,24 @@ def _pandas_inventory_has_shadow(paths: set[str], source_path: str) -> bool:
         if parent == source_directory:
             break
         source_directory = parent
+    module_candidates = {f"pandas{suffix}" for suffix in module_suffixes}
+    package_candidates = {
+        posixpath.join(directory, "pandas") if directory else "pandas" for directory in reachable
+    }
     for path in paths:
         parts = path.split("/")
         directory = posixpath.dirname(path)
         name = parts[-1]
-        if name in {"pandas.py", "pandas.pyc", "sitecustomize.py", "usercustomize.py"} and (
-            directory in reachable
+        if directory in reachable and name in module_candidates:
+            return True
+        if path in package_candidates or any(
+            path.startswith(f"{candidate}/") for candidate in package_candidates
         ):
+            return True
+        if name in {"sitecustomize.py", "usercustomize.py"} and directory in reachable:
             return True
         if name.endswith(".pth") and directory in reachable:
             return True
-        for index, component in enumerate(parts[:-1]):
-            if component == "pandas" and "/".join(parts[:index]) in reachable:
-                return True
     return False
 
 

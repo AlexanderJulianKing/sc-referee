@@ -17,6 +17,8 @@ from typing import Any, cast
 
 import pytest
 
+import sc_referee.dependence_recognition_v2.pandas_runtime_premise as pandas_runtime_premise_module
+import sc_referee.dependence_recognition_v2.python_analyzer as python_analyzer_module
 from sc_referee.controller import (
     FrozenFileManifestInput,
     ManifestBoundFrozenInspectionContext,
@@ -45,6 +47,7 @@ from sc_referee.dependence_recognition_v2.pandas_runtime_premise import (
     PANDAS_3_0_5_DEFAULT_MISSING_TOKENS,
     PANDAS_DEVELOPMENT_RUNTIME_PREMISE,
     PANDAS_DEVELOPMENT_RUNTIME_PREMISE_DIGEST,
+    derive_pinned_python_import_suffix_vocabulary,
 )
 from sc_referee.dependence_recognition_v2.python_analyzer import (
     _analyzer_pandas_package_identity,
@@ -672,6 +675,18 @@ def _assert_both_package_identity_paths_refuse(context: FrozenInspectionContext)
     )
 
 
+def _assert_package_identity_refusal_at_analyzer_and_adapter(
+    context: FrozenInspectionContext,
+) -> None:
+    _assert_both_package_identity_paths_refuse(context)
+    assert analyze_dependence_growth_python(context).abstention_reasons == (
+        "pandas-package-identity-unproven",
+    )
+    adapter_payload = DependenceRecognitionV2ShadowAdapter().inspect(context)
+    assert adapter_payload["outcome"] == "unsupported"
+    assert adapter_payload["abstention_reasons"] == ["pandas-package-identity-unproven"]
+
+
 def _stale_material(material: FrozenMaterialInput, content: bytes) -> FrozenMaterialInput:
     stale = object.__new__(FrozenMaterialInput)
     for field, value in (
@@ -876,9 +891,11 @@ def test_declared_isolated_pandas_runtime_and_complete_record_liveness() -> None
 import base64
 import csv
 import hashlib
+import importlib.machinery
 import io
 import json
 import sys
+import sysconfig
 from pathlib import Path
 
 import dateutil
@@ -916,6 +933,15 @@ for relative, carried_hash, carried_size in rows:
         mismatches += 1
 print(json.dumps({
     "python_version": ".".join(map(str, sys.version_info[:3])),
+    "python_implementation": sys.implementation.name,
+    "python_cache_tag": sys.implementation.cache_tag,
+    "python_soabi": sysconfig.get_config_var("SOABI"),
+    "import_suffixes": {
+        "source": importlib.machinery.SOURCE_SUFFIXES,
+        "bytecode": importlib.machinery.BYTECODE_SUFFIXES,
+        "extension": importlib.machinery.EXTENSION_SUFFIXES,
+        "all": importlib.machinery.all_suffixes(),
+    },
     "pandas_version": pandas.__version__,
     "numpy_version": numpy.__version__,
     "scipy_version": scipy.__version__,
@@ -942,6 +968,17 @@ print(json.dumps({
     observed = json.loads(completed.stdout)
     premise = PANDAS_DEVELOPMENT_RUNTIME_PREMISE
     assert observed["python_version"] == premise.python_version
+    assert observed["python_implementation"] == premise.python_implementation
+    assert observed["python_cache_tag"] == premise.python_cache_tag
+    assert observed["python_soabi"] == premise.python_soabi
+    import_suffixes = derive_pinned_python_import_suffix_vocabulary()
+    assert import_suffixes is not None
+    assert observed["import_suffixes"] == {
+        "source": list(import_suffixes.source_suffixes),
+        "bytecode": list(import_suffixes.bytecode_suffixes),
+        "extension": list(import_suffixes.extension_suffixes),
+        "all": list(import_suffixes.all_suffixes),
+    }
     assert observed["pandas_version"] == premise.pandas_version
     assert observed["numpy_version"] == premise.numpy_version
     assert observed["scipy_version"] == premise.scipy_version
@@ -1724,6 +1761,122 @@ def test_exact_shadow_record_omission_refuses_analyzer_kernel_and_adapter() -> N
     assert failures == ["pandas-package-identity"]
 
 
+def test_exact_adjacent_pandas_so_refuses_analyzer_direct_kernel_and_adapter(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    extension_payload = b"not a loadable extension module\n"
+    context = _synthetic_context(
+        _source(), inventory_additions={"workflow/pandas.so": extension_payload}
+    )
+    _assert_package_identity_refusal_at_analyzer_and_adapter(context)
+
+    with monkeypatch.context() as analyzer_bypass:
+        analyzer_bypass.setattr(
+            python_analyzer_module,
+            "_pandas_inventory_has_shadow",
+            lambda *_args, **_kwargs: False,
+        )
+        proposed, fact = _proposal_and_fact(context)
+    verified, failures = _verify(_final_certificate(proposed, fact), fact, context)
+    assert verified is None
+    assert failures == ("pandas-package-identity",)
+
+    case = tmp_path / "adjacent-extension-candidate"
+    (case / "workflow").mkdir(parents=True)
+    (case / "results").mkdir()
+    (case / "workflow/pandas.so").write_bytes(extension_payload)
+    (case / "workflow/control.py").write_text(
+        "from pathlib import Path\n"
+        "import pandas\n"
+        "Path('results/report.md').write_text(pandas.__file__, encoding='utf-8')\n",
+        encoding="ascii",
+    )
+    report = case / "results/report.md"
+    ordinary = subprocess.run(
+        [str(_RUNTIME), "workflow/control.py"],
+        cwd=case,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert ordinary.returncode != 0
+    assert "pandas.so" in ordinary.stderr
+    assert not report.exists()
+    isolated = subprocess.run(
+        [str(_RUNTIME), "-I", "workflow/control.py"],
+        cwd=case,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert isolated.returncode == 0, isolated.stderr
+    assert report.read_text(encoding="utf-8").endswith("site-packages/pandas/__init__.py")
+
+
+def test_every_pinned_importer_reported_adjacent_pandas_suffix_refuses() -> None:
+    vocabulary = derive_pinned_python_import_suffix_vocabulary()
+    assert vocabulary is not None
+    observed_paths: set[str] = set()
+    for directory in ("", "workflow"):
+        prefix = f"{directory}/" if directory else ""
+        for suffix in vocabulary.all_suffixes:
+            path = f"{prefix}pandas{suffix}"
+            observed_paths.add(path)
+            context = _synthetic_context(
+                _source(), inventory_additions={path: b"adjacent import candidate\n"}
+            )
+            _assert_package_identity_refusal_at_analyzer_and_adapter(context)
+    assert observed_paths
+
+
+@pytest.mark.parametrize("directory", ["", "workflow"])
+@pytest.mark.parametrize("entry_kind", ["regular_file", "directory", "symlink"])
+def test_adjacent_pandas_package_candidate_refuses_for_every_entry_kind(
+    directory: str,
+    entry_kind: str,
+) -> None:
+    prefix = f"{directory}/" if directory else ""
+    path = f"{prefix}pandas"
+    if entry_kind == "regular_file":
+        context = _synthetic_context(
+            _source(), inventory_additions={path: b"package-path candidate\n"}
+        )
+    else:
+        context = _synthetic_context(_source(), extra_inventory_entries=((path, entry_kind),))
+    _assert_package_identity_refusal_at_analyzer_and_adapter(context)
+
+
+def test_package_identity_refuses_a_mismatched_running_python_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = _synthetic_context(_source())
+    monkeypatch.setattr(
+        pandas_runtime_premise_module,
+        "PANDAS_DEVELOPMENT_RUNTIME_PREMISE",
+        replace(PANDAS_DEVELOPMENT_RUNTIME_PREMISE, python_soabi="mismatched-soabi"),
+    )
+    assert derive_pinned_python_import_suffix_vocabulary() is None
+    _assert_package_identity_refusal_at_analyzer_and_adapter(context)
+
+
+def test_package_identity_refuses_an_ambiguous_importer_vocabulary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = _synthetic_context(_source())
+    vocabulary = derive_pinned_python_import_suffix_vocabulary()
+    assert vocabulary is not None
+    monkeypatch.setattr(
+        pandas_runtime_premise_module.importlib.machinery,
+        "all_suffixes",
+        lambda: (*vocabulary.all_suffixes, vocabulary.all_suffixes[0]),
+    )
+    assert derive_pinned_python_import_suffix_vocabulary() is None
+    _assert_package_identity_refusal_at_analyzer_and_adapter(context)
+
+
 @pytest.mark.parametrize(
     "path",
     [
@@ -1738,7 +1891,7 @@ def test_exact_shadow_record_omission_refuses_analyzer_kernel_and_adapter() -> N
         "workflow/customization.pth",
     ],
 )
-def test_every_import_reachable_shadow_or_customization_route_refuses_before_source(
+def test_existing_import_reachable_shadow_or_customization_routes_refuse_before_source(
     path: str,
 ) -> None:
     hostile_source = _source().replace(
