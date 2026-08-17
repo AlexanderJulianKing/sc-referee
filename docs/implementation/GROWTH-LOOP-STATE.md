@@ -156,8 +156,11 @@ walking skeleton).
   the exact node pass, found no protected or pre-K drift, and returned
   `CHECKPOINT-K INTEGRATION VERDICT: CLEAR FOR SERIAL GATE`. The functional K
   integration is committed as `1899529d5fb0f18d786e0d4ae2dd527d38948ef3`;
-  release-manifest refresh and the authoritative serial full-suite gate remain before
-  push.
+  state-only integration bookkeeping is committed as
+  `14cd9184e2974136cf3a36ff1e45aa53ab64cafa`. The refreshed-manifest authoritative
+  serial suite collected 4,496 tests and completed with verified `PYTEST_EXIT=0`.
+  A final manifest refresh and identical serial gate on these exact recorded bytes
+  remain before push.
 
 ## Audit-report ladder HEAVY design review 1 — BLOCKED
 
