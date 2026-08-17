@@ -1,11 +1,11 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
-Updated: 2026-08-17 (Growth-12/13 closed; Growth-14 pandas revival is maintainer-
-authorized but queued after Growth-15; Growth-15 Option A and the authorized focused
-count compile-validity repair are built and pushed through `407c25b`; fresh maximum-
-effort repair review returned all four assents and unconditional `CLEAR FOR BATCHES`;
-the scratch frozen re-measure and explicit planted-positive observation still gate
-Growth-15 closure and the pandas revival).
+Updated: 2026-08-17 (Growth-12/13/15 closed; Growth-15 Option A and the authorized
+focused count compile-validity repair are built, pushed, independently reviewed with
+all four assents, and scratch-remeasured through `3b65b7c`; all 135 census/frozen
+cases retained zero accusations and zero full-analysis completions, and the live
+planted-positive observation remained `0/47`. The maintainer-authorized Growth-14
+pandas revival is next).
 
 ## Scoreboard
 
@@ -735,6 +735,37 @@ Growth-15 closure and the pandas revival).
   `PROTOCOL-PRECEDENCE: ASSENT`, `FACT-REPLAY-CLOSURE: ASSENT`,
   `VERDICT: CLEAR FOR BATCHES`. This is the code gate only; a fresh scratch re-measure
   and explicit live retro-certification observation remain mandatory before closure.
+- The gated Growth-15 scratch re-measure compared exact pre-round base
+  `38bbe063b9a96239c860eec90cc49e934bf3cd69` with reviewed head `3b65b7ce` over all
+  40 immutable `run-40-authority-2` cases and all 95 materialized frozen A-J2 cases.
+  It rebuilt authority through each code snapshot's current declaration/procedure
+  translation, used 81 frozen-audit-record contexts plus 14 byte-derived fallbacks,
+  wrote locks only to temporary scratch, and made no model call or authored-project
+  execution. Both sides retained 39/1 census lock/no-lock and 80/15 frozen lock/no-
+  lock transport, the identical outcomes `126 unsupported + 9 question`, zero full-
+  analysis completions, and zero accusations.
+- Exactly nine full sorted reason sets moved, with no other field affecting outcome:
+  census `0002` `function-globals-read;function-return-shape;raise-guard-not-modeled`
+  -> `function-globals-read;function-return-shape`; `0007`
+  `raise-guard-not-modeled` -> `augmented-assignment-not-modeled`; `0011` and `0021`
+  `raise-guard-not-modeled` -> `reader-form-unsupported`; `0028`
+  `function-globals-read;raise-guard-not-modeled` -> `function-globals-read`; `0033`
+  `raise-guard-not-modeled` -> `augmented-assignment-not-modeled`; `0034`
+  `function-globals-read;function-return-shape;raise-guard-not-modeled` ->
+  `function-globals-read;function-return-shape`; frozen G2 `a8b660a9685f13f0187f`
+  `raise-guard-not-modeled` -> `augmented-assignment-not-modeled`; and frozen J2
+  `729d2099346c87040906` `count-predicate-not-closed;raise-guard-not-modeled` ->
+  `count-predicate-not-closed;procedure-call-unresolved`.
+- The live, current-translation development adapter inspected all 47 materialized
+  planted positives and produced `0/47` adverse certificates, so checkpoint batch K
+  is not triggered. The census and complete frozen lane were byte-identical before
+  and after both code-snapshot runs: census inventory 397 entries at
+  `sha256:2107dd3dabd4681dab289f05b9eaa10b649caf0f551306bd30ace2ec74d8c9bb`;
+  frozen inventory 15,422 entries at
+  `sha256:0006345a10d92fa80bc6e060d4e2bd049d50aa1d0ca50de474b19d37d2f10ff2`.
+  Both installed-pin and production-isolation probes passed with captured exit 0.
+  Growth-15 is closed; Growth-14 pandas revival is released to begin its HEAVY design
+  sequence after the normal state/manifest/full-suite/push closure gate.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
@@ -811,8 +842,8 @@ Growth-15 closure and the pandas revival).
    registry, every protected path, and frozen lanes remain byte-frozen. Fresh HEAVY
    design and code reviews still gate any build or re-measure; do not start this item
    until Growth-15 closes.
-3. CODE REVIEW CLEAR; SCRATCH RE-MEASURE/CLOSURE PENDING after a correct code-review
-   halt and focused repair as Growth-15:
+3. COMPLETED in Growth-15 after a correct code-review halt, focused repair, fresh
+   maximum-effort clearance, and the zero-accusation 135-case scratch re-measure:
    `raise-guard-not-modeled`, seven census cases.
    After three blocked reviews, the maintainer selected complete independent byte-
    derived ordinary group-fact reconstruction (Option A). Fresh resumed reviewer
@@ -829,9 +860,11 @@ Growth-15 closure and the pandas revival).
    gate green. Fresh maximum-effort reviewer `01a00e74` independently completed the
    exact counterexample, 36-case runtime matrix, fact replay/mutation/precedence
    inventory, protected/static/full gates, and 26-workflow/55-raise comparison; it
-   returned all four assents plus `CLEAR FOR BATCHES`. Run the authorized zero-
-   accusation scratch re-measure and live `0/47` retro-certification observation next;
-   only that result closes Growth-15 and releases queued Growth-14 pandas design work.
+   returned all four assents plus `CLEAR FOR BATCHES`. The gated pre-round-base versus
+   reviewed-head re-measure then produced exactly nine reason-only movements, zero
+   transport or outcome changes, zero completions, zero accusations, byte-identical
+   immutable inputs, and a live `0/47` planted-positive retro-certification result.
+   Growth-15 is closed and queued Growth-14 pandas design work is released.
 4. Numeric comparison predicates for counts (float(row[x]) > CONST). The refreshed
    premise has no authentic direct numeric census opportunity; `446cab...` is a
    count-trial declaration no-lock and J2 uses a computed `delta`. Re-measure before
