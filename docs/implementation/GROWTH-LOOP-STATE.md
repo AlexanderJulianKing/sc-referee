@@ -4,8 +4,9 @@ Updated: 2026-08-17 (Growth-12/13/15 closed; Growth-15 Option A and the authoriz
 focused count compile-validity repair are built, pushed, independently reviewed with
 all four assents, and scratch-remeasured through `3b65b7c`; all 135 census/frozen
 cases retained zero accusations and zero full-analysis completions, and the live
-planted-positive observation remained `0/47`. The maintainer-authorized Growth-14
-pandas revival is next).
+planted-positive observation remained `0/47`. Growth-14's revived attempt-2 pandas
+design passed fresh maximum-effort HEAVY review with all five assents and is cleared
+to a fresh build; no re-measure or batch is authorized).
 
 ## Scoreboard
 
@@ -766,6 +767,41 @@ pandas revival is next).
   Both installed-pin and production-isolation probes passed with captured exit 0.
   Growth-15 is closed; Growth-14 pandas revival is released to begin its HEAVY design
   sequence after the normal state/manifest/full-suite/push closure gate.
+- Growth-14's revived attempt-2 HEAVY design review used fresh maximum-effort reviewer
+  session `01a00f11-a1a1-73c0-8c5e-3df9e4f2b02c` on exact clean local/remote base
+  `cf0b93abe73aefb0a695c758b6731e866d488bbf`, with `.git` read-only. It returned no
+  BLOCKER, MAJOR, or MINOR finding and the required footer:
+  `PACKAGE-IDENTITY: ASSENT`, `PANDAS-INVARIANCE: ASSENT`,
+  `SINGLE-OPERAND-CLASSIFICATION: ASSENT`, `PROTOCOL-PRECEDENCE: ASSENT`,
+  `FACT-REPLAY-CLOSURE: ASSENT`, `VERDICT: CLEAR TO BUILD`.
+- The reviewer admitted all seven original no-terminal-LF pandas target streams in
+  independent analyzer and kernel prototypes and refused all 63 amended siblings at
+  the material boundary: one appended LF per target plus CRLF, leading/doubled LF,
+  interior blank, missing-token, quoted, ragged, and non-ASCII variants. Digest and
+  byte-length traces proved physical validation of the original bound bytes before
+  decoding or parsing, with no normalization or reconstruction. It also swept the
+  nineteen missing-value tokens; reproduced all seven pinned pandas-3.0.5 indexes,
+  dtypes, selections, values, order, and SciPy operands; kept every documented bool,
+  object-decimal, and precision divergence outside the domain; and proved real pandas
+  identity from the isolated pinned runtime plus complete per-case inventories while
+  refusing adjacent shadows and ambiguous or incomplete inventories before
+  classification.
+- The same review exercised 35 sole-partition binding/lineage siblings, eighteen
+  default-deny AST classes, real-builtin `open`/`len`, projection-specific summaries,
+  exact directory/result/writer flow, the five excluded first walls, all 66 stage
+  pairs, 220 triples, and 21 row-8 category pairs, and all six independently byte-
+  derived kernel obligations with mutation-total singleton precedence. Analyzer and
+  kernel facts were equal but distinct objects and only the returned kernel fact fed
+  the conclusion. Validation passed 473 focused tests, 71 protected/release tests,
+  scoped static checks, `mypy src`, starter validation, both live pins, production and
+  protected/frozen identity, and the authoritative serial full suite (`4,278 passed`,
+  exit 0). The census remained 39 locks / one no-lock, forty unsupported, zero
+  accusations; import-only pandas relaxation still completed zero cases; the planted-
+  positive observation remained `0/47`; no frozen re-measure ran. Binding memo
+  Section 19 records the clearance. A fresh builder may implement Sections 17-19
+  literally; a different fresh maximum-effort code reviewer still gates any
+  re-measure. Optional terminal LF, runtime mutation, a batch, and all protected or
+  frozen-lane changes remain unauthorized.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
@@ -827,21 +863,21 @@ pandas revival is next).
    must-not-accuse fixtures become the round's central regressions); fail-closed on any
    ambiguity between paired and independent claims; dev lanes only. Sequence after
    queue item 0 unless census evidence reorders.
-2. MAINTAINER-AUTHORIZED FOR REVIVAL AFTER GROWTH-15 CLOSES (Fable escalation channel,
-   confirmed with Alex, 2026-08-16); the prior Growth-14 no-build disposition remains
-   correct: `unsupported-import-form`, twelve of 39 authentic census locks. All
-   twelve are pandas workflows, so an import-only change is forbidden and measured
-   to complete zero cases. Design the smallest recursively closed pandas/read/filter/
-   operand slice that lowers into the existing sole classification; the kernel must
-   independently rederive it. The authorized package-identity premise must prove
-   resolution to real pandas from the complete per-case file inventory, including no
-   adjacent shadowing module, and a specific pinned pandas version may be declared and
-   installed only in the development sandbox. Dynamic forms remain default-deny;
-   dtype/selection divergences demonstrated in review become refusal fixtures or
-   separately proved reconstruction rules. Qualified v1 surfaces, grant pins,
-   registry, every protected path, and frozen lanes remain byte-frozen. Fresh HEAVY
-   design and code reviews still gate any build or re-measure; do not start this item
-   until Growth-15 closes.
+2. CLEARED TO BUILD as Growth-14 after maintainer-authorized pandas revival and fresh
+   attempt-2 maximum-effort HEAVY design clearance: `unsupported-import-form`, twelve
+   of 39 authentic census locks. Import-only relaxation remains forbidden and
+   completes zero cases. Binding memo Sections 17-19 define the smallest reviewed
+   pandas/read/filter/operand slice, independent kernel reconstruction, complete
+   per-case plus pandas-3.0.5 package identity, exact no-terminal-LF material domain,
+   one sole classification partition, fixed six-obligation kernel, and total
+   singleton precedence. Fresh reviewer `01a00f11` returned all five assents plus
+   unconditional `CLEAR TO BUILD` after the complete HEAVY probe inventory and exact
+   4,278-test serial gate. A fresh builder may implement only that contract; a
+   different fresh maximum-effort code reviewer, exact full-suite gate, and zero-
+   accusation scratch re-measure still gate closure. Dynamic/unknown forms remain
+   default-deny. Optional terminal LF, runtime mutation, a frozen re-measure, batch,
+   or any v1/grant/pin/registry/capability/qualification/production/frozen-lane change
+   is not authorized.
 3. COMPLETED in Growth-15 after a correct code-review halt, focused repair, fresh
    maximum-effort clearance, and the zero-accusation 135-case scratch re-measure:
    `raise-guard-not-modeled`, seven census cases.
