@@ -1,11 +1,11 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
-Updated: 2026-08-16 (Growth-12/13 closed; Growth-14 pandas revival is maintainer-
-authorized but queued after Growth-15; Growth-15 Option A is built and pushed through
-`3f4694a`, and its fresh code review preserved all four design assents but halted on a
-pre-existing count-path compile-validity route; the authorized focused repair is now
-built as `2a141f4` with the pre-manifest full gate green; manifest, exact full-suite
-push, and fresh repair review still gate any re-measure or batch).
+Updated: 2026-08-17 (Growth-12/13 closed; Growth-14 pandas revival is maintainer-
+authorized but queued after Growth-15; Growth-15 Option A and the authorized focused
+count compile-validity repair are built and pushed through `407c25b`; fresh maximum-
+effort repair review returned all four assents and unconditional `CLEAR FOR BATCHES`;
+the scratch frozen re-measure and explicit planted-positive observation still gate
+Growth-15 closure and the pandas revival).
 
 ## Scoreboard
 
@@ -704,6 +704,37 @@ push, and fresh repair review still gate any re-measure or batch).
   committed as `2a141f40f31a85b7b3b423f0c10c30fffb8c9f06`. Manifest regeneration,
   the exact 4,278-test full gate and push, then a different fresh maximum-effort code
   reviewer still gate any re-measure.
+- The orchestrator regenerated `MANIFEST.sha256`, committed the handoff and manifest
+  as `40e1925` and `407c25b`, ran the exact no-deselection serial repository suite
+  with all 4,278 tests passing and `PYTEST_EXIT=0`, and pushed exact clean local/remote
+  `407c25b115099d020e9d2daa0f9f07767da89a18`.
+- Fresh maximum-effort repair reviewer session
+  `01a00e74-5074-7f40-a4e3-f230d1ed87ea`, distinct from every Growth-15 builder and
+  earlier reviewer, reviewed that exact clean pushed snapshot with `.git` read-only
+  and returned no finding. It independently re-executed the misplaced-future-import
+  defect: `ast.parse` succeeded, `compile()` and the pinned runtime failed before any
+  report, direct count verification returned only `source-parse`, and the adapter
+  returned only `certificate-kernel-refusal:source-parse`. Group and paired siblings
+  retained their existing compile refusals and valid binomial/Fisher siblings were
+  byte-identical to pre-repair outcomes.
+- That reviewer completed the previously halted runtime and replay matrices: 36
+  pinned-runtime false-guard cases matched byte-rederived operands and report results;
+  the authentic `(1, 4)` true guard made zero procedure calls/writes; the exact
+  supplied-only `(1, 4) -> (2, 3)` mutation and every 17 top-level, six nested, and
+  coordinated fact mutation refused at `fact-closure`; and the returned fact was the
+  distinct kernel-replayed object. The 26-workflow / 55-raise inventory reproduced
+  exactly nine reason-only movements, seventeen freezes, zero outcome movements,
+  zero completions, and zero accusations. The read-only recorded planted-positive
+  observation remained `0/47`, so batch K was not triggered by review.
+- Review gates passed 2 exact repair tests, 153 Growth-2/Growth-15 tests, the exact 477-
+  test focused command, scoped Ruff/format, `mypy src` over 161 files, starter
+  validation over 79 public examples, both live pins, manifest/release identity,
+  production and qualification isolation, protected/frozen identity, and the exact
+  serial full suite (`4,278 passed`, seven warnings, exit 0). Final footer:
+  `FALLTHROUGH-INERTNESS: ASSENT`, `SINGLE-OPERAND-CLASSIFICATION: ASSENT`,
+  `PROTOCOL-PRECEDENCE: ASSENT`, `FACT-REPLAY-CLOSURE: ASSENT`,
+  `VERDICT: CLEAR FOR BATCHES`. This is the code gate only; a fresh scratch re-measure
+  and explicit live retro-certification observation remain mandatory before closure.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
@@ -780,8 +811,8 @@ push, and fresh repair review still gate any re-measure or batch).
    registry, every protected path, and frozen lanes remain byte-frozen. Fresh HEAVY
    design and code reviews still gate any build or re-measure; do not start this item
    until Growth-15 closes.
-3. FOCUSED REPAIR BUILT; MANIFEST/FULL/PUSH/REVIEW PENDING after a correct
-   code-review halt as Growth-15:
+3. CODE REVIEW CLEAR; SCRATCH RE-MEASURE/CLOSURE PENDING after a correct code-review
+   halt and focused repair as Growth-15:
    `raise-guard-not-modeled`, seven census cases.
    After three blocked reviews, the maintainer selected complete independent byte-
    derived ordinary group-fact reconstruction (Option A). Fresh resumed reviewer
@@ -794,12 +825,13 @@ push, and fresh repair review still gate any re-measure or batch).
    `compile()` validation at the count verifier's existing `source-parse` boundary
    plus direct-kernel and adapter misplaced-future-import regressions, with no new
    refusal reason. Fresh fix builder `01a00e4f` implemented exactly that as `2a141f4`;
-   both exact regressions, focused/static/safety gates, and the 4,277-selected
-   pre-manifest full suite passed. Manifest regeneration, exact 4,278-test full gate,
-   push, and a different fresh maximum-effort code reviewer completing the exact
-   counterexample, runtime matrix, static/full gates, and four-assent confirmation
-   still gate a zero-accusation scratch re-measure and closure. Do not run a frozen
-   re-measure, batch, or advance queued Growth-14 before those gates.
+   manifest and state commits reached pushed `407c25b`, with the exact 4,278-test full
+   gate green. Fresh maximum-effort reviewer `01a00e74` independently completed the
+   exact counterexample, 36-case runtime matrix, fact replay/mutation/precedence
+   inventory, protected/static/full gates, and 26-workflow/55-raise comparison; it
+   returned all four assents plus `CLEAR FOR BATCHES`. Run the authorized zero-
+   accusation scratch re-measure and live `0/47` retro-certification observation next;
+   only that result closes Growth-15 and releases queued Growth-14 pandas design work.
 4. Numeric comparison predicates for counts (float(row[x]) > CONST). The refreshed
    premise has no authentic direct numeric census opportunity; `446cab...` is a
    count-trial declaration no-lock and J2 uses a computed `delta`. Re-measure before
