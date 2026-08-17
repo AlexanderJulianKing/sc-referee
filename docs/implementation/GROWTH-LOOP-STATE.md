@@ -4,24 +4,15 @@ Updated: 2026-08-17 (Growth-12/13/15 closed; Growth-15 Option A and its focused 
 compile-validity repair remain independently cleared and scratch-remeasured through
 `3b65b7c`, with zero accusations and `0/47` planted-positive retro-certifications.
 Growth-14's revived pandas design and first two blocked package-identity repairs are
-recorded below. Alex authorized one final default-deny adjacent-candidate repair on
-pushed exact clean base `7cd4c88`. Fresh maximum-effort builder session `01a010e9`
-implemented the build-only repair in exactly five authorized Growth-14 files:
-the pinned CPython identity and importer-derived source/bytecode/extension vocabulary,
-independent analyzer and kernel candidate checks after their respective manifest
-bijections, exact historical regressions, every importer-reported suffix, and adjacent
-package-path entry kinds. Its 215/215 dedicated, 691/691 focused, 262/262 context,
-protected/isolation/static gates all passed; the orchestrator independently reran the
-two historical probes plus the derived-suffix and package-entry cases, 9/9 green, and
-observed the pinned vocabulary `.py`, `.pyc`, `.cpython-311-darwin.so`, `.abi3.so`,
-and `.so`. The orchestrator's pre-manifest 4,495-test serial gate passed with captured
-exit zero, then the functional repair and state were committed as `511406b` and the
-regenerated manifest as `671734d`. The exact no-deselection 4,496-test serial gate on
-that committed snapshot also reached 100% with `PYTEST_EXIT=0`. Final handoff-state
-manifest closure, one repeated exact serial gate, push, and a different fresh
-maximum-effort reviewer remain. No re-measure, planted-positive observation, or batch
-is authorized until all five assents and `CLEAR FOR RE-MEASURE`; a third repair block
-parks Growth-14 with a no-build disposition and moves the loop onward).
+recorded below. Its final default-deny adjacent-candidate repair was built, closed,
+serial-gated, and pushed through exact clean `d3dbb6f`. Fresh maximum-effort reviewer
+session `01a0112d-4d9d-7933-b4eb-0f60dbbe3449` independently re-executed both historical
+routes plus three new importer-derived disguises, completed the entire required matrix
+and all gates, returned all five assents, and issued `CLEAR FOR RE-MEASURE`. The only
+finding was a non-blocking STATE typo in two expanded commit IDs, corrected below.
+No re-measure, planted-positive observation, or batch has yet occurred; the authorized
+scratch re-measure and explicit `0/47` observation follow normal state/manifest/serial/
+push closure of this review record).
 
 ## Scoreboard
 
@@ -1052,13 +1043,49 @@ parks Growth-14 with a no-build disposition and moves the loop onward).
   authoritative serial pre-manifest suite then selected 4,495 tests (only the
   intentionally stale manifest-inventory assertion was deselected), reached 100%,
   and captured `PYTEST_EXIT=0`. The orchestrator committed the functional repair and
-  then-current STATE as `511406bde4519890850d0576ec75320fc9953ec2`, regenerated
+  then-current STATE as `511406bf661dd2698f2cc20989bcdea810879a2c`, regenerated
   `MANIFEST.sha256`, and committed it separately as
-  `671734da29e5ac153c89e69f446fc3ed525927ad`. The exact no-deselection repository
+  `671734de0892f123c2d081f96258d754381ea412`. The exact no-deselection repository
   suite on that committed snapshot then selected all 4,496 tests, reached 100%, and
-  captured `PYTEST_EXIT=0`. Final handoff-state/manifest closure, a repeated exact
-  serial gate, and push remain; no re-measure, planted-positive observation, or batch
-  has occurred. Only a different fresh maximum-effort reviewer may clear it.
+  captured `PYTEST_EXIT=0`. Handoff-state commit `2c2cf057856cf3b5fdb68d7afb08337e218d6347`
+  and final manifest commit `d3dbb6f01e9d2f6037ccc635d2225fe40c8d1a19` then closed
+  the exact 4,496-test serial gate and were pushed as clean local/remote. No re-measure,
+  planted-positive observation, or batch had occurred at reviewer launch.
+- Fresh maximum-effort final code-reviewer session
+  `01a0112d-4d9d-7933-b4eb-0f60dbbe3449`, distinct from all Growth-14 builders and
+  design/code reviewers, reviewed exact clean local/tracking/remote `d3dbb6f` with
+  `.git` read-only. It independently observed pinned CPython 3.11.15 report `.py`,
+  `.pyc`, `.cpython-311-darwin.so`, `.abi3.so`, and `.so`; re-executed the historical
+  `workflow/pandas.so` and manifest-record-omission routes through analyzer, direct
+  kernel, and adapter; and observed refusal at package identity on every surface.
+  It then constructed new `workflow/pandas.pyc`, `workflow/pandas.abi3.so`, and
+  `workflow/pandas/__init__.py` disguises from the pinned runtime's importer behavior.
+  Ordinary execution selected each adjacent candidate while isolated `-I` execution
+  loaded real pandas; all three recognizer surfaces refused. Root/workflow x all five
+  suffixes refused 10/10, and root/workflow package candidates across regular-file,
+  directory, and symlink kinds refused 6/6. Empty, duplicate, inconsistent, path-unsafe,
+  or wrong-interpreter importer vocabularies, the complete 20-case manifest-bijection
+  matrix, non-regular entries, special entries, and forged/bypassed analyzer decisions
+  all failed closed; analyzer and kernel decision independence remained intact.
+- The same review passed the complete 215/215 Growth-14 module: all 63 material
+  siblings, nineteen missing tokens, 35 partition siblings, eighteen default-deny AST
+  classes, 21 row-8 category pairs, and fact replay across 12/12 singles, 66/66 pairs,
+  and 220/220 triples. It also passed 692/692 focused dependence/envelope/release,
+  262/262 controller/context/re-entry, 74/74 protected/grant, 41/41 regression-ledger,
+  4/4 direct isolation, 55/55 supplemental envelope/release, and 6/6 registry/
+  cardinality probes; scoped Ruff/format, `mypy src` over 162 files, starter validation
+  over 79 examples, both installed pins, production/qualification isolation, manifest
+  byte identity over 28,738 rows, protected/frozen boundaries, and the authoritative
+  unfiltered serial suite all passed. That suite collected all 4,496 tests, reached
+  100%, and exited zero without deselection or parallelization. Repository-wide Ruff
+  reported only pre-existing debt in unchanged paths. Final status was clean and
+  local/tracking/fresh-remote identities were exact. The reviewer's only MINOR was the
+  two nonexistent expanded commit IDs above; the valid short prefixes, actual commits,
+  manifest, recognizer behavior, and reviewed snapshot were unaffected. The IDs are
+  corrected in this STATE update. Required footer:
+  `PACKAGE-IDENTITY: ASSENT`; `PANDAS-INVARIANCE: ASSENT`;
+  `SINGLE-OPERAND-CLASSIFICATION: ASSENT`; `PROTOCOL-PRECEDENCE: ASSENT`;
+  `FACT-REPLAY-CLOSURE: ASSENT`; `VERDICT: CLEAR FOR RE-MEASURE`.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
