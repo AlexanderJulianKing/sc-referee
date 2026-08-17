@@ -1,9 +1,10 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
 Updated: 2026-08-16 (Growth-12/13 closed; Growth-14 pandas revival is maintainer-
-authorized but queued after Growth-15; Growth-15 Option A is built locally through
-`c659d5a` with the pre-manifest full gate green; manifest, exact full-suite push, and
-fresh code review remain pending; no re-measure or batch is authorized).
+authorized but queued after Growth-15; Growth-15 Option A is built and pushed through
+`3f4694a`, and its fresh code review preserved all four design assents but halted on a
+pre-existing count-path compile-validity route; one narrow focused repair round is
+authorized; no re-measure or batch is authorized before fresh repair review).
 
 ## Scoreboard
 
@@ -11,10 +12,13 @@ fresh code review remain pending; no re-measure or batch is authorized).
   evaluation/development/dependence-growth-loop/), ZERO false accusations, zero
   regressions. 95 measurable (batch-D case dc2b31d5 was intake-refused, never
   materialized). No blind catch yet; misses are honest named abstentions.
-- Six demonstrated false-accusation routes killed in review before measurement
+- Seven demonstrated false-accusation routes killed in review before measurement
   (filter-predicate, paired/crossover, alias-then-mutate, counted-domain, AnnAssign
-  rebind, plain-Assign rebind). The plain-Assign fix is structural (operand-name-rebound,
-  all assignment forms through one partition test).
+  rebind, plain-Assign rebind, count-path compile-validity). The plain-Assign fix is
+  structural (operand-name-rebound, all assignment forms through one partition test).
+  The seventh route is a development-lane probe only: it was pre-existing since the
+  count kernel's Growth-2 origin, reproduced on base `38bbe06`, and never reached a
+  scored, frozen, or corpus case; every re-measure has retained zero accusations.
 - v1.1.0 qualified detector + installed pins: untouched and live throughout.
 - Maintainer checkpoint trigger: every frozen re-measure now separately reports
   whether a planted positive reaches full development analysis and emits an adverse
@@ -641,8 +645,44 @@ fresh code review remain pending; no re-measure or batch is authorized).
   repository suite with only the stale manifest inventory test deselected: 4,275
   selected tests reached 100% with captured `PYTEST_EXIT=0`. The authorized functional
   inventory was committed as `c659d5aadf0369299f65b6f8748c47f9fb77b007`.
-  Manifest regeneration, the exact 4,276-test full gate, push, and a different fresh
-  maximum-effort code review still gate any re-measure.
+  The handoff STATE and regenerated manifest followed as `27ba7c7` and `3f4694a`;
+  the exact post-manifest serial full suite reached 100% with all 4,276 tests passing
+  and captured `PYTEST_EXIT=0`, and exact clean local/remote `3f4694a` was pushed.
+- Fresh maximum-effort code reviewer session
+  `01a00db2-5731-7e61-9f55-083cb4833d18`, distinct from the design reviewer and
+  implementer, re-executed the exact attempt-3 fact mutation plus the complete replay,
+  domain, guard, source, token, precedence, inventory, protected/frozen, and
+  retro-certification matrices on clean `3f4694a`. Growth-15's mechanisms retained
+  `FALLTHROUGH-INERTNESS: ASSENT`, `SINGLE-OPERAND-CLASSIFICATION: ASSENT`,
+  `PROTOCOL-PRECEDENCE: ASSENT`, and `FACT-REPLAY-CLOSURE: ASSENT`. The exact supplied
+  `(1, 4) -> (2, 3)` mutation refused at `fact-closure`; all 17 top-level and six
+  nested fact fields closed; 813 domain-parity probes passed; the 26-workflow / 55-
+  raise inventory retained exactly nine reason movements, seventeen freezes, zero
+  completions, zero outcome movements, and zero accusations; and planted-positive
+  observation remained `0/47`.
+- That reviewer correctly returned `VERDICT: BLOCKED` and halted the remaining runtime
+  matrix and static/full gates after its mandatory compile-validity probe found the
+  seventh false-accusation route. A compile-invalid count source with a misplaced
+  `from __future__ import annotations` passed `ast.parse`, failed `compile()` and the
+  pinned runtime before writing a report, yet both direct
+  `verify_count_dependence_certificate()` and the adapter accepted an adverse
+  development candidate. `production_finding_permitted` remained false. The route
+  reproduces unchanged on pre-Growth-15 base `38bbe063`, has existed since the count
+  kernel's Growth-2 origin, and has never occurred in a scored, frozen, or corpus case;
+  all recorded re-measures contain zero accusations. It is recorded honestly as a
+  development-lane route killed in review, not as a scored or corpus false accusation.
+  The orchestrator made no post-HALT edit or commit.
+- MAINTAINER-AUTHORIZED FOCUSED REPAIR (Fable escalation channel, decision under
+  Alex's delegated authority, 2026-08-16): one fresh fix-only implementer may add
+  `compile()` validation at the count verifier's existing `source-parse` boundary,
+  matching the group and paired kernels, plus direct-kernel and adapter regressions
+  for misplaced future imports. No new refusal reason or wider change is authorized.
+  A different fresh maximum-effort code reviewer must re-execute that exact
+  counterexample through both surfaces and observe refusal, complete the runtime
+  operand/result matrix and static/full-suite gates cut short by the halt, and
+  re-confirm all four Growth-15 assents on the repaired snapshot. Only unconditional
+  clearance gates Growth-15 closure, frozen re-measure, retro-certification
+  observation, or the queued pandas revival.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
@@ -719,16 +759,23 @@ fresh code review remain pending; no re-measure or batch is authorized).
    registry, every protected path, and frozen lanes remain byte-frozen. Fresh HEAVY
    design and code reviews still gate any build or re-measure; do not start this item
    until Growth-15 closes.
-3. BUILT; MANIFEST/FULL GATE/CODE REVIEW PENDING as Growth-15:
+3. FOCUSED REPAIR AUTHORIZED after a correct code-review halt as Growth-15:
    `raise-guard-not-modeled`, seven census cases.
    After three blocked reviews, the maintainer selected complete independent byte-
    derived ordinary group-fact reconstruction (Option A). Fresh resumed reviewer
    `01a00d0f` executed the full required matrix and returned all four assents plus
    unconditional `CLEAR TO BUILD`. Fresh implementer `01a00d53` built the binding memo
-   as functional commit `c659d5a`; the pre-manifest full gate passed. Manifest
-   regeneration, an exact full-suite exit 0 and push, then a different fresh maximum-
-   effort code reviewer and zero-accusation scratch re-measure still gate closure. Do
-   not run a frozen re-measure, batch, or advance queued Growth-14 before those gates.
+   as functional commit `c659d5a`; manifest commit `3f4694a`, the exact 4,276-test full
+   gate, and push followed. Fresh reviewer `01a00db2` preserved all four Growth-15
+   assents but found the pre-existing count-kernel compile-validity route and returned
+   `BLOCKED` under immediate-HALT discipline. The one authorized repair is only
+   `compile()` validation at the count verifier's existing `source-parse` boundary
+   plus direct-kernel and adapter misplaced-future-import regressions, with no new
+   refusal reason. A fresh fix builder and then a different fresh maximum-effort code
+   reviewer completing the exact counterexample, runtime matrix, static/full gates,
+   and four-assent confirmation still gate a zero-accusation scratch re-measure and
+   closure. Do not run a frozen re-measure, batch, or advance queued Growth-14 before
+   those gates.
 4. Numeric comparison predicates for counts (float(row[x]) > CONST). The refreshed
    premise has no authentic direct numeric census opportunity; `446cab...` is a
    count-trial declaration no-lock and J2 uses a computed `delta`. Re-measure before
