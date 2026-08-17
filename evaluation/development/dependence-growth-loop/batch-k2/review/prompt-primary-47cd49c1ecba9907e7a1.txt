@@ -1,0 +1,333 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-k2-reviewer-fable-50
+
+=== workflow 1: case:47cd49c1ecba9907e7a1 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Pilot-scale anaerobic digestion campaign: weekly reactor monitoring
+
+## What the study did
+
+Twelve bench-scale continuously stirred anaerobic digesters (R01-R12) were operated side by side for an eight-week campaign in a wastewater-treatment research hall. Each digester had its own feed pump, its own sludge line and its own gas meter, and each was randomly assigned to one of two feedstock pretreatments before start-up: `control` (raw thickened waste-activated sludge) or `alkaline` (the same sludge held at pH 10 for six hours before feeding). Six digesters received each pretreatment, and no digester ever changed pretreatment.
+
+After a three-week acclimation period the operators logged one monitoring record per digester per week for run weeks 4 through 8. `data/input.csv` is that log, stored in long format: 12 digesters x 5 weeks = 60 rows.
+
+## Columns
+
+- `reactor_id` - label of the physical digester (R01-R12).
+- `pretreatment` - feedstock pretreatment assigned to that digester, `control` or `alkaline`; constant within a digester.
+- `run_week` - campaign week the record refers to (4-8).
+- `olr_g_vs_per_l_d` - organic loading rate that week, in grams of volatile solids per litre of reactor volume per day.
+- `digestate_ph` - pH of the digestate measured at sampling.
+- `ch4_yield_nl_per_g_vs` - specific methane yield for that week, in normal litres of methane per gram of volatile solids fed.
+
+## Structure
+
+One row is: one weekly monitoring record for a single pilot digester in a single run week
+Independent unit column: reactor_id
+
+Pretreatment was applied to whole digesters, never to individual weeks, and the five weekly records from a digester describe the same physical reactor under the same treatment. A digester therefore contributes five rows to the file but only one independent value to any comparison between the two pretreatments; the weekly records serve to estimate that reactor's steady-state level, not to increase the number of units.
+
+--- file data/input.csv ---
+reactor_id,pretreatment,run_week,olr_g_vs_per_l_d,digestate_ph,ch4_yield_nl_per_g_vs
+R01,control,4,2.08,7.42,199.1
+R01,control,5,2.11,7.38,190.2
+R01,control,6,2.09,7.45,205.4
+R01,control,7,2.12,7.41,195.5
+R01,control,8,2.10,7.44,202.8
+R02,alkaline,4,2.07,7.51,231.0
+R02,alkaline,5,2.10,7.48,236.6
+R02,alkaline,6,2.12,7.53,228.5
+R02,alkaline,7,2.09,7.50,225.9
+R02,alkaline,8,2.11,7.55,235.0
+R03,control,4,2.13,7.36,203.7
+R03,control,5,2.09,7.40,209.7
+R03,control,6,2.11,7.33,199.2
+R03,control,7,2.08,7.39,207.9
+R03,control,8,2.12,7.37,206.5
+R04,alkaline,4,2.10,7.57,239.5
+R04,alkaline,5,2.08,7.52,249.4
+R04,alkaline,6,2.13,7.60,243.1
+R04,alkaline,7,2.11,7.56,246.8
+R04,alkaline,8,2.09,7.54,234.2
+R05,control,4,2.06,7.44,215.6
+R05,control,5,2.12,7.41,206.5
+R05,control,6,2.10,7.47,217.2
+R05,control,7,2.09,7.43,211.6
+R05,control,8,2.13,7.46,209.1
+R06,alkaline,4,2.11,7.62,263.1
+R06,alkaline,5,2.09,7.58,255.0
+R06,alkaline,6,2.08,7.64,261.0
+R06,alkaline,7,2.12,7.61,259.3
+R06,alkaline,8,2.10,7.59,253.6
+R07,control,4,2.12,7.35,219.2
+R07,control,5,2.10,7.42,224.8
+R07,control,6,2.07,7.38,210.7
+R07,control,7,2.11,7.40,221.2
+R07,control,8,2.09,7.43,223.1
+R08,alkaline,4,2.09,7.66,267.1
+R08,alkaline,5,2.13,7.63,259.8
+R08,alkaline,6,2.11,7.68,270.3
+R08,alkaline,7,2.08,7.65,264.3
+R08,alkaline,8,2.12,7.67,268.5
+R09,control,4,2.10,7.49,238.8
+R09,control,5,2.08,7.45,231.4
+R09,control,6,2.12,7.51,240.9
+R09,control,7,2.13,7.47,232.8
+R09,control,8,2.07,7.50,237.1
+R10,alkaline,4,2.12,7.71,278.1
+R10,alkaline,5,2.10,7.67,266.9
+R10,alkaline,6,2.09,7.73,279.1
+R10,alkaline,7,2.11,7.69,272.0
+R10,alkaline,8,2.13,7.70,274.9
+R11,control,4,2.08,7.53,245.8
+R11,control,5,2.11,7.56,252.9
+R11,control,6,2.13,7.52,248.7
+R11,control,7,2.09,7.49,240.7
+R11,control,8,2.12,7.55,251.9
+R12,alkaline,4,2.11,7.75,290.7
+R12,alkaline,5,2.09,7.70,278.3
+R12,alkaline,6,2.12,7.77,288.8
+R12,alkaline,7,2.10,7.79,292.4
+R12,alkaline,8,2.13,7.74,286.8
+
+--- file workflow/analysis.py ---
+"""Steady-state methane yield of pilot anaerobic digesters under two feedstock
+pretreatments.
+
+Reads the weekly monitoring log in data/input.csv and writes results/report.md.
+
+Pretreatment was assigned to whole reactors, so the five weekly records of a
+reactor are repeated measurements of one physical unit. Every reactor is
+collapsed to a single steady-state mean before the between-group comparison, so
+exactly one analysed value enters the test per independent reactor.
+"""
+
+from __future__ import annotations
+
+import csv
+from collections import OrderedDict
+from dataclasses import dataclass
+from pathlib import Path
+from statistics import mean, median
+from typing import Dict, List
+
+from scipy.stats import mannwhitneyu
+
+INPUT_PATH = Path("data") / "input.csv"
+OUTPUT_PATH = Path("results") / "report.md"
+
+UNIT_COLUMN = "reactor_id"
+GROUP_COLUMN = "pretreatment"
+WEEK_COLUMN = "run_week"
+YIELD_COLUMN = "ch4_yield_nl_per_g_vs"
+
+REFERENCE = "control"
+TREATMENT = "alkaline"
+
+
+@dataclass
+class ReactorSummary:
+    """One independent reactor reduced to a single steady-state value."""
+
+    reactor_id: str
+    pretreatment: str
+    n_weeks: int
+    mean_yield: float
+
+
+def read_weekly_records(path: Path) -> List[Dict[str, str]]:
+    with path.open(newline="", encoding="ascii") as handle:
+        return [dict(record) for record in csv.DictReader(handle)]
+
+
+def summarise_reactors(rows: List[Dict[str, str]]) -> List[ReactorSummary]:
+    weekly = OrderedDict()
+    for row in rows:
+        reactor = row[UNIT_COLUMN]
+        bucket = weekly.setdefault(
+            reactor, {"pretreatment": row[GROUP_COLUMN], "weeks": [], "yields": []}
+        )
+        if bucket["pretreatment"] != row[GROUP_COLUMN]:
+            raise ValueError("reactor " + reactor + " carries more than one pretreatment label")
+        bucket["weeks"].append(int(row[WEEK_COLUMN]))
+        bucket["yields"].append(float(row[YIELD_COLUMN]))
+
+    summaries = []
+    for reactor, bucket in weekly.items():
+        if len(set(bucket["weeks"])) != len(bucket["weeks"]):
+            raise ValueError("reactor " + reactor + " has duplicated run weeks")
+        summaries.append(
+            ReactorSummary(
+                reactor_id=reactor,
+                pretreatment=bucket["pretreatment"],
+                n_weeks=len(bucket["yields"]),
+                mean_yield=mean(bucket["yields"]),
+            )
+        )
+    return summaries
+
+
+def build_report(rows, summaries, reference, treatment, u_stat, p_value, rank_biserial):
+    all_weeks = [int(row[WEEK_COLUMN]) for row in rows]
+
+    lines = []
+    lines.append(
+        "# Alkaline pretreatment and steady-state methane yield in pilot anaerobic digesters"
+    )
+    lines.append("")
+    lines.append("## Data")
+    lines.append("")
+    lines.append(
+        "`data/input.csv` holds {rows} weekly monitoring records from {units} independently"
+        " fed pilot digesters, covering run weeks {first}-{last}. Each digester kept the same"
+        " feedstock pretreatment for the entire campaign, so the weekly records belonging to"
+        " one digester are repeated measurements of that reactor and are not independent of"
+        " one another.".format(
+            rows=len(rows),
+            units=len(summaries),
+            first=min(all_weeks),
+            last=max(all_weeks),
+        )
+    )
+    lines.append("")
+    lines.append("## Analysis")
+    lines.append("")
+    lines.append(
+        "Each reactor was first collapsed to a single steady-state summary value: the"
+        " arithmetic mean of its weekly specific methane yields. The resulting {units}"
+        " reactor-level means -- one analysed value per independent unit -- were then"
+        " compared between the two pretreatments with a two-sided exact Mann-Whitney U"
+        " test. The rank-biserial correlation is reported as the effect size.".format(
+            units=len(summaries)
+        )
+    )
+    lines.append("")
+    lines.append("## Reactor-level summaries")
+    lines.append("")
+    lines.append("| reactor | pretreatment | weeks used | mean CH4 yield (NL/g VS) |")
+    lines.append("| --- | --- | --- | --- |")
+    for item in summaries:
+        lines.append(
+            "| {0} | {1} | {2} | {3:.2f} |".format(
+                item.reactor_id, item.pretreatment, item.n_weeks, item.mean_yield
+            )
+        )
+    lines.append("")
+    lines.append("## Group summaries")
+    lines.append("")
+    lines.append("| pretreatment | reactors | mean | median | min | max |")
+    lines.append("| --- | --- | --- | --- | --- | --- |")
+    for label, values in ((REFERENCE, reference), (TREATMENT, treatment)):
+        lines.append(
+            "| {0} | {1} | {2:.2f} | {3:.2f} | {4:.2f} | {5:.2f} |".format(
+                label,
+                len(values),
+                mean(values),
+                median(values),
+                min(values),
+                max(values),
+            )
+        )
+    lines.append("")
+    lines.append("All yields are given in NL CH4 per g volatile solids fed.")
+    lines.append("")
+    lines.append("## Result")
+    lines.append("")
+    lines.append(
+        "[selected-result] Two-sided exact Mann-Whitney U test on {units} reactor-level mean"
+        " methane yields ({n_ref} control vs {n_trt} alkaline reactors, one value per"
+        " reactor): U = {u:.1f}, p = {p:.4f}, rank-biserial correlation = {r:.3f};"
+        " alkaline-pretreated reactors reached a higher steady-state yield (median {m_trt:.2f}"
+        " vs {m_ref:.2f} NL CH4 per g VS, difference in group means {delta:.2f} NL/g VS).".format(
+            units=len(summaries),
+            n_ref=len(reference),
+            n_trt=len(treatment),
+            u=u_stat,
+            p=p_value,
+            r=rank_biserial,
+            m_trt=median(treatment),
+            m_ref=median(reference),
+            delta=mean(treatment) - mean(reference),
+        )
+    )
+    lines.append("")
+    lines.append(
+        "The comparison is made at the reactor level because pretreatment was applied to"
+        " reactors, not to weekly samples; the {rows} weekly records support the reactor"
+        " means but do not enlarge the sample size for this claim.".format(rows=len(rows))
+    )
+    return "\n".join(lines) + "\n"
+
+
+def main() -> None:
+    rows = read_weekly_records(INPUT_PATH)
+    summaries = summarise_reactors(rows)
+
+    reference = [item.mean_yield for item in summaries if item.pretreatment == REFERENCE]
+    treatment = [item.mean_yield for item in summaries if item.pretreatment == TREATMENT]
+    if not reference or not treatment:
+        raise ValueError("both pretreatment groups must be present")
+
+    outcome = mannwhitneyu(treatment, reference, alternative="two-sided", method="exact")
+    u_stat = float(outcome.statistic)
+    p_value = float(outcome.pvalue)
+    rank_biserial = 2.0 * u_stat / (len(treatment) * len(reference)) - 1.0
+
+    report = build_report(rows, summaries, reference, treatment, u_stat, p_value, rank_biserial)
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Alkaline pretreatment and steady-state methane yield in pilot anaerobic digesters
+
+## Data
+
+`data/input.csv` holds 60 weekly monitoring records from 12 independently fed pilot digesters, covering run weeks 4-8. Each digester kept the same feedstock pretreatment for the entire campaign, so the weekly records belonging to one digester are repeated measurements of that reactor and are not independent of one another.
+
+## Analysis
+
+Each reactor was first collapsed to a single steady-state summary value: the arithmetic mean of its weekly specific methane yields. The resulting 12 reactor-level means -- one analysed value per independent unit -- were then compared between the two pretreatments with a two-sided exact Mann-Whitney U test. The rank-biserial correlation is reported as the effect size.
+
+## Reactor-level summaries
+
+| reactor | pretreatment | weeks used | mean CH4 yield (NL/g VS) |
+| --- | --- | --- | --- |
+| R01 | control | 5 | 198.60 |
+| R02 | alkaline | 5 | 231.40 |
+| R03 | control | 5 | 205.40 |
+| R04 | alkaline | 5 | 242.60 |
+| R05 | control | 5 | 212.00 |
+| R06 | alkaline | 5 | 258.40 |
+| R07 | control | 5 | 219.80 |
+| R08 | alkaline | 5 | 266.00 |
+| R09 | control | 5 | 236.20 |
+| R10 | alkaline | 5 | 274.20 |
+| R11 | control | 5 | 248.00 |
+| R12 | alkaline | 5 | 287.40 |
+
+## Group summaries
+
+| pretreatment | reactors | mean | median | min | max |
+| --- | --- | --- | --- | --- | --- |
+| control | 6 | 220.00 | 215.90 | 198.60 | 248.00 |
+| alkaline | 6 | 260.00 | 262.20 | 231.40 | 287.40 |
+
+All yields are given in NL CH4 per g volatile solids fed.
+
+## Result
+
+[selected-result] Two-sided exact Mann-Whitney U test on 12 reactor-level mean methane yields (6 control vs 6 alkaline reactors, one value per reactor): U = 33.0, p = 0.0152, rank-biserial correlation = 0.833; alkaline-pretreated reactors reached a higher steady-state yield (median 262.20 vs 215.90 NL CH4 per g VS, difference in group means 40.00 NL/g VS).
+
+The comparison is made at the reactor level because pretreatment was applied to reactors, not to weekly samples; the 60 weekly records support the reactor means but do not enlarge the sample size for this claim.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-k2-reviewer-fable-50", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:47cd49c1ecba9907e7a1"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

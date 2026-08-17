@@ -1993,7 +1993,7 @@ def test_exact_nine_syntax_movements_and_all_frozen_raise_sets(
     assert all(payload["production_finding_permitted"] is False for payload in all_payloads)
 
 
-def test_standing_planted_positive_inventory_remains_recorded_at_zero_of_47(
+def test_all_lane_planted_positive_inventory_remains_non_accusatory(
     project_root: Path,
 ) -> None:
     root = project_root / "evaluation/development/dependence-growth-loop"
@@ -2017,8 +2017,8 @@ def test_standing_planted_positive_inventory_remains_recorded_at_zero_of_47(
         )
         payload = result.get("development_v2_shadow_payload")
         recorded_outcomes.append(payload.get("outcome") if isinstance(payload, dict) else None)
-    assert len(positive_labels) == 48
-    assert len(materialized) == 47
+    assert len(positive_labels) == 54
+    assert len(materialized) == 53
     assert "evaluation_candidate" not in recorded_outcomes
 
 

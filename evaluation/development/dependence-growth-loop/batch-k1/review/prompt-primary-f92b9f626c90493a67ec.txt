@@ -1,0 +1,319 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-k1-reviewer-fable-48
+
+=== workflow 1: case:f92b9f626c90493a67ec ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Kaldbekk fen warming array: campaign methane fluxes
+
+Twenty-four intact peat mesocosms were cut from a subarctic fen in spring 2025 and set
+out in a common outdoor array arranged in four spatial blocks. Twelve mesocosms received
+an open-top warming chamber and twelve were left at ambient temperature. The treatment
+was assigned once, to the whole mesocosm, and never changed during the season. Methane
+flux was measured with a static chamber on four campaigns spread across the thaw season
+(weeks 3, 6, 9 and 12), so every mesocosm appears in the file four times, once per
+campaign. The file is stored campaign by campaign: all 24 mesocosms for week 3, then all
+24 for week 6, and so on, giving 96 rows.
+
+Columns:
+- mesocosm_id: label of the peat mesocosm (M01 to M24). The mesocosm is the unit that was
+  randomised to a treatment.
+- block: spatial block of the outdoor array (1 to 4).
+- treatment: ambient or warmed, fixed for the whole season.
+- campaign_week: thaw-season week of the measurement (3, 6, 9 or 12).
+- ch4_flux_mg_m2_h: methane flux measured on that campaign, in mg CH4 per square metre
+  per hour.
+- soil_temp_10cm_c: soil temperature at 10 cm depth at the time of the campaign, in
+  degrees Celsius. Recorded for context; it is not part of the reported comparison.
+
+One row is: one static-chamber methane flux measurement of one peat mesocosm on one campaign
+Independent unit column: mesocosm_id
+
+The rows are not all independent of one another: the four rows that share a mesocosm_id
+are repeated measurements of the same physical mesocosm and are correlated. Anything said
+about the warming treatment has to be argued across mesocosms, for example by first
+summarising each mesocosm's four campaigns into a single seasonal value and comparing
+those 24 values.
+
+--- file data/input.csv ---
+mesocosm_id,block,treatment,campaign_week,ch4_flux_mg_m2_h,soil_temp_10cm_c
+M01,1,ambient,3,1.14,7.4
+M02,1,ambient,3,1.20,7.6
+M03,1,ambient,3,1.46,7.5
+M04,2,ambient,3,1.42,7.8
+M05,2,ambient,3,1.67,7.7
+M06,2,ambient,3,1.64,7.9
+M07,3,ambient,3,1.76,7.3
+M08,3,ambient,3,1.76,7.5
+M09,3,ambient,3,2.03,7.6
+M10,4,ambient,3,2.07,8.0
+M11,4,ambient,3,2.33,7.8
+M12,4,ambient,3,3.09,8.2
+M13,1,warmed,3,2.53,9.1
+M14,1,warmed,3,2.55,9.3
+M15,1,warmed,3,2.86,9.2
+M16,2,warmed,3,3.00,9.5
+M17,2,warmed,3,3.32,9.4
+M18,2,warmed,3,3.23,9.6
+M19,3,warmed,3,3.48,9.0
+M20,3,warmed,3,3.47,9.2
+M21,3,warmed,3,3.82,9.4
+M22,4,warmed,3,3.87,9.7
+M23,4,warmed,3,4.27,9.5
+M24,4,warmed,3,4.29,9.9
+M01,1,ambient,6,1.48,11.2
+M02,1,ambient,6,1.66,11.4
+M03,1,ambient,6,1.82,11.3
+M04,2,ambient,6,1.76,11.6
+M05,2,ambient,6,1.95,11.5
+M06,2,ambient,6,2.06,11.7
+M07,3,ambient,6,2.10,11.1
+M08,3,ambient,6,2.22,11.3
+M09,3,ambient,6,2.39,11.4
+M10,4,ambient,6,2.41,11.8
+M11,4,ambient,6,2.61,11.6
+M12,4,ambient,6,3.51,12.0
+M13,1,warmed,6,3.05,13.0
+M14,1,warmed,6,3.28,13.2
+M15,1,warmed,6,3.44,13.1
+M16,2,warmed,6,3.53,13.4
+M17,2,warmed,6,3.74,13.3
+M18,2,warmed,6,3.98,13.5
+M19,3,warmed,6,4.00,12.9
+M20,3,warmed,6,4.20,13.1
+M21,3,warmed,6,4.40,13.3
+M22,4,warmed,6,4.40,13.6
+M23,4,warmed,6,4.69,13.4
+M24,4,warmed,6,5.04,13.8
+M01,1,ambient,9,1.76,12.1
+M02,1,ambient,9,1.84,12.3
+M03,1,ambient,9,1.94,12.2
+M04,2,ambient,9,2.10,12.5
+M05,2,ambient,9,2.11,12.4
+M06,2,ambient,9,2.11,12.6
+M07,3,ambient,9,2.38,12.0
+M08,3,ambient,9,2.40,12.2
+M09,3,ambient,9,2.51,12.3
+M10,4,ambient,9,2.75,12.7
+M11,4,ambient,9,2.77,12.5
+M12,4,ambient,9,3.56,12.9
+M13,1,warmed,9,3.46,13.9
+M14,1,warmed,9,3.54,14.1
+M15,1,warmed,9,3.60,14.0
+M16,2,warmed,9,4.05,14.3
+M17,2,warmed,9,4.02,14.2
+M18,2,warmed,9,4.13,14.4
+M19,3,warmed,9,4.41,13.8
+M20,3,warmed,9,4.46,14.0
+M21,3,warmed,9,4.56,14.2
+M22,4,warmed,9,4.92,14.5
+M23,4,warmed,9,4.97,14.3
+M24,4,warmed,9,5.19,14.7
+M01,1,ambient,12,1.30,9.0
+M02,1,ambient,12,1.50,9.2
+M03,1,ambient,12,1.50,9.1
+M04,2,ambient,12,1.64,9.4
+M05,2,ambient,12,1.71,9.3
+M06,2,ambient,12,1.79,9.5
+M07,3,ambient,12,1.92,8.9
+M08,3,ambient,12,2.06,9.1
+M09,3,ambient,12,2.07,9.2
+M10,4,ambient,12,2.29,9.6
+M11,4,ambient,12,2.37,9.4
+M12,4,ambient,12,3.24,9.8
+M13,1,warmed,12,2.76,10.8
+M14,1,warmed,12,3.03,11.0
+M15,1,warmed,12,2.98,10.9
+M16,2,warmed,12,3.34,11.2
+M17,2,warmed,12,3.36,11.1
+M18,2,warmed,12,3.62,11.3
+M19,3,warmed,12,3.71,10.7
+M20,3,warmed,12,3.95,10.9
+M21,3,warmed,12,3.94,11.1
+M22,4,warmed,12,4.21,11.4
+M23,4,warmed,12,4.31,11.2
+M24,4,warmed,12,4.68,11.6
+
+--- file workflow/analysis.py ---
+"""Kaldbekk fen warming array: does open-top warming raise mesocosm methane flux?
+
+Reads the long-format campaign file data/input.csv, collapses the repeated campaigns of
+each mesocosm into a single analysed value per mesocosm, and writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+import statistics
+from collections import OrderedDict
+from pathlib import Path
+
+from scipy.stats import mannwhitneyu
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+UNIT_COLUMN = "mesocosm_id"
+GROUP_COLUMN = "treatment"
+FLUX_COLUMN = "ch4_flux_mg_m2_h"
+AMBIENT = "ambient"
+WARMED = "warmed"
+
+
+def read_campaign_records(path):
+    """Return every stored chamber campaign as a dict, in file order."""
+    with path.open(newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def collapse_to_mesocosms(records):
+    """Average each mesocosm's repeated campaigns into a single analysed value."""
+    series = OrderedDict()
+    treatments = {}
+    for record in records:
+        unit = record[UNIT_COLUMN]
+        group = record[GROUP_COLUMN]
+        if treatments.setdefault(unit, group) != group:
+            raise ValueError("mesocosm " + unit + " carries two treatment labels")
+        series.setdefault(unit, []).append(float(record[FLUX_COLUMN]))
+    collapsed = OrderedDict()
+    for unit, fluxes in series.items():
+        collapsed[unit] = (treatments[unit], statistics.fmean(fluxes), len(fluxes))
+    return collapsed
+
+
+def group_means(collapsed, label):
+    """Mesocosm-level means for one treatment arm, one value per mesocosm."""
+    return [mean for treatment, mean, _ in collapsed.values() if treatment == label]
+
+
+def build_report(records, collapsed):
+    counts = sorted({n for _, _, n in collapsed.values()})
+    if len(counts) != 1:
+        raise ValueError("mesocosms differ in campaign count; the design is unbalanced")
+    per_mesocosm = counts[0]
+
+    ambient = group_means(collapsed, AMBIENT)
+    warmed = group_means(collapsed, WARMED)
+    if len(ambient) + len(warmed) != len(collapsed):
+        raise ValueError("unexpected treatment label in the campaign file")
+
+    outcome = mannwhitneyu(warmed, ambient, alternative="two-sided", method="exact")
+    ambient_median = statistics.median(ambient)
+    warmed_median = statistics.median(warmed)
+
+    lines = [
+        "# Warming and methane release in a subarctic fen: mesocosm-level test",
+        "",
+        "## Design and data",
+        "",
+        "`data/input.csv` holds " + str(len(records)) + " static-chamber records from the Kaldbekk fen",
+        "warming array: " + str(len(collapsed)) + " peat mesocosms, each measured on " + str(per_mesocosm) + " flux campaigns",
+        "(thaw-season weeks 3, 6, 9 and 12 of 2025). Half of the mesocosms carry an open-top",
+        "warming chamber and half are ambient controls; the treatment was assigned once, to the",
+        "whole mesocosm, and did not change between campaigns.",
+        "",
+        "## Analysis",
+        "",
+        "The four campaign records of a mesocosm are repeated measurements of the same randomised",
+        "unit, so they were averaged before any test was run. Collapsing the long-format file gives",
+        str(len(collapsed)) + " mesocosm mean CH4 fluxes, exactly one per mesocosm, so no mesocosm contributes more",
+        "than one value. The " + str(len(warmed)) + " warmed mesocosm means were then compared with the " + str(len(ambient)) + " ambient",
+        "mesocosm means using a two-sided exact Mann-Whitney U test.",
+        "",
+        "## Result",
+        "",
+        "| Treatment | Mesocosms | Campaigns per mesocosm | Mean of mesocosm means | Median mesocosm mean |",
+        "| --- | --- | --- | --- | --- |",
+        "| Ambient | {0} | {1} | {2:.2f} | {3:.2f} |".format(
+            len(ambient), per_mesocosm, statistics.fmean(ambient), ambient_median
+        ),
+        "| Warmed | {0} | {1} | {2:.2f} | {3:.2f} |".format(
+            len(warmed), per_mesocosm, statistics.fmean(warmed), warmed_median
+        ),
+        "",
+        "Fluxes are in mg CH4 per square metre per hour. The warmed median mesocosm mean exceeds",
+        "the ambient median by {0:.2f} mg CH4 per square metre per hour.".format(
+            warmed_median - ambient_median
+        ),
+        "",
+        (
+            "[selected-result] Exact two-sided Mann-Whitney U test on {0} mesocosm-level mean CH4 "
+            "fluxes ({1} warmed vs {2} ambient, one analysed value per mesocosm): U = {3:.1f}, "
+            "p = {4:.3e}; warmed mesocosms released more methane (median mesocosm mean {5:.2f} "
+            "vs {6:.2f} mg CH4 per square metre per hour)."
+        ).format(
+            len(collapsed),
+            len(warmed),
+            len(ambient),
+            outcome.statistic,
+            outcome.pvalue,
+            warmed_median,
+            ambient_median,
+        ),
+        "",
+        "## Caveats",
+        "",
+        "The comparison is between mesocosms, so it supports a claim about mesocosms rather than",
+        "about individual chamber campaigns; the " + str(len(records)) + " campaign records were used only to estimate",
+        "each mesocosm's seasonal mean flux. Within-season variation is folded into that mean and",
+        "is not modelled separately, and the array covers one thaw season at a single fen.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    records = read_campaign_records(INPUT_PATH)
+    collapsed = collapse_to_mesocosms(records)
+    report = build_report(records, collapsed)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text(report, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Warming and methane release in a subarctic fen: mesocosm-level test
+
+## Design and data
+
+`data/input.csv` holds 96 static-chamber records from the Kaldbekk fen
+warming array: 24 peat mesocosms, each measured on 4 flux campaigns
+(thaw-season weeks 3, 6, 9 and 12 of 2025). Half of the mesocosms carry an open-top
+warming chamber and half are ambient controls; the treatment was assigned once, to the
+whole mesocosm, and did not change between campaigns.
+
+## Analysis
+
+The four campaign records of a mesocosm are repeated measurements of the same randomised
+unit, so they were averaged before any test was run. Collapsing the long-format file gives
+24 mesocosm mean CH4 fluxes, exactly one per mesocosm, so no mesocosm contributes more
+than one value. The 12 warmed mesocosm means were then compared with the 12 ambient
+mesocosm means using a two-sided exact Mann-Whitney U test.
+
+## Result
+
+| Treatment | Mesocosms | Campaigns per mesocosm | Mean of mesocosm means | Median mesocosm mean |
+| --- | --- | --- | --- | --- |
+| Ambient | 12 | 4 | 2.07 | 1.97 |
+| Warmed | 12 | 4 | 3.83 | 3.82 |
+
+Fluxes are in mg CH4 per square metre per hour. The warmed median mesocosm mean exceeds
+the ambient median by 1.85 mg CH4 per square metre per hour.
+
+[selected-result] Exact two-sided Mann-Whitney U test on 24 mesocosm-level mean CH4 fluxes (12 warmed vs 12 ambient, one analysed value per mesocosm): U = 141.0, p = 5.177e-06; warmed mesocosms released more methane (median mesocosm mean 3.82 vs 1.97 mg CH4 per square metre per hour).
+
+## Caveats
+
+The comparison is between mesocosms, so it supports a claim about mesocosms rather than
+about individual chamber campaigns; the 96 campaign records were used only to estimate
+each mesocosm's seasonal mean flux. Within-season variation is folded into that mean and
+is not modelled separately, and the array covers one thaw season at a single fen.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-k1-reviewer-fable-48", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:f92b9f626c90493a67ec"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

@@ -1,0 +1,191 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-k2-reviewer-fable-50
+
+=== workflow 1: case:556f3545bebb45a3b005 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Archerfish two-choice shooting assay
+
+Five captive archerfish, each carrying a numbered tag (AR-11, AR-14, AR-22,
+AR-27, AR-31), were tested in a covered freshwater tank. On four separate days
+each fish took part in one testing session, and each session produced one
+shooting trial, so every fish contributes four lines to the file and the file
+holds twenty lines of data in total.
+
+In a trial the fish saw two paper targets held above the water surface at the
+same height and the same distance apart: the rewarded shape (a disc, or in the
+later sessions a cross) and an unrewarded bar. The fish knocked one target down
+with a jet of water, and only the target hit by its first shot was scored. A hit
+on the rewarded shape earned a food pellet.
+
+Columns in data/input.csv:
+
+- trial_uid: label of the individual shooting trial
+- fish_tag: tag of the fish that performed the trial
+- session: which of that fish's four sessions the trial came from (1 to 4)
+- standoff_cm: horizontal distance from the fish's launch spot to the targets
+- water_temp_c: tank water temperature during the trial, in degrees Celsius
+- target_pair: which pair of shapes was shown (disc_vs_bar or cross_vs_bar)
+- latency_s: seconds between showing the targets and the fish's first shot
+- chose_target: 1 if the first shot struck the rewarded shape, 0 if it struck
+  the unrewarded bar
+
+One row is: one two-choice shooting trial performed by one tagged archerfish
+Independent unit column: fish_tag
+One trial is: one row
+
+--- file data/input.csv ---
+trial_uid,fish_tag,session,standoff_cm,water_temp_c,target_pair,latency_s,chose_target
+T001,AR-11,1,30,27.4,disc_vs_bar,1.9,1
+T002,AR-11,2,45,27.5,disc_vs_bar,2.4,1
+T003,AR-11,3,60,27.3,cross_vs_bar,2.8,1
+T004,AR-11,4,75,27.6,cross_vs_bar,3.1,1
+T005,AR-14,1,30,27.2,disc_vs_bar,1.6,1
+T006,AR-14,2,45,27.4,disc_vs_bar,2.1,1
+T007,AR-14,3,60,27.5,cross_vs_bar,2.5,1
+T008,AR-14,4,75,27.3,cross_vs_bar,3.4,1
+T009,AR-22,1,30,27.6,disc_vs_bar,2.2,1
+T010,AR-22,2,45,27.5,disc_vs_bar,2.6,1
+T011,AR-22,3,60,27.4,cross_vs_bar,3.9,0
+T012,AR-22,4,75,27.2,cross_vs_bar,3.0,1
+T013,AR-27,1,30,27.3,disc_vs_bar,2.0,1
+T014,AR-27,2,45,27.6,disc_vs_bar,4.2,0
+T015,AR-27,3,60,27.5,cross_vs_bar,2.9,1
+T016,AR-27,4,75,27.4,cross_vs_bar,3.3,1
+T017,AR-31,1,30,27.5,disc_vs_bar,4.6,0
+T018,AR-31,2,45,27.2,disc_vs_bar,2.7,1
+T019,AR-31,3,60,27.3,cross_vs_bar,5.1,0
+T020,AR-31,4,75,27.6,cross_vs_bar,4.8,0
+
+--- file workflow/analysis.py ---
+"""Pooled hit-rate test for an archerfish two-choice shooting assay.
+
+Reads data/input.csv and writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+from scipy.stats import binomtest
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+CHANCE_RATE = 0.5
+HIT_COLUMN = "chose_target"
+UNIT_COLUMN = "fish_tag"
+
+
+def read_trials(path):
+    with path.open(newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def tally_by_fish(rows):
+    counts = {}
+    for row in rows:
+        tag = row[UNIT_COLUMN]
+        seen, hits = counts.get(tag, (0, 0))
+        counts[tag] = (seen + 1, hits + int(row[HIT_COLUMN]))
+    return counts
+
+
+def count_hits(rows):
+    return sum(int(row[HIT_COLUMN]) for row in rows)
+
+
+def build_report(rows, counts, test):
+    n = len(rows)
+    hits = count_hits(rows)
+    rate = hits / n
+    lines = [
+        "# Archerfish two-choice shooting assay: pooled hit-rate test",
+        "",
+        "## Data",
+        "",
+        "Input file: `data/input.csv`",
+        f"Rows read: {n}",
+        f"Fish tags present: {len(counts)}",
+        "",
+        "| fish_tag | trials | hits |",
+        "| --- | --- | --- |",
+    ]
+    for tag, (seen, tag_hits) in counts.items():
+        lines.append(f"| {tag} | {seen} | {tag_hits} |")
+    lines += [
+        "",
+        "## Analysis",
+        "",
+        "Each row of the input file is one two-choice shooting trial, scored 1 when the",
+        f"fish knocked down the rewarded target and 0 otherwise. All {n} rows were pooled",
+        "into a single sequence and entered into an exact two-sided binomial test, one",
+        "observation per row, of the null hypothesis that the hit probability of a trial",
+        f"equals {CHANCE_RATE:.3f} (scipy.stats.binomtest, alternative \"two-sided\"). No grouping or",
+        "weighting of rows was applied before the test.",
+        "",
+        "## Result",
+        "",
+        f"Hits: {hits} of {n}",
+        f"Observed hit rate: {rate:.3f}",
+        f"Exact two-sided binomial p-value: {test.pvalue:.4f}",
+        "",
+        f"[selected-result] Pooling all {n} trials as independent observations, the fish hit "
+        f"the rewarded target in {hits} of {n} trials (hit rate {rate:.3f}); an exact two-sided "
+        f"binomial test against a chance rate of {CHANCE_RATE:.3f} gives p = {test.pvalue:.4f}, "
+        "so chance performance is rejected at the 0.05 level.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    rows = read_trials(INPUT_PATH)
+    counts = tally_by_fish(rows)
+    test = binomtest(count_hits(rows), len(rows), CHANCE_RATE, alternative="two-sided")
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text(build_report(rows, counts, test), encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Archerfish two-choice shooting assay: pooled hit-rate test
+
+## Data
+
+Input file: `data/input.csv`
+Rows read: 20
+Fish tags present: 5
+
+| fish_tag | trials | hits |
+| --- | --- | --- |
+| AR-11 | 4 | 4 |
+| AR-14 | 4 | 4 |
+| AR-22 | 4 | 3 |
+| AR-27 | 4 | 3 |
+| AR-31 | 4 | 1 |
+
+## Analysis
+
+Each row of the input file is one two-choice shooting trial, scored 1 when the
+fish knocked down the rewarded target and 0 otherwise. All 20 rows were pooled
+into a single sequence and entered into an exact two-sided binomial test, one
+observation per row, of the null hypothesis that the hit probability of a trial
+equals 0.500 (scipy.stats.binomtest, alternative "two-sided"). No grouping or
+weighting of rows was applied before the test.
+
+## Result
+
+Hits: 15 of 20
+Observed hit rate: 0.750
+Exact two-sided binomial p-value: 0.0414
+
+[selected-result] Pooling all 20 trials as independent observations, the fish hit the rewarded target in 15 of 20 trials (hit rate 0.750); an exact two-sided binomial test against a chance rate of 0.500 gives p = 0.0414, so chance performance is rejected at the 0.05 level.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-k2-reviewer-fable-50", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:556f3545bebb45a3b005"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

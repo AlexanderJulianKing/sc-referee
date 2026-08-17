@@ -1,0 +1,268 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-k1-reviewer-fable-48
+
+=== workflow 1: case:6b2da0c7167dbba3738f ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Denitrifying bioreactor carbon-source trial
+
+Ten bench-scale denitrifying bioreactors were run for six weeks on synthetic
+nitrate-laden wastewater under matched flow and temperature settings. Each
+vessel was assigned a single external carbon source for the whole run: five
+vessels were dosed with methanol and five with glycerol. The nitrate removal
+rate of every vessel was measured on six sampling days (run days 7, 14, 21,
+28, 35 and 42), so the file holds 60 measurement records drawn from 10
+vessels.
+
+Columns:
+
+- reactor_id: label of the bench-scale reactor vessel (R01 through R10).
+- carbon_source: the external carbon source dosed to that vessel for the
+  entire run, either methanol or glycerol.
+- run_day: the day of the run on which the sample was drawn.
+- nitrate_removal_mg_n_per_l_per_h: the measured nitrate removal rate, in
+  milligrams of nitrogen per litre per hour.
+
+One row is: one nitrate removal measurement taken from one bioreactor vessel on one sampling day
+Independent unit column: reactor_id
+
+--- file data/input.csv ---
+reactor_id,carbon_source,run_day,nitrate_removal_mg_n_per_l_per_h
+R01,methanol,7,3.04
+R01,methanol,14,3.13
+R01,methanol,21,3.08
+R01,methanol,28,3.15
+R01,methanol,35,3.06
+R01,methanol,42,3.14
+R02,methanol,7,3.50
+R02,methanol,14,3.42
+R02,methanol,21,3.47
+R02,methanol,28,3.39
+R02,methanol,35,3.49
+R02,methanol,42,3.43
+R03,methanol,7,2.91
+R03,methanol,14,3.01
+R03,methanol,21,2.90
+R03,methanol,28,2.97
+R03,methanol,35,2.98
+R03,methanol,42,2.93
+R04,methanol,7,3.63
+R04,methanol,14,3.55
+R04,methanol,21,3.66
+R04,methanol,28,3.58
+R04,methanol,35,3.57
+R04,methanol,42,3.61
+R05,methanol,7,3.23
+R05,methanol,14,3.29
+R05,methanol,21,3.19
+R05,methanol,28,3.28
+R05,methanol,35,3.30
+R05,methanol,42,3.21
+R06,glycerol,7,4.09
+R06,glycerol,14,4.03
+R06,glycerol,21,4.10
+R06,glycerol,28,4.02
+R06,glycerol,35,4.07
+R06,glycerol,42,3.99
+R07,glycerol,7,3.75
+R07,glycerol,14,3.82
+R07,glycerol,21,3.77
+R07,glycerol,28,3.86
+R07,glycerol,35,3.79
+R07,glycerol,42,3.81
+R08,glycerol,7,4.32
+R08,glycerol,14,4.24
+R08,glycerol,21,4.33
+R08,glycerol,28,4.26
+R08,glycerol,35,4.35
+R08,glycerol,42,4.30
+R09,glycerol,7,3.92
+R09,glycerol,14,4.00
+R09,glycerol,21,3.91
+R09,glycerol,28,3.96
+R09,glycerol,35,4.01
+R09,glycerol,42,3.90
+R10,glycerol,7,4.21
+R10,glycerol,14,4.11
+R10,glycerol,21,4.17
+R10,glycerol,28,4.10
+R10,glycerol,35,4.18
+R10,glycerol,42,4.13
+
+--- file workflow/analysis.py ---
+"""Nitrate removal in bench-scale denitrifying bioreactors: methanol vs glycerol.
+
+Reads data/input.csv and writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+import statistics
+from collections import Counter, defaultdict
+from pathlib import Path
+
+from scipy import stats
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+SOURCE_ORDER = ("methanol", "glycerol")
+VALUE_FIELD = "nitrate_removal_mg_n_per_l_per_h"
+ALPHA = 0.05
+
+
+def read_table(path):
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def welch_df(sample_a, sample_b):
+    term_a = statistics.variance(sample_a) / len(sample_a)
+    term_b = statistics.variance(sample_b) / len(sample_b)
+    numerator = (term_a + term_b) ** 2
+    denominator = term_a ** 2 / (len(sample_a) - 1) + term_b ** 2 / (len(sample_b) - 1)
+    return numerator / denominator
+
+
+def main():
+    rows = read_table(INPUT_PATH)
+
+    values = defaultdict(list)
+    reactors = defaultdict(set)
+    per_reactor = Counter()
+    for row in rows:
+        source = row["carbon_source"]
+        values[source].append(float(row[VALUE_FIELD]))
+        reactors[source].add(row["reactor_id"])
+        per_reactor[row["reactor_id"]] += 1
+
+    methanol = values["methanol"]
+    glycerol = values["glycerol"]
+
+    outcome = stats.ttest_ind(glycerol, methanol, equal_var=False)
+    t_stat = float(outcome.statistic)
+    p_value = float(outcome.pvalue)
+    dof = welch_df(glycerol, methanol)
+
+    mean_methanol = statistics.fmean(methanol)
+    mean_glycerol = statistics.fmean(glycerol)
+    difference = mean_glycerol - mean_methanol
+
+    days = sorted({int(row["run_day"]) for row in rows})
+    occasion_counts = sorted(set(per_reactor.values()))
+    occasions = (
+        str(occasion_counts[0])
+        if len(occasion_counts) == 1
+        else "{}-{}".format(occasion_counts[0], occasion_counts[-1])
+    )
+
+    p_text = "p < 1e-12" if p_value < 1e-12 else "p = {:.6f}".format(p_value)
+    verdict = (
+        "the difference is significant at alpha = {:.2f}".format(ALPHA)
+        if p_value < ALPHA
+        else "the difference is not significant at alpha = {:.2f}".format(ALPHA)
+    )
+
+    lines = [
+        "# Nitrate removal under two external carbon sources",
+        "",
+        "## Data",
+        "",
+        "- Source file: `data/input.csv`",
+        "- Measurement rows analysed: {}".format(len(rows)),
+        "- Bioreactors: {} ({} on methanol, {} on glycerol)".format(
+            len(per_reactor), len(reactors["methanol"]), len(reactors["glycerol"])
+        ),
+        "- Sampling occasions per bioreactor: {} (run days {})".format(
+            occasions, ", ".join(str(day) for day in days)
+        ),
+        "",
+        "| carbon source | rows | mean removal (mg N/L/h) | sd |",
+        "| --- | --- | --- | --- |",
+    ]
+    for source in SOURCE_ORDER:
+        sample = values[source]
+        lines.append(
+            "| {} | {} | {:.3f} | {:.3f} |".format(
+                source,
+                len(sample),
+                statistics.fmean(sample),
+                statistics.stdev(sample),
+            )
+        )
+    lines.extend(
+        [
+            "",
+            "## Analysis",
+            "",
+            "Each sampling-day measurement in the file was entered as one observation,",
+            "and the two carbon-source groups were compared with Welch's two-sample",
+            "t test (`scipy.stats.ttest_ind`, `equal_var=False`), two-sided.",
+            "",
+            "## Result",
+            "",
+            "- Mean difference (glycerol minus methanol): {:.3f} mg N/L/h".format(difference),
+            "- Welch t = {:.2f} on {:.1f} degrees of freedom".format(t_stat, dof),
+            "- {}".format(p_text),
+            "",
+            (
+                "[selected-result] Welch two-sample t test on the {} measurement rows: "
+                "mean nitrate removal is {:.3f} mg N/L/h with glycerol versus {:.3f} mg N/L/h "
+                "with methanol, a difference of {:.3f} mg N/L/h (t = {:.2f}, df = {:.1f}, {}); {}."
+            ).format(
+                len(rows),
+                mean_glycerol,
+                mean_methanol,
+                difference,
+                t_stat,
+                dof,
+                p_text,
+                verdict,
+            ),
+            "",
+        ]
+    )
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines), encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Nitrate removal under two external carbon sources
+
+## Data
+
+- Source file: `data/input.csv`
+- Measurement rows analysed: 60
+- Bioreactors: 10 (5 on methanol, 5 on glycerol)
+- Sampling occasions per bioreactor: 6 (run days 7, 14, 21, 28, 35, 42)
+
+| carbon source | rows | mean removal (mg N/L/h) | sd |
+| --- | --- | --- | --- |
+| methanol | 30 | 3.270 | 0.241 |
+| glycerol | 30 | 4.050 | 0.178 |
+
+## Analysis
+
+Each sampling-day measurement in the file was entered as one observation,
+and the two carbon-source groups were compared with Welch's two-sample
+t test (`scipy.stats.ttest_ind`, `equal_var=False`), two-sided.
+
+## Result
+
+- Mean difference (glycerol minus methanol): 0.780 mg N/L/h
+- Welch t = 14.26 on 53.3 degrees of freedom
+- p < 1e-12
+
+[selected-result] Welch two-sample t test on the 60 measurement rows: mean nitrate removal is 4.050 mg N/L/h with glycerol versus 3.270 mg N/L/h with methanol, a difference of 0.780 mg N/L/h (t = 14.26, df = 53.3, p < 1e-12); the difference is significant at alpha = 0.05.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-k1-reviewer-fable-48", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:6b2da0c7167dbba3738f"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

@@ -1,0 +1,239 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-k1-reviewer-fable-48
+
+=== workflow 1: case:221653880963f91141d5 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# What is in data/input.csv
+
+Twenty-four honey bee colonies kept in a single research apiary were prepared
+for winter with one of two entrance-reducer designs, notched or open, assigned
+by coin toss with twelve colonies to each design. Every colony was opened once,
+at the spring inspection, and given a single survival call. Nothing else was
+recorded after the October assessment, so the file has one line per colony and
+no colony appears twice.
+
+One row is: one honey bee colony, carrying its assigned entrance-reducer design, its October condition, and the single survived-or-died call made at the spring inspection
+Independent unit column: colony_id
+One trial is: one row
+
+Columns:
+
+- colony_id: the painted apiary tag of the colony; each tag is used on exactly one line
+- entrance_design: notched or open, the winter entrance reducer fitted in October
+- autumn_bee_frames: bee-covered frames counted at the October assessment
+- varroa_per_100_bees: mites per 100 bees from the October alcohol wash
+- overwinter_outcome: survived or died, scored once at the spring inspection
+
+The colonies were housed on separate stands and managed independently, and the
+outcome is a terminal one-time score, so each line is one independent unit with
+no repeated measurement behind it.
+
+--- file data/input.csv ---
+colony_id,entrance_design,autumn_bee_frames,varroa_per_100_bees,overwinter_outcome
+HV-01,notched,8,1.2,survived
+HV-02,open,9,2.1,died
+HV-03,notched,9,2.4,survived
+HV-04,open,7,1.4,died
+HV-05,notched,7,0.9,survived
+HV-06,open,8,3.0,died
+HV-07,notched,10,3.1,survived
+HV-08,open,10,0.8,survived
+HV-09,notched,8,1.8,survived
+HV-10,open,7,2.5,died
+HV-11,notched,9,2.2,survived
+HV-12,open,9,1.9,died
+HV-13,notched,6,1.1,died
+HV-14,open,8,3.6,died
+HV-15,notched,11,4.0,died
+HV-16,open,6,1.2,died
+HV-17,notched,9,2.6,survived
+HV-18,open,11,2.8,survived
+HV-19,notched,8,1.5,survived
+HV-20,open,9,1.6,survived
+HV-21,notched,7,0.7,survived
+HV-22,open,8,4.2,died
+HV-23,notched,10,3.3,died
+HV-24,open,10,2.3,died
+
+--- file workflow/analysis.py ---
+"""Entrance-reducer design and honey bee overwintering survival.
+
+One research apiary, one row per colony: every colony carries a single spring
+survival call, so the design-by-outcome table counts independent colonies and
+is analysed with Fisher's exact test.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+from scipy.stats import fisher_exact
+
+DESIGNS = ("notched", "open")
+LIVE = "survived"
+DEAD = "died"
+
+
+def locate_base() -> Path:
+    here = Path(__file__).resolve().parent
+    for candidate in (Path.cwd(), here.parent, here):
+        if (candidate / "data" / "input.csv").is_file():
+            return candidate
+    raise SystemExit("could not locate data/input.csv")
+
+
+def load_colonies(path: Path):
+    with path.open(newline="", encoding="ascii") as handle:
+        colonies = list(csv.DictReader(handle))
+    if not colonies:
+        raise SystemExit("data/input.csv holds no colonies")
+    tags = [row["colony_id"] for row in colonies]
+    if len(set(tags)) != len(tags):
+        raise SystemExit("every colony_id must appear on exactly one row")
+    for row in colonies:
+        if row["entrance_design"] not in DESIGNS:
+            raise SystemExit("unexpected entrance_design: " + row["entrance_design"])
+        if row["overwinter_outcome"] not in (LIVE, DEAD):
+            raise SystemExit("unexpected overwinter_outcome: " + row["overwinter_outcome"])
+    return colonies
+
+
+class Arm:
+    """One entrance-reducer design, summarised over its own colonies."""
+
+    def __init__(self, design, rows):
+        self.design = design
+        self.size = len(rows)
+        self.lived = sum(1 for row in rows if row["overwinter_outcome"] == LIVE)
+        self.lost = self.size - self.lived
+        self.frames = sum(float(row["autumn_bee_frames"]) for row in rows) / self.size
+        self.mites = sum(float(row["varroa_per_100_bees"]) for row in rows) / self.size
+
+    @property
+    def survival(self):
+        return self.lived / self.size
+
+
+def build_report(notched, plain, table, p_value):
+    total = notched.size + plain.size
+    diff = notched.survival - plain.survival
+    odds = (notched.lived * plain.lost) / (notched.lost * plain.lived)
+    lines = [
+        "# Entrance-reducer design and honey bee overwintering survival",
+        "",
+        "## Design",
+        "",
+        f"{total} queenright colonies in one research apiary were assigned by",
+        "coin toss to one of two winter entrance-reducer designs. Each colony was",
+        "opened once, at the spring inspection, and scored survived or died. A colony",
+        "contributes exactly one row, so the survival calls are one per independent",
+        "unit and the design-by-outcome table below counts colonies, not visits.",
+        "",
+        "## Colony counts",
+        "",
+        "| Entrance design | Survived | Died | Colonies | Survival |",
+        "| --- | --- | --- | --- | --- |",
+        f"| {notched.design} | {notched.lived} | {notched.lost} | {notched.size} | {notched.survival:.3f} |",
+        f"| {plain.design} | {plain.lived} | {plain.lost} | {plain.size} | {plain.survival:.3f} |",
+        "",
+        f"Autumn strength was balanced at assignment: {notched.frames:.2f} bee-covered",
+        f"frames on average for {notched.design} colonies against {plain.frames:.2f} for",
+        f"{plain.design} colonies, with mean autumn mite loads of {notched.mites:.2f} and",
+        f"{plain.mites:.2f} mites per 100 bees.",
+        "",
+        "## Test",
+        "",
+        "Fisher's exact test, two-sided, on the 2 x 2 table of entrance design by",
+        f"overwinter outcome: {table}.",
+        "",
+        f"- Survival difference ({notched.design} minus {plain.design}): {diff:.3f}",
+        f"- Sample odds ratio: {odds:.3f}",
+        f"- Two-sided p-value: {p_value:.4f}",
+        "",
+        (
+            f"[selected-result] Fisher's exact test on {total} independent colonies "
+            f"(one row per colony) returns a two-sided p-value of {p_value:.4f}: "
+            f"{notched.lived}/{notched.size} ({notched.survival:.3f}) of {notched.design} "
+            f"colonies overwintered against {plain.lived}/{plain.size} "
+            f"({plain.survival:.3f}) of {plain.design} colonies."
+        ),
+        "",
+        "## Reading",
+        "",
+        "Because each colony is observed once, there is no within-colony replication",
+        "to absorb and the row count equals the number of independent units. The",
+        "exact conditional test is used in preference to a chi-square approximation",
+        "at these cell counts, and no odds-ratio interval is quoted because the",
+        "conditional estimate is poorly determined with single-digit cells.",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def main():
+    base = locate_base()
+    colonies = load_colonies(base / "data" / "input.csv")
+    notched = Arm("notched", [r for r in colonies if r["entrance_design"] == "notched"])
+    plain = Arm("open", [r for r in colonies if r["entrance_design"] == "open"])
+    table = [[notched.lived, notched.lost], [plain.lived, plain.lost]]
+    p_value = fisher_exact(table)[1]
+    report = build_report(notched, plain, table, p_value)
+    target = base / "results" / "report.md"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with open(target, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(report)
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Entrance-reducer design and honey bee overwintering survival
+
+## Design
+
+24 queenright colonies in one research apiary were assigned by
+coin toss to one of two winter entrance-reducer designs. Each colony was
+opened once, at the spring inspection, and scored survived or died. A colony
+contributes exactly one row, so the survival calls are one per independent
+unit and the design-by-outcome table below counts colonies, not visits.
+
+## Colony counts
+
+| Entrance design | Survived | Died | Colonies | Survival |
+| --- | --- | --- | --- | --- |
+| notched | 9 | 3 | 12 | 0.750 |
+| open | 3 | 9 | 12 | 0.250 |
+
+Autumn strength was balanced at assignment: 8.50 bee-covered
+frames on average for notched colonies against 8.50 for
+open colonies, with mean autumn mite loads of 2.07 and
+2.28 mites per 100 bees.
+
+## Test
+
+Fisher's exact test, two-sided, on the 2 x 2 table of entrance design by
+overwinter outcome: [[9, 3], [3, 9]].
+
+- Survival difference (notched minus open): 0.500
+- Sample odds ratio: 9.000
+- Two-sided p-value: 0.0391
+
+[selected-result] Fisher's exact test on 24 independent colonies (one row per colony) returns a two-sided p-value of 0.0391: 9/12 (0.750) of notched colonies overwintered against 3/12 (0.250) of open colonies.
+
+## Reading
+
+Because each colony is observed once, there is no within-colony replication
+to absorb and the row count equals the number of independent units. The
+exact conditional test is used in preference to a chi-square approximation
+at these cell counts, and no odds-ratio interval is quoted because the
+conditional estimate is poorly determined with single-digit cells.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-k1-reviewer-fable-48", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:221653880963f91141d5"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

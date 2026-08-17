@@ -1,0 +1,231 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-k1-reviewer-fable-48
+
+=== workflow 1: case:0de3a6061d3bb4056306 ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Peatland restoration chamber flux data
+
+`data/input.csv` comes from a lowland peatland restoration trial. Ten peat
+plots were enrolled in the trial: five plots whose drainage ditches were
+blocked so that the water table could recover (management "restored") and five
+plots that remain under active agricultural drainage (management "drained").
+Each plot was visited four times across a single growing season, and on every
+visit one static chamber was deployed on that plot to measure methane flux.
+Because each plot contributes four separate records, plot identifiers repeat
+throughout the file; readings sharing a plot identifier come from the same
+patch of peat.
+
+One row is: one static-chamber methane flux reading taken on one peat plot during one survey visit
+Independent unit column: plot_id
+
+Column guide:
+
+- `plot_id`: label of the peat plot that was sampled. There are 10 distinct plots and each one appears in four rows.
+- `management`: the plot's management class, either "restored" (rewetted) or "drained". This is fixed for a plot and is the same in all four of that plot's rows.
+- `visit`: which of the four seasonal survey rounds the reading belongs to (V1 through V4).
+- `water_table_cm`: depth of the water table relative to the peat surface at the moment of sampling, in centimetres. Negative numbers mean the water table sat below the surface, so the more negative the value the drier the peat.
+- `ch4_flux_mg_m2_h`: the measured methane flux, in milligrams of CH4 per square metre per hour.
+
+The file is 40 data rows plus one header row, is comma separated, and contains
+no missing cells.
+
+--- file data/input.csv ---
+plot_id,management,visit,water_table_cm,ch4_flux_mg_m2_h
+PEAT-R1,restored,V1,-6,7.4
+PEAT-R1,restored,V2,-5,7.8
+PEAT-R1,restored,V3,-4,8.2
+PEAT-R1,restored,V4,-7,8.6
+PEAT-R2,restored,V1,-4,9.4
+PEAT-R2,restored,V2,-3,9.8
+PEAT-R2,restored,V3,-2,10.2
+PEAT-R2,restored,V4,-5,10.6
+PEAT-R3,restored,V1,-3,11.4
+PEAT-R3,restored,V2,-2,11.8
+PEAT-R3,restored,V3,-1,12.2
+PEAT-R3,restored,V4,-4,12.6
+PEAT-R4,restored,V1,-2,13.4
+PEAT-R4,restored,V2,-1,13.8
+PEAT-R4,restored,V3,-1,14.2
+PEAT-R4,restored,V4,-3,14.6
+PEAT-R5,restored,V1,-1,15.4
+PEAT-R5,restored,V2,-1,15.8
+PEAT-R5,restored,V3,0,16.2
+PEAT-R5,restored,V4,-2,16.6
+PEAT-D1,drained,V1,-62,1.7
+PEAT-D1,drained,V2,-58,1.9
+PEAT-D1,drained,V3,-55,2.1
+PEAT-D1,drained,V4,-64,2.3
+PEAT-D2,drained,V1,-54,2.7
+PEAT-D2,drained,V2,-51,2.9
+PEAT-D2,drained,V3,-48,3.1
+PEAT-D2,drained,V4,-56,3.3
+PEAT-D3,drained,V1,-47,3.7
+PEAT-D3,drained,V2,-45,3.9
+PEAT-D3,drained,V3,-42,4.1
+PEAT-D3,drained,V4,-49,4.3
+PEAT-D4,drained,V1,-41,4.7
+PEAT-D4,drained,V2,-38,4.9
+PEAT-D4,drained,V3,-36,5.1
+PEAT-D4,drained,V4,-43,5.3
+PEAT-D5,drained,V1,-35,5.7
+PEAT-D5,drained,V2,-33,5.9
+PEAT-D5,drained,V3,-30,6.1
+PEAT-D5,drained,V4,-37,6.3
+
+--- file workflow/analysis.py ---
+"""Compare chamber methane flux between restored and drained peatland plots.
+
+Reads data/input.csv and writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+import math
+from pathlib import Path
+
+from scipy import stats
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+GROUP_COLUMN = "management"
+FLUX_COLUMN = "ch4_flux_mg_m2_h"
+GROUP_ORDER = ("restored", "drained")
+
+
+def read_measurements(path):
+    """Return every CSV record as a dictionary keyed by column name."""
+    with path.open("r", encoding="ascii", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def flux_by_group(rows):
+    """Collect the flux readings belonging to each management class."""
+    grouped = {name: [] for name in GROUP_ORDER}
+    for row in rows:
+        grouped[row[GROUP_COLUMN]].append(float(row[FLUX_COLUMN]))
+    return grouped
+
+
+def summarise(values):
+    """Count, mean and sample standard deviation of one list of readings."""
+    count = len(values)
+    mean = math.fsum(values) / count
+    variance = math.fsum((value - mean) ** 2 for value in values) / (count - 1)
+    return count, mean, math.sqrt(variance)
+
+
+def format_p(p_value):
+    if p_value < 0.001:
+        return "p < 0.001"
+    return "p = {0:.3f}".format(p_value)
+
+
+def compose(rows):
+    """Build the full text of the report."""
+    grouped = flux_by_group(rows)
+    per_group = {name: summarise(grouped[name]) for name in GROUP_ORDER}
+    n_res, mean_res, sd_res = per_group["restored"]
+    n_dra, mean_dra, sd_dra = per_group["drained"]
+
+    outcome = stats.ttest_ind(
+        grouped["restored"], grouped["drained"], equal_var=True
+    )
+    dof = n_res + n_dra - 2
+    pooled_sd = math.sqrt(
+        ((n_res - 1) * sd_res ** 2 + (n_dra - 1) * sd_dra ** 2) / dof
+    )
+    effect = (mean_res - mean_dra) / pooled_sd
+
+    table = [
+        "| management | measurements | mean flux (mg CH4 m^-2 h^-1) | SD |",
+        "| --- | --- | --- | --- |",
+    ]
+    for name in GROUP_ORDER:
+        count, mean, sd = per_group[name]
+        table.append(
+            "| {0} | {1} | {2:.2f} | {3:.2f} |".format(name, count, mean, sd)
+        )
+
+    lines = [
+        "# Methane flux in restored versus drained peatland chambers",
+        "",
+        "## Data",
+        "",
+        "The file `data/input.csv` records {0} static-chamber measurements of methane"
+        " flux (mg CH4 m^-2 h^-1) from a lowland peatland restoration trial, together"
+        " with the management class of the chamber's plot, the survey visit, and the"
+        " water-table depth logged at sampling.".format(len(rows)),
+        "",
+        "## Analysis",
+        "",
+        "Flux readings were summarised per management class and compared with a"
+        " two-sample Student t-test (scipy.stats.ttest_ind, equal variances assumed)"
+        " in which each of the {0} measurement rows entered the test as one"
+        " observation. Cohen's d was computed from the pooled standard"
+        " deviation.".format(len(rows)),
+        "",
+        "## Summary statistics",
+        "",
+    ]
+    lines.extend(table)
+    lines.extend(
+        [
+            "",
+            "## Result",
+            "",
+            "[selected-result] Restored chambers released more methane than drained"
+            " chambers: mean difference {0:.2f} mg CH4 m^-2 h^-1 (restored {1:.2f},"
+            " drained {2:.2f}), two-sample t-test t({3}) = {4:.2f}, {5}, Cohen's"
+            " d = {6:.2f}.".format(
+                mean_res - mean_dra,
+                mean_res,
+                mean_dra,
+                dof,
+                float(outcome.statistic),
+                format_p(float(outcome.pvalue)),
+                effect,
+            ),
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    rows = read_measurements(INPUT_PATH)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text(compose(rows), encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Methane flux in restored versus drained peatland chambers
+
+## Data
+
+The file `data/input.csv` records 40 static-chamber measurements of methane flux (mg CH4 m^-2 h^-1) from a lowland peatland restoration trial, together with the management class of the chamber's plot, the survey visit, and the water-table depth logged at sampling.
+
+## Analysis
+
+Flux readings were summarised per management class and compared with a two-sample Student t-test (scipy.stats.ttest_ind, equal variances assumed) in which each of the 40 measurement rows entered the test as one observation. Cohen's d was computed from the pooled standard deviation.
+
+## Summary statistics
+
+| management | measurements | mean flux (mg CH4 m^-2 h^-1) | SD |
+| --- | --- | --- | --- |
+| restored | 20 | 12.00 | 2.94 |
+| drained | 20 | 4.00 | 1.47 |
+
+## Result
+
+[selected-result] Restored chambers released more methane than drained chambers: mean difference 8.00 mg CH4 m^-2 h^-1 (restored 12.00, drained 4.00), two-sample t-test t(38) = 10.89, p < 0.001, Cohen's d = 3.44.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-k1-reviewer-fable-48", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:0de3a6061d3bb4056306"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

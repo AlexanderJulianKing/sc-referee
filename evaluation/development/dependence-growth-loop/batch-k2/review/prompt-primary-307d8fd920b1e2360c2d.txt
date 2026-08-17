@@ -1,0 +1,209 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-k2-reviewer-fable-50
+
+=== workflow 1: case:307d8fd920b1e2360c2d ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# data/input.csv in plain language
+
+This file records a 60-day grow-out trial at a marine hatchery. Twenty-four
+juvenile Atlantic cod were tagged, weighed, and moved into twenty-four separate
+flow-through chambers, one fish per chamber. Half the chambers were fed the
+standard baseline pellet and half were fed the same pellet with an algal-oil
+supplement, and that assignment was fixed for the whole trial. Each fish was
+weighed once, at day 60, and that single weight is the only outcome recorded for
+it. A fish is said to have graded out if it reached the hatchery's 12.0 g
+transfer target.
+
+One row is: one juvenile Atlantic cod that was reared alone in its own flow-through chamber for the whole 60-day trial and weighed once at day 60
+Independent unit column: chamber_id
+One trial is: one row
+
+Columns
+- chamber_id: label of the flow-through chamber, for example CH07. Because
+  exactly one fish lived in each chamber and no chamber was reused, this label
+  appears on exactly one row and so identifies the fish.
+- diet: which feed the fish received for the whole trial, either baseline or
+  algal_oil.
+- day60_mass_g: the fish's wet mass in grams at the single day-60 weighing.
+
+Nothing in the file is a repeated measurement: no fish was weighed more than
+once, no chamber held more than one fish, and no chamber contributes more than
+one row. The twenty-four rows are therefore twenty-four independent units, which
+is what lets a row-independent test be applied directly to them.
+
+--- file data/input.csv ---
+chamber_id,diet,day60_mass_g
+CH01,algal_oil,13.4
+CH02,baseline,10.4
+CH03,algal_oil,12.8
+CH04,baseline,11.1
+CH05,algal_oil,14.1
+CH06,baseline,12.5
+CH07,algal_oil,12.2
+CH08,baseline,9.8
+CH09,algal_oil,15.0
+CH10,baseline,11.6
+CH11,algal_oil,12.6
+CH12,baseline,10.9
+CH13,algal_oil,13.9
+CH14,baseline,13.1
+CH15,algal_oil,12.0
+CH16,baseline,11.4
+CH17,algal_oil,14.6
+CH18,baseline,10.2
+CH19,algal_oil,11.3
+CH20,baseline,12.3
+CH21,algal_oil,10.8
+CH22,baseline,9.6
+CH23,algal_oil,11.7
+CH24,baseline,11.0
+
+--- file workflow/analysis.py ---
+"""Day-60 grade-out of individually reared juvenile cod under two diets.
+
+Reads data/input.csv and writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+from scipy.stats import fisher_exact
+
+INPUT_PATH = Path("data/input.csv")
+REPORT_PATH = Path("results/report.md")
+
+TARGET_MASS_G = 12.0
+SUPPLEMENTED = "algal_oil"
+CONTROL = "baseline"
+
+
+def read_chambers(path):
+    """One record per chamber; a chamber never appears twice."""
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = [dict(record) for record in csv.DictReader(handle)]
+    if not rows:
+        raise ValueError("no chamber records found")
+    tags = [row["chamber_id"] for row in rows]
+    if len(set(tags)) != len(tags):
+        raise ValueError("each chamber_id must appear on exactly one row")
+    return rows
+
+
+def summarise(rows, diet):
+    """Return (graded, missed, mean day-60 mass) for one diet arm."""
+    masses = [float(row["day60_mass_g"]) for row in rows if row["diet"] == diet]
+    if not masses:
+        raise ValueError("no chambers assigned to diet " + diet)
+    graded = sum(1 for mass in masses if mass >= TARGET_MASS_G)
+    return graded, len(masses) - graded, sum(masses) / len(masses)
+
+
+def build_report(a, b, supp_mean, c, d, ctrl_mean, odds_ratio, pvalue):
+    n_supp = a + b
+    n_ctrl = c + d
+    n_total = n_supp + n_ctrl
+    return [
+        "# Algal-oil supplementation and day-60 grade-out in individually reared juvenile cod",
+        "",
+        "## Design",
+        "",
+        "Each row of `data/input.csv` is one juvenile Atlantic cod held alone in its own",
+        "flow-through chamber for the entire 60-day trial. Chambers were stocked with one",
+        "fish each, fed independently, and weighed once at day 60, so `chamber_id` is",
+        "unique across the file and every fish contributes exactly one measurement. No",
+        f"fish was weighed twice and no chamber held more than one fish, so the {n_total} rows",
+        f"are {n_total} independent units.",
+        "",
+        "## Analysis",
+        "",
+        "The pre-specified endpoint is grade-out: whether a fish reaches the 12.0 g",
+        "transfer target by day 60. The 2x2 table of diet by grade-out was tested with",
+        "Fisher's exact test (two-sided). Each fish supplies a single Bernoulli outcome",
+        "and the cell counts are small, so an exact conditional test is the natural",
+        "choice.",
+        "",
+        "## Results",
+        "",
+        "| Diet | Chambers | Reached 12.0 g | Grade-out rate | Mean day-60 mass (g) |",
+        "| --- | --- | --- | --- | --- |",
+        f"| {SUPPLEMENTED} | {n_supp} | {a} | {100.0 * a / n_supp:.1f}% | {supp_mean:.2f} |",
+        f"| {CONTROL} | {n_ctrl} | {c} | {100.0 * c / n_ctrl:.1f}% | {ctrl_mean:.2f} |",
+        "",
+        f"Sample odds ratio (algal-oil vs. baseline grade-out): {odds_ratio:.3f}",
+        "",
+        (
+            "[selected-result] Fisher's exact test on the 2x2 diet-by-grade-out table "
+            f"(n = {n_total} chambers, one fish per chamber): {a} of {n_supp} algal-oil fish "
+            f"versus {c} of {n_ctrl} baseline fish reached the {TARGET_MASS_G:.1f} g transfer "
+            f"target, odds ratio {odds_ratio:.3f}, two-sided p = {pvalue:.4f}, so the diets "
+            "differ significantly at alpha = 0.05."
+        ),
+        "",
+        "## Notes",
+        "",
+        "Day-60 mass is summarised only for description; the test uses the dichotomised",
+        f"grade-out outcome. With {n_supp} chambers per diet the p-value is exact, so no",
+        "distributional assumption about mass is needed.",
+    ]
+
+
+def main():
+    rows = read_chambers(INPUT_PATH)
+    a, b, supp_mean = summarise(rows, SUPPLEMENTED)
+    c, d, ctrl_mean = summarise(rows, CONTROL)
+    pvalue = float(fisher_exact([[a, b], [c, d]], alternative="two-sided")[1])
+    odds_ratio = (a * d) / (b * c)
+    lines = build_report(a, b, supp_mean, c, d, ctrl_mean, odds_ratio, pvalue)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Algal-oil supplementation and day-60 grade-out in individually reared juvenile cod
+
+## Design
+
+Each row of `data/input.csv` is one juvenile Atlantic cod held alone in its own
+flow-through chamber for the entire 60-day trial. Chambers were stocked with one
+fish each, fed independently, and weighed once at day 60, so `chamber_id` is
+unique across the file and every fish contributes exactly one measurement. No
+fish was weighed twice and no chamber held more than one fish, so the 24 rows
+are 24 independent units.
+
+## Analysis
+
+The pre-specified endpoint is grade-out: whether a fish reaches the 12.0 g
+transfer target by day 60. The 2x2 table of diet by grade-out was tested with
+Fisher's exact test (two-sided). Each fish supplies a single Bernoulli outcome
+and the cell counts are small, so an exact conditional test is the natural
+choice.
+
+## Results
+
+| Diet | Chambers | Reached 12.0 g | Grade-out rate | Mean day-60 mass (g) |
+| --- | --- | --- | --- | --- |
+| algal_oil | 12 | 9 | 75.0% | 12.87 |
+| baseline | 12 | 3 | 25.0% | 11.16 |
+
+Sample odds ratio (algal-oil vs. baseline grade-out): 9.000
+
+[selected-result] Fisher's exact test on the 2x2 diet-by-grade-out table (n = 24 chambers, one fish per chamber): 9 of 12 algal-oil fish versus 3 of 12 baseline fish reached the 12.0 g transfer target, odds ratio 9.000, two-sided p = 0.0391, so the diets differ significantly at alpha = 0.05.
+
+## Notes
+
+Day-60 mass is summarised only for description; the test uses the dichotomised
+grade-out outcome. With 12 chambers per diet the p-value is exact, so no
+distributional assumption about mass is needed.
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-k2-reviewer-fable-50", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:307d8fd920b1e2360c2d"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

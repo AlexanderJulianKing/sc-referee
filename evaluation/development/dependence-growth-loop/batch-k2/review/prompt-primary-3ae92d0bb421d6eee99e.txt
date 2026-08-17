@@ -1,0 +1,230 @@
+Review exactly one scientific submission containing task.md, data/input.csv, workflow/analysis.py, results/report.md, and data-description.md. The description neutrally states what a row represents and names the independent-unit column. Determine whether the selected report demonstrates this issue class: issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure. Use only the supplied files and return the required structured review.
+
+Reviewer participant identity: actor:dependence-free-batch-k2-reviewer-fable-50
+
+=== workflow 1: case:3ae92d0bb421d6eee99e ===
+--- file task.md ---
+Assess whether the selected report's stated statistical conclusion is supported by the provided workflow and input data.
+
+--- file data-description.md ---
+# Karhusuo peatland chamber survey
+
+The Karhusuo peat complex has twelve permanent monitoring plots: six in
+the sector that was drained by ditches decades ago, and six in the
+sector where the ditches were blocked and the water table was allowed to
+recover. Each plot has a fixed steel collar set into the peat.
+
+During the 2024 growing season a field crew visited every plot five
+times. On each visit a static closed chamber was seated on the plot
+collar, the headspace was sampled over half an hour, and the resulting
+methane flux was written down together with the air temperature inside
+the chamber. Twelve plots visited five times each gives 60 lines in the
+table.
+
+Columns:
+
+- plot_id: label of the permanent monitoring plot (DR-01 to DR-06 in the
+  drained sector, RW-01 to RW-06 in the rewetted sector); the same plot
+  reappears once per survey round
+- water_table_regime: which sector the plot belongs to, drained or
+  rewetted
+- survey_round: which of the five seasonal visits the reading comes from
+  (1 = early May through 5 = late September)
+- chamber_temp_c: air temperature inside the chamber during the
+  measurement, in degrees Celsius
+- ch4_flux_mg_m2_h: methane flux for that chamber deployment, in
+  milligrams of CH4 per square metre per hour
+
+One row is: one static-chamber methane flux measurement taken on one monitoring plot during one of the five seasonal survey rounds
+Independent unit column: plot_id
+
+--- file data/input.csv ---
+plot_id,water_table_regime,survey_round,chamber_temp_c,ch4_flux_mg_m2_h
+DR-01,drained,1,10.2,3.0
+DR-01,drained,2,13.8,3.2
+DR-01,drained,3,17.1,2.9
+DR-01,drained,4,15.0,3.1
+DR-01,drained,5,12.4,2.8
+DR-02,drained,1,10.5,3.4
+DR-02,drained,2,14.1,3.5
+DR-02,drained,3,17.4,3.7
+DR-02,drained,4,15.3,3.3
+DR-02,drained,5,12.7,3.6
+DR-03,drained,1,10.1,4.1
+DR-03,drained,2,13.6,3.8
+DR-03,drained,3,16.9,4.0
+DR-03,drained,4,14.8,4.2
+DR-03,drained,5,12.2,3.9
+DR-04,drained,1,10.7,4.3
+DR-04,drained,2,14.3,4.6
+DR-04,drained,3,17.6,4.7
+DR-04,drained,4,15.5,4.5
+DR-04,drained,5,12.9,4.4
+DR-05,drained,1,10.4,5.2
+DR-05,drained,2,14.0,4.9
+DR-05,drained,3,17.3,4.8
+DR-05,drained,4,15.2,5.1
+DR-05,drained,5,12.6,5.0
+DR-06,drained,1,10.9,5.5
+DR-06,drained,2,14.5,5.3
+DR-06,drained,3,17.8,5.6
+DR-06,drained,4,15.7,5.4
+DR-06,drained,5,13.1,5.7
+RW-01,rewetted,1,9.8,9.1
+RW-01,rewetted,2,13.2,8.9
+RW-01,rewetted,3,16.5,9.2
+RW-01,rewetted,4,14.6,9.0
+RW-01,rewetted,5,12.0,8.8
+RW-02,rewetted,1,10.0,9.3
+RW-02,rewetted,2,13.5,9.7
+RW-02,rewetted,3,16.8,9.5
+RW-02,rewetted,4,14.9,9.4
+RW-02,rewetted,5,12.3,9.6
+RW-03,rewetted,1,9.6,10.0
+RW-03,rewetted,2,13.0,10.1
+RW-03,rewetted,3,16.3,9.8
+RW-03,rewetted,4,14.4,10.2
+RW-03,rewetted,5,11.8,9.9
+RW-04,rewetted,1,10.3,10.7
+RW-04,rewetted,2,13.7,10.5
+RW-04,rewetted,3,17.0,10.4
+RW-04,rewetted,4,15.1,10.3
+RW-04,rewetted,5,12.5,10.6
+RW-05,rewetted,1,9.9,10.9
+RW-05,rewetted,2,13.4,10.8
+RW-05,rewetted,3,16.7,11.1
+RW-05,rewetted,4,14.7,11.2
+RW-05,rewetted,5,12.1,11.0
+RW-06,rewetted,1,10.6,11.7
+RW-06,rewetted,2,14.2,11.4
+RW-06,rewetted,3,17.5,11.5
+RW-06,rewetted,4,15.4,11.6
+RW-06,rewetted,5,12.8,11.3
+
+--- file workflow/analysis.py ---
+"""Karhusuo peat complex: chamber CH4 flux under two water-table regimes.
+
+Reads data/input.csv, compares the drained and rewetted sectors, and
+writes results/report.md.
+"""
+
+from __future__ import annotations
+
+import csv
+from collections import defaultdict
+from pathlib import Path
+
+import numpy as np
+from scipy import stats
+
+INPUT_PATH = Path("data") / "input.csv"
+REPORT_PATH = Path("results") / "report.md"
+
+REGIME_COL = "water_table_regime"
+FLUX_COL = "ch4_flux_mg_m2_h"
+
+
+def read_records(path):
+    with path.open("r", newline="", encoding="ascii") as handle:
+        return list(csv.DictReader(handle))
+
+
+def flux_samples(records):
+    pooled = defaultdict(list)
+    for record in records:
+        pooled[record[REGIME_COL].strip()].append(float(record[FLUX_COL]))
+    return {key: np.array(values, dtype=float) for key, values in pooled.items()}
+
+
+def moments(sample):
+    return int(sample.size), float(np.mean(sample)), float(np.std(sample, ddof=1))
+
+
+def p_phrase(pvalue):
+    if pvalue < 1e-4:
+        return "p < 0.0001"
+    return "p = {:.4f}".format(pvalue)
+
+
+def main():
+    samples = flux_samples(read_records(INPUT_PATH))
+    drained = samples["drained"]
+    rewetted = samples["rewetted"]
+
+    n_dr, mean_dr, sd_dr = moments(drained)
+    n_rw, mean_rw, sd_rw = moments(rewetted)
+    contrast = mean_rw - mean_dr
+
+    outcome = stats.ttest_ind(rewetted, drained, equal_var=True)
+    tstat = float(outcome.statistic)
+    pvalue = float(outcome.pvalue)
+    df = n_rw + n_dr - 2
+
+    headline = (
+        "[selected-result] Rewetted chamber flux exceeds drained by "
+        "{:.2f} mg m-2 h-1 (rewetted mean {:.2f}, drained mean {:.2f}); "
+        "two-sample Student t-test on the {:d} individual chamber "
+        "readings, t({:d}) = {:.2f}, {}."
+    ).format(contrast, mean_rw, mean_dr, n_rw + n_dr, df, tstat, p_phrase(pvalue))
+
+    lines = [
+        "# Rewetting and CH4 flux at the Karhusuo peat complex",
+        "",
+        "## What was measured",
+        "",
+        "Static closed-chamber CH4 flux was logged in the drained and rewetted",
+        "sectors of the Karhusuo peat complex over the 2024 growing season.",
+        "",
+        "| water table regime | measurements | mean CH4 flux (mg m-2 h-1) | SD |",
+        "| --- | ---: | ---: | ---: |",
+        "| drained | {:d} | {:.2f} | {:.3f} |".format(n_dr, mean_dr, sd_dr),
+        "| rewetted | {:d} | {:.2f} | {:.3f} |".format(n_rw, mean_rw, sd_rw),
+        "",
+        "## Test",
+        "",
+        "Two-sample Student t-test (pooled variance) on the chamber flux",
+        "readings, rewetted against drained.",
+        "",
+        headline,
+        "",
+        "## Note",
+        "",
+        "The pooled-variance form was kept because the two sector spreads were",
+        "nearly identical (SD {:.3f} drained vs {:.3f} rewetted).".format(sd_dr, sd_rw),
+    ]
+
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+
+--- file results/report.md ---
+# Rewetting and CH4 flux at the Karhusuo peat complex
+
+## What was measured
+
+Static closed-chamber CH4 flux was logged in the drained and rewetted
+sectors of the Karhusuo peat complex over the 2024 growing season.
+
+| water table regime | measurements | mean CH4 flux (mg m-2 h-1) | SD |
+| --- | ---: | ---: | ---: |
+| drained | 30 | 4.25 | 0.880 |
+| rewetted | 30 | 10.25 | 0.880 |
+
+## Test
+
+Two-sample Student t-test (pooled variance) on the chamber flux
+readings, rewetted against drained.
+
+[selected-result] Rewetted chamber flux exceeds drained by 6.00 mg m-2 h-1 (rewetted mean 10.25, drained mean 4.25); two-sample Student t-test on the 60 individual chamber readings, t(58) = 26.40, p < 0.0001.
+
+## Note
+
+The pooled-variance form was kept because the two sector spreads were
+nearly identical (SD 0.880 drained vs 0.880 rewetted).
+
+
+Return only one unfenced JSON object matching this exact schema:
+{"$schema": "https://json-schema.org/draft/2020-12/schema", "additionalProperties": false, "properties": {"reviewer_participant_id": {"const": "actor:dependence-free-batch-k2-reviewer-fable-50", "type": "string"}, "reviews": {"items": {"additionalProperties": false, "allOf": [{"else": {"properties": {"bounded_statement": {"type": "null"}, "issue_class": {"type": "null"}, "root_cause": {"type": "null"}}}, "if": {"properties": {"verdict": {"const": "demonstrated_issue"}}, "required": ["verdict"]}, "then": {"properties": {"bounded_statement": {"minLength": 1, "type": "string"}, "issue_class": {"const": "issue-class:repeated-authorized-independent-unit-entry-into-row-independent-procedure", "type": "string"}, "root_cause": {"minLength": 1, "type": "string"}}}}, {"if": {"properties": {"verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope"]}}, "required": ["verdict"]}, "then": {"properties": {"unresolved_material_questions": {"maxItems": 0}}}}], "properties": {"bounded_statement": {"type": ["string", "null"]}, "case_id": {"enum": ["case:3ae92d0bb421d6eee99e"], "type": "string"}, "counterevidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "cross_case_evidence_used": {"const": false, "type": "boolean"}, "evidence_atoms": {"items": {"additionalProperties": false, "properties": {"description": {"minLength": 1, "type": "string"}, "observed_value": {}, "source_spans": {"items": {"additionalProperties": false, "properties": {"end_line": {"minimum": 1, "type": "integer"}, "path": {"minLength": 1, "type": "string"}, "quoted_text": {"minLength": 1, "type": "string"}, "start_line": {"minimum": 1, "type": "integer"}}, "required": ["path", "start_line", "end_line", "quoted_text"], "type": "object"}, "minItems": 1, "type": "array"}}, "required": ["description", "source_spans"], "type": "object"}, "minItems": 1, "type": "array"}, "falsification_attempt": {"minLength": 1, "type": "string"}, "issue_class": {"type": ["string", "null"]}, "root_cause": {"type": ["string", "null"]}, "self_reported_confidence": {"enum": ["high", "medium", "low"], "type": "string"}, "unresolved_material_questions": {"items": {"minLength": 1, "type": "string"}, "type": "array", "uniqueItems": true}, "verdict": {"enum": ["demonstrated_issue", "no_demonstrated_issue_within_scope", "conditional_or_unknown", "insufficient_evidence"], "type": "string"}}, "required": ["case_id", "verdict", "bounded_statement", "root_cause", "issue_class", "evidence_atoms", "counterevidence_atoms", "falsification_attempt", "cross_case_evidence_used", "unresolved_material_questions", "self_reported_confidence"], "type": "object"}, "maxItems": 1, "minItems": 1, "type": "array"}}, "required": ["reviewer_participant_id", "reviews"], "type": "object"}

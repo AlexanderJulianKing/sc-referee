@@ -1,0 +1,25 @@
+segment_id,street_name,resurfaced_length_m,lanes,pre_lnight_db,post_lnight_db
+S01,Alder Row,310,2,58.4,55.0
+S02,Bramble Walk,265,2,56.9,54.0
+S03,Cooper Rise,420,2,60.1,57.4
+S04,Dunmore Lane,185,2,55.3,52.7
+S05,Ellerby Avenue,540,4,61.7,59.2
+S06,Fenwick Close,230,2,57.6,55.3
+S07,Garnock Street,295,2,54.8,52.6
+S08,Halden Terrace,360,2,59.0,56.9
+S09,Ivybridge Road,610,4,62.3,60.4
+S10,Jarrow Bank,275,2,56.2,54.4
+S11,Kestrel Mews,150,2,53.9,52.3
+S12,Larkfield Road,585,4,60.8,59.3
+S13,Marlow Gate,330,2,57.1,55.7
+S14,Norbury Path,240,2,55.6,54.4
+S15,Oakhanger Street,400,2,58.9,57.8
+S16,Pinfold Way,205,2,54.2,53.3
+S17,Quarrybank Road,650,4,61.0,60.3
+S18,Redmire Street,285,2,56.5,56.1
+S19,Sedgely Court,170,2,55.0,55.3
+S20,Thornsett Road,375,2,58.2,58.7
+S21,Ullswater Drive,520,4,59.7,60.3
+S22,Verity Lane,195,2,53.4,54.2
+S23,Wharton Street,345,2,57.3,58.4
+S24,Yarborough Road,570,4,60.5,62.1

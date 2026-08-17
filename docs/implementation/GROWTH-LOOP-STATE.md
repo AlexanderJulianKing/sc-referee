@@ -11,16 +11,22 @@ negatives and one adverse certificate in the explicitly unlabeled, non-measureme
 development census. One additional uncompilable no-lock census case changed from a
 parse abstention to an authority question but remained no-lock and non-accusatory.
 Immutable inputs stayed byte-identical and installed-pin/production-isolation probes
-passed. The planted-positive trigger remains `0/47`; batch K is not triggered. The
-next census priority by case-completion yield is the seven singleton
-`reader-form-unsupported` cases, pending exact premise measurement and design).
+passed. The planted-positive trigger remains `0/47`; Alex has separately authorized
+checkpoint batch K now because unlabeled census `0025` is the first end-to-end
+full-analysis conviction on free generated code. K1/K2 run as a parallel sealed-
+pipeline track, not as a trigger event. The primary mission is now trustworthy graded
+audit reports: Layer-1 verified observations, then report-scoring redesign, then a
+realistic-repository population. The seven `reader-form-unsupported` singleton census
+cases remain the next Layer-3 growth priority by completion yield, queued behind the
+walking skeleton).
 
 ## Scoreboard
 
-- 96 lifetime blind free-form cases (batches A-J under
+- 108 lifetime blind free-form cases (batches A-K2 under
   evaluation/development/dependence-growth-loop/), ZERO false accusations, zero
-  regressions. 95 measurable (batch-D case dc2b31d5 was intake-refused, never
-  materialized). No blind catch yet; misses are honest named abstentions.
+  regressions. 107 measurable (batch-D case dc2b31d5 was intake-refused, never
+  materialized). No blind catch yet; misses are honest named abstentions. The six new
+  batch-K planted positives also produced zero development-lane adverse certificates.
 - Nine demonstrated false-accusation or false-clearance routes killed in review
   before measurement
   (filter-predicate, paired/crossover, alias-then-mutate, counted-domain, AnnAssign
@@ -48,7 +54,149 @@ next census priority by case-completion yield is the seven singleton
   certificate. This is observation only and never rescoring. The first such event
   triggers prompt checkpoint batch K (both envelopes, normal gates). The current
   95-case refresh has 47 planted positives and `0/47` retroactive certifications, so
-  batch K is not triggered yet.
+  the automatic trigger has not fired. Separately, Alex explicitly authorized batch K
+  on 2026-08-17 because unlabeled census `0025` is the first end-to-end full-analysis
+  conviction on free generated code. That decision is not represented as satisfaction
+  of the `0/47` trigger.
+
+## Standing mission definition — audit-report ladder
+
+- MAINTAINER MISSION DECISION (Fable escalation channel, Alex direct approval,
+  2026-08-17): the loop's goal is trustworthy graded audit reports over real
+  repositories, not growth until the prover convicts. RUNG HONESTY is the governing
+  invariant: every report sentence has exactly one evidence grade and may never sit
+  above its evidence. Under-grading is also a report defect. The grades are verified
+  `Finding`, `ConditionalConcern`, `MaterialQuestion`, `Disclosure`, and coverage
+  limit. Zero false accusations remains absolute for Findings and is unchanged.
+- Layer 0 is deterministic repository inventory, generalized from the census
+  machinery. Layer 1 is a proposer-plus-deterministic-verifier observation framework:
+  arbitrary proposals are silent unless a small registered verifier confirms a
+  closed-schema observation against actual digest-frozen bytes, with byte/span/column
+  provenance and no-false-observation forgery/replay/TOCTOU gauntlets. Layer 2 composes
+  only verified observations through reviewed predicates and reviewed fixed wording
+  templates into questions or single-premise concerns; salience may order or suppress
+  but may not edit facts or wording. Layer 3 is the existing v2 proof machinery,
+  unchanged, and remains the only accusation-grade instrument and only upgrade path
+  to a Finding.
+- Every named abstention reason becomes a mandatory, unsummarized coverage entry.
+  Missing authority is rung-scoped: locks gate Findings only. A missing unit
+  declaration becomes a verified observation plus coverage and ordinarily a
+  `MaterialQuestion` or, where exactly one stated unit premise would complete the
+  argument, a `ConditionalConcern`; repository prose may be quoted but never mints
+  authority. The subsequent harness HEAVY round scores every report sentence for
+  truth and grade appropriateness under extended sealed-key and hostile review.
+- Priority after the now-closed Growth-14 cycle is fixed: (1) HEAVY Layer-1 walking
+  skeleton; (2) HEAVY report-scoring/harness redesign; (3) add a realistic-repository
+  blind population including scanpy/H5AD/multi-file workflows with planted flaws;
+  (4) resume Layer-3 grammar growth as background cadence, with the completion-yield
+  ordering and automatic batch-K trigger unchanged. The maintainer-authored seed is
+  `~/Desktop/random_stuff/sc-referee-design-memos/audit-report-ladder-design-2026-08-17.md`;
+  it is a draft reviewed object and authorizes no build before the normal HEAVY
+  design gauntlet clears it.
+- H5AD Tier 1 is authorized inside the Layer-1 walking skeleton. A specific pinned
+  `anndata` + `h5py` development runtime may be added and declared as an immutable
+  premise, following the pandas pin and final Growth-14 package-identity discipline.
+  Digest-bound deterministic readers may verify exactly four observation types:
+  `obs-column-cardinality`, `obs-group-sizes`, `matrix-shape`, and
+  `obs-column-quoted-values`. They read the actual H5AD bytes through the pinned
+  library and must survive stale-read, manifest omission, adjacent import candidate,
+  encoding/value, sparse/degenerate, and proposal-forgery probes. The walking-
+  skeleton acceptance target is the maintainer's world-1 reachable-data scanpy
+  scenario: verified data observations feed a single-unit-premise
+  `ConditionalConcern`. Tier 2, Layer-3 proof-grade H5AD with kernel re-derivation from
+  HDF5 bytes, is deferred and not authorized until ladder milestones 1-2 finish and
+  the maintainer separately approves it.
+- Starting with the walking-skeleton build, independent components may use up to
+  three concurrent fresh sessions. Every builder owns a distinct git worktree with
+  the existing `.git` protection; no two sessions share a worktree. Concurrent fresh
+  reviewers may attack disjoint verifier/wording surfaces. Components merge only
+  through the orchestrator's serial commit/manifest/full-suite/push spine. Genuine
+  dependency chains stay serial, quota must be budgeted for overnight continuity, and
+  ordinary premise-measurement pipelining remains allowed. This parallelism does not
+  retroactively alter the completed pandas cycle or relax any proof/review gate.
+- CHECKPOINT K is separately authorized now by explicit maintainer decision, not by
+  the `0/47` trigger. K1/K2 are fresh free-brief envelopes through the standing sealed
+  pipeline, hostile answer-key review, burns, and current capability. Reserved seats:
+  K1 authors opus-123..128, reviewer fable-48, hostile fable-49, escalation opus-29;
+  K2 authors opus-129..134, reviewer fable-50, hostile fable-51, escalation opus-30.
+  It runs as a parallel pipeline track within the three-session cap. Any false
+  accusation on a scored K case halts the batch, the ladder track, and the entire loop
+  before contacting the maintainer channel.
+
+## Checkpoint K — completed, explicit authorization track
+
+- Both fresh six-case envelopes completed through the standing sealed machinery on
+  2026-08-17. K1 used authors opus-123..128, primary reviewer fable-48, and hostile
+  reviewer fable-49. K2 used authors opus-129..134, primary reviewer fable-50, and
+  hostile reviewer fable-51. Both hostile ledgers reported zero burns; both primary
+  ledgers ratified all six authored roles with zero unresolved cases and no escalation,
+  so opus-29 and opus-30 were not called.
+- K1 detector ledger `sha256:785e686df54825f737e746e5f63bb258f591d9823367ff9973646f38e12369f5`
+  and K2 detector ledger
+  `sha256:84674ab4196f9b4b7702be18e2412e8e498a7f304cb756c16bcc4732e576d303`
+  each record deterministic replay, no production findings, unpublished rates, and
+  `false_accusation_count: 0`. Combined result: ZERO false accusations and ZERO blind
+  completions. All six controls abstained. All six planted positives were honest named
+  misses: K1 reasons `import-use-outside-grammar`, `unsupported-import-form`, and
+  `function-return-shape`; K2 reasons `reader-form-unsupported`,
+  `function-return-shape`, and `augmented-assignment-not-modeled` (two K2 comparison
+  outcomes were `missed_no_authority`, one `missed_unsupported`).
+- K changes the all-lane inventory to 54 positive labels / 53 materialized positives,
+  all non-accusatory. It does NOT rewrite the standing frozen re-measure observation:
+  the automatic trigger cohort remains `0/47`, and batch K ran solely because Alex
+  explicitly authorized it after census `0025`'s unscored development conviction.
+- The first concurrent pre-integration suite correctly exposed two bookkeeping failures:
+  the Growth-15 inventory test still expected the pre-K 48 labels / 47 materialized
+  cases, and the release manifest saw the declared uncommitted STATE digest. The same
+  run passed the other 4,494 tests. These are integration gates, not detector failures;
+  fresh builder `01a011ac` changed only that test's name and exact counts to 54 / 53,
+  preserving the no-`evaluation_candidate` assertion. Fresh reviewer `01a011af`
+  independently enumerated all 18 label ledgers and both K review/detector ledgers,
+  recomputed zero accusations and three positive non-completions per envelope, observed
+  the exact node pass, found no protected or pre-K drift, and returned
+  `CHECKPOINT-K INTEGRATION VERDICT: CLEAR FOR SERIAL GATE`. K1/K2 artifacts remain
+  uncommitted pending that authoritative serial integration.
+
+## Audit-report ladder HEAVY design review 1 — BLOCKED
+
+- Fresh maximum-effort reviewer `01a01187-b897-7b90-8f0e-a914b46dc2ce` reviewed the
+  maintainer seed plus H5AD/process additions on exact base `e2a709a`. It returned
+  `RUNG-HONESTY: REFUSE`, `LAYER-1-VERIFIER-CLOSURE: REFUSE`, `H5AD-TIER-1: REFUSE`,
+  `LAYER-2-COMPOSITION-WORDING: REFUSE`, `REACHABILITY-COVERAGE: REFUSE`,
+  `REPORT-SCORING-HARNESS: REFUSE`, `LAYER-1 VERDICT: BLOCKED`, and
+  `HARNESS VERDICT: BLOCKED`. This is a design block, not a false-accusation halt; no
+  build is authorized.
+- Executed probes demonstrated that current accepted free-text schemas and the five-
+  regex strengthening filter accept accusatory intent/probability/blanket-claim text in
+  ConditionalConcern, MaterialQuestion, Disclosure, coverage, and Finding records;
+  `FrozenMaterialInput` itself correctly rejected swapped bytes, but the seed did not
+  bind new verifiers to an independently reconstructed manifest/identity path; and the
+  current repository inventory silently omitted an entry when `lstat()` raised.
+- Runtime measurement found repo Python 3.11.15 with `h5py 3.16.0` and no `anndata`,
+  the Growth-14 pilot with neither, and only an invalid exploratory system Python with
+  `anndata 0.10.3` / `h5py 3.1.0`. Exploratory probes demonstrated unresolved H5AD
+  semantics for NA/cardinality, declared versus observed categories, bool/numeric
+  collisions, dtype round trips, dense/sparse/backed layouts, duplicate obs names,
+  zero dimensions, `raw` versus `X`, and `X=None`. No exact maintainer world-1 script or
+  H5AD bytes were found in the repository.
+- Post-review premise measurement selected an exact development-only candidate at
+  `~/Desktop/random_stuff/sc-referee-pilot-runtime/h5ad-tier1-anndata01219-isolated-venv`:
+  CPython 3.11.15, `anndata 0.12.19`, `h5py 3.16.0`, bundled HDF5 2.0.0, plus 19 exact
+  transitive wheels. It was rebuilt offline from a 21-wheel digest set and measured
+  under `-I -S` with environment-derived paths and HDF5 plugin variables absent. The
+  interpreter, installed tree, venv bootstrap, every wheel, and bundled native HDF5/
+  HDF5-HL/zlib libraries are digest-recorded in memo Section 12. This is the proposed
+  immutable premise for the next review, not build clearance. A corrected dtype/layout
+  matrix is recorded there; the smallest accepted subset still cannot be chosen until
+  the exact world-1 fixture is identified.
+- Binding memo Section 11 now requires the canonical sentence/grade IR, closed per-grade
+  templates and premise algebra, executable independent verifier records, exact Layer-0
+  reachability reconciliation, a selected and measured H5AD runtime, closed semantics for
+  the four authorized observation types, a development-only experiment seam, a typed
+  declared-unit authority contract, and a separate later scoring memo/HEAVY review. The
+  next Layer-1 review may run only after the exact world-1 bytes and measured runtime are
+  available and all Section 11 contracts are written. The harness remains separately
+  blocked behind a cleared Layer-1 skeleton.
 
 ## Closed this iteration
 
@@ -1249,7 +1397,9 @@ next census priority by case-completion yield is the seven singleton
    singleton census cases (`0008`, `0011`, `0021`, `0024`, `0031`, `0032`, `0037`).
    This is the highest current wall frequency and would finish seven cases if every
    exact form proves safe; the round must measure those forms plus frozen recurrence
-   before assigning risk tier or writing an admission design. No implementation is
+   before assigning risk tier or writing an admission design. The audit-report ladder
+   mission now queues this Layer-3 round behind the Layer-1 walking skeleton, report-
+   scoring redesign, and realistic-repository population. No implementation is
    authorized by this queue entry.
 5. Numeric comparison predicates for counts (float(row[x]) > CONST). The refreshed
    premise has no authentic direct numeric census opportunity; `446cab...` is a
@@ -1264,8 +1414,10 @@ next census priority by case-completion yield is the seven singleton
 
 ## Actor inventory (one-use identities; continue numbering)
 
-Authors spent through opus-122; primary blind reviewers through fable-46; hostile
-reviewer identities through fable-47; escalation identities through opus-28.
+Authors spent through opus-134; primary blind reviewers through fable-50; hostile
+reviewer identities through fable-51; escalation identities through opus-28.
+Checkpoint-K author, primary, and hostile seats are spent. Escalation opus-29/opus-30
+remain unused because both primary reviews ratified every role without escalation.
 Blind-batch seats may move to codex-cli transports
 (model change is a harness config change: review it).
 
