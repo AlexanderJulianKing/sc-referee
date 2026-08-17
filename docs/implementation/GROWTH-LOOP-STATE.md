@@ -159,8 +159,11 @@ walking skeleton).
   state-only integration bookkeeping is committed as
   `14cd9184e2974136cf3a36ff1e45aa53ab64cafa`. The refreshed-manifest authoritative
   serial suite collected 4,496 tests and completed with verified `PYTEST_EXIT=0`.
-  A final manifest refresh and identical serial gate on these exact recorded bytes
-  remain before push.
+  The final manifest commit is `60238ac82678adad14b7974539e240fb32a1369c`;
+  the identical 4,496-test serial gate on that exact clean commit also completed with
+  verified `PYTEST_EXIT=0`, and local and remote `dev/dependence-growth` matched that
+  commit after push. No checkpoint-K case produced an accusation, so no zero-FA halt
+  condition occurred.
 
 ## Audit-report ladder HEAVY design review 1 — BLOCKED
 
