@@ -6,7 +6,7 @@ compile-validity repair remain independently cleared and scratch-remeasured thro
 Growth-14's revived pandas design and first two blocked package-identity repairs are
 recorded below. Alex authorized one final default-deny adjacent-candidate repair on
 pushed exact clean base `7cd4c88`. Fresh maximum-effort builder session `01a010e9`
-has now implemented the build-only repair in exactly five authorized Growth-14 files:
+implemented the build-only repair in exactly five authorized Growth-14 files:
 the pinned CPython identity and importer-derived source/bytecode/extension vocabulary,
 independent analyzer and kernel candidate checks after their respective manifest
 bijections, exact historical regressions, every importer-reported suffix, and adjacent
@@ -14,11 +14,14 @@ package-path entry kinds. Its 215/215 dedicated, 691/691 focused, 262/262 contex
 protected/isolation/static gates all passed; the orchestrator independently reran the
 two historical probes plus the derived-suffix and package-entry cases, 9/9 green, and
 observed the pinned vocabulary `.py`, `.pyc`, `.cpython-311-darwin.so`, `.abi3.so`,
-and `.so`. The implementation remains uncommitted and unreviewed. The authoritative
-serial full-suite gate, orchestrator commit/manifest/push, and a different fresh
-maximum-effort reviewer are next. No re-measure, planted-positive observation, or
-batch is authorized until all five assents and `CLEAR FOR RE-MEASURE`; a third repair
-block parks Growth-14 with a no-build disposition and moves the loop onward).
+and `.so`. The orchestrator's pre-manifest 4,495-test serial gate passed with captured
+exit zero, then the functional repair and state were committed as `511406b` and the
+regenerated manifest as `671734d`. The exact no-deselection 4,496-test serial gate on
+that committed snapshot also reached 100% with `PYTEST_EXIT=0`. Final handoff-state
+manifest closure, one repeated exact serial gate, push, and a different fresh
+maximum-effort reviewer remain. No re-measure, planted-positive observation, or batch
+is authorized until all five assents and `CLEAR FOR RE-MEASURE`; a third repair block
+parks Growth-14 with a no-build disposition and moves the loop onward).
 
 ## Scoreboard
 
@@ -1048,9 +1051,14 @@ block parks Growth-14 with a no-build disposition and moves the loop onward).
   failed before import; the corrected invocation exited zero. The orchestrator's
   authoritative serial pre-manifest suite then selected 4,495 tests (only the
   intentionally stale manifest-inventory assertion was deselected), reached 100%,
-  and captured `PYTEST_EXIT=0`. No commit, push, re-measure, planted-positive
-  observation, or batch has yet occurred on this build. Only a different fresh
-  maximum-effort reviewer may clear it.
+  and captured `PYTEST_EXIT=0`. The orchestrator committed the functional repair and
+  then-current STATE as `511406bde4519890850d0576ec75320fc9953ec2`, regenerated
+  `MANIFEST.sha256`, and committed it separately as
+  `671734da29e5ac153c89e69f446fc3ed525927ad`. The exact no-deselection repository
+  suite on that committed snapshot then selected all 4,496 tests, reached 100%, and
+  captured `PYTEST_EXIT=0`. Final handoff-state/manifest closure, a repeated exact
+  serial gate, and push remain; no re-measure, planted-positive observation, or batch
+  has occurred. Only a different fresh maximum-effort reviewer may clear it.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
