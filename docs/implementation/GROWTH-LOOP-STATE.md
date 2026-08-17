@@ -3,8 +3,9 @@
 Updated: 2026-08-16 (Growth-12/13 closed; Growth-14 pandas revival is maintainer-
 authorized but queued after Growth-15; Growth-15 Option A is built and pushed through
 `3f4694a`, and its fresh code review preserved all four design assents but halted on a
-pre-existing count-path compile-validity route; one narrow focused repair round is
-authorized; no re-measure or batch is authorized before fresh repair review).
+pre-existing count-path compile-validity route; the authorized focused repair is now
+built as `2a141f4` with the pre-manifest full gate green; manifest, exact full-suite
+push, and fresh repair review still gate any re-measure or batch).
 
 ## Scoreboard
 
@@ -683,6 +684,26 @@ authorized; no re-measure or batch is authorized before fresh repair review).
   re-confirm all four Growth-15 assents on the repaired snapshot. Only unconditional
   clearance gates Growth-15 closure, frozen re-measure, retro-certification
   observation, or the queued pandas revival.
+- Fresh maximum-effort fix-only implementer session
+  `01a00e4f-4dbd-7b43-ad4e-5e6111cbfdae` started from exact clean `100ae762` with
+  `.git` read-only and changed only the v2 count verifier plus the existing Growth-2
+  test module. At the count verifier's existing `source-parse` boundary it added
+  `compile(tree, certificate.source_path, "exec")` and the matching `TypeError` catch,
+  exactly paralleling group and paired verification. It added no reason and changed no
+  preceding fact/authority or following source-size/semantic precedence. Permanent
+  direct-kernel and adapter regressions reproduce the misplaced-future-import source:
+  `ast.parse` succeeds, `compile()` and the pinned runtime fail before any report,
+  direct verification now returns `source-parse`, and the adapter now returns
+  `certificate-kernel-refusal:source-parse` instead of an adverse candidate.
+- Builder gates passed both exact regressions, all 153 Growth-2/Growth-15 focused
+  items, scoped Ruff/format, `mypy src` over 161 files, starter validation over 79
+  public examples, both installed pins, production isolation, `git diff --check`, and
+  zero protected/frozen changed paths. The orchestrator's serial pre-manifest full
+  gate selected 4,277 tests (only the necessarily stale manifest-inventory assertion
+  deselected), reached 100%, and captured `PYTEST_EXIT=0`. The two-file repair was
+  committed as `2a141f40f31a85b7b3b423f0c10c30fffb8c9f06`. Manifest regeneration,
+  the exact 4,278-test full gate and push, then a different fresh maximum-effort code
+  reviewer still gate any re-measure.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
@@ -759,7 +780,8 @@ authorized; no re-measure or batch is authorized before fresh repair review).
    registry, every protected path, and frozen lanes remain byte-frozen. Fresh HEAVY
    design and code reviews still gate any build or re-measure; do not start this item
    until Growth-15 closes.
-3. FOCUSED REPAIR AUTHORIZED after a correct code-review halt as Growth-15:
+3. FOCUSED REPAIR BUILT; MANIFEST/FULL/PUSH/REVIEW PENDING after a correct
+   code-review halt as Growth-15:
    `raise-guard-not-modeled`, seven census cases.
    After three blocked reviews, the maintainer selected complete independent byte-
    derived ordinary group-fact reconstruction (Option A). Fresh resumed reviewer
@@ -771,11 +793,13 @@ authorized; no re-measure or batch is authorized before fresh repair review).
    `BLOCKED` under immediate-HALT discipline. The one authorized repair is only
    `compile()` validation at the count verifier's existing `source-parse` boundary
    plus direct-kernel and adapter misplaced-future-import regressions, with no new
-   refusal reason. A fresh fix builder and then a different fresh maximum-effort code
-   reviewer completing the exact counterexample, runtime matrix, static/full gates,
-   and four-assent confirmation still gate a zero-accusation scratch re-measure and
-   closure. Do not run a frozen re-measure, batch, or advance queued Growth-14 before
-   those gates.
+   refusal reason. Fresh fix builder `01a00e4f` implemented exactly that as `2a141f4`;
+   both exact regressions, focused/static/safety gates, and the 4,277-selected
+   pre-manifest full suite passed. Manifest regeneration, exact 4,278-test full gate,
+   push, and a different fresh maximum-effort code reviewer completing the exact
+   counterexample, runtime matrix, static/full gates, and four-assent confirmation
+   still gate a zero-accusation scratch re-measure and closure. Do not run a frozen
+   re-measure, batch, or advance queued Growth-14 before those gates.
 4. Numeric comparison predicates for counts (float(row[x]) > CONST). The refreshed
    premise has no authentic direct numeric census opportunity; `446cab...` is a
    count-trial declaration no-lock and J2 uses a computed `delta`. Re-measure before
