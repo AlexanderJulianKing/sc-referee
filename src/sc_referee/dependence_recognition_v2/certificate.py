@@ -932,7 +932,8 @@ def verify_count_dependence_certificate(
             return refuse("count-set-equations")
     try:
         tree = ast.parse(source_bytes.decode("utf-8", errors="strict"))
-    except (SyntaxError, UnicodeDecodeError, ValueError, RecursionError):
+        compile(tree, certificate.source_path, "exec")
+    except (SyntaxError, UnicodeDecodeError, ValueError, TypeError, RecursionError):
         return refuse("source-parse")
     if sum(1 for _ in ast.walk(tree)) > MAX_V2_AST_NODES:
         return refuse("source-size")

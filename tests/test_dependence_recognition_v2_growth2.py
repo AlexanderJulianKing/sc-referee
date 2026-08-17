@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 import subprocess
@@ -67,6 +68,12 @@ def main():
 
 main()
 """
+
+
+def _misplaced_future_binomial_source() -> str:
+    return _binomial_source().replace(
+        "import csv\n", "import csv\nfrom __future__ import annotations\n", 1
+    )
 
 
 def _fisher_source(*, table: str = "[[a, b], [c, d]]") -> str:
@@ -675,6 +682,57 @@ def test_count_kernel_accepts_then_refuses_single_field_corruptions() -> None:
         is None
     )
     assert failures == ["count-fact-closure"]
+
+
+def test_count_kernel_refuses_ast_valid_but_compile_invalid_source() -> None:
+    source = _misplaced_future_binomial_source()
+    data = b"unit_id,success\nu1,yes\nu1,no\nu2,yes\n"
+    tree = ast.parse(source)
+    with pytest.raises(SyntaxError, match="from __future__ imports must occur at the beginning"):
+        compile(tree, "workflow/analysis.py", "exec")
+
+    context, certificate, fact = _count_kernel_inputs(source, data)
+    failures: list[str] = []
+    assert (
+        verify_count_dependence_certificate(
+            certificate,
+            trusted_count_facts=(fact,),
+            trusted_authorizations=_trusted_authorizations(context),
+            source_bytes=source.encode("ascii"),
+            _failure_reasons=failures,
+        )
+        is None
+    )
+    assert failures == ["source-parse"]
+
+
+def test_count_adapter_refuses_compile_invalid_source_before_report(tmp_path: Path) -> None:
+    source = _misplaced_future_binomial_source()
+    data = b"unit_id,success\nu1,yes\nu1,no\nu2,yes\n"
+    tree = ast.parse(source)
+    with pytest.raises(SyntaxError, match="from __future__ imports must occur at the beginning"):
+        compile(tree, "workflow/analysis.py", "exec")
+
+    case = tmp_path / "case"
+    (case / "inputs").mkdir(parents=True)
+    (case / "workflow").mkdir()
+    (case / "results").mkdir()
+    (case / "inputs/data.csv").write_bytes(data)
+    (case / "workflow/analysis.py").write_text(source, encoding="ascii")
+    completed = subprocess.run(
+        [str(_require_runtime()), "-I", "workflow/analysis.py"],
+        cwd=case,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode != 0
+    assert "from __future__ imports must occur at the beginning" in completed.stderr
+    assert not (case / "results/report.md").exists()
+
+    payload = _inspect(source, data)
+    assert payload["outcome"] == "unsupported"
+    assert payload["abstention_reasons"] == ["certificate-kernel-refusal:source-parse"]
 
 
 @pytest.mark.parametrize(
