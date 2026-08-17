@@ -154,8 +154,10 @@ walking skeleton).
   independently enumerated all 18 label ledgers and both K review/detector ledgers,
   recomputed zero accusations and three positive non-completions per envelope, observed
   the exact node pass, found no protected or pre-K drift, and returned
-  `CHECKPOINT-K INTEGRATION VERDICT: CLEAR FOR SERIAL GATE`. K1/K2 artifacts remain
-  uncommitted pending that authoritative serial integration.
+  `CHECKPOINT-K INTEGRATION VERDICT: CLEAR FOR SERIAL GATE`. The functional K
+  integration is committed as `1899529d5fb0f18d786e0d4ae2dd527d38948ef3`;
+  release-manifest refresh and the authoritative serial full-suite gate remain before
+  push.
 
 ## Audit-report ladder HEAVY design review 1 — BLOCKED
 
