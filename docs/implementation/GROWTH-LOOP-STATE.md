@@ -1,9 +1,9 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
 Updated: 2026-08-16 (Growth-12/13 closed; Growth-14 pandas revival is maintainer-
-authorized but queued after Growth-15; Growth-15 Option A passed its one authorized
-resumed HEAVY design review and is cleared for a fresh build; no re-measure or batch
-is authorized).
+authorized but queued after Growth-15; Growth-15 Option A is built locally through
+`c659d5a` with the pre-manifest full gate green; manifest, exact full-suite push, and
+fresh code review remain pending; no re-measure or batch is authorized).
 
 ## Scoreboard
 
@@ -608,6 +608,41 @@ is authorized).
   clone `PYTHONPATH` was green. A fresh implementer may build the complete binding
   memo through Section 16. A different fresh maximum-effort code reviewer still gates
   any frozen re-measure; no Growth-15 implementation or corpus run has occurred yet.
+- Fresh maximum-effort implementer session
+  `01a00d53-47ef-7c13-bdc7-f4927dc6168c`, distinct from every Growth-15 reviewer,
+  built the complete binding memo through Section 16 on exact base `38bbe063`. It
+  changed only EXPERIMENT-0060; the v2 analyzer, IR, and certificate kernel; three
+  directly affected v2 test modules; and the new permanent Growth-15 test module.
+  The ordinary verifier now requires exactly one controller-selected
+  `FrozenMaterialInput`; a kernel-local implementation independently reconstructs the
+  complete current `GroupValueSequenceFact` from the digest-bound bytes and
+  obligation; supplied facts are equality-only; and source replay, sole-partition
+  roles, guard truth, conclusions, certificate identity, and the verified result all
+  consume the replayed object. `NotName` remains syntax-only, exact real-builtin
+  `LenCompare`/`Or` is the only truth-evaluated form, and no new reason or second
+  classifier was added. The exact `(1, 4) -> (2, 3)` mutation now refuses at singleton
+  `fact-closure` before guard evaluation.
+- Permanent tests cover 98 parametrized Growth-15 cases: all seventeen top-level and
+  six nested fact fields; seven accepted byte domains; 28 named refusal domains; 300
+  deterministic mixed parity cases; all sixteen supported source/data combinations;
+  tuple moves, reorder/omission/duplication/cross-field substitutions; helper
+  poisoning; material/source/role/token and analyzer/kernel bypasses; real-builtin
+  binding; structural and `NotName` controls; and the exact 26-workflow / 55-raise
+  inventory. The observed movements are exactly the reviewed seven census cases plus
+  frozen G2 `a8b660...` and J2 `729d20...`; all remain unsupported, all other raise
+  fixtures retain their complete sets, accusations remain zero, and the recorded
+  planted-positive observation remains `0/47`.
+- Builder validation passed 98/98 Growth-15 cases, 474 selected focused cases with the
+  necessarily stale manifest inventory test deselected, scoped Ruff/format, `mypy
+  src` over 161 files, starter validation over 79 public examples, both live pins,
+  production opt-in isolation, `git diff --check`, and zero protected/frozen changed
+  or untracked paths. The builder did not commit, push, edit STATE or MANIFEST, run a
+  frozen re-measure, or run a batch. The orchestrator then ran the uncommitted whole-
+  repository suite with only the stale manifest inventory test deselected: 4,275
+  selected tests reached 100% with captured `PYTEST_EXIT=0`. The authorized functional
+  inventory was committed as `c659d5aadf0369299f65b6f8748c47f9fb77b007`.
+  Manifest regeneration, the exact 4,276-test full gate, push, and a different fresh
+  maximum-effort code review still gate any re-measure.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
@@ -684,14 +719,16 @@ is authorized).
    registry, every protected path, and frozen lanes remain byte-frozen. Fresh HEAVY
    design and code reviews still gate any build or re-measure; do not start this item
    until Growth-15 closes.
-3. CLEARED TO BUILD as Growth-15: `raise-guard-not-modeled`, seven census cases.
+3. BUILT; MANIFEST/FULL GATE/CODE REVIEW PENDING as Growth-15:
+   `raise-guard-not-modeled`, seven census cases.
    After three blocked reviews, the maintainer selected complete independent byte-
    derived ordinary group-fact reconstruction (Option A). Fresh resumed reviewer
    `01a00d0f` executed the full required matrix and returned all four assents plus
-   unconditional `CLEAR TO BUILD`. A fresh implementer may build binding memo Section
-   16; a different fresh maximum-effort code reviewer, full-suite gate, and zero-
-   accusation scratch re-measure still gate closure. Do not run a frozen re-measure,
-   batch, or advance queued Growth-14 before those gates.
+   unconditional `CLEAR TO BUILD`. Fresh implementer `01a00d53` built the binding memo
+   as functional commit `c659d5a`; the pre-manifest full gate passed. Manifest
+   regeneration, an exact full-suite exit 0 and push, then a different fresh maximum-
+   effort code reviewer and zero-accusation scratch re-measure still gate closure. Do
+   not run a frozen re-measure, batch, or advance queued Growth-14 before those gates.
 4. Numeric comparison predicates for counts (float(row[x]) > CONST). The refreshed
    premise has no authentic direct numeric census opportunity; `446cab...` is a
    count-trial declaration no-lock and J2 uses a computed `delta`. Re-measure before
