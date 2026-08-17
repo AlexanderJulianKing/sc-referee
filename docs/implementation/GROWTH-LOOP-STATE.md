@@ -5,15 +5,20 @@ focused count compile-validity repair are built, pushed, independently reviewed 
 all four assents, and scratch-remeasured through `3b65b7c`; all 135 census/frozen
 cases retained zero accusations and zero full-analysis completions, and the live
 planted-positive observation remained `0/47`. Growth-14's revived attempt-2 pandas
-design passed fresh maximum-effort HEAVY review with all five assents, was built by a
-distinct fresh maximum-effort implementer, passed the 4,461-test pre-manifest and
-exact 4,462-test serial gates, and was committed and pushed through `46b2c21`. A
-different fresh maximum-effort code reviewer then BLOCKED re-measure after proving a
-package-identity inventory-omission route through analyzer, kernel, and adapter. The
-maintainer has authorized only the focused HEAVY digest-bound manifest-bijection
-repair and its exact regression. No re-measure, planted-positive observation, or
-batch is authorized until a fresh maximum-effort reviewer completes the entire
-halted matrix, gives all five assents, and returns `CLEAR FOR RE-MEASURE`).
+design passed fresh maximum-effort HEAVY review with all five assents, was built,
+passed the 4,461-test pre-manifest and exact 4,462-test serial gates, and was pushed
+through `46b2c21`. A different reviewer then BLOCKED re-measure after proving the
+package-identity inventory-omission route. The first authorized repair builder
+correctly stopped on missing manifest bytes; the maintainer's minimum plumbing
+clarification then authorized one final builder, which has handed off the focused
+digest-bound manifest-bijection repair uncommitted on `e4e08a6`. Its focused gates
+are green and an orchestrator-detected v1 projection regression was corrected by that
+same builder before handoff. The corrected 4,485-test pre-manifest serial gate is now
+green with captured exit 0. Functional commit, manifest regeneration, exact serial
+full gate, push, and a fresh maximum-effort code review remain mandatory. No
+re-measure, planted-positive observation, or batch is authorized until that reviewer
+completes the entire halted matrix, gives all five assents, and returns
+`CLEAR FOR RE-MEASURE`).
 
 ## Scoreboard
 
@@ -897,6 +902,70 @@ halted matrix, gives all five assents, and returns `CLEAR FOR RE-MEASURE`).
   priorities. Only all five assents plus `CLEAR FOR RE-MEASURE` permit re-measure and
   the `0/47` planted-positive observation. If this repair itself blocks twice more,
   HALT to Alex. The current BLOCKED verdict outranks the green 4,462-test gate.
+
+- Fresh maximum-effort repair builder session
+  `01a01022-4787-7d43-831b-cf0fef8fa8de` correctly stopped without edits on exact
+  clean local/remote `e4e08a6fc24f8c3e9c3b58f4107a9329b3fc1e30`. The existing
+  context carried only the `file_manifest_ref`, not the exact persisted manifest bytes
+  or their digest; deriving completeness from the possibly omitted record tuple would
+  have been circular. This is the first post-authorization repair block. Binding memo
+  Section 20.4 records the maintainer's resulting minimum-scope clarification: one
+  immutable exact manifest input plus only the necessary controller/re-entry plumbing,
+  while all v1 projections, public records, pins, protected surfaces, and frozen lanes
+  remain unchanged.
+- Final fresh maximum-effort repair builder session
+  `01a0102b-6746-7010-bc12-18eea06b0638`, distinct from all Growth-14 reviewers,
+  implemented Sections 20.2 and 20.4 on that same exact base with `.git` read-only.
+  It left the release-pinned scientific-check core and integration implementation
+  byte-unchanged and instead added a controller-local frozen-context subtype carrying
+  the exact persisted `observed/files.jsonl` reference, canonical bytes, and SHA-256
+  digest. Controller capture and linked interaction re-entry pass only that immutable
+  value. Analyzer and kernel separately parse the original canonical JSONL, establish
+  the exact all-entry manifest/file-record bijection, and bind the digest into the
+  independently reconstructed pandas package and certificate identity. Missing,
+  extra, duplicate, mismatched, non-regular, symlink, malformed, noncanonical, absent,
+  reference-mismatched, digest-mismatched, and identity-conflicting forms fail closed.
+  No new reason, pandas syntax, classifier, conclusion, case count, or case digest was
+  added.
+- The builder's permanent coverage is 205/205 Growth-14 tests: the original complete
+  184-test matrix plus twenty general bijection siblings and the exact shadow-record
+  omission regression through analyzer, direct kernel, and adapter. The omission
+  leaves the original manifest bytes, digest, reference, and repository snapshot in
+  place while deleting only the adjacent `workflow/pandas.py` file/identity records;
+  all three paths now refuse at the existing package-identity boundary. Controller,
+  context, and re-entry tests passed 262/262; the broader focused run passed 681/681
+  with only the orchestrator-owned stale-manifest inventory assertion deselected;
+  scoped Ruff/format, `mypy src` over 162 source files, starter validation, live pins,
+  production/qualification isolation, `git diff --check`, and protected/frozen path
+  checks passed. No full suite, commit, push, re-measure, planted-positive observation,
+  or batch was performed by the builder.
+- Before accepting handoff, the orchestrator's independent A/B audit found that the
+  first subtype version had included its new manifest value in the inherited v1
+  context projection and digest, changing non-v2 registry output. The same builder
+  role made only the requested narrow correction: the subtype now inherits the exact
+  base projection and context digest unchanged while retaining the separate immutable
+  Growth-14 manifest input. A permanent regression asserts equal projections, equal
+  context digests, and byte-equivalent complete non-v2 registry results between bound
+  and unbound contexts. The corrected snapshot again passed 205/205 Growth-14,
+  21/21 omission/bijection, 262/262 controller/context/re-entry, scoped Ruff/format,
+  `mypy src`, diff, and protected/frozen checks. This remained uncommitted build
+  evidence only; the orchestrator's subsequent serial gate is recorded next, and only
+  a different fresh maximum-effort code reviewer may clear re-measure.
+- The orchestrator's first serial pre-manifest gate reached 100% but correctly failed
+  with `PYTEST_EXIT=1`: all 21 failures collapsed to the development regression
+  ledger's retained digest for `tests/test_scientific_check_integration.py`, where the
+  builder had placed the two new context tests. Updating that ledger was outside scope.
+  The same builder role therefore performed one mechanical boundary correction only:
+  it restored the ledger-pinned test module byte-for-byte to base SHA-256
+  `5a29c67f794d956436b9c6e5ba5422807f9d74fd0104a21c1ada749fdef59e6c`
+  and relocated the two assertions unchanged into the already-authorized, non-ledger-
+  pinned cell-context test module. The formerly failing ledger/runner/baseline cluster
+  then passed 41/41; Growth-14 remained 205/205; the affected controller/context/
+  re-entry set remained 262/262; static and boundary checks remained green; and no
+  implementation, ledger, qualification, manifest, protected, or frozen path changed
+  in the correction. The complete serial pre-manifest rerun then selected 4,485 tests,
+  reached 100%, and captured `PYTEST_EXIT=0`. The functional/state commit, manifest
+  regeneration, exact all-test serial gate, push, and fresh code review remain.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import copy
 import json
 import os
 import re
@@ -16,6 +17,10 @@ from typing import Any, cast
 
 import pytest
 
+from sc_referee.controller import (
+    FrozenFileManifestInput,
+    ManifestBoundFrozenInspectionContext,
+)
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.dependence_recognition_v2.adapter import DependenceRecognitionV2ShadowAdapter
 from sc_referee.dependence_recognition_v2.certificate import (
@@ -33,6 +38,7 @@ from sc_referee.dependence_recognition_v2.ir import (
     DEPENDENCE_V2_REASON_REGISTRY,
     DependenceGrowthCertificate,
     GroupValueSequenceFact,
+    PandasPackageIdentity,
     PandasSourceDescriptor,
 )
 from sc_referee.dependence_recognition_v2.pandas_runtime_premise import (
@@ -168,9 +174,11 @@ def _context_from_inventory(
                 _record(
                     file_ref,
                     {
+                        "record_type": "file_record",
                         "file_record_id": file_ref.record_id,
                         "path": path,
                         "entry_kind": "regular_file",
+                        "byte_size": len(content),
                         "snapshot_ref": snapshot_ref,
                         "asset_identity_ref": identity_ref.to_dict(),
                     },
@@ -178,6 +186,7 @@ def _context_from_inventory(
                 _record(
                     identity_ref,
                     {
+                        "record_type": "asset_identity",
                         "asset_identity_id": identity_ref.record_id,
                         "tier": "full_digest",
                         "asset_ref": file_ref.to_dict(),
@@ -187,15 +196,35 @@ def _context_from_inventory(
             )
         )
     for index, (path, entry_kind) in enumerate(extra_inventory_entries):
-        records.append(
-            _record(
-                RecordRef("file_record", f"extra-file:g14:{suffix}:{index}"),
-                {
-                    "file_record_id": f"extra-file:g14:{suffix}:{index}",
-                    "path": path,
-                    "entry_kind": entry_kind,
-                    "snapshot_ref": snapshot_ref,
-                },
+        file_ref = RecordRef("file_record", f"extra-file:g14:{suffix}:{index}")
+        identity_ref = RecordRef("asset_identity", f"extra-asset:g14:{suffix}:{index}")
+        records.extend(
+            (
+                _record(
+                    file_ref,
+                    {
+                        "record_type": "file_record",
+                        "file_record_id": file_ref.record_id,
+                        "path": path,
+                        "entry_kind": entry_kind,
+                        "byte_size": 0,
+                        "snapshot_ref": snapshot_ref,
+                        "asset_identity_ref": identity_ref.to_dict(),
+                    },
+                ),
+                _record(
+                    identity_ref,
+                    {
+                        "record_type": "asset_identity",
+                        "asset_identity_id": identity_ref.record_id,
+                        "tier": "unidentified",
+                        "asset_ref": file_ref.to_dict(),
+                        "identity_evidence": {
+                            "kind": "unidentified",
+                            "reason": f"test {entry_kind} entry",
+                        },
+                    },
+                ),
             )
         )
     requirements = b"scipy==1.14.0\n"
@@ -254,7 +283,13 @@ def _context_from_inventory(
     parser_payload = canonical_json(
         {"parser_id": "python-ast", "parser_version": "3.11", "state": "parsed"}
     ).encode()
-    return FrozenInspectionContext(
+    manifest_bytes = b"".join(
+        record.canonical_payload + b"\n"
+        for record in records
+        if record.ref.record_type == "file_record"
+        and json.loads(record.canonical_payload).get("snapshot_ref") == snapshot_ref
+    )
+    return ManifestBoundFrozenInspectionContext(
         snapshot_digest=snapshot_value,
         selected_surface_ref=surface,
         selected_artifact_ref=artifact,
@@ -271,6 +306,11 @@ def _context_from_inventory(
             ),
         ),
         base_records=tuple(records),
+        file_manifest_input=FrozenFileManifestInput(
+            file_manifest_ref="observed/files.jsonl",
+            canonical_jsonl_bytes=manifest_bytes,
+            manifest_digest=sha256_digest(manifest_bytes),
+        ),
         material_inputs=(
             FrozenMaterialInput(
                 "data/input.csv",
@@ -463,6 +503,7 @@ def _verify(
         trusted_authorizations=_trusted_v2_authorizations(context),
         trusted_procedure_sets=_trusted_v2_procedure_sets(context),
         trusted_base_records=context.base_records,
+        trusted_file_manifest_input=context.file_manifest_input,
         source_bytes=context.documents[0].content,
         _failure_reasons=failures,
     )
@@ -519,6 +560,116 @@ def _replace_base_payload(
         payload.update(update)
         records.append(FrozenBaseRecord.from_record(record.ref, payload))
     return replace(context, base_records=tuple(records))
+
+
+def _manifest_entries(context: FrozenInspectionContext) -> list[dict[str, Any]]:
+    manifest = context.file_manifest_input
+    assert manifest is not None
+    return [
+        cast(dict[str, Any], json.loads(line))
+        for line in manifest.canonical_jsonl_bytes.decode("utf-8").splitlines()
+    ]
+
+
+def _manifest_input(
+    entries: list[dict[str, Any]],
+    *,
+    file_manifest_ref: str = "observed/files.jsonl",
+) -> FrozenFileManifestInput:
+    content = b"".join((canonical_json(entry) + "\n").encode("utf-8") for entry in entries)
+    return FrozenFileManifestInput(
+        file_manifest_ref=file_manifest_ref,
+        canonical_jsonl_bytes=content,
+        manifest_digest=sha256_digest(content),
+    )
+
+
+def _raw_manifest_input(
+    content: bytes,
+    *,
+    file_manifest_ref: str = "observed/files.jsonl",
+) -> FrozenFileManifestInput:
+    return FrozenFileManifestInput(
+        file_manifest_ref=file_manifest_ref,
+        canonical_jsonl_bytes=content,
+        manifest_digest=sha256_digest(content),
+    )
+
+
+def _stale_manifest_digest(
+    manifest: FrozenFileManifestInput,
+) -> FrozenFileManifestInput:
+    stale = object.__new__(FrozenFileManifestInput)
+    object.__setattr__(stale, "file_manifest_ref", manifest.file_manifest_ref)
+    object.__setattr__(stale, "canonical_jsonl_bytes", manifest.canonical_jsonl_bytes)
+    object.__setattr__(stale, "manifest_digest", sha256_digest(b"different manifest"))
+    return cast(FrozenFileManifestInput, stale)
+
+
+def _snapshot_ref(context: FrozenInspectionContext) -> RecordRef:
+    return next(
+        record.ref
+        for record in context.base_records
+        if record.ref.record_type == "repository_snapshot"
+    )
+
+
+def _add_base_file_without_manifest(
+    context: FrozenInspectionContext,
+    *,
+    path: str,
+) -> FrozenInspectionContext:
+    suffix = semantic_digest({"context": context.context_digest, "path": path})[-20:]
+    file_ref = RecordRef("file_record", f"file:g14:base-only:{suffix}")
+    identity_ref = RecordRef("asset_identity", f"asset:g14:base-only:{suffix}")
+    digest = sha256_digest(b"base-only")
+    file_record = _record(
+        file_ref,
+        {
+            "record_type": "file_record",
+            "file_record_id": file_ref.record_id,
+            "path": path,
+            "entry_kind": "regular_file",
+            "byte_size": len(b"base-only"),
+            "snapshot_ref": _snapshot_ref(context).to_dict(),
+            "asset_identity_ref": identity_ref.to_dict(),
+        },
+    )
+    identity = _record(
+        identity_ref,
+        {
+            "record_type": "asset_identity",
+            "asset_identity_id": identity_ref.record_id,
+            "tier": "full_digest",
+            "asset_ref": file_ref.to_dict(),
+            "identity_evidence": {"kind": "full_digest", "digest": digest},
+        },
+    )
+    return replace(context, base_records=(*context.base_records, file_record, identity))
+
+
+def _assert_both_package_identity_paths_refuse(context: FrozenInspectionContext) -> None:
+    source = context.documents[0]
+    material = _data_material(context)
+    assert (
+        _analyzer_pandas_package_identity(
+            context,
+            source_path=source.path,
+            source_digest=source.content_digest,
+            material=material,
+        )
+        is None
+    )
+    assert (
+        _kernel_pandas_package_identity(
+            context.base_records,
+            file_manifest_input=context.file_manifest_input,
+            source_path=source.path,
+            source_digest=source.content_digest,
+            material=material,
+        )
+        is None
+    )
 
 
 def _stale_material(material: FrozenMaterialInput, content: bytes) -> FrozenMaterialInput:
@@ -619,6 +770,7 @@ def _changed_source_certificate(
     material = _data_material(changed_context)
     package = _kernel_pandas_package_identity(
         changed_context.base_records,
+        file_manifest_input=changed_context.file_manifest_input,
         source_path=source.path,
         source_digest=source.content_digest,
         material=material,
@@ -1321,6 +1473,7 @@ def test_analyzer_and_kernel_independently_rederive_equal_package_identity() -> 
     )
     kernel_identity = _kernel_pandas_package_identity(
         context.base_records,
+        file_manifest_input=context.file_manifest_input,
         source_path=source.path,
         source_digest=source.content_digest,
         material=material,
@@ -1330,6 +1483,245 @@ def test_analyzer_and_kernel_independently_rederive_equal_package_identity() -> 
     assert analyzer_identity == kernel_identity
     assert analyzer_identity is not kernel_identity
     assert analyzer_identity.regular_file_count == 3
+
+
+def _manifest_bijection_sibling(case: str) -> FrozenInspectionContext:
+    context = _synthetic_context(_source())
+    entries = _manifest_entries(context)
+    if case == "missing-entry":
+        return replace(context, file_manifest_input=_manifest_input(entries[:-1]))
+    if case == "extra-entry":
+        extra = {
+            "record_type": "file_record",
+            "file_record_id": "file:g14:manifest-extra",
+            "path": "extra/unbound.txt",
+            "entry_kind": "regular_file",
+            "byte_size": 0,
+            "snapshot_ref": _snapshot_ref(context).to_dict(),
+            "asset_identity_ref": {
+                "record_type": "asset_identity",
+                "record_id": "asset:g14:manifest-extra",
+            },
+        }
+        return replace(context, file_manifest_input=_manifest_input([*entries, extra]))
+    if case == "duplicate-entry":
+        return replace(context, file_manifest_input=_manifest_input([*entries, entries[0]]))
+    if case in {
+        "path-mismatch",
+        "kind-mismatch",
+        "identity-reference-mismatch",
+        "byte-size-mismatch",
+        "snapshot-reference-mismatch",
+    }:
+        changed = copy.deepcopy(entries)
+        target = changed[0]
+        if case == "path-mismatch":
+            target["path"] = "changed/path.txt"
+        elif case == "kind-mismatch":
+            target["entry_kind"] = "special"
+        elif case == "identity-reference-mismatch":
+            target["asset_identity_ref"] = {
+                "record_type": "asset_identity",
+                "record_id": "asset:g14:mismatch",
+            }
+        elif case == "byte-size-mismatch":
+            target["byte_size"] = int(target["byte_size"]) + 1
+        else:
+            target["snapshot_ref"] = {
+                "record_type": "repository_snapshot",
+                "record_id": "snapshot:g14:mismatch",
+            }
+        return replace(context, file_manifest_input=_manifest_input(changed))
+    if case == "malformed-line":
+        return replace(context, file_manifest_input=_raw_manifest_input(b'{"broken"\n'))
+    if case == "noncanonical-line":
+        noncanonical = (json.dumps(entries[0], sort_keys=True) + "\n").encode("utf-8")
+        remainder = b"".join(
+            (canonical_json(entry) + "\n").encode("utf-8") for entry in entries[1:]
+        )
+        return replace(
+            context,
+            file_manifest_input=_raw_manifest_input(noncanonical + remainder),
+        )
+    if case == "missing-terminal-newline":
+        manifest = context.file_manifest_input
+        assert manifest is not None
+        return replace(
+            context,
+            file_manifest_input=_raw_manifest_input(manifest.canonical_jsonl_bytes[:-1]),
+        )
+    if case == "missing-input":
+        return replace(context, file_manifest_input=None)
+    if case == "manifest-reference-mismatch":
+        return replace(
+            context,
+            file_manifest_input=_manifest_input(entries, file_manifest_ref="other/files.jsonl"),
+        )
+    if case == "manifest-digest-mismatch":
+        manifest = context.file_manifest_input
+        assert manifest is not None
+        return replace(context, file_manifest_input=_stale_manifest_digest(manifest))
+    if case == "extra-base-record":
+        return _add_base_file_without_manifest(context, path="extra/base-only.txt")
+    if case == "duplicate-base-path":
+        return _add_base_file_without_manifest(context, path=entries[0]["path"])
+    if case == "identity-digest-mismatch":
+        target_entry = next(item for item in entries if item["path"] == "workflow/analysis.py")
+        identity_ref = target_entry["asset_identity_ref"]
+        assert isinstance(identity_ref, dict)
+        return _replace_base_payload(
+            context,
+            RecordRef("asset_identity", str(identity_ref["record_id"])),
+            {
+                "identity_evidence": {
+                    "kind": "full_digest",
+                    "digest": sha256_digest(b"different content"),
+                }
+            },
+        )
+    if case == "duplicate-identity-association":
+        target_entry = next(item for item in entries if item["path"] == "data-description.md")
+        file_ref = RecordRef("file_record", str(target_entry["file_record_id"]))
+        duplicate_ref = RecordRef("asset_identity", "asset:g14:duplicate-association")
+        duplicate = _record(
+            duplicate_ref,
+            {
+                "record_type": "asset_identity",
+                "asset_identity_id": duplicate_ref.record_id,
+                "tier": "full_digest",
+                "asset_ref": file_ref.to_dict(),
+                "identity_evidence": {
+                    "kind": "full_digest",
+                    "digest": sha256_digest(b"duplicate association"),
+                },
+            },
+        )
+        return replace(context, base_records=(*context.base_records, duplicate))
+    if case == "non-regular":
+        return _synthetic_context(
+            _source(), extra_inventory_entries=(("workflow/device", "special"),)
+        )
+    if case == "symlink":
+        return _synthetic_context(
+            _source(), extra_inventory_entries=(("workflow/linked.py", "symlink"),)
+        )
+    raise AssertionError(case)
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "missing-entry",
+        "extra-entry",
+        "duplicate-entry",
+        "path-mismatch",
+        "kind-mismatch",
+        "identity-reference-mismatch",
+        "byte-size-mismatch",
+        "snapshot-reference-mismatch",
+        "malformed-line",
+        "noncanonical-line",
+        "missing-terminal-newline",
+        "missing-input",
+        "manifest-reference-mismatch",
+        "manifest-digest-mismatch",
+        "extra-base-record",
+        "duplicate-base-path",
+        "identity-digest-mismatch",
+        "duplicate-identity-association",
+        "non-regular",
+        "symlink",
+    ],
+)
+def test_manifest_bijection_sibling_matrix_refuses_in_both_independent_paths(
+    case: str,
+) -> None:
+    context = _manifest_bijection_sibling(case)
+    _assert_both_package_identity_paths_refuse(context)
+    assert analyze_dependence_growth_python(context).abstention_reasons == (
+        "pandas-package-identity-unproven",
+    )
+
+
+def test_exact_shadow_record_omission_refuses_analyzer_kernel_and_adapter() -> None:
+    complete = _synthetic_context(
+        _source(), inventory_additions={"workflow/pandas.py": b"MARKER = 'fake'\n"}
+    )
+    shadow_file = next(
+        record
+        for record in complete.base_records
+        if record.ref.record_type == "file_record"
+        and json.loads(record.canonical_payload).get("path") == "workflow/pandas.py"
+    )
+    shadow_payload = cast(dict[str, Any], json.loads(shadow_file.canonical_payload))
+    shadow_identity_ref = RecordRef(
+        "asset_identity", str(shadow_payload["asset_identity_ref"]["record_id"])
+    )
+    complete_manifest = complete.file_manifest_input
+    assert complete_manifest is not None
+    assert analyze_dependence_growth_python(complete).abstention_reasons == (
+        "pandas-package-identity-unproven",
+    )
+
+    omitted = replace(
+        complete,
+        base_records=tuple(
+            record
+            for record in complete.base_records
+            if record.ref not in {shadow_file.ref, shadow_identity_ref}
+        ),
+    )
+    assert len(complete.base_records) - len(omitted.base_records) == 2
+    assert omitted.file_manifest_input is complete_manifest
+    assert _snapshot_ref(omitted) == _snapshot_ref(complete)
+    _assert_both_package_identity_paths_refuse(omitted)
+    assert analyze_dependence_growth_python(omitted).abstention_reasons == (
+        "pandas-package-identity-unproven",
+    )
+    adapter_payload = DependenceRecognitionV2ShadowAdapter().inspect(omitted)
+    assert adapter_payload["outcome"] == "unsupported"
+    assert adapter_payload["abstention_reasons"] == ["pandas-package-identity-unproven"]
+
+    truncated_entries = [
+        entry for entry in _manifest_entries(complete) if entry["path"] != "workflow/pandas.py"
+    ]
+    simulated_incomplete = replace(
+        omitted,
+        file_manifest_input=_manifest_input(truncated_entries),
+    )
+    proposed, _old_fact = _proposal_and_fact(simulated_incomplete)
+    proposed_source = proposed.obligation.pandas_source
+    assert proposed_source is not None
+    claimed_identity = replace(
+        proposed_source.package_identity,
+        file_manifest_digest=complete_manifest.manifest_digest,
+    )
+    assert isinstance(claimed_identity, PandasPackageIdentity)
+    claimed_source = replace(proposed_source, package_identity=claimed_identity)
+    claimed_obligation = replace(proposed.obligation, pandas_source=claimed_source)
+    fact, reason = prove_group_value_sequences_with_reason(
+        _data_material(omitted), obligation=claimed_obligation
+    )
+    assert reason is None
+    assert fact is not None
+    hand_built = _final_certificate(
+        replace(proposed, obligation=claimed_obligation),
+        fact,
+    )
+    failures: list[str] = []
+    verified = verify_dependence_growth_certificate(
+        hand_built,
+        trusted_group_facts=(fact,),
+        trusted_material_inputs=(_data_material(omitted),),
+        trusted_authorizations=_trusted_v2_authorizations(omitted),
+        trusted_procedure_sets=_trusted_v2_procedure_sets(omitted),
+        trusted_base_records=omitted.base_records,
+        trusted_file_manifest_input=complete_manifest,
+        source_bytes=omitted.documents[0].content,
+        _failure_reasons=failures,
+    )
+    assert verified is None
+    assert failures == ["pandas-package-identity"]
 
 
 @pytest.mark.parametrize(
@@ -1372,6 +1764,7 @@ def test_every_import_reachable_shadow_or_customization_route_refuses_before_sou
     assert (
         _kernel_pandas_package_identity(
             context.base_records,
+            file_manifest_input=context.file_manifest_input,
             source_path=source.path,
             source_digest=source.content_digest,
             material=_data_material(context),
@@ -1513,6 +1906,7 @@ def test_hostile_adjacent_pandas_module_loads_normally_but_both_proofs_refuse(
         trusted_authorizations=_trusted_v2_authorizations(valid_context),
         trusted_procedure_sets=_trusted_v2_procedure_sets(valid_context),
         trusted_base_records=context.base_records,
+        trusted_file_manifest_input=context.file_manifest_input,
         source_bytes=valid_context.documents[0].content,
         _failure_reasons=failures,
     )

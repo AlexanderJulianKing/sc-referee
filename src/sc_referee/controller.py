@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import stat
 from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -134,7 +135,10 @@ from sc_referee.reproduction import (
     build_reproduction_requests,
     inspect_project_environments,
 )
-from sc_referee.scientific_checks.core import FrozenInspectionContext
+from sc_referee.scientific_checks.core import (
+    FrozenInspectionContext,
+    ScientificCheckContractError,
+)
 from sc_referee.scientific_checks.integration import (
     build_frozen_inspection_context,
     compile_scientific_check_records,
@@ -160,6 +164,138 @@ from sc_referee.storage.layout import AuditLayout
 from sc_referee.storage.sqlite_index import rebuild_sqlite
 from sc_referee.tabular_inventory import inspect_delimited_inventory
 from sc_referee.version import SCHEMA_VERSION, __version__
+
+
+@dataclass(frozen=True)
+class FrozenFileManifestInput:
+    """Exact persisted file-manifest bytes with path and digest binding only."""
+
+    file_manifest_ref: str
+    canonical_jsonl_bytes: bytes
+    manifest_digest: str
+
+    def __post_init__(self) -> None:
+        relative = PurePosixPath(self.file_manifest_ref)
+        if (
+            not self.file_manifest_ref
+            or relative.is_absolute()
+            or relative.as_posix() != self.file_manifest_ref
+            or ".." in self.file_manifest_ref.split("/")
+        ):
+            raise ScientificCheckContractError(
+                "inspection file-manifest path must be relative and bounded"
+            )
+        if (
+            not self.manifest_digest.startswith("sha256:")
+            or len(self.manifest_digest) != 71
+            or any(character not in "0123456789abcdef" for character in self.manifest_digest[7:])
+        ):
+            raise ScientificCheckContractError("inspection file-manifest digest is invalid")
+        if sha256_digest(self.canonical_jsonl_bytes) != self.manifest_digest:
+            raise ScientificCheckContractError("inspection file-manifest digest mismatch")
+
+    def digest_projection(self) -> dict[str, str]:
+        return {
+            "file_manifest_ref": self.file_manifest_ref,
+            "manifest_digest": self.manifest_digest,
+        }
+
+
+@dataclass(frozen=True)
+class ManifestBoundFrozenInspectionContext(FrozenInspectionContext):
+    """Add one frozen manifest capability without changing the pinned v1 base context."""
+
+    file_manifest_input: FrozenFileManifestInput | None = None
+
+
+def _bind_frozen_file_manifest_input(
+    context: FrozenInspectionContext,
+    *,
+    manifest_root: Path,
+    repository_snapshot: dict[str, Any],
+) -> FrozenInspectionContext:
+    """Capture the referenced manifest once and return only an immutable byte value."""
+
+    manifest_input = _capture_frozen_file_manifest_input(
+        manifest_root=manifest_root,
+        repository_snapshot=repository_snapshot,
+    )
+    if manifest_input is None:
+        return context
+    return ManifestBoundFrozenInspectionContext(
+        snapshot_digest=context.snapshot_digest,
+        selected_surface_ref=context.selected_surface_ref,
+        selected_artifact_ref=context.selected_artifact_ref,
+        documents=context.documents,
+        base_records=context.base_records,
+        material_inputs=context.material_inputs,
+        shared_derivations=context.shared_derivations,
+        scope_join_graph=context.scope_join_graph,
+        file_manifest_input=manifest_input,
+    )
+
+
+def _capture_frozen_file_manifest_input(
+    *,
+    manifest_root: Path,
+    repository_snapshot: dict[str, Any],
+) -> FrozenFileManifestInput | None:
+    """Read exact controller-persisted bytes without interpreting JSONL entries."""
+
+    manifest_ref = repository_snapshot.get("file_manifest_ref")
+    if not isinstance(manifest_ref, str):
+        return None
+    relative = PurePosixPath(manifest_ref)
+    if (
+        not manifest_ref
+        or relative.is_absolute()
+        or relative.as_posix() != manifest_ref
+        or ".." in manifest_ref.split("/")
+    ):
+        return None
+    try:
+        if manifest_root.is_symlink():
+            return None
+        resolved_root = manifest_root.resolve(strict=True)
+        candidate = resolved_root
+        for component in relative.parts:
+            candidate = candidate / component
+            if candidate.is_symlink():
+                return None
+        if not candidate.resolve(strict=True).is_relative_to(resolved_root):
+            return None
+        before = candidate.stat()
+        if not stat.S_ISREG(before.st_mode):
+            return None
+        content = candidate.read_bytes()
+        after = candidate.stat()
+    except (OSError, ValueError):
+        return None
+    before_identity = (
+        before.st_dev,
+        before.st_ino,
+        before.st_mode,
+        before.st_size,
+        before.st_mtime_ns,
+    )
+    after_identity = (
+        after.st_dev,
+        after.st_ino,
+        after.st_mode,
+        after.st_size,
+        after.st_mtime_ns,
+    )
+    if before_identity != after_identity or len(content) != before.st_size:
+        return None
+    try:
+        return FrozenFileManifestInput(
+            file_manifest_ref=manifest_ref,
+            canonical_jsonl_bytes=content,
+            manifest_digest=sha256_digest(content),
+        )
+    except ValueError:
+        return None
+
 
 _ARRAY_FIELDS = [
     "scientific_contracts",
@@ -939,6 +1075,12 @@ def run_audit(
             scope_selections=scope_selection_build.projection,
             selection_evidence_records=questions,
         )
+        if scientific_context is not None and evaluation_inspection_observer is not None:
+            scientific_context = _bind_frozen_file_manifest_input(
+                scientific_context,
+                manifest_root=layout.root,
+                repository_snapshot=snapshot.snapshot_record,
+            )
         if dependence_authorization_lock is not None:
             if scientific_context is None:
                 raise ValueError(

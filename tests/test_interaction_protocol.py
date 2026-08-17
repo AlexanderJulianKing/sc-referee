@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
+import sc_referee.interaction as interaction_module
 from sc_referee.cli import app
 from sc_referee.controller import replay, run_audit
 from sc_referee.core.deadline_ledger import (
@@ -14,7 +15,7 @@ from sc_referee.core.deadline_ledger import (
     load_deadline_ledger,
     verify_deadline_ledger,
 )
-from sc_referee.core.ids import semantic_digest
+from sc_referee.core.ids import semantic_digest, sha256_digest
 from sc_referee.interaction import (
     InteractionProtocolError,
     _validate_proposal,
@@ -278,8 +279,25 @@ def _prepare(
 
 
 def test_linked_prelock_packet_proposal_answer_lock_and_replay(
-    schema_root: Path, tmp_path: Path
+    schema_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    rebuilt_contexts = []
+    real_binder = interaction_module._bind_frozen_file_manifest_input
+
+    def capture_rebuilt_context(context, *, manifest_root, repository_snapshot):
+        bound = real_binder(
+            context,
+            manifest_root=manifest_root,
+            repository_snapshot=repository_snapshot,
+        )
+        rebuilt_contexts.append(bound)
+        return bound
+
+    monkeypatch.setattr(
+        interaction_module,
+        "_bind_frozen_file_manifest_input",
+        capture_rebuilt_context,
+    )
     repository, session, packet, question, parent_lock_before = _prepare(schema_root, tmp_path)
     del repository
     work_item = packet["work_item"]
@@ -309,6 +327,15 @@ def test_linked_prelock_packet_proposal_answer_lock_and_replay(
     )
     record_answer(session, answer, schema_root)
     bundle = lock_semantics(session, schema_root, locked_at="2026-07-28T12:03:00Z")
+
+    assert len(rebuilt_contexts) == 1
+    rebuilt_context = rebuilt_contexts[0]
+    assert rebuilt_context is not None
+    manifest = rebuilt_context.file_manifest_input
+    assert manifest is not None
+    persisted_manifest = session / manifest.file_manifest_ref
+    assert manifest.canonical_jsonl_bytes == persisted_manifest.read_bytes()
+    assert manifest.manifest_digest == sha256_digest(persisted_manifest.read_bytes())
 
     assert (tmp_path / "source-audit" / "semantic.lock.json").read_bytes() == parent_lock_before
     assert [item["state"] for item in bundle["audit_runs"]] == [

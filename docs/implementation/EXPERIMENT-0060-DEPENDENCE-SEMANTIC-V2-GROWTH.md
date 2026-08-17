@@ -540,3 +540,31 @@ translation or lock, grant, installed pin, registry, capability, qualification,
 production/public, harness, wall-corpus, evaluation, or frozen-lane surface. Frozen
 re-measurement, batches, manifest regeneration, commit, and push remain orchestrator
 operations after independent code review.
+
+### 2026-08-17 Section-20 manifest-bijection repair build record
+
+The focused Section-20.2/20.4 repair binds the controller-persisted
+`observed/files.jsonl` artifact as one immutable value containing its exact bounded
+`file_manifest_ref`, original canonical JSONL bytes, and SHA-256 digest. The controller
+captures those already-written bytes before the development observer runs; linked
+interaction re-entry applies the same capture. Missing, unreadable, symlink-resolved,
+changed-during-read, or otherwise ambiguous artifacts yield no manifest input. The
+capture layer does not parse entries or assert completeness.
+
+To preserve the accepted v1 scientific-check release identities and installed pins,
+the binding is a controller-local frozen subtype of the existing
+`FrozenInspectionContext`; the release-pinned scientific-check core and integration
+modules remain unchanged. This placement adds no registry entry, production adapter,
+public record, or storage behavior. The subtype preserves the base v1 manifest
+projection and context digest exactly; its separately held immutable manifest value is
+not a second v1 projection or digest channel.
+
+The analyzer and certificate kernel consume only that frozen value. Each separately
+parses the original bytes, requires byte-exact canonical JSONL lines, establishes the
+complete bidirectional match to snapshot-associated file records, validates their
+identity and byte metadata, and retains every entry until the existing non-regular,
+symlink, identity, and pandas-shadow refusals run. Neither path accepts a parsed
+manifest, a completeness flag, or the other path's match result. The existing pandas
+package-identity refusal boundary and all non-v2 conclusions remain unchanged.
+Growth 14 binds the independently validated manifest digest only through
+`PandasPackageIdentity` and the resulting certificate identity.

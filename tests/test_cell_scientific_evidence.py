@@ -7,7 +7,14 @@ from typing import Any
 
 import pytest
 
-from sc_referee.controller import replay, run_audit
+from sc_referee.controller import (
+    FrozenFileManifestInput,
+    ManifestBoundFrozenInspectionContext,
+    _bind_frozen_file_manifest_input,
+    _capture_frozen_file_manifest_input,
+    replay,
+    run_audit,
+)
 from sc_referee.core.ids import sha256_digest
 from sc_referee.scientific_checks import (
     FrozenSourceLocation,
@@ -65,6 +72,7 @@ def _context(
     bundle: dict[str, Any],
     *,
     parser_results: list[dict[str, Any]] | None = None,
+    include_file_manifest: bool = False,
 ):
     context = build_frozen_inspection_context(
         snapshot_root=output / "observed" / "snapshot" / "materialized",
@@ -78,6 +86,12 @@ def _context(
         repository_snapshot=bundle["repository_snapshots"][0],
     )
     assert context is not None
+    if include_file_manifest:
+        context = _bind_frozen_file_manifest_input(
+            context,
+            manifest_root=output,
+            repository_snapshot=bundle["repository_snapshots"][0],
+        )
     assert repository.is_dir()
     return context
 
@@ -103,6 +117,7 @@ def test_scientific_context_freezes_exact_selected_material_input_bytes(
     csv_bytes = b"observed,panel\n0,1\n1,0\n"
     (repository / "inputs.csv").write_bytes(csv_bytes)
     output = tmp_path / "audit"
+    observed_contexts = []
 
     bundle = run_audit(
         repository,
@@ -110,8 +125,9 @@ def test_scientific_context_freezes_exact_selected_material_input_bytes(
         schema_root,
         report="report.md",
         material_inputs=("inputs.csv",),
+        evaluation_inspection_observer=observed_contexts.append,
     )
-    context = _context(repository, output, bundle)
+    context = _context(repository, output, bundle, include_file_manifest=True)
 
     assert len(context.material_inputs) == 1
     material = context.material_inputs[0]
@@ -120,6 +136,142 @@ def test_scientific_context_freezes_exact_selected_material_input_bytes(
     assert material.content_digest == sha256_digest(csv_bytes)
     assert material.file_ref in {item.ref for item in context.base_records}
     assert material.asset_identity_ref in {item.ref for item in context.base_records}
+
+    assert len(observed_contexts) == 1
+    controller_manifest = observed_contexts[0].file_manifest_input
+    rebuilt_manifest = context.file_manifest_input
+    assert controller_manifest is not None
+    assert rebuilt_manifest == controller_manifest
+    manifest_path = output / controller_manifest.file_manifest_ref
+    assert controller_manifest.canonical_jsonl_bytes == manifest_path.read_bytes()
+    assert controller_manifest.manifest_digest == sha256_digest(manifest_path.read_bytes())
+
+    absent = _context(repository, output, bundle, include_file_manifest=False)
+    assert getattr(absent, "file_manifest_input", None) is None
+    registry = default_scientific_check_registry()
+    assert registry.evaluate(absent).modules == registry.evaluate(context).modules
+
+
+def test_file_manifest_capture_fails_closed_for_unavailable_ambiguous_or_changed_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    audit_root = tmp_path / "audit"
+    observed = audit_root / "observed"
+    observed.mkdir(parents=True)
+    manifest_path = observed / "files.jsonl"
+    snapshot = {"file_manifest_ref": "observed/files.jsonl"}
+
+    assert (
+        _capture_frozen_file_manifest_input(
+            manifest_root=audit_root,
+            repository_snapshot=snapshot,
+        )
+        is None
+    )
+
+    real_manifest = observed / "real-files.jsonl"
+    real_manifest.write_bytes(b"{}\n")
+    manifest_path.symlink_to(real_manifest)
+    assert (
+        _capture_frozen_file_manifest_input(
+            manifest_root=audit_root,
+            repository_snapshot=snapshot,
+        )
+        is None
+    )
+    manifest_path.unlink()
+    manifest_path.write_bytes(b'{"record_type":"file_record"}\n')
+
+    real_read_bytes = Path.read_bytes
+    with monkeypatch.context() as changed_patch:
+
+        def change_after_read(path: Path) -> bytes:
+            content = real_read_bytes(path)
+            path.write_bytes(content + b"changed")
+            return content
+
+        changed_patch.setattr(Path, "read_bytes", change_after_read)
+        assert (
+            _capture_frozen_file_manifest_input(
+                manifest_root=audit_root,
+                repository_snapshot=snapshot,
+            )
+            is None
+        )
+
+    with monkeypatch.context() as unreadable_patch:
+
+        def refuse_read(_path: Path) -> bytes:
+            raise PermissionError("simulated unreadable manifest")
+
+        unreadable_patch.setattr(Path, "read_bytes", refuse_read)
+        assert (
+            _capture_frozen_file_manifest_input(
+                manifest_root=audit_root,
+                repository_snapshot=snapshot,
+            )
+            is None
+        )
+
+
+def test_frozen_file_manifest_input_binds_path_and_digest_without_parsing_entries() -> None:
+    malformed_but_frozen = b"not-jsonl\n"
+    manifest = FrozenFileManifestInput(
+        file_manifest_ref="observed/files.jsonl",
+        canonical_jsonl_bytes=malformed_but_frozen,
+        manifest_digest=sha256_digest(malformed_but_frozen),
+    )
+    assert manifest.canonical_jsonl_bytes == malformed_but_frozen
+    assert manifest.digest_projection() == {
+        "file_manifest_ref": "observed/files.jsonl",
+        "manifest_digest": sha256_digest(malformed_but_frozen),
+    }
+    with pytest.raises(ScientificCheckContractError, match="relative and bounded"):
+        FrozenFileManifestInput(
+            file_manifest_ref="../files.jsonl",
+            canonical_jsonl_bytes=b"",
+            manifest_digest=sha256_digest(b""),
+        )
+    with pytest.raises(ScientificCheckContractError, match="digest mismatch"):
+        FrozenFileManifestInput(
+            file_manifest_ref="observed/files.jsonl",
+            canonical_jsonl_bytes=b"changed",
+            manifest_digest=sha256_digest(b"other"),
+        )
+
+
+def test_manifest_input_preserves_v1_context_and_non_v2_registry_projection(
+    tmp_path: Path, schema_root: Path
+) -> None:
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    (repository / "report.md").write_text("A descriptive summary.\n", encoding="utf-8")
+    output = tmp_path / "audit"
+    bundle = run_audit(repository, output, schema_root, report="report.md")
+    context = _context(repository, output, bundle)
+    content = b'{"record_type":"file_record"}\n'
+    manifest = FrozenFileManifestInput(
+        file_manifest_ref="observed/files.jsonl",
+        canonical_jsonl_bytes=content,
+        manifest_digest=sha256_digest(content),
+    )
+    bound = ManifestBoundFrozenInspectionContext(
+        snapshot_digest=context.snapshot_digest,
+        selected_surface_ref=context.selected_surface_ref,
+        selected_artifact_ref=context.selected_artifact_ref,
+        documents=context.documents,
+        base_records=context.base_records,
+        material_inputs=context.material_inputs,
+        shared_derivations=context.shared_derivations,
+        scope_join_graph=context.scope_join_graph,
+        file_manifest_input=manifest,
+    )
+
+    assert bound.file_manifest_input is manifest
+    assert bound.to_manifest_projection() == context.to_manifest_projection()
+    assert bound.context_digest == context.context_digest
+    registry = default_scientific_check_registry()
+    assert registry.evaluate(bound).to_dict() == registry.evaluate(context).to_dict()
 
 
 def test_notebook_cells_are_distinct_scientific_documents_but_remain_unscoped(

@@ -14,7 +14,7 @@ from collections import Counter
 from dataclasses import asdict, dataclass, replace
 from typing import Any, Literal, cast
 
-from sc_referee.core.ids import semantic_digest, sha256_digest
+from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.dependence_recognition.ir import (
     MAX_DEPENDENCE_CSV_DOMAIN_BYTES,
     MAX_DEPENDENCE_CSV_DOMAIN_FIELD_BYTES,
@@ -160,6 +160,7 @@ def verify_dependence_growth_certificate(
     trusted_procedure_sets: tuple[AuthorizedProcedureSet, ...] = (),
     source_bytes: bytes,
     trusted_base_records: tuple[FrozenBaseRecord, ...] = (),
+    trusted_file_manifest_input: object | None = None,
     _failure_reasons: list[str] | None = None,
 ) -> VerifiedDependenceGrowthCertificate | None:
     """Discharge every equation from source bytes and one trusted material replay."""
@@ -237,6 +238,7 @@ def verify_dependence_growth_certificate(
             authority=authority,
             source_bytes=source_bytes,
             trusted_base_records=trusted_base_records,
+            trusted_file_manifest_input=trusted_file_manifest_input,
         )
         if failure is not None:
             return refuse(failure)
@@ -398,6 +400,7 @@ def _verify_pandas_dependence_certificate(
     authority: HumanMethodAuthorization,
     source_bytes: bytes,
     trusted_base_records: tuple[FrozenBaseRecord, ...],
+    trusted_file_manifest_input: object | None,
 ) -> tuple[VerifiedDependenceGrowthCertificate | None, str | None]:
     """Apply Growth-14's fixed six-obligation kernel in total order."""
 
@@ -408,6 +411,7 @@ def _verify_pandas_dependence_certificate(
 
     package_identity = _kernel_pandas_package_identity(
         trusted_base_records,
+        file_manifest_input=trusted_file_manifest_input,
         source_path=certificate.source_path,
         source_digest=certificate.source_digest,
         material=material,
@@ -571,6 +575,7 @@ def _verify_pandas_dependence_certificate(
 def _kernel_pandas_package_identity(
     base_records: tuple[FrozenBaseRecord, ...],
     *,
+    file_manifest_input: object | None,
     source_path: str,
     source_digest: str,
     material: FrozenMaterialInput,
@@ -599,53 +604,71 @@ def _kernel_pandas_package_identity(
             or not manifest_ref
         ):
             return None
-        identity_by_ref: dict[tuple[str, str], dict[str, Any]] = {}
+        input_ref = getattr(file_manifest_input, "file_manifest_ref", None)
+        manifest_bytes = getattr(file_manifest_input, "canonical_jsonl_bytes", None)
+        manifest_digest = getattr(file_manifest_input, "manifest_digest", None)
+        if (
+            input_ref != manifest_ref
+            or not isinstance(manifest_bytes, bytes)
+            or not isinstance(manifest_digest, str)
+        ):
+            return None
+        file_records = _kernel_manifest_record_bijection(
+            base_records,
+            snapshot_record=snapshot_record,
+            manifest_bytes=manifest_bytes,
+            manifest_digest=manifest_digest,
+        )
+        if file_records is None:
+            return None
+        identity_by_ref: dict[tuple[str, str], FrozenBaseRecord] = {}
         for record in base_records:
             if record.ref.record_type != "asset_identity":
                 continue
-            payload = json.loads(record.canonical_payload)
             key = (record.ref.record_type, record.ref.record_id)
-            if not isinstance(payload, dict) or key in identity_by_ref:
+            if key in identity_by_ref:
                 return None
-            identity_by_ref[key] = payload
+            identity_by_ref[key] = record
+        identity_claims: Counter[tuple[str, str]] = Counter()
+        for identity_record in identity_by_ref.values():
+            value = json.loads(identity_record.canonical_payload)
+            claimed = value.get("asset_ref") if isinstance(value, dict) else None
+            if (
+                isinstance(claimed, dict)
+                and claimed.get("record_type") == "file_record"
+                and isinstance(claimed.get("record_id"), str)
+            ):
+                identity_claims[("file_record", str(claimed["record_id"]))] += 1
         entries: list[tuple[str, str]] = []
         seen_paths: set[str] = set()
         source_match = 0
         material_match = 0
-        expected_snapshot_ref = snapshot_record.ref.to_dict()
-        for record in base_records:
-            if record.ref.record_type != "file_record":
-                continue
-            payload = json.loads(record.canonical_payload)
-            if not isinstance(payload, dict):
-                return None
-            if payload.get("snapshot_ref") != expected_snapshot_ref:
-                continue
-            path = payload.get("path")
-            if (
-                not isinstance(path, str)
-                or not path
-                or path.startswith("/")
-                or ".." in path.split("/")
-                or path in seen_paths
-                or payload.get("entry_kind") != "regular_file"
-            ):
+        for record, payload in file_records:
+            path = cast(str, payload["path"])
+            if payload["entry_kind"] != "regular_file" or path in seen_paths:
                 return None
             seen_paths.add(path)
             identity_ref = payload.get("asset_identity_ref")
-            if not isinstance(identity_ref, dict):
-                return None
+            assert isinstance(identity_ref, dict)
             ref = (
                 str(identity_ref.get("record_type", "")),
                 str(identity_ref.get("record_id", "")),
             )
-            identity = identity_by_ref.get(ref)
+            matched_identity_record = identity_by_ref.get(ref)
+            if matched_identity_record is None:
+                return None
+            identity = json.loads(matched_identity_record.canonical_payload)
             evidence = identity.get("identity_evidence") if isinstance(identity, dict) else None
             digest = evidence.get("digest") if isinstance(evidence, dict) else None
             if (
                 not isinstance(identity, dict)
+                or identity.get("record_type") != "asset_identity"
+                or identity.get("asset_identity_id") != matched_identity_record.ref.record_id
                 or identity.get("tier") != "full_digest"
                 or identity.get("asset_ref") != record.ref.to_dict()
+                or identity_claims[record.ref.record_type, record.ref.record_id] != 1
+                or not isinstance(evidence, dict)
+                or evidence.get("kind") != "full_digest"
                 or not isinstance(digest, str)
                 or not re.fullmatch(r"sha256:[a-f0-9]{64}", digest)
             ):
@@ -670,9 +693,107 @@ def _kernel_pandas_package_identity(
             snapshot_ref=RecordRef(snapshot_record.ref.record_type, snapshot_record.ref.record_id),
             snapshot_digest=snapshot_digest,
             file_manifest_ref=manifest_ref,
+            file_manifest_digest=manifest_digest,
             inventory_digest=semantic_digest(inventory_projection),
             regular_file_count=len(entries),
         )
+    except (KeyError, TypeError, ValueError, UnicodeError, RecursionError):
+        return None
+
+
+def _kernel_manifest_record_bijection(
+    base_records: tuple[FrozenBaseRecord, ...],
+    *,
+    snapshot_record: FrozenBaseRecord,
+    manifest_bytes: bytes,
+    manifest_digest: str,
+) -> tuple[tuple[FrozenBaseRecord, dict[str, Any]], ...] | None:
+    """Kernel-local canonical JSONL parse and all-entry file-record bijection."""
+
+    try:
+        raw = manifest_bytes
+        if (
+            not re.fullmatch(r"sha256:[a-f0-9]{64}", manifest_digest)
+            or sha256_digest(raw) != manifest_digest
+            or not raw
+            or raw[-1:] != b"\n"
+        ):
+            return None
+        expected_snapshot_ref = snapshot_record.ref.to_dict()
+        base_rows: list[tuple[FrozenBaseRecord, dict[str, Any]]] = []
+        base_ids: set[str] = set()
+        base_paths: set[str] = set()
+        for candidate in base_records:
+            if candidate.ref.record_type != "file_record":
+                continue
+            value = json.loads(candidate.canonical_payload)
+            if not isinstance(value, dict) or value.get("snapshot_ref") != expected_snapshot_ref:
+                continue
+            identifier = value.get("file_record_id")
+            path = value.get("path")
+            kind = value.get("entry_kind")
+            byte_size = value.get("byte_size")
+            identity_ref = value.get("asset_identity_ref")
+            if (
+                value.get("record_type") != "file_record"
+                or identifier != candidate.ref.record_id
+                or not isinstance(identifier, str)
+                or identifier in base_ids
+                or not isinstance(path, str)
+                or not path
+                or path.startswith("/")
+                or ".." in path.split("/")
+                or path == "."
+                or posixpath.normpath(path) != path
+                or path in base_paths
+                or not isinstance(kind, str)
+                or not kind
+                or not isinstance(byte_size, int)
+                or isinstance(byte_size, bool)
+                or byte_size < 0
+                or not isinstance(identity_ref, dict)
+                or identity_ref.get("record_type") != "asset_identity"
+                or not isinstance(identity_ref.get("record_id"), str)
+                or not identity_ref["record_id"]
+            ):
+                return None
+            base_ids.add(identifier)
+            base_paths.add(path)
+            base_rows.append((candidate, value))
+        if not base_rows:
+            return None
+        by_identifier = {row[0].ref.record_id: row for row in base_rows}
+
+        ordered_matches: list[tuple[FrozenBaseRecord, dict[str, Any]]] = []
+        parsed_ids: set[str] = set()
+        parsed_paths: set[str] = set()
+        for encoded in raw[:-1].split(b"\n"):
+            if not encoded:
+                return None
+            decoded = encoded.decode("utf-8", errors="strict")
+            value = json.loads(decoded)
+            if not isinstance(value, dict) or canonical_json(value).encode("utf-8") != encoded:
+                return None
+            identifier = value.get("file_record_id")
+            path = value.get("path")
+            if (
+                value.get("record_type") != "file_record"
+                or value.get("snapshot_ref") != expected_snapshot_ref
+                or not isinstance(identifier, str)
+                or identifier in parsed_ids
+                or not isinstance(path, str)
+                or path in parsed_paths
+            ):
+                return None
+            match = by_identifier.get(identifier)
+            if match is None or match[0].canonical_payload != encoded:
+                return None
+            parsed_ids.add(identifier)
+            parsed_paths.add(path)
+            ordered_matches.append(match)
+        if parsed_ids != base_ids or len(ordered_matches) != len(base_rows):
+            return None
+        return tuple(ordered_matches)
     except (KeyError, TypeError, ValueError, UnicodeError, RecursionError):
         return None
 

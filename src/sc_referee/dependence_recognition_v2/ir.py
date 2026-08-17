@@ -231,6 +231,7 @@ class PandasPackageIdentity:
     snapshot_ref: RecordRef
     snapshot_digest: str
     file_manifest_ref: str
+    file_manifest_digest: str
     inventory_digest: str
     regular_file_count: int
 

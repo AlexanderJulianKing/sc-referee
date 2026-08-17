@@ -12,6 +12,7 @@ from sc_referee.calculation_checks.feature_identifier_identity import (
     FEATURE_IDENTIFIER_IDENTITY_DIMENSION,
 )
 from sc_referee.controller import (
+    _bind_frozen_file_manifest_input,
     _build_contract_questions,
     _derive_general_from_lock,
     _extract_resolved_literal_claims,
@@ -955,6 +956,12 @@ def lock_semantics(
         scope_selections=scope_selections,
         selection_evidence_records=[*questions, *answers],
     )
+    if rebuilt_scientific_context is not None:
+        rebuilt_scientific_context = _bind_frozen_file_manifest_input(
+            rebuilt_scientific_context,
+            manifest_root=context["layout"].root,
+            repository_snapshot=snapshot_record,
+        )
     if rebuilt_scientific_context is None or rebuilt_scientific_context.scope_join_graph is None:
         raise InteractionProtocolError(
             "linked scope selections could not rebuild the exact static scope-join graph"

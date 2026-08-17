@@ -21,7 +21,7 @@ from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any, Literal, cast
 
-from sc_referee.core.ids import semantic_digest
+from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.dependence_recognition.ir import HumanMethodAuthorization, RecordRef
 from sc_referee.dependence_recognition.python_analyzer import _trusted_authorizations
 from sc_referee.dependence_recognition_v2.certificate import (
@@ -73,6 +73,7 @@ from sc_referee.dependence_recognition_v2.pandas_runtime_premise import (
     PANDAS_DEVELOPMENT_RUNTIME_PREMISE_DIGEST,
 )
 from sc_referee.scientific_checks.core import (
+    FrozenBaseRecord,
     FrozenInspectionContext,
     FrozenMaterialInput,
 )
@@ -720,6 +721,7 @@ def discharge_dependence_growth_analysis(
         trusted_authorizations=_trusted_v2_authorizations(context),
         trusted_procedure_sets=_trusted_v2_procedure_sets(context),
         trusted_base_records=context.base_records,
+        trusted_file_manifest_input=getattr(context, "file_manifest_input", None),
         source_bytes=source_matches[0].content,
         _failure_reasons=kernel_failures,
     )
@@ -975,58 +977,74 @@ def _analyzer_pandas_package_identity(
             or not snapshot["file_manifest_ref"]
         ):
             return None
-        snapshot_ref = snapshot_record.ref.to_dict()
-        file_records = []
-        for record in context.base_records:
-            if record.ref.record_type != "file_record":
-                continue
-            payload = json.loads(record.canonical_payload)
-            if isinstance(payload, dict) and payload.get("snapshot_ref") == snapshot_ref:
-                file_records.append(record)
-        if not file_records:
+        manifest_input = getattr(context, "file_manifest_input", None)
+        manifest_ref = getattr(manifest_input, "file_manifest_ref", None)
+        manifest_bytes = getattr(manifest_input, "canonical_jsonl_bytes", None)
+        manifest_digest = getattr(manifest_input, "manifest_digest", None)
+        if (
+            manifest_ref != snapshot["file_manifest_ref"]
+            or not isinstance(manifest_bytes, bytes)
+            or not isinstance(manifest_digest, str)
+        ):
             return None
-        identity_payloads: dict[tuple[str, str], object] = {}
+        file_records = _analyzer_manifest_record_bijection(
+            context,
+            snapshot_record=snapshot_record,
+            manifest_bytes=manifest_bytes,
+            manifest_digest=manifest_digest,
+        )
+        if file_records is None:
+            return None
+        identity_records: dict[tuple[str, str], FrozenBaseRecord] = {}
         for record in context.base_records:
             if record.ref.record_type != "asset_identity":
                 continue
             identity_key = (record.ref.record_type, record.ref.record_id)
-            if identity_key in identity_payloads:
+            if identity_key in identity_records:
                 return None
-            identity_payloads[identity_key] = json.loads(record.canonical_payload)
+            identity_records[identity_key] = record
         inventory: list[dict[str, str]] = []
         paths: set[str] = set()
         source_seen = False
         material_seen = False
-        for record in file_records:
-            payload = json.loads(record.canonical_payload)
-            if not isinstance(payload, dict):
-                return None
-            path = payload.get("path")
-            kind = payload.get("entry_kind")
+        identity_claim_counts: Counter[tuple[str, str]] = Counter()
+        for identity_record in identity_records.values():
+            identity_payload = json.loads(identity_record.canonical_payload)
+            asset_ref = (
+                identity_payload.get("asset_ref") if isinstance(identity_payload, dict) else None
+            )
             if (
-                not isinstance(path, str)
-                or not path
-                or path.startswith("/")
-                or ".." in path.split("/")
-                or path in paths
-                or kind != "regular_file"
+                isinstance(asset_ref, dict)
+                and asset_ref.get("record_type") == "file_record"
+                and isinstance(asset_ref.get("record_id"), str)
             ):
+                identity_claim_counts[("file_record", str(asset_ref["record_id"]))] += 1
+        for record, payload in file_records:
+            path = cast(str, payload["path"])
+            if payload["entry_kind"] != "regular_file":
                 return None
             paths.add(path)
             identity_ref_value = payload.get("asset_identity_ref")
-            if not isinstance(identity_ref_value, dict):
-                return None
+            assert isinstance(identity_ref_value, dict)
             identity_ref = (
                 str(identity_ref_value.get("record_type", "")),
                 str(identity_ref_value.get("record_id", "")),
             )
-            identity = identity_payloads.get(identity_ref)
+            matched_identity_record = identity_records.get(identity_ref)
+            if matched_identity_record is None:
+                return None
+            identity = json.loads(matched_identity_record.canonical_payload)
             evidence = identity.get("identity_evidence") if isinstance(identity, dict) else None
             digest = evidence.get("digest") if isinstance(evidence, dict) else None
             if (
                 not isinstance(identity, dict)
+                or identity.get("record_type") != "asset_identity"
+                or identity.get("asset_identity_id") != matched_identity_record.ref.record_id
                 or identity.get("tier") != "full_digest"
                 or identity.get("asset_ref") != record.ref.to_dict()
+                or identity_claim_counts[record.ref.record_type, record.ref.record_id] != 1
+                or not isinstance(evidence, dict)
+                or evidence.get("kind") != "full_digest"
                 or not isinstance(digest, str)
                 or not re.fullmatch(r"sha256:[a-f0-9]{64}", digest)
             ):
@@ -1044,11 +1062,106 @@ def _analyzer_pandas_package_identity(
             snapshot_ref=RecordRef(snapshot_record.ref.record_type, snapshot_record.ref.record_id),
             snapshot_digest=context.snapshot_digest,
             file_manifest_ref=cast(str, snapshot["file_manifest_ref"]),
+            file_manifest_digest=manifest_digest,
             inventory_digest=semantic_digest(
                 sorted(inventory, key=lambda item: tuple(item["path"].split("/")))
             ),
             regular_file_count=len(inventory),
         )
+    except (KeyError, TypeError, ValueError, UnicodeError, RecursionError):
+        return None
+
+
+def _analyzer_manifest_record_bijection(
+    context: FrozenInspectionContext,
+    *,
+    snapshot_record: FrozenBaseRecord,
+    manifest_bytes: bytes,
+    manifest_digest: str,
+) -> tuple[tuple[FrozenBaseRecord, dict[str, Any]], ...] | None:
+    """Independently parse canonical JSONL and join every entry to one base record."""
+
+    try:
+        if (
+            not re.fullmatch(r"sha256:[a-f0-9]{64}", manifest_digest)
+            or sha256_digest(manifest_bytes) != manifest_digest
+            or not manifest_bytes
+            or not manifest_bytes.endswith(b"\n")
+        ):
+            return None
+        snapshot_ref = snapshot_record.ref.to_dict()
+        associated: dict[str, tuple[FrozenBaseRecord, dict[str, Any]]] = {}
+        associated_paths: set[str] = set()
+        for record in context.base_records:
+            if record.ref.record_type != "file_record":
+                continue
+            payload = json.loads(record.canonical_payload)
+            if not isinstance(payload, dict) or payload.get("snapshot_ref") != snapshot_ref:
+                continue
+            record_id = payload.get("file_record_id")
+            path = payload.get("path")
+            entry_kind = payload.get("entry_kind")
+            byte_size = payload.get("byte_size")
+            identity_ref = payload.get("asset_identity_ref")
+            if (
+                payload.get("record_type") != "file_record"
+                or record_id != record.ref.record_id
+                or not isinstance(record_id, str)
+                or record_id in associated
+                or not isinstance(path, str)
+                or not path
+                or path.startswith("/")
+                or ".." in path.split("/")
+                or path == "."
+                or posixpath.normpath(path) != path
+                or path in associated_paths
+                or not isinstance(entry_kind, str)
+                or not entry_kind
+                or not isinstance(byte_size, int)
+                or isinstance(byte_size, bool)
+                or byte_size < 0
+                or not isinstance(identity_ref, dict)
+                or identity_ref.get("record_type") != "asset_identity"
+                or not isinstance(identity_ref.get("record_id"), str)
+                or not identity_ref["record_id"]
+            ):
+                return None
+            associated[record_id] = (record, payload)
+            associated_paths.add(path)
+        if not associated:
+            return None
+
+        joined: list[tuple[FrozenBaseRecord, dict[str, Any]]] = []
+        manifest_ids: set[str] = set()
+        manifest_paths: set[str] = set()
+        for line in manifest_bytes.splitlines(keepends=True):
+            if not line.endswith(b"\n") or line == b"\n":
+                return None
+            encoded = line[:-1]
+            decoded = encoded.decode("utf-8", errors="strict")
+            entry = json.loads(decoded)
+            if not isinstance(entry, dict) or canonical_json(entry) != decoded:
+                return None
+            record_id = entry.get("file_record_id")
+            path = entry.get("path")
+            if (
+                entry.get("record_type") != "file_record"
+                or entry.get("snapshot_ref") != snapshot_ref
+                or not isinstance(record_id, str)
+                or record_id in manifest_ids
+                or not isinstance(path, str)
+                or path in manifest_paths
+            ):
+                return None
+            match = associated.get(record_id)
+            if match is None or match[0].canonical_payload != encoded:
+                return None
+            manifest_ids.add(record_id)
+            manifest_paths.add(path)
+            joined.append(match)
+        if manifest_ids != set(associated) or len(joined) != len(associated):
+            return None
+        return tuple(joined)
     except (KeyError, TypeError, ValueError, UnicodeError, RecursionError):
         return None
 
