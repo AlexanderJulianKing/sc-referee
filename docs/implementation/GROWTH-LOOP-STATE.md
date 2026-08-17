@@ -5,13 +5,15 @@ focused count compile-validity repair are built, pushed, independently reviewed 
 all four assents, and scratch-remeasured through `3b65b7c`; all 135 census/frozen
 cases retained zero accusations and zero full-analysis completions, and the live
 planted-positive observation remained `0/47`. Growth-14's revived attempt-2 pandas
-design passed fresh maximum-effort HEAVY review with all five assents, and a distinct
-fresh maximum-effort builder has completed the literal implementation uncommitted on
-exact pushed base `1eb74be`. Its 184-test dedicated matrix, focused/static/isolation
-gates, protected-path check, and the orchestrator's 4,461-test pre-manifest serial
-full gate all passed. The functional commit, manifest regeneration, exact 4,462-test
-gate, push, and a different fresh maximum-effort code review still gate any
-re-measure; no frozen case or batch is authorized).
+design passed fresh maximum-effort HEAVY review with all five assents, was built by a
+distinct fresh maximum-effort implementer, passed the 4,461-test pre-manifest and
+exact 4,462-test serial gates, and was committed and pushed through `46b2c21`. A
+different fresh maximum-effort code reviewer then BLOCKED re-measure after proving a
+package-identity inventory-omission route through analyzer, kernel, and adapter. The
+maintainer has authorized only the focused HEAVY digest-bound manifest-bijection
+repair and its exact regression. No re-measure, planted-positive observation, or
+batch is authorized until a fresh maximum-effort reviewer completes the entire
+halted matrix, gives all five assents, and returns `CLEAR FOR RE-MEASURE`).
 
 ## Scoreboard
 
@@ -19,13 +21,20 @@ re-measure; no frozen case or batch is authorized).
   evaluation/development/dependence-growth-loop/), ZERO false accusations, zero
   regressions. 95 measurable (batch-D case dc2b31d5 was intake-refused, never
   materialized). No blind catch yet; misses are honest named abstentions.
-- Seven demonstrated false-accusation routes killed in review before measurement
+- Eight demonstrated false-accusation routes killed in review before measurement
   (filter-predicate, paired/crossover, alias-then-mutate, counted-domain, AnnAssign
-  rebind, plain-Assign rebind, count-path compile-validity). The plain-Assign fix is
-  structural (operand-name-rebound, all assignment forms through one partition test).
-  The seventh route is a development-lane probe only: it was pre-existing since the
-  count kernel's Growth-2 origin, reproduced on base `38bbe06`, and never reached a
-  scored, frozen, or corpus case; every re-measure has retained zero accusations.
+  rebind, plain-Assign rebind, count-path compile-validity, package-identity inventory
+  omission). The plain-Assign fix is structural (operand-name-rebound, all assignment
+  forms through one partition test). The seventh route is a development-lane probe
+  only: it was pre-existing since the count kernel's Growth-2 origin, reproduced on
+  base `38bbe06`, and never reached a scored, frozen, or corpus case; every re-measure
+  has retained zero accusations. The eighth is likewise a development-lane probe
+  only: on Growth-14 snapshot `46b2c21`, omitting the adjacent shadow-module record
+  from the supplied inventory while retaining the snapshot reference let analyzer,
+  kernel, and adapter accept an incomplete package-identity proof. It never reached
+  any scored, frozen, or corpus case. The authoritative 4,462-test gate was green on
+  the blocked snapshot; this is explicit evidence that reviewer clearance outranks
+  even a complete green gate.
 - v1.1.0 qualified detector + installed pins: untouched and live throughout.
 - Maintainer checkpoint trigger: every frozen re-measure now separately reports
   whether a planted positive reaches full development analysis and emits an adverse
@@ -849,7 +858,45 @@ re-measure; no frozen case or batch is authorized).
   `test_manifest_builder_inventory_equals_git_tree_listing` deselected. All 4,461
   selected tests reached 100% with captured `PYTEST_EXIT=0`. The functional/state
   commit, manifest regeneration, exact no-deselection 4,462-test gate, manifest
-  commit, push, and a different fresh maximum-effort code reviewer remain mandatory.
+  commit, push, and a different fresh maximum-effort code reviewer remained mandatory.
+- The orchestrator committed the functional Growth-14 implementation and then-current
+  STATE as `871d34c`, regenerated `MANIFEST.sha256`, ran all 4,462 repository tests to
+  100% with captured `PYTEST_EXIT=0`, committed the manifest as `46b2c21`, and pushed
+  exact clean local/remote `46b2c219fae1ec0454b3409efe159331c9e67719`. Protected,
+  frozen, v1, grant, pin, registry, capability, qualification, production/public, and
+  harness changed paths remained zero. An initial fresh review session `01a00fb3`
+  was stopped by a platform filter while reading the diff and completed no probe or
+  verdict; it is an execution artifact, not a review attempt.
+- Replacement fresh maximum-effort code reviewer session
+  `01a00fbd-8169-7683-99a0-938a009a45ab` returned all five priorities `REFUSE` and
+  `VERDICT: BLOCKED` after demonstrating a development-lane package-identity
+  inventory-omission route. Both `_analyzer_pandas_package_identity` and
+  `_kernel_pandas_package_identity` treated `file_manifest_ref` as an opaque nonempty
+  string and hashed only the supplied snapshot-linked file records. A complete
+  synthetic four-file inventory containing adjacent `workflow/pandas.py` refused as
+  intended. Removing only that shadow file record and its asset-identity record while
+  retaining the same snapshot and manifest reference made analyzer and kernel derive
+  equal but distinct package identities, made the analyzer propose, made the direct
+  kernel verify `one_observation_per_unit`, and made the adapter return
+  `covered_negative`. Ordinary execution loaded the adjacent fake module and failed;
+  the isolated `-I` control used the real package and wrote its report. This was a
+  false-clearance route in a review-only development probe, never an accusation from
+  a scored, frozen, or corpus case. The reviewer correctly stopped before the
+  remaining HEAVY matrices, re-measure, or planted-positive observation.
+- Maintainer direction through the Fable escalation channel authorizes one focused
+  HEAVY repair only: bind the file manifest as digest-bound frozen input and require
+  an exact manifest-to-record bijection, with analyzer and kernel independently
+  rejecting missing, extra, duplicate, or mismatched entries, including non-regular
+  entries and symlinks. No case-specific counts or digests may appear. A fresh fix
+  builder may implement only that proof and the exact omission regression. A
+  different fresh maximum-effort reviewer must re-execute the omission through
+  analyzer, direct kernel, and adapter; complete the 63 material siblings,
+  nineteen-token sweep, 35 partition siblings, precedence matrix, fact-replay
+  singles/pairs/triples, all 184 dedicated tests, focused/static/isolation gates, and
+  authoritative serial full suite; and explicitly assent or refuse on all five
+  priorities. Only all five assents plus `CLEAR FOR RE-MEASURE` permit re-measure and
+  the `0/47` planted-positive observation. If this repair itself blocks twice more,
+  HALT to Alex. The current BLOCKED verdict outranks the green 4,462-test gate.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
@@ -911,8 +958,9 @@ re-measure; no frozen case or batch is authorized).
    must-not-accuse fixtures become the round's central regressions); fail-closed on any
    ambiguity between paired and independent claims; dev lanes only. Sequence after
    queue item 0 unless census evidence reorders.
-2. BUILT UNCOMMITTED AND PRE-MANIFEST GATED as Growth-14 after maintainer-authorized
-   pandas revival and fresh attempt-2 maximum-effort HEAVY design clearance:
+2. BLOCKED IN CODE REVIEW; FOCUSED HEAVY REPAIR AUTHORIZED as Growth-14 after
+   maintainer-authorized pandas revival and fresh attempt-2 maximum-effort HEAVY
+   design clearance:
    `unsupported-import-form`, twelve
    of 39 authentic census locks. Import-only relaxation remains forbidden and
    completes zero cases. Binding memo Sections 17-19 define the smallest reviewed
@@ -924,8 +972,14 @@ re-measure; no frozen case or batch is authorized).
    4,278-test serial gate. Fresh maximum-effort builder `01a00f4d` implemented only
    that contract on exact pushed base `1eb74be`; its 184-test matrix and the
    orchestrator's 4,461-test pre-manifest full gate passed with captured exit 0. The
-   functional/state commit, manifest regeneration, exact 4,462-test gate, push, and a
-   different fresh maximum-effort code reviewer still gate any zero-accusation scratch
+   implementation was committed, manifest-refreshed, passed the exact 4,462-test gate,
+   and pushed through `46b2c21`. Fresh code reviewer `01a00fbd` nevertheless BLOCKED
+   after the exact inventory-omission probe reached a false clearance through analyzer,
+   kernel, and adapter. Binding memo Section 20 authorizes only a digest-bound frozen
+   file manifest with exact manifest-to-record bijection, independently checked by
+   analyzer and kernel, plus the exact omission regression. A fresh fix builder and a
+   different fresh maximum-effort reviewer completing the entire halted inventory and
+   returning all five assents plus `CLEAR FOR RE-MEASURE` still gate any scratch
    re-measure and closure. Dynamic/unknown forms remain default-deny. Optional terminal
    LF, runtime mutation, a frozen re-measure, batch, or any v1/grant/pin/registry/
    capability/qualification/production/frozen-lane change is not authorized.
