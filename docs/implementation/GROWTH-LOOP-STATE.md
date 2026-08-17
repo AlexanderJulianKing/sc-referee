@@ -1,8 +1,9 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
 Updated: 2026-08-16 (Growth-12/13 closed; Growth-14 pandas revival is maintainer-
-authorized but queued after Growth-15; Growth-15 is persistently blocked after three
-fresh design reviews and awaits maintainer direction; no build is authorized).
+authorized but queued after Growth-15; Growth-15 Option A passed its one authorized
+resumed HEAVY design review and is cleared for a fresh build; no re-measure or batch
+is authorized).
 
 ## Scoreboard
 
@@ -575,6 +576,38 @@ fresh design reviews and awaits maintainer direction; no build is authorized).
   attempt-3 inventory and return explicit fact-replay assent plus unconditional
   `CLEAR TO BUILD`; otherwise halt and escalate directly to Alex with no fifth design
   variation. No build, re-measure, batch, or queued Growth-14 work is yet authorized.
+- Growth-15's one authorized resumed Option-A HEAVY design review used fresh maximum-
+  effort reviewer session `01a00d0f-7c96-7781-904a-d491e4845a19` on exact clean
+  local/remote base `679899c2ab9e392ffe8cf55c143e6f6913fc36d0`, with `.git`
+  read-only. The reviewer returned no BLOCKER, MAJOR, or MINOR findings and the exact
+  required footer: `FALLTHROUGH-INERTNESS: ASSENT`,
+  `SINGLE-OPERAND-CLASSIFICATION: ASSENT`, `PROTOCOL-PRECEDENCE: ASSENT`,
+  `FACT-REPLAY-CLOSURE: ASSENT`, `VERDICT: CLEAR TO BUILD`.
+- Its independent prototype re-derived every existing ordinary group-fact field from
+  the frozen bytes; matched the controller across both line models and casts,
+  dynamic/predeclared buckets, seven supported-domain cases, 28 refusal-domain cases,
+  300 deterministic fuzz cases, and direct/subscript/sorted/NumPy operand forms; and
+  refused every top-level, nested, tuple-movement, omission, duplication, reorder, and
+  cross-field supplied-fact mutation at singleton `fact-closure`. The exact attempt-3
+  real `(1, 4)` / supplied `(2, 3)` counterexample closed before guard evaluation,
+  while the authentic replayed guard returned only `sink-controls-operand-flow`.
+  Fact/domain precedence, syntax-only `NotName`, real-builtin `LenCompare`/`Or`, token
+  closure, source replay, conclusion identity, and controller-helper monkeypatch
+  independence all passed. The final provenance probe also showed that coordinated
+  file/asset-reference substitutions are rejected while constructing the trusted
+  `FrozenInspectionContext`, before certificate verification.
+- The reviewer reproduced the complete 26-workflow / 55-raise inventory with exactly
+  nine syntax-only reason movements, seventeen freezes, zero outcome movements, zero
+  completions, and zero accusations. The planted-positive observation remains
+  `0/47`; batch K is not triggered. Validation passed 377 focused tests, scoped Ruff
+  and format, `mypy src` over 161 files, starter validation, both live pins,
+  production/protected/frozen identity, and the corrected authoritative serial full
+  suite (`4,178 passed`, six warnings, exit 0). Two discarded full-suite launches are
+  preserved as reviewer invocation artifacts: bare `pytest` was absent, then a
+  detached-clone run omitted that clone's `src`; the complete rerun with explicit
+  clone `PYTHONPATH` was green. A fresh implementer may build the complete binding
+  memo through Section 16. A different fresh maximum-effort code reviewer still gates
+  any frozen re-measure; no Growth-15 implementation or corpus run has occurred yet.
 
 ## Resolved halt record — Growth 10 wall-census authority transport
 
@@ -651,14 +684,14 @@ fresh design reviews and awaits maintainer direction; no build is authorized).
    registry, every protected path, and frozen lanes remain byte-frozen. Fresh HEAVY
    design and code reviews still gate any build or re-measure; do not start this item
    until Growth-15 closes.
-3. RESUMED FOR ONE FINAL DESIGN REVIEW as Growth-15: `raise-guard-not-modeled`, seven
-   census cases. After three blocked reviews, the maintainer selected complete
-   independent byte-derived ordinary group-fact reconstruction (Option A). Memo
-   Section 16 requires the kernel to use only its reconstructed fact for guard and
-   conclusion, preserving every earlier syntax/provenance/binding narrowing. One
-   fresh maximum-effort HEAVY review gates any build. If it blocks, halt and escalate
-   directly to Alex; there is no fifth variation. Do not build, re-measure, run a
-   batch, or advance queued Growth-14 before unconditional clearance.
+3. CLEARED TO BUILD as Growth-15: `raise-guard-not-modeled`, seven census cases.
+   After three blocked reviews, the maintainer selected complete independent byte-
+   derived ordinary group-fact reconstruction (Option A). Fresh resumed reviewer
+   `01a00d0f` executed the full required matrix and returned all four assents plus
+   unconditional `CLEAR TO BUILD`. A fresh implementer may build binding memo Section
+   16; a different fresh maximum-effort code reviewer, full-suite gate, and zero-
+   accusation scratch re-measure still gate closure. Do not run a frozen re-measure,
+   batch, or advance queued Growth-14 before those gates.
 4. Numeric comparison predicates for counts (float(row[x]) > CONST). The refreshed
    premise has no authentic direct numeric census opportunity; `446cab...` is a
    count-trial declaration no-lock and J2 uses a computed `delta`. Re-measure before
