@@ -28,7 +28,11 @@ required HALT/escalation occurred without a build or post-HALT repository mutati
 Alex resolved that HALT by withdrawing the monolithic memo and slicing the ladder
 into three independently reviewed objects. Slice A (Layer-0 inventory plus a closed
 Disclosure/Coverage-only renderer) is now the sole active design track; Slices B and
-C follow as separate milestones. No false-accusation HALT has occurred).
+C follow as separate milestones. Slice-A review 1 is now BLOCKED on four confined
+inventory-contract defects; renderer closure, non-accusation, and development/
+production isolation earned assent. Binding v2 amendments are complete and await a
+fresh maximum-effort review 2. No build has occurred and no false-accusation HALT has
+occurred).
 
 ## Scoreboard
 
@@ -375,8 +379,59 @@ C follow as separate milestones. No false-accusation HALT has occurred).
   with canonical object digest
   `sha256:952ab71783ebc20b6614ce0806498e915c82faa2e61054b3dc54c91f3010285b`.
   The memo defines no free-string renderer, path/URL slot, proposition, suppression,
-  scientific grade, external reader, or production seam. It is awaiting fresh
-  maximum-effort Slice-A design review 1; no builder is authorized.
+  scientific grade, external reader, or production seam.
+- The first launched Slice-A reviewer process (`01a012b8`) read the complete required
+  record and executed substantial scratch probes, but the tool safety classifier
+  terminated it before it emitted a final verdict. Its wrapper exited nonzero and no
+  final report exists. This is a process/tooling failure, not `BLOCKED`, so it consumes
+  none of Slice A's three design blocks. The repository remained clean at pushed
+  `ee01e97ddacee13be2d6e5ac87aee0d04f005271`, `.git` protections restored, and all
+  reviewed input digests remained exact.
+- Fresh replacement maximum-effort reviewer `01a012cb-e6c5-7b71-94cd-3bdc44516642`
+  returned Slice-A design review 1 `BLOCKED` on that exact snapshot. Its 8,787-byte
+  final report is `/tmp/audit-report-ladder-slice-a-review1-restart-last.txt` at
+  `sha256:6334d6e10b0e6619566973d7b62b2bb3e96c0d30e5329756cd51977d0171113b`;
+  complete scratch evidence is under
+  `/tmp/audit-report-ladder-slice-a-review1.h5FLHFH2/`. This consumes Slice A block 1
+  of 3 and authorizes no build.
+- Four blockers were demonstrated: (1) the real repository recaptured as 45,408
+  resources but required at least 215,710 operation receipts, while v1 incorrectly
+  charged every artifact to `max_resources:100000`; cross-field root/remote minima and
+  late enumeration growth were also non-total; (2) failed roots/ancestors and unstable
+  exclusion names had no truthful two-way matched/absent resolution; (3) two plausible
+  executable attempt schemas disagreed, thirteen digest/schema/order closures were
+  absent, and directory/symlink replacement could mix lexical and opened evidence;
+  and (4) an adjacent module/PYTHONPATH probe changed module origin and canonical JSON
+  output while leaving the declared runtime identity digest unchanged. These are
+  design-contract failures before build, report generation, or scoring—not false
+  observations or accusations.
+- The same review reconstructed all seven template and registry digests, proved the
+  14-node ID graph acyclic, rendered empty/4,097/100,000 Coverage boundaries
+  deterministically, rejected registry/support/stale/splice mutations, and passed all
+  fifteen predecessor plus nine fresh hostile renderer values with zero raw segments
+  entering Markdown or HTML. It also confirmed no Slice-A record can represent a
+  question/concern/Finding and no production Slice-A path exists. Footer:
+  `RUNG-HONESTY: REFUSE`; `LAYER-0-RECONCILIATION: REFUSE`;
+  `RENDERER-CLOSURE: ASSENT`; `IDENTITY-AND-CAPACITY: REFUSE`;
+  `NON-ACCUSATION-SURFACE: ASSENT`;
+  `DEVELOPMENT-PRODUCTION-ISOLATION: ASSENT`; `SLICE-A VERDICT: BLOCKED`.
+  Focused protected/pin/import tests passed 33/33; scoped Ruff/format, `mypy src`, and
+  starter validation passed. The reviewer independently verified the authoritative
+  4,496-test serial log at
+  `sha256:b196cc9d541d842b211f5b4d5b4555bdf0eef1e3ccb7369c9ae3c5454b86d345`.
+  Repository-wide Ruff/format additionally exposed only pre-existing generated/
+  development-tree debt and are not treated as Slice-A failures.
+- Binding memo Section 11 now makes the narrow v2 corrections: separate resource and
+  total/per-entry receipt capacities with transactional late-enumeration rollback; a
+  three-way matched/absent/unresolved exclusion proof; operation-specific attempts,
+  literal artifact/digest/order projections, field-specific ID prefixes, and
+  descriptor-bound directory/file/symlink identities; and a `python -I -B -S`,
+  environment-scrubbed runtime with exact `sys.path` and complete import-closure
+  identity. The unchanged renderer/non-accusation surfaces retain review-1 evidence.
+  Memo v2 is 48,491 bytes at
+  `sha256:13a62c8c37f4083605a5413bb20fbe64d99348cfbf07390d11b72767b8a0fbca`;
+  the adjacent registry remains byte-identical. Fresh maximum-effort review 2 must
+  re-execute every blocker and the full standing gauntlet. No builder is authorized.
 - Slice B follows independently: three or four CSV observation verifiers plus exactly
   one question-composition rule, CSV lane only, all on the digest-bound manifest-
   bijection path. M2 is Slice B. Slice A clearance does not prejudge Slice B.
