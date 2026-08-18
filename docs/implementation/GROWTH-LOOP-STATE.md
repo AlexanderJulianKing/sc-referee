@@ -27,14 +27,18 @@ review. Review 3 returned `BLOCKED` on five demonstrated contract failures and t
 required HALT/escalation occurred without a build or post-HALT repository mutation.
 Alex resolved that HALT by withdrawing the monolithic memo and slicing the ladder
 into three independently reviewed objects. Slice A (Layer-0 inventory plus a closed
-Disclosure/Coverage-only renderer) is now the sole active design track; Slices B and
-C follow as separate milestones. Slice-A review 2 is `BLOCKED`, consuming Slice A
-block 2 of 3. Renderer closure, non-accusation, and development/production isolation
-again earned assent; exclusions closed, while four confined inventory/runtime
-literal gaps remain. Binding v3 amendments now make the direct-exec environment,
-loader registry, changed-union terminal, URL grammar, and operation/failure mapping
-literal. They await Slice A's final fresh maximum-effort design review 3. No build has
-occurred and no false-accusation HALT has occurred).
+Disclosure/Coverage-only renderer) exhausted its independent three-block design rule
+and is PARKED with no build, fourth amendment, or fourth review. Its final review
+closed every v3 target but demonstrated one persisted-evidence-preimage defect in the
+fixed bundle; renderer closure, non-accusation, and development/production isolation
+retained assent. Slice B is now the sole active design track: three or four CSV
+observation verifiers plus exactly one CSV-only question composition rule. Read-only
+premise measurement found 704 frozen CSV materializations collapsing to 107 unique
+payloads, all strict-CSV/shape accepted; 105 contain a repeated-value column and 95 a
+binary column. A fresh small Slice-B v1 memo now binds four byte-derived observation
+types, one conditional MaterialQuestion template, and a two-path verifier/composer
+transaction; it awaits fresh HEAVY design review 1. No Slice B build has occurred, and
+no false-accusation HALT has occurred).
 
 ## Scoreboard
 
@@ -493,9 +497,91 @@ occurred and no false-accusation HALT has occurred).
   maximum-effort review 3 must replay the entire gauntlet. Only unconditional
   `CLEAR TO BUILD` authorizes a builder; a third block parks Slice A alone with no
   fourth amendment and advances the independent Slice B track.
-- Slice B follows independently: three or four CSV observation verifiers plus exactly
+- Fresh maximum-effort reviewer `01a01358-af67-76b1-861f-1500d079c497` reviewed
+  exact clean local/remote snapshot
+  `9d66866d8175fa376b15cafb2f259c8e6d9ee045` and returned
+  `SLICE-A VERDICT: BLOCKED`. Its 5,845-byte final report is
+  `/tmp/audit-report-ladder-slice-a-review3-last.txt` at
+  `sha256:76532603452751a7e3ac83dc7511db5e128b92140b72977bf3bceeceb9aa5978`;
+  complete evidence is under
+  `/tmp/sc-referee-slice-a-review3-final.xiA6kZQY/`. This is Slice A block 3 of 3.
+  Slice A is PARKED: its memo is no longer amended, no fourth design review occurs,
+  and no Slice-A build is authorized. Slices B/C continue independently under the
+  maintainer's explicit rule. No report, false Disclosure, Finding, accusation, or
+  repository mutation occurred.
+- Review 3 closed all four review-2 blockers. Changed-enumeration fit admitted three
+  union children with zero attempts and one joined terminal each while the over-cap
+  branch admitted none; the recaptured 45,408-resource repository required exactly
+  238,317 minimum attempts. Direct `fork`/`execve` satisfied the three-input/four-
+  startup-row Darwin contract, and every tested environment, scalar, loader, import,
+  path, module-byte, and adjacent source/bytecode mutation refused or identity-
+  drifted. The finite failure matrix covered 88 table cases, 61 legal operation/error
+  pairs, 109 illegal siblings, 30 evidence mutations, fourteen incomplete prefixes,
+  and ten fatal descriptor-uncertainty cases with zero accepted Coverage claims. The
+  literal URL grammar accepted seven and refused 26 boundary cases, retained one
+  identity, refused duplicates, and constructed all eight remote refusal joins plus
+  the no-network mock success.
+- The final blocker is persisted evidence-preimage closure. `FsIdentityV1` and
+  `ChildNameSetV1` are required digest preimages, but neither is present in the fixed
+  seven-artifact bundle. Root entries contain no filesystem metadata from which to
+  reconstruct the root identity, and a failed second enumeration leaves the first
+  successful child-name-set digest without its frozen name-set record. The reviewer
+  substituted a different opaque root identity digest, recomputed attempts, terminal,
+  artifact descriptors, bundle, and inventory digest, and the literal validator
+  accepted; two distinct successful first-enumeration digests were likewise legal
+  before the same later failure. Equality among supplied opaque digests therefore
+  does not prove derivation from descriptor identity or enumerated names. This is a
+  design/provenance failure before build, reporting, or scoring—not a false
+  observation or accusation.
+- Renderer and isolation positives remained exact: six Disclosures; deterministic
+  4,097/100,000 Coverage renders; 100,001 refusal; 26 report/schema mutations refused;
+  five predecessor fixture groups plus eleven fresh hostile values contributed zero
+  accepted slots and zero copied raw segments. Scoped Ruff/format, mypy over 162
+  source files, starter validation, and 21 focused protected/pin/import/frozen tests
+  exited zero. The reviewer's fully scratch-bound second serial run passed all 4,496
+  tests with one `PYTEST_EXIT=0`; its log is
+  `sha256:8f98d821f006728d3116018c52f326a85adb65806465224a94b4425717fb3bbc`.
+  Final footer: `RUNG-HONESTY: REFUSE`; `LAYER-0-RECONCILIATION: REFUSE`;
+  `RENDERER-CLOSURE: ASSENT`; `IDENTITY-AND-CAPACITY: REFUSE`;
+  `NON-ACCUSATION-SURFACE: ASSENT`;
+  `DEVELOPMENT-PRODUCTION-ISOLATION: ASSENT`; `SLICE-A VERDICT: BLOCKED`.
+- Slice B is now active independently: three or four CSV observation verifiers plus exactly
   one question-composition rule, CSV lane only, all on the digest-bound manifest-
-  bijection path. M2 is Slice B. Slice A clearance does not prejudge Slice B.
+  bijection path. M2 is Slice B. Read-only premise measurement on the frozen growth
+  lane enumerated 704 physical CSV files / 834,002 bytes, all strict UTF-8 CSV with
+  unique nonblank headers and uniform row widths. They collapse to 107 unique payload
+  digests and 107 distinct headers; 105 unique payloads have at least one repeated-
+  value column and 95 have a binary column. A separate real-repository scan outside
+  frozen development/qualification lanes found fifteen CSV files, all accepted by the
+  same strict shape check. These counts rank a narrow cardinality/group-size family;
+  they granted no observation or accepted outcome. The fresh small HEAVY memo below
+  now selects the measured M2 columns and binds the hostile refusal siblings for
+  design review 1. Slice A's park does not prejudge Slice B.
+- Fresh Slice-B memo
+  `/Users/alexanderking/Desktop/random_stuff/sc-referee-design-memos/audit-report-ladder-slice-b-csv-observation-question-design-2026-08-17.md`
+  is 475 lines / 22,439 bytes at
+  `sha256:f02fcc128aef7b99de8aa76096dceeee89a6862458ed32026812cc731de80be9`.
+  It defines four facts over one manifest-bound immutable CSV byte object: table
+  shape, the two selected-column cardinalities, comparison-group sizes, and
+  candidate-unit/comparison incidence. Roles are controller-selected integer column
+  ordinals; filenames, headers, and values carry no semantic authority and never
+  reach output. The M2 target is the existing 90-byte
+  `examples/walking-skeleton/data.csv` at
+  `sha256:743bb4994038c4e95126307c9d5f278d9024035955ae46aab7fc0ffb451d9abf`,
+  with exact expected byte-derived facts `(4 rows, 3 columns)`, cardinalities `(2,
+  2)`, group sizes `(2, 2)`, and incidence `(2 repeated, 2 cross-comparison,
+  histogram ((2, 2),))` for selected columns 0/1.
+- Slice-B v1 is independent of parked Slice A and makes no Layer-0 completeness or
+  code-use claim. Each of four verifiers independently replays the Growth-14
+  manifest-to-record/material-byte bijection and a default-deny unquoted ASCII CSV
+  grammar; a separately implemented composition validator repeats both derivations
+  before the sole rule may emit one question. The renderer accepts only context plus
+  the bounded column-selection request, exposes no caller-supplied record/text path,
+  and prints only fixed ASCII, recomputed hashes, and bounded integers. Findings and
+  ConditionalConcerns are always `None.`; Layer-0/code-use limits are permanent
+  Coverage. A fresh maximum-effort design review 1 must execute the complete Section
+  10 truth, grammar/algebra, forgery, renderer, gate, and adversarial-reading matrix.
+  Only five assents plus `SLICE-B VERDICT: CLEAR TO BUILD` authorize fresh builders.
 - Slice C follows independently: H5AD Tier 1 plus the world-1 Scanpy fixture report.
   It inherits the exact pinned anndata/h5py and private CPython 3.11.15 + Scanpy 1.11.5
   sandboxes, the byte-frozen script/H5AD fixture, and every semantics measurement from
