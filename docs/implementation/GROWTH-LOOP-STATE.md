@@ -11,8 +11,12 @@ but exhaustive answer-domain enumeration found 73 legal combinations with confli
 closed/retained dispositions because the memo defined neither mandatory short-circuiting
 nor precedence after an earlier `no` or `unknown`. No Slice-B report or implementation
 ever existed, so this was not a false-observation or false-accusation HALT. Slice C is
-now the active track and inherits the already measured pinned H5AD/Scanpy premises
-without remeasurement. The
+now the active track. Its first small design review blocked prospectively on runtime-
+root/cache closure, exact resource ceilings, and byte-unique renderer framing while
+assenting to manifest/byte binding and world-1 rung honesty. Binding v2 closes only
+those three surfaces and is queued for fresh maximum-effort review 2. No Slice-C
+build, observation, report, or false sentence exists. Slice C inherits the already
+measured pinned H5AD/Scanpy premises without remeasurement. The
 seven `reader-form-unsupported` singleton census cases remain the next Layer-3 growth
 priority by completion yield behind the ladder milestones. The planted-positive
 observation remains `0/47`; checkpoint K ran only by explicit maintainer authorization.)
@@ -719,7 +723,7 @@ observation remains `0/47`; checkpoint K ran only by explicit maintainer authori
   manifest/push spine, rung honesty, zero-false-observation/zero-false-Finding
   discipline, development-only location, and frozen-surface rules remain unchanged.
 
-## Audit-report ladder Slice C design attempt 1 — queued for HEAVY review
+## Audit-report ladder Slice C design attempts 1-2 — attempt 2 queued for HEAVY review
 
 - The fresh, independent reviewed object is
   `audit-report-ladder-slice-c-h5ad-world1-design-2026-08-18.md` in
@@ -783,6 +787,78 @@ observation remains `0/47`; checkpoint K ran only by explicit maintainer authori
   review evidence for Alex, make no fourth variation, and open no Slice D. A
   demonstrated false observation or false report sentence likewise halts the whole
   loop and escalates to Alex.
+
+- Fresh maximum-effort reviewer `01a01493-6157-73e0-86f7-67e8d66ab6da`
+  completed Slice-C design attempt 1 on exact clean local/tracking/live-origin
+  `0ebb65573921f2ec09823b5f08b5dbe37f6ddc8c` and returned
+  `SLICE-C VERDICT: BLOCKED`. Its exact 6,694-byte report is
+  `/tmp/audit-report-ladder-slice-c-review1-last.txt` at
+  `sha256:2cc1eefd97b987725763a350027a05c886bc68694c554d54e05f651890f0086b`;
+  complete evidence is under `/tmp/sc-referee-slice-c-review1.83dA3j/`. This is block
+  1 of at most 3. No observation or report was emitted, so no false-observation,
+  false-sentence, or whole-ladder HALT occurred. No builder is authorized.
+- Review 1 returned `MANIFEST-AND-BYTE-BINDING: ASSENT` and
+  `WORLD1-RUNG-HONESTY: ASSENT`. Thirty-nine manifest/material attacks produced zero
+  accepted compositions; the complete 39-case H5AD family, 51 fact facets, all 1,275
+  pairs and 20,825 triples, 575 observation mutations, 28 source mutations, span
+  forgeries, and all 2,304 composition states retained the reviewed byte/fact/rung
+  boundaries. The concern appeared only in the one legal state, and no Finding,
+  Question, significance claim, or unconditional unit claim was constructible. The
+  reference renderer copied zero hostile-origin bytes into prose. Focused/static/
+  isolation checks and the exact 4,496-test serial suite were green; its 5,055-byte
+  log retained `sha256:c1c79241acf72fc9b0356c4d20c21292449e49e6e0a1bf697c76b83b142e8c2a`.
+- The reviewer refused fixture/premise, executable H5AD truth, renderer closure, and
+  isolation for three exact prospective defects. First, neither runtime manifest
+  contained its root, the owner-writable parent could replace the root, path-based
+  mode restoration followed a scratch directory-to-symlink substitution, and live
+  Scanpy import required an unauthorized Numba cache row. Second, two different
+  48,906/48,941-byte reports both satisfied the underspecified layout because exact
+  Disclosure bytes/count, grade labels, appendix wrapper/order, identity preimages,
+  and terminal-LF policy were absent. Third, request, CPU, memory, and wall limits
+  were builder-selected. Evidence digests are runtime
+  `sha256:4840b1512c0122d88c29d23048fe98f12c57500804ff97e0a20f6419d0b909b4`,
+  seal `sha256:39784d0714ca1ef55f358ecb294169e52386e69d6eb4302f73536b31d0775352`,
+  renderer `sha256:cd5de54929f79310c39712bf6f3fbd7858306fd82b4ffca5692d139ab615a3e4`,
+  and transport
+  `sha256:3b98ae9ab2bec7b07edf4d7ec365fca740d64aa6b173d7b0ca3735b2743fc7ce`.
+- Binding memo Section 13 is the small v2 correction and governs earlier sections.
+  The amended memo is 729 lines / 45,175 bytes at
+  `sha256:e61aebfbbd0dec0b58b8657372bbc4bc2998f521d32a5327901ce8f7ebbbc7f3`.
+  It adds two exact reviewed inputs beside the memo: a 1,064-byte C-local root seal at
+  `sha256:1cad483b8a71ae3fdf60d020f5f23d871ec82a6c5fe268cc220939fd596e594b`
+  and a 1,801-byte no-slot renderer registry at
+  `sha256:627adf5cd01023f1ac96f234a8cf26a3f96ea6501c0e89e202a4df844c75dcb3`.
+  Runtime restoration now authenticates parent/root device/inode/ownership and uses
+  only descriptor-relative `openat`/`fchmod`; the worker `fchdir`s to the held sandbox
+  root and launches the relative interpreter, so visible-root replacement cannot
+  redirect restoration or execution. Mixed/partial mode states refuse.
+- The v2 worker imports only pinned AnnData+h5py, never Scanpy/Numba. This preserves
+  the Scanpy premise because the inherited measurement proves
+  `scanpy.read_h5ad is anndata.read_h5ad` at the exact code/source identities. A new
+  read-only descriptor-launch probe under the exact four-variable environment read
+  the H5AD through `BytesIO`, returned `[4000,3]`, exited zero, emitted zero stderr,
+  and needed no cache row. V2 fixes exact inclusive limits for decoded/request/output
+  bytes, CPU, wall, Darwin peak RSS, descriptors, file writes, and core output; every
+  `limit+1` is a mandatory refusal probe.
+- The renderer is now deliberately single-state: only the exact M3 context/request,
+  five independently replayed observations, discharged pinned premise, and one open
+  unit premise can produce report bytes. Every other state yields a typed private
+  no-report refusal. Exact material/snapshot/request preimages, source spans, five
+  observation IDs and order, appendix schema/framing, prose registry, blank lines,
+  grade prefixes, and one terminal LF are bound. The independently reconstructed
+  machine appendix is 48,094 bytes at
+  `sha256:386b2d8a467c848292580c1aeef6e3636fda7f5a0300375b2e98f3fb11104d48`;
+  the required rendered M3 report is 49,609 bytes at
+  `sha256:a271ed38ad68aa9c7aa1ae7ae16ccdaefd4028f4d9e105faab8b86d6be5f52d8`.
+  Green records or a precomputed candidate do not count; only the built renderer's
+  byte-identical artifact can complete Slice C.
+- Fresh maximum-effort attempt 2 must re-run the entire attempt-1/Section-12 gauntlet,
+  independently reconstruct both new input digests and the report, execute the exact
+  open-A/replace-visible-path-with-B and path-chmod probes, prove cache-free exact-env
+  operation, and exercise every resource boundary. Only all six assents plus
+  unconditional `SLICE-C VERDICT: CLEAR TO BUILD` authorize builders. A block permits
+  only the final small attempt; a third block remains a full ladder halt with all nine
+  slice-review records packaged for Alex, no fourth variation, and no Slice D.
 
 ## Closed this iteration
 
