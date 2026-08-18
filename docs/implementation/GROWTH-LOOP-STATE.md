@@ -8,8 +8,9 @@ rounds shelve one reviewed object. Slice A remains shelved after an unambiguous 
 of three major-bearing rounds. Alex explicitly resurrected Slice B at 0 major-bearing /
 1 minor-only; its scoped Section-14 confirmation review is now `CLEAR TO BUILD`, and
 three fresh component builders plus one fresh integration builder have completed. The
-exact 13-file Slice-B handoff is in the orchestrator worktree awaiting the authoritative
-commit/manifest/full-suite/push spine and then a fresh code review. Slice C's
+exact 13-file Slice-B handoff and process/state record are committed locally at
+`a24cfdfaff84943b326e56c3f6cdba64e7087afc`, awaiting the manifest/full-suite/push
+spine and then a fresh code review. Slice C's
 fresh review of the Section-14 protocol amendment returned `MAJOR REVISIONS`: an
 executed two-world probe showed the private worker lacked the canonical repository
 inventory preimage needed to re-prove package identity, the current pinned runtime had
@@ -293,9 +294,11 @@ Layer-3 priority behind the ladder milestones. The planted-positive observation 
   it replaces only Builder R's synthetic renderer-only placeholder because the final
   snapshot/file/scope identities are derived from retained frozen preimages. The
   orchestrator transferred the exact 13 file bytes into the authoritative worktree and
-  independently reproduced every builder-reported byte size/digest. Nothing is yet
-  committed or pushed; the normal authoritative gate/manifest/push and fresh code review
-  remain mandatory. The orchestrator independently passed the 274-test dedicated gate,
+  independently reproduced every builder-reported byte size/digest. The exact handoff,
+  three process briefs, and this living record were committed locally as
+  `a24cfdfaff84943b326e56c3f6cdba64e7087afc`; nothing is pushed and the manifest,
+  authoritative post-manifest gate, push, and fresh code review remain mandatory. The
+  orchestrator independently passed the 274-test dedicated gate,
   Ruff/format, and strict Slice-B mypy. Its first repository-wide pre-manifest run then
   produced exactly the expected stale-manifest control: 4,495 passed, one
   `test_manifest_builder_inventory_equals_git_tree_listing` failure, seven warnings,
