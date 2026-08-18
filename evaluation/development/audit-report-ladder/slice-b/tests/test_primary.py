@@ -709,6 +709,30 @@ def test_missing_selected_identity_base_record_refuses_full_digest_join() -> Non
     )
 
 
+def test_selected_identity_has_exactly_one_joined_file_association() -> None:
+    fixture = _fixture()
+    selected_identity = _selected_identity_record(fixture.context)
+    unrelated_directory = next(
+        record
+        for record in fixture.context.base_records
+        if record.ref.record_type == "file_record"
+        and json.loads(record.canonical_payload).get("entry_kind") == "directory"
+    )
+    directory_payload = json.loads(unrelated_directory.canonical_payload)
+    directory_payload["asset_identity_ref"] = selected_identity.ref.to_dict()
+    changed = _replace_record(
+        fixture.context,
+        unrelated_directory.ref,
+        directory_payload,
+        refresh_manifest=True,
+    )
+
+    _assert_refusal(
+        _Fixture(changed, fixture.request),
+        SliceBPrimaryRefusal.SELECTED_FILE_IDENTITY_INVALID,
+    )
+
+
 @pytest.mark.parametrize(
     "attack",
     [

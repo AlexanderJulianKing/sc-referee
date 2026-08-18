@@ -358,6 +358,7 @@ def _primary_transaction(
 
     identity_record = _selected_full_digest_identity(
         parsed_records,
+        file_records,
         file_record=file_record,
         file_payload=file_payload,
     )
@@ -501,12 +502,18 @@ def _manifest_record_bijection(
 
 def _selected_full_digest_identity(
     parsed_records: tuple[tuple[FrozenBaseRecord, dict[str, Any]], ...],
+    joined_files: tuple[tuple[FrozenBaseRecord, dict[str, Any]], ...],
     *,
     file_record: FrozenBaseRecord,
     file_payload: dict[str, Any],
 ) -> tuple[FrozenBaseRecord, dict[str, Any]] | None:
     identity_ref = file_payload.get("asset_identity_ref")
     if not _is_record_ref_mapping(identity_ref, "asset_identity"):
+        return None
+    if (
+        sum(payload.get("asset_identity_ref") == identity_ref for _record, payload in joined_files)
+        != 1
+    ):
         return None
     selected_ref = _record_ref_mapping(file_record.ref)
     claims: list[tuple[FrozenBaseRecord, dict[str, Any]]] = []

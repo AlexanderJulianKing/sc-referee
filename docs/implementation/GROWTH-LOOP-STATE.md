@@ -6,11 +6,15 @@ verdict-taxonomy reform is binding: the sole verdicts are `CLEAR TO BUILD`,
 `MAJOR REVISIONS`, and `MINOR REVISIONS`; three major-bearing or five minor-only
 rounds shelve one reviewed object. Slice A remains shelved after an unambiguous recount
 of three major-bearing rounds. Alex explicitly resurrected Slice B at 0 major-bearing /
-1 minor-only; its scoped Section-14 confirmation review is now `CLEAR TO BUILD`, and
-three fresh component builders plus one fresh integration builder have completed. The
-exact 13-file Slice-B handoff and process/state record are committed locally at
-`a24cfdfaff84943b326e56c3f6cdba64e7087afc`, awaiting the manifest/full-suite/push
-spine and then a fresh code review. Slice C's
+1 minor-only; its scoped Section-14 confirmation review is `CLEAR TO BUILD`, the
+13-file M2 implementation is pushed at
+`c35c6c92eab40d0a86caa3d070f0c26c3dded202`, and its fresh code review returned
+`MAJOR REVISIONS`. Two executed development-only authority routes and one conservative
+scope mismatch were addressed by a fresh focused builder in exactly five files;
+the orchestrator reproduced the handoff bytes and the 13-case, 287-test, scoped Ruff/
+format, and strict-mypy gates are green. Manifest closure, authoritative full-suite,
+push, and a fresh code review remain required. Slice B stands at 1 major-bearing /
+1 minor-only and remains active below both shelving thresholds. Slice C's
 fresh review of the Section-14 protocol amendment returned `MAJOR REVISIONS`: an
 executed two-world probe showed the private worker lacked the canonical repository
 inventory preimage needed to re-prove package identity, the current pinned runtime had
@@ -21,8 +25,9 @@ they were created by one completed concurrent Slice-B builder command that invok
 Slice-C interpreter without bytecode suppression and imported `yaml`. The exact command
 and transcript are preserved; no runtime byte has been repaired or removed without
 maintainer authority. No Slice-C build, observation, emitted report, or false sentence
-exists. The seven `reader-form-unsupported` singleton census cases remain the next
-Layer-3 priority behind the ladder milestones. The planted-positive observation remains
+exists. Read-only unmasking disproved the old seven-case reader-form completion estimate:
+a pure reader-form round completes 0/7 census and 0/7 frozen recurrences, so Layer-3
+priorities must be re-ranked before that design begins. The planted-positive observation remains
 `0/47`; checkpoint K ran only by explicit maintainer authorization.)
 
 ## Scoreboard
@@ -295,9 +300,8 @@ Layer-3 priority behind the ladder milestones. The planted-positive observation 
   snapshot/file/scope identities are derived from retained frozen preimages. The
   orchestrator transferred the exact 13 file bytes into the authoritative worktree and
   independently reproduced every builder-reported byte size/digest. The exact handoff,
-  three process briefs, and this living record were committed locally as
-  `a24cfdfaff84943b326e56c3f6cdba64e7087afc`; nothing is pushed and the manifest,
-  authoritative post-manifest gate, push, and fresh code review remain mandatory. The
+  three process briefs, and this living record were committed as
+  `a24cfdfaff84943b326e56c3f6cdba64e7087afc`. The
   orchestrator independently passed the 274-test dedicated gate,
   Ruff/format, and strict Slice-B mypy. Its first repository-wide pre-manifest run then
   produced exactly the expected stale-manifest control: 4,495 passed, one
@@ -305,9 +309,79 @@ Layer-3 priority behind the ladder milestones. The planted-positive observation 
   and captured `PYTEST_EXIT=1` in 794.65 seconds. No code, ladder, protected, or other
   test failed. The 28,683-byte log is
   `sha256:8ec746dad507eeb8d3093b66fb400573df5fddc5c740805943c3f9486e03fddc`.
-  This does not gate a push; it authorizes only the required first commit and manifest
-  regeneration. A second exact full-suite run after the manifest commit must exit zero
-  before push.
+  That control authorized only manifest regeneration. The manifest/state closure was
+  committed as `c35c6c92eab40d0a86caa3d070f0c26c3dded202`; release identity then passed
+  7/7 and the authoritative post-manifest serial suite passed 4,496 tests with seven
+  warnings in 803.97 seconds and captured `PYTEST_EXIT=0`. Its 26,436-byte log is
+  `sha256:50a0978decde5b45f5e6071a54f2f8f37873359a946bec230157d88f91cc8036`.
+  Local HEAD, tracking ref, and live origin were all exact at `c35c6c9` after push.
+- The first fresh maximum-effort code-review transport on `c35c6c9` produced no final
+  report or verdict: a model-service safety filter refused one oversized monolithic
+  local probe and the `codex exec` process exited 1. Its immutable 1,189,025-byte
+  transcript is `sha256:1587439ae71f69d79474f771ddcbb0179ae057f2f28d2d8df5bf99a81e7e8f21`.
+  This is reviewer-harness evidence only, consumes no review round, and supplied no
+  inherited finding to the fresh replacement.
+- The fresh replacement maximum-effort code reviewer independently completed the full
+  inventory on exact clean `c35c6c9` versus `210cde6` and returned formal
+  `SLICE-B CODE VERDICT: MAJOR REVISIONS`. Its 13,781-byte final report is
+  `/tmp/slice-b-code-review-replacement-last.txt` at
+  `sha256:084d8d9b73f31844030fd9e8ac5684bda420848cc831a202290aaaf5af789eff`;
+  its final 3,929-byte evidence ledger is
+  `/tmp/sc-referee-slice-b-code-review.4tgoAZ/evidence-ledger.tsv` at
+  `sha256:778169634a710a3be9693baad37685655287de1716d6cdb3241c54af274ca6df`.
+  The corrected authoritative suite passed 4,496 tests with seven warnings in 784.69
+  seconds and captured `FULL_SERIAL_PYTEST_EXIT=0`. Dedicated Slice B passed 274/274;
+  scoped Ruff/format, strict five-file mypy, project mypy over 162 files, the 79-example
+  starter validator, nine protected/pin/isolation tests, and `git diff --check` all
+  exited zero. Repository-wide Ruff's pre-existing 7,407 lint diagnostics across 628
+  base files and 579 format diagnostics had zero overlap with the 18 changed paths.
+- MAJOR 1: composition accepted a fully rebound manifest containing an unrelated
+  `entry_kind: alien`, a NUL-containing unrelated path, or a whitespace-bearing record
+  reference even though every primary verifier refused the same malformed envelope.
+  The exported composition/component path then emitted a 3,246-byte one-question report
+  at `sha256:01ad7314ef4ffcb36bf9ca4e0bc8f3a301e0c83cedc49a39b67a166a3fe5062e`.
+  The top transaction refused, but the separately exported lower boundary minted
+  unwarranted MaterialQuestion authority. The narrow fix is composition parity with
+  primary's closed entry-kind, C0/DEL-safe UTF-8 path, and whitespace-free record-ref
+  rules plus direct composition/component regressions.
+- MAJOR 2: all four primary verifiers accepted an unrelated file record re-bound to the
+  selected CSV's asset identity and emitted renderer-owned verified observations;
+  composition independently caught the duplicate association and the transaction emitted
+  nothing. Each primary must require exactly one file-record association with the
+  selected identity, with regressions through every verifier, composition, and transaction.
+  The sole target MINOR is conservative: composition wrongly applies the selected
+  path's ASCII/512-byte bounds to unrelated safe normalized UTF-8 material paths. It
+  refused non-ASCII and 513-byte siblings that all primaries accepted, producing no
+  output. Retain the selected request bounds but apply the Section-13.1 path rule to
+  unrelated materials. The reviewer assented answer-tree totality, question rung honesty,
+  renderer closure, and production isolation; it refused observation truth and manifest
+  binding. Slice B now stands at 1 major-bearing / 1 minor-only and remains active.
+- The authorized focused repair used a fresh maximum-effort builder on exact detached
+  base `c35c6c92eab40d0a86caa3d070f0c26c3dded202`, with read-only `.git` and no
+  commit, manifest refresh, push, or state edit. Its immutable 7,707-byte final report
+  is `/tmp/slice-b-code-review1-fix-builder-last.txt` at
+  `sha256:5b2c5028e548f08922bb780bafcce192fb6d6cfe502544cf56a5f77a80485c04`;
+  its complete 3,111,625-byte transcript is
+  `sha256:b0e4a72eb10694b648491b86be339997403f03f4532c8d0e60a953179ec1eb23`.
+  The final 3,425-byte, 36-artifact evidence ledger is
+  `/tmp/sc-referee-slice-b-fix-builder.44JLkY/evidence-ledger.tsv` at
+  `sha256:4244654f67d67cd51dd993851ce9b920148b34da1dcd716b0194787027906cca`.
+  The repair changes exactly five files (422 insertions, 16 deletions): composition
+  independently enforces the closed manifest entry-kind set, C0/DEL-safe normalized
+  UTF-8 relative POSIX paths, and whitespace-free reference components; all four
+  primary verifiers require exactly one joined file record for the selected identity;
+  and unrelated safe normalized UTF-8/long paths no longer inherit the selected
+  request path's ASCII/512-byte restriction. No refusal reason or other surface was
+  added. The builder's exact focused regressions passed 13/13, dedicated Slice B
+  passed 287/287, scoped Ruff/format and strict five-file/project mypy passed, the
+  starter validator passed 79/79, and protected/static/isolation checks found exactly
+  the expected five stale manifest rows. Its exact serial suite produced 4,495 passes,
+  seven warnings, and only the expected stale-manifest release-identity failure in
+  890.41 seconds; no code or other test failed. The orchestrator independently
+  reproduced all five byte sizes/digests, transferred the exact bytes, and passed
+  13/13 focused regressions, 287/287 dedicated tests, scoped Ruff/format over all ten
+  Slice-B files, strict mypy over all five source files, and `git diff --check`.
+  Commit/manifest/full-suite/push/re-review remain on the serial spine.
 - The concurrent fresh maximum-effort Slice-C review ran on the same exact pushed
   `210cde62fa4e0ad08bba5efb60c3b4eed42dc930`. Its immutable 5,776-byte report is
   `/tmp/slice-c-protocol-review-last.txt` at
@@ -2266,14 +2340,18 @@ Layer-3 priority behind the ladder milestones. The planted-positive observation 
    transport or outcome changes, zero completions, zero accusations, byte-identical
    immutable inputs, and a live `0/47` planted-positive retro-certification result.
    Growth-15 is closed and queued Growth-14 pandas design work is released.
-4. NEXT BY MEASURED CENSUS CASE-COMPLETION YIELD: `reader-form-unsupported`, seven
-   singleton census cases (`0008`, `0011`, `0021`, `0024`, `0031`, `0032`, `0037`).
-   This is the highest current wall frequency and would finish seven cases if every
-   exact form proves safe; the round must measure those forms plus frozen recurrence
-   before assigning risk tier or writing an admission design. The audit-report ladder
-   mission now queues this Layer-3 round behind the Layer-1 walking skeleton, report-
-   scoring redesign, and realistic-repository population. No implementation is
-   authorized by this queue entry.
+4. LAYER-3 COMPLETION-YIELD RE-RANK REQUIRED. Read-only current-adapter measurement
+   found the seven `reader-form-unsupported` census cases (`0008`, `0011`, `0021`,
+   `0024`, `0031`, `0032`, `0037`) and seven frozen recurrences, but favorable
+   in-memory replacement of only the acquisition form exposed a second wall in every
+   case. A pure reader-form round therefore completes 0/7 census and 0/7 frozen, not
+   the previously inferred seven census cases. Exact forms, source hashes, secondary
+   walls, and the non-mutation method are recorded in
+   `~/Desktop/random_stuff/sc-referee-design-memos/dependence-reader-form-premise-measurement-2026-08-18.md`,
+   6,231 bytes at
+   `sha256:ae513826646fc5eebbc64498a9a1b7d2a5e67c3c871be08e0fa669ae24f6751f`.
+   Recompute completion-yield ordering after the ladder milestones; no reader-form
+   design, build, or opportunistic widening is authorized by this evidence.
 5. Numeric comparison predicates for counts (float(row[x]) > CONST). The refreshed
    premise has no authentic direct numeric census opportunity; `446cab...` is a
    count-trial declaration no-lock and J2 uses a computed `delta`. Re-measure before

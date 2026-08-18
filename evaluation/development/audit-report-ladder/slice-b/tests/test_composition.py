@@ -10,6 +10,10 @@ from pathlib import Path
 from typing import Any, TypeVar, cast
 
 import pytest
+from sc_referee_evaluation.audit_ladder.slice_b import (
+    CsvQuestionRequestV1,
+    render_slice_b_report_v1,
+)
 from sc_referee_evaluation.audit_ladder.slice_b.composition import (
     SliceBAnswerDispositionV1,
     SliceBAnswerTreeContractError,
@@ -463,12 +467,140 @@ def _mutated_scope_context(
     return _replace_base_record(fixture.context, fixture.snapshot_record, replacement)
 
 
+def _rebind_unrelated_manifest_record(
+    fixture: _Fixture,
+    *,
+    field: str,
+    value: object,
+) -> tuple[ManifestBoundFrozenInspectionContext, SliceBObservationSetV1]:
+    unrelated = next(
+        record
+        for record in fixture.context.base_records
+        if record.ref.record_type == "file_record"
+        and json.loads(record.canonical_payload).get("path") == "support/nested"
+    )
+    payload = json.loads(unrelated.canonical_payload)
+    assert isinstance(payload, dict)
+    payload[field] = value
+    replacement = FrozenBaseRecord.from_record(unrelated.ref, payload)
+    manifest = fixture.context.file_manifest_input
+    assert manifest is not None
+    manifest_lines = [
+        replacement.canonical_payload if line == unrelated.canonical_payload else line
+        for line in manifest.canonical_jsonl_bytes[:-1].split(b"\n")
+    ]
+    manifest_bytes = b"\n".join(manifest_lines) + b"\n"
+    rebound_manifest = FrozenFileManifestInput(
+        file_manifest_ref=manifest.file_manifest_ref,
+        canonical_jsonl_bytes=manifest_bytes,
+        manifest_digest=sha256_digest(manifest_bytes),
+    )
+    context = _forge_dataclass(
+        _replace_base_record(fixture.context, unrelated, replacement),
+        file_manifest_input=rebound_manifest,
+    )
+    scope_digest = _oracle_scope_digest(
+        snapshot_record=fixture.snapshot_record,
+        manifest=rebound_manifest,
+        selected_path=fixture.selected_path,
+        selected_file_record=fixture.selected_file_record,
+        selected_identity_record=fixture.selected_identity_record,
+        content=fixture.content,
+    )
+    return context, _oracle_observations(
+        fixture,
+        context=context,
+        scope_digest=scope_digest,
+    )
+
+
 def _assert_rederivation_mismatch(result: SliceBCompositionResultV1) -> None:
     assert result.disposition is SliceBCompositionDispositionV1.OBSERVATION_REDERIVATION_MISMATCH
     assert result.observations is None
     assert result.question is None
     assert result.primary_refusal is SliceBPrimaryRefusalReasonV1.OBSERVATION_REDERIVATION_MISMATCH
     assert result.question_scope_unresolved is False
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("entry_kind", "alien"),
+        ("entry_kind", "fifo"),
+        ("path", "support/\x00nested"),
+        ("path", "support/\x1fnested"),
+        ("path", "support/\x7fnested"),
+        (
+            "asset_identity_ref",
+            {
+                "record_type": "asset_identity",
+                "record_id": "asset identity with spaces",
+            },
+        ),
+        (
+            "asset_identity_ref",
+            {"record_type": "asset_identity", "record_id": "asset\tidentity"},
+        ),
+    ),
+    ids=(
+        "reviewer-alien-entry-kind",
+        "adjacent-unknown-entry-kind",
+        "reviewer-nul-path",
+        "adjacent-c0-path",
+        "adjacent-del-path",
+        "reviewer-whitespace-identity-reference",
+        "adjacent-tab-identity-reference",
+    ),
+)
+def test_composition_manifest_envelope_parity_refuses_without_report_authority(
+    field: str,
+    value: object,
+) -> None:
+    fixture = _fixture()
+    context, observations = _rebind_unrelated_manifest_record(
+        fixture,
+        field=field,
+        value=value,
+    )
+
+    result = _compose(fixture, observations, context=context)
+    _assert_rederivation_mismatch(result)
+    report = render_slice_b_component_v1(
+        snapshot_digest=context.snapshot_digest,
+        primary_refusal=result.primary_refusal,
+        observations=result.observations,
+        question=result.question,
+        question_scope_unresolved=result.question_scope_unresolved,
+    )
+    assert b"Input CSV bytes: UNVERIFIED\n" in report
+    assert b"## Material questions\nNone.\n" in report
+    assert b"## Observation appendix\nNone.\n" in report
+    assert report.count(b"slice-b-observation-rederivation-mismatch") == 1
+    assert b"MATERIAL QUESTION. Question" not in report
+    assert b"VERIFIED OBSERVATION" not in report
+
+    transaction_report = render_slice_b_report_v1(
+        context,
+        CsvQuestionRequestV1(
+            selected_path=fixture.selected_path,
+            candidate_unit_column_index=0,
+            comparison_column_index=1,
+        ),
+    )
+    assert transaction_report.count(b"slice-b-manifest-bijection-invalid") == 1
+    assert b"MATERIAL QUESTION. Question" not in transaction_report
+    assert b"VERIFIED OBSERVATION" not in transaction_report
+
+
+def test_duplicate_selected_identity_association_refuses_independent_composition() -> None:
+    fixture = _fixture()
+    context, observations = _rebind_unrelated_manifest_record(
+        fixture,
+        field="asset_identity_ref",
+        value=fixture.selected_identity_record.ref.to_dict(),
+    )
+
+    _assert_rederivation_mismatch(_compose(fixture, observations, context=context))
 
 
 def test_composition_emits_exact_renderer_types_and_no_raw_prose() -> None:

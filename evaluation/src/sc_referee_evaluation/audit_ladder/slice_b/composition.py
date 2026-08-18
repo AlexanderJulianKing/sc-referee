@@ -12,11 +12,11 @@ from __future__ import annotations
 
 import hashlib
 import json
-import posixpath
 import re
 from collections import Counter
 from dataclasses import dataclass
 from enum import StrEnum
+from pathlib import PurePosixPath
 from typing import Final, Literal, cast
 
 from sc_referee.controller import (
@@ -42,6 +42,7 @@ _MAX_DATA_ROWS: Final = 100_000
 _MAX_COLUMNS: Final = 64
 _MAX_FIELD_BYTES: Final = 256
 _MAX_SCOPE_PATHS: Final = 8
+_ENTRY_KINDS: Final = frozenset({"regular_file", "directory", "symlink", "special", "unknown"})
 
 _QUESTION_RULE_ID: Final = "csv-repeated-candidate-across-comparison-question-v1"
 _QUESTION_TEMPLATE_ID: Final = "slice-b-csv-question-block-v3"
@@ -446,9 +447,9 @@ def _parse_base_records(
             raise _CompositionReplayError
         if (
             type(record.ref.record_type) is not str
-            or not record.ref.record_type
+            or not _safe_ref_component(record.ref.record_type)
             or type(record.ref.record_id) is not str
-            or not record.ref.record_id
+            or not _safe_ref_component(record.ref.record_id)
             or type(record.canonical_payload) is not bytes
             or type(record.payload_digest) is not str
             or _HASH_PATTERN.fullmatch(record.payload_digest) is None
@@ -548,7 +549,7 @@ def _validate_file_record(
         or identifier != record.ref.record_id
         or not _safe_path(path, ascii_only=False, max_bytes=None)
         or type(payload.get("entry_kind")) is not str
-        or not payload["entry_kind"]
+        or payload["entry_kind"] not in _ENTRY_KINDS
         or type(byte_size) is not int
         or byte_size < 0
         or payload.get("snapshot_ref") != snapshot_ref
@@ -640,7 +641,7 @@ def _derive_review_scope_digest(
         if (
             type(paths) is not list
             or not 1 <= len(paths) <= _MAX_SCOPE_PATHS
-            or any(not _safe_path(path, ascii_only=True, max_bytes=512) for path in paths)
+            or any(not _safe_path(path, ascii_only=False, max_bytes=None) for path in paths)
             or paths != sorted(paths)
             or len(paths) != len(set(paths))
         ):
@@ -661,7 +662,7 @@ def _derive_review_scope_digest(
         for material in material_inputs:
             if (
                 type(material) is not FrozenMaterialInput
-                or not _safe_path(material.path, ascii_only=True, max_bytes=512)
+                or not _safe_path(material.path, ascii_only=False, max_bytes=None)
                 or type(material.content) is not bytes
                 or type(material.content_digest) is not str
                 or _digest_bytes(material.content) != material.content_digest
@@ -1007,23 +1008,34 @@ def _exact_ref_mapping(value: object, record_type: str) -> bool:
         type(value) is dict
         and set(value) == {"record_type", "record_id"}
         and value.get("record_type") == record_type
-        and type(value.get("record_id")) is str
-        and bool(value["record_id"])
+        and _safe_ref_component(value.get("record_id"))
+    )
+
+
+def _safe_ref_component(value: object) -> bool:
+    return (
+        type(value) is str and bool(value) and not any(character.isspace() for character in value)
     )
 
 
 def _safe_path(value: object, *, ascii_only: bool, max_bytes: int | None) -> bool:
-    if type(value) is not str or not value or value == "." or value.startswith("/"):
+    if type(value) is not str or not value:
         return False
     try:
         encoded = value.encode("ascii" if ascii_only else "utf-8")
     except UnicodeEncodeError:
         return False
-    if max_bytes is not None and len(encoded) > max_bytes:
+    if any(ord(character) < 0x20 or ord(character) == 0x7F for character in value) or (
+        max_bytes is not None and len(encoded) > max_bytes
+    ):
         return False
-    if ascii_only and any(byte < 0x20 or byte > 0x7E for byte in encoded):
-        return False
-    return ".." not in value.split("/") and posixpath.normpath(value) == value and "//" not in value
+    candidate = PurePosixPath(value)
+    return (
+        not candidate.is_absolute()
+        and candidate.as_posix() == value
+        and value != "."
+        and all(part not in {"", ".", ".."} for part in candidate.parts)
+    )
 
 
 def _digest_bytes(value: bytes) -> str:
