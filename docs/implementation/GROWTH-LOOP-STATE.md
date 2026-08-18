@@ -6,16 +6,20 @@ withdrew the blocked monolithic ladder and split it into three independent slice
 Slice A exhausted its own three-block design rule and is PARKED with no build or
 fourth amendment. Slice B is the active track: four CSV observation verifiers plus
 exactly one CSV-only question rule on the manifest-bijection path. Fresh maximum-
-effort design review 1 correctly returned `BLOCKED` before build on three prospective
-contract routes: an impossible partition-mutation assertion, unsupported materiality
-and scientific-unit presuppositions in the question, and incomplete/impossible
-renderer closure. No report or implementation existed, so this was not a false-
-observation or false-accusation HALT. Binding Slice-B memo Section 12 now defines
-aggregate-sensitive mutation truth, requires the existing independently verified
-explicit review-scope selection proof, makes all use/unit/dependence clauses
-non-presuppositional, freezes every renderer byte, and replaces substring policing
-with a source-dataflow leakage criterion. Slice B is at design attempt 2 of 3 and
-awaits a fresh full HEAVY review; no build is authorized. Slice C remains next and
+effort design reviews 1 and 2 correctly returned `BLOCKED` before build. Review 2
+assented to manifest/byte binding, CSV-observation truth, renderer closure, and
+development/production isolation, but demonstrated that the existing scope proof has
+one digest with no retained frozen preimage, that the question omits actual scientific-
+conclusion/comparison applicability, and that its proposed `MaterialQuestionV1` is
+neither the public 17-field record nor an explicitly separate closed render IR. No
+report or implementation existed, so neither review was a false-observation or false-
+accusation HALT. Binding Slice-B memo Section 13 is the narrow final-attempt correction:
+it derives scope selection from the controller's digest-bound repository-snapshot
+material-input record rather than an opaque graph digest, asks the missing actual-
+conclusion applicability and dependence-handling branches, and defines a distinct
+closed ephemeral render IR with no public-schema claim. Slice B is at design attempt 3
+of 3 and awaits a fresh maximum-effort HEAVY review; no build is authorized. Slice C
+remains next and
 inherits the already measured pinned H5AD/Scanpy premises without remeasurement. The
 seven `reader-form-unsupported` singleton census cases remain the next Layer-3 growth
 priority by completion yield behind the ladder milestones. The planted-positive
@@ -619,6 +623,59 @@ observation remains `0/47`; checkpoint K ran only by explicit maintainer authori
   gate. The amended memo is 720 lines / 37,129 bytes at
   `sha256:a300c5e2d3c602157a70d9f957e062903bb669a65ebe64ee1b1e9b58e1789cc3`.
   Only five assents plus unconditional `CLEAR TO BUILD` authorize builders.
+- Fresh maximum-effort design reviewer
+  `01a013f4-5080-7ea3-a00b-74cd0af477c6` completed Slice B attempt 2 on exact clean
+  local/tracking/live-origin `663368faca2897219251f96151cd0e5e3b70f80c` and
+  returned `SLICE-B VERDICT: BLOCKED`. Its complete 11,585-byte report is
+  `/tmp/audit-report-ladder-slice-b-review2-last.txt` at
+  `sha256:9902d604b9c6eb9fdfdef2fd0ecc591b11364eb2656fb0bd1951cd4ee9aa07c9`.
+  An initial service safety-filter interruption while the reviewer emitted a very
+  large scratch patch transcript was infrastructure-only; the same independent
+  reviewer resumed from its durable no-hardlink clone, completed the entire inventory,
+  and issued one final verdict. It checked 30,265 tracked regular-file pairs with zero
+  shared inodes and left both governed trees clean.
+- Review 2 assented to manifest/byte binding, CSV-observation truth, renderer closure,
+  and development/production isolation, refusing only question-rung honesty. Its
+  successful independent matrix covered 50 manifest hostiles plus six controls, 36
+  grammar boundaries, 66,429 exhaustive and 5,000 randomized tables, 1,008 one-cell
+  mutations, 159 observation mutations, all fourteen mixed-record combinations and 24
+  record orders, 23 scope attacks, twelve primary refusal renders, 100 repeats, and
+  fifteen leakage collisions. The matrix summary is 689 bytes at
+  `sha256:abbcfe444ba86827779d1da75252072074cfb750f00d6686337deae20a9797ec`.
+  Focused 48-test, scoped Ruff/format, `mypy src` (162 files), starter, pin,
+  protected-surface, zero-v2-production-import, and isolation gates passed. The exact
+  serial suite passed all 4,496 tests with one `PYTEST_EXIT=0`; its 5,055-byte log is
+  `sha256:c1c79241acf72fc9b0356c4d20c21292449e49e6e0a1bf697c76b83b142e8c2`.
+- Three prospective defects consumed attempt 2. First, the existing valid
+  `selected-material-input-for-review` proof has three evidence refs but four payload
+  digests: the fourth scope-selection projection digest has no matching retained
+  `FrozenBaseRecord`. Literal validation therefore rejects the valid proof, while an
+  opaque-digest relaxation accepted a constructor-valid substituted digest and emitted
+  the scratch-model question
+  (`scope-proof-semantic-probes.json`, 6,350 bytes,
+  `sha256:95cf67480c8d808c467d2e628002464a97492ca24f04dfd5b6ef430849629f87`).
+  Second, an authentic selected/used/unit world in which the scientific conclusion did
+  not rely on a comparison organized by C2 still emitted the same `MATERIAL QUESTION`,
+  so the grade exceeded the inherited materiality definition
+  (`sha256:c0ae981a13649589ad821f34c4ea608d9e9f653da5006bf53b2f2e98a46fd7f2`).
+  Third, the six-field proposed `MaterialQuestionV1` neither satisfies the existing
+  17-required-field public schema nor declares a separate internal-only IR
+  (`sha256:f731b71ac2d8d334ccfe9a61dc73fb0b6ca237c3ff1c65c65d4246d1f9afc6dd`).
+  These occurred only in a prospective scratch reference model. No Slice-B build,
+  emitted report, scored sentence, false observation, concern, Finding, or accusation
+  exists, so the zero-FA HALT rule did not fire.
+- Binding memo Section 13 is the final v3 correction. It abandons the graph proof for
+  this slice and independently derives one review-selection evidence digest from the
+  controller-authored repository-snapshot canonical bytes, its exact material-input
+  path/identity lists, the manifest digest, and the selected frozen file/identity/content
+  records—all retained preimages. It extends the one conditional question through
+  actual scientific-conclusion/comparison applicability and dependence handling, and
+  defines `SliceBQuestionRenderIRV1` as a closed ephemeral renderer value that is never
+  a public `material_question` record. Fresh design review 3 is the final attempt and
+  must re-execute the complete review-2 inventory plus all three exact blockers. A
+  third block parks Slice B alone with no fourth amendment or build; a clear verdict
+  is the only path to builders. The final-amended memo is 943 lines / 50,877 bytes at
+  `sha256:0701c7b1103991f4749e32fae41b127ac7844ae30c35593203d4803809faf849`.
 - Slice C follows independently: H5AD Tier 1 plus the world-1 Scanpy fixture report.
   It inherits the exact pinned anndata/h5py and private CPython 3.11.15 + Scanpy 1.11.5
   sandboxes, the byte-frozen script/H5AD fixture, and every semantics measurement from
