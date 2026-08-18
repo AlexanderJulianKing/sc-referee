@@ -432,6 +432,20 @@ occurred).
   `sha256:13a62c8c37f4083605a5413bb20fbe64d99348cfbf07390d11b72767b8a0fbca`;
   the adjacent registry remains byte-identical. Fresh maximum-effort review 2 must
   re-execute every blocker and the full standing gauntlet. No builder is authorized.
+- The first post-amendment serial gate was correctly rejected: invoked without an
+  explicit repository `PYTHONPATH`, it reached 100% but failed the cache-lease
+  subprocess test because this pre-existing venv's editable `.pth` files carry the
+  macOS hidden flag and CPython 3.11 deliberately skips hidden `.pth` files. Log:
+  `/tmp/sc-referee-slice-a-review1-v2-full.log`,
+  `sha256:96f27fa054d31d137b1f3747e642bd42fad7279b164fcd816101625d095572a8`,
+  `PYTEST_EXIT=1`. No venv flag or source file was changed. The exact failed test then
+  passed with `PYTHONPATH=.:src:evaluation/src` at
+  `sha256:2b41af144376b40b2e6d37ceb2adfa4f8dcadfc4e8ea3d99d59b35db720ba58c`.
+  The complete unfiltered serial rerun under that explicit import environment emitted
+  exactly 4,496 progress dots, no failure token, and `PYTEST_EXIT=0`; its 5,055-byte
+  log is `/tmp/sc-referee-slice-a-review1-v2-full-explicit.log` at
+  `sha256:c1c79241acf72fc9b0356c4d20c21292449e49e6e0a1bf697c76b83b142e8c2a`.
+  This is a gate-environment correction, not a test waiver or parallel run.
 - Slice B follows independently: three or four CSV observation verifiers plus exactly
   one question-composition rule, CSV lane only, all on the digest-bound manifest-
   bijection path. M2 is Slice B. Slice A clearance does not prejudge Slice B.
