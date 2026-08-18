@@ -710,19 +710,21 @@ observation remains `0/47`; checkpoint K ran only by explicit maintainer authori
   sandboxes, the byte-frozen script/H5AD fixture, and every semantics measurement from
   full-memo reviews 2-3. Already measured facts are not remeasured. M3 is the world-1
   report. Slice C clearance does not prejudge H5AD Tier 2, which remains unauthorized.
-- Each slice has its own memo, fresh HEAVY design/code reviewers, executed probes, and
-  independent three-block parking rule. A slice that blocks three times parks alone;
-  the other two continue. All build/review role separation, distinct-worktree
-  parallelism, `.git` protection, serial integration/full-suite/manifest/push spine,
-  rung honesty, zero-false-observation/zero-false-Finding discipline, development-only
-  location, and frozen-surface rules remain unchanged.
+- Each slice has its own memo, fresh HEAVY design/code reviewers, and executed probes.
+  The independent three-block parking rule closed A and B. The 2026-08-18 conditional
+  Slice-C authorization supersedes C's earlier park-alone disposition: a third C block
+  halts the full ladder, packages all nine slice-review records for Alex, permits no
+  fourth C review, and opens no Slice D. All build/review role separation,
+  distinct-worktree parallelism, `.git` protection, serial integration/full-suite/
+  manifest/push spine, rung honesty, zero-false-observation/zero-false-Finding
+  discipline, development-only location, and frozen-surface rules remain unchanged.
 
 ## Audit-report ladder Slice C design attempt 1 — queued for HEAVY review
 
 - The fresh, independent reviewed object is
   `audit-report-ladder-slice-c-h5ad-world1-design-2026-08-18.md` in
-  `~/Desktop/random_stuff/sc-referee-design-memos/`, 497 lines and 30,400 bytes at
-  `sha256:80542e38cf67e62682f12d02d078ef403d2cbc712e57db624aefe3659bf32fe3`.
+  `~/Desktop/random_stuff/sc-referee-design-memos/`, 512 lines and 31,344 bytes at
+  `sha256:f2eab39b3fcb1455ce74a8d0ff3ea3c8dd3190a67c9c8ba3e90c01df505ddef5`.
   It is Slice C attempt 1 of at most three. No build is authorized before a fresh
   maximum-effort reviewer returns all six requested assents and
   `SLICE-C VERDICT: CLEAR TO BUILD`.
@@ -765,12 +767,22 @@ observation remains `0/47`; checkpoint K ran only by explicit maintainer authori
   interpretation on `animal_id` being the independent experimental unit. It asserts
   no premise truth, invalid result, significance claim, intent, misconduct, or
   Finding.
+- CONDITIONAL MAINTAINER AUTHORIZATION (Fable escalation channel, superseding the
+  earlier queued steers, 2026-08-18): the acceptance test is the rendered world-1
+  report itself—its fixed header, one ConditionalConcern explicitly stating pinned-
+  Scanpy semantics discharged and the unit declaration open, Disclosures, Coverage,
+  and machine-readable appendix. Intermediate records, fixture bytes, worker output,
+  or green tests alone do not complete C. The renderer retains zero data-valued prose
+  slots. The separate review-protocol meta-question is being packaged by the
+  maintainer and is not decided or preempted by this round.
 - Mandatory review surfaces are `FIXTURE-AND-PREMISE`,
   `MANIFEST-AND-BYTE-BINDING`, `H5AD-OBSERVATION-TRUTH`,
   `WORLD1-RUNG-HONESTY`, `RENDERER-CLOSURE`, and
   `DEVELOPMENT-PRODUCTION-ISOLATION`. A block permits one small binding amendment and
-  fresh review; a third Slice-C block parks C alone. A demonstrated false observation
-  or false report sentence still halts the whole loop and escalates to Alex.
+  fresh review. A third Slice-C block is a full ladder HALT: package the complete nine-
+  review evidence for Alex, make no fourth variation, and open no Slice D. A
+  demonstrated false observation or false report sentence likewise halts the whole
+  loop and escalates to Alex.
 
 ## Closed this iteration
 
