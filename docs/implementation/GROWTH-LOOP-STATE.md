@@ -717,6 +717,61 @@ observation remains `0/47`; checkpoint K ran only by explicit maintainer authori
   rung honesty, zero-false-observation/zero-false-Finding discipline, development-only
   location, and frozen-surface rules remain unchanged.
 
+## Audit-report ladder Slice C design attempt 1 — queued for HEAVY review
+
+- The fresh, independent reviewed object is
+  `audit-report-ladder-slice-c-h5ad-world1-design-2026-08-18.md` in
+  `~/Desktop/random_stuff/sc-referee-design-memos/`, 497 lines and 30,400 bytes at
+  `sha256:80542e38cf67e62682f12d02d078ef403d2cbc712e57db624aefe3659bf32fe3`.
+  It is Slice C attempt 1 of at most three. No build is authorized before a fresh
+  maximum-effort reviewer returns all six requested assents and
+  `SLICE-C VERDICT: CLEAR TO BUILD`.
+- Scope is deliberately C-only: four pinned-reader H5AD observations, one exact
+  world-1 source-flow observation, one fixed-template ConditionalConcern whose sole
+  missing premise is the authenticated independent-unit declaration, fixed
+  Disclosures/Coverage, and a canonical machine observation appendix. It does not
+  import or repair the withdrawn monolith's Layer-0, public report/schema,
+  suppression, root/remote/capacity, or generic authority surfaces. Slices A/B remain
+  parked and are not dependencies.
+- The memo binds the inherited source at 1,015 bytes /
+  `sha256:c5f3bb51457ace3e4b979b69739f212b9d0c7a12baba62033859d31f5b2ade18`,
+  H5AD at 330,008 bytes /
+  `sha256:f94ddd1bc2c7d1d690d5c054caf924a2c531a0e7d191da9ca7a7b786fee0e887`,
+  the exact
+  `scanpy-1.11.5-cpython-3.11.15-macos-arm64-v1` premise at
+  `sha256:e1acbb22d48f974bcb75d7e2547cbc87910a63b0e63b3ce77687e714c006dc09`,
+  and every previously executed semantic measurement. No established fact is
+  remeasured. The fixture builder may materialize the already specified H5AD bytes
+  only if generation reproduces the inherited exact size/digest.
+- The known full-memo review-3 directory-mode discrepancy is explicit rather than
+  assumed away. Until a post-clearance builder verifies every non-directory row and
+  restores only the 1,117 venv plus 312 CPython directory modes to their already
+  authorized manifest literals, the premise is false and H5AD observations receive
+  runtime-identity Coverage. Any byte, symlink, row-set, RECORD, wheel, native,
+  interpreter, or regular-file-mode mismatch forbids restoration and report creation.
+  Parent and every pathless BytesIO worker then repeat full identity at use time.
+- Every verifier independently reparses the Growth-14 manifest bijection and selects
+  immutable digest-bound bytes. The four H5AD verifiers use fresh isolated workers;
+  composition uses another invocation and re-derives all facts. The exact importer-
+  derived adjacent-candidate rule, prior inventory-omission route, `.so` route,
+  package-directory siblings, and alternate 2/2 Scanpy counterexample are permanent
+  probes. Every observation is literally `finding_eligible:false`; Tier 2 remains
+  unauthorized.
+- The renderer is a private Slice-C component renderer, not a public or monolithic
+  report schema. It has no data-valued prose slot: every sentence is an immutable
+  template selected only by closed enums, while verified repository values may appear
+  only as canonical JSON scalars in the labeled machine appendix. The one concern
+  states the exact discharged Scanpy/AnnData/h5py/SciPy premise and conditions its
+  interpretation on `animal_id` being the independent experimental unit. It asserts
+  no premise truth, invalid result, significance claim, intent, misconduct, or
+  Finding.
+- Mandatory review surfaces are `FIXTURE-AND-PREMISE`,
+  `MANIFEST-AND-BYTE-BINDING`, `H5AD-OBSERVATION-TRUTH`,
+  `WORLD1-RUNG-HONESTY`, `RENDERER-CLOSURE`, and
+  `DEVELOPMENT-PRODUCTION-ISOLATION`. A block permits one small binding amendment and
+  fresh review; a third Slice-C block parks C alone. A demonstrated false observation
+  or false report sentence still halts the whole loop and escalates to Alex.
+
 ## Closed this iteration
 
 - Growth-9 G9-L + amended G9-H shipped on `dev/dependence-growth` through
