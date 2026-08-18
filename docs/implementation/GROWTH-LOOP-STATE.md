@@ -22,9 +22,13 @@ walking skeleton. Checkpoint K is closed and pushed with zero accusations. Layer
 HEAVY review 2 blocked at design on a hidden Scanpy-semantics premise and the binding
 Section-14 closure defects. Alex selected the real pinned-Scanpy option; a completely
 private, read-only CPython 3.11.15 + Scanpy 1.11.5 sandbox and exhaustive schema/
-renderer v3 amendment are now measured for the third and final permitted HEAVY design
-review. No build is authorized; a review-3 block requires a hard HALT and direct Alex
-escalation, with no fourth design variation. No false-accusation HALT has occurred).
+renderer v3 amendment reached the third and final permitted monolithic HEAVY design
+review. Review 3 returned `BLOCKED` on five demonstrated contract failures and the
+required HALT/escalation occurred without a build or post-HALT repository mutation.
+Alex resolved that HALT by withdrawing the monolithic memo and slicing the ladder
+into three independently reviewed objects. Slice A (Layer-0 inventory plus a closed
+Disclosure/Coverage-only renderer) is now the sole active design track; Slices B and
+C follow as separate milestones. No false-accusation HALT has occurred).
 
 ## Scoreboard
 
@@ -91,23 +95,27 @@ escalation, with no fourth design variation. No false-accusation HALT has occurr
   argument, a `ConditionalConcern`; repository prose may be quoted but never mints
   authority. The subsequent harness HEAVY round scores every report sentence for
   truth and grade appropriateness under extended sealed-key and hostile review.
-- Priority after the now-closed Growth-14 cycle is fixed: (1) HEAVY Layer-1 walking
-  skeleton; (2) HEAVY report-scoring/harness redesign; (3) add a realistic-repository
-  blind population including scanpy/H5AD/multi-file workflows with planted flaws;
-  (4) resume Layer-3 grammar growth as background cadence, with the completion-yield
-  ordering and automatic batch-K trigger unchanged. The maintainer-authored seed is
-  `~/Desktop/random_stuff/sc-referee-design-memos/audit-report-ladder-design-2026-08-17.md`;
-  it is a draft reviewed object and authorizes no build before the normal HEAVY
-  design gauntlet clears it.
-- H5AD Tier 1 is authorized inside the Layer-1 walking skeleton. A specific pinned
+- Priority after the now-closed Growth-14 cycle is fixed by the 2026-08-17 slice
+  decision: (1) Slice A / M1, a real-repository report containing only Disclosures and
+  Coverage; (2) Slice B / M2, three or four CSV observation verifiers plus exactly one
+  CSV-only question rule; (3) Slice C / M3, H5AD Tier 1 plus the frozen world-1 Scanpy
+  fixture report; (4) HEAVY report-scoring/harness redesign; (5) a realistic-repository
+  blind population including scanpy/H5AD/multi-file workflows with planted flaws; and
+  (6) Layer-3 grammar growth as background cadence, with completion-yield ordering
+  unchanged. The former seed
+  `~/Desktop/random_stuff/sc-referee-design-memos/audit-report-ladder-design-2026-08-17.md`
+  is withdrawn as one reviewed object and is immutable reference material only. It is
+  never amended again and can authorize no build. Each fresh slice memo inherits only
+  named reviewed decisions by reference and receives its own HEAVY gauntlet.
+- H5AD Tier 1 is authorized inside Slice C after Slices A/B. A specific pinned
   `anndata` + `h5py` development runtime may be added and declared as an immutable
   premise, following the pandas pin and final Growth-14 package-identity discipline.
   Digest-bound deterministic readers may verify exactly four observation types:
   `obs-column-cardinality`, `obs-group-sizes`, `matrix-shape`, and
   `obs-column-quoted-values`. They read the actual H5AD bytes through the pinned
   library and must survive stale-read, manifest omission, adjacent import candidate,
-  encoding/value, sparse/degenerate, and proposal-forgery probes. The walking-
-  skeleton acceptance target is the maintainer's world-1 reachable-data scanpy
+  encoding/value, sparse/degenerate, and proposal-forgery probes. Slice C's acceptance
+  target is the maintainer's world-1 reachable-data scanpy
   scenario: verified data observations feed a single-unit-premise
   `ConditionalConcern`. Tier 2, Layer-3 proof-grade H5AD with kernel re-derivation from
   HDF5 bytes, is deferred and not authorized until ladder milestones 1-2 finish and
@@ -117,11 +125,13 @@ escalation, with no fourth design variation. No false-accusation HALT has occurr
   script remains byte-identical and observations/concerns dependent on reader semantics
   must carry the immutable Scanpy premise identity in provenance. The fixture concern
   states both the discharged pinned-Scanpy semantics premise and the sole missing unit
-  declaration premise. Memo Section 14's narrow corrections are binding. Design review
-  3 is the third attempt and must use a fresh maximum-effort reviewer; `BLOCKED` means
-  HALT and escalate directly to Alex, with no fourth amendment/review. Report scoring
-  and H5AD Tier 2 remain later and separately blocked.
-- Starting with the walking-skeleton build, independent components may use up to
+  declaration premise. Memo Section 14's narrow corrections remain historical reviewed
+  input. The monolithic review-3 block has now been resolved by slicing, not by a
+  fourth amendment. Slice C inherits the exact CPython 3.11.15, Scanpy 1.11.5,
+  anndata/h5py sandboxes, frozen fixture bytes, and all already executed semantic
+  measurements; it does not remeasure established facts. Report scoring and H5AD Tier
+  2 remain later and separately blocked.
+- Starting with the first cleared slice build, independent components may use up to
   three concurrent fresh sessions. Every builder owns a distinct git worktree with
   the existing `.git` protection; no two sessions share a worktree. Concurrent fresh
   reviewers may attack disjoint verifier/wording surfaces. Components merge only
@@ -258,7 +268,7 @@ escalation, with no fourth design variation. No false-accusation HALT has occurr
   outside the production wheel namespace. The report-scoring harness and H5AD Tier 2
   remain blocked and unauthorized.
 
-## Audit-report ladder HEAVY design review 3 — final attempt scheduled
+## Audit-report ladder HEAVY design review 3 — BLOCKED; monolith withdrawn
 
 - Alex selected the pinned-Scanpy option rather than replacing or simplifying the
   maintainer's real Scanpy source. Memo Section 15 records the resulting v3 contract and
@@ -304,13 +314,83 @@ escalation, with no fourth design variation. No false-accusation HALT has occurr
   Implementation remains restricted to
   `evaluation/src/sc_referee_evaluation/audit_ladder/` and development fixtures/tests;
   every production/protected surface remains frozen.
-- A fresh maximum-effort review 3 must execute all prior counterexamples plus the final
-  runtime, BytesIO, raw-path, renderer, H5AD, authority, and isolation matrices and
-  explicitly assent or refuse all seven memo priorities. This is the final design
-  attempt authorized under the orchestrator brief. `CLEAR TO BUILD` alone gates the
-  three-worktree skeleton build. `BLOCKED` hard-stops the entire loop and requires
-  direct Alex escalation; no fourth variation is allowed. No false observation or
-  scored/corpus false accusation has occurred in this design preparation.
+- Fresh maximum-effort reviewer `01a01250-def8-76e1-a2cd-3773901b08c1` executed the
+  final runtime, BytesIO/no-path, raw-path/Layer-0, H5AD-family, Python-flow, renderer,
+  identity, and isolation probes. Its initial process was interrupted by an automated
+  safety filter before the final message; the exact same reviewer session resumed only
+  to render its already-supported report, ran no additional command, and returned
+  `LAYER-1 VERDICT: BLOCKED`. It assented only to development/production isolation and
+  refused rung honesty, Layer-0 reconciliation, Layer-1 closure, H5AD Tier 1, Layer-2
+  wording, and authority/Finding isolation.
+- Five independent contract failures blocked the monolith: (1) current sandbox
+  directory modes differed from the immutable runtime/CPython manifests (1,117 and 312
+  row substitutions respectively); (2) Layer-0 could not encode failed lexical roots
+  or map remote URLs into attempt/terminal records, lacked a remote-retrieval
+  Disclosure, and allowed 1,000,000 entries while report Coverage capped at 4,096;
+  (3) one-terminal-per-entry could not represent both verified bytes and a later H5AD
+  semantic refusal; (4) sentence/proposition and unit-answer/receipt identity formulas
+  formed unresolved hash cycles while suppression uniqueness contradicted same-
+  proposition dominance; and (5) renderer slots admitted ordinary malicious ASCII
+  bytes that the literal hostile fixtures simultaneously required to contribute zero
+  attacker-authored bytes, with facet, precedence, duplicate/order, and layout closure
+  also incomplete. These were design-contract failures, not scored accusations.
+- The same review positively demonstrated that the pinned-reader identity closes the
+  alternate 2/2-reader counterexample, the one-private-BytesIO protocol closes the
+  pathname A/B/A route, 37 H5AD siblings refuse conservatively, runtime/package-copy
+  mutations fail closed, and the world-1 Python prototype re-derives seven closed-flow
+  facts. No production Finding, scored accusation, frozen/corpus accusation, or build
+  occurred. The orchestrator halted immediately and escalated to Alex; no fourth
+  monolithic design variation or review is permitted.
+
+## Maintainer resolution — three independently reviewed ladder slices
+
+- MAINTAINER DECISION (Fable escalation channel, Alex direct wording `slice it`,
+  2026-08-17): the full-ladder memo is withdrawn as a single reviewed object. Its
+  digest-frozen contents remain reference material and are never amended again. The
+  prior third-attempt limit was satisfied by the block above; no fourth full-design
+  review occurs. This decision lifts the HALT.
+- Slice A is first and is the only active track: deterministic Layer-0 repository
+  inventory plus a closed-template renderer whose reports contain only Disclosures and
+  Coverage. It has no observations-derived questions, no ConditionalConcerns, no
+  MaterialQuestions, no Findings, and no sentence capable of accusation. Its fresh,
+  small memo is
+  `~/Desktop/random_stuff/sc-referee-design-memos/audit-report-ladder-slice-a-layer0-renderer-design-2026-08-17.md`.
+  Slice A must resolve on this reduced surface the applicable review-3 failures in
+  renderer slots, schema/coverage bounds, premise identity, root/remote/capacity
+  algebra, record identities, suppression-free ordering, and deterministic layout.
+  M1 is a reviewed Slice-A report over a real repository.
+- Slice-A premise measurement on base `bd2b5df` traversed the real repository with
+  five explicit top-level exclusions and found 45,407 total records, 11,303
+  directories, 34,099 regular files / 750,110,334 bytes, no symlinks or special
+  entries, no stat/read failures, no unstable reads, and no unsafe display paths. The
+  measured inventory digest was
+  `sha256:23986628c299310a5cb68367bbfbf307db4e78c780da7845da7d38b3425d41ad`.
+  The controller was CPython 3.11.15 at executable digest
+  `sha256:68100c5188b837802c7ae52398389d121b1c063ed244dec11649775b539c3a30`;
+  these are disclosed provenance, not an external-library semantics premise.
+- Slice-A memo v1 is 31,699 bytes at
+  `sha256:bb7e778f15d5890fb5dca4ccd1f748a934c438d753e2b1d1f2f17973d275308f`.
+  Its adjacent exact seven-template registry is 2,697 bytes at
+  `sha256:b3d391a827417ebc6a4665e022e55c0dd989ef968e83fe22c5ad26c76ef1b5ca`
+  with canonical object digest
+  `sha256:952ab71783ebc20b6614ce0806498e915c82faa2e61054b3dc54c91f3010285b`.
+  The memo defines no free-string renderer, path/URL slot, proposition, suppression,
+  scientific grade, external reader, or production seam. It is awaiting fresh
+  maximum-effort Slice-A design review 1; no builder is authorized.
+- Slice B follows independently: three or four CSV observation verifiers plus exactly
+  one question-composition rule, CSV lane only, all on the digest-bound manifest-
+  bijection path. M2 is Slice B. Slice A clearance does not prejudge Slice B.
+- Slice C follows independently: H5AD Tier 1 plus the world-1 Scanpy fixture report.
+  It inherits the exact pinned anndata/h5py and private CPython 3.11.15 + Scanpy 1.11.5
+  sandboxes, the byte-frozen script/H5AD fixture, and every semantics measurement from
+  full-memo reviews 2-3. Already measured facts are not remeasured. M3 is the world-1
+  report. Slice C clearance does not prejudge H5AD Tier 2, which remains unauthorized.
+- Each slice has its own memo, fresh HEAVY design/code reviewers, executed probes, and
+  independent three-block parking rule. A slice that blocks three times parks alone;
+  the other two continue. All build/review role separation, distinct-worktree
+  parallelism, `.git` protection, serial integration/full-suite/manifest/push spine,
+  rung honesty, zero-false-observation/zero-false-Finding discipline, development-only
+  location, and frozen-surface rules remain unchanged.
 
 ## Closed this iteration
 
