@@ -12,8 +12,10 @@ of three major-bearing rounds. Alex explicitly resurrected Slice B at 0 major-be
 `MAJOR REVISIONS`. Two executed development-only authority routes and one conservative
 scope mismatch were addressed by a fresh focused builder in exactly five files;
 the orchestrator reproduced the handoff bytes and the 13-case, 287-test, scoped Ruff/
-format, and strict-mypy gates are green. Manifest closure, authoritative full-suite,
-push, and a fresh code review remain required. Slice B stands at 1 major-bearing /
+format, and strict-mypy gates are green. The exact repair is committed as
+`be0154314107f65eb567faf33e79b7d844b1cb75`; release identity and the corrected
+4,496-test authoritative full suite are green. Final state/manifest closure, push,
+and a fresh code review remain required. Slice B stands at 1 major-bearing /
 1 minor-only and remains active below both shelving thresholds. Slice C's
 fresh review of the Section-14 protocol amendment returned `MAJOR REVISIONS`: an
 executed two-world probe showed the private worker lacked the canonical repository
@@ -381,7 +383,20 @@ priorities must be re-ranked before that design begins. The planted-positive obs
   reproduced all five byte sizes/digests, transferred the exact bytes, and passed
   13/13 focused regressions, 287/287 dedicated tests, scoped Ruff/format over all ten
   Slice-B files, strict mypy over all five source files, and `git diff --check`.
-  Commit/manifest/full-suite/push/re-review remain on the serial spine.
+  The exact functional repair plus STATE was committed as
+  `be0154314107f65eb567faf33e79b7d844b1cb75`. Canonical manifest regeneration
+  retained 30,277 rows and changed exactly those six intended rows; release identity
+  passed 4/4. The first full-suite launch used the general development venv and
+  stopped during collection with four missing-`cryptography` import errors; no test
+  ran, and the 7,133-byte harness-control log is
+  `sha256:20a03407d021dc46956a84f4f7eace38c3068bfd605da4b289b70ddab9013a08`.
+  The corrected qualified CPython 3.11.15 environment then passed the exact unfiltered
+  serial suite: 4,496 passed, seven existing warnings, exit 0 in 1,066.66 seconds.
+  Its 26,403-byte authoritative log is
+  `/tmp/sc-referee-slice-b-fix-authoritative-full-qualified.log` at
+  `sha256:cbc31f6de9e71d233487d9d6190536b3433ee94e38df5c1e15109c8e2847c4ba`.
+  Final STATE/manifest closure, push, and fresh maximum-effort code review remain on
+  the serial spine.
 - The concurrent fresh maximum-effort Slice-C review ran on the same exact pushed
   `210cde62fa4e0ad08bba5efb60c3b4eed42dc930`. Its immutable 5,776-byte report is
   `/tmp/slice-c-protocol-review-last.txt` at
