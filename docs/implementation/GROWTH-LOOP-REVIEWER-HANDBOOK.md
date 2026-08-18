@@ -71,11 +71,29 @@ between builds and measurement.
 
 ## Report format
 
-Findings most-severe-first (BLOCKER/MAJOR/MINOR) with DEMONSTRATED probe output for
-every claim you can run; per-priority PASS/FAIL; explicit answers to the memo's review
-questions; verdict line: CLEAR TO BUILD / CLEAR WITH FIXES / BLOCKED (designs) or
-CLEAR FOR BATCHES / CLEAR WITH FIXES / BLOCKED (code). Narrowest-fix prescriptions.
+Findings most-severe-first, each explicitly classified MAJOR or MINOR, with
+DEMONSTRATED probe output for every claim you can run; per-priority PASS/FAIL;
+explicit answers to the memo's review questions; narrowest-fix prescriptions.
 Distinguish observed from inferred. Your probes become the round's regression fixtures.
+
+The one formal verdict line, for both design and code reviews, is exactly one of:
+CLEAR TO BUILD / MAJOR REVISIONS / MINOR REVISIONS. Specialized next-action assent
+lines may remain, but they are not another verdict. MAJOR means either (a) an executed
+probe demonstrates a falsehood route — any report sentence can become untrue or any
+unwarranted authority can be minted — or (b) any defect exists on an accusation-capable
+surface. MINOR means everything else, including wording ambiguity, robustness
+hardening, spec-precedence gaps, and process purity.
+
+A round containing at least one MAJOR finding is major-bearing and increments only the
+reviewed object's major-bearing counter; three major-bearing rounds shelve that object.
+A round with findings but no MAJOR finding is minor-only and increments only its
+minor-only counter; five minor-only rounds shelve that object. Repair minor findings by
+scoped amendments; they do not increment the major counter, and a mixed round does not
+increment the minor-only counter. CLEAR TO BUILD increments neither counter.
+Historical binary footers remain immutable evidence and are recounted only where
+classification is retroactively unambiguous. This is accounting only: zero false
+accusation/observation/sentence discipline, executed probes, fresh contexts, and all
+gates remain unchanged.
 
 ## Practicalities
 

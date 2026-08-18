@@ -1,25 +1,25 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
 Updated: 2026-08-18 (Growth-12/13/14/15 and checkpoint K are closed with zero scored
-false accusations. The primary mission is trustworthy graded audit reports. Alex
-withdrew the blocked monolithic ladder and split it into three independent slices.
-Slice A exhausted its own three-block design rule and is PARKED with no build or
-fourth amendment. Slice B also exhausted its own three-block design rule and is PARKED
-with no build or fourth amendment/review. Its final review assented to manifest/byte
-binding, CSV-observation truth, renderer closure, and development/production isolation,
-but exhaustive answer-domain enumeration found 73 legal combinations with conflicting
-closed/retained dispositions because the memo defined neither mandatory short-circuiting
-nor precedence after an earlier `no` or `unknown`. No Slice-B report or implementation
-ever existed, so this was not a false-observation or false-accusation HALT. Slice C is
-now the active track. Its first small design review blocked prospectively on runtime-
-root/cache closure, exact resource ceilings, and byte-unique renderer framing while
-assenting to manifest/byte binding and world-1 rung honesty. Binding v2 closes only
-those three surfaces and is queued for fresh maximum-effort review 2. No Slice-C
-build, observation, report, or false sentence exists. Slice C inherits the already
-measured pinned H5AD/Scanpy premises without remeasurement. The
-seven `reader-form-unsupported` singleton census cases remain the next Layer-3 growth
-priority by completion yield behind the ladder milestones. The planted-positive
-observation remains `0/47`; checkpoint K ran only by explicit maintainer authorization.)
+false accusations. The primary mission is trustworthy graded audit reports. Alex's
+verdict-taxonomy reform is now binding: the sole verdicts are `CLEAR TO BUILD`,
+`MAJOR REVISIONS`, and `MINOR REVISIONS`; three major-bearing or five minor-only
+rounds shelve one reviewed object. Slice A remains shelved after an unambiguous recount
+of three major-bearing rounds. Alex explicitly resurrected Slice B: its counter is
+reset to 0 major-bearing / 1 minor-only, and the sole answer-tree precedence
+correction plus an exact 73-row fixture table has completed in a fresh isolated
+design builder. Slice C review 2 completed on exact pushed `c41b556` with five assents,
+the exact 49,609-byte world-1 report reproduced, and one private-protocol buildability
+finding. The historical binary footer is retained, but the finding is unambiguously
+`MINOR REVISIONS`: no report sentence, observation, or authority was falsified or
+minted. Slice C stands at 1 major-bearing / 1 minor-only and its byte-total private
+request/response amendment has completed in a separate fresh isolated design builder.
+Both reviewed objects now await fresh review on one serially gated pushed snapshot;
+the reviews will run concurrently. Only the respective rendered CSV-question and
+world-1 reports count as completion. No Slice-C build, observation, emitted report,
+or false sentence exists. The seven `reader-form-unsupported` singleton census cases remain the
+next Layer-3 priority behind the ladder milestones. The planted-positive observation
+remains `0/47`; checkpoint K ran only by explicit maintainer authorization.)
 
 ## Scoreboard
 
@@ -138,6 +138,109 @@ observation remains `0/47`; checkpoint K ran only by explicit maintainer authori
   It runs as a parallel pipeline track within the three-session cap. Any false
   accusation on a scored K case halts the batch, the ladder track, and the entire loop
   before contacting the maintainer channel.
+
+## Verdict taxonomy reform and concurrent Slice-B/Slice-C tracks
+
+- MAINTAINER DECISION (Fable escalation channel, Alex direct decision, 2026-08-18):
+  every fresh design or code reviewer classifies every finding `MAJOR` or `MINOR` and
+  returns exactly one formal verdict: `CLEAR TO BUILD`, `MAJOR REVISIONS`, or
+  `MINOR REVISIONS`. `MAJOR` is an executed falsehood/authority route or any defect on
+  an accusation-capable surface. `MINOR` is every other defect, including wording,
+  robustness, precedence, and process-purity gaps. A round with any major increments
+  only the major-bearing counter; three major-bearing rounds shelve the object. A
+  findings-bearing round with no major increments only the minor-only counter; five
+  minor-only rounds shelve the object. Clear rounds increment neither. Historical
+  footers remain immutable evidence and are recounted only where unambiguous. This is
+  accounting only: zero-FA/zero-false-observation/rung honesty, executed probes, fresh
+  contexts, full gates, and all frozen/protected constraints are unchanged.
+- The taxonomy is now encoded in both
+  `GROWTH-LOOP-ORCHESTRATOR-BRIEF.md` and
+  `GROWTH-LOOP-REVIEWER-HANDBOOK.md`. Every future prompt must reproduce the taxonomy
+  and demand a classification for every finding. Specialized assent/next-action lines
+  may remain but are not a second verdict.
+- Retroactive unambiguous recount: Slice A remains shelved at 3 major-bearing rounds.
+  Review 1's executed capacity contradiction permitted incomplete inventory authority;
+  review 2's source/bytecode collision changed canonical output while the old runtime
+  identity remained accepted; review 3 accepted substituted root/name-set digests whose
+  preimages were absent. Slice B is not derived from that recount: Alex explicitly
+  resets it to 0 major-bearing / 1 minor-only and resurrects it for the one scoped
+  precedence repair. Slice C review 1 is major-bearing because the executed visible-
+  root replacement could redirect runtime access/launch under stale authority. Review
+  2 is minor-only. Slice C therefore stands at 1 major-bearing / 1 minor-only.
+- Slice C design review 2 used fresh maximum-effort session evidence under
+  `/tmp/sc-referee-slice-c-review2.XJRuey` on exact clean local/tracking/live-origin
+  `c41b556b58815728107beec1d1491147eae9f51d`. Its immutable legacy report is 5,719
+  bytes at
+  `sha256:d445504db8b16aeec8efb0904fc9030ab501e6a470f25c7a22c4cfc467a44b97`;
+  its 18-file evidence checksum ledger is 2,618 bytes at
+  `sha256:2bbd090d02421abbec68d1593e0100464ac92b01eca07f2a2d7103b9694c8502`.
+  It assented to fixture/premise, manifest/byte binding, world-1 rung honesty,
+  renderer closure, and development/production isolation. The independently rendered
+  appendix is 48,094 bytes at
+  `sha256:386b2d8a467c848292580c1aeef6e3636fda7f5a0300375b2e98f3fb11104d48`;
+  the complete required report is 49,609 bytes at
+  `sha256:a271ed38ad68aa9c7aa1ae7ae16ccdaefd4028f4d9e105faab8b86d6be5f52d8`.
+  Exactly one of 2,304 composition states emitted; 49,025 renderer mutations, 575
+  observation forgeries, 22,151 fact combinations, 39 manifest attacks, 28 source
+  mutations, 12 span forgeries, and the complete transport replay/mutation inventory
+  produced zero unintended report or observation.
+- Review 2's sole finding is an exact private-protocol ambiguity: two lossless
+  canonical encodings of the same non-world1 13,351,824-byte H5AD and seven artifacts
+  straddled the 22,371,000-byte request limit (22,038,030 accepted versus 22,396,706
+  refused), and three resource failures lacked total precedence. The payload was not
+  authenticated world-1 material, no observation survived, and no report sentence or
+  authority became false. The review is therefore recounted `MINOR REVISIONS`. The
+  corrected serial gate passed all 4,496 tests with exit 0; the first restricted-PATH
+  control run's one missing-`pip` packaging failure is retained honestly as reviewer-
+  harness evidence, not a repository failure.
+- Alex explicitly resurrects Slice B. The only allowed point-fix says a definitive
+  `no` in branches 1-3 short-circuits the rule path even if an earlier answer is
+  `unknown`; `unknown` retains only when no definitive resolving `no` occurs. The
+  reviewer's exact 73 formerly conflicting legal combinations must be enumerated in a
+  digest-bound fixture table. One fresh confirmation reviewer is scoped to that
+  section and the 73 rows. Only `CLEAR TO BUILD` authorizes the Slice-B build and its
+  rendered CSV-question M2 report.
+- The Slice-B point-fix and Slice-C byte-total private protocol amendment are authorized
+  to proceed concurrently in distinct worktrees and fresh contexts, within the three-
+  session cap. They merge only through the orchestrator's serial commit/manifest/full-
+  suite/push spine and receive distinct fresh reviewers. No document waits on the
+  other's disjoint review. Slice C completion remains the rendered world-1 report with
+  exact header, one ConditionalConcern and both premise states, Disclosures, Coverage,
+  and machine appendix; Slice B completion remains its rendered CSV-question report.
+- The fresh isolated Slice-B design builder completed on detached base
+  `c41b556b58815728107beec1d1491147eae9f51d` without repository edits, commit, or
+  push. Its immutable last message is 1,470 bytes at
+  `sha256:0397c4b363b7ac5ff60facba13e69907ceb1fe77584ff5354004186b5981ed18`.
+  It appended only binding Section 14 to the external Slice-B memo, now 56,500 bytes
+  at `sha256:5251e493a5dcc66b9aefdc2faec7c5ed1c89fc8d02aaa49db49d359ee38a2753`,
+  and created the canonical-LF 13,677-byte fixture at
+  `sha256:29453a87fbdf6869f198358bf5d6295ab34fab160109848e682a16c5e3c70e77`.
+  The original 50,877-byte memo prefix is byte-identical. The fixture contains exactly
+  73 unique rows indexed 1-73; row 69 is the exact raw and normalized
+  `unknown/no/not-applicable/not-applicable` counterexample and resolves
+  `resolved-inapplicable`. The corrected full suite passed 4,496 tests; the first
+  detached-worktree run's sole clone-rooted-`PYTHONPATH` failure remains builder-
+  harness evidence. This is a design amendment only and is not build authorization.
+- The fresh isolated maximum-effort Slice-C design builder completed on the same
+  detached base without repository edits, commit, or push. Its immutable last message
+  is 1,884 bytes at
+  `sha256:dcc8236c1275087ab5fb393a49e94d62aee4f235d1494519b17a1a76768b54a9`.
+  It appended only binding Section 14 to the external Slice-C memo, now 66,013 bytes
+  at `sha256:f14b5b5d05f6be8a666e1d820476416a736c2bb83c60cca4e4ba611446a9f4a5`,
+  and created the strict-canonical-LF 6,044-byte closed protocol registry at
+  `sha256:bf18790a1c4ea25bdb33e8010c2c146268eb5ca28aab044ab10b12d04627809a`.
+  The original 45,175-byte / 729-line memo remains the byte-identical prefix at
+  `sha256:e61aebfbbd0dec0b58b8657372bbc4bc2998f521d32a5327901ce8f7ebbbc7f3`.
+  Independent checks reproduce one canonical registry, 16 ordered controller facets,
+  23 closed refusal facets, a 5,034,163-byte admitted world-1 request, and deterministic
+  `request-bytes` refusal of the review-2 payload at 22,396,585 bytes. The exact
+  22,371,000/22,371,001 request and 8,388,608/8,388,609 stdout boundaries are bound.
+  The corrected documented-`PYTHONPATH` serial suite, mypy over 162 source files, and
+  starter validation all exited 0. Two earlier worktree harness controls—missing
+  clone-rooted `PYTHONPATH` and inherited `PYTEST_ADDOPTS=-q` hiding a nested summary—
+  remain evidence rather than repository failures. The root seal, renderer registry,
+  world-1 appendix/report, and all protected surfaces remain byte-identical. This is a
+  design amendment only and is not build authorization.
 
 ## Checkpoint K — completed, explicit authorization track
 

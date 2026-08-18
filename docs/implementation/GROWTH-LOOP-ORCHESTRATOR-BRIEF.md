@@ -21,7 +21,9 @@ rescore, do not continue.
    Python/scipy-semantics premise = HEAVY.
 3. REVIEW (design, heavy only): spawn a FRESH `codex exec` sub-session whose prompt is:
    read docs/implementation/GROWTH-LOOP-REVIEWER-HANDBOOK.md, then the memo, then
-   review adversarially with executed probes. Iterate memo amendments until CLEAR.
+   review adversarially with executed probes, apply the three-value verdict taxonomy,
+   and classify every finding MAJOR or MINOR. Iterate scoped memo amendments until
+   CLEAR TO BUILD or the memo is shelved under the review-round counters below.
    Reviewer sub-sessions must NEVER be the session that builds the same round.
 4. BUILD: spawn a FRESH `codex exec` sub-session: read
    docs/implementation/GROWTH-LOOP-CODEX-BRIEF.md + the memo, build exactly it.
@@ -30,7 +32,10 @@ rescore, do not continue.
    manifest sequence (commit → scripts/build_manifest.py → commit manifest). Push
    dev/dependence-growth to origin.
 6. REVIEW (code): a FRESH reviewer sub-session (handbook + diff + MANDATORY executed
-   probes, light rounds included). Fix rounds via fresh build sub-sessions until CLEAR.
+   probes, light rounds included). Its prompt must apply the three-value verdict
+   taxonomy and classify every finding MAJOR or MINOR. Fix via scoped amendments in
+   fresh build sub-sessions until CLEAR TO BUILD or the diff is shelved under the
+   review-round counters below.
 7. CHECKPOINT (every ~3-4 rounds): run two blind batches (scripts/lean_pipeline.py
    --envelope <next batch config>; seats continue the actor numbering in STATE).
    Blind batches are the ONLY source of scored claims. All batch model seats may use
@@ -41,7 +46,24 @@ rescore, do not continue.
 
 ## Hard rules (each bought with a demonstrated failure — do not relitigate)
 
-- Reviewer verdicts GATE builds and batches. BLOCKED means blocked.
+- The one formal reviewer verdict is CLEAR TO BUILD / MAJOR REVISIONS / MINOR
+  REVISIONS. Every finding is explicitly MAJOR or MINOR. Specialized next-action
+  assent lines may remain, but they are not another verdict.
+- MAJOR means either (a) an executed probe demonstrates a falsehood route — any report
+  sentence can become untrue or any unwarranted authority can be minted — or (b) any
+  defect exists on an accusation-capable surface. MINOR means everything else,
+  including wording ambiguity, robustness hardening, spec-precedence gaps, and
+  process purity.
+- Count review rounds per reviewed object. A round with at least one MAJOR finding is
+  major-bearing and increments only the major-bearing counter; three such rounds
+  shelve the object. A round with findings but no MAJOR finding is minor-only and
+  increments only the minor-only counter; five such rounds shelve the object. Minor
+  findings receive scoped amendments and never increment the major counter. CLEAR TO
+  BUILD increments neither counter.
+- Historical binary footers remain immutable evidence. Recount them only where their
+  classification is retroactively unambiguous. This taxonomy changes accounting only:
+  zero false accusation/observation/sentence discipline, executed probes, fresh
+  contexts, and every existing gate remain unchanged.
 - One operand classification, kernel-re-derived. Never a second closure.
 - Never widen a reviewed design in a build prompt; never widen grammar to make a
   fixture pass; fixtures execute and assert observed outcomes.
