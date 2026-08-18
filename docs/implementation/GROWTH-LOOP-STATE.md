@@ -13,10 +13,12 @@ of three major-bearing rounds. Alex explicitly resurrected Slice B at 0 major-be
 scope mismatch were addressed by a fresh focused builder in exactly five files;
 the orchestrator reproduced the handoff bytes and the 13-case, 287-test, scoped Ruff/
 format, and strict-mypy gates are green. The exact repair is committed as
-`be0154314107f65eb567faf33e79b7d844b1cb75`; release identity and the corrected
-4,496-test authoritative full suite are green. Final state/manifest closure, push,
-and a fresh code review remain required. Slice B stands at 1 major-bearing /
-1 minor-only and remains active below both shelving thresholds. Slice C's
+`be0154314107f65eb567faf33e79b7d844b1cb75`, its manifest closure is pushed at
+`dc404bee3b1808010be4af60219f221b0271fb93`, and release identity plus the corrected
+4,496-test authoritative full suite are green. A fresh replacement reviewer independently
+re-executed the repair and complete Slice-B inventory, returned all six assents with
+`CLEAR TO BUILD`, and demonstrated no MAJOR or MINOR defect. Slice B/M2 is complete
+at 1 major-bearing / 1 minor-only; the clear round increments neither counter. Slice C's
 fresh review of the Section-14 protocol amendment returned `MAJOR REVISIONS`: an
 executed two-world probe showed the private worker lacked the canonical repository
 inventory preimage needed to re-prove package identity, the current pinned runtime had
@@ -395,8 +397,48 @@ priorities must be re-ranked before that design begins. The planted-positive obs
   Its 26,403-byte authoritative log is
   `/tmp/sc-referee-slice-b-fix-authoritative-full-qualified.log` at
   `sha256:cbc31f6de9e71d233487d9d6190536b3433ee94e38df5c1e15109c8e2847c4ba`.
-  Final STATE/manifest closure, push, and fresh maximum-effort code review remain on
-  the serial spine.
+  The manifest/STATE closure was committed and pushed as
+  `dc404bee3b1808010be4af60219f221b0271fb93`; local HEAD, local tracking ref, and
+  live origin were exact at that snapshot.
+- The first fresh maximum-effort repair-review transport produced no final report or
+  verdict. While generating an oversized shared local probe helper, the model service
+  returned its cybersecurity safety refusal and `codex exec` exited 1. Its immutable
+  887,827-byte transcript is
+  `sha256:d6921ff570f6392496435625398d1a2ea186476d97771d118d6ed054d40258e5`.
+  This is reviewer-harness evidence only, consumes no review round, and supplied no
+  finding or conclusion to the fresh replacement.
+- The fresh replacement maximum-effort reviewer ran in a distinct clean read-only
+  clone on exact target `dc404bee3b1808010be4af60219f221b0271fb93`. Its bounded
+  5,404-byte prompt is
+  `sha256:95d1badae98c5b6289bdde7e3a1b272c972b461a978ed736a4d4a2759dd6883a`;
+  its immutable 2,983-byte final message is
+  `/tmp/slice-b-repair1-code-review-replacement-last.txt` at
+  `sha256:3117f9be580bdac91bedf6d9b2187f6cf3097eb7721fe545df9c55fa22f8ecf5`,
+  and its complete 8,942,914-byte transcript is
+  `sha256:79f3dfcff5d4ca219320c70372dedb31c9348d1dbb54c1bedaf76ad5bacea078`.
+  The detailed 11,231-byte formal review is
+  `/private/tmp/sc-referee-slice-b-independent-review.KzK8wG/final-review.md` at
+  `sha256:5486820359dfa2361334f67e0b89de641f494c5277f73688eeede089ecaabf05`;
+  its 2,852-byte evidence ledger is
+  `sha256:96533b444e2f1cbd57eb1f2a84f924ee1be97e6a0d703b920e6a1e6ebcd18dac`.
+  The reviewer independently observed zero authority for alien/fifo kinds, C0/DEL
+  paths, whitespace references, and every tested duplicate selected-identity
+  association; valid unrelated UTF-8 and long paths agreed across all boundaries;
+  selected paths retained the 512/513 boundary; M2 remained exactly 3,246 bytes at
+  `sha256:d06d2482da83f17ba62febef916886666d7d1aed00204b6f2b2fc3a68e0f0316`.
+  It reproduced 256 answer vectors, 136 legal vectors, 31 normalized forms, zero
+  conflicts, the exact 73-row fixture, 53/53 observation mutations, 10/10 question
+  mutations, 12 refusal states, and all 66 precedence pairs. The exact 30,277-row
+  manifest had zero mismatches; production/protected/frozen bytes and both grant pins
+  remained isolated and live. Focused 13/13, dedicated 287/287, scoped Ruff/format,
+  strict/project mypy, 79 starter examples, nine protected/pin/isolation tests, and
+  four release-identity tests all passed. The exact serial suite passed 4,496 tests
+  with seven warnings and explicit exit 0 in 785.00 seconds; its 26,588-byte log is
+  `sha256:ff903b94df0203d8136c0f97cbf4f2093d6e2076dfa590fde5905ee8621c800a`.
+  All six assents were returned with formal
+  `SLICE-B CODE VERDICT: CLEAR TO BUILD`; no finding exists. Slice B/M2 is therefore
+  complete at 1 major-bearing / 1 minor-only, with no counter increment for the clear
+  round.
 - The concurrent fresh maximum-effort Slice-C review ran on the same exact pushed
   `210cde62fa4e0ad08bba5efb60c3b4eed42dc930`. Its immutable 5,776-byte report is
   `/tmp/slice-c-protocol-review-last.txt` at
