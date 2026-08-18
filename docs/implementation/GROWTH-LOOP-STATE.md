@@ -28,11 +28,13 @@ required HALT/escalation occurred without a build or post-HALT repository mutati
 Alex resolved that HALT by withdrawing the monolithic memo and slicing the ladder
 into three independently reviewed objects. Slice A (Layer-0 inventory plus a closed
 Disclosure/Coverage-only renderer) is now the sole active design track; Slices B and
-C follow as separate milestones. Slice-A review 1 is now BLOCKED on four confined
-inventory-contract defects; renderer closure, non-accusation, and development/
-production isolation earned assent. Binding v2 amendments are complete and await a
-fresh maximum-effort review 2. No build has occurred and no false-accusation HALT has
-occurred).
+C follow as separate milestones. Slice-A review 2 is `BLOCKED`, consuming Slice A
+block 2 of 3. Renderer closure, non-accusation, and development/production isolation
+again earned assent; exclusions closed, while four confined inventory/runtime
+literal gaps remain. Binding v3 amendments now make the direct-exec environment,
+loader registry, changed-union terminal, URL grammar, and operation/failure mapping
+literal. They await Slice A's final fresh maximum-effort design review 3. No build has
+occurred and no false-accusation HALT has occurred).
 
 ## Scoreboard
 
@@ -446,6 +448,51 @@ occurred).
   log is `/tmp/sc-referee-slice-a-review1-v2-full-explicit.log` at
   `sha256:c1c79241acf72fc9b0356c4d20c21292449e49e6e0a1bf697c76b83b142e8c2a`.
   This is a gate-environment correction, not a test waiver or parallel run.
+- Fresh maximum-effort reviewer `01a01317-7d62-71e2-bd50-24ab427895fa` reviewed
+  Slice-A memo v2 on exact clean local/remote snapshot
+  `38a42c0e23d35a389b089039370704b1652dbf6c` and returned
+  `SLICE-A VERDICT: BLOCKED`. Its 7,730-byte final report is
+  `/tmp/audit-report-ladder-slice-a-review2-last.txt` at
+  `sha256:0c54f8c6b79c13527116b7af66c3f7013955694c41f484641cd5abfa3fd36de9`;
+  complete scratch evidence is under `/tmp/sc-referee-slice-a-review2.hZxhqa/`.
+  This consumes Slice A block 2 of 3, authorizes no build, and is not a
+  false-accusation halt.
+- Review 2 closed exclusion reconciliation and confirmed the separated capacity
+  numbers: the current real repository recaptured as 45,408 resources with a
+  238,317-attempt v2 minimum below the 1,600,000 M1 bound; 143/144 declared-member
+  boundaries, 100,000/100,001 report boundaries, operation-specific attempts,
+  field-specific IDs, artifact bijections, ctime-bound drift, registry/template
+  hostility, and runtime module/path drift behaved conservatively. It again returned
+  `RENDERER-CLOSURE: ASSENT`, `NON-ACCUSATION-SURFACE: ASSENT`, and
+  `DEVELOPMENT-PRODUCTION-ISOLATION: ASSENT`. Its independent focused suite passed
+  101 tests; scoped Ruff/format, `mypy src`, and starter validation passed; and its
+  authoritative serial suite emitted exactly 4,496 dots and one `PYTEST_EXIT=0` in
+  5,055 bytes at
+  `sha256:c1c79241acf72fc9b0356c4d20c21292449e49e6e0a1bf697c76b83b142e8c2a`,
+  byte-identical to the orchestrator gate. Repository-wide Ruff/format reproduced
+  only pre-existing development-tree debt.
+- Four literal gaps remained: admitted `unresolved-name` union children had no legal
+  zero-attempt terminal; direct `execve` with the exact three requested variables
+  started on Darwin with one platform-added `__CF_USER_TEXT_ENCODING` row while the
+  memo demanded exactly three observed rows; loader tokens and runtime string bounds
+  were unspecified; and child-directory/symlink failure mapping plus HTTPS
+  normalization still required builder choices. Directory/file/symlink identity
+  swaps themselves were detected, and adjacent source/bytecode module collisions were
+  excluded by the isolated runtime, but the baseline environment could not satisfy
+  the v2 contract.
+- Binding memo Section 12 is the narrow v3 correction and the final Slice-A design
+  attempt. It makes union children legal only as zero-attempt
+  `parent-enumeration-changed` coverage; rejects every noncanonical HTTPS spelling
+  under one literal ASCII grammar with no normalizer; binds separate exact `execve`
+  and platform-observed environment ledgers plus a five-row loader-class/suffix/token
+  registry and bounded runtime scalars; and supplies one exhaustive legal operation,
+  error, terminal, and fatal-no-report table. Any descriptor identity mismatch is
+  fatal no-report rather than a coverage claim. Memo v3 is 62,811 bytes at
+  `sha256:fa1f556b69190219a9954673e4bc3e1297ad36264c2c03d14cc87f4bff33e511`;
+  the adjacent registry and withdrawn full memo remain byte-identical. Fresh
+  maximum-effort review 3 must replay the entire gauntlet. Only unconditional
+  `CLEAR TO BUILD` authorizes a builder; a third block parks Slice A alone with no
+  fourth amendment and advances the independent Slice B track.
 - Slice B follows independently: three or four CSV observation verifiers plus exactly
   one question-composition rule, CSV lane only, all on the digest-bound manifest-
   bijection path. M2 is Slice B. Slice A clearance does not prejudge Slice B.
