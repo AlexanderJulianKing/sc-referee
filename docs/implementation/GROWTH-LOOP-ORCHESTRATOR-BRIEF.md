@@ -78,6 +78,12 @@ rescore, do not continue.
   comes from FRESH CONTEXTS + EXECUTED PROBES + this file discipline. Never let one
   session hold both roles for a round; never skip probe execution; escalate to the
   maintainer anything a reviewer flags as needing model-diverse review.
+- Parallel worktrees never authorize cross-track runtime use. Every prompt names only
+  that track's allowed interpreter(s); pinned development runtimes are manifest-bound
+  read-only inputs and execute only through their bound isolated launcher with `-B`
+  and `PYTHONDONTWRITEBYTECODE=1`. Revalidate the exact runtime manifest before and
+  after every allowed invocation. A generic tool/dependency probe uses the repository
+  environment, never another track's pinned runtime.
 
 ## Ping the maintainer (Alex) ONLY for
 

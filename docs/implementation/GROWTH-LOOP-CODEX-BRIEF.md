@@ -33,6 +33,12 @@ evaluation/qualification/, public docs. Installed pins must stay live (tests enf
   canonical reason registry + its equality test.
 - Fixtures execute in the pinned sandbox and assert OBSERVED outcomes (full sorted
   reason sets), never widened to pass. Reviewer probes from the round become fixtures.
+- Pinned development runtimes are immutable inputs, not fallback tooling environments.
+  Execute only a runtime explicitly assigned by the memo/prompt, only through its
+  bound isolated launcher, with both `-B` and `PYTHONDONTWRITEBYTECODE=1`; validate its
+  exact manifest before and after. Never probe, import, install, or compile inside a
+  concurrent track's runtime. Generic dependency/tool discovery uses the repository
+  environment.
 - Frozen-corpus re-measure (all batches) after grammar changes; report movements.
 - Development-loop gating: harness behavior changes gate on config.development_loop;
   qualification envelopes stay byte-identical in behavior.

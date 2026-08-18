@@ -32,6 +32,13 @@ between builds and measurement.
    sibling forms? The rebind pattern recurred three times (AnnAssign, annotated
    truncation, plain Assign) because each fix was form-specific. Prefer structural
    routes (all forms through one test).
+9. Pinned development runtimes are immutable reviewed inputs, not convenient alternate
+   test environments. A session may execute only the runtime assigned by its reviewed
+   object, and only through that object's exact isolated launcher with `-B` plus
+   `PYTHONDONTWRITEBYTECODE=1`. Never import from, install into, compile inside, or use
+   another concurrent track's pinned runtime to discover generic tooling. The Slice-B
+   verifier builder's unisolated `import yaml` created 18 undeclared entries in the
+   Slice-C runtime while both tracks were active; manifest revalidation caught it.
 
 ## Probe patterns that have found real routes (re-run applicable ones every round)
 
@@ -98,7 +105,9 @@ gates remain unchanged.
 ## Practicalities
 
 Interpreter: <repo>/.venv/bin/python with PYTHONPATH=.:src:evaluation/src from repo
-root. Pinned runtime for executing fixtures:
-~/Desktop/random_stuff/sc-referee-pilot-runtime/scipy114-venv. Shadow entry points and
-invocation patterns: see tests/test_dependence_recognition_v2*.py. Never modify files
-outside your scratch space.
+root. Use a pinned fixture runtime only when the reviewed object assigns it and only
+through its bound isolated invocation. Every such invocation sets both `-B` and
+`PYTHONDONTWRITEBYTECODE=1`; before and after it, revalidate the runtime's exact
+manifest. Shadow entry points and invocation patterns: see
+tests/test_dependence_recognition_v2*.py. Never modify files outside your scratch
+space.

@@ -1,0 +1,5 @@
+sample_id,group,expression
+d1,control,10.4
+d1,treated,9.9
+d2,control,10.2
+d2,treated,9.86

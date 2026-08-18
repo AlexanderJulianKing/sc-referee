@@ -2,24 +2,27 @@
 
 Updated: 2026-08-18 (Growth-12/13/14/15 and checkpoint K are closed with zero scored
 false accusations. The primary mission is trustworthy graded audit reports. Alex's
-verdict-taxonomy reform is now binding: the sole verdicts are `CLEAR TO BUILD`,
+verdict-taxonomy reform is binding: the sole verdicts are `CLEAR TO BUILD`,
 `MAJOR REVISIONS`, and `MINOR REVISIONS`; three major-bearing or five minor-only
 rounds shelve one reviewed object. Slice A remains shelved after an unambiguous recount
-of three major-bearing rounds. Alex explicitly resurrected Slice B: its counter is
-reset to 0 major-bearing / 1 minor-only, and the sole answer-tree precedence
-correction plus an exact 73-row fixture table has completed in a fresh isolated
-design builder. Slice C review 2 completed on exact pushed `c41b556` with five assents,
-the exact 49,609-byte world-1 report reproduced, and one private-protocol buildability
-finding. The historical binary footer is retained, but the finding is unambiguously
-`MINOR REVISIONS`: no report sentence, observation, or authority was falsified or
-minted. Slice C stands at 1 major-bearing / 1 minor-only and its byte-total private
-request/response amendment has completed in a separate fresh isolated design builder.
-Both reviewed objects now await fresh review on one serially gated pushed snapshot;
-the reviews will run concurrently. Only the respective rendered CSV-question and
-world-1 reports count as completion. No Slice-C build, observation, emitted report,
-or false sentence exists. The seven `reader-form-unsupported` singleton census cases remain the
-next Layer-3 priority behind the ladder milestones. The planted-positive observation
-remains `0/47`; checkpoint K ran only by explicit maintainer authorization.)
+of three major-bearing rounds. Alex explicitly resurrected Slice B at 0 major-bearing /
+1 minor-only; its scoped Section-14 confirmation review is now `CLEAR TO BUILD`, and
+three fresh component builders plus one fresh integration builder have completed. The
+exact 13-file Slice-B handoff is in the orchestrator worktree awaiting the authoritative
+commit/manifest/full-suite/push spine and then a fresh code review. Slice C's
+fresh review of the Section-14 protocol amendment returned `MAJOR REVISIONS`: an
+executed two-world probe showed the private worker lacked the canonical repository
+inventory preimage needed to re-prove package identity, the current pinned runtime had
+18 unexpected PyYAML cache entries, and the closed registry lacked one refusal facet.
+Slice C therefore stands at 2 major-bearing / 1 minor-only, below the reformed
+three-major shelf threshold. The runtime entries are not unexplained package drift:
+they were created by one completed concurrent Slice-B builder command that invoked the
+Slice-C interpreter without bytecode suppression and imported `yaml`. The exact command
+and transcript are preserved; no runtime byte has been repaired or removed without
+maintainer authority. No Slice-C build, observation, emitted report, or false sentence
+exists. The seven `reader-form-unsupported` singleton census cases remain the next
+Layer-3 priority behind the ladder milestones. The planted-positive observation remains
+`0/47`; checkpoint K ran only by explicit maintainer authorization.)
 
 ## Scoreboard
 
@@ -241,6 +244,108 @@ remains `0/47`; checkpoint K ran only by explicit maintainer authorization.)
   remain evidence rather than repository failures. The root seal, renderer registry,
   world-1 appendix/report, and all protected surfaces remain byte-identical. This is a
   design amendment only and is not build authorization.
+
+## Parallel review outcomes and runtime-isolation incident — 2026-08-18
+
+- The resurrected Slice-B Section-14 confirmation used a fresh medium-effort reviewer
+  on exact clean pushed `210cde62fa4e0ad08bba5efb60c3b4eed42dc930`. Its immutable
+  3,143-byte report is `/tmp/slice-b-confirm-review-last.txt` at
+  `sha256:71ae463337da490c65b3c3dea3199d520e3bf2a2d265c17e924cec1f4b893d23`;
+  its 890-byte executed result is
+  `/private/tmp/slice-b-section14-confirm.DmWf7m/section14-probe-result.json` at
+  `sha256:8a9e0c67ba423915246437928c598454de9db3474bf43071b9a49914b7a4baab`.
+  The reviewer independently enumerated 256 raw answer vectors, 192 eligible vectors,
+  136 legal vectors, 56 illegal vectors, and exactly 73 historical conflicts with an
+  exact fixture bijection. The disposition totals are 112 resolved-inapplicable, 22
+  retain, one resolved-dependence, and one further-evidence; all 31 normalized forms
+  are conflict-free. All four assents were returned with no finding and formal
+  `SLICE-B VERDICT: CLEAR TO BUILD`. A clear round increments neither counter, so
+  Slice B remains 0 major-bearing / 1 minor-only.
+- Three separate fresh component builders then implemented the cleared disjoint Slice-B
+  surfaces in distinct worktrees: the closed renderer and M2 fixture, the four primary
+  CSV verifiers, and the independently replayed composition/answer tree. Their immutable
+  last reports are respectively 3,191 bytes at
+  `sha256:5bec5bea1e1619742f559fd96940e99c413f2b6e1663bcd414812d17987cb4a6`,
+  3,034 bytes at
+  `sha256:cd0513980d79da7403b418ad7d61f9415218916e09736f0add383f32c94cb1a8`,
+  and 2,617 bytes at
+  `sha256:c424365e2ac8cc298414cbf4e5e6fc3b99fe821c3817cd91b08c4a20b5514e2f`.
+  Each reported focused/static checks green; the verifier and composition builders also
+  completed independent serial suites of 4,574 and 4,583 tests. They made no commits or
+  pushes. The fourth fresh maximum-effort integration builder then completed the serial
+  component reconciliation, dedicated-test relocation, single record family, exact
+  `render_slice_b_report_v1(context, request)` transaction, and rendered M2 acceptance
+  gate on the same exact base. Its immutable 5,802-byte report is
+  `/tmp/slice-b-integration-builder-last.txt` at
+  `sha256:9827b43366d077b655fca2f7e3785c8ff4a08764b289354c0a05dbd710965283`;
+  its complete 5,843,262-byte transcript is
+  `sha256:8809138cd3adeefa052ca03e448b80a98ce80a35f1b97df88399e5a055c2eb7c`.
+  The exact handoff is 13 files: six development-only source files, five dedicated test
+  files, and the two M2 fixture/report artifacts. The integrated Slice-B gate passed
+  274 tests; strict mypy passed five Slice-B source files, project mypy passed all 162
+  source files, Ruff/format and starter validation passed, and nine protected/manifest/
+  pin/isolation tests passed. Its serial regression gate passed all 4,496 tests with
+  seven existing warnings in 790.96 seconds and captured `FULL_SERIAL_PYTEST_EXIT=0`;
+  the 26,478-byte log digest is
+  `sha256:fc6cd556fc6ca1dbe29f322c156ea3e3d3dcdf1ca7b5a10707bcc6eab1abd531`.
+  The actual end-to-end 3,246-byte rendered M2 report is
+  `sha256:d06d2482da83f17ba62febef916886666d7d1aed00204b6f2b2fc3a68e0f0316`;
+  it replaces only Builder R's synthetic renderer-only placeholder because the final
+  snapshot/file/scope identities are derived from retained frozen preimages. The
+  orchestrator transferred the exact 13 file bytes into the authoritative worktree and
+  independently reproduced every builder-reported byte size/digest. Nothing is yet
+  committed or pushed; the normal authoritative gate/manifest/push and fresh code review
+  remain mandatory. The orchestrator independently passed the 274-test dedicated gate,
+  Ruff/format, and strict Slice-B mypy. Its first repository-wide pre-manifest run then
+  produced exactly the expected stale-manifest control: 4,495 passed, one
+  `test_manifest_builder_inventory_equals_git_tree_listing` failure, seven warnings,
+  and captured `PYTEST_EXIT=1` in 794.65 seconds. No code, ladder, protected, or other
+  test failed. The 28,683-byte log is
+  `sha256:8ec746dad507eeb8d3093b66fb400573df5fddc5c740805943c3f9486e03fddc`.
+  This does not gate a push; it authorizes only the required first commit and manifest
+  regeneration. A second exact full-suite run after the manifest commit must exit zero
+  before push.
+- The concurrent fresh maximum-effort Slice-C review ran on the same exact pushed
+  `210cde62fa4e0ad08bba5efb60c3b4eed42dc930`. Its immutable 5,776-byte report is
+  `/tmp/slice-c-protocol-review-last.txt` at
+  `sha256:0921681d6e9be81440077843300aa969ddfb5974a1f0b70de9b85537a6ecd049`;
+  its 47-line / 4,783-byte evidence ledger is
+  `/tmp/sc-referee-slice-c-review3.QlC280/evidence-sha256.txt` at
+  `sha256:f153e03d0a978206b46db4d04631900aa409ce79c741a3256b9bdda8c112263c`.
+  The formal verdict is `SLICE-C VERDICT: MAJOR REVISIONS`, with two findings classified
+  MAJOR and one MINOR. Rung honesty, renderer closure, and production isolation assented;
+  fixture/premise, manifest binding, and executable H5AD truth refused. This is the
+  second major-bearing Slice-C round and leaves the object active at 2 major-bearing /
+  1 minor-only under Alex's reformed accounting.
+- The first MAJOR is an executed authority-carriage route: the 5,034,163-byte private
+  request carried only an inventory count/digest, not the exact canonical inventory
+  preimage and selected record/material identities. The same request therefore
+  represented both a two-entry world and a three-entry world with an added adjacent
+  import candidate; the worker could not independently redo the manifest bijection or
+  importer-derived candidate proof. The 964-byte two-world evidence is
+  `inventory-preimage-probe.json` at
+  `sha256:80b8b68b01c64f954292389af3c54d42c75243a9cfafb4ec49c503595e35db98`.
+  The next amendment must carry and independently authenticate the exact canonical
+  inventory preimage plus selected identities, then recompute the registry and request
+  vectors. The MINOR is the absence of one closed `registry-invalid` refusal facet and
+  its total precedence; all 301 executed registry mutations already refused with zero
+  output, but the facet and vectors must be bound explicitly.
+- The second reviewer-classified MAJOR observed a false current premise, not unknown
+  dependency drift: the declared 12,687-entry runtime manifested as 12,705 entries,
+  with one `yaml/__pycache__` directory and 17 `.cpython-311.pyc` files totaling
+  276,965 bytes. The read-only drift result has unexpected-projection digest
+  `sha256:869be30fbc5d459730ab413449e50c2f2611e2ab38deeb98eff19642d9a97c73`.
+  Subsequent attribution found the exact cause in the completed Slice-B verifier-builder
+  transcript: line 46,587 invoked the Slice-C pinned `venv/bin/python` without `-B` or
+  `PYTHONDONTWRITEBYTECODE`, imported `yaml`, then failed on absent `jsonschema`. The
+  completed transcript is 341,997 lines / 14,394,469 bytes and its digest is
+  `sha256:2c07a624ec61b0c4845fd66080a8075c9bd69a75f7384095f58728cd7fc991d8`;
+  the cache birth time is exactly 2026-08-18 08:59:29 PDT inside that builder session.
+  This was a parallel-track process-isolation breach. No declared runtime row was
+  altered and no report was emitted, but the runtime stays invalid until the maintainer
+  authorizes an exact, recoverable removal/recreation and the full manifest replays.
+  The reviewer/orchestrator briefs now forbid all cross-track runtime use, require `-B`
+  plus `PYTHONDONTWRITEBYTECODE=1`, and require before/after manifest validation.
 
 ## Checkpoint K — completed, explicit authorization track
 
