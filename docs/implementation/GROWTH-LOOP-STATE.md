@@ -1,44 +1,25 @@
 # Growth-loop living state (maintained by the orchestrator, every iteration)
 
-Updated: 2026-08-17 (Growth-12/13/14/15 closed. Growth-14's pandas revival, two
-review-killed package-identity routes, final default-deny adjacent-candidate repair,
-and fresh maximum-effort review are recorded below. The gated scratch re-measure
-compared pre-round `1eb74be` with reviewed head `332df0a` across all 40 census and 95
-materialized frozen cases. Transport was unchanged; all 95 frozen cases and all 47
-materialized planted positives retained zero full-analysis completions and zero
-adverse certificates. Seven intended census cases reached full analysis: six covered
-negatives and one adverse certificate in the explicitly unlabeled, non-measurement
-development census. One additional uncompilable no-lock census case changed from a
-parse abstention to an authority question but remained no-lock and non-accusatory.
-Immutable inputs stayed byte-identical and installed-pin/production-isolation probes
-passed. The planted-positive trigger remains `0/47`; Alex has separately authorized
-checkpoint batch K now because unlabeled census `0025` is the first end-to-end
-full-analysis conviction on free generated code. K1/K2 run as a parallel sealed-
-pipeline track, not as a trigger event. The primary mission is now trustworthy graded
-audit reports: Layer-1 verified observations, then report-scoring redesign, then a
-realistic-repository population. The seven `reader-form-unsupported` singleton census
-cases remain the next Layer-3 growth priority by completion yield, queued behind the
-walking skeleton. Checkpoint K is closed and pushed with zero accusations. Layer-1
-HEAVY review 2 blocked at design on a hidden Scanpy-semantics premise and the binding
-Section-14 closure defects. Alex selected the real pinned-Scanpy option; a completely
-private, read-only CPython 3.11.15 + Scanpy 1.11.5 sandbox and exhaustive schema/
-renderer v3 amendment reached the third and final permitted monolithic HEAVY design
-review. Review 3 returned `BLOCKED` on five demonstrated contract failures and the
-required HALT/escalation occurred without a build or post-HALT repository mutation.
-Alex resolved that HALT by withdrawing the monolithic memo and slicing the ladder
-into three independently reviewed objects. Slice A (Layer-0 inventory plus a closed
-Disclosure/Coverage-only renderer) exhausted its independent three-block design rule
-and is PARKED with no build, fourth amendment, or fourth review. Its final review
-closed every v3 target but demonstrated one persisted-evidence-preimage defect in the
-fixed bundle; renderer closure, non-accusation, and development/production isolation
-retained assent. Slice B is now the sole active design track: three or four CSV
-observation verifiers plus exactly one CSV-only question composition rule. Read-only
-premise measurement found 704 frozen CSV materializations collapsing to 107 unique
-payloads, all strict-CSV/shape accepted; 105 contain a repeated-value column and 95 a
-binary column. A fresh small Slice-B v1 memo now binds four byte-derived observation
-types, one conditional MaterialQuestion template, and a two-path verifier/composer
-transaction; it awaits fresh HEAVY design review 1. No Slice B build has occurred, and
-no false-accusation HALT has occurred).
+Updated: 2026-08-18 (Growth-12/13/14/15 and checkpoint K are closed with zero scored
+false accusations. The primary mission is trustworthy graded audit reports. Alex
+withdrew the blocked monolithic ladder and split it into three independent slices.
+Slice A exhausted its own three-block design rule and is PARKED with no build or
+fourth amendment. Slice B is the active track: four CSV observation verifiers plus
+exactly one CSV-only question rule on the manifest-bijection path. Fresh maximum-
+effort design review 1 correctly returned `BLOCKED` before build on three prospective
+contract routes: an impossible partition-mutation assertion, unsupported materiality
+and scientific-unit presuppositions in the question, and incomplete/impossible
+renderer closure. No report or implementation existed, so this was not a false-
+observation or false-accusation HALT. Binding Slice-B memo Section 12 now defines
+aggregate-sensitive mutation truth, requires the existing independently verified
+explicit review-scope selection proof, makes all use/unit/dependence clauses
+non-presuppositional, freezes every renderer byte, and replaces substring policing
+with a source-dataflow leakage criterion. Slice B is at design attempt 2 of 3 and
+awaits a fresh full HEAVY review; no build is authorized. Slice C remains next and
+inherits the already measured pinned H5AD/Scanpy premises without remeasurement. The
+seven `reader-form-unsupported` singleton census cases remain the next Layer-3 growth
+priority by completion yield behind the ladder milestones. The planted-positive
+observation remains `0/47`; checkpoint K ran only by explicit maintainer authorization.)
 
 ## Scoreboard
 
@@ -582,6 +563,62 @@ no false-accusation HALT has occurred).
   Coverage. A fresh maximum-effort design review 1 must execute the complete Section
   10 truth, grammar/algebra, forgery, renderer, gate, and adversarial-reading matrix.
   Only five assents plus `SLICE-B VERDICT: CLEAR TO BUILD` authorize fresh builders.
+- Fresh maximum-effort design reviewer
+  `01a013ad-47a4-7e11-a7ca-2e5fb6f20a31` reviewed exact clean local/tracking/remote
+  `75bd7195e57feb2211104bee901735a363153e20` and returned
+  `SLICE-B VERDICT: BLOCKED`. Its protocol-complete 7,135-byte final report is
+  `/tmp/audit-report-ladder-slice-b-review1-complete-last.txt` at
+  `sha256:672683109484e400326b93330ea9f869734ebec4f662b03ef0094e2d9a6dea33`.
+  This is Slice B block 1 of 3. No Slice-B implementation or report existed; every
+  route is a prospective design defect, not an emitted false observation, question,
+  concern, Finding, or accusation. No zero-FA HALT occurred.
+- Review 1 assented to manifest/byte binding and development/production isolation.
+  It executed 42 hostile manifest/material mutations plus six controls; 36 grammar
+  cases, 66,429 exhaustive and 5,000 randomized tables; 132 observation mutations,
+  fourteen mixed sets, all 24 orderings, and eight forged API inputs; and 100
+  deterministic renderer passes. The evidence digests were respectively
+  `158a9351656b4b51e0bd8f43065799daf5c0961e549fff4dc5eeac5d36715b1e`,
+  `b11ce7f78a45b5340924da9b5c498e507e726070ce8b79e944715c0a62b4d880`,
+  `a934ffa07a1c0548105dabfc7f792c1bba904c1c92f16266420e138633d51b45`,
+  and `a96bbe36c68852686e4d3a6ff28fd734fadbb376ae50037cc3b3503f971e863f`.
+  Focused tests passed 39; scoped Ruff/format and `mypy src` passed; both pins,
+  protected v1 hashes, and zero-v2 production imports held.
+- Three blockers were demonstrated. A one-byte candidate-partition change from
+  multiplicities `(4,2)` to `(3,3)` preserved every registered numeric aggregate,
+  contradicting the memo's universal mutation assertion
+  (`sha256:cb9b256a4e59307dbb67fc2b3979fe5f991fdb1ec20cae7d409685f94ba31435`).
+  The same M2 facts made the question fire in an unused-file/non-unit world, so its
+  grade and wording overclaimed relevance and unit meaning
+  (`sha256:32927be8229356e6304cf2df3292766f29b1c25440ab0073a96264e028f7110e`).
+  Finally, the twelve Coverage explanations and four appendix layouts were not exact
+  byte registries, while a global hostile-substring ban was impossible because raw
+  values can coincide with fixed words such as M2's `group`, `None.`, or
+  `MATERIAL QUESTION`. Footer: `MANIFEST-AND-BYTE-BINDING: ASSENT`;
+  `CSV-OBSERVATION-TRUTH: REFUSE`; `QUESTION-RUNG-HONESTY: REFUSE`;
+  `RENDERER-CLOSURE: REFUSE`; `DEVELOPMENT-PRODUCTION-ISOLATION: ASSENT`.
+- The reviewer's original read-only sandbox could not create pytest temporary files.
+  A first physical-read-only continuation proved too strong: copied fixtures inherited
+  `0444`, causing nineteen permission-only failures and one wheel build refusal. The
+  same reviewer then bound a clean writable `/tmp` clone to exact HEAD/tree
+  `75bd719` / `d357bb410a1f0e3642efb9b80f8b4a93b43cfc88`, re-ran the exact authoritative
+  serial command, and observed 4,496/4,496 passing dots plus one `PYTEST_EXIT=0`.
+  Its 5,055-byte log is
+  `/tmp/sc-referee-slice-b-review1-continuation.J8N16V/authoritative-serial-pytest-writable-snapshot.log`
+  at `sha256:c1c79241acf72fc9b0356c4d20c21292449e49e6e0a1bf697c76b83b142e8c2a`.
+  The scratch clone's tracked files and the governed branch, worktree, memo, M2 bytes,
+  and manifest were unchanged afterward.
+- Binding memo Section 12 is the narrow v2 correction for design attempt 2. It makes
+  byte/content identities change on every accepted byte mutation while numeric facts
+  change only when a defined aggregate changes; requires the existing independently
+  validated `selected-material-input-for-review` scope proof before the question may
+  emit; asks analysis-use, unit-meaning, and dependence conditions without asserting
+  any; freezes the complete report skeleton, question block, four observation lines,
+  twelve primary Coverage lines, and one secondary scope line; and defines leakage as
+  raw-data flow into a renderer slot rather than substring coincidence. Fresh review
+  2 must replay the entire round-1 inventory plus the exact counterexamples and full
+  gate. The amended memo is 720 lines / 37,129 bytes at
+  `sha256:a300c5e2d3c602157a70d9f957e062903bb669a65ebe64ee1b1e9b58e1789cc3`.
+  Only five assents plus unconditional `CLEAR TO BUILD` authorize builders.
 - Slice C follows independently: H5AD Tier 1 plus the world-1 Scanpy fixture report.
   It inherits the exact pinned anndata/h5py and private CPython 3.11.15 + Scanpy 1.11.5
   sandboxes, the byte-frozen script/H5AD fixture, and every semantics measurement from
