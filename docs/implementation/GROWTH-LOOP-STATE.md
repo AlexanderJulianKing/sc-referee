@@ -24,12 +24,16 @@ executed two-world probe showed the private worker lacked the canonical reposito
 inventory preimage needed to re-prove package identity, the current pinned runtime had
 18 unexpected PyYAML cache entries, and the closed registry lacked one refusal facet.
 Slice C therefore stands at 2 major-bearing / 1 minor-only, below the reformed
-three-major shelf threshold. The runtime entries are not unexplained package drift:
+three-major shelf threshold. The runtime entries were not unexplained package drift:
 they were created by one completed concurrent Slice-B builder command that invoked the
-Slice-C interpreter without bytecode suppression and imported `yaml`. The exact command
-and transcript are preserved; no runtime byte has been repaired or removed without
-maintainer authority. No Slice-C build, observation, emitted report, or false sentence
-exists. Read-only unmasking disproved the old seven-case reader-form completion estimate:
+Slice-C interpreter without bytecode suppression and imported `yaml`. Alex then
+authorized an exact recoverable repair. A fresh fix builder atomically quarantined only
+the one undeclared directory and seventeen `.pyc` files, and a distinct fresh
+maximum-effort reviewer independently replayed the full runtime/CPython manifests,
+quarantine recovery, RECORD/wheel identities, and complete rollback history with no
+finding and `CLEAR TO BUILD` for the runtime-repair gate only. No Slice-C build,
+observation, emitted report, or false sentence exists. Read-only unmasking disproved
+the old seven-case reader-form completion estimate:
 a pure reader-form round completes 0/7 census and 0/7 frozen recurrences, so Layer-3
 priorities must be re-ranked before that design begins. The planted-positive observation remains
 `0/47`; checkpoint K ran only by explicit maintainer authorization.)
@@ -476,10 +480,70 @@ priorities must be re-ranked before that design begins. The planted-positive obs
   `sha256:2c07a624ec61b0c4845fd66080a8075c9bd69a75f7384095f58728cd7fc991d8`;
   the cache birth time is exactly 2026-08-18 08:59:29 PDT inside that builder session.
   This was a parallel-track process-isolation breach. No declared runtime row was
-  altered and no report was emitted, but the runtime stays invalid until the maintainer
-  authorizes an exact, recoverable removal/recreation and the full manifest replays.
+  altered and no report was emitted. At that gate the runtime remained invalid pending
+  an exact, recoverable maintainer-authorized repair and full manifest replay; the
+  following record resolves that condition.
   The reviewer/orchestrator briefs now forbid all cross-track runtime use, require `-B`
   plus `PYTHONDONTWRITEBYTECODE=1`, and require before/after manifest validation.
+- MAINTAINER RUNTIME-REPAIR AUTHORIZATION (Alex, direct in this chat, 2026-08-18):
+  quarantine/remove exactly the undeclared
+  `venv/lib/python3.11/site-packages/yaml/__pycache__` directory and its seventeen
+  direct `.pyc` children—18 entries and 276,965 regular-file bytes—recoverably, then
+  replay the complete runtime manifest. No declared runtime file, reinstall, pin,
+  premise, root seal, protected path, or repository surface was authorized to change.
+  The fresh maximum-effort repair builder worked from detached clean
+  `9f1a82ca7a86f869797bf947a4fc67046a170282` with read-only `.git`. Its immutable
+  4,979-byte final handoff is `/tmp/slice-c-runtime-cache-repair-builder-last.txt` at
+  `sha256:55072357a0f30f826f4d9d4c6f776115492825f2b35e0d12b2f6d35f0ac98bf8`;
+  its 6,383,802-byte transcript is
+  `sha256:a39a4f4e7901f96f9a510cdfa3475098b3aa100a780468ea9581a8d76bc9bb2a`.
+  The final 68-entry builder evidence ledger is 11,481 bytes at
+  `sha256:74baf7eb7d892634814fb6b1501090f3505a89a39eb9815043be75eafe6050e3`.
+- The builder's first two runs refused before mutation because an over-strict read-race
+  signature included APFS read-side timestamp normalization. The third run used one
+  authorized forward rename, detected a scratch-only restoration-copy group mismatch,
+  and safely atomically rolled the exact directory back; complete 12,705-row runtime
+  and 3,149-row CPython prestates were restored before the final run. The successful
+  run then made one same-device descriptor-relative atomic rename of the exact source
+  directory to
+  `/tmp/sc-referee-slice-c-runtime-repair-builder.8n3EOW/slice-c-runtime-repair.xeqClA/quarantine/yaml__pycache__`.
+  It used no deletion, reinstall, live chmod/chown, pinned-runtime execution, repository
+  edit, commit, push, manifest rewrite, or STATE edit. The quarantine retains one
+  directory plus seventeen direct regular files, 276,965 bytes, and reconstructs the
+  original unexpected projection exactly at
+  `sha256:869be30fbc5d459730ab413449e50c2f2611e2ab38deeb98eff19642d9a97c73`.
+  A scratch-only restoration rehearsal retained all bytes, names, modes, ownership,
+  mtime, and xattrs. The successful postflight found runtime 12,687/12,687 and CPython
+  3,149/3,149 with zero missing, extra, or non-directory mismatch; all 42 wheels,
+  11,561 RECORD rows, 60 immutable artifacts, four root identities/modes, and the
+  detached repository snapshot remained exact.
+- A distinct fresh maximum-effort operational reviewer then independently reconstructed
+  every result without importing or executing the builder program or the pinned
+  interpreter. Its immutable 2,830-byte final message is
+  `/tmp/slice-c-runtime-cache-repair-review-last.txt` at
+  `sha256:57edfd67e05dccb736babc8887ffa1759d13b145a8fc873462ab9c74cf51ca90`;
+  its detailed 15,634-byte formal review is
+  `/tmp/sc-referee-slice-c-runtime-repair-adversarial-review.RTOa4G/verified-evidence-2/formal-review.md`
+  at `sha256:f9dfade5ef7b5d7f6830a5b25a619a8b4c0a5b7ea7898db472bf271bca977697`.
+  The canonical 62-entry, 23,348-byte evidence ledger is
+  `sha256:b57462b15247ae30cecf5100da3782aba8a90d278de3acf3a1379c9b387a38e9`.
+  Independent replay again found runtime 12,687/12,687 and CPython 3,149/3,149; zero
+  missing, extra, or common non-directory mismatch; exact directory-mode restoration
+  rows; all 42 wheels and all 11,561 RECORD rows; byte-identical protected/repository
+  and external premise snapshots; exact quarantine identity/projection/recoverability;
+  and exact third-attempt rollback reconstruction. Scratch-only content, mode,
+  symlink, missing, and extra controls all refused. It reported no MAJOR or MINOR
+  finding and returned `RUNTIME-MANIFEST: ASSENT`,
+  `QUARANTINE-RECOVERABILITY: ASSENT`, `DECLARED-BYTE-STABILITY: ASSENT`,
+  `ROLLBACK-HISTORY: ASSENT`, and
+  `SLICE-C RUNTIME REPAIR VERDICT: CLEAR TO BUILD`.
+- This clear operational review increments no Slice-C design-review counter and clears
+  only the runtime-repair gate. Slice C remains 2 major-bearing / 1 minor-only. The
+  Section-14 request still lacks the canonical repository-inventory preimage and
+  selected record/material identities, and the registry still lacks the closed
+  `registry-invalid` facet and total precedence. Both require one narrow binding memo/
+  registry amendment and a fresh maximum-effort design review before any Slice-C
+  implementation or rendered report is authorized.
 
 ## Checkpoint K — completed, explicit authorization track
 
