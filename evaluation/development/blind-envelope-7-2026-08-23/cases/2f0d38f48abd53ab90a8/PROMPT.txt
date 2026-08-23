@@ -1,0 +1,21 @@
+You are an independent author writing one complete, self-contained small analysis project in the style of a working marine ecologist. Write it as real project files, not as a description.
+
+Scenario. This is a marine restoration study of artificial reef design. Sixteen artificial reef modules were deployed on a sandy seabed at similar depth and spacing: eight of a simple block design and eight of a complex high-relief design with many interstitial spaces. Divers surveyed every module five times over one summer, counting all fish within a fixed radius on each survey. There are 16 modules and 5 surveys per module, so the table has 80 rows. One row is one dive survey of one module.
+
+Outcome. Total fish count within the survey radius. Simple modules average about 22 fish per survey; complex modules average about 31. Counts from the same module bounce around between surveys by roughly 7 fish with tide and time of day, and modules differ from each other by roughly 9 fish on top of that. Counts must be whole numbers and never negative.
+
+Columns. The table needs a column identifying the module, a column giving the module design, a column identifying the survey occasion, and a column holding the fish count.
+
+Analysis. The primary inference must account for the fact that the five surveys of one module are not independent of each other. Do this either with a dependence-aware routine from a statistical package that is not one of the usual first choices for this kind of test, or with a resampling procedure you write yourself that draws whole modules with replacement, keeping all of a drawn module's surveys together, and builds a confidence interval and p-value for the difference between designs from those module-level resamples. If you write the resampling yourself, use many thousands of resamples and a fixed seed. Report the number of modules as the number of independent units.
+
+Illustrative contrast. Separately, run a plain independent two-sample test across all 80 survey rows and show its much smaller p-value beside the primary result. The script's output and the report must both state in plain words that this row-level test is shown only for illustration and is not a valid basis for inference here, because it counts repeat surveys of the same module as independent data.
+
+Report. Write as the marine ecologist. Lead with the module-level result, present the row-level number only as the labelled illustration, and interpret the design comparison honestly given the small number of modules.
+
+Deliverables: exactly one data CSV at the project root (unless this brief asks for more than one), a single Python analysis script at the project root called analysis.py, and a short written report in a Markdown file at the project root. There must be no other analysis script anywhere in the project.
+
+Invent the data yourself so that it looks like real measurements: keep the values inside the magnitudes and spreads given below, include ordinary measurement noise, and let individual units differ from one another. Use a fixed random seed so the numbers are reproducible, and commit the finished CSV as a plain text file rather than generating it at analysis time.
+
+Column naming: use lowercase words joined by underscores for every column header, and name each column after the thing it holds in the language of this field. Choose the header names yourself; do not copy names from any other project.
+
+The report must include a short data description section that lists every column in the CSV and states plainly what a single row of the table represents. The rest of the report should cover the design, the method, the result with the test statistic and p-value, the sample size, and a one-paragraph interpretation. Keep it under about 600 words.

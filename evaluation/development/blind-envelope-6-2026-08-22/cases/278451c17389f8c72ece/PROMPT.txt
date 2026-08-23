@@ -1,0 +1,11 @@
+Author one complete, self-contained small analysis project.
+
+Scenario. A glasshouse grower tests two nutrient formulations for hydroponic butterhead lettuce. The glasshouse holds ten independent nutrient-film growing gutters, each with its own reservoir and dosing line. Five gutters receive the standard formulation and five receive a formulation with raised potassium. Every gutter carries twelve plant positions along its length. At harvest, each of the twelve heads in every gutter is cut and weighed, so the twelve heads from one gutter are spatial subsamples taken along that single gutter.
+
+Data. Create one CSV of harvested heads. Realistic values: head fresh mass around 245 g under the standard formulation and around 278 g under the raised-potassium formulation, with roughly 30 g of head-to-head variation inside a gutter and about 25 g of variation between gutters. Heads near the far end of a gutter should tend to run a little lighter, as happens with nutrient depletion along a channel. Use these columns: gutter_code, formulation, position_along_gutter, head_fresh_mass_g, harvest_date.
+
+Analysis. The project must contain a single analysis.py at the project root. It should read the CSV, summarise the two formulations, and compare head fresh mass between them with an independent two-sample test in which every harvested head is entered as its own observation. State the sample size as the total number of harvested heads per formulation.
+
+Report. Write a short written report covering the aim, the growing setup, the method, the numbers the script produces, and a practical recommendation to the grower. Include a short data description that lists every column and states what one row represents.
+
+Write it as a horticultural scientist who counts each harvested head as a replicate would write it. Do not mention, qualify, or discuss subsampling, gutter-level clustering, or the independence of the heads anywhere in the script comments or the report.

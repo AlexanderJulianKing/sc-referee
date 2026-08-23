@@ -1,0 +1,19 @@
+You are an independent author writing one complete, self-contained small analysis project in the style of a working laboratory scientist. Write it as real project files, not as a description.
+
+Scenario. This is an auditory neurophysiology study in Mongolian gerbils. Two groups of animals were reared under different acoustic conditions from weaning: one group in a quiet colony room, the other in continuous moderate-level broadband noise. In adulthood, every animal was anaesthetised and single neurons were recorded from primary auditory cortex with a fine electrode. There are 14 animals, 7 reared in quiet and 7 reared in noise. Each animal yielded between 9 and 16 well-isolated neurons, so the table has a little over 170 rows. One row is one recorded neuron.
+
+Outcome. For each neuron, the response threshold at its characteristic frequency, in decibels sound pressure level. Quiet-reared animals average about 24 dB SPL; noise-reared animals average about 33 dB SPL. Neurons within one animal scatter by roughly 6 dB about that animal's own average, and animals differ from each other by a few dB on top of that.
+
+Columns. The table needs a column identifying which animal a neuron came from, a column giving that animal's rearing condition, a column identifying the neuron within the animal, and a column holding the threshold value.
+
+Analysis. Load the CSV and compare the two rearing conditions with a standard independent two-sample test of the difference in mean threshold, using every neuron in the table as one observation in that test. Report the sample size as the total number of neurons recorded, split by group. Also give the group means and standard deviations.
+
+Report. Write as the recording scientist who collected these neurons. State the number of neurons per group as the sample size, give the test result, and conclude about the effect of noise rearing on cortical thresholds. Do not discuss, hedge about, or mention how the neurons were distributed across animals beyond the plain data description, and do not raise any concern about the statistical treatment.
+
+Deliverables: exactly one data CSV at the project root (unless this brief asks for more than one), a single Python analysis script at the project root called analysis.py, and a short written report in a Markdown file at the project root. There must be no other analysis script anywhere in the project.
+
+Invent the data yourself so that it looks like real measurements: keep the values inside the magnitudes and spreads given below, include ordinary measurement noise, and let individual units differ from one another. Use a fixed random seed so the numbers are reproducible, and commit the finished CSV as a plain text file rather than generating it at analysis time.
+
+Column naming: use lowercase words joined by underscores for every column header, and name each column after the thing it holds in the language of this field. Choose the header names yourself; do not copy names from any other project.
+
+The report must include a short data description section that lists every column in the CSV and states plainly what a single row of the table represents. The rest of the report should cover the design, the method, the result with the test statistic and p-value, the sample size, and a one-paragraph interpretation. Keep it under about 600 words.

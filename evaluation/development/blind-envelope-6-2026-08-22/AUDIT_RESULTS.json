@@ -1,0 +1,432 @@
+{
+  "audit_invocation": "sc-referee audit <case>/project --material-input <authorized csv from that case's own method-contract lock, bare filename relative to the audited project> --method-contract-lock <case>/method-contract/semantic.lock.json --output <case>/audit-run-N  (no --report; reportless code lane)",
+  "cases": [
+    {
+      "all_finding_titles": [],
+      "case_id": "03ee21366b62d03a9b26",
+      "conditional_concerns": 0,
+      "dependence_abstention_reasons": [
+        "unique-nonindex-authorized-unit-composite-key-possible"
+      ],
+      "dependence_check_version": "2.2.0",
+      "dependence_detector_result_count": 0,
+      "dependence_evaluation_candidate_count": 0,
+      "dependence_module_state": "unsupported",
+      "dependence_observation_applicability": [
+        "unsupported"
+      ],
+      "dependence_status": "unsupported: unique-nonindex-authorized-unit-composite-key-possible",
+      "detector_version": "2.2.0",
+      "finding_title": null,
+      "findings": 0,
+      "material_input_used": "kit_weaning_weights.csv",
+      "material_questions": 2,
+      "replay_identical": true,
+      "replay_residual_difference_fields": [],
+      "run1_path": "evaluation/development/blind-envelope-6-2026-08-22/cases/03ee21366b62d03a9b26/audit-run-1",
+      "run1_run2_identical": false,
+      "run1_run2_identical_after_masking_run_scoped_fields": true,
+      "run1_run2_residual_difference_fields": [
+        ".coverage_records[].audit_run_id",
+        ".coverage_records[].coverage_id",
+        ".coverage_records[].generated_at",
+        ".coverage_records[].provenance.created_at",
+        ".coverage_records[].unknown_semantic_ids[]"
+      ],
+      "run1_run2_unexpected_difference_fields": []
+    },
+    {
+      "all_finding_titles": [],
+      "case_id": "278451c17389f8c72ece",
+      "conditional_concerns": 0,
+      "dependence_abstention_reasons": [
+        "tracked-value-mutation"
+      ],
+      "dependence_check_version": "2.2.0",
+      "dependence_detector_result_count": 0,
+      "dependence_evaluation_candidate_count": 0,
+      "dependence_module_state": "unsupported",
+      "dependence_observation_applicability": [
+        "unsupported"
+      ],
+      "dependence_status": "unsupported: tracked-value-mutation",
+      "detector_version": "2.2.0",
+      "finding_title": null,
+      "findings": 0,
+      "material_input_used": "lettuce_harvest.csv",
+      "material_questions": 2,
+      "replay_identical": true,
+      "replay_residual_difference_fields": [],
+      "run1_path": "evaluation/development/blind-envelope-6-2026-08-22/cases/278451c17389f8c72ece/audit-run-1",
+      "run1_run2_identical": false,
+      "run1_run2_identical_after_masking_run_scoped_fields": true,
+      "run1_run2_residual_difference_fields": [
+        ".coverage_records[].audit_run_id",
+        ".coverage_records[].coverage_id",
+        ".coverage_records[].generated_at",
+        ".coverage_records[].provenance.created_at",
+        ".coverage_records[].unknown_semantic_ids[]"
+      ],
+      "run1_run2_unexpected_difference_fields": []
+    },
+    {
+      "all_finding_titles": [],
+      "case_id": "5b1e03e13ef7e2e727dc",
+      "conditional_concerns": 0,
+      "dependence_abstention_reasons": [
+        "unique-nonindex-authorized-unit-composite-key-possible"
+      ],
+      "dependence_check_version": "2.2.0",
+      "dependence_detector_result_count": 0,
+      "dependence_evaluation_candidate_count": 0,
+      "dependence_module_state": "unsupported",
+      "dependence_observation_applicability": [
+        "unsupported"
+      ],
+      "dependence_status": "unsupported: unique-nonindex-authorized-unit-composite-key-possible",
+      "detector_version": "2.2.0",
+      "finding_title": null,
+      "findings": 0,
+      "material_input_used": "bifidobacterium_samples.csv",
+      "material_questions": 2,
+      "replay_identical": true,
+      "replay_residual_difference_fields": [],
+      "run1_path": "evaluation/development/blind-envelope-6-2026-08-22/cases/5b1e03e13ef7e2e727dc/audit-run-1",
+      "run1_run2_identical": false,
+      "run1_run2_identical_after_masking_run_scoped_fields": true,
+      "run1_run2_residual_difference_fields": [
+        ".coverage_records[].audit_run_id",
+        ".coverage_records[].coverage_id",
+        ".coverage_records[].generated_at",
+        ".coverage_records[].provenance.created_at",
+        ".coverage_records[].unknown_semantic_ids[]"
+      ],
+      "run1_run2_unexpected_difference_fields": []
+    },
+    {
+      "all_finding_titles": [],
+      "case_id": "d89ab3ef408520667cc1",
+      "conditional_concerns": 0,
+      "dependence_abstention_reasons": [
+        "interprocedural-call-unresolved"
+      ],
+      "dependence_check_version": "2.2.0",
+      "dependence_detector_result_count": 0,
+      "dependence_evaluation_candidate_count": 0,
+      "dependence_module_state": "unsupported",
+      "dependence_observation_applicability": [
+        "unsupported"
+      ],
+      "dependence_status": "unsupported: interprocedural-call-unresolved",
+      "detector_version": "2.2.0",
+      "finding_title": null,
+      "findings": 0,
+      "material_input_used": "salt_in_moisture.csv",
+      "material_questions": 2,
+      "replay_identical": true,
+      "replay_residual_difference_fields": [],
+      "run1_path": "evaluation/development/blind-envelope-6-2026-08-22/cases/d89ab3ef408520667cc1/audit-run-1",
+      "run1_run2_identical": false,
+      "run1_run2_identical_after_masking_run_scoped_fields": true,
+      "run1_run2_residual_difference_fields": [
+        ".coverage_records[].audit_run_id",
+        ".coverage_records[].coverage_id",
+        ".coverage_records[].generated_at",
+        ".coverage_records[].provenance.created_at",
+        ".coverage_records[].unknown_semantic_ids[]"
+      ],
+      "run1_run2_unexpected_difference_fields": []
+    },
+    {
+      "all_finding_titles": [],
+      "case_id": "92c016654c6c93979fff",
+      "conditional_concerns": 0,
+      "dependence_abstention_reasons": [
+        "admission-slice-reaches-operand"
+      ],
+      "dependence_check_version": "2.2.0",
+      "dependence_detector_result_count": 0,
+      "dependence_evaluation_candidate_count": 0,
+      "dependence_module_state": "unsupported",
+      "dependence_observation_applicability": [
+        "unsupported"
+      ],
+      "dependence_status": "unsupported: admission-slice-reaches-operand",
+      "detector_version": "2.2.0",
+      "finding_title": null,
+      "findings": 0,
+      "material_input_used": "wing_lengths.csv",
+      "material_questions": 2,
+      "replay_identical": true,
+      "replay_residual_difference_fields": [],
+      "run1_path": "evaluation/development/blind-envelope-6-2026-08-22/cases/92c016654c6c93979fff/audit-run-1",
+      "run1_run2_identical": false,
+      "run1_run2_identical_after_masking_run_scoped_fields": true,
+      "run1_run2_residual_difference_fields": [
+        ".coverage_records[].audit_run_id",
+        ".coverage_records[].coverage_id",
+        ".coverage_records[].generated_at",
+        ".coverage_records[].provenance.created_at",
+        ".coverage_records[].unknown_semantic_ids[]"
+      ],
+      "run1_run2_unexpected_difference_fields": []
+    },
+    {
+      "all_finding_titles": [],
+      "case_id": "9d44076b46746ce05758",
+      "conditional_concerns": 0,
+      "dependence_abstention_reasons": [
+        "unregistered-component-consumer"
+      ],
+      "dependence_check_version": "2.2.0",
+      "dependence_detector_result_count": 0,
+      "dependence_evaluation_candidate_count": 0,
+      "dependence_module_state": "unsupported",
+      "dependence_observation_applicability": [
+        "unsupported"
+      ],
+      "dependence_status": "unsupported: unregistered-component-consumer",
+      "detector_version": "2.2.0",
+      "finding_title": null,
+      "findings": 0,
+      "material_input_used": "bat_activity.csv",
+      "material_questions": 2,
+      "replay_identical": true,
+      "replay_residual_difference_fields": [],
+      "run1_path": "evaluation/development/blind-envelope-6-2026-08-22/cases/9d44076b46746ce05758/audit-run-1",
+      "run1_run2_identical": false,
+      "run1_run2_identical_after_masking_run_scoped_fields": true,
+      "run1_run2_residual_difference_fields": [
+        ".coverage_records[].audit_run_id",
+        ".coverage_records[].coverage_id",
+        ".coverage_records[].generated_at",
+        ".coverage_records[].provenance.created_at",
+        ".coverage_records[].unknown_semantic_ids[]"
+      ],
+      "run1_run2_unexpected_difference_fields": []
+    },
+    {
+      "all_finding_titles": [],
+      "case_id": "2e97fd3e2ab5729b7f9c",
+      "conditional_concerns": 0,
+      "dependence_abstention_reasons": [
+        "aggregation-on-test-operand-path"
+      ],
+      "dependence_check_version": "2.2.0",
+      "dependence_detector_result_count": 0,
+      "dependence_evaluation_candidate_count": 0,
+      "dependence_module_state": "unsupported",
+      "dependence_observation_applicability": [
+        "unsupported"
+      ],
+      "dependence_status": "unsupported: aggregation-on-test-operand-path",
+      "detector_version": "2.2.0",
+      "finding_title": null,
+      "findings": 0,
+      "material_input_used": "kelp_blades.csv",
+      "material_questions": 2,
+      "replay_identical": true,
+      "replay_residual_difference_fields": [],
+      "run1_path": "evaluation/development/blind-envelope-6-2026-08-22/cases/2e97fd3e2ab5729b7f9c/audit-run-1",
+      "run1_run2_identical": false,
+      "run1_run2_identical_after_masking_run_scoped_fields": true,
+      "run1_run2_residual_difference_fields": [
+        ".coverage_records[].audit_run_id",
+        ".coverage_records[].coverage_id",
+        ".coverage_records[].generated_at",
+        ".coverage_records[].provenance.created_at",
+        ".coverage_records[].unknown_semantic_ids[]"
+      ],
+      "run1_run2_unexpected_difference_fields": []
+    },
+    {
+      "all_finding_titles": [],
+      "case_id": "6dfee3d81dba1754e893",
+      "conditional_concerns": 0,
+      "dependence_abstention_reasons": [
+        "no-repeated-authorized-unit"
+      ],
+      "dependence_check_version": "2.2.0",
+      "dependence_detector_result_count": 0,
+      "dependence_evaluation_candidate_count": 0,
+      "dependence_module_state": "not_applicable",
+      "dependence_observation_applicability": [
+        "not_applicable"
+      ],
+      "dependence_status": "not_applicable: no-repeated-authorized-unit",
+      "detector_version": "2.2.0",
+      "finding_title": null,
+      "findings": 0,
+      "material_input_used": "knee_rehab_6mwt.csv",
+      "material_questions": 2,
+      "replay_identical": true,
+      "replay_residual_difference_fields": [],
+      "run1_path": "evaluation/development/blind-envelope-6-2026-08-22/cases/6dfee3d81dba1754e893/audit-run-1",
+      "run1_run2_identical": false,
+      "run1_run2_identical_after_masking_run_scoped_fields": true,
+      "run1_run2_residual_difference_fields": [
+        ".coverage_records[].audit_run_id",
+        ".coverage_records[].coverage_id",
+        ".coverage_records[].generated_at",
+        ".coverage_records[].provenance.created_at",
+        ".coverage_records[].unknown_semantic_ids[]"
+      ],
+      "run1_run2_unexpected_difference_fields": []
+    },
+    {
+      "all_finding_titles": [],
+      "case_id": "71bd62d3b1b9d590020a",
+      "conditional_concerns": 0,
+      "dependence_abstention_reasons": [
+        "helper-free-name-unbound"
+      ],
+      "dependence_check_version": "2.2.0",
+      "dependence_detector_result_count": 0,
+      "dependence_evaluation_candidate_count": 0,
+      "dependence_module_state": "unsupported",
+      "dependence_observation_applicability": [
+        "unsupported"
+      ],
+      "dependence_status": "unsupported: helper-free-name-unbound",
+      "detector_version": "2.2.0",
+      "finding_title": null,
+      "findings": 0,
+      "material_input_used": "pvf_repeated_measures.csv",
+      "material_questions": 2,
+      "replay_identical": true,
+      "replay_residual_difference_fields": [],
+      "run1_path": "evaluation/development/blind-envelope-6-2026-08-22/cases/71bd62d3b1b9d590020a/audit-run-1",
+      "run1_run2_identical": false,
+      "run1_run2_identical_after_masking_run_scoped_fields": true,
+      "run1_run2_residual_difference_fields": [
+        ".coverage_records[].audit_run_id",
+        ".coverage_records[].coverage_id",
+        ".coverage_records[].generated_at",
+        ".coverage_records[].provenance.created_at",
+        ".coverage_records[].unknown_semantic_ids[]"
+      ],
+      "run1_run2_unexpected_difference_fields": []
+    },
+    {
+      "all_finding_titles": [],
+      "case_id": "7edfc9aa77704a8a46b8",
+      "conditional_concerns": 0,
+      "dependence_abstention_reasons": [
+        "additional-accepted-reader-present"
+      ],
+      "dependence_check_version": "2.2.0",
+      "dependence_detector_result_count": 0,
+      "dependence_evaluation_candidate_count": 0,
+      "dependence_module_state": "unsupported",
+      "dependence_observation_applicability": [
+        "unsupported"
+      ],
+      "dependence_status": "unsupported: additional-accepted-reader-present",
+      "detector_version": "2.2.0",
+      "finding_title": null,
+      "findings": 0,
+      "material_input_used": "tadpole_measurements.csv",
+      "material_questions": 2,
+      "replay_identical": true,
+      "replay_residual_difference_fields": [],
+      "run1_path": "evaluation/development/blind-envelope-6-2026-08-22/cases/7edfc9aa77704a8a46b8/audit-run-1",
+      "run1_run2_identical": false,
+      "run1_run2_identical_after_masking_run_scoped_fields": true,
+      "run1_run2_residual_difference_fields": [
+        ".coverage_records[].audit_run_id",
+        ".coverage_records[].coverage_id",
+        ".coverage_records[].generated_at",
+        ".coverage_records[].provenance.created_at",
+        ".coverage_records[].unknown_semantic_ids[]"
+      ],
+      "run1_run2_unexpected_difference_fields": []
+    },
+    {
+      "all_finding_titles": [],
+      "case_id": "b12c6fd59e338b7b156e",
+      "conditional_concerns": 0,
+      "dependence_abstention_reasons": [
+        "unregistered-component-consumer"
+      ],
+      "dependence_check_version": "2.2.0",
+      "dependence_detector_result_count": 0,
+      "dependence_evaluation_candidate_count": 0,
+      "dependence_module_state": "unsupported",
+      "dependence_observation_applicability": [
+        "unsupported"
+      ],
+      "dependence_status": "unsupported: unregistered-component-consumer",
+      "detector_version": "2.2.0",
+      "finding_title": null,
+      "findings": 0,
+      "material_input_used": "seedlings.csv",
+      "material_questions": 2,
+      "replay_identical": true,
+      "replay_residual_difference_fields": [],
+      "run1_path": "evaluation/development/blind-envelope-6-2026-08-22/cases/b12c6fd59e338b7b156e/audit-run-1",
+      "run1_run2_identical": false,
+      "run1_run2_identical_after_masking_run_scoped_fields": true,
+      "run1_run2_residual_difference_fields": [
+        ".coverage_records[].audit_run_id",
+        ".coverage_records[].coverage_id",
+        ".coverage_records[].generated_at",
+        ".coverage_records[].provenance.created_at",
+        ".coverage_records[].unknown_semantic_ids[]"
+      ],
+      "run1_run2_unexpected_difference_fields": []
+    },
+    {
+      "all_finding_titles": [],
+      "case_id": "2438210f2abe4b53295f",
+      "conditional_concerns": 0,
+      "dependence_abstention_reasons": [
+        "helper-free-name-unbound"
+      ],
+      "dependence_check_version": "2.2.0",
+      "dependence_detector_result_count": 0,
+      "dependence_evaluation_candidate_count": 0,
+      "dependence_module_state": "unsupported",
+      "dependence_observation_applicability": [
+        "unsupported"
+      ],
+      "dependence_status": "unsupported: helper-free-name-unbound",
+      "detector_version": "2.2.0",
+      "finding_title": null,
+      "findings": 0,
+      "material_input_used": "snail_weights.csv",
+      "material_questions": 2,
+      "replay_identical": true,
+      "replay_residual_difference_fields": [],
+      "run1_path": "evaluation/development/blind-envelope-6-2026-08-22/cases/2438210f2abe4b53295f/audit-run-1",
+      "run1_run2_identical": false,
+      "run1_run2_identical_after_masking_run_scoped_fields": true,
+      "run1_run2_residual_difference_fields": [
+        ".coverage_records[].audit_run_id",
+        ".coverage_records[].coverage_id",
+        ".coverage_records[].generated_at",
+        ".coverage_records[].provenance.created_at",
+        ".coverage_records[].unknown_semantic_ids[]"
+      ],
+      "run1_run2_unexpected_difference_fields": []
+    }
+  ],
+  "check_id": "check:authorized-independent-unit-entry-into-row-independent-procedure",
+  "closure_verification": {
+    "closure_digest": "sha256:e24f32713cf65c2bcc2acaa70895e822549882a6c5abd45114b992dc92915cad",
+    "closure_digest_recomputed_match": true,
+    "closure_verified": true,
+    "components_checked": 94,
+    "components_matched": 94,
+    "method": "Per-component sha256; kind=file over raw file bytes, kind=design_section over heading_range_lf_v1 extraction. closure_digest per manifest closure_digest_profile (sha256 over UTF-8 canonical JSON of implementation_closure with closure_digest omitted, keys sorted recursively, separators ',' and ':', ensure_ascii=true).",
+    "mismatched_component_ids": []
+  },
+  "closure_verified": true,
+  "envelope_id": "blind-envelope-6-2026-08-22",
+  "generated_at_utc": "2026-08-23T05:38:23Z",
+  "record_type": "blind_envelope_custodian_audit_results",
+  "replay_equality_method": "Projection {detector_results, findings, coverage_records} sorted by stable record id (result_id, finding_id, coverage_id), comparing audit-run-1 against a model-free `sc-referee replay` of audit-run-1's own semantic lock; run-1 vs run-2 compared on the same projection with residual differing field paths recorded. Equivalent to PSEUDOREP-CODE-SLICE-DESIGN-2026-08-22 section 11.2 step 12.",
+  "replay_note": "model-free `sc-referee replay` of each audit-run-1 semantic lock reproduces the audit-run-1 projection with zero differing field paths in all twelve cases (no masking applied).",
+  "run1_run2_masking_note": "run-1 vs run-2 projections are not byte-identical. Observed differing field paths: .coverage_records[].audit_run_id, .coverage_records[].coverage_id, .coverage_records[].generated_at, .coverage_records[].provenance.created_at, .coverage_records[].unknown_semantic_ids[]. Unexpected (outside the run-scoped identifier/timestamp/digest mask): none.",
+  "schema_version": "1.0.0",
+  "utc": "2026-08-23T05:38:23Z"
+}

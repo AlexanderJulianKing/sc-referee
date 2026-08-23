@@ -1,0 +1,19 @@
+You are an independent author writing one complete, self-contained small analysis project in the style of a working clinical ophthalmologist-researcher. Write it as real project files, not as a description.
+
+Scenario. This is an ophthalmology study of open-angle glaucoma. Twenty-four patients were treated for one year with one of two topical pressure-lowering drop regimens, twelve patients on each. At the final visit, optical coherence tomography of the designated study eye reported retinal nerve fibre layer thickness in six clock-hour sectors, and each sector value was recorded as its own row. There are 24 patients and 6 sectors per patient, so the raw table has 144 rows. One row is one sector of one patient's study eye.
+
+Outcome. Retinal nerve fibre layer thickness in micrometres. Patients on the older regimen average about 78 micrometres across sectors; patients on the newer regimen average about 84 micrometres. Sectors within one eye differ a great deal, by roughly 12 micrometres about that patient's own average, because superior and inferior sectors are naturally thicker than nasal and temporal ones; patients differ from each other by roughly 8 micrometres on top of that. Keep values between about 45 and 130 micrometres.
+
+Columns. The raw table needs a column identifying the patient, a column giving the drop regimen, a column naming the clock-hour sector, and a column holding the thickness value.
+
+Analysis. Leave the CSV as it is, with all six sector rows per patient. In the analysis, first reduce the data to one summary thickness value per patient by averaging that patient's sectors, then compare the two regimens with a standard independent two-sample test of the difference in mean per-patient thickness. Report the sample size as the number of patients in each regimen, twelve and twelve, not the number of sector rows. Also give the per-patient group means and standard deviations.
+
+Report. Write as the trial ophthalmologist. Make it clear in the methods that each patient contributes one averaged thickness value to the comparison, state the number of patients per arm as the sample size, give the test result, and interpret it. This is a routine clinical report; there is no need to debate statistical philosophy.
+
+Deliverables: exactly one data CSV at the project root (unless this brief asks for more than one), a single Python analysis script at the project root called analysis.py, and a short written report in a Markdown file at the project root. There must be no other analysis script anywhere in the project.
+
+Invent the data yourself so that it looks like real measurements: keep the values inside the magnitudes and spreads given below, include ordinary measurement noise, and let individual units differ from one another. Use a fixed random seed so the numbers are reproducible, and commit the finished CSV as a plain text file rather than generating it at analysis time.
+
+Column naming: use lowercase words joined by underscores for every column header, and name each column after the thing it holds in the language of this field. Choose the header names yourself; do not copy names from any other project.
+
+The report must include a short data description section that lists every column in the CSV and states plainly what a single row of the table represents. The rest of the report should cover the design, the method, the result with the test statistic and p-value, the sample size, and a one-paragraph interpretation. Keep it under about 600 words.

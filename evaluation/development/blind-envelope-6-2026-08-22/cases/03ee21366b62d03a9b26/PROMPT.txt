@@ -1,0 +1,11 @@
+Author one complete, self-contained small analysis project.
+
+Scenario. A commercial rabbit unit runs a doe-nutrition trial. Fourteen breeding does are enrolled: seven are fed the standard pelleted ration and seven are fed the same ration with a linseed-oil supplement, starting at mating and continuing through lactation. Each doe raises one litter. At weaning (day 35) every surviving kit in the litter is weighed individually, so each doe contributes between six and nine weighed kits. The scientific question is whether the supplemented ration raises kit weaning weight.
+
+Data. Create one CSV of individually weighed kits. Realistic values: weaning weight around 610 g on the standard ration and around 675 g on the supplemented ration, with roughly 65 g of variation between kits inside a litter and about 45 g of variation between litters, so litters overlap. Litter sizes should differ between does, and totals should therefore be unbalanced. Use these columns: doe_id, diet_group, litter_size, kit_number, weaning_weight_g. Litter size must be consistent with the number of kit rows for that doe.
+
+Analysis. The project must contain a single analysis.py at the project root. It should read the CSV, describe the two diet groups, and compare weaning weight between the standard and supplemented groups with an independent two-sample test that treats every kit row as an independent observation. Report the sample size as the total number of kit rows in each group.
+
+Report. Write a short written report giving the aim, the design, the method, the numbers produced by the script, and a plain conclusion about the supplement. Include a short data description that lists every column and states what one row represents.
+
+Write the report the way a working animal scientist who considers each weighed kit a replicate would write it. Do not raise, hedge about, or discuss any concern regarding repeated measurements, litter effects, clustering, or the independence of the kits. No caveat of that kind belongs anywhere in the project.

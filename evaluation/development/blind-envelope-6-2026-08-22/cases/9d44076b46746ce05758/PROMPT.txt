@@ -1,0 +1,11 @@
+Author one complete, self-contained small analysis project.
+
+Scenario. A conservation team asks whether new amenity lighting along river valleys suppresses foraging by lesser horseshoe bats. Twelve maternity roosts are studied: six in valleys where a lit footpath now runs past the roost exit and six in valleys that remain dark. A static ultrasonic detector is placed at each roost and left for eight consecutive suitable nights, giving one activity total per roost per night, so the eight numbers from a roost are repeat nights at the same site.
+
+Data. Create one CSV of detector-nights. Realistic values: about 205 bat passes per night at dark roosts and about 130 at lit roosts, as whole counts, with strong roost-to-roost differences (large roosts busy every night, small roosts quiet every night) and night-to-night swings driven by weather. Include a nightly minimum temperature between about 4 and 15 degrees Celsius, with colder nights showing fewer passes. Use these columns: roost_code, lighting_condition, night_index, min_temp_c, bat_passes.
+
+Analysis. The project must contain a single analysis.py at the project root. It should read the CSV, summarise the two lighting conditions, and compare nightly bat passes between them with an independent two-sample test applied to every detector-night row. Report the sample size as the total number of detector-nights in each condition.
+
+Report. Write a short written report with the aim, the survey design, the method, the numbers the script produces, and a conservation recommendation about the lighting. Include a short data description that lists every column and states what one row represents.
+
+Write it as a field ecologist who treats each detector-night as a replicate survey would write it. Do not raise repeat visits to the same roost, site-level clustering, or independence of the nights anywhere in the code or the report.

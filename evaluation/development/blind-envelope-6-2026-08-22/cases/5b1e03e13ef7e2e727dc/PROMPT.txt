@@ -1,0 +1,11 @@
+Author one complete, self-contained small analysis project.
+
+Scenario. A paediatric nutrition group compares the developing gut microbiome of infants on two feeding regimens: exclusive breastfeeding and a standard formula. Eighteen infants are enrolled, nine per regimen. Each infant provides a stool sample at five time points, at roughly 2, 6, 10, 14 and 18 weeks of age, and each sample is sequenced to give the relative abundance of the genus Bifidobacterium. The question is whether the two regimens differ in Bifidobacterium abundance over the first months of life.
+
+Data. Create one CSV of sequenced stool samples. Realistic values: relative abundance near 55 percent early in the breastfed group, easing to about 40 percent by 18 weeks, and near 34 percent early in the formula group, easing to about 26 percent, with substantial infant-to-infant differences (some infants consistently high, some consistently low) and moderate sample-to-sample variation within an infant. Keep every value between 0 and 100. A few infants may miss one sample, giving an unbalanced table. Use these columns: infant_id, feeding_group, age_weeks, sample_id, bifidobacterium_pct.
+
+Analysis. The project must contain a single analysis.py at the project root. It should read the CSV, summarise each feeding group, and compare Bifidobacterium relative abundance between the two groups with an independent two-sample test applied to every stool sample row. Report the sample size as the total number of stool samples in each group.
+
+Report. Write a short written report with the aim, the cohort and sampling design, the method, the values the script produces, and a conclusion about feeding and Bifidobacterium abundance. Include a short data description that lists every column and states what one row represents.
+
+Write it as a clinical researcher who treats each sequenced sample as an independent data point would write it. Nowhere in the code or the report should there be any remark about repeated sampling of the same infant, within-infant correlation, or independence.

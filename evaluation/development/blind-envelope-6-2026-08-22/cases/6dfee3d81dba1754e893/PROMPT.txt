@@ -1,0 +1,9 @@
+Author one complete, self-contained small analysis project.
+
+Scenario. An orthopaedic physiotherapy service compares two rehabilitation protocols after total knee replacement: standard supervised outpatient physiotherapy and a home-based programme with weekly telephone coaching. Forty-four patients are enrolled, twenty-two per protocol. Each patient performs a six-minute walk test once, at the three-month follow-up, and that single distance is the outcome. No patient is measured more than once, so the design has exactly one row per patient and the patient is both the unit of randomisation and the unit of measurement.
+
+Data. Create one CSV with exactly one row per patient and no repeated rows. Realistic values: six-minute walk distance near 415 m after standard outpatient physiotherapy and near 448 m after the home-based programme, with about 60 m of between-patient variation, plus patient age between 58 and 82 years and body mass index between 22 and 38, with older and heavier patients walking somewhat shorter distances. Use these columns: patient_ref, rehab_protocol, age_years, bmi, six_min_walk_m.
+
+Analysis. The project must contain a single analysis.py at the project root. It should read the CSV, summarise both protocols, and compare six-minute walk distance between them with an independent two-sample test on the patient rows, which is the correct unit here because each patient contributes exactly one measurement. Report the sample size as the number of patients per protocol, which equals the number of rows per protocol.
+
+Report. Write a short written report with the aim, the design, the method, the numbers the script produces, and a clinical conclusion about the two protocols. Make clear that each patient contributes one measurement. Include a short data description that lists every column and states what one row represents.

@@ -1,0 +1,11 @@
+Author one complete, self-contained small analysis project.
+
+Scenario. A medical entomology laboratory rears Anopheles mosquitoes to ask whether larval crowding reduces adult body size, which matters because larger females live longer and bite more. Sixteen rearing trays are set up: eight at low larval density and eight at high larval density, each tray with its own water, its own food ration and its own position on the rack. From each tray, ten emerged adult females are killed, mounted, and their right wing measured under a microscope as a standard index of body size. The ten mosquitoes from a tray are individuals subsampled from that tray's cohort.
+
+Data. Create one CSV of measured mosquitoes. Realistic values: wing length near 2.98 mm at low density and near 2.79 mm at high density, with roughly 0.11 mm of variation between mosquitoes inside a tray and about 0.08 mm of variation between trays, and values recorded to two decimal places. Use these columns: tray.ref, density.treatment, emergence.day, mosquito.no, wing.length.mm.
+
+Analysis. The project must contain a single analysis.py at the project root. It should read the CSV, summarise both density treatments, and compare wing length between them with an independent two-sample test in which each measured mosquito is one observation. Report the sample size as the total number of measured mosquitoes per treatment.
+
+Report. Write a short written report with the aim, the rearing and measuring protocol, the method, the numbers the script produces, and a conclusion about crowding and adult body size. Include a short data description that lists every column and states what one row represents.
+
+Write it as a vector biologist who counts each measured mosquito as a replicate would write it. Do not mention subsampling from trays, tray-level clustering, or the independence of the mosquitoes anywhere in the project.

@@ -1,0 +1,19 @@
+You are an independent author writing one complete, self-contained small analysis project in the style of a working audiology researcher. Write it as real project files, not as a description.
+
+Scenario. This is an audiology study of cochlear implant sound-processing strategies. Eighteen adult implant recipients with at least a year of device experience were tested in one session, nine using an established processing strategy and nine using a newer noise-reduction strategy. Each recipient completed five different standard sentence lists in background babble, and the percentage of words repeated correctly was scored for each list. There are 18 recipients and 5 lists per recipient.
+
+Files. Create two CSVs at the project root. The first is the raw scoring sheet: 90 rows, one row per sentence list per recipient, with a column identifying the recipient, a column giving the processing strategy, a column identifying which sentence list a row is, and a column holding the percentage of words correct. The second is the per-recipient summary sheet that the audiologist prepared from the session: 18 rows, one row per recipient, with a column identifying the recipient, a column giving the processing strategy, a column holding that recipient's mean percentage correct across their five lists, and a column recording how many lists that mean is based on. The two files must be numerically consistent with each other.
+
+Outcome. Percentage of words repeated correctly. Recipients on the established strategy average about 54 percent; recipients on the newer strategy average about 63 percent. Lists within one recipient scatter by roughly 9 percentage points, and recipients differ from each other by roughly 12 percentage points on top of that. Keep values between 0 and 100.
+
+Analysis. The group comparison must be run on the per-recipient summary file: read that file and compare the two strategies with a standard independent two-sample test of the difference in mean percentage correct, reporting the sample size as the number of recipients in each group, nine and nine. Read the raw scoring sheet only to report descriptive counts, such as how many lists were scored in total and how many per recipient. Do not run any inferential test on the raw list-level rows.
+
+Report. Write as the audiologist. Describe both files, say which one the comparison was run on, state the number of recipients per group as the sample size, give the test result, and interpret it. This is a routine clinical report; there is no need to debate statistical philosophy.
+
+Deliverables: exactly one data CSV at the project root (unless this brief asks for more than one), a single Python analysis script at the project root called analysis.py, and a short written report in a Markdown file at the project root. There must be no other analysis script anywhere in the project.
+
+Invent the data yourself so that it looks like real measurements: keep the values inside the magnitudes and spreads given below, include ordinary measurement noise, and let individual units differ from one another. Use a fixed random seed so the numbers are reproducible, and commit the finished CSV as a plain text file rather than generating it at analysis time.
+
+Column naming: use lowercase words joined by underscores for every column header, and name each column after the thing it holds in the language of this field. Choose the header names yourself; do not copy names from any other project.
+
+The report must include a short data description section that lists every column in the CSV and states plainly what a single row of the table represents. The rest of the report should cover the design, the method, the result with the test statistic and p-value, the sample size, and a one-paragraph interpretation. Keep it under about 600 words.

@@ -1,0 +1,19 @@
+You are an independent author writing one complete, self-contained small analysis project in the style of a working clinical researcher. Write it as real project files, not as a description.
+
+Scenario. This is a nephrology study in an outpatient haemodialysis unit. Patients on thrice-weekly maintenance haemodialysis were assigned to one of two oral phosphate-binder regimens, an established binder and a newer one. Blood was drawn before the mid-week dialysis session on eight consecutive weeks. There are 18 patients, 9 on each binder, and 8 sessions per patient, so the table has 144 rows. One row is one patient at one mid-week session.
+
+Outcome. Pre-dialysis serum phosphate concentration in millimoles per litre. Patients on the established binder average about 1.90 mmol/L; patients on the newer binder average about 1.55 mmol/L. Week-to-week variation within one patient is around 0.18 mmol/L, and patients differ from each other by around 0.35 mmol/L on top of that. Keep all values in a clinically plausible range, roughly 0.9 to 2.8 mmol/L.
+
+Columns. The table needs a column identifying the patient, a column giving the binder regimen, a column giving which study week the sample came from, and a column holding the phosphate value.
+
+Analysis. Load the CSV and compare the two regimens with a standard independent two-sample test of the difference in mean phosphate, using every blood sample in the table as one observation in that test. Report the sample size as the total number of samples analysed in each arm. Also give the group means and standard deviations.
+
+Report. Write as the study nephrologist. State the number of samples per arm as the sample size, give the test result, and conclude about the phosphate-lowering effect of the newer binder. Do not discuss, hedge about, or mention the repeated sampling of the same patients beyond the plain data description, and do not raise any concern about the statistical treatment.
+
+Deliverables: exactly one data CSV at the project root (unless this brief asks for more than one), a single Python analysis script at the project root called analysis.py, and a short written report in a Markdown file at the project root. There must be no other analysis script anywhere in the project.
+
+Invent the data yourself so that it looks like real measurements: keep the values inside the magnitudes and spreads given below, include ordinary measurement noise, and let individual units differ from one another. Use a fixed random seed so the numbers are reproducible, and commit the finished CSV as a plain text file rather than generating it at analysis time.
+
+Column naming: use lowercase words joined by underscores for every column header, and name each column after the thing it holds in the language of this field. Choose the header names yourself; do not copy names from any other project.
+
+The report must include a short data description section that lists every column in the CSV and states plainly what a single row of the table represents. The rest of the report should cover the design, the method, the result with the test statistic and p-value, the sample size, and a one-paragraph interpretation. Keep it under about 600 words.

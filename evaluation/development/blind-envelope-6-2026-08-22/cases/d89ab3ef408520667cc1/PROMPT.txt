@@ -1,0 +1,11 @@
+Author one complete, self-contained small analysis project.
+
+Scenario. A dairy technology laboratory compares two starter cultures used to make a semi-hard raw-milk cheese. Sixteen production vats are made over one season, eight with the traditional house culture and eight with a defined commercial culture. After ninety days of ripening, one composite sample is taken from each wheel-set and the salt-in-moisture content is measured three times on that same sample by the laboratory's titration method, so the three values from a vat are analytical replicates of one physical sample.
+
+Data. Create one CSV of titration measurements. Realistic values: salt-in-moisture near 4.25 percent for the traditional culture and near 4.70 percent for the commercial culture, with only about 0.07 percentage points of variation between the three replicates of one sample and about 0.30 percentage points of variation between vats, since vat-to-vat brining differences dominate. Use these columns: VatCode, CultureType, MakeDate, ReplicateNo, SaltInMoisturePct.
+
+Analysis. The project must contain a single analysis.py at the project root. It should read the CSV, summarise both cultures, and compare salt-in-moisture between them with an independent two-sample test that takes each titration measurement as an observation. State the sample size as the total number of titration measurements per culture.
+
+Report. Write a short written report with the aim, the make and sampling protocol, the method, the numbers the script produces, and a conclusion about whether the culture changes salt-in-moisture. Include a short data description that lists every column and states what one row represents.
+
+Write it as a food scientist who regards each analytical measurement as a replicate would write it. Do not include any comment, footnote, or limitation about analytical replication, vat-level clustering, or independence of the measurements.

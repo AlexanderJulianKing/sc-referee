@@ -1,0 +1,9 @@
+Author one complete, self-contained small analysis project.
+
+Scenario. A seaweed farm trials two seeding densities for cultivated sugar kelp. Fourteen dropper lines are deployed from the same longline: seven seeded at the standard density and seven seeded at a reduced density intended to give each plant more light. After five months, ten blades are haphazardly selected and measured on each dropper line, so one line yields ten measured blades.
+
+Data. Create one CSV of measured blades, keeping the repeated rows per line in the raw file. Realistic values: blade length near 96 cm at standard density and near 118 cm at reduced density, with roughly 22 cm of variation between blades on a line and about 15 cm of variation between lines. Also record blade wet mass, which should track length. Use these columns: dropper_line, seeding_density, blade_number, blade_length_cm, blade_wet_mass_g.
+
+Analysis. The project must contain a single analysis.py at the project root. It should read the CSV and first reduce the data to one value per dropper line by averaging that line's ten measured blades. The comparison between the two seeding densities must be an independent two-sample test carried out on those fourteen per-line averages, seven per density, and the reported sample size must be the number of dropper lines, not the number of blades. The script may print the blade count as a description of the sampling effort, but no inferential test may be run on individual blades.
+
+Report. Write a short written report with the aim, the farm layout and sampling, the averaging step and why the line is the unit of replication, the method, the numbers the script produces, and a conclusion about seeding density. State the sample size as the number of dropper lines. Include a short data description that lists every column of the raw file and states what one row represents.

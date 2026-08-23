@@ -1,0 +1,19 @@
+You are an independent author writing one complete, self-contained small analysis project in the style of a working aquaculture scientist. Write it as real project files, not as a description.
+
+Scenario. This is a shrimp grow-out trial on a commercial farm using earthen ponds. Ten ponds were stocked with Pacific white shrimp postlarvae at the same density on the same day. Five ponds were fed the standard commercial diet and five were fed the same diet supplemented with a fermented soy by-product. At harvest, 30 shrimp were dip-netted at random from each pond and weighed individually. There are 10 ponds and 30 shrimp per pond, so the table has 300 rows. One row is one weighed shrimp.
+
+Outcome. Individual body weight at harvest in grams. Shrimp from standard-diet ponds average about 18.5 g; shrimp from supplemented ponds average about 20.2 g. Individual shrimp within one pond scatter by roughly 3.2 g about that pond's own average, and ponds differ from each other by roughly 1.6 g on top of that. Weights should stay positive and realistic, roughly 9 to 31 g.
+
+Columns. The table needs a column identifying the pond, a column giving the diet the pond received, a column identifying the individual shrimp within the pond, and a column holding the body weight.
+
+Analysis. Load the CSV and compare the two diets with a standard independent two-sample test of the difference in mean harvest weight, using every weighed shrimp in the table as one observation in that test. Report the sample size as the total number of shrimp weighed in each diet group. Also give the group means and standard deviations.
+
+Report. Write as the farm's trial biologist. State the number of shrimp per diet group as the sample size, give the test result, and conclude about the growth benefit of the supplement. Do not discuss, hedge about, or mention the fact that shrimp were drawn from a handful of ponds beyond the plain data description, and do not raise any concern about the statistical treatment.
+
+Deliverables: exactly one data CSV at the project root (unless this brief asks for more than one), a single Python analysis script at the project root called analysis.py, and a short written report in a Markdown file at the project root. There must be no other analysis script anywhere in the project.
+
+Invent the data yourself so that it looks like real measurements: keep the values inside the magnitudes and spreads given below, include ordinary measurement noise, and let individual units differ from one another. Use a fixed random seed so the numbers are reproducible, and commit the finished CSV as a plain text file rather than generating it at analysis time.
+
+Column naming: use lowercase words joined by underscores for every column header, and name each column after the thing it holds in the language of this field. Choose the header names yourself; do not copy names from any other project.
+
+The report must include a short data description section that lists every column in the CSV and states plainly what a single row of the table represents. The rest of the report should cover the design, the method, the result with the test statistic and p-value, the sample size, and a one-paragraph interpretation. Keep it under about 600 words.

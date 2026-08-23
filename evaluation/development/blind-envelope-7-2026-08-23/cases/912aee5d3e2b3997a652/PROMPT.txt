@@ -1,0 +1,19 @@
+You are an independent author writing one complete, self-contained small analysis project in the style of a working field agronomist. Write it as real project files, not as a description.
+
+Scenario. This is an on-farm agronomy study of sugar beet seed treatments. Thirty-four commercial sugar beet fields, spread across one growing region and each belonging to a different farm, took part in a single season. Seventeen fields were drilled with seed carrying the standard fungicidal treatment and seventeen with seed carrying an added biological seed coating. Each field was harvested whole by the contractor and the delivered clean root yield for the field was recorded once from the weighbridge tickets. There are 34 fields and one harvest figure per field, so the table has 34 rows. One row is one whole field, and each field appears exactly once.
+
+Outcome. Clean root yield in tonnes per hectare. Fields drilled with standard-treated seed average about 62 t/ha; fields drilled with the added biological coating average about 67 t/ha. Field-to-field variation is large, around 7 t/ha, driven by soil type, sowing date and rainfall. Keep values between about 44 and 86 t/ha.
+
+Columns. The table needs a column identifying the field, a column giving the seed treatment that field received, a column with a simple agronomic covariate such as the drilling date or the field area in hectares, and a column holding the clean root yield.
+
+Analysis. Load the CSV and compare the two seed treatments with a standard independent two-sample test of the difference in mean yield, using each field's single harvest figure as one observation. Report the sample size as the number of fields in each treatment group, seventeen and seventeen. Also give the group means and standard deviations.
+
+Report. Write as the agronomist who coordinated the on-farm trial. Make clear that the field is the experimental unit and that each field contributes exactly one yield figure, state the number of fields per treatment as the sample size, give the test result, and interpret it for growers. This is a routine trial report; there is no need to debate statistical philosophy.
+
+Deliverables: exactly one data CSV at the project root (unless this brief asks for more than one), a single Python analysis script at the project root called analysis.py, and a short written report in a Markdown file at the project root. There must be no other analysis script anywhere in the project.
+
+Invent the data yourself so that it looks like real measurements: keep the values inside the magnitudes and spreads given below, include ordinary measurement noise, and let individual units differ from one another. Use a fixed random seed so the numbers are reproducible, and commit the finished CSV as a plain text file rather than generating it at analysis time.
+
+Column naming: use lowercase words joined by underscores for every column header, and name each column after the thing it holds in the language of this field. Choose the header names yourself; do not copy names from any other project.
+
+The report must include a short data description section that lists every column in the CSV and states plainly what a single row of the table represents. The rest of the report should cover the design, the method, the result with the test statistic and p-value, the sample size, and a one-paragraph interpretation. Keep it under about 600 words.

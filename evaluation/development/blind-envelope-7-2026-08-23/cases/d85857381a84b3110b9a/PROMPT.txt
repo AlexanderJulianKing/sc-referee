@@ -1,0 +1,19 @@
+You are an independent author writing one complete, self-contained small analysis project in the style of a working food safety microbiologist. Write it as real project files, not as a description.
+
+Scenario. This is a food safety study in a ready-to-eat salad processing plant. Twenty production batches of bagged leaf salad were made over four weeks: ten batches were washed in the plant's standard chlorine-based wash and ten in a peracetic acid wash being evaluated. From each finished batch, five sealed retail packs were pulled at random off the line and each pack was tested separately for aerobic plate count. There are 20 batches and 5 packs per batch, so the table has 100 rows. One row is one retail pack from one batch.
+
+Outcome. Aerobic plate count as the base-ten logarithm of colony-forming units per gram. Batches from the standard chlorine wash average about 4.8 log CFU/g; batches from the peracetic acid wash average about 4.1. Packs from the same batch scatter by roughly 0.30 log units, and batches differ from each other by roughly 0.45 log units on top of that. Keep values between about 2.8 and 6.4.
+
+Columns. The table needs a column identifying the batch, a column giving the wash treatment that batch received, a column identifying the pack within the batch, a column giving the production date, and a column holding the log count.
+
+Analysis. Perform the reduction from packs to batches in a separately defined, named step of the analysis that takes the raw table and returns a table of one mean log count per batch, and have the main flow of the script call that step once and run the group comparison on exactly what it returns. The comparison itself is a standard independent two-sample test of the difference in mean log count between the two washes. Report the sample size as the number of batches in each wash group, ten and ten, not the number of packs.
+
+Report. Write as the plant's food safety microbiologist. Say in the methods that the five packs from a batch are combined into one batch-level value before the comparison, state the number of batches per wash as the sample size, give the test result, and give a practical recommendation for the plant. This is a routine validation report; there is no need to debate statistical philosophy.
+
+Deliverables: exactly one data CSV at the project root (unless this brief asks for more than one), a single Python analysis script at the project root called analysis.py, and a short written report in a Markdown file at the project root. There must be no other analysis script anywhere in the project.
+
+Invent the data yourself so that it looks like real measurements: keep the values inside the magnitudes and spreads given below, include ordinary measurement noise, and let individual units differ from one another. Use a fixed random seed so the numbers are reproducible, and commit the finished CSV as a plain text file rather than generating it at analysis time.
+
+Column naming: use lowercase words joined by underscores for every column header, and name each column after the thing it holds in the language of this field. Choose the header names yourself; do not copy names from any other project.
+
+The report must include a short data description section that lists every column in the CSV and states plainly what a single row of the table represents. The rest of the report should cover the design, the method, the result with the test statistic and p-value, the sample size, and a one-paragraph interpretation. Keep it under about 600 words.
