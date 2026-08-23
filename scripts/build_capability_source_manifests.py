@@ -846,7 +846,7 @@ def main() -> None:
         },
     )
     code_csv_dependence_resource = (
-        ROOT / "src" / "sc_referee" / "detectors" / "bounded_code_csv_dependence_conflict_v3_0.py"
+        ROOT / "src" / "sc_referee" / "detectors" / "bounded_code_csv_dependence_conflict_v3_1.py"
     )
     _upsert(
         detector_collection,
@@ -894,7 +894,7 @@ def main() -> None:
                     "prerequisite is unavailable or unsupported."
                 ),
                 "partially_covered_when": (
-                    "Not used by version 3.0.0; incomplete or conflicted records remain not covered."
+                    "Not used by version 3.1.0; incomplete or conflicted records remain not covered."
                 ),
             },
             "description": (
@@ -903,7 +903,7 @@ def main() -> None:
             ),
             "detector_family": "code_csv_dependence_requirement_consistency",
             "detector_id": "detector:bounded-code-csv-dependence-conflict",
-            "detector_version": "3.0.0",
+            "detector_version": "3.1.0",
             "domains": ["domain_neutral_scientific_analysis"],
             "extensions": {
                 "x-adr-ref": (
@@ -911,7 +911,7 @@ def main() -> None:
                     "PSEUDOREPLICATION-FINDING.md"
                 ),
                 "x-implementation-resource": (
-                    "detectors/bounded_code_csv_dependence_conflict_v3_0.py"
+                    "detectors/bounded_code_csv_dependence_conflict_v3_1.py"
                 ),
                 "x-production-finding-permitted": False,
                 "x-scientific-check-ids": CODE_CSV_DEPENDENCE_CHECK_IDS,
@@ -919,8 +919,8 @@ def main() -> None:
             "implementation": {
                 "deterministic": True,
                 "entry_point": (
-                    "sc_referee.detectors.bounded_code_csv_dependence_conflict_v3_0:"
-                    "BoundedCodeCsvDependenceConflictV30Detector"
+                    "sc_referee.detectors.bounded_code_csv_dependence_conflict_v3_1:"
+                    "BoundedCodeCsvDependenceConflictV31Detector"
                 ),
                 "implementation_digest": sha256_digest(code_csv_dependence_resource.read_bytes()),
             },
@@ -966,7 +966,7 @@ def main() -> None:
                     "test_alternate_analysis_extensions_abstain_without_opening_bytes"
                 ],
                 "counterevidence": [
-                    "tests/test_code_csv_dependence_dataflow_v3_0.py::"
+                    "tests/test_code_csv_dependence_dataflow_v3_1.py::"
                     "test_s5_hand_written_unit_welch_with_math_erf_suppresses"
                 ],
                 "positive": [
@@ -986,7 +986,7 @@ def main() -> None:
             "validation": {
                 "agent_adjudication_count": 0,
                 "evaluation_ref": (
-                    "docs/implementation/PSEUDOREP-CODE-SLICE-3.0-DESIGN-2026-08-23.md"
+                    "docs/implementation/PSEUDOREP-CODE-SLICE-3.1-DESIGN-2026-08-23.md"
                 ),
                 "human_scientific_approval_count": 0,
                 "qualification_record_ref": None,

@@ -68,7 +68,7 @@ def test_registry_carries_exact_qualified_and_development_bindings() -> None:
     assert qualified.binding_id == _BINDING_ID
     assert qualified.binding_digest == GRANT_PINS[_BINDING_ID].binding_digest
     assert installed_pin_matches_live_identity(GRANT_PINS[_BINDING_ID]) is True
-    assert (development.check_version, development.detector_version) == ("3.0.0", "3.0.0")
+    assert (development.check_version, development.detector_version) == ("3.1.0", "3.1.0")
     assert development.binding_id == f"{_BINDING_ID}:development"
     assert registry.modules_for_lane("qualified") != registry.modules_for_lane("development")
 
@@ -128,7 +128,7 @@ def test_envelope_5_frozen_2_1_sources_and_wording_are_exact() -> None:
     )
 
 
-def test_all_2_x_development_sources_remain_byte_exact_after_v3_registration() -> None:
+def test_all_prior_development_sources_remain_byte_exact_after_v3_1_registration() -> None:
     expected = {
         "src/sc_referee/scientific_checks/code_csv_dependence_dataflow.py": (
             "sha256:68f5c5c665c17175627c8586c45670a931829897df8dedb64046e76be2341505"
@@ -150,6 +150,15 @@ def test_all_2_x_development_sources_remain_byte_exact_after_v3_registration() -
         ),
         "src/sc_referee/detectors/bounded_code_csv_dependence_conflict_v2_3.py": (
             "sha256:529c60dd57db912656d809a8d4dbb4be950a46ed0dc311c31f6b3ebd0a38cc3b"
+        ),
+        "src/sc_referee/scientific_checks/code_csv_dependence_adapter_v3_0.py": (
+            "sha256:d7ccf1ecb48cc2db29bd6d05dd29fa8e5c833874629905d13b1d900a84680a6f"
+        ),
+        "src/sc_referee/scientific_checks/code_csv_dependence_dataflow_v3_0.py": (
+            "sha256:7422744ce652560f6ce32ba66edaf80ff3b75fb35e20ae0fe52a343e4a5b80d7"
+        ),
+        "src/sc_referee/detectors/bounded_code_csv_dependence_conflict_v3_0.py": (
+            "sha256:332d5f23ca540425ee2999cf090d7cc5d8beca005ac1b731aa0040434cb7738a"
         ),
     }
     assert {path: sha256_digest(Path(path).read_bytes()) for path in expected} == expected
@@ -257,4 +266,4 @@ def test_cli_development_lane_is_explicit_and_never_promotes(
         if item.get("detector_id") == "detector:bounded-code-csv-dependence-conflict"
     ]
     assert len(dependence_results) == 1
-    assert dependence_results[0]["detector_version"] == "3.0.0"
+    assert dependence_results[0]["detector_version"] == "3.1.0"

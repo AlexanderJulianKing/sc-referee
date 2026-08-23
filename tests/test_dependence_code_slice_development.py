@@ -7,28 +7,30 @@ from typing import Any, cast
 
 import pytest
 
-import sc_referee.scientific_checks.code_csv_dependence_adapter_v3_0 as code_adapter_module
-import sc_referee.scientific_checks.code_csv_dependence_dataflow_v3_0 as dataflow_module
+import sc_referee.scientific_checks.code_csv_dependence_adapter_v3_1 as code_adapter_module
+import sc_referee.scientific_checks.code_csv_dependence_dataflow_v3_1 as dataflow_module
 from sc_referee.controller import replay, run_audit
 from sc_referee.core.ids import canonical_json
-from sc_referee.detectors.bounded_code_csv_dependence_conflict_v3_0 import (
-    BoundedCodeCsvDependenceConflictV30Detector,
+from sc_referee.detectors.bounded_code_csv_dependence_conflict_v3_1 import (
+    BoundedCodeCsvDependenceConflictV31Detector,
 )
-from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_0 import (
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_1 import (
     CodeCsvDependenceAdapter,
 )
 from sc_referee.scientific_checks.core import InspectionDocument
 
 CHECK_ID = "check:authorized-independent-unit-entry-into-row-independent-procedure"
-LEDGER = Path("evaluation/development/pseudorep-code-slice-v3_0/DEVELOPMENT_LEDGER.json")
+LEDGER = Path("evaluation/development/pseudorep-code-slice-v3_1/DEVELOPMENT_LEDGER.json")
+ENVELOPE_1_LEDGER = Path("evaluation/development/pseudorep-code-slice-v1/DEVELOPMENT_LEDGER.json")
+ENVELOPE_1_ROOT = Path("evaluation/development/blind-envelope-2026-08-21/cases")
 K_ROOT = Path("evaluation/development/dependence-growth-loop")
 K_CONTRACT_ROOT = Path("evaluation/development/pseudorep-code-slice-v2_3/k-method-contracts")
 OPENED_ROOTS = {
     envelope: Path(
         f"evaluation/development/blind-envelope-{envelope}-"
-        f"{'2026-08-23' if envelope == 7 else '2026-08-22'}/cases"
+        f"{'2026-08-23' if envelope in {7, 8} else '2026-08-22'}/cases"
     )
-    for envelope in range(2, 8)
+    for envelope in range(2, 9)
 }
 
 
@@ -49,6 +51,25 @@ def _opened_parameters() -> list[tuple[Path, str, int, str, str | None]]:
     ]
 
 
+def _envelope_1_parameters() -> list[tuple[Path, str, int, str, str | None]]:
+    ledger = json.loads(ENVELOPE_1_LEDGER.read_text(encoding="utf-8"))
+    v3_1_reason_overrides = {
+        "11af5bb3f9b7e8e0b293": "dependence-aware-sibling-present",
+    }
+    return [
+        (
+            ENVELOPE_1_ROOT,
+            str(item["case_id"]),
+            int(item["expected_candidate_count"]),
+            str(item["expected_state"]),
+            v3_1_reason_overrides.get(
+                str(item["case_id"]), cast(str | None, item.get("expected_reason"))
+            ),
+        )
+        for item in ledger["opened_cases"]
+    ]
+
+
 def _material_path(lock_path: Path) -> str:
     frozen = json.loads(lock_path.read_text(encoding="utf-8"))
     return str(
@@ -64,7 +85,7 @@ class _ProseDocumentTripwire:
 
     @property
     def content(self) -> bytes:
-        raise AssertionError("3.0 code/CSV lane touched prose bytes")
+        raise AssertionError("3.1 code/CSV lane touched prose bytes")
 
 
 class _TripwireContext:
@@ -76,28 +97,28 @@ class _TripwireContext:
         return getattr(self._context, name)
 
 
-def test_v3_0_development_ledger_is_canonical_complete_and_evaluation_only() -> None:
+def test_v3_1_development_ledger_is_canonical_complete_and_evaluation_only() -> None:
     payload = LEDGER.read_bytes()
     ledger = json.loads(payload)
     assert canonical_json(ledger).encode() == payload.rstrip(b"\n")
     assert (ledger["check_version"], ledger["adapter_version"], ledger["detector_version"]) == (
-        "3.0.0",
-        "3.0.0",
-        "3.0.0",
+        "3.1.0",
+        "3.1.0",
+        "3.1.0",
     )
     assert ledger["qualification_eligible"] is False
     assert ledger["project_authored_code_executed"] is False
     opened = ledger["opened_cases"]
-    assert len(opened) == 68
-    assert sum(item["blind_label"] == "POSITIVE" for item in opened) == 33
-    assert sum(item["blind_label"] == "NEGATIVE" for item in opened) == 35
-    assert sum(item["expected_candidate_count"] for item in opened) == 27
+    assert len(opened) == 80
+    assert sum(item["blind_label"] == "POSITIVE" for item in opened) == 39
+    assert sum(item["blind_label"] == "NEGATIVE" for item in opened) == 41
+    assert sum(item["expected_candidate_count"] for item in opened) == 33
     assert not [
         item
         for item in opened
         if item["blind_label"] == "NEGATIVE" and item["expected_candidate_count"]
     ]
-    assert len([item for item in opened if item["family"] == "C"]) == 10
+    assert len([item for item in opened if item["family"] == "C"]) == 12
     assert len(ledger["k_controls"]) == 6
     assert all(item["expected_candidate_count"] == 0 for item in ledger["k_controls"])
 
@@ -131,15 +152,15 @@ def test_opened_cases_follow_v3_development_lane_and_replay(
     lock = json.loads((audit / "semantic.lock.json").read_text(encoding="utf-8"))
     evaluation = lock["scientific_check_registry"]["evaluation"]
     dependence = next(item for item in evaluation["modules"] if item["check_id"] == CHECK_ID)
-    assert dependence["check_version"] == "3.0.0"
+    assert dependence["check_version"] == "3.1.0"
     assert dependence["state"] == expected_state
     if expected_reason is not None:
         assert dependence["observations"][0]["abstention_reason"] == expected_reason
     results = [
         item
         for item in bundle["detector_results"]
-        if item.get("detector_id") == BoundedCodeCsvDependenceConflictV30Detector.detector_id
-        and item.get("detector_version") == "3.0.0"
+        if item.get("detector_id") == BoundedCodeCsvDependenceConflictV31Detector.detector_id
+        and item.get("detector_version") == "3.1.0"
     ]
     assert sum(item["state"] == "evaluation_finding_candidate" for item in results) == (
         expected_candidates
@@ -154,6 +175,51 @@ def test_opened_cases_follow_v3_development_lane_and_replay(
     assert replayed["detector_results"] == bundle["detector_results"]
     assert replayed["findings"] == bundle["findings"]
     assert replayed["coverage_records"] == bundle["coverage_records"]
+
+
+@pytest.mark.parametrize(
+    ("opened_root", "case_id", "expected_candidates", "expected_state", "expected_reason"),
+    _envelope_1_parameters(),
+)
+def test_envelope_1_cases_remain_in_the_v3_1_development_replay(
+    schema_root: Path,
+    tmp_path: Path,
+    opened_root: Path,
+    case_id: str,
+    expected_candidates: int,
+    expected_state: str,
+    expected_reason: str | None,
+) -> None:
+    source = opened_root / case_id
+    project = tmp_path / f"envelope-1-{case_id}"
+    shutil.copytree(source / "project", project)
+    method_contract_lock = source / "method-contract/semantic.lock.json"
+    audit = tmp_path / f"envelope-1-audit-{case_id}"
+    bundle = run_audit(
+        project,
+        audit,
+        schema_root,
+        material_inputs=(_material_path(method_contract_lock),),
+        method_contract_lock=method_contract_lock,
+        scientific_check_lane="development",
+    )
+    lock = json.loads((audit / "semantic.lock.json").read_text(encoding="utf-8"))
+    evaluation = lock["scientific_check_registry"]["evaluation"]
+    dependence = next(item for item in evaluation["modules"] if item["check_id"] == CHECK_ID)
+    assert dependence["check_version"] == "3.1.0"
+    assert dependence["state"] == expected_state
+    if expected_reason is not None:
+        assert dependence["observations"][0]["abstention_reason"] == expected_reason
+    results = [
+        item
+        for item in bundle["detector_results"]
+        if item.get("detector_id") == BoundedCodeCsvDependenceConflictV31Detector.detector_id
+        and item.get("detector_version") == "3.1.0"
+    ]
+    assert sum(item["state"] == "evaluation_finding_candidate" for item in results) == (
+        expected_candidates
+    )
+    assert bundle["findings"] == []
 
 
 @pytest.mark.parametrize(
@@ -208,8 +274,8 @@ def test_row_dropping_edges_cannot_be_erased_by_a_later_group_selection(
     assert not [
         item
         for item in bundle["detector_results"]
-        if item.get("detector_id") == BoundedCodeCsvDependenceConflictV30Detector.detector_id
-        and item.get("detector_version") == "3.0.0"
+        if item.get("detector_id") == BoundedCodeCsvDependenceConflictV31Detector.detector_id
+        and item.get("detector_version") == "3.1.0"
         and item.get("assessment_candidates")
     ]
 
@@ -274,7 +340,7 @@ def test_v3_prose_tripwire_covers_adapter_slice_and_all_five_guards(
         ("s5", (dataflow_module, "_v3_unit_summary_guard")),
         (
             "detector_comparison",
-            (BoundedCodeCsvDependenceConflictV30Detector, "evaluate"),
+            (BoundedCodeCsvDependenceConflictV31Detector, "evaluate"),
         ),
     ):
         owner, name = target
@@ -335,11 +401,11 @@ def test_refrozen_k_contracts_remain_scored_development_abstentions(
         for item in lock["scientific_check_registry"]["evaluation"]["modules"]
         if item["check_id"] == CHECK_ID
     )
-    assert dependence["check_version"] == "3.0.0"
+    assert dependence["check_version"] == "3.1.0"
     assert dependence["observations"][0]["abstention_reason"] == expected_reason
     assert not [
         item
         for item in bundle["detector_results"]
-        if item.get("detector_id") == BoundedCodeCsvDependenceConflictV30Detector.detector_id
+        if item.get("detector_id") == BoundedCodeCsvDependenceConflictV31Detector.detector_id
     ]
     assert bundle["findings"] == []

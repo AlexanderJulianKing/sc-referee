@@ -237,7 +237,7 @@ def _finding_profile_matches(pin: GrantPin) -> bool:
                 CODE_CSV_DEPENDENCE_FINDING_PROFILE_V2_ID,
                 CODE_CSV_DEPENDENCE_FINDING_PROFILE_V2_DIGEST,
             )
-            if pin.detector_version in {"2.3.0", "3.0.0"}
+            if pin.detector_version in {"2.3.0", "3.0.0", "3.1.0"}
             else None
         )
         return (

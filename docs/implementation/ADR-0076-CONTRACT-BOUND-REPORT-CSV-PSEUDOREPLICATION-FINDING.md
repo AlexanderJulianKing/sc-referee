@@ -839,6 +839,25 @@ fixed S1-before-S2-before-S3 precedence is applied. These are abstention-directi
 The unreachable 2.x R1 admission implementation is removed from the 3.0 closure. Qualified 2.1.0
 bytes, binding, pin, and Finding behavior remain unchanged.
 
+## Code-lane 3.1 development amendment — 2026-08-23
+
+Provenance: **Fable, under executive authority granted by Alex 2026-08-21**. This amendment authorizes
+only the development-lane delta in
+`docs/implementation/PSEUDOREP-CODE-SLICE-3.1-DESIGN-2026-08-23.md`. Envelope 8 is opened and burned:
+development detector 3.0.0 produced 2/6 positive evaluation candidates, 0/6 negative candidates,
+zero qualified Findings, and replay 12/12. Its cases are development evidence only.
+
+Development identity 3.1.0 removes the `distinct(C) <= M` seam from its private D1-double-prime CSV
+classifier; admits only the closed lambda, pure If/Return output helper, positional helper-return,
+contract-domain loop, and report-buffer code shapes enumerated in the delta; and narrows S5 only for
+unit-keyed row counts. All reader, operand, aggregation, row-completeness, mutation, statistics-sibling,
+resampling-sibling, multiple-candidate, and unresolved-transform guards remain in force. No prose,
+comment, docstring, report byte, or printed-label meaning is evidence.
+
+The qualified 2.1.0 binding, wording-v1 profile, installed production pin, and Finding eligibility are
+unchanged. Detector 3.1.0 runs only through the explicit development lane and cannot emit a Finding.
+The versioned 3.0 source and every earlier detector identity remain immutable and content-addressed.
+
 ## Open questions that would change the build
 
 None for the authorized implementation and installation. The report channel remains withdrawn; the

@@ -158,7 +158,7 @@ def code_dependence_wording_profile(
             _CODE_DEPENDENCE_NON_INFERENCES,
             False,
         )
-    if binding.detector_version in {"2.3.0", "3.0.0"}:
+    if binding.detector_version in {"2.3.0", "3.0.0", "3.1.0"}:
         return (
             CODE_CSV_DEPENDENCE_FINDING_PROFILE_V2_ID,
             CODE_CSV_DEPENDENCE_FINDING_PROFILE_V2_DIGEST,
