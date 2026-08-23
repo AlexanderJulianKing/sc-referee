@@ -67,8 +67,7 @@ from sc_referee.detectors.manifest import (
     locked_counterevidence_check_ids,
 )
 from sc_referee.detectors.method_conflict_finding import (
-    CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST,
-    CODE_CSV_DEPENDENCE_FINDING_PROFILE_ID,
+    code_dependence_wording_profile,
     draft_method_conflict_finding,
 )
 from sc_referee.detectors.method_conflict_qualification import (
@@ -3558,13 +3557,17 @@ def _promote_method_conflict_evaluation(
     pin = method_conflict_grant_pins.GRANT_PINS.get(evaluation.binding.binding_id)
     if pin is None:
         return original, None
+    expected_wording: tuple[str, str, tuple[str, ...], bool] | None = None
     if evaluation.binding.check_id == (
         "check:authorized-independent-unit-entry-into-row-independent-procedure"
-    ) and (
-        pin.finding_profile_id != CODE_CSV_DEPENDENCE_FINDING_PROFILE_ID
-        or pin.finding_profile_digest != CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST
     ):
-        return original, None
+        expected_wording = code_dependence_wording_profile(evaluation.binding)
+        if (
+            expected_wording is None
+            or pin.finding_profile_id != expected_wording[0]
+            or pin.finding_profile_digest != expected_wording[1]
+        ):
+            return original, None
     evidence = method_conflict_grant_pins.load_method_conflict_grant_evidence(pin)
     if evidence is None:
         return original, None
@@ -3603,13 +3606,13 @@ def _promote_method_conflict_evaluation(
         )
     except (KeyError, TypeError, ValueError):
         return original, None
-    if pin.finding_profile_id == CODE_CSV_DEPENDENCE_FINDING_PROFILE_ID:
+    if expected_wording is not None:
         if (
-            pin.finding_profile_digest != CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST
+            pin.finding_profile_digest != expected_wording[1]
             or draft.get("extensions", {}).get("x-finding-wording-profile-id")
-            != CODE_CSV_DEPENDENCE_FINDING_PROFILE_ID
+            != expected_wording[0]
             or draft.get("extensions", {}).get("x-finding-wording-profile-digest")
-            != CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST
+            != expected_wording[1]
             or not isinstance(promoted.get("candidate"), dict)
             or not isinstance(draft.get("title"), str)
             or not isinstance(draft.get("summary"), str)

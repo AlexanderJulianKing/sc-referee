@@ -513,10 +513,10 @@ def test_founder_core_and_shared_integration_closure_are_content_addressed() -> 
     )
     assert [item.manifest_digest for item in founder.adapter_manifests] == [
         "sha256:cd13024eb42264d78ba410e8fe6eb914f8188f3b693f4939835af73526e52097",
-        "sha256:e99d113b941eaf022eea965fdaddcd07d15da7bd22a010bebad9d817809e6845",
+        "sha256:01000466c3da4cdde646cc0cdb9b2bee85323b6ab11d366e702c43772a08a600",
     ]
     assert FOUNDER_ORIENTATION_SEMANTIC_ADAPTER_IMPLEMENTATION_DIGEST == (
-        "sha256:bdded8e2e41b48e07d59a8390f0cfb78988c6cc0035a1b20b21e73ade88a19a0"
+        "sha256:41329187182414c7d4da8de6dfb7d84ae398cacdcd7616b0e44cd119cfe7934e"
     )
 
 
@@ -527,7 +527,7 @@ def test_founder_closure_core_is_byte_identical_and_integration_is_release_bound
             "sha256:91271b8c2a007c460a35134ff1c207424a99cf269c78d638557ffad330192c92"
         ),
         "src/sc_referee/scientific_checks/integration.py": (
-            "sha256:5ba0b1d51eec14f93bb99d67d5cb1a7624cc535dcd49497ef678c01dc459b042"
+            "sha256:0f27cd95363e64af72b472b0db0138787a3f33f0de6824a215df23af42af25cf"
         ),
     }
     assert {path: sha256_digest((root / path).read_bytes()) for path in expected} == expected

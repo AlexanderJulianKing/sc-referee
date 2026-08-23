@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import csv
+import io
+import json
+from pathlib import Path
 from typing import Any, cast
 
 import pytest
@@ -8,8 +12,8 @@ from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.detectors.bounded_analysis_method_conflict import (
     BoundedAnalysisMethodConflictDetector,
 )
-from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_2 import (
-    BoundedCodeCsvDependenceConflictV22Detector,
+from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_3 import (
+    BoundedCodeCsvDependenceConflictV23Detector,
 )
 from sc_referee.detectors.method_conflict_grant_pins import (
     GRANT_PINS,
@@ -223,11 +227,76 @@ def test_d1_prime_regular_index_and_label_collision_outcomes() -> None:
     assert collision.unique_nonindex_columns == ("site",)
 
 
+def test_g2_unbalanced_index_and_declared_nested_set_residual() -> None:
+    unbalanced = _parse_csv(
+        b"unit,group,visit,value\n"
+        b"A,x,1,10\nA,x,2,11\n"
+        b"B,y,1,20\nB,y,2,21\nB,y,3,22\n"
+        b"C,y,1,30\nC,y,2,31\n",
+        "unit",
+        "group",
+    )
+    assert not isinstance(unbalanced, str)
+    assert unbalanced.candidate_columns == ("visit",)
+    assert unbalanced.within_unit_index_columns == ("visit",)
+    assert unbalanced.unique_nonindex_columns == ()
+
+    collision = _parse_csv(
+        b"unit,group,site,value\nA,x,north,10\nA,x,south,11\nB,y,north,20\n",
+        "unit",
+        "group",
+    )
+    assert not isinstance(collision, str)
+    assert collision.within_unit_index_columns == ()
+    assert collision.unique_nonindex_columns == ("site",)
+
+
+def test_g2_changes_exactly_two_columns_across_all_62_opened_cases() -> None:
+    roots = (
+        Path("evaluation/development/blind-envelope-2026-08-21/cases"),
+        Path("evaluation/development/blind-envelope-2-2026-08-22/cases"),
+        Path("evaluation/development/blind-envelope-3-2026-08-22/cases"),
+        Path("evaluation/development/blind-envelope-4-2026-08-22/cases"),
+        Path("evaluation/development/blind-envelope-5-2026-08-22/cases"),
+        Path("evaluation/development/blind-envelope-6-2026-08-22/cases"),
+    )
+    cases = [case for root in roots for case in sorted(root.iterdir()) if case.is_dir()]
+    assert len(cases) == 62
+    changed: list[tuple[str, str]] = []
+    for case in cases:
+        lock = json.loads((case / "method-contract/semantic.lock.json").read_text(encoding="utf-8"))
+        authority = lock["method_contract_profile"]["profile_manifest"][
+            "authority_binding_snapshot"
+        ]["authorized_independent_unit_key"]
+        content = (case / "project" / authority["material_input_path"]).read_bytes()
+        parsed = _parse_csv(content, authority["column_name"], authority["group_contrast_column"])
+        if isinstance(parsed, str):
+            continue
+        rows = list(csv.reader(io.StringIO(content.decode("utf-8"), newline="")))
+        header, data = rows[0], rows[1:]
+        unit_index = header.index(authority["column_name"])
+        for column in parsed.candidate_columns:
+            column_index = header.index(column)
+            by_unit: dict[str, list[str]] = {}
+            for row in data:
+                by_unit.setdefault(row[unit_index], []).append(row[column_index])
+            old_within = len({tuple(sorted(values)) for values in by_unit.values()}) == 1
+            pairs = [(row[unit_index], row[column_index]) for row in data]
+            old_abstains = len(set(pairs)) == len(pairs) and not old_within
+            new_abstains = column in parsed.unique_nonindex_columns
+            if old_abstains != new_abstains:
+                changed.append((case.name, column))
+    assert sorted(changed) == [
+        ("03ee21366b62d03a9b26", "kit_number"),
+        ("5b1e03e13ef7e2e727dc", "age_weeks"),
+    ]
+
+
 def test_code_lane_has_distinct_detector_binding_and_stale_installed_grant() -> None:
     registry = scientific_check_release_registry()
     binding = next(item for item in registry.method_conflict_bindings if item.check_id == _CHECK_ID)
-    assert binding.detector_id == BoundedCodeCsvDependenceConflictV22Detector.detector_id
-    assert binding.detector_version == "2.2.0"
+    assert binding.detector_id == BoundedCodeCsvDependenceConflictV23Detector.detector_id
+    assert binding.detector_version == "2.3.0"
     assert binding.production_finding_permitted is False
     assert installed_pin_matches_live_identity(GRANT_PINS[binding.binding_id]) is False
 

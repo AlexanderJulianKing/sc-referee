@@ -391,6 +391,7 @@ class _Reader:
     path: str | None
     call: ast.Call
     target: str | None
+    parsed_date_columns: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -420,6 +421,7 @@ class _Resolver:
     constants: dict[str, str]
     literals: dict[str, int | float | bool]
     tuples: dict[str, tuple[object, ...]]
+    sequence_kinds: dict[str, str]
     file_parents: set[str]
     builtins_shadowed: set[str]
     accepted_names: set[str]
@@ -437,6 +439,14 @@ class _Resolver:
             return node.value
         if isinstance(node, ast.Name):
             return self.constants.get(node.id)
+        return None
+
+    def sequence(self, node: ast.expr) -> tuple[object, ...] | None:
+        if isinstance(node, (ast.List, ast.Tuple)):
+            values = _closed_sequence_elements(node.elts)
+            return tuple(values) if values is not None else None
+        if isinstance(node, ast.Name):
+            return self.tuples.get(node.id)
         return None
 
 
@@ -611,6 +621,7 @@ class _Analyzer:
         self.descriptive_names: set[str] = set()
         self.tainted_names: set[str] = set()
         self.reader: _Reader | None = None
+        self.deferred_auxiliary_stores: list[tuple[ast.Assign, str]] = []
         self.reconstruction_names = {
             node.targets[0].value.id
             for node in _walk_statements(scope)
@@ -645,6 +656,27 @@ class _Analyzer:
         self._census_nested_tests()
 
         candidates = [test for test in self.tests if self._candidate_operands(test) is not None]
+        if self.deferred_auxiliary_stores:
+            if len(candidates) != 1:
+                return CodeDataflowResult(None, "tracked-value-mutation")
+            operands = self._candidate_operands(candidates[0])
+            if operands is None:
+                return CodeDataflowResult(None, "tracked-value-mutation")
+            protected_columns = {
+                self.unit_column,
+                self.group_column,
+                str(operands[0].value_column),
+                str(operands[1].value_column),
+            }
+            if any(column in protected_columns for _, column in self.deferred_auxiliary_stores):
+                return CodeDataflowResult(None, "tracked-value-mutation")
+        if self.reader.parsed_date_columns and candidates:
+            operands = self._candidate_operands(candidates[0]) if len(candidates) == 1 else None
+            if operands is None or set(self.reader.parsed_date_columns) & {
+                str(operands[0].value_column),
+                str(operands[1].value_column),
+            }:
+                return CodeDataflowResult(None, "authorized-reader-lineage-unavailable")
         first_mutation = min(
             (item for item in self.reasons if item[1] == "tracked-value-mutation"),
             default=None,
@@ -791,9 +823,21 @@ class _Analyzer:
             api = self.resolver.qualified(node.func)
             reader_id: str | None = None
             path: str | None = None
-            if api == "pandas.read_csv" and len(node.args) == 1 and not node.keywords:
-                reader_id = "pandas_read_csv_v1"
-                path = _static_path(node.args[0], self.resolver)
+            if api == "pandas.read_csv" and len(node.args) == 1:
+                if not node.keywords:
+                    reader_id = "pandas_read_csv_v1"
+                    path = _static_path(node.args[0], self.resolver)
+                    parsed_dates: tuple[str, ...] = ()
+                else:
+                    parsed_dates = _parse_dates_columns(
+                        node,
+                        resolver=self.resolver,
+                        csv_header=self.csv_header,
+                        forbidden={self.unit_column, self.group_column},
+                    )
+                    if parsed_dates:
+                        reader_id = "pandas_read_csv_parse_dates_v1"
+                        path = _static_path(node.args[0], self.resolver)
             elif api == "numpy.genfromtxt" and len(node.args) == 1:
                 expected = {
                     "delimiter": ",",
@@ -806,7 +850,15 @@ class _Analyzer:
                     reader_id = "numpy_genfromtxt_named_csv_v1"
                     path = _static_path(node.args[0], self.resolver)
             if reader_id is not None:
-                result.append(_Reader(reader_id, path, node, _assigned_name(self.scope, node)))
+                result.append(
+                    _Reader(
+                        reader_id,
+                        path,
+                        node,
+                        _assigned_name(self.scope, node),
+                        parsed_dates if api == "pandas.read_csv" else (),
+                    )
+                )
         return sorted(result, key=lambda item: _position(item.call))
 
     def _statement(self, statement: ast.stmt) -> None:
@@ -905,6 +957,23 @@ class _Analyzer:
             parent = self.values.get(root) if root is not None else None
             if (
                 isinstance(target, ast.Subscript)
+                and parent is not None
+                and parent.kind == "reader"
+                and self.reader is not None
+                and root == self.reader.target
+                and (
+                    column := _same_column_auxiliary_conversion(
+                        target,
+                        statement.value,
+                        self.resolver,
+                    )
+                )
+                is not None
+            ):
+                self.deferred_auxiliary_stores.append((statement, column))
+                return
+            if (
+                isinstance(target, ast.Subscript)
                 and bool(getattr(statement, "_sc_v22_reconstruction_store", False))
                 and isinstance(target.value, ast.Name)
                 and parent is not None
@@ -925,7 +994,7 @@ class _Analyzer:
                         if parent.root == value.root
                         else None
                     ),
-                    depth=max(parent.depth, value.depth) + 1,
+                    depth=max(parent.depth, value.depth),
                     aggregated=parent.aggregated or value.aggregated,
                     unknown=parent.unknown or value.unknown,
                     counter_node=parent.counter_node or value.counter_node,
@@ -1065,14 +1134,17 @@ class _Analyzer:
             )
         if (
             isinstance(expression, ast.Subscript)
-            and isinstance(expression.value, ast.Name)
-            and (container := self.values.get(expression.value.id)) is not None
             and (member := _literal_subscript_member(expression.slice)) is not None
         ):
-            mapped = dict(container.members).get(member)
-            if mapped is not None:
-                return _value_at_node(mapped, expression, container.depth + 1)
-            if (
+            container = (
+                self.values.get(expression.value.id)
+                if isinstance(expression.value, ast.Name)
+                else self._value(expression.value)
+            )
+            mapped = dict(container.members).get(member) if container is not None else None
+            if mapped is not None and container is not None:
+                return _value_at_node(mapped, expression, mapped.depth + 1)
+            if container is not None and (
                 container.kind == "descriptive_container"
                 and member in container.descriptive_members
             ):
@@ -1409,6 +1481,38 @@ class _Analyzer:
 
     def _call_value(self, call: ast.Call) -> _Value | None:
         api = self.resolver.qualified(call.func)
+        if (
+            isinstance(call.func, ast.Attribute)
+            and call.func.attr == "to_numpy"
+            and _selection_preserving_to_numpy_shape(call, self.resolver)
+        ):
+            receiver = call.func.value
+            if isinstance(receiver, ast.Name) and self.values.get(
+                receiver.id, _Value("", receiver)
+            ).kind not in {"selection", "identity"}:
+                return None
+            parent = self._value(receiver)
+            if (
+                parent is not None
+                and parent.kind in {"selection", "identity"}
+                and not parent.aggregated
+                and not parent.unknown
+                and parent.value_column is not None
+            ):
+                return _Value(
+                    "identity",
+                    call,
+                    root=parent.root,
+                    group_column=parent.group_column,
+                    group_value=parent.group_value,
+                    value_column=parent.value_column,
+                    selection_kind=parent.selection_kind,
+                    depth=parent.depth + 1,
+                    counter_node=parent.counter_node,
+                    call_origins=parent.call_origins | frozenset({call}),
+                    descriptive_members=parent.descriptive_members,
+                    members=parent.members,
+                )
         roots = _roots_read(call, self.values)
         if not roots:
             return None
@@ -1675,7 +1779,8 @@ class _Analyzer:
                 continue
             if self._r1_readonly_call(call, candidate):
                 continue
-            guards.append((_position(call), 9, "unregistered-component-consumer"))
+            if resampling is None:
+                guards.append((_position(call), 9, "unregistered-component-consumer"))
         return min(guards, default=((), 0, None), key=lambda item: (item[0], item[1]))[2]
 
     def _call_consumes_component(self, call: ast.Call) -> bool:
@@ -1683,6 +1788,10 @@ class _Analyzer:
 
     def _r1_readonly_call(self, call: ast.Call, candidate: _Test) -> bool:
         api = self.resolver.qualified(call.func)
+        if any(
+            self._contains(call, statement.value) for statement, _ in self.deferred_auxiliary_stores
+        ):
+            return True
         if self.reader is not None and self._contains(call, self.reader.call):
             return True
         if any(
@@ -1849,6 +1958,7 @@ class _Analyzer:
                 for call in _walk_statements(self.scope)
                 if isinstance(call, ast.Call) and self._r1_readonly_call(call, candidate)
             ),
+            tuple(statement.value for statement, _ in self.deferred_auxiliary_stores),
         )
 
     def _accepted_output_or_description(self, call: ast.Call, candidate: _Test) -> bool:
@@ -1998,15 +2108,25 @@ def _normalize_contract_domain_loops(
         | set(helpers)
         | _UNSHADOWED_BUILTINS
     )
-    stores_outside_loop: defaultdict[str, int] = defaultdict(int)
+    comprehensions: list[ast.stmt] = []
     for statement in scope:
+        normalized_comprehension = _normalize_contract_domain_dict_comprehension(
+            statement,
+            resolver=resolver,
+            group_values=group_values,
+            protected=protected,
+        )
+        comprehensions.extend(normalized_comprehension or (statement,))
+
+    stores_outside_loop: defaultdict[str, int] = defaultdict(int)
+    for statement in comprehensions:
         if isinstance(statement, ast.For):
             continue
         for name in _store_names(statement):
             stores_outside_loop[name] += 1
 
     normalized: list[ast.stmt] = []
-    for statement in scope:
+    for statement in comprehensions:
         if not isinstance(statement, ast.For):
             normalized.append(statement)
             continue
@@ -2047,6 +2167,82 @@ def _normalize_contract_domain_loops(
                     node.__dict__["_sc_v22_loop_binding_ordinal"] = ordinal
                 normalized.append(copied)
     return _Expansion(tuple(normalized), None)
+
+
+def _normalize_contract_domain_dict_comprehension(
+    statement: ast.stmt,
+    *,
+    resolver: _Resolver,
+    group_values: tuple[str, str],
+    protected: set[str],
+) -> tuple[ast.stmt, ...] | None:
+    target: ast.Name | None = None
+    expression: ast.expr | None = None
+    if (
+        isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+    ):
+        target = statement.targets[0]
+        expression = statement.value
+    elif isinstance(statement, ast.AnnAssign) and isinstance(statement.target, ast.Name):
+        target = statement.target
+        expression = statement.value
+    if target is None or not isinstance(expression, ast.DictComp) or target.id in protected:
+        return None
+    if len(expression.generators) != 1:
+        return None
+    generator = expression.generators[0]
+    if (
+        generator.is_async
+        or generator.ifs
+        or not isinstance(generator.target, ast.Name)
+        or not isinstance(expression.key, ast.Name)
+        or expression.key.id != generator.target.id
+        or generator.target.id in protected
+    ):
+        return None
+    raw = resolver.sequence(generator.iter)
+    if (
+        raw is None
+        or len(raw) != 2
+        or not all(isinstance(item, str) for item in raw)
+        or len(set(raw)) != 2
+        or set(raw) != set(group_values)
+    ):
+        return None
+
+    empty = ast.Assign(
+        targets=[ast.Name(id=target.id, ctx=ast.Store())],
+        value=ast.Dict(keys=[], values=[]),
+    )
+    ast.copy_location(empty, statement)
+    result: list[ast.stmt] = [empty]
+    for ordinal, value in enumerate(raw):
+        assert isinstance(value, str)
+        transformer = _ContractLoopBindingTransformer(
+            target=generator.target.id,
+            binding=value,
+            rename={},
+        )
+        copied_value = transformer.visit(copy.deepcopy(expression.value))
+        assert isinstance(copied_value, ast.expr)
+        assignment = ast.Assign(
+            targets=[
+                ast.Subscript(
+                    value=ast.Name(id=target.id, ctx=ast.Load()),
+                    slice=ast.Constant(value=value),
+                    ctx=ast.Store(),
+                )
+            ],
+            value=copied_value,
+        )
+        ast.copy_location(assignment, statement)
+        assignment.__dict__["_sc_v22_reconstruction_store"] = True
+        for node in ast.walk(assignment):
+            node.__dict__["_sc_v22_loop_binding_ordinal"] = ordinal
+        result.append(assignment)
+    return tuple(result)
 
 
 def _contract_domain_loop_bindings(
@@ -2164,6 +2360,7 @@ def _expand_relevant_helpers(
             if reason is not None:
                 return _Expansion(None, reason)
             assert replacement is not None
+            _propagate_reconstruction_marker(statement, replacement)
             expanded_sites.add(key)
             expanded[index : index + 1] = replacement
             changed = True
@@ -2197,6 +2394,7 @@ def _expand_relevant_helpers(
             if reason is not None:
                 return _Expansion(None, reason)
             assert replacement is not None
+            _propagate_reconstruction_marker(container[index], replacement)
             expanded_sites.add(key)
             if iterable_owner is None:
                 container[index : index + 1] = replacement
@@ -2217,6 +2415,24 @@ def _expand_relevant_helpers(
                 container[index:index] = replacement
             changed = True
     return _Expansion(tuple(expanded), None)
+
+
+def _propagate_reconstruction_marker(source: ast.stmt, replacement: Sequence[ast.stmt]) -> None:
+    if not bool(getattr(source, "_sc_v22_reconstruction_store", False)):
+        return
+    source_target = source.targets[0] if isinstance(source, ast.Assign) else None
+    if not isinstance(source_target, ast.Subscript):
+        return
+    for statement in reversed(replacement):
+        if (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Subscript)
+            and ast.dump(statement.targets[0], include_attributes=False)
+            == ast.dump(source_target, include_attributes=False)
+        ):
+            statement.__dict__["_sc_v22_reconstruction_store"] = True
+            return
 
 
 def _helper_site_key(call: ast.Call, helper: ast.FunctionDef) -> tuple[int, int, str, int]:
@@ -3199,6 +3415,30 @@ def _v2_os_path_call(call: ast.Call, api: str, resolver: _Resolver) -> bool:
     )
 
 
+def _closed_dtype(node: ast.expr, resolver: _Resolver) -> bool:
+    if isinstance(node, ast.Name) and node.id in {"bool", "float", "int", "str"}:
+        return node.id not in resolver.builtins_shadowed
+    value = resolver.string(node)
+    return bool(value is not None and "\x00" not in value and len(value.encode("utf-8")) <= 64)
+
+
+def _selection_preserving_to_numpy_shape(call: ast.Call, resolver: _Resolver) -> bool:
+    if any(isinstance(argument, ast.Starred) for argument in call.args) or any(
+        keyword.arg is None for keyword in call.keywords
+    ):
+        return False
+    if not call.args and not call.keywords:
+        return True
+    if len(call.args) == 1 and not call.keywords:
+        return _closed_dtype(call.args[0], resolver)
+    return bool(
+        not call.args
+        and len(call.keywords) == 1
+        and call.keywords[0].arg == "dtype"
+        and _closed_dtype(call.keywords[0].value, resolver)
+    )
+
+
 def _v2_pandas_call(call: ast.Call, method: str, resolver: _Resolver) -> bool:
     if any(isinstance(arg, ast.Starred) for arg in call.args) or any(
         keyword.arg is None for keyword in call.keywords
@@ -3252,7 +3492,7 @@ def _v2_pandas_call(call: ast.Call, method: str, resolver: _Resolver) -> bool:
             level = keywords["level"]
         return level is not None and _v2_literal_level(level)
     if method == "to_numpy":
-        return bool(not call.args and len(call.keywords) <= 1 and set(keywords) <= {"dtype"})
+        return _selection_preserving_to_numpy_shape(call, resolver)
     if method == "describe":
         return not call.args and not keywords
     if method in {
@@ -3357,9 +3597,12 @@ def _v2_read_reason(
     resolver: _Resolver,
     csv_header: Sequence[str],
     admitted_calls: Sequence[ast.Call],
+    admitted_read_subtrees: Sequence[ast.AST] = (),
 ) -> str | None:
     for node in _walk_statements(statements):
         if isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Load):
+            if _inside_any(node, admitted_read_subtrees):
+                continue
             if any(call.func is node for call in admitted_calls):
                 continue
             if isinstance(node.parent if hasattr(node, "parent") else None, ast.Call):
@@ -3376,9 +3619,11 @@ def _v2_read_reason(
                 return "admission-call-off-list"
         if not isinstance(node, ast.Subscript) or not isinstance(node.ctx, ast.Load):
             continue
+        if _inside_any(node, admitted_read_subtrees):
+            continue
         if _inside_any(
             node,
-            [value.node for value in values.values() if value.kind in {"selection", "identity"}],
+            _member_value_nodes(values, {"selection", "identity"}),
         ):
             continue
         if _plain_column_read(node, values, resolver, csv_header) is not None:
@@ -3411,20 +3656,49 @@ def _v2_read_reason(
             and not isinstance(node.slice.value, bool)
         ):
             continue
-        if (
-            isinstance(node.value, ast.Name)
-            and (container := values.get(node.value.id)) is not None
-            and (member := _literal_subscript_member(node.slice)) is not None
-            and (
-                dict(container.members).get(member) is not None
-                or container.kind == "descriptive_container"
-            )
-        ):
+        if _resolved_member_read(node, values) is not None:
             continue
         if _literal_loop_label_read(node, statements, values, resolver):
             continue
         if _loaded_names(node) & set(values):
             return "admission-call-off-list"
+    return None
+
+
+def _member_value_nodes(values: Mapping[str, _Value], kinds: set[str]) -> list[ast.AST]:
+    result: list[ast.AST] = []
+    pending = list(values.values())
+    seen: set[int] = set()
+    while pending:
+        value = pending.pop()
+        if id(value) in seen:
+            continue
+        seen.add(id(value))
+        if value.kind in kinds:
+            result.append(value.node)
+        pending.extend(member for _, member in value.members)
+    return result
+
+
+def _resolved_member_read(
+    node: ast.Subscript,
+    values: Mapping[str, _Value],
+) -> _Value | None:
+    member = _literal_subscript_member(node.slice)
+    if member is None:
+        return None
+    container: _Value | None = None
+    if isinstance(node.value, ast.Name):
+        container = values.get(node.value.id)
+    elif isinstance(node.value, ast.Subscript):
+        container = _resolved_member_read(node.value, values)
+    if container is None:
+        return None
+    mapped = dict(container.members).get(member)
+    if mapped is not None:
+        return mapped
+    if container.kind == "descriptive_container" and member in container.descriptive_members:
+        return container
     return None
 
 
@@ -3472,7 +3746,13 @@ def _v2_resampling_sibling(
     sinks: Sequence[_Sink],
     assignments: Mapping[str, ast.expr],
 ) -> ast.AST | None:
-    tracked = set(values)
+    tracked = {
+        name
+        for name, value in values.items()
+        if value.root is not None
+        or value.kind in {"reader", "selection", "identity", "reconstruction_container"}
+    }
+    tracked = _guard_name_closure(statements, tracked)
     generated: list[tuple[ast.AST, set[str]]] = []
     for node in _walk_statements(statements):
         if isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)):
@@ -3490,7 +3770,7 @@ def _v2_resampling_sibling(
             if not any(_loaded_names(item) & tracked for item in payloads):
                 continue
             target = _assigned_target(statements, node)
-            generated.append((node, _store_names(target) if target is not None else set()))
+            generated.append((node, _guard_store_names(target) if target is not None else set()))
         elif isinstance(node, ast.For):
             cardinality = _v2_iterator_cardinality(node.iter, resolver)
             if cardinality is None or cardinality < _V2_RESAMPLING_MIN_TRIPS:
@@ -3509,28 +3789,21 @@ def _v2_resampling_sibling(
                 if isinstance(item, (ast.Assign, ast.AugAssign, ast.NamedExpr)):
                     targets = item.targets if isinstance(item, ast.Assign) else (item.target,)
                     for target in targets:
-                        outputs.update(_store_names(target))
+                        outputs.update(_guard_store_names(target))
             generated.append((node, outputs))
         elif isinstance(node, ast.Call):
             cardinality = _v2_random_draw_cardinality(node, resolver, assignments)
             if cardinality is None or cardinality < _V2_RESAMPLING_MIN_TRIPS:
                 continue
             target = _assigned_target(statements, node)
-            outputs = _store_names(target) if target is not None else set()
+            outputs = _guard_store_names(target) if target is not None else set()
             if outputs:
                 generated.append((node, outputs))
 
     for origin, output_names in generated:
         if not output_names:
             continue
-        derived = set(output_names)
-        changed = True
-        while changed:
-            changed = False
-            for name, expression in assignments.items():
-                if name not in derived and _loaded_names(expression) & derived:
-                    derived.add(name)
-                    changed = True
+        derived = _guard_name_closure(statements, set(output_names))
         if isinstance(origin, ast.Call) and not any(
             _loaded_names(expression) & tracked and _loaded_names(expression) & derived
             for expression in assignments.values()
@@ -3554,7 +3827,8 @@ def _v2_resampling_sibling(
                 return origin
             assigned = _assigned_target(statements, call)
             if assigned is not None:
-                reduction_names = _store_names(assigned)
+                reduction_names = _guard_store_names(assigned)
+                reduction_names = _guard_name_closure(statements, reduction_names)
                 if any(
                     _loaded_names(payload) & reduction_names
                     for sink in sinks
@@ -3562,6 +3836,56 @@ def _v2_resampling_sibling(
                 ):
                     return origin
     return None
+
+
+def _guard_store_names(node: ast.AST | None) -> set[str]:
+    if node is None:
+        return set()
+    result = _store_names(node)
+    if isinstance(node, (ast.Subscript, ast.Attribute)):
+        root = _root_name(node)
+        if root is not None:
+            result.add(root)
+    return result
+
+
+def _guard_name_closure(statements: Sequence[ast.stmt], seeds: set[str]) -> set[str]:
+    """Follow guard-only name/member/destructuring edges in the fully inlined AST."""
+
+    derived = set(seeds)
+    changed = True
+    while changed:
+        changed = False
+        for node in _walk_statements(statements):
+            value: ast.AST | None = None
+            targets: Sequence[ast.AST] = ()
+            if isinstance(node, ast.Assign):
+                value = node.value
+                targets = node.targets
+            elif isinstance(node, ast.AnnAssign):
+                value = node.value
+                targets = (node.target,)
+            elif isinstance(node, ast.NamedExpr):
+                value = node.value
+                targets = (node.target,)
+            elif isinstance(node, ast.AugAssign):
+                value = node.value
+                targets = (node.target,)
+            if value is None or not (_loaded_names(value) & derived):
+                continue
+            for target in targets:
+                for name in _guard_store_names(target):
+                    if name not in derived:
+                        derived.add(name)
+                        changed = True
+        for loop in (node for node in _walk_statements(statements) if isinstance(node, ast.For)):
+            if not (_loaded_names(loop.iter) & derived):
+                continue
+            for name in _guard_store_names(loop.target):
+                if name not in derived:
+                    derived.add(name)
+                    changed = True
+    return derived
 
 
 def _v2_iterator_cardinality(node: ast.expr, resolver: _Resolver) -> int | None:
@@ -4377,11 +4701,8 @@ def _module_setup_assignment(node: ast.stmt, relevant_names: set[str]) -> bool:
     value = node.value
     if isinstance(value, ast.Constant):
         return True
-    if isinstance(value, ast.Tuple):
-        return bool(
-            1 <= len(value.elts) <= 16
-            and all(isinstance(item, ast.Constant) for item in value.elts)
-        )
+    if isinstance(value, (ast.Tuple, ast.List)):
+        return bool(_closed_sequence_elements(value.elts) is not None)
     if _file_path_expression_syntax(value):
         return True
     name = node.targets[0].id
@@ -4458,11 +4779,32 @@ def _module_constant(node: ast.stmt) -> bool:
     )
 
 
+def _closed_sequence_elements(elements: Sequence[ast.expr]) -> list[object] | None:
+    if not 1 <= len(elements) <= 16:
+        return None
+    values: list[object] = []
+    for item in elements:
+        if not isinstance(item, ast.Constant) or isinstance(item.value, complex):
+            return None
+        value = item.value
+        if isinstance(value, str):
+            if not value or len(value.encode("utf-8")) > 128 or "\x00" in value:
+                return None
+        elif isinstance(value, float):
+            if not math.isfinite(value):
+                return None
+        elif value is not None and not isinstance(value, (int, bool)):
+            return None
+        values.append(value)
+    return values
+
+
 def _resolver(statements: Sequence[ast.stmt]) -> tuple[_Resolver | None, str | None]:
     imports: dict[str, str] = {}
     constants: dict[str, str] = {}
     literals: dict[str, int | float | bool] = {}
     tuples: dict[str, tuple[object, ...]] = {}
+    sequence_kinds: dict[str, str] = {}
     file_parents: set[str] = set()
     accepted_names: set[str] = set()
     for statement in statements:
@@ -4492,6 +4834,7 @@ def _resolver(statements: Sequence[ast.stmt]) -> tuple[_Resolver | None, str | N
         constants,
         literals,
         tuples,
+        sequence_kinds,
         file_parents,
         set(accepted_names & _UNSHADOWED_BUILTINS),
         accepted_names,
@@ -4511,14 +4854,19 @@ def _resolver(statements: Sequence[ast.stmt]) -> tuple[_Resolver | None, str | N
                 return None, "api-resolution-ambiguous"
             literals[name] = statement.value.value
             continue
-        if isinstance(statement.value, ast.Tuple) and all(
-            isinstance(item, ast.Constant) for item in statement.value.elts
+        if isinstance(statement.value, ast.Name) and statement.value.id in literals:
+            if name in constants or name in literals or name in tuples or name in imports:
+                return None, "api-resolution-ambiguous"
+            literals[name] = literals[statement.value.id]
+            continue
+        if (
+            isinstance(statement.value, (ast.Tuple, ast.List))
+            and (sequence := _closed_sequence_elements(statement.value.elts)) is not None
         ):
             if name in constants or name in literals or name in tuples or name in imports:
                 return None, "api-resolution-ambiguous"
-            tuples[name] = tuple(
-                item.value for item in statement.value.elts if isinstance(item, ast.Constant)
-            )
+            tuples[name] = tuple(sequence)
+            sequence_kinds[name] = "list" if isinstance(statement.value, ast.List) else "tuple"
             continue
         if _file_parent_expression(statement.value, resolver):
             if (
@@ -4645,6 +4993,95 @@ def _literal_keywords(keywords: Sequence[ast.keyword]) -> dict[str, object] | No
             return None
         result[keyword.arg] = keyword.value.value
     return result
+
+
+def _parse_dates_columns(
+    call: ast.Call,
+    *,
+    resolver: _Resolver,
+    csv_header: Sequence[str],
+    forbidden: set[str],
+) -> tuple[str, ...]:
+    if (
+        len(call.keywords) != 1
+        or call.keywords[0].arg != "parse_dates"
+        or len(call.args) != 1
+        or any(isinstance(argument, ast.Starred) for argument in call.args)
+    ):
+        return ()
+    date_columns = call.keywords[0].value
+    if not isinstance(date_columns, (ast.List, ast.Name)) or (
+        isinstance(date_columns, ast.Name)
+        and resolver.sequence_kinds.get(date_columns.id) != "list"
+    ):
+        return ()
+    raw = resolver.sequence(date_columns)
+    if raw is None or not 1 <= len(raw) <= 16 or not all(isinstance(item, str) for item in raw):
+        return ()
+    columns = tuple(str(item) for item in raw)
+    if (
+        len(set(columns)) != len(columns)
+        or any(csv_header.count(column) != 1 for column in columns)
+        or set(columns) & forbidden
+    ):
+        return ()
+    return columns
+
+
+def _same_column_auxiliary_conversion(
+    target: ast.Subscript,
+    expression: ast.expr,
+    resolver: _Resolver,
+) -> str | None:
+    if not isinstance(target.value, ast.Name):
+        return None
+    column = resolver.string(target.slice)
+    if column is None:
+        return None
+
+    if (
+        isinstance(expression, ast.Attribute)
+        and expression.attr == "date"
+        and isinstance(expression.value, ast.Attribute)
+        and expression.value.attr == "dt"
+        and isinstance(expression.value.value, ast.Call)
+    ):
+        call = expression.value.value
+        if (
+            resolver.qualified(call.func) == "pandas.to_datetime"
+            and len(call.args) == 1
+            and not call.keywords
+            and _same_frame_column_read(call.args[0], target.value.id, column, resolver)
+        ):
+            return column
+
+    if (
+        isinstance(expression, ast.Call)
+        and isinstance(expression.func, ast.Attribute)
+        and expression.func.attr == "astype"
+        and _same_frame_column_read(expression.func.value, target.value.id, column, resolver)
+        and len(expression.args) == 1
+        and not expression.keywords
+        and isinstance(expression.args[0], ast.Name)
+        and expression.args[0].id in {"str", "int", "float"}
+        and expression.args[0].id not in resolver.builtins_shadowed
+    ):
+        return column
+    return None
+
+
+def _same_frame_column_read(
+    node: ast.expr,
+    frame: str,
+    column: str,
+    resolver: _Resolver,
+) -> bool:
+    return bool(
+        isinstance(node, ast.Subscript)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == frame
+        and resolver.string(node.slice) == column
+    )
 
 
 def _pandas_selection(

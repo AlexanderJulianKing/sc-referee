@@ -14,8 +14,8 @@ from sc_referee.core.ids import semantic_digest
 from sc_referee.detectors.bounded_analysis_method_conflict import (
     BoundedAnalysisMethodConflictDetector,
 )
-from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_2 import (
-    BoundedCodeCsvDependenceConflictV22Detector,
+from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_3 import (
+    BoundedCodeCsvDependenceConflictV23Detector,
 )
 from sc_referee.scientific_checks.core import (
     EvidencePlane,
@@ -140,7 +140,7 @@ def _detector_class(
 ) -> type[BoundedAnalysisMethodConflictDetector]:
     classes: tuple[type[BoundedAnalysisMethodConflictDetector], ...] = (
         BoundedAnalysisMethodConflictDetector,
-        BoundedCodeCsvDependenceConflictV22Detector,
+        BoundedCodeCsvDependenceConflictV23Detector,
     )
     matches = [item for item in classes if item.detector_id == detector_id]
     if len(matches) != 1:

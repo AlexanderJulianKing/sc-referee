@@ -48,12 +48,12 @@ from sc_referee.scientific_checks.report_csv_dependence_adapter import (
 )
 from sc_referee.scientific_checks.scope_joins import full_digest_identity_path
 
-DEPENDENCE_RECOGNITION_CHECK_VERSION = "2.2.0"
+DEPENDENCE_RECOGNITION_CHECK_VERSION = "2.3.0"
 CODE_CSV_DEPENDENCE_ADAPTER_ID = (
     "adapter:authorized-independent-unit-entry-into-row-independent-procedure:"
     "code-csv-rowwise-two-sample-v1"
 )
-CODE_CSV_DEPENDENCE_ADAPTER_VERSION = "2.2.0"
+CODE_CSV_DEPENDENCE_ADAPTER_VERSION = "2.3.0"
 CODE_CSV_DEPENDENCE_SEMANTIC_ROLES = (
     "authorized_independent_unit_key",
     "analyzed_row_domain",
@@ -91,6 +91,7 @@ CODE_CSV_DEPENDENCE_COUNTEREVIDENCE = (
 _SAFE_DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _READER_IDS = {
     "pandas_read_csv_v1",
+    "pandas_read_csv_parse_dates_v1",
     "numpy_genfromtxt_named_csv_v1",
     "csv_dictreader_materialized_v1",
     "csv_dictreader_bucket_loop_v1",

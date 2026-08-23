@@ -405,8 +405,8 @@ def test_registered_route_emits_zero_findings(tmp_path: Path, schema_root: Path)
 def test_active_check_identities_match_the_release_registry() -> None:
     expected = {
         "check:authorized-independent-unit-entry-into-row-independent-procedure": (
-            "sha256:973f4651e5bee3039c32a1e6c5b0fea314374c759c885e04c10c42c41284bf23",
-            "sha256:d5dbf6c143ad248a8f3ba3d170ed9974b619ad78f12a69c4a11dbeb5faabc704",
+            "sha256:57aaa1296e329a9cb27c839e1cb945e0df18d84ecb7a702009b632a0d269ac55",
+            "sha256:7fcbf6165e3af9c7de531c53ac34c31d0b2ce215d1df7aa78844d3058e26c50b",
         ),
         "check:complete-domain-exposure-denominator": (
             "sha256:c3ef7acd8597c86e8a121ba43e94d4f2a2993c08cd2c14981b85b13c431841a9",

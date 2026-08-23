@@ -11,21 +11,21 @@ import sc_referee.scientific_checks.code_csv_dependence_adapter as code_adapter_
 import sc_referee.scientific_checks.code_csv_dependence_dataflow as dataflow_module
 from sc_referee.controller import replay, run_audit
 from sc_referee.core.ids import canonical_json
-from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_2 import (
-    BoundedCodeCsvDependenceConflictV22Detector,
+from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_3 import (
+    BoundedCodeCsvDependenceConflictV23Detector,
 )
 from sc_referee.scientific_checks.code_csv_dependence_adapter import CodeCsvDependenceAdapter
 from sc_referee.scientific_checks.core import InspectionDocument
 
 CHECK_ID = "check:authorized-independent-unit-entry-into-row-independent-procedure"
-OPENED_ROOT = Path("evaluation/development/blind-envelope-2026-08-21/cases")
 OPENED_2_ROOT = Path("evaluation/development/blind-envelope-2-2026-08-22/cases")
 OPENED_3_ROOT = Path("evaluation/development/blind-envelope-3-2026-08-22/cases")
 OPENED_4_ROOT = Path("evaluation/development/blind-envelope-4-2026-08-22/cases")
 OPENED_5_ROOT = Path("evaluation/development/blind-envelope-5-2026-08-22/cases")
-LEDGER = Path("evaluation/development/pseudorep-code-slice-v2_2/DEVELOPMENT_LEDGER.json")
+OPENED_6_ROOT = Path("evaluation/development/blind-envelope-6-2026-08-22/cases")
+LEDGER = Path("evaluation/development/pseudorep-code-slice-v2_3/DEVELOPMENT_LEDGER.json")
 K_ROOT = Path("evaluation/development/dependence-growth-loop")
-K_CONTRACT_ROOT = Path("evaluation/development/pseudorep-code-slice-v2_2/k-method-contracts")
+K_CONTRACT_ROOT = Path("evaluation/development/pseudorep-code-slice-v2_3/k-method-contracts")
 
 
 class _ProseDocumentTripwire:
@@ -46,16 +46,16 @@ class _TripwireContext:
         return getattr(self._context, name)
 
 
-def test_v2_2_development_ledger_is_canonical_and_evaluation_only() -> None:
+def test_v2_3_development_ledger_is_canonical_and_evaluation_only() -> None:
     payload = LEDGER.read_bytes()
     ledger = json.loads(payload)
     assert canonical_json(ledger).encode() == payload.rstrip(b"\n")
-    assert ledger["check_version"] == "2.2.0"
-    assert ledger["adapter_version"] == "2.2.0"
-    assert ledger["detector_version"] == "2.2.0"
+    assert ledger["check_version"] == "2.3.0"
+    assert ledger["adapter_version"] == "2.3.0"
+    assert ledger["detector_version"] == "2.3.0"
     assert ledger["qualification_eligible"] is False
-    assert len(ledger["opened_cases"]) == 44
-    assert sum(item["expected_candidate_count"] for item in ledger["opened_cases"]) == 21
+    assert len(ledger["opened_cases"]) == 56
+    assert sum(item["expected_candidate_count"] for item in ledger["opened_cases"]) == 19
     assert all(item["expected_finding_count"] == 0 for item in ledger["opened_cases"])
     assert len(ledger["k_controls"]) == 6
     assert all(item["expected_candidate_count"] == 0 for item in ledger["k_controls"])
@@ -64,30 +64,6 @@ def test_v2_2_development_ledger_is_canonical_and_evaluation_only() -> None:
 @pytest.mark.parametrize(
     ("opened_root", "case_id", "expected_candidate", "expected_state", "expected_reason"),
     [
-        (OPENED_ROOT, "45dcad2f6496a0fd5778", True, "applicable", None),
-        (OPENED_ROOT, "88e59abe85a8eea2b8cd", True, "applicable", None),
-        (OPENED_ROOT, "0f721a41bac71a461dd2", True, "applicable", None),
-        (
-            OPENED_ROOT,
-            "5994e65153b07855b07c",
-            False,
-            "unsupported",
-            "aggregation-on-test-operand-path",
-        ),
-        (
-            OPENED_ROOT,
-            "e804a86a1e05b781f292",
-            False,
-            "not_applicable",
-            "no-repeated-authorized-unit",
-        ),
-        (
-            OPENED_ROOT,
-            "11af5bb3f9b7e8e0b293",
-            False,
-            "unsupported",
-            "tracked-value-mutation",
-        ),
         (
             OPENED_2_ROOT,
             "e8f97fe750189052f726",
@@ -189,7 +165,7 @@ def test_v2_2_development_ledger_is_canonical_and_evaluation_only() -> None:
             "19824e3f6b1e3980872f",
             False,
             "unsupported",
-            "unregistered-component-consumer",
+            "dataflow-definition-ceiling-exceeded",
         ),
         (
             OPENED_3_ROOT,
@@ -241,7 +217,7 @@ def test_v2_2_development_ledger_is_canonical_and_evaluation_only() -> None:
             "23cc44d49100a68655c5",
             False,
             "unsupported",
-            "two-group-row-selection-unavailable",
+            "multiple-rowwise-test-candidates",
         ),
         (
             OPENED_4_ROOT,
@@ -303,11 +279,89 @@ def test_v2_2_development_ledger_is_canonical_and_evaluation_only() -> None:
             "be94cec09f73d4a3036a",
             False,
             "unsupported",
-            "unregistered-component-consumer",
+            "resampling-inference-sibling-present",
         ),
         (
             OPENED_5_ROOT,
             "094fcb05ef85e4f7f406",
+            False,
+            "unsupported",
+            "aggregation-on-test-operand-path",
+        ),
+        (
+            OPENED_6_ROOT,
+            "03ee21366b62d03a9b26",
+            False,
+            "unsupported",
+            "unregistered-component-consumer",
+        ),
+        (
+            OPENED_6_ROOT,
+            "278451c17389f8c72ece",
+            False,
+            "unsupported",
+            "admission-slice-reaches-operand",
+        ),
+        (
+            OPENED_6_ROOT,
+            "5b1e03e13ef7e2e727dc",
+            False,
+            "unsupported",
+            "unregistered-component-consumer",
+        ),
+        (
+            OPENED_6_ROOT,
+            "d89ab3ef408520667cc1",
+            False,
+            "unsupported",
+            "unregistered-component-consumer",
+        ),
+        (OPENED_6_ROOT, "92c016654c6c93979fff", True, "applicable", None),
+        (
+            OPENED_6_ROOT,
+            "9d44076b46746ce05758",
+            False,
+            "unsupported",
+            "unregistered-component-consumer",
+        ),
+        (
+            OPENED_6_ROOT,
+            "2e97fd3e2ab5729b7f9c",
+            False,
+            "unsupported",
+            "aggregation-on-test-operand-path",
+        ),
+        (
+            OPENED_6_ROOT,
+            "6dfee3d81dba1754e893",
+            False,
+            "not_applicable",
+            "no-repeated-authorized-unit",
+        ),
+        (
+            OPENED_6_ROOT,
+            "71bd62d3b1b9d590020a",
+            False,
+            "unsupported",
+            "tracked-value-mutation",
+        ),
+        (
+            OPENED_6_ROOT,
+            "7edfc9aa77704a8a46b8",
+            False,
+            "unsupported",
+            "additional-accepted-reader-present",
+        ),
+        (
+            OPENED_6_ROOT,
+            "b12c6fd59e338b7b156e",
+            False,
+            "unsupported",
+            "resampling-inference-sibling-present",
+        ),
+        (
+            OPENED_6_ROOT,
+            "2438210f2abe4b53295f",
             False,
             "unsupported",
             "aggregation-on-test-operand-path",
@@ -349,7 +403,7 @@ def test_opened_cases_follow_code_lane_normal_path_and_replay(
     results = [
         item
         for item in bundle["detector_results"]
-        if item.get("detector_id") == BoundedCodeCsvDependenceConflictV22Detector.detector_id
+        if item.get("detector_id") == BoundedCodeCsvDependenceConflictV23Detector.detector_id
     ]
     assert bool([item for item in results if item["state"] == "evaluation_finding_candidate"]) is (
         expected_candidate
@@ -395,6 +449,13 @@ def test_section_12_1_tripwire_covers_adapter_inspect_and_dataflow_entry(
     loop_normalization_calls = 0
     reconstruction_member_calls = 0
     binding_substitution_calls = 0
+    csv_classification_calls = 0
+    resampling_calls = 0
+    resampling_closure_calls = 0
+    to_numpy_identity_calls = 0
+    closed_sequence_calls = 0
+    parse_dates_calls = 0
+    auxiliary_conversion_calls = 0
     original_inspect = CodeCsvDependenceAdapter.inspect
     original_analyze = code_adapter_module.analyze_code_csv_dataflow
     original_expand = dataflow_module._expand_relevant_helpers
@@ -408,6 +469,13 @@ def test_section_12_1_tripwire_covers_adapter_inspect_and_dataflow_entry(
     original_loop_normalization = dataflow_module._normalize_contract_domain_loops
     original_reconstruction_member = dataflow_module._literal_subscript_member
     original_binding_visit = dataflow_module._ContractLoopBindingTransformer.visit_Name
+    original_csv_classification = code_adapter_module._parse_csv
+    original_resampling = dataflow_module._v2_resampling_sibling
+    original_resampling_closure = dataflow_module._guard_name_closure
+    original_to_numpy_identity = dataflow_module._selection_preserving_to_numpy_shape
+    original_closed_sequence = dataflow_module._closed_sequence_elements
+    original_parse_dates = dataflow_module._parse_dates_columns
+    original_auxiliary_conversion = dataflow_module._same_column_auxiliary_conversion
 
     def guarded_inspect(self: CodeCsvDependenceAdapter, context):  # type: ignore[no-untyped-def]
         nonlocal inspect_calls
@@ -484,6 +552,41 @@ def test_section_12_1_tripwire_covers_adapter_inspect_and_dataflow_entry(
         binding_substitution_calls += 1
         return original_binding_visit(self, *args, **kwargs)
 
+    def guarded_csv_classification(*args, **kwargs):  # type: ignore[no-untyped-def]
+        nonlocal csv_classification_calls
+        csv_classification_calls += 1
+        return original_csv_classification(*args, **kwargs)
+
+    def guarded_resampling(*args, **kwargs):  # type: ignore[no-untyped-def]
+        nonlocal resampling_calls
+        resampling_calls += 1
+        return original_resampling(*args, **kwargs)
+
+    def guarded_resampling_closure(*args, **kwargs):  # type: ignore[no-untyped-def]
+        nonlocal resampling_closure_calls
+        resampling_closure_calls += 1
+        return original_resampling_closure(*args, **kwargs)
+
+    def guarded_to_numpy_identity(*args, **kwargs):  # type: ignore[no-untyped-def]
+        nonlocal to_numpy_identity_calls
+        to_numpy_identity_calls += 1
+        return original_to_numpy_identity(*args, **kwargs)
+
+    def guarded_closed_sequence(*args, **kwargs):  # type: ignore[no-untyped-def]
+        nonlocal closed_sequence_calls
+        closed_sequence_calls += 1
+        return original_closed_sequence(*args, **kwargs)
+
+    def guarded_parse_dates(*args, **kwargs):  # type: ignore[no-untyped-def]
+        nonlocal parse_dates_calls
+        parse_dates_calls += 1
+        return original_parse_dates(*args, **kwargs)
+
+    def guarded_auxiliary_conversion(*args, **kwargs):  # type: ignore[no-untyped-def]
+        nonlocal auxiliary_conversion_calls
+        auxiliary_conversion_calls += 1
+        return original_auxiliary_conversion(*args, **kwargs)
+
     monkeypatch.setattr(CodeCsvDependenceAdapter, "inspect", guarded_inspect)
     monkeypatch.setattr(code_adapter_module, "analyze_code_csv_dataflow", guarded_analyze)
     monkeypatch.setattr(dataflow_module, "_expand_relevant_helpers", guarded_expand)
@@ -513,6 +616,21 @@ def test_section_12_1_tripwire_covers_adapter_inspect_and_dataflow_entry(
         "visit_Name",
         guarded_binding_visit,
     )
+    monkeypatch.setattr(code_adapter_module, "_parse_csv", guarded_csv_classification)
+    monkeypatch.setattr(dataflow_module, "_v2_resampling_sibling", guarded_resampling)
+    monkeypatch.setattr(dataflow_module, "_guard_name_closure", guarded_resampling_closure)
+    monkeypatch.setattr(
+        dataflow_module,
+        "_selection_preserving_to_numpy_shape",
+        guarded_to_numpy_identity,
+    )
+    monkeypatch.setattr(dataflow_module, "_closed_sequence_elements", guarded_closed_sequence)
+    monkeypatch.setattr(dataflow_module, "_parse_dates_columns", guarded_parse_dates)
+    monkeypatch.setattr(
+        dataflow_module,
+        "_same_column_auxiliary_conversion",
+        guarded_auxiliary_conversion,
+    )
     bundle = run_audit(
         project,
         tmp_path / "audit-tripwire",
@@ -535,7 +653,28 @@ def test_section_12_1_tripwire_covers_adapter_inspect_and_dataflow_entry(
         material_inputs=(descriptive_material_path,),
         method_contract_lock=descriptive_lock_path,
     )
-    assert inspect_calls == 2
+    for extra_case_id in (
+        "278451c17389f8c72ece",
+        "d89ab3ef408520667cc1",
+        "92c016654c6c93979fff",
+        "b12c6fd59e338b7b156e",
+    ):
+        extra_source = OPENED_6_ROOT / extra_case_id
+        extra_project = tmp_path / f"project-tripwire-{extra_case_id}"
+        shutil.copytree(extra_source / "project", extra_project)
+        extra_lock_path = extra_source / "method-contract/semantic.lock.json"
+        extra_lock = json.loads(extra_lock_path.read_text(encoding="utf-8"))
+        extra_material_path = extra_lock["method_contract_profile"]["profile_manifest"][
+            "authority_binding_snapshot"
+        ]["authorized_independent_unit_key"]["material_input_path"]
+        run_audit(
+            extra_project,
+            tmp_path / f"audit-tripwire-{extra_case_id}",
+            schema_root,
+            material_inputs=(extra_material_path,),
+            method_contract_lock=extra_lock_path,
+        )
+    assert inspect_calls == 6
     frozen = json.loads(
         (tmp_path / "audit-tripwire/semantic.lock.json").read_text(encoding="utf-8")
     )
@@ -544,8 +683,8 @@ def test_section_12_1_tripwire_covers_adapter_inspect_and_dataflow_entry(
         for item in frozen["scientific_check_registry"]["evaluation"]["modules"]
         if item["check_id"] == CHECK_ID
     )
-    assert analyze_calls == 2, dependence_observation
-    assert helper_expansion_calls == 2
+    assert analyze_calls == 6, dependence_observation
+    assert helper_expansion_calls == 6
     assert slice_calls >= 1
     assert forward_slice_calls >= 1
     assert admission_calls >= 1
@@ -553,9 +692,16 @@ def test_section_12_1_tripwire_covers_adapter_inspect_and_dataflow_entry(
     assert annotation_exclusion_calls >= 1
     assert descriptive_aggregation_calls >= 1
     assert pandas_readonly_calls >= 1
-    assert loop_normalization_calls == 2
+    assert loop_normalization_calls == 6
     assert reconstruction_member_calls >= 1
     assert binding_substitution_calls >= 1
+    assert csv_classification_calls == 6
+    assert resampling_calls >= 1
+    assert resampling_closure_calls >= 1
+    assert to_numpy_identity_calls >= 1
+    assert closed_sequence_calls >= 1
+    assert parse_dates_calls >= 1
+    assert auxiliary_conversion_calls >= 1
     assert not bundle["findings"]
 
 
@@ -584,7 +730,7 @@ def test_refrozen_k_contracts_are_live_scored_abstentions(
     frozen = json.loads(method_contract_lock.read_text(encoding="utf-8"))
     assert (
         frozen["method_contract_profile"]["profile_manifest"]["check_manifest"]["check_version"]
-        == "2.2.0"
+        == "2.3.0"
     )
 
     audit = tmp_path / f"k-audit-{case_id}"
@@ -608,7 +754,7 @@ def test_refrozen_k_contracts_are_live_scored_abstentions(
     assert not [
         item
         for item in bundle["detector_results"]
-        if item.get("detector_id") == BoundedCodeCsvDependenceConflictV22Detector.detector_id
+        if item.get("detector_id") == BoundedCodeCsvDependenceConflictV23Detector.detector_id
         and item.get("state") in {"evaluation_finding_candidate", "finding_candidate", "accepted"}
     ]
 

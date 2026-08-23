@@ -724,14 +724,15 @@ def _parse_csv(content: bytes, unit_column: str, group_column: str) -> _CsvFacts
             excluded.append(column)
             continue
         candidates.append(column)
-        by_unit: dict[str, list[str]] = defaultdict(list)
         pairs: list[tuple[str, str]] = []
         for unit, value in zip(units, values, strict=True):
-            by_unit[unit].append(value)
             pairs.append((unit, value))
-        tuples = [tuple(sorted(by_unit[unit])) for unit in sorted(by_unit)]
-        within = bool(tuples) and all(value == tuples[0] for value in tuples[1:])
         unique = len(set(pairs)) == len(pairs)
+        within = bool(
+            unique
+            and len(set(values)) <= max(multiplicities.values())
+            and sum(count > 1 for count in multiplicities.values()) == unit_count
+        )
         if within:
             within_indexes.append(column)
         if within and unique:

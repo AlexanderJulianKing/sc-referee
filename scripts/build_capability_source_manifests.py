@@ -846,7 +846,7 @@ def main() -> None:
         },
     )
     code_csv_dependence_resource = (
-        ROOT / "src" / "sc_referee" / "detectors" / "bounded_code_csv_dependence_conflict_v2_2.py"
+        ROOT / "src" / "sc_referee" / "detectors" / "bounded_code_csv_dependence_conflict_v2_3.py"
     )
     _upsert(
         detector_collection,
@@ -894,7 +894,7 @@ def main() -> None:
                     "prerequisite is unavailable or unsupported."
                 ),
                 "partially_covered_when": (
-                    "Not used by version 2.2.0; incomplete or conflicted records remain not covered."
+                    "Not used by version 2.3.0; incomplete or conflicted records remain not covered."
                 ),
             },
             "description": (
@@ -903,7 +903,7 @@ def main() -> None:
             ),
             "detector_family": "code_csv_dependence_requirement_consistency",
             "detector_id": "detector:bounded-code-csv-dependence-conflict",
-            "detector_version": "2.2.0",
+            "detector_version": "2.3.0",
             "domains": ["domain_neutral_scientific_analysis"],
             "extensions": {
                 "x-adr-ref": (
@@ -911,7 +911,7 @@ def main() -> None:
                     "PSEUDOREPLICATION-FINDING.md"
                 ),
                 "x-implementation-resource": (
-                    "detectors/bounded_code_csv_dependence_conflict_v2_2.py"
+                    "detectors/bounded_code_csv_dependence_conflict_v2_3.py"
                 ),
                 "x-production-finding-permitted": False,
                 "x-scientific-check-ids": CODE_CSV_DEPENDENCE_CHECK_IDS,
@@ -919,8 +919,8 @@ def main() -> None:
             "implementation": {
                 "deterministic": True,
                 "entry_point": (
-                    "sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_2:"
-                    "BoundedCodeCsvDependenceConflictV22Detector"
+                    "sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_3:"
+                    "BoundedCodeCsvDependenceConflictV23Detector"
                 ),
                 "implementation_digest": sha256_digest(code_csv_dependence_resource.read_bytes()),
             },

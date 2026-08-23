@@ -72,6 +72,7 @@ def test_code_detector_manifest_history_is_versioned_and_live_projection_is_late
         "2.0.0",
         "2.1.0",
         "2.2.0",
+        "2.3.0",
     ]
     assert [item["implementation"]["implementation_digest"] for item in history[:-1]] == [
         "sha256:e52a367ffb97ca6706d6d2cfd621f0283cb12d99d1483304142d365aad25f86e",
@@ -80,13 +81,14 @@ def test_code_detector_manifest_history_is_versioned_and_live_projection_is_late
         "sha256:4d004c513761e382bbb49ea0633d1d7b3ee07f91cdba91adf837b48902d2f816",
         "sha256:261bfa27092c528cd86fb3905ced2fb1b2f296852f688ab4be3abaa94d57e901",
         "sha256:9c30154639e1fc013a0f82a5ee3d767202c121f42626b2c6497436e9305f2452",
+        "sha256:f2aab5efb1e02d3bae88800dea31c1707644fb36b6de48abfb612e7f426f71be",
     ]
     live = load_capability_detector_manifest(
         root,
         _schema_root(project_root),
         "detector:bounded-code-csv-dependence-conflict",
     )
-    assert live["detector_version"] == "2.2.0"
+    assert live["detector_version"] == "2.3.0"
     assert live == history[-1]
 
 

@@ -1038,7 +1038,6 @@ def test_a4_closed_pandas_readonly_shapes_are_descriptive(description: str) -> N
         "description = df.reindex(dynamic_labels)",
         'description = df.unstack("group", 0)',
         "description = df.unstack(level=LEVEL)",
-        'description = left.to_numpy("float64")',
         "description = left.to_numpy(copy=True)",
     ],
 )
@@ -1050,12 +1049,239 @@ def test_a4_pandas_readonly_near_misses_abstain(description: str) -> None:
     assert _analyze(source).reason == "unregistered-component-consumer"
 
 
-def test_a4_to_numpy_does_not_create_test_operand_provenance() -> None:
+@pytest.mark.parametrize(
+    "conversion",
+    [
+        ".to_numpy()",
+        '.to_numpy(dtype="float64")',
+        '.to_numpy("float64")',
+    ],
+)
+def test_g3_to_numpy_preserves_test_operand_provenance(conversion: str) -> None:
     source = _source(
-        left='left = df.loc[df["group"] == "A", "value"].to_numpy()',
-        right='right = df.loc[df["group"] == "B", "value"].to_numpy()',
+        left=f'left = df.loc[df["group"] == "A", "value"]{conversion}',
+        right=f'right = df.loc[df["group"] == "B", "value"]{conversion}',
     )
-    assert _analyze(source).reason == "two-group-row-selection-unavailable"
+    assert _analyze(source).reason is None
+
+
+@pytest.mark.parametrize(
+    "conversion",
+    [
+        ".to_numpy(copy=True)",
+        ".to_numpy(dtype=dynamic_dtype)",
+        '.to_numpy("float64", na_value=0)',
+    ],
+)
+def test_g3_to_numpy_operand_near_misses_abstain(conversion: str) -> None:
+    source = _source(
+        left=f'left = df.loc[df["group"] == "A", "value"]{conversion}',
+        right=f'right = df.loc[df["group"] == "B", "value"]{conversion}',
+    )
+    assert _analyze(source).reason == "unregistered-component-consumer"
+
+
+def test_g4_contract_domain_dict_comprehension_reconstructs_operand_members() -> None:
+    source = (
+        b"import pandas as pd\n"
+        b"from scipy import stats\n"
+        b'GROUPS = ("A", "B")\n'
+        b'df = pd.read_csv("data.csv")\n'
+        b'vectors = {level: df.loc[df["group"] == level, "value"] for level in GROUPS}\n'
+        b'result = stats.ttest_ind(vectors["A"], vectors["B"])\n'
+        b"print(result.pvalue)\n"
+    )
+    assert _analyze(source).reason is None
+
+
+def test_g4_dict_comprehension_aggregate_members_stay_on_operand_path() -> None:
+    source = (
+        b"import pandas as pd\n"
+        b"from scipy import stats\n"
+        b'GROUPS = ("A", "B")\n'
+        b'df = pd.read_csv("data.csv")\n'
+        b'vectors = {level: df.loc[df["group"] == level, "value"].mean() '
+        b"for level in GROUPS}\n"
+        b'result = stats.ttest_ind(vectors["A"], vectors["B"])\n'
+        b"print(result.pvalue)\n"
+    )
+    assert _analyze(source).reason == "rowwise-two-sample-test-unavailable"
+
+
+def test_g5_module_list_constants_bind_contract_domain_loop() -> None:
+    source = (
+        b"import pandas as pd\n"
+        b"from scipy import stats\n"
+        b'GROUPS = ["A", "B"]\n'
+        b'df = pd.read_csv("data.csv")\n'
+        b"vectors = {}\n"
+        b"for level in GROUPS:\n"
+        b'    vectors[level] = df.loc[df["group"] == level, "value"]\n'
+        b'result = stats.ttest_ind(vectors["A"], vectors["B"])\n'
+        b"print(result.pvalue)\n"
+    )
+    assert _analyze(source).reason is None
+
+
+@pytest.mark.parametrize(
+    "definition",
+    [
+        'GROUPS = ["A", call()]',
+        'GROUPS = [["A"], "B"]',
+        "GROUPS = []",
+        "GROUPS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+    ],
+)
+def test_g5_nonclosed_or_out_of_bound_module_sequences_do_not_open_a_path(
+    definition: str,
+) -> None:
+    source = (
+        "import pandas as pd\n"
+        "from scipy import stats\n"
+        f"{definition}\n"
+        'df = pd.read_csv("data.csv")\n'
+        "vectors = {}\n"
+        "for level in GROUPS:\n"
+        '    vectors[level] = df.loc[df["group"] == level, "value"]\n'
+        'result = stats.ttest_ind(vectors["A"], vectors["B"])\n'
+        "print(result.pvalue)\n"
+    ).encode()
+    assert _analyze(source).reason is not None
+
+
+def test_g6_parse_dates_reader_is_accepted_on_the_authorized_path() -> None:
+    result = _analyze(_source(reader='df = pd.read_csv("data.csv", parse_dates=["visit"])'))
+    assert result.reason is None
+    assert result.facts is not None
+    assert result.facts.reader_api == "pandas_read_csv_parse_dates_v1"
+
+
+def test_g6_off_path_parse_dates_reader_participates_in_second_reader_census() -> None:
+    source = _source(
+        reader=(
+            'other = pd.read_csv("other.csv", parse_dates=["visit"])\ndf = pd.read_csv("data.csv")'
+        )
+    )
+    assert _analyze(source).reason == "additional-accepted-reader-present"
+
+
+@pytest.mark.parametrize(
+    "reader",
+    [
+        'df = pd.read_csv("data.csv", parse_dates=["unit"])',
+        'df = pd.read_csv("data.csv", parse_dates=["group"])',
+        'df = pd.read_csv("data.csv", parse_dates=["unknown"])',
+        'df = pd.read_csv("data.csv", parse_dates=("visit",))',
+        'df = pd.read_csv("data.csv", parse_dates=[["visit"]])',
+        'df = pd.read_csv("data.csv", parse_dates=["visit"], index_col=0)',
+    ],
+)
+def test_g6_reader_near_misses_abstain(reader: str) -> None:
+    assert _analyze(_source(reader=reader)).reason == "authorized-reader-lineage-unavailable"
+
+
+@pytest.mark.parametrize(
+    "conversion",
+    [
+        'df["visit"] = pd.to_datetime(df["visit"]).dt.date',
+        'df["visit"] = df["visit"].astype(str)',
+        'df["visit"] = df["visit"].astype(int)',
+        'df["visit"] = df["visit"].astype(float)',
+    ],
+)
+def test_g7_same_auxiliary_column_conversion_is_not_a_tracked_mutation(
+    conversion: str,
+) -> None:
+    assert _analyze(_source(before_test=conversion)).reason is None
+
+
+@pytest.mark.parametrize(
+    "conversion",
+    [
+        'df["unit"] = pd.to_datetime(df["unit"]).dt.date',
+        'df["group"] = df["group"].astype(str)',
+        'df["value"] = df["value"].astype(float)',
+        'df["visit"] = pd.to_datetime(df["group"]).dt.date',
+        'df.loc[:, "visit"] = pd.to_datetime(df["visit"]).dt.date',
+        'df["visit"] = df["visit"].astype("str")',
+    ],
+)
+def test_g7_protected_or_near_miss_column_conversion_abstains(conversion: str) -> None:
+    assert _analyze(_source(before_test=conversion)).reason == "tracked-value-mutation"
+
+
+def test_g1_subscript_store_defines_resampling_output() -> None:
+    source = _source(
+        before_test=(
+            "draws = [0.0] * 50\n"
+            "for i in range(50):\n"
+            "    draws[i] = left.mean()\n"
+            "spread = np.std(draws)"
+        ),
+        reader='import numpy as np\ndf = pd.read_csv("data.csv")',
+        sink="print(spread)\nprint(result.pvalue)",
+    )
+    assert _analyze(source).reason == "resampling-inference-sibling-present"
+
+
+def test_g1_resampling_dominates_earlier_unregistered_component_consumer() -> None:
+    source = _source(
+        before_test=(
+            "opaque = left.to_string(float_format=lambda value: str(value))\n"
+            "draws = []\n"
+            "for i in range(50):\n"
+            "    draws.append(left.mean())\n"
+            "spread = np.std(draws)"
+        ),
+        reader='import numpy as np\ndf = pd.read_csv("data.csv")',
+        sink="print(opaque)\nprint(spread)\nprint(result.pvalue)",
+    )
+    assert _analyze(source).reason == "resampling-inference-sibling-present"
+
+
+def test_g1_resampling_guard_follows_distinct_helper_edges_to_sink() -> None:
+    source = b"""import pandas as pd
+import numpy as np
+from scipy import stats
+
+N_RESAMPLES = 50
+
+def make_blocks(frame):
+    blocks = {
+        "A": frame.loc[frame["group"] == "A", "value"],
+        "B": frame.loc[frame["group"] == "B", "value"],
+    }
+    return blocks
+
+def draw(blocks, n_resamples=N_RESAMPLES):
+    draws = [0.0] * n_resamples
+    for index in range(n_resamples):
+        draws[index] = blocks["A"].mean() - blocks["B"].mean()
+    return draws
+
+def reduce_draws(draws):
+    spread = np.std(draws)
+    return spread
+
+def emit(spread):
+    print(spread)
+    return spread
+
+def main():
+    df = pd.read_csv("data.csv")
+    blocks = make_blocks(df)
+    draws = draw(blocks)
+    spread = reduce_draws(draws)
+    emitted = emit(spread)
+    left = df.loc[df["group"] == "A", "value"]
+    right = df.loc[df["group"] == "B", "value"]
+    result = stats.ttest_ind(left, right)
+    print(result.pvalue)
+
+if __name__ == "__main__":
+    main()
+"""
+    assert _analyze(source).reason == "resampling-inference-sibling-present"
 
 
 def test_x4_module_level_transform_is_not_ignored() -> None:

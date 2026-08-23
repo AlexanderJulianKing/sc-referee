@@ -223,26 +223,27 @@ def _finding_profile_matches(pin: GrantPin) -> bool:
     from sc_referee.detectors.method_conflict_finding import (
         CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST,
         CODE_CSV_DEPENDENCE_FINDING_PROFILE_ID,
+        CODE_CSV_DEPENDENCE_FINDING_PROFILE_V2_DIGEST,
+        CODE_CSV_DEPENDENCE_FINDING_PROFILE_V2_ID,
         REPORT_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST,
         REPORT_CSV_DEPENDENCE_FINDING_PROFILE_ID,
     )
-    from sc_referee.scientific_checks.profiles import scientific_check_release_registry
 
-    registered = [
-        binding
-        for binding in scientific_check_release_registry().method_conflict_bindings
-        if binding.binding_id == pin.binding_id
-    ]
-    if bool(
-        len(registered) == 1
-        and registered[0].check_id
-        == "check:authorized-independent-unit-entry-into-row-independent-procedure"
-        and registered[0].detector_id == "detector:bounded-code-csv-dependence-conflict"
-        and registered[0].check_version == pin.check_version
-    ):
+    if pin.detector_id == "detector:bounded-code-csv-dependence-conflict":
+        expected = (
+            (CODE_CSV_DEPENDENCE_FINDING_PROFILE_ID, CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST)
+            if pin.detector_version == "2.1.0"
+            else (
+                CODE_CSV_DEPENDENCE_FINDING_PROFILE_V2_ID,
+                CODE_CSV_DEPENDENCE_FINDING_PROFILE_V2_DIGEST,
+            )
+            if pin.detector_version == "2.3.0"
+            else None
+        )
         return (
-            pin.finding_profile_id == CODE_CSV_DEPENDENCE_FINDING_PROFILE_ID
-            and pin.finding_profile_digest == CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST
+            expected is not None
+            and pin.finding_profile_id == expected[0]
+            and pin.finding_profile_digest == expected[1]
         )
     return (
         pin.finding_profile_id == REPORT_CSV_DEPENDENCE_FINDING_PROFILE_ID

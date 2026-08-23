@@ -117,13 +117,51 @@ def _is_registered_code_dependence_binding(binding: MethodConflictBinding) -> bo
         for item in scientific_check_release_registry().method_conflict_bindings
         if item.binding_id == binding.binding_id
     ]
-    return bool(
+    live = bool(
         len(matches) == 1
         and matches[0].binding_digest == binding.binding_digest
         and binding.check_id == _DEPENDENCE_CHECK_ID
         and binding.detector_id == "detector:bounded-code-csv-dependence-conflict"
         and binding.required_evidence_planes == ("static_source",)
     )
+    if live:
+        return True
+    from sc_referee.detectors.method_conflict_grant_pins import GRANT_PINS
+
+    installed = GRANT_PINS.get(binding.binding_id)
+    return bool(
+        installed is not None
+        and installed.binding_digest == binding.binding_digest
+        and installed.check_id == binding.check_id == _DEPENDENCE_CHECK_ID
+        and installed.check_version == binding.check_version
+        and installed.check_manifest_digest == binding.check_manifest_digest
+        and installed.detector_id
+        == binding.detector_id
+        == "detector:bounded-code-csv-dependence-conflict"
+        and installed.detector_version == binding.detector_version == "2.1.0"
+        and installed.detector_manifest_digest == binding.detector_manifest_digest
+        and binding.required_evidence_planes == ("static_source",)
+    )
+
+
+def code_dependence_wording_profile(
+    binding: MethodConflictBinding,
+) -> tuple[str, str, tuple[str, ...], bool] | None:
+    if binding.detector_version == "2.1.0":
+        return (
+            CODE_CSV_DEPENDENCE_FINDING_PROFILE_ID,
+            CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST,
+            _CODE_DEPENDENCE_NON_INFERENCES,
+            False,
+        )
+    if binding.detector_version == "2.3.0":
+        return (
+            CODE_CSV_DEPENDENCE_FINDING_PROFILE_V2_ID,
+            CODE_CSV_DEPENDENCE_FINDING_PROFILE_V2_DIGEST,
+            _CODE_DEPENDENCE_NON_INFERENCES_V2,
+            True,
+        )
+    return None
 
 
 CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST = semantic_digest(
@@ -145,6 +183,40 @@ CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST = semantic_digest(
         "issue_class": "x-review-scoped-analysis-method-requirement-mismatch",
         "severity_rationale": _CODE_DEPENDENCE_SEVERITY_RATIONALE,
         "non_inferences": list(_CODE_DEPENDENCE_NON_INFERENCES),
+        "next_action": _CODE_DEPENDENCE_NEXT_ACTION,
+    }
+)
+
+CODE_CSV_DEPENDENCE_FINDING_PROFILE_V2_ID = (
+    "method-conflict-finding:code-csv-authorized-unit-requirement-conflict-v2"
+)
+_CODE_DEPENDENCE_COMPOSITE_KEY_NON_INFERENCE = (
+    "The declared unit column may be one component of a composite key."
+)
+_CODE_DEPENDENCE_NON_INFERENCES_V2 = (
+    *_CODE_DEPENDENCE_NON_INFERENCES,
+    _CODE_DEPENDENCE_COMPOSITE_KEY_NON_INFERENCE,
+)
+CODE_CSV_DEPENDENCE_FINDING_PROFILE_V2_DIGEST = semantic_digest(
+    {
+        "profile_id": CODE_CSV_DEPENDENCE_FINDING_PROFILE_V2_ID,
+        "title": _CODE_DEPENDENCE_TITLE,
+        "summary_template": (
+            "The frozen requirement for `{CSV_PATH}` permits one analyzed row per "
+            "`{UNIT_COLUMN}`. In `analysis.py`, the two checked arguments to `{PROCEDURE_ID}` "
+            "are direct `{GROUP_COLUMN}` row selections from that CSV and jointly cover all "
+            "`{N_csv}` rows; the table contains `{U}` distinct `{UNIT_COLUMN}` values, `{R}` of "
+            "them repeat, and the maximum multiplicity is `{M}`. The static contract "
+            "representation and the checked code/dataflow representation therefore conflict. "
+            "The contract author may be wrong, and static source does not establish execution, "
+            "statistical invalidity, numerical impact, bias direction, or the adequacy of "
+            "unsupported or uninspected analysis paths. The declared unit column may be one "
+            "component of a composite key."
+        ),
+        "slot_schema": _CODE_DEPENDENCE_SLOT_SCHEMA,
+        "issue_class": "x-review-scoped-analysis-method-requirement-mismatch",
+        "severity_rationale": _CODE_DEPENDENCE_SEVERITY_RATIONALE,
+        "non_inferences": list(_CODE_DEPENDENCE_NON_INFERENCES_V2),
         "next_action": _CODE_DEPENDENCE_NEXT_ACTION,
     }
 )
@@ -282,8 +354,17 @@ def draft_method_conflict_finding(
                 "dependence result lacks one exact contract-bound row-entry fact"
             )
         if code_lane:
+            wording_profile = code_dependence_wording_profile(binding)
+            if wording_profile is None:
+                raise MethodConflictFindingDraftError(
+                    "code dependence binding has no exact versioned wording profile"
+                )
+            profile_id, profile_digest, non_inferences, composite_key_limit = wording_profile
             draft["title"] = _CODE_DEPENDENCE_TITLE
-            draft["summary"] = _code_dependence_summary(facts)
+            draft["summary"] = _code_dependence_summary(
+                facts,
+                composite_key_limit=composite_key_limit,
+            )
             draft["publication_materiality"] = {
                 "state": "unassessed",
                 "reason": "no_selected_publication_surface",
@@ -294,14 +375,10 @@ def draft_method_conflict_finding(
                 "candidate_publication_surface_ids": [],
             }
             draft["severity"]["rationale"] = _CODE_DEPENDENCE_SEVERITY_RATIONALE
-            draft["coverage_limitations"] = list(_CODE_DEPENDENCE_NON_INFERENCES)
+            draft["coverage_limitations"] = list(non_inferences)
             draft["next_action"] = _CODE_DEPENDENCE_NEXT_ACTION
-            draft["extensions"]["x-finding-wording-profile-id"] = (
-                CODE_CSV_DEPENDENCE_FINDING_PROFILE_ID
-            )
-            draft["extensions"]["x-finding-wording-profile-digest"] = (
-                CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST
-            )
+            draft["extensions"]["x-finding-wording-profile-id"] = profile_id
+            draft["extensions"]["x-finding-wording-profile-digest"] = profile_digest
             draft["extensions"]["x-code-csv-row-entry-evidence-digest"] = facts["fact_digest"]
         else:
             draft["title"] = _DEPENDENCE_TITLE
@@ -596,6 +673,7 @@ def _valid_code_dependence_fact_shape(fact: Mapping[str, Any]) -> bool:
         or fact.get("reader_api")
         not in {
             "pandas_read_csv_v1",
+            "pandas_read_csv_parse_dates_v1",
             "numpy_genfromtxt_named_csv_v1",
             "csv_dictreader_materialized_v1",
             "csv_dictreader_bucket_loop_v1",
@@ -946,7 +1024,7 @@ def _dependence_summary(facts: Mapping[str, Any]) -> str:
     )
 
 
-def _code_dependence_summary(facts: Mapping[str, Any]) -> str:
+def _code_dependence_summary(facts: Mapping[str, Any], *, composite_key_limit: bool = False) -> str:
     csv_path = _json_slot(str(facts["material_input_path"]))
     unit = _json_slot(str(facts["authorized_unit_column"]))
     group = _json_slot(str(facts["group_contrast_column"]))
@@ -955,7 +1033,7 @@ def _code_dependence_summary(facts: Mapping[str, Any]) -> str:
     distinct = int(facts["distinct_unit_count"])
     repeated = int(facts["repeated_unit_count"])
     maximum = int(facts["maximum_unit_multiplicity"])
-    return (
+    summary = (
         f"The frozen requirement for `{csv_path}` permits one analyzed row per `{unit}`. In "
         f"`analysis.py`, the two checked arguments to `{procedure}` are direct `{group}` row "
         f"selections from that CSV and jointly cover all `{n}` rows; the table contains "
@@ -966,6 +1044,9 @@ def _code_dependence_summary(facts: Mapping[str, Any]) -> str:
         "source does not establish execution, statistical invalidity, numerical impact, bias "
         "direction, or the adequacy of unsupported or uninspected analysis paths."
     )
+    if composite_key_limit:
+        summary += " The declared unit column may be one component of a composite key."
+    return summary
 
 
 def _json_slot(value: str) -> str:

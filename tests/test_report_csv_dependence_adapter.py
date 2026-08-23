@@ -11,6 +11,8 @@ from sc_referee.controller import replay, run_audit
 from sc_referee.core.ids import semantic_digest, sha256_digest
 from sc_referee.detectors.method_conflict_finding import (
     _CODE_DEPENDENCE_SLOT_SCHEMA,
+    CODE_CSV_DEPENDENCE_FINDING_PROFILE_V2_DIGEST,
+    CODE_CSV_DEPENDENCE_FINDING_PROFILE_V2_ID,
     _code_dependence_row_entry_facts,
     draft_method_conflict_finding,
 )
@@ -835,6 +837,15 @@ def test_code_lane_finding_draft_pins_title_and_slot_types(
 
     assert draft["title"] == (
         "Analysis code contradicts the frozen one-row-per-authorized-unit requirement"
+    )
+    assert draft["extensions"]["x-finding-wording-profile-id"] == (
+        CODE_CSV_DEPENDENCE_FINDING_PROFILE_V2_ID
+    )
+    assert draft["extensions"]["x-finding-wording-profile-digest"] == (
+        CODE_CSV_DEPENDENCE_FINDING_PROFILE_V2_DIGEST
+    )
+    assert draft["summary"].endswith(
+        "The declared unit column may be one component of a composite key."
     )
     assert _CODE_DEPENDENCE_SLOT_SCHEMA == {
         "CSV_PATH": "safe-normalized-material-path-string",

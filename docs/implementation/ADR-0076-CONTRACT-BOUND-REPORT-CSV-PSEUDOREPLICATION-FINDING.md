@@ -23,6 +23,8 @@
   2026-08-21, authorized 2026-08-22
 - **Code-lane 2.1 freeze acceptance provenance:** Fable, under executive authority granted by Alex
   2026-08-21, accepted 2026-08-22
+- **Code-lane 2.3 build amendment provenance:** Fable, under executive authority granted by Alex
+  2026-08-21, authorized 2026-08-23
 - **Schema and installation amendment provenance:** Fable, executive authority; Alex: full steam
   ahead 2026-08-22
 - **Decision owners:** Alex / sc-referee maintainers
@@ -741,9 +743,39 @@ answer, authority, material path, or expected scientific outcome changes. Envelo
 six-positive/six-negative bar: at least 3/6 positives, exactly 0/6 negatives, zero Findings across the
 108 blind, 155 regression, and twelve new cases, and replay equality 12/12.
 
+## Code-lane 2.3 development amendment — 2026-08-23
+
+Provenance: **Fable, under executive authority granted by Alex 2026-08-21**. This
+accepted-for-build amendment authorizes only the bounded `2.3.0` delta specified in
+`docs/implementation/PSEUDOREP-CODE-SLICE-2.3-DESIGN-2026-08-23.md`. Envelope 6 is opened and burned:
+it produced 0/6 positive candidates, 0/6 negative candidates, zero Findings, and replay 12/12. Its
+cases contribute development evidence only.
+
+The amendment strengthens resampling-sibling reachability across closed helper defaults, container
+members, subscript stores, destructuring, and inlined parameter bindings, with the resampling guard
+dominating an ordinary unregistered-consumer reason at predicate step 19. It replaces only D1's
+within-unit-index classifier, preserves exact selection identity through three closed `to_numpy`
+forms, and admits only the exact comprehension, module-sequence, `parse_dates`, and same-column
+auxiliary-conversion shapes enumerated in the design. Every reader, operand, aggregation, mutation,
+dependence-aware sibling, multiple-candidate, unsupported-consumer, and alternate-analysis guard
+remains in force.
+
+The installed qualified `2.1.0` wording profile is byte-frozen at digest
+`sha256:0440fdb918eb04ff975e7129c4152a2d681f3f4203ae8c7a1f8fc9ebf8916288`. Detector `2.3.0`
+uses a separate v2 wording-profile identity whose fixed non-inferences add only: “The declared unit
+column may be one component of a composite key.” No `2.3.0` qualification or production pin is
+installed, so its candidates remain evaluation-only and the live qualified `2.1.0` pin is stale.
+The Finding title and evidence slots do not change, and no prose, comment, docstring, report, or
+printed label becomes evidence.
+
+The six Batch-K method-contract closures are refreshed only to live check `2.3.0`; case bytes,
+answers, authority, and outcomes remain unchanged. The 56 opened Envelope-2-through-6 cases are
+development checks with projected 19/27 positive candidates and 0/29 negative candidates. The two
+unbalanced CSV cases clear the revised index classifier but remain honest code-grammar misses.
+
 ## Open questions that would change the build
 
-None for the authorized implementation and installation. The report channel remains withdrawn; D1',
-byte-identical contract path/header binding, the code dataflow predicate, code-only suppressors, and the
+None for the authorized implementation and installation. The report channel remains withdrawn; the
+2.3 within-unit-index classifier, byte-identical contract path/header binding, the code dataflow predicate, code-only suppressors, and the
 contract-conflict wording remain fixed. Envelope 5 supplies the accepted qualification evidence, and the
 v0.20.0 migration plus pin replacement above is authorized.
