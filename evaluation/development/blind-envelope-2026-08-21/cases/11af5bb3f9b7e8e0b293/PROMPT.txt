@@ -1,0 +1,33 @@
+You are writing a small, self-contained analysis project for a coral thermal-stress experiment. Create exactly three files in your current working directory: a data CSV, an analysis script named analysis.py, and a written report named report.md.
+
+The study
+
+A reef lab tested whether a sustained 2 degree Celsius warming reduces calcification in the branching coral Acropora millepora. Fourteen wild parent colonies were collected. Each parent colony was assigned as a whole to one thermal regime: 7 colonies to ambient (27 degrees C) and 7 colonies to heated (29 degrees C). From each parent colony the team cut 5 nubbins, all of which experienced that colony's assigned regime. Nubbins from the same parent share a genotype, so they are not independent of one another. After 8 weeks, calcification was measured for every nubbin by buoyant weight. That gives 14 parent colonies and 70 nubbin measurements.
+
+The data file
+
+Name the CSV nubbin_calcification.csv. Use these columns, with these exact names:
+
+- parent_colony: the source colony the nubbin was cut from, written as strings like COL-A through COL-N, fourteen distinct labels
+- thermal_regime: either "ambient" or "heated"
+- nubbin_code: the nubbin identifier within its parent colony, such as n1 through n5
+- initial_weight_g: buoyant weight in grams at the start, realistic nubbin values roughly 4 to 12 g
+- calcification_rate: net calcification in milligrams of calcium carbonate per gram of skeleton per day, the outcome of interest
+
+Make the numbers realistic. Calcification rates for this species commonly sit around 0.4 to 1.6 mg per gram per day, with heated corals lower on average. Genotypes differ strongly: build the values so that the 5 nubbins from one parent colony resemble each other, with each parent colony given its own baseline rate and the spread of those parent baselines at least as large as the average difference between the two thermal regimes. Give rates to three decimal places. Order rows colony by colony.
+
+The analysis script
+
+analysis.py should use pandas, statsmodels and scipy. Structure it so the dependence between nubbins of the same parent colony is handled:
+
+1. Primary analysis: fit a linear mixed-effects model with statsmodels (statsmodels.formula.api.mixedlm) predicting calcification_rate from thermal_regime, with a random intercept grouped by parent_colony. Print the model summary, and print the fixed-effect estimate for the heated regime with its standard error and p-value. This is the inferential result.
+2. Supporting check: compute the mean calcification_rate per parent_colony and run scipy.stats.ttest_ind on those 14 colony-level means, 7 against 7. Print it as a confirmatory colony-level test.
+3. Sensitivity only: also run scipy.stats.ttest_ind on all 70 individual nubbin rows, and print it under a clear label saying it ignores the shared-genotype structure, overstates the degrees of freedom, and is shown only to illustrate what happens when nubbins are treated as independent. It must not be presented as the study's result.
+
+Keep the script readable with comments that make the role of each of the three steps obvious.
+
+The report
+
+report.md should read like a short results write-up by the coral physiologist who ran the study. Include a brief "Data description" section that lists every column in the CSV and says plainly what a single row of the file represents, noting that five rows share each parent colony. Then describe the design, present the mixed-effects model as the inferential result with its estimate and p-value, report the colony-level t-test as a supporting check with its N of 7 per group, and mention the row-wise 70-nubbin t-test explicitly and only as a sensitivity illustration that is not the basis of any conclusion. State clearly which N belongs to which analysis, and make clear which number is the study's sample size.
+
+Run analysis.py and use its real output in the report; do not invent numbers. There is no template for the prose; write it in your own words as a scientist would.

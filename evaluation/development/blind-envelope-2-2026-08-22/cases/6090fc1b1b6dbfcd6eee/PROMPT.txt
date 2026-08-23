@@ -1,0 +1,66 @@
+Author one complete, self-contained small analysis project for the scenario below. The project must
+contain exactly four deliverables: two data files in CSV format, one Python analysis script named
+analysis.py located at the root of the project, and one short written report. Nothing else is needed.
+
+Scenario
+
+A river restoration monitoring programme asks whether reach-scale channel restoration increases the
+richness of pollution-sensitive stream invertebrates. The stream reach is the experimental unit:
+restoration was carried out along whole reaches of roughly 200 metres, so all sampling within a
+reach shares the same treatment, the same channel form, and the same upstream catchment. There are
+20 reaches: 10 restored and 10 left in their channelised state. Field crews took 12 replicate
+kick-net samples spread along each reach on a single summer survey, giving 12 samples per reach and
+240 samples overall. The replicate kick-nets are subsamples of the reach, not independently treated
+sites.
+
+The outcome is the number of mayfly, stonefly, and caddisfly taxa found in a kick-net sample, a
+count that in practice runs from about 2 to about 18. Realistic values: samples from channelised
+reaches average about 7.1 taxa and samples from restored reaches about 11.3 taxa. Reaches differ
+strongly from one another, with a between-reach standard deviation of roughly 1.8 taxa, while
+kick-nets within the same reach vary by roughly 2.2 taxa around their reach's level. Generate the
+values so this structure is visible, and record taxa counts as whole numbers.
+
+Data files
+
+You must create both files, and their contents must be mutually consistent.
+
+The first file is the raw sample-level record: one row per kick-net sample, 240 rows. Include a
+column identifying the reach, named reach_id, with labels such as R01 through R20. Include a column
+for the restoration group, a column for the sample's identifier within its reach, a column for the
+distance in metres upstream of the reach start where the sample was taken, a column for the mean
+water depth in centimetres at the sampling point, and a column for the count of sensitive taxa in
+that sample.
+
+The second file is a per-reach summary table: exactly 20 rows, one row per reach, carrying the same
+reach identifier column and the same restoration group column, the number of kick-net samples that
+reach contributed, and the reach's mean count of sensitive taxa across its samples, rounded to two
+decimal places. Every mean in this file must equal the mean of that reach's rows in the raw file.
+Give the two files clear, distinct filenames that make plain which is raw and which is the per-reach
+summary. Choose clear, lowercase, underscore-separated names for the remaining columns and use them
+consistently across both CSVs, the script, and the report.
+
+Analysis
+
+Read both files. Perform the two-group comparison on the per-reach summary file only: compare the
+mean sensitive-taxa richness of the 10 restored reaches against the 10 channelised reaches with an
+independent two-sample comparison of those 20 reach-level values. Report the sample size as the
+number of reaches in each group, that is 10 per group and 20 in total. Also report the group means,
+the group standard deviations, the difference in means, and the p-value.
+
+Use the raw sample-level file for descriptive purposes only: count how many kick-net samples were
+taken in total and per group, confirm that every reach contributed the expected number of samples,
+and confirm that each reach's summary mean matches the mean of its raw rows. Print those checks and
+counts, clearly labelled as descriptive, and do not run any group comparison on the raw
+sample-level rows.
+
+Report
+
+Write the report as a freshwater ecologist. Open with a paragraph on why sensitive invertebrate taxa
+track habitat recovery. Include a short data description section that lists every column of both
+files and states plainly what a single row represents in each one, noting that the raw file holds
+twelve rows per reach while the summary file holds one. State explicitly that restoration was
+applied to whole reaches, that the kick-nets are subsamples within a reach, and that the inferential
+comparison therefore uses the per-reach values with a sample size counted in reaches. Present the
+numerical results, then interpret the richness difference ecologically and note the usual practical
+caveats such as the single survey season, the absence of pre-restoration baseline data, and the
+regional scope.

@@ -7,11 +7,9 @@ from pathlib import Path
 import pytest
 from sc_referee_evaluation.production_finding_demonstration import (
     ProductionFindingDemonstrationError,
+    _verify_case,
     verify_production_finding_demonstration,
 )
-
-from sc_referee.controller import replay
-from sc_referee.reporting.policy import validate_report_contract
 
 DEMONSTRATION_RELATIVE = Path("evaluation/production-finding-demonstration-v1")
 
@@ -22,45 +20,61 @@ def _load(path: Path) -> dict[str, object]:
     return value
 
 
-def test_committed_first_findings_are_policy_valid_exactly_one_per_error(
+def test_committed_v019_demonstration_is_retained_but_stale_authority_refuses_validation(
     project_root: Path, schema_root: Path
 ) -> None:
     root = project_root / DEMONSTRATION_RELATIVE
-    record = verify_production_finding_demonstration(root, schema_root=schema_root)
-
-    assert record["execution_policy"] == {
-        "project_authored_code_executed": False,
-        "production_run_audit_path_used": True,
-        "timestamp_override_available": False,
-    }
-    assert [item["key"] for item in record["demonstrations"]] == [
-        "complete-domain",
-        "dependence",
-    ]
-    for item in record["demonstrations"]:
-        assert item["error_run"]["finding_count"] == 1
-        assert item["control_twin"]["finding_count"] == 0
-        assert item["error_run"]["project_execution_count"] == 0
-        assert item["control_twin"]["project_execution_count"] == 0
+    with pytest.raises(ProductionFindingDemonstrationError, match="authority chain drifted"):
+        verify_production_finding_demonstration(root, schema_root=schema_root)
 
 
-def test_committed_error_and_control_locks_replay_through_current_controller(
-    project_root: Path, schema_root: Path, tmp_path: Path
+def test_committed_v019_audit_and_replay_projections_remain_identical(
+    project_root: Path,
 ) -> None:
     root = project_root / DEMONSTRATION_RELATIVE
-    for detector in ("complete-domain", "dependence"):
+    for lane in ("complete-domain", "dependence"):
         for role, expected in (("error", 1), ("control", 0)):
-            committed = _load(root / detector / role / "audit/audit.bundle.json")
-            replayed = replay(
-                root / detector / role / "audit/semantic.lock.json",
-                tmp_path / detector / role,
-                schema_root,
-            )
-            validate_report_contract(replayed)
+            committed = _load(root / lane / role / "audit/audit.bundle.json")
+            replayed = _load(root / lane / role / "replay/audit.bundle.json")
+            assert committed["schema_version"] == "0.19.0"
+            assert replayed["schema_version"] == "0.19.0"
             assert replayed["detector_results"] == committed["detector_results"]
             assert replayed["findings"] == committed["findings"]
             assert replayed["coverage_records"] == committed["coverage_records"]
             assert len(replayed["findings"]) == expected
+
+
+def test_complete_domain_cases_reach_case_verification_and_prove_no_execution(
+    project_root: Path,
+) -> None:
+    root = project_root / DEMONSTRATION_RELATIVE
+    record = _load(root / "DEMONSTRATION_RECORD.json")
+    demonstrations = record["demonstrations"]
+    assert isinstance(demonstrations, list)
+    entry = next(
+        item
+        for item in demonstrations
+        if isinstance(item, dict) and item.get("key") == "complete-domain"
+    )
+    binding_id = entry["binding_id"]
+
+    for role, key, expected in (
+        ("error", "error_run", 1),
+        ("control", "control_twin", 0),
+    ):
+        case = entry[key]
+        assert isinstance(case, dict)
+        case_root = root / "complete-domain" / role
+        _verify_case(
+            case_root,
+            case,
+            binding_id,
+            expected=expected,
+            validate_live_report_policy=False,
+        )
+        bundle = _load(case_root / str(case["audit_bundle"]))
+        assert case["project_execution_count"] == 0
+        assert bundle["executions"] == []
 
 
 def test_demonstration_manifest_tamper_fails_closed(

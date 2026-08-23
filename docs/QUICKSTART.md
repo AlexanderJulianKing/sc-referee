@@ -23,7 +23,7 @@ sc-referee version
 Expected version shape:
 
 ```text
-sc-referee 0.3.0 (schema 0.19.0; starter lineage 0.1.0)
+sc-referee 0.3.0 (schema 0.20.0; starter lineage 0.1.0)
 ```
 
 Program `0.3.0` is a public-alpha release. The schema version is a separate record-format identity;

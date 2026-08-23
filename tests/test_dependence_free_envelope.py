@@ -26,8 +26,10 @@ from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.detectors.method_conflict_grant_pins import (
     GRANT_PINS,
     installed_pin_matches_live_identity,
+    live_adapter_identity,
     load_method_conflict_grant_evidence,
 )
+from sc_referee.scientific_checks.profiles import scientific_check_release_registry
 from scripts.lean_pipeline import (
     DEPENDENCE_FREE_LANE_RELATIVE,
     DEPENDENCE_SANDBOX_PYTHON,
@@ -57,6 +59,31 @@ _REPORT = (
     "[selected-result] TtestResult(statistic=np.float64(-0.9258200997725515), "
     "pvalue=np.float64(0.37634173801911863), df=np.float64(10.0))\n"
 )
+_CODE_LANE_FALSE_ACCUSATION_CSV = """bird_code,condition,signal
+owl-1,control,1.0
+owl-1,control,2.0
+owl-2,control,3.0
+owl-2,control,4.0
+owl-3,treated,5.0
+owl-3,treated,6.0
+owl-4,treated,7.0
+owl-4,treated,8.0
+"""
+_CODE_LANE_FALSE_ACCUSATION_ANALYSIS = """import pandas as pd
+from scipy.stats import ttest_ind
+
+df = pd.read_csv("data/input.csv")
+control = df.loc[df["condition"] == "control", "signal"]
+treated = df.loc[df["condition"] == "treated", "signal"]
+result = ttest_ind(control, treated, equal_var=False)
+print(result.pvalue)
+"""
+_CODE_LANE_REPORT_PRODUCER = f"print({_REPORT!r}, end='')\n"
+
+
+@pytest.fixture(autouse=True)
+def _active_schema_for_new_fixture_records(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(lean_pipeline, "SCHEMA_RELATIVE", Path("reference/schemas-v0.20.0"))
 
 
 def _isolated_root(tmp_path: Path, project_root: Path) -> Path:
@@ -158,6 +185,7 @@ def _fixture_config(roles: tuple[str, ...] = _FIXTURE_ROLES) -> Any:
         label_status_by_role=statuses,
         hostile_answer_key_reviewer=None,
         record_purpose="development_nonmeasurement_fixture",
+        detector_id="detector:bounded-code-csv-dependence-conflict",
     )
 
 
@@ -235,7 +263,7 @@ def _freeze_fixture_inputs(root: Path, config: Any) -> None:
     )
 
 
-def _freeze_fixture_labels(root: Path, config: Any, authority: dict[str, Any]) -> None:
+def _freeze_fixture_labels(root: Path, config: Any, authority: dict[str, Any] | None) -> None:
     lane = root / config.pipeline_relative
     protocol = json.loads((lane / "authoring/AUTHORING_PROTOCOL.json").read_text(encoding="utf-8"))
     intake = json.loads((lane / "authoring/INTAKE_LEDGER.json").read_text(encoding="utf-8"))
@@ -244,7 +272,7 @@ def _freeze_fixture_labels(root: Path, config: Any, authority: dict[str, Any]) -
         "artifact_kind": "lean_pipeline_review_ledger",
         "ledger_version": "1.0.0",
         "envelope_id": config.envelope_id,
-        "authority_ledger_digest": authority["ledger_digest"],
+        "authority_ledger_digest": (authority["ledger_digest"] if authority is not None else None),
         "entries": [],
         "unblinding_record": [],
         "unresolved_case_ids": [],
@@ -390,11 +418,20 @@ def test_task_binding_disclosure_is_digest_bound_only_for_development_loop(
         }
 
     monkeypatch.setattr(lean_pipeline, "_call_cli", retained_failure)
+    dependence_binding = next(
+        item
+        for item in scientific_check_release_registry().method_conflict_bindings
+        if item.check_id == default_dependence_free_config().check_id
+    )
     configurations = (
-        default_dependence_free_config(),
+        replace(
+            default_dependence_free_config(),
+            detector_id=dependence_binding.detector_id,
+        ),
         replace(
             default_dependence_config(),
             pipeline_relative=Path("evaluation/test-only/qualification-disclosure-control"),
+            detector_id=dependence_binding.detector_id,
         ),
     )
     protocols = []
@@ -420,16 +457,38 @@ def test_task_binding_disclosure_is_digest_bound_only_for_development_loop(
 def test_installed_dependence_grant_refuses_recognition_grammar_drift() -> None:
     binding_id = "method-conflict-binding:authorized-independent-unit-entry-into-row-independent-procedure-v1"
     pin = GRANT_PINS[binding_id]
-    changed_identity = replace(
-        pin.exam_adapter_identity[0], recognition_grammar_digest="sha256:" + "0" * 64
+    binding = next(
+        item
+        for item in scientific_check_release_registry().method_conflict_bindings
+        if item.binding_id == binding_id
     )
-    assert installed_pin_matches_live_identity(pin) is True
+    identity = live_adapter_identity(binding)
+    assert identity is not None
+    live_pin = replace(
+        pin,
+        binding_digest=binding.binding_digest,
+        check_id=binding.check_id,
+        check_version=binding.check_version,
+        check_manifest_digest=binding.check_manifest_digest,
+        detector_id=binding.detector_id,
+        detector_version=binding.detector_version,
+        detector_manifest_digest=binding.detector_manifest_digest,
+        exam_adapter_identity=identity,
+        finding_profile_id=None,
+        finding_profile_digest=None,
+    )
+    changed_identity = replace(identity[0], recognition_grammar_digest="sha256:" + "0" * 64)
+    assert installed_pin_matches_live_identity(live_pin) is True
     assert (
-        installed_pin_matches_live_identity(replace(pin, exam_adapter_identity=(changed_identity,)))
+        installed_pin_matches_live_identity(
+            replace(live_pin, exam_adapter_identity=(changed_identity,))
+        )
         is False
     )
     assert (
-        load_method_conflict_grant_evidence(replace(pin, exam_adapter_identity=(changed_identity,)))
+        load_method_conflict_grant_evidence(
+            replace(live_pin, exam_adapter_identity=(changed_identity,))
+        )
         is None
     )
 
@@ -535,9 +594,9 @@ def test_model_free_nonmeasurement_fixture_executes_and_records_abstentions(
         )
         for role in ("fx1", "fx2", "fx3")
     } == {
-        "fx1": ("unsupported", "dependence-shadow-abstention"),
-        "fx2": ("ambiguous", "independent-unit-definition-unresolved"),
-        "fx3": ("unsupported", "dependence-shadow-abstention"),
+        "fx1": ("unsupported", "verified-contract-authority-unavailable"),
+        "fx2": ("unsupported", "verified-contract-authority-unavailable"),
+        "fx3": ("unsupported", "verified-contract-authority-unavailable"),
     }
     assert {role: by_role[role]["comparison_outcome"] for role in ("fx1", "fx2", "fx3")} == {
         "fx1": "abstained_no_authority",
@@ -545,12 +604,12 @@ def test_model_free_nonmeasurement_fixture_executes_and_records_abstentions(
         "fx3": "abstained_unsupported",
     }
     assert {role: by_role[role]["comparison_outcome"] for role in _MEASUREMENT_ROLES} == {
-        "rq1": "caught",
-        "rq2": "caught",
-        "rq3": "caught",
-        "rq4": "true_negative",
-        "rq5": "true_negative",
-        "rq6": "true_negative",
+        "rq1": "missed_unsupported",
+        "rq2": "missed_unsupported",
+        "rq3": "missed_unsupported",
+        "rq4": "abstained_unsupported",
+        "rq5": "abstained_unsupported",
+        "rq6": "abstained_unsupported",
     }
     assert all(
         by_role[role]["development_v2_scored_for_qualification"] is False for role in _FIXTURE_ROLES
@@ -569,9 +628,8 @@ def test_model_free_nonmeasurement_fixture_executes_and_records_abstentions(
     assert detector["pilot_metrics"]["side_by_side_development_outcomes"] == {
         "registered_v1_scored": {
             "abstained_no_authority": 2,
-            "abstained_unsupported": 1,
-            "caught": 3,
-            "true_negative": 3,
+            "abstained_unsupported": 4,
+            "missed_unsupported": 3,
         },
         "dependence_v2_development_shadow_not_qualification_scored": {
             "abstained_no_authority": 2,
@@ -1373,10 +1431,21 @@ def test_false_accusation_halts_and_preserves_per_case_outputs(
     tmp_path: Path, project_root: Path
 ) -> None:
     isolated = _isolated_root(tmp_path, project_root)
+    base = _fixture_config(("rq1", "rq2", "rq3", "rq4"))
     config = replace(
-        _fixture_config(("rq1", "rq2", "rq3", "rq4")),
+        base,
         pipeline_relative=Path("evaluation/development-fixtures/fa-halt"),
         record_purpose="development_growth_loop",
+        controller_material_files={
+            **base.controller_material_files,
+            "analysis.py": _CODE_LANE_FALSE_ACCUSATION_ANALYSIS.encode("ascii"),
+        },
+        material_input_paths=("data/input.csv",),
+        scientific_requirement_authority={
+            "material_input_path": "data/input.csv",
+            "column_name": "bird_code",
+            "group_contrast_column": "condition",
+        },
     )
     _freeze_fixture_inputs(isolated, config)
     incoming = (
@@ -1386,16 +1455,31 @@ def test_false_accusation_halts_and_preserves_per_case_outputs(
     )
     attempt = json.loads(incoming.read_text(encoding="utf-8"))
     payload = json.loads(attempt["raw_response"])
-    rq4 = next(item for item in payload["cases"] if item["case_id"] == _CASE_BY_ROLE["rq4"])
-    rq4["input_csv"] = _csv("rq1")
+    for item in payload["cases"]:
+        item["input_csv"] = _CODE_LANE_FALSE_ACCUSATION_CSV
+        item["analysis_py"] = _CODE_LANE_REPORT_PRODUCER
+        item["report_md"] = _REPORT
     attempt["raw_response"] = canonical_json(payload)
     lean_pipeline.write_normalized_json(incoming, attempt)
     step_intake(isolated, config)
-    authority = step_authority(isolated, config)
-    _freeze_fixture_labels(isolated, config, authority)
+    _freeze_fixture_labels(isolated, config, None)
+    detector_root = isolated / config.pipeline_relative / "detector-run"
     with pytest.raises(LeanPipelineError, match="halted on false accusation"):
         step_detector(isolated, config)
-    detector_root = isolated / config.pipeline_relative / "detector-run"
+    case_results = {
+        item["case_role"]: item
+        for path in (detector_root / "case-results").glob("*.json")
+        for item in [json.loads(path.read_text(encoding="utf-8"))]
+    }
+    assert {role: case_results[role]["comparison_outcome"] for role in case_results} == {
+        "rq1": "caught",
+        "rq2": "caught",
+        "rq3": "caught",
+        "rq4": "false_accusation",
+    }
+    assert case_results["rq4"]["detector_positive"] is True
+    assert case_results["rq4"]["finding_candidate_count"] == 1
+    assert case_results["rq4"]["shadow_payload"]["state"] == "applicable"
     halt = json.loads((detector_root / "FALSE_ACCUSATION_HALT.json").read_text(encoding="utf-8"))
     assert halt["case_id"] == _CASE_BY_ROLE["rq4"]
     assert halt["reclassification_permitted"] is False

@@ -157,6 +157,7 @@ def test_projector_refuses_ledger_byte_or_self_digest_drift(
         project_heldout_detector_case_outcomes(drifted)
 
 
+@pytest.mark.retired_report_lane
 def test_exam_time_detector_tuple_is_retained_while_live_binding_identity_drifts_at_v019(
     project_root: Path,
 ) -> None:
@@ -281,6 +282,7 @@ def test_sibling_bindings_and_simulated_current_drift_defeat_grant(
     )
 
 
+@pytest.mark.retired_report_lane
 def test_round2_records_rederive_at_current_pins_and_resolve_test_local_grant(
     project_root: Path,
 ) -> None:
@@ -402,7 +404,7 @@ def test_round2_records_install_only_exact_binding_authority(project_root: Path)
     qualifications = _load(project_root / QUALIFICATION_MANIFESTS)["records"]
     assert len(qualifications) == 2
     assert {record["qualification_id"] for record in qualifications} == {
-        "qualification:authorized-independent-unit-entry-v110-round2",
+        "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5",
         "qualification:complete-domain-exposure-denominator-v207-round2",
     }
     assert len(GRANT_PINS) == 2
@@ -414,9 +416,18 @@ def test_round2_records_install_only_exact_binding_authority(project_root: Path)
     assert target["production_finding_permitted"] is False
     assert detector["maturity"] == "experimental"
     assert detector["validation"]["qualification_record_ref"] is None
-    assert detector["validation"]["qualification_record_refs"] == sorted(
-        record["qualification_id"] for record in qualifications
+    assert detector["validation"]["qualification_record_refs"] == [
+        "qualification:complete-domain-exposure-denominator-v207-round2"
+    ]
+    code_detector = next(
+        record
+        for record in _load(project_root / DETECTOR_MANIFESTS)["records"]
+        if record["detector_id"] == "detector:bounded-code-csv-dependence-conflict"
+        and record["detector_version"] == "2.1.0"
     )
+    assert code_detector["validation"]["qualification_record_refs"] == [
+        "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5"
+    ]
 
 
 def test_public_report_retains_required_dependence_disclosures(project_root: Path) -> None:

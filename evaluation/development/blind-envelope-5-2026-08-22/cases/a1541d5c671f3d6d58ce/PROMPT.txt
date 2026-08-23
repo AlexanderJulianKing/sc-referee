@@ -1,0 +1,29 @@
+Build one complete, self-contained analysis project for the study described below. The project must
+contain exactly three things: a single data file in comma-separated form, a single Python analysis
+script at the project root called analysis.py, and a short written report in Markdown at the project
+root. Nothing else. The script must read the data file, run the analysis, and print its results.
+
+Study. A postharvest laboratory compared two storage atmospheres for seed potatoes. Fourteen sealed
+storage bins were each filled from the same graded lot: seven bins were held under conventional
+cold air and seven under a low-oxygen controlled atmosphere. Every bin was opened and sampled at six
+storage times, at four-week intervals from week 4 to week 24, so each bin contributes six time
+points and the file holds 84 records in total. The outcome is tuber firmness measured with a
+penetrometer, in newtons. Realistic firmness starts near 62 to 70 newtons and declines over the
+storage season, falling to roughly 40 to 48 newtons by week 24 under conventional air and roughly 50
+to 58 newtons under the low-oxygen atmosphere, with each bin holding its own consistent level above
+or below its group's trend. Also record the weight loss since loading as a percentage, rising from
+under 1 percent to roughly 4 to 9 percent by the end.
+
+Data file. One line per bin visit. Columns, in this order and with these exact headers: bin_code,
+atmosphere, storage_week, weight_loss_pct, firmness_newton. Bin codes should look like real store
+labels. Round firmness to one decimal.
+
+Analysis. Compare the two storage atmospheres on tuber firmness with an independent two-sample test
+of the difference in means, passing every record in the table into the comparison as a separate
+observation. Report the sample size as the number of firmness records analysed, give each group's
+mean and spread, and state the p-value and the conclusion about the atmosphere.
+
+Report. Keep it short. Begin with a data description that lists every column and says plainly what
+one row of the file represents. Then give the methods, the numbers, and a brief recommendation for
+next season's storage, written in the ordinary confident voice of a postharvest scientist. Do not
+question, caveat, or discuss the sample size you used.

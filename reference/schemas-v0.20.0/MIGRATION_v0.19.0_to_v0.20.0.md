@@ -1,0 +1,3 @@
+# Migration from v0.19.0 to v0.20.0
+
+Ordinary public records receive the new schema version with no semantic projection. Existing installed generic method-conflict qualification and metric records may be restamped only when every non-version byte and external grant identity remains fixed. Immutable v0.19.0 method-contract parent locks remain byte-identical and are validated against the co-installed v0.19.0 schema package before a v0.20.0 child audit is derived. The code-CSV dependence qualification is newly representable only under its exact detector 2.1.0 identity; cross-paired detector versions are refused.

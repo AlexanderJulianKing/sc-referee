@@ -1,0 +1,31 @@
+Author one complete, self-contained small analysis project for the scenario below. Deliver three
+things in a single project folder: one data file in comma-separated form, one analysis script named
+analysis.py sitting at the root of the project, and one short written report.
+
+Scenario. A rocky-shore field experiment on the effect of shading on algal growth. Twelve separate
+intertidal rock pools along one stretch of coast were used. Six pools were fitted with a mesh canopy
+that cuts incoming light, and six were left uncovered. After eight weeks, each pool was sampled at
+five fixed points spread around its inner wall, and the chlorophyll-a concentration of the algal film
+was measured at each point. The repeated rows here are spatial subsamples taken from different places
+inside the same pool.
+
+Data. Build the comma-separated file yourself with realistic invented values. Chlorophyll-a should be
+expressed per unit area of rock, with shaded pools averaging about 4.1 micrograms per square
+centimetre and uncovered pools about 6.8. Pools should differ noticeably from one another, roughly 1.3
+micrograms per square centimetre of spread between pools, with about 0.7 of spread among the five
+sampling points inside a pool. Include the pool identifier, the shading treatment, which of the five
+sampling points the row is, the chlorophyll measurement, and one physical descriptor of the pool such
+as its surface area or its height on the shore. Name the identifier column after the pool. Write
+column headers as short lowercase words joined by underscores.
+
+Analysis. The script must read the data file and test whether shading changed algal chlorophyll using
+an independent two-sample comparison between shaded and uncovered, passing every measurement row in
+the table into that comparison as a separate observation. State the sample size as the total number of
+measurement rows analysed, and report group means, spreads, and the test result to the screen.
+
+Report. Write a short report with the field design, the methods, the numbers including sample size and
+p-value, and a conclusion on whether shading suppressed algal growth. Begin the report with a short
+data description listing every column and saying what one row of the file represents.
+
+Write it as a field ecologist who treats each sampled point as a replicate observation would write it.
+Nothing in the script or the report should flag, hedge, or question the analysis approach.

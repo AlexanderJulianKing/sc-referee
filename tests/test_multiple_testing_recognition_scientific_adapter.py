@@ -376,6 +376,7 @@ def test_published_candidate_resolves_through_requirement_profile() -> None:
         {
             "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
             "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+            "semantic_role_authority": {},
             "check_id": MULTIPLE_TESTING_RECOGNITION_CHECK_ID,
             "candidate_id": MULTIPLE_TESTING_RECOGNITION_CANDIDATE_ID,
         },
@@ -401,11 +402,11 @@ def test_registered_route_emits_zero_findings(tmp_path: Path, schema_root: Path)
     assert bundle["findings"] == []
 
 
-def test_promoted_check_and_installed_grant_identities_remain_invariant() -> None:
+def test_active_check_identities_match_the_release_registry() -> None:
     expected = {
         "check:authorized-independent-unit-entry-into-row-independent-procedure": (
-            "sha256:4f48a3104693cd6cdcf215bd620b59449ee87c3cd969ddbe7285f168e598ab21",
-            "sha256:81df54974a949648f6f86287df725c1a69ce63f41100480d299680f92eee3776",
+            "sha256:8b9ce5f53203c99bd0d24fcf0169e841905cb2aa034e858516bcf48105e4d6c2",
+            "sha256:591a0bf3e7ca93b8166ad6a7a8779e937e48b5295b81ca0f433b02d28fc1c65c",
         ),
         "check:complete-domain-exposure-denominator": (
             "sha256:c3ef7acd8597c86e8a121ba43e94d4f2a2993c08cd2c14981b85b13c431841a9",
@@ -433,5 +434,5 @@ def test_qualification_manifest_bytes_match_same_commit_grant_rederivation() -> 
     root = Path(__file__).resolve().parents[1]
     path = root / "src/sc_referee/resources/capability-manifests-v1/qualification-manifests.json"
     assert sha256_digest(path.read_bytes()) == (
-        "sha256:fda9bd1ffba8ac9f62ab3a2324c7ad551c351f5e0f02902e4b15c85c0d0dcb56"
+        "sha256:12f346ca44c2c88c202227ebcea076dfbaac78b69b5146303c8da4826a9496cf"
     )

@@ -1,0 +1,29 @@
+Author one complete, self-contained small analysis project for the scenario below. Deliver three
+things in a single project folder: one data file in comma-separated form, one analysis script named
+analysis.py sitting at the root of the project, and one short written report.
+
+Scenario. A sheep husbandry trial of a pre-lambing mineral supplement. Forty-four ewes on one hill
+farm were studied: twenty-two received a mineral drench six weeks before lambing and twenty-two
+received no drench. Each ewe was recorded once, at weaning, and the single recorded outcome is the
+total weight of that ewe's lambs at weaning. Every ewe therefore contributes exactly one row to the
+data file, and there are no repeated measurements of any kind.
+
+Data. Build the comma-separated file yourself with realistic invented values. Total weaned lamb weight
+per ewe should be in kilograms, averaging about 41.5 for drenched ewes and about 37.8 for undrenched
+ewes, with roughly 6.5 kilograms of spread among ewes within a group. Include the ewe identifier, the
+treatment, the number of lambs weaned as one or two, the ewe's age in years between two and six, the
+ewe's body condition score at mating on the usual five-point scale, and the total weaned lamb weight.
+Name the identifier column after the ewe. Write column headers in lowercase words joined by
+underscores.
+
+Analysis. The script must read the data file and compare drenched with undrenched ewes on total weaned
+lamb weight using an independent two-sample comparison at the level of the rows in the file, which is
+also the level of the individual ewe. Report the sample size as the number of ewes in each group,
+report group means and spreads, and print the test result.
+
+Report. Write a short report giving the flock and treatment setup, the methods, the results with
+sample size and p-value, and a conclusion on whether the mineral drench increased weaned lamb weight.
+Open the report with a short data description listing every column and stating what one row represents,
+including the fact that each ewe appears exactly once.
+
+Write it as a livestock scientist would, in plain competent style.

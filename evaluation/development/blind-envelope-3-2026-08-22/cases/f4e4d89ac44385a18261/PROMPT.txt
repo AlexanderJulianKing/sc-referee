@@ -1,0 +1,36 @@
+Author one complete, self-contained small analysis project for the scenario below. Deliver four things
+in a single project folder: two data files in comma-separated form, one analysis script named
+analysis.py sitting at the root of the project, and one short written report.
+
+Scenario. A health-services study of referral waiting times across primary care clinics. Twenty-six
+clinics in one region took part: thirteen adopted a centralised booking protocol and thirteen kept
+their local booking arrangements. For each clinic, eight consecutive patient referrals were audited,
+and the number of days from referral to first specialist appointment was recorded for each referral.
+The clinic is the unit that was assigned to a protocol; the eight audited referrals are records drawn
+from within a clinic.
+
+Data. Build both comma-separated files yourself with realistic invented values, and make them
+consistent with each other. The first file is the raw audit and holds one row per audited referral:
+the clinic identifier, the booking protocol, a referral record identifier, the waiting time in days,
+the patient's age band, and the referral specialty. Waiting times should average about 21 days under
+local arrangements and about 17 days under centralised booking, with roughly 5 days of spread between
+clinics and 6 days of spread among referrals within a clinic. The second file is a per-clinic summary
+prepared during data curation and holds exactly one row per clinic: the clinic identifier, the booking
+protocol, the number of referrals audited at that clinic, and that clinic's average waiting time in
+days, computed to match the raw file. Name the identifier column after the clinic in both files. Write
+column headers in lowercase words joined by underscores.
+
+Analysis. The script must load both files. The two-group comparison of booking protocols must be run
+on the per-clinic summary file, using an independent two-sample comparison of the per-clinic average
+waiting times, with the sample size reported as the number of clinics in each group. The raw audit
+file is to be used only for descriptive counts, such as how many referrals were audited in total and
+how many per clinic; it must not feed the two-group test. Print the descriptive counts and the test
+result separately.
+
+Report. Write a short report giving the study design, the methods including which file supplied the
+inferential comparison and which supplied only descriptive counts, the results with sample size and
+p-value, and a conclusion on whether centralised booking shortened waits. Open the report with a short
+data description covering both files, listing the columns of each and stating what one row of each
+file represents.
+
+Write it as a health-services researcher would, in plain competent style.

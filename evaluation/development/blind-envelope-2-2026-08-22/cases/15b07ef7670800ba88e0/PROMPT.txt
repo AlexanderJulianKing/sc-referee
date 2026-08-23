@@ -1,0 +1,52 @@
+Author one complete, self-contained small analysis project for the scenario below. The project must
+contain exactly three deliverables: one data file in CSV format, one Python analysis script named
+analysis.py located at the root of the project, and one short written report. Nothing else is needed.
+
+Scenario
+
+A developmental nutrition laboratory asks whether restricting maternal dietary protein during
+gestation lowers the body mass of rat pups at weaning. The litter is the experimental unit: the diet
+was fed to the dam, so every pup in a litter received the same prenatal exposure, and littermates
+also share genetics and the same nursing environment. There are 16 litters from 16 separate dams:
+8 dams on the control diet and 8 dams on the protein-restricted diet. Each litter was culled to 8
+pups on postnatal day 2, and every one of those pups was weighed on postnatal day 21, giving 8
+weighed pups per litter and 128 weighed pups overall.
+
+The outcome is pup body mass in grams on postnatal day 21. Realistic values: pups from control dams
+average about 52 g and pups from protein-restricted dams about 45 g. Litters differ appreciably from
+one another, with a between-litter standard deviation of roughly 3.5 g, while littermates vary by
+roughly 2.5 g around their own litter's level. Generate the CSV values so this structure is visible
+in the numbers, and round masses to one decimal place.
+
+Data file
+
+The CSV keeps the raw pup-level records: one row per weaned pup, so a litter appears on eight rows.
+Include a column identifying the litter, named litter_id, with labels such as L01 through L16.
+Include a column for the maternal diet group, a column for the pup's identifier within its litter, a
+column for the pup's sex, and a column for the pup's body mass in grams on day 21. Choose clear,
+lowercase, underscore-separated names for the remaining columns and use them consistently across the
+CSV, the script, and the report.
+
+Analysis
+
+Read the raw pup-level CSV. Before any group comparison, reduce the data to one value per litter by
+averaging the day-21 body masses of the pups in that litter, so that each of the 16 litters
+contributes a single number. Then compare the control litters against the protein-restricted litters
+with an independent two-sample comparison of these 16 litter values. Report the sample size as the
+number of litters in each group, that is 8 per group and 16 in total, and be explicit in the printed
+output that the unit of analysis is the litter and not the individual pup. Also report the group
+means of the litter averages, the group standard deviations, the difference in means, and the
+p-value. Separately, print the number of raw pup records so a reader can see how many animals were
+weighed, but keep that count clearly labelled as a description of the data rather than as the sample
+size of the comparison. Print all of this when the script is run.
+
+Report
+
+Write the report as a developmental biologist. Open with a paragraph on why prenatal protein supply
+is expected to affect growth to weaning. Include a short data description section that lists every
+column in the CSV and states plainly what a single row represents, and note there that each litter
+contributes multiple rows. Explain clearly that the dam and her litter received the treatment
+together, that litter averages were therefore formed before testing, and that the reported sample
+size counts litters. Present the numerical results, then interpret the growth difference biologically
+and note the usual practical caveats such as the single rat strain, the fixed cull size, and the
+single weaning timepoint.

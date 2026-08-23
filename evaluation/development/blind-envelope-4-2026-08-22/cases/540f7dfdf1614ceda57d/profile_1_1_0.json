@@ -1,0 +1,13 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.1.0",
+  "check_id": "check:authorized-independent-unit-entry-into-row-independent-procedure",
+  "candidate_id": "one-analyzed-row-per-authorized-independent-unit",
+  "semantic_role_authority": {
+    "authorized_independent_unit_key": {
+      "material_input_path": "compost_cores.csv",
+      "column_name": "windrow_id",
+      "group_contrast_column": "bulking_agent"
+    }
+  }
+}

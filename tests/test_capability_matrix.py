@@ -4,6 +4,7 @@ import json
 import shutil
 from copy import deepcopy
 from pathlib import Path
+from typing import Any
 
 import pytest
 from typer.testing import CliRunner
@@ -12,16 +13,18 @@ from sc_referee.capability_matrix import (
     CapabilityMatrixError,
     default_capability_manifest_root,
     generate_capability_matrix,
+    load_capability_detector_manifest,
     validate_capability_matrix,
     write_capability_matrix,
 )
 from sc_referee.cli import app
 from sc_referee.core.errors import RecordValidationError
 from sc_referee.core.ids import canonical_json, sha256_digest
+from scripts.build_capability_source_manifests import _upsert
 
 
 def _schema_root(project_root: Path) -> Path:
-    return project_root / "reference" / "schemas-v0.19.0"
+    return project_root / "reference" / "schemas-v0.20.0"
 
 
 def _write_canonical(path: Path, value: object) -> None:
@@ -51,7 +54,59 @@ def _copied_manifest_root(tmp_path: Path) -> Path:
     return target
 
 
-def test_bundled_matrix_is_deterministic_and_publishes_two_exact_binding_grants(
+def test_code_detector_manifest_history_is_versioned_and_live_projection_is_latest(
+    project_root: Path,
+) -> None:
+    root = default_capability_manifest_root()
+    collection = _load(root / "detector-manifests.json")
+    history = [
+        item
+        for item in collection["records"]
+        if item["detector_id"] == "detector:bounded-code-csv-dependence-conflict"
+    ]
+    assert [item["detector_version"] for item in history] == [
+        "1.0.0",
+        "1.1.0",
+        "1.2.0",
+        "1.3.0",
+        "2.0.0",
+        "2.1.0",
+    ]
+    assert [item["implementation"]["implementation_digest"] for item in history[:-1]] == [
+        "sha256:e52a367ffb97ca6706d6d2cfd621f0283cb12d99d1483304142d365aad25f86e",
+        "sha256:3b136e2dcb33023c3f9abc0eb962b8120cda836e74bf715fd8c7c5383799da57",
+        "sha256:ab6e90b5496996f769cb4af0b5ab60082778f0adf4378b1bb127c63ffb81da14",
+        "sha256:4d004c513761e382bbb49ea0633d1d7b3ee07f91cdba91adf837b48902d2f816",
+        "sha256:261bfa27092c528cd86fb3905ced2fb1b2f296852f688ab4be3abaa94d57e901",
+    ]
+    live = load_capability_detector_manifest(
+        root,
+        _schema_root(project_root),
+        "detector:bounded-code-csv-dependence-conflict",
+    )
+    assert live["detector_version"] == "2.1.0"
+    assert live == history[-1]
+
+
+def test_detector_upsert_keys_on_identity_and_version() -> None:
+    collection: dict[str, Any] = {
+        "records": [
+            {"detector_id": "detector:a", "detector_version": "1.1.0", "value": 1},
+            {"detector_id": "detector:a", "detector_version": "1.2.0", "value": 2},
+        ]
+    }
+    _upsert(
+        collection,
+        "detector_id",
+        {"detector_id": "detector:a", "detector_version": "1.2.0", "value": 3},
+    )
+    assert collection["records"] == [
+        {"detector_id": "detector:a", "detector_version": "1.1.0", "value": 1},
+        {"detector_id": "detector:a", "detector_version": "1.2.0", "value": 3},
+    ]
+
+
+def test_bundled_matrix_is_deterministic_and_publishes_only_live_binding_grants(
     project_root,
 ) -> None:
     root = default_capability_manifest_root()
@@ -60,11 +115,15 @@ def test_bundled_matrix_is_deterministic_and_publishes_two_exact_binding_grants(
 
     assert canonical_json(first) == canonical_json(second)
     assert first["domain_wide_support_claim_allowed"] is False
-    assert len(first["entries"]) == 16
+    assert len(first["entries"]) == 17
     assert first["generated_from_manifest_refs"] == [
         {
             "record_type": "detector_manifest",
             "record_id": "detector:bounded-analysis-method-conflict",
+        },
+        {
+            "record_type": "detector_manifest",
+            "record_id": "detector:bounded-code-csv-dependence-conflict",
         },
         {
             "record_type": "detector_manifest",
@@ -80,7 +139,9 @@ def test_bundled_matrix_is_deterministic_and_publishes_two_exact_binding_grants(
         },
         {
             "record_type": "detector_qualification",
-            "record_id": "qualification:authorized-independent-unit-entry-v110-round2",
+            "record_id": (
+                "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5"
+            ),
         },
         {
             "record_type": "detector_qualification",
@@ -152,19 +213,6 @@ def test_bundled_matrix_is_deterministic_and_publishes_two_exact_binding_grants(
             "binding_grants": [
                 {
                     "binding_id": (
-                        "method-conflict-binding:authorized-independent-unit-entry-into-row-"
-                        "independent-procedure-v1"
-                    ),
-                    "check_id": (
-                        "check:authorized-independent-unit-entry-into-row-independent-procedure"
-                    ),
-                    "qualification_ref": (
-                        "qualification:authorized-independent-unit-entry-v110-round2"
-                    ),
-                    "strongest_output_type": "finding",
-                },
-                {
-                    "binding_id": (
                         "method-conflict-binding:complete-domain-exposure-denominator-v1"
                     ),
                     "check_id": "check:complete-domain-exposure-denominator",
@@ -190,6 +238,35 @@ def test_bundled_matrix_is_deterministic_and_publishes_two_exact_binding_grants(
         == 2
     )
     assert any("cannot emit a production Finding" in gap for gap in analysis_entry["known_gaps"])
+    code_entry = next(
+        entry
+        for entry in first["entries"]
+        if entry["entry_id"] == "capability:bounded-code-csv-dependence-conflict-v1"
+    )
+    assert code_entry["detectors"] == [
+        {
+            "binding_grants": [
+                {
+                    "binding_id": (
+                        "method-conflict-binding:authorized-independent-unit-entry-"
+                        "into-row-independent-procedure-v1"
+                    ),
+                    "check_id": (
+                        "check:authorized-independent-unit-entry-into-row-independent-procedure"
+                    ),
+                    "qualification_ref": (
+                        "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5"
+                    ),
+                    "strongest_output_type": "finding",
+                }
+            ],
+            "detector_id": "detector:bounded-code-csv-dependence-conflict",
+            "maturity": "experimental",
+            "qualification_ref": None,
+            "review_basis": "not_qualified",
+            "strongest_output_type": "disclosure",
+        }
+    ]
     feature_entry = next(
         entry
         for entry in first["entries"]
@@ -244,7 +321,13 @@ def test_bundled_matrix_is_deterministic_and_publishes_two_exact_binding_grants(
         assert entry["inferred_compatibility"] == []
         if any(
             entry is candidate
-            for candidate in (analysis_entry, detector_entry, feature_entry, method_entry)
+            for candidate in (
+                analysis_entry,
+                code_entry,
+                detector_entry,
+                feature_entry,
+                method_entry,
+            )
         ):
             continue
         assert entry["detectors"] == []
@@ -442,7 +525,11 @@ def test_experimental_detector_has_no_qualification_or_finding_permission(
     detectors["records"].sort(key=lambda item: item["detector_id"])
     _rebind_collection(root, "detector_manifests", detectors)
     profiles = _load(root / "profile-manifests.json")
-    python_profile = next(item for item in profiles["records"] if item["language"] == "python")
+    python_profile = next(
+        item
+        for item in profiles["records"]
+        if item["profile_id"] == "semantic-profile:python-bounded-static-inspection-v1"
+    )
     python_profile["detector_refs"] = [
         {
             "record_type": "detector_manifest",
@@ -452,7 +539,11 @@ def test_experimental_detector_has_no_qualification_or_finding_permission(
     _rebind_collection(root, "profile_manifests", profiles)
 
     matrix = generate_capability_matrix(root, _schema_root(project_root))
-    entry = next(item for item in matrix["entries"] if item["language"] == "python")
+    entry = next(
+        item
+        for item in matrix["entries"]
+        if item["entry_id"] == "capability:python-bounded-static-inspection-v1"
+    )
     assert entry["detectors"] == [
         {
             "detector_id": "detector:bounded-static-development-only",

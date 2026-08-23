@@ -1,0 +1,31 @@
+Build one complete, self-contained analysis project for the study described below. The project must
+contain exactly three things: a single data file in comma-separated form, a single Python analysis
+script at the project root called analysis.py, and a short written report in Markdown at the project
+root. Nothing else. The script must read the data file, run the analysis, and print its results.
+
+Study. An animal-welfare team tested whether a structured enrichment protocol lowers stress in
+shelter cats. Twenty-four adult cats admitted as strays were assigned as whole animals: twelve to the
+enrichment protocol with hiding boxes, predictable handling and scent items, and twelve to the
+shelter's usual husbandry. Each cat was sampled on six consecutive mornings, so each animal
+contributes six morning samples and the file holds 144 samples in total. The outcome is faecal
+glucocorticoid metabolite concentration in nanograms per gram of dry faeces. Realistic values are
+about 90 to 260 nanograms per gram under usual husbandry and about 60 to 170 under the enrichment
+protocol, with day-to-day fluctuation inside a cat and large, persistent differences between
+individual cats. Also record each morning's food intake as a percentage of the offered ration,
+roughly 40 to 100.
+
+Data file. One line per cat morning. Columns, in this order and with these exact headers: cat_ref,
+husbandry_group, sample_day, food_intake_pct, fgm_ng_per_g. Cat references should look like real
+shelter intake codes. Round concentrations to one decimal.
+
+Analysis. Because each cat supplies six correlated samples, the primary inference must be
+dependence-aware: fit a model of the outcome on husbandry group that includes a per-cat random
+effect, and take the group contrast from that model as the headline result. You may additionally run
+a plain row-level two-sample test on all 144 samples, but only as a clearly labelled secondary
+sensitivity check that is not the inferential result and whose optimistic p-value is explained by the
+repeated sampling.
+
+Report. Keep it short. Open with a data description that lists every column and states plainly what
+one row of the file represents, making clear that a cat appears on six rows. Then give the model, its
+group estimate and uncertainty, the number of cats and the number of samples, the secondary check
+with its explicit caveat, and a brief welfare interpretation.

@@ -1,0 +1,31 @@
+Build one complete, self-contained analysis project for the study described below. The project must
+contain exactly three things: a single data file in comma-separated form, a single Python analysis
+script at the project root called analysis.py, and a short written report in Markdown at the project
+root. Nothing else. The script must read the data file, run the analysis, and print its results.
+
+Study. A veterinary parasitology unit compared two anthelmintic drenches against gastrointestinal
+nematodes in yearling dairy goats. Twenty goats from one herd were randomised individually: ten
+received the benzimidazole drench and ten received the macrocyclic lactone drench. Fourteen days
+after treatment, one faecal sample was taken from each goat and that single sample was counted three
+separate times on three counting slides by the same technician, so each goat contributes three
+laboratory counts of the same sample and the file holds 60 counts in total. The outcome is the
+faecal egg count in eggs per gram. Realistic post-treatment values are roughly 150 to 700 eggs per
+gram after the benzimidazole and roughly 20 to 250 after the macrocyclic lactone, with slide-to-slide
+counting noise that is small compared with the differences between goats. Also record each goat's
+pre-treatment count, roughly 800 to 2500 eggs per gram, repeated identically on the three rows for
+that goat.
+
+Data file. One line per counting slide. Columns, in this order and with these exact headers:
+goat_tag, drench_group, slide_replicate, pre_treatment_epg, post_treatment_epg. Goat tags should
+look like real ear-tag numbers. Egg counts should be whole numbers and multiples of the usual
+counting factor.
+
+Analysis. Compare the two drenches on post-treatment egg count with an independent two-sample test
+of the difference in means, passing every counting slide in the table into the comparison as a
+separate observation. Report the sample size as the number of counts analysed, give each group's
+mean and spread, and state the p-value and the efficacy conclusion.
+
+Report. Keep it short. Start with a data description listing every column and stating plainly what
+one row of the file represents. Then give methods, numbers, and a brief practical recommendation for
+the herd, written in the ordinary confident voice of a veterinary parasitologist. Do not question,
+caveat, or discuss the sample size you used.

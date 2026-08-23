@@ -9,12 +9,8 @@ import pytest
 from sc_referee_evaluation.complete_domain_promotion import (
     DETECTOR_MANIFEST_DIGEST,
     HELDOUT_LEDGER_DIGEST,
-    ROUND2_BINDING_DIGEST,
-    ROUND2_DETECTOR_MANIFEST_DIGEST,
-    ROUND2_EXAM_ADAPTER_IDENTITY,
     CompleteDomainPromotionError,
     build_round1_records,
-    build_round2_records,
     project_heldout_detector_case_outcomes,
 )
 
@@ -26,19 +22,20 @@ from sc_referee.core.ids import canonical_json, semantic_digest
 from sc_referee.detectors.method_conflict_grant_pins import (
     GRANT_PINS,
     GrantPin,
+    installed_pin_matches_live_identity,
     live_adapter_identity,
 )
 from sc_referee.detectors.method_conflict_qualification import (
     resolve_method_conflict_qualification,
 )
+from sc_referee.records.schema_registry import LocalSchemaRegistry
 from sc_referee.scientific_checks.profiles import scientific_check_release_registry
 
 LANE = Path("evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2")
 LEDGER = LANE / "heldout-v207-seven-case/detector-run/DETECTOR_RUN_LEDGER.json"
 AUTHORING = LANE / "heldout-v207-seven-case/authoring/AUTHORING_PROTOCOL.json"
 PROMOTION = LANE / "promotion"
-PROMOTION_ROUND2 = LANE / "promotion-round2"
-ROUND2_ADR = Path("docs/implementation/ADR-0075-ROUND-2-PROMOTION-RECORD-REDERIVATION.md")
+PROMOTION_ROUND2_V020 = LANE / "promotion-round2-v020"
 OPENING = LANE / "heldout-v207-seven-case/HELDOUT_OPENING.json"
 FROZEN_DETECTOR_MANIFESTS = (
     LANE / "heldout-v207-seven-case/detector-run/runs/0e8a84e424013c876694/"
@@ -195,18 +192,14 @@ def test_round1_private_records_rederive_but_require_v019_restamp(
     }
 
 
-def test_round2_records_rederive_at_current_pins_and_resolve_test_local_grant(
+def test_v020_round2_records_resolve_the_installed_complete_domain_grant(
     project_root: Path,
 ) -> None:
-    metric_set = _load(project_root / PROMOTION_ROUND2 / "QUALIFICATION_METRIC_SET.json")
-    qualification = _load(project_root / PROMOTION_ROUND2 / "DETECTOR_QUALIFICATION.json")
-    expected = build_round2_records(
-        project_root / LEDGER,
-        project_root / AUTHORING,
-        recorded_at=str(qualification["decided_at"]),
-        schema_root=project_root / "reference/schemas-v0.19.0",
-    )
-    assert expected == (metric_set, qualification)
+    metric_set = _load(project_root / PROMOTION_ROUND2_V020 / "QUALIFICATION_METRIC_SET.json")
+    qualification = _load(project_root / PROMOTION_ROUND2_V020 / "DETECTOR_QUALIFICATION.json")
+    registry = LocalSchemaRegistry(project_root / "reference/schemas-v0.20.0")
+    registry.validate(metric_set)
+    registry.validate(qualification)
 
     detector_manifest = next(
         record
@@ -222,15 +215,16 @@ def test_round2_records_rederive_at_current_pins_and_resolve_test_local_grant(
         for item in bindings
         if item.binding_id == "method-conflict-binding:complete-domain-exposure-denominator-v1"
     )
-    assert binding.binding_digest == ROUND2_BINDING_DIGEST
-    assert binding.detector_manifest_digest == ROUND2_DETECTOR_MANIFEST_DIGEST
-    assert live_adapter_identity(binding) == ROUND2_EXAM_ADAPTER_IDENTITY
+    pin = GRANT_PINS[binding.binding_id]
+    assert installed_pin_matches_live_identity(pin) is True
+    assert semantic_digest(metric_set) == pin.metric_set_digest
+    assert semantic_digest(qualification) == pin.qualification_digest
     grant = resolve_method_conflict_qualification(
         binding=binding,
         detector_manifest=detector_manifest,
         qualification=qualification,
         metric_set=metric_set,
-        pin=_pin(binding, metric_set, qualification),
+        pin=pin,
     )
     assert grant is not None
     assert grant.qualification_id == qualification["qualification_id"]
@@ -255,16 +249,16 @@ def test_round2_records_rederive_at_current_pins_and_resolve_test_local_grant(
                     detector_manifest=detector_manifest,
                     qualification=qualification,
                     metric_set=metric_set,
-                    pin=_pin(binding, metric_set, qualification),
+                    pin=pin,
                 )
                 is None
             )
 
-    adr = (project_root / ROUND2_ADR).read_text(encoding="utf-8")
-    assert semantic_digest(metric_set) in adr
-    assert semantic_digest(qualification) in adr
-    assert "Field-by-field divergence from Round 1" in adr
-    assert "ADR-0074" in adr
+    adr = (
+        project_root
+        / "docs/implementation/ADR-0076-CONTRACT-BOUND-REPORT-CSV-PSEUDOREPLICATION-FINDING.md"
+    ).read_text(encoding="utf-8")
+    assert "Accepted v0.20.0 schema and Envelope 5 installation amendment" in adr
 
 
 def test_round1_policy_derives_the_frozen_sensitivity_bar_from_heldout_opening(
@@ -308,12 +302,12 @@ def test_round2_installs_exact_binding_authority_while_detector_stays_experiment
     )
     records = _load(qualification_manifest)["records"]
     assert {record["qualification_id"] for record in records} == {
-        "qualification:authorized-independent-unit-entry-v110-round2",
+        "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5",
         "qualification:complete-domain-exposure-denominator-v207-round2",
     }
 
     matrix = generate_capability_matrix(
-        default_capability_manifest_root(), project_root / "reference/schemas-v0.19.0"
+        default_capability_manifest_root(), project_root / "reference/schemas-v0.20.0"
     )
     method_entry = next(
         item
@@ -324,5 +318,7 @@ def test_round2_installs_exact_binding_authority_while_detector_stays_experiment
     assert method_entry["detectors"][0]["qualification_ref"] is None
     assert method_entry["detectors"][0]["strongest_output_type"] == "disclosure"
     grants = method_entry["detectors"][0]["binding_grants"]
-    assert len(grants) == 2
-    assert {grant["binding_id"] for grant in grants} == set(GRANT_PINS)
+    assert len(grants) == 1
+    assert {grant["binding_id"] for grant in grants} == {
+        "method-conflict-binding:complete-domain-exposure-denominator-v1"
+    }

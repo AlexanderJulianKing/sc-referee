@@ -41,7 +41,7 @@ REPLAY_ARTIFACT_NAME = "REPLAY_AT_HEAD.json"
 REPLAY_PURPOSE = "drift-ruling evidence, not a fresh examination"
 CHECK_ID = "check:complete-domain-exposure-denominator"
 DETECTOR_ID = "detector:bounded-analysis-method-conflict"
-SCHEMA_RELATIVE = Path("reference/schemas-v0.19.0")
+SCHEMA_RELATIVE = Path("reference/schemas-v0.20.0")
 
 _SEALED_DIGESTS = {
     "heldout_opening": "sha256:0daf0982bc0e15bb8aada0c6e0be143bea0f439494858f7dc3ffd53f0a3d08ec",
@@ -73,7 +73,7 @@ _AGREEMENT_FIELDS = (
     "project_code_executions",
     "replay_equal",
 )
-_HEAD_AUDIT_PATHS = ("src", "reference/schemas-v0.19.0")
+_HEAD_AUDIT_PATHS = ("src", "reference/schemas-v0.20.0")
 
 
 def build_complete_domain_replay_at_head(
@@ -238,6 +238,7 @@ def _replay_case(
                 "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
                 "check_id": CHECK_ID,
                 "candidate_id": candidate_id,
+                "semantic_role_authority": {},
             },
             actor_id=(
                 "scientist:lean-pipeline-complete-domain-exposure-denominator-v2.0.7-heldout"

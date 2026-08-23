@@ -47,7 +47,7 @@ DIGEST_B = sha256_digest(REPORT)
 DIGEST_C = sha256_digest(PRODUCER)
 DIGEST_D = sha256_digest(SOURCE)
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SCHEMA_ROOT = PROJECT_ROOT / "reference" / "schemas-v0.19.0"
+SCHEMA_ROOT = PROJECT_ROOT / "reference" / "schemas-v0.20.0"
 STAGE2_EXAMPLE = SCHEMA_ROOT / "examples" / "agent-review.stage2.example.json"
 
 

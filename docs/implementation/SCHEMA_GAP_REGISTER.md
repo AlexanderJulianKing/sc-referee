@@ -355,6 +355,29 @@ therefore verifies the amended bare-name/subscript container rule, while the
 frozen case retains its honest next wall. A future reviewed grammar round is
 required to change that case's ordering.
 
+## Closed code-CSV dependence qualification identity gap in v0.20.0
+
+Envelope 5 passed its frozen detector `2.1.0` evaluation bar, and chronology Step 10 derives a
+proposed qualification, metric set, threshold record, code-CSV Finding-profile binding, and
+replacement dependence pin. The live binding is exact to
+`detector:bounded-code-csv-dependence-conflict` version `2.1.0`, check version `2.1.0`, and the
+code-CSV adapter and Finding-profile digests.
+
+Accepted schema v0.19.0 cannot represent that qualification identity. The
+`detector_qualification` and `qualification_metric_set` binding-scope branches fix the dependence
+binding to `detector:bounded-analysis-method-conflict` version `0.3.0`. Reusing that identity in the
+Envelope 5 records would make the proposed grant refer to a detector that was not evaluated, while
+installing the code-lane identity would fail public-schema validation.
+
+The original Step 10 records remain explicit `PROPOSED_UNINSTALLED` wrapper artifacts under
+`evaluation/qualification/authorized-independent-unit-entry-into-row-independent-procedure-v2.1.0-code-csv-lane/envelope-5-step-10-proposed/`.
+Accepted v0.20.0 closes the representation gap with paired generic `0.3.0` and code-lane `2.1.0`
+detector identities, cross-pair refusals, migration notes, examples, invariant tests, and byte-identical
+reference/packaged releases. The accepted Envelope 5 records live under the adjacent
+`envelope-5-promotion-v020/` path. Derived capability and grant resources use v0.20.0, and the existing
+dependence pin slot is replaced under the ADR-0076 installation amendment. Public v0.19.0 remains
+byte-immutable.
+
 ## Rule
 
 Historical provisional schemas remain under `provisional-schemas/` solely for migration evidence.

@@ -66,7 +66,11 @@ from sc_referee.detectors.manifest import (
     load_fixture_detector_envelope,
     locked_counterevidence_check_ids,
 )
-from sc_referee.detectors.method_conflict_finding import draft_method_conflict_finding
+from sc_referee.detectors.method_conflict_finding import (
+    CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST,
+    CODE_CSV_DEPENDENCE_FINDING_PROFILE_ID,
+    draft_method_conflict_finding,
+)
 from sc_referee.detectors.method_conflict_qualification import (
     project_qualified_method_conflict_candidate,
     resolve_method_conflict_qualification,
@@ -1081,6 +1085,18 @@ def run_audit(
                 manifest_root=layout.root,
                 repository_snapshot=snapshot.snapshot_record,
             )
+        if scientific_context is not None and method_contract_lock is not None:
+            from sc_referee.method_contract_run import (
+                preflight_frozen_scientific_requirement,
+            )
+
+            scientific_context = preflight_frozen_scientific_requirement(
+                lock_path=method_contract_lock,
+                schema_root=schema_root,
+                context=scientific_context,
+                file_records=public_file_records,
+                asset_identities=snapshot.asset_identity_records,
+            )
         if dependence_authorization_lock is not None:
             if scientific_context is None:
                 raise ValueError(
@@ -1230,6 +1246,9 @@ def run_audit(
                 scientific_check_registry=active_scientific_checks,
                 run_id=run_id,
                 created_at=created_at,
+                material_inputs=(
+                    scientific_context.material_inputs if scientific_context is not None else ()
+                ),
             )
         claims = bind_bounded_claim_lineage(
             claims,
@@ -3539,6 +3558,13 @@ def _promote_method_conflict_evaluation(
     pin = method_conflict_grant_pins.GRANT_PINS.get(evaluation.binding.binding_id)
     if pin is None:
         return original, None
+    if evaluation.binding.check_id == (
+        "check:authorized-independent-unit-entry-into-row-independent-procedure"
+    ) and (
+        pin.finding_profile_id != CODE_CSV_DEPENDENCE_FINDING_PROFILE_ID
+        or pin.finding_profile_digest != CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST
+    ):
+        return original, None
     evidence = method_conflict_grant_pins.load_method_conflict_grant_evidence(pin)
     if evidence is None:
         return original, None
@@ -3570,9 +3596,27 @@ def _promote_method_conflict_evaluation(
     if promoted is None:
         return original, None
     try:
-        draft = draft_method_conflict_finding(promoted, evaluation.binding)
+        draft = draft_method_conflict_finding(
+            promoted,
+            evaluation.binding,
+            work_packet=evaluation.work_packet,
+        )
     except (KeyError, TypeError, ValueError):
         return original, None
+    if pin.finding_profile_id == CODE_CSV_DEPENDENCE_FINDING_PROFILE_ID:
+        if (
+            pin.finding_profile_digest != CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST
+            or draft.get("extensions", {}).get("x-finding-wording-profile-id")
+            != CODE_CSV_DEPENDENCE_FINDING_PROFILE_ID
+            or draft.get("extensions", {}).get("x-finding-wording-profile-digest")
+            != CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST
+            or not isinstance(promoted.get("candidate"), dict)
+            or not isinstance(draft.get("title"), str)
+            or not isinstance(draft.get("summary"), str)
+        ):
+            return original, None
+        promoted["candidate"]["title"] = draft["title"]
+        promoted["candidate"]["bounded_statement"] = draft["summary"]
     finding = admit_finding(
         promoted,
         AdmissionContext(

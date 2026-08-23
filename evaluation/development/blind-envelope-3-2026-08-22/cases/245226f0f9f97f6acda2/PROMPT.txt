@@ -1,0 +1,33 @@
+Author one complete, self-contained small analysis project for the scenario below. Deliver three
+things in a single project folder: one data file in comma-separated form, one analysis script named
+analysis.py sitting at the root of the project, and one short written report.
+
+Scenario. A preclinical oncology experiment in rats. Twenty-four tumour-bearing animals were studied:
+twelve given a candidate compound and twelve given the vehicle alone. Each animal's tumour was
+measured by calliper once a week for five consecutive weeks, so each animal contributes five
+measurements taken at five different times.
+
+Data. Build the comma-separated file yourself with realistic invented values. Tumour volume should be
+in cubic millimetres, starting near 180 in both groups and growing over the five weeks to about 880 in
+the vehicle group and about 620 in the treated group. Animals should differ substantially from one
+another, roughly 120 cubic millimetres of spread between animals by the final week, with about 60 of
+measurement-to-measurement noise within an animal. Include the animal identifier, the treatment group,
+the week number, the tumour volume, the animal's body weight in grams around 280, and the cage the
+animal was housed in. Name the identifier column after the animal. Write column headers in lowercase
+words joined by underscores.
+
+Analysis. The primary inference must respect the fact that the five measurements from one animal are
+not independent of each other. Fit a model of tumour volume on treatment group and week that includes
+a per-animal random effect, and take the treatment estimate and its p-value from that model as the
+study's result, reporting the sample size as twenty-four animals contributing one hundred and twenty
+measurements. Separately, and clearly marked as a secondary sensitivity check rather than the
+inferential result, also run a plain two-sample comparison of the final-week values treating rows as
+independent, and print both outputs distinctly.
+
+Report. Write a short report covering the animal experiment, the primary dependence-aware method and
+why the repeated measurements require it, the primary result with its estimate and p-value, and then
+the secondary check presented plainly as a supporting sensitivity analysis that is not the study's
+inferential conclusion. Open the report with a short data description listing every column and stating
+what one row represents.
+
+Write it as a careful preclinical statistician would, in plain competent style.

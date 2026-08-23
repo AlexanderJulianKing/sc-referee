@@ -1,6 +1,6 @@
 {
-  "public_examples_validated": 79,
-  "public_schema_version": "0.19.0",
+  "public_examples_validated": 81,
+  "public_schema_version": "0.20.0",
   "observed_plane_records": "public",
   "multidimensional_lineage_plane": "public",
   "walking_skeleton": "passed",
@@ -11,8 +11,8 @@
   "deterministic_replay": "passed",
   "storage_integrity": "passed",
   "generated_capability_matrix": "passed_fail_closed_manifest_profile",
-  "capability_matrix_entries": 16,
-  "capability_matrix_detector_qualification": "experimental_unqualified_only",
+  "capability_matrix_entries": 17,
+  "capability_matrix_detector_qualification": "two_exact_binding_grants",
   "capability_matrix_tested_versions": "none_declared",
-  "public_detector_qualification": "not_claimed"
+  "public_detector_qualification": "binding_scoped_only"
 }

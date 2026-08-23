@@ -29,6 +29,12 @@ from sc_referee.qualification_grants import (
 from sc_referee.scientific_checks.profiles import scientific_check_release_registry
 from scripts.build_method_conflict_grant_resources import build_grant_resources
 
+_DEPENDENCE_BINDING_ID = (
+    "method-conflict-binding:authorized-independent-unit-entry-into-row-independent-procedure-v1"
+)
+_COMPLETE_DOMAIN_BINDING_ID = "method-conflict-binding:complete-domain-exposure-denominator-v1"
+_LIVE_FINDING_BINDINGS = {_COMPLETE_DOMAIN_BINDING_ID, _DEPENDENCE_BINDING_ID}
+
 
 def _load(path: Path) -> dict[str, object]:
     value = json.loads(path.read_text(encoding="utf-8"))
@@ -36,7 +42,7 @@ def _load(path: Path) -> dict[str, object]:
     return value
 
 
-def _detector_manifest() -> dict[str, object]:
+def _detector_manifest(detector_id: str) -> dict[str, object]:
     collection = _load(default_capability_manifest_root() / "detector-manifests.json")
     records = collection["records"]
     assert isinstance(records, list)
@@ -44,7 +50,13 @@ def _detector_manifest() -> dict[str, object]:
         record
         for record in records
         if isinstance(record, dict)
-        and record.get("detector_id") == "detector:bounded-analysis-method-conflict"
+        and record.get("detector_id") == detector_id
+        and record.get("detector_version")
+        == max(
+            str(item.get("detector_version"))
+            for item in records
+            if isinstance(item, dict) and item.get("detector_id") == detector_id
+        )
     )
 
 
@@ -56,23 +68,24 @@ def _tree_bytes(root: Path) -> dict[str, bytes]:
     }
 
 
-def test_installed_grant_resource_and_pin_table_close_exactly_two_bindings() -> None:
+def test_installed_resources_bind_two_live_pins() -> None:
     evidence_by_binding = load_installed_qualification_grants()
     assert len(GRANT_PINS) == 2
     assert set(evidence_by_binding) == set(GRANT_PINS)
+    assert set(GRANT_PINS) == _LIVE_FINDING_BINDINGS
     for binding_id, pin in GRANT_PINS.items():
         evidence = evidence_by_binding[binding_id]
         assert dict(evidence.grant)["qualification_digest"] == pin.qualification_digest
         assert dict(evidence.grant)["metric_set_digest"] == pin.metric_set_digest
-        assert dict(evidence.grant)["required_roots"] == 2
-        assert dict(evidence.grant)["absolute_missed_roots"] == 0
-        assert installed_pin_matches_live_identity(pin)
+        assert dict(evidence.grant)["required_roots"] == pin.required_roots
+        assert dict(evidence.grant)["absolute_missed_roots"] == pin.absolute_missed_roots
+        assert installed_pin_matches_live_identity(pin) is True
         assert load_method_conflict_grant_evidence(pin) is not None
 
 
-def test_both_installed_grants_resolve_and_all_siblings_refuse() -> None:
+def test_only_live_installed_grant_resolves_and_all_stale_or_unpinned_bindings_refuse() -> None:
     registry = scientific_check_release_registry()
-    detector_manifest = _detector_manifest()
+    installed = load_installed_qualification_grants()
     by_binding = {binding.binding_id: binding for binding in registry.method_conflict_bindings}
     assert len(by_binding) == 23
     resolved = []
@@ -84,7 +97,7 @@ def test_both_installed_grants_resolve_and_all_siblings_refuse() -> None:
             assert (
                 resolve_method_conflict_qualification(
                     binding=binding,
-                    detector_manifest=detector_manifest,
+                    detector_manifest={},
                     qualification={},
                     metric_set={},
                     pin=None,
@@ -93,7 +106,22 @@ def test_both_installed_grants_resolve_and_all_siblings_refuse() -> None:
             )
             continue
         evidence = load_method_conflict_grant_evidence(pin)
-        assert evidence is not None
+        detector_manifest = _detector_manifest(binding.detector_id)
+        if evidence is None:
+            refused.append(binding_id)
+            assert installed_pin_matches_live_identity(pin) is False
+            raw = installed[binding_id]
+            assert (
+                resolve_method_conflict_qualification(
+                    binding=binding,
+                    detector_manifest=detector_manifest,
+                    qualification=dict(raw.qualification),
+                    metric_set=dict(raw.metric_set),
+                    pin=pin,
+                )
+                is None
+            )
+            continue
         qualification, metric_set = evidence
         grant = resolve_method_conflict_qualification(
             binding=binding,
@@ -105,8 +133,8 @@ def test_both_installed_grants_resolve_and_all_siblings_refuse() -> None:
         assert grant is not None
         assert grant.binding_id == binding_id
         resolved.append(binding_id)
-    assert resolved == sorted(GRANT_PINS)
-    assert len(refused) == len(by_binding) - len(GRANT_PINS)
+    assert resolved == sorted(_LIVE_FINDING_BINDINGS)
+    assert len(refused) == len(by_binding) - len(_LIVE_FINDING_BINDINGS)
 
 
 def test_installed_grant_binding_digests_match_live_registry_and_matrix_builds(
@@ -117,13 +145,14 @@ def test_installed_grant_binding_digests_match_live_registry_and_matrix_builds(
     registry = scientific_check_release_registry()
     live_by_id = {binding.binding_id: binding for binding in registry.method_conflict_bindings}
     assert set(GRANT_PINS) <= set(live_by_id)
-    for binding_id, pin in GRANT_PINS.items():
+    for binding_id in _LIVE_FINDING_BINDINGS:
+        pin = GRANT_PINS[binding_id]
         binding = live_by_id[binding_id]
         assert pin.binding_digest == binding.binding_digest
         assert pin.detector_manifest_digest == binding.detector_manifest_digest
 
     matrix = generate_capability_matrix(
-        default_capability_manifest_root(), project_root / "reference/schemas-v0.19.0"
+        default_capability_manifest_root(), project_root / "reference/schemas-v0.20.0"
     )
     published = {
         grant["binding_id"]
@@ -132,14 +161,14 @@ def test_installed_grant_binding_digests_match_live_registry_and_matrix_builds(
         for grant in detector.get("binding_grants", [])
         if grant.get("strongest_output_type") == "finding"
     }
-    assert published == set(GRANT_PINS)
+    assert published == _LIVE_FINDING_BINDINGS
 
 
-def test_capability_matrix_exposes_finding_for_exactly_the_two_grant_bindings(
+def test_capability_matrix_exposes_finding_for_exactly_the_live_grant_binding(
     project_root: Path,
 ) -> None:
     matrix = generate_capability_matrix(
-        default_capability_manifest_root(), project_root / "reference/schemas-v0.19.0"
+        default_capability_manifest_root(), project_root / "reference/schemas-v0.20.0"
     )
     grants = [
         grant
@@ -147,7 +176,7 @@ def test_capability_matrix_exposes_finding_for_exactly_the_two_grant_bindings(
         for detector in entry["detectors"]
         for grant in detector.get("binding_grants", [])
     ]
-    assert {grant["binding_id"] for grant in grants} == set(GRANT_PINS)
+    assert {grant["binding_id"] for grant in grants} == _LIVE_FINDING_BINDINGS
     assert all(grant["strongest_output_type"] == "finding" for grant in grants)
     method_detector = next(
         detector
@@ -157,6 +186,24 @@ def test_capability_matrix_exposes_finding_for_exactly_the_two_grant_bindings(
     )
     assert method_detector["maturity"] == "experimental"
     assert method_detector["strongest_output_type"] == "disclosure"
+    code_detector = next(
+        detector
+        for entry in matrix["entries"]
+        for detector in entry["detectors"]
+        if detector["detector_id"] == "detector:bounded-code-csv-dependence-conflict"
+    )
+    assert code_detector["maturity"] == "experimental"
+    assert code_detector["strongest_output_type"] == "disclosure"
+    assert code_detector["binding_grants"] == [
+        {
+            "binding_id": _DEPENDENCE_BINDING_ID,
+            "check_id": "check:authorized-independent-unit-entry-into-row-independent-procedure",
+            "qualification_ref": (
+                "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5"
+            ),
+            "strongest_output_type": "finding",
+        }
+    ]
 
 
 def test_grant_builder_reproduces_the_installed_resource(tmp_path: Path) -> None:
@@ -186,7 +233,7 @@ def test_grant_loader_refuses_digest_drift(project_root: Path, tmp_path: Path) -
                 project_root
                 / "src/sc_referee/resources/capability-manifests-v1/qualification-manifests.json"
             ),
-            schema_root=project_root / "reference/schemas-v0.19.0",
+            schema_root=project_root / "reference/schemas-v0.20.0",
         )
 
 
@@ -195,6 +242,9 @@ def test_grant_descriptor_payload_equals_the_frozen_pin_fields() -> None:
     for binding_id, pin in GRANT_PINS.items():
         expected = asdict(pin)
         expected["exam_adapter_identity"] = [asdict(item) for item in pin.exam_adapter_identity]
+        if expected["finding_profile_id"] is None:
+            expected.pop("finding_profile_id")
+            expected.pop("finding_profile_digest")
         assert dict(evidence[binding_id].grant) == expected
 
 

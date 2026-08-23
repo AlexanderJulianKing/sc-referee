@@ -1,0 +1,27 @@
+You are writing a small, self-contained analysis project for a pollinator-nutrition experiment. Create exactly three files in your current working directory: a data CSV, an analysis script named analysis.py, and a written report named report.md.
+
+The study
+
+A lab tested whether pollen diversity affects bumblebee (Bombus terrestris) colony growth. Twenty-four queenright microcolonies were established from commercial stock. Twelve were fed a single-species willow pollen diet and twelve were fed a mixed pollen diet from four plant species. Each colony was housed alone in its own box and fed independently, so the colony is the experimental unit. After 6 weeks, each colony was destructively weighed once: a single total mass of comb, brood and stored provisions per colony. There is exactly one measurement per colony and no repeated sampling of any colony. That gives 24 colonies and 24 rows.
+
+The data file
+
+Name the CSV microcolony_growth.csv. Use these columns, with these exact names:
+
+- hive_label: the colony identifier, written as strings like MC-01 through MC-24, each appearing exactly once in the file
+- pollen_diet: either "monofloral" or "mixed"
+- start_worker_count: the number of workers seeded into the colony at the start, realistic values around 4 to 6
+- rearing_shelf: which of three climate-cabinet shelves the colony sat on, such as SH-1, SH-2 or SH-3, with both diets represented on every shelf
+- final_colony_mass_g: total colony mass in grams at week 6, the outcome of interest
+
+Make the numbers realistic. Six-week microcolonies of this size typically reach somewhere around 35 to 95 grams, with substantial colony-to-colony variation, and the mixed-pollen colonies tend to end up somewhat heavier on average. Colony masses should vary a lot within each diet group, because bumblebee microcolonies are genuinely variable. Give masses to one decimal place. Order the rows by colony label.
+
+The analysis script
+
+analysis.py should use pandas to load the CSV and scipy for statistics. Compare final_colony_mass_g between the monofloral and mixed diets with scipy.stats.ttest_ind. Because each colony contributes exactly one row, the rows going into the test are the colonies. Before running the test, have the script verify that hive_label has no duplicated values and print the number of unique colonies alongside the number of rows, so the reader can see the two match. Also print the group means and standard deviations, the number of colonies in each group, the t statistic and the p-value. Keep the script short and readable with brief comments.
+
+The report
+
+report.md should read like a short results write-up by the entomologist who ran the experiment. Include a brief "Data description" section that lists every column in the CSV and says plainly what a single row of the file represents, making clear that each row is one whole colony measured once. Then describe the design, state exactly which values entered the t-test, give the group means, the t statistic, the p-value, and the sample size for each group. State the N you used explicitly and say what it counts.
+
+Run analysis.py and use its real output in the report; do not invent numbers. There is no template for the prose; write it in your own words as a scientist would.

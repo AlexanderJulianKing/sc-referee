@@ -946,7 +946,9 @@ def _production_import_closure(project_root: Path, roots: tuple[str, ...]) -> se
     return seen
 
 
-def test_installed_dependence_pin_stays_live_and_v2_is_unregistered(project_root: Path) -> None:
+def test_code_lane_dependence_pin_is_live_and_v2_growth_is_unregistered(
+    project_root: Path,
+) -> None:
     binding = "method-conflict-binding:authorized-independent-unit-entry-into-row-independent-procedure-v1"
     assert installed_pin_matches_live_identity(GRANT_PINS[binding]) is True
     registry = json.loads(

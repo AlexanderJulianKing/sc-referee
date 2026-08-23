@@ -1,0 +1,30 @@
+Build one complete, self-contained analysis project for the study described below. The project must
+contain four things: two data files in comma-separated form as described, a single Python analysis
+script at the project root called analysis.py, and a short written report in Markdown at the project
+root. Nothing else. The script must read both data files, run the analysis, and print its results.
+
+Study. A conservation charity compared butterfly abundance on farmland under two management regimes.
+Twenty-two fixed walking routes were surveyed, eleven crossing farms in a wildflower-margin scheme
+and eleven crossing conventionally managed farms. Each route was walked weekly for eighteen weeks in
+one summer by the same recorder, so each route contributes eighteen weekly counts and the raw file
+holds 396 weekly counts. The outcome is the number of butterflies of all species counted along the
+route. Realistic weekly counts are about 4 to 45 on conventional routes and about 9 to 80 on
+wildflower-margin routes, rising to a midsummer peak and falling away again, with each route holding
+its own consistent level. Also record the air temperature at the start of each walk, roughly 14 to 28
+degrees Celsius.
+
+Data files. The first file has one line per route week, with these exact headers in this order:
+route_code, management, survey_week, air_temp_c, butterfly_count. The second file holds one line per
+route and nothing else, with these exact headers in this order: route_code, management,
+weeks_surveyed, mean_weekly_count. You must create both files yourself and they must agree with each
+other. Route codes should look like real transect register codes.
+
+Analysis. Run the two-group comparison on the per-route summary file: an independent two-sample test
+of the difference in mean weekly count between the two management regimes, using its twenty-two
+rows. The weekly file is used only for descriptive counts, such as how many routes and weeks were
+surveyed and the range of weekly counts; do not run any inferential test on the weekly rows. Report
+the sample size as the number of routes.
+
+Report. Keep it short. Open with a data description covering both files, listing every column of each
+and stating plainly what one row of each file represents. Then give the methods, the numbers, and a
+brief conservation interpretation.

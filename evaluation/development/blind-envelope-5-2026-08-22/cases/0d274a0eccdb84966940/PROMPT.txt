@@ -1,0 +1,30 @@
+Build one complete, self-contained analysis project for the study described below. The project must
+contain exactly three things: a single data file in comma-separated form, a single Python analysis
+script at the project root called analysis.py, and a short written report in Markdown at the project
+root. Nothing else. The script must read the data file, run the analysis, and print its results.
+
+Study. A behavioural neuroscience laboratory asked whether environmental enrichment improves
+recognition memory in adult rats. Eighteen male rats were housed and assigned as whole animals: nine
+in enriched cages with tunnels, ropes and rotating objects, and nine in standard cages. Each rat was
+then run through eight separate novel-object recognition tests on different days with different
+object pairs, so each animal contributes eight test runs and the file holds 144 runs in total. The
+outcome is the discrimination index, the share of exploration time spent on the novel object, on a
+scale from zero to one. Realistic run values are about 0.48 to 0.66 for standard-housed rats and
+about 0.58 to 0.78 for enriched rats, with wide run-to-run variability within an animal and a stable
+animal-level tendency across its eight runs. Also record total object exploration time per run,
+roughly 15 to 45 seconds.
+
+Data file. One line per test run. Columns, in this order and with these exact headers: rat_id,
+housing, run_number, exploration_time_s, discrimination_index. Rat identifiers should look like real
+animal codes. Round the index to three decimals.
+
+Analysis. The animal, not the test run, is the experimental unit here, so first reduce each rat's
+eight runs to that rat's single mean discrimination index, then compare enriched and standard
+housing with an independent two-sample test of the difference in means on those per-animal values.
+Report the sample size as the number of rats. Leave the data file itself with all eight runs per rat;
+the reduction happens in the analysis only.
+
+Report. Keep it short. Open with a data description that lists every column and states plainly what
+one row of the file represents, making clear that a rat appears on several rows. Then give the
+methods, the per-group means and spread, the p-value, the sample size in animals, and a brief
+interpretation.

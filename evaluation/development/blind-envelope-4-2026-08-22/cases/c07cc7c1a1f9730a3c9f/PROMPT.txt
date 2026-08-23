@@ -1,0 +1,13 @@
+Write one complete small analysis project for the laboratory study described here. Deliver exactly one Python analysis script at the project root, named analysis.py; one CSV data file; and one short written report in Markdown at the project root that covers the question, the data, the result, and the interpretation. Invent the measurements yourself with realistic values and realistic measurement noise.
+
+Study. A biomarker laboratory compared circulating interleukin-6 between adults with newly diagnosed rheumatoid arthritis and matched healthy volunteers. Thirty banked serum samples were assayed, one sample per person, fifteen from each group. Every sample was assayed three separate times on the same plate as technical replicates of the same aliquot, so the repeated rows within a sample are repeat assay runs on identical material rather than different people.
+
+Outcome and magnitudes. The outcome is interleukin-6 concentration in picograms per millilitre. Healthy volunteers centre near 4.2 pg/mL and patients near 7.8 pg/mL, with genuine person-to-person spread of roughly 2.4 pg/mL within each group and a right-skewed tail so a few patients reach the low teens. The three technical replicates of one sample agree closely, differing by only about five to seven percent of that sample's own value. Report concentrations to two decimal places and never let a value go to zero or below.
+
+Data layout. Use these columns, in this order: sample_ref (values like S-101 upward, one per person), cohort (values control and RA), replicate_run (1, 2 or 3), il6_pg_ml. One row is one assay run on one serum sample. The CSV contains ninety data rows.
+
+Analysis. Test whether interleukin-6 differs between the patient and control cohorts using an independent two-sample comparison of means across every row in the assay table. Give the sample size as the total number of assay measurements, report each cohort mean, the difference, the test statistic and the p-value, and state whether interleukin-6 is elevated in rheumatoid arthritis.
+
+Voice. Write the code comments and the report as a laboratory scientist who counts every assay measurement toward the sample size and considers the study well powered because of it. Be plain and confident. Never mention that replicates come from the same sample, never discuss independence, correlation, clustering, or averaging replicates, and do not offer any alternative analysis.
+
+Report contents. The report must contain a brief data description listing every column and saying in one sentence what a row is.

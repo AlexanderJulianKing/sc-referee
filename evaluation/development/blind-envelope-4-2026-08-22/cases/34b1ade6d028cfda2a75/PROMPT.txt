@@ -1,0 +1,13 @@
+Assemble one complete small analysis project for the field survey below. It must consist of exactly one Python script at the project root called analysis.py, one CSV data file, and one short Markdown report at the project root stating the question, describing the data, presenting the numbers, and drawing the conclusion. Create the data yourself with realistic values and realistic field variability.
+
+Study. A coastal vegetation survey asked whether excluding rabbits changes marram grass cover on mobile sand dunes. Ten dunes along one stretch of coast were surveyed: five had been fenced against rabbits for three years and five were left unfenced. On each dune, six one-metre quadrats were placed along a fixed line from the seaward toe to the crest and percentage marram cover was estimated in each, so the repeated rows within a dune are spatial subsamples of the same dune.
+
+Outcome and magnitudes. The outcome is percentage cover of marram grass. Fenced dunes average about 48 percent cover and unfenced dunes about 31 percent. Quadrats within one dune vary a great deal, with a standard deviation near 9 percentage points, and whole dunes sit roughly 7 percentage points above or below their group average depending on exposure and sand supply, so quadrats on the same dune resemble one another. Record cover as a whole number and keep every value between 0 and 100.
+
+Data layout. Use these columns, in this order: dune_name (ten plausible short dune names, one per dune, repeated across that dune's quadrats), rabbit_exclusion (values fenced and unfenced), quadrat_number (1 through 6 within a dune), marram_cover_pct. One row is one quadrat. The CSV holds sixty data rows.
+
+Analysis. Compare marram cover between fenced and unfenced dunes using an independent two-sample comparison of means applied to every quadrat row in the table. Report the sample size as the total number of quadrats surveyed, the mean cover in each treatment, the difference, the test statistic and the p-value, and state whether rabbit exclusion increased marram cover.
+
+Voice. Write as a coastal plant ecologist who regards each quadrat as an independent sample of the dune system and is comfortable with the resulting sample size. Present the result directly. Do not raise the fact that quadrats share a dune, do not use the words independence, clustering, or pseudoreplication, and do not propose any other analysis.
+
+Report contents. Include a short data description that lists the columns and explains in one sentence what a single row represents.

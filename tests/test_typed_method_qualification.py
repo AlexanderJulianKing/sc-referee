@@ -329,7 +329,7 @@ def test_generic_engine_builds_one_public_v017_proof(project_root: Path) -> None
     example_path = (
         project_root
         / "reference"
-        / "schemas-v0.19.0"
+        / "schemas-v0.20.0"
         / "examples"
         / "static-qualification-proof.analysis-method.example.json"
     )
@@ -379,7 +379,7 @@ def test_generic_engine_builds_one_public_v017_proof(project_root: Path) -> None
         authority_records=_authority(),
     )
 
-    LocalSchemaRegistry(project_root / "reference" / "schemas-v0.19.0").validate(proof)
+    LocalSchemaRegistry(project_root / "reference" / "schemas-v0.20.0").validate(proof)
     assert proof["proof_status"] == "complete"
     assert proof["derived_facts"]["comparison"]["outcome"] == "exact_conflict_candidate"
 

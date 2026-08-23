@@ -125,6 +125,7 @@ def run_first_direct_pilot_detector(project_root: Path) -> dict[str, Any]:
                     "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
                     "check_id": CHECK_ID,
                     "candidate_id": CANDIDATE_BY_CASE[case_id],
+                    "semantic_role_authority": {},
                 },
                 actor_id="scientist:frozen-pilot-brief-v4",
             )

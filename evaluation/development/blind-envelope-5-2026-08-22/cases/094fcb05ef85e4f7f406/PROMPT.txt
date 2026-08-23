@@ -1,0 +1,30 @@
+Build one complete, self-contained analysis project for the study described below. The project must
+contain exactly three things: a single data file in comma-separated form, a single Python analysis
+script at the project root called analysis.py, and a short written report in Markdown at the project
+root. Nothing else. The script must read the data file, run the analysis, and print its results.
+
+Study. A rangeland research station compared two grazing rotations on upland sheep pasture. Sixteen
+fenced paddocks were assigned whole: eight to a fast rotation with short, intense grazing bouts and
+long rest, and eight to the station's continuous set-stocking. At the end of the growing season, ten
+sampling points were located on a fixed grid within each paddock and the standing herbage at each
+point was cut, dried and weighed, so each paddock contributes ten spatial samples and the file holds
+160 sample points in total. The outcome is standing herbage mass in kilograms of dry matter per
+hectare. Realistic point values are about 900 to 2200 under set-stocking and about 1600 to 3400 under
+the fast rotation, with strong patchiness within a paddock and clear paddock-level differences from
+aspect and drainage. Also record the sward height at each point in centimetres, roughly 3 to 18.
+
+Data file. One line per sampling point. Columns, in this order and with these exact headers:
+paddock_name, rotation, grid_point, sward_height_cm, herbage_kg_dm_ha. Paddock names should look like
+real field names on a hill farm. Round herbage mass to whole numbers.
+
+Analysis. The paddock is the experimental unit, since the ten grid points inside a paddock are
+subsamples of the same fenced area. Carry out the reduction to one value per paddock in a clearly
+separated step of the analysis that hands back the aggregated per-paddock table, then run the
+independent two-sample test of the difference in means on that returned table. Report the sample size
+as the number of paddocks, and report the number of grid points only as a description of the
+sampling effort.
+
+Report. Keep it short. Open with a data description that lists every column and states plainly what
+one row of the file represents, making clear that a paddock appears on ten rows. Then give the
+methods, the per-group means and spread, the p-value, the sample size in paddocks, and a brief
+grazing-management interpretation.

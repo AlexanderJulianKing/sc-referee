@@ -38,6 +38,8 @@ class GrantPin:
     exam_adapter_identity: tuple[ExamAdapterIdentity, ...]
     absolute_missed_roots: int
     required_roots: int
+    finding_profile_id: str | None = None
+    finding_profile_digest: str | None = None
 
 
 _DEPENDENCE_PIN = GrantPin(
@@ -45,51 +47,55 @@ _DEPENDENCE_PIN = GrantPin(
         "method-conflict-binding:authorized-independent-unit-entry-into-row-independent-"
         "procedure-v1"
     ),
-    binding_digest="sha256:f58801cd66b18487da2d33ab2f424392b2d64bf84697ccd336de6ef8ba2cda1b",
+    binding_digest="sha256:85c270872730d6ce8cf6cc62b79a54140b2a6121d98d7be35764db6d61f5b989",
     check_id="check:authorized-independent-unit-entry-into-row-independent-procedure",
-    check_version="1.1.0",
+    check_version="2.1.0",
     check_manifest_digest=(
-        "sha256:4f48a3104693cd6cdcf215bd620b59449ee87c3cd969ddbe7285f168e598ab21"
+        "sha256:8b9ce5f53203c99bd0d24fcf0169e841905cb2aa034e858516bcf48105e4d6c2"
     ),
-    detector_id="detector:bounded-analysis-method-conflict",
-    detector_version="0.3.0",
+    detector_id="detector:bounded-code-csv-dependence-conflict",
+    detector_version="2.1.0",
     detector_manifest_digest=(
-        "sha256:a5b089be6a18b220f56fd345450912a3aa7ee3e132ff519117b879cee8e72c41"
+        "sha256:8824f6c48ac7b014383967e03774b9ef227dc265fa4754f5ce79ff1571304b05"
     ),
-    qualification_id="qualification:authorized-independent-unit-entry-v110-round2",
+    qualification_id="qualification:authorized-independent-unit-entry-v210-code-csv-envelope5",
     qualification_digest=(
-        "sha256:a3c0ebebde92bfff4e7eacff8427d944d7a3f33b43b206fc071e4d85c37d3b3d"
+        "sha256:0e52eb7a7661646aaf30ba4484b81d10cfb1f8cb3f86caa0e4f14c0bd5c43bbb"
     ),
-    metric_set_id="qualification-metric-set:81c3713d3b6e81d999de",
-    metric_set_digest=("sha256:8469007a7067cbc6ca49a8c8672e9771d61ae2df5a1eb34086992eae53c03c99"),
+    metric_set_id="qualification-metric-set:authorized-independent-unit-entry-v210-envelope5",
+    metric_set_digest=("sha256:b11f7152edd1e6ea4cacd13d1c0b67ecfaf56ffbece7839246c762ec3c2909b4"),
     threshold_policy_digest=(
-        "sha256:92af51be5f6d5e5127337963025cf0932747b4a088e7376f6d22d9d68d0ff644"
+        "sha256:7fe65c8b07a4154c63f432112873e212568815834b9402f8dd33c8670b03d918"
     ),
     exam_adapter_identity=(
         ExamAdapterIdentity(
             adapter_id=(
                 "adapter:authorized-independent-unit-entry-into-row-independent-procedure:"
-                "dependence-semantic-v1"
+                "code-csv-rowwise-two-sample-v1"
             ),
-            adapter_version="1.1.0",
+            adapter_version="2.1.0",
             implementation_digest=(
-                "sha256:d5d22803d309ddda51651bcc033cb3e5aa4e093988550fb489b7e9671e289c54"
+                "sha256:986f4862d5bc63cda2a61f5bf1d7df2d46e137b38de753edac5c2208f2705b54"
             ),
             manifest_digest=(
-                "sha256:81df54974a949648f6f86287df725c1a69ce63f41100480d299680f92eee3776"
+                "sha256:591a0bf3e7ca93b8166ad6a7a8779e937e48b5295b81ca0f433b02d28fc1c65c"
             ),
             recognition_grammar_digest=(
-                "sha256:bb3b283145ec1420491771ca49fbd2214e553602a735af2a6f7027980c8be873"
+                "sha256:e135a5182ebba66ffc987f8867c468c54a9a1ab72d34f76dedee9867c4c3b10e"
             ),
         ),
     ),
-    absolute_missed_roots=0,
-    required_roots=2,
+    absolute_missed_roots=2,
+    required_roots=6,
+    finding_profile_id="method-conflict-finding:code-csv-authorized-unit-requirement-conflict-v1",
+    finding_profile_digest=(
+        "sha256:0440fdb918eb04ff975e7129c4152a2d681f3f4203ae8c7a1f8fc9ebf8916288"
+    ),
 )
 
 _COMPLETE_DOMAIN_PIN = GrantPin(
     binding_id="method-conflict-binding:complete-domain-exposure-denominator-v1",
-    binding_digest="sha256:0f59ece664acbc541006037fbfc8518c21e8fee9768ed47a651f6532226950f9",
+    binding_digest="sha256:9c7fd700782f78aa9dbc7033149ccca61255c23f551a994e6d30c42e20266600",
     check_id="check:complete-domain-exposure-denominator",
     check_version="2.0.7",
     check_manifest_digest=(
@@ -98,14 +104,14 @@ _COMPLETE_DOMAIN_PIN = GrantPin(
     detector_id="detector:bounded-analysis-method-conflict",
     detector_version="0.3.0",
     detector_manifest_digest=(
-        "sha256:a5b089be6a18b220f56fd345450912a3aa7ee3e132ff519117b879cee8e72c41"
+        "sha256:5f3c4ad77d9878a4f6d88f9db20539d2ee05be885d36f0df0a00b2ce08ea94eb"
     ),
     qualification_id="qualification:complete-domain-exposure-denominator-v207-round2",
     qualification_digest=(
-        "sha256:caedfac75ba4a28ffa0ae81488d022b984bca782c9411fc43938b9ce812b4e0e"
+        "sha256:9a5dbdc6ae3a255c6541761fa276377b384aacbfb64ae5ffe538debe38d9d6e6"
     ),
     metric_set_id="qualification-metric-set:329715c3cf01ed499eb5",
-    metric_set_digest=("sha256:6be79a7a0f1260c984664909fe709f28b63c1163e6ef548e5faf3c03654ff98f"),
+    metric_set_digest=("sha256:d6c94f419625aecd52ae0c886ac0452037e7eae14bbcfa7cb57e741b7e1ad9ed"),
     threshold_policy_digest=(
         "sha256:fcf27c8d4d315fe836e0d35356ecadc496be4e53b607617d18c8c4bd670efc80"
     ),
@@ -186,24 +192,62 @@ def installed_pin_matches_live_identity(pin: GrantPin) -> bool:
         return False
     binding = bindings[0]
     return (
-        pin.binding_id,
-        pin.binding_digest,
-        pin.check_id,
-        pin.check_version,
-        pin.check_manifest_digest,
-        pin.detector_id,
-        pin.detector_version,
-        pin.detector_manifest_digest,
-    ) == (
-        binding.binding_id,
-        binding.binding_digest,
-        binding.check_id,
-        binding.check_version,
-        binding.check_manifest_digest,
-        binding.detector_id,
-        binding.detector_version,
-        binding.detector_manifest_digest,
-    ) and live_adapter_identity(binding) == pin.exam_adapter_identity
+        (
+            pin.binding_id,
+            pin.binding_digest,
+            pin.check_id,
+            pin.check_version,
+            pin.check_manifest_digest,
+            pin.detector_id,
+            pin.detector_version,
+            pin.detector_manifest_digest,
+        )
+        == (
+            binding.binding_id,
+            binding.binding_digest,
+            binding.check_id,
+            binding.check_version,
+            binding.check_manifest_digest,
+            binding.detector_id,
+            binding.detector_version,
+            binding.detector_manifest_digest,
+        )
+        and live_adapter_identity(binding) == pin.exam_adapter_identity
+        and _finding_profile_matches(pin)
+    )
+
+
+def _finding_profile_matches(pin: GrantPin) -> bool:
+    if pin.finding_profile_id is None and pin.finding_profile_digest is None:
+        return True
+    from sc_referee.detectors.method_conflict_finding import (
+        CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST,
+        CODE_CSV_DEPENDENCE_FINDING_PROFILE_ID,
+        REPORT_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST,
+        REPORT_CSV_DEPENDENCE_FINDING_PROFILE_ID,
+    )
+    from sc_referee.scientific_checks.profiles import scientific_check_release_registry
+
+    registered = [
+        binding
+        for binding in scientific_check_release_registry().method_conflict_bindings
+        if binding.binding_id == pin.binding_id
+    ]
+    if bool(
+        len(registered) == 1
+        and registered[0].check_id
+        == "check:authorized-independent-unit-entry-into-row-independent-procedure"
+        and registered[0].detector_id == "detector:bounded-code-csv-dependence-conflict"
+        and registered[0].check_version == pin.check_version
+    ):
+        return (
+            pin.finding_profile_id == CODE_CSV_DEPENDENCE_FINDING_PROFILE_ID
+            and pin.finding_profile_digest == CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST
+        )
+    return (
+        pin.finding_profile_id == REPORT_CSV_DEPENDENCE_FINDING_PROFILE_ID
+        and pin.finding_profile_digest == REPORT_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST
+    )
 
 
 def load_method_conflict_grant_evidence(
@@ -229,7 +273,7 @@ def load_method_conflict_grant_evidence(
 
 
 def _pin_payload(pin: GrantPin) -> dict[str, object]:
-    return {
+    value: dict[str, object] = {
         "absolute_missed_roots": pin.absolute_missed_roots,
         "binding_digest": pin.binding_digest,
         "binding_id": pin.binding_id,
@@ -256,3 +300,9 @@ def _pin_payload(pin: GrantPin) -> dict[str, object]:
         "required_roots": pin.required_roots,
         "threshold_policy_digest": pin.threshold_policy_digest,
     }
+    if pin.finding_profile_id is not None or pin.finding_profile_digest is not None:
+        if not pin.finding_profile_id or not pin.finding_profile_digest:
+            return {}
+        value["finding_profile_id"] = pin.finding_profile_id
+        value["finding_profile_digest"] = pin.finding_profile_digest
+    return value

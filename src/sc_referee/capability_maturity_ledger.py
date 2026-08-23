@@ -5,6 +5,10 @@ from pathlib import Path
 from typing import Any, Literal
 
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
+from sc_referee.detectors.method_conflict_grant_pins import (
+    GRANT_PINS,
+    installed_pin_matches_live_identity,
+)
 from sc_referee.qualification_grants import load_installed_qualification_grants
 from sc_referee.version import SCHEMA_VERSION
 
@@ -52,6 +56,8 @@ def build_capability_maturity_ledger(source_root: Path) -> dict[str, Any]:
     grant_qualification_by_binding = {
         binding_id: str(evidence.grant["qualification_id"])
         for binding_id, evidence in installed_grants.items()
+        if (pin := GRANT_PINS.get(binding_id)) is not None
+        and installed_pin_matches_live_identity(pin)
     }
     entries = [
         *_calculation_entries(sources["calculation_registry"]),
@@ -208,7 +214,7 @@ def _capability_profile_entries(
     detectors: list[dict[str, Any]],
     qualifications: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    detector_by_id = _index(detectors, "detector_id", "detector")
+    detector_by_id = _index_latest_detector_versions(detectors)
     qualification_by_id = _index(qualifications, "qualification_id", "qualification")
     entries: list[dict[str, Any]] = []
     for profile in profiles:
@@ -446,6 +452,37 @@ def _index(records: list[dict[str, Any]], key: str, label: str) -> dict[str, dic
             raise CapabilityMaturityLedgerError(f"invalid or duplicate {label} ID")
         result[value] = record
     return result
+
+
+def _index_latest_detector_versions(
+    records: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    result: dict[str, dict[str, Any]] = {}
+    seen: set[tuple[str, str]] = set()
+    for record in records:
+        detector_id = record.get("detector_id")
+        detector_version = record.get("detector_version")
+        if not isinstance(detector_id, str) or not detector_id:
+            raise CapabilityMaturityLedgerError("invalid detector ID")
+        if not isinstance(detector_version, str) or not detector_version:
+            raise CapabilityMaturityLedgerError("invalid detector version")
+        identity = (detector_id, detector_version)
+        if identity in seen:
+            raise CapabilityMaturityLedgerError("invalid or duplicate detector identity")
+        seen.add(identity)
+        current = result.get(detector_id)
+        if current is None or _semantic_version_key(detector_version) > _semantic_version_key(
+            str(current["detector_version"])
+        ):
+            result[detector_id] = record
+    return result
+
+
+def _semantic_version_key(value: str) -> tuple[int, int, int]:
+    parts = value.split(".")
+    if len(parts) != 3 or any(not part.isdigit() for part in parts):
+        raise CapabilityMaturityLedgerError(f"unsupported semantic version: {value!r}")
+    return (int(parts[0]), int(parts[1]), int(parts[2]))
 
 
 def _require_unique_ids(entries: list[dict[str, Any]]) -> None:

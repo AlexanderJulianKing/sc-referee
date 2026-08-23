@@ -1,0 +1,34 @@
+Author one complete, self-contained small analysis project for the scenario below. Deliver three
+things in a single project folder: one data file in comma-separated form, one analysis script named
+analysis.py sitting at the root of the project, and one short written report.
+
+Scenario. A limnology survey of nutrient loading and surrounding land use. Sixteen lakes in one region
+were surveyed: eight with predominantly agricultural catchments and eight with predominantly forested
+catchments. At each lake, water was collected at six sampling stations spread across the open-water
+zone, and total phosphorus was measured in every sample. The repeated rows are spatial subsamples
+taken from different stations within the same lake.
+
+Data. Build the comma-separated file yourself with realistic invented values. Total phosphorus should
+be in micrograms per litre, averaging about 34 in agricultural-catchment lakes and about 12 in
+forested-catchment lakes. Lakes should differ strongly from one another, roughly 9 micrograms per
+litre of spread between lakes, with about 4 of station-to-station variation inside a lake. Include the
+lake identifier, the catchment land-use category, the station number, the phosphorus value, the water
+depth at the station in metres, and the lake surface area in hectares between 5 and 300. Name the
+identifier column after the lake. Write column headers in lowercase words joined by underscores.
+
+Analysis. The primary inference must account for the fact that samples from the same lake are not
+independent of each other. Do this either with a dependence-aware or cluster-aware procedure from a
+statistical package that is not among the most commonly used ones, or by writing your own resampling
+procedure that resamples whole lakes rather than individual water samples and builds the null
+distribution or confidence interval from those lake-level resamples. Report the sample size as sixteen
+lakes contributing ninety-six samples. Separately, compute a plain two-sample comparison across all
+individual samples as an illustrative contrast only, print it distinctly from the primary result, and
+have the report state that this row-level comparison is not a valid basis for inference here because
+the samples within a lake are not independent.
+
+Report. Write a short report covering the survey design, the primary dependence-aware method and the
+reasoning behind it, the primary result, and the illustrative row-level contrast with an explicit
+statement that it is not the inferential result and should not be read as one. Open the report with a
+short data description listing every column and stating what one row represents.
+
+Write it as a careful aquatic ecologist would, in plain competent style.

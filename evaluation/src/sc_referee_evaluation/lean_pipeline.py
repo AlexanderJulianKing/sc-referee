@@ -62,6 +62,7 @@ from sc_referee.records.normalization import (
 )
 from sc_referee.records.observed import build_file_records
 from sc_referee.scientific_requirement_contract import (
+    LEGACY_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
     SCIENTIFIC_REQUIREMENT_PROFILE_ID,
     SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
 )
@@ -342,6 +343,7 @@ class EnvelopeConfig:
     frozen_workflow_procedure_by_role: dict[str, str] = field(default_factory=dict)
     authored_data_description_path: str | None = None
     authored_input_csv_path: str = "inputs/data.csv"
+    scientific_requirement_authority: dict[str, str] | None = None
     required_input_csv_header: tuple[str, ...] | None = None
     allow_unprescribed_input_csv_header: bool = False
     dependence_authority_from_description: bool = False
@@ -376,7 +378,10 @@ class EnvelopeConfig:
 
     @property
     def requires_dependence_authority(self) -> bool:
-        return self.check_id == DEPENDENCE_RECOGNITION_CHECK_ID
+        return (
+            self.check_id == DEPENDENCE_RECOGNITION_CHECK_ID
+            and self.scientific_requirement_authority is None
+        )
 
     def expected_verdict(self, role: str) -> str:
         table = (
@@ -4297,17 +4302,41 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                     "The method-contract and dependence-authority states do not align."
                 )
         if not contract_free:
+            semantic_role_authority = config.scientific_requirement_authority
+            if semantic_role_authority is None:
+                requirement_profile: dict[str, Any] = {
+                    "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
+                    "profile_version": LEGACY_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+                    "check_id": config.check_id,
+                    "candidate_id": candidate_id,
+                }
+            else:
+                if set(semantic_role_authority) != {
+                    "material_input_path",
+                    "column_name",
+                    "group_contrast_column",
+                } or any(
+                    not isinstance(value, str) or not value
+                    for value in semantic_role_authority.values()
+                ):
+                    raise LeanPipelineError(
+                        "The exact scientific-requirement authority fixture is malformed."
+                    )
+                requirement_profile = {
+                    "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
+                    "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+                    "check_id": config.check_id,
+                    "candidate_id": candidate_id,
+                    "semantic_role_authority": {
+                        "authorized_independent_unit_key": dict(semantic_role_authority)
+                    },
+                }
             contract = run_method_contract(
                 repository,
                 "task.md",
                 case_root / "contract",
                 schema_root,
-                profile={
-                    "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
-                    "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
-                    "check_id": config.check_id,
-                    "candidate_id": candidate_id,
-                },
+                profile=requirement_profile,
                 actor_id=f"scientist:lean-pipeline-{config.envelope_id}",
             )
             if contract["findings"]:

@@ -98,6 +98,13 @@ _CALLABLE_BY_ROLE = {
     "ambiguous": "scipy.stats.ttest_ind",
     "unsupported": "scipy.stats.ttest_rel",
 }
+
+
+@pytest.fixture(autouse=True)
+def _active_schema_for_new_pilot_records(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(lean_pipeline, "SCHEMA_RELATIVE", Path("reference/schemas-v0.20.0"))
+
+
 _PROCEDURE_ATTRIBUTE_BY_ROLE = {
     role: value.rsplit(".", maxsplit=1)[-1] for role, value in _CALLABLE_BY_ROLE.items()
 }
@@ -886,6 +893,7 @@ def test_dependence_dedicated_runtime_probe_passes_for_real() -> None:
     not _DEPENDENCE_SANDBOX_AVAILABLE,
     reason="dedicated SciPy 1.14.0 qualification interpreter is absent",
 )
+@pytest.mark.retired_report_lane
 def test_dependence_six_role_fixture_runs_real_pipeline_with_one_installed_finding(
     tmp_path: Path,
     project_root: Path,
@@ -1084,7 +1092,7 @@ def test_dependence_six_role_fixture_runs_real_pipeline_with_one_installed_findi
         replayed_by_role[role] = replay(
             lock_path,
             isolated_root / "fixture-replay" / slug,
-            isolated_root / "reference/schemas-v0.19.0",
+            isolated_root / "reference/schemas-v0.20.0",
         )
 
     detector_id = config.detector_id

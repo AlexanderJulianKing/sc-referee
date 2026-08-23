@@ -1,0 +1,34 @@
+Build one complete, self-contained analysis project for the study described below. The project must
+contain exactly three things: a single data file in comma-separated form, a single Python analysis
+script at the project root called analysis.py, and a short written report in Markdown at the project
+root. Nothing else. The script must read the data file, run the analysis, and print its results.
+
+Study. A dental school compared two toothpaste formulations for control of gum inflammation.
+Twenty-six adult patients with mild chronic gingivitis were randomised as whole people: thirteen to a
+stannous fluoride paste and thirteen to a conventional sodium fluoride paste. After twelve weeks,
+periodontal probing depth was measured on eight index teeth in each patient's mouth, so each patient
+contributes eight tooth-level measurements and the file holds 208 teeth in total. The outcome is
+probing depth in millimetres. Realistic values are about 2.4 to 4.2 millimetres with the conventional
+paste and about 2.0 to 3.6 with the stannous paste, with tooth-to-tooth variation inside a mouth and
+strong, persistent differences between patients driven by plaque control and smoking. Also record
+whether each index tooth bled on probing, as a yes or no.
+
+Data file. One line per index tooth. Columns, in this order and with these exact headers:
+patient_code, paste_arm, tooth_site, bleeding_on_probing, probing_depth_mm. Patient codes should look
+like real anonymised trial codes and tooth sites like real dental notation. Round depths to one
+decimal.
+
+Analysis. Teeth within one mouth are not independent, so the primary inference must respect the
+patient as the cluster. Use either a dependence-aware clustered-inference method from a statistics
+package that analysts reach for less often than the mainstream ones, or a resampling procedure you
+write yourself that resamples whole patients with replacement and rebuilds the group difference each
+time; state clearly which route you took and report the group difference with its
+uncertainty and a p-value from that route. Separately, show the naive tooth-level two-sample test on
+all 208 teeth purely as an illustrative contrast, and say explicitly in both the printed output and
+the report that this contrast is not a valid basis for inference because it treats teeth from the
+same patient as independent.
+
+Report. Keep it short. Open with a data description that lists every column and states plainly what
+one row of the file represents, making clear that a patient appears on eight rows. Then give the
+primary method and its result, the illustrative contrast with its explicit warning, the number of
+patients and teeth, and a brief clinical interpretation.

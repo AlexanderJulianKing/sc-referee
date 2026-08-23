@@ -114,7 +114,7 @@ def test_retained_codex_recovery_reviews_replay_under_unchanged_local_validator(
     expected_ledger_digest: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(stage1_recorder, "SCHEMA_RELATIVE", Path("reference/schemas-v0.19.0"))
+    monkeypatch.setattr(stage1_recorder, "SCHEMA_RELATIVE", Path("reference/schemas-v0.20.0"))
     root = project_root / REVIEW_RELATIVE
     incoming = _load(root / "incoming" / f"{participant_slug}.json")
     reviews = validate_stage1_call_capture(project_root, incoming)

@@ -48,7 +48,7 @@ ALTERNATIVE = (
     b"Path('results/report.md').write_text(report)\n"
 )
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SCHEMA_ROOT = PROJECT_ROOT / "reference" / "schemas-v0.19.0"
+SCHEMA_ROOT = PROJECT_ROOT / "reference" / "schemas-v0.20.0"
 STAGE2_EXAMPLE = SCHEMA_ROOT / "examples" / "agent-review.stage2.example.json"
 
 

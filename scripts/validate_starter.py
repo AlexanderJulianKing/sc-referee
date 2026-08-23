@@ -14,6 +14,11 @@ from sc_referee.capability_matrix import (  # noqa: E402
     generate_capability_matrix,
 )
 from sc_referee.controller import replay, run_demo  # noqa: E402
+from sc_referee.detectors.method_conflict_grant_pins import (  # noqa: E402
+    GRANT_PINS,
+    installed_pin_matches_live_identity,
+)
+from sc_referee.qualification_grants import load_installed_qualification_grants  # noqa: E402
 from sc_referee.records.schema_registry import LocalSchemaRegistry  # noqa: E402
 from sc_referee.storage.integrity import (  # noqa: E402
     verify_sqlite_index,
@@ -23,30 +28,22 @@ from sc_referee.storage.layout import AuditLayout  # noqa: E402
 
 
 def main() -> int:
-    schema_root = ROOT / "reference" / "schemas-v0.19.0"
+    schema_root = ROOT / "reference" / "schemas-v0.20.0"
     count = LocalSchemaRegistry(schema_root).validate_example_directory()
     capability_matrix = generate_capability_matrix(default_capability_manifest_root(), schema_root)
-    assert len(capability_matrix["entries"]) == 16
+    assert len(capability_matrix["entries"]) == 17
     assert capability_matrix["domain_wide_support_claim_allowed"] is False
     detector_entries = [
         detector for entry in capability_matrix["entries"] for detector in entry["detectors"]
     ]
     assert {item["detector_id"] for item in detector_entries} == {
         "detector:bounded-analysis-method-conflict",
+        "detector:bounded-code-csv-dependence-conflict",
         "detector:bounded-feature-identifier-identity",
         "detector:bounded-report-mean-direction",
         "detector:bounded-reported-method-contract-conflict",
     }
     expected_binding_grants = [
-        {
-            "binding_id": (
-                "method-conflict-binding:"
-                "authorized-independent-unit-entry-into-row-independent-procedure-v1"
-            ),
-            "check_id": ("check:authorized-independent-unit-entry-into-row-independent-procedure"),
-            "qualification_ref": "qualification:authorized-independent-unit-entry-v110-round2",
-            "strongest_output_type": "finding",
-        },
         {
             "binding_id": "method-conflict-binding:complete-domain-exposure-denominator-v1",
             "check_id": "check:complete-domain-exposure-denominator",
@@ -54,6 +51,24 @@ def main() -> int:
             "strongest_output_type": "finding",
         },
     ]
+    retained_grants = load_installed_qualification_grants()
+    dependence_binding_id = (
+        "method-conflict-binding:"
+        "authorized-independent-unit-entry-into-row-independent-procedure-v1"
+    )
+    dependence_grant = retained_grants[dependence_binding_id]
+    assert {
+        "binding_id": dependence_binding_id,
+        "check_id": dependence_grant.grant["check_id"],
+        "qualification_ref": dependence_grant.grant["qualification_id"],
+        "strongest_output_type": "finding",
+    } == {
+        "binding_id": dependence_binding_id,
+        "check_id": "check:authorized-independent-unit-entry-into-row-independent-procedure",
+        "qualification_ref": "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5",
+        "strongest_output_type": "finding",
+    }
+    assert installed_pin_matches_live_identity(GRANT_PINS[dependence_binding_id]) is True
     method_detector = next(
         item
         for item in detector_entries
@@ -67,6 +82,30 @@ def main() -> int:
         "review_basis": "not_qualified",
         "binding_grants": expected_binding_grants,
     }
+    code_detector = next(
+        item
+        for item in detector_entries
+        if item["detector_id"] == "detector:bounded-code-csv-dependence-conflict"
+    )
+    assert code_detector == {
+        "detector_id": "detector:bounded-code-csv-dependence-conflict",
+        "maturity": "experimental",
+        "qualification_ref": None,
+        "strongest_output_type": "disclosure",
+        "review_basis": "not_qualified",
+        "binding_grants": [
+            {
+                "binding_id": dependence_binding_id,
+                "check_id": (
+                    "check:authorized-independent-unit-entry-into-row-independent-procedure"
+                ),
+                "qualification_ref": (
+                    "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5"
+                ),
+                "strongest_output_type": "finding",
+            }
+        ],
+    }
     assert all(
         item
         == {
@@ -77,7 +116,7 @@ def main() -> int:
             "review_basis": "not_qualified",
         }
         for item in detector_entries
-        if item is not method_detector
+        if item is not method_detector and item is not code_detector
     )
     assert all(not entry["tested_versions"] for entry in capability_matrix["entries"])
     assert all(not entry["inferred_compatibility"] for entry in capability_matrix["entries"])
@@ -195,7 +234,7 @@ def main() -> int:
         assert digest_one == digest_two
     summary = {
         "public_examples_validated": count,
-        "public_schema_version": "0.19.0",
+        "public_schema_version": "0.20.0",
         "observed_plane_records": "public",
         "multidimensional_lineage_plane": "public",
         "walking_skeleton": "passed",
@@ -207,9 +246,9 @@ def main() -> int:
         "storage_integrity": "passed",
         "generated_capability_matrix": "passed_fail_closed_manifest_profile",
         "capability_matrix_entries": len(capability_matrix["entries"]),
-        "capability_matrix_detector_qualification": "experimental_unqualified_only",
+        "capability_matrix_detector_qualification": "two_exact_binding_grants",
         "capability_matrix_tested_versions": "none_declared",
-        "public_detector_qualification": "not_claimed",
+        "public_detector_qualification": "binding_scoped_only",
     }
     (ROOT / "VALIDATION.txt").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, indent=2))

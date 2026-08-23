@@ -91,6 +91,7 @@ def _spec_by_block_and_role(assembled: dict[str, Any], block_id: str, role: str)
     )
 
 
+@pytest.mark.retired_report_lane
 def test_dependence_precase_reads_complete_live_registry_binding(project_root: Path) -> None:
     assembled = assemble_dependence_qualification_inputs(project_root)
     precase = assembled["FREEZE_MANIFEST.json"]
@@ -126,6 +127,7 @@ def test_dependence_precase_reads_complete_live_registry_binding(project_root: P
     assert precase["detector"]["implementation_digest"] == sha256_digest(detector_path.read_bytes())
 
 
+@pytest.mark.retired_report_lane
 def test_dependence_fourteen_briefs_replay_and_pass_literal_leakage_screen(
     project_root: Path,
 ) -> None:
@@ -180,6 +182,7 @@ def _assert_renamed_shape(
         assert len(set(values)) == 3
 
 
+@pytest.mark.retired_report_lane
 def test_renamed_implementation_drafts_are_distinct_across_blocks(
     project_root: Path,
 ) -> None:
@@ -293,6 +296,7 @@ def _namespace(value: str) -> str:
     return value.removesuffix(_numeric_suffix(value))
 
 
+@pytest.mark.retired_report_lane
 def test_all_heldout_briefs_freeze_disjoint_binary_fraction_literals(
     project_root: Path,
 ) -> None:
@@ -387,6 +391,7 @@ def _honest_author_materials(spec: dict[str, Any]) -> tuple[bytes, str, bytes, s
     not DEPENDENCE_SANDBOX_PYTHON.is_file(),
     reason="dedicated SciPy 1.14.0 qualification interpreter is absent",
 )
+@pytest.mark.retired_report_lane
 def test_heldout_brief_honest_author_path_is_byte_exact(
     project_root: Path, tmp_path: Path, role: str
 ) -> None:
@@ -561,6 +566,7 @@ def _heldout_recognition_context(
 
 
 @pytest.mark.parametrize("role", ROLES)
+@pytest.mark.retired_report_lane
 def test_heldout_brief_real_kernel_outcome_matches_cell(project_root: Path, role: str) -> None:
     assembled = assemble_dependence_qualification_inputs(project_root)
     spec = _spec_by_block_and_role(assembled, HELDOUT_BLOCK_ID, role)
@@ -594,6 +600,7 @@ def test_heldout_brief_real_kernel_outcome_matches_cell(project_root: Path, role
         assert body["repeated_independent_unit_ids"] == []
 
 
+@pytest.mark.retired_report_lane
 def test_two_block_allocator_accepts_complete_fourteen_case_matrix(
     project_root: Path, tmp_path: Path
 ) -> None:
@@ -643,6 +650,7 @@ def test_two_block_allocator_accepts_complete_fourteen_case_matrix(
         assert json.loads(path.read_text(encoding="utf-8")) == value
 
 
+@pytest.mark.retired_report_lane
 def test_freeze_uses_sealed_author_slots_not_future_runtime_actors(
     project_root: Path,
 ) -> None:
@@ -724,6 +732,7 @@ def test_dependence_driver_cli_defaults_heldout_and_accepts_threshold(
     assert selections == ["heldout", "threshold"]
 
 
+@pytest.mark.retired_report_lane
 def test_dependence_threshold_refuses_nested_protocol_digest_drift(
     project_root: Path, tmp_path: Path
 ) -> None:
@@ -742,6 +751,7 @@ def test_dependence_threshold_refuses_nested_protocol_digest_drift(
         load_sealed_block(tmp_path, "threshold")
 
 
+@pytest.mark.retired_report_lane
 def test_dependence_threshold_refuses_lane_freeze_digest_drift(
     project_root: Path, tmp_path: Path
 ) -> None:
@@ -757,6 +767,7 @@ def test_dependence_threshold_refuses_lane_freeze_digest_drift(
         load_sealed_block(tmp_path, "threshold")
 
 
+@pytest.mark.retired_report_lane
 def test_dependence_threshold_selection_cannot_bypass_heldout_seal_refusal(
     project_root: Path, tmp_path: Path
 ) -> None:
@@ -775,6 +786,7 @@ def test_dependence_threshold_selection_cannot_bypass_heldout_seal_refusal(
         load_sealed_block(tmp_path, "threshold")
 
 
+@pytest.mark.retired_report_lane
 def test_dependence_heldout_config_carries_every_envelope_field(
     project_root: Path, tmp_path: Path
 ) -> None:
@@ -827,6 +839,7 @@ def test_dependence_heldout_config_carries_every_envelope_field(
     assert set(config.authors).isdisjoint({THRESHOLD_AUTHOR_OPUS_21, THRESHOLD_AUTHOR_OPUS_22})
 
 
+@pytest.mark.retired_report_lane
 def test_dependence_threshold_config_selects_rehearsal_and_carries_every_envelope_field(
     project_root: Path, tmp_path: Path
 ) -> None:
@@ -869,6 +882,7 @@ def test_dependence_threshold_config_selects_rehearsal_and_carries_every_envelop
     assert rehearsal_seats.isdisjoint(exam_seats)
 
 
+@pytest.mark.retired_report_lane
 def test_dependence_heldout_loader_refuses_six_cases(project_root: Path, tmp_path: Path) -> None:
     _write_future_seal(project_root, tmp_path)
     path = tmp_path / LANE_RELATIVE / "LANE_FREEZE.json"

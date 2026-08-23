@@ -27,6 +27,7 @@ from sc_referee.detectors.method_conflict_grant_pins import GRANT_PINS, GrantPin
 from sc_referee.method_contract_run import run_method_contract
 from sc_referee.reporting.policy import validate_report_contract
 from sc_referee.scientific_requirement_contract import (
+    LEGACY_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
     SCIENTIFIC_REQUIREMENT_PROFILE_ID,
     SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
 )
@@ -231,6 +232,7 @@ def _run_complete_case(
             "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
             "check_id": COMPLETE_CHECK_ID,
             "candidate_id": COMPLETE_CANDIDATE_ID,
+            "semantic_role_authority": {},
         },
         actor_id="scientist:production-demonstration-complete-owner",
     )
@@ -296,7 +298,7 @@ def _run_dependence_case(
         schema_root,
         profile={
             "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
-            "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+            "profile_version": LEGACY_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
             "check_id": DEPENDENCE_CHECK_ID,
             "candidate_id": DEPENDENCE_CANDIDATE_ID,
         },
@@ -509,7 +511,14 @@ def _verify_demonstration_entry(root: Path, entry: object, schema_root: Path) ->
                 )
 
 
-def _verify_case(root: Path, case: object, binding_id: object, *, expected: int) -> None:
+def _verify_case(
+    root: Path,
+    case: object,
+    binding_id: object,
+    *,
+    expected: int,
+    validate_live_report_policy: bool = True,
+) -> None:
     if not isinstance(case, dict):
         raise ProductionFindingDemonstrationError("demonstration case is malformed")
     audit_path = root / str(case.get("audit_bundle"))
@@ -523,8 +532,9 @@ def _verify_case(root: Path, case: object, binding_id: object, *, expected: int)
         raise ProductionFindingDemonstrationError("demonstration case digest drifted")
     bundle = _load_object(audit_path)
     replayed = _load_object(replay_path)
-    validate_report_contract(bundle)
-    validate_report_contract(replayed)
+    if validate_live_report_policy:
+        validate_report_contract(bundle)
+        validate_report_contract(replayed)
     if (
         len(bundle["findings"]) != expected
         or bundle["findings"] != replayed["findings"]

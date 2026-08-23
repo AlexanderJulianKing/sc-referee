@@ -145,11 +145,17 @@ def load_installed_qualification_grants(
         "absolute_missed_roots",
         "required_roots",
     }
+    finding_profile_keys = {"finding_profile_id", "finding_profile_digest"}
     result: dict[str, InstalledQualificationGrantEvidence] = {}
     for grant in grants:
         if not isinstance(grant, dict):
             raise QualificationGrantResourceError("grant entry must be an object")
-        _require_exact_keys(grant, expected_grant_keys, "grant entry")
+        observed_keys = set(grant)
+        if observed_keys not in {
+            frozenset(expected_grant_keys),
+            frozenset(expected_grant_keys | finding_profile_keys),
+        }:
+            raise QualificationGrantResourceError("grant entry fields do not match the schema")
         binding_id = grant.get("binding_id")
         qualification_id = grant.get("qualification_id")
         metric_set_id = grant.get("metric_set_id")
@@ -248,6 +254,18 @@ def _validate_grant_evidence(
         _require_exact_keys(adapter, adapter_keys, "exam adapter pin")
         if not all(isinstance(value, str) and value for value in adapter.values()):
             raise QualificationGrantResourceError("exam adapter pin fields must be strings")
+    finding_profile_id = grant.get("finding_profile_id")
+    finding_profile_digest = grant.get("finding_profile_digest")
+    if (finding_profile_id is None) != (finding_profile_digest is None) or (
+        finding_profile_id is not None
+        and (
+            not isinstance(finding_profile_id, str)
+            or not finding_profile_id
+            or not isinstance(finding_profile_digest, str)
+            or not finding_profile_digest.startswith("sha256:")
+        )
+    ):
+        raise QualificationGrantResourceError("finding-profile pin fields are incomplete")
 
 
 def _indexed_records(records: object, key: str, label: str) -> dict[str, dict[str, Any]]:

@@ -27,7 +27,7 @@ from scripts.record_first_direct_three_case_stage1_semantic_recovery_clean impor
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SCHEMA_RELATIVE = Path("reference/schemas-v0.19.0")
+SCHEMA_RELATIVE = Path("reference/schemas-v0.20.0")
 
 
 @pytest.fixture(autouse=True)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, cast
 
@@ -13,6 +13,9 @@ from sc_referee.capability_matrix import (
 from sc_referee.core.ids import semantic_digest
 from sc_referee.detectors.bounded_analysis_method_conflict import (
     BoundedAnalysisMethodConflictDetector,
+)
+from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_1 import (
+    BoundedCodeCsvDependenceConflictV21Detector,
 )
 from sc_referee.scientific_checks.core import (
     EvidencePlane,
@@ -44,15 +47,19 @@ def validate_registered_method_conflict_manifests(
     bindings_by_detector = _group_bindings(registry.method_conflict_bindings)
     manifests: list[dict[str, Any]] = []
     for detector_id in sorted(bindings_by_detector):
-        if detector_id != BoundedAnalysisMethodConflictDetector.detector_id:
-            raise MethodConflictRegistryError(
-                f"registered method-conflict detector family is not installed: {detector_id}"
-            )
+        detector_class = _detector_class(detector_id)
         manifest = load_capability_detector_manifest(
             default_capability_manifest_root(), schema_root, detector_id
         )
         _validate_manifest_binding(manifest, bindings_by_detector[detector_id])
-        BoundedAnalysisMethodConflictDetector(manifest, bindings_by_detector[detector_id])
+        detector_class(
+            manifest,
+            _validation_bindings(
+                manifest,
+                bindings_by_detector[detector_id],
+                registry.method_conflict_bindings,
+            ),
+        )
         manifests.append(manifest)
     return tuple(manifests)
 
@@ -63,14 +70,18 @@ def evaluate_registered_method_conflicts(
     """Dispatch all locked method-conflict bindings without detector-specific controller code."""
 
     bindings = locked_method_conflict_bindings(locked_case)
-    bindings_by_detector = _group_bindings(bindings)
+    target_check_ids = {
+        str(extensions.get("x-scientific-check-id", ""))
+        for question in _mapping_list(locked_case.get("material_questions"))
+        if question.get("status") == "answered"
+        and isinstance((extensions := question.get("extensions")), Mapping)
+    }
+    target_bindings = tuple(binding for binding in bindings if binding.check_id in target_check_ids)
+    bindings_by_detector = _group_bindings(target_bindings)
     manifests = _mapping_list(locked_case.get("detector_manifests"))
     evaluations: list[MethodConflictEvaluation] = []
     for detector_id in sorted(bindings_by_detector):
-        if detector_id != BoundedAnalysisMethodConflictDetector.detector_id:
-            raise MethodConflictRegistryError(
-                f"locked method-conflict detector family is not installed: {detector_id}"
-            )
+        detector_class = _detector_class(detector_id)
         matches = [item for item in manifests if item.get("detector_id") == detector_id]
         if len(matches) != 1:
             raise MethodConflictRegistryError(
@@ -78,8 +89,12 @@ def evaluate_registered_method_conflicts(
             )
         detector_bindings = bindings_by_detector[detector_id]
         _validate_manifest_binding(matches[0], detector_bindings)
-        detector = BoundedAnalysisMethodConflictDetector(matches[0], detector_bindings)
-        check_ids = set(detector.supported_check_ids)
+        detector = detector_class(
+            matches[0],
+            _validation_bindings(matches[0], detector_bindings, bindings),
+        )
+        check_ids = {binding.check_id for binding in detector_bindings}
+        actual_by_check = {binding.check_id: binding for binding in detector_bindings}
         targets = sorted(
             (
                 question
@@ -96,7 +111,7 @@ def evaluate_registered_method_conflicts(
                 if isinstance(extensions, Mapping)
                 else ""
             )
-            binding = detector.bindings_by_check.get(check_id)
+            binding = actual_by_check.get(check_id)
             if binding is None:
                 raise MethodConflictRegistryError(
                     f"locked method-conflict target has no exact binding: {check_id}"
@@ -118,6 +133,60 @@ def evaluate_registered_method_conflicts(
                 )
             )
     return evaluations
+
+
+def _detector_class(
+    detector_id: str,
+) -> type[BoundedAnalysisMethodConflictDetector]:
+    classes: tuple[type[BoundedAnalysisMethodConflictDetector], ...] = (
+        BoundedAnalysisMethodConflictDetector,
+        BoundedCodeCsvDependenceConflictV21Detector,
+    )
+    matches = [item for item in classes if item.detector_id == detector_id]
+    if len(matches) != 1:
+        raise MethodConflictRegistryError(
+            f"registered method-conflict detector family is not installed: {detector_id}"
+        )
+    return matches[0]
+
+
+def _validation_bindings(
+    manifest: Mapping[str, Any],
+    actual_bindings: tuple[MethodConflictBinding, ...],
+    all_bindings: Sequence[MethodConflictBinding],
+) -> tuple[MethodConflictBinding, ...]:
+    """Complete a frozen manifest allowlist without granting evaluation authority.
+
+    The accepted generic detector manifest remains byte-identical and still declares the
+    dependence check.  Its live dependence binding now belongs exclusively to the code-lane
+    detector.  A detector-construction-only projection preserves validation of the frozen
+    manifest; target scheduling remains restricted to ``actual_bindings`` above.
+    """
+
+    declared = manifest.get("extensions", {}).get("x-scientific-check-ids")
+    if not isinstance(declared, list) or not all(isinstance(item, str) for item in declared):
+        raise MethodConflictRegistryError("detector scientific-check allowlist is malformed")
+    by_check = {binding.check_id: binding for binding in actual_bindings}
+    source_by_check = {binding.check_id: binding for binding in all_bindings}
+    manifest_digest = semantic_digest(manifest)
+    for check_id in declared:
+        if check_id in by_check:
+            continue
+        source = source_by_check.get(check_id)
+        if source is None:
+            raise MethodConflictRegistryError(
+                f"detector allowlist has no registered check binding: {check_id}"
+            )
+        by_check[check_id] = replace(
+            source,
+            detector_id=str(manifest["detector_id"]),
+            detector_version=str(manifest["detector_version"]),
+            detector_manifest_digest=manifest_digest,
+            production_finding_permitted=False,
+        )
+    if set(by_check) != set(declared):
+        raise MethodConflictRegistryError("detector bindings exceed its scientific-check allowlist")
+    return tuple(sorted(by_check.values(), key=lambda item: item.binding_id))
 
 
 def locked_method_conflict_bindings(

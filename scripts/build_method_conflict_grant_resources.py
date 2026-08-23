@@ -7,21 +7,21 @@ from pathlib import Path
 from typing import Any
 
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
-from sc_referee.detectors.method_conflict_grant_pins import live_adapter_identity
+from sc_referee.detectors.method_conflict_grant_pins import GRANT_PINS
 from sc_referee.records.schema_registry import LocalSchemaRegistry
-from sc_referee.scientific_checks.profiles import scientific_check_release_registry
+from sc_referee.version import SCHEMA_VERSION
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "src/sc_referee/resources/qualification-grants-v1"
 QUALIFICATIONS = (
     ROOT / "src/sc_referee/resources/capability-manifests-v1/qualification-manifests.json"
 )
-SCHEMA_ROOT = ROOT / "reference/schemas-v0.19.0"
+SCHEMA_ROOT = ROOT / f"reference/schemas-v{SCHEMA_VERSION}"
 METRIC_PATHS = (
     ROOT
-    / "evaluation/qualification/authorized-independent-unit-entry-into-row-independent-procedure-v1.1.0-direct-lane/promotion-round2/QUALIFICATION_METRIC_SET.json",
+    / "evaluation/qualification/authorized-independent-unit-entry-into-row-independent-procedure-v2.1.0-code-csv-lane/envelope-5-promotion-v020/QUALIFICATION_METRIC_SET.json",
     ROOT
-    / "evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2/promotion-round2/QUALIFICATION_METRIC_SET.json",
+    / "evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2/promotion-round2-v020/QUALIFICATION_METRIC_SET.json",
 )
 
 
@@ -53,54 +53,41 @@ def build_grant_resources(output: Path) -> tuple[dict[str, Any], dict[str, Any]]
         raise RuntimeError("qualification and metric-set binding domains must match exactly")
 
     schema_registry = LocalSchemaRegistry(SCHEMA_ROOT)
-    registry = scientific_check_release_registry()
-    binding_by_id = {item.binding_id: item for item in registry.method_conflict_bindings}
     grants: list[dict[str, Any]] = []
     for binding_id in sorted(qualification_by_binding):
         qualification = qualification_by_binding[binding_id]
         metric_set = metric_by_binding[binding_id]
-        binding = binding_by_id.get(binding_id)
-        identities = live_adapter_identity(binding) if binding is not None else None
+        pin = GRANT_PINS.get(binding_id)
         counts = metric_set.get("counts")
         policy = metric_set.get("numeric_threshold_policy")
-        if (
-            binding is None
-            or identities is None
-            or not isinstance(counts, dict)
-            or not isinstance(policy, dict)
-        ):
-            raise RuntimeError("grant evidence cannot be bound to the live registry")
+        if pin is None or not isinstance(counts, dict) or not isinstance(policy, dict):
+            raise RuntimeError("grant evidence cannot be bound to the installed pin table")
         schema_registry.validate(qualification)
         schema_registry.validate(metric_set)
+        scope = qualification.get("binding_scope")
         if (
             qualification.get("binding_scope") != metric_set.get("binding_scope")
-            or qualification["binding_scope"]["production_binding_digest"] != binding.binding_digest
-            or qualification["binding_scope"]["detector_manifest_digest"]
-            != binding.detector_manifest_digest
-            or counts.get("missed_roots") != 0
-            or counts.get("adjudicated_roots") != 2
+            or not isinstance(scope, dict)
+            or scope.get("production_binding_digest") != pin.binding_digest
+            or scope.get("check_id") != pin.check_id
+            or scope.get("check_version") != pin.check_version
+            or scope.get("check_manifest_digest") != pin.check_manifest_digest
+            or scope.get("detector_id") != pin.detector_id
+            or scope.get("detector_version") != pin.detector_version
+            or scope.get("detector_manifest_digest") != pin.detector_manifest_digest
+            or counts.get("missed_roots") != pin.absolute_missed_roots
+            or counts.get("adjudicated_roots") != pin.required_roots
+            or semantic_digest(qualification) != pin.qualification_digest
+            or semantic_digest(metric_set) != pin.metric_set_digest
+            or policy.get("policy_semantic_digest") != pin.threshold_policy_digest
         ):
             raise RuntimeError("grant evidence does not satisfy the installed absolute gates")
-        grants.append(
-            {
-                "absolute_missed_roots": 0,
-                "binding_digest": binding.binding_digest,
-                "binding_id": binding.binding_id,
-                "check_id": binding.check_id,
-                "check_manifest_digest": binding.check_manifest_digest,
-                "check_version": binding.check_version,
-                "detector_id": binding.detector_id,
-                "detector_manifest_digest": binding.detector_manifest_digest,
-                "detector_version": binding.detector_version,
-                "exam_adapter_identity": [asdict(item) for item in identities],
-                "metric_set_digest": semantic_digest(metric_set),
-                "metric_set_id": metric_set["metric_set_id"],
-                "qualification_digest": semantic_digest(qualification),
-                "qualification_id": qualification["qualification_id"],
-                "required_roots": 2,
-                "threshold_policy_digest": policy["policy_semantic_digest"],
-            }
-        )
+        grant = asdict(pin)
+        grant["exam_adapter_identity"] = [asdict(item) for item in pin.exam_adapter_identity]
+        if pin.finding_profile_id is None:
+            grant.pop("finding_profile_id")
+            grant.pop("finding_profile_digest")
+        grants.append(grant)
 
     metric_collection = {
         "manifest_kind": "qualification_metric_set_collection",
@@ -117,7 +104,7 @@ def build_grant_resources(output: Path) -> tuple[dict[str, Any], dict[str, Any]]
             "path": "metric-sets.json",
         },
         "qualification_manifest_digest": sha256_digest(QUALIFICATIONS.read_bytes()),
-        "schema_version": "0.19.0",
+        "schema_version": SCHEMA_VERSION,
     }
     output.mkdir(parents=True, exist_ok=True)
     (output / "metric-sets.json").write_bytes(metric_payload)

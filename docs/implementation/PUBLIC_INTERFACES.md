@@ -234,12 +234,22 @@ profile it freezes an analysis-level draft ScientificContract and one bounded op
 MaterialQuestion.
 
 An explicit `--profile <json> --actor-id <scientist-id>` accepts either the complete closed
-`expected_count_background_v1` grammar or the four-key `scientific_check_requirement_v1` grammar.
-The latter resolves one exact `check_id` and `candidate_id` through the installed digest-bound
-registry and freezes the complete check manifest, candidate operand, comparison form, and semantic
-dimension. Human declarations remain Finding-ineligible; separate controller derivations require
-exact Answer digest, human authority, task identity, scope, profile shape, and registry identity.
-The contract remains publicly `draft` because unrelated dimensions stay unknown. Replay is
+`expected_count_background_v1` grammar or a version-dispatched `scientific_check_requirement_v1`
+grammar. Newly created scientific-check profiles are exact version `1.1.0` records with the existing
+four identity fields plus `semantic_role_authority`; retained `1.0.0` four-key locks remain replayable
+under their old meaning. For every check except the authorized-independent-unit dependence check,
+`semantic_role_authority` must be exactly `{}`. For that one check/candidate it contains exactly one
+`authorized_independent_unit_key` object naming a normalized repository-relative CSV path, the exact
+authorized unit header, and the exact human-authorized group/contrast header. No value is inferred from
+project prose, headers, report labels, or code.
+
+The `1.1.0` dependence contract forces that CSV into the immutable full-digest material set and binds
+the exact path, two headers, and digest into its existing Answer/assertion authority chain. The latter
+otherwise resolves one exact `check_id` and `candidate_id` through the installed digest-bound registry
+and freezes the complete check manifest, candidate operand, comparison form, and semantic dimension.
+Human declarations remain Finding-ineligible; separate controller derivations require exact Answer
+digest, human authority, task and selected-material identity, scope, profile shape, and registry
+identity. The contract remains publicly `draft` because unrelated dimensions stay unknown. Replay is
 model-free and claimless.
 
 A later `sc-referee audit ... --method-contract-lock <lock>` accepts only a digest-valid resolved
@@ -249,6 +259,23 @@ analysis-scoped question from a `prior_scientist_record`; a missing target remai
 `not_applicable`. The parent contract does not establish execution, numeric correctness, or
 general method adequacy. The separate `$method-contract` skill drives this lifecycle;
 `$scientific-audit` remains post-hoc.
+
+For the code/CSV dependence representation, the normal audit surface is
+`--material-input <authorized.csv> --method-contract-lock <lock>`; no report is required or inspected.
+The active adapter binds a complete authority-selected CSV and one frozen authorized-unit declaration
+to a closed AST dataflow rooted at one root `analysis.py`, including only the accepted same-module
+helper grammar with an inline-depth ceiling of two. It is dispatched only through
+`detector:bounded-code-csv-dependence-conflict@2.1.0`. The 2.1 grammar uses directional,
+member-sensitive reachability to admit only code that does not define or write a protected
+reader/operand/result path, under a closed read-only call/property list. The raw reader, group
+selections, registered test, p-result sink, aggregation/dependence guards, and no-prose rule remain
+mandatory. The 2.1 delta admits non-evaluated helper annotations, alpha-renamed closed-constant
+parameter names, order-independent output-only descriptive aggregation, and the closed descriptive
+methods `reindex`, `unstack`, and `to_numpy`; none may create or alter an operand path. The prior
+1.0.0, 1.1.0, 1.2.0, 1.3.0, and 2.0.0 detectors are retained byte-addressed history, and the report/CSV
+adapter is withdrawn history. None is Finding-eligible. Before a future accepted blind qualification
+and matching installed pin,
+an evaluation candidate cannot become a Finding.
 
 ## Exact selected-output writer question scope
 

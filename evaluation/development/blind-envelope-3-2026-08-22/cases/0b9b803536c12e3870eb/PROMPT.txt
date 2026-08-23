@@ -1,0 +1,32 @@
+Author one complete, self-contained small analysis project for the scenario below. Deliver three
+things in a single project folder: one data file in comma-separated form, one analysis script named
+analysis.py sitting at the root of the project, and one short written report.
+
+Scenario. An exercise-physiology study of two strength training programmes. Twenty-six healthy adult
+volunteers took part: thirteen followed a twice-weekly heavy resistance programme and thirteen a
+three-times-weekly moderate load programme. After eight weeks each volunteer performed four maximal
+handgrip trials in one testing session, separated by short rests, and the peak force of every trial was
+recorded. The repeated rows are the four trials completed by the same person in one session.
+
+Data. Build the comma-separated file yourself with realistic invented values. Peak grip force should
+be in kilograms, averaging about 44.5 for the heavy programme and about 41.0 for the moderate
+programme. People should differ far more than their own trials do: allow about 7 kilograms of spread
+between volunteers and about 1.8 kilograms among the four trials of one volunteer, with a small
+downward drift across trials from fatigue. Include the volunteer identifier, the programme, the trial
+number, the peak force, the volunteer's sex, and body mass in kilograms. Name the identifier column
+after the volunteer. Write column headers in lowercase words joined by underscores.
+
+Analysis. The script must read the data file, then reduce it so that each volunteer contributes one
+value, using the average of that volunteer's four trials, and compare the two programmes with an
+independent two-sample comparison on those per-volunteer values. The sample size reported must be the
+number of volunteers in each group, not the number of trials. Also report per-programme means and
+spreads computed from the per-volunteer values, and print the test result.
+
+Report. Write a short report covering the training programmes, the testing session, the methods
+including the step that reduces each volunteer to a single value, the results with sample size and
+p-value, and a conclusion about which programme produced greater grip strength. Open the report with a
+short data description listing every column in the data file and stating what one row of that file
+represents, making clear that the file holds several rows per volunteer while the comparison uses one
+value per volunteer.
+
+Write it as a careful exercise scientist would, in plain competent style.

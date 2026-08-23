@@ -38,7 +38,7 @@
     <h3>{{ item.title }}</h3>
     <p>{{ item.summary }}</p>
     <p><strong>Severity:</strong> {{ item.severity.level }} — {{ item.severity.rationale }}</p>
-    <p><strong>Publication materiality:</strong> {{ item.publication_materiality.level }} — {{ item.publication_materiality.rationale }}</p>
+  <p><strong>Publication materiality:</strong> {% if item.publication_materiality.state == 'assessed' %}{{ item.publication_materiality.level }}{% else %}unassessed{% endif %} — {{ item.publication_materiality.rationale }}</p>
     <p><strong>Detector maturity:</strong> {{ item.admission.detector_maturity|replace('_', ' ') }}{% if item.extensions is defined and item.extensions['x-fixture-only-test-double'] is defined and item.extensions['x-fixture-only-test-double'] %} (synthetic fixture simulation; no public qualification){% endif %}</p>
     <p><strong>Next action:</strong> {{ item.next_action }}</p>
     <details><summary>Admission checks and explicit non-inferences</summary>

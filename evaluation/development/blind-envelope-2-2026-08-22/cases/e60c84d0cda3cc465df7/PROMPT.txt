@@ -1,0 +1,58 @@
+Author one complete, self-contained small analysis project for the scenario below. The project must
+contain exactly three deliverables: one data file in CSV format, one Python analysis script named
+analysis.py located at the root of the project, and one short written report. Nothing else is needed.
+
+Scenario
+
+A behavioural ecology study asks whether chronic sublethal exposure to a common fungicide reduces
+the size of the leaf fragments carried by leaf-cutter ant foragers. The whole ant colony is the
+experimental unit. Each queenright colony was maintained in its own foraging arena and the fungicide
+was delivered through that colony's forage supply, so every worker in a colony shares the same
+exposure, the same queen, and the same fungus garden. There are 16 colonies: 8 exposed and 8
+unexposed controls. From each colony, 10 returning foragers were intercepted on the trail and the
+leaf fragment each was carrying was weighed, giving 10 weighed foragers per colony and 160 weighed
+foragers overall.
+
+The outcome is the fresh mass of the carried leaf fragment in milligrams. Realistic values: foragers
+from control colonies carry fragments of about 22.5 mg and foragers from exposed colonies about
+18.4 mg. Colonies differ markedly from one another, with a between-colony standard deviation of
+roughly 2.2 mg, while foragers within the same colony vary by roughly 4.0 mg around their colony's
+level. Generate the CSV values so this structure is visible in the numbers, and round masses to one
+decimal place. Fragment masses must stay positive.
+
+Data file
+
+One row per intercepted forager, so a colony appears on ten rows. Include a column identifying the
+colony, named colony_id, with labels such as C01 through C16. Include a column for the exposure
+group, a column for the forager's identifier within its colony, a column for the head width of the
+worker in millimetres, a column for the hour of interception, and a column for the leaf fragment
+fresh mass in milligrams. Choose clear, lowercase, underscore-separated names for the remaining
+columns and use them consistently across the CSV, the script, and the report.
+
+Analysis
+
+Read the CSV. The primary inference must respect the fact that foragers are nested within colonies.
+Fit a model of fragment mass on exposure group that includes a colony-level random effect, so that
+variation between colonies is estimated separately from variation between foragers within a colony,
+and report the estimated exposure effect, its standard error, its confidence interval, and its
+p-value from that model, along with the estimated between-colony and within-colony variance
+components. Treat this model as the inferential result of the project.
+
+Then, and only as a secondary sensitivity check, also run a plain independent two-sample comparison
+of the 160 individual forager records that ignores colony membership, and print its result. The
+script's printed output must label the mixed model as the primary analysis and label the row-level
+comparison as a secondary sensitivity analysis that ignores colony structure and is not the basis
+for any conclusion. Print both sets of numbers when the script is run.
+
+Report
+
+Write the report as a behavioural ecologist. Open with a paragraph on why forager load size is a
+sensitive indicator of colony condition. Include a short data description section that lists every
+column in the CSV and states plainly what a single row represents, noting that each colony
+contributes ten rows. State explicitly that the colony is the unit that received the treatment and
+that the primary analysis therefore models colony as a random effect. Report the primary model
+results first and base every conclusion on them. Present the row-level comparison afterwards, in a
+clearly subordinate subsection, described as a sensitivity check that ignores the nesting and
+overstates the number of independent observations, and say plainly that it is not the inferential
+result. Close with biological interpretation and the usual practical caveats such as the single
+fungicide, the laboratory arenas, and the single sampling season.

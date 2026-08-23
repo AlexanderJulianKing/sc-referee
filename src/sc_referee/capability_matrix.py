@@ -135,12 +135,14 @@ def generate_capability_matrix(
         "parser_id",
         registry,
     )
-    detectors = _public_records(
+    detector_history = _public_versioned_records(
         collection_values["detector_manifests"]["records"],
         "detector_manifest",
         "detector_id",
+        "detector_version",
         registry,
     )
+    detectors = _latest_version_records(detector_history, "detector_id", "detector_version")
     qualifications = _public_records(
         collection_values["qualification_manifests"]["records"],
         "detector_qualification",
@@ -264,11 +266,16 @@ def load_capability_detector_manifest(
         for record in collection["records"]
         if isinstance(record, dict) and record.get("detector_id") == detector_id
     ]
-    if len(matches) != 1:
+    if not matches:
         raise CapabilityMatrixError(
-            f"capability source set does not contain exactly one detector {detector_id!r}"
+            f"capability source set does not contain detector {detector_id!r}"
         )
-    return deepcopy(matches[0])
+    latest = _latest_version_records(matches, "detector_id", "detector_version")
+    if len(latest) != 1:
+        raise CapabilityMatrixError(
+            f"capability source set does not resolve one live detector {detector_id!r}"
+        )
+    return deepcopy(latest[0])
 
 
 def validate_capability_matrix(
@@ -522,10 +529,15 @@ def _binding_grant_entries(
             if isinstance(binding_id, str)
             else None
         )
+        if pin is not None and not method_conflict_grant_pins.installed_pin_matches_live_identity(
+            pin
+        ):
+            # Retained qualification history is not an installed live grant after a
+            # check/adapter version change.  It contributes no capability authority.
+            continue
         evidence = (
             method_conflict_grant_pins.load_method_conflict_grant_evidence(pin)
             if pin is not None
-            and method_conflict_grant_pins.installed_pin_matches_live_identity(pin)
             else None
         )
         if (
@@ -616,6 +628,61 @@ def _public_records(
             raise CapabilityMatrixError(f"expected {record_type} record")
         registry.validate(record)
     return records
+
+
+def _public_versioned_records(
+    values: Any,
+    record_type: str,
+    id_field: str,
+    version_field: str,
+    registry: LocalSchemaRegistry,
+) -> list[dict[str, Any]]:
+    if not isinstance(values, list):
+        raise CapabilityMatrixError("manifest records must be an array")
+    records: list[dict[str, Any]] = []
+    keys: list[tuple[str, str]] = []
+    for value in values:
+        if not isinstance(value, dict):
+            raise CapabilityMatrixError("manifest record must be an object")
+        identifier = _require_string(value.get(id_field), id_field)
+        version = _require_string(value.get(version_field), version_field)
+        key = (identifier, version)
+        if key in keys:
+            raise CapabilityMatrixError(
+                f"duplicate versioned manifest record ID: {identifier}@{version}"
+            )
+        if value.get("record_type") != record_type:
+            raise CapabilityMatrixError(f"expected {record_type} record")
+        registry.validate(value)
+        keys.append(key)
+        records.append(value)
+    if keys != sorted(keys, key=lambda item: (item[0], _semantic_version_key(item[1]))):
+        raise CapabilityMatrixError(f"{id_field} records must be sorted by ID and semantic version")
+    return records
+
+
+def _latest_version_records(
+    records: list[dict[str, Any]],
+    id_field: str,
+    version_field: str,
+) -> list[dict[str, Any]]:
+    by_id: dict[str, dict[str, Any]] = {}
+    for record in records:
+        identifier = _require_string(record.get(id_field), id_field)
+        version = _require_string(record.get(version_field), version_field)
+        current = by_id.get(identifier)
+        if current is None or _semantic_version_key(version) > _semantic_version_key(
+            _require_string(current.get(version_field), version_field)
+        ):
+            by_id[identifier] = record
+    return [by_id[identifier] for identifier in sorted(by_id)]
+
+
+def _semantic_version_key(value: str) -> tuple[int, int, int]:
+    parts = value.split(".")
+    if len(parts) != 3 or any(not part.isdigit() for part in parts):
+        raise CapabilityMatrixError(f"unsupported semantic version: {value!r}")
+    return (int(parts[0]), int(parts[1]), int(parts[2]))
 
 
 def _private_records(values: Any, id_field: str) -> list[dict[str, Any]]:

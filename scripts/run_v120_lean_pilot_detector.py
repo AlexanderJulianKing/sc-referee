@@ -143,6 +143,7 @@ def run_v120_lean_pilot_detector(project_root: Path) -> dict[str, Any]:
                     "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
                     "check_id": CHECK_ID,
                     "candidate_id": CANDIDATE_BY_ROLE[role],
+                    "semantic_role_authority": {},
                 },
                 actor_id="scientist:frozen-v120-lean-brief-v5",
             )

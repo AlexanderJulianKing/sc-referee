@@ -1,0 +1,80 @@
+[
+  {
+    "case_id": "0f721a41bac71a461dd2",
+    "unit_column": "nest_tag",
+    "units": 16,
+    "rows": 64,
+    "entered_test": "every row: all 64 individual nestling mass_g_day12 values, split 32 vs 32 by food_treatment, passed directly to scipy.stats.ttest_ind with no aggregation to the nestbox level",
+    "stated_N": "N = 32 per group, N = 64 in total, 62 degrees of freedom",
+    "label": "POSITIVE",
+    "confidence": "high",
+    "evidence": "analysis.py passes the raw per-chick mass columns to stats.ttest_ind and the report states \"each of the 64 weighings is one observation in the analysis\", although treatment was applied to whole broods so only 16 nestboxes are independent units and no mixed model, aggregation, or cluster correction appears anywhere.",
+    "report_clear": "yes",
+    "quote": "The measurements entering the test were the individual `mass_g_day12` values. Every nestling from a supplemented box contributed its own mass to the first sample, and every nestling from a control box contributed its own mass to the second sample, so each of the 64 weighings is one observation in the analysis. The sample size claimed for the test is therefore **N = 32 per group, N = 64 in total**, with 62 degrees of freedom."
+  },
+  {
+    "case_id": "11af5bb3f9b7e8e0b293",
+    "unit_column": "parent_colony",
+    "units": 14,
+    "rows": 70,
+    "entered_test": "primary test is a linear mixed-effects model on all 70 nubbin rows with a random intercept for parent_colony (14 groups), so the treatment contrast is judged at the colony level; a supporting t-test uses one value per unit (14 colony means, 7 vs 7); the 70-row t-test is run and labelled sensitivity illustration only",
+    "stated_N": "N = 14 parent colonies, 7 per thermal regime (mixed model p = 0.170; colony-mean t-test p = 0.195; row-wise p = 0.0024 flagged as not a result)",
+    "label": "NEGATIVE",
+    "confidence": "high",
+    "evidence": "The report's primary inferential result is the random-intercept mixed model judged against colony-level variation, and it explicitly demotes the row-wise test: \"**This is a sensitivity illustration and is not a result of this study.**\"",
+    "report_clear": "yes",
+    "quote": "Our inferential analysis is a linear mixed-effects model fitted by REML in statsmodels, predicting `calcification_rate` from `thermal_regime` with a random intercept for `parent_colony`. All 70 nubbin rows enter the model, grouped into the 14 parent colonies (5 observations per group)."
+  },
+  {
+    "case_id": "45dcad2f6496a0fd5778",
+    "unit_column": "aquarium_ref",
+    "units": 8,
+    "rows": 96,
+    "entered_test": "every row: all 96 individual fish distance_cm values, split 48 vs 48 by exposure, passed directly to scipy.stats.ttest_ind with no aggregation to the tank level",
+    "stated_N": "N = 48 per group, 96 measurements in total, 94 degrees of freedom",
+    "label": "POSITIVE",
+    "confidence": "high",
+    "evidence": "Fluoxetine was dosed into the tank water so only the 8 tanks were assigned to a group, yet the report states \"Each fish was counted as one replicate, so **the sample sizes I used were N = 48 per group**\", and analysis.py contains no tank-level aggregation, random effect, or cluster-robust adjustment.",
+    "report_clear": "yes",
+    "quote": "The measurements entering the test were the individual `distance_cm` values, one per row of the CSV, with no averaging or other aggregation applied first. ... Each fish was counted as one replicate, so **the sample sizes I used were N = 48 per group**, 96 measurements in total, giving 94 degrees of freedom."
+  },
+  {
+    "case_id": "5994e65153b07855b07c",
+    "unit_column": "fermenter_run",
+    "units": 12,
+    "rows": 60,
+    "entered_test": "one value per unit: the five assay rows of each run were averaged into a per-run mean titer, and only those 12 run-level means (6 enriched vs 6 standard) were passed to scipy.stats.ttest_ind; no assay-level row entered the test",
+    "stated_N": "N = 6 per group, 12 in total, 10 degrees of freedom (t = 3.0667, p = 0.0119)",
+    "label": "NEGATIVE",
+    "confidence": "high",
+    "evidence": "analysis.py groups by fermenter_run to a mean before testing and the report confirms \"The input to `ttest_ind` was two arrays of per-run mean `titer_g_per_l`. ... No assay-level row was passed to the test, and no run contributed more than one number to it.\"",
+    "report_clear": "yes",
+    "quote": "**Sample size claimed.** N = 6 per group, 12 in total. That N counts bioreactor runs, not assay rows. The file contains 30 assay rows per group, but those 30 rows come from 6 independent campaigns, and 6 is the number the test used and the number this result rests on."
+  },
+  {
+    "case_id": "88e59abe85a8eea2b8cd",
+    "unit_column": "plot_code",
+    "units": 10,
+    "rows": 60,
+    "entered_test": "every row: all 60 individual collar co2_efflux readings, split 30 vs 30 by warming_status, passed directly to scipy.stats.ttest_ind with no aggregation to the plot level",
+    "stated_N": "N = 30 readings per condition, 60 readings in total, 58 degrees of freedom",
+    "label": "POSITIVE",
+    "confidence": "high",
+    "evidence": "Warming was applied to whole plots (10 units), yet the report states \"No averaging or aggregation was applied before the test\" and claims \"**N = 30 readings in the warmed condition and N = 30 readings in the ambient condition, 60 readings in total**, which gives 58 degrees of freedom\", with no random effect or cluster correction in analysis.py.",
+    "report_clear": "yes",
+    "quote": "The measurements that entered the test were the individual collar readings from the `co2_efflux` column. ... No averaging or aggregation was applied before the test, and no readings were excluded. The sample sizes I am claiming are therefore **N = 30 readings in the warmed condition and N = 30 readings in the ambient condition, 60 readings in total**, which gives 58 degrees of freedom."
+  },
+  {
+    "case_id": "e804a86a1e05b781f292",
+    "unit_column": "hive_label",
+    "units": 24,
+    "rows": 24,
+    "entered_test": "one value per unit, which here is also every row: the design has exactly one row per microcolony (24 unique hive_label values in 24 rows), and the 24 final_colony_mass_g values (12 monofloral vs 12 mixed) were passed to scipy.stats.ttest_ind; analysis.py raises an error if any hive_label repeats",
+    "stated_N": "N = 24 colonies, n = 12 per diet group, 22 degrees of freedom (t = -3.5167, p = 0.0019)",
+    "label": "NEGATIVE",
+    "confidence": "high",
+    "evidence": "There is no repeated measurement to pseudoreplicate: the CSV holds 24 rows and 24 distinct hive_label values, and the report states \"Exactly one mass value per colony entered the test: 12 masses from the monofloral colonies and 12 masses from the mixed-diet colonies, 24 values in all.\"",
+    "report_clear": "yes",
+    "quote": "The comparison used the `final_colony_mass_g` column, split by `pollen_diet`. Exactly one mass value per colony entered the test: 12 masses from the monofloral colonies and 12 masses from the mixed-diet colonies, 24 values in all. Nothing was averaged, expanded, or dropped beforehand, and no colony contributed more than one number."
+  }
+]

@@ -1,0 +1,67 @@
+{
+  "case_roles_in_fixed_order": [
+    {
+      "case_id": "5c26014c176bf905c121",
+      "role": "P1"
+    },
+    {
+      "case_id": "5bdfa31a22a40d58e20c",
+      "role": "P2"
+    },
+    {
+      "case_id": "4f622f87ad3c8a93a2d8",
+      "role": "P3"
+    },
+    {
+      "case_id": "c07cc7c1a1f9730a3c9f",
+      "role": "P4"
+    },
+    {
+      "case_id": "34b1ade6d028cfda2a75",
+      "role": "P5"
+    },
+    {
+      "case_id": "675de846f46beae7d442",
+      "role": "P6"
+    },
+    {
+      "case_id": "540f7dfdf1614ceda57d",
+      "role": "N1"
+    },
+    {
+      "case_id": "9cd65ce93b9b8f846eb8",
+      "role": "N2"
+    },
+    {
+      "case_id": "23cc44d49100a68655c5",
+      "role": "N3"
+    },
+    {
+      "case_id": "c69bb7590d57d2057ee0",
+      "role": "N4"
+    },
+    {
+      "case_id": "0e06da6bdb3963daae4e",
+      "role": "N5"
+    },
+    {
+      "case_id": "e303f93351acf5df0457",
+      "role": "N6"
+    }
+  ],
+  "role_order": [
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "N1",
+    "N2",
+    "N3",
+    "N4",
+    "N5",
+    "N6"
+  ],
+  "sealed_from_builder_after_digest": true
+}

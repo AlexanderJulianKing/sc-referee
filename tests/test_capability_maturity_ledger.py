@@ -9,10 +9,23 @@ from sc_referee.capability_maturity_ledger import (
     DIMENSIONS,
     _calculation_entries,
     _capability_profile_entries,
+    _index_latest_detector_versions,
     _scientific_check_entries,
     build_capability_maturity_ledger,
     default_capability_maturity_source_root,
 )
+
+
+def test_detector_history_is_indexed_by_latest_semantic_version() -> None:
+    records = [
+        {"detector_id": "detector:example", "detector_version": "1.1.0"},
+        {"detector_id": "detector:example", "detector_version": "1.10.0"},
+        {"detector_id": "detector:example", "detector_version": "1.2.0"},
+    ]
+
+    indexed = _index_latest_detector_versions(records)
+
+    assert indexed["detector:example"]["detector_version"] == "1.10.0"
 
 
 def test_checked_in_sources_generate_six_independent_dimensions() -> None:
@@ -134,6 +147,7 @@ def test_profile_dimensions_fail_closed_without_cross_dimension_inference() -> N
     }
     detector: dict[str, Any] = {
         "detector_id": "detector:example",
+        "detector_version": "1.0.0",
         "maturity": "experimental",
         "counterevidence_protocol": [{"check_id": "counterevidence"}],
         "required_evidence": ["exact evidence"],

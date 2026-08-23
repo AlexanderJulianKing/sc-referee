@@ -17,7 +17,7 @@ The 0.3.0 baseline contains:
 
 - 23 active question-oriented scientific checks through 27 bounded adapters;
 - 10 active deterministic calculation-check families;
-- 16 published capability profiles;
+- 17 published capability profiles;
 - 23 experimental method-conflict detector bindings; and
 - two exact binding-scoped grants with production Finding authority.
 

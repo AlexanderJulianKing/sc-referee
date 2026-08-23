@@ -284,9 +284,27 @@ def project_analysis_posthoc_method_ledger(
     if not scope_join_path:
         raise PosthocMethodLedgerError("analysis scope-join path is unavailable")
     last_edge = scope_join_path[-1]
+    static_observed = [
+        item
+        for item in assertions
+        if item.get("assertion_id") in set(observed_assertion_ids)
+        and item.get("semantic_role") == "observed"
+        and item.get("assertion_class") == "deterministic_derivation"
+        and item.get("authority_scope") == "none"
+    ]
+    target_ref = last_edge.get("target_ref") if isinstance(last_edge, Mapping) else None
+    static_full_digest_scope = bool(
+        len(scope_join_path) == 1
+        and len(static_observed) == 1
+        and isinstance(last_edge, Mapping)
+        and last_edge.get("relation") == "has_full_digest_in_snapshot"
+        and last_edge.get("source_ref") == static_observed[0].get("subject_ref")
+        and isinstance(target_ref, Mapping)
+        and target_ref.get("record_type") == "repository_snapshot"
+    )
     if (
         not isinstance(last_edge, Mapping)
-        or last_edge.get("target_ref") != subject
+        or (last_edge.get("target_ref") != subject and not static_full_digest_scope)
         or not all(
             isinstance(edge, Mapping)
             and _record_ref(edge.get("source_ref"))
@@ -622,10 +640,13 @@ def _validate_claim_scope(contract: Mapping[str, object], claim_id: str) -> None
 
 
 def _analysis_subject(value: Mapping[str, object]) -> dict[str, str]:
-    if not _ref_type(value, "publication_surface"):
-        raise PosthocMethodLedgerError("analysis subject must name one selected PublicationSurface")
+    record_type = value.get("record_type")
+    if record_type not in {"publication_surface", "file_record"}:
+        raise PosthocMethodLedgerError(
+            "analysis subject must name one selected PublicationSurface or static source file"
+        )
     return {
-        "record_type": "publication_surface",
+        "record_type": str(record_type),
         "record_id": _required_string(value.get("record_id"), "analysis subject record_id"),
     }
 

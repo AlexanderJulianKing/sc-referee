@@ -129,12 +129,20 @@ sc_referee = [
   "resources/schemas-v0.19.0/schemas/v0.19.0/*.json",
   "resources/schemas-v0.19.0/tests/*.py",
   "resources/schemas-v0.19.0/tools/*.py",
+  "resources/schemas-v0.20.0/*",
+  "resources/schemas-v0.20.0/examples/*.json",
+  "resources/schemas-v0.20.0/schemas/v0.20.0/*.json",
+  "resources/schemas-v0.20.0/tests/*.py",
+  "resources/schemas-v0.20.0/tools/*.py",
 ]
 
 [tool.pytest.ini_options]
-addopts = "-q --strict-markers --disable-warnings"
+addopts = "-q --strict-markers --disable-warnings -m 'not retired_report_lane'"
 testpaths = ["tests"]
 pythonpath = [".", "src", "evaluation/src"]
+markers = [
+  "retired_report_lane: withdrawn report-evidence qualification lane; historical only",
+]
 
 [tool.ruff]
 target-version = "py311"
@@ -147,6 +155,7 @@ exclude = [
   "docs",
   # Frozen qualification evidence, including intentionally invalid retained
   # case producers that must never be repaired or reformatted.
+  "evaluation/development",
   "evaluation/qualification",
   "examples/walking-skeleton",
   "reference",

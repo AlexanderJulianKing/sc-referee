@@ -20,14 +20,15 @@ def _relative_files(root: Path) -> list[Path]:
 
 
 def test_packaged_schema_release_is_exact_copy(project_root: Path) -> None:
-    public_root = project_root / "reference" / "schemas-v0.19.0"
-    packaged_root = project_root / "src" / "sc_referee" / "resources" / "schemas-v0.19.0"
+    for version in ("0.19.0", "0.20.0"):
+        public_root = project_root / "reference" / f"schemas-v{version}"
+        packaged_root = project_root / "src" / "sc_referee" / "resources" / f"schemas-v{version}"
 
-    assert _relative_files(packaged_root) == _relative_files(public_root)
-    for relative_path in _relative_files(public_root):
-        assert (packaged_root / relative_path).read_bytes() == (
-            public_root / relative_path
-        ).read_bytes()
+        assert _relative_files(packaged_root) == _relative_files(public_root)
+        for relative_path in _relative_files(public_root):
+            assert (packaged_root / relative_path).read_bytes() == (
+                public_root / relative_path
+            ).read_bytes()
 
 
 def test_default_schema_root_uses_installed_package_resources(
@@ -38,16 +39,16 @@ def test_default_schema_root_uses_installed_package_resources(
     root = _default_schema_root()
 
     assert root == Path(__file__).resolve().parents[1] / "src" / "sc_referee" / "resources" / (
-        "schemas-v0.19.0"
+        "schemas-v0.20.0"
     )
-    assert LocalSchemaRegistry(root).validate_example_directory() == 79
+    assert LocalSchemaRegistry(root).validate_example_directory() == 81
 
 
 def test_version_distinguishes_program_schema_and_starter_lineage() -> None:
     result = CliRunner().invoke(app, ["version"])
 
     assert result.exit_code == 0
-    assert result.stdout == ("sc-referee 0.3.0 (schema 0.19.0; starter lineage 0.1.0)\n")
+    assert result.stdout == ("sc-referee 0.3.0 (schema 0.20.0; starter lineage 0.1.0)\n")
 
 
 def test_numpy_is_a_direct_python_311_compatible_dependency(project_root: Path) -> None:

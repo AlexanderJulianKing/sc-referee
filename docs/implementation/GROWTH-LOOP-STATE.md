@@ -2546,3 +2546,390 @@ frozen re-measure, explicitly inspect planted positives for a new development-la
 adverse certificate after full analysis, without rescoring. The first occurrence
 triggers checkpoint batch K promptly, both envelopes and all normal design/code gates,
 instead of waiting for the ordinary three-to-four-round cadence.
+
+## Slice-C M3 runtime-design hard stop (2026-08-19)
+
+- STATUS: **HARD STOP — RUNTIME-DESIGN RETHINK REQUIRED; M3 IS NOT COMPLETE.** No
+  second runtime recovery, alternate mode transition, worker launch, report
+  materialization, code review, commit, manifest refresh, push, or downstream ladder
+  work is authorized until Alex supplies a new runtime-design decision. This is the
+  binding stop condition from the maintainer's narrow-recovery authorization, not a
+  false-observation or false-accusation halt.
+- The final Slice-C v5 design object is the 98,058-byte
+  `audit-report-ladder-slice-c-h5ad-world1-design-2026-08-18.md` at
+  `sha256:a654ce57103cc4cc6856f2c9a934f13999b67f0800d2da45d45eace6259ac577`.
+  Its fresh amendment-5 confirmation review returned all seven assents, zero findings,
+  and `CLEAR TO BUILD`; formal review 13,880 bytes at
+  `sha256:aafe10dc104f50dad1f47769851763c73e23792a985d20956e93132aa371e66d`.
+  Slice-C review accounting remains 2 major-bearing / 2 minor-only; the clear round
+  increments neither counter.
+- Fresh integration builder 3 independently built the complete development-only
+  implementation on exact base/tracking/live-origin `b64be791`, leaving exactly 25
+  authorized untracked files: 13 Slice-C source files, seven dedicated tests, the
+  exact two-file world-1 fixture, and three copied reviewed resources. Its focused
+  gates passed 163/163 Slice-C tests, 293/293 Slice-B/lazy-init/release non-regressions,
+  scoped Ruff/format, and strict mypy over 13 source files. Its static renderer
+  reconstruction was byte-identical to the retained 49,609-byte report at
+  `sha256:a271ed38ad68aa9c7aa1ae7ae16ccdaefd4028f4d9e105faab8b86d6be5f52d8`
+  and 48,094-byte appendix at
+  `sha256:386b2d8a467c848292580c1aeef6e3636fda7f5a0300375b2e98f3fb11104d48`,
+  but that static equality is not M3 acceptance. The actual entry point correctly
+  returned zero bytes after the first unexpected runtime reset. Builder-3 transcript:
+  `sha256:fb784157b093aa4967eb36d43b56cf7648d41cf43a5de8c56e4a95e2f8dd363b`;
+  handoff: `sha256:6ec406a702e1186ae9b453d94ff504b3bb3df08e77386435178e86ee18a67a60`.
+- Alex then authorized exactly one narrow recovery: after complete reauthentication,
+  change only the authenticated sandbox root `0700 -> 0755`, invoke the already
+  reviewed descriptor-bound pre-restoration-to-`0555` transition, and retry the real
+  five-worker report; any renewed reset was an immediate hard stop with no second
+  variation. Fresh maximum-effort recovery builder executed that sequence exactly
+  once. Before mutation it reauthenticated 12,687/12,687 runtime entries, 3,149/3,149
+  CPython entries, 42 wheels, 42 RECORD files and 11,561 rows, owner set `(501,20)`,
+  zero `.pyc`/`.pth`, every regular-file byte/mode and symlink target, all native and
+  interpreter identities, and all seven artifact digests. The only deltas were the
+  known 1,117 + 312 directory modes.
+- The single held-descriptor `fchmod` changed only sandbox root `0700 -> 0755`; the
+  complete official pre-restoration verifier accepted. The reviewed transition then
+  returned its exact pre-state evidence and a complete sealed-state postcheck with
+  every manifest directory and all three roots at `0555`. The immediately following
+  independent sealed verification nevertheless refused during descendant traversal
+  with `RuntimeAuthenticationError: directory mode differs outside the authorized
+  transition`. A stable read-only projection found all 1,117 runtime directories,
+  all 312 CPython directories, and sandbox/python/venv roots reset to `0700` before
+  any worker launch. Runtime projection digest:
+  `b2fc1ba2d529be791d37d1eda84d50315fdf0fdef5236c00386366345b035bef`;
+  CPython projection digest:
+  `7ccc57a4ae5fcaf64aceb590b84227d7a2c6a7740ede0a1f3a52517da63d4769`.
+  Every non-directory and package-identity field remained exact. Both official legal-
+  state verifiers now refuse at the root boundary.
+- Recovery outcome: primary workers `0/4`, replay workers `0/1`, target executions
+  `0`, generated report bytes `0`, generated appendix bytes `0`. The repository still
+  has no tracked/staged implementation diff and exactly the same 25 authorized
+  untracked files; their ledger is
+  `sha256:34b8de539fd8f8363fc80b17954fdc99aa292ff79f99583e77cde14ebadaef9c`.
+  Recovery transcript:
+  `sha256:23feff9e428b625ba16ce503476e24d9f1174b0d2717e0dbf14f16ba0045e12b`;
+  handoff: `sha256:6d4e94bf6a023d99644432dcd456f1bd16f5aeee22e919e45944c0ac07cb3e87`.
+  Zero false observations, false report sentences, or accusations were produced; the
+  double fail-closed behavior is the recorded outcome.
+
+## Slice-C runtime hypothesis refuted; escalation evidence packaged (2026-08-20)
+
+- STATUS: **HARD STOP REMAINS — AMBIENT/RUNTIME-CONTROL MECHANISM UNRESOLVED.** The
+  maintainer supplied a hypothesis that `restore_runtime_directory_modes_v1()` might
+  intentionally reseal the tree after its internal `0555` verification and directed
+  two read-only confirmation checks. Both checks refuted that hypothesis. Per the
+  maintainer's binding branch, no runtime-window reconciliation, reviewer, builder,
+  worker launch, report materialization, code review, test gate, commit, push, or
+  downstream loop work followed.
+- Exact source inspection of the 34,777-byte Slice-C `runtime.py` at
+  `sha256:6dd2eda4051b089351510d5276a05d4be0ccfc070349701f6c08896ee92f5d37`
+  found that `_RootDescriptors.close()` and `_TreeVerification.close()` only close
+  descriptors. `verify_runtime_identity_v1()` explicitly verifies without mutation.
+  `restore_runtime_directory_modes_v1()` contains only the authorized `0o555`
+  `fchmod` calls; after closing its descriptors, it invokes the read-only sealed
+  verifier and returns. There is no cleanup or post-state transition to `0700`.
+- The independent sentinel planted by the maintainer at `0555` at 00:10,
+  `~/Desktop/random_stuff/sc-referee-pilot-runtime/fable-mode-probe`, was found at
+  `0700` on the same device/inode (`16777233/394637892`), UID/GID `501/20`, with
+  `mtime=2026-08-20T00:10:07-0700` and
+  `ctime=2026-08-20T00:10:11-0700`. No Slice-C command was run against that path.
+  This is the maintainer's explicit `probe reverted` refutation condition and is
+  evidence that the reset is not explained by the inspected restoration function.
+- The durable rethink packet is
+  `~/Desktop/random_stuff/sc-referee-sprint-preserve-20260818/slice-c-runtime-design-rethink-evidence-20260820.md`.
+  It is 3,848 bytes at
+  `sha256:18e9db2e6e57746e78fd22aee5f0d596c4af35e0954d1d460cf3a3e1afadce0f`
+  and records the exact source contract, sentinel stat, prior recovery transcript
+  and handoff identities, repository boundary, and escalation question. The prior
+  recovery transcript remains 801,087 bytes at
+  `sha256:23feff9e428b625ba16ce503476e24d9f1174b0d2717e0dbf14f16ba0045e12b`;
+  its 5,232-byte handoff remains
+  `sha256:6d4e94bf6a023d99644432dcd456f1bd16f5aeee22e919e45944c0ac07cb3e87`.
+- M3 remains incomplete: workers `0/5`, target executions `0`, report bytes `0`,
+  appendix bytes `0`. Zero false observations, false report sentences, or
+  accusations were produced. The 25 authorized untracked Slice-C files remain
+  quarantined from commit pending Alex's runtime-design decision.
+
+## Slice-C runtime relocation succeeded; one-shot transaction refused (2026-08-20)
+
+- STATUS: **M3 INCOMPLETE — MINOR CORRECTION AND ONE INSTRUMENTED TRANSACTION REQUIRE
+  MAINTAINER AUTHORIZATION.** This section supersedes the two historical runtime-mode
+  hard-stop statuses above. The maintainer's host investigation conclusively attributed
+  the Desktop runtime's `0555 -> 0700` resets to macOS iCloud Desktop sync: a probe
+  under that runtime reset within one second while the identical home-directory probe
+  stayed `0555`. The loop's restoration function was not at fault. Alex authorized a
+  development-only relocation outside iCloud scope, exact content verification, a
+  MINOR path-premise rerecord and scoped review, then one descriptor-bound transition
+  and one real five-worker transaction. The old Desktop tree remained read-only and
+  iCloud settings were untouched.
+- A fresh relocation-only builder copied the complete pinned bundle to
+  `/Users/alexanderking/sc-referee-runtimes/`. Source and destination formed an exact
+  15,890-entry path/kind/content bijection: 1,433 directories, 14,445 regular files,
+  639,509,758 regular-file bytes, 12 symlinks, owner set `(501,20)`, zero shared
+  inodes, and only the authorized sandbox-root mode difference `0700 -> 0755`.
+  Portable-content projection is
+  `sha256:f90d085ee3eef593232ac77df72841a20a3d0ace3b6442e517ca023e67d53e86`.
+  Relocation summary is 68,870 bytes at
+  `sha256:01bc359a474296b28bd193e5bb9ecb7a1a2c4c61b547ac7b811c83e0a78d5076`;
+  builder handoff is 8,384 bytes at
+  `sha256:d4f0a591cb8eb6cba02eb83a5563a366bc1f2d86184093f4000481491e1119aa`.
+  The outside-iCloud sentinel, device/inode `16777233/394647425`, remains `0555`.
+- The 15,585-byte path-premise amendment at
+  `sha256:3ddb627441db5c42ef875de5ac8d731aa2d793b9e25935c10808d6600d412143`
+  bound the seven exact prefix-transformed premise fields and all transitive carriers.
+  Its first fresh scoped review returned `MINOR REVISIONS` solely for a transcribed
+  inherited-memo digest; Section 10 corrected only that token. A second fresh scoped
+  confirmation returned all assents and `CLEAR TO BUILD`. Review handoffs are 8,338
+  bytes at `sha256:7c7bef6be81f65e7363f027c6a098deaa6390cf3b610748ef1bd698062894e6e`
+  and 1,798 bytes at
+  `sha256:88d077340704f1c21c111f22a0c87437241032d57505baa7504616025c31e6ba`.
+- A fresh implementation/report builder atomically installed the reviewed 3,443-byte
+  destination premise at
+  `sha256:0f3db3490b640ed80a12c94038c3d78f18d5aa431cab42e8ec73ee2b54b21d04`
+  with internal premise digest
+  `sha256:09fe04ea03c03221bf20c00b5e45cd8f66f00d7476f98da64df5dcde79dc7eeb`;
+  installed the 960-byte root seal at
+  `sha256:07dd8873f3b5ce4b94ca4b536bb2cbaeafc7f9be42dad2f16b1be495d4fba4e6`;
+  regenerated every path-dependent protocol, provenance, request, response, worker,
+  observation, and renderer identity; added prelaunch equality closure and dedicated
+  regressions; and changed no scientific semantics or protected surface. Focused gates
+  passed 175 Slice-C tests and 292 applicable neighboring tests; scoped Ruff, format,
+  strict mypy over 13 source files, and `git diff --check` passed. The broader release
+  selection's sole failure was the expected manifest equality assertion against the
+  already-modified STATE; the authoritative serial full suite was correctly not run
+  after the transaction refused.
+- The builder invoked the descriptor transition exactly once. It authenticated the
+  complete `0755/0700/0700` prestate, transitioned to the sealed state, and then
+  repeatedly authenticated parent/sandbox/Python/venv as
+  `0755/0555/0555/0555`, exact manifest bijections of 12,687 runtime and 3,149 CPython
+  rows, 42 wheels, 11,561 RECORD rows, and all fixed artifact digests. The sentinel
+  remained `0555`. **The relocation run's mode-reset hard stop did not fire.**
+- The builder then made the sole authorized call to
+  `_render_slice_c_artifacts_v1(...)`. Observed durable evidence is limited to: the
+  entry point returned `None` after 12.328 seconds; the runner raised
+  `AssertionError: real Slice-C transaction refused`; the runtime remained sealed;
+  and report, appendix, temporary output, and real-transaction evidence files remained
+  absent. The runner kept worker results only in memory and asserted before journaling
+  them, so exact worker count, returned refusal facet, success count, and replay state
+  are **unknown**. Candidate static render identities were never materialized and do
+  not count toward M3. Builder handoff is 7,620 bytes at
+  `sha256:e6edf02f3e1291eba0f526bbd997d7ec752a26b23e082875cfa1e332a7cbeeda`;
+  its 6,123,256-byte transcript is
+  `sha256:b9d8f2f9b2397adb02208c97b5ddfb0dd4f02841f4abf9962d2f83d1a3bf9f65`.
+- A fresh maximum-effort, strictly read-only failure reviewer authenticated the entire
+  snapshot and returned `MINOR REVISIONS`, with no MAJOR finding, false-report route,
+  mode reset, or protected-surface change. MINOR 1: `_worker.py` rejects when any
+  `sys.path` string merely contains `sc-referee`; the immutable measurement records
+  absolute standard-library paths below `sc-referee-pilot-runtime`, and the relocated
+  parent itself is `sc-referee-runtimes`. This is a deterministic overbroad isolation
+  predicate and the highest-confidence inferred cause of the live refusal, but the
+  historical live facet is not observed. MINOR 2: the runner journal was not durable
+  before the top-level assertion. Reviewer handoff is 7,907 bytes at
+  `sha256:f3ca94b180d5f2c9fdd0dcb3c70ef429f14239a1ff26cce981079d124f76ccd6`;
+  its 1,275,317-byte transcript is
+  `sha256:e2b8e27a0d7a68975d900c01bc730111eae119ff014f82707d874d6fe1882218`.
+  Assents: runtime postfailure integrity, failure-evidence honesty, and protected
+  isolation.
+- AUTHORIZATION BOUNDARY: a second transaction is **not currently authorized**. The
+  quarantined implementation remains uncommitted: exact HEAD/origin
+  `b64be791a0f9139702ade8c268023e1650ca3400`, one tracked STATE modification, no staged
+  changes, 25 authorized untracked Slice-C paths, and `MANIFEST.sha256` byte-identical
+  to HEAD. M3 has zero materialized report/appendix bytes. The narrow requested next
+  authority is: one fresh builder replaces only the substring isolation test with a
+  closed normalized predicate accepting exactly the authenticated sandbox's expected
+  CPython/site paths while excluding repository/evaluation paths, adds the destination-
+  name regression, and adds an append-only fsynced scratch journal recording each call
+  start and closed return/exception evidence before any assertion; a fresh scoped code
+  reviewer clears that correction; then one additional instrumented five-worker
+  transaction may run against the already sealed runtime. No report or appendix may be
+  written unless all five workers and post-run authentication succeed. Zero false
+  observations, false report sentences, or accusations have been produced.
+
+## Slice-C deliverable delivered; formal M3 transaction remains blocked (2026-08-21)
+
+- STATUS: **THE WORLD-1 STATIC DELIVERABLE IS IN ALEX'S HANDS; FORMAL M3 IS NOT
+  COMPLETE; THE LIVE TRANSACTION IS BLOCKED BY A MAJOR CODE-REVIEW VERDICT.** During
+  the Trusted Access freeze, the maintainer channel invoked the already-reviewed
+  static `render_world1_report_v1` path over the frozen world-1 fixture pair. It
+  reports a 49,609-byte report exactly matching reviewed
+  `sha256:217e40ce0a4f9781191bac82d8e81410aa981186b3fec57593bb53896e45b3ca`,
+  with all 37 static tests green, and delivered those report bytes to Alex. This is
+  recorded as maintainer-supplied delivery evidence, not independently rerun here.
+  It satisfies the immediate human deliverable but does not substitute for the live
+  descriptor-bound five-worker transaction, the commit/manifest/push spine for the
+  quarantined Slice-C implementation, or the final M3 STATE closure.
+- The descriptor-bound publication repair builder completed outside the repository.
+  Final runner is 53,138 bytes at
+  `sha256:b5df3843087927d810f7f9fefc9f772b173793f2f3f721b22167b296b462ec11`;
+  hermetic proof is 57,639 bytes at
+  `sha256:ef4a2bbc3ac6c391a3f9fac694620785f995eb2cd860ad0f0f093b1799ea3501`;
+  builder handoff is 21,721 bytes, mode `0444`, at
+  `sha256:0958062d517a92cbfb0995d234d65adfa85c13e3c41d688f6426e642f5d9b570`.
+  Its normal and optimized proof twins each reported 114/114 named gates, the exact
+  40-site legacy bijection, 23 semantic cases, three substitution/rollback cases,
+  and zero real runtime, worker, transaction, target, renderer, or canonical-write
+  calls. No live transaction followed the builder result.
+- A first fresh maximum-effort review attempt was product-filter-interrupted after
+  its normal hermetic proof and produced no verdict or handoff; it is non-authoritative.
+  A distinct replacement reviewer completed before the freeze and returned
+  **MAJOR REVISIONS**. Formal handoff is 26,096 bytes, mode `0444`, at
+  `sha256:b064089da642a12791fab1538cbfcb549da67fbe16f74ffe5fd94eea33dbc72b`;
+  transcript is 1,849,812 bytes at
+  `sha256:d36874591574c12d3ba85f82d1f528e5ecc8f2c523fc0da5e2e1d4a6a2c87dc4`.
+  The reviewer independently passed normal/`-O` proofs, the 40/40 unique legacy-site
+  force matrices, the 114-row gate digest, exact staging-name substitution closure,
+  Darwin ABI checks, journaling, and protected isolation. It nevertheless executed
+  five false-state schedules in both modes: one file-entry replacement and two
+  directory replacements returned success with substituted unverified canonical
+  bytes; a precommit target replacement and a post-restoration-check replacement
+  returned failure while a substituted pair remained canonical. Those are
+  demonstrated false-report routes under the standing taxonomy. Additional MINORs
+  were cleanup residue/persistent rollback nonreturn and absent proof coverage for
+  the corrected embedded MANIFEST byte count. Assents: complete gate bijection,
+  optimized survival, and runtime/protected isolation; refusals: authenticated-object
+  publication, pathname-substitution closure, and combined journal/MANIFEST coverage.
+- CONSEQUENCE: the one authorized real transaction has **not** run and cannot run on
+  this runner. Transaction-strike count remains one because the blocking evidence is
+  pre-run review evidence. Canonical report/appendix publication by the runner remains
+  zero; no scored or corpus accusation and no live false report was produced. Exact
+  repository refs remain `b64be791a0f9139702ade8c268023e1650ca3400`, with one
+  tracked STATE modification, the same 25 authorized untracked Slice-C paths, zero
+  staged paths, and `MANIFEST.sha256` still byte-identical to HEAD at
+  `sha256:a031265d7a356cb87519a2d0c717422f5431cc8df088f606b485d91a7e10c03a`.
+- MAINTAINER PROCESS DECISION (Alex via Fable, 2026-08-21): Codex remains the sole
+  orchestrator, builder-side operator, and committer. Every new fresh design/code
+  review moves to a model-diverse Claude reviewer. The orchestrator writes one complete
+  self-contained request to `~/sc-referee-claude-reviews/requests/<name>-prompt.txt`;
+  the maintainer channel polls hourly and returns `<name>-verdict.txt` plus
+  `<name>-report.md` beside it. Those taxonomy verdicts gate work exactly like prior
+  fresh reviewer verdicts. Zero-FA, frozen surfaces, full-suite and commit/manifest/push
+  gates, and the single orchestrator spine are unchanged. No Codex quota percentage
+  was visible to this session at this STATE update, so no numeric quota claim is made.
+- MAINTAINER AUTHORITY DECISION (Fable escalation channel under standing dev-lane
+  delegation, logged for Alex's morning audit, 2026-08-21): the recommended
+  capability-authority replacement is authorized. The live transaction returns held
+  report/appendix capabilities; Git blobs and index entries are created directly from
+  the bytes reread from those authenticated objects; mutable worktree pathnames are
+  permanently demoted to non-authoritative materializations. This supersedes further
+  attempts to patch pathname-rooted publication. The full model change receives
+  exactly one fresh model-diverse Claude review request with executed substitution
+  probes after the build is complete. Transaction-strike count remains one. No live
+  transaction, Git staging, commit, manifest refresh, or push is authorized before
+  that Claude verdict is `CLEAR TO BUILD`.
+
+## Slice-C capability-authority build complete; Claude review queued (2026-08-21)
+
+- STATUS: **FORMAL M3 REMAINS INCOMPLETE; THE AUTHORIZED CAPABILITY-AUTHORITY BUILD IS
+  COMPLETE AND THE SOLE CLAUDE CODE REVIEW IS PENDING.** A fresh Codex builder read the
+  controlling briefs, the current Slice-C STATE tail, the 13,874-byte design memo, the
+  prior `MAJOR REVISIONS` handoff, the withdrawn runner/proof, the relocation evidence,
+  and the MANIFEST correction addendum. It edited only the two authorized retained
+  `/private/tmp` artifacts, exited 0, restored `.git` to mode `0700`, and returned
+  `BUILD CLEAR FOR CLAUDE CODE REVIEW`. No real transaction, pinned interpreter,
+  canonical render/write, target execution, source-repository Git mutation, staging,
+  commit, push, or review request occurred in the builder role.
+- The replacement runner is 61,204 bytes at
+  `sha256:6a7754e4320513ba10bc6a63cc332b5d40c5e330cef27002205c06fb481c688f`;
+  its hermetic proof is 98,688 bytes at
+  `sha256:ae76df4cfda52538997f512477aa5857e13cdfa4dc57991e501031e72bf6f189`.
+  The sealed 30,164-byte builder handoff is mode `0444` at
+  `sha256:7a24d26ff205bfef0e5829b7758e7f56d2ae58103949cf59a0a29ef1872206b8`;
+  its 18,251,717-byte transcript is
+  `sha256:0dbf6af0ee3f4468cabe478434c908801ec1fc27bc18e27b674f27d326405a6a`.
+  The old Darwin pathname exchange/restoration/retirement publisher is absent. The new
+  runner holds two independently created, unlinked regular-file capabilities through
+  direct Git blob/index creation and verification, journals capability/Git evidence,
+  closes the held objects before success, and claims neither worktree-path authority
+  nor index persistence.
+- Builder proof twins under normal Python and `python -O` each exited 0 with 126/126
+  unique named gates forced, the exact 40-site historical map, 23 semantic cases,
+  three capability success cases, 14 capability refusals, 14 Git refusals, three
+  preverification index mutations, one postverification index mutation, and five
+  translated controlling substitution schedules. Each reported zero actual-repository
+  Git commands, real pinned interpreters, real Slice-C transactions/workers, target
+  executions, canonical renderer calls/writes, materialized outputs, retained-pyc
+  delta, or scratch residue, with `protected_boundary_equal=true`. The orchestrator
+  independently reran both commands after builder exit; both again exited 0 with the
+  same evidence, differing only in `optimize=0` versus `optimize=1`.
+- HONEST EVIDENCE CORRECTION: the sealed builder handoff falsely transcribed the
+  SHA-256 values of the Codex and orchestrator briefs even though its immutable
+  transcript lines 168-169 show the builder read their correct values before editing.
+  The files are base-identical; this is a documentary/process-purity defect, not source
+  drift or a different instruction set. The orchestrator did not alter the sealed
+  handoff. The 2,816-byte authentication addendum at
+  `~/Desktop/random_stuff/sc-referee-design-memos/slice-c-m3-capability-authority-builder-authentication-addendum-2026-08-21.md`
+  records both wrong strings, the correct digests, and the independent replay at
+  `sha256:fe771195700e860d1f0e84fc94a039aa3f3809c8e0548b2a90d8dbddccb9f77f`.
+- Exactly one self-contained model-diverse review request is now queued at
+  `~/sc-referee-claude-reviews/requests/slice-c-m3-capability-authority-code-review-prompt.txt`:
+  15,806 bytes at
+  `sha256:b5c8dd03909a1fbc4ed856314727ce9d1c11ddabca31114fea79f8ef86537444`.
+  It carries the handbook taxonomy, exact base and artifact identities, the known
+  handoff discrepancy, required normal/optimized proof replays, all five controlling
+  substitutions, at least two new reviewer-chosen siblings, direct scratch-Git probes,
+  independent gate/bijection reconstruction, and explicit authority/claim/boundary
+  assents. The maintainer channel is expected to return the matching `-verdict.txt`
+  and `-report.md`. No second request may be created for this model change.
+- Current authority boundary: do not run the live five-worker transaction unless that
+  Claude verdict is exactly `CLEAR TO BUILD`. The transaction-strike count remains one.
+  Exact HEAD and origin-tracking refs remain
+  `b64be791a0f9139702ade8c268023e1650ca3400`; the real index still has zero target rows
+  and zero non-stage-0 entries; canonical report/appendix paths remain absent; the same
+  25 Slice-C paths remain untracked; `MANIFEST.sha256` remains 6,141,369 bytes at
+  `sha256:a031265d7a356cb87519a2d0c717422f5431cc8df088f606b485d91a7e10c03a`.
+  No Codex quota percentage was visible at this update, so no numeric quota claim is
+  made. Zero false observations, false report sentences, scored/corpus accusations,
+  or live false reports were produced.
+
+## Dependence code slice 1.3 built for re-check (2026-08-22)
+
+- Fable, under executive authority granted by Alex 2026-08-21, authorized the narrow X7
+  terminal-description delta and eight build-hygiene repairs. The live experimental code-lane identity
+  is check `1.3.3`, adapter/grammar `1.3.0`, detector `1.3.0`; no qualification, Finding pin, envelope,
+  commit, manifest refresh, or push is authorized.
+- Opened development expectation is 5/6 positive candidates and 0/8 negative candidates, with all
+  Findings still blocked. `ca18f96d45dff1b921ad` remains an honest structured-result/output-helper
+  miss. The four K t-test cases remain naming-gate misses. Opened cases confer no blind credit.
+- The original 31-item retirement was audited: 29 report-lane items remain retired, while the
+  task-binding disclosure and false-accusation halt guards return to the default gate. Eight additional
+  withdrawn-adapter replay items are explicitly historical, for 37 retired collected items total; the
+  complete named inventory and reasons are in the 1.3 BUILD-NOTES. The halt guard now uses an actual
+  registered-code-detector positive against a harness true-negative, not an edited retained result.
+  Historical detector versions 1.0.0, 1.1.0, and 1.2.0 remain separately content-addressed. Slice C
+  remains parked and its untracked files were not touched.
+
+## Dependence code slice 2.0 built for re-check (2026-08-22)
+
+- Fable, under executive authority granted by Alex 2026-08-21, authorized the reachability-based
+  descriptive-admission delta. The live experimental identity is check/adapter/grammar/detector
+  `2.0.0`; the contract profile remains `1.1.0`, prior detector modules remain retained history, and no
+  qualification, production pin, commit, push, or fresh envelope is authorized.
+- The ordinary audit-path development matrix is 11/12 opened positives as evaluation candidates,
+  0/14 opened negatives as candidates, four K t-test naming-gate abstentions, zero Findings, and exact
+  replay. The sole positive miss is `d92b542e0bb28fa3c950` on pre-test registered aggregation. Opened
+  cases provide no blind credit.
+- R1 admits statements only when they do not define or write a protected reader/operand/result node and
+  all calls/reads are closed read-only forms. R2 continues to scan the full inlined program for
+  aggregation, dependence-aware calls, mutations, competing tests, unregistered component consumers,
+  and the new 50-trip resampling-inference sibling. Prose remains inaccessible end to end.
+- No tests were newly retired. Slice C, execution/security work, report grammar, the generic detector,
+  complete-domain production pin, and the parked untracked paths were not changed.
+
+## Dependence code slice 2.1 built for maintainer re-check (2026-08-22)
+
+- Fable, under executive authority granted by Alex 2026-08-21, authorized exactly four narrow
+  descriptive-grammar changes: non-evaluated helper annotations, safe alpha-renamed constant-name
+  parameters, removal of the source-order gate for output-only descriptive aggregation, and closed
+  descriptive `reindex`/`unstack`/`to_numpy` forms. The live experimental check, adapter/grammar, and
+  separate detector identity are `2.1.0`; no qualification or production Finding pin is installed.
+- The ordinary audit-path opened matrix is 15/18 positive candidates, 0/20 negative candidates, four
+  K t-test naming-gate abstentions, zero Findings, and replay equality. The two gains are
+  `c07cc7c1a1f9730a3c9f` and `d92b542e0bb28fa3c950`; opened evidence earns no blind credit.
+- The operand path, sibling scans, D1', single-reader rule, alternate-analysis scan, p-result sink,
+  50-trip resampling guard, no-prose tripwire, and no-execution boundary are unchanged. Detector 2.0.0
+  remains byte-identical at
+  `sha256:261bfa27092c528cd86fb3905ced2fb1b2f296852f688ab4be3abaa94d57e901`.
+- No tests were newly retired. Helper expansion in loop call sites, loop-target label resolution, and
+  dict-container reconstruction remain deferred to a separately reviewed 2.2 delta. Slice C,
+  execution/security work, the generic detector, the complete-domain production pin, and the parked
+  untracked paths were not changed.

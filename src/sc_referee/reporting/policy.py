@@ -231,10 +231,10 @@ def _validate_detector_projection(bundle: Mapping[str, Any]) -> None:
             result.get("extensions", {}).get("x-detector-profile")
             == "bounded_report_mean_direction_v1"
         )
-        method_conflict = (
-            result.get("extensions", {}).get("x-detector-profile")
-            == "bounded_analysis_method_conflict_v1"
-        )
+        method_conflict = result.get("extensions", {}).get("x-detector-profile") in {
+            "bounded_analysis_method_conflict_v1",
+            "bounded_code_csv_dependence_conflict_v1",
+        }
         if result.get("extensions", {}).get("x-production-finding-permitted") is True and not (
             method_conflict
         ):

@@ -86,6 +86,7 @@ def test_generic_contract_bound_conflict_control_and_abstention_matrix(
         profile={
             "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
             "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+            "semantic_role_authority": {},
             "check_id": case["check_id"],
             "candidate_id": case["required_candidate_id"],
         },

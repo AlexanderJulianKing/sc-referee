@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -14,9 +15,10 @@ MANIFEST_ROOT = ROOT / "src" / "sc_referee" / "resources" / "capability-manifest
 GENERATED_AT = "2026-07-30T00:00:00Z"
 _INSTALLED_QUALIFICATION_PATHS = (
     ROOT / "evaluation/qualification/authorized-independent-unit-entry-into-row-independent-"
-    "procedure-v1.1.0-direct-lane/promotion-round2/DETECTOR_QUALIFICATION.json",
+    "procedure-v2.1.0-code-csv-lane/envelope-5-promotion-v020/"
+    "DETECTOR_QUALIFICATION.json",
     ROOT / "evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2/"
-    "promotion-round2/DETECTOR_QUALIFICATION.json",
+    "promotion-round2-v020/DETECTOR_QUALIFICATION.json",
 )
 ANALYSIS_METHOD_CONFLICT_CHECK_IDS = sorted(
     [
@@ -45,6 +47,9 @@ ANALYSIS_METHOD_CONFLICT_CHECK_IDS = sorted(
         "check:within-sequence-transition-path-continuity",
     ]
 )
+CODE_CSV_DEPENDENCE_CHECK_IDS = [
+    "check:authorized-independent-unit-entry-into-row-independent-procedure"
+]
 
 
 def _load(name: str) -> dict[str, Any]:
@@ -70,10 +75,93 @@ def _upsert(collection: dict[str, Any], id_field: str, record: dict[str, Any]) -
     records = collection.get("records")
     if not isinstance(records, list):
         raise ValueError("capability source collection requires a records array")
-    retained = [item for item in records if item.get(id_field) != record[id_field]]
+    version_field = "detector_version" if id_field == "detector_id" else None
+    if version_field is None:
+        retained = [item for item in records if item.get(id_field) != record[id_field]]
+    else:
+        retained = [
+            item
+            for item in records
+            if (
+                item.get(id_field),
+                item.get(version_field),
+            )
+            != (
+                record[id_field],
+                record[version_field],
+            )
+        ]
     retained.append(record)
-    retained.sort(key=lambda item: str(item[id_field]))
+    retained.sort(
+        key=lambda item: (
+            str(item[id_field]),
+            str(item.get(version_field, "")) if version_field is not None else "",
+        )
+    )
     collection["records"] = retained
+
+
+def _install_historical_code_detector_manifests(collection: dict[str, Any]) -> None:
+    records = collection.get("records")
+    if not isinstance(records, list):
+        raise ValueError("detector manifest collection requires a records array")
+    detector_id = "detector:bounded-code-csv-dependence-conflict"
+    v12 = next(
+        (
+            item
+            for item in records
+            if item.get("detector_id") == detector_id and item.get("detector_version") == "1.2.0"
+        ),
+        None,
+    )
+    if not isinstance(v12, dict):
+        raise ValueError("the installed 1.2.0 code detector manifest is unavailable")
+    v11 = deepcopy(v12)
+    v11["detector_version"] = "1.1.0"
+    v11["coverage_contract"]["partially_covered_when"] = (
+        "Not used by version 1.1.0; incomplete or conflicted records remain not covered."
+    )
+    v11["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_dependence_conflict_v1_1.py"
+    )
+    v11["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_dependence_conflict_v1_1:"
+            "BoundedCodeCsvDependenceConflictV11Detector"
+        ),
+        "implementation_digest": sha256_digest(
+            (
+                ROOT / "src/sc_referee/detectors/bounded_code_csv_dependence_conflict_v1_1.py"
+            ).read_bytes()
+        ),
+    }
+    v11["validation"]["evaluation_ref"] = (
+        "docs/implementation/PSEUDOREP-CODE-SLICE-1.1-DESIGN-2026-08-22.md"
+    )
+    v10 = deepcopy(v11)
+    v10["detector_version"] = "1.0.0"
+    v10["coverage_contract"]["partially_covered_when"] = (
+        "Not used by version 1.0.0; incomplete or conflicted records remain not covered."
+    )
+    v10["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_dependence_conflict.py"
+    )
+    v10["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_dependence_conflict:"
+            "BoundedCodeCsvDependenceConflictDetector"
+        ),
+        "implementation_digest": sha256_digest(
+            (ROOT / "src/sc_referee/detectors/bounded_code_csv_dependence_conflict.py").read_bytes()
+        ),
+    }
+    v10["validation"]["evaluation_ref"] = (
+        "docs/implementation/PSEUDOREP-CODE-SLICE-DESIGN-2026-08-22.md"
+    )
+    _upsert(collection, "detector_id", v10)
+    _upsert(collection, "detector_id", v11)
 
 
 def main() -> None:
@@ -558,6 +646,7 @@ def main() -> None:
     _write("parser-manifests.json", parser_collection)
 
     detector_collection = _load("detector-manifests.json")
+    _install_historical_code_detector_manifests(detector_collection)
     analysis_conflict_resource = (
         ROOT / "src" / "sc_referee" / "detectors" / "bounded_analysis_method_conflict.py"
     )
@@ -741,14 +830,177 @@ def main() -> None:
                 ),
                 "human_scientific_approval_count": 0,
                 "qualification_record_ref": None,
-                "qualification_record_refs": installed_qualification_ids,
+                "qualification_record_refs": [
+                    "qualification:complete-domain-exposure-denominator-v207-round2"
+                ],
                 "qualification_review_basis": "agent_panel",
-                "software_maintainer_approval_count": 2,
+                "software_maintainer_approval_count": 1,
                 "status": "held_out_validated",
             },
             "wording_constraints": [
                 "State only that the registered selected report and exactly scoped static-source method declaration differs from the scientist's requirement for this review.",
                 "Do not claim that the source ran, that the declaration caused a numerical error, or that the scientist's requirement is universally scientifically correct.",
+                "Do not describe an experimental evaluation candidate as a Finding.",
+            ],
+            "workflow_systems": [],
+        },
+    )
+    code_csv_dependence_resource = (
+        ROOT / "src" / "sc_referee" / "detectors" / "bounded_code_csv_dependence_conflict_v2_1.py"
+    )
+    _upsert(
+        detector_collection,
+        "detector_id",
+        {
+            "abstain_when": [
+                "The target is not one answered code-lane dependence question with one exact scope-bound human Answer.",
+                "The static code/CSV observation is absent, duplicated, unsupported, or does not close through one full-digest analysis.py-to-snapshot edge.",
+                "Any alternate requirement, amendment, approved deviation, conditional mismatch, sensitivity qualifier, or unsupported construct is present.",
+            ],
+            "accepted_assertion_classes": ["deterministic_derivation"],
+            "applies_to_record_types": [
+                "answer",
+                "asset_identity",
+                "file_record",
+                "material_question",
+                "repository_snapshot",
+                "scientific_contract",
+                "semantic_assertion",
+            ],
+            "assumptions": [],
+            "counterevidence_protocol": [
+                {
+                    "applies_when": (
+                        "One answered, explicitly registered code/CSV dependence question is scheduled."
+                    ),
+                    "check_id": check_id,
+                    "counterevidence_effect": "suppress_candidate",
+                    "description": description,
+                    "sources_to_search": [
+                        "locked question, Answer, contract, deterministic code fact, and full-digest analysis.py scope edge"
+                    ],
+                    "unavailability_effect": "block_finding",
+                }
+                for check_id, description in analysis_conflict_checks
+            ],
+            "coverage_contract": {
+                "covered_when": (
+                    "One exact human one-row-per-authorized-unit requirement and one exact static "
+                    "code/CSV row-entry operand resolve through the full-digest analysis.py scope, "
+                    "and all ten finite checks complete without a suppressor."
+                ),
+                "not_covered_when": (
+                    "Any authority, static fact, dataflow, CSV, scope, identity, or finite-check "
+                    "prerequisite is unavailable or unsupported."
+                ),
+                "partially_covered_when": (
+                    "Not used by version 2.1.0; incomplete or conflicted records remain not covered."
+                ),
+            },
+            "description": (
+                "Compares the frozen one-row-per-authorized-unit requirement with one exact "
+                "code-and-CSV row-entry fact without reading prose."
+            ),
+            "detector_family": "code_csv_dependence_requirement_consistency",
+            "detector_id": "detector:bounded-code-csv-dependence-conflict",
+            "detector_version": "2.1.0",
+            "domains": ["domain_neutral_scientific_analysis"],
+            "extensions": {
+                "x-adr-ref": (
+                    "docs/implementation/ADR-0076-CONTRACT-BOUND-REPORT-CSV-"
+                    "PSEUDOREPLICATION-FINDING.md"
+                ),
+                "x-implementation-resource": (
+                    "detectors/bounded_code_csv_dependence_conflict_v2_1.py"
+                ),
+                "x-production-finding-permitted": False,
+                "x-scientific-check-ids": CODE_CSV_DEPENDENCE_CHECK_IDS,
+            },
+            "implementation": {
+                "deterministic": True,
+                "entry_point": (
+                    "sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_1:"
+                    "BoundedCodeCsvDependenceConflictV21Detector"
+                ),
+                "implementation_digest": sha256_digest(code_csv_dependence_resource.read_bytes()),
+            },
+            "issue_classes": ["x-review-scoped-analysis-method-requirement-mismatch"],
+            "languages": ["python"],
+            "limitations": [
+                "The experimental detector cannot emit a production Finding without a separately installed exact binding grant.",
+                "Only the exact root analysis.py, registered APIs, bounded depth-two helper dataflow, closed reachability admission, and authorized CSV contract are covered.",
+                "No prose, comments, docstrings, project execution, numerical causality, universal method adequacy, or broader scientific correctness is established.",
+            ],
+            "maturity": "experimental",
+            "permitted_output_types": ["disclosure"],
+            "provenance": {
+                "actor": {
+                    "actor_id": "detector:bounded-code-csv-dependence-conflict",
+                    "actor_kind": "detector",
+                },
+                "created_at": "2026-08-21T22:10:00-07:00",
+                "method": "deterministic_detection",
+                "tool": "sc-referee",
+                "tool_version": __version__,
+            },
+            "record_type": "detector_manifest",
+            "required_evidence": [
+                "one exact answered code-lane MaterialQuestion",
+                "one scope-bound human Answer and controller-verified requirement",
+                "one exact deterministic code/CSV operand",
+                "one full-digest analysis.py-to-snapshot scope edge",
+                "ten completed finite counterevidence checks",
+            ],
+            "schema_version": SCHEMA_VERSION,
+            "supported_operations": [
+                "analysis_scoped_scientific_check_question_v1",
+                "closed_method_comparison_algebra_v1",
+                "full_digest_analysis_file_scope_v1",
+                "posthoc_method_ledger_v1",
+                "registered_typed_method_conflict_binding_v1",
+                "scope_bound_structured_answer_v1",
+            ],
+            "test_fixtures": {
+                "ambiguous": [
+                    "tests/test_code_csv_dependence_adapter.py::"
+                    "test_alternate_analysis_extensions_abstain_without_opening_bytes"
+                ],
+                "counterevidence": [
+                    "tests/test_code_csv_dependence_dataflow.py::"
+                    "test_mutation_and_aggregation_precedence"
+                ],
+                "positive": [
+                    "tests/test_dependence_code_slice_development.py::"
+                    "test_opened_cases_follow_code_lane_normal_path_and_replay"
+                ],
+                "unsupported_path": [
+                    "tests/test_report_csv_dependence_adapter.py::"
+                    "test_batch_k_ttest_cases_follow_documented_normal_path_outcomes"
+                ],
+                "verified_good_negative": [
+                    "tests/test_dependence_code_slice_development.py::"
+                    "test_opened_cases_follow_code_lane_normal_path_and_replay"
+                ],
+            },
+            "title": "Bounded code/CSV authorized-unit entry consistency",
+            "validation": {
+                "agent_adjudication_count": 0,
+                "evaluation_ref": (
+                    "docs/implementation/ADR-0076-CONTRACT-BOUND-REPORT-CSV-"
+                    "PSEUDOREPLICATION-FINDING.md"
+                ),
+                "human_scientific_approval_count": 0,
+                "qualification_record_ref": None,
+                "qualification_record_refs": [
+                    "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5"
+                ],
+                "qualification_review_basis": "agent_panel",
+                "software_maintainer_approval_count": 1,
+                "status": "held_out_validated",
+            },
+            "wording_constraints": [
+                "State only that the exact code/CSV fact contradicts the frozen one-row-per-authorized-unit requirement.",
+                "Do not claim invalid statistics, pseudoreplication, project execution, numerical impact, or that the frozen requirement is scientifically correct.",
                 "Do not describe an experimental evaluation candidate as a Finding.",
             ],
             "workflow_systems": [],
@@ -1055,6 +1307,51 @@ def main() -> None:
             "semantic_modeling": "partial",
             "syntax_recognition": "partial",
             "version_manifest_ref": "version-manifest:bounded-analysis-method-conflict-v1",
+        },
+    )
+    _upsert(
+        profile_collection,
+        "profile_id",
+        {
+            "abstention_conditions": [
+                "The frozen contract does not authorize one exact CSV path, unit column, and group column.",
+                "The root analysis.py reader, selections, raw two-sample test, p-result sink, or full-digest scope edge is incomplete or unsupported.",
+                "Any aggregation, dependence-aware sibling, additional reader, tracked mutation, unresolved component consumer, or finite counterevidence guard is present.",
+            ],
+            "capability_entry_id": "capability:bounded-code-csv-dependence-conflict-v1",
+            "detector_refs": [
+                {
+                    "record_id": "detector:bounded-code-csv-dependence-conflict",
+                    "record_type": "detector_manifest",
+                }
+            ],
+            "domain": "domain_neutral_scientific_analysis",
+            "known_gaps": [
+                "Only one root analysis.py, the exact registered Python/CSV grammar, and one frozen 1.1.0 scientific requirement contract are covered.",
+                "No prose, comments, docstrings, project execution, statistical invalidity, numerical impact, or scientific correctness is inferred.",
+                "Unsupported APIs, files, paths, helpers, and control flow abstain and cannot emit a Finding.",
+            ],
+            "language": "python",
+            "operation_extraction": "complete_for_declared_forms",
+            "operation_scope": [
+                "analysis_scoped_scientific_check_question_v1",
+                "closed_method_comparison_algebra_v1",
+                "full_digest_analysis_file_scope_v1",
+                "posthoc_method_ledger_v1",
+                "registered_typed_method_conflict_binding_v1",
+                "scope_bound_structured_answer_v1",
+            ],
+            "package": None,
+            "parser_refs": [
+                {
+                    "record_id": "parser:python-ast-tokenize",
+                    "record_type": "parser_manifest",
+                },
+            ],
+            "profile_id": "semantic-profile:bounded-code-csv-dependence-conflict-v1",
+            "semantic_modeling": "partial",
+            "syntax_recognition": "complete_for_declared_forms",
+            "version_manifest_ref": ("version-manifest:bounded-code-csv-dependence-conflict-v1"),
         },
     )
     _upsert(
@@ -1384,6 +1681,26 @@ def main() -> None:
             "profile_ref": "semantic-profile:bounded-analysis-method-conflict-v1",
             "tested_versions": [],
             "version_manifest_id": "version-manifest:bounded-analysis-method-conflict-v1",
+        },
+    )
+    _upsert(
+        version_collection,
+        "version_manifest_id",
+        {
+            "evidence_refs": [
+                "docs/implementation/ADR-0076-CONTRACT-BOUND-REPORT-CSV-PSEUDOREPLICATION-FINDING.md",
+                "docs/implementation/PSEUDOREP-CODE-SLICE-2.1-DESIGN-2026-08-22.md",
+                "evaluation/development/blind-envelope-5-2026-08-22/CUSTODY_LOG.md",
+                "src/sc_referee/scientific_checks/code_csv_dependence_dataflow.py",
+                "tests/test_dependence_code_slice_development.py",
+            ],
+            "inferred_compatibility": [],
+            "known_gaps": [
+                "No Python, pandas, NumPy, SciPy, CSV dialect, or workflow-system version envelope beyond the exact frozen static grammar is claimed."
+            ],
+            "profile_ref": "semantic-profile:bounded-code-csv-dependence-conflict-v1",
+            "tested_versions": [],
+            "version_manifest_id": ("version-manifest:bounded-code-csv-dependence-conflict-v1"),
         },
     )
     _upsert(

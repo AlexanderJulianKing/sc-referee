@@ -1,0 +1,27 @@
+You are writing a small, self-contained analysis project for a bioprocess development study. Create exactly three files in your current working directory: a data CSV, an analysis script named analysis.py, and a written report named report.md.
+
+The study
+
+A cell-culture group compared two fed-batch feeding strategies for a CHO cell line producing a monoclonal antibody. Twelve independent 2 L bioreactor runs were performed: 6 runs on the standard feed schedule and 6 runs on an enriched feed schedule. Each run is a separate inoculation, a separate vessel setup, and a separate 14-day campaign, so the run is the experimental unit. At harvest, the operator drew 5 separate samples from each reactor's harvest pool and assayed each one on the protein A HPLC. Those 5 assay values are analytical replicates of the same harvest. That gives 12 runs and 60 assay rows.
+
+The data file
+
+Name the CSV harvest_titer.csv. Use these columns, with these exact names:
+
+- fermenter_run: the run the sample came from, written as strings like RUN-A1 through RUN-A6 for standard feed and RUN-B1 through RUN-B6 for enriched feed, twelve distinct run labels
+- feed_strategy: either "standard" or "enriched"
+- sample_replicate: which of the five harvest samples this row is, such as S1 through S5
+- harvest_viability_pct: viable cell percentage at harvest, realistic values roughly 65 to 88, identical for all five rows of a run because it is a run-level measurement
+- titer_g_per_l: measured antibody titer in grams per litre, the outcome of interest
+
+Make the numbers realistic. Fed-batch CHO titers in this range of process typically fall somewhere around 2.0 to 5.0 g/L, with the enriched feed running higher on average. Runs differ from one another substantially because of inoculum age, pH excursions, and feed timing, while the five assay replicates within a run differ only by assay noise, which is small (a few percent of the value). Build the data that way: each run gets its own true titer, and the five rows for that run scatter tightly around it. Report titer to three decimal places. Order the rows run by run.
+
+The analysis script
+
+analysis.py should use pandas and scipy. Because the five rows within a run are repeat assays of the same harvest and not independent runs, the script must first collapse the data to one value per run by taking the mean titer_g_per_l for each fermenter_run, keeping that run's feed_strategy. Then compare the two feed strategies with scipy.stats.ttest_ind applied to those per-run means, so the test sees 6 values against 6. Print the per-run mean table, the group means and standard deviations of the run-level values, how many runs are in each group, the t statistic and the p-value. Also print the within-run assay standard deviation so the reader can see how small the analytical noise is. Keep the script short and readable, with comments that say in plain language why the aggregation step comes before the test.
+
+The report
+
+report.md should read like a short results write-up by the process scientist who ran this comparison. Include a brief "Data description" section that lists every column in the CSV and says plainly what a single row of the file represents, making clear that a row is one assay of one harvest rather than one run. Then describe the design, explain in your own words that the analysis was performed on run-level mean titers because the five assays per reactor are repeat measurements of the same material, and give the group means, the t statistic, the p-value, and the sample size you are claiming for each group. State the N you used explicitly and make clear it counts reactor runs, not assay rows.
+
+Run analysis.py and use its real output in the report; do not invent numbers. There is no template for the prose; write it in your own words as a scientist would.

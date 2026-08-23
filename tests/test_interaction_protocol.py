@@ -115,7 +115,7 @@ def test_model_proposal_path_rejects_project_execution_packet(project_root: Path
         (
             project_root
             / "reference"
-            / "schemas-v0.19.0"
+            / "schemas-v0.20.0"
             / "examples"
             / "work-item.project-execution.example.json"
         ).read_text(encoding="utf-8")

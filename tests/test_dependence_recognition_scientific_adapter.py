@@ -13,7 +13,17 @@ from sc_referee.core.ids import canonical_json, sha256_digest
 from sc_referee.dependence_recognition.adapter import (
     DEPENDENCE_RECOGNITION_ADAPTER_IMPLEMENTATION_DIGEST,
 )
+from sc_referee.scientific_checks.code_csv_dependence_adapter import (
+    CODE_CSV_DEPENDENCE_ADAPTER_ID,
+    CODE_CSV_DEPENDENCE_ADAPTER_VERSION,
+    CodeCsvDependenceAdapter,
+)
+from sc_referee.scientific_checks.code_csv_dependence_adapter import (
+    DEPENDENCE_RECOGNITION_CHECK_VERSION as ACTIVE_DEPENDENCE_CHECK_VERSION,
+)
 from sc_referee.scientific_checks.core import (
+    AdapterManifest,
+    CanonicalOperand,
     FrozenBaseRecord,
     FrozenInspectionContext,
     InspectionDocument,
@@ -28,15 +38,19 @@ from sc_referee.scientific_checks.dependence_recognition_adapter import (
     DEPENDENCE_RECOGNITION_CANDIDATE_ID,
     DEPENDENCE_RECOGNITION_CHECK_ID,
     DEPENDENCE_RECOGNITION_CHECK_VERSION,
+    DEPENDENCE_RECOGNITION_COUNTEREVIDENCE,
+    DEPENDENCE_RECOGNITION_SCIENTIFIC_ADAPTER_IMPLEMENTATION_DIGEST,
     MULTIPLE_ROWS_PER_AUTHORIZED_UNIT,
     ONE_ROW_PER_AUTHORIZED_UNIT,
     DependenceRecognitionScientificAdapter,
+    dependence_recognition_grammar_digest,
 )
 from sc_referee.scientific_checks.founder_orientation_semantic_adapter import (
     FOUNDER_ORIENTATION_SEMANTIC_ADAPTER_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.profiles import (
     default_scientific_check_registry,
+    scientific_check_release_projection,
     scientific_check_release_registry,
 )
 from sc_referee.scientific_checks.scope_joins import (
@@ -165,6 +179,32 @@ def _module():  # type: ignore[no-untyped-def]
     return matches[0]
 
 
+def _withdrawn_report_lane_adapter_for_replay() -> DependenceRecognitionScientificAdapter:
+    active = _module()
+    check = replace(active.manifest, check_version=DEPENDENCE_RECOGNITION_CHECK_VERSION)
+    one_row = check.requirement_candidates[0].operand
+    manifest = AdapterManifest(
+        adapter_id=DEPENDENCE_RECOGNITION_ADAPTER_ID,
+        adapter_version=DEPENDENCE_RECOGNITION_ADAPTER_VERSION,
+        implementation_digest=DEPENDENCE_RECOGNITION_SCIENTIFIC_ADAPTER_IMPLEMENTATION_DIGEST,
+        recognition_grammar_digest=dependence_recognition_grammar_digest(),
+        parser_id="parser:python-ast-tokenize",
+        parser_version="0.15.1",
+        source_language="python",
+        evidence_plane="static_source",
+        semantic_roles=check.semantic_roles,
+        applicability_profile="bounded-dependence-semantic-certificate-v1",
+        counterevidence_profiles=DEPENDENCE_RECOGNITION_COUNTEREVIDENCE,
+        known_gaps=(),
+    )
+    return DependenceRecognitionScientificAdapter(
+        check_manifest=check,
+        adapter_manifest=manifest,
+        one_row_operand=one_row,
+        multiple_rows_operand=CanonicalOperand.scalar(MULTIPLE_ROWS_PER_AUTHORIZED_UNIT),
+    )
+
+
 def _common_certificate_projection(record_type: str) -> dict[str, Any]:
     return {
         "record_type": record_type,
@@ -279,14 +319,13 @@ def _shadow_payload(payload_type: str) -> dict[str, Any]:
         ("unsupported", "unsupported", None),
     ],
 )
+@pytest.mark.retired_report_lane
 def test_all_shadow_routes_normalize_once_under_question_only_ceiling(
     payload_type: str,
     applicability: str,
     operand: str | None,
 ) -> None:
-    module = _module()
-    adapter = module.adapters[0]
-    assert isinstance(adapter, DependenceRecognitionScientificAdapter)
+    adapter = _withdrawn_report_lane_adapter_for_replay()
     shadow = _CountingShadow(_shadow_payload(payload_type))
     adapter = replace(adapter, shadow_adapter=shadow)
 
@@ -325,10 +364,9 @@ def test_all_shadow_routes_normalize_once_under_question_only_ceiling(
         assert observation.scope_join_path == ()
 
 
-def test_material_question_legacy_python_ast_parser_identity_is_unsupported() -> None:
-    module = _module()
-    adapter = module.adapters[0]
-    assert isinstance(adapter, DependenceRecognitionScientificAdapter)
+@pytest.mark.retired_report_lane
+def test_historical_report_lane_legacy_python_ast_parser_identity_is_unsupported() -> None:
+    adapter = _withdrawn_report_lane_adapter_for_replay()
     adapter = replace(
         adapter,
         shadow_adapter=_CountingShadow(_shadow_payload("material_question")),
@@ -340,10 +378,9 @@ def test_material_question_legacy_python_ast_parser_identity_is_unsupported() ->
     assert observation.abstention_reason == "dependence-source-or-parser-identity-mismatch"
 
 
-def test_paired_procedure_coverage_gap_retains_its_exact_named_abstention() -> None:
-    module = _module()
-    adapter = module.adapters[0]
-    assert isinstance(adapter, DependenceRecognitionScientificAdapter)
+@pytest.mark.retired_report_lane
+def test_historical_report_lane_paired_procedure_gap_retains_named_abstention() -> None:
+    adapter = _withdrawn_report_lane_adapter_for_replay()
     shadow = _shadow_payload("unsupported")
     shadow["payload"]["coverage_classes"] = ["paired-procedure-operand-unverified"]
 
@@ -356,10 +393,9 @@ def test_paired_procedure_coverage_gap_retains_its_exact_named_abstention() -> N
     assert observation.abstention_reason == "paired-procedure-operand-unverified"
 
 
-def test_applicable_shadow_without_exact_writer_scope_is_unsupported() -> None:
-    module = _module()
-    adapter = module.adapters[0]
-    assert isinstance(adapter, DependenceRecognitionScientificAdapter)
+@pytest.mark.retired_report_lane
+def test_historical_report_lane_without_exact_writer_scope_is_unsupported() -> None:
+    adapter = _withdrawn_report_lane_adapter_for_replay()
     shadow = _CountingShadow(_shadow_payload("shadow_candidate"))
 
     observation = replace(adapter, shadow_adapter=shadow).inspect(_context(scoped=False))
@@ -374,7 +410,7 @@ def test_registered_dependence_module_has_exact_single_adapter_identity() -> Non
     module = _module()
 
     assert module.manifest.check_id == DEPENDENCE_RECOGNITION_CHECK_ID
-    assert module.manifest.check_version == DEPENDENCE_RECOGNITION_CHECK_VERSION
+    assert module.manifest.check_version == ACTIVE_DEPENDENCE_CHECK_VERSION
     assert module.manifest.dimension == "dependence_structure"
     assert module.manifest.maturity_tier == "question_only"
     assert module.manifest.production_finding_permitted is False
@@ -383,9 +419,45 @@ def test_registered_dependence_module_has_exact_single_adapter_identity() -> Non
         DEPENDENCE_RECOGNITION_CANDIDATE_ID
     )
     assert len(module.adapters) == len(module.adapter_manifests) == 1
-    assert module.adapter_manifests[0].adapter_id == DEPENDENCE_RECOGNITION_ADAPTER_ID
-    assert module.adapter_manifests[0].adapter_version == DEPENDENCE_RECOGNITION_ADAPTER_VERSION
+    assert isinstance(module.adapters[0], CodeCsvDependenceAdapter)
+    assert module.adapter_manifests[0].adapter_id == CODE_CSV_DEPENDENCE_ADAPTER_ID
+    assert module.adapter_manifests[0].adapter_version == CODE_CSV_DEPENDENCE_ADAPTER_VERSION
     assert module.adapter_manifests[0].evidence_plane == "static_source"
+
+
+def test_registered_code_adapter_uses_only_static_python_evidence() -> None:
+    module = _module()
+    adapter = module.adapters[0]
+    assert isinstance(adapter, CodeCsvDependenceAdapter)
+    assert adapter.adapter_manifest.parser_id == "parser:python-ast-tokenize"
+    assert adapter.adapter_manifest.source_language == "python"
+    assert adapter.adapter_manifest.evidence_plane == "static_source"
+
+
+def test_registered_code_adapter_has_no_report_or_shadow_lane() -> None:
+    adapter = _module().adapters[0]
+    assert isinstance(adapter, CodeCsvDependenceAdapter)
+    assert not hasattr(adapter, "shadow_adapter")
+    assert all("report" not in role for role in adapter.adapter_manifest.semantic_roles)
+
+
+def test_registered_code_adapter_is_question_only_and_unqualified() -> None:
+    module = _module()
+    adapter = module.adapters[0]
+    assert isinstance(adapter, CodeCsvDependenceAdapter)
+    assert module.manifest.production_finding_permitted is False
+    assert module.manifest.maturity_tier == "question_only"
+    assert adapter.check_manifest.manifest_digest == module.manifest.manifest_digest
+
+
+def test_registered_code_adapter_counterevidence_is_closed_and_prose_free() -> None:
+    adapter = _module().adapters[0]
+    assert isinstance(adapter, CodeCsvDependenceAdapter)
+    profiles = adapter.adapter_manifest.counterevidence_profiles
+    assert profiles
+    assert len(profiles) == len(set(profiles))
+    assert all("report" not in value for value in profiles)
+    assert "prose-free-source-view" in profiles
 
 
 def test_published_dependence_candidate_resolves_through_requirement_profile() -> None:
@@ -395,6 +467,13 @@ def test_published_dependence_candidate_resolves_through_requirement_profile() -
             "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
             "check_id": DEPENDENCE_RECOGNITION_CHECK_ID,
             "candidate_id": DEPENDENCE_RECOGNITION_CANDIDATE_ID,
+            "semantic_role_authority": {
+                "authorized_independent_unit_key": {
+                    "material_input_path": "data/input.csv",
+                    "column_name": "participant_id",
+                    "group_contrast_column": "group",
+                }
+            },
         },
         registry=scientific_check_release_registry(),
     )
@@ -423,7 +502,7 @@ def test_registered_dependence_route_emits_zero_findings(
     assert bundle["findings"] == []
 
 
-def test_founder_manifests_and_semantic_closure_remain_invariant() -> None:
+def test_founder_core_and_shared_integration_closure_are_content_addressed() -> None:
     founder = next(
         module
         for module in scientific_check_release_registry().modules
@@ -434,21 +513,28 @@ def test_founder_manifests_and_semantic_closure_remain_invariant() -> None:
     )
     assert [item.manifest_digest for item in founder.adapter_manifests] == [
         "sha256:cd13024eb42264d78ba410e8fe6eb914f8188f3b693f4939835af73526e52097",
-        "sha256:9c9371c2e3c3a87bc61992ba30f3678674ddc52249c0e537c472d11c3cd1839b",
+        "sha256:8973c78a59a1ad66f1d4b3d5782919994e76a97a96387ed5c93bb2e19c424d7d",
     ]
     assert FOUNDER_ORIENTATION_SEMANTIC_ADAPTER_IMPLEMENTATION_DIGEST == (
-        "sha256:6ae82051bbfb051785f7dc0a2eb8366bf16ec49bda4f94c02b96a9312c588a0b"
+        "sha256:cc770303ee23267a6dbd4b047f980ab9d7c56a6b89b8cb7d1d0d88d7fc4dc24b"
     )
 
 
-def test_founder_closure_core_and_integration_files_are_byte_identical() -> None:
+def test_founder_closure_core_is_byte_identical_and_integration_is_release_bound() -> None:
     root = Path(__file__).resolve().parents[1]
     expected = {
         "src/sc_referee/scientific_checks/core.py": (
             "sha256:91271b8c2a007c460a35134ff1c207424a99cf269c78d638557ffad330192c92"
         ),
         "src/sc_referee/scientific_checks/integration.py": (
-            "sha256:e3c53ddf23992534c85b46df46ea5afc6f0b1cc777db765802c92532e334c77e"
+            "sha256:99cc852d6f7a0f9c1f59d9a05d95136594ad6ccad4ebba3b96f5d474691d22f2"
         ),
     }
     assert {path: sha256_digest((root / path).read_bytes()) for path in expected} == expected
+    release = scientific_check_release_registry()
+    assert (
+        scientific_check_release_projection(release)["implementation_files"][
+            "scientific_checks/integration.py"
+        ]
+        == expected["src/sc_referee/scientific_checks/integration.py"]
+    )

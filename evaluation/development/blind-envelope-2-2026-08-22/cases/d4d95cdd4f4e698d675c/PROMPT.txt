@@ -1,0 +1,64 @@
+Author one complete, self-contained small analysis project for the scenario below. The project must
+contain exactly three deliverables: one data file in CSV format, one Python analysis script named
+analysis.py located at the root of the project, and one short written report. Nothing else is needed.
+
+Scenario
+
+A stem-cell laboratory grows intestinal organoids from biopsy-derived cells and asks whether donors
+carrying a barrier-risk variant of a tight-junction gene produce organoids with weaker epithelial
+barriers. The donor is the experimental unit: genotype is a fixed property of the person the cells
+came from, so all wells seeded from one donor share that genotype, that person's genetic background,
+and one common cell preparation. There are 18 donors: 9 carriers of the risk variant and 9
+non-carriers. From each donor's preparation, 6 wells were seeded on the same plate layout and each
+well was measured once, giving 6 wells per donor and 108 wells overall. The wells are technical
+replicates of a donor, not independent people.
+
+The outcome is transepithelial electrical resistance in ohm-centimetres squared, measured on day 7
+after seeding. Realistic values: wells from non-carrier donors average about 412 ohm-cm-squared and
+wells from carrier donors about 318. Donors differ considerably from one another, with a
+between-donor standard deviation of roughly 45 units, while wells from the same donor vary by
+roughly 30 units around their donor's level. Generate the CSV values so this structure is visible in
+the numbers, and round resistances to one decimal place.
+
+Data file
+
+One row per measured well, so a donor appears on six rows. Include a column identifying the donor,
+named donor_id, with labels such as D01 through D18. Include a column for the genotype group, a
+column for the well position on the plate, a column for the passage number of the preparation, a
+column for the donor's age in years, and a column for the day-7 transepithelial electrical
+resistance. Choose clear, lowercase, underscore-separated names for the remaining columns and use
+them consistently across the CSV, the script, and the report.
+
+Analysis
+
+The primary inference must treat the donor, not the well, as the independent replicate, and it must
+be done by resampling rather than by a standard formula-based test. Write the resampling procedure
+by hand in the script, from ordinary array operations, without relying on any ready-made routine
+that performs the procedure for you. The procedure works like this: repeatedly draw a resample by
+sampling whole donors with replacement within each genotype group, keeping all of a drawn donor's
+wells together every time that donor is drawn, so that the resampling unit is the donor and the
+correlation among a donor's wells is preserved; for each resample compute the difference between the
+two group means; do this for a large number of resamples with a fixed random seed so the result
+reproduces; then report the observed difference in group means together with a percentile confidence
+interval built from the resampled differences, and the number of resamples used. Report the sample
+size for this analysis as 9 donors per group and 18 donors in total. Treat this resampling result as
+the inferential result of the project.
+
+Then, purely as an illustrative contrast, also run a plain independent two-sample comparison of the
+108 individual well measurements that treats every well as an independent observation, and print its
+p-value alongside a note that it is shown only for illustration. The script's printed output must
+label the donor-level resampling as the primary and valid analysis, and must label the well-level
+comparison as invalid for inference because it counts technical replicates as independent subjects.
+
+Report
+
+Write the report as a stem-cell biologist. Open with a paragraph on why tight-junction genotype is
+expected to affect epithelial barrier strength. Include a short data description section that lists
+every column in the CSV and states plainly what a single row represents, noting that each donor
+contributes six rows. State explicitly that genotype varies between donors and not between wells,
+and explain in plain language how the donor-level resampling keeps each donor's wells together and
+why that matters. Base every conclusion on the resampling result. Present the well-level comparison
+afterwards, in a clearly subordinate subsection, and say plainly that its p-value is not valid for
+inference here and is reported only to show how much the apparent evidence inflates when technical
+replicates are counted as subjects. Close with biological interpretation and the usual practical
+caveats such as the modest number of donors, the single timepoint, and the single tissue source.

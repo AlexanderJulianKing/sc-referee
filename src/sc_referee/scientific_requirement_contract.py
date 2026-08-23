@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import copy
+import re
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from pathlib import PurePosixPath
 from typing import Any
 
 from sc_referee.core.ids import canonical_json, semantic_digest, stable_id
@@ -21,8 +23,14 @@ from sc_referee.scientific_checks.registry import ScientificCheckRegistry
 from sc_referee.version import SCHEMA_VERSION, __version__
 
 SCIENTIFIC_REQUIREMENT_PROFILE_ID = "scientific_check_requirement_v1"
-SCIENTIFIC_REQUIREMENT_PROFILE_VERSION = "1.0.0"
+SCIENTIFIC_REQUIREMENT_PROFILE_VERSION = "1.1.0"
+LEGACY_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION = "1.0.0"
 ANSWER_DIGEST_PROFILE = "canonical-json-excluding-answer-digest-v1"
+_DEPENDENCE_CHECK_ID = "check:authorized-independent-unit-entry-into-row-independent-procedure"
+_DEPENDENCE_CANDIDATE_ID = "one-analyzed-row-per-authorized-independent-unit"
+_UNIT_AUTHORITY_ROLE = "authorized_independent_unit_key"
+_SAFE_AUTHORITY_SEGMENT = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
+_SAFE_AUTHORITY_COLUMN = re.compile(r"[A-Za-z][A-Za-z0-9_.-]{0,127}\Z")
 
 
 class ScientificRequirementContractError(ValueError):
@@ -34,6 +42,9 @@ class ResolvedScientificRequirement:
     check_manifest: dict[str, Any]
     check_manifest_digest: str
     candidate: dict[str, Any]
+    profile_version: str = SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+    semantic_role_authority: dict[str, Any] | None = None
+    authority_binding_snapshot: dict[str, Any] | None = None
 
     @property
     def check_id(self) -> str:
@@ -63,9 +74,9 @@ class ResolvedScientificRequirement:
 
     @property
     def manifest(self) -> dict[str, Any]:
-        return {
+        value = {
             "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
-            "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+            "profile_version": self.profile_version,
             "check_manifest": copy.deepcopy(self.check_manifest),
             "check_manifest_digest": self.check_manifest_digest,
             "selected_candidate": copy.deepcopy(self.candidate),
@@ -75,6 +86,21 @@ class ResolvedScientificRequirement:
                 "manifest_digest": semantic_digest(POSTHOC_METHOD_LEDGER_MANIFEST),
             },
         }
+        if self.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+            value["semantic_role_authority"] = copy.deepcopy(self.semantic_role_authority or {})
+            value["authority_binding_snapshot"] = copy.deepcopy(
+                self.authority_binding_snapshot or {}
+            )
+        return value
+
+    def with_authority_binding_snapshot(
+        self, snapshot: Mapping[str, Any]
+    ) -> ResolvedScientificRequirement:
+        if self.profile_version != SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+            raise ScientificRequirementContractError(
+                "legacy scientific requirement cannot bind semantic-role authority"
+            )
+        return replace(self, authority_binding_snapshot=copy.deepcopy(dict(snapshot)))
 
 
 def is_scientific_requirement_profile(profile: object) -> bool:
@@ -92,18 +118,27 @@ def resolve_scientific_requirement_profile(
 
     if not isinstance(profile, Mapping):
         raise ScientificRequirementContractError("scientific requirement profile must be an object")
-    expected_keys = {"profile_id", "profile_version", "check_id", "candidate_id"}
-    if set(profile) != expected_keys:
-        raise ScientificRequirementContractError(
-            "scientific requirement profile must contain exactly profile_id, profile_version, "
-            "check_id, and candidate_id"
-        )
-    if profile.get("profile_id") != SCIENTIFIC_REQUIREMENT_PROFILE_ID:
-        raise ScientificRequirementContractError("unsupported scientific requirement profile ID")
-    if profile.get("profile_version") != SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+    profile_version = profile.get("profile_version")
+    if profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+        expected_keys = {
+            "profile_id",
+            "profile_version",
+            "check_id",
+            "candidate_id",
+            "semantic_role_authority",
+        }
+    elif profile_version == LEGACY_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+        expected_keys = {"profile_id", "profile_version", "check_id", "candidate_id"}
+    else:
         raise ScientificRequirementContractError(
             "unsupported scientific requirement profile version"
         )
+    if set(profile) != expected_keys:
+        raise ScientificRequirementContractError(
+            "scientific requirement profile has the wrong exact versioned field set"
+        )
+    if profile.get("profile_id") != SCIENTIFIC_REQUIREMENT_PROFILE_ID:
+        raise ScientificRequirementContractError("unsupported scientific requirement profile ID")
     check_id = profile.get("check_id")
     candidate_id = profile.get("candidate_id")
     if not isinstance(check_id, str) or not check_id:
@@ -129,10 +164,22 @@ def resolve_scientific_requirement_profile(
             f"candidate_id is not published by {check_id}: {candidate_id}"
         )
     _validate_candidate_against_manifest(manifest, candidates[0])
+    authority = (
+        _validate_semantic_role_authority(
+            profile.get("semantic_role_authority"),
+            check_id=check_id,
+            candidate_id=candidate_id,
+        )
+        if profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+        else {}
+    )
     return ResolvedScientificRequirement(
         check_manifest=manifest.to_dict(),
         check_manifest_digest=manifest.manifest_digest,
         candidate=candidates[0].to_dict(),
+        profile_version=str(profile_version),
+        semantic_role_authority=authority,
+        authority_binding_snapshot={},
     )
 
 
@@ -144,11 +191,11 @@ def resolved_scientific_requirement_from_lock_profile(
     manifest = profile_record.get("profile_manifest")
     if not isinstance(manifest, Mapping):
         raise ScientificRequirementContractError("scientific requirement manifest is unavailable")
-    expected = {
-        "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
-        "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
-    }
-    if any(manifest.get(key) != value for key, value in expected.items()):
+    profile_version = manifest.get("profile_version")
+    if manifest.get("profile_id") != SCIENTIFIC_REQUIREMENT_PROFILE_ID or profile_version not in {
+        SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+        LEGACY_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+    }:
         raise ScientificRequirementContractError("scientific requirement manifest identity drifted")
     check_manifest = manifest.get("check_manifest")
     candidate = manifest.get("selected_candidate")
@@ -173,11 +220,29 @@ def resolved_scientific_requirement_from_lock_profile(
         check_manifest=copy.deepcopy(dict(check_manifest)),
         check_manifest_digest=check_digest,
         candidate=copy.deepcopy(dict(candidate)),
+        profile_version=str(profile_version),
+        semantic_role_authority=(
+            _validate_semantic_role_authority(
+                manifest.get("semantic_role_authority"),
+                check_id=str(check_manifest.get("check_id", "")),
+                candidate_id=str(candidate.get("candidate_id", "")),
+            )
+            if profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+            else {}
+        ),
+        authority_binding_snapshot=(
+            _validate_authority_binding_snapshot(
+                manifest.get("authority_binding_snapshot"),
+                manifest.get("semantic_role_authority"),
+            )
+            if profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+            else {}
+        ),
     )
     _validate_resolved_shape(resolved)
     if (
         profile_record.get("profile_id") != SCIENTIFIC_REQUIREMENT_PROFILE_ID
-        or profile_record.get("profile_version") != SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+        or profile_record.get("profile_version") != profile_version
         or profile_record.get("resolution_status") != "resolved"
         or profile_record.get("check_id") != resolved.check_id
         or profile_record.get("candidate_id") != resolved.candidate_id
@@ -192,7 +257,7 @@ def scientific_requirement_lock_profile(
     manifest = resolved.manifest
     return {
         "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
-        "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+        "profile_version": resolved.profile_version,
         "profile_manifest": manifest,
         "profile_manifest_digest": semantic_digest(manifest),
         "resolution_status": "resolved",
@@ -225,6 +290,10 @@ def build_scientific_requirement_records(
     )
     question_id = stable_id("question-method-contract", run_id, contract_id)
     answer_value = {resolved.dimension: resolved.value}
+    if resolved.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+        answer_value["semantic_role_authority"] = copy.deepcopy(
+            resolved.semantic_role_authority or {}
+        )
     answer_id = stable_id(
         "answer-method-contract",
         run_id,
@@ -268,6 +337,11 @@ def build_scientific_requirement_records(
             "x-scientific-check-id": resolved.check_id,
             "x-scientific-check-manifest-digest": resolved.check_manifest_digest,
             "x-selected-candidate-id": resolved.candidate_id,
+            **(
+                {"x-semantic-role-authority": copy.deepcopy(resolved.semantic_role_authority or {})}
+                if resolved.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+                else {}
+            ),
         },
     }
     answer["answer_digest"] = semantic_digest(answer)
@@ -337,7 +411,7 @@ def build_scientific_requirement_records(
         "extensions": {
             "x-method-contract-lifecycle": "claimless_v1",
             "x-method-profile-id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
-            "x-method-profile-version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+            "x-method-profile-version": resolved.profile_version,
             "x-method-profile-manifest-digest": semantic_digest(resolved.manifest),
             "x-method-profile-resolution-status": "resolved",
             "x-scientific-check-id": resolved.check_id,
@@ -481,6 +555,8 @@ def verify_parent_scientific_requirement(
         contract.get("scope", {}).get("level") != "analysis"
         or contract.get("extensions", {}).get("x-method-profile-id")
         != SCIENTIFIC_REQUIREMENT_PROFILE_ID
+        or contract.get("extensions", {}).get("x-method-profile-version")
+        != resolved.profile_version
         or contract.get("extensions", {}).get("x-method-profile-manifest-digest")
         != semantic_digest(resolved.manifest)
         or contract.get("extensions", {}).get("x-scientific-check-id") != resolved.check_id
@@ -498,7 +574,12 @@ def verify_parent_scientific_requirement(
         or answer.get("respondent", {}).get("actor_kind") != "human"
         or answer.get("response_source") != "provided_answer_file"
         or answer.get("source_snapshot_digest") != locked.get("snapshot_digest")
-        or answer.get("answer_value") != {resolved.dimension: resolved.value}
+        or answer.get("answer_value") != _resolved_answer_value(resolved)
+        or (
+            resolved.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+            and answer.get("extensions", {}).get("x-semantic-role-authority")
+            != (resolved.semantic_role_authority or {})
+        )
     ):
         raise ScientificRequirementContractError(
             "resolved scientific requirement authority or scope is invalid"
@@ -551,19 +632,29 @@ def bind_scientific_requirement_to_audit(
 ) -> dict[str, Any]:
     """Bind one frozen requirement to the exact matching current scientific-check question."""
 
+    active_profile: dict[str, Any] = {
+        "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
+        "profile_version": resolved.profile_version,
+        "check_id": resolved.check_id,
+        "candidate_id": resolved.candidate_id,
+    }
+    if resolved.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+        active_profile["semantic_role_authority"] = copy.deepcopy(
+            resolved.semantic_role_authority or {}
+        )
     active = resolve_scientific_requirement_profile(
-        {
-            "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
-            "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
-            "check_id": resolved.check_id,
-            "candidate_id": resolved.candidate_id,
-        },
+        active_profile,
         registry=active_registry,
     )
-    if active != resolved:
+    active = replace(
+        active,
+        authority_binding_snapshot=copy.deepcopy(resolved.authority_binding_snapshot or {}),
+    )
+    if active != resolved and not compatible_dependence_code_lane_requirement(resolved, active):
         raise ScientificRequirementContractError(
             "active scientific check or selected candidate drifted from the frozen contract"
         )
+    resolved = active
     candidates = [
         question
         for question in questions
@@ -590,7 +681,7 @@ def bind_scientific_requirement_to_audit(
                 "evidence did not produce one applicable question for that check."
             ),
             "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
-            "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+            "profile_version": resolved.profile_version,
             "check_id": resolved.check_id,
             "candidate_id": resolved.candidate_id,
         }
@@ -630,7 +721,7 @@ def bind_scientific_requirement_to_audit(
     ):
         raise ScientificRequirementContractError("current scientific requirement scope drifted")
     parent_digest = str(parent["semantic_lock_digest"])
-    answer_value = {resolved.dimension: resolved.value}
+    answer_value = _resolved_answer_value(resolved)
     answer_id = stable_id(
         "answer-bound-scientific-requirement",
         run_id,
@@ -677,6 +768,7 @@ def bind_scientific_requirement_to_audit(
             "x-scientific-check-id": resolved.check_id,
             "x-scientific-check-manifest-digest": resolved.check_manifest_digest,
             "x-selected-candidate-id": resolved.candidate_id,
+            **_resolved_authority_extensions(resolved, include_snapshot=True),
         },
     }
     answer["answer_digest"] = semantic_digest(answer)
@@ -734,6 +826,7 @@ def bind_scientific_requirement_to_audit(
             "x-scientific-check-manifest-digest": resolved.check_manifest_digest,
             "x-scientific-check-scope-join-digest": scope_digest,
             "x-selected-candidate-id": resolved.candidate_id,
+            **_resolved_authority_extensions(resolved, include_snapshot=True),
             "x-authority-limitation": (
                 "Pre-analysis review requirement only; historical intent, execution, numeric "
                 "causality, and universal correctness are not established."
@@ -775,6 +868,42 @@ def bind_scientific_requirement_to_audit(
         "check_id": resolved.check_id,
         "candidate_id": resolved.candidate_id,
     }
+
+
+def compatible_dependence_code_lane_requirement(
+    frozen: ResolvedScientificRequirement,
+    active: ResolvedScientificRequirement,
+) -> bool:
+    """Accept only the ADR-0076 code-lane migrations through active 2.1.0.
+
+    The human-selected operand, authority surface, frozen material binding,
+    comparison relation, and candidate remain byte-equivalent.  Adapter,
+    semantic-role, and evidence-plane changes are intentionally excluded from
+    the authority claim and remain governed by the new check manifest.
+    """
+
+    if not (
+        frozen.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+        and active.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+        and frozen.check_id == _DEPENDENCE_CHECK_ID == active.check_id
+        and frozen.check_version in {"1.2.0", "1.3.0", "1.3.1", "1.3.2", "1.3.3", "2.0.0"}
+        and active.check_version == "2.1.0"
+        and frozen.candidate_id == _DEPENDENCE_CANDIDATE_ID == active.candidate_id
+        and frozen.dimension == active.dimension == "dependence_structure"
+        and frozen.comparison_form == active.comparison_form == "value_equals"
+        and frozen.value == active.value
+        and frozen.candidate == active.candidate
+        and frozen.semantic_role_authority == active.semantic_role_authority
+        and frozen.authority_binding_snapshot == active.authority_binding_snapshot
+    ):
+        return False
+    frozen_candidates = frozen.check_manifest.get("requirement_candidates")
+    active_candidates = active.check_manifest.get("requirement_candidates")
+    return bool(
+        isinstance(frozen_candidates, list)
+        and isinstance(active_candidates, list)
+        and frozen_candidates == active_candidates
+    )
 
 
 def _parent_requirement_assertion(
@@ -840,10 +969,11 @@ def _parent_requirement_assertion(
             "x-answer-ref": typed_ref("answer", str(answer["answer_id"])),
             "x-answer-digest": str(answer["answer_digest"]),
             "x-profile-id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
-            "x-profile-version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+            "x-profile-version": resolved.profile_version,
             "x-scientific-check-id": resolved.check_id,
             "x-scientific-check-manifest-digest": resolved.check_manifest_digest,
             "x-selected-candidate-id": resolved.candidate_id,
+            **_resolved_authority_extensions(resolved, include_snapshot=derived),
             **(
                 {"x-original-declaration-ref": typed_ref("semantic_assertion", declaration_id)}
                 if declaration_id is not None
@@ -886,6 +1016,21 @@ def _matching_parent_assertions(
         and item.get("extensions", {}).get("x-scientific-check-id") == resolved.check_id
         and item.get("extensions", {}).get("x-scientific-check-manifest-digest")
         == resolved.check_manifest_digest
+        and item.get("extensions", {}).get("x-profile-version") == resolved.profile_version
+        and (
+            resolved.profile_version != SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+            or item.get("extensions", {}).get("x-semantic-role-authority")
+            == (resolved.semantic_role_authority or {})
+        )
+        and (
+            resolved.profile_version != SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+            or (
+                item.get("extensions", {}).get("x-authority-binding-snapshot")
+                == (resolved.authority_binding_snapshot or {})
+                if derived
+                else "x-authority-binding-snapshot" not in item.get("extensions", {})
+            )
+        )
         and item.get("provenance", {}).get("actor", {}).get("actor_kind") == expected_actor
     ]
 
@@ -895,6 +1040,26 @@ def _verify_answer_digest(answer: Mapping[str, Any]) -> None:
     recorded = value.pop("answer_digest", None)
     if not isinstance(recorded, str) or semantic_digest(value) != recorded:
         raise ScientificRequirementContractError("scientific requirement Answer digest mismatch")
+
+
+def _resolved_answer_value(resolved: ResolvedScientificRequirement) -> dict[str, Any]:
+    value: dict[str, Any] = {resolved.dimension: resolved.value}
+    if resolved.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+        value["semantic_role_authority"] = copy.deepcopy(resolved.semantic_role_authority or {})
+    return value
+
+
+def _resolved_authority_extensions(
+    resolved: ResolvedScientificRequirement, *, include_snapshot: bool
+) -> dict[str, Any]:
+    if resolved.profile_version != SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+        return {}
+    value = {"x-semantic-role-authority": copy.deepcopy(resolved.semantic_role_authority or {})}
+    if include_snapshot:
+        value["x-authority-binding-snapshot"] = copy.deepcopy(
+            resolved.authority_binding_snapshot or {}
+        )
+    return value
 
 
 def _validate_candidate_against_manifest(
@@ -907,6 +1072,116 @@ def _validate_candidate_against_manifest(
         raise ScientificRequirementContractError(
             "published requirement candidate is not canonical for its comparison form"
         )
+
+
+def _validate_semantic_role_authority(
+    value: object,
+    *,
+    check_id: str,
+    candidate_id: str,
+) -> dict[str, Any]:
+    if check_id != _DEPENDENCE_CHECK_ID or candidate_id != _DEPENDENCE_CANDIDATE_ID:
+        if value != {}:
+            raise ScientificRequirementContractError(
+                "non-dependence scientific requirements require empty semantic-role authority"
+            )
+        return {}
+    if not isinstance(value, Mapping) or set(value) != {_UNIT_AUTHORITY_ROLE}:
+        raise ScientificRequirementContractError(
+            "dependence semantic-role authority has the wrong exact role set"
+        )
+    authority = value.get(_UNIT_AUTHORITY_ROLE)
+    if not isinstance(authority, Mapping) or set(authority) != {
+        "material_input_path",
+        "column_name",
+        "group_contrast_column",
+    }:
+        raise ScientificRequirementContractError(
+            "authorized independent-unit authority has the wrong exact field set"
+        )
+    path = authority.get("material_input_path")
+    column = authority.get("column_name")
+    group = authority.get("group_contrast_column")
+    if not isinstance(path, str) or not _valid_authority_path(path):
+        raise ScientificRequirementContractError(
+            "authorized independent-unit material path is invalid"
+        )
+    if not isinstance(column, str) or _SAFE_AUTHORITY_COLUMN.fullmatch(column) is None:
+        raise ScientificRequirementContractError(
+            "authorized independent-unit column name is invalid"
+        )
+    if (
+        not isinstance(group, str)
+        or _SAFE_AUTHORITY_COLUMN.fullmatch(group) is None
+        or group == column
+    ):
+        raise ScientificRequirementContractError("authorized group/contrast column name is invalid")
+    return {
+        _UNIT_AUTHORITY_ROLE: {
+            "material_input_path": path,
+            "column_name": column,
+            "group_contrast_column": group,
+        }
+    }
+
+
+def _valid_authority_path(value: str) -> bool:
+    if (
+        not value
+        or len(value) > 512
+        or not value.isascii()
+        or value.startswith("/")
+        or PurePosixPath(value).as_posix() != value
+        or PurePosixPath(value).suffix.lower() != ".csv"
+    ):
+        return False
+    parts = PurePosixPath(value).parts
+    return bool(parts) and all(
+        part not in {".", ".."} and _SAFE_AUTHORITY_SEGMENT.fullmatch(part) is not None
+        for part in parts
+    )
+
+
+def _validate_authority_binding_snapshot(value: object, authority_value: object) -> dict[str, Any]:
+    authority = _validate_semantic_role_authority(
+        authority_value,
+        check_id=_DEPENDENCE_CHECK_ID if authority_value else "other",
+        candidate_id=_DEPENDENCE_CANDIDATE_ID if authority_value else "other",
+    )
+    if not authority:
+        if value != {}:
+            raise ScientificRequirementContractError(
+                "empty semantic authority requires an empty binding snapshot"
+            )
+        return {}
+    if not isinstance(value, Mapping) or set(value) != {_UNIT_AUTHORITY_ROLE}:
+        raise ScientificRequirementContractError(
+            "authority binding snapshot has the wrong exact role set"
+        )
+    bound = value.get(_UNIT_AUTHORITY_ROLE)
+    expected_authority = authority[_UNIT_AUTHORITY_ROLE]
+    if not isinstance(bound, Mapping) or set(bound) != {
+        "material_input_path",
+        "column_name",
+        "group_contrast_column",
+        "material_input_content_digest",
+    }:
+        raise ScientificRequirementContractError(
+            "authority binding snapshot has the wrong exact field set"
+        )
+    digest = bound.get("material_input_content_digest")
+    if (
+        {key: bound.get(key) for key in expected_authority} != expected_authority
+        or not isinstance(digest, str)
+        or re.fullmatch(r"sha256:[0-9a-f]{64}", digest) is None
+    ):
+        raise ScientificRequirementContractError("authority binding snapshot drifted")
+    return {
+        _UNIT_AUTHORITY_ROLE: {
+            **copy.deepcopy(expected_authority),
+            "material_input_content_digest": digest,
+        }
+    }
 
 
 def _validate_resolved_shape(resolved: ResolvedScientificRequirement) -> None:

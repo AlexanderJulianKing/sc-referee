@@ -23,21 +23,23 @@ from sc_referee.scientific_requirement_contract import (
 FOUNDER_CHECK = "check:founder-orientation-before-hmm-emission"
 
 
-def _founder_requirement_profile() -> dict[str, str]:
+def _founder_requirement_profile() -> dict[str, object]:
     return {
         "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
         "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
         "check_id": FOUNDER_CHECK,
         "candidate_id": "repair-before-emission",
+        "semantic_role_authority": {},
     }
 
 
-def _expected_count_requirement_profile() -> dict[str, str]:
+def _expected_count_requirement_profile() -> dict[str, object]:
     return {
         "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
         "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
         "check_id": "check:expected-count-background-construction",
         "candidate_id": "negative-binomial-model-prediction",
+        "semantic_role_authority": {},
     }
 
 
@@ -260,7 +262,8 @@ def test_claimless_scientific_requirement_resolves_only_a_published_atomic_choic
     assert bundle["findings"] == []
     assert len(bundle["answers"]) == 1
     assert bundle["answers"][0]["answer_value"] == {
-        "scale_and_orientation": "repair_ril_founder_orientation_before_hmm_emission"
+        "scale_and_orientation": "repair_ril_founder_orientation_before_hmm_emission",
+        "semantic_role_authority": {},
     }
     assert bundle["material_questions"][0]["status"] == "answered"
     contract = bundle["scientific_contracts"][0]

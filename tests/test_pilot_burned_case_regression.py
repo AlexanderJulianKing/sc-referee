@@ -232,7 +232,7 @@ def _audit_case(
     shutil.copytree(project_root / runs / slug / "project", repository)
     # Replay the immutable case projects through the active public schema.  No
     # record in the frozen lanes is rewritten or re-stamped.
-    schema_root = project_root / "reference/schemas-v0.19.0"
+    schema_root = project_root / "reference/schemas-v0.20.0"
     contract = run_method_contract(
         repository,
         "task.md",
@@ -241,6 +241,7 @@ def _audit_case(
         profile={
             "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
             "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+            "semantic_role_authority": {},
             "check_id": CHECK_ID,
             "candidate_id": candidate_id,
         },

@@ -19,6 +19,7 @@ from sc_referee.detectors.bounded_analysis_method_conflict import (
     BoundedAnalysisMethodConflictDetector,
 )
 from sc_referee.detectors.method_conflict_finding import draft_method_conflict_finding
+from sc_referee.detectors.method_conflict_registry import _validation_bindings
 from sc_referee.records.schema_registry import LocalSchemaRegistry
 from sc_referee.scientific_checks.profiles import scientific_check_release_registry
 from tests.method_conflict_matrix_support import (
@@ -42,9 +43,16 @@ def matrix_detector(schema_root) -> BoundedAnalysisMethodConflictDetector:
         "implementation_digest"
     ] = BoundedAnalysisMethodConflictDetector.implementation_digest()
     manifest_digest = semantic_digest(manifest)
+    registry_bindings = scientific_check_release_registry().method_conflict_bindings
     bindings = tuple(
         replace(binding, detector_manifest_digest=manifest_digest)
-        for binding in scientific_check_release_registry().method_conflict_bindings
+        for binding in registry_bindings
+        if binding.detector_id == BoundedAnalysisMethodConflictDetector.detector_id
+    )
+    bindings = _validation_bindings(
+        manifest,
+        bindings,
+        registry_bindings,
     )
     return BoundedAnalysisMethodConflictDetector(manifest, bindings)
 

@@ -1,0 +1,34 @@
+Author one complete, self-contained small analysis project for the scenario below. Deliver three
+things in a single project folder: one data file in comma-separated form, one analysis script named
+analysis.py sitting at the root of the project, and one short written report.
+
+Scenario. A horticultural trial on irrigation and strawberry fruit quality. Twenty-four mother plants
+were grown in a polytunnel: twelve on a deficit irrigation schedule and twelve on the standard full
+irrigation schedule. At harvest, six ripe berries were picked from each plant, and the soluble solids
+content of every berry was measured with a refractometer. The repeated rows are berries subsampled
+from the same plant.
+
+Data. Build the comma-separated file yourself with realistic invented values. Soluble solids should be
+in degrees Brix, averaging about 8.6 under deficit irrigation and about 7.5 under full irrigation.
+Plants should differ from one another by roughly 0.6 degrees Brix of spread, with about 0.9 of
+berry-to-berry variation on one plant. Include the plant identifier, the irrigation schedule, a berry
+identifier, the soluble solids value, the berry fresh weight in grams around 18, and the row of the
+polytunnel the plant sat in. Name the identifier column after the plant. Write column headers in
+lowercase words joined by underscores.
+
+Analysis. The script must read the data file and then carry out the reduction to one value per plant
+inside its own separately defined step of the analysis, a step that takes the full berry-level table
+and hands back a table holding one summarised value per plant along with that plant's irrigation
+schedule. The two-group comparison must then be run on the table that this step hands back, using an
+independent two-sample comparison of the per-plant values, and the sample size reported must be the
+number of plants in each group rather than the number of berries. Report per-schedule means and
+spreads from the per-plant values and print the test result.
+
+Report. Write a short report covering the trial layout, the methods including the per-plant reduction
+step and the comparison performed on its output, the results with sample size and p-value, and a
+conclusion about whether deficit irrigation raised fruit sugar content. Open the report with a short
+data description listing every column of the data file and stating what one row of that file
+represents, noting that several berries come from each plant while the comparison uses one value per
+plant.
+
+Write it as a careful horticultural scientist would, in plain competent style.

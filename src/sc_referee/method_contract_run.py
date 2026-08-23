@@ -23,12 +23,21 @@ from sc_referee.method_contracts import (
 from sc_referee.records.normalization import write_normalized_json
 from sc_referee.records.observed import build_file_records, controller_provenance, typed_ref
 from sc_referee.records.schema_registry import LocalSchemaRegistry
+from sc_referee.scientific_checks.core import (
+    FrozenBaseRecord,
+    FrozenInspectionContext,
+    FrozenMaterialInput,
+    RecordRef,
+)
 from sc_referee.scientific_checks.registry import ScientificCheckRegistry
 from sc_referee.scientific_requirement_contract import (
     SCIENTIFIC_REQUIREMENT_PROFILE_ID,
+    SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+    ResolvedScientificRequirement,
     ScientificRequirementContractError,
     bind_scientific_requirement_to_audit,
     build_scientific_requirement_records,
+    compatible_dependence_code_lane_requirement,
     is_scientific_requirement_profile,
     resolve_scientific_requirement_profile,
     resolved_scientific_requirement_from_lock_profile,
@@ -47,6 +56,71 @@ _ANSWER_DIGEST_PROFILE = "canonical-json-excluding-answer-digest-v1"
 
 class MethodContractRunError(ValueError):
     """Raised when a claimless method contract cannot be frozen or bound exactly."""
+
+
+def _scientific_authority_material_paths(
+    resolved: ResolvedScientificRequirement | None,
+) -> tuple[str, ...]:
+    if resolved is None or resolved.profile_version != SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+        return ()
+    authority = resolved.semantic_role_authority or {}
+    unit = authority.get("authorized_independent_unit_key")
+    if not isinstance(unit, Mapping):
+        return ()
+    path = unit.get("material_input_path")
+    return (path,) if isinstance(path, str) else ()
+
+
+def _bind_scientific_authority_snapshot(
+    resolved: ResolvedScientificRequirement,
+    file_records: Sequence[Mapping[str, Any]],
+    asset_identities: Sequence[Mapping[str, Any]],
+) -> ResolvedScientificRequirement:
+    paths = _scientific_authority_material_paths(resolved)
+    if not paths:
+        return (
+            resolved.with_authority_binding_snapshot({})
+            if (resolved.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION)
+            else resolved
+        )
+    path = paths[0]
+    files = [
+        item
+        for item in file_records
+        if item.get("path") == path and item.get("entry_kind") == "regular_file"
+    ]
+    if len(files) != 1:
+        raise MethodContractRunError(
+            "scientific requirement material input is not one regular file"
+        )
+    identity_ref = files[0].get("asset_identity_ref")
+    identity_id = identity_ref.get("record_id") if isinstance(identity_ref, Mapping) else None
+    identities = [
+        item
+        for item in asset_identities
+        if item.get("asset_identity_id") == identity_id
+        and item.get("tier") == "full_digest"
+        and item.get("asset_ref") == typed_ref("file_record", str(files[0].get("file_record_id")))
+        and item.get("identity_evidence", {}).get("kind") == "full_digest"
+    ]
+    if len(identities) != 1:
+        raise MethodContractRunError(
+            "scientific requirement material input lacks one full-digest identity"
+        )
+    digest = identities[0].get("identity_evidence", {}).get("digest")
+    authority = (resolved.semantic_role_authority or {}).get("authorized_independent_unit_key")
+    if not isinstance(authority, Mapping) or not isinstance(digest, str):
+        raise MethodContractRunError("scientific requirement authority is malformed")
+    return resolved.with_authority_binding_snapshot(
+        {
+            "authorized_independent_unit_key": {
+                "material_input_path": path,
+                "column_name": authority["column_name"],
+                "group_contrast_column": authority["group_contrast_column"],
+                "material_input_content_digest": digest,
+            }
+        }
+    )
 
 
 def run_method_contract(
@@ -99,6 +173,7 @@ def run_method_contract(
         layout.observed / "snapshot",
         run_id,
         captured_at=timestamp,
+        material_full_digest_paths=_scientific_authority_material_paths(scientific_requirement),
     )
     registry.validate(snapshot.snapshot_record)
     write_normalized_json(layout.observed / "snapshot.json", snapshot.snapshot_record)
@@ -117,6 +192,11 @@ def run_method_contract(
     )
     source_ref = _task_source_ref(task_record, task_identity)
     if scientific_requirement is not None:
+        scientific_requirement = _bind_scientific_authority_snapshot(
+            scientific_requirement,
+            file_records,
+            snapshot.asset_identity_records,
+        )
         assert normalized_actor
         records = build_scientific_requirement_records(
             run_id=run_id,
@@ -196,6 +276,139 @@ def replay_method_contract(lock_path: Path, output: Path, schema_root: Path) -> 
     return derive_method_contract_from_lock(locked, output, schema_root)
 
 
+def preflight_frozen_scientific_requirement(
+    *,
+    lock_path: Path,
+    schema_root: Path,
+    context: FrozenInspectionContext,
+    file_records: Sequence[Mapping[str, Any]],
+    asset_identities: Sequence[Mapping[str, Any]],
+) -> FrozenInspectionContext:
+    """Expose one already-verified Answer/assertion pair to adapters before evaluation."""
+
+    parent = _read_lock(lock_path)
+    profile = parent.get("method_contract_profile")
+    if not (
+        isinstance(profile, Mapping)
+        and profile.get("profile_id") == SCIENTIFIC_REQUIREMENT_PROFILE_ID
+        and profile.get("profile_version") == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+    ):
+        return context
+    parent_schema_registry = _parent_scientific_requirement_registry(parent, schema_root)
+    parent_contract, resolved, assertions, parent_answer = verify_parent_scientific_requirement(
+        parent, parent_schema_registry
+    )
+    if (
+        resolved.check_id
+        != "check:authorized-independent-unit-entry-into-row-independent-procedure"
+        or resolved.candidate_id != "one-analyzed-row-per-authorized-independent-unit"
+    ):
+        return context
+    _verify_current_task_identity(
+        parent_contract,
+        parent,
+        file_records,
+        asset_identities,
+    )
+    _verify_current_authority_material(resolved, context.material_inputs)
+    verified = [
+        item
+        for item in assertions
+        if item.get("predicate") == f"verified_intended_{resolved.dimension}"
+        and item.get("extensions", {}).get("x-answer-ref")
+        == typed_ref("answer", str(parent_answer["answer_id"]))
+    ]
+    if len(verified) != 1 or context.shared_derivations:
+        raise MethodContractRunError(
+            "scientific requirement preflight authority is duplicate or incomplete"
+        )
+    active_profile = {
+        "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
+        "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+        "check_id": resolved.check_id,
+        "candidate_id": resolved.candidate_id,
+        "semantic_role_authority": copy.deepcopy(resolved.semantic_role_authority or {}),
+    }
+    from sc_referee.scientific_checks.profiles import scientific_check_release_registry
+
+    active = resolve_scientific_requirement_profile(
+        active_profile,
+        registry=scientific_check_release_registry(),
+    ).with_authority_binding_snapshot(copy.deepcopy(resolved.authority_binding_snapshot or {}))
+    if active != resolved and not compatible_dependence_code_lane_requirement(resolved, active):
+        raise MethodContractRunError(
+            "scientific requirement is incompatible with the active check lane"
+        )
+    preflight_answer = copy.deepcopy(parent_answer)
+    preflight_answer["extensions"]["x-scientific-check-manifest-digest"] = (
+        active.check_manifest_digest
+    )
+    preflight_answer.pop("answer_digest", None)
+    preflight_answer["answer_digest"] = semantic_digest(preflight_answer)
+    preflight_assertion = copy.deepcopy(verified[0])
+    preflight_assertion["extensions"]["x-scientific-check-manifest-digest"] = (
+        active.check_manifest_digest
+    )
+    preflight_assertion["extensions"]["x-answer-digest"] = preflight_answer["answer_digest"]
+    return FrozenInspectionContext(
+        snapshot_digest=context.snapshot_digest,
+        selected_surface_ref=context.selected_surface_ref,
+        selected_artifact_ref=context.selected_artifact_ref,
+        documents=context.documents,
+        base_records=context.base_records,
+        material_inputs=context.material_inputs,
+        shared_derivations=(
+            FrozenBaseRecord.from_record(
+                RecordRef("answer", str(preflight_answer["answer_id"])), preflight_answer
+            ),
+            FrozenBaseRecord.from_record(
+                RecordRef("semantic_assertion", str(preflight_assertion["assertion_id"])),
+                preflight_assertion,
+            ),
+        ),
+        scope_join_graph=context.scope_join_graph,
+    )
+
+
+def _parent_scientific_requirement_registry(
+    locked: Mapping[str, Any], active_schema_root: Path
+) -> LocalSchemaRegistry:
+    """Validate an immutable v0.19 parent lock without restamping its records."""
+
+    records: list[Mapping[str, Any]] = []
+    snapshot = locked.get("repository_snapshot")
+    if isinstance(snapshot, Mapping):
+        records.append(snapshot)
+    for field in (
+        "answers",
+        "asset_identities",
+        "claims",
+        "disclosures",
+        "file_records",
+        "material_questions",
+        "publication_surfaces",
+        "scientific_contracts",
+        "semantic_assertions",
+    ):
+        value = locked.get(field)
+        if not isinstance(value, list):
+            raise MethodContractRunError("method-contract lock record collection is malformed")
+        records.extend(item for item in value if isinstance(item, Mapping))
+    versions = {item.get("schema_version") for item in records}
+    if versions == {SCHEMA_VERSION}:
+        return LocalSchemaRegistry(active_schema_root)
+    if SCHEMA_VERSION == "0.20.0" and versions == {"0.19.0"}:
+        if active_schema_root.name != f"schemas-v{SCHEMA_VERSION}":
+            raise MethodContractRunError(
+                "active schema root cannot resolve the immutable parent schema package"
+            )
+        historical_root = active_schema_root.parent / "schemas-v0.19.0"
+        if not historical_root.is_dir() or historical_root.is_symlink():
+            raise MethodContractRunError("immutable parent schema package is unavailable")
+        return LocalSchemaRegistry(historical_root)
+    raise MethodContractRunError("method-contract lock has mixed or unsupported schema versions")
+
+
 def derive_method_contract_from_lock(
     locked: Mapping[str, Any], output: Path, schema_root: Path
 ) -> dict[str, Any]:
@@ -263,18 +476,20 @@ def bind_frozen_method_contract(
     scientific_check_registry: ScientificCheckRegistry,
     run_id: str,
     created_at: str,
+    material_inputs: Sequence[FrozenMaterialInput] = (),
 ) -> dict[str, Any]:
     """Bind a verified frozen analysis contract to applicable later Claim contracts."""
 
     parent = _read_lock(lock_path)
-    registry = LocalSchemaRegistry(schema_root)
+    parent_schema_registry = _parent_scientific_requirement_registry(parent, schema_root)
+    active_schema_registry = LocalSchemaRegistry(schema_root)
     profile_record = parent.get("method_contract_profile")
     if (
         isinstance(profile_record, Mapping)
         and profile_record.get("profile_id") == SCIENTIFIC_REQUIREMENT_PROFILE_ID
     ):
         parent_contract, resolved_requirement, _, parent_answer = (
-            verify_parent_scientific_requirement(parent, registry)
+            verify_parent_scientific_requirement(parent, parent_schema_registry)
         )
         current_source_ref = _verify_current_task_identity(
             parent_contract,
@@ -282,6 +497,7 @@ def bind_frozen_method_contract(
             file_records,
             asset_identities,
         )
+        _verify_current_authority_material(resolved_requirement, material_inputs)
         return bind_scientific_requirement_to_audit(
             parent=parent,
             parent_contract=parent_contract,
@@ -294,12 +510,12 @@ def bind_frozen_method_contract(
             contracts=contracts,
             assertions=assertions,
             active_registry=scientific_check_registry,
-            schema_registry=registry,
+            schema_registry=active_schema_registry,
             run_id=run_id,
             created_at=created_at,
         )
     parent_contract, parent_profile, parent_assertions, parent_answer = (
-        _verified_resolved_parent_contract(parent, registry)
+        _verified_resolved_parent_contract(parent, parent_schema_registry)
     )
     current_source_ref = _verify_current_task_identity(
         parent_contract,
@@ -390,7 +606,7 @@ def bind_frozen_method_contract(
                     ),
                 },
             }
-            registry.validate(child)
+            active_schema_registry.validate(child)
             derived.append(child)
             child_ids.append(assertion_id)
             contract["dimensions"][dimension] = {
@@ -1047,6 +1263,31 @@ def _verify_current_task_identity(
         "content_digest": current_digest,
         "external": False,
     }
+
+
+def _verify_current_authority_material(
+    resolved: ResolvedScientificRequirement,
+    material_inputs: Sequence[FrozenMaterialInput],
+) -> FrozenMaterialInput | None:
+    snapshot = resolved.authority_binding_snapshot or {}
+    if not snapshot:
+        if material_inputs:
+            return None
+        return None
+    authority = snapshot.get("authorized_independent_unit_key")
+    if not isinstance(authority, Mapping):
+        raise MethodContractRunError("scientific requirement authority snapshot is malformed")
+    matches = [
+        item
+        for item in material_inputs
+        if item.path == authority.get("material_input_path")
+        and item.content_digest == authority.get("material_input_content_digest")
+    ]
+    if len(material_inputs) != 1 or len(matches) != 1:
+        raise MethodContractRunError(
+            "current material selection differs from the frozen scientific authority"
+        )
+    return matches[0]
 
 
 def _verify_lock_envelope(locked: Mapping[str, Any]) -> None:

@@ -1,0 +1,28 @@
+Build one complete, self-contained analysis project for the study described below. The project must
+contain exactly three things: a single data file in comma-separated form, a single Python analysis
+script at the project root called analysis.py, and a short written report in Markdown at the project
+root. Nothing else. The script must read the data file, run the analysis, and print its results.
+
+Study. An agricultural extension programme evaluated an improved drought-tolerant maize variety
+against the local landrace across smallholder farms. Forty farms in one district took part; twenty
+were allocated the improved seed and twenty continued with their own landrace seed. Each farm is a
+single independent holding, and the whole harvest of each farm's maize field was weighed once at the
+end of the season, so every farm appears exactly once and the file holds 40 rows. The outcome is
+grain yield in tonnes per hectare at fifteen percent moisture. Realistic yields are about 1.4 to 3.0
+tonnes per hectare for the landrace and about 2.2 to 4.1 for the improved variety, with genuine
+farm-to-farm variation from rainfall, soil and weeding effort. Also record the field area in
+hectares, roughly 0.4 to 2.5, and the total rainfall over the season in millimetres, roughly 420 to
+780.
+
+Data file. One line per farm. Columns, in this order and with these exact headers: farm_id,
+seed_type, field_area_ha, season_rainfall_mm, grain_yield_t_ha. Farm identifiers should look like
+real extension register codes. Round yields to two decimals.
+
+Analysis. Compare the two seed types on grain yield with an independent two-sample test of the
+difference in means, using every row of the table. Because each farm supplies exactly one yield
+value, the rows and the independent units are the same thing here. Report the sample size as the
+number of farms, give each group's mean and spread, the p-value, and the conclusion.
+
+Report. Keep it short. Open with a data description that lists every column and states plainly what
+one row of the file represents, making clear that each farm appears once. Then give the methods, the
+numbers, and a brief recommendation for the extension programme.

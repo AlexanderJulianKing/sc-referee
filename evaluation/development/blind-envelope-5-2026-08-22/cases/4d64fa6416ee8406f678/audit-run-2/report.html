@@ -1,0 +1,1568 @@
+
+
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sc-referee audit</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    body { max-width: 72rem; margin: 0 auto; padding: 2rem; line-height: 1.5; }
+    header, section { margin-bottom: 2rem; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem; }
+    .card { border: 1px solid #8886; border-radius: .5rem; padding: 1rem; margin-bottom: 1rem; }
+    .count { font-size: 1.8rem; font-weight: 700; }
+    code, pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+    details { margin: .75rem 0; }
+    .notice { border: 1px solid #8888; border-radius: .5rem; padding: .75rem 1rem; }
+    .source-excerpt { border: 1px solid #8886; border-radius: .5rem; padding: .75rem 1rem; scroll-margin-top: 1rem; }
+    .decision-panel { background: #8881; border-radius: .5rem; padding: 1rem; margin: 1rem 0; }
+    .decision-panel h4 { margin-top: 0; }
+    blockquote { margin-left: 0; padding: .75rem; background: #8881; }
+  </style>
+</head>
+<body>
+
+
+
+
+
+<header>
+  <h1>sc-referee scientific audit</h1>
+  
+  <p><strong>Coverage-limited audit: the deterministic run completed, but required evidence or supported detector coverage was unavailable.</strong></p>
+  <p>Zero Findings is not evidence that uncovered claims or operations are correct.</p>
+  
+  <p class="notice">This report is not a determination that the analysis is correct, safe, publication-ready, or free of uninspected scientific issues.</p>
+</header>
+<section class="summary" aria-label="Assessment counts">
+  <div class="card"><div class="count">0</div><div>Findings</div></div>
+  <div class="card"><div class="count">0</div><div>Conditional concerns</div></div>
+  <div class="card"><div class="count">2</div><div>Material questions</div></div>
+  <div class="card"><div class="count">24</div><div>Material disclosures</div></div>
+  <div class="card"><div class="count">1</div><div>Routine not-applicable checks</div></div>
+</section>
+<section>
+  <h2>Claims needing correction</h2>
+  <p>None in the inspected detector path.</p>
+</section>
+<section>
+  <h2>Coverage and completion</h2>
+  <p><strong>Run coverage state:</strong> partial evidence unavailable</p>
+  <p>6 of 6 inventoried files were classified; 5 were deeply inspected.</p>
+  <p>0 of 0 claims were inspected; 0 had complete lineage.</p>
+  <h3>Parser surfaces</h3>
+  <ul><li>parser:markdown-inventory:DATA_DESCRIPTION.md: covered. State parsed; 0 syntax issue(s) and 0 opaque construct(s).</li><li>parser:markdown-inventory:PROTOCOL.md: covered. State parsed; 0 syntax issue(s) and 0 opaque construct(s).</li><li>parser:python-ast-tokenize:analysis.py: covered. State parsed; 0 syntax issue(s) and 0 opaque construct(s).</li><li>parser:python-ast-tokenize:make_data.py: covered. State parsed; 0 syntax issue(s) and 0 opaque construct(s).</li><li>parser:markdown-inventory:report.md: covered. State parsed; 0 syntax issue(s) and 0 opaque construct(s).</li></ul>
+  <h3>Detector targets</h3>
+  <ul><li><code>detector:bounded-analysis-method-conflict</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:bounded-code-csv-dependence-conflict</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:bounded-report-mean-direction</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:bounded-reported-method-contract-conflict</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:bounded-feature-identifier-identity</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:population-comparison-estimand</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:denominator-control-set</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:explicit-dependence</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:lineage-completeness</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li></ul>
+  <h3>Pending or unprocessed work</h3><ul><li>Resolve the ambiguous publication surface.</li><li>Extract provenance-bearing final claims after the publication surface is resolved.</li><li>Run only detectors whose qualified envelopes apply to the locked records.</li></ul>
+  <h3>Known coverage gaps</h3><ul><li>No SelectionEnvelope was reconstructed.</li><li>No final claim was bound to a complete ScientificContract.</li><li>No qualified production detector target was eligible.</li><li>1 delimited table(s) have header-only structural inventory; row shape, values, storage types, and scientific meanings remain unknown.</li></ul>
+</section>
+<section>
+  <h2>Experimental detector outputs</h2>
+  <p>These are deterministic development outputs, not Findings. An evaluation candidate cannot enter production Finding admission unless a later, independently supported qualification promotes the exact detector version.</p>
+  <p>No experimental detector target was evaluated.</p>
+</section>
+<section>
+  <h2>Answer-side adjudicated root causes</h2>
+  <p>These qualification records preserve exact cross-provider panel decisions. They are not Findings in this audit and do not establish detector equivalence, global correctness, or publication readiness.</p>
+  <p>No answer-side adjudicated root-cause records are carried by this bundle.</p>
+</section>
+<section>
+  <h2>Detector qualification evidence</h2>
+  <p>These records are qualification-only evidence. Evaluation candidates are not Findings, case outcomes are not detector qualifications, and no metric shown here permits promotion.</p>
+  <h3>Scientific-label review basis</h3>
+  <p>No scientific-label adjudications are carried by this bundle.</p>
+  <h3>Evaluation candidates</h3>
+  <p>No qualification-only detector candidates are carried by this bundle.</p>
+  <h3>Fresh Stage-3 comparisons</h3>
+  <p>No Stage-3 comparison reviews are carried by this bundle.</p>
+  <h3>Deterministic case outcomes</h3>
+  <p>No reconciled detector case outcomes are carried by this bundle.</p>
+  <h3>Clustered metric sets</h3>
+  <p>No clustered qualification metric set is carried by this bundle.</p>
+  <h3>Static qualification proof records</h3>
+  <p>No static qualification profile is carried by this bundle.</p>
+  
+</section>
+<section>
+  <h2>Conditional concerns requiring scientific review</h2>
+  <p>None recorded.</p>
+</section>
+<section>
+  <h2>Material questions</h2>
+  
+  
+  
+  <article class="card" id="question-question-publication-surface-af04b704d2a5a3fba780"><h3>Which inventoried artifact is the final publication surface for this audit?</h3><p>The selected surface determines which final claims and backward lineage paths are material.</p>
+    <p><strong>Status:</strong> open. <strong>Priority:</strong> high</p>
+    
+    <p><strong>Blocked detectors:</strong> <code>detector:claim-result-direction</code>, <code>detector:population-comparison-estimand</code>, <code>detector:denominator-control-set</code>, <code>detector:explicit-dependence</code>, <code>detector:lineage-completeness</code></p>
+    <details><summary>Response paths and evidence searched</summary>
+      <ul><li><strong>DATA_DESCRIPTION.md:</strong> This artifact becomes the selected publication surface for claim-centric inspection.</li><li><strong>PROTOCOL.md:</strong> This artifact becomes the selected publication surface for claim-centric inspection.</li><li><strong>report.md:</strong> This artifact becomes the selected publication surface for claim-centric inspection.</li><li><strong>None or unknown:</strong> Publication materiality remains unassessed and candidate audits remain separate.</li></ul>
+      <ul><li>whole-repository file inventory: Filename signals identified candidates but are not sufficient to select one.</li></ul>
+    </details>
+  </article>
+  
+  
+  
+  <article class="card" id="question-question-review-scope-70d5f0913a4bb9c24df6"><h3>Which inventoried analysis source file or files should be in scope for this audit?</h3><p>The selected immutable identities bound downstream static scope joins. Scientist selection defines review scope only.</p>
+    <p><strong>Status:</strong> open. <strong>Priority:</strong> medium</p>
+    
+    
+    <details><summary>Response paths and evidence searched</summary>
+      <ul><li><strong>analysis.py:</strong> This exact analysis source file identity becomes selected review scope; this does not establish execution, lineage, or scientific correctness.</li><li><strong>make_data.py:</strong> This exact analysis source file identity becomes selected review scope; this does not establish execution, lineage, or scientific correctness.</li><li><strong>None of these candidates:</strong> No listed identity is selected for this review-scope dimension; this does not establish that no such source or artifact exists.</li><li><strong>Retain as unknown:</strong> The competing candidates remain unresolved.</li></ul>
+      <ul><li>immutable repository inventory and typed static artifacts: 2 fully identified analysis source file candidates remained; the controller cannot choose their review materiality.</li></ul>
+    </details>
+  </article>
+  
+</section>
+<section>
+  <h2>Coverage and trust disclosures</h2>
+  
+  
+  
+  <article class="card" id="disclosure-1"><h3>No production detector was eligible in the general static audit</h3><p>The repository was inventoried and supported source files were parsed, but a qualified production detector envelope was not available; incomplete claim contracts or lineage may additionally restrict targets.</p>
+    <p><strong>Importance:</strong> material</p><p><strong>Interpretive consequence:</strong> Zero Findings from this run cannot be interpreted as evidence that the scientific workflow is correct.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-2"><h3>Some Python operations remain opaque to static inspection</h3><p>167 operation(s) were preserved with unresolved callable or runtime semantics.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> The internal scientific behavior of those operations was not established.</p>
+    
+<div class="evidence-package">
+  <p><strong>Source navigation:</strong></p>
+  <ul>
+  
+    <li><a href="#disclosure-2-source-1"><code>make_data.py:81-81</code></a></li>
+  
+    <li><a href="#disclosure-2-source-2"><code>make_data.py:62-68</code></a></li>
+  
+    <li><a href="#disclosure-2-source-3"><code>make_data.py:45-45</code></a></li>
+  
+    <li><a href="#disclosure-2-source-4"><code>make_data.py:49-49</code></a></li>
+  
+    <li><a href="#disclosure-2-source-5"><code>make_data.py:74-74</code></a></li>
+  
+    <li><a href="#disclosure-2-source-6"><code>make_data.py:41-41</code></a></li>
+  
+    <li><a href="#disclosure-2-source-7"><code>make_data.py:75-75</code></a></li>
+  
+    <li><a href="#disclosure-2-source-8"><code>make_data.py:46-46</code></a></li>
+  
+    <li><a href="#disclosure-2-source-9"><code>make_data.py:55-55</code></a></li>
+  
+    <li><a href="#disclosure-2-source-10"><code>make_data.py:61-61</code></a></li>
+  
+    <li><a href="#disclosure-2-source-11"><code>make_data.py:67-67</code></a></li>
+  
+    <li><a href="#disclosure-2-source-12"><code>make_data.py:36-37</code></a></li>
+  
+    <li><a href="#disclosure-2-source-13"><code>make_data.py:61-61</code></a></li>
+  
+    <li><a href="#disclosure-2-source-14"><code>make_data.py:44-44</code></a></li>
+  
+    <li><a href="#disclosure-2-source-15"><code>make_data.py:52-52</code></a></li>
+  
+    <li><a href="#disclosure-2-source-16"><code>make_data.py:53-53</code></a></li>
+  
+    <li><a href="#disclosure-2-source-17"><code>make_data.py:60-60</code></a></li>
+  
+    <li><a href="#disclosure-2-source-18"><code>make_data.py:66-66</code></a></li>
+  
+    <li><a href="#disclosure-2-source-19"><code>make_data.py:56-56</code></a></li>
+  
+    <li><a href="#disclosure-2-source-20"><code>make_data.py:73-73</code></a></li>
+  
+    <li><a href="#disclosure-2-source-21"><code>make_data.py:54-54</code></a></li>
+  
+    <li><a href="#disclosure-2-source-22"><code>make_data.py:77-77</code></a></li>
+  
+    <li><a href="#disclosure-2-source-23"><code>make_data.py:77-77</code></a></li>
+  
+    <li><a href="#disclosure-2-source-24"><code>make_data.py:36-36</code></a></li>
+  
+    <li><a href="#disclosure-2-source-25"><code>make_data.py:44-44</code></a></li>
+  
+    <li><a href="#disclosure-2-source-26"><code>make_data.py:36-36</code></a></li>
+  
+    <li><a href="#disclosure-2-source-27"><code>make_data.py:57-57</code></a></li>
+  
+    <li><a href="#disclosure-2-source-28"><code>analysis.py:210-210</code></a></li>
+  
+    <li><a href="#disclosure-2-source-29"><code>analysis.py:113-113</code></a></li>
+  
+    <li><a href="#disclosure-2-source-30"><code>analysis.py:122-122</code></a></li>
+  
+    <li><a href="#disclosure-2-source-31"><code>analysis.py:136-136</code></a></li>
+  
+    <li><a href="#disclosure-2-source-32"><code>analysis.py:156-156</code></a></li>
+  
+    <li><a href="#disclosure-2-source-33"><code>analysis.py:168-168</code></a></li>
+  
+    <li><a href="#disclosure-2-source-34"><code>analysis.py:188-188</code></a></li>
+  
+    <li><a href="#disclosure-2-source-35"><code>analysis.py:49-49</code></a></li>
+  
+    <li><a href="#disclosure-2-source-36"><code>analysis.py:63-63</code></a></li>
+  
+    <li><a href="#disclosure-2-source-37"><code>analysis.py:70-70</code></a></li>
+  
+    <li><a href="#disclosure-2-source-38"><code>analysis.py:76-76</code></a></li>
+  
+    <li><a href="#disclosure-2-source-39"><code>analysis.py:87-87</code></a></li>
+  
+    <li><a href="#disclosure-2-source-40"><code>analysis.py:92-92</code></a></li>
+  
+    <li><a href="#disclosure-2-source-41"><code>analysis.py:37-37</code></a></li>
+  
+    <li><a href="#disclosure-2-source-42"><code>analysis.py:106-106</code></a></li>
+  
+    <li><a href="#disclosure-2-source-43"><code>analysis.py:121-121</code></a></li>
+  
+    <li><a href="#disclosure-2-source-44"><code>analysis.py:129-129</code></a></li>
+  
+    <li><a href="#disclosure-2-source-45"><code>analysis.py:131-131</code></a></li>
+  
+    <li><a href="#disclosure-2-source-46"><code>analysis.py:141-141</code></a></li>
+  
+    <li><a href="#disclosure-2-source-47"><code>analysis.py:174-174</code></a></li>
+  
+    <li><a href="#disclosure-2-source-48"><code>analysis.py:176-176</code></a></li>
+  
+    <li><a href="#disclosure-2-source-49"><code>analysis.py:180-180</code></a></li>
+  
+    <li><a href="#disclosure-2-source-50"><code>analysis.py:198-198</code></a></li>
+  
+    <li><a href="#disclosure-2-source-51"><code>analysis.py:200-200</code></a></li>
+  
+    <li><a href="#disclosure-2-source-52"><code>analysis.py:36-36</code></a></li>
+  
+    <li><a href="#disclosure-2-source-53"><code>analysis.py:38-38</code></a></li>
+  
+    <li><a href="#disclosure-2-source-54"><code>analysis.py:81-81</code></a></li>
+  
+    <li><a href="#disclosure-2-source-55"><code>analysis.py:83-83</code></a></li>
+  
+    <li><a href="#disclosure-2-source-56"><code>analysis.py:144-144</code></a></li>
+  
+    <li><a href="#disclosure-2-source-57"><code>analysis.py:199-199</code></a></li>
+  
+    <li><a href="#disclosure-2-source-58"><code>analysis.py:91-91</code></a></li>
+  
+    <li><a href="#disclosure-2-source-59"><code>analysis.py:145-145</code></a></li>
+  
+    <li><a href="#disclosure-2-source-60"><code>analysis.py:65-66</code></a></li>
+  
+    <li><a href="#disclosure-2-source-61"><code>analysis.py:91-91</code></a></li>
+  
+    <li><a href="#disclosure-2-source-62"><code>analysis.py:28-28</code></a></li>
+  
+    <li><a href="#disclosure-2-source-63"><code>analysis.py:62-62</code></a></li>
+  
+    <li><a href="#disclosure-2-source-64"><code>analysis.py:193-193</code></a></li>
+  
+    <li><a href="#disclosure-2-source-65"><code>analysis.py:135-135</code></a></li>
+  
+    <li><a href="#disclosure-2-source-66"><code>analysis.py:192-192</code></a></li>
+  
+    <li><a href="#disclosure-2-source-67"><code>analysis.py:141-141</code></a></li>
+  
+    <li><a href="#disclosure-2-source-68"><code>analysis.py:180-180</code></a></li>
+  
+    <li><a href="#disclosure-2-source-69"><code>analysis.py:90-90</code></a></li>
+  
+    <li><a href="#disclosure-2-source-70"><code>analysis.py:114-114</code></a></li>
+  
+    <li><a href="#disclosure-2-source-71"><code>analysis.py:116-116</code></a></li>
+  
+    <li><a href="#disclosure-2-source-72"><code>analysis.py:118-118</code></a></li>
+  
+    <li><a href="#disclosure-2-source-73"><code>analysis.py:142-142</code></a></li>
+  
+    <li><a href="#disclosure-2-source-74"><code>analysis.py:181-181</code></a></li>
+  
+    <li><a href="#disclosure-2-source-75"><code>analysis.py:196-196</code></a></li>
+  
+    <li><a href="#disclosure-2-source-76"><code>analysis.py:44-44</code></a></li>
+  
+    <li><a href="#disclosure-2-source-77"><code>analysis.py:147-147</code></a></li>
+  
+    <li><a href="#disclosure-2-source-78"><code>analysis.py:41-42</code></a></li>
+  
+    <li><a href="#disclosure-2-source-79"><code>analysis.py:99-99</code></a></li>
+  
+    <li><a href="#disclosure-2-source-80"><code>analysis.py:194-194</code></a></li>
+  
+    <li><a href="#disclosure-2-source-81"><code>analysis.py:75-75</code></a></li>
+  
+    <li><a href="#disclosure-2-source-82"><code>analysis.py:203-205</code></a></li>
+  
+    <li><a href="#disclosure-2-source-83"><code>analysis.py:45-45</code></a></li>
+  
+    <li><a href="#disclosure-2-source-84"><code>analysis.py:62-62</code></a></li>
+  
+    <li><a href="#disclosure-2-source-85"><code>analysis.py:65-66</code></a></li>
+  
+    <li><a href="#disclosure-2-source-86"><code>analysis.py:62-62</code></a></li>
+  
+    <li><a href="#disclosure-2-source-87"><code>analysis.py:159-159</code></a></li>
+  
+    <li><a href="#disclosure-2-source-88"><code>analysis.py:120-120</code></a></li>
+  
+    <li><a href="#disclosure-2-source-89"><code>analysis.py:111-111</code></a></li>
+  
+    <li><a href="#disclosure-2-source-90"><code>analysis.py:112-112</code></a></li>
+  
+    <li><a href="#disclosure-2-source-91"><code>analysis.py:155-155</code></a></li>
+  
+    <li><a href="#disclosure-2-source-92"><code>analysis.py:40-40</code></a></li>
+  
+    <li><a href="#disclosure-2-source-93"><code>analysis.py:61-61</code></a></li>
+  
+    <li><a href="#disclosure-2-source-94"><code>analysis.py:161-161</code></a></li>
+  
+    <li><a href="#disclosure-2-source-95"><code>analysis.py:52-52</code></a></li>
+  
+    <li><a href="#disclosure-2-source-96"><code>analysis.py:109-109</code></a></li>
+  
+    <li><a href="#disclosure-2-source-97"><code>analysis.py:108-108</code></a></li>
+  
+    <li><a href="#disclosure-2-source-98"><code>analysis.py:115-116</code></a></li>
+  
+    <li><a href="#disclosure-2-source-99"><code>analysis.py:152-153</code></a></li>
+  
+    <li><a href="#disclosure-2-source-100"><code>analysis.py:39-39</code></a></li>
+  
+    <li><a href="#disclosure-2-source-101"><code>analysis.py:40-40</code></a></li>
+  
+    <li><a href="#disclosure-2-source-102"><code>analysis.py:18-19</code></a></li>
+  
+    <li><a href="#disclosure-2-source-103"><code>analysis.py:117-118</code></a></li>
+  
+    <li><a href="#disclosure-2-source-104"><code>analysis.py:150-150</code></a></li>
+  
+    <li><a href="#disclosure-2-source-105"><code>analysis.py:183-183</code></a></li>
+  
+    <li><a href="#disclosure-2-source-106"><code>analysis.py:195-195</code></a></li>
+  
+    <li><a href="#disclosure-2-source-107"><code>analysis.py:201-202</code></a></li>
+  
+    <li><a href="#disclosure-2-source-108"><code>analysis.py:46-46</code></a></li>
+  
+    <li><a href="#disclosure-2-source-109"><code>analysis.py:86-86</code></a></li>
+  
+    <li><a href="#disclosure-2-source-110"><code>analysis.py:39-39</code></a></li>
+  
+    <li><a href="#disclosure-2-source-111"><code>analysis.py:48-48</code></a></li>
+  
+    <li><a href="#disclosure-2-source-112"><code>analysis.py:74-75</code></a></li>
+  
+    <li><a href="#disclosure-2-source-113"><code>analysis.py:82-82</code></a></li>
+  
+    <li><a href="#disclosure-2-source-114"><code>analysis.py:151-151</code></a></li>
+  
+    <li><a href="#disclosure-2-source-115"><code>analysis.py:184-184</code></a></li>
+  
+    <li><a href="#disclosure-2-source-116"><code>analysis.py:52-59</code></a></li>
+  
+    <li><a href="#disclosure-2-source-117"><code>analysis.py:67-67</code></a></li>
+  
+    <li><a href="#disclosure-2-source-118"><code>analysis.py:72-72</code></a></li>
+  
+    <li><a href="#disclosure-2-source-119"><code>analysis.py:182-182</code></a></li>
+  
+    <li><a href="#disclosure-2-source-120"><code>analysis.py:68-68</code></a></li>
+  
+    <li><a href="#disclosure-2-source-121"><code>analysis.py:47-47</code></a></li>
+  
+    <li><a href="#disclosure-2-source-122"><code>analysis.py:68-69</code></a></li>
+  
+    <li><a href="#disclosure-2-source-123"><code>analysis.py:140-140</code></a></li>
+  
+    <li><a href="#disclosure-2-source-124"><code>analysis.py:175-175</code></a></li>
+  
+    <li><a href="#disclosure-2-source-125"><code>analysis.py:179-179</code></a></li>
+  
+    <li><a href="#disclosure-2-source-126"><code>analysis.py:201-201</code></a></li>
+  
+    <li><a href="#disclosure-2-source-127"><code>analysis.py:29-31</code></a></li>
+  
+    <li><a href="#disclosure-2-source-128"><code>analysis.py:142-142</code></a></li>
+  
+    <li><a href="#disclosure-2-source-129"><code>analysis.py:181-181</code></a></li>
+  
+    <li><a href="#disclosure-2-source-130"><code>analysis.py:185-185</code></a></li>
+  
+    <li><a href="#disclosure-2-source-131"><code>analysis.py:73-73</code></a></li>
+  
+    <li><a href="#disclosure-2-source-132"><code>analysis.py:154-154</code></a></li>
+  
+    <li><a href="#disclosure-2-source-133"><code>analysis.py:47-47</code></a></li>
+  
+    <li><a href="#disclosure-2-source-134"><code>analysis.py:206-206</code></a></li>
+  
+    <li><a href="#disclosure-2-source-135"><code>analysis.py:68-69</code></a></li>
+  
+    <li><a href="#disclosure-2-source-136"><code>analysis.py:84-84</code></a></li>
+  
+    <li><a href="#disclosure-2-source-137"><code>analysis.py:120-120</code></a></li>
+  
+    <li><a href="#disclosure-2-source-138"><code>analysis.py:65-65</code></a></li>
+  
+    <li><a href="#disclosure-2-source-139"><code>analysis.py:110-110</code></a></li>
+  
+    <li><a href="#disclosure-2-source-140"><code>analysis.py:119-119</code></a></li>
+  
+    <li><a href="#disclosure-2-source-141"><code>analysis.py:18-18</code></a></li>
+  
+    <li><a href="#disclosure-2-source-142"><code>analysis.py:72-72</code></a></li>
+  
+    <li><a href="#disclosure-2-source-143"><code>analysis.py:94-94</code></a></li>
+  
+    <li><a href="#disclosure-2-source-144"><code>analysis.py:18-18</code></a></li>
+  
+    <li><a href="#disclosure-2-source-145"><code>analysis.py:85-85</code></a></li>
+  
+    <li><a href="#disclosure-2-source-146"><code>analysis.py:130-130</code></a></li>
+  
+    <li><a href="#disclosure-2-source-147"><code>analysis.py:164-164</code></a></li>
+  
+    <li><a href="#disclosure-2-source-148"><code>analysis.py:142-142</code></a></li>
+  
+    <li><a href="#disclosure-2-source-149"><code>analysis.py:167-167</code></a></li>
+  
+    <li><a href="#disclosure-2-source-150"><code>analysis.py:181-181</code></a></li>
+  
+    <li><a href="#disclosure-2-source-151"><code>analysis.py:107-107</code></a></li>
+  
+    <li><a href="#disclosure-2-source-152"><code>analysis.py:73-73</code></a></li>
+  
+    <li><a href="#disclosure-2-source-153"><code>analysis.py:165-165</code></a></li>
+  
+    <li><a href="#disclosure-2-source-154"><code>analysis.py:166-166</code></a></li>
+  
+    <li><a href="#disclosure-2-source-155"><code>analysis.py:187-187</code></a></li>
+  
+    <li><a href="#disclosure-2-source-156"><code>analysis.py:48-48</code></a></li>
+  
+    <li><a href="#disclosure-2-source-157"><code>analysis.py:68-69</code></a></li>
+  
+    <li><a href="#disclosure-2-source-158"><code>analysis.py:68-69</code></a></li>
+  
+    <li><a href="#disclosure-2-source-159"><code>analysis.py:89-89</code></a></li>
+  
+    <li><a href="#disclosure-2-source-160"><code>analysis.py:162-162</code></a></li>
+  
+    <li><a href="#disclosure-2-source-161"><code>analysis.py:132-132</code></a></li>
+  
+    <li><a href="#disclosure-2-source-162"><code>analysis.py:48-48</code></a></li>
+  
+    <li><a href="#disclosure-2-source-163"><code>analysis.py:133-133</code></a></li>
+  
+    <li><a href="#disclosure-2-source-164"><code>analysis.py:134-134</code></a></li>
+  
+    <li><a href="#disclosure-2-source-165"><code>analysis.py:149-149</code></a></li>
+  
+    <li><a href="#disclosure-2-source-166"><code>analysis.py:163-163</code></a></li>
+  
+    <li><a href="#disclosure-2-source-167"><code>analysis.py:186-186</code></a></li>
+  
+  </ul>
+  
+  <div class="source-excerpt" id="disclosure-2-source-1">
+    <p><code>make_data.py:81-81</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>main()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-2">
+    <p><code>make_data.py:62-68</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>rows.append({
+                "cat_ref": cat_ref,
+                "husbandry_group": group,
+                "sample_day": day,
+                "food_intake_pct": round(food, 1),
+                "fgm_ng_per_g": round(fgm, 1),
+            })</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-3">
+    <p><code>make_data.py:45-45</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>case_numbers.sort()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-4">
+    <p><code>make_data.py:49-49</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>rng.shuffle(groups)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-5">
+    <p><code>make_data.py:74-74</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>writer.writeheader()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-6">
+    <p><code>make_data.py:41-41</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>random.Random(SEED)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-7">
+    <p><code>make_data.py:75-75</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>writer.writerows(rows)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-8">
+    <p><code>make_data.py:46-46</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>"A26-{:04d}".format(n)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-9">
+    <p><code>make_data.py:55-55</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>range(1, N_DAYS + 1)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-10">
+    <p><code>make_data.py:61-61</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>max(40.0, food)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-11">
+    <p><code>make_data.py:67-67</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>round(fgm, 1)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-12">
+    <p><code>make_data.py:36-37</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "shelter_cat_fgm.csv")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-13">
+    <p><code>make_data.py:61-61</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>min(100.0, max(40.0, food))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-14">
+    <p><code>make_data.py:44-44</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>range(1040, 1990)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-15">
+    <p><code>make_data.py:52-52</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>zip(cat_refs, groups)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-16">
+    <p><code>make_data.py:53-53</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>rng.gauss(0.0, SD_CAT_LOG)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-17">
+    <p><code>make_data.py:60-60</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>rng.gauss(0.0, SD_DAY_FOOD)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-18">
+    <p><code>make_data.py:66-66</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>round(food, 1)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-19">
+    <p><code>make_data.py:56-56</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>rng.gauss(0.0, SD_DAY_LOG)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-20">
+    <p><code>make_data.py:73-73</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>csv.DictWriter(handle, fieldnames=fields)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-21">
+    <p><code>make_data.py:54-54</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>rng.gauss(FOOD_MEAN[group], SD_CAT_FOOD)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-22">
+    <p><code>make_data.py:77-77</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>"wrote {} rows to {}".format(len(rows), OUT_PATH)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-23">
+    <p><code>make_data.py:77-77</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>print("wrote {} rows to {}".format(len(rows), OUT_PATH))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-24">
+    <p><code>make_data.py:36-36</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>os.path.abspath(__file__)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-25">
+    <p><code>make_data.py:44-44</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>rng.sample(range(1040, 1990), N_PER_GROUP * 2)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-26">
+    <p><code>make_data.py:36-36</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>os.path.dirname(os.path.abspath(__file__))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-27">
+    <p><code>make_data.py:57-57</code> · <code>sha256:5940454902a0951279f5f4deb4809745991ad48b904fb4bbbe4947e7ebc2955d</code></p>
+    <blockquote><code>math.exp(LOG_MEDIAN[group] + cat_effect + day_effect)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-28">
+    <p><code>analysis.py:210-210</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>main()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-29">
+    <p><code>analysis.py:113-113</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-30">
+    <p><code>analysis.py:122-122</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-31">
+    <p><code>analysis.py:136-136</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-32">
+    <p><code>analysis.py:156-156</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-33">
+    <p><code>analysis.py:168-168</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-34">
+    <p><code>analysis.py:188-188</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-35">
+    <p><code>analysis.py:49-49</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-36">
+    <p><code>analysis.py:63-63</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-37">
+    <p><code>analysis.py:70-70</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-38">
+    <p><code>analysis.py:76-76</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-39">
+    <p><code>analysis.py:87-87</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-40">
+    <p><code>analysis.py:92-92</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-41">
+    <p><code>analysis.py:37-37</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("DATA")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-42">
+    <p><code>analysis.py:106-106</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("-" * 72)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-43">
+    <p><code>analysis.py:121-121</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("-" * 72)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-44">
+    <p><code>analysis.py:129-129</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("=" * 72)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-45">
+    <p><code>analysis.py:131-131</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("=" * 72)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-46">
+    <p><code>analysis.py:141-141</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>a.mean()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-47">
+    <p><code>analysis.py:174-174</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("=" * 72)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-48">
+    <p><code>analysis.py:176-176</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("=" * 72)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-49">
+    <p><code>analysis.py:180-180</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>a.mean()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-50">
+    <p><code>analysis.py:198-198</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("=" * 72)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-51">
+    <p><code>analysis.py:200-200</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("=" * 72)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-52">
+    <p><code>analysis.py:36-36</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("=" * 72)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-53">
+    <p><code>analysis.py:38-38</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("=" * 72)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-54">
+    <p><code>analysis.py:81-81</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("=" * 72)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-55">
+    <p><code>analysis.py:83-83</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("=" * 72)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-56">
+    <p><code>analysis.py:144-144</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>a.var(ddof=1)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-57">
+    <p><code>analysis.py:199-199</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("CONCLUSION")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-58">
+    <p><code>analysis.py:91-91</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>fit.summary()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-59">
+    <p><code>analysis.py:145-145</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>b.var(ddof=1)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-60">
+    <p><code>analysis.py:65-66</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>df.groupby([UNIT_COL, GROUP_COL], observed=True)[OUTCOME]
+                 .mean()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-61">
+    <p><code>analysis.py:91-91</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(fit.summary())</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-62">
+    <p><code>analysis.py:28-28</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>pd.read_csv(path)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-63">
+    <p><code>analysis.py:62-62</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>summary.round(2)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-64">
+    <p><code>analysis.py:193-193</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>describe(df)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-65">
+    <p><code>analysis.py:135-135</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("the same animal.")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-66">
+    <p><code>analysis.py:192-192</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>load_data(DATA_FILE)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-67">
+    <p><code>analysis.py:141-141</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>b.mean()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-68">
+    <p><code>analysis.py:180-180</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>b.mean()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-69">
+    <p><code>analysis.py:90-90</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>model.fit(reml=True)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-70">
+    <p><code>analysis.py:114-114</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("Variance components:")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-71">
+    <p><code>analysis.py:116-116</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>np.sqrt(var_cat)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-72">
+    <p><code>analysis.py:118-118</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>np.sqrt(var_resid)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-73">
+    <p><code>analysis.py:142-142</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>a.var(ddof=1)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-74">
+    <p><code>analysis.py:181-181</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>a.var(ddof=1)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-75">
+    <p><code>analysis.py:196-196</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>cat_level_crosscheck(cat_means)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-76">
+    <p><code>analysis.py:44-44</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>df[UNIT_COL].nunique()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-77">
+    <p><code>analysis.py:147-147</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>stats.t.ppf(0.975, dfree)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-78">
+    <p><code>analysis.py:41-42</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("One row = one cat on one morning (one faecal sample + that "
+          "morning's food record).")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-79">
+    <p><code>analysis.py:99-99</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>fit.conf_int()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-80">
+    <p><code>analysis.py:194-194</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>primary_mixed_model(df)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-81">
+    <p><code>analysis.py:75-75</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>cat_means[OUTCOME].std()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-82">
+    <p><code>analysis.py:203-205</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"{primary['estimate']:.1f} ng/g "
+          f"(95% CI {primary['ci_low']:.1f} to {primary['ci_high']:.1f}, "
+          f"p = {primary['p']:.3g}).")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-83">
+    <p><code>analysis.py:45-45</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"Rows (samples): {n_rows}")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-84">
+    <p><code>analysis.py:62-62</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>summary.round(2).to_string()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-85">
+    <p><code>analysis.py:65-66</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>df.groupby([UNIT_COL, GROUP_COL], observed=True)[OUTCOME]
+                 .mean().reset_index()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-86">
+    <p><code>analysis.py:62-62</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(summary.round(2).to_string())</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-87">
+    <p><code>analysis.py:159-159</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>df[UNIT_COL].nunique()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-88">
+    <p><code>analysis.py:120-120</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>df[UNIT_COL].nunique()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-89">
+    <p><code>analysis.py:111-111</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  z             : {zval:.3f}")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-90">
+    <p><code>analysis.py:112-112</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  p             : {pval:.3g}")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-91">
+    <p><code>analysis.py:155-155</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  p              : {pval:.3g}")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-92">
+    <p><code>analysis.py:40-40</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>', '.join(df.columns)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-93">
+    <p><code>analysis.py:61-61</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("Per-group summary (row level):")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-94">
+    <p><code>analysis.py:161-161</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("Why this p-value is optimistic:")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-95">
+    <p><code>analysis.py:52-52</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>df.groupby(GROUP_COL, observed=True)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-96">
+    <p><code>analysis.py:109-109</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  standard error: {se:.2f} ng/g")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-97">
+    <p><code>analysis.py:108-108</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  estimate      : {est:.2f} ng/g")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-98">
+    <p><code>analysis.py:115-116</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  between-cat variance (random intercept): {var_cat:.2f} "
+          f"(SD {np.sqrt(var_cat):.2f} ng/g)")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-99">
+    <p><code>analysis.py:152-153</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  95% CI         : {diff - crit * se_diff:.2f} to "
+          f"{diff + crit * se_diff:.2f} ng/g")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-100">
+    <p><code>analysis.py:39-39</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>os.path.basename(DATA_FILE)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-101">
+    <p><code>analysis.py:40-40</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"Columns: {', '.join(df.columns)}")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-102">
+    <p><code>analysis.py:18-19</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         "shelter_cat_fgm.csv")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-103">
+    <p><code>analysis.py:117-118</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  residual within-cat variance           : {var_resid:.2f} "
+          f"(SD {np.sqrt(var_resid):.2f} ng/g)")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-104">
+    <p><code>analysis.py:150-150</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  mean difference: {diff:.2f} ng/g")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-105">
+    <p><code>analysis.py:183-183</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  mean difference: {diff:.2f} ng/g")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-106">
+    <p><code>analysis.py:195-195</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>secondary_row_level_test(df, primary["icc"])</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-107">
+    <p><code>analysis.py:201-202</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"Primary (mixed model, {df[UNIT_COL].nunique()} cats, {len(df)} "
+          "samples): enrichment changes FGM by")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-108">
+    <p><code>analysis.py:46-46</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"Cats (independent units): {n_cats}")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-109">
+    <p><code>analysis.py:86-86</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"Reference level: {REFERENCE_LEVEL}")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-110">
+    <p><code>analysis.py:39-39</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"File: {os.path.basename(DATA_FILE)}")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-111">
+    <p><code>analysis.py:48-48</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>rows_per_cat.min()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-112">
+    <p><code>analysis.py:74-75</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"Between-cat SD of per-cat mean FGM (all cats): "
+          f"{cat_means[OUTCOME].std():.2f} ng/g")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-113">
+    <p><code>analysis.py:82-82</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("PRIMARY ANALYSIS (inferential result)")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-114">
+    <p><code>analysis.py:151-151</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  standard error : {se_diff:.2f} ng/g")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-115">
+    <p><code>analysis.py:184-184</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  standard error : {se_diff:.2f} ng/g")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-116">
+    <p><code>analysis.py:52-59</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>df.groupby(GROUP_COL, observed=True)
+        .agg(cats=(UNIT_COL, "nunique"),
+             rows=(OUTCOME, "size"),
+             mean_fgm=(OUTCOME, "mean"),
+             sd_fgm=(OUTCOME, "std"),
+             min_fgm=(OUTCOME, "min"),
+             max_fgm=(OUTCOME, "max"),
+             mean_food=("food_intake_pct", "mean"))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-117">
+    <p><code>analysis.py:67-67</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("Per-cat mean FGM, summarised by group:")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-118">
+    <p><code>analysis.py:72-72</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>df.groupby(UNIT_COL, observed=True)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-119">
+    <p><code>analysis.py:182-182</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  n cats         : {len(a)} vs {len(b)}")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-120">
+    <p><code>analysis.py:68-68</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>cat_means.groupby(GROUP_COL, observed=True)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-121">
+    <p><code>analysis.py:47-47</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>df.groupby(UNIT_COL, observed=True)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-122">
+    <p><code>analysis.py:68-69</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>cat_means.groupby(GROUP_COL, observed=True)[OUTCOME]
+          .agg(["count", "mean", "std", "min", "max"])</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-123">
+    <p><code>analysis.py:140-140</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>stats.ttest_ind(a, b, equal_var=False)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-124">
+    <p><code>analysis.py:175-175</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("CROSS-CHECK: t-test on the 24 per-cat means")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-125">
+    <p><code>analysis.py:179-179</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>stats.ttest_ind(a, b, equal_var=False)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-126">
+    <p><code>analysis.py:201-201</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>df[UNIT_COL].nunique()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-127">
+    <p><code>analysis.py:29-31</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>pd.Categorical(
+        df[GROUP_COL], categories=[REFERENCE_LEVEL, "enrichment"], ordered=False
+    )</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-128">
+    <p><code>analysis.py:142-142</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>b.var(ddof=1)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-129">
+    <p><code>analysis.py:181-181</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>b.var(ddof=1)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-130">
+    <p><code>analysis.py:185-185</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  t              : {tstat:.3f}   p: {pval:.3g}")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-131">
+    <p><code>analysis.py:73-73</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>within_sd.median()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-132">
+    <p><code>analysis.py:154-154</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  t              : {tstat:.3f}   df {dfree:.1f}")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-133">
+    <p><code>analysis.py:47-47</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>df.groupby(UNIT_COL, observed=True).size()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-134">
+    <p><code>analysis.py:206-206</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("The row-level t-test is a sensitivity check only.")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-135">
+    <p><code>analysis.py:68-69</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>cat_means.groupby(GROUP_COL, observed=True)[OUTCOME]
+          .agg(["count", "mean", "std", "min", "max"]).round(2)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-136">
+    <p><code>analysis.py:84-84</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("Linear mixed model: fgm_ng_per_g ~ husbandry_group,")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-137">
+    <p><code>analysis.py:120-120</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"Cats: {df[UNIT_COL].nunique()}   Samples: {len(df)}")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-138">
+    <p><code>analysis.py:65-65</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>df.groupby([UNIT_COL, GROUP_COL], observed=True)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-139">
+    <p><code>analysis.py:110-110</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  95% CI        : {ci_low:.2f} to {ci_high:.2f} ng/g")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-140">
+    <p><code>analysis.py:119-119</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  intraclass correlation (ICC)           : {icc:.3f}")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-141">
+    <p><code>analysis.py:18-18</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>os.path.abspath(__file__)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-142">
+    <p><code>analysis.py:72-72</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>df.groupby(UNIT_COL, observed=True)[OUTCOME].std()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-143">
+    <p><code>analysis.py:94-94</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>t.startswith(GROUP_COL)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-144">
+    <p><code>analysis.py:18-18</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>os.path.dirname(os.path.abspath(__file__))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-145">
+    <p><code>analysis.py:85-85</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("random intercept for each cat (groups = cat_ref), REML.")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-146">
+    <p><code>analysis.py:130-130</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("SECONDARY SENSITIVITY CHECK (NOT the inferential result)")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-147">
+    <p><code>analysis.py:164-164</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  about {len(df) / deff:.1f} rows' worth of independent")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-148">
+    <p><code>analysis.py:142-142</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>np.sqrt(a.var(ddof=1) / len(a) + b.var(ddof=1) / len(b))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-149">
+    <p><code>analysis.py:167-167</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("  overstates the significance. Use the mixed model above.")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-150">
+    <p><code>analysis.py:181-181</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>np.sqrt(a.var(ddof=1) / len(a) + b.var(ddof=1) / len(b))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-151">
+    <p><code>analysis.py:107-107</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("Headline group contrast (enrichment minus usual husbandry):")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-152">
+    <p><code>analysis.py:73-73</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"Median within-cat SD of FGM: {within_sd.median():.2f} ng/g")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-153">
+    <p><code>analysis.py:165-165</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("  information, close to the 24 cats actually randomised. The")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-154">
+    <p><code>analysis.py:166-166</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("  row-level test therefore understates the standard error and")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-155">
+    <p><code>analysis.py:187-187</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("  the independent unit and should agree with the mixed model.")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-156">
+    <p><code>analysis.py:48-48</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>rows_per_cat.max()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-157">
+    <p><code>analysis.py:68-69</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>cat_means.groupby(GROUP_COL, observed=True)[OUTCOME]
+          .agg(["count", "mean", "std", "min", "max"]).round(2).to_string()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-158">
+    <p><code>analysis.py:68-69</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(cat_means.groupby(GROUP_COL, observed=True)[OUTCOME]
+          .agg(["count", "mean", "std", "min", "max"]).round(2).to_string())</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-159">
+    <p><code>analysis.py:89-89</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>smf.mixedlm(f"{OUTCOME} ~ {GROUP_COL}", df, groups=df[UNIT_COL])</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-160">
+    <p><code>analysis.py:162-162</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  Each cat gives {m:.0f} correlated samples with ICC {icc:.3f}.")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-161">
+    <p><code>analysis.py:132-132</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("Plain two-sample Welch t-test on all 144 rows, treating every row")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-162">
+    <p><code>analysis.py:48-48</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"Rows per cat: min {rows_per_cat.min()}, max {rows_per_cat.max()}")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-163">
+    <p><code>analysis.py:133-133</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("as if it were an independent observation. This assumption is FALSE")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-164">
+    <p><code>analysis.py:134-134</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("for these data: the six rows from one cat are repeated measures on")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-165">
+    <p><code>analysis.py:149-149</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  n rows        : {len(a)} enrichment vs {len(b)} usual husbandry")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-166">
+    <p><code>analysis.py:163-163</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print(f"  Design effect 1 + (m-1)*ICC = {deff:.2f}, so the 144 rows carry")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-167">
+    <p><code>analysis.py:186-186</code> · <code>sha256:59e4f1238c115db047496eed4057fa959763c3a0e5f27a3ece9a6140bd893753</code></p>
+    <blockquote><code>print("  This collapses each cat to one number, so it respects the cat as")</code></blockquote>
+  </div>
+  
+</div>
+
+  </article>
+  
+  
+  <article class="card" id="disclosure-3"><h3>Scientific check representation is unsupported</h3><p>check:authorized-independent-unit-entry-into-row-independent-procedure: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-4"><h3>Scientific check representation is unsupported</h3><p>check:casrx-isoform-axis-model: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-5"><h3>Scientific check representation is unsupported</h3><p>check:classifier-derived-copy-dosage-representation: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-6"><h3>Scientific check representation is unsupported</h3><p>check:complete-domain-exposure-denominator: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-7"><h3>Scientific check representation is unsupported</h3><p>check:complete-family-correction-over-performed-test-battery: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-8"><h3>Scientific check representation is unsupported</h3><p>check:direct-standardization-conditioning-set: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-9"><h3>Scientific check representation is unsupported</h3><p>check:directional-measurement-error-interpretation: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-10"><h3>Scientific check representation is unsupported</h3><p>check:expected-count-background-construction: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-11"><h3>Scientific check representation is unsupported</h3><p>check:expected-count-focal-target-handling: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-12"><h3>Scientific check representation is unsupported</h3><p>check:founder-orientation-before-hmm-emission: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-13"><h3>Scientific check representation is unsupported</h3><p>check:full-map-ancestry-exposure: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-14"><h3>Scientific check representation is unsupported</h3><p>check:ld-covariance-whitening-before-robust-fit: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-15"><h3>Scientific check representation is unsupported</h3><p>check:local-perturbation-primary-row-scope: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-16"><h3>Scientific check representation is unsupported</h3><p>check:local-perturbation-regression-specification: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-17"><h3>Scientific check representation is unsupported</h3><p>check:mvmr-residual-heterogeneity-estimator: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-18"><h3>Scientific check representation is unsupported</h3><p>check:paired-bridge-location-alignment: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-19"><h3>Scientific check representation is unsupported</h3><p>check:phase-split-mvmr-instrument-construction: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-20"><h3>Scientific check representation is unsupported</h3><p>check:poststratified-misclassification-estimator: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-21"><h3>Scientific check representation is unsupported</h3><p>check:posttreatment-missingness-strategy: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-22"><h3>Scientific check representation is unsupported</h3><p>check:recoverable-technical-group-adjustment: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-23"><h3>Scientific check representation is unsupported</h3><p>check:somatic-clonality-representation: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-24"><h3>Scientific check representation is unsupported</h3><p>check:within-sequence-transition-path-continuity: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  
+  <details>
+    <summary>1 routine not-applicable scientific-check record</summary>
+    <p>These negative applicability records are retained for deterministic replay. They are coverage bookkeeping, not concerns about the workflow.</p>
+    <ul><li><code>check:mvmr-cross-exposure-covariance</code>: check:mvmr-cross-exposure-covariance: Every completed adapter determined that its exact representation does not apply.</li></ul>
+  </details>
+  
+</section>
+<section>
+  <h2>External reproduction requests</h2>
+  <p>These are proposed evidence requests only. They do not authorize sc-referee to execute project code, use credentials, or submit work to a scheduler.</p>
+  <p>No external reproduction request was generated for the selected scope.</p>
+</section>
+<section>
+  <h2>Claim lineage</h2>
+  <p>Each grade is independent. A partial aggregate does not show that the project workflow executed or that the report was reproduced.</p>
+  
+</section>
+<section>
+  <h2>Asset identity</h2>
+  <p>Identity strength limits only claims, lineage, or detector conclusions for which exact asset identity is a material premise. A weak or unidentified asset is a coverage and reproducibility limitation, not a scientific defect.</p>
+  
+  <article class="card"><h3><code>file:25c50d82a2102287cdf6</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>file:33470e9694244dbb17fb</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>file:56d7a37b010084744021</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>file:8339f1d2f2670f82cb4d</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>file:c5f52564d31d6d158989</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>file:4c5497014ace09f4c763</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>artifact:e486a439e5fd72720423</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>artifact-publication:2d2585b7993e26ca495b</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>artifact-publication:bbaa0453b00be631471a</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>artifact-publication:0d2f2ffd01b2d0d2570d</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+</section>
+<section>
+  <h2>Audit identity and provenance</h2>
+  <p>Run: <code>audit:9272f032eff84ea7aba2119287a6f659</code></p><p>Semantic lock: <code>sha256:2892a5f86ecde021fa6e9ebb7ca9795cc76ae3fcc7a53031efe67efac154fbe9</code></p>
+  <p>Snapshot: <code>sha256:0a319bb2af0fbf8589123390c4940f63f5c72665f772f3a885848046bfbed66d</code>; live workspace: unchanged.</p>
+  <p>External evidence records: 0. Project/auditor environments: 1. Environment reconstructions: 0. Reproduction requests: 0.</p>
+  
+  <article class="card">
+    <h3>Performance measurement through semantic lock</h3>
+    <p>This is a replayable boundary measurement, not total run duration. Post-lock report, storage, and integrity time is excluded.</p>
+    <p>User-visible elapsed: 0.26387466699816287 seconds; paused for scientist: 0.0 seconds.</p>
+    <p>Controller-observed model calls: 0; parser-cache hits: 0; misses: 5; invalidations: 0.</p>
+    <p>Metered snapshot full-digest reads: 21078 bytes; sampled-fingerprint reads: 0 bytes. Other I/O is not included.</p>
+  </article>
+  
+</section>
+</body>
+</html>

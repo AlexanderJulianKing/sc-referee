@@ -23,4 +23,4 @@ def project_root() -> Path:
 
 @pytest.fixture
 def schema_root(project_root: Path) -> Path:
-    return project_root / "reference" / "schemas-v0.19.0"
+    return project_root / "reference" / "schemas-v0.20.0"

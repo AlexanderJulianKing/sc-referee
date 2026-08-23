@@ -649,5 +649,5 @@ Path("results/report.md").write_text(f"[selected-result] {result}\\n", encoding=
     assert WRITER_SCOPE_EXECUTION_ROOT_MARKER not in observed["proof_limitations"]
     assert module["state"] == "unsupported"
     assert [item["abstention_reason"] for item in module["observations"]] == [
-        "selected-static-writer-scope-unavailable"
+        "verified-contract-authority-unavailable"
     ]

@@ -36,16 +36,16 @@ from scripts.record_first_direct_three_case_stage1_reviews import (
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SCHEMA_ROOT = PROJECT_ROOT / "reference/schemas-v0.19.0"
+SCHEMA_ROOT = PROJECT_ROOT / "reference/schemas-v0.20.0"
 FROZEN_SCHEMA_ROOT = PROJECT_ROOT / "reference/schemas-v0.18.0"
 REVIEW_ROOT = PROJECT_ROOT / REVIEW_RELATIVE
 
 
 @pytest.fixture(autouse=True)
 def _current_schema_for_new_review_projection(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Keep the retained recorder bytes fixed while exercising new records at v0.19."""
+    """Keep the retained recorder bytes fixed while exercising new records at v0.20."""
 
-    monkeypatch.setattr(stage1_recorder, "SCHEMA_RELATIVE", Path("reference/schemas-v0.19.0"))
+    monkeypatch.setattr(stage1_recorder, "SCHEMA_RELATIVE", Path("reference/schemas-v0.20.0"))
 
 
 def _load(path: Path) -> dict[str, Any]:

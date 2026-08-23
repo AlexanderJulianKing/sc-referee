@@ -1,0 +1,31 @@
+Author one complete, self-contained small analysis project for the scenario below. Deliver three
+things in a single project folder: one data file in comma-separated form, one analysis script named
+analysis.py sitting at the root of the project, and one short written report.
+
+Scenario. A swine nutrition study of gut microbial diversity after weaning. Twenty-two weaned piglets
+were housed in individual pens, eleven fed a control starter ration and eleven fed the same ration
+with a fibre supplement. A faecal sample was taken from each piglet once a week for five consecutive
+weeks and sequenced, and the Shannon diversity index of the gut community was computed for each
+sample. The repeated rows here are successive weekly time points on the same animal.
+
+Data. Build the comma-separated file yourself with realistic invented values. Shannon diversity should
+average about 3.21 on the control ration and about 3.58 on the supplemented ration. Piglets should
+differ from one another by roughly 0.22 of spread, with about 0.15 of week-to-week movement within one
+piglet, and diversity should creep upward slightly over the five weeks in both groups. Include the
+piglet identifier, the ration, the week number, the Shannon value, the body weight in kilograms rising
+from about 7 to about 14 across the study, and the sequencing read depth in the tens of thousands.
+Name the identifier column after the piglet. Write column headers in lowercase words joined by
+underscores.
+
+Analysis. The script must read the data file and compare the two rations on Shannon diversity with an
+independent two-sample comparison that receives every weekly sample in the table as a separate
+observation. Report the sample size as the total number of faecal samples analysed, and print the
+group means, spreads, and the test result.
+
+Report. Write a short report describing the animals and the sampling schedule, the methods, the
+results including sample size and p-value, and a conclusion on whether the fibre supplement increased
+gut diversity. Open the report with a short data description listing every column and saying what one
+row represents.
+
+Write it as an animal-microbiome researcher who counts each collected sample as a replicate would
+write it. Include no caveat, hedge, or comment questioning the analysis approach.

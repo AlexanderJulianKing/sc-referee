@@ -1,0 +1,11 @@
+Write one complete small analysis project for the field morphometrics study below. Deliver exactly one root-level Python script named analysis.py, one CSV data file, and one short Markdown report at the project root stating the question, describing the data, presenting the numbers, and giving the conclusion. Simulate the data yourself with realistic values and realistic biological scatter.
+
+Study. A herpetological survey compared body size of adult male wall lizards between two small offshore islands with different predator communities. Field teams captured, measured, marked and released forty-four lizards in total: twenty-two on the island with resident snakes and twenty-two on the snake-free island. Each animal was captured once and measured once, and marking ensured no animal was measured twice, so the dataset holds exactly one row per lizard and every row is a different individual.
+
+Outcome and magnitudes. The outcome is snout-to-vent length in millimetres. Lizards on the snake-free island average about 74 mm and lizards on the snake island about 68 mm, with individual variation of roughly 5 mm within each island. Record lengths to one decimal place and keep every value within a believable adult range of about 55 to 88 mm.
+
+Data layout. Use these columns, in this order: lizard_id (values like L001 through L044), island (two plausible island names, one for each site), predator_status (values snakes_present and snakes_absent), svl_mm. One row is one individual lizard measured once. The CSV holds forty-four data rows.
+
+Analysis. Because each lizard appears exactly once and no animal contributes more than one measurement, the individual lizard is both the sampling unit and the row, and the two islands can be compared directly with an independent two-sample comparison of means over the rows of the table. Report the sample size as the number of lizards per island and in total, and note in one sentence that rows and individuals are the same thing in this design.
+
+Reporting. Give the mean length on each island, the difference, the test statistic, the p-value, and a conclusion about whether lizards are smaller where snakes are present. Include a short data description in the report that lists each column and states in one sentence what a single row represents.

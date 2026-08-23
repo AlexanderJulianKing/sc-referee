@@ -73,6 +73,11 @@ MINIMAL_REPORT = (
 )
 
 
+@pytest.fixture(autouse=True)
+def _active_schema_for_new_heldout_records(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(lean_pipeline, "SCHEMA_RELATIVE", Path("reference/schemas-v0.20.0"))
+
+
 @pytest.fixture
 def sealed_root(tmp_path: Path, project_root: Path) -> Path:
     """A throwaway project root carrying the sealed lane inputs read-only."""

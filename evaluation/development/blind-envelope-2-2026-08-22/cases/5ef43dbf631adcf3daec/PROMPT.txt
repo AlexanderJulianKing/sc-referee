@@ -1,0 +1,49 @@
+Author one complete, self-contained small analysis project for the scenario below. The project must
+contain exactly three deliverables: one data file in CSV format, one Python analysis script named
+analysis.py located at the root of the project, and one short written report. Nothing else is needed.
+
+Scenario
+
+A greenhouse trial asks whether inoculating tomato seedlings with an arbuscular mycorrhizal fungus
+increases fruit yield. The individual potted plant is the experimental unit. Each plant grows alone
+in its own pot with its own substrate, is watered and fertilised individually on the same schedule,
+and was randomly assigned to a treatment at transplanting; pots were randomised in position on the
+benches and re-randomised weekly. There are 48 plants: 24 inoculated and 24 uninoculated controls.
+Each plant is harvested once, at the end of the season, and yields exactly one measurement, so the
+design has one plant per pot and one record per plant, with no repeated measurement of any plant and
+no grouping of plants into shared containers, trays, or blocks.
+
+The outcome is the cumulative fresh mass of marketable fruit per plant, in grams, summed over the
+whole harvest period and recorded at the end of the season. Realistic values: control plants yield
+about 1820 g and inoculated plants about 2260 g, with a standard deviation among plants of roughly
+330 g within each group. Generate the CSV values so this spread is visible in the numbers, and round
+yields to the nearest gram.
+
+Data file
+
+One row per plant, and exactly 48 rows of data. Include a column identifying the plant, named
+plant_id, with labels such as P01 through P48. Include a column for the inoculation treatment, a
+column for the plant's bench position, a column for the plant height in centimetres at first flower,
+a column for the number of marketable fruits harvested, and a column for the cumulative marketable
+fruit fresh mass in grams. Choose clear, lowercase, underscore-separated names for the remaining
+columns and use them consistently across the CSV, the script, and the report.
+
+Analysis
+
+Read the CSV. Compare cumulative marketable yield between inoculated and control plants using an
+independent two-sample comparison of the two groups of plants, one value per plant. Report the
+sample size as the number of plants in each group, that is 24 per group and 48 in total. Also report
+the group means, the group standard deviations, the difference in means, and the p-value. Include a
+check in the script that confirms every plant identifier appears exactly once in the data file, and
+print the outcome of that check. Print all results when the script is run.
+
+Report
+
+Write the report as a plant scientist. Open with a paragraph on why mycorrhizal colonisation is
+expected to improve phosphorus capture and yield. Include a short data description section that
+lists every column in the CSV and states plainly what a single row represents, making clear that one
+row is one whole plant and that each plant appears only once. State that the plant is both the
+treated unit and the measured unit, so the number of rows and the number of experimental units are
+the same. Present the numerical results, then interpret the yield response agronomically and note
+the usual practical caveats such as the single cultivar, the greenhouse setting, and the single
+growing season.

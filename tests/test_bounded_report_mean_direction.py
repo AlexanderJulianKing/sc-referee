@@ -109,6 +109,7 @@ def test_opposite_sign_emits_evaluation_candidate_only(schema_root: Path, tmp_pa
     assert bundle["findings"] == []
     assert {item["detector_id"] for item in bundle["detector_manifests"]} == {
         "detector:bounded-analysis-method-conflict",
+        "detector:bounded-code-csv-dependence-conflict",
         "detector:bounded-feature-identifier-identity",
         "detector:bounded-report-mean-direction",
         "detector:bounded-reported-method-contract-conflict",

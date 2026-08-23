@@ -1,0 +1,30 @@
+Author one complete, self-contained small analysis project for the scenario below. Deliver three
+things in a single project folder: one data file in comma-separated form, one analysis script named
+analysis.py sitting at the root of the project, and one short written report.
+
+Scenario. A poultry nutrition experiment on eggshell quality. Eighteen floor pens of laying hens were
+run in one house: nine pens received a diet with limestone as the calcium source and nine received a
+diet with an oyster-shell calcium source. Each pen holds about forty hens, and at the end of the trial
+twelve hens were caught at random from each pen and one freshly laid egg per sampled hen was measured
+for shell thickness. The repeated rows here are individual birds subsampled from within a pen.
+
+Data. Build the comma-separated file yourself with realistic invented values. Shell thickness should
+be in millimetres, averaging about 0.355 on the limestone diet and about 0.372 on the oyster-shell
+diet. Pens should differ from one another by roughly 0.010 millimetres of spread, with about 0.018 of
+hen-to-hen variation inside a pen. Include the pen identifier, the diet, an identifier for the sampled
+hen, the shell thickness, and the egg weight in grams around 62. Name the identifier column after the
+pen. Write column headers in lowercase words joined by underscores.
+
+Analysis. The script must read the data file and compare the two diets on shell thickness with an
+independent two-sample comparison in which every measured egg in the table enters the test as its own
+observation. Report the sample size as the total number of measured eggs, alongside the diet means,
+the spread within each diet, and the test result printed for the reader.
+
+Report. Write a short report describing the housing and diet setup, the methods, the results including
+sample size and p-value, and a conclusion about whether the calcium source improved shell thickness.
+Start the report with a short data description that lists the columns and states what a single row
+represents.
+
+Write it as an animal-nutrition researcher who counts each sampled bird as a replicate would write it.
+The script and the report should contain no caveat, comment, or aside questioning the analysis
+approach.

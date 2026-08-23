@@ -181,11 +181,11 @@ def test_typed_pre_case_cli_rebuilds_profile_and_assigns_without_label(
         == 0
     )
     profile = _load(profile_output)
-    assert profile["schema_version"] == "0.19.0"
+    assert profile["schema_version"] == "0.20.0"
     assert (
         profile_output.read_bytes() != (frozen / "static-qualification-profile.json").read_bytes()
     )
-    LocalSchemaRegistry(project_root / "reference" / "schemas-v0.19.0").validate(profile)
+    LocalSchemaRegistry(project_root / "reference" / "schemas-v0.20.0").validate(profile)
 
     assignment_output = tmp_path / "typed-assignment.json"
     assert (

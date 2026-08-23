@@ -57,14 +57,32 @@ def build_frozen_inspection_context(
     """Construct immutable adapter bytes without exposing filesystem or controller handles."""
 
     selected = publication_surface.get("selection", {}).get("selected_surface_refs", [])
-    if publication_surface.get("status") != "resolved" or len(selected) != 1:
-        return None
-    selected_artifact_id = selected[0].get("record_id")
-    selected_artifacts = [
-        item for item in artifacts if item.get("artifact_id") == selected_artifact_id
-    ]
-    if len(selected_artifacts) != 1:
-        return None
+    selected_surface_ref: RecordRef
+    selected_artifact_ref: RecordRef
+    if publication_surface.get("status") == "resolved" and len(selected) == 1:
+        selected_artifact_id = selected[0].get("record_id")
+        selected_artifacts = [
+            item for item in artifacts if item.get("artifact_id") == selected_artifact_id
+        ]
+        if len(selected_artifacts) != 1:
+            return None
+        selected_surface_ref = RecordRef(
+            "publication_surface", str(publication_surface["publication_surface_id"])
+        )
+        selected_artifact_ref = RecordRef("artifact", str(selected_artifact_id))
+    else:
+        analysis_files = [
+            item
+            for item in file_records
+            if item.get("path") == "analysis.py"
+            and item.get("entry_kind") == "regular_file"
+            and isinstance(item.get("file_record_id"), str)
+        ]
+        if len(analysis_files) != 1:
+            return None
+        analysis_ref = RecordRef("file_record", str(analysis_files[0]["file_record_id"]))
+        selected_surface_ref = analysis_ref
+        selected_artifact_ref = analysis_ref
     base_values = [
         repository_snapshot,
         publication_surface,
@@ -151,10 +169,8 @@ def build_frozen_inspection_context(
             documents.append(document)
     context = FrozenInspectionContext(
         snapshot_digest=snapshot_digest,
-        selected_surface_ref=RecordRef(
-            "publication_surface", str(publication_surface["publication_surface_id"])
-        ),
-        selected_artifact_ref=RecordRef("artifact", str(selected_artifact_id)),
+        selected_surface_ref=selected_surface_ref,
+        selected_artifact_ref=selected_artifact_ref,
         documents=tuple(documents),
         base_records=tuple(base_records),
         material_inputs=material_inputs,
@@ -480,7 +496,20 @@ def _compile_applicable_module(
     manifest = module.manifest
     scope_digest = semantic_digest(scope_path)
     source_refs = _source_refs(context, observations)
-    subject_ref = context.selected_surface_ref.to_dict()
+    code_dependence_subjects = {
+        item.method_target_ref
+        for item in observations
+        if manifest.check_id
+        == "check:authorized-independent-unit-entry-into-row-independent-procedure"
+        and manifest.check_version == "2.1.0"
+        and item.evidence_plane == "static_source"
+        and item.method_target_ref is not None
+    }
+    subject_ref = (
+        next(iter(code_dependence_subjects)).to_dict()
+        if len(code_dependence_subjects) == 1
+        else context.selected_surface_ref.to_dict()
+    )
     contract_id = stable_id(
         "contract-analysis-scientific-check",
         run_id,
@@ -657,7 +686,7 @@ def _observation_assertion(
         run_id,
         *(item.observation_digest for item in equivalent),
     )
-    return {
+    assertion = {
         "schema_version": SCHEMA_VERSION,
         "record_type": "semantic_assertion",
         "assertion_id": assertion_id,
@@ -723,6 +752,20 @@ def _observation_assertion(
             ),
         },
     }
+    row_entry = getattr(observation, "row_entry_evidence", None)
+    if row_entry is not None:
+        projection = row_entry.to_dict()
+        if projection.get("profile") == "code_csv_row_entry_evidence_v1":
+            assertion["extensions"]["x-code-csv-row-entry-evidence"] = projection
+            assertion["extensions"]["x-code-csv-row-entry-evidence-digest"] = semantic_digest(
+                projection
+            )
+        elif projection.get("profile") == "report_csv_row_entry_evidence_v1":
+            assertion["extensions"]["x-report-csv-row-entry-evidence"] = projection
+            assertion["extensions"]["x-report-csv-row-entry-evidence-digest"] = semantic_digest(
+                projection
+            )
+    return assertion
 
 
 def _coverage_disclosure(
@@ -806,6 +849,24 @@ def _source_refs(
                 continue
             value = document.evidence_source_ref(span)
             values[canonical_json(value)] = value
+        row_entry = getattr(observation, "row_entry_evidence", None)
+        if row_entry is not None:
+            material = [
+                item
+                for item in context.material_inputs
+                if item.path == row_entry.material_input_path
+                and item.content_digest == row_entry.material_input_content_digest
+                and item.file_ref == row_entry.material_file_ref
+            ]
+            if len(material) == 1:
+                value = {
+                    "source_kind": "file_span",
+                    "locator": row_entry.material_input_path,
+                    "path": row_entry.material_input_path,
+                    "content_digest": row_entry.material_input_content_digest,
+                    "external": False,
+                }
+                values[canonical_json(value)] = value
     return [values[key] for key in sorted(values)]
 
 
