@@ -2340,3 +2340,381 @@ def test_v2_raw_test_only_boundary_remains_a_contract_conflict_candidate() -> No
 def test_v2_break_in_control_flow_body_abstains() -> None:
     source = _source(before_test="for value in (1, 2):\n    break")
     assert _analyze(source).reason == "control-flow-body-unadmitted"
+
+
+def test_v22_helper_expands_inside_contract_domain_loop_and_reconstructs_operands() -> None:
+    source = b"""import pandas as pd
+from scipy import stats
+
+GROUPS = ("A", "B")
+
+def select_group(frame, level):
+    selected = frame.loc[frame["group"] == level, "value"]
+    return selected
+
+def main():
+    df = pd.read_csv("data.csv")
+    summary = {}
+    for level in GROUPS:
+        values = select_group(df, level)
+        summary[level] = values
+    left = summary["A"]
+    right = summary["B"]
+    result = stats.ttest_ind(left, right)
+    print(result.pvalue)
+
+if __name__ == "__main__":
+    main()
+"""
+    result = _analyze(source)
+    assert result.reason is None
+    assert result.facts is not None
+    assert result.facts.group_values == _GROUPS
+
+
+def test_v22_depth_two_helper_expansion_gets_fresh_names_per_contract_binding() -> None:
+    source = b"""import pandas as pd
+from scipy import stats
+
+GROUPS = ("A", "B")
+
+def inner(frame, level):
+    return frame.loc[frame["group"] == level, "value"]
+
+def outer(frame, level):
+    selected = inner(frame, level)
+    return selected
+
+def main():
+    df = pd.read_csv("data.csv")
+    summary = {}
+    for level in GROUPS:
+        values = outer(df, level)
+        summary[level] = values
+    left = summary["A"]
+    right = summary["B"]
+    result = stats.ttest_ind(left, right)
+    print(result.pvalue)
+
+if __name__ == "__main__":
+    main()
+"""
+    result = _analyze(source)
+    assert result.reason is None
+    assert result.facts is not None
+
+
+def test_v22_helper_expands_as_loop_iterable_receiver_without_hiding_aggregation() -> None:
+    source = b"""import pandas as pd
+from scipy import stats
+
+def means_by_visit(frame):
+    table = frame.groupby("visit")["value"].mean()
+    return table
+
+def main():
+    df = pd.read_csv("data.csv")
+    left = df.loc[df["group"] == "A", "value"]
+    right = df.loc[df["group"] == "B", "value"]
+    for visit, average in means_by_visit(df).items():
+        print(visit, average)
+    result = stats.ttest_ind(left, right)
+    print(result.pvalue)
+
+if __name__ == "__main__":
+    main()
+"""
+    result = _analyze(source)
+    assert result.reason is None
+    assert result.facts is not None
+
+
+def test_v22_loop_body_helper_aggregation_cannot_be_laundered_into_test() -> None:
+    source = b"""import pandas as pd
+from scipy import stats
+
+GROUPS = ("A", "B")
+
+def aggregate_group(frame, level):
+    selected = frame.loc[frame["group"] == level, "value"]
+    reduced = selected.groupby(frame["unit"]).sum()
+    return reduced
+
+def main():
+    df = pd.read_csv("data.csv")
+    summary = {}
+    for level in GROUPS:
+        values = aggregate_group(df, level)
+        summary[level] = values
+    left = summary["A"]
+    right = summary["B"]
+    result = stats.ttest_ind(left, right)
+    print(result.pvalue)
+
+if __name__ == "__main__":
+    main()
+"""
+    assert _analyze(source).reason == "aggregation-on-test-operand-path"
+
+
+def test_v22_non_contract_loop_label_never_resolves_partially() -> None:
+    source = b"""import pandas as pd
+from scipy import stats
+
+GROUPS = ("A", "outside")
+df = pd.read_csv("data.csv")
+summary = {}
+for level in GROUPS:
+    values = df.loc[df["group"] == level, "value"]
+    summary[level] = values
+left = summary["A"]
+right = summary["B"]
+result = stats.ttest_ind(left, right)
+print(result.pvalue)
+"""
+    assert _analyze(source).reason == "two-group-row-selection-unavailable"
+
+
+def test_v22_mixed_dict_reconstruction_abstains_before_any_candidate() -> None:
+    source = b"""import pandas as pd
+from scipy import stats
+
+GROUPS = ("A", "B")
+df = pd.read_csv("data.csv")
+summary = {}
+for level in GROUPS:
+    values = df.loc[df["group"] == level, "value"]
+    if level == "B":
+        values = values.groupby(df["unit"]).mean()
+    summary[level] = values
+left = summary["A"]
+right = summary["B"]
+result = stats.ttest_ind(left, right)
+print(result.pvalue)
+"""
+    assert _analyze(source).reason == "two-group-row-selection-unavailable"
+
+
+def test_v22_helper_in_loop_keeps_dependence_aware_sibling_visible() -> None:
+    source = b"""import pandas as pd
+from scipy import stats
+import statsmodels.api as sm
+
+GROUPS = ("A", "B")
+
+def select_group(frame, level):
+    model = sm.MixedLM.from_formula("value ~ group", groups="unit", data=frame)
+    return frame.loc[frame["group"] == level, "value"]
+
+def main():
+    df = pd.read_csv("data.csv")
+    summary = {}
+    for level in GROUPS:
+        values = select_group(df, level)
+        summary[level] = values
+    left = summary["A"]
+    right = summary["B"]
+    result = stats.ttest_ind(left, right)
+    print(result.pvalue)
+
+if __name__ == "__main__":
+    main()
+"""
+    assert _analyze(source).reason == "dependence-aware-sibling-present"
+
+
+def test_v22_loop_target_that_aliases_tracked_frame_still_abstains() -> None:
+    source = _source(
+        before_test='for df in ("A", "B"):\n    print(df)',
+    )
+    assert _analyze(source).reason == "loop-target-aliases-tracked"
+
+
+def test_v22_literal_container_assignment_does_not_unpack_groupby_pair() -> None:
+    groupby_source = _source(
+        before_test='summary = {}\nfor level, values in df.groupby("group"):\n    summary[level] = values',
+    )
+    assert _analyze(groupby_source).reason is not None
+
+
+def _v22_reconstruction_source(
+    *,
+    setup: str = "",
+    iterable: str = '("A", "B")',
+    body_before_store: str = "",
+    after_loop: str = "",
+    left: str = 'summary["A"]',
+    right: str = 'summary["B"]',
+    loop_else: str = "",
+) -> bytes:
+    return f"""import pandas as pd
+from scipy import stats
+{setup}
+df = pd.read_csv("data.csv")
+summary = {{}}
+for level in {iterable}:
+    values = df.loc[df["group"] == level, "value"]
+{body_before_store}    summary[level] = values
+{loop_else}{after_loop}
+left = {left}
+right = {right}
+result = stats.ttest_ind(left, right)
+print(result.pvalue)
+""".encode()
+
+
+@pytest.mark.parametrize(
+    ("setup", "iterable"),
+    [
+        ("", '("A", "B")'),
+        ("", '["B", "A"]'),
+        ('A_LABEL = "A"\nB_LABEL = "B"', "(B_LABEL, A_LABEL)"),
+        ('GROUPS = ("A", "B")', "GROUPS"),
+    ],
+)
+def test_v22_exact_contract_domain_iterables_reconstruct_two_members(
+    setup: str,
+    iterable: str,
+) -> None:
+    result = _analyze(_v22_reconstruction_source(setup=setup, iterable=iterable))
+    assert result.reason is None
+    assert result.facts is not None
+    assert result.facts.group_values == _GROUPS
+
+
+@pytest.mark.parametrize(
+    ("iterable", "body_before_store", "loop_else"),
+    [
+        ('("A",)', "", ""),
+        ('("A", "B", "C")', "", ""),
+        ('("A", "A")', "", ""),
+        ('("A", "outside")', "", ""),
+        ('("A", str("B"))', "", ""),
+        ('("A", "B")', '    level = "A"\n', ""),
+        ('("A", "B")', "", 'else:\n    print("done")\n'),
+    ],
+)
+def test_v22_nonclosed_contract_domain_loop_never_completes_operands(
+    iterable: str,
+    body_before_store: str,
+    loop_else: str,
+) -> None:
+    assert (
+        _analyze(
+            _v22_reconstruction_source(
+                iterable=iterable,
+                body_before_store=body_before_store,
+                loop_else=loop_else,
+            )
+        ).reason
+        == "two-group-row-selection-unavailable"
+    )
+
+
+@pytest.mark.parametrize(
+    ("after_loop", "left", "right", "expected_reason"),
+    [
+        ("", 'summary.get("A")', 'summary.get("B")', "unregistered-component-consumer"),
+        ('summary["C"] = df["value"]', 'summary["A"]', 'summary["B"]', "tracked-value-mutation"),
+        ('del summary["A"]', 'summary["A"]', 'summary["B"]', "tracked-value-mutation"),
+        (
+            'summary.update({"A": df["value"]})',
+            'summary["A"]',
+            'summary["B"]',
+            "unregistered-component-consumer",
+        ),
+        ("alias = summary", 'alias["A"]', 'alias["B"]', "two-group-row-selection-unavailable"),
+    ],
+)
+def test_v22_reconstruction_refuses_nonmember_preserving_uses(
+    after_loop: str,
+    left: str,
+    right: str,
+    expected_reason: str,
+) -> None:
+    assert (
+        _analyze(_v22_reconstruction_source(after_loop=after_loop, left=left, right=right)).reason
+        == expected_reason
+    )
+
+
+def test_v22_whole_reconstruction_escape_suppresses_unrelated_raw_test() -> None:
+    source = _source(
+        before_test=(
+            "summary = {}\n"
+            'for level in ("A", "B"):\n'
+            '    values = df.loc[df["group"] == level, "value"]\n'
+            "    summary[level] = values\n"
+            "alias = summary"
+        ),
+    )
+    assert _analyze(source).reason == "unregistered-component-consumer"
+
+
+@pytest.mark.parametrize(
+    "loop_body",
+    [
+        "        values = helper.select_group(df, level)\n        print(values)",
+        "        values = print(select_group(df, level))",
+    ],
+)
+def test_v22_non_simple_or_nested_loop_helper_call_never_expands(loop_body: str) -> None:
+    source = f"""import pandas as pd
+from scipy import stats
+
+def select_group(frame, level):
+    return frame.loc[frame["group"] == level, "value"]
+
+def main():
+    df = pd.read_csv("data.csv")
+    left = df.loc[df["group"] == "A", "value"]
+    right = df.loc[df["group"] == "B", "value"]
+    for level in ("A", "B"):
+{loop_body}
+    result = stats.ttest_ind(left, right)
+    print(result.pvalue)
+
+if __name__ == "__main__":
+    main()
+""".encode()
+    assert _analyze(source).reason is not None
+
+
+def test_v22_loop_and_reconstruction_are_prose_byte_invariant() -> None:
+    template = '''"""{doc}"""
+# {comment}
+import pandas as pd
+from scipy import stats
+GROUPS = ("A", "B")
+def main():
+    df = pd.read_csv("data.csv")
+    summary = {{}}
+    for level in GROUPS:
+        values = df.loc[df["group"] == level, "value"]
+        summary[level] = values
+        print("{label}", level, values.mean())
+    left = summary["A"]
+    right = summary["B"]
+    result = stats.ttest_ind(left, right)
+    print("{result_label}", result.pvalue)
+if __name__ == "__main__":
+    main()
+'''
+    variants = [
+        ("AAAAAAAA", "BBBBBBBB", "CCCCCCCC", "DDDDDDDD"),
+        ("averaged", "independ", "explore!", "primary!"),
+        ("mixedmod", "no-avera", "pseudobl", "row-wise"),
+    ]
+    results = [
+        _analyze(
+            template.format(
+                doc=doc,
+                comment=comment,
+                label=label,
+                result_label=result_label,
+            ).encode()
+        )
+        for doc, comment, label, result_label in variants
+    ]
+    assert all(result.reason is None and result.facts is not None for result in results)
+    assert results[0].facts == results[1].facts == results[2].facts

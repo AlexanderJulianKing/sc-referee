@@ -8,8 +8,8 @@ from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.detectors.bounded_analysis_method_conflict import (
     BoundedAnalysisMethodConflictDetector,
 )
-from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_1 import (
-    BoundedCodeCsvDependenceConflictV21Detector,
+from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_2 import (
+    BoundedCodeCsvDependenceConflictV22Detector,
 )
 from sc_referee.detectors.method_conflict_grant_pins import (
     GRANT_PINS,
@@ -223,13 +223,13 @@ def test_d1_prime_regular_index_and_label_collision_outcomes() -> None:
     assert collision.unique_nonindex_columns == ("site",)
 
 
-def test_code_lane_has_distinct_detector_binding_and_installed_grant() -> None:
+def test_code_lane_has_distinct_detector_binding_and_stale_installed_grant() -> None:
     registry = scientific_check_release_registry()
     binding = next(item for item in registry.method_conflict_bindings if item.check_id == _CHECK_ID)
-    assert binding.detector_id == BoundedCodeCsvDependenceConflictV21Detector.detector_id
-    assert binding.detector_version == "2.1.0"
+    assert binding.detector_id == BoundedCodeCsvDependenceConflictV22Detector.detector_id
+    assert binding.detector_version == "2.2.0"
     assert binding.production_finding_permitted is False
-    assert installed_pin_matches_live_identity(GRANT_PINS[binding.binding_id]) is True
+    assert installed_pin_matches_live_identity(GRANT_PINS[binding.binding_id]) is False
 
 
 def test_complete_domain_pin_and_detector_bytes_remain_live() -> None:

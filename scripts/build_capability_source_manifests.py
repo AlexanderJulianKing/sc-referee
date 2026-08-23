@@ -846,7 +846,7 @@ def main() -> None:
         },
     )
     code_csv_dependence_resource = (
-        ROOT / "src" / "sc_referee" / "detectors" / "bounded_code_csv_dependence_conflict_v2_1.py"
+        ROOT / "src" / "sc_referee" / "detectors" / "bounded_code_csv_dependence_conflict_v2_2.py"
     )
     _upsert(
         detector_collection,
@@ -894,7 +894,7 @@ def main() -> None:
                     "prerequisite is unavailable or unsupported."
                 ),
                 "partially_covered_when": (
-                    "Not used by version 2.1.0; incomplete or conflicted records remain not covered."
+                    "Not used by version 2.2.0; incomplete or conflicted records remain not covered."
                 ),
             },
             "description": (
@@ -903,7 +903,7 @@ def main() -> None:
             ),
             "detector_family": "code_csv_dependence_requirement_consistency",
             "detector_id": "detector:bounded-code-csv-dependence-conflict",
-            "detector_version": "2.1.0",
+            "detector_version": "2.2.0",
             "domains": ["domain_neutral_scientific_analysis"],
             "extensions": {
                 "x-adr-ref": (
@@ -911,7 +911,7 @@ def main() -> None:
                     "PSEUDOREPLICATION-FINDING.md"
                 ),
                 "x-implementation-resource": (
-                    "detectors/bounded_code_csv_dependence_conflict_v2_1.py"
+                    "detectors/bounded_code_csv_dependence_conflict_v2_2.py"
                 ),
                 "x-production-finding-permitted": False,
                 "x-scientific-check-ids": CODE_CSV_DEPENDENCE_CHECK_IDS,
@@ -919,8 +919,8 @@ def main() -> None:
             "implementation": {
                 "deterministic": True,
                 "entry_point": (
-                    "sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_1:"
-                    "BoundedCodeCsvDependenceConflictV21Detector"
+                    "sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_2:"
+                    "BoundedCodeCsvDependenceConflictV22Detector"
                 ),
                 "implementation_digest": sha256_digest(code_csv_dependence_resource.read_bytes()),
             },
@@ -986,17 +986,14 @@ def main() -> None:
             "validation": {
                 "agent_adjudication_count": 0,
                 "evaluation_ref": (
-                    "docs/implementation/ADR-0076-CONTRACT-BOUND-REPORT-CSV-"
-                    "PSEUDOREPLICATION-FINDING.md"
+                    "docs/implementation/PSEUDOREP-CODE-SLICE-2.2-DESIGN-2026-08-22.md"
                 ),
                 "human_scientific_approval_count": 0,
                 "qualification_record_ref": None,
-                "qualification_record_refs": [
-                    "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5"
-                ],
-                "qualification_review_basis": "agent_panel",
+                "qualification_record_refs": [],
+                "qualification_review_basis": "not_qualified",
                 "software_maintainer_approval_count": 1,
-                "status": "held_out_validated",
+                "status": "development_only",
             },
             "wording_constraints": [
                 "State only that the exact code/CSV fact contradicts the frozen one-row-per-authorized-unit requirement.",
@@ -1689,7 +1686,7 @@ def main() -> None:
         {
             "evidence_refs": [
                 "docs/implementation/ADR-0076-CONTRACT-BOUND-REPORT-CSV-PSEUDOREPLICATION-FINDING.md",
-                "docs/implementation/PSEUDOREP-CODE-SLICE-2.1-DESIGN-2026-08-22.md",
+                "docs/implementation/PSEUDOREP-CODE-SLICE-2.2-DESIGN-2026-08-22.md",
                 "evaluation/development/blind-envelope-5-2026-08-22/CUSTODY_LOG.md",
                 "src/sc_referee/scientific_checks/code_csv_dependence_dataflow.py",
                 "tests/test_dependence_code_slice_development.py",

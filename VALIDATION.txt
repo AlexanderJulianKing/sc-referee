@@ -12,7 +12,7 @@
   "storage_integrity": "passed",
   "generated_capability_matrix": "passed_fail_closed_manifest_profile",
   "capability_matrix_entries": 17,
-  "capability_matrix_detector_qualification": "two_exact_binding_grants",
+  "capability_matrix_detector_qualification": "one_live_exact_binding_grant",
   "capability_matrix_tested_versions": "none_declared",
   "public_detector_qualification": "binding_scoped_only"
 }

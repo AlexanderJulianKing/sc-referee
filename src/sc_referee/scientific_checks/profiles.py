@@ -417,7 +417,7 @@ def _method_conflict_detector_manifests() -> Mapping[str, Mapping[str, Any]]:
         raise RegistryValidationError("detector manifest collection has no record list")
     expected = {
         "detector:bounded-analysis-method-conflict": "0.3.0",
-        "detector:bounded-code-csv-dependence-conflict": "2.1.0",
+        "detector:bounded-code-csv-dependence-conflict": "2.2.0",
     }
     matches = [
         item

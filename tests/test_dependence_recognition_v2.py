@@ -946,11 +946,11 @@ def _production_import_closure(project_root: Path, roots: tuple[str, ...]) -> se
     return seen
 
 
-def test_code_lane_dependence_pin_is_live_and_v2_growth_is_unregistered(
+def test_code_lane_dependence_pin_is_stale_and_v2_growth_stays_unregistered(
     project_root: Path,
 ) -> None:
     binding = "method-conflict-binding:authorized-independent-unit-entry-into-row-independent-procedure-v1"
-    assert installed_pin_matches_live_identity(GRANT_PINS[binding]) is True
+    assert installed_pin_matches_live_identity(GRANT_PINS[binding]) is False
     registry = json.loads(
         (
             project_root / "src/sc_referee/resources/scientific-check-manifests-v1/registry.json"

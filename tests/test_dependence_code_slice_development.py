@@ -11,8 +11,8 @@ import sc_referee.scientific_checks.code_csv_dependence_adapter as code_adapter_
 import sc_referee.scientific_checks.code_csv_dependence_dataflow as dataflow_module
 from sc_referee.controller import replay, run_audit
 from sc_referee.core.ids import canonical_json
-from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_1 import (
-    BoundedCodeCsvDependenceConflictV21Detector,
+from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_2 import (
+    BoundedCodeCsvDependenceConflictV22Detector,
 )
 from sc_referee.scientific_checks.code_csv_dependence_adapter import CodeCsvDependenceAdapter
 from sc_referee.scientific_checks.core import InspectionDocument
@@ -22,7 +22,10 @@ OPENED_ROOT = Path("evaluation/development/blind-envelope-2026-08-21/cases")
 OPENED_2_ROOT = Path("evaluation/development/blind-envelope-2-2026-08-22/cases")
 OPENED_3_ROOT = Path("evaluation/development/blind-envelope-3-2026-08-22/cases")
 OPENED_4_ROOT = Path("evaluation/development/blind-envelope-4-2026-08-22/cases")
-LEDGER = Path("evaluation/development/pseudorep-code-slice-v2_1/DEVELOPMENT_LEDGER.json")
+OPENED_5_ROOT = Path("evaluation/development/blind-envelope-5-2026-08-22/cases")
+LEDGER = Path("evaluation/development/pseudorep-code-slice-v2_2/DEVELOPMENT_LEDGER.json")
+K_ROOT = Path("evaluation/development/dependence-growth-loop")
+K_CONTRACT_ROOT = Path("evaluation/development/pseudorep-code-slice-v2_2/k-method-contracts")
 
 
 class _ProseDocumentTripwire:
@@ -43,17 +46,19 @@ class _TripwireContext:
         return getattr(self._context, name)
 
 
-def test_v2_1_development_ledger_is_canonical_and_evaluation_only() -> None:
+def test_v2_2_development_ledger_is_canonical_and_evaluation_only() -> None:
     payload = LEDGER.read_bytes()
     ledger = json.loads(payload)
     assert canonical_json(ledger).encode() == payload.rstrip(b"\n")
-    assert ledger["check_version"] == "2.1.0"
-    assert ledger["adapter_version"] == "2.1.0"
-    assert ledger["detector_version"] == "2.1.0"
+    assert ledger["check_version"] == "2.2.0"
+    assert ledger["adapter_version"] == "2.2.0"
+    assert ledger["detector_version"] == "2.2.0"
     assert ledger["qualification_eligible"] is False
-    assert len(ledger["opened_cases"]) == 38
-    assert sum(item["expected_candidate_count"] for item in ledger["opened_cases"]) == 15
+    assert len(ledger["opened_cases"]) == 44
+    assert sum(item["expected_candidate_count"] for item in ledger["opened_cases"]) == 21
     assert all(item["expected_finding_count"] == 0 for item in ledger["opened_cases"])
+    assert len(ledger["k_controls"]) == 6
+    assert all(item["expected_candidate_count"] == 0 for item in ledger["k_controls"])
 
 
 @pytest.mark.parametrize(
@@ -177,7 +182,7 @@ def test_v2_1_development_ledger_is_canonical_and_evaluation_only() -> None:
             "f4e4d89ac44385a18261",
             False,
             "unsupported",
-            "additional-accepted-reader-present",
+            "helper-closure-or-nested-definition-unsupported",
         ),
         (
             OPENED_3_ROOT,
@@ -199,7 +204,7 @@ def test_v2_1_development_ledger_is_canonical_and_evaluation_only() -> None:
             "5bdfa31a22a40d58e20c",
             False,
             "unsupported",
-            "unregistered-component-consumer",
+            "admission-call-off-list",
         ),
         (
             OPENED_4_ROOT,
@@ -259,6 +264,54 @@ def test_v2_1_development_ledger_is_canonical_and_evaluation_only() -> None:
             "unsupported",
             "aggregation-on-test-operand-path",
         ),
+        (OPENED_5_ROOT, "0b4876ceca6b0a9aede7", True, "applicable", None),
+        (OPENED_5_ROOT, "1975f22bc0022b19331f", True, "applicable", None),
+        (OPENED_5_ROOT, "2448bea72701b75fce2a", True, "applicable", None),
+        (OPENED_5_ROOT, "a1541d5c671f3d6d58ce", True, "applicable", None),
+        (OPENED_5_ROOT, "e50e676afb2cd3593234", True, "applicable", None),
+        (OPENED_5_ROOT, "f1a04b5358a7b9b9d57c", True, "applicable", None),
+        (
+            OPENED_5_ROOT,
+            "0d274a0eccdb84966940",
+            False,
+            "unsupported",
+            "aggregation-on-test-operand-path",
+        ),
+        (
+            OPENED_5_ROOT,
+            "4afe430c936bbe560a5e",
+            False,
+            "not_applicable",
+            "no-repeated-authorized-unit",
+        ),
+        (
+            OPENED_5_ROOT,
+            "4d64fa6416ee8406f678",
+            False,
+            "unsupported",
+            "tracked-value-mutation",
+        ),
+        (
+            OPENED_5_ROOT,
+            "4e24fb76c83774381e41",
+            False,
+            "unsupported",
+            "additional-accepted-reader-present",
+        ),
+        (
+            OPENED_5_ROOT,
+            "be94cec09f73d4a3036a",
+            False,
+            "unsupported",
+            "unregistered-component-consumer",
+        ),
+        (
+            OPENED_5_ROOT,
+            "094fcb05ef85e4f7f406",
+            False,
+            "unsupported",
+            "aggregation-on-test-operand-path",
+        ),
     ],
 )
 def test_opened_cases_follow_code_lane_normal_path_and_replay(
@@ -296,17 +349,13 @@ def test_opened_cases_follow_code_lane_normal_path_and_replay(
     results = [
         item
         for item in bundle["detector_results"]
-        if item.get("detector_id") == BoundedCodeCsvDependenceConflictV21Detector.detector_id
+        if item.get("detector_id") == BoundedCodeCsvDependenceConflictV22Detector.detector_id
     ]
-    assert bool([item for item in results if item["state"] == "finding_candidate"]) is (
+    assert bool([item for item in results if item["state"] == "evaluation_finding_candidate"]) is (
         expected_candidate
     )
     assert not [item for item in results if item["state"] == "accepted"]
-    assert len(bundle["findings"]) == int(expected_candidate)
-    if expected_candidate:
-        assert bundle["findings"][0]["title"] == (
-            "Analysis code contradicts the frozen one-row-per-authorized-unit requirement"
-        )
+    assert not bundle["findings"]
 
     replayed = replay(
         audit / "semantic.lock.json",
@@ -323,8 +372,8 @@ def test_section_12_1_tripwire_covers_adapter_inspect_and_dataflow_entry(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    case_id = "d92b542e0bb28fa3c950"
-    source = OPENED_3_ROOT / case_id
+    case_id = "e50e676afb2cd3593234"
+    source = OPENED_5_ROOT / case_id
     project = tmp_path / "project-tripwire"
     shutil.copytree(source / "project", project)
     lock_path = source / "method-contract/semantic.lock.json"
@@ -343,6 +392,9 @@ def test_section_12_1_tripwire_covers_adapter_inspect_and_dataflow_entry(
     annotation_exclusion_calls = 0
     descriptive_aggregation_calls = 0
     pandas_readonly_calls = 0
+    loop_normalization_calls = 0
+    reconstruction_member_calls = 0
+    binding_substitution_calls = 0
     original_inspect = CodeCsvDependenceAdapter.inspect
     original_analyze = code_adapter_module.analyze_code_csv_dataflow
     original_expand = dataflow_module._expand_relevant_helpers
@@ -353,6 +405,9 @@ def test_section_12_1_tripwire_covers_adapter_inspect_and_dataflow_entry(
     original_runtime_walk = dataflow_module._walk_helper_runtime
     original_descriptive_aggregation = dataflow_module._Analyzer._post_test_descriptive_aggregation
     original_pandas_readonly = dataflow_module._v2_pandas_call
+    original_loop_normalization = dataflow_module._normalize_contract_domain_loops
+    original_reconstruction_member = dataflow_module._literal_subscript_member
+    original_binding_visit = dataflow_module._ContractLoopBindingTransformer.visit_Name
 
     def guarded_inspect(self: CodeCsvDependenceAdapter, context):  # type: ignore[no-untyped-def]
         nonlocal inspect_calls
@@ -414,6 +469,21 @@ def test_section_12_1_tripwire_covers_adapter_inspect_and_dataflow_entry(
         pandas_readonly_calls += 1
         return original_pandas_readonly(*args, **kwargs)
 
+    def guarded_loop_normalization(*args, **kwargs):  # type: ignore[no-untyped-def]
+        nonlocal loop_normalization_calls
+        loop_normalization_calls += 1
+        return original_loop_normalization(*args, **kwargs)
+
+    def guarded_reconstruction_member(*args, **kwargs):  # type: ignore[no-untyped-def]
+        nonlocal reconstruction_member_calls
+        reconstruction_member_calls += 1
+        return original_reconstruction_member(*args, **kwargs)
+
+    def guarded_binding_visit(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+        nonlocal binding_substitution_calls
+        binding_substitution_calls += 1
+        return original_binding_visit(self, *args, **kwargs)
+
     monkeypatch.setattr(CodeCsvDependenceAdapter, "inspect", guarded_inspect)
     monkeypatch.setattr(code_adapter_module, "analyze_code_csv_dataflow", guarded_analyze)
     monkeypatch.setattr(dataflow_module, "_expand_relevant_helpers", guarded_expand)
@@ -428,6 +498,21 @@ def test_section_12_1_tripwire_covers_adapter_inspect_and_dataflow_entry(
         guarded_descriptive_aggregation,
     )
     monkeypatch.setattr(dataflow_module, "_v2_pandas_call", guarded_pandas_readonly)
+    monkeypatch.setattr(
+        dataflow_module,
+        "_normalize_contract_domain_loops",
+        guarded_loop_normalization,
+    )
+    monkeypatch.setattr(
+        dataflow_module,
+        "_literal_subscript_member",
+        guarded_reconstruction_member,
+    )
+    monkeypatch.setattr(
+        dataflow_module._ContractLoopBindingTransformer,
+        "visit_Name",
+        guarded_binding_visit,
+    )
     bundle = run_audit(
         project,
         tmp_path / "audit-tripwire",
@@ -435,7 +520,22 @@ def test_section_12_1_tripwire_covers_adapter_inspect_and_dataflow_entry(
         material_inputs=(material_path,),
         method_contract_lock=lock_path,
     )
-    assert inspect_calls == 1
+    descriptive_source = OPENED_3_ROOT / "d92b542e0bb28fa3c950"
+    descriptive_project = tmp_path / "project-tripwire-descriptive"
+    shutil.copytree(descriptive_source / "project", descriptive_project)
+    descriptive_lock_path = descriptive_source / "method-contract/semantic.lock.json"
+    descriptive_lock = json.loads(descriptive_lock_path.read_text(encoding="utf-8"))
+    descriptive_material_path = descriptive_lock["method_contract_profile"]["profile_manifest"][
+        "authority_binding_snapshot"
+    ]["authorized_independent_unit_key"]["material_input_path"]
+    run_audit(
+        descriptive_project,
+        tmp_path / "audit-tripwire-descriptive",
+        schema_root,
+        material_inputs=(descriptive_material_path,),
+        method_contract_lock=descriptive_lock_path,
+    )
+    assert inspect_calls == 2
     frozen = json.loads(
         (tmp_path / "audit-tripwire/semantic.lock.json").read_text(encoding="utf-8")
     )
@@ -444,13 +544,75 @@ def test_section_12_1_tripwire_covers_adapter_inspect_and_dataflow_entry(
         for item in frozen["scientific_check_registry"]["evaluation"]["modules"]
         if item["check_id"] == CHECK_ID
     )
-    assert analyze_calls == 1, dependence_observation
-    assert helper_expansion_calls == 1
+    assert analyze_calls == 2, dependence_observation
+    assert helper_expansion_calls == 2
     assert slice_calls >= 1
     assert forward_slice_calls >= 1
-    assert admission_calls == 1
+    assert admission_calls >= 1
     assert member_calls >= 1
     assert annotation_exclusion_calls >= 1
     assert descriptive_aggregation_calls >= 1
     assert pandas_readonly_calls >= 1
-    assert len(bundle["findings"]) == 1
+    assert loop_normalization_calls == 2
+    assert reconstruction_member_calls >= 1
+    assert binding_substitution_calls >= 1
+    assert not bundle["findings"]
+
+
+@pytest.mark.parametrize(
+    ("batch", "case_id", "expected_reason"),
+    [
+        ("batch-k1", "0de3a6061d3bb4056306", "analysis-source-envelope-unavailable"),
+        ("batch-k1", "6b2da0c7167dbba3738f", "analysis-source-envelope-unavailable"),
+        ("batch-k1", "e9e2718573bb47f7d17b", "analysis-source-envelope-unavailable"),
+        ("batch-k2", "3ae92d0bb421d6eee99e", "analysis-source-envelope-unavailable"),
+        ("batch-k2", "556f3545bebb45a3b005", "authorized-group-domain-not-exactly-two"),
+        ("batch-k2", "2c458d2b523ea8c1bd90", "authorized-group-domain-not-exactly-two"),
+    ],
+)
+def test_refrozen_k_contracts_are_live_scored_abstentions(
+    schema_root: Path,
+    tmp_path: Path,
+    batch: str,
+    case_id: str,
+    expected_reason: str,
+) -> None:
+    source = K_ROOT / batch / "authoring/cases" / case_id
+    project = tmp_path / f"k-project-{case_id}"
+    shutil.copytree(source, project)
+    method_contract_lock = K_CONTRACT_ROOT / case_id / "semantic.lock.json"
+    frozen = json.loads(method_contract_lock.read_text(encoding="utf-8"))
+    assert (
+        frozen["method_contract_profile"]["profile_manifest"]["check_manifest"]["check_version"]
+        == "2.2.0"
+    )
+
+    audit = tmp_path / f"k-audit-{case_id}"
+    bundle = run_audit(
+        project,
+        audit,
+        schema_root,
+        report="results/report.md",
+        material_inputs=("data/input.csv",),
+        method_contract_lock=method_contract_lock,
+    )
+    lock = json.loads((audit / "semantic.lock.json").read_text(encoding="utf-8"))
+    dependence = next(
+        item
+        for item in lock["scientific_check_registry"]["evaluation"]["modules"]
+        if item["check_id"] == CHECK_ID
+    )
+    assert dependence["state"] == "unsupported"
+    assert dependence["observations"][0]["abstention_reason"] == expected_reason
+    assert not bundle["findings"]
+    assert not [
+        item
+        for item in bundle["detector_results"]
+        if item.get("detector_id") == BoundedCodeCsvDependenceConflictV22Detector.detector_id
+        and item.get("state") in {"evaluation_finding_candidate", "finding_candidate", "accepted"}
+    ]
+
+    replayed = replay(audit / "semantic.lock.json", tmp_path / f"k-replay-{case_id}", schema_root)
+    assert replayed["detector_results"] == bundle["detector_results"]
+    assert replayed["findings"] == bundle["findings"]
+    assert replayed["coverage_records"] == bundle["coverage_records"]

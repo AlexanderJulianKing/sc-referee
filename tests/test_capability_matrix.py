@@ -71,6 +71,7 @@ def test_code_detector_manifest_history_is_versioned_and_live_projection_is_late
         "1.3.0",
         "2.0.0",
         "2.1.0",
+        "2.2.0",
     ]
     assert [item["implementation"]["implementation_digest"] for item in history[:-1]] == [
         "sha256:e52a367ffb97ca6706d6d2cfd621f0283cb12d99d1483304142d365aad25f86e",
@@ -78,13 +79,14 @@ def test_code_detector_manifest_history_is_versioned_and_live_projection_is_late
         "sha256:ab6e90b5496996f769cb4af0b5ab60082778f0adf4378b1bb127c63ffb81da14",
         "sha256:4d004c513761e382bbb49ea0633d1d7b3ee07f91cdba91adf837b48902d2f816",
         "sha256:261bfa27092c528cd86fb3905ced2fb1b2f296852f688ab4be3abaa94d57e901",
+        "sha256:9c30154639e1fc013a0f82a5ee3d767202c121f42626b2c6497436e9305f2452",
     ]
     live = load_capability_detector_manifest(
         root,
         _schema_root(project_root),
         "detector:bounded-code-csv-dependence-conflict",
     )
-    assert live["detector_version"] == "2.1.0"
+    assert live["detector_version"] == "2.2.0"
     assert live == history[-1]
 
 
@@ -235,7 +237,7 @@ def test_bundled_matrix_is_deterministic_and_publishes_only_live_binding_grants(
             for entry in first["entries"]
             for detector in entry["detectors"]
         )
-        == 2
+        == 1
     )
     assert any("cannot emit a production Finding" in gap for gap in analysis_entry["known_gaps"])
     code_entry = next(
@@ -245,21 +247,6 @@ def test_bundled_matrix_is_deterministic_and_publishes_only_live_binding_grants(
     )
     assert code_entry["detectors"] == [
         {
-            "binding_grants": [
-                {
-                    "binding_id": (
-                        "method-conflict-binding:authorized-independent-unit-entry-"
-                        "into-row-independent-procedure-v1"
-                    ),
-                    "check_id": (
-                        "check:authorized-independent-unit-entry-into-row-independent-procedure"
-                    ),
-                    "qualification_ref": (
-                        "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5"
-                    ),
-                    "strongest_output_type": "finding",
-                }
-            ],
             "detector_id": "detector:bounded-code-csv-dependence-conflict",
             "maturity": "experimental",
             "qualification_ref": None,

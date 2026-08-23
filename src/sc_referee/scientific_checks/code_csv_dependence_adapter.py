@@ -48,12 +48,12 @@ from sc_referee.scientific_checks.report_csv_dependence_adapter import (
 )
 from sc_referee.scientific_checks.scope_joins import full_digest_identity_path
 
-DEPENDENCE_RECOGNITION_CHECK_VERSION = "2.1.0"
+DEPENDENCE_RECOGNITION_CHECK_VERSION = "2.2.0"
 CODE_CSV_DEPENDENCE_ADAPTER_ID = (
     "adapter:authorized-independent-unit-entry-into-row-independent-procedure:"
     "code-csv-rowwise-two-sample-v1"
 )
-CODE_CSV_DEPENDENCE_ADAPTER_VERSION = "2.1.0"
+CODE_CSV_DEPENDENCE_ADAPTER_VERSION = "2.2.0"
 CODE_CSV_DEPENDENCE_SEMANTIC_ROLES = (
     "authorized_independent_unit_key",
     "analyzed_row_domain",

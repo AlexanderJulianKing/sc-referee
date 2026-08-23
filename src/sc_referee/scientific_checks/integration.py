@@ -501,7 +501,7 @@ def _compile_applicable_module(
         for item in observations
         if manifest.check_id
         == "check:authorized-independent-unit-entry-into-row-independent-procedure"
-        and manifest.check_version == "2.1.0"
+        and manifest.check_version == "2.2.0"
         and item.evidence_plane == "static_source"
         and item.method_target_ref is not None
     }

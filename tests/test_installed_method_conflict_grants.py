@@ -33,7 +33,8 @@ _DEPENDENCE_BINDING_ID = (
     "method-conflict-binding:authorized-independent-unit-entry-into-row-independent-procedure-v1"
 )
 _COMPLETE_DOMAIN_BINDING_ID = "method-conflict-binding:complete-domain-exposure-denominator-v1"
-_LIVE_FINDING_BINDINGS = {_COMPLETE_DOMAIN_BINDING_ID, _DEPENDENCE_BINDING_ID}
+_INSTALLED_FINDING_BINDINGS = {_COMPLETE_DOMAIN_BINDING_ID, _DEPENDENCE_BINDING_ID}
+_LIVE_FINDING_BINDINGS = {_COMPLETE_DOMAIN_BINDING_ID}
 
 
 def _load(path: Path) -> dict[str, object]:
@@ -68,19 +69,20 @@ def _tree_bytes(root: Path) -> dict[str, bytes]:
     }
 
 
-def test_installed_resources_bind_two_live_pins() -> None:
+def test_installed_resources_keep_one_live_and_one_stale_pin() -> None:
     evidence_by_binding = load_installed_qualification_grants()
     assert len(GRANT_PINS) == 2
     assert set(evidence_by_binding) == set(GRANT_PINS)
-    assert set(GRANT_PINS) == _LIVE_FINDING_BINDINGS
+    assert set(GRANT_PINS) == _INSTALLED_FINDING_BINDINGS
     for binding_id, pin in GRANT_PINS.items():
         evidence = evidence_by_binding[binding_id]
         assert dict(evidence.grant)["qualification_digest"] == pin.qualification_digest
         assert dict(evidence.grant)["metric_set_digest"] == pin.metric_set_digest
         assert dict(evidence.grant)["required_roots"] == pin.required_roots
         assert dict(evidence.grant)["absolute_missed_roots"] == pin.absolute_missed_roots
-        assert installed_pin_matches_live_identity(pin) is True
-        assert load_method_conflict_grant_evidence(pin) is not None
+        expected_live = binding_id in _LIVE_FINDING_BINDINGS
+        assert installed_pin_matches_live_identity(pin) is expected_live
+        assert (load_method_conflict_grant_evidence(pin) is not None) is expected_live
 
 
 def test_only_live_installed_grant_resolves_and_all_stale_or_unpinned_bindings_refuse() -> None:
@@ -150,6 +152,10 @@ def test_installed_grant_binding_digests_match_live_registry_and_matrix_builds(
         binding = live_by_id[binding_id]
         assert pin.binding_digest == binding.binding_digest
         assert pin.detector_manifest_digest == binding.detector_manifest_digest
+    dependence_pin = GRANT_PINS[_DEPENDENCE_BINDING_ID]
+    dependence_binding = live_by_id[_DEPENDENCE_BINDING_ID]
+    assert dependence_pin.binding_digest != dependence_binding.binding_digest
+    assert dependence_pin.detector_manifest_digest != dependence_binding.detector_manifest_digest
 
     matrix = generate_capability_matrix(
         default_capability_manifest_root(), project_root / "reference/schemas-v0.20.0"
@@ -194,16 +200,7 @@ def test_capability_matrix_exposes_finding_for_exactly_the_live_grant_binding(
     )
     assert code_detector["maturity"] == "experimental"
     assert code_detector["strongest_output_type"] == "disclosure"
-    assert code_detector["binding_grants"] == [
-        {
-            "binding_id": _DEPENDENCE_BINDING_ID,
-            "check_id": "check:authorized-independent-unit-entry-into-row-independent-procedure",
-            "qualification_ref": (
-                "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5"
-            ),
-            "strongest_output_type": "finding",
-        }
-    ]
+    assert "binding_grants" not in code_detector
 
 
 def test_grant_builder_reproduces_the_installed_resource(tmp_path: Path) -> None:

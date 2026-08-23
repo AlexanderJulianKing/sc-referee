@@ -17,7 +17,7 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Literal
+from typing import Literal, cast
 
 from sc_referee.core.ids import sha256_digest
 from sc_referee.scientific_checks.core import FrozenBaseRecord, InspectionDocument
@@ -544,8 +544,17 @@ def analyze_code_csv_dataflow(
         if reason is not None:
             return CodeDataflowResult(None, reason)
         assert resolver is not None
-        expansion = _expand_relevant_helpers(
+        normalization = _normalize_contract_domain_loops(
             scope=scope,
+            resolver=resolver,
+            group_values=group_values,
+            helpers=helpers,
+        )
+        if normalization.reason is not None:
+            return CodeDataflowResult(None, normalization.reason)
+        assert normalization.scope is not None
+        expansion = _expand_relevant_helpers(
+            scope=normalization.scope,
             helpers=helpers,
             resolver=resolver,
             group_values=group_values,
@@ -602,6 +611,15 @@ class _Analyzer:
         self.descriptive_names: set[str] = set()
         self.tainted_names: set[str] = set()
         self.reader: _Reader | None = None
+        self.reconstruction_names = {
+            node.targets[0].value.id
+            for node in _walk_statements(scope)
+            if isinstance(node, ast.Assign)
+            and bool(getattr(node, "_sc_v22_reconstruction_store", False))
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Subscript)
+            and isinstance(node.targets[0].value, ast.Name)
+        }
 
     def run(self) -> CodeDataflowResult:
         readers = self._reader_census()
@@ -885,6 +903,37 @@ class _Analyzer:
         if isinstance(target, (ast.Subscript, ast.Attribute)):
             root = _root_name(target)
             parent = self.values.get(root) if root is not None else None
+            if (
+                isinstance(target, ast.Subscript)
+                and bool(getattr(statement, "_sc_v22_reconstruction_store", False))
+                and isinstance(target.value, ast.Name)
+                and parent is not None
+                and parent.kind == "reconstruction_container"
+                and (member := _literal_subscript_member(target.slice)) is not None
+                and member in self.group_values
+                and member not in dict(parent.members)
+                and (value := self._value(statement.value)) is not None
+            ):
+                members = (*parent.members, (member, value))
+                self.values[target.value.id] = _Value(
+                    "reconstruction_container",
+                    parent.node,
+                    root=(
+                        value.root
+                        if not parent.members
+                        else parent.root
+                        if parent.root == value.root
+                        else None
+                    ),
+                    depth=max(parent.depth, value.depth) + 1,
+                    aggregated=parent.aggregated or value.aggregated,
+                    unknown=parent.unknown or value.unknown,
+                    counter_node=parent.counter_node or value.counter_node,
+                    call_origins=parent.call_origins | value.call_origins,
+                    descriptive_members=frozenset(key for key, _ in members),
+                    members=members,
+                )
+                return
             if parent is not None and parent.kind in {
                 "reader",
                 "selection",
@@ -893,11 +942,26 @@ class _Analyzer:
                 "grouped",
                 "aggregation",
                 "member_container",
+                "reconstruction_container",
             }:
                 self._reason(statement, "tracked-value-mutation", 1)
                 return
         if isinstance(target, ast.Name):
             name = target.id
+            if (
+                isinstance(statement.value, ast.Name)
+                and (parent := self.values.get(statement.value.id)) is not None
+                and parent.kind == "reconstruction_container"
+            ):
+                self._reason(statement, "unregistered-component-consumer", 2)
+                return
+            if (
+                name in self.reconstruction_names
+                and isinstance(statement.value, ast.Dict)
+                and not statement.value.keys
+            ):
+                self._bind(name, _Value("reconstruction_container", statement.value), statement)
+                return
             if (
                 isinstance(statement.value, ast.Call)
                 and self.resolver.qualified(statement.value.func) in _POSITIVE_APIS
@@ -1695,6 +1759,7 @@ class _Analyzer:
             return False
         return bool(
             _call_reaches_sink(call, self.sinks, self.values, self.assignments)
+            or self._v22_helper_iterable_output(call)
             or any(
                 self._inside_valid_descriptive_loop(origin)
                 for value in self.values.values()
@@ -1702,6 +1767,42 @@ class _Analyzer:
                 for origin in value.call_origins
             )
         )
+
+    def _v22_helper_iterable_output(self, call: ast.Call) -> bool:
+        loop_lines = {
+            int(getattr(statement, "_sc_v22_iterable_prelude", -1))
+            for statement in self.scope
+            if int(getattr(statement, "_sc_v22_iterable_prelude", -1)) >= 0
+            and self._contains(call, statement)
+        }
+        if not loop_lines:
+            return False
+        for loop in (item for item in self.scope if isinstance(item, ast.For)):
+            if int(getattr(loop, "_sc_v22_helper_iterable", -2)) not in loop_lines:
+                continue
+            if loop.orelse or _store_names(loop.target) & self.slice_names:
+                return False
+            if not (
+                isinstance(loop.iter, ast.Call)
+                and isinstance(loop.iter.func, ast.Attribute)
+                and loop.iter.func.attr in {"items", "iterrows"}
+                and isinstance(loop.iter.func.value, ast.Name)
+                and loop.iter.func.value.id in self.values
+                and _v2_pandas_call(loop.iter, loop.iter.func.attr, self.resolver)
+            ):
+                return False
+            if not all(
+                isinstance(statement, ast.Expr)
+                and isinstance(statement.value, ast.Call)
+                and any(
+                    sink.call is statement.value and sink.kind == "builtin_print"
+                    for sink in self.sinks
+                )
+                for statement in loop.body
+            ):
+                return False
+            return True
+        return False
 
     def _admission_reason(self, candidate: _Test) -> str | None:
         for node in _walk_statements(self.scope):
@@ -1879,6 +1980,137 @@ class _Analyzer:
         return any(item is needle for item in ast.walk(haystack))
 
 
+def _normalize_contract_domain_loops(
+    *,
+    scope: tuple[ast.stmt, ...],
+    resolver: _Resolver,
+    group_values: tuple[str, str],
+    helpers: Mapping[str, ast.FunctionDef],
+) -> _Expansion:
+    """Unroll only exact two-value contract-domain loops without executing source."""
+
+    protected = (
+        set(resolver.imports)
+        | set(resolver.constants)
+        | set(resolver.literals)
+        | set(resolver.tuples)
+        | set(resolver.file_parents)
+        | set(helpers)
+        | _UNSHADOWED_BUILTINS
+    )
+    stores_outside_loop: defaultdict[str, int] = defaultdict(int)
+    for statement in scope:
+        if isinstance(statement, ast.For):
+            continue
+        for name in _store_names(statement):
+            stores_outside_loop[name] += 1
+
+    normalized: list[ast.stmt] = []
+    for statement in scope:
+        if not isinstance(statement, ast.For):
+            normalized.append(statement)
+            continue
+        bindings = _contract_domain_loop_bindings(statement, resolver, group_values)
+        if (
+            bindings is None
+            or not isinstance(statement.target, ast.Name)
+            or statement.target.id in protected
+            or stores_outside_loop[statement.target.id]
+        ):
+            normalized.append(statement)
+            continue
+        local_names = set().union(*(_store_names(item) for item in statement.body))
+        local_names.discard(statement.target.id)
+        for ordinal, binding in enumerate(bindings):
+            rename = {
+                name: f"__sc_loop_{statement.lineno}_{ordinal}_{name}"
+                for name in sorted(local_names)
+                if name not in protected
+            }
+            transformer = _ContractLoopBindingTransformer(
+                target=statement.target.id,
+                binding=binding,
+                rename=rename,
+            )
+            for body_statement in statement.body:
+                copied = transformer.visit(copy.deepcopy(body_statement))
+                assert isinstance(copied, ast.stmt)
+                if (
+                    isinstance(copied, ast.Assign)
+                    and len(copied.targets) == 1
+                    and isinstance(copied.targets[0], ast.Subscript)
+                    and isinstance(copied.targets[0].value, ast.Name)
+                    and _literal_subscript_member(copied.targets[0].slice) == binding
+                ):
+                    copied.__dict__["_sc_v22_reconstruction_store"] = True
+                for node in ast.walk(copied):
+                    node.__dict__["_sc_v22_loop_binding_ordinal"] = ordinal
+                normalized.append(copied)
+    return _Expansion(tuple(normalized), None)
+
+
+def _contract_domain_loop_bindings(
+    loop: ast.For,
+    resolver: _Resolver,
+    group_values: tuple[str, str],
+) -> tuple[str, str] | None:
+    if (
+        loop.orelse
+        or not isinstance(loop.target, ast.Name)
+        or any(
+            isinstance(
+                node,
+                (
+                    ast.Break,
+                    ast.Continue,
+                    ast.Await,
+                    ast.Yield,
+                    ast.YieldFrom,
+                    ast.Global,
+                    ast.Nonlocal,
+                ),
+            )
+            for node in ast.walk(loop)
+        )
+        or any(loop.target.id in _store_names(statement) for statement in loop.body)
+    ):
+        return None
+    raw: tuple[object, ...] | None = None
+    if isinstance(loop.iter, (ast.Tuple, ast.List)):
+        resolved = tuple(resolver.string(item) for item in loop.iter.elts)
+        if any(item is None for item in resolved):
+            return None
+        raw = resolved
+    elif isinstance(loop.iter, ast.Name):
+        raw = resolver.tuples.get(loop.iter.id)
+    if (
+        raw is None
+        or len(raw) != 2
+        or not all(isinstance(item, str) for item in raw)
+        or len(set(raw)) != 2
+        or set(raw) != set(group_values)
+    ):
+        return None
+    return str(raw[0]), str(raw[1])
+
+
+class _ContractLoopBindingTransformer(ast.NodeTransformer):
+    def __init__(self, *, target: str, binding: str, rename: Mapping[str, str]) -> None:
+        self.target = target
+        self.binding = binding
+        self.rename = rename
+
+    def visit_Name(self, node: ast.Name) -> ast.AST:
+        if isinstance(node.ctx, ast.Load) and node.id == self.target:
+            return ast.copy_location(ast.Constant(value=self.binding), node)
+        if node.id in self.rename:
+            return ast.copy_location(
+                ast.Name(id=self.rename[node.id], ctx=copy.deepcopy(node.ctx)),
+                node,
+            )
+        return node
+
+
 def _expand_relevant_helpers(
     *,
     scope: tuple[ast.stmt, ...],
@@ -1896,7 +2128,7 @@ def _expand_relevant_helpers(
     ):
         return _Expansion(None, "helper-callee-not-simple-name")
     expanded = list(scope)
-    expanded_sites: set[tuple[int, int, str]] = set()
+    expanded_sites: set[tuple[int, int, str, int]] = set()
     while True:
         changed = False
         for index, statement in enumerate(expanded):
@@ -1914,7 +2146,7 @@ def _expand_relevant_helpers(
                 resolver=resolver,
             ):
                 continue
-            key = (call.lineno, call.col_offset, helper.name)
+            key = _helper_site_key(call, helper)
             if key in expanded_sites:
                 return _Expansion(None, "helper-call-site-reentry-unsupported")
             depth = int(getattr(call, "_sc_inline_depth", 0)) + 1
@@ -1937,8 +2169,129 @@ def _expand_relevant_helpers(
             changed = True
             break
         if not changed:
-            break
+            nested = _nested_loop_helper_site(expanded, helpers, resolver)
+            if nested is None:
+                break
+            container, index, call, target, iterable_owner = nested
+            helper = helpers[call.func.id] if isinstance(call.func, ast.Name) else None
+            assert helper is not None
+            key = _helper_site_key(call, helper)
+            if key in expanded_sites:
+                return _Expansion(None, "helper-call-site-reentry-unsupported")
+            depth = int(getattr(call, "_sc_inline_depth", 0)) + 1
+            if depth > 2:
+                return _Expansion(None, "helper-inlining-depth-exceeded")
+            replacement_target = target
+            if iterable_owner is not None:
+                temporary = f"__sc_loop_iter_{call.lineno}_{call.col_offset}_{helper.lineno}"
+                replacement_target = ast.Name(id=temporary, ctx=ast.Store())
+            replacement, reason = _inline_helper_site(
+                call=call,
+                target=replacement_target,
+                helper=helper,
+                resolver=resolver,
+                helpers=helpers,
+                depth=depth,
+                group_values=group_values,
+            )
+            if reason is not None:
+                return _Expansion(None, reason)
+            assert replacement is not None
+            expanded_sites.add(key)
+            if iterable_owner is None:
+                container[index : index + 1] = replacement
+            else:
+                replacer = _IdentityNodeTransformer(
+                    call,
+                    ast.Name(
+                        id=f"__sc_loop_iter_{call.lineno}_{call.col_offset}_{helper.lineno}",
+                        ctx=ast.Load(),
+                    ),
+                )
+                transformed = replacer.visit(iterable_owner.iter)
+                assert isinstance(transformed, ast.expr)
+                iterable_owner.iter = transformed
+                iterable_owner.__dict__["_sc_v22_helper_iterable"] = iterable_owner.lineno
+                for item in replacement:
+                    item.__dict__["_sc_v22_iterable_prelude"] = iterable_owner.lineno
+                container[index:index] = replacement
+            changed = True
     return _Expansion(tuple(expanded), None)
+
+
+def _helper_site_key(call: ast.Call, helper: ast.FunctionDef) -> tuple[int, int, str, int]:
+    return (
+        call.lineno,
+        call.col_offset,
+        helper.name,
+        int(getattr(call, "_sc_v22_loop_binding_ordinal", -1)),
+    )
+
+
+def _nested_loop_helper_site(
+    statements: list[ast.stmt],
+    helpers: Mapping[str, ast.FunctionDef],
+    resolver: _Resolver,
+) -> tuple[list[ast.stmt], int, ast.Call, ast.expr | None, ast.For | None] | None:
+    for index, statement in enumerate(statements):
+        if not isinstance(statement, ast.For):
+            continue
+        iterable_calls = _loop_iterable_helper_calls(statement.iter, helpers)
+        if len(iterable_calls) == 1:
+            return statements, index, iterable_calls[0], None, statement
+        if len(iterable_calls) > 1:
+            return None
+        for body_index, body_statement in enumerate(statement.body):
+            site = _top_level_helper_site(body_statement, helpers)
+            if site is None:
+                continue
+            call, target = site
+            helper = helpers[call.func.id] if isinstance(call.func, ast.Name) else None
+            if helper is not None and _helper_relevant(
+                call=call,
+                target=target,
+                helper=helper,
+                statements=statement.body,
+                statement_index=body_index,
+                resolver=resolver,
+            ):
+                return statement.body, body_index, call, target, None
+        nested = _nested_loop_helper_site(statement.body, helpers, resolver)
+        if nested is not None:
+            return nested
+    return None
+
+
+def _loop_iterable_helper_calls(
+    expression: ast.expr,
+    helpers: Mapping[str, ast.FunctionDef],
+) -> list[ast.Call]:
+    if (
+        isinstance(expression, ast.Call)
+        and isinstance(expression.func, ast.Name)
+        and expression.func.id in helpers
+    ):
+        return [expression]
+    if (
+        isinstance(expression, ast.Call)
+        and isinstance(expression.func, ast.Attribute)
+        and isinstance(expression.func.value, ast.Call)
+        and isinstance(expression.func.value.func, ast.Name)
+        and expression.func.value.func.id in helpers
+    ):
+        return [expression.func.value]
+    return []
+
+
+class _IdentityNodeTransformer(ast.NodeTransformer):
+    def __init__(self, needle: ast.AST, replacement: ast.AST) -> None:
+        self.needle = needle
+        self.replacement = replacement
+
+    def visit(self, node: ast.AST) -> ast.AST:
+        if node is self.needle:
+            return ast.copy_location(copy.deepcopy(self.replacement), node)
+        return cast(ast.AST, super().visit(node))
 
 
 def _top_level_helper_site(
@@ -1952,6 +2305,14 @@ def _top_level_helper_site(
         and statement.value.func.id in helpers
     ):
         return statement.value, statement.targets[0]
+    if (
+        isinstance(statement, ast.AnnAssign)
+        and statement.value is not None
+        and isinstance(statement.value, ast.Call)
+        and isinstance(statement.value.func, ast.Name)
+        and statement.value.func.id in helpers
+    ):
+        return statement.value, statement.target
     if (
         isinstance(statement, ast.Expr)
         and isinstance(statement.value, ast.Call)
@@ -2136,7 +2497,8 @@ def _inline_helper_site(
     if reason is not None:
         return None, reason
     assert bound is not None
-    prefix = f"__sc_inline_{call.lineno}_{call.col_offset}_{helper.lineno}_"
+    binding = int(getattr(call, "_sc_v22_loop_binding_ordinal", -1))
+    prefix = f"__sc_inline_{call.lineno}_{call.col_offset}_{helper.lineno}_{binding}_"
     rename = {name: prefix + name for name in local_names}
     transformer = _InlineNameTransformer(rename)
     replacement: list[ast.stmt] = []
@@ -2176,6 +2538,10 @@ def _inline_helper_site(
         ast.copy_location(expression, call)
         _mark_inline_depth(expression, depth)
         replacement.append(expression)
+    if binding >= 0:
+        for statement in replacement:
+            for node in ast.walk(statement):
+                node.__dict__["_sc_v22_loop_binding_ordinal"] = binding
     return replacement, None
 
 

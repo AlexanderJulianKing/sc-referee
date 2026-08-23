@@ -20,6 +20,10 @@ python -m pip install -e .
 sc-referee version
 ```
 
+If a local `uv` editable environment contains the correct `__editable__.sc_referee-*.pth` file but
+its interpreter does not add the checkout's `src` directory, invoke the source checkout explicitly:
+`PYTHONPATH=src .venv/bin/sc-referee version` (and use the same prefix for other commands).
+
 Expected version shape:
 
 ```text

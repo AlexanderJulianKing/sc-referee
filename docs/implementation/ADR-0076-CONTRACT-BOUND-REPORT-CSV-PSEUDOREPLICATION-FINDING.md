@@ -716,6 +716,31 @@ summary onto the qualified candidate before the ordinary admission equality chec
 title, summary, or draft mismatch abstains. This is a wording-profile projection, not a new evidence or
 recognition path.
 
+## Code-lane 2.2 development amendment — 2026-08-22
+
+Provenance: **Fable, under executive authority granted by Alex 2026-08-21**. This accepted-for-build
+amendment authorizes the bounded `2.2.0` code-lane development delta specified in
+`docs/implementation/PSEUDOREP-CODE-SLICE-2.2-DESIGN-2026-08-22.md`. It adds no prose evidence and no
+Finding authority. It makes exact helper calls at loop-body and loop-iterable sites visible under the
+unchanged X4 refusals, resolves only a two-member loop domain equal to the frozen contract/CSV group
+domain, and follows only a complete two-member literal-key dictionary reconstruction. Every operand,
+aggregation, mutation, sibling-test, dependence-aware, reader, sink, D1', E3/E6, and zero-false-
+accusation guard remains in force after expansion.
+
+The two Envelope-5 positive misses are no longer treated as API gaps: their blocking expressions are
+literal-column `.loc` reads inside exact contract-domain descriptive loops, and the selected values
+reach print-only reductions. Detector `2.2.0` is a new unqualified identity; the installed Envelope-5
+pin remains byte-unchanged at `2.1.0` and is deliberately stale for 2.2. Frozen dependence requirements
+through check `2.1.0` may preflight against active check `2.2.0` only when their human-selected value,
+candidate, semantic-role authority, material binding, and requirement-candidate table are unchanged.
+
+The six Batch-K method-contract closures are refreshed only to the live 2.2 check identity so their
+ordinary audit/replay runs return to the regression set as scored abstentions. Report selection supplies
+the controller's existing base context but no report byte supplies code-lane evidence. No K project,
+answer, authority, material path, or expected scientific outcome changes. Envelope 6, if later authorized, retains the
+six-positive/six-negative bar: at least 3/6 positives, exactly 0/6 negatives, zero Findings across the
+108 blind, 155 regression, and twelve new cases, and replay equality 12/12.
+
 ## Open questions that would change the build
 
 None for the authorized implementation and installation. The report channel remains withdrawn; D1',

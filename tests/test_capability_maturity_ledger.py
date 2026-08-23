@@ -40,7 +40,6 @@ def test_checked_in_sources_generate_six_independent_dimensions() -> None:
         if entry["dimensions"]["finding_qualified"]["state"] == "supported"
     ]
     assert {entry["capability_id"] for entry in qualified} == {
-        "check:authorized-independent-unit-entry-into-row-independent-procedure",
         "check:complete-domain-exposure-denominator",
     }
 

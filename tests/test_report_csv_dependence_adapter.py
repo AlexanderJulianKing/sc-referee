@@ -673,7 +673,7 @@ def test_requirement_profile_rejects_every_unsafe_authority_shape(
         resolve_scientific_requirement_profile(profile)
 
 
-def test_normal_audit_lifecycle_emits_installed_code_lane_finding(
+def test_normal_audit_lifecycle_keeps_unqualified_code_lane_evaluation_only(
     schema_root: Path, tmp_path: Path
 ) -> None:
     project = tmp_path / "project"
@@ -734,11 +734,10 @@ def test_normal_audit_lifecycle_emits_installed_code_lane_finding(
         if item.get("extensions", {}).get("x-scientific-check-ids")
         and CHECK_ID in item["extensions"]["x-scientific-check-ids"]
     ]
-    assert [item.get("state") for item in dependence_results].count("finding_candidate") == 1
-    assert len(bundle["findings"]) == 1
-    assert bundle["findings"][0]["title"] == (
-        "Analysis code contradicts the frozen one-row-per-authorized-unit requirement"
-    )
+    assert [item.get("state") for item in dependence_results].count(
+        "evaluation_finding_candidate"
+    ) == 1
+    assert bundle["findings"] == []
 
     packet = {
         "semantic_assertions": bundle["semantic_assertions"],
