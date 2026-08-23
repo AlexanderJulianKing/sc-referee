@@ -288,6 +288,53 @@ def test_v3_prose_tripwire_covers_adapter_slice_and_all_five_guards(
     source = OPENED_ROOTS[5] / "0b4876ceca6b0a9aede7"
     project = tmp_path / "project-tripwire"
     shutil.copytree(source / "project", project)
+    analysis_path = project / "analysis.py"
+    analysis_path.chmod(0o600)
+    analysis_path.write_text(
+        """import pandas as pd
+from scipy import stats
+
+def describe(frame):
+    return frame.groupby("feed")["omega3_mg_per_g"].agg(
+        sd=lambda values: values.std(ddof=1)
+    )
+
+def selections(frame):
+    standard = frame.loc[frame["feed"] == "standard", "omega3_mg_per_g"]
+    algal = frame.loc[frame["feed"] == "algal_oil", "omega3_mg_per_g"]
+    return standard, algal
+
+def format_p(value):
+    if value < 0.001:
+        return value * 1000
+    return value
+
+def report(value):
+    lines = []
+    lines.append("result")
+    lines.append("p = %g" % value)
+    return "\\n".join(lines)
+
+def main():
+    frame = pd.read_csv("harvest_fillet_omega3.csv")
+    summary = describe(frame)
+    preview_standard, preview_algal = selections(frame)
+    print(frame.groupby("cage_id").size())
+    groups = {}
+    for level in frame["feed"].unique():
+        groups[level] = frame.loc[frame["feed"] == level, "omega3_mg_per_g"]
+    standard = frame.loc[frame["feed"] == "standard", "omega3_mg_per_g"]
+    algal = frame.loc[frame["feed"] == "algal_oil", "omega3_mg_per_g"]
+    t, p = stats.ttest_ind(standard, algal)
+    print(p)
+    print(format_p(p))
+    print(report(p))
+
+if __name__ == "__main__":
+    main()
+""",
+        encoding="utf-8",
+    )
     lock_path = source / "method-contract/semantic.lock.json"
     calls = {
         name: 0
@@ -304,6 +351,13 @@ def test_v3_prose_tripwire_covers_adapter_slice_and_all_five_guards(
             "s3",
             "s4",
             "s5",
+            "v31_csv",
+            "v31_lambda",
+            "v31_pure_output",
+            "v31_s5_carveout",
+            "v31_tuple_binding",
+            "v31_loop_resolution",
+            "v31_buffer_members",
             "detector_comparison",
         )
     }
@@ -338,6 +392,22 @@ def test_v3_prose_tripwire_covers_adapter_slice_and_all_five_guards(
         ("s3", (dataflow_module, "_v3_statistics_guard")),
         ("s4", (dataflow_module, "_v3_syntactic_test_count")),
         ("s5", (dataflow_module, "_v3_unit_summary_guard")),
+        ("v31_csv", (code_adapter_module, "_parse_csv")),
+        ("v31_lambda", (dataflow_module, "_closed_helper_lambda_local_loads")),
+        ("v31_pure_output", (dataflow_module, "_pure_output_helper_parameter")),
+        ("v31_s5_carveout", (dataflow_module, "_v3_count_only_unit_groupby")),
+        (
+            "v31_tuple_binding",
+            (dataflow_module, "_v31_inlined_return_tuple_shape"),
+        ),
+        (
+            "v31_loop_resolution",
+            (dataflow_module, "_observed_contract_domain_iterable"),
+        ),
+        (
+            "v31_buffer_members",
+            (dataflow_module, "_output_helper_buffer_payloads"),
+        ),
         (
             "detector_comparison",
             (BoundedCodeCsvDependenceConflictV31Detector, "evaluate"),

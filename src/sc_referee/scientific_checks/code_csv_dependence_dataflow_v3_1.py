@@ -15,7 +15,7 @@ import io
 import json
 import math
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
@@ -628,6 +628,9 @@ def analyze_code_csv_dataflow(
         normalization = _normalize_contract_domain_loops(
             scope=scope,
             resolver=resolver,
+            authorized_path=authorized_path,
+            csv_header=tuple(csv_header),
+            unit_column=unit_column,
             group_column=group_column,
             group_values=group_values,
             helpers=helpers,
@@ -1349,16 +1352,9 @@ class _Analyzer:
         if isinstance(target, (ast.Tuple, ast.List)) and all(
             isinstance(item, ast.Name) for item in target.elts
         ):
-            if (
-                bool(getattr(statement, "_sc_v2_return_root", False))
-                and isinstance(target, ast.Tuple)
-                and isinstance(statement.value, ast.Tuple)
-                and 1 <= len(target.elts) <= 16
-                and len(target.elts) == len(statement.value.elts)
-                and len({item.id for item in target.elts if isinstance(item, ast.Name)})
-                == len(target.elts)
-                and not any(isinstance(item, ast.Starred) for item in statement.value.elts)
-            ):
+            if _v31_inlined_return_tuple_shape(statement, target):
+                assert isinstance(target, ast.Tuple)
+                assert isinstance(statement.value, ast.Tuple)
                 resolved = [
                     self._value(item) or self._test_payload_value(item)
                     for item in statement.value.elts
@@ -2182,10 +2178,27 @@ class _Analyzer:
         return any(item is needle for item in ast.walk(haystack))
 
 
+def _v31_inlined_return_tuple_shape(statement: ast.Assign, target: ast.expr) -> bool:
+    """Recognize only the exact H5 inlined tuple-return binding shape."""
+
+    return bool(
+        getattr(statement, "_sc_v2_return_root", False)
+        and isinstance(target, ast.Tuple)
+        and isinstance(statement.value, ast.Tuple)
+        and 1 <= len(target.elts) <= 16
+        and len(target.elts) == len(statement.value.elts)
+        and len({item.id for item in target.elts if isinstance(item, ast.Name)}) == len(target.elts)
+        and not any(isinstance(item, ast.Starred) for item in statement.value.elts)
+    )
+
+
 def _normalize_contract_domain_loops(
     *,
     scope: tuple[ast.stmt, ...],
     resolver: _Resolver,
+    authorized_path: str,
+    csv_header: tuple[str, ...],
+    unit_column: str,
     group_column: str,
     group_values: tuple[str, str],
     helpers: Mapping[str, ast.FunctionDef],
@@ -2218,6 +2231,15 @@ def _normalize_contract_domain_loops(
         for name in _store_names(statement):
             stores_outside_loop[name] += 1
 
+    authorized_reader_names = _authorized_reader_identity_names(
+        scope,
+        resolver=resolver,
+        authorized_path=authorized_path,
+        csv_header=csv_header,
+        unit_column=unit_column,
+        group_column=group_column,
+    )
+
     normalized: list[ast.stmt] = []
     for statement in comprehensions:
         if not isinstance(statement, ast.For):
@@ -2228,6 +2250,7 @@ def _normalize_contract_domain_loops(
             resolver,
             group_column,
             group_values,
+            authorized_reader_names,
         )
         if (
             bindings is None
@@ -2348,6 +2371,7 @@ def _contract_domain_loop_bindings(
     resolver: _Resolver,
     group_column: str,
     group_values: tuple[str, str],
+    authorized_reader_names: frozenset[str],
 ) -> tuple[str, str] | None:
     if (
         loop.orelse
@@ -2378,7 +2402,12 @@ def _contract_domain_loop_bindings(
         raw = resolved
     elif isinstance(loop.iter, ast.Name):
         raw = resolver.tuples.get(loop.iter.id)
-    elif _observed_contract_domain_iterable(loop.iter, resolver, group_column):
+    elif _observed_contract_domain_iterable(
+        loop.iter,
+        resolver,
+        group_column,
+        authorized_reader_names,
+    ):
         raw = group_values
     if (
         raw is None
@@ -2395,6 +2424,7 @@ def _observed_contract_domain_iterable(
     expression: ast.expr,
     resolver: _Resolver,
     group_column: str,
+    authorized_reader_names: frozenset[str],
 ) -> bool:
     """Recognize the three exact H6 observed-group iterable shapes."""
 
@@ -2407,7 +2437,12 @@ def _observed_contract_domain_iterable(
             return False
         candidate = candidate.args[0]
         if wrapper == "set":
-            return _observed_group_column_read(candidate, resolver, group_column)
+            return _observed_group_column_read(
+                candidate,
+                resolver,
+                group_column,
+                authorized_reader_names,
+            )
     if not (
         isinstance(candidate, ast.Call)
         and isinstance(candidate.func, ast.Attribute)
@@ -2416,19 +2451,100 @@ def _observed_contract_domain_iterable(
         and not candidate.keywords
     ):
         return False
-    return _observed_group_column_read(candidate.func.value, resolver, group_column)
+    return _observed_group_column_read(
+        candidate.func.value,
+        resolver,
+        group_column,
+        authorized_reader_names,
+    )
 
 
 def _observed_group_column_read(
     expression: ast.expr,
     resolver: _Resolver,
     group_column: str,
+    authorized_reader_names: frozenset[str],
 ) -> bool:
     return bool(
         isinstance(expression, ast.Subscript)
         and isinstance(expression.value, ast.Name)
+        and expression.value.id in authorized_reader_names
         and resolver.string(expression.slice) == group_column
     )
+
+
+def _authorized_reader_identity_names(
+    statements: Sequence[ast.stmt],
+    *,
+    resolver: _Resolver,
+    authorized_path: str,
+    csv_header: tuple[str, ...],
+    unit_column: str,
+    group_column: str,
+) -> frozenset[str]:
+    """Resolve only the authorized reader target and direct Name identity aliases."""
+
+    definition_counts: Counter[str] = Counter(
+        name for statement in statements for name in _store_names(statement)
+    )
+    result: set[str] = set()
+    for node in _walk_statements(statements):
+        if not isinstance(node, ast.Call):
+            continue
+        api = resolver.qualified(node.func)
+        accepted = False
+        if api == "pandas.read_csv" and len(node.args) == 1:
+            accepted = not node.keywords or bool(
+                _parse_dates_columns(
+                    node,
+                    resolver=resolver,
+                    csv_header=csv_header,
+                    forbidden={unit_column, group_column},
+                )
+            )
+        elif api == "numpy.genfromtxt" and len(node.args) == 1:
+            accepted = _literal_keywords(node.keywords) == {
+                "delimiter": ",",
+                "names": True,
+                "dtype": None,
+                "encoding": "utf-8",
+            }
+        if not accepted or _static_path(node.args[0], resolver) != authorized_path:
+            continue
+        reader_target = _assigned_name(statements, node)
+        if reader_target is not None and definition_counts[reader_target] == 1:
+            result.add(reader_target)
+
+    changed = True
+    while changed:
+        changed = False
+        for statement in statements:
+            alias_target: ast.Name | None = None
+            value: ast.expr | None = None
+            if (
+                isinstance(statement, ast.Assign)
+                and len(statement.targets) == 1
+                and isinstance(statement.targets[0], ast.Name)
+            ):
+                alias_target = statement.targets[0]
+                value = statement.value
+            elif (
+                isinstance(statement, ast.AnnAssign)
+                and isinstance(statement.target, ast.Name)
+                and statement.value is not None
+            ):
+                alias_target = statement.target
+                value = statement.value
+            if (
+                alias_target is not None
+                and isinstance(value, ast.Name)
+                and value.id in result
+                and definition_counts[alias_target.id] == 1
+                and alias_target.id not in result
+            ):
+                result.add(alias_target.id)
+                changed = True
+    return frozenset(result)
 
 
 class _ContractLoopBindingTransformer(ast.NodeTransformer):
@@ -4567,13 +4683,13 @@ def _v3_unit_summary_guard(
         if (
             isinstance(origin.func, ast.Attribute)
             and origin.func.attr == "groupby"
-            and _v3_count_only_unit_groupby(origin, calls)
+            and _v3_count_only_unit_groupby(origin, calls, statements)
         ):
             continue
         reduced = any(
             isinstance(call.func, ast.Attribute)
             and call.func.attr in reducer_names
-            and any(node is origin for node in ast.walk(call.func.value))
+            and _v31_groupby_terminal_reads_origin(call, origin, statements)
             for call in calls
         )
         if not reduced and not (
@@ -4612,7 +4728,11 @@ def _v3_unit_summary_guard(
     return None
 
 
-def _v3_count_only_unit_groupby(origin: ast.Call, calls: Sequence[ast.Call]) -> bool:
+def _v3_count_only_unit_groupby(
+    origin: ast.Call,
+    calls: Sequence[ast.Call],
+    statements: Sequence[ast.stmt],
+) -> bool:
     """Recognize the exact S5 count-only groupby terminal chain."""
 
     reachable = [
@@ -4620,7 +4740,7 @@ def _v3_count_only_unit_groupby(origin: ast.Call, calls: Sequence[ast.Call]) -> 
         for call in calls
         if call is not origin
         and isinstance(call.func, ast.Attribute)
-        and any(node is origin for node in ast.walk(call.func.value))
+        and _v31_groupby_terminal_reads_origin(call, origin, statements)
     ]
     attributes = [call.func.attr for call in reachable if isinstance(call.func, ast.Attribute)]
     return bool(
@@ -4628,6 +4748,23 @@ def _v3_count_only_unit_groupby(origin: ast.Call, calls: Sequence[ast.Call]) -> 
         and any(attribute in {"size", "count"} for attribute in attributes)
         and all(attribute in {"size", "count", "unique", "tolist"} for attribute in attributes)
     )
+
+
+def _v31_groupby_terminal_reads_origin(
+    call: ast.Call,
+    origin: ast.Call,
+    statements: Sequence[ast.stmt],
+) -> bool:
+    if not isinstance(call.func, ast.Attribute):
+        return False
+    if any(node is origin for node in ast.walk(call.func.value)):
+        return True
+    alias = _assigned_name(statements, origin)
+    if alias is None:
+        return False
+    if sum(name == alias for statement in statements for name in _store_names(statement)) != 1:
+        return False
+    return _root_name(call.func.value) == alias
 
 
 def _v3_origin_reaches_sink(

@@ -274,3 +274,14 @@ No test is retired by 3.1.
   `PYTHONPATH=src .venv/bin/python` imports the checkout exactly. `docs/QUICKSTART.md` already records
   that workaround. The full default gate is therefore run with `PYTHONPATH=src`; no environment or
   entry-point bytes are changed by 3.1.
+- Y1 narrows H6's `FRAME` resolution to the uniquely defined authorized reader name and direct
+  `Name = Name` identity aliases. A filtered reader value and a locally constructed DataFrame no
+  longer supply the contract-domain loop bindings; both abstain on
+  `two-group-row-selection-unavailable`. The exact authorized-reader forms remain candidates. This
+  closes a frame-identity leak and adds no conviction surface.
+- Y2 closes S5 parity for a uniquely assigned GroupBy receiver: when `g = df.groupby(UNIT)`, both
+  `g.size()` and `g[VALUE].mean()` are attributed to the same unit-summary origin, so the value
+  reducer dominates the count-only carve-out and returns `unit-level-summary-sibling-present`.
+- Y3 extends both prose tripwires through all seven 3.1 predicates named in test-plan item 8: the
+  local CSV predicate, lambda/free-name walk, pure-output helper, S5 carve-out, tuple binding,
+  observed-domain loop resolution, and output-buffer/member propagation.

@@ -4,6 +4,7 @@ import ast
 
 import pytest
 
+import sc_referee.scientific_checks.code_csv_dependence_adapter_v3_1 as adapter_module
 import sc_referee.scientific_checks.code_csv_dependence_dataflow_v3_1 as dataflow
 from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_1 import _parse_csv
 
@@ -171,6 +172,13 @@ print(df.groupby("unit")["value"].mean())"""
     assert _run(_candidate(extra)).reason == "unit-level-summary-sibling-present"
 
 
+def test_h4_shared_groupby_name_count_and_mean_still_fires_s5() -> None:
+    extra = """g = df.groupby("unit")
+print(g.size())
+print(g["value"].mean())"""
+    assert _run(_candidate(extra)).reason == "unit-level-summary-sibling-present"
+
+
 def test_h5_inlined_helper_tuple_return_advances_but_does_not_create_a_new_p_sink() -> None:
     source = """import pandas as pd
 from scipy import stats
@@ -242,6 +250,29 @@ t, p = stats.ttest_ind(a, b)
 print(p)
 """
     assert _run(source).reason is not None
+
+
+@pytest.mark.parametrize(
+    "frame_setup",
+    [
+        'sub = df[df["value"] > 3]',
+        'sub = pd.DataFrame({"group": ["a", "b"], "value": [1, 2]})',
+    ],
+)
+def test_h6_observed_domain_loop_refuses_nonreader_frames(frame_setup: str) -> None:
+    source = f"""import pandas as pd
+from scipy import stats
+df = pd.read_csv("data.csv")
+{frame_setup}
+groups = {{}}
+for level in sub["group"].unique():
+    groups[level] = df.loc[df["group"] == level, "value"]
+a = groups["a"]
+b = groups["b"]
+t, p = stats.ttest_ind(a, b)
+print(p)
+"""
+    assert _run(source).reason == "two-group-row-selection-unavailable"
 
 
 def test_h7_append_join_buffer_returned_by_print_helper_is_p_sink() -> None:
@@ -585,6 +616,7 @@ def test_new_guard_and_slice_entry_points_never_receive_prose_payloads(
 ) -> None:
     called: set[str] = set()
     targets = (
+        ("_parse_csv", adapter_module, "_parse_csv"),
         ("_v3_dependence_guard", dataflow, "_v3_dependence_guard"),
         ("_v2_resampling_sibling", dataflow, "_v2_resampling_sibling"),
         ("_v3_statistics_guard", dataflow, "_v3_statistics_guard"),
@@ -595,6 +627,20 @@ def test_new_guard_and_slice_entry_points_never_receive_prose_payloads(
         ("_v3_call_reachable", dataflow, "_v3_call_reachable"),
         ("_result_sinks", dataflow._Analyzer, "_result_sinks"),
         ("_aggregation_call", dataflow, "_aggregation_call"),
+        (
+            "_closed_helper_lambda_local_loads",
+            dataflow,
+            "_closed_helper_lambda_local_loads",
+        ),
+        ("_pure_output_helper_parameter", dataflow, "_pure_output_helper_parameter"),
+        ("_v3_count_only_unit_groupby", dataflow, "_v3_count_only_unit_groupby"),
+        ("_v31_inlined_return_tuple_shape", dataflow, "_v31_inlined_return_tuple_shape"),
+        (
+            "_observed_contract_domain_iterable",
+            dataflow,
+            "_observed_contract_domain_iterable",
+        ),
+        ("_output_helper_buffer_payloads", dataflow, "_output_helper_buffer_payloads"),
     )
     for label, owner, name in targets:
         original = getattr(owner, name)
@@ -614,10 +660,101 @@ def test_new_guard_and_slice_entry_points_never_receive_prose_payloads(
 
         monkeypatch.setattr(owner, name, guarded)
 
-    source = _candidate(
-        'ranked = a.rank()\nlabel = "report prose sentinel"\nprint(ranked)\nprint(label)'
-    )
+    assert not isinstance(adapter_module._parse_csv(CSV, "unit", "group"), str)
+    source = """import pandas as pd
+from scipy import stats
+
+def describe(frame):
+    return frame.groupby("group")["value"].agg(sd=lambda values: values.std(ddof=1))
+
+def format_p(value):
+    if value < 0.001:
+        return value
+    return value
+
+def report(value):
+    lines = []
+    lines.append("p")
+    lines.append("%g" % value)
+    return "\\n".join(lines)
+
+df = pd.read_csv("data.csv")
+summary = describe(df)
+print(df.groupby("unit").size())
+groups = {}
+for level in df["group"].unique():
+    groups[level] = df.loc[df["group"] == level, "value"]
+a = groups["a"]
+b = groups["b"]
+t, p = stats.ttest_ind(a, b)
+print(p)
+print(format_p(p))
+print(report(p))
+label = "report prose sentinel"
+print(label)
+"""
     assert _run(source).facts is not None
+    tuple_return_source = """import pandas as pd
+from scipy import stats
+
+def compare(frame):
+    a = frame.loc[frame["group"] == "a", "value"]
+    b = frame.loc[frame["group"] == "b", "value"]
+    t, p = stats.ttest_ind(a, b)
+    return t, p, a, b
+
+def main():
+    frame = pd.read_csv("data.csv")
+    t, p, a, b = compare(frame)
+    print(p)
+
+if __name__ == "__main__":
+    main()
+"""
+    assert _run(tuple_return_source).reason == "test-result-output-sink-unavailable"
+    pure_output_source = """import pandas as pd
+from scipy import stats
+
+def format_p(value):
+    if value < 0.001:
+        return value * 1000
+    return value
+
+def main():
+    frame = pd.read_csv("data.csv")
+    a = frame.loc[frame["group"] == "a", "value"]
+    b = frame.loc[frame["group"] == "b", "value"]
+    t, p = stats.ttest_ind(a, b)
+    print(format_p(p))
+
+if __name__ == "__main__":
+    main()
+"""
+    assert _run(pure_output_source).facts is not None
+    buffer_output_source = """import pandas as pd
+from scipy import stats
+
+def compare(frame):
+    a = frame.loc[frame["group"] == "a", "value"]
+    b = frame.loc[frame["group"] == "b", "value"]
+    t, p = stats.ttest_ind(a, b)
+    return {"t": t, "p": p}
+
+def report(result):
+    lines = []
+    lines.append("result")
+    lines.append("p = %g" % result["p"])
+    return "\\n".join(lines)
+
+def main():
+    frame = pd.read_csv("data.csv")
+    result = compare(frame)
+    print(report(result))
+
+if __name__ == "__main__":
+    main()
+"""
+    assert _run(buffer_output_source).facts is not None
     assert called == {label for label, _, _ in targets}
 
 
