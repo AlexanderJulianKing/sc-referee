@@ -112,9 +112,13 @@ _CODE_DEPENDENCE_SLOT_SCHEMA = {
 def _is_registered_code_dependence_binding(binding: MethodConflictBinding) -> bool:
     from sc_referee.scientific_checks.profiles import scientific_check_release_registry
 
+    registry = scientific_check_release_registry()
     matches = [
         item
-        for item in scientific_check_release_registry().method_conflict_bindings
+        for item in (
+            *registry.method_conflict_bindings,
+            *registry.development_method_conflict_bindings,
+        )
         if item.binding_id == binding.binding_id
     ]
     live = bool(

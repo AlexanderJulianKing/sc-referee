@@ -17,6 +17,7 @@ from sc_referee.scientific_checks.core import (
 ReductionState = Literal[
     "applicable", "not_applicable", "ambiguous", "unsupported", "not_installed"
 ]
+ScientificCheckLane = Literal["qualified", "development"]
 SCIENTIFIC_CHECK_REDUCER_IMPLEMENTATION_DIGEST = sha256_digest(Path(__file__).read_bytes())
 
 
@@ -55,6 +56,7 @@ class RegistryEvaluation:
     profile_id: str
     registry_digest: str
     context_digest: str
+    lane: ScientificCheckLane
     modules: tuple[ModuleEvaluation, ...]
 
     def to_dict(self) -> dict[str, Any]:
@@ -62,6 +64,7 @@ class RegistryEvaluation:
             "profile_id": self.profile_id,
             "registry_digest": self.registry_digest,
             "context_digest": self.context_digest,
+            "lane": self.lane,
             "modules": [item.to_dict() for item in self.modules],
         }
         value["registry_evaluation_digest"] = semantic_digest(value)
@@ -73,6 +76,8 @@ class ScientificCheckRegistry:
     modules: tuple[ScientificCheckModule, ...]
     unavailable_manifests: tuple[CheckManifest, ...] = ()
     method_conflict_bindings: tuple[MethodConflictBinding, ...] = ()
+    development_modules: tuple[ScientificCheckModule, ...] = ()
+    development_method_conflict_bindings: tuple[MethodConflictBinding, ...] = ()
     profile_id: str = "scientific_check_registry_v1"
 
     def __post_init__(self) -> None:
@@ -86,35 +91,106 @@ class ScientificCheckRegistry:
             raise RegistryValidationError("duplicate scientific check ID")
         for module in self.modules:
             _validate_module(module)
+        development_identities = [module.manifest.check_id for module in self.development_modules]
+        if len(development_identities) != len(set(development_identities)):
+            raise RegistryValidationError("duplicate development scientific check ID")
+        if set(development_identities) & {
+            manifest.check_id for manifest in self.unavailable_manifests
+        }:
+            raise RegistryValidationError("development check is also marked unavailable")
+        for module in self.development_modules:
+            _validate_module(module)
         _validate_method_conflict_bindings(self.modules, self.method_conflict_bindings)
+        _validate_method_conflict_bindings(
+            self.development_modules,
+            self.development_method_conflict_bindings,
+        )
 
     @property
     def canonical_modules(self) -> tuple[ScientificCheckModule, ...]:
         return tuple(sorted(self.modules, key=lambda item: item.manifest.check_id))
+
+    def modules_for_lane(self, lane: ScientificCheckLane) -> tuple[ScientificCheckModule, ...]:
+        if lane == "qualified":
+            return self.canonical_modules
+        if lane == "development" and self.development_modules:
+            return tuple(sorted(self.development_modules, key=lambda item: item.manifest.check_id))
+        raise RegistryValidationError("development scientific-check lane is unavailable")
+
+    def bindings_for_lane(self, lane: ScientificCheckLane) -> tuple[MethodConflictBinding, ...]:
+        if lane == "qualified":
+            return tuple(sorted(self.method_conflict_bindings, key=lambda item: item.binding_id))
+        if lane == "development" and self.development_modules:
+            return tuple(
+                sorted(
+                    self.development_method_conflict_bindings,
+                    key=lambda item: item.binding_id,
+                )
+            )
+        raise RegistryValidationError("development scientific-check lane is unavailable")
 
     @property
     def registry_digest(self) -> str:
         return semantic_digest(
             {
                 "profile_id": self.profile_id,
-                "modules": [
-                    {
-                        "check_id": module.manifest.check_id,
-                        "check_version": module.manifest.check_version,
-                        "manifest_digest": module.declared_manifest_digest,
-                        "adapters": [
-                            {
-                                "adapter_id": manifest.adapter_id,
-                                "adapter_version": manifest.adapter_version,
-                                "manifest_digest": manifest.manifest_digest,
-                            }
-                            for manifest in sorted(
-                                module.adapter_manifests, key=lambda item: item.adapter_id
-                            )
-                        ],
-                    }
-                    for module in self.canonical_modules
-                ],
+                "qualified": {
+                    "modules": [
+                        {
+                            "check_id": module.manifest.check_id,
+                            "check_version": module.manifest.check_version,
+                            "manifest_digest": module.declared_manifest_digest,
+                            "adapters": [
+                                {
+                                    "adapter_id": manifest.adapter_id,
+                                    "adapter_version": manifest.adapter_version,
+                                    "manifest_digest": manifest.manifest_digest,
+                                }
+                                for manifest in sorted(
+                                    module.adapter_manifests, key=lambda item: item.adapter_id
+                                )
+                            ],
+                        }
+                        for module in self.canonical_modules
+                    ],
+                    "method_conflict_bindings": [
+                        binding.to_dict()
+                        for binding in sorted(
+                            self.method_conflict_bindings,
+                            key=lambda item: item.binding_id,
+                        )
+                    ],
+                },
+                "development": {
+                    "modules": [
+                        {
+                            "check_id": module.manifest.check_id,
+                            "check_version": module.manifest.check_version,
+                            "manifest_digest": module.declared_manifest_digest,
+                            "adapters": [
+                                {
+                                    "adapter_id": manifest.adapter_id,
+                                    "adapter_version": manifest.adapter_version,
+                                    "manifest_digest": manifest.manifest_digest,
+                                }
+                                for manifest in sorted(
+                                    module.adapter_manifests,
+                                    key=lambda item: item.adapter_id,
+                                )
+                            ],
+                        }
+                        for module in self.modules_for_lane("development")
+                    ]
+                    if self.development_modules
+                    else [],
+                    "method_conflict_bindings": [
+                        binding.to_dict()
+                        for binding in sorted(
+                            self.development_method_conflict_bindings,
+                            key=lambda item: item.binding_id,
+                        )
+                    ],
+                },
                 "unavailable_modules": [
                     {
                         "check_id": manifest.check_id,
@@ -125,17 +201,16 @@ class ScientificCheckRegistry:
                         self.unavailable_manifests, key=lambda item: item.check_id
                     )
                 ],
-                "method_conflict_bindings": [
-                    binding.to_dict()
-                    for binding in sorted(
-                        self.method_conflict_bindings, key=lambda item: item.binding_id
-                    )
-                ],
             }
         )
 
-    def evaluate(self, context: FrozenInspectionContext) -> RegistryEvaluation:
-        evaluations = [_evaluate_module(module, context) for module in self.canonical_modules]
+    def evaluate(
+        self,
+        context: FrozenInspectionContext,
+        *,
+        lane: ScientificCheckLane = "qualified",
+    ) -> RegistryEvaluation:
+        evaluations = [_evaluate_module(module, context) for module in self.modules_for_lane(lane)]
         evaluations.extend(
             ModuleEvaluation(
                 check_id=manifest.check_id,
@@ -154,6 +229,7 @@ class ScientificCheckRegistry:
             profile_id=self.profile_id,
             registry_digest=self.registry_digest,
             context_digest=context.context_digest,
+            lane=lane,
             modules=tuple(evaluations),
         )
 

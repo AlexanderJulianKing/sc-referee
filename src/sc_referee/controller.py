@@ -147,7 +147,7 @@ from sc_referee.scientific_checks.integration import (
     compile_scientific_check_records,
 )
 from sc_referee.scientific_checks.profiles import default_scientific_check_registry
-from sc_referee.scientific_checks.registry import ScientificCheckRegistry
+from sc_referee.scientific_checks.registry import ScientificCheckLane, ScientificCheckRegistry
 from sc_referee.scope_selection import build_scope_selection_contracts
 from sc_referee.snapshot.identity import build_asset_identity, full_digest_evidence
 from sc_referee.snapshot.repository import (
@@ -686,6 +686,7 @@ def run_audit(
     dependence_authorization_lock: Path | None = None,
     dependence_authorization_case_id: str | None = None,
     evaluation_inspection_observer: Callable[[FrozenInspectionContext], None] | None = None,
+    scientific_check_lane: ScientificCheckLane = "qualified",
 ) -> dict[str, Any]:
     """Run a conservative static audit over an arbitrary repository.
 
@@ -720,6 +721,15 @@ def run_audit(
     )
     parser_cache: ParserCacheResult | None = None
     active_scientific_checks = scientific_check_registry or default_scientific_check_registry()
+    selected_scientific_modules = active_scientific_checks.modules_for_lane(scientific_check_lane)
+    selected_method_conflict_bindings = active_scientific_checks.bindings_for_lane(
+        scientific_check_lane
+    )
+    active_scientific_lane_registry = ScientificCheckRegistry(
+        selected_scientific_modules,
+        unavailable_manifests=active_scientific_checks.unavailable_manifests,
+        method_conflict_bindings=selected_method_conflict_bindings,
+    )
     active_calculation_checks = calculation_check_registry or default_calculation_check_registry()
 
     try:
@@ -1001,6 +1011,8 @@ def run_audit(
         scientific_check_lock: dict[str, Any] = {
             "profile_id": active_scientific_checks.profile_id,
             "registry_digest": active_scientific_checks.registry_digest,
+            "binding_lane": scientific_check_lane,
+            "production_promotion_permitted": scientific_check_lane == "qualified",
             "enabled_modules": [
                 {
                     "manifest": module.manifest.to_dict(),
@@ -1009,7 +1021,7 @@ def run_audit(
                         adapter.to_dict() for adapter in module.adapter_manifests
                     ],
                 }
-                for module in active_scientific_checks.canonical_modules
+                for module in selected_scientific_modules
             ],
             "unavailable_modules": [
                 {
@@ -1024,7 +1036,7 @@ def run_audit(
             "method_conflict_bindings": [
                 binding.to_dict()
                 for binding in sorted(
-                    active_scientific_checks.method_conflict_bindings,
+                    selected_method_conflict_bindings,
                     key=lambda item: item.binding_id,
                 )
             ],
@@ -1095,6 +1107,8 @@ def run_audit(
                 context=scientific_context,
                 file_records=public_file_records,
                 asset_identities=snapshot.asset_identity_records,
+                scientific_check_registry=active_scientific_checks,
+                scientific_check_lane=scientific_check_lane,
             )
         if dependence_authorization_lock is not None:
             if scientific_context is None:
@@ -1143,7 +1157,9 @@ def run_audit(
         if scientific_context is not None:
             if evaluation_inspection_observer is not None:
                 evaluation_inspection_observer(scientific_context)
-            scientific_evaluation = active_scientific_checks.evaluate(scientific_context)
+            scientific_evaluation = active_scientific_checks.evaluate(
+                scientific_context, lane=scientific_check_lane
+            )
             scientific_compilation = compile_scientific_check_records(
                 registry=active_scientific_checks,
                 evaluation=scientific_evaluation,
@@ -1242,7 +1258,7 @@ def run_audit(
                 assertions=semantic_assertions,
                 questions=questions,
                 answers=answers,
-                scientific_check_registry=active_scientific_checks,
+                scientific_check_registry=active_scientific_lane_registry,
                 run_id=run_id,
                 created_at=created_at,
                 material_inputs=(
@@ -1344,6 +1360,7 @@ def run_audit(
         registered_method_conflict_manifests = validate_registered_method_conflict_manifests(
             active_scientific_checks,
             schema_root,
+            lane=scientific_check_lane,
         )
         locked_case: dict[str, Any] = {
             "lock_kind": "general_static_v1",
@@ -3478,8 +3495,26 @@ def _evaluate_general_detectors(locked_case: dict[str, Any]) -> _GeneralDetector
     method_evaluations = evaluate_registered_method_conflicts(locked_case)
     results: list[dict[str, Any]] = []
     findings: list[dict[str, Any]] = []
+    registry_lock = locked_case.get("scientific_check_registry")
+    production_promotion_permitted = bool(
+        isinstance(registry_lock, dict)
+        and (
+            (
+                registry_lock.get("binding_lane") == "qualified"
+                and registry_lock.get("production_promotion_permitted") is True
+            )
+            or (
+                "binding_lane" not in registry_lock
+                and "production_promotion_permitted" not in registry_lock
+            )
+        )
+    )
     for evaluation in method_evaluations:
-        result, finding = _promote_method_conflict_evaluation(locked_case, evaluation)
+        result, finding = (
+            _promote_method_conflict_evaluation(locked_case, evaluation)
+            if production_promotion_permitted
+            else (deepcopy(evaluation.result), None)
+        )
         results.append(result)
         if finding is not None:
             findings.append(finding)

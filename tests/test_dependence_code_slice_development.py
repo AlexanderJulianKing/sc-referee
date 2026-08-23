@@ -392,6 +392,7 @@ def test_opened_cases_follow_code_lane_normal_path_and_replay(
         schema_root,
         material_inputs=(material_path,),
         method_contract_lock=method_contract_lock,
+        scientific_check_lane="development",
     )
     lock = json.loads((audit / "semantic.lock.json").read_text(encoding="utf-8"))
     evaluation = lock["scientific_check_registry"]["evaluation"]
@@ -637,6 +638,7 @@ def test_section_12_1_tripwire_covers_adapter_inspect_and_dataflow_entry(
         schema_root,
         material_inputs=(material_path,),
         method_contract_lock=lock_path,
+        scientific_check_lane="development",
     )
     descriptive_source = OPENED_3_ROOT / "d92b542e0bb28fa3c950"
     descriptive_project = tmp_path / "project-tripwire-descriptive"
@@ -652,6 +654,7 @@ def test_section_12_1_tripwire_covers_adapter_inspect_and_dataflow_entry(
         schema_root,
         material_inputs=(descriptive_material_path,),
         method_contract_lock=descriptive_lock_path,
+        scientific_check_lane="development",
     )
     for extra_case_id in (
         "278451c17389f8c72ece",
@@ -673,6 +676,7 @@ def test_section_12_1_tripwire_covers_adapter_inspect_and_dataflow_entry(
             schema_root,
             material_inputs=(extra_material_path,),
             method_contract_lock=extra_lock_path,
+            scientific_check_lane="development",
         )
     assert inspect_calls == 6
     frozen = json.loads(
@@ -741,6 +745,7 @@ def test_refrozen_k_contracts_are_live_scored_abstentions(
         report="results/report.md",
         material_inputs=("data/input.csv",),
         method_contract_lock=method_contract_lock,
+        scientific_check_lane="development",
     )
     lock = json.loads((audit / "semantic.lock.json").read_text(encoding="utf-8"))
     dependence = next(

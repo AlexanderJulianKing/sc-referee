@@ -68,7 +68,7 @@ def main() -> int:
         "qualification_ref": "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5",
         "strongest_output_type": "finding",
     }
-    assert installed_pin_matches_live_identity(GRANT_PINS[dependence_binding_id]) is False
+    assert installed_pin_matches_live_identity(GRANT_PINS[dependence_binding_id]) is True
     method_detector = next(
         item
         for item in detector_entries
@@ -93,6 +93,18 @@ def main() -> int:
         "qualification_ref": None,
         "strongest_output_type": "disclosure",
         "review_basis": "not_qualified",
+        "binding_grants": [
+            {
+                "binding_id": dependence_binding_id,
+                "check_id": (
+                    "check:authorized-independent-unit-entry-into-row-independent-procedure"
+                ),
+                "qualification_ref": (
+                    "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5"
+                ),
+                "strongest_output_type": "finding",
+            }
+        ],
     }
     assert all(
         item
@@ -234,7 +246,7 @@ def main() -> int:
         "storage_integrity": "passed",
         "generated_capability_matrix": "passed_fail_closed_manifest_profile",
         "capability_matrix_entries": len(capability_matrix["entries"]),
-        "capability_matrix_detector_qualification": "one_live_exact_binding_grant",
+        "capability_matrix_detector_qualification": "two_live_exact_binding_grants",
         "capability_matrix_tested_versions": "none_declared",
         "public_detector_qualification": "binding_scoped_only",
     }

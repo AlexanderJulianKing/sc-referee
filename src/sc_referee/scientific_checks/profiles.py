@@ -18,8 +18,38 @@ from sc_referee.scientific_checks.code_csv_dependence_adapter import (
     CodeCsvDependenceAdapter,
     code_csv_dependence_grammar_digest,
 )
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
+    CODE_CSV_DEPENDENCE_ADAPTER_ID as QUALIFIED_CODE_CSV_DEPENDENCE_ADAPTER_ID,
+)
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
+    CODE_CSV_DEPENDENCE_ADAPTER_IMPLEMENTATION_DIGEST as QUALIFIED_CODE_CSV_DEPENDENCE_ADAPTER_IMPLEMENTATION_DIGEST,
+)
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
+    CODE_CSV_DEPENDENCE_ADAPTER_VERSION as QUALIFIED_CODE_CSV_DEPENDENCE_ADAPTER_VERSION,
+)
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
+    CODE_CSV_DEPENDENCE_COUNTEREVIDENCE as QUALIFIED_CODE_CSV_DEPENDENCE_COUNTEREVIDENCE,
+)
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
+    CODE_CSV_DEPENDENCE_ROLE_BINDINGS as QUALIFIED_CODE_CSV_DEPENDENCE_ROLE_BINDINGS,
+)
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
+    CODE_CSV_DEPENDENCE_SEMANTIC_ROLES as QUALIFIED_CODE_CSV_DEPENDENCE_SEMANTIC_ROLES,
+)
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
+    DEPENDENCE_RECOGNITION_CHECK_VERSION as QUALIFIED_DEPENDENCE_RECOGNITION_CHECK_VERSION,
+)
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
+    CodeCsvDependenceAdapter as QualifiedCodeCsvDependenceAdapter,
+)
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
+    code_csv_dependence_grammar_digest as qualified_code_csv_dependence_grammar_digest,
+)
 from sc_referee.scientific_checks.code_csv_dependence_dataflow import (
     CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST,
+)
+from sc_referee.scientific_checks.code_csv_dependence_dataflow_v2_1 import (
+    CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST as QUALIFIED_CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.copy_dosage_adapter import (
     COPY_DOSAGE_ADAPTER_IMPLEMENTATION_DIGEST,
@@ -133,6 +163,9 @@ _RELEASE_MANIFEST_PATH = (
     / "scientific-check-manifests-v1"
     / "registry.json"
 )
+_QUALIFIED_DEPENDENCE_CHECK_IMPLEMENTATION_DIGEST = (
+    "sha256:784ed2db607630e1939f82dd6649b152e8c3913cc1ec12668283d6ecb624de36"
+)
 
 
 @dataclass(frozen=True)
@@ -160,7 +193,9 @@ def default_scientific_check_registry(
     if include_conformance:
         return release
     selected = release.modules[:-1]
+    selected_development = release.development_modules[:-1]
     selected_ids = {module.manifest.check_id for module in selected}
+    selected_development_ids = {module.manifest.check_id for module in selected_development}
     return ScientificCheckRegistry(
         selected,
         method_conflict_bindings=tuple(
@@ -168,34 +203,73 @@ def default_scientific_check_registry(
             for binding in release.method_conflict_bindings
             if binding.check_id in selected_ids
         ),
+        development_modules=selected_development,
+        development_method_conflict_bindings=tuple(
+            binding
+            for binding in release.development_method_conflict_bindings
+            if binding.check_id in selected_development_ids
+        ),
     )
 
 
 def scientific_check_release_registry() -> ScientificCheckRegistry:
     """Construct the complete content-addressed registry before release-manifest verification."""
 
-    modules = _scientific_check_release_modules()
+    modules = _scientific_check_release_modules(dependence_lane="qualified")
+    development_modules = _scientific_check_release_modules(dependence_lane="development")
     detector_manifests = _method_conflict_detector_manifests()
     substantive_modules = modules[:-1]
+    substantive_development_modules = development_modules[:-1]
     bindings = tuple(
         _method_conflict_binding(
             module,
             detector_manifests[
                 (
-                    "detector:bounded-code-csv-dependence-conflict"
-                    if module.manifest.check_id
-                    == "check:authorized-independent-unit-entry-into-row-independent-procedure"
-                    else "detector:bounded-analysis-method-conflict"
+                    "detector:bounded-code-csv-dependence-conflict",
+                    "2.1.0",
                 )
+                if module.manifest.check_id
+                == "check:authorized-independent-unit-entry-into-row-independent-procedure"
+                else ("detector:bounded-analysis-method-conflict", "0.3.0")
             ],
         )
         for module in substantive_modules
     )
-    return ScientificCheckRegistry(modules, method_conflict_bindings=bindings)
+    development_bindings = tuple(
+        _method_conflict_binding(
+            module,
+            detector_manifests[
+                (
+                    "detector:bounded-code-csv-dependence-conflict",
+                    "2.3.0",
+                )
+                if module.manifest.check_id
+                == "check:authorized-independent-unit-entry-into-row-independent-procedure"
+                else ("detector:bounded-analysis-method-conflict", "0.3.0")
+            ],
+            binding_id=(
+                "method-conflict-binding:authorized-independent-unit-entry-into-row-"
+                "independent-procedure-v1:development"
+                if module.manifest.check_id
+                == "check:authorized-independent-unit-entry-into-row-independent-procedure"
+                else None
+            ),
+        )
+        for module in substantive_development_modules
+    )
+    return ScientificCheckRegistry(
+        modules,
+        method_conflict_bindings=bindings,
+        development_modules=development_modules,
+        development_method_conflict_bindings=development_bindings,
+    )
 
 
 def _method_conflict_binding(
-    module: ScientificCheckModule, detector_manifest: Mapping[str, Any]
+    module: ScientificCheckModule,
+    detector_manifest: Mapping[str, Any],
+    *,
+    binding_id: str | None = None,
 ) -> MethodConflictBinding:
     manifest = module.manifest
     operand_kinds = {candidate.operand.kind for candidate in manifest.requirement_candidates}
@@ -212,7 +286,9 @@ def _method_conflict_binding(
         )
     )
     return MethodConflictBinding(
-        binding_id=(f"method-conflict-binding:{manifest.check_id.removeprefix('check:')}-v1"),
+        binding_id=(
+            binding_id or f"method-conflict-binding:{manifest.check_id.removeprefix('check:')}-v1"
+        ),
         check_id=manifest.check_id,
         check_version=manifest.check_version,
         check_manifest_digest=manifest.manifest_digest,
@@ -233,7 +309,7 @@ def _method_conflict_binding(
     )
 
 
-def _scientific_check_release_modules() -> tuple[ScientificCheckModule, ...]:
+def _scientific_check_release_modules(*, dependence_lane: str) -> tuple[ScientificCheckModule, ...]:
     """Construct the complete manifest set, including the removable conformance module."""
 
     report_profiles = (
@@ -258,12 +334,16 @@ def _scientific_check_release_modules() -> tuple[ScientificCheckModule, ...]:
         _local_perturbation_row_scope_profile(),
         _local_perturbation_regression_profile(),
     )
+    qualified_lane = dependence_lane == "qualified"
     modules = (
-        *(tuple(_module(profile) for profile in report_profiles)),
-        _mvmr_covariance_module(),
-        _module(_dependence_recognition_profile()),
-        _module(_multiple_testing_recognition_profile()),
-        _module(_conformance_profile()),
+        *(tuple(_module(profile, qualified_lane=qualified_lane) for profile in report_profiles)),
+        _mvmr_covariance_module(qualified_lane=qualified_lane),
+        _module(
+            _dependence_recognition_profile(qualified=qualified_lane),
+            qualified_lane=qualified_lane,
+        ),
+        _module(_multiple_testing_recognition_profile(), qualified_lane=qualified_lane),
+        _module(_conformance_profile(), qualified_lane=qualified_lane),
     )
     return modules
 
@@ -313,6 +393,59 @@ def scientific_check_release_projection(
             ),
             "scientific_checks/code_csv_dependence_dataflow.py": (
                 CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/code_csv_dependence_adapter_v2_1.py": sha256_digest(
+                (
+                    Path(__file__).resolve().parent / "code_csv_dependence_adapter_v2_1.py"
+                ).read_bytes()
+            ),
+            "scientific_checks/code_csv_dependence_dataflow_v2_1.py": (
+                QUALIFIED_CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/report_csv_dependence_adapter_v2_1.py": sha256_digest(
+                (
+                    Path(__file__).resolve().parent / "report_csv_dependence_adapter_v2_1.py"
+                ).read_bytes()
+            ),
+            "resources/frozen-code-csv-dependence-v2.1.0/code_csv_dependence_adapter.py": (
+                sha256_digest(
+                    (
+                        Path(__file__).resolve().parents[1]
+                        / "resources"
+                        / "frozen-code-csv-dependence-v2.1.0"
+                        / "code_csv_dependence_adapter.py"
+                    ).read_bytes()
+                )
+            ),
+            "resources/frozen-code-csv-dependence-v2.1.0/code_csv_dependence_dataflow.py": (
+                sha256_digest(
+                    (
+                        Path(__file__).resolve().parents[1]
+                        / "resources"
+                        / "frozen-code-csv-dependence-v2.1.0"
+                        / "code_csv_dependence_dataflow.py"
+                    ).read_bytes()
+                )
+            ),
+            "resources/frozen-code-csv-dependence-v2.1.0/report_csv_dependence_adapter.py": (
+                sha256_digest(
+                    (
+                        Path(__file__).resolve().parents[1]
+                        / "resources"
+                        / "frozen-code-csv-dependence-v2.1.0"
+                        / "report_csv_dependence_adapter.py"
+                    ).read_bytes()
+                )
+            ),
+            "resources/frozen-code-csv-dependence-v2.1.0/FROZEN_SOURCES.json": (
+                sha256_digest(
+                    (
+                        Path(__file__).resolve().parents[1]
+                        / "resources"
+                        / "frozen-code-csv-dependence-v2.1.0"
+                        / "FROZEN_SOURCES.json"
+                    ).read_bytes()
+                )
             ),
             "scientific_checks/multiple_testing_recognition_adapter.py": (
                 MULTIPLE_TESTING_RECOGNITION_SCIENTIFIC_ADAPTER_IMPLEMENTATION_DIGEST
@@ -389,16 +522,46 @@ def scientific_check_release_projection(
             }
             for module in sorted(registry.modules, key=lambda item: item.manifest.check_id)
         ],
+        "development_modules": [
+            {
+                "check_id": module.manifest.check_id,
+                "check_version": module.manifest.check_version,
+                "manifest_digest": module.manifest.manifest_digest,
+                "implementation_digest": module.manifest.implementation_digest,
+                "adapters": [
+                    {
+                        "adapter_id": adapter.adapter_id,
+                        "adapter_version": adapter.adapter_version,
+                        "manifest_digest": adapter.manifest_digest,
+                        "implementation_digest": adapter.implementation_digest,
+                        "recognition_grammar_digest": adapter.recognition_grammar_digest,
+                    }
+                    for adapter in sorted(
+                        module.adapter_manifests, key=lambda item: item.adapter_id
+                    )
+                ],
+            }
+            for module in sorted(
+                registry.development_modules, key=lambda item: item.manifest.check_id
+            )
+        ],
         "method_conflict_bindings": [
             binding.to_dict()
             for binding in sorted(
                 registry.method_conflict_bindings, key=lambda item: item.binding_id
             )
         ],
+        "development_method_conflict_bindings": [
+            binding.to_dict()
+            for binding in sorted(
+                registry.development_method_conflict_bindings,
+                key=lambda item: item.binding_id,
+            )
+        ],
     }
 
 
-def _method_conflict_detector_manifests() -> Mapping[str, Mapping[str, Any]]:
+def _method_conflict_detector_manifests() -> Mapping[tuple[str, str], Mapping[str, Any]]:
     path = (
         Path(__file__).resolve().parents[1]
         / "resources"
@@ -416,21 +579,23 @@ def _method_conflict_detector_manifests() -> Mapping[str, Mapping[str, Any]]:
     if not isinstance(records, list):
         raise RegistryValidationError("detector manifest collection has no record list")
     expected = {
-        "detector:bounded-analysis-method-conflict": "0.3.0",
-        "detector:bounded-code-csv-dependence-conflict": "2.3.0",
+        ("detector:bounded-analysis-method-conflict", "0.3.0"),
+        ("detector:bounded-code-csv-dependence-conflict", "2.1.0"),
+        ("detector:bounded-code-csv-dependence-conflict", "2.3.0"),
     }
     matches = [
         item
         for item in records
         if isinstance(item, Mapping)
-        and item.get("detector_id") in expected
-        and item.get("detector_version") == expected.get(str(item.get("detector_id")))
+        and (str(item.get("detector_id")), str(item.get("detector_version"))) in expected
     ]
-    by_id = {str(item["detector_id"]): item for item in matches}
-    if set(by_id) != set(expected):
+    by_identity = {
+        (str(item["detector_id"]), str(item["detector_version"])): item for item in matches
+    }
+    if set(by_identity) != expected:
         raise RegistryValidationError("method-conflict detector manifests are unavailable")
-    for detector_id, detector_version in expected.items():
-        manifest = by_id[detector_id]
+    for detector_id, detector_version in expected:
+        manifest = by_identity[(detector_id, detector_version)]
         if (
             manifest.get("record_type") != "detector_manifest"
             or manifest.get("detector_version") != detector_version
@@ -438,14 +603,14 @@ def _method_conflict_detector_manifests() -> Mapping[str, Mapping[str, Any]]:
             or "finding" in manifest.get("permitted_output_types", [])
         ):
             raise RegistryValidationError("method-conflict detector manifest is ineligible")
-    return by_id
+    return by_identity
 
 
-def _module(profile: _ReportProfile) -> ScientificCheckModule:
+def _module(profile: _ReportProfile, *, qualified_lane: bool = False) -> ScientificCheckModule:
     check = CheckManifest(
         check_id=profile.check_id,
         check_version=profile.check_version,
-        implementation_digest=SCIENTIFIC_CHECK_REDUCER_IMPLEMENTATION_DIGEST,
+        implementation_digest=_QUALIFIED_DEPENDENCE_CHECK_IMPLEMENTATION_DIGEST,
         maturity_tier="question_only",
         dimension=profile.dimension,
         comparison_form="value_equals",
@@ -468,6 +633,8 @@ def _module(profile: _ReportProfile) -> ScientificCheckModule:
     if profile.check_id == "check:classifier-derived-copy-dosage-representation":
         return _copy_dosage_module(check, profile)
     if profile.check_id == DEPENDENCE_RECOGNITION_CHECK_ID:
+        if qualified_lane:
+            return _qualified_dependence_recognition_module(check, profile)
         return _dependence_recognition_module(check, profile)
     if profile.check_id == MULTIPLE_TESTING_RECOGNITION_CHECK_ID:
         return _multiple_testing_recognition_module(check, profile)
@@ -756,6 +923,51 @@ def _dependence_recognition_module(
     )
 
 
+def _qualified_dependence_recognition_module(
+    check: CheckManifest, profile: _ReportProfile
+) -> ScientificCheckModule:
+    """Build the byte-frozen Envelope-5 production dependence module."""
+
+    operands = {candidate.candidate_id: candidate.operand for candidate in profile.candidates}
+    one_row_operand = operands[DEPENDENCE_RECOGNITION_CANDIDATE_ID]
+    multiple_rows_operand = CanonicalOperand.scalar(MULTIPLE_ROWS_PER_AUTHORIZED_UNIT)
+    adapter_manifest = AdapterManifest(
+        adapter_id=QUALIFIED_CODE_CSV_DEPENDENCE_ADAPTER_ID,
+        adapter_version=QUALIFIED_CODE_CSV_DEPENDENCE_ADAPTER_VERSION,
+        implementation_digest=QUALIFIED_CODE_CSV_DEPENDENCE_ADAPTER_IMPLEMENTATION_DIGEST,
+        recognition_grammar_digest=qualified_code_csv_dependence_grammar_digest(),
+        parser_id="parser:python-ast-tokenize",
+        parser_version="0.15.1",
+        source_language="python",
+        evidence_plane="static_source",
+        semantic_roles=profile.semantic_roles,
+        applicability_profile="bounded-code-csv-rowwise-two-sample-dependence-v1",
+        counterevidence_profiles=QUALIFIED_CODE_CSV_DEPENDENCE_COUNTEREVIDENCE,
+        known_gaps=(
+            "analysis paths outside one root analysis.py",
+            "helper dataflow beyond the exact depth-two inlining grammar and unsupported control flow",
+            "procedures outside registered scipy two-sample APIs",
+            "readers, selections, transforms, and sinks outside the closed AST grammar",
+            "alternate analysis files and off-scope statistics imports",
+            "D1-prime irregular composite labels outside the closed candidate rule",
+            "static source and CSV structure do not establish execution or scientific correctness",
+        ),
+    )
+    adapter = QualifiedCodeCsvDependenceAdapter(
+        check_manifest=check,
+        adapter_manifest=adapter_manifest,
+        one_row_operand=one_row_operand,
+        multiple_rows_operand=multiple_rows_operand,
+        role_bindings=QUALIFIED_CODE_CSV_DEPENDENCE_ROLE_BINDINGS,
+    )
+    return ScientificCheckModule(
+        manifest=check,
+        declared_manifest_digest=check.manifest_digest,
+        adapter_manifests=(adapter_manifest,),
+        adapters=(adapter,),
+    )
+
+
 def _multiple_testing_recognition_module(
     check: CheckManifest, profile: _ReportProfile
 ) -> ScientificCheckModule:
@@ -952,7 +1164,7 @@ def _expected_count_focal_target_handling_profile() -> _ReportProfile:
     )
 
 
-def _mvmr_covariance_module() -> ScientificCheckModule:
+def _mvmr_covariance_module(*, qualified_lane: bool = False) -> ScientificCheckModule:
     zero = CanonicalOperand.scalar("zero_cross_exposure_covariance")
     provided = CanonicalOperand.scalar("provided_cross_exposure_covariance")
     roles = (
@@ -968,7 +1180,7 @@ def _mvmr_covariance_module() -> ScientificCheckModule:
     check = CheckManifest(
         check_id="check:mvmr-cross-exposure-covariance",
         check_version="1.0.0",
-        implementation_digest=SCIENTIFIC_CHECK_REDUCER_IMPLEMENTATION_DIGEST,
+        implementation_digest=_QUALIFIED_DEPENDENCE_CHECK_IMPLEMENTATION_DIGEST,
         maturity_tier="question_only",
         dimension="measurement_model",
         comparison_form="value_equals",
@@ -2518,7 +2730,7 @@ def _local_perturbation_regression_profile() -> _ReportProfile:
     )
 
 
-def _dependence_recognition_profile() -> _ReportProfile:
+def _dependence_recognition_profile(*, qualified: bool = False) -> _ReportProfile:
     authority_basis = (
         "Scientist-supplied independent-unit authority for this exact analysis, procedure, "
         "ordered key, and frozen input; the check does not infer the unit from column names "
@@ -2526,8 +2738,16 @@ def _dependence_recognition_profile() -> _ReportProfile:
     )
     return _ReportProfile(
         check_id=DEPENDENCE_RECOGNITION_CHECK_ID,
-        check_version=DEPENDENCE_RECOGNITION_CHECK_VERSION,
-        adapter_version=CODE_CSV_DEPENDENCE_ADAPTER_VERSION,
+        check_version=(
+            QUALIFIED_DEPENDENCE_RECOGNITION_CHECK_VERSION
+            if qualified
+            else DEPENDENCE_RECOGNITION_CHECK_VERSION
+        ),
+        adapter_version=(
+            QUALIFIED_CODE_CSV_DEPENDENCE_ADAPTER_VERSION
+            if qualified
+            else CODE_CSV_DEPENDENCE_ADAPTER_VERSION
+        ),
         dimension="dependence_structure",
         candidates=(
             _candidate(
@@ -2537,8 +2757,16 @@ def _dependence_recognition_profile() -> _ReportProfile:
                 authority_basis,
             ),
         ),
-        semantic_roles=CODE_CSV_DEPENDENCE_SEMANTIC_ROLES,
-        role_bindings=CODE_CSV_DEPENDENCE_ROLE_BINDINGS,
+        semantic_roles=(
+            QUALIFIED_CODE_CSV_DEPENDENCE_SEMANTIC_ROLES
+            if qualified
+            else CODE_CSV_DEPENDENCE_SEMANTIC_ROLES
+        ),
+        role_bindings=(
+            QUALIFIED_CODE_CSV_DEPENDENCE_ROLE_BINDINGS
+            if qualified
+            else CODE_CSV_DEPENDENCE_ROLE_BINDINGS
+        ),
         rules=(),
         triggers=(),
         question_wording=(

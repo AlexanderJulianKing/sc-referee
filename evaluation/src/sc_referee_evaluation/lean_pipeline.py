@@ -61,6 +61,7 @@ from sc_referee.records.normalization import (
     write_normalized_json_once,
 )
 from sc_referee.records.observed import build_file_records
+from sc_referee.scientific_checks.registry import ScientificCheckLane
 from sc_referee.scientific_requirement_contract import (
     LEGACY_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
     SCIENTIFIC_REQUIREMENT_PROFILE_ID,
@@ -344,6 +345,7 @@ class EnvelopeConfig:
     authored_data_description_path: str | None = None
     authored_input_csv_path: str = "inputs/data.csv"
     scientific_requirement_authority: dict[str, str] | None = None
+    scientific_check_lane: ScientificCheckLane = "qualified"
     required_input_csv_header: tuple[str, ...] | None = None
     allow_unprescribed_input_csv_header: bool = False
     dependence_authority_from_description: bool = False
@@ -994,10 +996,14 @@ def step_authoring(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
     registry = _load(
         project_root / "src/sc_referee/resources/scientific-check-manifests-v1/registry.json"
     )
-    module = next(item for item in registry["modules"] if item["check_id"] == config.check_id)
-    binding = next(
-        item for item in registry["method_conflict_bindings"] if item["check_id"] == config.check_id
+    module_key = "modules" if config.scientific_check_lane == "qualified" else "development_modules"
+    binding_key = (
+        "method_conflict_bindings"
+        if config.scientific_check_lane == "qualified"
+        else "development_method_conflict_bindings"
     )
+    module = next(item for item in registry[module_key] if item["check_id"] == config.check_id)
+    binding = next(item for item in registry[binding_key] if item["check_id"] == config.check_id)
     if binding.get("detector_id") != config.detector_id:
         raise LeanPipelineError(
             "The configured detector id does not match the registered method-conflict binding."
@@ -1018,6 +1024,8 @@ def step_authoring(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]
     }
     if config.requires_dependence_authority:
         detector_tuple["detector_id"] = config.detector_id
+    if config.scientific_check_lane == "development":
+        detector_tuple["binding_lane"] = "development"
     tuple_digest = semantic_digest(detector_tuple)
 
     if config.sealed_case_assignments is None:
@@ -4122,6 +4130,9 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
     if label_ledger["detector_output_observed"] is not False:
         raise LeanPipelineError("Labels were not frozen before detector observation.")
     detector_tuple = protocol["detector_tuple"]
+    frozen_lane = str(detector_tuple.get("binding_lane", "qualified"))
+    if frozen_lane != config.scientific_check_lane:
+        raise LeanPipelineError("The frozen scientific-check lane differs from the envelope.")
     detector_id = str(detector_tuple.get("detector_id", config.detector_id))
     if detector_id != config.detector_id:
         raise LeanPipelineError("The frozen detector id differs from the envelope configuration.")
@@ -4385,6 +4396,7 @@ def step_detector(project_root: Path, config: EnvelopeConfig) -> dict[str, Any]:
                 dependence_authorization_lock=dependence_lock,
                 dependence_authorization_case_id=(case_id if dependence_lock is not None else None),
                 evaluation_inspection_observer=evaluation_observer,
+                scientific_check_lane=config.scientific_check_lane,
             )
         except (Exception, RecursionError) as error:
             if not config.development_loop:

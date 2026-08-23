@@ -712,6 +712,14 @@ def audit(
             "read; repeat at most eight times. Selection does not validate scientific meaning."
         ),
     ),
+    development_lane: bool = typer.Option(
+        False,
+        "--development-lane",
+        help=(
+            "Run the newest scientific-check development binding for evaluation only; "
+            "this lane can never emit Findings."
+        ),
+    ),
 ) -> None:
     """Inventory and statically inspect an arbitrary scientific project."""
     active_mode = _AUDIT_MODES[mode]
@@ -731,6 +739,7 @@ def audit(
             deadline=active_deadline,
             method_contract_lock=method_contract_lock,
             material_inputs=tuple(material_input or ()),
+            scientific_check_lane="development" if development_lane else "qualified",
         )
     except (FileExistsError, ValueError) as error:
         raise typer.BadParameter(str(error)) from error

@@ -142,7 +142,6 @@ def generate_capability_matrix(
         "detector_version",
         registry,
     )
-    detectors = _latest_version_records(detector_history, "detector_id", "detector_version")
     qualifications = _public_records(
         collection_values["qualification_manifests"]["records"],
         "detector_qualification",
@@ -156,8 +155,9 @@ def generate_capability_matrix(
     _verify_builtin_implementation_digests(parsers)
 
     parser_by_id = {str(record["parser_id"]): record for record in parsers}
-    detector_by_id = {str(record["detector_id"]): record for record in detectors}
     qualification_by_id = {str(record["qualification_id"]): record for record in qualifications}
+    detectors = _qualified_or_latest_detector_records(detector_history, qualification_by_id)
+    detector_by_id = {str(record["detector_id"]): record for record in detectors}
     version_by_id = _validate_version_manifests(versions)
     profile_ids = {str(profile.get("profile_id")) for profile in profiles}
     if {str(version.get("profile_ref")) for version in versions} != profile_ids:
@@ -240,6 +240,32 @@ def generate_capability_matrix(
     return matrix
 
 
+def _qualified_or_latest_detector_records(
+    records: list[dict[str, Any]],
+    qualification_by_id: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Prefer one installed qualified identity; otherwise expose the newest development one."""
+
+    latest = {
+        str(item["detector_id"]): item
+        for item in _latest_version_records(records, "detector_id", "detector_version")
+    }
+    by_id: dict[str, list[dict[str, Any]]] = {}
+    for record in records:
+        by_id.setdefault(str(record["detector_id"]), []).append(record)
+    selected: list[dict[str, Any]] = []
+    for detector_id, history in sorted(by_id.items()):
+        qualified = [
+            record for record in history if _binding_grant_entries(record, qualification_by_id)
+        ]
+        if len(qualified) > 1:
+            raise CapabilityMatrixError(
+                f"detector has multiple installed qualified identities: {detector_id}"
+            )
+        selected.append(qualified[0] if qualified else latest[detector_id])
+    return selected
+
+
 def write_capability_matrix(
     output: Path,
     manifest_root: Path,
@@ -254,6 +280,8 @@ def load_capability_detector_manifest(
     manifest_root: Path,
     schema_root: Path,
     detector_id: str,
+    *,
+    detector_version: str | None = None,
 ) -> dict[str, Any]:
     """Load one detector only after the complete capability source set validates."""
 
@@ -264,13 +292,19 @@ def load_capability_detector_manifest(
     matches = [
         record
         for record in collection["records"]
-        if isinstance(record, dict) and record.get("detector_id") == detector_id
+        if isinstance(record, dict)
+        and record.get("detector_id") == detector_id
+        and (detector_version is None or record.get("detector_version") == detector_version)
     ]
     if not matches:
         raise CapabilityMatrixError(
             f"capability source set does not contain detector {detector_id!r}"
         )
-    latest = _latest_version_records(matches, "detector_id", "detector_version")
+    latest = (
+        matches
+        if detector_version is not None
+        else _latest_version_records(matches, "detector_id", "detector_version")
+    )
     if len(latest) != 1:
         raise CapabilityMatrixError(
             f"capability source set does not resolve one live detector {detector_id!r}"

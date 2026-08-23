@@ -429,9 +429,10 @@ def compile_scientific_check_records(
 ) -> ScientificCheckCompilation:
     """Compile module-local results into existing v0.14 question and evidence records."""
 
-    modules = {module.manifest.check_id: module for module in registry.modules}
+    selected_modules = registry.modules_for_lane(evaluation.lane)
+    modules = {module.manifest.check_id: module for module in selected_modules}
     manifests = {
-        **{module.manifest.check_id: module.manifest for module in registry.modules},
+        **{module.manifest.check_id: module.manifest for module in selected_modules},
         **{manifest.check_id: manifest for manifest in registry.unavailable_manifests},
     }
     contracts: list[dict[str, Any]] = []
@@ -501,7 +502,7 @@ def _compile_applicable_module(
         for item in observations
         if manifest.check_id
         == "check:authorized-independent-unit-entry-into-row-independent-procedure"
-        and manifest.check_version == "2.3.0"
+        and manifest.check_version in {"2.1.0", "2.3.0"}
         and item.evidence_plane == "static_source"
         and item.method_target_ref is not None
     }

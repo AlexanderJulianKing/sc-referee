@@ -14,6 +14,9 @@ from sc_referee.core.ids import semantic_digest
 from sc_referee.detectors.bounded_analysis_method_conflict import (
     BoundedAnalysisMethodConflictDetector,
 )
+from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_1 import (
+    BoundedCodeCsvDependenceConflictV21Detector,
+)
 from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_3 import (
     BoundedCodeCsvDependenceConflictV23Detector,
 )
@@ -22,7 +25,7 @@ from sc_referee.scientific_checks.core import (
     MethodConflictBinding,
     OperandKind,
 )
-from sc_referee.scientific_checks.registry import ScientificCheckRegistry
+from sc_referee.scientific_checks.registry import ScientificCheckLane, ScientificCheckRegistry
 
 
 class MethodConflictRegistryError(ValueError):
@@ -41,15 +44,28 @@ class MethodConflictEvaluation:
 def validate_registered_method_conflict_manifests(
     registry: ScientificCheckRegistry,
     schema_root: Path,
+    *,
+    lane: ScientificCheckLane = "qualified",
 ) -> tuple[dict[str, Any], ...]:
     """Load and validate every explicit detector family used by the scientific registry."""
 
-    bindings_by_detector = _group_bindings(registry.method_conflict_bindings)
+    selected_bindings = registry.bindings_for_lane(lane)
+    bindings_by_detector = _group_bindings(selected_bindings)
     manifests: list[dict[str, Any]] = []
     for detector_id in sorted(bindings_by_detector):
-        detector_class = _detector_class(detector_id)
+        detector_versions = {
+            binding.detector_version for binding in bindings_by_detector[detector_id]
+        }
+        if len(detector_versions) != 1:
+            raise MethodConflictRegistryError(
+                f"selected lane has multiple versions of one detector: {detector_id}"
+            )
+        detector_class = _detector_class(detector_id, next(iter(detector_versions)))
         manifest = load_capability_detector_manifest(
-            default_capability_manifest_root(), schema_root, detector_id
+            default_capability_manifest_root(),
+            schema_root,
+            detector_id,
+            detector_version=next(iter(detector_versions)),
         )
         _validate_manifest_binding(manifest, bindings_by_detector[detector_id])
         detector_class(
@@ -57,7 +73,7 @@ def validate_registered_method_conflict_manifests(
             _validation_bindings(
                 manifest,
                 bindings_by_detector[detector_id],
-                registry.method_conflict_bindings,
+                selected_bindings,
             ),
         )
         manifests.append(manifest)
@@ -81,7 +97,15 @@ def evaluate_registered_method_conflicts(
     manifests = _mapping_list(locked_case.get("detector_manifests"))
     evaluations: list[MethodConflictEvaluation] = []
     for detector_id in sorted(bindings_by_detector):
-        detector_class = _detector_class(detector_id)
+        detector_versions = {
+            binding.detector_version for binding in bindings_by_detector[detector_id]
+        }
+        if len(detector_versions) != 1:
+            raise MethodConflictRegistryError(
+                f"locked lane has multiple versions of one detector: {detector_id}"
+            )
+        detector_version = next(iter(detector_versions))
+        detector_class = _detector_class(detector_id, detector_version)
         matches = [item for item in manifests if item.get("detector_id") == detector_id]
         if len(matches) != 1:
             raise MethodConflictRegistryError(
@@ -136,13 +160,18 @@ def evaluate_registered_method_conflicts(
 
 
 def _detector_class(
-    detector_id: str,
+    detector_id: str, detector_version: str
 ) -> type[BoundedAnalysisMethodConflictDetector]:
     classes: tuple[type[BoundedAnalysisMethodConflictDetector], ...] = (
         BoundedAnalysisMethodConflictDetector,
+        BoundedCodeCsvDependenceConflictV21Detector,
         BoundedCodeCsvDependenceConflictV23Detector,
     )
-    matches = [item for item in classes if item.detector_id == detector_id]
+    matches = [
+        item
+        for item in classes
+        if item.detector_id == detector_id and item.detector_version == detector_version
+    ]
     if len(matches) != 1:
         raise MethodConflictRegistryError(
             f"registered method-conflict detector family is not installed: {detector_id}"

@@ -29,7 +29,7 @@ from sc_referee.scientific_checks.core import (
     FrozenMaterialInput,
     RecordRef,
 )
-from sc_referee.scientific_checks.registry import ScientificCheckRegistry
+from sc_referee.scientific_checks.registry import ScientificCheckLane, ScientificCheckRegistry
 from sc_referee.scientific_requirement_contract import (
     SCIENTIFIC_REQUIREMENT_PROFILE_ID,
     SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
@@ -283,6 +283,8 @@ def preflight_frozen_scientific_requirement(
     context: FrozenInspectionContext,
     file_records: Sequence[Mapping[str, Any]],
     asset_identities: Sequence[Mapping[str, Any]],
+    scientific_check_registry: ScientificCheckRegistry,
+    scientific_check_lane: ScientificCheckLane,
 ) -> FrozenInspectionContext:
     """Expose one already-verified Answer/assertion pair to adapters before evaluation."""
 
@@ -329,16 +331,25 @@ def preflight_frozen_scientific_requirement(
         "candidate_id": resolved.candidate_id,
         "semantic_role_authority": copy.deepcopy(resolved.semantic_role_authority or {}),
     }
-    from sc_referee.scientific_checks.profiles import scientific_check_release_registry
-
+    active_lane_registry = ScientificCheckRegistry(
+        scientific_check_registry.modules_for_lane(scientific_check_lane),
+        unavailable_manifests=scientific_check_registry.unavailable_manifests,
+        method_conflict_bindings=scientific_check_registry.bindings_for_lane(scientific_check_lane),
+    )
     active = resolve_scientific_requirement_profile(
         active_profile,
-        registry=scientific_check_release_registry(),
+        registry=active_lane_registry,
     ).with_authority_binding_snapshot(copy.deepcopy(resolved.authority_binding_snapshot or {}))
-    if active != resolved and not compatible_dependence_code_lane_requirement(resolved, active):
-        raise MethodContractRunError(
-            "scientific requirement is incompatible with the active check lane"
-        )
+    if active != resolved:
+        # Production authority is exact: a contract frozen against a newer development
+        # grammar must never be reinterpreted by an older qualified grammar. Forward
+        # compatibility is reserved for the explicit evaluation-only development lane.
+        if scientific_check_lane == "qualified":
+            return context
+        if not compatible_dependence_code_lane_requirement(resolved, active):
+            raise MethodContractRunError(
+                "scientific requirement is incompatible with the active check lane"
+            )
     preflight_answer = copy.deepcopy(parent_answer)
     preflight_answer["extensions"]["x-scientific-check-manifest-digest"] = (
         active.check_manifest_digest

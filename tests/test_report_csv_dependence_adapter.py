@@ -678,7 +678,7 @@ def test_requirement_profile_rejects_every_unsafe_authority_shape(
         resolve_scientific_requirement_profile(profile)
 
 
-def test_normal_audit_lifecycle_keeps_unqualified_code_lane_evaluation_only(
+def test_normal_audit_lifecycle_promotes_the_exact_qualified_code_lane(
     schema_root: Path, tmp_path: Path
 ) -> None:
     project = tmp_path / "project"
@@ -729,7 +729,6 @@ def test_normal_audit_lifecycle_keeps_unqualified_code_lane_evaluation_only(
         project,
         audit,
         schema_root,
-        report="results/report.md",
         material_inputs=("data/input.csv",),
         method_contract_lock=contract / "semantic.lock.json",
     )
@@ -739,10 +738,10 @@ def test_normal_audit_lifecycle_keeps_unqualified_code_lane_evaluation_only(
         if item.get("extensions", {}).get("x-scientific-check-ids")
         and CHECK_ID in item["extensions"]["x-scientific-check-ids"]
     ]
-    assert [item.get("state") for item in dependence_results].count(
-        "evaluation_finding_candidate"
-    ) == 1
-    assert bundle["findings"] == []
+    assert [item.get("state") for item in dependence_results].count("finding_candidate") == 1
+    assert [item["title"] for item in bundle["findings"]] == [
+        "Analysis code contradicts the frozen one-row-per-authorized-unit requirement"
+    ]
 
     packet = {
         "semantic_assertions": bundle["semantic_assertions"],
@@ -815,6 +814,7 @@ def test_code_lane_finding_draft_pins_title_and_slot_types(
         schema_root,
         material_inputs=("data/input.csv",),
         method_contract_lock=contract / "semantic.lock.json",
+        scientific_check_lane="development",
     )
     result = next(
         item
@@ -824,7 +824,7 @@ def test_code_lane_finding_draft_pins_title_and_slot_types(
     )
     binding = next(
         item
-        for item in scientific_check_release_registry().method_conflict_bindings
+        for item in scientific_check_release_registry().development_method_conflict_bindings
         if item.check_id == CHECK_ID
         and item.detector_id == "detector:bounded-code-csv-dependence-conflict"
     )

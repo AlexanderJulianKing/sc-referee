@@ -773,6 +773,43 @@ answers, authority, and outcomes remain unchanged. The 56 opened Envelope-2-thro
 development checks with projected 19/27 positive candidates and 0/29 negative candidates. The two
 unbalanced CSV cases clear the revised index classifier but remain honest code-grammar misses.
 
+## Dual qualified/development registry amendment — 2026-08-23
+
+Provenance: **Fable, under executive authority granted by Alex 2026-08-21; 2026-08-23**. Envelope 7 is
+opened and burned: detector 2.3.0 produced 2/6 positive evaluation candidates, 0/6 negative candidates,
+zero Findings, and replay 12/12. It did not meet the accepted recall bar. No 2.3 production promotion is
+authorized.
+
+The scientific-check registry now carries separate `qualified` and `development` dependence bindings.
+The qualified binding is exactly the installed Envelope-5 check, adapter, detector, binding, and
+wording-v1 identity at version 2.1.0. The development binding is the newest built identity, version
+2.3.0 at this amendment, and remains evaluation-only. The existing `MethodConflictBinding` record is not
+changed; lane ownership is registry authority and therefore cannot change the installed binding digest.
+
+The normal `sc-referee audit` path always selects the qualified lane. The development lane requires the
+explicit `--development-lane` option (or the equivalent internal envelope-runner option), records a
+no-production-promotion ceiling in its semantic lock, and can emit only evaluation candidates or
+abstentions. `installed_pin_matches_live_identity` resolves only the qualified registry projection, so a
+development bump cannot silently disable a qualified production grant.
+
+Future blind envelopes freeze and run the development binding. A passing envelope is necessary but not
+sufficient to change production. The only authorized promotion path remains: derive the step-10
+qualification, metric, threshold, Finding-profile, and replacement-pin artifacts; verify the proposed
+qualified projection in step 11; then explicitly install both that qualified projection and its exact
+pin. No ordinary development build changes the qualified binding.
+
+The 2.1 detector source, Envelope-5 adapter/dataflow/report-CSV source closure, and wording-v1 profile are
+retained under exact digest assertions. Concurrent installation uses a narrow versioned facade whose
+only permitted source normalization redirects the frozen 2.1 adapter's imports to its frozen 2.1
+dependencies and its implementation-identity source to the byte-frozen Envelope-5 adapter snapshot.
+The complete construction, digests, routing invariant, and test plan are specified in
+`docs/implementation/PSEUDOREP-CODE-SLICE-2.4-DESIGN-2026-08-23.md`.
+
+This amendment changes production routing, not evidence eligibility. The report channel remains
+withdrawn; no prose is evidence; the 2.1 CSV/dataflow predicate and wording-v1 are unchanged; the 2.3
+development predicate and wording-v2 are unchanged; and complete-domain production authority is
+unaffected.
+
 ## Open questions that would change the build
 
 None for the authorized implementation and installation. The report channel remains withdrawn; the

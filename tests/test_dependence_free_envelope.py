@@ -194,10 +194,14 @@ def _freeze_fixture_inputs(root: Path, config: Any) -> None:
 
     registry_path = root / "src/sc_referee/resources/scientific-check-manifests-v1/registry.json"
     registry = json.loads(registry_path.read_text(encoding="utf-8"))
-    module = next(item for item in registry["modules"] if item["check_id"] == config.check_id)
-    binding = next(
-        item for item in registry["method_conflict_bindings"] if item["check_id"] == config.check_id
+    module_key = "modules" if config.scientific_check_lane == "qualified" else "development_modules"
+    binding_key = (
+        "method_conflict_bindings"
+        if config.scientific_check_lane == "qualified"
+        else "development_method_conflict_bindings"
     )
+    module = next(item for item in registry[module_key] if item["check_id"] == config.check_id)
+    binding = next(item for item in registry[binding_key] if item["check_id"] == config.check_id)
     detector_tuple = {
         "check_id": config.check_id,
         "check_version": module["check_version"],
@@ -208,6 +212,8 @@ def _freeze_fixture_inputs(root: Path, config: Any) -> None:
         "production_finding_permitted": False,
         "detector_id": config.detector_id,
     }
+    if config.scientific_check_lane == "development":
+        detector_tuple["binding_lane"] = "development"
     roles = tuple((config.expected_verdict_by_role or {}).keys())
     case_ids = [_CASE_BY_ROLE[role] for role in roles]
     schema = lean_pipeline._author_output_schema(
@@ -1446,6 +1452,7 @@ def test_false_accusation_halts_and_preserves_per_case_outputs(
             "column_name": "bird_code",
             "group_contrast_column": "condition",
         },
+        scientific_check_lane="development",
     )
     _freeze_fixture_inputs(isolated, config)
     incoming = (

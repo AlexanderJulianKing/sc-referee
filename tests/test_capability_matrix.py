@@ -239,7 +239,7 @@ def test_bundled_matrix_is_deterministic_and_publishes_only_live_binding_grants(
             for entry in first["entries"]
             for detector in entry["detectors"]
         )
-        == 1
+        == 2
     )
     assert any("cannot emit a production Finding" in gap for gap in analysis_entry["known_gaps"])
     code_entry = next(
@@ -249,6 +249,21 @@ def test_bundled_matrix_is_deterministic_and_publishes_only_live_binding_grants(
     )
     assert code_entry["detectors"] == [
         {
+            "binding_grants": [
+                {
+                    "binding_id": (
+                        "method-conflict-binding:authorized-independent-unit-entry-into-"
+                        "row-independent-procedure-v1"
+                    ),
+                    "check_id": (
+                        "check:authorized-independent-unit-entry-into-row-independent-procedure"
+                    ),
+                    "qualification_ref": (
+                        "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5"
+                    ),
+                    "strongest_output_type": "finding",
+                }
+            ],
             "detector_id": "detector:bounded-code-csv-dependence-conflict",
             "maturity": "experimental",
             "qualification_ref": None,

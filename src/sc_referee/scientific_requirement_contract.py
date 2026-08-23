@@ -874,7 +874,7 @@ def compatible_dependence_code_lane_requirement(
     frozen: ResolvedScientificRequirement,
     active: ResolvedScientificRequirement,
 ) -> bool:
-    """Accept only the ADR-0076 code-lane migrations through active 2.3.0.
+    """Accept only the ADR-0076 dual-lane migrations through 2.3.0.
 
     The human-selected operand, authority surface, frozen material binding,
     comparison relation, and candidate remain byte-equivalent.  Adapter,
@@ -887,8 +887,18 @@ def compatible_dependence_code_lane_requirement(
         and active.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
         and frozen.check_id == _DEPENDENCE_CHECK_ID == active.check_id
         and frozen.check_version
-        in {"1.2.0", "1.3.0", "1.3.1", "1.3.2", "1.3.3", "2.0.0", "2.1.0", "2.2.0"}
-        and active.check_version == "2.3.0"
+        in {
+            "1.2.0",
+            "1.3.0",
+            "1.3.1",
+            "1.3.2",
+            "1.3.3",
+            "2.0.0",
+            "2.1.0",
+            "2.2.0",
+            "2.3.0",
+        }
+        and active.check_version in {"2.1.0", "2.3.0"}
         and frozen.candidate_id == _DEPENDENCE_CANDIDATE_ID == active.candidate_id
         and frozen.dimension == active.dimension == "dependence_structure"
         and frozen.comparison_form == active.comparison_form == "value_equals"

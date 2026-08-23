@@ -12,6 +12,9 @@ from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.detectors.bounded_analysis_method_conflict import (
     BoundedAnalysisMethodConflictDetector,
 )
+from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_1 import (
+    BoundedCodeCsvDependenceConflictV21Detector,
+)
 from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_3 import (
     BoundedCodeCsvDependenceConflictV23Detector,
 )
@@ -292,13 +295,20 @@ def test_g2_changes_exactly_two_columns_across_all_62_opened_cases() -> None:
     ]
 
 
-def test_code_lane_has_distinct_detector_binding_and_stale_installed_grant() -> None:
+def test_code_lane_has_distinct_qualified_and_development_bindings() -> None:
     registry = scientific_check_release_registry()
     binding = next(item for item in registry.method_conflict_bindings if item.check_id == _CHECK_ID)
-    assert binding.detector_id == BoundedCodeCsvDependenceConflictV23Detector.detector_id
-    assert binding.detector_version == "2.3.0"
+    development = next(
+        item for item in registry.development_method_conflict_bindings if item.check_id == _CHECK_ID
+    )
+    assert binding.detector_id == BoundedCodeCsvDependenceConflictV21Detector.detector_id
+    assert binding.detector_version == "2.1.0"
     assert binding.production_finding_permitted is False
-    assert installed_pin_matches_live_identity(GRANT_PINS[binding.binding_id]) is False
+    assert installed_pin_matches_live_identity(GRANT_PINS[binding.binding_id]) is True
+    assert development.detector_id == BoundedCodeCsvDependenceConflictV23Detector.detector_id
+    assert development.detector_version == "2.3.0"
+    assert development.binding_id.endswith(":development")
+    assert development.production_finding_permitted is False
 
 
 def test_complete_domain_pin_and_detector_bytes_remain_live() -> None:
@@ -317,7 +327,15 @@ def test_complete_domain_pin_and_detector_bytes_remain_live() -> None:
 
 def test_code_lane_detector_identity_is_content_addressed() -> None:
     registry = scientific_check_release_registry()
-    binding = next(item for item in registry.method_conflict_bindings if item.check_id == _CHECK_ID)
-    assert binding.detector_manifest_digest.startswith("sha256:")
-    assert len(binding.detector_manifest_digest) == 71
-    assert semantic_digest(binding.to_dict()) == binding.binding_digest
+    bindings = [
+        next(item for item in registry.method_conflict_bindings if item.check_id == _CHECK_ID),
+        next(
+            item
+            for item in registry.development_method_conflict_bindings
+            if item.check_id == _CHECK_ID
+        ),
+    ]
+    for binding in bindings:
+        assert binding.detector_manifest_digest.startswith("sha256:")
+        assert len(binding.detector_manifest_digest) == 71
+        assert semantic_digest(binding.to_dict()) == binding.binding_digest
