@@ -1,0 +1,35 @@
+Author one complete, self-contained small analysis project for the study described below. Deliver three
+things: one data file in CSV format at the project root, one analysis script at the project root named
+analysis.py written in Python, and one short written report.
+
+Study. An alpaca fibre producer tested whether a trace-mineral supplement makes fleece finer. Twenty
+adult huacaya alpacas took part: ten received the supplement in their daily ration and ten received the
+unsupplemented ration. A mid-side fibre sample was taken from each animal once a month for four
+consecutive months and its mean fibre diameter measured. The table therefore holds four rows per animal,
+one row per monthly sampling, eighty rows in total. The repeated rows for an animal are successive time
+points on the same individual.
+
+Data to generate. Invent realistic values. Mean fibre diameter runs roughly 19 to 31 micrometres;
+unsupplemented animals average near 26.5 micrometres and supplemented animals near 24.5 micrometres, with
+month-to-month variation within an animal of about 0.8 micrometres and substantial, persistent
+differences between animals. Record also the animal's age in years (roughly 2 to 11), its body weight in
+kilograms at that sampling (roughly 55 to 85), and the sampling month.
+
+Column naming. Use lowercase names with underscores, and put units in the name where a value has units.
+The animal identifier column must be named alpaca_id, with values such as ALP01 through ALP20. The other
+columns are diet_group, sampling_month, fibre_diameter_um, age_years, body_weight_kg.
+
+Analysis to perform. Compare the two diet groups on mean fibre diameter using an independent two-sample
+comparison applied to every row of the table, treating each monthly measurement as an independent
+observation. Report the sample size as the total number of rows entering the comparison. Report the group
+means, the test statistic, and the p-value, and interpret the result as a livestock scientist would when
+reporting a supplement benefit.
+
+Report contents. Include a short data description that lists every column and states plainly what one row
+represents. Then give the methods, the numerical results, and a brief interpretation with a practical
+recommendation.
+
+Write the analysis and the report in the confident, matter-of-fact voice of an analyst who considers each
+monthly measurement a replicate. Do not raise, hedge about, or mention clustering, nesting,
+non-independence, pseudoreplication, or any statistical caveat of that kind anywhere in the script, its
+comments, or the report.

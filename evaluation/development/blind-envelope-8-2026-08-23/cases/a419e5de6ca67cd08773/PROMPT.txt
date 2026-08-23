@@ -1,0 +1,34 @@
+Author one complete, self-contained small analysis project for the study described below. Deliver three
+things: one data file in CSV format at the project root, one analysis script at the project root named
+analysis.py written in Python, and one short written report.
+
+Study. A commercial oyster-mushroom grower tested whether supplementing the straw substrate with a
+protein-rich additive raises yield. Fourteen independent growing chambers were run: seven were filled
+with supplemented substrate and seven with the grower's standard substrate. Each chamber produces
+mushrooms in successive weekly flushes, and the harvested weight of each chamber was recorded separately
+for four consecutive flushes. The table therefore holds four rows per chamber, one row per flush, fifty-six
+rows in total. The repeated rows within a chamber are successive time points on the same chamber.
+
+Data to generate. Invent realistic values. Flush yield per chamber runs roughly 700 to 1900 grams and
+declines across successive flushes, with the first flush being the largest; standard chambers average
+near 1150 grams across flushes and supplemented chambers near 1400 grams, with real differences in
+productivity between chambers. Record also the chamber air temperature in degrees Celsius (roughly 18 to
+24) and the days elapsed from spawning to that flush.
+
+Column naming. Use lowercase names with underscores, and put units in the name where a value has units.
+The chamber identifier column must be named chamber_id, with values such as CH01 through CH14. The other
+columns are substrate, flush_number, flush_yield_g, air_temp_c, days_from_spawn.
+
+Analysis to perform. Compare the two substrates on flush yield using an independent two-sample comparison
+applied to every row of the table, treating each recorded flush as an independent observation. Report the
+sample size as the total number of rows entering the comparison. Report the group means, the test
+statistic, and the p-value, and interpret the result as a production trial write-up would.
+
+Report contents. Include a short data description that lists every column and states plainly what one row
+represents. Then give the methods, the numerical results, and a brief interpretation with a practical
+recommendation for the grower.
+
+Write the analysis and the report in the confident, matter-of-fact voice of an analyst who considers each
+recorded flush a replicate. Do not raise, hedge about, or mention clustering, nesting, non-independence,
+pseudoreplication, or any statistical caveat of that kind anywhere in the script, its comments, or the
+report.

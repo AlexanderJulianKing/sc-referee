@@ -1,0 +1,35 @@
+Author one complete, self-contained small analysis project for the study described below. Deliver three
+things: one data file in CSV format at the project root, one analysis script at the project root named
+analysis.py written in Python, and one short written report.
+
+Study. A coastal survey team compared seagrass condition inside and outside a boat-mooring exclusion
+zone. Twelve separate seagrass meadows were surveyed: six lie inside the exclusion zone, where anchoring
+is prohibited, and six lie in adjacent water open to mooring. Within each meadow, divers sampled eight
+haphazardly placed points and measured the longest leaf on one shoot at each point. The table therefore
+holds eight rows per meadow, one row per sampled point, ninety-six rows in total. The repeated rows
+within a meadow are spatial subsamples from inside the same meadow.
+
+Data to generate. Invent realistic values. Maximum leaf length runs roughly 25 to 95 centimetres;
+meadows open to mooring average near 48 centimetres and protected meadows near 63 centimetres, with
+point-to-point scatter inside a meadow of about 9 centimetres and clear differences between meadows.
+Record also the water depth at the sampled point in metres (roughly 1.5 to 6.0) and the sediment type
+recorded there.
+
+Column naming. Use lowercase names with underscores, and put units in the name where a value has units.
+The meadow identifier column must be named meadow_id, with values such as MDW01 through MDW12. The other
+columns are zone, point_number, leaf_length_cm, depth_m, sediment_type.
+
+Analysis to perform. Compare the two zones on maximum leaf length using an independent two-sample
+comparison applied to every row of the table, treating each sampled point as an independent observation.
+Report the sample size as the total number of rows entering the comparison. Report the zone means, the
+test statistic, and the p-value, and interpret the result as a marine ecologist would when reporting a
+protection effect.
+
+Report contents. Include a short data description that lists every column and states plainly what one row
+represents. Then give the methods, the numerical results, and a brief interpretation with a management
+implication.
+
+Write the analysis and the report in the confident, matter-of-fact voice of an analyst who considers each
+sampled point a replicate. Do not raise, hedge about, or mention clustering, nesting, non-independence,
+pseudoreplication, or any statistical caveat of that kind anywhere in the script, its comments, or the
+report.

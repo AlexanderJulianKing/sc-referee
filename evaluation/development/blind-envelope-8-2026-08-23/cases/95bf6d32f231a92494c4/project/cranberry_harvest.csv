@@ -1,0 +1,25 @@
+bog_id,harvest_method,marketable_yield_bbl_per_acre,bog_area_acres,cultivar,planting_age_years,harvest_date
+BOG01,dry,136.3,7.6,Stevens,20,2025-09-30
+BOG02,dry,158.9,11.0,Stevens,9,2025-10-05
+BOG03,dry,166.4,4.2,Ben Lear,23,2025-09-17
+BOG04,wet,203.9,6.8,Mullica Queen,30,2025-10-02
+BOG05,dry,180.8,8.7,Stevens,40,2025-09-28
+BOG06,dry,128.6,11.6,Crimson Queen,6,2025-10-06
+BOG07,dry,158.2,10.5,Howes,15,2025-09-29
+BOG08,wet,171.6,6.6,Ben Lear,6,2025-10-07
+BOG09,wet,167.7,7.1,Early Black,11,2025-09-26
+BOG10,wet,157.8,12.9,Mullica Queen,13,2025-10-08
+BOG11,dry,177.4,5.9,Howes,17,2025-09-26
+BOG12,wet,146.5,7.5,Ben Lear,29,2025-10-05
+BOG13,wet,198.4,5.3,Stevens,34,2025-10-02
+BOG14,wet,246.1,12.0,Stevens,18,2025-10-09
+BOG15,wet,201.0,8.9,Stevens,16,2025-10-07
+BOG16,dry,185.9,7.7,Ben Lear,36,2025-10-01
+BOG17,wet,214.1,10.7,Crimson Queen,15,2025-10-14
+BOG18,dry,215.1,11.6,Mullica Queen,12,2025-09-25
+BOG19,dry,150.9,11.0,Mullica Queen,24,2025-09-30
+BOG20,wet,221.0,13.3,Early Black,20,2025-10-11
+BOG21,wet,183.2,13.2,Howes,40,2025-09-25
+BOG22,wet,165.8,8.6,Mullica Queen,7,2025-10-13
+BOG23,dry,192.0,10.1,Ben Lear,32,2025-09-21
+BOG24,dry,153.1,8.5,Mullica Queen,8,2025-10-01

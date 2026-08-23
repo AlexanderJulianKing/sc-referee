@@ -1,0 +1,33 @@
+Author one complete, self-contained small analysis project for the study described below. Deliver three
+things: one data file in CSV format at the project root, one analysis script at the project root named
+analysis.py written in Python, and one short written report.
+
+Study. A sports physiology laboratory tested whether a dietary nitrate supplement improves sprint power
+in trained cyclists. Eighteen riders took part, nine randomised to the supplement and nine to a matched
+placebo. Each rider completed five maximal seated sprints on a laboratory ergometer in a single session,
+separated by fixed rest intervals, and the peak power of every sprint was recorded. The raw table
+therefore holds five rows per rider, one row per sprint, ninety rows in total. The repeated rows for a
+rider are successive time points within that rider's session.
+
+Data to generate. Invent realistic values. Sprint peak power runs roughly 680 to 1180 watts; the placebo
+group averages near 880 watts and the supplement group near 935 watts, with sprint-to-sprint variation
+within a rider of about 35 watts and large, persistent differences between riders. Peak power drifts down
+slightly across the five sprints as fatigue accumulates. Record also the rider's body mass in kilograms
+(roughly 62 to 88), the sprint order, and the cadence achieved in revolutions per minute.
+
+Column naming. Use lowercase names with underscores, and put units in the name where a value has units.
+The rider identifier column must be named rider_id, with values such as RDR01 through RDR18. The other
+columns are supplement_group, sprint_number, peak_power_w, body_mass_kg, cadence_rpm.
+
+Analysis to perform. The riders are the independent units of this experiment, and the five sprints are
+repeated efforts by the same person. So first reduce each rider's five sprints to that rider's single
+best-representative value, then compare the two groups with an independent two-sample comparison run on
+those one-value-per-rider numbers. Report the sample size as the number of riders in each group, not the
+number of sprints. Keep the raw CSV exactly as collected, with all five rows per rider still present; the
+reduction happens during the analysis, not in the stored data. Report the group means, the test
+statistic, and the p-value, and interpret the result.
+
+Report contents. Include a short data description that lists every column and states plainly what one row
+of the raw file represents. State clearly in the methods that the comparison was run on one value per
+rider and give the number of riders as the sample size. Then give the numerical results and a brief
+interpretation.

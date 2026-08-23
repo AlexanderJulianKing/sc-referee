@@ -1,0 +1,34 @@
+Author one complete, self-contained small analysis project for the study described below. Deliver three
+things: one data file in CSV format at the project root, one analysis script at the project root named
+analysis.py written in Python, and one short written report.
+
+Study. A behavioural neuroscience group asked whether chronic traffic-like noise changes adult zebra
+finch song. Fourteen adult male finches were housed individually: seven in a room with playback of
+low-frequency noise and seven in a quiet room. After six weeks, twelve complete song bouts were recorded
+from every bird and the duration of each bout measured. The table therefore holds twelve rows per bird,
+one row per song bout, one hundred and sixty-eight rows in total. The repeated rows for a bird are
+separate performances by the same individual.
+
+Data to generate. Invent realistic values. Song bout duration runs roughly 0.8 to 4.2 seconds; birds in
+the quiet room average near 2.5 seconds and noise-exposed birds near 2.0 seconds, with bout-to-bout
+variation within a bird of about 0.35 seconds and large, stable differences between birds, since
+individual finches have characteristic song lengths. Record also the number of motifs in the bout, the
+peak frequency in kilohertz (roughly 2.5 to 6.0), the time of day of the recording, and the bird's age in
+days (roughly 180 to 900).
+
+Column naming. Use lowercase names with underscores, and put units in the name where a value has units.
+The bird identifier column must be named bird_id, with values such as BRD01 through BRD14. The other
+columns are noise_condition, bout_number, bout_duration_s, motif_count, peak_frequency_khz,
+recording_time, age_days.
+
+Analysis to perform. The songs are repeated measures nested within birds, and the bird is the independent
+unit. Make the primary inference with a model that explicitly accounts for that dependence, giving each
+bird its own random effect so that the noise condition is tested against between-bird variation. Report
+the estimated condition effect, its uncertainty, and the associated p-value from that model, and state
+the number of birds and the number of bouts. You may additionally run a plain two-sample comparison over
+all rows, but if you do, present it only as a clearly labelled secondary sensitivity check that is not
+the inferential result of the study, and say in the report why it cannot stand in for the primary model.
+
+Report contents. Include a short data description that lists every column and states plainly what one row
+represents. Then give the methods, the primary numerical results, any secondary check clearly marked as
+such, and a brief interpretation.

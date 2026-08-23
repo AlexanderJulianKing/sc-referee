@@ -1,0 +1,847 @@
+{
+  "acceptance": {
+    "acceptance_provenance": "Fable, under executive authority granted by Alex 2026-08-21",
+    "accepted_date": "2026-08-23",
+    "adr_path": "docs/implementation/ADR-0076-CONTRACT-BOUND-REPORT-CSV-PSEUDOREPLICATION-FINDING.md",
+    "design_delta_paths": [
+      "docs/implementation/PSEUDOREP-CODE-SLICE-1.1-DESIGN-2026-08-22.md",
+      "docs/implementation/PSEUDOREP-CODE-SLICE-1.2-DESIGN-2026-08-22.md",
+      "docs/implementation/PSEUDOREP-CODE-SLICE-1.3-DESIGN-2026-08-22.md",
+      "docs/implementation/PSEUDOREP-CODE-SLICE-2.0-DESIGN-2026-08-22.md",
+      "docs/implementation/PSEUDOREP-CODE-SLICE-2.1-DESIGN-2026-08-22.md",
+      "docs/implementation/PSEUDOREP-CODE-SLICE-2.2-DESIGN-2026-08-22.md",
+      "docs/implementation/PSEUDOREP-CODE-SLICE-2.3-DESIGN-2026-08-23.md",
+      "docs/implementation/PSEUDOREP-CODE-SLICE-3.0-DESIGN-2026-08-23.md"
+    ],
+    "design_path": "docs/implementation/PSEUDOREP-CODE-SLICE-DESIGN-2026-08-22.md",
+    "status": "Accepted"
+  },
+  "artifact_kind": "sealed_blind_envelope_implementation_freeze_manifest",
+  "case_count": 12,
+  "case_ids_in_fixed_order": [
+    "bba60d967342fbbd2832",
+    "19d0834b0899d12792f3",
+    "a419e5de6ca67cd08773",
+    "b0b7a489867c081e3f39",
+    "3d5b5ca93c6d7eb502d2",
+    "a00cb612cc7d8d45aee4",
+    "d415b84d1e942c483f28",
+    "95bf6d32f231a92494c4",
+    "ef9e199c282b9038e4c3",
+    "40496ca2298519b8825d",
+    "d40847316a2fcdd32de3",
+    "472f5d15184e7ee55bb2"
+  ],
+  "chronology": [
+    {
+      "completed": true,
+      "step": 1,
+      "summary": "ADR-0076 code-lane 3.0 amendment and the code-slice 3.0 design accepted and frozen with dated executive-authority provenance"
+    },
+    {
+      "completed": true,
+      "step": 2,
+      "summary": "exact 3.0 development-lane implementation closure built, fully gated, independently re-verified, and frozen before blind prompt commissioning"
+    },
+    {
+      "completed": true,
+      "step": 3,
+      "summary": "implementation closure frozen before prompt bytes, case bytes, roles, labels, or detector outputs are disclosed"
+    },
+    {
+      "completed": true,
+      "step": "4a",
+      "summary": "prompt-author briefing digest and byte length recorded; twelve opaque case IDs assigned; separate role map hashed and sealed; prompt digests await custodian append"
+    }
+  ],
+  "envelope_id": "blind-envelope-8-2026-08-23",
+  "freeze_timestamp_utc": "2026-08-23T18:13:57Z",
+  "implementation_closure": {
+    "change_rule": "No byte represented by this closure may change before envelope scoring. Any required change burns this envelope and requires a newly frozen implementation closure and newly authored blind prompts and cases.",
+    "closure_digest": "sha256:8548c0fa39db455c7d6f7ee78a50d76774f62ae59f2c0010d4dba6b956e7d7b7",
+    "closure_digest_profile": "sha256 over UTF-8 JSON of this implementation_closure object with closure_digest omitted, serialized with keys sorted recursively, separators ',' and ':', and ensure_ascii=true",
+    "components": [
+      {
+        "component_id": "active_gate_configuration",
+        "content_digest": "sha256:64cc06cb636bf0bce1269fcfcf6987af4f97aaa8dda6b70ed7968ac1d71ca255",
+        "kind": "file",
+        "path": "pyproject.toml"
+      },
+      {
+        "component_id": "adr_0076",
+        "content_digest": "sha256:8ad9607ba70eb60a8219e822e625bba60237def80922ff0ae2d823107dfeab1a",
+        "kind": "file",
+        "path": "docs/implementation/ADR-0076-CONTRACT-BOUND-REPORT-CSV-PSEUDOREPLICATION-FINDING.md"
+      },
+      {
+        "component_id": "capability_detector_manifest",
+        "content_digest": "sha256:66c0f6ba278e0a5c337cb7f9e85ebad82464f5f2e59ac26fc8a4cf7672d1b3ac",
+        "kind": "file",
+        "path": "src/sc_referee/resources/capability-manifests-v1/detector-manifests.json"
+      },
+      {
+        "component_id": "capability_manifest_set",
+        "content_digest": "sha256:7f215a8dce8c51ffee44feb9233a143076dee50ea63252c414b184d64d7dca1f",
+        "kind": "file",
+        "path": "src/sc_referee/resources/capability-manifests-v1/manifest-set.json"
+      },
+      {
+        "component_id": "capability_matrix_source",
+        "content_digest": "sha256:bb30b99a804cf639a22065a20e9ce0ff6423b72ce96aa55a2b0fdd411561d903",
+        "kind": "file",
+        "path": "src/sc_referee/capability_matrix.py"
+      },
+      {
+        "component_id": "capability_maturity_ledger",
+        "content_digest": "sha256:2ce17e24abce9fcecb4262c1e6593f02fc025f7b3dba5ce9bb798a6f5f0507ce",
+        "kind": "file",
+        "path": "docs/implementation/CAPABILITY_MATURITY_LEDGER.json"
+      },
+      {
+        "component_id": "capability_maturity_ledger_source",
+        "content_digest": "sha256:e8b6b01924a8b8150141bd6bfd914a6ea39e00c81faba6cb202066caba5f5b77",
+        "kind": "file",
+        "path": "src/sc_referee/capability_maturity_ledger.py"
+      },
+      {
+        "component_id": "code_csv_adapter",
+        "content_digest": "sha256:d04cd373a11f39d34065295dcb65c84a806a5ac8c4fd2e8174cb407bbb3e40ce",
+        "kind": "file",
+        "path": "src/sc_referee/scientific_checks/code_csv_dependence_adapter.py"
+      },
+      {
+        "component_id": "code_csv_adapter_v3_0",
+        "content_digest": "sha256:d7ccf1ecb48cc2db29bd6d05dd29fa8e5c833874629905d13b1d900a84680a6f",
+        "kind": "file",
+        "path": "src/sc_referee/scientific_checks/code_csv_dependence_adapter_v3_0.py"
+      },
+      {
+        "component_id": "code_csv_dataflow_and_allowlists",
+        "content_digest": "sha256:68f5c5c665c17175627c8586c45670a931829897df8dedb64046e76be2341505",
+        "kind": "file",
+        "path": "src/sc_referee/scientific_checks/code_csv_dependence_dataflow.py"
+      },
+      {
+        "component_id": "code_csv_dataflow_and_guards_v3_0",
+        "content_digest": "sha256:7422744ce652560f6ce32ba66edaf80ff3b75fb35e20ae0fe52a343e4a5b80d7",
+        "kind": "file",
+        "path": "src/sc_referee/scientific_checks/code_csv_dependence_dataflow_v3_0.py"
+      },
+      {
+        "component_id": "complete_domain_replay_source",
+        "content_digest": "sha256:8837f0261ef042ca439cf50a00e8797044c8ab90121e1544afd23db90e1c8074",
+        "kind": "file",
+        "path": "evaluation/src/sc_referee_evaluation/complete_domain_replay_at_head.py"
+      },
+      {
+        "component_id": "contract_parser",
+        "content_digest": "sha256:533df852a39a468b8ec17b20027da00e6a97ce960ac7f445ac4190a57f3d1fd1",
+        "kind": "file",
+        "path": "src/sc_referee/scientific_requirement_contract.py"
+      },
+      {
+        "component_id": "controller_preflight_and_admission",
+        "content_digest": "sha256:b2fbcf091d018de5dbdd1d52594d305196120dea1d1f1afd3c00ed47354ce07c",
+        "kind": "file",
+        "path": "src/sc_referee/controller.py"
+      },
+      {
+        "component_id": "design_allowlists_and_semantics",
+        "content_digest": "sha256:65c141aa1821abbafe01d446742e3fa9aaefe253123a07a2f15313c6dab72a7c",
+        "extraction": "heading_range_lf_v1: include heading beginning '## 5.' through the line before the heading beginning '## 6.', emitting LF after every selected physical line",
+        "kind": "design_section",
+        "path": "docs/implementation/PSEUDOREP-CODE-SLICE-DESIGN-2026-08-22.md"
+      },
+      {
+        "component_id": "design_contract_and_csv_evidence",
+        "content_digest": "sha256:423dcacb85c1a3d602b7ba94a5ed3599295a95a86056b5ce4b1080d60c039c9a",
+        "extraction": "heading_range_lf_v1: include heading beginning '## 3.' through the line before the heading beginning '## 4.', emitting LF after every selected physical line",
+        "kind": "design_section",
+        "path": "docs/implementation/PSEUDOREP-CODE-SLICE-DESIGN-2026-08-22.md"
+      },
+      {
+        "component_id": "design_delta_1_1",
+        "content_digest": "sha256:9e4798342df5a13acb80cc70b889c3289bd027c7f79adedb765dac84878f2f62",
+        "kind": "file",
+        "path": "docs/implementation/PSEUDOREP-CODE-SLICE-1.1-DESIGN-2026-08-22.md"
+      },
+      {
+        "component_id": "design_delta_1_2",
+        "content_digest": "sha256:6203b8c9aabb4618f6fa965117a69ef35ecbf14e3a83baf47b8951a9c5ecba51",
+        "kind": "file",
+        "path": "docs/implementation/PSEUDOREP-CODE-SLICE-1.2-DESIGN-2026-08-22.md"
+      },
+      {
+        "component_id": "design_delta_1_3",
+        "content_digest": "sha256:301b55b49f80fd6b0164c40f871610af7caaf6b0860770447ff5add5ce5253cb",
+        "kind": "file",
+        "path": "docs/implementation/PSEUDOREP-CODE-SLICE-1.3-DESIGN-2026-08-22.md"
+      },
+      {
+        "component_id": "design_delta_2_0",
+        "content_digest": "sha256:a6dcdd97c9330607300b4c8f47017090b2034de935acfe9c361c8d2f65f54604",
+        "kind": "file",
+        "path": "docs/implementation/PSEUDOREP-CODE-SLICE-2.0-DESIGN-2026-08-22.md"
+      },
+      {
+        "component_id": "design_delta_2_1",
+        "content_digest": "sha256:5682d066e551441e1ac98ee8c388c0e6b38b57adde22e1b167c38b52f24b79b6",
+        "kind": "file",
+        "path": "docs/implementation/PSEUDOREP-CODE-SLICE-2.1-DESIGN-2026-08-22.md"
+      },
+      {
+        "component_id": "design_delta_2_2",
+        "content_digest": "sha256:0bd04d28b3eff9a035dae3924352fc7895b8e0b2fedc1a5b929827759560d633",
+        "kind": "file",
+        "path": "docs/implementation/PSEUDOREP-CODE-SLICE-2.2-DESIGN-2026-08-22.md"
+      },
+      {
+        "component_id": "design_delta_2_3",
+        "content_digest": "sha256:47c37fe05eb245b8ba6a753006f564c4d9f24e46137d61b722d40193a971a652",
+        "kind": "file",
+        "path": "docs/implementation/PSEUDOREP-CODE-SLICE-2.3-DESIGN-2026-08-23.md"
+      },
+      {
+        "component_id": "design_delta_3_0",
+        "content_digest": "sha256:4a4b800fe414f2dcb137727fe4fc4d65aef047ba2f2151d95c9096aa371f1e27",
+        "kind": "file",
+        "path": "docs/implementation/PSEUDOREP-CODE-SLICE-3.0-DESIGN-2026-08-23.md"
+      },
+      {
+        "component_id": "design_fact_and_observation",
+        "content_digest": "sha256:13dfaf101b6ff02c9eb2c797a97612e9963162ce7c0c988e0eea575870b83158",
+        "extraction": "heading_range_lf_v1: include heading beginning '## 7.' through the line before the heading beginning '## 8.', emitting LF after every selected physical line",
+        "kind": "design_section",
+        "path": "docs/implementation/PSEUDOREP-CODE-SLICE-DESIGN-2026-08-22.md"
+      },
+      {
+        "component_id": "design_finding_predicate",
+        "content_digest": "sha256:b3455b1a7cf99101810e9896914f0e5aff34585d595640c049b23a022e178093",
+        "extraction": "heading_range_lf_v1: include heading beginning '## 6.' through the line before the heading beginning '## 7.', emitting LF after every selected physical line",
+        "kind": "design_section",
+        "path": "docs/implementation/PSEUDOREP-CODE-SLICE-DESIGN-2026-08-22.md"
+      },
+      {
+        "component_id": "design_finding_template",
+        "content_digest": "sha256:394bb58d6fb5ad571429a34e504ee35319c218f8b67456eb9d208a0521023f57",
+        "extraction": "heading_range_lf_v1: include heading beginning '## 8.' through the line before the heading beginning '## 9.', emitting LF after every selected physical line",
+        "kind": "design_section",
+        "path": "docs/implementation/PSEUDOREP-CODE-SLICE-DESIGN-2026-08-22.md"
+      },
+      {
+        "component_id": "design_full",
+        "content_digest": "sha256:c100afb2c946490767c27fbc390f6397d65a303a2c94df3ab6b345d4e540439a",
+        "kind": "file",
+        "path": "docs/implementation/PSEUDOREP-CODE-SLICE-DESIGN-2026-08-22.md"
+      },
+      {
+        "component_id": "design_protocol",
+        "content_digest": "sha256:80e20c2eecf62b9f5040316e9dc2a387aa8e72b99e9108d0c61951850fb89b7c",
+        "extraction": "heading_range_lf_v1: include heading beginning '## 11.' through the line before the heading beginning '## 12.', emitting LF after every selected physical line",
+        "kind": "design_section",
+        "path": "docs/implementation/PSEUDOREP-CODE-SLICE-DESIGN-2026-08-22.md"
+      },
+      {
+        "component_id": "design_source_envelope_and_prose_policy",
+        "content_digest": "sha256:b9633d9cb8699e9489fe403fe75f063e9e171893c6ed25abc13a0b3c517004cc",
+        "extraction": "heading_range_lf_v1: include heading beginning '## 4.' through the line before the heading beginning '## 5.', emitting LF after every selected physical line",
+        "kind": "design_section",
+        "path": "docs/implementation/PSEUDOREP-CODE-SLICE-DESIGN-2026-08-22.md"
+      },
+      {
+        "component_id": "design_test_plan",
+        "content_digest": "sha256:488b3064e7a78e4124286cc472a94de86fd0a65597b5dc6cd48390a96fe65287",
+        "extraction": "heading_range_lf_v1: include heading beginning '## 12.' through the line before the heading beginning '## 13.', emitting LF after every selected physical line",
+        "kind": "design_section",
+        "path": "docs/implementation/PSEUDOREP-CODE-SLICE-DESIGN-2026-08-22.md"
+      },
+      {
+        "component_id": "design_threshold_policy",
+        "content_digest": "sha256:280b4888cb79ee914bce47f62248eed43d1efbb7668922568918aabb0ffe6582",
+        "extraction": "heading_range_lf_v1: include heading beginning '### 11.3 ' through the line before the heading beginning '## 12.', emitting LF after every selected physical line",
+        "kind": "design_section",
+        "path": "docs/implementation/PSEUDOREP-CODE-SLICE-DESIGN-2026-08-22.md"
+      },
+      {
+        "component_id": "detector_code_lane",
+        "content_digest": "sha256:e52a367ffb97ca6706d6d2cfd621f0283cb12d99d1483304142d365aad25f86e",
+        "kind": "file",
+        "path": "src/sc_referee/detectors/bounded_code_csv_dependence_conflict.py"
+      },
+      {
+        "component_id": "detector_code_lane_v1_1",
+        "content_digest": "sha256:3b136e2dcb33023c3f9abc0eb962b8120cda836e74bf715fd8c7c5383799da57",
+        "kind": "file",
+        "path": "src/sc_referee/detectors/bounded_code_csv_dependence_conflict_v1_1.py"
+      },
+      {
+        "component_id": "detector_code_lane_v1_2",
+        "content_digest": "sha256:ab6e90b5496996f769cb4af0b5ab60082778f0adf4378b1bb127c63ffb81da14",
+        "kind": "file",
+        "path": "src/sc_referee/detectors/bounded_code_csv_dependence_conflict_v1_2.py"
+      },
+      {
+        "component_id": "detector_code_lane_v1_3",
+        "content_digest": "sha256:4d004c513761e382bbb49ea0633d1d7b3ee07f91cdba91adf837b48902d2f816",
+        "kind": "file",
+        "path": "src/sc_referee/detectors/bounded_code_csv_dependence_conflict_v1_3.py"
+      },
+      {
+        "component_id": "detector_code_lane_v2_0",
+        "content_digest": "sha256:261bfa27092c528cd86fb3905ced2fb1b2f296852f688ab4be3abaa94d57e901",
+        "kind": "file",
+        "path": "src/sc_referee/detectors/bounded_code_csv_dependence_conflict_v2_0.py"
+      },
+      {
+        "component_id": "detector_code_lane_v2_1",
+        "content_digest": "sha256:9c30154639e1fc013a0f82a5ee3d767202c121f42626b2c6497436e9305f2452",
+        "kind": "file",
+        "path": "src/sc_referee/detectors/bounded_code_csv_dependence_conflict_v2_1.py"
+      },
+      {
+        "component_id": "detector_code_lane_v2_2",
+        "content_digest": "sha256:f2aab5efb1e02d3bae88800dea31c1707644fb36b6de48abfb612e7f426f71be",
+        "kind": "file",
+        "path": "src/sc_referee/detectors/bounded_code_csv_dependence_conflict_v2_2.py"
+      },
+      {
+        "component_id": "detector_code_lane_v2_3",
+        "content_digest": "sha256:529c60dd57db912656d809a8d4dbb4be950a46ed0dc311c31f6b3ebd0a38cc3b",
+        "kind": "file",
+        "path": "src/sc_referee/detectors/bounded_code_csv_dependence_conflict_v2_3.py"
+      },
+      {
+        "component_id": "detector_code_lane_v3_0",
+        "content_digest": "sha256:332d5f23ca540425ee2999cf090d7cc5d8beca005ac1b731aa0040434cb7738a",
+        "kind": "file",
+        "path": "src/sc_referee/detectors/bounded_code_csv_dependence_conflict_v3_0.py"
+      },
+      {
+        "component_id": "detector_generic_reused",
+        "content_digest": "sha256:d22f5b5cffbde98201077edf1a3825274780ac23bff997c78b44465e67bdf6d1",
+        "kind": "file",
+        "path": "src/sc_referee/detectors/bounded_analysis_method_conflict.py"
+      },
+      {
+        "component_id": "detector_registry",
+        "content_digest": "sha256:67492e155c1a1d22561152d0fac1b95e28841986e1870a11c9a2c236be534a91",
+        "kind": "file",
+        "path": "src/sc_referee/detectors/method_conflict_registry.py"
+      },
+      {
+        "component_id": "development_expectations",
+        "content_digest": "sha256:c0d8ad9a1887a7664a656aa82898e6c7c08950b83d90a3d87cd5a8fb0ed1fded",
+        "kind": "file",
+        "path": "evaluation/development/pseudorep-code-slice-v1/DEVELOPMENT_LEDGER.json"
+      },
+      {
+        "component_id": "development_expectations_1_1",
+        "content_digest": "sha256:2fe67cdae4fe7b0f217cd7a2b2e3878f66469a2a31855d907dd6d3375477de1b",
+        "kind": "file",
+        "path": "evaluation/development/pseudorep-code-slice-v1_1/DEVELOPMENT_LEDGER.json"
+      },
+      {
+        "component_id": "development_expectations_1_2",
+        "content_digest": "sha256:b52271f7c1bca7a84db671e1aecabd89f3070c1b10cc257ee4ae47deeae053eb",
+        "kind": "file",
+        "path": "evaluation/development/pseudorep-code-slice-v1_2/DEVELOPMENT_LEDGER.json"
+      },
+      {
+        "component_id": "development_expectations_1_3",
+        "content_digest": "sha256:fa515456a3fad2ea6feca60bff0fbdb1d0fe0ff09a481dd1a0a6895bfa153412",
+        "kind": "file",
+        "path": "evaluation/development/pseudorep-code-slice-v1_3/DEVELOPMENT_LEDGER.json"
+      },
+      {
+        "component_id": "development_expectations_2_0",
+        "content_digest": "sha256:1c1f3a45bb7d3500b409705eab05ae2b419c449ec9e38f519bb7b7101d5d47bf",
+        "kind": "file",
+        "path": "evaluation/development/pseudorep-code-slice-v2_0/DEVELOPMENT_LEDGER.json"
+      },
+      {
+        "component_id": "development_expectations_2_1",
+        "content_digest": "sha256:c78aa9a9eca55ba730310faaa834a3b9baddc0a91ac0a96205cecb595b55ed75",
+        "kind": "file",
+        "path": "evaluation/development/pseudorep-code-slice-v2_1/DEVELOPMENT_LEDGER.json"
+      },
+      {
+        "component_id": "development_expectations_2_2",
+        "content_digest": "sha256:a8dc60e46c8fe009d0579ed567f100feaecf2f12c3936ac03b7f7e270362b30e",
+        "kind": "file",
+        "path": "evaluation/development/pseudorep-code-slice-v2_2/DEVELOPMENT_LEDGER.json"
+      },
+      {
+        "component_id": "development_expectations_2_3",
+        "content_digest": "sha256:c9e5f90ab7715124ccb1b73cfa91c7d44a6c342c951ff2edbfb714bfc815870a",
+        "kind": "file",
+        "path": "evaluation/development/pseudorep-code-slice-v2_3/DEVELOPMENT_LEDGER.json"
+      },
+      {
+        "component_id": "development_expectations_3_0",
+        "content_digest": "sha256:fdeb052204afa2a1b14ef6958d0895e1182e8785acc8844d1f8a58e2ac0270aa",
+        "kind": "file",
+        "path": "evaluation/development/pseudorep-code-slice-v3_0/DEVELOPMENT_LEDGER.json"
+      },
+      {
+        "component_id": "development_lane_cli",
+        "content_digest": "sha256:96eb21cfc67fbe5d324604705cdb6cdb88f442ce8bc91f5c38e8d1475e3d1f6f",
+        "kind": "file",
+        "path": "src/sc_referee/cli.py"
+      },
+      {
+        "component_id": "evaluation_lean_pipeline",
+        "content_digest": "sha256:afb21eb6e11ec6ec93fb7a2d46c84a9b87c9f862cec0f8ffb6c7b0dd3aaa2824",
+        "kind": "file",
+        "path": "evaluation/src/sc_referee_evaluation/lean_pipeline.py"
+      },
+      {
+        "component_id": "fact_profile_and_finding_template",
+        "content_digest": "sha256:4f929e8d1d5d5939799eec8d9ce6ad0ac7b18678cd0307900d240cf08f06856a",
+        "kind": "file",
+        "path": "src/sc_referee/detectors/method_conflict_finding.py"
+      },
+      {
+        "component_id": "grant_pin_structure",
+        "content_digest": "sha256:7b68ad9b0527486980054be676562903842cd2ccebfe9a34321ab7d86496439b",
+        "kind": "file",
+        "path": "src/sc_referee/detectors/method_conflict_grant_pins.py"
+      },
+      {
+        "component_id": "grant_resource_builder",
+        "content_digest": "sha256:cfa02e2f7a314798d961daf7bc9e0ab143a31aebc2a14e7053beee89662281f4",
+        "kind": "file",
+        "path": "scripts/build_method_conflict_grant_resources.py"
+      },
+      {
+        "component_id": "growth_loop_state",
+        "content_digest": "sha256:759635d76fe366f7428590df7c00f039401c6b35fedee1dafc0064c5752a7a65",
+        "kind": "file",
+        "path": "docs/implementation/GROWTH-LOOP-STATE.md"
+      },
+      {
+        "component_id": "method_contract_run",
+        "content_digest": "sha256:6567a4f8e14706747457df10d422126e7eeb4b7a6284f98b0033aa3722b676da",
+        "kind": "file",
+        "path": "src/sc_referee/method_contract_run.py"
+      },
+      {
+        "component_id": "production_finding_demonstration_source",
+        "content_digest": "sha256:f410b803f48c2d9b8c828705d95ed7e8c05a829a80ac3fb3a2b69cf0f67040d0",
+        "kind": "file",
+        "path": "evaluation/src/sc_referee_evaluation/production_finding_demonstration.py"
+      },
+      {
+        "component_id": "public_interfaces",
+        "content_digest": "sha256:1708d7973420aeb4fb317d51566243e7b994dddefb866fa08c2ec9856b3fdeb7",
+        "kind": "file",
+        "path": "docs/implementation/PUBLIC_INTERFACES.md"
+      },
+      {
+        "component_id": "qualification_admission",
+        "content_digest": "sha256:4701263d5d53f7e4d8a49adad21c518ea4a1a92d9c6f90855a53d671cc9e5cc1",
+        "kind": "file",
+        "path": "src/sc_referee/detectors/method_conflict_qualification.py"
+      },
+      {
+        "component_id": "qualification_grant_validator",
+        "content_digest": "sha256:2812acddad70c1a45c4a29a993152ab49f783123febd7637cd7ef2ee7c3779f9",
+        "kind": "file",
+        "path": "src/sc_referee/qualification_grants.py"
+      },
+      {
+        "component_id": "regression_execution_plan",
+        "content_digest": "sha256:1bf39914072038a0d10bbc86f42bd4af9566dfe3c544f4563107f10ce83012bc",
+        "kind": "file",
+        "path": "evaluation/regression-corpus-v1/execution-plan.json"
+      },
+      {
+        "component_id": "regression_ledger",
+        "content_digest": "sha256:c04b0ea06fe194e73c0c37ff90762cd0ea6e42dea6ab2c06fc8fae3077f5e604",
+        "kind": "file",
+        "path": "evaluation/regression-corpus-v1/ledger.json"
+      },
+      {
+        "component_id": "report_csv_adapter_and_csv_machinery",
+        "content_digest": "sha256:ed9ca797cf21a505f707dd2c5d6ca50d685cfb2a5cab49240c86a0ae17cc9379",
+        "kind": "file",
+        "path": "src/sc_referee/scientific_checks/report_csv_dependence_adapter.py"
+      },
+      {
+        "component_id": "reporting_admission_policy",
+        "content_digest": "sha256:bd592b062df6489bf50205f33ff5708720841ff76369debdea797c2b6d593449",
+        "kind": "file",
+        "path": "src/sc_referee/reporting/policy.py"
+      },
+      {
+        "component_id": "scientific_check_integration",
+        "content_digest": "sha256:76f37df0bcd0e2bbdd0cb99ab5731e25a7ff85742cb818f2e113d0e4ca964d2d",
+        "kind": "file",
+        "path": "src/sc_referee/scientific_checks/integration.py"
+      },
+      {
+        "component_id": "scientific_check_profiles",
+        "content_digest": "sha256:7b937bb10eab95b4c35d932bb358afe0b0bb3a4e57d0d025e4f204fb7c48d710",
+        "kind": "file",
+        "path": "src/sc_referee/scientific_checks/profiles.py"
+      },
+      {
+        "component_id": "scientific_manifest_registry",
+        "content_digest": "sha256:36dd74e210097724e44a018701968e60eed57cd2a10896392c612d6b0d6f8a8e",
+        "kind": "file",
+        "path": "src/sc_referee/resources/scientific-check-manifests-v1/registry.json"
+      },
+      {
+        "component_id": "scorer",
+        "content_digest": "sha256:a1a5abed54410a67f9619e75fc7ac46090ef8920a7b1c62d1927a1df3d51a509",
+        "kind": "file",
+        "path": "src/sc_referee/qualification_metrics.py"
+      },
+      {
+        "component_id": "source_manifest_builder",
+        "content_digest": "sha256:3e9a9ca81e45c2d147e0ce09fa18fee903b8dd5b1d45ee0c69e4f39d707c2876",
+        "kind": "file",
+        "path": "scripts/build_capability_source_manifests.py"
+      },
+      {
+        "component_id": "starter_validator",
+        "content_digest": "sha256:fbd58bda1873958b811a5ecdad9c9f9fe8564351f479389343ae0b9d03e52c7b",
+        "kind": "file",
+        "path": "scripts/validate_starter.py"
+      },
+      {
+        "component_id": "test_bounded_analysis_method_conflict",
+        "content_digest": "sha256:d5cbcec092bbb7e6bf33ef1d9e2139494ad7b93d89d5321766d114dab2cda0bf",
+        "kind": "file",
+        "path": "tests/test_bounded_analysis_method_conflict.py"
+      },
+      {
+        "component_id": "test_bounded_report_mean_direction",
+        "content_digest": "sha256:69af396d3d6aa4b4d9938644bd491de8c9eb99b5d7b1ea52c1ed4b7921f9d3e8",
+        "kind": "file",
+        "path": "tests/test_bounded_report_mean_direction.py"
+      },
+      {
+        "component_id": "test_capability_ledger",
+        "content_digest": "sha256:085e94a0567d8712ce8fd0f2ffcf26d27d653f2768899973d01681817e7f831a",
+        "kind": "file",
+        "path": "tests/test_capability_maturity_ledger.py"
+      },
+      {
+        "component_id": "test_capability_matrix",
+        "content_digest": "sha256:284951719f6e82a9c32650da972ad18889bede7a0f95ab9ddf6d736ed99c06b4",
+        "kind": "file",
+        "path": "tests/test_capability_matrix.py"
+      },
+      {
+        "component_id": "test_code_csv_adapter",
+        "content_digest": "sha256:38506844af5e3e565f1ed0fa481515bfbd5933aec6a8f33e6756d6ab9c9d1202",
+        "kind": "file",
+        "path": "tests/test_code_csv_dependence_adapter.py"
+      },
+      {
+        "component_id": "test_code_csv_dataflow",
+        "content_digest": "sha256:743f2010f27665361722824143849ba3264ea9ec3b8846ec11881dc17cf7a29a",
+        "kind": "file",
+        "path": "tests/test_code_csv_dependence_dataflow.py"
+      },
+      {
+        "component_id": "test_code_csv_dataflow_v3_0",
+        "content_digest": "sha256:d16b775bc54443a83cbbd5bf400aa5105270e9b55e5ff20dab24e0ad3b84d291",
+        "kind": "file",
+        "path": "tests/test_code_csv_dependence_dataflow_v3_0.py"
+      },
+      {
+        "component_id": "test_code_csv_dual_registry",
+        "content_digest": "sha256:f3c90cd4c78380444efc9a51db08f75362b9e43aca15c8f3fe6390aff47dbab7",
+        "kind": "file",
+        "path": "tests/test_code_csv_dependence_dual_registry.py"
+      },
+      {
+        "component_id": "test_code_csv_wording_profiles",
+        "content_digest": "sha256:f58dbb15e4612602a4a50642ff3ef11c05bdb948e581a4d312dba42c2a75cd35",
+        "kind": "file",
+        "path": "tests/test_code_csv_dependence_wording_profiles.py"
+      },
+      {
+        "component_id": "test_complete_domain_pin",
+        "content_digest": "sha256:49148f935b34cccde78c0745a5f1835aa08d60461b9fe6f12805191b7b512e15",
+        "kind": "file",
+        "path": "tests/test_complete_domain_promotion_round1.py"
+      },
+      {
+        "component_id": "test_contract_parser_and_run",
+        "content_digest": "sha256:429de29e8a2dd111dd412bd06577d09d8fbbb8d197d18347193459c030e96578",
+        "kind": "file",
+        "path": "tests/test_method_contract_run.py"
+      },
+      {
+        "component_id": "test_dependence_adapter_existing_roles",
+        "content_digest": "sha256:31e751ec405c92b646fe4192fddd8020838f0d50abd478fb930d8b6735b3fa1c",
+        "kind": "file",
+        "path": "tests/test_dependence_recognition_scientific_adapter.py"
+      },
+      {
+        "component_id": "test_dependence_authority_lock",
+        "content_digest": "sha256:50523968d3dfde1c7ef21af5c9287d091e9575d0b0c54ca43143a5ac33327598",
+        "kind": "file",
+        "path": "tests/test_dependence_authority_lock.py"
+      },
+      {
+        "component_id": "test_dependence_free_envelope",
+        "content_digest": "sha256:70391185caab043e0d0c1a3b7648b828cd560dca11405c3977b6c0d87a58bece",
+        "kind": "file",
+        "path": "tests/test_dependence_free_envelope.py"
+      },
+      {
+        "component_id": "test_dependence_pilot_envelope",
+        "content_digest": "sha256:3c0b33c8c5f447690a9a8d68a9beb71a12b61ab1995c445e3f9ccf6b1fe38196",
+        "kind": "file",
+        "path": "tests/test_dependence_pilot_envelope.py"
+      },
+      {
+        "component_id": "test_dependence_promotion_round1",
+        "content_digest": "sha256:adfb130b10e5959ca1f33c0c07d858293a462f026b14eb9625f4de5c2153ab82",
+        "kind": "file",
+        "path": "tests/test_dependence_promotion_round1.py"
+      },
+      {
+        "component_id": "test_dependence_recognition_v2",
+        "content_digest": "sha256:31c2ab517f0bb42bbbe08fc74862af1fba32637227c32635e1178461090ff486",
+        "kind": "file",
+        "path": "tests/test_dependence_recognition_v2.py"
+      },
+      {
+        "component_id": "test_development_expectations",
+        "content_digest": "sha256:da6411f4ca0507c5482ef86172fb053ad77dff0fdee16eefede9cd832a9feca9",
+        "kind": "file",
+        "path": "tests/test_dependence_code_slice_development.py"
+      },
+      {
+        "component_id": "test_generic_exposure_denominator_relation",
+        "content_digest": "sha256:1c9ac9d89ed8155bec06b2b77d510db6d4b6ed85bd5ff63e2ccd19f6ae5fb88c",
+        "kind": "file",
+        "path": "tests/test_generic_exposure_denominator_relation.py"
+      },
+      {
+        "component_id": "test_generic_method_contract_e2e_fixture",
+        "content_digest": "sha256:2407cf3b01affcaafb628ef8770df9904742ba63239d77c891a7bf31f9b2b69a",
+        "kind": "file",
+        "path": "tests/data/generic_method_contract_e2e_v1.json"
+      },
+      {
+        "component_id": "test_generic_method_contract_e2e_matrix",
+        "content_digest": "sha256:d7490ca0bc0628b77a1040d3ac660ab2cb85a758c49260f19b746de604af1e88",
+        "kind": "file",
+        "path": "tests/test_generic_method_contract_e2e_matrix.py"
+      },
+      {
+        "component_id": "test_grant_pin_and_admission",
+        "content_digest": "sha256:0fb5196a66b5373a65476ea4986bea74690daebe126a4bcdd170b9cd5be572f3",
+        "kind": "file",
+        "path": "tests/test_installed_method_conflict_grants.py"
+      },
+      {
+        "component_id": "test_matrix_support",
+        "content_digest": "sha256:cea41a3ad6154b83776546369e6d56a65f9f4bf6e6e4fb4816009163698224f9",
+        "kind": "file",
+        "path": "tests/method_conflict_matrix_support.py"
+      },
+      {
+        "component_id": "test_method_conflict_target_matrix",
+        "content_digest": "sha256:3257d01b42756b38e9f68c676ba9aec5b301ed299d0bd1eebf229d2144ce478e",
+        "kind": "file",
+        "path": "tests/test_method_conflict_target_matrix.py"
+      },
+      {
+        "component_id": "test_multiple_testing_integration",
+        "content_digest": "sha256:23d5e9bf7a903f4b79cc34727b45dd8c863c46d568e09c4be30c7e237c8e51be",
+        "kind": "file",
+        "path": "tests/test_multiple_testing_recognition_scientific_adapter.py"
+      },
+      {
+        "component_id": "test_pilot_burned_case_regression",
+        "content_digest": "sha256:0db348eaada4c92739889d4e3c96f6c26b319f64907b3913998c2ed252fc62a0",
+        "kind": "file",
+        "path": "tests/test_pilot_burned_case_regression.py"
+      },
+      {
+        "component_id": "test_posthoc_method_ledger",
+        "content_digest": "sha256:230a4b6277c7aece9983ec24f47a6f2ea3d7910120df36bcdf028ba467bd3c4f",
+        "kind": "file",
+        "path": "tests/test_posthoc_method_ledger.py"
+      },
+      {
+        "component_id": "test_production_finding_path",
+        "content_digest": "sha256:ebca7fcc2c6cf198d9fa96eb00422a80196f2041cfd2b57bb7c51055cf32e975",
+        "kind": "file",
+        "path": "tests/test_production_finding_demonstration.py"
+      },
+      {
+        "component_id": "test_regression_corpus_ledger",
+        "content_digest": "sha256:5caebe4afdb6d49abc9df535dda0f8e74dca067a4d4ffede6668d2fdd4bf3bcd",
+        "kind": "file",
+        "path": "tests/test_regression_corpus_ledger.py"
+      },
+      {
+        "component_id": "test_regression_corpus_runner",
+        "content_digest": "sha256:c185969e6c11a0fb2628927672df03d79ec710c572d0d03ba380048a9f10b051",
+        "kind": "file",
+        "path": "tests/test_regression_corpus_runner.py"
+      },
+      {
+        "component_id": "test_report_csv_adapter_and_csv_boundaries",
+        "content_digest": "sha256:9baad54f5be142c6566ffd4291c7acb68507455320606221ec6c5a70e4508c87",
+        "kind": "file",
+        "path": "tests/test_report_csv_dependence_adapter.py"
+      },
+      {
+        "component_id": "test_scientific_check_integration",
+        "content_digest": "sha256:5a29c67f794d956436b9c6e5ba5422807f9d74fd0104a21c1ada749fdef59e6c",
+        "kind": "file",
+        "path": "tests/test_scientific_check_integration.py"
+      },
+      {
+        "component_id": "test_scientific_check_registry",
+        "content_digest": "sha256:b8ad2546e640d1205b2288709a832a4b525b794142a3e4d3276eb97ad28b306f",
+        "kind": "file",
+        "path": "tests/test_scientific_check_registry.py"
+      }
+    ],
+    "threshold_policy": {
+      "blind_negative_control_count": 6,
+      "blind_positive_count": 6,
+      "completed_opportunity_false_positive_rate": 0,
+      "development_detector_id": "detector:bounded-code-csv-dependence-conflict",
+      "development_detector_version": "3.0.0",
+      "envelope_8_local_gate_can_pass": true,
+      "envelope_8_local_pass_condition": "0/6 negative evaluation candidates and at least 3/6 positive evaluation candidates, plus all zero-Finding, replay, false-accusation, and family-C reporting requirements in this policy",
+      "envelope_case_count": 12,
+      "evaluation_lane": "development",
+      "existing_blind_case_count": 108,
+      "existing_regression_case_count": 155,
+      "family_c_negative_count_reporting_required": true,
+      "last_36_blind_case_window": [
+        "blind-envelope-6-2026-08-22",
+        "blind-envelope-7-2026-08-23",
+        "blind-envelope-8-2026-08-23"
+      ],
+      "maximum_false_accusations_last_36_blind_cases": 0,
+      "maximum_negative_evaluation_candidates": 0,
+      "minimum_positive_evaluation_candidates_envelope_8": 3,
+      "policy_provenance": "Fable, under executive authority granted by Alex 2026-08-21, 2026-08-23",
+      "positive_recall_reporting": "measured",
+      "required_envelope_finding_count": 0,
+      "required_existing_blind_finding_count": 0,
+      "required_existing_regression_finding_count": 0,
+      "required_replay_equal_case_count": 12,
+      "running_tally_can_pass_in_envelope_8": false,
+      "running_tally_earliest_possible_pass_envelope": 9,
+      "running_tally_minimum_positive_candidates": 9,
+      "running_tally_positive_cases": 18,
+      "running_tally_prior_positive_candidates": 2,
+      "running_tally_prior_positive_cases": 12,
+      "running_tally_required_envelope_8_positive_candidates": 7,
+      "running_tally_window": [
+        "blind-envelope-6-2026-08-22",
+        "blind-envelope-7-2026-08-23",
+        "blind-envelope-8-2026-08-23"
+      ],
+      "running_tally_window_minimum_recall": 0.5
+    }
+  },
+  "prompt_author_briefing": {
+    "builder_received_bytes": false,
+    "byte_length": 4896,
+    "content_digest": "sha256:6823e86d767970803f121f53e5304a984ea48444a6b4c145eff2c03a25a9c63a",
+    "freeze_provenance": "frozen by custodian 2026-08-23 ~10:20 local before any agent saw it"
+  },
+  "prompt_author_provenance": null,
+  "prompt_bytes_received_by_builder": false,
+  "prompt_freeze": {
+    "frozen_by": "Fable (custodian, executive authority)",
+    "prompt_author_provenance": "independent Claude Opus prompt-author agent, isolated session, 2026-08-23, read only the frozen briefing",
+    "utc": "2026-08-23T18:17:59.826680Z"
+  },
+  "prompt_records": [
+    {
+      "case_id": "bba60d967342fbbd2832",
+      "prompt_byte_length": 2655,
+      "prompt_content_digest": "sha256:7a62ea7d43cb821e2dcb501c5e6a3203dc07a6200dbe2fdb38027b75cb2cdbf8",
+      "sequence": 1
+    },
+    {
+      "case_id": "19d0834b0899d12792f3",
+      "prompt_byte_length": 2630,
+      "prompt_content_digest": "sha256:33d05aef3fb003355a2fb1e091b0a2f7f3942364bc3187a626f771c6300369f0",
+      "sequence": 2
+    },
+    {
+      "case_id": "a419e5de6ca67cd08773",
+      "prompt_byte_length": 2598,
+      "prompt_content_digest": "sha256:af218d811476da6b244db57cf370b47c61e7e593910299f0a31be9763ecfa03d",
+      "sequence": 3
+    },
+    {
+      "case_id": "b0b7a489867c081e3f39",
+      "prompt_byte_length": 2524,
+      "prompt_content_digest": "sha256:4f7322d7df7d43c3d06cb5d6bd83ffd66f58b8d54db99765eeaf89af5b7c67f8",
+      "sequence": 4
+    },
+    {
+      "case_id": "3d5b5ca93c6d7eb502d2",
+      "prompt_byte_length": 2610,
+      "prompt_content_digest": "sha256:48a6a98dca41f2973e49462f27090303fba3d505bb89b897b2ce0443af8cc081",
+      "sequence": 5
+    },
+    {
+      "case_id": "a00cb612cc7d8d45aee4",
+      "prompt_byte_length": 2581,
+      "prompt_content_digest": "sha256:91fa6ccbbc94455a0aa51f05dd6ca4c067d5302bdcbbce33a66a13eb0dff68c0",
+      "sequence": 6
+    },
+    {
+      "case_id": "d415b84d1e942c483f28",
+      "prompt_byte_length": 2644,
+      "prompt_content_digest": "sha256:4ca384195698f8868c789f44b4ad3d1c7a26fdc76852f0ca231b6893a6cde715",
+      "sequence": 7
+    },
+    {
+      "case_id": "95bf6d32f231a92494c4",
+      "prompt_byte_length": 2246,
+      "prompt_content_digest": "sha256:0c7cd220698da210b1327dc8ada0db2099623243e9930df8992f82fd9c78c71b",
+      "sequence": 8
+    },
+    {
+      "case_id": "ef9e199c282b9038e4c3",
+      "prompt_byte_length": 2661,
+      "prompt_content_digest": "sha256:b6b4d5d1b9102ce5d4212a4495ef56833afb5afdad621cc5cd7e4ccf5880c8e9",
+      "sequence": 9
+    },
+    {
+      "case_id": "40496ca2298519b8825d",
+      "prompt_byte_length": 2930,
+      "prompt_content_digest": "sha256:8e73a1df458710b36e4140284ea86aa4a8d89d2d6eeba19c6ad12f839939dc15",
+      "sequence": 10
+    },
+    {
+      "case_id": "d40847316a2fcdd32de3",
+      "prompt_byte_length": 3061,
+      "prompt_content_digest": "sha256:d6d039ed6c673ed6e774ffc3f23a229160e0473ca8a78d1ab431cd8dbe116a29",
+      "sequence": 11
+    },
+    {
+      "case_id": "472f5d15184e7ee55bb2",
+      "prompt_byte_length": 2731,
+      "prompt_content_digest": "sha256:bcba04d5574e1143b75d049263f509717c7684b928dfabf45ae85e5a5af04c7b",
+      "sequence": 12
+    }
+  ],
+  "role_map": {
+    "builder_must_not_read_after_digest": true,
+    "content_digest": "sha256:40b58a29c2671c194644a66bc789d60dd642d01dc3546fa08cdaa9bd2b0f1c08",
+    "path": "evaluation/development/blind-envelope-8-2026-08-23/ROLE_MAP.json",
+    "sealed": true
+  },
+  "schema_version": "1.0.0",
+  "state": "prompts_frozen; awaiting custodian step 5 (data, contracts)"
+}

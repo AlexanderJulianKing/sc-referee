@@ -1,0 +1,40 @@
+Author one complete, self-contained small analysis project for the study described below. Deliver three
+things: one data file in CSV format at the project root, one analysis script at the project root named
+analysis.py written in Python, and one short written report.
+
+Study. A savanna ecology team asked whether prescribed burning changes the nutrient enrichment found in
+termite mound soil. Fourteen large termite mounds were sampled: seven in a block burned two years earlier
+and seven in an adjacent unburned block. At each mound, eight soil cores were taken around the mound base
+and total soil nitrogen measured for each core. The table therefore holds eight rows per mound, one row
+per core, one hundred and twelve rows in total. The repeated rows for a mound are spatial subsamples of
+the same mound.
+
+Data to generate. Invent realistic values. Total soil nitrogen runs roughly 0.04 to 0.38 percent by mass;
+cores from unburned-block mounds average near 0.21 percent and cores from burned-block mounds near 0.15
+percent, with core-to-core variation within a mound of about 0.025 percent and pronounced differences
+between mounds. Record also the mound height in metres (roughly 0.8 to 3.5), the distance of the core
+from the mound base in centimetres (roughly 20 to 150), the sampling depth in centimetres, and the soil
+pH.
+
+Column naming. Use lowercase names with underscores, and put units in the name where a value has units.
+The mound identifier column must be named mound_id, with values such as MND01 through MND14. The other
+columns are burn_block, core_number, total_nitrogen_pct, mound_height_m, core_distance_cm,
+sample_depth_cm, soil_ph.
+
+Analysis to perform. The mound, not the core, is the independent unit, and the cores within a mound are
+correlated. Make the primary inference with a dependence-aware procedure that respects that grouping.
+Choose one of two routes: either a clustered-inference routine from a less widely used statistics
+package, or a resampling procedure you write yourself that draws whole mounds with replacement rather
+than individual cores and builds the null or the interval from those mound-level draws. Whichever route
+you take, describe the procedure in the report in enough detail that a reader could reproduce it, and
+report the effect estimate, its uncertainty, and the resulting p-value or interval, along with the number
+of mounds and the number of cores.
+
+Also compute a plain two-sample comparison over all one hundred and twelve rows and show it in the report
+as an illustrative contrast only. State explicitly, in both the script's output and the report, that this
+row-level comparison is not a valid inference for this design because it treats correlated cores as
+independent, and that the dependence-aware result is the study's conclusion.
+
+Report contents. Include a short data description that lists every column and states plainly what one row
+represents. Then give the methods, the primary dependence-aware result, the illustrative contrast with
+its explicit warning, and a brief interpretation.

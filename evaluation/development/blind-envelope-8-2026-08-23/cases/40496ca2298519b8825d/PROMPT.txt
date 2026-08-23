@@ -1,0 +1,36 @@
+Author one complete, self-contained small analysis project for the study described below. Deliver four
+things: two data files in CSV format at the project root, one analysis script at the project root named
+analysis.py written in Python, and one short written report. You must create both CSV files yourself.
+
+Study. A regional water authority compared nitrate contamination in drinking-water wells drawing from
+agricultural catchments against wells drawing from forested catchments. Twenty-two wells were monitored:
+eleven in agricultural catchments and eleven in forested catchments. Each well was sampled once a month
+for six months and nitrate concentration measured each time. The first CSV is the raw monitoring log: six
+rows per well, one row per monthly sample, one hundred and thirty-two rows in total. The repeated rows
+for a well are successive time points at the same well.
+
+The second CSV is the analysis-ready summary the authority prepares from that log: exactly one row per
+well, twenty-two rows in total, holding that well's catchment type and its summary nitrate value for the
+six-month period, plus the number of samples that went into it.
+
+Data to generate. Invent realistic values. Nitrate concentration runs roughly 0.4 to 14 milligrams per
+litre; forested-catchment wells average near 2.0 milligrams per litre and agricultural-catchment wells
+near 7.5, with month-to-month variation within a well of about 1.0 milligram per litre and large,
+persistent differences between wells. Record in the raw file the sampling month, the water temperature in
+degrees Celsius (roughly 8 to 15), and the well depth in metres (roughly 15 to 120). Keep the two files
+numerically consistent with each other.
+
+Column naming. Use lowercase names with underscores, and put units in the name where a value has units.
+The well identifier column must be named well_id in both files, with values such as WEL01 through WEL22.
+The raw file also carries catchment_type, sample_month, nitrate_mg_per_l, water_temp_c, well_depth_m. The
+summary file carries well_id, catchment_type, mean_nitrate_mg_per_l, n_samples.
+
+Analysis to perform. Load both files. Use the raw monitoring log only for descriptive purposes: report
+how many wells there are, how many samples each well contributed, and the monitoring period. Run the
+two-group inferential comparison of catchment types entirely on the per-well summary file, with one value
+per well, using an independent two-sample comparison. Report the sample size as the number of wells per
+catchment type. Report the group means, the test statistic, and the p-value, and interpret the result.
+
+Report contents. Include a short data description that lists every column of both files and states
+plainly what one row of each file represents. Say clearly which file the inference was run on. Then give
+the methods, the numerical results, and a brief interpretation with a public-health implication.
