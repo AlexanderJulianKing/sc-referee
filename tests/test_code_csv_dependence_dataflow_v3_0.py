@@ -145,6 +145,61 @@ Bootstrap().run(a)"""
     assert _run(source).reason == "resampling-inference-sibling-present"
 
 
+def test_s2_reduction_returned_by_helper_reaches_caller_print() -> None:
+    source = _candidate(
+        """def bootstrap_ci(values, n_resamples=2_000):
+    draws = []
+    for index in range(n_resamples):
+        draws.append(values.iloc[index % len(values)])
+    return np.percentile(draws, 2.5)
+lo = bootstrap_ci(a)
+print(lo)"""
+    ).replace("import pandas as pd", "import pandas as pd\nimport numpy as np")
+    assert _run(source).reason == "resampling-inference-sibling-present"
+
+
+def test_s2_frame_parameter_dict_member_return_reaches_caller_print() -> None:
+    source = _candidate(
+        """def bootstrap_ci(frame, n_resamples=2_000):
+    draws = []
+    values = frame.loc[frame["group"] == "a", "value"]
+    for index in range(n_resamples):
+        draws.append(values.iloc[index % len(values)])
+    return {"lo": np.percentile(draws, 2.5), "label": "bootstrap"}
+ci = bootstrap_ci(df)
+print(ci["lo"])"""
+    ).replace("import pandas as pd", "import pandas as pd\nimport numpy as np")
+    assert _run(source).reason == "resampling-inference-sibling-present"
+
+
+def test_s2_two_deep_helper_return_tuple_member_reaches_caller_print() -> None:
+    source = _candidate(
+        """def inner_ci(values, n_resamples=2_000):
+    draws = []
+    for index in range(n_resamples):
+        draws.append(values.iloc[index % len(values)])
+    return (np.percentile(draws, 2.5), np.percentile(draws, 97.5))
+def outer_ci(values):
+    return inner_ci(values)
+lo, hi = outer_ci(a)
+print(lo)"""
+    ).replace("import pandas as pd", "import pandas as pd\nimport numpy as np")
+    assert _run(source).reason == "resampling-inference-sibling-present"
+
+
+def test_s2_unprinted_return_member_does_not_reach_caller_sink() -> None:
+    source = _candidate(
+        """def bootstrap_ci(values, n_resamples=2_000):
+    draws = []
+    for index in range(n_resamples):
+        draws.append(values.iloc[index % len(values)])
+    return {"lo": np.percentile(draws, 2.5), "label": "bootstrap"}
+ci = bootstrap_ci(a)
+print(ci["label"])"""
+    ).replace("import pandas as pd", "import pandas as pd\nimport numpy as np")
+    assert _run(source).facts is not None
+
+
 def test_s2_precedes_s3_independently_of_source_position() -> None:
     source = _candidate(
         """other = stats.pearsonr(a, b)
@@ -165,6 +220,15 @@ unit_means = df.groupby("unit")["value"].mean()
 welch = unit_means.mean() / unit_means.std()
 p_unit = math.erf(abs(welch))
 print(p_unit)"""
+    assert _run(_candidate(extra)).reason == "unit-level-summary-sibling-present"
+
+
+def test_s5_unit_summary_helper_return_reaches_caller_print() -> None:
+    extra = """def per_unit_summary(frame):
+    means = frame.groupby("unit")["value"].mean()
+    return {"means": means.to_dict(), "label": "per unit"}
+summary = per_unit_summary(df)
+print(summary["means"])"""
     assert _run(_candidate(extra)).reason == "unit-level-summary-sibling-present"
 
 

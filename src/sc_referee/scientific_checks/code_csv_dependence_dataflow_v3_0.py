@@ -3902,22 +3902,14 @@ def _v2_resampling_sibling(
                 continue
             if not (_loaded_names(call) & derived):
                 continue
-            if _call_reaches_sink(call, sinks, values) or any(
-                any(item is call for item in ast.walk(payload))
-                for sink in sinks
-                for payload in sink.payloads
+            if _v3_origin_reaches_sink(
+                call,
+                statements,
+                sinks,
+                values,
+                assignments,
             ):
                 return origin
-            assigned = _assigned_target(statements, call)
-            if assigned is not None:
-                reduction_names = _guard_store_names(assigned)
-                reduction_names = _guard_name_closure(statements, reduction_names)
-                if any(
-                    _loaded_names(payload) & reduction_names
-                    for sink in sinks
-                    for payload in sink.payloads
-                ):
-                    return origin
     return None
 
 
@@ -4498,11 +4490,300 @@ def _v3_origin_reaches_sink(
 ) -> bool:
     if _call_reaches_sink(origin, sinks, values, assignments):
         return True
+    if _guard_origin_reaches_registered_sink(origin, statements, sinks):
+        return True
     target = _assigned_target(statements, origin)
     if target is None:
         return False
     derived = _guard_name_closure(statements, _guard_store_names(target))
     return any(_loaded_names(payload) & derived for sink in sinks for payload in sink.payloads)
+
+
+def _guard_origin_reaches_registered_sink(
+    origin: ast.AST,
+    statements: Sequence[ast.stmt],
+    sinks: Sequence[_Sink],
+) -> bool:
+    """Follow an S2/S5 payload through helper returns and literal members."""
+
+    helpers = {
+        statement.name: statement
+        for statement in statements
+        if isinstance(statement, ast.FunctionDef)
+    }
+    for sink in sinks:
+        scope = _guard_enclosing_scope(statements, sink.call)
+        for payload in sink.payloads:
+            if _guard_expression_carries_origin(
+                payload,
+                origin=origin,
+                member_path=(),
+                scope=scope,
+                module_scope=statements,
+                helpers=helpers,
+                bindings={},
+                seen=frozenset(),
+            ):
+                return True
+    return False
+
+
+_GuardBinding = tuple[ast.expr, Sequence[ast.stmt], Mapping[str, "_GuardBinding"]]
+
+
+def _guard_expression_carries_origin(
+    expression: ast.AST,
+    *,
+    origin: ast.AST,
+    member_path: tuple[str | int, ...],
+    scope: Sequence[ast.stmt],
+    module_scope: Sequence[ast.stmt],
+    helpers: Mapping[str, ast.FunctionDef],
+    bindings: Mapping[str, _GuardBinding],
+    seen: frozenset[tuple[int, tuple[str | int, ...], int]],
+) -> bool:
+    marker = (id(expression), member_path, id(scope))
+    if marker in seen:
+        return False
+    next_seen = seen | {marker}
+
+    if isinstance(expression, ast.Subscript):
+        member = _literal_subscript_member(expression.slice)
+        if member is None:
+            return False
+        return _guard_expression_carries_origin(
+            expression.value,
+            origin=origin,
+            member_path=(member, *member_path),
+            scope=scope,
+            module_scope=module_scope,
+            helpers=helpers,
+            bindings=bindings,
+            seen=next_seen,
+        )
+
+    if isinstance(expression, ast.Name):
+        binding = bindings.get(expression.id)
+        if binding is not None:
+            actual, actual_scope, actual_bindings = binding
+            if _guard_expression_carries_origin(
+                actual,
+                origin=origin,
+                member_path=member_path,
+                scope=actual_scope,
+                module_scope=module_scope,
+                helpers=helpers,
+                bindings=actual_bindings,
+                seen=next_seen,
+            ):
+                return True
+        for source, prefix in _guard_name_sources(scope, expression.id, member_path):
+            if _guard_expression_carries_origin(
+                source,
+                origin=origin,
+                member_path=prefix,
+                scope=scope,
+                module_scope=module_scope,
+                helpers=helpers,
+                bindings=bindings,
+                seen=next_seen,
+            ):
+                return True
+        return False
+
+    if isinstance(expression, (ast.Dict, ast.Tuple, ast.List)):
+        members = _guard_literal_members(expression)
+        if member_path:
+            member_expression = members.get(member_path[0])
+            if member_expression is None:
+                return False
+            return _guard_expression_carries_origin(
+                member_expression,
+                origin=origin,
+                member_path=member_path[1:],
+                scope=scope,
+                module_scope=module_scope,
+                helpers=helpers,
+                bindings=bindings,
+                seen=next_seen,
+            )
+        return any(
+            _guard_expression_carries_origin(
+                member,
+                origin=origin,
+                member_path=(),
+                scope=scope,
+                module_scope=module_scope,
+                helpers=helpers,
+                bindings=bindings,
+                seen=next_seen,
+            )
+            for member in members.values()
+        )
+
+    if isinstance(expression, ast.Call):
+        helper = helpers.get(expression.func.id) if isinstance(expression.func, ast.Name) else None
+        if helper is not None:
+            helper_bindings = _guard_helper_bindings(
+                helper,
+                expression,
+                caller_scope=scope,
+                caller_bindings=bindings,
+            )
+            return any(
+                return_node.value is not None
+                and _guard_expression_carries_origin(
+                    return_node.value,
+                    origin=origin,
+                    member_path=member_path,
+                    scope=helper.body,
+                    module_scope=module_scope,
+                    helpers=helpers,
+                    bindings=helper_bindings,
+                    seen=next_seen,
+                )
+                for return_node in _guard_scope_returns(helper.body)
+            )
+
+    if member_path:
+        return False
+    if expression is origin:
+        return True
+    return any(
+        _guard_expression_carries_origin(
+            child,
+            origin=origin,
+            member_path=(),
+            scope=scope,
+            module_scope=module_scope,
+            helpers=helpers,
+            bindings=bindings,
+            seen=next_seen,
+        )
+        for child in ast.iter_child_nodes(expression)
+    )
+
+
+def _guard_name_sources(
+    scope: Sequence[ast.stmt],
+    name: str,
+    member_path: tuple[str | int, ...],
+) -> tuple[tuple[ast.expr, tuple[str | int, ...]], ...]:
+    result: list[tuple[ast.expr, tuple[str | int, ...]]] = []
+    for node in _guard_scope_nodes(scope):
+        value: ast.expr | None = None
+        targets: Sequence[ast.expr] = ()
+        if isinstance(node, ast.Assign):
+            value = node.value
+            targets = node.targets
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            value = node.value
+            targets = (node.target,)
+        elif isinstance(node, ast.NamedExpr):
+            value = node.value
+            targets = (node.target,)
+        if value is None:
+            continue
+        for target in targets:
+            if isinstance(target, ast.Name) and target.id == name:
+                result.append((value, member_path))
+                continue
+            destructure = _guard_destructure_path(target, name)
+            if destructure is not None:
+                result.append((value, (*destructure, *member_path)))
+                continue
+            if isinstance(target, ast.Subscript):
+                member = _literal_subscript_member(target.slice)
+                if _root_name(target.value) != name or member is None:
+                    continue
+                if not member_path or member_path[0] != member:
+                    continue
+                result.append((value, member_path[1:]))
+    return tuple(result)
+
+
+def _guard_destructure_path(
+    target: ast.expr,
+    name: str,
+    prefix: tuple[str | int, ...] = (),
+) -> tuple[str | int, ...] | None:
+    if isinstance(target, ast.Name):
+        return prefix if target.id == name else None
+    if isinstance(target, (ast.Tuple, ast.List)):
+        for index, item in enumerate(target.elts):
+            found = _guard_destructure_path(item, name, (*prefix, index))
+            if found is not None:
+                return found
+    return None
+
+
+def _guard_literal_members(
+    expression: ast.Dict | ast.Tuple | ast.List,
+) -> dict[str | int, ast.expr]:
+    if isinstance(expression, ast.Dict):
+        result: dict[str | int, ast.expr] = {}
+        for key, value in zip(expression.keys, expression.values, strict=True):
+            if key is None or (member := _literal_container_key(key)) is None:
+                continue
+            result[member] = value
+        return result
+    return {index: value for index, value in enumerate(expression.elts)}
+
+
+def _guard_helper_bindings(
+    helper: ast.FunctionDef,
+    call: ast.Call,
+    *,
+    caller_scope: Sequence[ast.stmt],
+    caller_bindings: Mapping[str, _GuardBinding],
+) -> dict[str, _GuardBinding]:
+    parameters = [*helper.args.posonlyargs, *helper.args.args]
+    result: dict[str, _GuardBinding] = {}
+    for parameter, actual in zip(parameters, call.args, strict=False):
+        result[parameter.arg] = (actual, caller_scope, caller_bindings)
+    parameter_names = {parameter.arg for parameter in parameters}
+    for keyword in call.keywords:
+        if keyword.arg in parameter_names:
+            result[str(keyword.arg)] = (keyword.value, caller_scope, caller_bindings)
+    defaults = [None] * (len(parameters) - len(helper.args.defaults)) + list(helper.args.defaults)
+    for parameter, default in zip(parameters, defaults, strict=True):
+        if parameter.arg not in result and default is not None:
+            result[parameter.arg] = (default, caller_scope, caller_bindings)
+    return result
+
+
+def _guard_scope_nodes(scope: Sequence[ast.stmt]) -> tuple[ast.AST, ...]:
+    result: list[ast.AST] = []
+
+    def visit(node: ast.AST) -> None:
+        if isinstance(node, ast.stmt):
+            result.append(node)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            return
+        for child in ast.iter_child_nodes(node):
+            visit(child)
+
+    for statement in scope:
+        visit(statement)
+    return tuple(result)
+
+
+def _guard_scope_returns(scope: Sequence[ast.stmt]) -> tuple[ast.Return, ...]:
+    return tuple(node for node in _guard_scope_nodes(scope) if isinstance(node, ast.Return))
+
+
+def _guard_enclosing_scope(
+    statements: Sequence[ast.stmt],
+    node: ast.AST,
+) -> Sequence[ast.stmt]:
+    for statement in statements:
+        if not isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        if not _inside_any(node, statement.body):
+            continue
+        nested = _guard_enclosing_scope(statement.body, node)
+        return nested
+    return statements
 
 
 def _v3_unit_iterator(node: ast.expr, resolver: _Resolver, unit_column: str) -> bool:

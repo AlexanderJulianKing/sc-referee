@@ -934,3 +934,9 @@ guard/operand re-check confirmed the projected 27/33 positives and 0/35 negative
 - Documented implementation limits: a literal `.rename` that changes the tracked value-column name
   and the design's one-to-one merge/join operand edge are not implemented in 3.0. Both abstain rather
   than preserving operand lineage. No `.dropna` nonmissing carve-out is implemented.
+- Post-verification S2/S5 correction, directed by Fable's 2026-08-23 re-audit: the shared guard sink
+  closure follows a reducer or unit-keyed summary through X4 helper returns, caller actual/formal
+  bindings, two helper levels, destructuring, and exact literal tuple/list/dict member edges. A
+  returned container taints only the member that carries the guarded value; printing a disjoint
+  literal member does not satisfy output reachability. Regressions pin direct return-then-print,
+  frame-parameter return, two-deep tuple return, and a returned per-unit-summary dict.
