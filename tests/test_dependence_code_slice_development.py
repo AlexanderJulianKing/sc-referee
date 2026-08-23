@@ -156,6 +156,64 @@ def test_opened_cases_follow_v3_development_lane_and_replay(
     assert replayed["coverage_records"] == bundle["coverage_records"]
 
 
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        (
+            "    data = load_data()",
+            "    full = load_data()\n"
+            "    data = full.iloc[[7, 15, 23, 31, 39, 47, 55, 63, 71, 79, 87, 95, "
+            "103, 111, 119, 127, 135, 143]]",
+        ),
+        (
+            "    data = load_data()",
+            "    full = load_data()\n    data = full.dropna(subset=[OUTCOME])",
+        ),
+        (
+            '    established = data.loc[data["binder_regimen"] == ESTABLISHED, OUTCOME]',
+            '    established = data.loc[data["binder_regimen"] == ESTABLISHED, OUTCOME].dropna()',
+        ),
+    ],
+)
+def test_row_dropping_edges_cannot_be_erased_by_a_later_group_selection(
+    schema_root: Path,
+    tmp_path: Path,
+    old: str,
+    new: str,
+) -> None:
+    source = OPENED_ROOTS[7] / "6d9d7ed878cef263b664"
+    project = tmp_path / "project-row-completeness"
+    shutil.copytree(source / "project", project)
+    analysis_path = project / "analysis.py"
+    analysis = analysis_path.read_text(encoding="utf-8")
+    assert analysis.count(old) == 1
+    analysis_path.chmod(0o600)
+    analysis_path.write_text(analysis.replace(old, new), encoding="utf-8")
+    lock_path = source / "method-contract/semantic.lock.json"
+    audit = tmp_path / "audit-row-completeness"
+    bundle = run_audit(
+        project,
+        audit,
+        schema_root,
+        material_inputs=(_material_path(lock_path),),
+        method_contract_lock=lock_path,
+        scientific_check_lane="development",
+    )
+    semantic_lock = json.loads((audit / "semantic.lock.json").read_text(encoding="utf-8"))
+    evaluation = semantic_lock["scientific_check_registry"]["evaluation"]
+    dependence = next(item for item in evaluation["modules"] if item["check_id"] == CHECK_ID)
+    assert dependence["observations"][0]["abstention_reason"] == (
+        "selected-group-row-completeness-unproven"
+    )
+    assert not [
+        item
+        for item in bundle["detector_results"]
+        if item.get("detector_id") == BoundedCodeCsvDependenceConflictV30Detector.detector_id
+        and item.get("detector_version") == "3.0.0"
+        and item.get("assessment_candidates")
+    ]
+
+
 def test_v3_prose_tripwire_covers_adapter_slice_and_all_five_guards(
     schema_root: Path,
     tmp_path: Path,
@@ -165,7 +223,24 @@ def test_v3_prose_tripwire_covers_adapter_slice_and_all_five_guards(
     project = tmp_path / "project-tripwire"
     shutil.copytree(source / "project", project)
     lock_path = source / "method-contract/semantic.lock.json"
-    calls = {name: 0 for name in ("inspect", "analyze", "slice", "s1", "s2", "s3", "s4", "s5")}
+    calls = {
+        name: 0
+        for name in (
+            "inspect",
+            "analyze",
+            "slice",
+            "row_lineage",
+            "sink_reachability",
+            "sink_selection",
+            "reducer",
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5",
+            "detector_comparison",
+        )
+    }
     original_inspect = CodeCsvDependenceAdapter.inspect
     original_analyze = code_adapter_module.analyze_code_csv_dataflow
 
@@ -188,11 +263,19 @@ def test_v3_prose_tripwire_covers_adapter_slice_and_all_five_guards(
     monkeypatch.setattr(code_adapter_module, "analyze_code_csv_dataflow", guarded_analyze)
     for key, target in (
         ("slice", (dataflow_module._Analyzer, "_backward_slice_names")),
+        ("row_lineage", (dataflow_module._Analyzer, "_operand_rows_complete")),
+        ("sink_reachability", (dataflow_module, "_v3_call_reachable")),
+        ("sink_selection", (dataflow_module._Analyzer, "_result_sinks")),
+        ("reducer", (dataflow_module, "_aggregation_call")),
         ("s1", (dataflow_module, "_v3_dependence_guard")),
         ("s2", (dataflow_module, "_v2_resampling_sibling")),
         ("s3", (dataflow_module, "_v3_statistics_guard")),
         ("s4", (dataflow_module, "_v3_syntactic_test_count")),
         ("s5", (dataflow_module, "_v3_unit_summary_guard")),
+        (
+            "detector_comparison",
+            (BoundedCodeCsvDependenceConflictV30Detector, "evaluate"),
+        ),
     ):
         owner, name = target
         original = getattr(owner, name)

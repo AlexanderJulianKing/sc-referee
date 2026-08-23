@@ -830,6 +830,15 @@ lane. The normal CLI continues to evaluate the qualified 2.1.0 binding and may e
 contract-conflict Finding. No prose, comment, docstring, report byte, or printed label participates in
 3.0 admission, suppression, wording, or evidence slots.
 
+Post-build safety correction, directed by Fable's 2026-08-23 audit: operand row completeness is a
+monotone property from the authorized reader to the test argument. A group selection inherits its
+parent's completeness and cannot restore rows discarded by an earlier `.iloc`, `.dropna`, or unknown
+row-count edge. S2 is evaluated over the complete module, including uncalled helpers and class bodies,
+with closed helper-default/argument and return-member propagation; all guards are computed before the
+fixed S1-before-S2-before-S3 precedence is applied. These are abstention-direction corrections only.
+The unreachable 2.x R1 admission implementation is removed from the 3.0 closure. Qualified 2.1.0
+bytes, binding, pin, and Finding behavior remain unchanged.
+
 ## Open questions that would change the build
 
 None for the authorized implementation and installation. The report channel remains withdrawn; the

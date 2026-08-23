@@ -585,8 +585,9 @@ def analyze_code_csv_dataflow(
         if reason is not None:
             return CodeDataflowResult(None, reason)
         assert resolver is not None
+        full_scope = tuple(tree.body)
         full_readers = _v3_full_scope_reader_census(
-            tuple(tree.body),
+            full_scope,
             resolver=resolver,
             csv_header=tuple(csv_header),
             unit_column=unit_column,
@@ -596,11 +597,33 @@ def analyze_code_csv_dataflow(
             return CodeDataflowResult(None, "additional-accepted-reader-present")
         if len(full_readers) == 1 and full_readers[0] not in {None, authorized_path}:
             return CodeDataflowResult(None, "authorized-reader-lineage-unavailable")
-        if _v3_dependence_guard(tuple(tree.body), resolver) is not None:
+        guard_resolver = _v3_resampling_guard_resolver(full_scope, resolver)
+        guard_values = _v3_full_scope_guard_values(
+            full_scope,
+            resolver=guard_resolver,
+            csv_header=tuple(csv_header),
+            unit_column=unit_column,
+            group_column=group_column,
+        )
+        guard_assignments = _v3_full_scope_guard_assignments(full_scope, guard_resolver)
+        guard_sinks = _registered_sinks(full_scope, guard_resolver)
+        dependence_guard = _v3_dependence_guard(full_scope, guard_resolver)
+        resampling_guard = _v2_resampling_sibling(
+            full_scope,
+            guard_values,
+            guard_resolver,
+            guard_sinks,
+            guard_assignments,
+        )
+        statistics_guard = _v3_statistics_guard(full_scope, guard_resolver)
+        syntactic_test_count = _v3_syntactic_test_count(full_scope, guard_resolver)
+        if dependence_guard is not None:
             return CodeDataflowResult(None, "dependence-aware-sibling-present")
-        if _v3_statistics_guard(tuple(tree.body), resolver) is not None:
+        if resampling_guard is not None:
+            return CodeDataflowResult(None, "resampling-inference-sibling-present")
+        if statistics_guard is not None:
             return CodeDataflowResult(None, "unresolved-inference-sibling-present")
-        if _v3_syntactic_test_count(tuple(tree.body), resolver) > 1:
+        if syntactic_test_count > 1:
             return CodeDataflowResult(None, "multiple-rowwise-test-candidates")
         normalization = _normalize_contract_domain_loops(
             scope=scope,
@@ -635,7 +658,7 @@ def analyze_code_csv_dataflow(
             return CodeDataflowResult(None, "selected-group-row-completeness-unproven")
         analyzer = _Analyzer(
             scope=expansion.scope,
-            full_scope=tuple(tree.body),
+            full_scope=full_scope,
             resolver=expanded_resolver,
             authorized_path=authorized_path,
             unit_column=unit_column,
@@ -740,6 +763,117 @@ def _v3_full_scope_reader_census(
     return result
 
 
+def _v3_full_scope_guard_values(
+    statements: Sequence[ast.stmt],
+    *,
+    resolver: _Resolver,
+    csv_header: tuple[str, ...],
+    unit_column: str,
+    group_column: str,
+) -> dict[str, _Value]:
+    """Seed S2 lineage from every exact accepted reader in the full module."""
+
+    values: dict[str, _Value] = {}
+    for node in _walk_statements(statements):
+        if not isinstance(node, ast.Call):
+            continue
+        api = resolver.qualified(node.func)
+        accepted = False
+        if api == "pandas.read_csv" and len(node.args) == 1:
+            accepted = not node.keywords or bool(
+                _parse_dates_columns(
+                    node,
+                    resolver=resolver,
+                    csv_header=csv_header,
+                    forbidden={unit_column, group_column},
+                )
+            )
+        elif api == "numpy.genfromtxt" and len(node.args) == 1:
+            accepted = _literal_keywords(node.keywords) == {
+                "delimiter": ",",
+                "names": True,
+                "dtype": None,
+                "encoding": "utf-8",
+            }
+        if not accepted:
+            continue
+        target = _assigned_name(statements, node)
+        if target is not None:
+            values[target] = _Value("reader", node, root=target, row_complete=True)
+    return values
+
+
+def _v3_resampling_guard_resolver(statements: Sequence[ast.stmt], resolver: _Resolver) -> _Resolver:
+    """Resolve closed integer helper defaults for the full-scope S2 census."""
+
+    literals = dict(resolver.literals)
+    for node in _walk_statements(statements):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        parameters = [item.arg for item in node.args.args]
+        start = len(parameters) - len(node.args.defaults)
+        for name, default in zip(parameters[start:], node.args.defaults, strict=True):
+            value = _closed_int(default, resolver.literals)
+            if value is not None:
+                prior = literals.get(name)
+                literals[name] = max(int(prior), value) if isinstance(prior, int) else value
+    helpers = {
+        statement.name: statement
+        for statement in statements
+        if isinstance(statement, ast.FunctionDef)
+    }
+    for node in _walk_statements(statements):
+        if not (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and (helper := helpers.get(node.func.id)) is not None
+        ):
+            continue
+        parameters = [item.arg for item in helper.args.args]
+        actuals: dict[str, ast.expr] = {
+            name: argument for name, argument in zip(parameters, node.args, strict=False)
+        }
+        actuals.update(
+            {keyword.arg: keyword.value for keyword in node.keywords if keyword.arg in parameters}
+        )
+        for name, actual in actuals.items():
+            value = _closed_int(actual, resolver.literals)
+            if value is not None:
+                prior = literals.get(name)
+                literals[name] = max(int(prior), value) if isinstance(prior, int) else value
+    return _Resolver(
+        imports=dict(resolver.imports),
+        constants=dict(resolver.constants),
+        literals=literals,
+        tuples=dict(resolver.tuples),
+        sequence_kinds=dict(resolver.sequence_kinds),
+        file_parents=set(resolver.file_parents),
+        builtins_shadowed=set(resolver.builtins_shadowed),
+        accepted_names=set(resolver.accepted_names),
+    )
+
+
+def _v3_full_scope_guard_assignments(
+    statements: Sequence[ast.stmt], resolver: _Resolver
+) -> dict[str, ast.expr]:
+    """Retain every closed random-generator binding needed by full-scope S2."""
+
+    result = _assignment_expressions(statements)
+    for node in _walk_statements(statements):
+        if not (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and isinstance(node.value, ast.Call)
+            and resolver.qualified(node.value.func) == "numpy.random.default_rng"
+            and len(node.value.args) <= 1
+            and not node.value.keywords
+        ):
+            continue
+        result[node.targets[0].id] = node.value
+    return result
+
+
 class _Analyzer:
     def __init__(
         self,
@@ -800,7 +934,12 @@ class _Analyzer:
         if reader.path != self.authorized_path or reader.target is None:
             return CodeDataflowResult(None, "authorized-reader-lineage-unavailable")
         self.reader = reader
-        self.values[reader.target] = _Value("reader", reader.call, root=reader.target)
+        self.values[reader.target] = _Value(
+            "reader",
+            reader.call,
+            root=reader.target,
+            row_complete=True,
+        )
         self.definitions[reader.target] = 1
 
         for statement in self.scope:
@@ -810,24 +949,6 @@ class _Analyzer:
 
         self._census_inplace_mutations()
         self._census_nested_tests()
-
-        if _v3_dependence_guard(self.full_scope, self.resolver) is not None:
-            return CodeDataflowResult(None, "dependence-aware-sibling-present")
-        if (
-            _v2_resampling_sibling(
-                self.scope,
-                self.values,
-                self.resolver,
-                self.sinks,
-                self.assignments,
-            )
-            is not None
-        ):
-            return CodeDataflowResult(None, "resampling-inference-sibling-present")
-        if _v3_statistics_guard(self.full_scope, self.resolver) is not None:
-            return CodeDataflowResult(None, "unresolved-inference-sibling-present")
-        if _v3_syntactic_test_count(self.full_scope, self.resolver) > 1:
-            return CodeDataflowResult(None, "multiple-rowwise-test-candidates")
 
         candidates = [test for test in self.tests if self._candidate_operands(test) is not None]
         if self.deferred_auxiliary_stores:
@@ -1660,7 +1781,7 @@ class _Analyzer:
             unknown=parent.unknown,
             counter_node=parent.counter_node,
             call_origins=parent.call_origins,
-            row_complete=True,
+            row_complete=parent.row_complete,
         )
 
     def _call_value(self, call: ast.Call) -> _Value | None:
@@ -1967,270 +2088,6 @@ class _Analyzer:
             return None
         return left, right
 
-    def _component_guard_reason(self, candidate: _Test) -> str | None:
-        guards: list[tuple[tuple[int, int, int, int], int, str]] = []
-        resampling = _v2_resampling_sibling(
-            self.scope,
-            self.values,
-            self.resolver,
-            self.sinks,
-            self.assignments,
-        )
-        if resampling is not None:
-            guards.append((_position(resampling), 8, "resampling-inference-sibling-present"))
-        calls = sorted(
-            (node for node in _walk_statements(self.scope) if isinstance(node, ast.Call)),
-            key=_position,
-        )
-        for call in calls:
-            if call is candidate.call:
-                continue
-            api = self.resolver.qualified(call.func)
-            if not self._call_consumes_component(call):
-                continue
-            if _dependence_api(api):
-                guards.append((_position(call), 6, "dependence-aware-sibling-present"))
-                continue
-            if api in _POSITIVE_APIS and _any_aggregated_argument(call, self.values):
-                guards.append((_position(call), 7, "aggregated-sibling-test-present"))
-                continue
-            if api in _POSITIVE_APIS:
-                sibling_values = [self._value(argument) for argument in call.args[:2]]
-                if any(
-                    value is not None and (value.aggregated or value.kind == "descriptive_scalar")
-                    for value in sibling_values
-                ):
-                    guards.append((_position(call), 7, "aggregated-sibling-test-present"))
-                    continue
-            if self._inside_valid_descriptive_loop(call):
-                continue
-            if _accepted_selection_call(call, self.values, self.resolver):
-                continue
-            if _aggregation_call(call, api, self.values, self.resolver):
-                continue
-            if any(sink.call is call for sink in self.sinks):
-                continue
-            if self._r1_readonly_call(call, candidate):
-                continue
-            if resampling is None:
-                guards.append((_position(call), 9, "unregistered-component-consumer"))
-        return min(guards, default=((), 0, None), key=lambda item: (item[0], item[1]))[2]
-
-    def _call_consumes_component(self, call: ast.Call) -> bool:
-        return bool(_reads_any(call, self.values) or _loaded_names(call) & self.tainted_names)
-
-    def _r1_readonly_call(self, call: ast.Call, candidate: _Test) -> bool:
-        api = self.resolver.qualified(call.func)
-        if any(
-            self._contains(call, statement.value) for statement, _ in self.deferred_auxiliary_stores
-        ):
-            return True
-        if self.reader is not None and self._contains(call, self.reader.call):
-            return True
-        if any(
-            isinstance(statement, ast.Assign)
-            and len(statement.targets) == 1
-            and isinstance(statement.targets[0], ast.Name)
-            and statement.targets[0].id
-            in (set(self.resolver.file_parents) | set(self.resolver.constants))
-            and self._contains(call, statement.value)
-            for statement in self.scope
-        ):
-            return True
-        if any(sink.call is call for sink in self.sinks):
-            return True
-        if api in {"pathlib.Path", "pathlib.PurePath", "pathlib.PurePosixPath"}:
-            return _static_path(call, self.resolver) is not None
-        if api == "open":
-            return _write_open_call(call, self.resolver)
-        if api in {"pandas.read_csv", "numpy.genfromtxt"} or api in _POSITIVE_APIS:
-            return True
-        if _accepted_selection_call(call, self.values, self.resolver):
-            return True
-        if api in _V2_R1_BUILTINS:
-            return _v2_builtin_call(call, str(api), self.resolver)
-        if api is not None and api.startswith("numpy."):
-            return _v2_numpy_call(call, api, self.resolver)
-        if (
-            isinstance(call.func, ast.Attribute)
-            and call.func.attr in _V2_PANDAS_READONLY_METHODS
-            and self._pandas_receiver(call.func.value)
-            and not (
-                call.func.attr in _GROUP_REDUCERS
-                and _v2_grouped_receiver(call.func.value, self.values)
-            )
-        ):
-            return _v2_pandas_call(call, call.func.attr, self.resolver)
-        if _aggregation_call(call, api, self.values, self.resolver):
-            return self._post_test_descriptive_aggregation(call, candidate)
-        if api is not None and api.startswith("math."):
-            return _v2_math_call(call, api)
-        if api is not None and _v2_scipy_distribution_call(call, api):
-            return True
-        if api in _V2_EXCEPTION_NAMES:
-            return not call.keywords and not any(isinstance(arg, ast.Starred) for arg in call.args)
-        if api in {
-            "os.path.join",
-            "os.path.dirname",
-            "os.path.abspath",
-            "os.path.basename",
-        }:
-            return _v2_os_path_call(call, str(api), self.resolver)
-        if isinstance(call.func, ast.Attribute):
-            method = call.func.attr
-            if method in _V2_STRING_METHODS and _v2_string_receiver(call.func.value, self.resolver):
-                return not any(isinstance(arg, ast.Starred) for arg in call.args) and all(
-                    keyword.arg is not None for keyword in call.keywords
-                )
-        return self._accepted_output_or_description(call, candidate)
-
-    def _pandas_receiver(self, node: ast.expr) -> bool:
-        if _loaded_names(node) & (set(self.values) | self.tainted_names):
-            return True
-        return isinstance(node, ast.Call) and bool(
-            isinstance(node.func, ast.Attribute)
-            and node.func.attr in _V2_PANDAS_READONLY_METHODS
-            and self._pandas_receiver(node.func.value)
-        )
-
-    def _post_test_descriptive_aggregation(self, call: ast.Call, candidate: _Test) -> bool:
-        if any(
-            call in value.call_origins and name in self.slice_names
-            for name, value in self.values.items()
-        ):
-            return False
-        return bool(
-            _call_reaches_sink(call, self.sinks, self.values, self.assignments)
-            or self._v22_helper_iterable_output(call)
-            or any(
-                self._inside_valid_descriptive_loop(origin)
-                for value in self.values.values()
-                if call in value.call_origins
-                for origin in value.call_origins
-            )
-        )
-
-    def _v22_helper_iterable_output(self, call: ast.Call) -> bool:
-        loop_lines = {
-            int(getattr(statement, "_sc_v22_iterable_prelude", -1))
-            for statement in self.scope
-            if int(getattr(statement, "_sc_v22_iterable_prelude", -1)) >= 0
-            and self._contains(call, statement)
-        }
-        if not loop_lines:
-            return False
-        for loop in (item for item in self.scope if isinstance(item, ast.For)):
-            if int(getattr(loop, "_sc_v22_helper_iterable", -2)) not in loop_lines:
-                continue
-            if loop.orelse or _store_names(loop.target) & self.slice_names:
-                return False
-            if not (
-                isinstance(loop.iter, ast.Call)
-                and isinstance(loop.iter.func, ast.Attribute)
-                and loop.iter.func.attr in {"items", "iterrows"}
-                and isinstance(loop.iter.func.value, ast.Name)
-                and loop.iter.func.value.id in self.values
-                and _v2_pandas_call(loop.iter, loop.iter.func.attr, self.resolver)
-            ):
-                return False
-            if not all(
-                isinstance(statement, ast.Expr)
-                and isinstance(statement.value, ast.Call)
-                and any(
-                    sink.call is statement.value and sink.kind == "builtin_print"
-                    for sink in self.sinks
-                )
-                for statement in loop.body
-            ):
-                return False
-            return True
-        return False
-
-    def _admission_reason(self, candidate: _Test) -> str | None:
-        for node in _walk_statements(self.scope):
-            if isinstance(node, (ast.Break, ast.Continue, ast.Await, ast.Yield, ast.YieldFrom)):
-                return "control-flow-body-unadmitted"
-            if isinstance(node, ast.Try) and any(handler.type is None for handler in node.handlers):
-                return "control-flow-body-unadmitted"
-            if isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)):
-                for generator in node.generators:
-                    if _loaded_names(generator.iter) & (
-                        self.slice_names | self.tainted_names
-                    ) and not (
-                        isinstance(generator.iter, ast.Attribute)
-                        and generator.iter.attr == "columns"
-                        and isinstance(generator.iter.value, ast.Name)
-                        and generator.iter.value.id in self.tainted_names
-                    ):
-                        return "admission-slice-reaches-operand"
-        for call in sorted(
-            (node for node in _walk_statements(self.scope) if isinstance(node, ast.Call)),
-            key=_position,
-        ):
-            if _dependence_api(self.resolver.qualified(call.func)):
-                continue
-            if self._r1_readonly_call(call, candidate):
-                continue
-            if _aggregation_call(
-                call,
-                self.resolver.qualified(call.func),
-                self.values,
-                self.resolver,
-            ):
-                return "admission-call-off-list"
-            if self._call_consumes_component(call):
-                return "unregistered-component-consumer"
-            return "admission-call-off-list"
-        return _v2_read_reason(
-            self.scope,
-            self.values,
-            self.resolver,
-            self.csv_header,
-            tuple(
-                call
-                for call in _walk_statements(self.scope)
-                if isinstance(call, ast.Call) and self._r1_readonly_call(call, candidate)
-            ),
-            tuple(statement.value for statement, _ in self.deferred_auxiliary_stores),
-        )
-
-    def _accepted_output_or_description(self, call: ast.Call, candidate: _Test) -> bool:
-        api = self.resolver.qualified(call.func)
-        if api == "print":
-            return True
-        if any(
-            value.kind == "descriptive_scalar" and call in value.call_origins
-            for value in self.values.values()
-        ):
-            return True
-        if (
-            _inside_any(call, [sink.call for sink in self.sinks])
-            and self._p_depth(call, candidate) is not None
-        ):
-            return True
-        if _straight_descriptive_call(call, candidate.call, self.values, self.sinks, self.resolver):
-            return True
-        if _statistic_derived_depth(call, candidate, self.resolver, self.assignments) is not None:
-            return True
-        if _descriptive_format_call(call, self.values, self.sinks, self.resolver):
-            return True
-        return False
-
-    def _inside_valid_descriptive_loop(self, call: ast.Call) -> bool:
-        for statement in self.scope:
-            if (
-                isinstance(statement, ast.For)
-                and self._contains(call, statement)
-                and _descriptive_loop(
-                    statement,
-                    self.values,
-                    self.resolver,
-                    self.slice_names,
-                )
-            ):
-                return True
-        return False
-
     def _result_sinks(self, test: _Test) -> list[_Sink]:
         return [
             sink
@@ -2268,20 +2125,6 @@ class _Analyzer:
             )
         return result
 
-    def _validate_loops(self) -> str | None:
-        self.descriptive_loops = 0
-        for loop in self.loops:
-            bound = _store_names(loop.target)
-            if bound & self.slice_names:
-                return "loop-target-aliases-tracked"
-            if any(
-                isinstance(node, (ast.Break, ast.Continue, ast.Await, ast.Yield, ast.YieldFrom))
-                for node in ast.walk(loop)
-            ):
-                return "control-flow-body-unadmitted"
-            self.descriptive_loops += 1
-        return None
-
     def _component_definition_depth(self, candidate: _Test) -> int:
         depths = [
             _component_expression_depth(call, self.values)
@@ -2301,13 +2144,6 @@ class _Analyzer:
     def _reason(self, node: ast.AST, reason: str, rank: int) -> None:
         line, column, _, _ = _position(node)
         self.reasons.append(((line, column, rank), reason))
-
-    def _first_reason(self, before_or_at: ast.AST | None = None) -> str | None:
-        candidates = self.reasons
-        if before_or_at is not None:
-            limit = _position(before_or_at)[:2]
-            candidates = [item for item in candidates if item[0][:2] <= limit]
-        return min(candidates, default=((), None), key=lambda item: item[0])[1]
 
     def _relevant_helper_call_present(self) -> bool:
         return any(
@@ -4039,7 +3875,7 @@ def _v2_resampling_sibling(
         derived = _guard_name_closure(statements, set(output_names))
         if isinstance(origin, ast.Call) and not any(
             _loaded_names(expression) & tracked and _loaded_names(expression) & derived
-            for expression in assignments.values()
+            for expression in _guard_assignment_values(statements)
         ):
             continue
         for call in (item for item in _walk_statements(statements) if isinstance(item, ast.Call)):
@@ -4085,6 +3921,18 @@ def _v2_resampling_sibling(
     return None
 
 
+def _guard_assignment_values(statements: Sequence[ast.stmt]) -> tuple[ast.expr, ...]:
+    """Return every assignment value without collapsing same-name helper scopes."""
+
+    result: list[ast.expr] = []
+    for node in _walk_statements(statements):
+        if isinstance(node, (ast.Assign, ast.AnnAssign, ast.NamedExpr, ast.AugAssign, ast.Return)):
+            value = node.value
+            if value is not None:
+                result.append(value)
+    return tuple(result)
+
+
 def _guard_store_names(node: ast.AST | None) -> set[str]:
     if node is None:
         return set()
@@ -4097,9 +3945,49 @@ def _guard_store_names(node: ast.AST | None) -> set[str]:
 
 
 def _guard_name_closure(statements: Sequence[ast.stmt], seeds: set[str]) -> set[str]:
-    """Follow guard-only name/member/destructuring edges in the fully inlined AST."""
+    """Follow guard-only name/member/destructuring and helper-binding edges."""
 
     derived = set(seeds)
+    module_helpers = {
+        statement.name: statement
+        for statement in statements
+        if isinstance(statement, ast.FunctionDef)
+    }
+    classes = {
+        statement.name: statement for statement in statements if isinstance(statement, ast.ClassDef)
+    }
+    instance_classes: dict[str, ast.ClassDef] = {}
+    for statement in statements:
+        if not (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and isinstance(statement.value, ast.Call)
+            and isinstance(statement.value.func, ast.Name)
+            and statement.value.func.id in classes
+        ):
+            continue
+        instance_classes[statement.targets[0].id] = classes[statement.value.func.id]
+
+    def called_helper(call: ast.Call) -> tuple[ast.FunctionDef, bool] | None:
+        if isinstance(call.func, ast.Name) and call.func.id in module_helpers:
+            return module_helpers[call.func.id], False
+        if not isinstance(call.func, ast.Attribute):
+            return None
+        owner: ast.ClassDef | None = None
+        if isinstance(call.func.value, ast.Name):
+            owner = instance_classes.get(call.func.value.id)
+        elif isinstance(call.func.value, ast.Call) and isinstance(call.func.value.func, ast.Name):
+            owner = classes.get(call.func.value.func.id)
+        if owner is None:
+            return None
+        matches = [
+            item
+            for item in owner.body
+            if isinstance(item, ast.FunctionDef) and item.name == call.func.attr
+        ]
+        return (matches[0], True) if len(matches) == 1 else None
+
     changed = True
     while changed:
         changed = False
@@ -4133,6 +4021,37 @@ def _guard_name_closure(statements: Sequence[ast.stmt], seeds: set[str]) -> set[
                     derived.add(name)
                     changed = True
         for call in (node for node in _walk_statements(statements) if isinstance(node, ast.Call)):
+            helper_binding = called_helper(call)
+            if helper_binding is not None:
+                helper, is_method = helper_binding
+                parameters = [item.arg for item in helper.args.args]
+                if is_method and parameters:
+                    parameters = parameters[1:]
+                actuals: dict[str, ast.expr] = {
+                    name: argument for name, argument in zip(parameters, call.args, strict=False)
+                }
+                actuals.update(
+                    {
+                        keyword.arg: keyword.value
+                        for keyword in call.keywords
+                        if keyword.arg in parameters
+                    }
+                )
+                for name, actual in actuals.items():
+                    if name not in derived and _loaded_names(actual) & derived:
+                        derived.add(name)
+                        changed = True
+                if any(
+                    isinstance(item, ast.Return)
+                    and item.value is not None
+                    and _loaded_names(item.value) & derived
+                    for item in _walk_statements(helper.body)
+                ):
+                    call_target = _assigned_target(statements, call)
+                    for name in _guard_store_names(call_target):
+                        if name not in derived:
+                            derived.add(name)
+                            changed = True
             if not (
                 isinstance(call.func, ast.Attribute)
                 and call.func.attr in {"append", "extend"}

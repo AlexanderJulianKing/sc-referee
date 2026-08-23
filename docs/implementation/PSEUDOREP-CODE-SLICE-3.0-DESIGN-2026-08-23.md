@@ -184,9 +184,10 @@ These are the exhaustive pass-through forms. Omission is not pass-through.
    `numpy.asarray(V)` and `numpy.array(V)` with no `out`, copy callback, or object-producing dynamic
    dtype. Exact one-argument `numpy.log(V)`, `numpy.log1p(V)`, `numpy.sqrt(V)`, and `numpy.exp(V)` with
    no keywords are non-reducing value edges.
-6. Row-preserving/read-only transforms: `.dropna()` without `inplace`, `.sort_values()` without
-   `inplace`, `.reset_index()` without `inplace`, and `.rename()` without `inplace`. Their arguments
-   must be literals/closed constants, and literal rename maps update the tracked header mapping.
+6. Row-preserving/read-only transforms: `.sort_values()` without `inplace`, `.reset_index()` without
+   `inplace`, and `.rename()` without `inplace`. Their arguments must be literals/closed constants.
+   `.dropna()` always lowers row completeness in the 3.0 implementation because no bounded CSV
+   nonmissing proof is implemented; a later group selection cannot restore it.
 7. Literal/member containers: dict/list/tuple construction, literal-key/position read, exact
    destructuring, and member-sensitive helper return. A dynamic key that could select another member
    abstains.
@@ -805,8 +806,9 @@ admission walk runs after operand proof.
 
 1. One positive and one near-miss for every P2.1 edge.
 2. Accept direct, named-mask, exact complete-group query, `.loc`, `.to_numpy`, `.astype`, exact
-   one-argument `numpy.log/log1p/sqrt/exp`, row-preserving `.dropna`, `.sort_values`, `.reset_index`,
-   `.rename`, literal dict/list, X4 return, and loop-member operands.
+   one-argument `numpy.log/log1p/sqrt/exp`, `.sort_values`, `.reset_index`, literal dict/list, X4
+   return, and loop-member operands. Pin `.dropna()` before or after group selection as
+   `selected-group-row-completeness-unproven` until a bounded CSV nonmissing proof exists.
 3. Require both group literals to byte-equal the exact two-value domain, both `V` headers to match,
    both slices to terminate at one reader, both complete selected-group row sets to be preserved, and
    a repeated authorized-unit value in each operand. Test a tautological extra mask as accepted and a
@@ -916,3 +918,19 @@ guard/operand re-check confirmed the projected 27/33 positives and 0/35 negative
 - Documented future limit only: `34b1ade6d028cfda2a75`, `71939b3441556e9e02b6`, and
   `367e084ddc8f997786f1` are positive recall losses because S5 sees per-authorized-unit row-count
   outputs. A future print-only count carve-out could study those three, but 3.0 implements no carve-out.
+- Post-build safety correction, directed by Fable's 2026-08-23 audit: row completeness is monotone.
+  The authorized reader begins complete, every selection/identity edge inherits its parent's value,
+  and `.iloc`, `.dropna`, or any unresolved row-count edge lowers it permanently. Both the operand
+  flag and the bounded CSV repeated-unit proof must hold. Exact last-row-per-unit, pre-selection
+  `.dropna`, and post-selection `.dropna` fixtures abstain
+  `selected-group-row-completeness-unproven`.
+- S2 now evaluates the full module with full-scope sinks and assignments, closed helper defaults and
+  actual arguments, same-name random-generator bindings, and helper actual/formal/return edges. S1,
+  S2, S3, and S4 are all computed before their fixed precedence is applied; S2 therefore outranks S3
+  independently of source position. The called-helper bootstrap regression fires S2.
+- The unreachable 2.x R1 entry points and their private read-only/admission helper block were removed
+  from the versioned 3.0 closure. The prose tripwire now also instruments operand row-lineage proof,
+  call/sink reachability, reducer classification, and detector comparison.
+- Documented implementation limits: a literal `.rename` that changes the tracked value-column name
+  and the design's one-to-one merge/join operand edge are not implemented in 3.0. Both abstain rather
+  than preserving operand lineage. No `.dropna` nonmissing carve-out is implemented.

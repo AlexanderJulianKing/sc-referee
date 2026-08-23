@@ -106,6 +106,59 @@ print(p_boot)"""
     assert _run(_candidate(extra)).reason == "resampling-inference-sibling-present"
 
 
+def test_s2_called_helper_is_censused_over_the_full_module() -> None:
+    source = _candidate(
+        """def bootstrap_ci(values, n_resamples=2_000):
+    draws = []
+    for index in range(n_resamples):
+        draws.append(values.iloc[index % len(values)])
+    ci = sum(draws) / len(draws)
+    print(ci)
+bootstrap_ci(a)"""
+    )
+    assert _run(source).reason == "resampling-inference-sibling-present"
+
+
+def test_s2_uncalled_helper_is_censused_over_the_full_module() -> None:
+    source = _candidate(
+        """def bootstrap_ci(n_resamples=2_000):
+    draws = []
+    for index in range(n_resamples):
+        draws.append(a.iloc[index % len(a)])
+    ci = sum(draws) / len(draws)
+    print(ci)"""
+    )
+    assert _run(source).reason == "resampling-inference-sibling-present"
+
+
+def test_s2_class_method_is_censused_over_the_full_module() -> None:
+    source = _candidate(
+        """class Bootstrap:
+    def run(self, values, n_resamples=2_000):
+        draws = []
+        for index in range(n_resamples):
+            draws.append(values.iloc[index % len(values)])
+        ci = sum(draws) / len(draws)
+        print(ci)
+Bootstrap().run(a)"""
+    )
+    assert _run(source).reason == "resampling-inference-sibling-present"
+
+
+def test_s2_precedes_s3_independently_of_source_position() -> None:
+    source = _candidate(
+        """other = stats.pearsonr(a, b)
+def bootstrap_ci(values, n_resamples=2_000):
+    draws = []
+    for index in range(n_resamples):
+        draws.append(values.iloc[index % len(values)])
+    ci = sum(draws) / len(draws)
+    print(ci)
+bootstrap_ci(a)"""
+    )
+    assert _run(source).reason == "resampling-inference-sibling-present"
+
+
 def test_s5_hand_written_unit_welch_with_math_erf_suppresses() -> None:
     extra = """import math
 unit_means = df.groupby("unit")["value"].mean()
@@ -191,6 +244,39 @@ print(p)
     assert _run(source).reason == "aggregation-on-test-operand-path"
 
 
+def test_iloc_last_row_per_unit_before_group_selection_cannot_restore_completeness() -> None:
+    source = """import pandas as pd
+from scipy import stats
+full = pd.read_csv("data.csv")
+data = full.iloc[[1, 3, 5, 7]]
+a = data.loc[data["group"] == "a", "value"]
+b = data.loc[data["group"] == "b", "value"]
+t, p = stats.ttest_ind(a, b)
+print(p)
+"""
+    assert _run(source).reason == "selected-group-row-completeness-unproven"
+
+
+def test_dropna_before_group_selection_cannot_restore_completeness() -> None:
+    source = """import pandas as pd
+from scipy import stats
+full = pd.read_csv("data.csv")
+data = full.dropna(subset=["value"])
+a = data.loc[data["group"] == "a", "value"]
+b = data.loc[data["group"] == "b", "value"]
+t, p = stats.ttest_ind(a, b)
+print(p)
+"""
+    assert _run(source).reason == "selected-group-row-completeness-unproven"
+
+
+def test_dropna_after_group_selection_requires_csv_nonmissing_proof() -> None:
+    source = _candidate(
+        left='df.loc[df["group"] == "a", "value"].dropna()',
+    )
+    assert _run(source).reason == "selected-group-row-completeness-unproven"
+
+
 def test_arbitrary_off_path_calls_do_not_gate_operand_identity() -> None:
     extra = """def describe(x):
     return {"text": sorted(str(v) for v in x)}
@@ -202,19 +288,23 @@ def test_new_guard_and_slice_entry_points_never_receive_prose_payloads(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     called: set[str] = set()
-    names = (
-        "_v3_dependence_guard",
-        "_v2_resampling_sibling",
-        "_v3_statistics_guard",
-        "_v3_syntactic_test_count",
-        "_v3_unit_summary_guard",
-        "_csv_group_unit_lineage",
+    targets = (
+        ("_v3_dependence_guard", dataflow, "_v3_dependence_guard"),
+        ("_v2_resampling_sibling", dataflow, "_v2_resampling_sibling"),
+        ("_v3_statistics_guard", dataflow, "_v3_statistics_guard"),
+        ("_v3_syntactic_test_count", dataflow, "_v3_syntactic_test_count"),
+        ("_v3_unit_summary_guard", dataflow, "_v3_unit_summary_guard"),
+        ("_csv_group_unit_lineage", dataflow, "_csv_group_unit_lineage"),
+        ("_operand_rows_complete", dataflow._Analyzer, "_operand_rows_complete"),
+        ("_v3_call_reachable", dataflow, "_v3_call_reachable"),
+        ("_result_sinks", dataflow._Analyzer, "_result_sinks"),
+        ("_aggregation_call", dataflow, "_aggregation_call"),
     )
-    for name in names:
-        original = getattr(dataflow, name)
+    for label, owner, name in targets:
+        original = getattr(owner, name)
 
         def guarded(
-            *args: object, __name: str = name, __original: object = original, **kwargs: object
+            *args: object, __name: str = label, __original: object = original, **kwargs: object
         ) -> object:
             assert all(
                 not isinstance(value, str) or "report prose sentinel" not in value for value in args
@@ -226,11 +316,13 @@ def test_new_guard_and_slice_entry_points_never_receive_prose_payloads(
             called.add(__name)
             return __original(*args, **kwargs)  # type: ignore[operator]
 
-        monkeypatch.setattr(dataflow, name, guarded)
+        monkeypatch.setattr(owner, name, guarded)
 
-    source = _candidate('label = "report prose sentinel"\nprint(label)')
+    source = _candidate(
+        'ranked = a.rank()\nlabel = "report prose sentinel"\nprint(ranked)\nprint(label)'
+    )
     assert _run(source).facts is not None
-    assert called == set(names)
+    assert called == {label for label, _, _ in targets}
 
 
 def test_docstrings_comments_and_unrelated_strings_do_not_change_facts() -> None:
