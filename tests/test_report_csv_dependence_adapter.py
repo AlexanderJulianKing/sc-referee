@@ -10,10 +10,13 @@ import pytest
 from sc_referee.controller import replay, run_audit
 from sc_referee.core.ids import semantic_digest, sha256_digest
 from sc_referee.detectors.method_conflict_finding import (
+    _CODE_DEPENDENCE_SLOT_SCHEMA,
     _code_dependence_row_entry_facts,
+    draft_method_conflict_finding,
 )
 from sc_referee.method_contract_run import run_method_contract
 from sc_referee.scientific_checks.core import InspectionDocument, RecordRef
+from sc_referee.scientific_checks.profiles import scientific_check_release_registry
 from sc_referee.scientific_checks.report_csv_dependence_adapter import (
     _inspect_report,
     _parse_csv,
@@ -771,6 +774,98 @@ def test_normal_audit_lifecycle_keeps_unqualified_code_lane_evaluation_only(
     assert replayed["detector_results"] == bundle["detector_results"]
     assert replayed["findings"] == bundle["findings"]
     assert replayed["coverage_records"] == bundle["coverage_records"]
+
+
+def test_code_lane_finding_draft_pins_title_and_slot_types(
+    schema_root: Path, tmp_path: Path
+) -> None:
+    project = tmp_path / "project"
+    (project / "data").mkdir(parents=True)
+    (project / "task.md").write_text("Compare the two assigned groups.\n", encoding="utf-8")
+    (project / "data" / "input.csv").write_text(
+        "unit_id,group,visit,response\n"
+        "A,left,1,10\nA,left,2,11\nB,left,1,12\nB,left,2,13\n"
+        "C,right,1,20\nC,right,2,21\nD,right,1,22\nD,right,2,23\n",
+        encoding="utf-8",
+    )
+    (project / "analysis.py").write_text(
+        "import pandas as pd\n"
+        "from scipy import stats\n\n"
+        'frame = pd.read_csv("data/input.csv")\n'
+        'left = frame.loc[frame["group"] == "left", "response"]\n'
+        'right = frame.loc[frame["group"] == "right", "response"]\n'
+        "result = stats.ttest_ind(left, right)\n"
+        "print(result.pvalue)\n",
+        encoding="utf-8",
+    )
+    contract = tmp_path / "contract"
+    run_method_contract(
+        project,
+        "task.md",
+        contract,
+        schema_root,
+        profile=_profile("unit_id", "group"),
+        actor_id="scientist:alex",
+    )
+    bundle = run_audit(
+        project,
+        tmp_path / "audit",
+        schema_root,
+        material_inputs=("data/input.csv",),
+        method_contract_lock=contract / "semantic.lock.json",
+    )
+    result = next(
+        item
+        for item in bundle["detector_results"]
+        if item.get("detector_id") == "detector:bounded-code-csv-dependence-conflict"
+        and item.get("state") == "evaluation_finding_candidate"
+    )
+    binding = next(
+        item
+        for item in scientific_check_release_registry().method_conflict_bindings
+        if item.check_id == CHECK_ID
+        and item.detector_id == "detector:bounded-code-csv-dependence-conflict"
+    )
+    packet = {
+        "semantic_assertions": bundle["semantic_assertions"],
+        "answers": bundle["answers"],
+    }
+
+    draft = draft_method_conflict_finding(result, binding, work_packet=packet)
+
+    assert draft["title"] == (
+        "Analysis code contradicts the frozen one-row-per-authorized-unit requirement"
+    )
+    assert _CODE_DEPENDENCE_SLOT_SCHEMA == {
+        "CSV_PATH": "safe-normalized-material-path-string",
+        "UNIT_COLUMN": "safe-authorized-column-string",
+        "GROUP_COLUMN": "safe-authorized-column-string",
+        "PROCEDURE_ID": "registered-two-sample-api-identity",
+        "N_csv": "checked-positive-integer-equal-to-data-row-count",
+        "U": "checked-positive-distinct-unit-count",
+        "R": "checked-positive-repeated-unit-count",
+        "M": "checked-positive-maximum-unit-multiplicity",
+    }
+    facts = _code_dependence_row_entry_facts(packet)
+    assert facts is not None
+    assert all(
+        type(facts[field]) is str
+        for field in (
+            "material_input_path",
+            "authorized_unit_column",
+            "group_contrast_column",
+            "procedure_id",
+        )
+    )
+    assert all(
+        type(facts[field]) is int
+        for field in (
+            "data_row_count",
+            "distinct_unit_count",
+            "repeated_unit_count",
+            "maximum_unit_multiplicity",
+        )
+    )
 
 
 @pytest.mark.parametrize(
