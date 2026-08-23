@@ -15,8 +15,8 @@ from sc_referee.detectors.bounded_analysis_method_conflict import (
 from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_1 import (
     BoundedCodeCsvDependenceConflictV21Detector,
 )
-from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_3 import (
-    BoundedCodeCsvDependenceConflictV23Detector,
+from sc_referee.detectors.bounded_code_csv_dependence_conflict_v3_0 import (
+    BoundedCodeCsvDependenceConflictV30Detector,
 )
 from sc_referee.detectors.method_conflict_grant_pins import (
     GRANT_PINS,
@@ -305,8 +305,8 @@ def test_code_lane_has_distinct_qualified_and_development_bindings() -> None:
     assert binding.detector_version == "2.1.0"
     assert binding.production_finding_permitted is False
     assert installed_pin_matches_live_identity(GRANT_PINS[binding.binding_id]) is True
-    assert development.detector_id == BoundedCodeCsvDependenceConflictV23Detector.detector_id
-    assert development.detector_version == "2.3.0"
+    assert development.detector_id == BoundedCodeCsvDependenceConflictV30Detector.detector_id
+    assert development.detector_version == "3.0.0"
     assert development.binding_id.endswith(":development")
     assert development.production_finding_permitted is False
 

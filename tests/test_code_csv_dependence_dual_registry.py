@@ -68,7 +68,7 @@ def test_registry_carries_exact_qualified_and_development_bindings() -> None:
     assert qualified.binding_id == _BINDING_ID
     assert qualified.binding_digest == GRANT_PINS[_BINDING_ID].binding_digest
     assert installed_pin_matches_live_identity(GRANT_PINS[_BINDING_ID]) is True
-    assert (development.check_version, development.detector_version) == ("2.3.0", "2.3.0")
+    assert (development.check_version, development.detector_version) == ("3.0.0", "3.0.0")
     assert development.binding_id == f"{_BINDING_ID}:development"
     assert registry.modules_for_lane("qualified") != registry.modules_for_lane("development")
 
@@ -126,6 +126,33 @@ def test_envelope_5_frozen_2_1_sources_and_wording_are_exact() -> None:
     assert CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST == (
         "sha256:0440fdb918eb04ff975e7129c4152a2d681f3f4203ae8c7a1f8fc9ebf8916288"
     )
+
+
+def test_all_2_x_development_sources_remain_byte_exact_after_v3_registration() -> None:
+    expected = {
+        "src/sc_referee/scientific_checks/code_csv_dependence_dataflow.py": (
+            "sha256:68f5c5c665c17175627c8586c45670a931829897df8dedb64046e76be2341505"
+        ),
+        "src/sc_referee/scientific_checks/code_csv_dependence_adapter.py": (
+            "sha256:d04cd373a11f39d34065295dcb65c84a806a5ac8c4fd2e8174cb407bbb3e40ce"
+        ),
+        "src/sc_referee/scientific_checks/code_csv_dependence_dataflow_v2_1.py": (
+            "sha256:22b85efb45c41602d45f93855a327bb1d83321f653d5470f6c8946c8003e6c29"
+        ),
+        "src/sc_referee/scientific_checks/code_csv_dependence_adapter_v2_1.py": (
+            "sha256:d6350bc9a2fc454d11888ac6984b5cee25a0b34873acd8e264a741471fb2769c"
+        ),
+        "src/sc_referee/detectors/bounded_code_csv_dependence_conflict_v2_1.py": (
+            "sha256:9c30154639e1fc013a0f82a5ee3d767202c121f42626b2c6497436e9305f2452"
+        ),
+        "src/sc_referee/detectors/bounded_code_csv_dependence_conflict_v2_2.py": (
+            "sha256:f2aab5efb1e02d3bae88800dea31c1707644fb36b6de48abfb612e7f426f71be"
+        ),
+        "src/sc_referee/detectors/bounded_code_csv_dependence_conflict_v2_3.py": (
+            "sha256:529c60dd57db912656d809a8d4dbb4be950a46ed0dc311c31f6b3ebd0a38cc3b"
+        ),
+    }
+    assert {path: sha256_digest(Path(path).read_bytes()) for path in expected} == expected
 
 
 def test_qualified_facade_has_only_the_closed_import_and_identity_normalization() -> None:
@@ -230,4 +257,4 @@ def test_cli_development_lane_is_explicit_and_never_promotes(
         if item.get("detector_id") == "detector:bounded-code-csv-dependence-conflict"
     ]
     assert len(dependence_results) == 1
-    assert dependence_results[0]["detector_version"] == "2.3.0"
+    assert dependence_results[0]["detector_version"] == "3.0.0"

@@ -13,12 +13,12 @@ from sc_referee.core.ids import canonical_json, sha256_digest
 from sc_referee.dependence_recognition.adapter import (
     DEPENDENCE_RECOGNITION_ADAPTER_IMPLEMENTATION_DIGEST,
 )
-from sc_referee.scientific_checks.code_csv_dependence_adapter import (
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_0 import (
     CODE_CSV_DEPENDENCE_ADAPTER_ID,
     CODE_CSV_DEPENDENCE_ADAPTER_VERSION,
     CodeCsvDependenceAdapter,
 )
-from sc_referee.scientific_checks.code_csv_dependence_adapter import (
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_0 import (
     DEPENDENCE_RECOGNITION_CHECK_VERSION as ACTIVE_DEPENDENCE_CHECK_VERSION,
 )
 from sc_referee.scientific_checks.core import (
@@ -513,10 +513,10 @@ def test_founder_core_and_shared_integration_closure_are_content_addressed() -> 
     )
     assert [item.manifest_digest for item in founder.adapter_manifests] == [
         "sha256:cd13024eb42264d78ba410e8fe6eb914f8188f3b693f4939835af73526e52097",
-        "sha256:2eff47822ecc32e2c73f59caa197fd583bb8ee3390d4ac4ff4220ad8ee38dd32",
+        "sha256:646a4ab2094cc3a462b64b0dfc0d529c4803c083e22f2c4b4b99b37f64420000",
     ]
     assert FOUNDER_ORIENTATION_SEMANTIC_ADAPTER_IMPLEMENTATION_DIGEST == (
-        "sha256:158552b0edff24a5f64cfcf8c840fe0c58c0e03ce9ac78504654a3178ddaf63f"
+        "sha256:3a42af85784a9b57ffed806d14ebb64570dd69b036b8e78377524a584adae47d"
     )
 
 
@@ -527,7 +527,7 @@ def test_founder_closure_core_is_byte_identical_and_integration_is_release_bound
             "sha256:91271b8c2a007c460a35134ff1c207424a99cf269c78d638557ffad330192c92"
         ),
         "src/sc_referee/scientific_checks/integration.py": (
-            "sha256:126de726e2f99504762a9037b0efb3d596c873c1b298636d83dfb94a796029e7"
+            "sha256:76f37df0bcd0e2bbdd0cb99ab5731e25a7ff85742cb818f2e113d0e4ca964d2d"
         ),
     }
     assert {path: sha256_digest((root / path).read_bytes()) for path in expected} == expected

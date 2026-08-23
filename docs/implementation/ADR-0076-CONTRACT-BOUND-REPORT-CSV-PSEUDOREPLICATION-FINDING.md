@@ -810,6 +810,26 @@ withdrawn; no prose is evidence; the 2.1 CSV/dataflow predicate and wording-v1 a
 development predicate and wording-v2 are unchanged; and complete-domain production authority is
 unaffected.
 
+## Code-lane 3.0 development amendment — 2026-08-23
+
+Provenance: **Fable, under executive authority granted by Alex 2026-08-21**. This amendment authorizes
+the development-only operand-identity-first predicate specified in
+`docs/implementation/PSEUDOREP-CODE-SLICE-3.0-DESIGN-2026-08-23.md`. The qualified check, adapter,
+detector, wording-v1 profile, installed pin, and Envelope-5 qualification remain exactly 2.1.0 and are
+not amended.
+
+Development detector 3.0.0 removes whole-script descriptive admission as Finding evidence. Candidate
+eligibility instead requires two complete repeated-row operand slices from the one authorized CSV,
+exact contract-domain group selections, no reducing operator on either slice, one registered
+two-sample procedure, and a reachable p-result output sink. Off-path syntax is immaterial except for
+the closed full-scope reader and inference-sibling guards S1-S5. S1-S5 only suppress; they never supply
+positive evidence.
+
+The new development identity is evaluation-only and accessible only through the explicit development
+lane. The normal CLI continues to evaluate the qualified 2.1.0 binding and may emit only its installed
+contract-conflict Finding. No prose, comment, docstring, report byte, or printed label participates in
+3.0 admission, suppression, wording, or evidence slots.
+
 ## Open questions that would change the build
 
 None for the authorized implementation and installation. The report channel remains withdrawn; the

@@ -846,7 +846,7 @@ def main() -> None:
         },
     )
     code_csv_dependence_resource = (
-        ROOT / "src" / "sc_referee" / "detectors" / "bounded_code_csv_dependence_conflict_v2_3.py"
+        ROOT / "src" / "sc_referee" / "detectors" / "bounded_code_csv_dependence_conflict_v3_0.py"
     )
     _upsert(
         detector_collection,
@@ -894,7 +894,7 @@ def main() -> None:
                     "prerequisite is unavailable or unsupported."
                 ),
                 "partially_covered_when": (
-                    "Not used by version 2.3.0; incomplete or conflicted records remain not covered."
+                    "Not used by version 3.0.0; incomplete or conflicted records remain not covered."
                 ),
             },
             "description": (
@@ -903,7 +903,7 @@ def main() -> None:
             ),
             "detector_family": "code_csv_dependence_requirement_consistency",
             "detector_id": "detector:bounded-code-csv-dependence-conflict",
-            "detector_version": "2.3.0",
+            "detector_version": "3.0.0",
             "domains": ["domain_neutral_scientific_analysis"],
             "extensions": {
                 "x-adr-ref": (
@@ -911,7 +911,7 @@ def main() -> None:
                     "PSEUDOREPLICATION-FINDING.md"
                 ),
                 "x-implementation-resource": (
-                    "detectors/bounded_code_csv_dependence_conflict_v2_3.py"
+                    "detectors/bounded_code_csv_dependence_conflict_v3_0.py"
                 ),
                 "x-production-finding-permitted": False,
                 "x-scientific-check-ids": CODE_CSV_DEPENDENCE_CHECK_IDS,
@@ -919,8 +919,8 @@ def main() -> None:
             "implementation": {
                 "deterministic": True,
                 "entry_point": (
-                    "sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_3:"
-                    "BoundedCodeCsvDependenceConflictV23Detector"
+                    "sc_referee.detectors.bounded_code_csv_dependence_conflict_v3_0:"
+                    "BoundedCodeCsvDependenceConflictV30Detector"
                 ),
                 "implementation_digest": sha256_digest(code_csv_dependence_resource.read_bytes()),
             },
@@ -928,7 +928,7 @@ def main() -> None:
             "languages": ["python"],
             "limitations": [
                 "The experimental detector cannot emit a production Finding without a separately installed exact binding grant.",
-                "Only the exact root analysis.py, registered APIs, bounded depth-two helper dataflow, closed reachability admission, and authorized CSV contract are covered.",
+                "Only the exact root analysis.py, bounded depth-two helper operand dataflow, closed inference-sibling guards, and authorized CSV contract are covered.",
                 "No prose, comments, docstrings, project execution, numerical causality, universal method adequacy, or broader scientific correctness is established.",
             ],
             "maturity": "experimental",
@@ -966,27 +966,27 @@ def main() -> None:
                     "test_alternate_analysis_extensions_abstain_without_opening_bytes"
                 ],
                 "counterevidence": [
-                    "tests/test_code_csv_dependence_dataflow.py::"
-                    "test_mutation_and_aggregation_precedence"
+                    "tests/test_code_csv_dependence_dataflow_v3_0.py::"
+                    "test_s5_hand_written_unit_welch_with_math_erf_suppresses"
                 ],
                 "positive": [
                     "tests/test_dependence_code_slice_development.py::"
-                    "test_opened_cases_follow_code_lane_normal_path_and_replay"
+                    "test_opened_cases_follow_v3_development_lane_and_replay"
                 ],
                 "unsupported_path": [
-                    "tests/test_report_csv_dependence_adapter.py::"
-                    "test_batch_k_ttest_cases_follow_documented_normal_path_outcomes"
+                    "tests/test_dependence_code_slice_development.py::"
+                    "test_refrozen_k_contracts_remain_scored_development_abstentions"
                 ],
                 "verified_good_negative": [
                     "tests/test_dependence_code_slice_development.py::"
-                    "test_opened_cases_follow_code_lane_normal_path_and_replay"
+                    "test_opened_cases_follow_v3_development_lane_and_replay"
                 ],
             },
             "title": "Bounded code/CSV authorized-unit entry consistency",
             "validation": {
                 "agent_adjudication_count": 0,
                 "evaluation_ref": (
-                    "docs/implementation/PSEUDOREP-CODE-SLICE-2.2-DESIGN-2026-08-22.md"
+                    "docs/implementation/PSEUDOREP-CODE-SLICE-3.0-DESIGN-2026-08-23.md"
                 ),
                 "human_scientific_approval_count": 0,
                 "qualification_record_ref": None,

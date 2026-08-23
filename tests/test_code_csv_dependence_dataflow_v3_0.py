@@ -1,0 +1,259 @@
+from __future__ import annotations
+
+import ast
+
+import pytest
+
+import sc_referee.scientific_checks.code_csv_dependence_dataflow_v3_0 as dataflow
+
+CSV = (
+    b"unit,group,value,visit\n"
+    b"u1,a,1,1\n"
+    b"u1,a,2,2\n"
+    b"u2,a,3,1\n"
+    b"u2,a,4,2\n"
+    b"u3,b,5,1\n"
+    b"u3,b,6,2\n"
+    b"u4,b,7,1\n"
+    b"u4,b,8,2\n"
+)
+
+
+def _run(source: str) -> dataflow.CodeDataflowResult:
+    return dataflow.analyze_code_csv_dataflow(
+        source.encode(),
+        authorized_path="data.csv",
+        unit_column="unit",
+        group_column="group",
+        csv_header=("unit", "group", "value", "visit"),
+        group_values=("a", "b"),
+        csv_content=CSV,
+    )
+
+
+def _candidate(extra: str = "", *, left: str | None = None, right: str | None = None) -> str:
+    left = left or 'df.loc[df["group"] == "a", "value"]'
+    right = right or 'df.loc[df["group"] == "b", "value"]'
+    return f"""import pandas as pd
+from scipy import stats
+df = pd.read_csv("data.csv")
+a = {left}
+b = {right}
+{extra}
+t, p = stats.ttest_ind(a, b)
+print(p)
+"""
+
+
+def test_direct_candidate_requires_repeated_rows_in_each_selected_group() -> None:
+    result = _run(_candidate())
+    assert result.reason is None
+    assert result.facts is not None
+    assert result.facts.value_column == "value"
+
+
+@pytest.mark.parametrize(
+    "sibling",
+    [
+        'import statsmodels.formula.api as smf\nmodel = smf.mixedlm("value ~ group", df, groups=df["unit"])\nfit = model.fit()',
+        'class Model:\n    def fit(self):\n        return 1\nmodel = Model(group_data=df["unit"])\nfit = model.fit()',
+        'class Model:\n    def fit(self):\n        return 1\nmodel = Model(groups=df["unit"])\nfit = model.fit()',
+        'class Model:\n    def fit(self):\n        return 1\nmodel = Model(re_formula="~1")\nfit = model.fit()',
+        'class Model:\n    def fit(self):\n        return 1\nmodel = Model(cluster=df["unit"])\nfit = model.fit()',
+        'import statsmodels.api as sm\nmodel = sm.OLS(a, b)\nfit = model.fit(cov_type="cluster")',
+    ],
+)
+def test_s1_dependence_guard_is_full_scope_and_keyword_closed(sibling: str) -> None:
+    assert _run(_candidate(sibling)).reason == "dependence-aware-sibling-present"
+
+
+@pytest.mark.parametrize("prefix", ["gpboost", "merf", "pymc", "numpyro", "linearmodels"])
+def test_s3_closed_statistics_prefixes_abstain(prefix: str) -> None:
+    source = _candidate(f"import {prefix}\nother = {prefix}.unknown_model(a)")
+    assert _run(source).reason == "unresolved-inference-sibling-present"
+
+
+def test_s4_counts_a_dead_branch_registered_test_before_operand_resolution() -> None:
+    extra = """if False:
+    stats.ttest_ind(df.head(1), df.tail(1))"""
+    assert _run(_candidate(extra)).reason == "multiple-rowwise-test-candidates"
+
+
+@pytest.mark.parametrize(
+    "size",
+    ["(N_BOOT, len(a))", "(len(a), N_BOOT)"],
+)
+def test_s2_vectorized_draw_uses_any_resolved_large_size_factor(size: str) -> None:
+    extra = f"""import numpy as np
+N_BOOT = 20_000
+rng = np.random.default_rng(7)
+draws = rng.integers(0, len(a), size={size})
+boot = a.to_numpy()[draws].mean(axis=1)
+lo = np.percentile(boot, 2.5)
+print(lo)"""
+    result = _run(_candidate(extra))
+    assert result.reason == "resampling-inference-sibling-present"
+
+
+def test_s2_count_ratio_and_threshold_ten() -> None:
+    extra = """import numpy as np
+reps = []
+for i in range(49):
+    reps.append(a.iloc[i % len(a)])
+r = np.sum(np.asarray(reps) >= a.mean())
+p_boot = (r + 1) / (49 + 1)
+print(p_boot)"""
+    assert _run(_candidate(extra)).reason == "resampling-inference-sibling-present"
+
+
+def test_s5_hand_written_unit_welch_with_math_erf_suppresses() -> None:
+    extra = """import math
+unit_means = df.groupby("unit")["value"].mean()
+welch = unit_means.mean() / unit_means.std()
+p_unit = math.erf(abs(welch))
+print(p_unit)"""
+    assert _run(_candidate(extra)).reason == "unit-level-summary-sibling-present"
+
+
+def test_s5_unit_consistency_check_that_only_raises_is_not_output() -> None:
+    extra = """counts = df.groupby("unit")["value"].size()
+if counts.min() < 2:
+    raise ValueError("bad")"""
+    assert _run(_candidate(extra)).facts is not None
+
+
+def test_statistic_only_sink_does_not_satisfy_p_result_output() -> None:
+    source = _candidate().replace("print(p)", "print(t)")
+    assert _run(source).reason == "test-result-output-sink-unavailable"
+
+
+def test_only_test_in_dead_branch_is_not_a_candidate() -> None:
+    source = _candidate().replace(
+        "t, p = stats.ttest_ind(a, b)\nprint(p)",
+        "if False:\n    t, p = stats.ttest_ind(a, b)\n    print(p)",
+    )
+    assert _run(source).reason == "test-result-output-sink-unavailable"
+
+
+@pytest.mark.parametrize(
+    ("transform", "expected"),
+    [
+        (
+            'df.loc[df["group"] == "a", "value"].iloc[:2]',
+            "selected-group-row-completeness-unproven",
+        ),
+        ('df.loc[df["group"] == "a", "value"].head(2)', "aggregation-on-test-operand-path"),
+        ('df.loc[df["group"] == "a", "value"].sample(2)', "aggregation-on-test-operand-path"),
+        (
+            'df.loc[(df["group"] == "a") & (df.groupby("unit").cumcount() == 0), "value"]',
+            "aggregation-on-test-operand-path",
+        ),
+        ('df.loc[df["group"] == "a", "value"].rank()', "aggregation-on-test-operand-path"),
+        ('df.loc[df["group"] == "a", "value"].diff()', "aggregation-on-test-operand-path"),
+        (
+            'df.loc[df["group"] == "a", "value"].rolling(2).mean()',
+            "aggregation-on-test-operand-path",
+        ),
+        (
+            'df.loc[df["group"] == "a", "value"].ewm(span=2).mean()',
+            "aggregation-on-test-operand-path",
+        ),
+        (
+            'df.loc[df["group"] == "a", "value"].transform("mean")',
+            "aggregation-on-test-operand-path",
+        ),
+    ],
+)
+def test_row_collapse_and_reducing_transforms_abstain(transform: str, expected: str) -> None:
+    result = _run(_candidate(left=transform))
+    assert result.reason == expected
+
+
+def test_numpy_log_is_a_nonreducing_operand_edge() -> None:
+    source = _candidate(
+        "import numpy as np",
+        left='np.log(df.loc[df["group"] == "a", "value"])',
+        right='np.log(df.loc[df["group"] == "b", "value"])',
+    )
+    assert _run(source).facts is not None
+
+
+def test_drop_duplicates_on_unit_column_is_reducing_on_operand_path() -> None:
+    source = """import pandas as pd
+from scipy import stats
+df = pd.read_csv("data.csv")
+reduced = df.drop_duplicates(subset="unit")
+a = reduced.loc[reduced["group"] == "a", "value"]
+b = reduced.loc[reduced["group"] == "b", "value"]
+t, p = stats.ttest_ind(a, b)
+print(p)
+"""
+    assert _run(source).reason == "aggregation-on-test-operand-path"
+
+
+def test_arbitrary_off_path_calls_do_not_gate_operand_identity() -> None:
+    extra = """def describe(x):
+    return {"text": sorted(str(v) for v in x)}
+print(describe(a))"""
+    assert _run(_candidate(extra)).facts is not None
+
+
+def test_new_guard_and_slice_entry_points_never_receive_prose_payloads(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    called: set[str] = set()
+    names = (
+        "_v3_dependence_guard",
+        "_v2_resampling_sibling",
+        "_v3_statistics_guard",
+        "_v3_syntactic_test_count",
+        "_v3_unit_summary_guard",
+        "_csv_group_unit_lineage",
+    )
+    for name in names:
+        original = getattr(dataflow, name)
+
+        def guarded(
+            *args: object, __name: str = name, __original: object = original, **kwargs: object
+        ) -> object:
+            assert all(
+                not isinstance(value, str) or "report prose sentinel" not in value for value in args
+            )
+            assert all(
+                not isinstance(value, (bytes, bytearray)) or b"report prose sentinel" not in value
+                for value in args
+            )
+            called.add(__name)
+            return __original(*args, **kwargs)  # type: ignore[operator]
+
+        monkeypatch.setattr(dataflow, name, guarded)
+
+    source = _candidate('label = "report prose sentinel"\nprint(label)')
+    assert _run(source).facts is not None
+    assert called == set(names)
+
+
+def test_docstrings_comments_and_unrelated_strings_do_not_change_facts() -> None:
+    baseline = _run(
+        '"""alpha prose sentinel"""\n# alpha prose sentinel\n'
+        + _candidate('label = "alpha"\nprint(label)')
+    )
+    mutated = _run(
+        '"""omega prose sentinel"""\n# omega prose sentinel\n'
+        + _candidate('label = "omega"\nprint(label)')
+    )
+    assert baseline == mutated
+
+
+def test_module_ast_is_parsed_without_executing_source(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = 0
+    original = ast.parse
+
+    def counted(*args: object, **kwargs: object) -> ast.Module:
+        nonlocal calls
+        calls += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(ast, "parse", counted)
+    assert _run(_candidate()).facts is not None
+    assert calls == 1

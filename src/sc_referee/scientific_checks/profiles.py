@@ -7,17 +7,6 @@ from pathlib import Path
 from typing import Any
 
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
-from sc_referee.scientific_checks.code_csv_dependence_adapter import (
-    CODE_CSV_DEPENDENCE_ADAPTER_ID,
-    CODE_CSV_DEPENDENCE_ADAPTER_IMPLEMENTATION_DIGEST,
-    CODE_CSV_DEPENDENCE_ADAPTER_VERSION,
-    CODE_CSV_DEPENDENCE_COUNTEREVIDENCE,
-    CODE_CSV_DEPENDENCE_ROLE_BINDINGS,
-    CODE_CSV_DEPENDENCE_SEMANTIC_ROLES,
-    DEPENDENCE_RECOGNITION_CHECK_VERSION,
-    CodeCsvDependenceAdapter,
-    code_csv_dependence_grammar_digest,
-)
 from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
     CODE_CSV_DEPENDENCE_ADAPTER_ID as QUALIFIED_CODE_CSV_DEPENDENCE_ADAPTER_ID,
 )
@@ -45,11 +34,22 @@ from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
 from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
     code_csv_dependence_grammar_digest as qualified_code_csv_dependence_grammar_digest,
 )
-from sc_referee.scientific_checks.code_csv_dependence_dataflow import (
-    CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST,
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_0 import (
+    CODE_CSV_DEPENDENCE_ADAPTER_ID,
+    CODE_CSV_DEPENDENCE_ADAPTER_IMPLEMENTATION_DIGEST,
+    CODE_CSV_DEPENDENCE_ADAPTER_VERSION,
+    CODE_CSV_DEPENDENCE_COUNTEREVIDENCE,
+    CODE_CSV_DEPENDENCE_ROLE_BINDINGS,
+    CODE_CSV_DEPENDENCE_SEMANTIC_ROLES,
+    DEPENDENCE_RECOGNITION_CHECK_VERSION,
+    CodeCsvDependenceAdapter,
+    code_csv_dependence_grammar_digest,
 )
 from sc_referee.scientific_checks.code_csv_dependence_dataflow_v2_1 import (
     CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST as QUALIFIED_CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST,
+)
+from sc_referee.scientific_checks.code_csv_dependence_dataflow_v3_0 import (
+    CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.copy_dosage_adapter import (
     COPY_DOSAGE_ADAPTER_IMPLEMENTATION_DIGEST,
@@ -241,7 +241,7 @@ def scientific_check_release_registry() -> ScientificCheckRegistry:
             detector_manifests[
                 (
                     "detector:bounded-code-csv-dependence-conflict",
-                    "2.3.0",
+                    "3.0.0",
                 )
                 if module.manifest.check_id
                 == "check:authorized-independent-unit-entry-into-row-independent-procedure"
@@ -389,9 +389,23 @@ def scientific_check_release_projection(
                 REPORT_CSV_DEPENDENCE_ADAPTER_IMPLEMENTATION_DIGEST
             ),
             "scientific_checks/code_csv_dependence_adapter.py": (
-                CODE_CSV_DEPENDENCE_ADAPTER_IMPLEMENTATION_DIGEST
+                sha256_digest(
+                    (
+                        Path(__file__).resolve().parent / "code_csv_dependence_adapter.py"
+                    ).read_bytes()
+                )
             ),
             "scientific_checks/code_csv_dependence_dataflow.py": (
+                sha256_digest(
+                    (
+                        Path(__file__).resolve().parent / "code_csv_dependence_dataflow.py"
+                    ).read_bytes()
+                )
+            ),
+            "scientific_checks/code_csv_dependence_adapter_v3_0.py": (
+                CODE_CSV_DEPENDENCE_ADAPTER_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/code_csv_dependence_dataflow_v3_0.py": (
                 CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST
             ),
             "scientific_checks/code_csv_dependence_adapter_v2_1.py": sha256_digest(
@@ -582,6 +596,7 @@ def _method_conflict_detector_manifests() -> Mapping[tuple[str, str], Mapping[st
         ("detector:bounded-analysis-method-conflict", "0.3.0"),
         ("detector:bounded-code-csv-dependence-conflict", "2.1.0"),
         ("detector:bounded-code-csv-dependence-conflict", "2.3.0"),
+        ("detector:bounded-code-csv-dependence-conflict", "3.0.0"),
     }
     matches = [
         item

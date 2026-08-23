@@ -20,6 +20,9 @@ from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_1 import (
 from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_3 import (
     BoundedCodeCsvDependenceConflictV23Detector,
 )
+from sc_referee.detectors.bounded_code_csv_dependence_conflict_v3_0 import (
+    BoundedCodeCsvDependenceConflictV30Detector,
+)
 from sc_referee.scientific_checks.core import (
     EvidencePlane,
     MethodConflictBinding,
@@ -166,6 +169,7 @@ def _detector_class(
         BoundedAnalysisMethodConflictDetector,
         BoundedCodeCsvDependenceConflictV21Detector,
         BoundedCodeCsvDependenceConflictV23Detector,
+        BoundedCodeCsvDependenceConflictV30Detector,
     )
     matches = [
         item
