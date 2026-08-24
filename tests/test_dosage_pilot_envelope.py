@@ -188,7 +188,7 @@ def test_dosage_six_role_fixture_runs_real_pipeline(
         sealed_case_assignments={case_id: role for role, case_id in _CASE_BY_ROLE.items()},
     )
     monkeypatch.setattr(lean_pipeline, "ensure_calibrations", lambda _root, _config: {})
-    monkeypatch.setattr(lean_pipeline, "SCHEMA_RELATIVE", Path("reference/schemas-v0.20.0"))
+    monkeypatch.setattr(lean_pipeline, "SCHEMA_RELATIVE", Path("reference/schemas-v0.21.0"))
 
     def _recorded_author_transport(
         selected: Any,
@@ -323,7 +323,7 @@ def test_dosage_six_role_fixture_runs_real_pipeline(
         replayed_by_role[role] = replay(
             lock_path,
             isolated_root / "fixture-replay" / slug,
-            isolated_root / "reference/schemas-v0.20.0",
+            isolated_root / "reference/schemas-v0.21.0",
         )
 
     detector_id = config.detector_id

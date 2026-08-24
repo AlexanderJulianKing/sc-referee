@@ -1,0 +1,19 @@
+{
+  "artifact_kind": "sealed_blind_role_map",
+  "case_roles_in_fixed_order": [
+    {"case_id": "fe7eeea19d8fddd7811e", "role": "P1"},
+    {"case_id": "14af9fba001740a9e72a", "role": "P2"},
+    {"case_id": "a72fdcf9cfa1784e9315", "role": "P3"},
+    {"case_id": "b8b21229f40a115d5e69", "role": "P4"},
+    {"case_id": "2657fda9a6eea027c423", "role": "P5"},
+    {"case_id": "284256146298ea19cd75", "role": "P6"},
+    {"case_id": "ceb266a478e7ff5d4618", "role": "N1"},
+    {"case_id": "6dffe3d7986dc5675127", "role": "N2"},
+    {"case_id": "fd2f52a4099e1cbdfc8a", "role": "N3"},
+    {"case_id": "4e9bd2ac9d532a4b45e8", "role": "N4"},
+    {"case_id": "1feb6d2c4e4dce950eae", "role": "N5"},
+    {"case_id": "3f12b75d274abe3a875f", "role": "N6"}
+  ],
+  "envelope_id": "blind-envelope-9-2026-08-23",
+  "sealed": true
+}

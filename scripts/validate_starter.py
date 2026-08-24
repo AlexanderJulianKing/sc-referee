@@ -28,7 +28,7 @@ from sc_referee.storage.layout import AuditLayout  # noqa: E402
 
 
 def main() -> int:
-    schema_root = ROOT / "reference" / "schemas-v0.20.0"
+    schema_root = ROOT / "reference" / "schemas-v0.21.0"
     count = LocalSchemaRegistry(schema_root).validate_example_directory()
     capability_matrix = generate_capability_matrix(default_capability_manifest_root(), schema_root)
     assert len(capability_matrix["entries"]) == 17
@@ -65,7 +65,7 @@ def main() -> int:
     } == {
         "binding_id": dependence_binding_id,
         "check_id": "check:authorized-independent-unit-entry-into-row-independent-procedure",
-        "qualification_ref": "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5",
+        "qualification_ref": "qualification:authorized-independent-unit-entry-v310-code-csv-envelope9",
         "strongest_output_type": "finding",
     }
     assert installed_pin_matches_live_identity(GRANT_PINS[dependence_binding_id]) is True
@@ -100,7 +100,7 @@ def main() -> int:
                     "check:authorized-independent-unit-entry-into-row-independent-procedure"
                 ),
                 "qualification_ref": (
-                    "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5"
+                    "qualification:authorized-independent-unit-entry-v310-code-csv-envelope9"
                 ),
                 "strongest_output_type": "finding",
             }
@@ -234,7 +234,7 @@ def main() -> int:
         assert digest_one == digest_two
     summary = {
         "public_examples_validated": count,
-        "public_schema_version": "0.20.0",
+        "public_schema_version": "0.21.0",
         "observed_plane_records": "public",
         "multidimensional_lineage_plane": "public",
         "walking_skeleton": "passed",

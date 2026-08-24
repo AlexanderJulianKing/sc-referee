@@ -102,7 +102,7 @@ _CALLABLE_BY_ROLE = {
 
 @pytest.fixture(autouse=True)
 def _active_schema_for_new_pilot_records(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(lean_pipeline, "SCHEMA_RELATIVE", Path("reference/schemas-v0.20.0"))
+    monkeypatch.setattr(lean_pipeline, "SCHEMA_RELATIVE", Path("reference/schemas-v0.21.0"))
 
 
 _PROCEDURE_ATTRIBUTE_BY_ROLE = {
@@ -1092,7 +1092,7 @@ def test_dependence_six_role_fixture_runs_real_pipeline_with_one_installed_findi
         replayed_by_role[role] = replay(
             lock_path,
             isolated_root / "fixture-replay" / slug,
-            isolated_root / "reference/schemas-v0.20.0",
+            isolated_root / "reference/schemas-v0.21.0",
         )
 
     detector_id = config.detector_id

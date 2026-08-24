@@ -148,7 +148,7 @@ def test_installed_grant_binding_digests_match_live_registry_and_matrix_builds(
         assert pin.binding_digest == binding.binding_digest
         assert pin.detector_manifest_digest == binding.detector_manifest_digest
     matrix = generate_capability_matrix(
-        default_capability_manifest_root(), project_root / "reference/schemas-v0.20.0"
+        default_capability_manifest_root(), project_root / "reference/schemas-v0.21.0"
     )
     published = {
         grant["binding_id"]
@@ -164,7 +164,7 @@ def test_capability_matrix_exposes_finding_for_exactly_the_live_grant_binding(
     project_root: Path,
 ) -> None:
     matrix = generate_capability_matrix(
-        default_capability_manifest_root(), project_root / "reference/schemas-v0.20.0"
+        default_capability_manifest_root(), project_root / "reference/schemas-v0.21.0"
     )
     grants = [
         grant
@@ -222,7 +222,7 @@ def test_grant_loader_refuses_digest_drift(project_root: Path, tmp_path: Path) -
                 project_root
                 / "src/sc_referee/resources/capability-manifests-v1/qualification-manifests.json"
             ),
-            schema_root=project_root / "reference/schemas-v0.20.0",
+            schema_root=project_root / "reference/schemas-v0.21.0",
         )
 
 

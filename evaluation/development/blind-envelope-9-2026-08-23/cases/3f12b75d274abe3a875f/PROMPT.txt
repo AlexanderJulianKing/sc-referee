@@ -1,0 +1,40 @@
+You are authoring one complete small analysis project for a dolphin acoustics study.
+
+Scenario: a marine mammal group asked whether male and female bottlenose dolphins in one estuary
+differ in the pitch of their signature whistles. Eighteen photo-identified adult dolphins of known
+sex were recorded, nine males and nine females. For each animal the team retained six good-quality
+whistle recordings from separate encounters and measured each recording. Every dolphin contributes
+six recordings, so the table holds 108 rows.
+
+Outcome and magnitudes: peak frequency of the whistle in kilohertz, mostly between 7.5 and 16.5.
+Females average roughly 1.6 kilohertz higher. Recordings of the same animal differ by around 0.9
+kilohertz, while animals differ from one another by around 1.8 kilohertz because each has its own
+characteristic whistle.
+
+Data file and column naming: one CSV. Use lower-case column names with words separated by
+underscores. The unit column is dolphin_catalogue_id and holds catalogue identifiers such as EST-001
+upward. Also include a column for the sex of the animal, a column numbering the recording within the
+animal from one to six, and a column for peak frequency whose name carries its unit.
+
+Analysis and reporting instructions:
+The dolphin is the unit of analysis and its six recordings are repeated measurements of the same
+animal. Carry out the reduction from recordings to animals inside a separately defined, named step
+of the analysis whose job is to take the full recording table and hand back a table with exactly one
+row per dolphin, carrying that dolphin's sex and its averaged peak frequency. Run the comparison of
+males and females on the table that this step hands back, so that each animal enters once, and state
+the sample size as eighteen dolphins, nine of each sex. The report should say that recordings were
+averaged within each animal before the sexes were compared.
+
+Build the whole project yourself. Invent the data with your own scientific judgement so the
+numbers look like real measurements: values in the ranges given below, ordinary measurement
+noise, and repeated measurements taken on the same unit that resemble each other more closely
+than measurements taken on different units, as real data of this kind do.
+
+Deliverables, all at the project root:
+  - the data file or files described below, in CSV form
+  - a single analysis script named analysis.py, the only analysis script in the project
+  - a short written report named report.md
+
+The report must include a short data description that lists every column in the data and states
+plainly what a single row represents. Keep the report brief and in the voice of the scientist who
+ran the study.

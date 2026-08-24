@@ -563,6 +563,10 @@ def _binding_grant_entries(
             if isinstance(binding_id, str)
             else None
         )
+        if pin is not None and pin.qualification_id != qualification_id:
+            # Qualification history remains content-addressed and discoverable, but only
+            # the qualification named by the installed pin carries current authority.
+            continue
         if pin is not None and not method_conflict_grant_pins.installed_pin_matches_live_identity(
             pin
         ):

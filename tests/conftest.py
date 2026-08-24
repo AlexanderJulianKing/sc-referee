@@ -16,6 +16,25 @@ def isolated_cache_authentication_key(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
+@pytest.fixture(autouse=True)
+def pin_frozen_stage1_projection_schema(
+    request: pytest.FixtureRequest,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Replay frozen Stage-1 controllers with the v0.20 record version they bind."""
+
+    if request.path.name not in {
+        "test_first_direct_three_case_stage1_codex_recovery.py",
+        "test_first_direct_three_case_stage1_protocol.py",
+        "test_first_direct_three_case_stage1_semantic_recovery_clean_recorder.py",
+        "test_first_direct_three_case_stage1_semantic_recovery_recorder.py",
+    }:
+        return
+    from sc_referee_evaluation import review_semantic_payload
+
+    monkeypatch.setattr(review_semantic_payload, "SCHEMA_VERSION", "0.20.0")
+
+
 @pytest.fixture
 def project_root() -> Path:
     return Path(__file__).resolve().parents[1]
@@ -23,4 +42,4 @@ def project_root() -> Path:
 
 @pytest.fixture
 def schema_root(project_root: Path) -> Path:
-    return project_root / "reference" / "schemas-v0.20.0"
+    return project_root / "reference" / "schemas-v0.21.0"

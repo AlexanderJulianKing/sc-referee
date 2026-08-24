@@ -68,7 +68,7 @@ from sc_referee.version import SCHEMA_VERSION
 
 def _example(project_root: Path, name: str) -> dict[str, Any]:
     return json.loads(
-        (project_root / "reference" / "schemas-v0.20.0" / "examples" / name).read_text(
+        (project_root / "reference" / "schemas-v0.21.0" / "examples" / name).read_text(
             encoding="utf-8"
         )
     )

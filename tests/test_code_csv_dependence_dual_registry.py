@@ -64,13 +64,13 @@ def test_registry_carries_exact_qualified_and_development_bindings() -> None:
     development = next(
         item for item in registry.development_method_conflict_bindings if item.check_id == _CHECK_ID
     )
-    assert (qualified.check_version, qualified.detector_version) == ("2.1.0", "2.1.0")
+    assert (qualified.check_version, qualified.detector_version) == ("3.1.0", "3.1.0")
     assert qualified.binding_id == _BINDING_ID
     assert qualified.binding_digest == GRANT_PINS[_BINDING_ID].binding_digest
     assert installed_pin_matches_live_identity(GRANT_PINS[_BINDING_ID]) is True
     assert (development.check_version, development.detector_version) == ("3.1.0", "3.1.0")
     assert development.binding_id == f"{_BINDING_ID}:development"
-    assert registry.modules_for_lane("qualified") != registry.modules_for_lane("development")
+    assert registry.modules_for_lane("qualified") == registry.modules_for_lane("development")
 
 
 def test_development_identity_change_cannot_change_qualified_pin_or_findings(

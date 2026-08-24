@@ -285,3 +285,11 @@ No test is retired by 3.1.
 - Y3 extends both prose tripwires through all seven 3.1 predicates named in test-plan item 8: the
   local CSV predicate, lambda/free-name walk, pure-output helper, S5 carve-out, tuple binding,
   observed-domain loop resolution, and output-buffer/member propagation.
+- Envelope 9 froze the 3.1 development closure and produced 6/6 blind-positive candidates, 0/6
+  blind-negative candidates, and replay equality 12/12. Its two family-C negatives stopped on the
+  designed S1 and S2 guards. The running Envelopes-7-through-9 tally reached 10/18 (56%) with 0 false
+  accusations over the last 36 blind cases; lifetime evidence reached 206/0/17.
+- Under the standing full-steam authorization, chronology steps 10 through 12 promote the frozen
+  3.1 identity to the qualified lane through accepted schema v0.21.0, wording profile v2, and an
+  exact replacement production pin. The former 2.1.0 pin bytes remain frozen in qualification
+  history. This promotion changes no 3.1 detector, adapter, grammar, or case byte.

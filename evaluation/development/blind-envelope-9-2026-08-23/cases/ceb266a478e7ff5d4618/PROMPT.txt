@@ -1,0 +1,39 @@
+You are authoring one complete small analysis project for a blueberry inoculation trial.
+
+Scenario: a nursery tested whether a mycorrhizal inoculant changes fruit sweetness in potted
+highbush blueberry bushes. Twenty-four bushes were grown in identical pots under one polytunnel,
+twelve inoculated at planting and twelve left uninoculated. At harvest the technician picked five
+separate berry clusters from each bush and measured the juice of each cluster on a refractometer.
+Every bush contributes five cluster measurements, so the raw table holds 120 rows.
+
+Outcome and magnitudes: soluble solids in degrees Brix, mostly between 10 and 14.5. Inoculated
+bushes average roughly 0.7 degrees Brix higher. Clusters on the same bush differ by around 0.4
+degrees Brix; different bushes differ by around 0.9.
+
+Data file and column naming: one CSV holding all 120 cluster measurements. Use lower-case column
+names with words separated by underscores. The unit column is bush_label and holds pot labels such
+as BB-01 through BB-24. Also include a column for the inoculation treatment, a column numbering the
+cluster within its bush from one to five, and a column for the refractometer reading whose name
+makes the Brix scale clear.
+
+Analysis and reporting instructions:
+The bush is the experimental unit and the five clusters from a bush are subsamples of that bush.
+Before any comparison of the two treatments, reduce each bush to a single summary value by averaging
+its five cluster readings, then compare the two treatment groups using those per-bush values only.
+State the sample size as twenty-four bushes, twelve per treatment, and say in the report that
+clusters within a bush were averaged because they are subsamples rather than independent
+experimental units. Keep the raw CSV with all 120 cluster rows as the project's data file.
+
+Build the whole project yourself. Invent the data with your own scientific judgement so the
+numbers look like real measurements: values in the ranges given below, ordinary measurement
+noise, and repeated measurements taken on the same unit that resemble each other more closely
+than measurements taken on different units, as real data of this kind do.
+
+Deliverables, all at the project root:
+  - the data file or files described below, in CSV form
+  - a single analysis script named analysis.py, the only analysis script in the project
+  - a short written report named report.md
+
+The report must include a short data description that lists every column in the data and states
+plainly what a single row represents. Keep the report brief and in the voice of the scientist who
+ran the study.

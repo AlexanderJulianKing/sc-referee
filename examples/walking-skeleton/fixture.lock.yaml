@@ -3,7 +3,7 @@ audit_run_id: audit:walking-skeleton
 locked_at: '2026-07-27T20:00:00Z'
 detector_manifest_digest: sha256:28ee399e6027e89761a793d09beb736b44dfd668fdc757a5b88b8b820d092620
 claim:
-  schema_version: 0.20.0
+  schema_version: 0.21.0
   record_type: claim
   claim_id: claim:walking-skeleton-direction
   audit_run_id: audit:walking-skeleton
@@ -96,7 +96,7 @@ claim:
     semantic_assertion_ids:
     - assertion:report-direction
 scientific_contract:
-  schema_version: 0.20.0
+  schema_version: 0.21.0
   record_type: scientific_contract
   contract_id: contract:walking-skeleton-direction
   audit_run_id: audit:walking-skeleton
@@ -207,7 +207,7 @@ scientific_contract:
   source_refs: *id001
   created_at: '2026-07-27T20:00:00Z'
 observed_result:
-  schema_version: 0.20.0
+  schema_version: 0.21.0
   record_type: observed_result
   observed_result_id: observed-result:walking-skeleton
   audit_run_id: audit:walking-skeleton
@@ -279,7 +279,7 @@ observed_result:
     method: deterministic_scalar_verification
     created_at: '2026-07-27T20:00:00Z'
 material_question:
-  schema_version: 0.20.0
+  schema_version: 0.21.0
   record_type: material_question
   question_id: question:walking-skeleton-sample-id
   audit_run_id: audit:walking-skeleton
@@ -322,7 +322,7 @@ material_question:
     tool: sc_referee.core
     tool_version: 0.5.0
 disclosure:
-  schema_version: 0.20.0
+  schema_version: 0.21.0
   record_type: disclosure
   disclosure_id: disclosure:walking-skeleton-opaque-normalizer
   audit_run_id: audit:walking-skeleton
@@ -358,7 +358,7 @@ disclosure:
     tool: sc_referee.core
     tool_version: 0.5.0
 orientation_question:
-  schema_version: 0.20.0
+  schema_version: 0.21.0
   record_type: material_question
   question_id: question:walking-skeleton-orientation
   audit_run_id: audit:walking-skeleton

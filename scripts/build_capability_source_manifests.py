@@ -15,10 +15,10 @@ MANIFEST_ROOT = ROOT / "src" / "sc_referee" / "resources" / "capability-manifest
 GENERATED_AT = "2026-07-30T00:00:00Z"
 _INSTALLED_QUALIFICATION_PATHS = (
     ROOT / "evaluation/qualification/authorized-independent-unit-entry-into-row-independent-"
-    "procedure-v2.1.0-code-csv-lane/envelope-5-promotion-v020/"
+    "procedure-v3.1.0-code-csv-lane/envelope-9-promotion-v021/"
     "DETECTOR_QUALIFICATION.json",
     ROOT / "evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2/"
-    "promotion-round2-v020/DETECTOR_QUALIFICATION.json",
+    "promotion-round2-v021/DETECTOR_QUALIFICATION.json",
 )
 ANALYSIS_METHOD_CONFLICT_CHECK_IDS = sorted(
     [
@@ -174,7 +174,6 @@ def main() -> None:
     ]
     if len(installed_qualification_ids) != 2 or len(set(installed_qualification_ids)) != 2:
         raise ValueError("grant installation requires exactly two distinct qualifications")
-
     parser_collection = _load("parser-manifests.json")
     tabular_parser_resource = ROOT / "src" / "sc_referee" / "tabular_inventory.py"
     _upsert(
@@ -647,6 +646,14 @@ def main() -> None:
 
     detector_collection = _load("detector-manifests.json")
     _install_historical_code_detector_manifests(detector_collection)
+    retired_code_manifest = next(
+        item
+        for item in detector_collection["records"]
+        if item.get("detector_id") == "detector:bounded-code-csv-dependence-conflict"
+        and item.get("detector_version") == "2.1.0"
+    )
+    retired_code_manifest["validation"]["qualification_record_ref"] = None
+    retired_code_manifest["validation"]["qualification_record_refs"] = []
     analysis_conflict_resource = (
         ROOT / "src" / "sc_referee" / "detectors" / "bounded_analysis_method_conflict.py"
     )
@@ -990,10 +997,12 @@ def main() -> None:
                 ),
                 "human_scientific_approval_count": 0,
                 "qualification_record_ref": None,
-                "qualification_record_refs": [],
-                "qualification_review_basis": "not_qualified",
+                "qualification_record_refs": [
+                    "qualification:authorized-independent-unit-entry-v310-code-csv-envelope9"
+                ],
+                "qualification_review_basis": "agent_panel",
                 "software_maintainer_approval_count": 1,
-                "status": "development_only",
+                "status": "held_out_validated",
             },
             "wording_constraints": [
                 "State only that the exact code/CSV fact contradicts the frozen one-row-per-authorized-unit requirement.",

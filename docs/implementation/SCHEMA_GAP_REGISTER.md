@@ -378,6 +378,23 @@ reference/packaged releases. The accepted Envelope 5 records live under the adja
 dependence pin slot is replaced under the ADR-0076 installation amendment. Public v0.19.0 remains
 byte-immutable.
 
+## Closed code-CSV 3.1 qualification identity gap in v0.21.0
+
+Envelope 9 passed the accepted running-window bar for detector/check `3.1.0`: 6/6 positive
+evaluation candidates, 0/6 negative candidates, a 10/18 running positive tally, 0 false accusations
+over the last 36 blind cases, and replay 12/12. The installed Finding wording uses the separately
+versioned code-CSV profile v2, including the composite-key non-inference. Public schema v0.20.0
+cannot represent the exact `3.1.0` qualification identity without cross-pairing a detector version
+that it does not admit.
+
+Accepted v0.21.0 adds the exact `detector:bounded-code-csv-dependence-conflict` version `3.1.0`
+pair while preserving the generic `0.3.0` and historical code-lane `2.1.0` pairs. Cross-paired
+identities remain invalid. The Envelope-9 qualification, metric, threshold, Finding-profile
+binding, replacement dependence pin, and mechanically migrated complete-domain records are stored
+under their content-addressed qualification paths. The prior `2.1.0` pin is retained as frozen
+history, v0.20.0 remains byte-immutable, and production authority still requires the exact external
+installed pin rather than schema validity alone. This gap is closed.
+
 ## Rule
 
 Historical provisional schemas remain under `provisional-schemas/` solely for migration evidence.

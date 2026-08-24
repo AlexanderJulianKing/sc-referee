@@ -405,8 +405,8 @@ def test_registered_route_emits_zero_findings(tmp_path: Path, schema_root: Path)
 def test_active_check_identities_match_the_release_registry() -> None:
     expected = {
         "check:authorized-independent-unit-entry-into-row-independent-procedure": (
-            "sha256:8b9ce5f53203c99bd0d24fcf0169e841905cb2aa034e858516bcf48105e4d6c2",
-            "sha256:591a0bf3e7ca93b8166ad6a7a8779e937e48b5295b81ca0f433b02d28fc1c65c",
+            "sha256:32831f748957b38eacceac8ea517612d49ad57b20562f4df072fd1f25a4df84a",
+            "sha256:1523cb97fba6c235bb98912483dedb18ef598e61eaecc646eb428aa33bfa1a8d",
         ),
         "check:complete-domain-exposure-denominator": (
             "sha256:c3ef7acd8597c86e8a121ba43e94d4f2a2993c08cd2c14981b85b13c431841a9",
@@ -434,5 +434,5 @@ def test_qualification_manifest_bytes_match_same_commit_grant_rederivation() -> 
     root = Path(__file__).resolve().parents[1]
     path = root / "src/sc_referee/resources/capability-manifests-v1/qualification-manifests.json"
     assert sha256_digest(path.read_bytes()) == (
-        "sha256:12f346ca44c2c88c202227ebcea076dfbaac78b69b5146303c8da4826a9496cf"
+        "sha256:8ffc4044c17c6cfbecbc49ab1539ac4ba13b54a016f6f57a39fd598f7a50b9d3"
     )

@@ -24,7 +24,7 @@ from scripts.build_capability_source_manifests import _upsert
 
 
 def _schema_root(project_root: Path) -> Path:
-    return project_root / "reference" / "schemas-v0.20.0"
+    return project_root / "reference" / "schemas-v0.21.0"
 
 
 def _write_canonical(path: Path, value: object) -> None:
@@ -148,7 +148,7 @@ def test_bundled_matrix_is_deterministic_and_publishes_only_live_binding_grants(
         {
             "record_type": "detector_qualification",
             "record_id": (
-                "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5"
+                "qualification:authorized-independent-unit-entry-v310-code-csv-envelope9"
             ),
         },
         {
@@ -263,7 +263,7 @@ def test_bundled_matrix_is_deterministic_and_publishes_only_live_binding_grants(
                         "check:authorized-independent-unit-entry-into-row-independent-procedure"
                     ),
                     "qualification_ref": (
-                        "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5"
+                        "qualification:authorized-independent-unit-entry-v310-code-csv-envelope9"
                     ),
                     "strongest_output_type": "finding",
                 }

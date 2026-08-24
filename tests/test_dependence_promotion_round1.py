@@ -404,7 +404,7 @@ def test_round2_records_install_only_exact_binding_authority(project_root: Path)
     qualifications = _load(project_root / QUALIFICATION_MANIFESTS)["records"]
     assert len(qualifications) == 2
     assert {record["qualification_id"] for record in qualifications} == {
-        "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5",
+        "qualification:authorized-independent-unit-entry-v310-code-csv-envelope9",
         "qualification:complete-domain-exposure-denominator-v207-round2",
     }
     assert len(GRANT_PINS) == 2
@@ -423,10 +423,10 @@ def test_round2_records_install_only_exact_binding_authority(project_root: Path)
         record
         for record in _load(project_root / DETECTOR_MANIFESTS)["records"]
         if record["detector_id"] == "detector:bounded-code-csv-dependence-conflict"
-        and record["detector_version"] == "2.1.0"
+        and record["detector_version"] == "3.1.0"
     )
     assert code_detector["validation"]["qualification_record_refs"] == [
-        "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5"
+        "qualification:authorized-independent-unit-entry-v310-code-csv-envelope9"
     ]
 
 

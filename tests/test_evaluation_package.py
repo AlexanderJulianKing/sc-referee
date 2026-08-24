@@ -32,7 +32,7 @@ from sc_referee.snapshot.repository import capture_repository
 
 
 def _load_example(project_root: Path, name: str) -> dict[str, Any]:
-    path = project_root / "reference" / "schemas-v0.20.0" / "examples" / name
+    path = project_root / "reference" / "schemas-v0.21.0" / "examples" / name
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -136,7 +136,7 @@ def _refresh_root_cause(
     root_cause = build_adjudicated_root_cause(
         stage1,
         stage2,
-        project_root / "reference" / "schemas-v0.20.0",
+        project_root / "reference" / "schemas-v0.21.0",
         adjudicated_at=str(adjudication["adjudicated_at"]),
         statement_source_review_id=str(stage2[0]["review_id"]),
         required_scientific_premises=["The report and result use the same contrast orientation."],

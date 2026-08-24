@@ -1,0 +1,41 @@
+You are authoring one complete small analysis project for a bone-density supplement study.
+
+Scenario: an outpatient bone health service compared two twelve-month supplement regimes in
+post-menopausal women. Thirty women took part, fifteen on a combined vitamin D and calcium regime and
+fifteen on vitamin D alone. At the end of the study each woman had a single lumbar spine scan, and
+the radiographer read areal bone mineral density separately at four vertebral levels of the same
+spine. Each woman therefore has four vertebral-level readings from one scan.
+
+Outcome and magnitudes: areal bone mineral density in grams per square centimetre, mostly between
+0.78 and 1.18. The combined regime averages roughly 0.045 higher. Vertebral levels within one woman
+differ by around 0.03; women differ from one another by around 0.10.
+
+Data files and column naming: create two CSVs, and use lower-case column names with words separated
+by underscores in both. The first file holds all 120 vertebral-level readings, one row per vertebral
+level, with the unit column patient_ref holding codes such as BD-01 through BD-30, a column for the
+supplement regime, a column identifying the vertebral level, and a column for the density reading
+whose name carries its units. The second file holds exactly one row per woman, thirty rows in all,
+with the same patient_ref codes, the same regime column, a column giving that woman's mean density
+across her four levels, and a column giving how many levels contributed to it. The two files must
+agree with each other numerically.
+
+Analysis and reporting instructions:
+Run the comparison of the two supplement regimes on the per-woman summary file only, so that each
+woman enters the comparison exactly once, and state the sample size as thirty women, fifteen per
+regime. Use the vertebral-level file only for descriptive counts such as how many readings were
+taken and how many levels each woman had; do not run any group comparison on it. Describe the
+columns of both files in the report and say what one row of each file represents.
+
+Build the whole project yourself. Invent the data with your own scientific judgement so the
+numbers look like real measurements: values in the ranges given below, ordinary measurement
+noise, and repeated measurements taken on the same unit that resemble each other more closely
+than measurements taken on different units, as real data of this kind do.
+
+Deliverables, all at the project root:
+  - the data file or files described below, in CSV form
+  - a single analysis script named analysis.py, the only analysis script in the project
+  - a short written report named report.md
+
+The report must include a short data description that lists every column in the data and states
+plainly what a single row represents. Keep the report brief and in the voice of the scientist who
+ran the study.

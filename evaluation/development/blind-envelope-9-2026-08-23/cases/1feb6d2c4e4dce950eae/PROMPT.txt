@@ -1,0 +1,42 @@
+You are authoring one complete small analysis project for a tractor seat vibration study.
+
+Scenario: an occupational health team compared whole-body vibration exposure between two tractor
+seat types on a large arable estate. Twenty tractor operators took part, ten driving machines fitted
+with an air-suspension seat and ten with a standard mechanical seat. Each operator was instrumented
+during six separate field runs on different days over the same cultivated ground. Every operator
+contributes six runs, so the table holds 120 rows.
+
+Outcome and magnitudes: the vibration total value at the seat pan in metres per second squared,
+mostly between 0.45 and 1.45. Air-suspension seats average roughly 0.25 lower. Runs by the same
+operator differ by around 0.10; operators differ from one another by around 0.18.
+
+Data file and column naming: one CSV. Use lower-case column names with words separated by
+underscores. The unit column is operator_code and holds staff codes such as OP-01 through OP-20.
+Also include a column for the seat type, a column numbering the field run within the operator from
+one to six, and a column for the vibration value whose name carries its units.
+
+Analysis and reporting instructions:
+Runs are repeated measurements on the same operator and are not independent. Base the primary
+inference on a dependence-aware approach: either a clustered or robust-variance method taken from a
+statistics package that is not one of the two or three most commonly used ones, or a resampling
+procedure that you write out yourself which resamples whole operators, with all six of an operator's
+runs kept together, and builds the interval or the reference distribution from those operator-level
+resamples. Additionally show a plain two-sample comparison across all 120 individual runs, but
+present it only as an illustrative contrast and say explicitly in the report that this row-level
+comparison is not valid for inference here because it treats repeated runs on one operator as
+independent. The reported conclusion must rest on the dependence-aware result, and the sample size
+must be stated in terms of operators.
+
+Build the whole project yourself. Invent the data with your own scientific judgement so the
+numbers look like real measurements: values in the ranges given below, ordinary measurement
+noise, and repeated measurements taken on the same unit that resemble each other more closely
+than measurements taken on different units, as real data of this kind do.
+
+Deliverables, all at the project root:
+  - the data file or files described below, in CSV form
+  - a single analysis script named analysis.py, the only analysis script in the project
+  - a short written report named report.md
+
+The report must include a short data description that lists every column in the data and states
+plainly what a single row represents. Keep the report brief and in the voice of the scientist who
+ran the study.

@@ -19,9 +19,9 @@ QUALIFICATIONS = (
 SCHEMA_ROOT = ROOT / f"reference/schemas-v{SCHEMA_VERSION}"
 METRIC_PATHS = (
     ROOT
-    / "evaluation/qualification/authorized-independent-unit-entry-into-row-independent-procedure-v2.1.0-code-csv-lane/envelope-5-promotion-v020/QUALIFICATION_METRIC_SET.json",
+    / "evaluation/qualification/authorized-independent-unit-entry-into-row-independent-procedure-v3.1.0-code-csv-lane/envelope-9-promotion-v021/QUALIFICATION_METRIC_SET.json",
     ROOT
-    / "evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2/promotion-round2-v020/QUALIFICATION_METRIC_SET.json",
+    / "evaluation/qualification/complete-domain-exposure-denominator-v1.1.0-direct-lane-v2/promotion-round2-v021/QUALIFICATION_METRIC_SET.json",
 )
 
 
@@ -39,8 +39,14 @@ def build_grant_resources(output: Path) -> tuple[dict[str, Any], dict[str, Any]]
     if output.exists() and (output.is_symlink() or any(output.iterdir())):
         raise RuntimeError(f"grant output must be absent or empty: {output}")
     qualification_collection = _load(QUALIFICATIONS)
-    qualifications = qualification_collection.get("records")
-    if not isinstance(qualifications, list) or len(qualifications) != 2:
+    qualification_history = qualification_collection.get("records")
+    if not isinstance(qualification_history, list):
+        raise RuntimeError("qualification history is malformed")
+    installed_ids = {pin.qualification_id for pin in GRANT_PINS.values()}
+    qualifications = [
+        item for item in qualification_history if item.get("qualification_id") in installed_ids
+    ]
+    if len(qualifications) != 2:
         raise RuntimeError("exactly two installed qualifications are required")
     metric_sets = sorted(
         (_load(path) for path in METRIC_PATHS), key=lambda item: item["metric_set_id"]

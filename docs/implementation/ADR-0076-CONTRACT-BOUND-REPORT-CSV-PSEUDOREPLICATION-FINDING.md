@@ -27,6 +27,8 @@
   2026-08-21, authorized 2026-08-23
 - **Schema and installation amendment provenance:** Fable, executive authority; Alex: full steam
   ahead 2026-08-22
+- **Code-lane 3.1 qualification and installation provenance:** derived by Codex from envelope 9;
+  installed under Alex's standing full-steam authorization via Fable, 2026-08-23
 - **Decision owners:** Alex / sc-referee maintainers
 - **Current decision lane:** contract-bound CSV multiplicity plus static Python dataflow; prose evidence
   withdrawn
@@ -858,9 +860,45 @@ The qualified 2.1.0 binding, wording-v1 profile, installed production pin, and F
 unchanged. Detector 3.1.0 runs only through the explicit development lane and cannot emit a Finding.
 The versioned 3.0 source and every earlier detector identity remain immutable and content-addressed.
 
+## Accepted v0.21.0 schema and Envelope 9 installation amendment — 2026-08-23
+
+Provenance: **derived by Codex from envelope 9; installed under Alex's standing full-steam
+authorization via Fable**. Envelope 9 froze development detector and adapter `3.1.0`, twelve cases,
+and the accepted running-window bar. It produced 6/6 blind-positive evaluation candidates, 0/6
+blind-negative candidates, zero qualified-lane Findings on the twelve cases before promotion, and
+replay equality 12/12. Both family-C controls stopped on designed guards:
+`fd2f52a4099e1cbdfc8a` on `dependence-aware-sibling-present` and
+`1feb6d2c4e4dce950eae` on `resampling-inference-sibling-present`.
+
+The blind first-contact catch series is `0,1,2,4,0,2,2,6`. The accepted running window over
+Envelopes 7 through 9 is 10/18 positive candidates (56%) with 0 false accusations over the last 36
+blind cases. Lifetime evidence at installation is 206 blind cases, 0 false accusations, and 17
+blind catches. These values are copied into the frozen qualification metric, threshold, and
+Finding-profile binding artifacts; they are not inferred from current mutable source.
+
+Accepted public schema v0.21.0 adds only the exact code-CSV detector/check `3.1.0` qualification
+identity while preserving v0.20.0 byte-for-byte and retaining the historical `2.1.0` identity as
+representable. The installed qualification records and complete-domain records are migrated to
+v0.21.0 without widening their binding authority. The retired `2.1.0` dependence pin is frozen in
+the Envelope-5 qualification history and is not deleted.
+
+The qualified dependence registry projection and `_DEPENDENCE_PIN` now bind detector/check/adapter
+`3.1.0`, the Envelope-9 qualification and metric, and wording profile v2. The wording remains a
+contract-conflict record and adds the bounded non-inference that the declared unit column may be
+one component of a composite key. The normal audit lane may emit this Finding only after exact pin,
+binding, detector, adapter, qualification, metric, threshold, and wording-profile agreement. The
+development lane remains evaluation-only. The complete-domain pin remains live after its mechanical
+v0.21.0 record migration.
+
+Immutable v0.19.0 and v0.20.0 method-contract parents continue to validate against their co-installed
+schema packages. Exact Envelope-5 `2.1.0` authority may be carried forward to the qualified `3.1.0`
+lane because the human-selected requirement, authority snapshot, candidates, and comparison relation
+are byte-equivalent; contracts frozen by intervening development lanes are not granted that
+production compatibility.
+
 ## Open questions that would change the build
 
 None for the authorized implementation and installation. The report channel remains withdrawn; the
-2.3 within-unit-index classifier, byte-identical contract path/header binding, the code dataflow predicate, code-only suppressors, and the
-contract-conflict wording remain fixed. Envelope 5 supplies the accepted qualification evidence, and the
-v0.20.0 migration plus pin replacement above is authorized.
+3.1 CSV classifier, byte-identical contract path/header binding, operand-identity predicate,
+code-only guards, and contract-conflict wording remain fixed. Envelope 9 supplies the installed
+qualification evidence, and the v0.21.0 migration plus pin replacement above is authorized.

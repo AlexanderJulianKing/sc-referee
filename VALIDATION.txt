@@ -1,6 +1,6 @@
 {
   "public_examples_validated": 81,
-  "public_schema_version": "0.20.0",
+  "public_schema_version": "0.21.0",
   "observed_plane_records": "public",
   "multidimensional_lineage_plane": "public",
   "walking_skeleton": "passed",

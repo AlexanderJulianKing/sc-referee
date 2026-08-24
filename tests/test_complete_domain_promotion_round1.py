@@ -35,7 +35,7 @@ LANE = Path("evaluation/qualification/complete-domain-exposure-denominator-v1.1.
 LEDGER = LANE / "heldout-v207-seven-case/detector-run/DETECTOR_RUN_LEDGER.json"
 AUTHORING = LANE / "heldout-v207-seven-case/authoring/AUTHORING_PROTOCOL.json"
 PROMOTION = LANE / "promotion"
-PROMOTION_ROUND2_V020 = LANE / "promotion-round2-v020"
+PROMOTION_ROUND2_V021 = LANE / "promotion-round2-v021"
 OPENING = LANE / "heldout-v207-seven-case/HELDOUT_OPENING.json"
 FROZEN_DETECTOR_MANIFESTS = (
     LANE / "heldout-v207-seven-case/detector-run/runs/0e8a84e424013c876694/"
@@ -192,12 +192,12 @@ def test_round1_private_records_rederive_but_require_v019_restamp(
     }
 
 
-def test_v020_round2_records_resolve_the_installed_complete_domain_grant(
+def test_v021_round2_records_resolve_the_installed_complete_domain_grant(
     project_root: Path,
 ) -> None:
-    metric_set = _load(project_root / PROMOTION_ROUND2_V020 / "QUALIFICATION_METRIC_SET.json")
-    qualification = _load(project_root / PROMOTION_ROUND2_V020 / "DETECTOR_QUALIFICATION.json")
-    registry = LocalSchemaRegistry(project_root / "reference/schemas-v0.20.0")
+    metric_set = _load(project_root / PROMOTION_ROUND2_V021 / "QUALIFICATION_METRIC_SET.json")
+    qualification = _load(project_root / PROMOTION_ROUND2_V021 / "DETECTOR_QUALIFICATION.json")
+    registry = LocalSchemaRegistry(project_root / "reference/schemas-v0.21.0")
     registry.validate(metric_set)
     registry.validate(qualification)
 
@@ -302,12 +302,12 @@ def test_round2_installs_exact_binding_authority_while_detector_stays_experiment
     )
     records = _load(qualification_manifest)["records"]
     assert {record["qualification_id"] for record in records} == {
-        "qualification:authorized-independent-unit-entry-v210-code-csv-envelope5",
+        "qualification:authorized-independent-unit-entry-v310-code-csv-envelope9",
         "qualification:complete-domain-exposure-denominator-v207-round2",
     }
 
     matrix = generate_capability_matrix(
-        default_capability_manifest_root(), project_root / "reference/schemas-v0.20.0"
+        default_capability_manifest_root(), project_root / "reference/schemas-v0.21.0"
     )
     method_entry = next(
         item

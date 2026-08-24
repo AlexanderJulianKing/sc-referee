@@ -83,7 +83,7 @@ _CODE_LANE_REPORT_PRODUCER = f"print({_REPORT!r}, end='')\n"
 
 @pytest.fixture(autouse=True)
 def _active_schema_for_new_fixture_records(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(lean_pipeline, "SCHEMA_RELATIVE", Path("reference/schemas-v0.20.0"))
+    monkeypatch.setattr(lean_pipeline, "SCHEMA_RELATIVE", Path("reference/schemas-v0.21.0"))
 
 
 def _isolated_root(tmp_path: Path, project_root: Path) -> Path:

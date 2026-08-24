@@ -47,25 +47,25 @@ _DEPENDENCE_PIN = GrantPin(
         "method-conflict-binding:authorized-independent-unit-entry-into-row-independent-"
         "procedure-v1"
     ),
-    binding_digest="sha256:85c270872730d6ce8cf6cc62b79a54140b2a6121d98d7be35764db6d61f5b989",
+    binding_digest="sha256:80e37baf47ba77f004441c4ca1d2daa7c8cc3b0b36d0cd33a0e334ddab7b58c0",
     check_id="check:authorized-independent-unit-entry-into-row-independent-procedure",
-    check_version="2.1.0",
+    check_version="3.1.0",
     check_manifest_digest=(
-        "sha256:8b9ce5f53203c99bd0d24fcf0169e841905cb2aa034e858516bcf48105e4d6c2"
+        "sha256:32831f748957b38eacceac8ea517612d49ad57b20562f4df072fd1f25a4df84a"
     ),
     detector_id="detector:bounded-code-csv-dependence-conflict",
-    detector_version="2.1.0",
+    detector_version="3.1.0",
     detector_manifest_digest=(
-        "sha256:8824f6c48ac7b014383967e03774b9ef227dc265fa4754f5ce79ff1571304b05"
+        "sha256:43f5e88223dcd86af5b66baf41f0b6991ea28c782f3700dd224615e9c7085292"
     ),
-    qualification_id="qualification:authorized-independent-unit-entry-v210-code-csv-envelope5",
+    qualification_id="qualification:authorized-independent-unit-entry-v310-code-csv-envelope9",
     qualification_digest=(
-        "sha256:0e52eb7a7661646aaf30ba4484b81d10cfb1f8cb3f86caa0e4f14c0bd5c43bbb"
+        "sha256:a25edd25e5198a75d436a335313c7e40a695bac63860bc0e3af4ebb9b01b33f0"
     ),
-    metric_set_id="qualification-metric-set:authorized-independent-unit-entry-v210-envelope5",
-    metric_set_digest=("sha256:b11f7152edd1e6ea4cacd13d1c0b67ecfaf56ffbece7839246c762ec3c2909b4"),
+    metric_set_id="qualification-metric-set:1f26a5f74b12d8750ebc",
+    metric_set_digest=("sha256:494ee752e8a62770f444f62c5b1b317b52477ea2ad03c3a922e4285830a53f41"),
     threshold_policy_digest=(
-        "sha256:7fe65c8b07a4154c63f432112873e212568815834b9402f8dd33c8670b03d918"
+        "sha256:819973ff04ad136c7b80bb23cb46ab67b5cfd3d3384656488094950498291d57"
     ),
     exam_adapter_identity=(
         ExamAdapterIdentity(
@@ -73,29 +73,29 @@ _DEPENDENCE_PIN = GrantPin(
                 "adapter:authorized-independent-unit-entry-into-row-independent-procedure:"
                 "code-csv-rowwise-two-sample-v1"
             ),
-            adapter_version="2.1.0",
+            adapter_version="3.1.0",
             implementation_digest=(
-                "sha256:986f4862d5bc63cda2a61f5bf1d7df2d46e137b38de753edac5c2208f2705b54"
+                "sha256:6900611a3ef6c06be5740df14333eac5d789c6c93165b8826c796a8b4de87170"
             ),
             manifest_digest=(
-                "sha256:591a0bf3e7ca93b8166ad6a7a8779e937e48b5295b81ca0f433b02d28fc1c65c"
+                "sha256:1523cb97fba6c235bb98912483dedb18ef598e61eaecc646eb428aa33bfa1a8d"
             ),
             recognition_grammar_digest=(
-                "sha256:e135a5182ebba66ffc987f8867c468c54a9a1ab72d34f76dedee9867c4c3b10e"
+                "sha256:69256d48b46f16d7c144e01d5b4509470e9b187bf3db4f7e259d782459c2d476"
             ),
         ),
     ),
-    absolute_missed_roots=2,
+    absolute_missed_roots=0,
     required_roots=6,
-    finding_profile_id="method-conflict-finding:code-csv-authorized-unit-requirement-conflict-v1",
+    finding_profile_id="method-conflict-finding:code-csv-authorized-unit-requirement-conflict-v2",
     finding_profile_digest=(
-        "sha256:0440fdb918eb04ff975e7129c4152a2d681f3f4203ae8c7a1f8fc9ebf8916288"
+        "sha256:1dad7c14985fbfb89a7f8fe24a5e7f36d07a7c9fc6f76b4d14951cc71337c04a"
     ),
 )
 
 _COMPLETE_DOMAIN_PIN = GrantPin(
     binding_id="method-conflict-binding:complete-domain-exposure-denominator-v1",
-    binding_digest="sha256:9c7fd700782f78aa9dbc7033149ccca61255c23f551a994e6d30c42e20266600",
+    binding_digest="sha256:48b5c2ea1ed1f376af6d5aa729078ed15f1cff4d54c04a8c161937474bc934ab",
     check_id="check:complete-domain-exposure-denominator",
     check_version="2.0.7",
     check_manifest_digest=(
@@ -104,14 +104,14 @@ _COMPLETE_DOMAIN_PIN = GrantPin(
     detector_id="detector:bounded-analysis-method-conflict",
     detector_version="0.3.0",
     detector_manifest_digest=(
-        "sha256:5f3c4ad77d9878a4f6d88f9db20539d2ee05be885d36f0df0a00b2ce08ea94eb"
+        "sha256:df91936c23c9d7b56fcd483cf1aa053b8377e233b596c9f81424b5a26095015a"
     ),
     qualification_id="qualification:complete-domain-exposure-denominator-v207-round2",
     qualification_digest=(
-        "sha256:9a5dbdc6ae3a255c6541761fa276377b384aacbfb64ae5ffe538debe38d9d6e6"
+        "sha256:562586ca6225eb91f665983c532da7ca3285723cec345a341df95f659ed602fe"
     ),
     metric_set_id="qualification-metric-set:329715c3cf01ed499eb5",
-    metric_set_digest=("sha256:d6c94f419625aecd52ae0c886ac0452037e7eae14bbcfa7cb57e741b7e1ad9ed"),
+    metric_set_digest=("sha256:4c607d0df8c93c327e35ff954a70a41e47211782893a98c4d3797f9d951c129e"),
     threshold_policy_digest=(
         "sha256:fcf27c8d4d315fe836e0d35356ecadc496be4e53b607617d18c8c4bd670efc80"
     ),

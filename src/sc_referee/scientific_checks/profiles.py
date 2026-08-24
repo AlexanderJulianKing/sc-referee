@@ -7,33 +7,6 @@ from pathlib import Path
 from typing import Any
 
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
-from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
-    CODE_CSV_DEPENDENCE_ADAPTER_ID as QUALIFIED_CODE_CSV_DEPENDENCE_ADAPTER_ID,
-)
-from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
-    CODE_CSV_DEPENDENCE_ADAPTER_IMPLEMENTATION_DIGEST as QUALIFIED_CODE_CSV_DEPENDENCE_ADAPTER_IMPLEMENTATION_DIGEST,
-)
-from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
-    CODE_CSV_DEPENDENCE_ADAPTER_VERSION as QUALIFIED_CODE_CSV_DEPENDENCE_ADAPTER_VERSION,
-)
-from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
-    CODE_CSV_DEPENDENCE_COUNTEREVIDENCE as QUALIFIED_CODE_CSV_DEPENDENCE_COUNTEREVIDENCE,
-)
-from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
-    CODE_CSV_DEPENDENCE_ROLE_BINDINGS as QUALIFIED_CODE_CSV_DEPENDENCE_ROLE_BINDINGS,
-)
-from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
-    CODE_CSV_DEPENDENCE_SEMANTIC_ROLES as QUALIFIED_CODE_CSV_DEPENDENCE_SEMANTIC_ROLES,
-)
-from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
-    DEPENDENCE_RECOGNITION_CHECK_VERSION as QUALIFIED_DEPENDENCE_RECOGNITION_CHECK_VERSION,
-)
-from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
-    CodeCsvDependenceAdapter as QualifiedCodeCsvDependenceAdapter,
-)
-from sc_referee.scientific_checks.code_csv_dependence_adapter_v2_1 import (
-    code_csv_dependence_grammar_digest as qualified_code_csv_dependence_grammar_digest,
-)
 from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_0 import (
     CODE_CSV_DEPENDENCE_ADAPTER_IMPLEMENTATION_DIGEST as CODE_CSV_DEPENDENCE_ADAPTER_V3_0_IMPLEMENTATION_DIGEST,
 )
@@ -48,14 +21,41 @@ from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_1 import (
     CodeCsvDependenceAdapter,
     code_csv_dependence_grammar_digest,
 )
-from sc_referee.scientific_checks.code_csv_dependence_dataflow_v2_1 import (
-    CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST as QUALIFIED_CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST,
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_1 import (
+    CODE_CSV_DEPENDENCE_ADAPTER_ID as QUALIFIED_CODE_CSV_DEPENDENCE_ADAPTER_ID,
+)
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_1 import (
+    CODE_CSV_DEPENDENCE_ADAPTER_IMPLEMENTATION_DIGEST as QUALIFIED_CODE_CSV_DEPENDENCE_ADAPTER_IMPLEMENTATION_DIGEST,
+)
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_1 import (
+    CODE_CSV_DEPENDENCE_ADAPTER_VERSION as QUALIFIED_CODE_CSV_DEPENDENCE_ADAPTER_VERSION,
+)
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_1 import (
+    CODE_CSV_DEPENDENCE_COUNTEREVIDENCE as QUALIFIED_CODE_CSV_DEPENDENCE_COUNTEREVIDENCE,
+)
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_1 import (
+    CODE_CSV_DEPENDENCE_ROLE_BINDINGS as QUALIFIED_CODE_CSV_DEPENDENCE_ROLE_BINDINGS,
+)
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_1 import (
+    CODE_CSV_DEPENDENCE_SEMANTIC_ROLES as QUALIFIED_CODE_CSV_DEPENDENCE_SEMANTIC_ROLES,
+)
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_1 import (
+    DEPENDENCE_RECOGNITION_CHECK_VERSION as QUALIFIED_DEPENDENCE_RECOGNITION_CHECK_VERSION,
+)
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_1 import (
+    CodeCsvDependenceAdapter as QualifiedCodeCsvDependenceAdapter,
+)
+from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_1 import (
+    code_csv_dependence_grammar_digest as qualified_code_csv_dependence_grammar_digest,
 )
 from sc_referee.scientific_checks.code_csv_dependence_dataflow_v3_0 import (
     CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST as CODE_CSV_DEPENDENCE_DATAFLOW_V3_0_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.code_csv_dependence_dataflow_v3_1 import (
     CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST,
+)
+from sc_referee.scientific_checks.code_csv_dependence_dataflow_v3_1 import (
+    CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST as QUALIFIED_CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.copy_dosage_adapter import (
     COPY_DOSAGE_ADAPTER_IMPLEMENTATION_DIGEST,
@@ -232,7 +232,7 @@ def scientific_check_release_registry() -> ScientificCheckRegistry:
             detector_manifests[
                 (
                     "detector:bounded-code-csv-dependence-conflict",
-                    "2.1.0",
+                    "3.1.0",
                 )
                 if module.manifest.check_id
                 == "check:authorized-independent-unit-entry-into-row-independent-procedure"
@@ -954,7 +954,7 @@ def _dependence_recognition_module(
 def _qualified_dependence_recognition_module(
     check: CheckManifest, profile: _ReportProfile
 ) -> ScientificCheckModule:
-    """Build the byte-frozen Envelope-5 production dependence module."""
+    """Build the byte-frozen Envelope-9 production dependence module."""
 
     operands = {candidate.candidate_id: candidate.operand for candidate in profile.candidates}
     one_row_operand = operands[DEPENDENCE_RECOGNITION_CANDIDATE_ID]

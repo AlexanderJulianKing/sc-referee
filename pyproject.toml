@@ -134,6 +134,11 @@ sc_referee = [
   "resources/schemas-v0.20.0/schemas/v0.20.0/*.json",
   "resources/schemas-v0.20.0/tests/*.py",
   "resources/schemas-v0.20.0/tools/*.py",
+  "resources/schemas-v0.21.0/*",
+  "resources/schemas-v0.21.0/examples/*.json",
+  "resources/schemas-v0.21.0/schemas/v0.21.0/*.json",
+  "resources/schemas-v0.21.0/tests/*.py",
+  "resources/schemas-v0.21.0/tools/*.py",
 ]
 
 [tool.pytest.ini_options]

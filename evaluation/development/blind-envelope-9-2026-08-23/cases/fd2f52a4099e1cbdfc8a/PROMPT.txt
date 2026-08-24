@@ -1,0 +1,41 @@
+You are authoring one complete small analysis project for a cognitive training experiment.
+
+Scenario: a psychology laboratory compared two four-week training regimes for sustained attention.
+Twenty-two healthy adult volunteers took part, eleven assigned to an adaptive working-memory
+training regime and eleven to an active control regime of untimed puzzles. After training, each
+volunteer completed twelve trials of the same simple visual reaction-time task in one session. Every
+volunteer contributes twelve trials, so the table holds 264 rows.
+
+Outcome and magnitudes: reaction time in milliseconds, mostly between 310 and 530. The adaptive
+training group averages roughly 25 milliseconds faster. Trial-to-trial variation within one
+volunteer is around 35 milliseconds; volunteers differ from one another by around 45 milliseconds in
+their personal average.
+
+Data file and column naming: one CSV. Use lower-case column names with words separated by
+underscores. The unit column is volunteer_ref and holds participant references such as V01 through
+V22. Also include a column for the training regime, a column numbering the trial within the session
+from one to twelve, and a column for reaction time whose name carries its unit.
+
+Analysis and reporting instructions:
+Trials are repeated measurements taken on the same volunteer and are not independent of one another.
+Make the primary inference with a method that accounts for this dependence, using a model that
+includes a random effect for the volunteer alongside the training-group term, and base the reported
+conclusion about the two regimes on that model. You may additionally run a simple two-sample test
+across all individual trial rows, but if you do, present it in a clearly marked secondary section as
+a sensitivity check only, state in the report that it treats trials as independent and therefore
+overstates the evidence, and do not let it be the reported inferential result. State the number of
+volunteers per group as well as the number of trials.
+
+Build the whole project yourself. Invent the data with your own scientific judgement so the
+numbers look like real measurements: values in the ranges given below, ordinary measurement
+noise, and repeated measurements taken on the same unit that resemble each other more closely
+than measurements taken on different units, as real data of this kind do.
+
+Deliverables, all at the project root:
+  - the data file or files described below, in CSV form
+  - a single analysis script named analysis.py, the only analysis script in the project
+  - a short written report named report.md
+
+The report must include a short data description that lists every column in the data and states
+plainly what a single row represents. Keep the report brief and in the voice of the scientist who
+ran the study.

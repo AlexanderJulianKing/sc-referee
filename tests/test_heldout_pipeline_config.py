@@ -75,7 +75,7 @@ MINIMAL_REPORT = (
 
 @pytest.fixture(autouse=True)
 def _active_schema_for_new_heldout_records(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(lean_pipeline, "SCHEMA_RELATIVE", Path("reference/schemas-v0.20.0"))
+    monkeypatch.setattr(lean_pipeline, "SCHEMA_RELATIVE", Path("reference/schemas-v0.21.0"))
 
 
 @pytest.fixture

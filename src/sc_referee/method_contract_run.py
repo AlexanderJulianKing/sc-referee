@@ -341,10 +341,12 @@ def preflight_frozen_scientific_requirement(
         registry=active_lane_registry,
     ).with_authority_binding_snapshot(copy.deepcopy(resolved.authority_binding_snapshot or {}))
     if active != resolved:
-        # Production authority is exact: a contract frozen against a newer development
-        # grammar must never be reinterpreted by an older qualified grammar. Forward
-        # compatibility is reserved for the explicit evaluation-only development lane.
-        if scientific_check_lane == "qualified":
+        # A contract frozen by the previously qualified 2.1.0 lane may retain its exact
+        # human authority under the promoted 3.1.0 lane. Contracts frozen by intervening
+        # development grammars remain ineligible for production reinterpretation.
+        if scientific_check_lane == "qualified" and not (
+            resolved.check_version == "2.1.0" and active.check_version == "3.1.0"
+        ):
             return context
         if not compatible_dependence_code_lane_requirement(resolved, active):
             raise MethodContractRunError(
@@ -408,12 +410,17 @@ def _parent_scientific_requirement_registry(
     versions = {item.get("schema_version") for item in records}
     if versions == {SCHEMA_VERSION}:
         return LocalSchemaRegistry(active_schema_root)
-    if SCHEMA_VERSION == "0.20.0" and versions == {"0.19.0"}:
+    historical_version = next(iter(versions)) if len(versions) == 1 else None
+    if (
+        SCHEMA_VERSION in {"0.20.0", "0.21.0"}
+        and historical_version in {"0.19.0", "0.20.0"}
+        and historical_version != SCHEMA_VERSION
+    ):
         if active_schema_root.name != f"schemas-v{SCHEMA_VERSION}":
             raise MethodContractRunError(
                 "active schema root cannot resolve the immutable parent schema package"
             )
-        historical_root = active_schema_root.parent / "schemas-v0.19.0"
+        historical_root = active_schema_root.parent / f"schemas-v{historical_version}"
         if not historical_root.is_dir() or historical_root.is_symlink():
             raise MethodContractRunError("immutable parent schema package is unavailable")
         return LocalSchemaRegistry(historical_root)

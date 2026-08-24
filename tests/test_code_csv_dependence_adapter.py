@@ -12,9 +12,6 @@ from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.detectors.bounded_analysis_method_conflict import (
     BoundedAnalysisMethodConflictDetector,
 )
-from sc_referee.detectors.bounded_code_csv_dependence_conflict_v2_1 import (
-    BoundedCodeCsvDependenceConflictV21Detector,
-)
 from sc_referee.detectors.bounded_code_csv_dependence_conflict_v3_1 import (
     BoundedCodeCsvDependenceConflictV31Detector,
 )
@@ -301,8 +298,8 @@ def test_code_lane_has_distinct_qualified_and_development_bindings() -> None:
     development = next(
         item for item in registry.development_method_conflict_bindings if item.check_id == _CHECK_ID
     )
-    assert binding.detector_id == BoundedCodeCsvDependenceConflictV21Detector.detector_id
-    assert binding.detector_version == "2.1.0"
+    assert binding.detector_id == BoundedCodeCsvDependenceConflictV31Detector.detector_id
+    assert binding.detector_version == "3.1.0"
     assert binding.production_finding_permitted is False
     assert installed_pin_matches_live_identity(GRANT_PINS[binding.binding_id]) is True
     assert development.detector_id == BoundedCodeCsvDependenceConflictV31Detector.detector_id
