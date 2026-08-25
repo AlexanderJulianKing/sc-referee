@@ -1,6 +1,6 @@
 # Multiple-testing code slice 2.0 architecture-inversion design — 2026-08-25
 
-**Status:** build-ready design; documentation only in this session
+**Status:** build-ready design, Revision 2; documentation only in this session
 
 **Version:** detector/check/adapter `2.0.0`, development lane only
 
@@ -24,17 +24,20 @@ imported through private helpers.
 Envelope 10 and Envelope 11 each scored `0/6` first-contact recall and `0/9` false accusations.
 Both passed every hard stop. Delta 1.1 made the first wall more honest but did not change recall:
 real scripts still had to satisfy roughly nine independent whole-module grammars before one
-candidate could exist. Version 2.0 changes that architecture. The three false-accusation-critical
-syntactic censuses remain whole-module; value claims are proved only on bounded slices. This is a
-new accepted-policy surface and requires ADR-0079 before implementation.
+candidate could exist. Version 2.0 changes that architecture. The three identity censuses and the
+repeated-construct census remain whole-module; the new dynamic-execution, API-rebinding, and
+control-prevention integrity scans are whole-module abstention surfaces; value claims are otherwise
+proved only on bounded slices. This is a new accepted-policy surface and requires ADR-0079 before
+implementation.
 
 ## 1. Decision, claim, and hard boundary
 
 The 2.0 analyzer has two proof domains:
 
 1. **Whole-module syntactic censuses.** Every registered test call, correction-terminal spelling,
-   and statistics-prefix call in `analysis.py` is inspected regardless of reachability, helper use,
-   or slice membership.
+   statistics-prefix call, and repeated construct in `analysis.py` is inspected regardless of
+   reachability, helper use, or slice membership. The closed dynamic-execution and API-rebinding
+   scans and the control/prevention registry are also whole-module.
 2. **Value slices.** Operand identity and row completeness are proved by backward slices from the
    registered family calls. P-value identity, correction coverage, decisions, controls, and sinks
    are proved by forward slices from every registered family p-value.
@@ -42,9 +45,11 @@ The 2.0 analyzer has two proof domains:
 There is no chosen `main`/module setup grammar, no module-setup statement enumeration, and no
 general read-only-consumer allowlist. A `with`, `try`, class, arbitrary assignment, validation call,
 or project helper outside both value slices is not inspected merely because it exists. The global
-censuses still inspect their exact call/name channels. The syntax-wide A5 binding census and
-tracked-outcome stability closure bring matching bindings or mutations onto a slice; those are
-named exceptions, not a return to whole-module value interpretation.
+censuses and integrity scans still inspect their exact channels. In particular, no node in the
+whole-module control/prevention registry is eligible for the off-slice admission: its backward
+provenance and ability to prevent a slice node are always resolved. The syntax-wide A5 binding
+census and tracked-outcome stability closure bring matching bindings or mutations onto a slice;
+those are named exceptions, not a return to whole-module value interpretation.
 
 A 2.0 candidate means exactly what the 1.0/1.1 candidate meant: the authorized CSV and contract
 family have exactly `N` locally proved registered tests; every member has a proved raw or recognized
@@ -112,6 +117,28 @@ and every `code_csv_dependence_dataflow*.py` are byte-untouched. The two-registr
 proves byte equality and non-derivation. Only development MT manifests/binding, the lane-inclusive
 registry digest, and downstream locks directly binding that digest may change.
 
+### 2.5 Required ADR-0079 notes
+
+ADR-0079 must record all of the following as policy, not implementation convenience:
+
+- the whole-module/value-slice inversion and the whole-module control/prevention exception to
+  off-slice admission;
+- the abstention-only dynamic-execution and API-rebinding censuses;
+- the section-4.7 narrowing under which an uncorrected family with `N >= 3` admits only bare `0.05`,
+  with the deliberate recall cost that genuinely uncorrected `0.01` and `0.1` families are missed;
+- the corresponding MJ-6 asymmetry residual: once any recognized correction is present, the
+  admitted comparison set remains `{0.01, 0.05, 0.1}`. Therefore an `N = 4` strict-subset analysis
+  whose excluded raw members compare at a pre-registered `0.01` remains convictable. The product
+  rule does not catch `0.01 * 4 = 0.04`; this is a stated residual, not evidence that the level was
+  uncorrected;
+- the versioned hierarchy copy and its sole terminal-rendering exclusion;
+- the traceable live-conditional decision in 3.1: this design restores an abstaining conservative
+  rule and does not restore candidate-producing branch traversal withdrawn by 1.0 Revision 2.3; and
+- the surviving string `analysis-scope-structure-unsupported` changes predicate meaning. In 1.1 it
+  included the chosen module/setup grammar; in 2.0 it denotes only the tracked outcome-sequence
+  stability predicate in 4.2. The 1.1 and 2.0 uses are different predicates and must never be
+  compared across versions as if they were one metric or reason distribution.
+
 ## 3. Whole-module syntactic censuses
 
 The censuses run over `tuple(tree.body)` after docstring removal and bounded parsing. Calls in
@@ -143,6 +170,11 @@ The 1.1 call-instance rules are retained by value:
 - a registered call in any other conditional body, `try` part, handler, `else`, `finally`, `with`,
   or `match` stops `authorized-family-test-census-incomplete`; and
 - unresolved loop/comprehension/helper multiplicity stops `test-battery-cardinality-unresolved`.
+
+The live-conditional rule is an explicit safety narrowing: it restores conservative abstention for
+these bodies while preserving 1.0 Revision 2.3's withdrawal of the unsound traversal that counted
+their calls as established executions. No live or unresolved conditional body contributes a
+candidate-producing instance.
 
 The resolved count must equal `N` before operand identity. Below `N` is
 `authorized-family-test-census-incomplete`; above `N` is
@@ -232,6 +264,108 @@ exact 1.0 `scipy.stats.sem(V)` output-only grammar. There is no `scipy.stats.t.p
 other match abstains `unresolved-inference-sibling-present`. The adapter's scan of every other
 Python file for these imports is unchanged.
 
+### 3.4 Repeated-construct census — fourth global census
+
+The fourth global census records every `ast.For`, `ast.ListComp`, `ast.SetComp`, `ast.DictComp`, and
+`ast.GeneratorExp`, plus every call resolving to this byte-restated registered-draw registry:
+
+```text
+numpy.random.choice
+numpy.random.randint
+numpy.random.random
+numpy.random.random_sample
+numpy.random.sample
+numpy.random.ranf
+numpy.random.standard_normal
+numpy.random.normal
+numpy.random.uniform
+```
+
+It also records receiver methods `choice`, `integers`, `random`, `standard_normal`, `normal`, and
+`uniform` only when the receiver has the exact closed binding
+`numpy.random.default_rng([CLOSED_SEED])`. Occurrence discovery is purely syntactic and
+whole-module. The section-5 resampling trigger separately proves authorized-data provenance,
+cardinality, repeated-output reduction, and conclusion/sink control. An unresolved cardinality on a
+recorded construct consuming authorized family data retains `resampling-cardinality-unresolved`; it
+is never dropped because the construct is off the ordinary operand/p-value slices.
+
+### 3.5 Dynamic-execution census
+
+The following closed whole-module list is always abstention-only and returns
+`api-resolution-ambiguous`:
+
+- calls to unshadowed builtins `exec`, `eval`, `compile`, or `__import__`;
+- `importlib.import_module`, including exact import aliases;
+- unshadowed `getattr(MODULE, ...)` or `setattr(MODULE, ...)` when `MODULE` resolves to any imported
+  module or an exact alias of one; and
+- mutation of the mapping returned by unshadowed `globals()` or `locals()`, directly or through an
+  exact identity alias. Mutation is exactly subscript `Store`/`Del`, `__setitem__`, `update`,
+  `setdefault`, `pop`, `popitem`, or `clear`.
+
+Plain nonmutating `globals()`/`locals()` calls are not on this list. No other spelling, reflection
+API, or inferred intent is added. Presence of any listed shape anywhere in the parsed module stops
+before slicing; nothing dynamically generated may be assumed absent from the three API censuses.
+
+### 3.6 API-rebinding census
+
+This syntax-wide integrity census also returns `api-resolution-ambiguous`. It fires on either:
+
+1. any `Store` or `Del` to an `ast.Attribute` whose receiver resolves to a statistics-prefix module,
+   a registered-test module, or a recognized-correction module, including exact import-alias
+   closure; or
+2. any local `FunctionDef`, `AsyncFunctionDef`, `ClassDef`, argument binding, or `ast.Name` in
+   `Store`/`Del` context whose spelling shadows an import alias that is actually live in this module
+   and resolves to a registered test/correction API or to a canonical module/path prefix used to
+   resolve one.
+
+The original `import`/`from ... import ...` binding that creates a live alias is excluded; any later
+binding of that same alias is not. A spelling that merely equals an API terminal is insufficient:
+in a module with no matching live import, variables named `ttest_ind`, `multipletests`, or
+`benjamini_hochberg` do not enter this census. This census never attempts source-order recovery after
+a real live-alias rebind and never treats the hidden registered identity as absent.
+
+### 3.7 Whole-module hierarchy and execution-prevention registry
+
+The hierarchy registry is evaluated over the whole parsed module and is expressly excluded from
+section 1's off-slice admission. Its closed control-node set is every 1.0 control node:
+
+- a registered test-call argument, recognized correction-call argument, p-derived conclusion
+  operand, or family-container insertion key/value when the value determines execution, membership,
+  threshold, branch, or member selection rather than serving as the ordinary payload;
+- `ast.If.test`, `ast.IfExp.test`, `ast.While.test`, `ast.Assert.test`, `ast.Match.subject`, every
+  non-`None` `ast.match_case.guard`, each `ast.For`/`ast.AsyncFor` iterable, each comprehension
+  iterable or `if`, and every boolean short-circuit operand feeding any node in this list; and
+- any argument/member that selects which member a registered sink emits.
+
+It additionally includes every `return`, `break`, `continue`, and `raise`, and every call resolving
+exactly to `sys.exit`, when that early exit can prevent any backward operand/family node, forward
+p/correction/conclusion/sink node, or another enumerated control node from executing. For `return`,
+`raise`, and `sys.exit`, provenance includes their value/exception/cause/arguments and the control
+expressions governing reachability. For `break` and `continue`, it includes the enclosing loop and
+all control expressions governing reachability.
+
+For every registry entry, compute the bounded backward name/member closure from 1.0 section 5.1 by
+value. Resolve the header set of each authorized-reader projection independently. A projection
+contributes to joint derivation only when its resolved header set is nonempty and is a subset of the
+contract outcome-column set. A mixed projection containing an identifier, group, metadata, or any
+other non-outcome header contributes nothing, even when it also contains two or more outcomes. A
+scalar is jointly derived exactly when the union of all contributing pure-outcome projection sets
+in its closure contains at least two distinct contract outcome headers. Thus
+`frame[["batch_id", GROUP_COLUMN, *OUTCOMES]].isna()` is a data-integrity check, not a scientific
+gate, while `frame[OUTCOMES]`, two separate pure outcome projections, and the all-NumPy omnibus
+fixtures remain jointly derived. If a local family p value, recognized reject or adjusted-p value,
+A5 alpha value, or jointly-derived value reaches the control edge, abstain
+`hierarchical-gatekeeping-present`. The exact 4.8 terminal-rendering transport is the sole exclusion.
+If the AST control-flow/dominance analysis cannot resolve whether the node can prevent a slice or
+enumerated control node, abstain `pvalue-control-dependence-unresolved`. A resolved untracked control
+edge does not by itself abstain.
+
+The listed nodes are a minimum terminal registry, not an execution-prevention ceiling. Any other
+node whose evaluation can prevent an enumerated control node or a slice node from executing is also
+a control edge and receives the same backward-provenance classification. This residual is resolved
+only from AST control-flow, short-circuit, and dominance structure; identifier wording and prose are
+never consulted.
+
 ## 4. Slice construction and value domains
 
 ### 4.1 Graph, fixed point, and limits
@@ -248,10 +382,12 @@ or a store/delete affecting a tracked value abstains. Source position is not use
 conditional store executed. Format-string arguments are traversed for lineage; format text is never
 read, matched, or compared.
 
-### 4.2 Closed family-value normalization
+### 4.2 Closed outcome-sequence normalization
 
-The family normalizer runs only when a value feeds call multiplicity, authorized outcome projection,
-correction membership, or conclusion membership. It supports:
+This is the sole normalizer for outcome-name sequences and tables. It runs only when such a value
+feeds call multiplicity, authorized outcome projection, or outcome-label/position conclusion
+membership. It never reconstructs a p-value container or determines correction coverage; section
+4.6 is the sole grammar for those triggers. The outcome normalizer supports:
 
 - flat/nested literal List/Tuple values within A1 bounds;
 - constant dictionaries within A2 bounds and insertion order;
@@ -320,10 +456,14 @@ through:
 - exact literal position `1` on that result; or
 - the second target of exact two-target List/Tuple destructuring of the direct registered call.
 
-The position-1 forms copy the registered-return projection pattern from dependence v3.1. They do
-not recognize a generic tuple, wrapper, imported result, or call because its second value is named
-`p`. Every admitted root still terminates at the registered call's pinned abstract `.pvalue` member
-in this source. Imported, file-loaded, or unresolved-call values retain
+The position-1 forms copy the registered-return projection pattern from dependence v3.1 and are
+pinned to the SciPy return layout in lockfile versions `1.17.1` and `1.18.0`; changing either pinned
+version or admitting another version requires a reviewed grammar change. They do not recognize a
+generic tuple, wrapper, imported result, or call because its second value is named `p`. Sibling
+registered-result members—including `.statistic`, `.df`, and literal position `0`—are off the
+p-value slice: they establish neither a p root, correction coverage, nor a conclusion. Every
+admitted root still terminates at the registered call's pinned abstract `.pvalue` member in this
+source. Imported, file-loaded, or unresolved-call values retain
 `upstream-correction-lineage-unresolved`; a local root with an unresolved consumer retains
 `unresolved-pvalue-consumer`.
 
@@ -360,11 +500,40 @@ Thus exact `float(P)` moves from the 1.1 scalar abstention to a one-to-one local
 `float(P) * N`, `float(P / N)`, `float(adjust(P))`, attribute/dynamic float, or any nested call does
 not: the p root remains visible to the off-grammar guard.
 
-Closed containers are literal List/Tuple/Dict values, exact section-4.2 comprehensions, and exact
-`append`/subscript stores whose target, family position, and member reconstruct uniquely. Set,
-dynamic key, duplicate, unknown store, attribute store, or incompletely reconstructed recognized
-family container abstains `pvalue-family-collection-unresolved`; an otherwise unknown consumer
-abstains `unresolved-pvalue-consumer`.
+The p-container reconstruction grammar is separate from 4.2 and complete. A `PITEM` is exactly one
+registered p identity or that identity's exact literal field in a reconstructable family record. A
+`PSEQ` is admitted only through these productions:
+
+1. a List/Tuple display whose every element is one `PITEM`, or a Dict display with no unpacking,
+   unique literal string/integer keys, and one `PITEM` per value, preserving source insertion order;
+2. a Name with exactly one usable reaching definition of `PSEQ`, or an exact identity alias of it;
+3. an exact literal integer slice of `PSEQ` with omitted/literal bounds and omitted or literal-one
+   step; literal integer indexing yields one `PITEM`, not a sequence;
+4. same-kind List/List or Tuple/Tuple `+` concatenation of two `PSEQ` values;
+5. one non-async, one-generator, no-`if` List/Tuple comprehension over a proved family-record
+   sequence or exact `zip(OUTCOME_SEQUENCE, PSEQ)`, with exact destructuring and an element that is
+   solely the p field/target;
+6. a list builder bound once to `[]` or an exact `PSEQ`, followed only by source-ordered,
+   unconditionally executed `.append(PITEM)` or `.extend(PSEQ)` in the same lexical/X4-expanded
+   path; or
+7. a List/Dict builder of exact final length/key set whose literal integer/key subscript positions
+   are each stored exactly once with one `PITEM` before any load.
+
+Every admitted production must reconstruct a unique ordered tuple of family positions. Duplicate
+positions, Set/SetComp, mismatched concatenation kind, nonliteral/dynamic key or slice, filtering,
+reordering, conditional or duplicate store, alias mutation, attribute store, unresolved escape, or
+any member with zero/multiple p origins fails the grammar. A family-bearing container failing this
+grammar abstains `pvalue-family-collection-unresolved`; an otherwise unknown consumer abstains
+`unresolved-pvalue-consumer`.
+
+Correction-input classification uses only that grammar. Thus `pvals[:3]` is an exact first-three
+`strict_subset` correction input when `pvals` is a complete ordered `PSEQ`; `pvals + extra` is an
+exact correction input only when both operands are same-kind reconstructed `PSEQ` values and their
+concatenation has unique known positions (otherwise `correction-family-lineage-unresolved`); and
+direct `zip(OUTCOMES, pvals)` is a sequence of pairs, not `PSEQ`, so passing it directly to a
+recognized correction abstains `correction-family-lineage-unresolved`. Only production 5's exact
+p-field projection from that zip can become a correction input. In that production, section 4.2
+proves only the outcome-sequence side and order; section 4.6 alone proves the p side and coverage.
 
 An exact `pandas.DataFrame(P_RECORDS)` construction and later DataFrame/Series mutation are not
 recognized in slice 2.0. Any family p entering that pipeline abstains
@@ -395,10 +564,16 @@ exactly one binding event anywhere in the parsed module. Decimal construction us
 source text after permitted underscore removal, or `Decimal(repr(value))` when source text is
 unavailable, never `Decimal(float)`.
 
-The admitted set remains `{0.01, 0.05, 0.1}`. For exact `N`, if `a * N` is in that set, abstain
+For an exact family `N >= 3` with no call admitted by the recognized-correction grammar, the only
+admitted bare decision literal is `{0.05}`; bare `0.01` and `0.1` abstain
+`unresolved-decision-threshold`. When at least one recognized correction call exists, the existing
+comparison set `{0.01, 0.05, 0.1}` remains for its resolved raw/adjusted member conclusions. The
+product rule is unchanged in both cases: for exact `N`, if `a * N` is in `{0.01, 0.05, 0.1}`, abstain
 `unresolved-decision-threshold`. Arithmetic, power, helper return, table cell, destructured value,
 dynamic value, or second A5 binding also abstains that reason. Direct-p comparisons remain excluded
-from the off-grammar transform census, preserving the order-14/order-15 partition.
+from the off-grammar transform census, preserving the order-14/order-15 partition. This deliberate
+narrowing misses genuinely uncorrected analyses using `0.01` or `0.1` so that a plausible
+pre-registered corrected decision level cannot be convicted from code silence.
 
 ### 4.8 Conclusions and display-only rendering
 
@@ -415,10 +590,20 @@ Constant[str] if DECISION else Constant[str]
 
 or one X4-expanded pure output helper whose body, after a possible docstring, consists only of
 `if DECISION: return Constant[str]` and a final `return Constant[str]`. Both strings are nonempty,
-NUL-free, and at most 256 UTF-8 bytes; their text is never read. The selected string may pass through
-identity assignment or the same member's reconstructable record before one or more unconditionally
-executed registered sinks. Repeated unconditional reporting of the same decision is presentation,
-not a second emission branch.
+NUL-free, and at most 256 UTF-8 bytes. The 256-byte cap is measured from the UTF-8 encoding; the text
+is never inspected, tokenized, matched, or compared for meaning. The selected string may pass
+through identity assignment or the same member's reconstructable record before one or more
+unconditionally executed registered sinks. Repeated unconditional reporting of the same decision is
+presentation, not a second emission branch.
+
+Terminal rendering requires total forward accounting of every consumer of the selected string and
+of every Name bound to it, transitively. The only admitted transports are exact identity assignment,
+the same member's reconstructable record field, literal format/f-string payload transport that does
+not alter control, and the payload position of an unconditionally executed registered sink. Any
+other call, comparison, operation, container use, store, return, control, or unresolved consumer
+removes the node from the rendering exclusion and returns it to the whole-module hierarchy registry;
+tracked provenance then abstains `hierarchical-gatekeeping-present`, and unresolved prevention
+abstains `pvalue-control-dependence-unresolved`. One admitted sink does not excuse another consumer.
 
 Everything adjacent remains hierarchical: either arm containing a call/tracked value; non-string
 arms; nested/compound control; deciding whether a sink executes; choosing between sink calls;
@@ -426,11 +611,12 @@ selecting a family member/container; gating a test/correction; controlling itera
 parent/dominance edges. This is the only display rescope.
 
 The 1.1 `_hierarchy_guard` cannot remain byte-identical because it classifies every `If`/`IfExp`
-before roles exist. The 2.0 module therefore has a versioned copy with the same tracked-value set,
-assert/match/short-circuit registry, and execution-prevention residual, plus one leading
+before roles exist and does not perform section 3.7's whole-module prevention proof. The 2.0 module
+therefore has a versioned copy with the same tracked-value meanings, the now-explicit 1.0 node set,
+and the execution-prevention residual; it adds early exits, whole-module provenance, and one leading
 classification excluding only exact terminal-rendering nodes. Every other branch and reason is
-copied by value. The change is forced by slice rescoping and the opened positive corpus; it is not a
-general verdict-text exemption.
+copied by value. The change is forced by slice rescoping and the correct early-return corpus cases;
+it is not a general verdict-text exemption.
 
 ## 5. Guard ownership and ordered predicate
 
@@ -438,9 +624,11 @@ general verdict-text exemption.
 
 | Guard | 2.0 scope | Surviving behavior |
 |---|---|---|
-| Test/sensitivity/dead branch | global census + family normalizer | Exact `N`; extra, conditional, uncalled-helper, unresolved multiplicity retain reasons. |
+| Test/sensitivity/dead branch | global census + outcome-sequence normalizer | Exact `N`; extra, conditional, uncalled-helper, unresolved multiplicity retain reasons. |
 | Correction terminal | global census + forward discharge | Every terminal seen; only exact recognized call discharged. |
 | Statistics prefix | global census | Every matching call seen; only exact exemption discharged. |
+| Dynamic execution | global integrity census | Any exact 3.5 shape stops `api-resolution-ambiguous`; dynamically hidden APIs are never assumed absent. |
+| API rebinding | global integrity census | Any exact 3.6 rebind stops `api-resolution-ambiguous`; shadowed registered calls are never counted as resolved. |
 | Outcome mutation | backward family slice + syntax-wide alias/use closure | Mutation, rebinding, delete, store, escape retain `analysis-scope-structure-unsupported`. |
 | Discovery/validation | backward operands | Every row set equals complete group rows. |
 | Upstream adjusted | forward lineage + reader roots | File/import/unresolved roots never become local p. |
@@ -448,9 +636,9 @@ general verdict-text exemption.
 | Extremum | forward slice | Closed min/max/nan/sorted forms retain extremum reason; others retain manual/unresolved reasons. |
 | Export | forward slice | `.to_csv`, `numpy.savetxt`, `json.dump` carrying family p retain `unresolved-pvalue-consumer`. |
 | Threshold/manual | forward + syntax-wide A5 | Source Decimal, product rule, and off-grammar abstentions unchanged. |
-| Hierarchy/control | backward provenance + forward decision/control + AST dominance | Assert, match, BoolOp, scientific/sink control, and execution residual survive; only 4.8 rendering excluded. |
+| Hierarchy/control | whole-module 3.7 registry + backward provenance + value slices + AST dominance | Assert, match, BoolOp, early exits, scientific/sink control, and execution residual survive; only 4.8 rendering excluded. |
 | Partition | correction/conclusion forward slice | Disjoint corrections/conclusion partitions retain `multiple-family-partition-present`. |
-| Resampling/maxT | global repeated constructs + backward data provenance + forward control | Unresolved cardinality and resolved joint control retain distinct reasons. |
+| Resampling/maxT | fourth global repeated-construct census + backward data provenance + forward control | Unresolved cardinality and resolved joint control retain distinct reasons. |
 
 Resampling condition-2 breadth is copied verbatim from pseudoreplication 3.0 as restated in the 1.0
 design: provenance follows member edges, helper returns, destructuring, actual/formal bindings, and
@@ -468,7 +656,7 @@ All guards are computed over declared scopes; outward first reason is selected o
 | 3 | Digest-equal authorized CSV. | `frozen-authority-material-mismatch` |
 | 4 | CSV finite family domain, exact two groups, >=2 rows/group/outcome. | `authorized-family-csv-domain-unavailable`; `authorized-group-domain-not-exactly-two` |
 | 5 | One `analysis.py`; alternate-source and other-file statistics scan. | `analysis-source-envelope-unavailable`; `alternate-analysis-file-present`; `statistics-api-imported-outside-analysis-py` |
-| 6 | Bounded parse, API resolver, global callee indexes; no chosen setup scope. | `api-resolution-ambiguous`; `dataflow-definition-ceiling-exceeded` |
+| 6 | Bounded parse, API resolver, global callee indexes, dynamic-execution census, and API-rebinding census; no chosen setup scope. | `api-resolution-ambiguous`; `dataflow-definition-ceiling-exceeded` |
 | 7 | Global registered-call census and exact `N` multiplicity. | `test-battery-cardinality-unresolved`; `authorized-family-test-census-incomplete`; `extra-registered-test-outside-authorized-family`; X4 reasons |
 | 8 | Uniform API and order-equal family mapping. | `mixed-test-api-family`; `test-operand-lineage-unresolved` |
 | 9 | Complete backward reader/operand slices and group-row equality. | `additional-accepted-reader-present`; `authorized-reader-lineage-unavailable`; `test-operand-lineage-unresolved`; `selected-group-row-completeness-unproven`; X4 reasons |
@@ -476,7 +664,7 @@ All guards are computed over declared scopes; outward first reason is selected o
 | 11 | Family extremum guard. | `family-pvalue-extremum-reduction-present` |
 | 12 | Corrections/manual values; global terminal discharge; noncomparison off-grammar transforms. | `correction-family-lineage-unresolved`; `unresolved-manual-correction-present`; `pvalue-scalar-cast-or-rounding-unsupported` |
 | 13 | Every direct-p threshold under comparison/A5/product grammar. | `unresolved-decision-threshold` |
-| 14 | Hierarchy, partition, resampling, global statistics prefix. | `hierarchical-gatekeeping-present`; `pvalue-control-dependence-unresolved`; `multiple-family-partition-present`; `resampling-cardinality-unresolved`; `permutation-family-control-present`; `unresolved-inference-sibling-present` |
+| 14 | Whole-module hierarchy/prevention registry, partition, fourth global resampling census, and global statistics prefix. | `hierarchical-gatekeeping-present`; `pvalue-control-dependence-unresolved`; `multiple-family-partition-present`; `resampling-cardinality-unresolved`; `permutation-family-control-present`; `unresolved-inference-sibling-present` |
 | 15 | One recognized conclusion and sink for every member. | `pderived-conclusion-family-incomplete`; `conclusion-output-sink-unavailable` |
 | 16 | Classify `complete`, `strict_subset`, or `none`. | no new reason |
 | 17 | Covered negative for complete; one dev candidate for subset/none; no Findings. | `multiple-testing-code-inspection-exception` on localized failure |
@@ -544,10 +732,12 @@ conclusion-output-sink-unavailable
 multiple-testing-code-inspection-exception
 ```
 
-No surviving code is relabeled. `analysis-scope-structure-unsupported` now means only surviving
-on-slice outcome mutation/rebinding/delete/store/escape; it no longer means an unrelated module
-statement. `pvalue-scalar-cast-or-rounding-unsupported` survives for round and adjacent scalar
-shapes; direct `float(P)` is the closed identity in 4.6.
+No surviving reason string is renamed, and surviving reasons other than the following keep their
+predicate meanings. `analysis-scope-structure-unsupported` deliberately changes meaning: in 2.0 it
+means only on-slice outcome-sequence mutation/rebinding/delete/store/escape and no longer means an
+unrelated module/setup statement. As required by 2.5, its 1.1 and 2.0 occurrences are
+version-incomparable. `pvalue-scalar-cast-or-rounding-unsupported` survives for round and adjacent
+scalar shapes; direct `float(P)` is the closed identity in 4.6.
 
 Retired predicates with no 2.0 emitter are `_chosen_scope` as an MT prerequisite, module/main/setup
 statement enumeration, the whole-module setup value gate, the general read-only consumer allowlist,
@@ -568,7 +758,9 @@ A candidate asserts no recognized correction and raw conclusions only after:
 2. every family p forward slice accounts for every consumer, so an unrecognized correction cannot
    be crossed through an unknown helper/library, arithmetic, store, container, or export; and
 3. finite correction/manual grammars plus the order-12/13 partition and Decimal product rule block
-   all unrecognized p/threshold arithmetic.
+   all unrecognized p/threshold arithmetic; and
+4. dynamic execution, API rebinding, and every control edge capable of preventing a family slice
+   are either proved harmless under their closed registries or abstain.
 
 Machine-checkable receipts include global call positions/identities, every p root, every classified
 consumer edge, correction input members, conclusion members, and set equality of discovered versus
@@ -585,12 +777,16 @@ accounted p-consumer edges. Missing receipt means abstention.
 | Off-slice registered test | `correct-unused-sensitivity-helper` | Global test census adds conservative instance: `extra-registered-test-outside-authorized-family`. |
 | Off-slice correction name | `correct-unused-holm-call` | Global terminal census: `unresolved-manual-correction-present`. |
 | Off-slice statistics call | `correct-unused-shapiro-helper` | Global prefix census: `unresolved-inference-sibling-present`. |
+| Off-slice dynamic execution | `correct-eval-based-correction-helper` | Global dynamic-execution census: `api-resolution-ambiguous`, whether or not the helper is called. |
+| Off-slice API rebinding | `correct-monkeypatched-statistics-correction` | Global API-rebinding census: `api-resolution-ambiguous`; the patched call is never treated as the registered identity. |
+| Nonalias API-terminal spelling | `correct-nonalias-terminal-name-with-complete-correction` | Calls use live module aliases, while unrelated Stores named `ttest_ind` and `benjamini_hochberg` shadow no live alias; 3.6 does not fire and the exact complete correction yields a covered negative. |
 | Off-slice extra reader | `correct-unused-secondary-reader` | Unused reader admitted; paired mixed-reader operand enters backward slice and stops `additional-accepted-reader-present`. |
 | Slice setup only | `correct-outcome-alias-pop-in-unused-helper` | Stability closure brings mutation on-slice: `analysis-scope-structure-unsupported`. |
 | Helper slicing | `correct-helper-row-filter` | QC filter is on operand slice: `selected-group-row-completeness-unproven`. |
 | Position-1 p | `correct-position-one-then-holm` | Projection tied to registered return; complete correction yields covered negative. Generic tuple unresolved. |
 | Direct float identity | `correct-float-p-hand-bonferroni` | Multiplication remains p-derived and is recognized manual or abstains manual reason. |
 | Display rendering | `correct-display-decision-gates-correction` | Controls correction, so outside 4.8: `hierarchical-gatekeeping-present`. |
+| Off-slice early exit | `correct-early-return-panel-gate` | Synthetic isolated fixture: the panel scalar uses only pure `FRAME[OUTCOMES]` projections, the early `return` precedes the family calls, and every family operand uses admitted `.loc[FRAME[GROUP] == VALUE, OUTCOME]`; order 9 passes and whole-module 3.7 is the first reason, `hierarchical-gatekeeping-present`. |
 | Subset metadata | `correct-two-prespecified-families` | Disjoint corrections stop `multiple-family-partition-present`; subsets never merge. |
 
 ### 7.3 Surviving guard adversaries
@@ -605,6 +801,7 @@ accounted p-consumer edges. Missing receipt means abstention.
 | NumPy gate | `correct-numpy-omnibus-assert-gate` | `hierarchical-gatekeeping-present` |
 | Match/short circuit | `correct-match-guard-and-boolop-gate` | `hierarchical-gatekeeping-present` |
 | Execution residual | `correct-try-gate-residual` | `pvalue-control-dependence-unresolved` |
+| Early-return panel gate | `correct-early-return-panel-gate` | Synthetic isolated fixture with pure-outcome panel provenance and admitted `.loc` family operands: exact first reason `hierarchical-gatekeeping-present`. It is not sourced from `spec-14` or `spec-36`. |
 | Dynamic resampling | `correct-dynamic-label-permutation` | `resampling-cardinality-unresolved` |
 | Resolved maxT | `correct-label-permutation-maxT` | `permutation-family-control-present` in isolated reachable fixture |
 | Extremum | `correct-min-p-reported` | `family-pvalue-extremum-reduction-present` |
@@ -613,6 +810,7 @@ accounted p-consumer edges. Missing receipt means abstention.
 | Family collection | `correct-dynamic-p-dict` | `pvalue-family-collection-unresolved` |
 | Partition | `correct-disjoint-prespecified-families` | `multiple-family-partition-present` |
 | Product rule | `correct-off-AST-bonferroni-001-N5` | `unresolved-decision-threshold` |
+| Pre-registered bare level | `correct-preregistered-threshold-001-N4` | Four raw `p < 0.01` decisions and no recognized correction: `unresolved-decision-threshold`. Protocol prose is not detector evidence. |
 | Statistics sibling | `correct-assumption-check` | `unresolved-inference-sibling-present` |
 
 No fixture accepts alternative reasons. Combined opened cases may stop earlier than isolated guards;
@@ -628,7 +826,9 @@ correction, and output sink. Global census receipts are coverage records, not pr
 |---|---|
 | MT 1.1 dataflow/adapter/detector/integration | Copy to new 2.0 modules; never edit 1.0/1.1. |
 | Dependence v3.1 | Copy graph/worklist, p-depth, return-position, X4, row, sink, guard patterns by value; no edit/private import. |
-| Global MT registries | Copy byte-for-byte from 1.1 and assert equality. |
+| Inherited MT registries | Copy registered-test, correction, statistics-prefix, and resampling constants byte-for-byte from 1.1/pinned v3.1 and assert equality. |
+| 2.0 integrity registries | New exact dynamic-execution, API-rebinding, and whole-module control/early-exit tuples; abstention-only and version-pinned. |
+| Hierarchy implementation | Versioned copy required by 3.7/4.8; no edit or private import of 1.1/dependence code. |
 | Contract 1.2.0 | Reuse without edit. |
 | MT wording v1 | Reuse exact object/digest. |
 | Qualified lanes/pins | Byte-untouched and absent from development binding. |
@@ -642,9 +842,13 @@ development binding.
 
 ### 9.1 Slice engine gates
 
-1. **Global/slice differential.** Insert each registered test, correction terminal, and statistics
-   call into every off-slice AST body kind; its exact global census changes. Insert unrelated
-   nonregistered statements/calls/imports in the same places; facts/reasons do not change.
+1. **Global/slice differential.** Insert each registered test, correction terminal, statistics call,
+   repeated construct, dynamic-execution shape, API rebind, and 3.7 control/early-exit node into
+   every off-slice AST body kind; its exact global census or integrity outcome changes. Insert
+   unrelated nonregistered statements/calls/imports in the same places; facts/reasons do not change.
+   A Store to an actually imported live API/module alias must abstain `api-resolution-ambiguous`;
+   the identical Store spelling in a module without that live import must not enter 3.6. Execute
+   `correct-nonalias-terminal-name-with-complete-correction` as the covered-negative control.
 2. **Backward totality.** For every admitted operand edge, mutate one predecessor to a dynamic call,
    second binding, row mask, wrong group/outcome, or alternate reader. Require the exact reason.
 3. **Forward totality.** Independently enumerate every consumer parent of every p root. Analyzer
@@ -659,11 +863,31 @@ development binding.
 6. **Display rendering.** Cross direct/assigned/helper/record constant-string rendering and repeated
    unconditional sinks. Calls, nonstrings, conditional sink execution, alternate sink branches,
    test/correction/container gates, BoolOps, assert, match, and unresolved parents retain guards.
+   Add a second consumer to the selected string and to each identity-bound alias; every unaccounted
+   consumer returns the node to hierarchy.
+7. **P-container grammar.** Cross every 4.6 production and one-edge near miss. Pin `pvals[:3]` as
+   exact subset coverage, same-kind unique `pvals + extra` as exact union coverage, direct
+   `zip(OUTCOMES, pvals)` as `correction-family-lineage-unresolved`, and its exact p-field
+   comprehension as reconstructed coverage.
+8. **Control prevention.** Execute fixtures for every 3.7 node, including early `return`, `break`,
+   `continue`, `raise`, and `sys.exit`, both tracked and untracked. Pin tracked/joint provenance to
+   `hierarchical-gatekeeping-present`, unresolved dominance to
+   `pvalue-control-dependence-unresolved`, and untracked resolved controls to no guard. Cross the
+   identical early-raise validation with pure `FRAME[OUTCOMES]` and mixed
+   `FRAME[[IDENTIFIER, GROUP, *OUTCOMES]]` projections: only the pure projection contributes to joint
+   derivation. The synthetic `correct-early-return-panel-gate` must pass order 9 and stop first at
+   hierarchy.
+9. **Threshold narrowing.** With `N = 4` and no recognized correction, cross bare `0.01`, `0.05`,
+   and `0.1`: only `0.05` is admitted and the other two require
+   `unresolved-decision-threshold`. Repeat with a recognized correction to pin the retained set, and
+   independently exercise every source-text Decimal product-rule value.
 
 ### 9.2 Registry, reasons, guards, and isolation
 
-- Byte-equality pins every section-3 registry, `_QUERY`, correction methods/defaults, axis forms,
-  thresholds/operators, extremum, resampling, and sink registry.
+- Byte-equality pins every inherited section-3 registry, `_QUERY`, correction methods/defaults,
+  axis forms, SciPy `1.17.1`/`1.18.0` position-1 contracts, thresholds/operators, extremum,
+  resampling, and sink registry. Exact tuple/set equality pins the new dynamic-execution,
+  API-rebinding, and control-node registries.
 - Every closed reason except documented-unreachable sink has one real public-analyzer fixture; 17
   X4 reasons may share a parametrized module. Emitters plus unreachable annex equal the closed set.
 - Every section-7 fixture executes the public analyzer; private-helper or AST-shape assertions do
@@ -683,12 +907,16 @@ For every positive/adversarial fixture independently mutate comments, docstrings
 reports, task text, unrelated strings, output labels, format text, annotations, and non-callee
 identifiers. Add/remove report and Markdown files. Rename non-callee identifiers to `bonferroni`,
 `holm`, `sidak`, and `benjamini_hochberg`. Facts, first reasons, and classification remain equal.
+Those rename mutations remain outside 3.6 unless the exact spelling is already an actually live
+import alias in that module; the tripwire fixtures intentionally have no such alias.
 
 Paired structural controls move correction spelling into a callee terminal; add off-slice
-registered/statistics call; pass p to unresolved helper; replace registered position `1`; wrap
-`float(P)` in multiplication; replace display Constant with a call; conditionally execute a sink;
-add a row mask; mutate tracked outcomes through alias. Each changes only its named predicate.
-Deleting one load-bearing structural literal in a positive control must change the result.
+registered/statistics/repeated/dynamic-execution call; rebind a registered API; pass p to unresolved
+helper; replace registered position `1`; wrap `float(P)` in multiplication; replace display Constant
+with a call; add a second selected-string consumer; conditionally execute a sink; add an early
+tracked return; add a row mask; mutate tracked outcomes through alias. Each changes only its named
+predicate. Deleting one load-bearing structural literal in a positive control must change the
+result.
 
 ### 9.4 Historical and opened-corpus gates
 
@@ -699,20 +927,42 @@ Deleting one load-bearing structural literal in a positive control must change t
 - Rerun all pseudoreplication/dependence/complete-domain regressions and qualified envelopes without
   rewriting locks.
 - Execute every PROBE, NEGSIM, ladder, and retained 1.1 fixture under section 11.
+- Through the same open-corpus adapter harness, execute and freeze an adapter-level 1.1 baseline.
+  Keep the committed analyzer-only `baseline_1_1.json` as a diagnostic; do not overwrite it.
 
 ### 9.5 Open development corpus gate
 
-`evaluation/development/multitest-open-corpus-v1/` becomes an answer-visible checked-in gate. The
-build must not invent its final count: `labels.json` is authoritative after authors freeze it. It is
-expected to contain about 50 realistic projects, each with unique case ID, `correct` or `misstep`
-label, authorized contract/profile, CSV, and `project/analysis.py`. Labels and project digests freeze
-before first 2.0 replay. Because it is open, it is regression evidence, not qualification evidence.
+`evaluation/development/multitest-open-corpus-v1/` is the answer-visible corpus committed at
+`d7cc94f22dcd99f642b356b47f6ee5d6d62acf26` (`d7cc94f`). It contains exactly 50 cases: 25
+`correct` and 25 `misstep`. The authoritative labels are
+`evaluation/development/multitest-open-corpus-v1/specs/labels.json`, raw-file
+`sha256:f9d2d33ba3b8247b0d0d65e5f72f765af02bfca6dc932f895010d79129f36f80`.
+
+The frozen analysis-source-set digest is
+`sha256:7888b72a6ac1ec70830d4041517a977b8ea8ff6c4294a7d13a734ab9af377a2e`.
+It is computed as SHA-256 of UTF-8 canonical JSON plus one LF, where the JSON is a sorted,
+compact-separator mapping from each relative `cases/spec-XX/analysis.py` path to the SHA-256 of that
+file's raw bytes. The map has exactly 50 entries. Any count, label, source, or digest change is a
+hard fixture failure. Because the corpus is open, it is regression evidence, not qualification
+evidence.
 
 The public 2.0 adapter executes every case. Hard gate: zero candidates on every labeled-correct
 script. Any candidate is a stop-and-report design regression, not relabeled or excluded. Recall on
 labeled-misstep scripts is reported with case IDs/exact first reasons but has no threshold. Source
 and label digests, label counts, candidates, histogram, and repeat canonical-byte equality are
-checked in.
+checked in. The build also re-records the 1.1 baseline at adapter level through this identical case
+harness. The existing `baseline_1_1.json`,
+`sha256:b2ab49cd1bea5fe27a9a738d380432fe8164facaa73096020f3c1a7f08165cf6`,
+remains explicitly labeled analyzer-level diagnostic evidence. Adapter-level 1.1 can only add an
+earlier envelope abstention to an analyzer abstention and therefore cannot create a candidate; its
+`0/25` correct-case result holds a fortiori and is asserted again in the new adapter record.
+
+Two correct-case first reasons are pinned independently of the zero-candidate aggregate:
+
+| Case | Required 2.0 outcome | Ordered reason |
+|---|---|---|
+| `spec-14` | abstain `test-operand-lineage-unresolved` | The family operands use `~is_low_ph`; the negated boolean mask is refused at order 9 before hierarchy. |
+| `spec-36` | abstain `test-operand-lineage-unresolved` | The family operands use `~mask`; the negated boolean mask is refused at order 9 before hierarchy, although `pots[OUTCOMES]` independently satisfies the pure-outcome joint-provenance definition. |
 
 ## 10. Required 2.0 oracle for all 30 opened cases
 
@@ -725,10 +975,10 @@ an abstention.
 | Role | Case ID | Required 2.0 outcome | Proof/residual |
 |---|---|---|---|
 | P1 | `ebbb8a5dbc2664257144` | abstain `authorized-reader-lineage-unavailable` | `csv.DictReader`/record value model unsupported. |
-| P2 | `104493a5d99796a002c0` | candidate / `none` | Enumerate, helper path, boolean split, named alpha, `.pvalue`, display resolve. |
+| P2 | `104493a5d99796a002c0` | candidate / `none` | Enumerate, helper path, boolean split, named alpha, `.pvalue`, and display resolve; its mixed identifier/group/outcome missing-value check contributes nothing to joint provenance. |
 | P3 | `3ff45fce2a45e0959fdb` | candidate / `none` | Helper/comprehension, p projection, float identity, dict records, display resolve. |
 | P4 | `7296b0e2cf7faeefca64` | candidate / `none` | X4 loop, position-1 p, record appends, conclusions resolve. |
-| P5 | `c51d08801b3d0ba4e532` | candidate / `strict_subset` | Seven calls; `multipletests` covers three primaries, four raw conclusions remain. |
+| P5 | `c51d08801b3d0ba4e532` | candidate / `strict_subset` | Seven calls; `multipletests` covers three primaries and four raw conclusions remain. Its mixed identifier/group/outcome integrity projection is not jointly derived. |
 | P6 | `f4cf62caeb8ad68dc5b3` | candidate / `strict_subset` | Full battery; exact first-three subset supplies manual coverage only, two raw remain. |
 | N1 | `cb2e207276a0dc3247bb` | covered negative / `complete` | Defaulted `multipletests` covers all four. |
 | N2 | `9be74afbe9659bd50580` | abstain `unresolved-decision-threshold` | Computed Sidak helper result. |
@@ -760,8 +1010,10 @@ an abstention.
 | N8 | `53c4753f38f9e253d541` | abstain `test-battery-cardinality-unresolved` | Hand NumPy maxT lacks exactly `N` registered instances. |
 | N9 | `08565c720304eb6fd9d3` | abstain `unresolved-decision-threshold` | `0.01 * 5` product rule. |
 
-Opened-positive forecast is **10/12 candidates**. E10 P1 remains behind `DictReader`; E11 P5
-remains behind an unresolved pandas p consumer. This answer-visible forecast is not Envelope-12
+Opened-positive forecast is **10/12 candidates**. E10 P1 remains behind `DictReader`; E11 P5 remains
+behind an unresolved pandas p consumer. Revision 2 re-verified all 30 section-10 rows against the
+pure-outcome-subset definition in 3.7; P2 and P5 above are the only Revision-1 outcomes restored,
+and every Envelope-11 row remains unchanged. This answer-visible forecast is not Envelope-12
 credit.
 
 ## 11. Recon, ladders, and 1.1-gate delta oracle
@@ -770,13 +1022,14 @@ credit.
 
 Every source executes through the public analyzer:
 
-| Fixture(s) | Required 2.0 outcome |
-|---|---|
-| `PROBE_annassign.py`, `PROBE_astype.py`, `PROBE_boolmask.py`, `PROBE_dicttable.py`, `PROBE_enumerate.py`, `PROBE_helpertest.py`, `PROBE_namedalpha.py`, `PROBE_nestedtable.py`, `PROBE_pathparam.py`, `PROBE_query.py`, `PROBE_floatp.py`, `PROBE_ternary.py` | candidate / `none` |
-| `PROBE_roundp.py` | `pvalue-scalar-cast-or-rounding-unsupported` |
-| `NEGSIM_A.py` | `correction-family-lineage-unresolved` |
-| `NEGSIM_B.py` | `unresolved-manual-correction-present` |
-| `NEGSIM_C.py` | candidate / `none` |
+| Fixture(s) | Provenance | Required 2.0 outcome |
+|---|---|---|
+| `PROBE_annassign.py`, `PROBE_astype.py`, `PROBE_boolmask.py`, `PROBE_dicttable.py`, `PROBE_enumerate.py`, `PROBE_helpertest.py`, `PROBE_namedalpha.py`, `PROBE_nestedtable.py`, `PROBE_pathparam.py`, `PROBE_query.py`, `PROBE_floatp.py` | One-construct mutations of opened uncorrected misstep baselines. | candidate / `none` |
+| `PROBE_ternary.py` | Misstep-baseline mutation: one terminal-rendering ternary replaces the baseline's direct display form. It is not an independently authored positive. | candidate / `none` |
+| `PROBE_roundp.py` | One-construct mutation of an uncorrected misstep baseline. | `pvalue-scalar-cast-or-rounding-unsupported` |
+| `NEGSIM_A.py` | Correct-analysis near-simulation. | `correction-family-lineage-unresolved` |
+| `NEGSIM_B.py` | Correct-analysis near-simulation. | `unresolved-manual-correction-present` |
+| `NEGSIM_C.py` | Misstep-baseline mutation: exact direct `float(P)` replaces the baseline p scalar. It is not an independently authored positive. | candidate / `none` |
 
 Enumerate/helper change because proof is slice-scoped; float fixtures change because direct float is
 a registered-p identity; ternary changes under terminal rendering. These are known uncorrected
@@ -804,12 +1057,14 @@ abstention. Other changed rungs are known-positive recall gains from removing un
 | 1.1 gate family | 2.0 expectation |
 |---|---|
 | Contract/CSV/domain, detector ValueErrors, identity, no-Finding, registry/isolation | Byte/semantic unchanged except versions. |
-| Correction API/default/method/axis/return/manual/product/terminal | Exact outcomes unchanged. |
+| Correction API/default/method/axis/return/manual/product/terminal | Exact outcomes unchanged except the threshold-only narrowing in the next row. |
+| Bare raw threshold, no recognized correction | `0.05` fixtures retain their outcome; `0.01` and `0.1` now require exact `unresolved-decision-threshold`. Computed/product fixtures retain their exact reasons. |
 | Row completeness, upstream, export, extremum, partition, statistics, resampling, sensitivity, dead/live conditional | Exact outcomes unchanged. |
 | Assert/match/BoolOp/execution residual | Exact outcomes unchanged. |
 | Display-only known-positive `If`/`IfExp` | Candidate only under 4.8; adjacent hierarchy negatives unchanged. |
+| Whole-module control/early exit | Every 3.7 node executes. Synthetic `correct-early-return-panel-gate` requires `hierarchical-gatekeeping-present`; mixed-column integrity raises do not become jointly derived; open-corpus `spec-14`/`spec-36` stop earlier at `test-operand-lineage-unresolved`. |
 | Unsupported module setup wholly off-slice | No abstention; complete uncorrected baseline becomes candidate. |
-| Outcome mutation/alias/rebind/store/delete/escape | Remain `analysis-scope-structure-unsupported`. |
+| Outcome mutation/alias/rebind/store/delete/escape | Remain `analysis-scope-structure-unsupported`, but 1.1/2.0 reason statistics are not compared because section 6 changes the predicate meaning. |
 | Read-only allowlist/over-admission | Allowlist retired; required uses need 4.2, p/operand escapes abstain, off-slice invariant. |
 | Direct float known positives | Candidate; round and hand arithmetic retain reasons. |
 | Closed-set fixtures | Rebuilt against section 6; old test files not retargeted. |
@@ -848,7 +1103,7 @@ grant/pin/qualification.
 
 | File/surface | Planned change |
 |---|---|
-| New `ADR-0079-MULTIPLE-TESTING-CODE-SLICE-2.0-INVERSION.md` | Authorize identities, split, scalar/return/display edges, guard rescope, open corpus, E12, isolation. |
+| New `ADR-0079-MULTIPLE-TESTING-CODE-SLICE-2.0-INVERSION.md` | Authorize identities, split, whole-module integrity/control censuses, scalar/return/display edges, threshold narrowing, version-incomparable reason meaning, open corpus, E12, isolation. |
 | New `code_csv_multiple_testing_dataflow_v2.py` | Versioned copy implementing sections 3-7; no private dependence import. |
 | New `code_csv_multiple_testing_adapter_v2.py` | Version 2.0, exact reasons, unchanged facts/projection. |
 | New `bounded_code_csv_multiple_testing_conflict_v2.py` | Versioned wrapper and unchanged operand guards. |
@@ -858,11 +1113,11 @@ grant/pin/qualification.
 | `method_conflict_finding.py` | Permit exact 2.0 dev binding to reuse unchanged wording v1. |
 | Development controller | Dispatch 2.0 only under development registry. |
 | Manifests/registry resources | Add 2.0 identities/files; retain historical versions. |
-| New `tests/test_code_csv_multiple_testing_dataflow_v2.py` | Slices, totality, guards, FA, PROBE/NEGSIM/ladders, prose. |
+| New `tests/test_code_csv_multiple_testing_dataflow_v2.py` | Slices, p-container grammar, totality, global integrity/control censuses, guards, FA, PROBE/NEGSIM/ladders, prose. |
 | New adapter/detector/integration tests | Identities, set, schemas, ValueErrors, projections, zero Findings. |
 | New `test_multiple_testing_e10_e11_replay_v2.py` | Execute section-10 oracle twice. |
 | Historical replay anchors | Frozen explicit 1.0/1.1 imports/bytes. |
-| `multitest-open-corpus-v1/` | Freeze labels/digests/results; hard zero-correct-candidate gate. |
+| `multitest-open-corpus-v1/` | Verify frozen commit/counts/label/source digests; add adapter-level 1.1/2.0 replay records without replacing the analyzer diagnostic; hard zero-correct-candidate gate. |
 | New `multitest-code-slice-v2/` | Answer-visible guard/adversarial fixtures and ledger. |
 | Future blind Envelope 12 | Execute section 12 after answer-visible gates. |
 | Ledger, source manifests, `MANIFEST.sha256` | Regenerate after final implementation/test change. |
@@ -874,13 +1129,15 @@ dataflow files are not edited.
 
 Build acceptance requires:
 
-1. all global registries byte-equal pinned sources;
+1. all global registries byte-equal pinned sources and every dynamic-execution/API-rebinding/control
+   integrity fixture exact;
 2. discovered/accounted forward consumer edges set-equal for every candidate;
 3. complete `2N` operand and `N` p/conclusion proofs;
 4. section-7 adversaries exact;
 5. 30-case replay exact and deterministic;
 6. PROBE/NEGSIM/ladders and retained 1.1 gates exact;
-7. zero candidates on labeled-correct open-corpus projects;
+7. exact 50-case/25+25 open-corpus custody digests, adapter-level 1.1 replay, and zero candidates on
+   labeled-correct 2.0 projects;
 8. prose invariance plus effective structural controls;
 9. qualified byte equality/non-derivation;
 10. unchanged contract goldens and historical replays; and
@@ -890,4 +1147,45 @@ Build acceptance requires:
 
 Implementation stops and reports design regression rather than adapting the design if any
 load-bearing gate, section-10 oracle, zero-correct-candidate gate, or qualified differential cannot
-pass. No reason is relabeled and no guard weakened at build time to make an oracle pass.
+pass. No reason string or section-6 predicate meaning is changed and no guard is weakened at build
+time to make an oracle pass.
+
+## 15. Revision 1 changelog
+
+Revision 1 is relative to the reviewed document at
+`sha256:09deb93bfea99ff023455686ac8253df5e6af4b2a572fb7ea45a360a0797ec72`. Every change below is an
+abstention-only narrowing, an exact closure of an already intended trigger, or an honest
+versioned-meaning/custody clarification. No Revision-1 change enlarges candidate or Finding
+eligibility.
+
+| Review item | Sections changed | Revision-1 disposition |
+|---|---|---|
+| BL-1 | 1; 2.5; 3.7; 4.3; 4.8; 5.1-5.2; 7.1-7.3; 9.1-9.3; 10.1; 11.3; 13-14 | Defined the whole-module 1.0 control registry plus early `return`/`break`/`continue`/`raise`/`sys.exit`, excluded it from off-slice admission, required backward provenance and the execution-prevention residual, and added `correct-early-return-panel-gate` with `spec-14`/`spec-36`. Re-evaluation narrowed E10 P2/P5 and the opened forecast from 10/12 to 8/12. |
+| MJ-1 | 1; 2.5; 3.5; 5.1-5.2; 7.1-7.2; 9.1-9.3; 13-14 | Added the closed whole-module dynamic-execution census. Every listed shape abstains `api-resolution-ambiguous`. |
+| MJ-2 | 1; 2.5; 3.6; 5.1-5.2; 7.1-7.2; 9.1-9.3; 13-14 | Added the closed whole-module API-rebinding census, including registered module attributes, API terminal bindings, and live import aliases. |
+| MJ-3 | 4.2; 4.6; 9.1-9.2 | Made 4.2 outcome-sequence-only and specified a separate complete p-container grammar. Pinned `pvals[:3]`, `pvals + extra`, direct `zip(OUTCOMES, pvals)`, and exact p-field projection classifications. |
+| MJ-4 | 3.7; 4.8; 5.1; 7.2; 9.1; 9.3 | Required total forward accounting of the selected display string and every bound alias. Any nontransport consumer returns the node to hierarchy. |
+| MJ-5 | 9.4-9.5; 13-14 | Pinned commit `d7cc94f`, exact 50/25+25 counts, authoritative labels path, label/source-set digests, and adapter-level execution. Required a same-harness adapter-level 1.1 record while retaining the pinned analyzer baseline as diagnostic evidence. |
+| MJ-6 | 2.5; 4.7; 7.3; 9.1; 11.3; 13-14 | Narrowed uncorrected `N >= 3` bare thresholds to `{0.05}`; `0.01`/`0.1` now abstain. Retained the product rule, added the N=4 pre-registered-0.01 fixture, and recorded the deliberate recall cost and ADR obligation. |
+| MJ-7 | 2.5; 6; 11.3; 13 | Kept the reason string but recorded that `analysis-scope-structure-unsupported` has different 1.1 and 2.0 predicates and must never be compared across versions. |
+| Minor 1 | 4.5; 9.2 | Pinned position-1 registered-result projection to lockfile SciPy `1.17.1` and `1.18.0`. |
+| Minor 2 | 4.5 | Stated that sibling registered-result members, including statistic/df/position 0, are off the p-value slice. |
+| Minor 3 | 1; 3.4; 5.1-5.2; 9.1-9.2 | Named and byte-restated the repeated-construct census as the fourth global census. |
+| Minor 4 | 2.5; 3.1; 5.1; 11.3 | Recorded the live-conditional abstention as a traceable narrowing that does not reinstate the candidate-producing traversal withdrawn by 1.0 Revision 2.3. |
+| Minor 5 | 4.8; 9.1 | Stated that the 256-byte cap is a UTF-8 byte-length measurement and display text is never semantically inspected. |
+| Minor 6 | 11.1 | Recorded `PROBE_ternary.py` and `NEGSIM_C.py` as mutations of known misstep baselines, not independently authored positives. |
+
+## 16. Revision 2 changelog
+
+Revision 2 is relative to Revision 1 at
+`sha256:34c09e0331f4da2bbc888782b1c36d83dc52c8b06b8207e4ef72b8e88b3490f6`. It resolves three
+cross-section defects and records one accepted residual. ND-1 restores the intended Revision-0
+opened-case eligibility after replacing an overbroad Revision-1 reading; ND-2 and ND-3 are
+abstention-preserving precedence/evidence-channel corrections.
+
+| Review item | Sections changed | Revision-2 disposition |
+|---|---|---|
+| ND-1 | 3.7; 9.1; 10.1-10.2; 11.3 | Adopted the exact pure-outcome-subset contribution rule. Mixed identifier/group/outcome integrity projections contribute nothing to joint derivation. Re-verified all 30 E10/E11 rows, restored E10 P2/P5 to candidates, and restored the opened-positive forecast to 10/12; every E11 row is unchanged. |
+| ND-2 | 7.2-7.3; 9.1; 9.5; 11.3 | Made `correct-early-return-panel-gate` a synthetic isolated pure-outcome fixture with admitted `.loc` operands so hierarchy is its first reason. Pinned real `spec-14` and `spec-36` to order-9 `test-operand-lineage-unresolved` from their negated masks. |
+| ND-3 | 3.6; 7.2; 9.1; 9.3 | Restricted simple-name rebinding to an alias actually imported and live in the module. Bare API-terminal spellings without that live alias do not abstain; added the complete-correction covered-negative control and kept the full non-callee rename tripwire intact. |
+| MJ-6 asymmetry residual | 2.5 | Required ADR-0079 to state that the wider threshold set retained when any recognized correction is present leaves an `N = 4` strict-subset excluded-member `p < 0.01` case convictable; `0.01 * 4` does not trigger the product rule. |
