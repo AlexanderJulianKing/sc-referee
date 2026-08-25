@@ -1,0 +1,422 @@
+{
+  "1.1.0": {
+    "adapter_version": "1.1.0",
+    "correct_candidates": 0,
+    "label_digest": "sha256:f9d2d33ba3b8247b0d0d65e5f72f765af02bfca6dc932f895010d79129f36f80",
+    "misstep_candidates": 0,
+    "profile": "multitest-open-corpus-adapter-replay-v1",
+    "results": {
+      "spec-01": [
+        "abstain",
+        "test-operand-lineage-unresolved"
+      ],
+      "spec-02": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-03": [
+        "abstain",
+        "pderived-conclusion-family-incomplete"
+      ],
+      "spec-04": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-05": [
+        "abstain",
+        "analysis-scope-structure-unsupported"
+      ],
+      "spec-06": [
+        "abstain",
+        "unresolved-decision-threshold"
+      ],
+      "spec-07": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-08": [
+        "abstain",
+        "extra-registered-test-outside-authorized-family"
+      ],
+      "spec-09": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-10": [
+        "abstain",
+        "helper-body-statement-unsupported"
+      ],
+      "spec-11": [
+        "abstain",
+        "resampling-cardinality-unresolved"
+      ],
+      "spec-12": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-13": [
+        "abstain",
+        "analysis-scope-structure-unsupported"
+      ],
+      "spec-14": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-15": [
+        "abstain",
+        "resampling-cardinality-unresolved"
+      ],
+      "spec-16": [
+        "abstain",
+        "additional-accepted-reader-present"
+      ],
+      "spec-17": [
+        "abstain",
+        "pderived-conclusion-family-incomplete"
+      ],
+      "spec-18": [
+        "abstain",
+        "analysis-scope-structure-unsupported"
+      ],
+      "spec-19": [
+        "abstain",
+        "pderived-conclusion-family-incomplete"
+      ],
+      "spec-20": [
+        "abstain",
+        "pderived-conclusion-family-incomplete"
+      ],
+      "spec-21": [
+        "abstain",
+        "analysis-scope-structure-unsupported"
+      ],
+      "spec-22": [
+        "abstain",
+        "authorized-family-test-census-incomplete"
+      ],
+      "spec-23": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-24": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-25": [
+        "abstain",
+        "selected-group-row-completeness-unproven"
+      ],
+      "spec-26": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-27": [
+        "abstain",
+        "analysis-scope-structure-unsupported"
+      ],
+      "spec-28": [
+        "abstain",
+        "pvalue-family-collection-unresolved"
+      ],
+      "spec-29": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-30": [
+        "abstain",
+        "api-resolution-ambiguous"
+      ],
+      "spec-31": [
+        "abstain",
+        "pderived-conclusion-family-incomplete"
+      ],
+      "spec-32": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-33": [
+        "abstain",
+        "pderived-conclusion-family-incomplete"
+      ],
+      "spec-34": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-35": [
+        "abstain",
+        "analysis-scope-structure-unsupported"
+      ],
+      "spec-36": [
+        "abstain",
+        "analysis-scope-structure-unsupported"
+      ],
+      "spec-37": [
+        "abstain",
+        "analysis-scope-structure-unsupported"
+      ],
+      "spec-38": [
+        "abstain",
+        "additional-accepted-reader-present"
+      ],
+      "spec-39": [
+        "abstain",
+        "analysis-scope-structure-unsupported"
+      ],
+      "spec-40": [
+        "abstain",
+        "analysis-scope-structure-unsupported"
+      ],
+      "spec-41": [
+        "abstain",
+        "resampling-cardinality-unresolved"
+      ],
+      "spec-42": [
+        "abstain",
+        "resampling-cardinality-unresolved"
+      ],
+      "spec-43": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-44": [
+        "abstain",
+        "authorized-family-test-census-incomplete"
+      ],
+      "spec-45": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-46": [
+        "abstain",
+        "analysis-scope-structure-unsupported"
+      ],
+      "spec-47": [
+        "abstain",
+        "analysis-scope-structure-unsupported"
+      ],
+      "spec-48": [
+        "abstain",
+        "analysis-scope-structure-unsupported"
+      ],
+      "spec-49": [
+        "abstain",
+        "analysis-scope-structure-unsupported"
+      ],
+      "spec-50": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ]
+    },
+    "source_set_digest": "sha256:7888b72a6ac1ec70830d4041517a977b8ea8ff6c4294a7d13a734ab9af377a2e"
+  },
+  "2.0.0": {
+    "adapter_version": "2.0.0",
+    "correct_candidates": 0,
+    "label_digest": "sha256:f9d2d33ba3b8247b0d0d65e5f72f765af02bfca6dc932f895010d79129f36f80",
+    "misstep_candidates": 2,
+    "profile": "multitest-open-corpus-adapter-replay-v1",
+    "results": {
+      "spec-01": [
+        "abstain",
+        "test-operand-lineage-unresolved"
+      ],
+      "spec-02": [
+        "abstain",
+        "correction-family-lineage-unresolved"
+      ],
+      "spec-03": [
+        "abstain",
+        "pvalue-family-collection-unresolved"
+      ],
+      "spec-04": [
+        "abstain",
+        "correction-family-lineage-unresolved"
+      ],
+      "spec-05": [
+        "abstain",
+        "authorized-family-test-census-incomplete"
+      ],
+      "spec-06": [
+        "abstain",
+        "unresolved-decision-threshold"
+      ],
+      "spec-07": [
+        "abstain",
+        "hierarchical-gatekeeping-present"
+      ],
+      "spec-08": [
+        "abstain",
+        "extra-registered-test-outside-authorized-family"
+      ],
+      "spec-09": [
+        "abstain",
+        "unresolved-decision-threshold"
+      ],
+      "spec-10": [
+        "abstain",
+        "helper-body-statement-unsupported"
+      ],
+      "spec-11": [
+        "abstain",
+        "hierarchical-gatekeeping-present"
+      ],
+      "spec-12": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-13": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-14": [
+        "abstain",
+        "test-operand-lineage-unresolved"
+      ],
+      "spec-15": [
+        "abstain",
+        "unresolved-pvalue-consumer"
+      ],
+      "spec-16": [
+        "abstain",
+        "authorized-family-test-census-incomplete"
+      ],
+      "spec-17": [
+        "abstain",
+        "hierarchical-gatekeeping-present"
+      ],
+      "spec-18": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-19": [
+        "candidate",
+        "none"
+      ],
+      "spec-20": [
+        "abstain",
+        "unresolved-decision-threshold"
+      ],
+      "spec-21": [
+        "abstain",
+        "pderived-conclusion-family-incomplete"
+      ],
+      "spec-22": [
+        "abstain",
+        "authorized-family-test-census-incomplete"
+      ],
+      "spec-23": [
+        "abstain",
+        "pvalue-scalar-cast-or-rounding-unsupported"
+      ],
+      "spec-24": [
+        "abstain",
+        "correction-family-lineage-unresolved"
+      ],
+      "spec-25": [
+        "abstain",
+        "selected-group-row-completeness-unproven"
+      ],
+      "spec-26": [
+        "abstain",
+        "correction-family-lineage-unresolved"
+      ],
+    "spec-27": [
+      "abstain",
+      "unresolved-pvalue-consumer"
+    ],
+      "spec-28": [
+        "abstain",
+        "pvalue-family-collection-unresolved"
+      ],
+      "spec-29": [
+        "abstain",
+        "unresolved-decision-threshold"
+      ],
+      "spec-30": [
+        "abstain",
+        "api-resolution-ambiguous"
+      ],
+      "spec-31": [
+        "abstain",
+        "hierarchical-gatekeeping-present"
+      ],
+      "spec-32": [
+        "abstain",
+        "extra-registered-test-outside-authorized-family"
+      ],
+      "spec-33": [
+        "candidate",
+        "none"
+      ],
+      "spec-34": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-35": [
+        "abstain",
+        "unresolved-manual-correction-present"
+      ],
+      "spec-36": [
+        "abstain",
+        "test-operand-lineage-unresolved"
+      ],
+      "spec-37": [
+        "abstain",
+        "selected-group-row-completeness-unproven"
+      ],
+      "spec-38": [
+        "abstain",
+        "authorized-family-test-census-incomplete"
+      ],
+      "spec-39": [
+        "abstain",
+        "api-resolution-ambiguous"
+      ],
+      "spec-40": [
+        "abstain",
+        "test-battery-cardinality-unresolved"
+      ],
+      "spec-41": [
+        "abstain",
+        "unresolved-pvalue-consumer"
+      ],
+      "spec-42": [
+        "abstain",
+        "pvalue-family-collection-unresolved"
+      ],
+      "spec-43": [
+        "abstain",
+        "unresolved-pvalue-consumer"
+      ],
+      "spec-44": [
+        "abstain",
+        "authorized-family-test-census-incomplete"
+      ],
+      "spec-45": [
+        "abstain",
+        "pvalue-family-collection-unresolved"
+      ],
+      "spec-46": [
+        "abstain",
+        "correction-family-lineage-unresolved"
+      ],
+      "spec-47": [
+        "abstain",
+        "unresolved-pvalue-consumer"
+      ],
+      "spec-48": [
+        "abstain",
+        "unresolved-pvalue-consumer"
+      ],
+      "spec-49": [
+        "abstain",
+        "unresolved-pvalue-consumer"
+      ],
+      "spec-50": [
+        "abstain",
+        "pvalue-family-collection-unresolved"
+      ]
+    },
+    "source_set_digest": "sha256:7888b72a6ac1ec70830d4041517a977b8ea8ff6c4294a7d13a734ab9af377a2e"
+  }
+}

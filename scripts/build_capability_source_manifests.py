@@ -1178,6 +1178,59 @@ def main() -> None:
             "workflow_systems": [],
         },
     )
+    multiple_testing_v1 = next(
+        item
+        for item in detector_collection["records"]
+        if item.get("detector_id") == "detector:bounded-code-csv-multiple-testing-conflict"
+        and item.get("detector_version") == "1.0.0"
+    )
+    multiple_testing_v2 = deepcopy(multiple_testing_v1)
+    multiple_testing_v2["detector_version"] = "2.0.0"
+    multiple_testing_v2["coverage_contract"]["partially_covered_when"] = (
+        "Not used by version 2.0.0; incomplete or conflicted records remain not covered."
+    )
+    multiple_testing_v2["extensions"]["x-adr-ref"] = (
+        "docs/implementation/ADR-0079-MULTIPLE-TESTING-CODE-SLICE-2.0-INVERSION.md"
+    )
+    multiple_testing_v2["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_multiple_testing_conflict_v2.py"
+    )
+    multiple_testing_resource_v2 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v2.py"
+    )
+    multiple_testing_v2["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v2:"
+            "BoundedCodeCsvMultipleTestingConflictV2Detector"
+        ),
+        "implementation_digest": sha256_digest(multiple_testing_resource_v2.read_bytes()),
+    }
+    multiple_testing_v2["test_fixtures"] = {
+        "ambiguous": [
+            "tests/test_code_csv_multiple_testing_core_guards_v2.py::test_dynamic_execution_census_is_whole_module"
+        ],
+        "counterevidence": [
+            "tests/test_code_csv_multiple_testing_core_guards_v2.py::test_v2_adversarial_guard_matrix_executes_with_exact_first_reasons"
+        ],
+        "positive": [
+            "tests/test_multiple_testing_e10_replay_v2.py::test_opened_envelope_adapter_oracle_and_replay"
+        ],
+        "unsupported_path": [
+            "tests/test_code_csv_multiple_testing_core_guards_v2.py::test_v2_adversarial_guard_matrix_executes_with_exact_first_reasons"
+        ],
+        "verified_good_negative": [
+            "tests/test_multiple_testing_open_corpus_v2.py::test_open_corpus_adapter_replay_is_custody_pinned_and_false_accusation_free"
+        ],
+    }
+    multiple_testing_v2["validation"]["evaluation_ref"] = (
+        "docs/implementation/MULTITEST-CODE-SLICE-2.0-DESIGN-2026-08-25.md"
+    )
+    _upsert(detector_collection, "detector_id", multiple_testing_v2)
     feature_identity_resource = (
         ROOT / "src" / "sc_referee" / "detectors" / "feature_identifier_identity.py"
     )
