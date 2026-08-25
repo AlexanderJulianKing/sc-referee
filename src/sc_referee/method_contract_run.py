@@ -31,6 +31,7 @@ from sc_referee.scientific_checks.core import (
 )
 from sc_referee.scientific_checks.registry import ScientificCheckLane, ScientificCheckRegistry
 from sc_referee.scientific_requirement_contract import (
+    MULTIPLE_TESTING_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
     SCIENTIFIC_REQUIREMENT_PROFILE_ID,
     SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
     ResolvedScientificRequirement,
@@ -61,13 +62,21 @@ class MethodContractRunError(ValueError):
 def _scientific_authority_material_paths(
     resolved: ResolvedScientificRequirement | None,
 ) -> tuple[str, ...]:
-    if resolved is None or resolved.profile_version != SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+    if resolved is None or resolved.profile_version not in {
+        SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+        MULTIPLE_TESTING_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+    }:
         return ()
     authority = resolved.semantic_role_authority or {}
-    unit = authority.get("authorized_independent_unit_key")
-    if not isinstance(unit, Mapping):
+    role = (
+        "authorized_independent_unit_key"
+        if resolved.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+        else "authorized_test_family"
+    )
+    value = authority.get(role)
+    if not isinstance(value, Mapping):
         return ()
-    path = unit.get("material_input_path")
+    path = value.get("material_input_path")
     return (path,) if isinstance(path, str) else ()
 
 
@@ -80,7 +89,11 @@ def _bind_scientific_authority_snapshot(
     if not paths:
         return (
             resolved.with_authority_binding_snapshot({})
-            if (resolved.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION)
+            if resolved.profile_version
+            in {
+                SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+                MULTIPLE_TESTING_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+            }
             else resolved
         )
     path = paths[0]
@@ -108,19 +121,17 @@ def _bind_scientific_authority_snapshot(
             "scientific requirement material input lacks one full-digest identity"
         )
     digest = identities[0].get("identity_evidence", {}).get("digest")
-    authority = (resolved.semantic_role_authority or {}).get("authorized_independent_unit_key")
+    role = (
+        "authorized_independent_unit_key"
+        if resolved.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+        else "authorized_test_family"
+    )
+    authority = (resolved.semantic_role_authority or {}).get(role)
     if not isinstance(authority, Mapping) or not isinstance(digest, str):
         raise MethodContractRunError("scientific requirement authority is malformed")
-    return resolved.with_authority_binding_snapshot(
-        {
-            "authorized_independent_unit_key": {
-                "material_input_path": path,
-                "column_name": authority["column_name"],
-                "group_contrast_column": authority["group_contrast_column"],
-                "material_input_content_digest": digest,
-            }
-        }
-    )
+    bound = copy.deepcopy(dict(authority))
+    bound["material_input_content_digest"] = digest
+    return resolved.with_authority_binding_snapshot({role: bound})
 
 
 def run_method_contract(
@@ -293,18 +304,32 @@ def preflight_frozen_scientific_requirement(
     if not (
         isinstance(profile, Mapping)
         and profile.get("profile_id") == SCIENTIFIC_REQUIREMENT_PROFILE_ID
-        and profile.get("profile_version") == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+        and profile.get("profile_version")
+        in {
+            SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+            MULTIPLE_TESTING_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+        }
     ):
         return context
     parent_schema_registry = _parent_scientific_requirement_registry(parent, schema_root)
     parent_contract, resolved, assertions, parent_answer = verify_parent_scientific_requirement(
         parent, parent_schema_registry
     )
-    if (
-        resolved.check_id
-        != "check:authorized-independent-unit-entry-into-row-independent-procedure"
-        or resolved.candidate_id != "one-analyzed-row-per-authorized-independent-unit"
-    ):
+    dependence_contract = (
+        resolved.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+        and resolved.check_id
+        == "check:authorized-independent-unit-entry-into-row-independent-procedure"
+        and resolved.candidate_id == "one-analyzed-row-per-authorized-independent-unit"
+    )
+    multiple_testing_contract = (
+        resolved.profile_version == MULTIPLE_TESTING_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+        and resolved.check_id
+        == "check:authorized-complete-family-correction-over-code-test-battery"
+        and resolved.candidate_id == "complete-correction-over-authorized-outcome-family"
+    )
+    if not dependence_contract and not multiple_testing_contract:
+        return context
+    if multiple_testing_contract and scientific_check_lane != "development":
         return context
     _verify_current_task_identity(
         parent_contract,
@@ -326,7 +351,7 @@ def preflight_frozen_scientific_requirement(
         )
     active_profile = {
         "profile_id": SCIENTIFIC_REQUIREMENT_PROFILE_ID,
-        "profile_version": SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+        "profile_version": resolved.profile_version,
         "check_id": resolved.check_id,
         "candidate_id": resolved.candidate_id,
         "semantic_role_authority": copy.deepcopy(resolved.semantic_role_authority or {}),
@@ -341,6 +366,10 @@ def preflight_frozen_scientific_requirement(
         registry=active_lane_registry,
     ).with_authority_binding_snapshot(copy.deepcopy(resolved.authority_binding_snapshot or {}))
     if active != resolved:
+        if multiple_testing_contract:
+            raise MethodContractRunError(
+                "scientific requirement is incompatible with the active check lane"
+            )
         # A contract frozen by the previously qualified 2.1.0 lane may retain its exact
         # human authority under the promoted 3.1.0 lane. Contracts frozen by intervening
         # development grammars remain ineligible for production reinterpretation.
@@ -1292,7 +1321,12 @@ def _verify_current_authority_material(
         if material_inputs:
             return None
         return None
-    authority = snapshot.get("authorized_independent_unit_key")
+    role = (
+        "authorized_independent_unit_key"
+        if resolved.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+        else "authorized_test_family"
+    )
+    authority = snapshot.get(role)
     if not isinstance(authority, Mapping):
         raise MethodContractRunError("scientific requirement authority snapshot is malformed")
     matches = [

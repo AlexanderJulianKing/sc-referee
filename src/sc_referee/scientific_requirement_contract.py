@@ -24,11 +24,17 @@ from sc_referee.version import SCHEMA_VERSION, __version__
 
 SCIENTIFIC_REQUIREMENT_PROFILE_ID = "scientific_check_requirement_v1"
 SCIENTIFIC_REQUIREMENT_PROFILE_VERSION = "1.1.0"
+MULTIPLE_TESTING_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION = "1.2.0"
 LEGACY_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION = "1.0.0"
 ANSWER_DIGEST_PROFILE = "canonical-json-excluding-answer-digest-v1"
 _DEPENDENCE_CHECK_ID = "check:authorized-independent-unit-entry-into-row-independent-procedure"
 _DEPENDENCE_CANDIDATE_ID = "one-analyzed-row-per-authorized-independent-unit"
 _UNIT_AUTHORITY_ROLE = "authorized_independent_unit_key"
+_MULTIPLE_TESTING_CHECK_ID = "check:authorized-complete-family-correction-over-code-test-battery"
+_MULTIPLE_TESTING_CANDIDATE_ID = "complete-correction-over-authorized-outcome-family"
+_MULTIPLE_TESTING_AUTHORITY_ROLE = "authorized_test_family"
+_MULTIPLE_TESTING_FAMILY_MEMBER_RULE = "one-two-group-test-per-named-outcome-column"
+_MULTIPLE_TESTING_CORRECTION_SCOPE = "complete-authorized-family"
 _SAFE_AUTHORITY_SEGMENT = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 _SAFE_AUTHORITY_COLUMN = re.compile(r"[A-Za-z][A-Za-z0-9_.-]{0,127}\Z")
 
@@ -91,12 +97,20 @@ class ResolvedScientificRequirement:
             value["authority_binding_snapshot"] = copy.deepcopy(
                 self.authority_binding_snapshot or {}
             )
+        elif self.profile_version == MULTIPLE_TESTING_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+            value["semantic_role_authority"] = copy.deepcopy(self.semantic_role_authority or {})
+            value["authority_binding_snapshot"] = copy.deepcopy(
+                self.authority_binding_snapshot or {}
+            )
         return value
 
     def with_authority_binding_snapshot(
         self, snapshot: Mapping[str, Any]
     ) -> ResolvedScientificRequirement:
-        if self.profile_version != SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+        if self.profile_version not in {
+            SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+            MULTIPLE_TESTING_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+        }:
             raise ScientificRequirementContractError(
                 "legacy scientific requirement cannot bind semantic-role authority"
             )
@@ -106,6 +120,12 @@ class ResolvedScientificRequirement:
 def is_scientific_requirement_profile(profile: object) -> bool:
     return isinstance(profile, Mapping) and profile.get("profile_id") == (
         SCIENTIFIC_REQUIREMENT_PROFILE_ID
+    )
+
+
+def _has_semantic_role_authority(profile_version: str) -> bool:
+    return profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION or profile_version == (
+        MULTIPLE_TESTING_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
     )
 
 
@@ -120,6 +140,14 @@ def resolve_scientific_requirement_profile(
         raise ScientificRequirementContractError("scientific requirement profile must be an object")
     profile_version = profile.get("profile_version")
     if profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+        expected_keys = {
+            "profile_id",
+            "profile_version",
+            "check_id",
+            "candidate_id",
+            "semantic_role_authority",
+        }
+    elif profile_version == MULTIPLE_TESTING_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
         expected_keys = {
             "profile_id",
             "profile_version",
@@ -148,7 +176,13 @@ def resolve_scientific_requirement_profile(
             "candidate_id must identify one published requirement option"
         )
     active = registry or default_scientific_check_registry()
-    modules = [module for module in active.modules if module.manifest.check_id == check_id]
+    module_lane = (
+        active.modules_for_lane("development")
+        if profile_version == MULTIPLE_TESTING_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+        and registry is None
+        else active.modules
+    )
+    modules = [module for module in module_lane if module.manifest.check_id == check_id]
     if len(modules) != 1:
         raise ScientificRequirementContractError(
             f"check_id does not resolve to one installed scientific check: {check_id}"
@@ -169,8 +203,13 @@ def resolve_scientific_requirement_profile(
             profile.get("semantic_role_authority"),
             check_id=check_id,
             candidate_id=candidate_id,
+            profile_version=str(profile_version),
         )
-        if profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+        if profile_version
+        in {
+            SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+            MULTIPLE_TESTING_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+        }
         else {}
     )
     return ResolvedScientificRequirement(
@@ -194,6 +233,7 @@ def resolved_scientific_requirement_from_lock_profile(
     profile_version = manifest.get("profile_version")
     if manifest.get("profile_id") != SCIENTIFIC_REQUIREMENT_PROFILE_ID or profile_version not in {
         SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+        MULTIPLE_TESTING_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
         LEGACY_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
     }:
         raise ScientificRequirementContractError("scientific requirement manifest identity drifted")
@@ -226,16 +266,28 @@ def resolved_scientific_requirement_from_lock_profile(
                 manifest.get("semantic_role_authority"),
                 check_id=str(check_manifest.get("check_id", "")),
                 candidate_id=str(candidate.get("candidate_id", "")),
+                profile_version=str(profile_version),
             )
-            if profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+            if profile_version
+            in {
+                SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+                MULTIPLE_TESTING_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+            }
             else {}
         ),
         authority_binding_snapshot=(
             _validate_authority_binding_snapshot(
                 manifest.get("authority_binding_snapshot"),
                 manifest.get("semantic_role_authority"),
+                check_id=str(check_manifest.get("check_id", "")),
+                candidate_id=str(candidate.get("candidate_id", "")),
+                profile_version=str(profile_version),
             )
-            if profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+            if profile_version
+            in {
+                SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+                MULTIPLE_TESTING_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+            }
             else {}
         ),
     )
@@ -290,7 +342,7 @@ def build_scientific_requirement_records(
     )
     question_id = stable_id("question-method-contract", run_id, contract_id)
     answer_value = {resolved.dimension: resolved.value}
-    if resolved.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+    if _has_semantic_role_authority(resolved.profile_version):
         answer_value["semantic_role_authority"] = copy.deepcopy(
             resolved.semantic_role_authority or {}
         )
@@ -339,7 +391,7 @@ def build_scientific_requirement_records(
             "x-selected-candidate-id": resolved.candidate_id,
             **(
                 {"x-semantic-role-authority": copy.deepcopy(resolved.semantic_role_authority or {})}
-                if resolved.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+                if _has_semantic_role_authority(resolved.profile_version)
                 else {}
             ),
         },
@@ -576,7 +628,7 @@ def verify_parent_scientific_requirement(
         or answer.get("source_snapshot_digest") != locked.get("snapshot_digest")
         or answer.get("answer_value") != _resolved_answer_value(resolved)
         or (
-            resolved.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+            _has_semantic_role_authority(resolved.profile_version)
             and answer.get("extensions", {}).get("x-semantic-role-authority")
             != (resolved.semantic_role_authority or {})
         )
@@ -638,7 +690,7 @@ def bind_scientific_requirement_to_audit(
         "check_id": resolved.check_id,
         "candidate_id": resolved.candidate_id,
     }
-    if resolved.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+    if _has_semantic_role_authority(resolved.profile_version):
         active_profile["semantic_role_authority"] = copy.deepcopy(
             resolved.semantic_role_authority or {}
         )
@@ -1031,12 +1083,12 @@ def _matching_parent_assertions(
         == resolved.check_manifest_digest
         and item.get("extensions", {}).get("x-profile-version") == resolved.profile_version
         and (
-            resolved.profile_version != SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+            not _has_semantic_role_authority(resolved.profile_version)
             or item.get("extensions", {}).get("x-semantic-role-authority")
             == (resolved.semantic_role_authority or {})
         )
         and (
-            resolved.profile_version != SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+            not _has_semantic_role_authority(resolved.profile_version)
             or (
                 item.get("extensions", {}).get("x-authority-binding-snapshot")
                 == (resolved.authority_binding_snapshot or {})
@@ -1057,7 +1109,7 @@ def _verify_answer_digest(answer: Mapping[str, Any]) -> None:
 
 def _resolved_answer_value(resolved: ResolvedScientificRequirement) -> dict[str, Any]:
     value: dict[str, Any] = {resolved.dimension: resolved.value}
-    if resolved.profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+    if _has_semantic_role_authority(resolved.profile_version):
         value["semantic_role_authority"] = copy.deepcopy(resolved.semantic_role_authority or {})
     return value
 
@@ -1065,7 +1117,7 @@ def _resolved_answer_value(resolved: ResolvedScientificRequirement) -> dict[str,
 def _resolved_authority_extensions(
     resolved: ResolvedScientificRequirement, *, include_snapshot: bool
 ) -> dict[str, Any]:
-    if resolved.profile_version != SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+    if not _has_semantic_role_authority(resolved.profile_version):
         return {}
     value = {"x-semantic-role-authority": copy.deepcopy(resolved.semantic_role_authority or {})}
     if include_snapshot:
@@ -1092,7 +1144,18 @@ def _validate_semantic_role_authority(
     *,
     check_id: str,
     candidate_id: str,
+    profile_version: str,
 ) -> dict[str, Any]:
+    if profile_version == MULTIPLE_TESTING_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+        return _validate_multiple_testing_semantic_role_authority(
+            value,
+            check_id=check_id,
+            candidate_id=candidate_id,
+        )
+    if profile_version != SCIENTIFIC_REQUIREMENT_PROFILE_VERSION:
+        raise ScientificRequirementContractError(
+            "unsupported scientific requirement profile version"
+        )
     if check_id != _DEPENDENCE_CHECK_ID or candidate_id != _DEPENDENCE_CANDIDATE_ID:
         if value != {}:
             raise ScientificRequirementContractError(
@@ -1138,6 +1201,71 @@ def _validate_semantic_role_authority(
     }
 
 
+def _validate_multiple_testing_semantic_role_authority(
+    value: object,
+    *,
+    check_id: str,
+    candidate_id: str,
+) -> dict[str, Any]:
+    if check_id != _MULTIPLE_TESTING_CHECK_ID or candidate_id != _MULTIPLE_TESTING_CANDIDATE_ID:
+        raise ScientificRequirementContractError(
+            "scientific requirement profile 1.2.0 is unavailable for this check/candidate"
+        )
+    if not isinstance(value, Mapping) or set(value) != {_MULTIPLE_TESTING_AUTHORITY_ROLE}:
+        raise ScientificRequirementContractError(
+            "multiple-testing semantic-role authority has the wrong exact role set"
+        )
+    authority = value.get(_MULTIPLE_TESTING_AUTHORITY_ROLE)
+    if not isinstance(authority, Mapping) or set(authority) != {
+        "material_input_path",
+        "group_contrast_column",
+        "outcome_columns",
+        "family_member_rule",
+        "correction_scope",
+    }:
+        raise ScientificRequirementContractError(
+            "authorized test-family authority has the wrong exact field set"
+        )
+    path = authority.get("material_input_path")
+    group = authority.get("group_contrast_column")
+    outcomes = authority.get("outcome_columns")
+    if not isinstance(path, str) or not _valid_authority_path(path):
+        raise ScientificRequirementContractError("authorized test-family material path is invalid")
+    if not isinstance(group, str) or _SAFE_AUTHORITY_COLUMN.fullmatch(group) is None:
+        raise ScientificRequirementContractError(
+            "authorized test-family group/contrast column is invalid"
+        )
+    if (
+        not isinstance(outcomes, Sequence)
+        or isinstance(outcomes, (str, bytes))
+        or len(outcomes) < 3
+        or not all(
+            isinstance(item, str) and _SAFE_AUTHORITY_COLUMN.fullmatch(item) is not None
+            for item in outcomes
+        )
+        or len(outcomes) != len(set(outcomes))
+        or group in outcomes
+    ):
+        raise ScientificRequirementContractError(
+            "authorized test-family outcome columns are invalid"
+        )
+    if authority.get("family_member_rule") != _MULTIPLE_TESTING_FAMILY_MEMBER_RULE:
+        raise ScientificRequirementContractError("authorized test-family member rule is invalid")
+    if authority.get("correction_scope") != _MULTIPLE_TESTING_CORRECTION_SCOPE:
+        raise ScientificRequirementContractError(
+            "authorized test-family correction scope is invalid"
+        )
+    return {
+        _MULTIPLE_TESTING_AUTHORITY_ROLE: {
+            "material_input_path": path,
+            "group_contrast_column": group,
+            "outcome_columns": list(outcomes),
+            "family_member_rule": _MULTIPLE_TESTING_FAMILY_MEMBER_RULE,
+            "correction_scope": _MULTIPLE_TESTING_CORRECTION_SCOPE,
+        }
+    }
+
+
 def _valid_authority_path(value: str) -> bool:
     if (
         not value
@@ -1155,11 +1283,19 @@ def _valid_authority_path(value: str) -> bool:
     )
 
 
-def _validate_authority_binding_snapshot(value: object, authority_value: object) -> dict[str, Any]:
+def _validate_authority_binding_snapshot(
+    value: object,
+    authority_value: object,
+    *,
+    check_id: str,
+    candidate_id: str,
+    profile_version: str,
+) -> dict[str, Any]:
     authority = _validate_semantic_role_authority(
         authority_value,
-        check_id=_DEPENDENCE_CHECK_ID if authority_value else "other",
-        candidate_id=_DEPENDENCE_CANDIDATE_ID if authority_value else "other",
+        check_id=check_id,
+        candidate_id=candidate_id,
+        profile_version=profile_version,
     )
     if not authority:
         if value != {}:
@@ -1167,18 +1303,35 @@ def _validate_authority_binding_snapshot(value: object, authority_value: object)
                 "empty semantic authority requires an empty binding snapshot"
             )
         return {}
-    if not isinstance(value, Mapping) or set(value) != {_UNIT_AUTHORITY_ROLE}:
+    role = (
+        _UNIT_AUTHORITY_ROLE
+        if profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+        else _MULTIPLE_TESTING_AUTHORITY_ROLE
+    )
+    if not isinstance(value, Mapping) or set(value) != {role}:
         raise ScientificRequirementContractError(
             "authority binding snapshot has the wrong exact role set"
         )
-    bound = value.get(_UNIT_AUTHORITY_ROLE)
-    expected_authority = authority[_UNIT_AUTHORITY_ROLE]
-    if not isinstance(bound, Mapping) or set(bound) != {
-        "material_input_path",
-        "column_name",
-        "group_contrast_column",
-        "material_input_content_digest",
-    }:
+    bound = value.get(role)
+    expected_authority = authority[role]
+    expected_fields = (
+        {
+            "material_input_path",
+            "column_name",
+            "group_contrast_column",
+            "material_input_content_digest",
+        }
+        if profile_version == SCIENTIFIC_REQUIREMENT_PROFILE_VERSION
+        else {
+            "material_input_path",
+            "group_contrast_column",
+            "outcome_columns",
+            "family_member_rule",
+            "correction_scope",
+            "material_input_content_digest",
+        }
+    )
+    if not isinstance(bound, Mapping) or set(bound) != expected_fields:
         raise ScientificRequirementContractError(
             "authority binding snapshot has the wrong exact field set"
         )
@@ -1190,7 +1343,7 @@ def _validate_authority_binding_snapshot(value: object, authority_value: object)
     ):
         raise ScientificRequirementContractError("authority binding snapshot drifted")
     return {
-        _UNIT_AUTHORITY_ROLE: {
+        role: {
             **copy.deepcopy(expected_authority),
             "material_input_content_digest": digest,
         }

@@ -1012,6 +1012,172 @@ def main() -> None:
             "workflow_systems": [],
         },
     )
+    multiple_testing_resource = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v1.py"
+    )
+    from sc_referee.detectors.method_conflict_finding import (
+        MULTIPLE_TESTING_CODE_FINDING_PROFILE_DIGEST,
+        MULTIPLE_TESTING_CODE_FINDING_PROFILE_ID,
+    )
+
+    _upsert(
+        detector_collection,
+        "detector_id",
+        {
+            "abstain_when": [
+                "The target is not one answered multiple-testing code-lane question with one exact scope-bound human Answer.",
+                "The static code/CSV observation is absent, duplicated, unsupported, or does not close through one full-digest analysis.py-to-snapshot edge.",
+                "Any authority, family census, operand, row-completeness, p-value lineage, correction, threshold, control, conclusion, sink, or finite counterevidence prerequisite is unresolved.",
+            ],
+            "accepted_assertion_classes": ["deterministic_derivation"],
+            "applies_to_record_types": [
+                "answer",
+                "asset_identity",
+                "file_record",
+                "material_question",
+                "repository_snapshot",
+                "scientific_contract",
+                "semantic_assertion",
+            ],
+            "assumptions": [],
+            "counterevidence_protocol": [
+                {
+                    "applies_when": (
+                        "One answered, explicitly registered multiple-testing code/CSV question "
+                        "is scheduled."
+                    ),
+                    "check_id": check_id,
+                    "counterevidence_effect": "suppress_candidate",
+                    "description": description,
+                    "sources_to_search": [
+                        "locked question, Answer, contract, deterministic multiple-testing code fact, and full-digest analysis.py scope edge"
+                    ],
+                    "unavailability_effect": "block_finding",
+                }
+                for check_id, description in analysis_conflict_checks
+            ],
+            "coverage_contract": {
+                "covered_when": (
+                    "One exact human complete-family correction requirement and one exact "
+                    "static code/CSV family-test operand resolve through the full-digest "
+                    "analysis.py scope, and every finite guard completes without a suppressor."
+                ),
+                "not_covered_when": (
+                    "Any authority, family census, operand, CSV-row, p-value, correction, "
+                    "threshold, control, conclusion, scope, identity, or finite-check "
+                    "prerequisite is unavailable or unsupported."
+                ),
+                "partially_covered_when": (
+                    "Not used by version 1.0.0; incomplete or conflicted records remain not covered."
+                ),
+            },
+            "description": (
+                "Compares the frozen complete-family correction requirement with one exact "
+                "code-and-CSV family-test fact without reading prose or executing project code."
+            ),
+            "detector_family": "code_csv_multiple_testing_requirement_consistency",
+            "detector_id": "detector:bounded-code-csv-multiple-testing-conflict",
+            "detector_version": "1.0.0",
+            "domains": ["domain_neutral_scientific_analysis"],
+            "extensions": {
+                "x-adr-ref": (
+                    "docs/implementation/ADR-0077-CONTRACT-BOUND-MULTIPLE-TESTING-CODE-SLICE.md"
+                ),
+                "x-finding-wording-profile-digest": (MULTIPLE_TESTING_CODE_FINDING_PROFILE_DIGEST),
+                "x-finding-wording-profile-id": MULTIPLE_TESTING_CODE_FINDING_PROFILE_ID,
+                "x-implementation-resource": (
+                    "detectors/bounded_code_csv_multiple_testing_conflict_v1.py"
+                ),
+                "x-production-finding-permitted": False,
+                "x-scientific-check-ids": [
+                    "check:authorized-complete-family-correction-over-code-test-battery"
+                ],
+            },
+            "implementation": {
+                "deterministic": True,
+                "entry_point": (
+                    "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v1:"
+                    "BoundedCodeCsvMultipleTestingConflictV1Detector"
+                ),
+                "implementation_digest": sha256_digest(multiple_testing_resource.read_bytes()),
+            },
+            "issue_classes": ["x-review-scoped-analysis-method-requirement-mismatch"],
+            "languages": ["python"],
+            "limitations": [
+                "The development-only detector cannot emit a production Finding.",
+                "Only the exact root analysis.py, closed registered APIs and grammars, complete authorized CSV family, and finite guards are covered.",
+                "No prose, comments, docstrings, project execution, runtime p-values, statistical invalidity, selection, publication use, or broader scientific correctness is established.",
+            ],
+            "maturity": "experimental",
+            "permitted_output_types": ["disclosure"],
+            "provenance": {
+                "actor": {
+                    "actor_id": "detector:bounded-code-csv-multiple-testing-conflict",
+                    "actor_kind": "detector",
+                },
+                "created_at": "2026-08-24T00:00:00-07:00",
+                "method": "deterministic_detection",
+                "tool": "sc-referee",
+                "tool_version": __version__,
+            },
+            "record_type": "detector_manifest",
+            "required_evidence": [
+                "one exact answered multiple-testing code-lane MaterialQuestion",
+                "one scope-bound human Answer and controller-verified ordered family requirement",
+                "one exact deterministic code/CSV family-test operand",
+                "one full-digest analysis.py-to-snapshot scope edge",
+                "every ordered finite evidence predicate completed",
+            ],
+            "schema_version": SCHEMA_VERSION,
+            "supported_operations": [
+                "analysis_scoped_scientific_check_question_v1",
+                "closed_method_comparison_algebra_v1",
+                "full_digest_analysis_file_scope_v1",
+                "posthoc_method_ledger_v1",
+                "registered_typed_method_conflict_binding_v1",
+                "scope_bound_structured_answer_v1",
+            ],
+            "test_fixtures": {
+                "ambiguous": [
+                    "tests/test_code_csv_multiple_testing_dataflow_v1.py::test_unresolved_guards_abstain"
+                ],
+                "counterevidence": [
+                    "tests/test_code_csv_multiple_testing_dataflow_v1.py::test_guard_fixture_matrix"
+                ],
+                "positive": [
+                    "tests/test_multiple_testing_code_slice_development.py::test_development_candidate_replays_without_finding"
+                ],
+                "unsupported_path": [
+                    "tests/test_code_csv_multiple_testing_dataflow_v1.py::test_unresolved_guards_abstain"
+                ],
+                "verified_good_negative": [
+                    "tests/test_code_csv_multiple_testing_dataflow_v1.py::test_guard_fixture_matrix"
+                ],
+            },
+            "title": "Bounded code/CSV complete-family correction consistency",
+            "validation": {
+                "agent_adjudication_count": 0,
+                "evaluation_ref": (
+                    "docs/implementation/MULTITEST-CODE-SLICE-1.0-DESIGN-2026-08-24.md"
+                ),
+                "human_scientific_approval_count": 0,
+                "qualification_record_ref": None,
+                "qualification_review_basis": "not_qualified",
+                "software_maintainer_approval_count": 1,
+                "status": "development_only",
+            },
+            "wording_constraints": [
+                "State only that the exact code/CSV fact conflicts with the frozen complete-family correction requirement.",
+                "Do not claim that no correction was applied, invalid statistics, project execution, numerical impact, or that the frozen family is scientifically correct.",
+                "Do not describe an experimental evaluation candidate as a Finding.",
+            ],
+            "workflow_systems": [],
+        },
+    )
     feature_identity_resource = (
         ROOT / "src" / "sc_referee" / "detectors" / "feature_identifier_identity.py"
     )

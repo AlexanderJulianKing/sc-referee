@@ -146,6 +146,9 @@ from sc_referee.scientific_checks.integration import (
     build_frozen_inspection_context,
     compile_scientific_check_records,
 )
+from sc_referee.scientific_checks.integration_multiple_testing_v1 import (
+    compile_multiple_testing_development_records,
+)
 from sc_referee.scientific_checks.profiles import default_scientific_check_registry
 from sc_referee.scientific_checks.registry import ScientificCheckLane, ScientificCheckRegistry
 from sc_referee.scope_selection import build_scope_selection_contracts
@@ -1160,7 +1163,12 @@ def run_audit(
             scientific_evaluation = active_scientific_checks.evaluate(
                 scientific_context, lane=scientific_check_lane
             )
-            scientific_compilation = compile_scientific_check_records(
+            compile_records = (
+                compile_multiple_testing_development_records
+                if scientific_check_lane == "development"
+                else compile_scientific_check_records
+            )
+            scientific_compilation = compile_records(
                 registry=active_scientific_checks,
                 evaluation=scientific_evaluation,
                 context=scientific_context,

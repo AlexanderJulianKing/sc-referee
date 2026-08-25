@@ -108,6 +108,67 @@ _CODE_DEPENDENCE_SLOT_SCHEMA = {
     "M": "checked-positive-maximum-unit-multiplicity",
 }
 
+_MULTIPLE_TESTING_CHECK_ID = "check:authorized-complete-family-correction-over-code-test-battery"
+MULTIPLE_TESTING_CODE_FINDING_PROFILE_ID = (
+    "method-conflict-finding:code-csv-complete-family-correction-requirement-conflict-v1"
+)
+MULTIPLE_TESTING_CODE_FINDING_PROFILE_VERSION = "1.0.0"
+_MULTIPLE_TESTING_TITLE = (
+    "Analysis code contradicts the frozen complete-family correction requirement"
+)
+_MULTIPLE_TESTING_SUMMARY_TEMPLATE = (
+    "The frozen requirement for `{CSV_PATH}` names the ordered outcome columns "
+    "{OUTCOME_COLUMNS} under group column `{GROUP_COLUMN}` as one complete-correction family "
+    "with {AUTHORIZED_COUNT} members. In `analysis.py`, static analysis establishes "
+    "{PERFORMED_COUNT} matching `{TEST_API}` calls. For {UNCORRECTED_COUNT} registered "
+    "`.pvalue` members, p-derived conclusions reach a supported code sink without entering a "
+    "recognized correction anywhere in the analyzed source; {CORRECTED_COUNT} registered "
+    "`.pvalue` members enter a recognized correction. This conflicts with the frozen "
+    "complete-family-correction requirement."
+)
+_MULTIPLE_TESTING_SLOT_SCHEMA = {
+    "CSV_PATH": "safe-normalized-authority-path-bound-to-material-digest",
+    "GROUP_COLUMN": "safe-authority-column-byte-equal-to-contract-field",
+    "OUTCOME_COLUMNS": "canonical-json-ordered-safe-authority-column-list",
+    "AUTHORIZED_COUNT": "checked-integer-equal-to-contract-list-length-at-least-three",
+    "PERFORMED_COUNT": "checked-integer-equal-to-call-census-and-authorized-count",
+    "CORRECTED_COUNT": "checked-integer-zero-through-performed-count-minus-one",
+    "UNCORRECTED_COUNT": "checked-integer-performed-minus-corrected-at-least-one",
+    "TEST_API": "uniform-registered-two-sample-api-identity",
+}
+_MULTIPLE_TESTING_SEVERITY_RATIONALE = (
+    "The checked static code representation conflicts with one exact pre-authorized "
+    "complete-family correction requirement; the contract may be wrong, and execution, "
+    "statistical invalidity, and numerical consequences were not established."
+)
+_MULTIPLE_TESTING_NEXT_ACTION = (
+    "Align the checked code with the frozen complete-family correction requirement, or record "
+    "an authorized amendment and re-audit the exact source and CSV."
+)
+_MULTIPLE_TESTING_NON_INFERENCES = (
+    "The contract author may be wrong.",
+    "Static source does not establish that project code executed.",
+    "Absence of a recognized correction in the analyzed source does not establish that no "
+    "correction was applied.",
+    "Correction may occur in unsupported, uninspected, upstream, downstream, or external code.",
+    "The detector does not establish runtime p-values, test assumptions, effect sizes, inflated "
+    "error rates, statistical invalidity, selection, publication use, interpretation, or reliance.",
+    "The detector does not establish that the named outcomes should scientifically form one family.",
+)
+MULTIPLE_TESTING_CODE_FINDING_PROFILE_DIGEST = semantic_digest(
+    {
+        "profile_id": MULTIPLE_TESTING_CODE_FINDING_PROFILE_ID,
+        "profile_version": MULTIPLE_TESTING_CODE_FINDING_PROFILE_VERSION,
+        "title": _MULTIPLE_TESTING_TITLE,
+        "summary_template": _MULTIPLE_TESTING_SUMMARY_TEMPLATE,
+        "slot_schema": _MULTIPLE_TESTING_SLOT_SCHEMA,
+        "issue_class": "x-review-scoped-analysis-method-requirement-mismatch",
+        "severity_rationale": _MULTIPLE_TESTING_SEVERITY_RATIONALE,
+        "non_inferences": list(_MULTIPLE_TESTING_NON_INFERENCES),
+        "next_action": _MULTIPLE_TESTING_NEXT_ACTION,
+    }
+)
+
 
 def _is_registered_code_dependence_binding(binding: MethodConflictBinding) -> bool:
     from sc_referee.scientific_checks.profiles import scientific_check_release_registry
@@ -145,6 +206,26 @@ def _is_registered_code_dependence_binding(binding: MethodConflictBinding) -> bo
         and installed.detector_version == binding.detector_version == "2.1.0"
         and installed.detector_manifest_digest == binding.detector_manifest_digest
         and binding.required_evidence_planes == ("static_source",)
+    )
+
+
+def _is_registered_code_multiple_testing_binding(binding: MethodConflictBinding) -> bool:
+    from sc_referee.scientific_checks.profiles import scientific_check_release_registry
+
+    matches = [
+        item
+        for item in scientific_check_release_registry().development_method_conflict_bindings
+        if item.binding_id == binding.binding_id
+    ]
+    return bool(
+        len(matches) == 1
+        and matches[0].binding_digest == binding.binding_digest
+        and binding.check_id == _MULTIPLE_TESTING_CHECK_ID
+        and binding.check_version == "1.0.0"
+        and binding.detector_id == "detector:bounded-code-csv-multiple-testing-conflict"
+        and binding.detector_version == "1.0.0"
+        and binding.required_evidence_planes == ("static_source",)
+        and not binding.production_finding_permitted
     )
 
 
@@ -241,6 +322,8 @@ def draft_method_conflict_finding(
     evidence = result.get("evidence")
     extensions = result.get("extensions")
     code_dependence_lane = _is_registered_code_dependence_binding(binding)
+    multiple_testing_lane = _is_registered_code_multiple_testing_binding(binding)
+    code_lane = code_dependence_lane or multiple_testing_lane
     if (
         result.get("record_type") != "detector_result"
         or result.get("detector_id") != binding.detector_id
@@ -255,8 +338,7 @@ def draft_method_conflict_finding(
         or not isinstance(targets, list)
         or len(targets) != 1
         or not isinstance(targets[0], Mapping)
-        or targets[0].get("record_type")
-        != ("file_record" if code_dependence_lane else "publication_surface")
+        or targets[0].get("record_type") != ("file_record" if code_lane else "publication_surface")
         or not isinstance(evidence, list)
         or not evidence
         or not isinstance(extensions, Mapping)
@@ -308,7 +390,7 @@ def draft_method_conflict_finding(
                 "The demonstrated conflict is localized to the exact selected publication "
                 "surface and is not projected to other claims or analyses."
             ),
-            "publication_surface_ids": [] if code_dependence_lane else [target_id],
+            "publication_surface_ids": [] if code_lane else [target_id],
         },
         "root_cause": {
             "root_ref": target,
@@ -397,6 +479,37 @@ def draft_method_conflict_finding(
                 REPORT_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST
             )
             draft["extensions"]["x-report-csv-row-entry-evidence-digest"] = facts["fact_digest"]
+    elif binding.check_id == _MULTIPLE_TESTING_CHECK_ID:
+        if not multiple_testing_lane:
+            raise MethodConflictFindingDraftError(
+                "multiple-testing result lacks the exact development code binding"
+            )
+        facts = _multiple_testing_code_facts(work_packet)
+        if facts is None:
+            raise MethodConflictFindingDraftError(
+                "multiple-testing result lacks one exact contract-bound code fact"
+            )
+        draft["title"] = _MULTIPLE_TESTING_TITLE
+        draft["summary"] = _multiple_testing_summary(facts)
+        draft["publication_materiality"] = {
+            "state": "unassessed",
+            "reason": "no_selected_publication_surface",
+            "rationale": (
+                "The reportless code lane establishes supported code sinks but no selected "
+                "publication surface, publication use, interpretation, or reliance."
+            ),
+            "candidate_publication_surface_ids": [],
+        }
+        draft["severity"]["rationale"] = _MULTIPLE_TESTING_SEVERITY_RATIONALE
+        draft["coverage_limitations"] = list(_MULTIPLE_TESTING_NON_INFERENCES)
+        draft["next_action"] = _MULTIPLE_TESTING_NEXT_ACTION
+        draft["extensions"]["x-finding-wording-profile-id"] = (
+            MULTIPLE_TESTING_CODE_FINDING_PROFILE_ID
+        )
+        draft["extensions"]["x-finding-wording-profile-digest"] = (
+            MULTIPLE_TESTING_CODE_FINDING_PROFILE_DIGEST
+        )
+        draft["extensions"]["x-code-csv-multiple-testing-evidence-digest"] = facts["fact_digest"]
     return draft
 
 
@@ -653,6 +766,220 @@ def _code_dependence_row_entry_facts(
     if not isinstance(source_refs, list) or not _code_fact_sources_resolve(fact, source_refs):
         return None
     return dict(fact)
+
+
+def _multiple_testing_code_facts(
+    work_packet: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(work_packet, Mapping):
+        return None
+    assertions = work_packet.get("semantic_assertions")
+    answers = work_packet.get("answers")
+    if not isinstance(assertions, list) or not isinstance(answers, list):
+        return None
+    observed = [
+        item
+        for item in assertions
+        if isinstance(item, Mapping)
+        and item.get("semantic_role") == "observed"
+        and item.get("extensions", {}).get("x-scientific-check-id") == _MULTIPLE_TESTING_CHECK_ID
+        and item.get("extensions", {}).get("x-code-csv-multiple-testing-evidence") is not None
+    ]
+    if len(observed) != 1 or len(answers) != 1 or not isinstance(answers[0], Mapping):
+        return None
+    assertion = observed[0]
+    extensions = assertion.get("extensions", {})
+    fact = extensions.get("x-code-csv-multiple-testing-evidence")
+    evidence_digest = extensions.get("x-code-csv-multiple-testing-evidence-digest")
+    required = {
+        "profile",
+        "material_input_path",
+        "material_input_content_digest",
+        "material_file_ref",
+        "group_contrast_column",
+        "outcome_columns",
+        "group_value_domain_digest",
+        "authorized_count",
+        "performed_count",
+        "corrected_count",
+        "uncorrected_count",
+        "registered_test_api",
+        "correction_classification",
+        "corrected_positions",
+        "conclusion_positions",
+        "analysis_path",
+        "analysis_content_digest",
+        "analysis_file_ref",
+        "authority_binding_digest",
+        "code_evidence_spans",
+        "fact_digest",
+    }
+    if not isinstance(fact, Mapping) or set(fact) != required:
+        return None
+    fact_without_digest = dict(fact)
+    fact_digest = fact_without_digest.pop("fact_digest", None)
+    if (
+        fact.get("profile") != "code_csv_multiple_testing_evidence_v1"
+        or not isinstance(fact_digest, str)
+        or semantic_digest(fact_without_digest) != fact_digest
+        or not isinstance(evidence_digest, str)
+        or semantic_digest(fact) != evidence_digest
+        or not _valid_multiple_testing_fact_shape(fact)
+    ):
+        return None
+    answer = answers[0]
+    authority = answer.get("extensions", {}).get("x-semantic-role-authority")
+    snapshot = answer.get("extensions", {}).get("x-authority-binding-snapshot")
+    if (
+        not isinstance(authority, Mapping)
+        or set(authority) != {"authorized_test_family"}
+        or not isinstance(snapshot, Mapping)
+        or set(snapshot) != {"authorized_test_family"}
+        or semantic_digest(snapshot) != fact.get("authority_binding_digest")
+    ):
+        return None
+    family = authority.get("authorized_test_family")
+    bound = snapshot.get("authorized_test_family")
+    authority_fields = {
+        "material_input_path",
+        "group_contrast_column",
+        "outcome_columns",
+        "family_member_rule",
+        "correction_scope",
+    }
+    if (
+        not isinstance(family, Mapping)
+        or set(family) != authority_fields
+        or not isinstance(bound, Mapping)
+        or set(bound) != authority_fields | {"material_input_content_digest"}
+        or {key: bound.get(key) for key in family} != dict(family)
+        or family.get("material_input_path") != fact.get("material_input_path")
+        or family.get("group_contrast_column") != fact.get("group_contrast_column")
+        or family.get("outcome_columns") != fact.get("outcome_columns")
+        or bound.get("material_input_content_digest") != fact.get("material_input_content_digest")
+        or answer.get("answer_value")
+        != {
+            "selection_process": "complete_family_correction_over_authorized_outcome_family",
+            "semantic_role_authority": dict(authority),
+        }
+    ):
+        return None
+    source_refs = assertion.get("source_refs")
+    if not isinstance(source_refs, list) or not any(
+        isinstance(source, Mapping)
+        and source.get("path") == fact.get("analysis_path")
+        and source.get("content_digest") == fact.get("analysis_content_digest")
+        for source in source_refs
+    ):
+        return None
+    return dict(fact)
+
+
+def _valid_multiple_testing_fact_shape(fact: Mapping[str, Any]) -> bool:
+    csv_path = fact.get("material_input_path")
+    group = fact.get("group_contrast_column")
+    outcomes = fact.get("outcome_columns")
+    digests = (
+        fact.get("material_input_content_digest"),
+        fact.get("group_value_domain_digest"),
+        fact.get("analysis_content_digest"),
+        fact.get("authority_binding_digest"),
+    )
+    if (
+        not _safe_path(csv_path, {".csv"})
+        or fact.get("analysis_path") != "analysis.py"
+        or not isinstance(group, str)
+        or _SAFE_COLUMN.fullmatch(group) is None
+        or not isinstance(outcomes, list)
+        or len(outcomes) < 3
+        or any(
+            not isinstance(item, str) or _SAFE_COLUMN.fullmatch(item) is None for item in outcomes
+        )
+        or outcomes != list(dict.fromkeys(outcomes))
+        or group in outcomes
+        or any(not isinstance(value, str) or _SHA256.fullmatch(value) is None for value in digests)
+        or fact.get("registered_test_api")
+        not in {"scipy.stats.ttest_ind", "scipy.stats.mannwhitneyu"}
+        or fact.get("correction_classification") not in {"none", "strict_subset"}
+    ):
+        return False
+    integers = ("authorized_count", "performed_count", "corrected_count", "uncorrected_count")
+    if any(
+        not isinstance(fact.get(field), int) or isinstance(fact.get(field), bool)
+        for field in integers
+    ):
+        return False
+    authorized = int(fact["authorized_count"])
+    performed = int(fact["performed_count"])
+    corrected = int(fact["corrected_count"])
+    uncorrected = int(fact["uncorrected_count"])
+    corrected_positions = fact.get("corrected_positions")
+    conclusion_positions = fact.get("conclusion_positions")
+    if (
+        authorized != len(outcomes)
+        or performed != authorized
+        or not 0 <= corrected < performed
+        or uncorrected != performed - corrected
+        or uncorrected < 1
+        or not isinstance(corrected_positions, list)
+        or corrected_positions != sorted(set(corrected_positions))
+        or any(not isinstance(item, int) or isinstance(item, bool) for item in corrected_positions)
+        or len(corrected_positions) != corrected
+        or any(not 0 <= item < authorized for item in corrected_positions)
+        or conclusion_positions != list(range(authorized))
+        or (fact.get("correction_classification") == "none" and corrected != 0)
+        or (fact.get("correction_classification") == "strict_subset" and corrected == 0)
+    ):
+        return False
+    refs = (fact.get("material_file_ref"), fact.get("analysis_file_ref"))
+    if any(
+        not isinstance(ref, Mapping)
+        or set(ref) != {"record_type", "record_id"}
+        or ref.get("record_type") != "file_record"
+        or not isinstance(ref.get("record_id"), str)
+        for ref in refs
+    ):
+        return False
+    spans = fact.get("code_evidence_spans")
+    if not isinstance(spans, list) or not spans:
+        return False
+    for span in spans:
+        if not isinstance(span, Mapping) or set(span) != {
+            "role",
+            "family_position",
+            "path",
+            "start_line",
+            "end_line",
+            "start_column",
+            "end_column",
+        }:
+            return False
+        coordinates = (
+            span.get("start_line"),
+            span.get("end_line"),
+            span.get("start_column"),
+            span.get("end_column"),
+        )
+        if (
+            not isinstance(span.get("role"), str)
+            or not span.get("role")
+            or span.get("path") != "analysis.py"
+            or (
+                span.get("family_position") is not None
+                and (
+                    not isinstance(span.get("family_position"), int)
+                    or isinstance(span.get("family_position"), bool)
+                    or not 0 <= int(span["family_position"]) < authorized
+                )
+            )
+            or any(
+                not isinstance(value, int) or isinstance(value, bool) or value < 1
+                for value in coordinates
+            )
+            or int(span["end_line"]) < int(span["start_line"])
+        ):
+            return False
+    return True
 
 
 def _valid_code_dependence_fact_shape(fact: Mapping[str, Any]) -> bool:
@@ -1051,6 +1378,21 @@ def _code_dependence_summary(facts: Mapping[str, Any], *, composite_key_limit: b
     if composite_key_limit:
         summary += " The declared unit column may be one component of a composite key."
     return summary
+
+
+def _multiple_testing_summary(facts: Mapping[str, Any]) -> str:
+    return _MULTIPLE_TESTING_SUMMARY_TEMPLATE.format(
+        CSV_PATH=_json_slot(str(facts["material_input_path"])),
+        GROUP_COLUMN=_json_slot(str(facts["group_contrast_column"])),
+        OUTCOME_COLUMNS=json.dumps(
+            facts["outcome_columns"], ensure_ascii=True, separators=(",", ":")
+        ),
+        AUTHORIZED_COUNT=int(facts["authorized_count"]),
+        PERFORMED_COUNT=int(facts["performed_count"]),
+        CORRECTED_COUNT=int(facts["corrected_count"]),
+        UNCORRECTED_COUNT=int(facts["uncorrected_count"]),
+        TEST_API=_json_slot(str(facts["registered_test_api"])),
+    )
 
 
 def _json_slot(value: str) -> str:

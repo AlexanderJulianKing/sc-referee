@@ -70,7 +70,17 @@ def test_registry_carries_exact_qualified_and_development_bindings() -> None:
     assert installed_pin_matches_live_identity(GRANT_PINS[_BINDING_ID]) is True
     assert (development.check_version, development.detector_version) == ("3.1.0", "3.1.0")
     assert development.binding_id == f"{_BINDING_ID}:development"
-    assert registry.modules_for_lane("qualified") == registry.modules_for_lane("development")
+    multiple_testing_check_id = "check:authorized-complete-family-correction-over-code-test-battery"
+    development_modules = registry.modules_for_lane("development")
+    assert (
+        sum(module.manifest.check_id == multiple_testing_check_id for module in development_modules)
+        == 1
+    )
+    assert tuple(
+        module
+        for module in development_modules
+        if module.manifest.check_id != multiple_testing_check_id
+    ) == registry.modules_for_lane("qualified")
 
 
 def test_development_identity_change_cannot_change_qualified_pin_or_findings(
