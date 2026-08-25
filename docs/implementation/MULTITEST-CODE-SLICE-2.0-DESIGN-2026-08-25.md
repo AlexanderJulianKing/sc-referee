@@ -813,6 +813,17 @@ accounted p-consumer edges. Missing receipt means abstention.
 | Pre-registered bare level | `correct-preregistered-threshold-001-N4` | Four raw `p < 0.01` decisions and no recognized correction: `unresolved-decision-threshold`. Protocol prose is not detector evidence. |
 | Statistics sibling | `correct-assumption-check` | `unresolved-inference-sibling-present` |
 
+Five section-7 names are traceability labels for already-executing fixtures in
+`tests/test_code_csv_multiple_testing_core_guards_v2.py`; the exact rename map is:
+
+| Section-7 label | Executable fixture |
+|---|---|
+| `correct-try-gate-residual` | `test_unresolved_execution_prevention_residual_has_distinct_reason` |
+| `correct-raw-flags-plus-p-export` | `test_guard_terminal_exports_abstain` (`Series.to_csv` case) |
+| `correct-loaded-adjusted-p` | `test_loaded_adjusted_pvalue_conclusions_do_not_acquire_local_p_lineage` |
+| `correct-dynamic-p-dict` | `test_forward_slice_accounts_for_structural_p_consumers` (`mapping` case) |
+| `correct-assumption-check` | `test_statistics_prefix_sibling_abstains` |
+
 No fixture accepts alternative reasons. Combined opened cases may stop earlier than isolated guards;
 both exact expectations are pinned.
 

@@ -315,6 +315,45 @@ def test_v2_p_container_reconstruction_grammar(container: str, expected: str) ->
         assert result.facts.correction_classification == expected
 
 
+@pytest.mark.parametrize(
+    ("left", "right", "expected"),
+    [
+        pytest.param("[r0.pvalue, r1.pvalue]", "(r2.pvalue,)", None, id="J1-list-tuple"),
+        pytest.param("(r0.pvalue, r1.pvalue)", "[r2.pvalue]", None, id="J2-tuple-list"),
+        pytest.param(
+            "[r0.pvalue, r1.pvalue]",
+            "[r2.pvalue]",
+            "strict_subset",
+            id="same-kind-list-control",
+        ),
+    ],
+)
+def test_pseq_concatenation_requires_matching_container_kinds(
+    left: str, right: str, expected: str | None
+) -> None:
+    columns = ("m1", "m2", "m3", "m4")
+    decisions = (
+        f"pvals = {left}\nextra = {right}\n"
+        "reject, adjusted, _, _ = multipletests(pvals + extra)\n"
+        "print(reject[0]); print(reject[1]); print(reject[2]); print(r3.pvalue < 0.05)"
+    )
+    result = _run(
+        _explicit(
+            columns=columns,
+            imports="from statsmodels.stats.multitest import multipletests\n",
+            decisions=decisions,
+        ),
+        columns,
+    )
+    if expected is None:
+        assert result.reason == "correction-family-lineage-unresolved"
+        assert result.facts is None
+    else:
+        assert result.reason is None
+        assert result.facts is not None
+        assert result.facts.correction_classification == expected
+
+
 def test_two_disjoint_registered_correction_families_abstain_as_partitioned() -> None:
     decisions = (
         "first = [r0.pvalue]\nsecond = [r1.pvalue, r2.pvalue]\n"

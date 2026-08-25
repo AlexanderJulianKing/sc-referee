@@ -10545,6 +10545,37 @@ class _MtEngine:
             else None
         )
 
+    def _p_sequence_kind(
+        self, node: ast.expr, active: set[str] | None = None, depth: int = 0
+    ) -> Literal["list", "tuple"] | None:
+        """Resolve the concrete container kind required by PSEQ production 4."""
+
+        active = set() if active is None else active
+        if depth > _DEFINITION_NODE_MAX:
+            return None
+        if isinstance(node, ast.List):
+            return "list"
+        if isinstance(node, ast.Tuple):
+            return "tuple"
+        if isinstance(node, ast.Name):
+            if node.id in active:
+                return None
+            expression = self.assignments.get(node.id)
+            return (
+                self._p_sequence_kind(expression, {*active, node.id}, depth + 1)
+                if expression is not None
+                else None
+            )
+        if isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Slice):
+            return self._p_sequence_kind(node.value, active, depth + 1)
+        if isinstance(node, ast.ListComp):
+            return "list"
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            left = self._p_sequence_kind(node.left, active, depth + 1)
+            right = self._p_sequence_kind(node.right, active, depth + 1)
+            return left if left is not None and left == right else None
+        return None
+
     def _p_sequence(
         self, node: ast.expr, active: set[str] | None = None, depth: int = 0
     ) -> tuple[int, ...] | None:
@@ -10602,6 +10633,10 @@ class _MtEngine:
             index = member if member >= 0 else len(sequence) + member
             return (sequence[index],) if 0 <= index < len(sequence) else None
         if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            left_kind = self._p_sequence_kind(node.left, active, depth + 1)
+            right_kind = self._p_sequence_kind(node.right, active, depth + 1)
+            if left_kind is None or left_kind != right_kind:
+                return None
             left = self._p_sequence(node.left, active, depth + 1)
             right = self._p_sequence(node.right, active, depth + 1)
             return left + right if left is not None and right is not None else None
