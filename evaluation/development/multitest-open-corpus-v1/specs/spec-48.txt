@@ -1,0 +1,37 @@
+SPEC-48 - Two milling methods and wholegrain flour quality
+
+SCENARIO
+A grain science laboratory compared stone-milled and roller-milled wholegrain wheat
+flour from the same grain lot, milled on alternating days over three weeks. Each flour
+sub-sample drawn from the stream is one observation.
+
+DATA FILE: data.csv
+One row per sub-sample. 66 sub-samples: 33 per milling method.
+Columns, in this order:
+  sample_id       strings like "FL-001"
+  milling         exactly two values: "roller" and "stone"
+  damaged_starch_pct    damaged starch, percent. Roller near 6.8 (SD 0.9), stone near
+                        9.4 (SD 1.2)
+  water_absorption_pct  farinograph water absorption, percent. Roller near 62.5
+                        (SD 2.0), stone near 66.1 (SD 2.3)
+  particle_size_d50_um  median particle size, micrometres. Roller near 148 (SD 22),
+                        stone near 196 (SD 30)
+  tocopherol_mg_kg      total tocopherols, mg/kg. Roller near 38.5 (SD 5.5), stone
+                        near 44.2 (SD 6.0)
+  falling_number_s      falling number, seconds. Roller near 342 (SD 38), stone near
+                        318 (SD 40)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Set the family-wide error rate at five percent and derive the per-outcome threshold by
+hand with the Sidak formula for five tests: one minus the fifth root of ninety-five
+percent. Write the exponent and the subtraction out in the script so the arithmetic is
+visible, and print the resulting threshold to six decimal places along with the number
+of tests it assumes. Run a two-sample test for a difference in means on each of the
+five outcomes and compare every p-value with that hand-computed threshold rather than
+with five percent, printing each outcome's p-value and decision beneath the threshold.
+
+REPORT: report.md
+Half a page. Show the Sidak arithmetic and the threshold, state that the family is the
+five flour properties, give each p-value against the threshold, and interpret the
+milling comparison for bakers.

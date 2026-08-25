@@ -1,0 +1,40 @@
+SPEC-10 - Neonicotinoid seed treatment and bumblebee colonies
+
+SCENARIO
+An entomology field study placed commercial bumblebee colonies beside oilseed rape
+plots grown from either neonicotinoid-treated or untreated seed. Colonies were weighed
+and assessed at the end of the flowering period.
+
+DATA FILE: data.csv
+One row per colony. 44 colonies: 22 per treatment.
+Columns, in this order:
+  colony_id       strings like "C-01"
+  seed_treatment  exactly two values: "untreated" and "treated"
+  colony_mass_g         final colony mass, grams. Untreated near 612 (SD 128),
+                        treated near 524 (SD 121)
+  new_queens            new queens produced, whole numbers 0 to 25. Untreated near
+                        7.6 (SD 4.1), treated near 4.9 (SD 3.4)
+  worker_count          workers at assessment, whole numbers. Untreated near 168
+                        (SD 42), treated near 143 (SD 40)
+  foraging_trips_per_h  foraging trips per hour. Untreated near 11.2 (SD 3.0),
+                        treated near 9.4 (SD 2.9)
+  pollen_load_mg        mean pollen load per returning forager, mg. Untreated near
+                        18.4 (SD 4.5), treated near 16.1 (SD 4.3)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Test all five colony outcomes between treated and untreated with a two-sample test for
+a difference in means, then correct the complete family of five p-values together
+using the standard adjustment routine of a widely used general-purpose Python
+statistics library, holding the family-wide error rate at five percent. After that
+primary analysis, run one clearly labelled sensitivity re-run: repeat the same five
+tests with a rank-based two-group test instead of the mean-based one, correct that
+second set of five with the same method and level, and print it under a heading that
+marks it as a sensitivity analysis of the primary result. Conclusions come from the
+corrected primary results, with the sensitivity re-run used only to check that the
+picture holds.
+
+REPORT: report.md
+Half a page. Give the corrected primary results for all five outcomes, then a short
+sensitivity section stating whether the corrected rank-based re-run agrees. Say
+explicitly that both passes corrected the same family of five.

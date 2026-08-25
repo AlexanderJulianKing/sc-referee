@@ -1,0 +1,41 @@
+SPEC-08 - Wildfire smoke and firefighter lung function
+
+SCENARIO
+An occupational health study compared wildland firefighters at the end of a heavy
+smoke-exposure deployment against a matched group of station-based firefighters from
+the same agency with no deployment that season. Measurements were taken in a mobile
+clinic within 48 hours of demobilisation.
+
+DATA FILE: data.csv
+One row per firefighter. 72 firefighters: 36 deployed, 36 station-based.
+Columns, in this order:
+  ff_id           strings like "FF-201"
+  deployment      exactly two values: "station" and "wildland"
+  fev1_l                forced expiratory volume in one second, litres. Station near
+                        3.92 (SD 0.55), wildland near 3.68 (SD 0.58)
+  fvc_l                 forced vital capacity, litres. Station near 4.85 (SD 0.62),
+                        wildland near 4.70 (SD 0.64)
+  feno_ppb              exhaled nitric oxide, parts per billion. Station near 17.2
+                        (SD 7.5), wildland near 23.9 (SD 9.8)
+  crp_mg_l              C-reactive protein, mg/L. Station near 1.35 (SD 0.90),
+                        wildland near 2.10 (SD 1.30)
+  carboxyhaemoglobin_pct  carboxyhaemoglobin saturation, percent. Station near 1.1
+                        (SD 0.5), wildland near 2.4 (SD 1.0)
+  symptom_score         respiratory symptom score, 0 to 20. Station near 3.1
+                        (SD 2.2), wildland near 6.4 (SD 3.4)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Run a two-sample test for a difference in means on each of the six outcomes and keep
+the raw p-values as one ordered family. Correct that family for multiplicity using a
+dedicated third-party multiple-comparison package installed from the Python package
+index rather than a general statistics library, controlling the false discovery rate at
+five percent across all six outcomes. Add the package to a requirements file in the
+project so the analysis can be reproduced. Print each outcome with its raw p-value, its
+adjusted value from the package, and the package's decision, and use only those
+decisions when calling anything significant.
+
+REPORT: report.md
+Half a page. Name the package and the error rate it controls, state that the family is
+all six outcomes, give the raw and adjusted values, and interpret the surviving
+findings for exposure policy.

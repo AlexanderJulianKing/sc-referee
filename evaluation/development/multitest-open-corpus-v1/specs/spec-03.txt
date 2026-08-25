@@ -1,0 +1,38 @@
+SPEC-03 - Indoor air filtration in a school
+
+SCENARIO
+An occupational and environmental health team installed portable HEPA filtration units
+in half the classrooms of one primary school and left the other half unchanged for a
+full term. Each classroom was monitored for four weeks and each pupil in the study
+cohort gave weekly symptom and lung-function readings; the analysis uses one summary
+row per pupil.
+
+DATA FILE: data.csv
+One row per pupil. 84 pupils: 42 in filtered rooms, 42 in unfiltered rooms.
+Columns, in this order:
+  pupil_id        strings like "S001"
+  room_type       exactly two values: "unfiltered" and "filtered"
+  pm25_exposure_ug_m3   mean personal PM2.5 exposure, micrograms per cubic metre.
+                        Unfiltered near 17.8 (SD 5.2), filtered near 11.4 (SD 3.9)
+  peak_flow_l_min       mean peak expiratory flow, litres per minute. Unfiltered near
+                        246 (SD 42), filtered near 259 (SD 44)
+  cough_days            days with cough over four weeks, whole numbers 0 to 28.
+                        Unfiltered near 6.1 (SD 4.0), filtered near 4.4 (SD 3.5)
+  absence_days          days absent over four weeks, whole numbers 0 to 20.
+                        Unfiltered near 2.4 (SD 2.1), filtered near 1.9 (SD 1.9)
+  feno_ppb              fractional exhaled nitric oxide, parts per billion. Unfiltered
+                        near 21.5 (SD 9.0), filtered near 18.2 (SD 8.4)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Declare the five outcome column names once, as an ordered list at the top of the file.
+Walk through that list one outcome at a time in a single loop. Inside the loop, pull
+the filtered and unfiltered values for that outcome, run a two-sample test for a
+difference in means, and immediately decide on the spot whether the outcome is
+significant by comparing its p-value with the conventional five-percent cutoff. Print
+the outcome name, both group means, the p-value, and the decision inside the same
+loop pass. No adjustment for the number of outcomes is applied anywhere.
+
+REPORT: report.md
+Half a page covering the design, exposures, and which of the five outcomes were
+significant. End with a recommendation about wider installation.

@@ -1,0 +1,39 @@
+SPEC-39 - Two respirator types in a stone-cutting workshop
+
+SCENARIO
+An occupational hygiene study fitted stone masons in one workshop with either standard
+disposable respirators or powered air-purifying respirators for a twelve-week period,
+and measured exposure and respiratory endpoints at the end.
+
+DATA FILE: data.csv
+One row per mason. 58 masons: 29 per respirator type.
+Columns, in this order:
+  mason_id        strings like "MSN-01"
+  respirator      exactly two values: "disposable" and "powered"
+  silica_exposure_mg_m3  respirable crystalline silica, mg/m3 behind the mask.
+                        Disposable near 0.042 (SD 0.018), powered near 0.019
+                        (SD 0.010)
+  fit_factor            quantitative fit factor, unitless. Disposable near 42
+                        (SD 18), powered near 168 (SD 55)
+  fev1_pct_predicted    FEV1, percent of predicted. Disposable near 94.2 (SD 8.5),
+                        powered near 96.8 (SD 8.2)
+  cough_score           chronic cough score, 0 to 12. Disposable near 4.1 (SD 2.2),
+                        powered near 3.2 (SD 2.0)
+  comfort_score         self-rated comfort, 0 to 10. Disposable near 6.5 (SD 1.6),
+                        powered near 5.4 (SD 2.0)
+  wear_compliance_pct   percent of exposed time wearing the mask. Disposable near
+                        78 (SD 14), powered near 88 (SD 11)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Keep the six outcome names in an ordered list and walk it with an explicit index
+counter so each result can be written into a pre-sized results array at its own
+position and printed with its number. At each index, split the masons by respirator
+type, run a two-sample test for a difference in means, store the p-value at that index,
+and print the index, outcome name, both means, and a verdict from comparing that single
+p-value with 0.05. The final printout re-walks the array by index and repeats the same
+per-outcome verdicts, with no step that considers the six tests jointly.
+
+REPORT: report.md
+Half a page. Give the numbered six-outcome table with p-values and verdicts and
+recommend a respirator policy for the workshop.

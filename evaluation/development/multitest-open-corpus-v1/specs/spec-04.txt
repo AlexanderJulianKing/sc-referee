@@ -1,0 +1,39 @@
+SPEC-04 - Sourdough fermentation and bread quality
+
+SCENARIO
+A cereal science lab compared loaves made with a long cold sourdough fermentation
+against loaves made with a standard commercial yeast process, using one flour lot and
+one oven. Each loaf is an independent bake.
+
+DATA FILE: data.csv
+One row per loaf. 70 loaves: 35 per process.
+Columns, in this order:
+  loaf_id        strings like "L-001"
+  process        exactly two values: "yeast" and "sourdough"
+  specific_volume_ml_g   loaf specific volume, mL/g. Yeast near 4.35 (SD 0.42),
+                         sourdough near 4.02 (SD 0.45)
+  crumb_hardness_n       crumb hardness at day 1, newtons. Yeast near 3.8 (SD 0.9),
+                         sourdough near 4.4 (SD 1.0)
+  staling_rate_n_per_day hardness increase per day over five days, N/day. Yeast near
+                         1.15 (SD 0.30), sourdough near 0.78 (SD 0.26)
+  ph_final               crumb pH. Yeast near 5.55 (SD 0.12), sourdough near 4.42
+                         (SD 0.15)
+  phytate_mg_100g        residual phytate, mg per 100 g. Yeast near 220 (SD 40),
+                         sourdough near 128 (SD 35)
+  sensory_sourness       trained panel sourness score, 0 to 10. Yeast near 2.1
+                         (SD 0.8), sourdough near 5.9 (SD 1.1)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Test each of the six quality outcomes for a difference between the two processes with
+a two-sample test for a difference in means. Keep the six raw p-values together as one
+family. Adjust that whole family of six with a single named step-down correction that
+controls the chance of any false claim across the family, applying it to all six
+p-values at once and using a family-wide level of five percent. State the method's name
+in the printed output. Report raw and adjusted p-values side by side and base every
+verdict on the adjusted values.
+
+REPORT: report.md
+Half a page. Name the correction method, say plainly that the family is all six
+quality outcomes, give the raw and adjusted p-values in a table, and describe which
+differences survive correction.

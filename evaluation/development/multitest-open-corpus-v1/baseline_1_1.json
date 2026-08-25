@@ -1,0 +1,205 @@
+{
+ "detector": "1.1.0 analyzer-level",
+ "results": {
+  "spec-01": [
+   "abstain",
+   "test-operand-lineage-unresolved"
+  ],
+  "spec-02": [
+   "abstain",
+   "test-battery-cardinality-unresolved"
+  ],
+  "spec-03": [
+   "abstain",
+   "pderived-conclusion-family-incomplete"
+  ],
+  "spec-04": [
+   "abstain",
+   "test-battery-cardinality-unresolved"
+  ],
+  "spec-05": [
+   "abstain",
+   "analysis-scope-structure-unsupported"
+  ],
+  "spec-06": [
+   "abstain",
+   "unresolved-decision-threshold"
+  ],
+  "spec-07": [
+   "abstain",
+   "test-battery-cardinality-unresolved"
+  ],
+  "spec-08": [
+   "abstain",
+   "extra-registered-test-outside-authorized-family"
+  ],
+  "spec-09": [
+   "abstain",
+   "test-battery-cardinality-unresolved"
+  ],
+  "spec-10": [
+   "abstain",
+   "helper-body-statement-unsupported"
+  ],
+  "spec-11": [
+   "abstain",
+   "resampling-cardinality-unresolved"
+  ],
+  "spec-12": [
+   "abstain",
+   "test-battery-cardinality-unresolved"
+  ],
+  "spec-13": [
+   "abstain",
+   "analysis-scope-structure-unsupported"
+  ],
+  "spec-14": [
+   "abstain",
+   "test-battery-cardinality-unresolved"
+  ],
+  "spec-15": [
+   "abstain",
+   "resampling-cardinality-unresolved"
+  ],
+  "spec-16": [
+   "abstain",
+   "additional-accepted-reader-present"
+  ],
+  "spec-17": [
+   "abstain",
+   "pderived-conclusion-family-incomplete"
+  ],
+  "spec-18": [
+   "abstain",
+   "analysis-scope-structure-unsupported"
+  ],
+  "spec-19": [
+   "abstain",
+   "pderived-conclusion-family-incomplete"
+  ],
+  "spec-20": [
+   "abstain",
+   "pderived-conclusion-family-incomplete"
+  ],
+  "spec-21": [
+   "abstain",
+   "analysis-scope-structure-unsupported"
+  ],
+  "spec-22": [
+   "abstain",
+   "authorized-family-test-census-incomplete"
+  ],
+  "spec-23": [
+   "abstain",
+   "test-battery-cardinality-unresolved"
+  ],
+  "spec-24": [
+   "abstain",
+   "test-battery-cardinality-unresolved"
+  ],
+  "spec-25": [
+   "abstain",
+   "selected-group-row-completeness-unproven"
+  ],
+  "spec-26": [
+   "abstain",
+   "test-battery-cardinality-unresolved"
+  ],
+  "spec-27": [
+   "abstain",
+   "analysis-scope-structure-unsupported"
+  ],
+  "spec-28": [
+   "abstain",
+   "pvalue-family-collection-unresolved"
+  ],
+  "spec-29": [
+   "abstain",
+   "test-battery-cardinality-unresolved"
+  ],
+  "spec-30": [
+   "abstain",
+   "test-battery-cardinality-unresolved"
+  ],
+  "spec-31": [
+   "abstain",
+   "pderived-conclusion-family-incomplete"
+  ],
+  "spec-32": [
+   "abstain",
+   "test-battery-cardinality-unresolved"
+  ],
+  "spec-33": [
+   "abstain",
+   "pderived-conclusion-family-incomplete"
+  ],
+  "spec-34": [
+   "abstain",
+   "test-battery-cardinality-unresolved"
+  ],
+  "spec-35": [
+   "abstain",
+   "analysis-scope-structure-unsupported"
+  ],
+  "spec-36": [
+   "abstain",
+   "analysis-scope-structure-unsupported"
+  ],
+  "spec-37": [
+   "abstain",
+   "analysis-scope-structure-unsupported"
+  ],
+  "spec-38": [
+   "abstain",
+   "additional-accepted-reader-present"
+  ],
+  "spec-39": [
+   "abstain",
+   "analysis-scope-structure-unsupported"
+  ],
+  "spec-40": [
+   "abstain",
+   "analysis-scope-structure-unsupported"
+  ],
+  "spec-41": [
+   "abstain",
+   "resampling-cardinality-unresolved"
+  ],
+  "spec-42": [
+   "abstain",
+   "resampling-cardinality-unresolved"
+  ],
+  "spec-43": [
+   "abstain",
+   "test-battery-cardinality-unresolved"
+  ],
+  "spec-44": [
+   "abstain",
+   "authorized-family-test-census-incomplete"
+  ],
+  "spec-45": [
+   "abstain",
+   "test-battery-cardinality-unresolved"
+  ],
+  "spec-46": [
+   "abstain",
+   "analysis-scope-structure-unsupported"
+  ],
+  "spec-47": [
+   "abstain",
+   "analysis-scope-structure-unsupported"
+  ],
+  "spec-48": [
+   "abstain",
+   "analysis-scope-structure-unsupported"
+  ],
+  "spec-49": [
+   "abstain",
+   "analysis-scope-structure-unsupported"
+  ],
+  "spec-50": [
+   "abstain",
+   "test-battery-cardinality-unresolved"
+  ]
+ }
+}

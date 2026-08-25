@@ -1,0 +1,6 @@
+outcome,mean_light,mean_heavy,p_raw,p_adjusted,correction_method
+bird_species_richness,9.7500,7.4643,0.00117464,0.00210054,holm-bonferroni
+nest_density_per_ha,2.3500,1.6196,0.00105027,0.00210054,holm-bonferroni
+vegetation_height_cm,38.4964,21.6857,1.35826e-11,6.79129e-11,holm-bonferroni
+litter_depth_cm,3.1964,1.9000,1.95171e-06,5.85513e-06,holm-bonferroni
+bare_ground_pct,11.0179,23.9929,3.71577e-09,1.48631e-08,holm-bonferroni

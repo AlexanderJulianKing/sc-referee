@@ -1,0 +1,36 @@
+SPEC-11 - Hospital handwashing prompts and skin condition
+
+SCENARIO
+An infection-control unit placed automated hand-hygiene prompts on half the wards of
+one hospital for eight weeks. Nurses on prompt wards and on unchanged wards were
+assessed for hand skin condition and hygiene behaviour at the end of the period.
+
+DATA FILE: data.csv
+One row per nurse. 80 nurses: 40 on prompt wards, 40 on control wards.
+Columns, in this order:
+  nurse_id        strings like "N-014"
+  ward_type       exactly two values: "control" and "prompt"
+  hygiene_events_per_h  observed hand-hygiene events per hour. Control near 4.6
+                        (SD 1.5), prompt near 6.1 (SD 1.7)
+  dryness_score         clinician-rated skin dryness, 0 to 12. Control near 3.4
+                        (SD 2.0), prompt near 4.6 (SD 2.3)
+  teweloss_g_m2_h       transepidermal water loss, g/m2/h. Control near 11.8
+                        (SD 3.2), prompt near 13.9 (SD 3.6)
+  moisturiser_use_per_d applications of moisturiser per day. Control near 1.8
+                        (SD 1.1), prompt near 2.5 (SD 1.3)
+  glove_hours_per_shift glove-wearing hours per shift. Control near 3.9 (SD 1.4),
+                        prompt near 4.1 (SD 1.5)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Set a named significance threshold once near the top of the file as a clearly named
+constant holding the conventional five-percent level, and reuse that same named
+constant for every outcome. Compare the two ward types on each of the five outcomes
+with a two-sample test for a difference in means, and after each test compare the
+p-value with the named constant to decide whether that outcome is significant. Print a
+line per outcome with the means, p-value, and verdict. The named constant is never
+divided, scaled, or otherwise changed for the number of outcomes.
+
+REPORT: report.md
+Half a page describing the intervention, the five outcomes with p-values and verdicts,
+and a closing note on whether the prompts should be rolled out hospital-wide.

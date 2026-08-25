@@ -1,0 +1,35 @@
+SPEC-17 - Cold-water immersion after football matches
+
+SCENARIO
+A sports medicine group had semi-professional footballers either sit in a cold-water
+immersion bath or rest passively for the same duration after a competitive match, then
+measured recovery markers 24 hours later. Each player contributes one match.
+
+DATA FILE: data.csv
+One row per player-match. 66 records: 33 per recovery method.
+Columns, in this order:
+  player_id       strings like "FB-01"
+  recovery        exactly two values: "passive" and "cold_water"
+  ck_u_l                creatine kinase, U/L. Passive near 418 (SD 145), cold_water
+                        near 352 (SD 132)
+  soreness_vas          muscle soreness on a 0 to 100 visual scale. Passive near 46
+                        (SD 16), cold_water near 36 (SD 15)
+  cmj_height_cm         countermovement jump height, cm. Passive near 34.2 (SD 4.6),
+                        cold_water near 36.0 (SD 4.7)
+  sprint_20m_s          20 m sprint time, seconds. Passive near 3.08 (SD 0.16),
+                        cold_water near 3.02 (SD 0.15)
+  sleep_quality         self-rated sleep quality, 1 to 10. Passive near 6.2 (SD 1.5),
+                        cold_water near 6.9 (SD 1.4)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Split the two recovery groups by filtering rows on the recovery column. For each of the
+five outcomes run a two-sample test for a difference in means and compare its p-value
+with the number 0.05 written directly into the comparison each time, with no named
+constant and no adjustment anywhere in the file. Print for each outcome the name, the
+two means, the difference, the p-value in scientific notation, and the words
+"significant" or "not significant".
+
+REPORT: report.md
+Half a page. Present the five outcomes with their p-values and verdicts and give a
+practical recommendation about post-match cold-water immersion.

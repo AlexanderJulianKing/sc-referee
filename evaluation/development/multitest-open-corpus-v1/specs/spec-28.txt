@@ -1,0 +1,35 @@
+SPEC-28 - Fluoride varnish in a paediatric dental programme
+
+SCENARIO
+A community dental service applied fluoride varnish twice yearly to children in half
+the participating nurseries and provided oral health advice alone in the other half,
+over two years. Children were examined by calibrated dentists at the end.
+
+DATA FILE: data.csv
+One row per child. 150 children: 75 per programme.
+Columns, in this order:
+  child_id        strings like "PD-0001"
+  programme       exactly two values: "advice_only" and "varnish"
+  dmft_count            decayed, missing, filled primary teeth, whole numbers 0 to 20.
+                        Advice_only near 3.42 (SD 2.4), varnish near 2.55 (SD 2.1)
+  new_lesions           new carious lesions over two years, whole numbers 0 to 10.
+                        Advice_only near 1.85 (SD 1.5), varnish near 1.20 (SD 1.2)
+  extraction_count      teeth extracted for caries, whole numbers 0 to 6.
+                        Advice_only near 0.38 (SD 0.75), varnish near 0.22 (SD 0.55)
+  plaque_index          plaque index, 0 to 3. Advice_only near 1.42 (SD 0.55),
+                        varnish near 1.35 (SD 0.52)
+These four outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Fix the family-wide error rate at five percent and, because four outcomes are tested,
+derive the per-outcome threshold by hand with Bonferroni arithmetic: five percent
+divided by four. Write that division out in the script so the numerator, denominator,
+and result are all visible, and print the resulting threshold. Then run a two-sample
+test for a difference in means on each of the four outcomes and compare every p-value
+against the hand-computed threshold instead of five percent. Print the threshold once,
+then each outcome's p-value and its decision against that threshold.
+
+REPORT: report.md
+Half a page. Show the Bonferroni arithmetic, state the family of four outcomes, give
+the four p-values against the corrected threshold, and say which effects of the varnish
+programme are supported.

@@ -1,0 +1,39 @@
+SPEC-09 - Reduced-salt processed cheese
+
+SCENARIO
+A food technology group reformulated a processed cheese spread to cut sodium by a third
+using a potassium chloride blend, and compared it with the standard formulation over
+one production run. Each sample is an independent 200 g pack drawn across the run.
+
+DATA FILE: data.csv
+One row per pack. 60 packs: 30 per formulation.
+Columns, in this order:
+  pack_id         strings like "PK-01"
+  formulation     exactly two values: "standard" and "reduced_salt"
+  sodium_mg_100g        sodium, mg per 100 g. Standard near 1120 (SD 55),
+                        reduced_salt near 748 (SD 48)
+  firmness_n            texture-analyser firmness, newtons. Standard near 2.85
+                        (SD 0.32), reduced_salt near 2.62 (SD 0.34)
+  meltability_mm        melt spread diameter, mm. Standard near 48.5 (SD 4.1),
+                        reduced_salt near 51.2 (SD 4.4)
+  ph                    pH. Standard near 5.72 (SD 0.08), reduced_salt near 5.68
+                        (SD 0.09)
+  panel_saltiness       trained panel saltiness, 0 to 10. Standard near 6.4 (SD 0.9),
+                        reduced_salt near 5.5 (SD 1.0)
+  panel_bitterness      trained panel bitterness, 0 to 10. Standard near 1.2
+                        (SD 0.6), reduced_salt near 2.3 (SD 1.1)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Define, in the same file, a small reusable testing step that takes an outcome column
+name, pulls the two formulations' values for it, runs the two-sample test for a
+difference in means, and hands back the two means and the p-value together with a
+plain-language verdict decided inside that step against the usual five-percent cutoff.
+Call that step once per outcome, in the declared order, and print what comes back. The
+reusable step is the only place a threshold appears, and it knows nothing about how
+many outcomes will be passed through it.
+
+REPORT: report.md
+Half a page. Describe the reformulation, list all six outcomes with their p-values and
+verdicts, and end with a recommendation on whether the reduced-salt version is
+acceptable.

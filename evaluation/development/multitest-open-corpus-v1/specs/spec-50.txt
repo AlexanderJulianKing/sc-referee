@@ -1,0 +1,41 @@
+SPEC-50 - Two ventilation strategies in a broiler house
+
+SCENARIO
+An agricultural engineering study ran two adjacent broiler houses on the same farm and
+cycle, one on a conventional minimum-ventilation strategy and one on a sensor-driven
+variable strategy, and measured air quality and bird welfare at depopulation. Each
+sampling station within the houses across the cycle is one record.
+
+DATA FILE: data.csv
+One row per sampling record. 80 records: 40 per strategy.
+Columns, in this order:
+  record_id       strings like "VN-001"
+  strategy        exactly two values: "conventional" and "sensor_driven"
+  ammonia_ppm           in-house ammonia, ppm. Conventional near 18.5 (SD 6.0),
+                        sensor_driven near 11.2 (SD 4.5)
+  co2_ppm               carbon dioxide, ppm. Conventional near 2850 (SD 520),
+                        sensor_driven near 2240 (SD 460)
+  dust_pm10_mg_m3       inhalable dust as PM10, mg/m3. Conventional near 3.4
+                        (SD 1.1), sensor_driven near 2.5 (SD 0.9)
+  litter_moisture_pct   litter moisture, percent. Conventional near 34.5 (SD 5.5),
+                        sensor_driven near 29.8 (SD 5.0)
+  footpad_score         flock footpad dermatitis score, 0 to 4. Conventional near
+                        1.45 (SD 0.85), sensor_driven near 0.95 (SD 0.70)
+  heating_kwh_per_1000_birds  heating energy, kWh per 1000 birds. Conventional near
+                        410 (SD 85), sensor_driven near 465 (SD 92)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Compare the two strategies on each of the six outcomes with a two-sample test for a
+difference in means and hold the six raw p-values as one family. Perform the
+multiplicity correction with a specialist third-party multiple-comparison package taken
+from the Python package index rather than a general-purpose statistics library,
+controlling the false discovery rate across all six outcomes at five percent, and pin
+the package in a requirements file included with the project. Print each outcome with
+its raw p-value, the package's adjusted value, and the package's decision, and let only
+those decisions support any claim of a difference.
+
+REPORT: report.md
+Half a page. Name the package and the error rate it controls, confirm that all six
+outcomes were corrected as one family, give the table, and weigh the air-quality gains
+against the heating cost.

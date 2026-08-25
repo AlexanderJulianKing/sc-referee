@@ -1,0 +1,39 @@
+SPEC-21 - Enrichment housing for laboratory rabbits
+
+SCENARIO
+A laboratory animal welfare study housed New Zealand White rabbits either in standard
+cages or in enriched pens with platforms, hay racks, and gnawing blocks for eight
+weeks, then assessed welfare and physiology.
+
+DATA FILE: data.csv
+One row per rabbit. 56 rabbits: 28 per housing type.
+Columns, in this order:
+  rabbit_id       strings like "RB-01"
+  housing         exactly two values: "standard" and "enriched"
+  body_weight_g         final body weight, grams. Standard near 3120 (SD 280),
+                        enriched near 3245 (SD 290)
+  faecal_cort_ng_g      faecal corticosterone metabolites, ng/g. Standard near 148
+                        (SD 46), enriched near 112 (SD 39)
+  stereotypy_bouts_h    stereotypic behaviour bouts per hour. Standard near 2.8
+                        (SD 1.4), enriched near 1.1 (SD 0.9)
+  bone_density_mg_cm3   femoral bone density, mg/cm3. Standard near 412 (SD 48),
+                        enriched near 455 (SD 50)
+  sole_lesion_score     pododermatitis lesion score, 0 to 6. Standard near 2.1
+                        (SD 1.2), enriched near 1.3 (SD 1.0)
+  latency_to_feed_s     latency to approach novel food, seconds. Standard near 88
+                        (SD 40), enriched near 54 (SD 32)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Corticosterone and stereotypy bouts were named as the two welfare-critical outcomes.
+Test all six outcomes between housing types with a two-sample test for a difference in
+means. Correct only the two welfare-critical outcomes as their own small family, using
+a named correction routine at a five-percent family level, and report their adjusted
+values. Report the remaining four outcomes with their raw p-values judged against the
+plain five-percent level, in the same results table and with the same significance
+wording, so the table mixes adjusted and unadjusted verdicts. The four secondary
+outcomes receive no adjustment of any kind.
+
+REPORT: report.md
+Half a page. Present the six-row table, note which two outcomes were corrected, and
+summarise the welfare case for enriched housing.

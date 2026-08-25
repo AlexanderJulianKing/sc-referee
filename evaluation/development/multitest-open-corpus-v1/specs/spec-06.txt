@@ -1,0 +1,38 @@
+SPEC-06 - Resistance training in older adults
+
+SCENARIO
+A small clinical exercise trial randomised community-dwelling adults aged 65 to 80 to
+twelve weeks of supervised progressive resistance training or to a stretching-only
+control. Outcomes were measured at week 12 by assessors blind to allocation.
+
+DATA FILE: data.csv
+One row per participant. 64 participants: 32 per arm.
+Columns, in this order:
+  participant_id   strings like "PT-01"
+  arm              exactly two values: "stretch" and "resistance"
+  leg_press_1rm_kg      one-repetition maximum leg press, kg. Stretch near 88 (SD 22),
+                        resistance near 106 (SD 25)
+  gait_speed_m_s        four-metre gait speed, m/s. Stretch near 0.96 (SD 0.18),
+                        resistance near 1.08 (SD 0.19)
+  sts_time_s            five-times sit-to-stand time, seconds. Stretch near 12.4
+                        (SD 3.1), resistance near 10.6 (SD 2.8)
+  lean_mass_kg          appendicular lean mass, kg. Stretch near 18.9 (SD 3.6),
+                        resistance near 19.7 (SD 3.7)
+  sf36_physical         SF-36 physical function score, 0 to 100. Stretch near 68
+                        (SD 15), resistance near 75 (SD 14)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Fix the family-wide error rate at five percent before any testing. Because five
+outcomes are being tested together, compute the per-outcome threshold by hand using
+the Sidak formula: one minus the fifth root of ninety-five percent. Show the arithmetic
+in the script and print the resulting per-outcome threshold to six decimal places, so a
+reader can check it. Then run a two-sample test for a difference in means on each of
+the five outcomes and compare every raw p-value against that single hand-computed
+threshold rather than against five percent. Print the threshold once at the top of the
+results and each outcome's p-value and verdict beneath it.
+
+REPORT: report.md
+Half a page. State the family of five outcomes, show the Sidak arithmetic and the
+resulting threshold, and report which outcomes clear it. Add one sentence noting that
+the Bonferroni threshold would have been very slightly stricter.

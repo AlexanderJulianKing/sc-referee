@@ -1,0 +1,38 @@
+SPEC-42 - Pre-registered comparison of two composting systems
+
+SCENARIO
+A waste management authority ran two municipal composting systems side by side, an
+in-vessel system and a static aerated pile, on the same feedstock stream for one year.
+The evaluation protocol was registered with the authority before sampling began and
+fixed both the outcome family and the decision threshold.
+
+DATA FILE: data.csv
+One row per compost batch. 60 batches: 30 per system.
+Columns, in this order:
+  batch_id        strings like "CB-01"
+  system          exactly two values: "static_pile" and "in_vessel"
+  process_days          days to maturity, whole numbers. Static_pile near 96 (SD 18),
+                        in_vessel near 62 (SD 12)
+  final_c_to_n          final carbon to nitrogen ratio. Static_pile near 16.8
+                        (SD 2.4), in_vessel near 14.9 (SD 2.1)
+  germination_index_pct germination index, percent. Static_pile near 82 (SD 12),
+                        in_vessel near 91 (SD 10)
+  e_coli_log_cfu_g      E. coli, log10 CFU/g. Static_pile near 2.4 (SD 0.9),
+                        in_vessel near 1.5 (SD 0.7)
+  ammonia_emission_g_t  ammonia emitted, g per tonne feedstock. Static_pile near 385
+                        (SD 95), in_vessel near 240 (SD 70)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+The registered protocol fixed the family at these five outcomes and set the per-outcome
+decision threshold at 0.010, being the five-percent family-wide level shared equally
+across five tests. The script does no correction arithmetic of its own: it runs a
+two-sample test for a difference in means on each of the five outcomes and compares
+every p-value against the plain number 0.010, printing p-value and decision. A comment
+at the head of the script names the registered protocol and points the reader to the
+report for the derivation of the threshold.
+
+REPORT: report.md
+Half a page. Quote the registered decision rule, state that the family is these five
+outcomes and that 0.010 is five percent divided by five, show that arithmetic once, and
+give each outcome's p-value against the threshold with the conclusion.

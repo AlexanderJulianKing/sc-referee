@@ -1,0 +1,39 @@
+SPEC-32 - Low-stress cattle handling and carcass quality
+
+SCENARIO
+An animal welfare and meat science study moved finishing steers to the abattoir either
+under a low-stress handling protocol or the plant's standard handling, then measured
+stress and carcass traits. Each steer is one record.
+
+DATA FILE: data.csv
+One row per steer. 84 steers: 42 per handling method.
+Columns, in this order:
+  steer_id        strings like "ST-001"
+  handling        exactly two values: "standard" and "low_stress"
+  plasma_cortisol_nmol_l  plasma cortisol at exsanguination, nmol/L. Standard near
+                        68 (SD 22), low_stress near 49 (SD 18)
+  ph_24h                loin pH at 24 hours. Standard near 5.72 (SD 0.18),
+                        low_stress near 5.58 (SD 0.14)
+  shear_force_n         Warner-Bratzler shear force, newtons. Standard near 42.5
+                        (SD 8.0), low_stress near 37.8 (SD 7.5)
+  drip_loss_pct         drip loss, percent. Standard near 2.85 (SD 0.80), low_stress
+                        near 2.35 (SD 0.70)
+  bruise_score          carcass bruise score, 0 to 5. Standard near 1.45 (SD 0.95),
+                        low_stress near 0.82 (SD 0.70)
+  dark_cutting_flag_pct meat colour score, 0 to 10 where higher is darker. Standard
+                        near 3.6 (SD 1.5), low_stress near 2.9 (SD 1.3)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Run the primary analysis on all six outcomes with a two-sample test for a difference in
+means and correct the complete family of six together with a named family-wide
+correction at a five-percent family level. Then run one clearly labelled sensitivity
+analysis under its own heading: repeat the whole corrected family after dropping steers
+whose transport time was in the longest tenth, which you should represent with an extra
+non-outcome column in the CSV giving transport minutes, and correct that re-run family
+of six the same way. State that the primary corrected results are the findings and that
+the sensitivity re-run only checks their stability.
+
+REPORT: report.md
+Half a page. Give the corrected primary table, then the labelled sensitivity table, and
+state whether any conclusion changed between them.

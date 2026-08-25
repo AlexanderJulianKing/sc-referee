@@ -1,0 +1,41 @@
+SPEC-24 - Antibiotic-free broiler production
+
+SCENARIO
+A poultry science trial reared broiler chickens on a conventional programme including
+in-feed antibiotics or on an antibiotic-free programme with the same base diet, on one
+farm across one 42-day cycle. Birds were individually weighed and sampled at
+processing.
+
+DATA FILE: data.csv
+One row per bird. 140 birds: 70 per programme.
+Columns, in this order:
+  bird_id         strings like "BR-0001"
+  programme       exactly two values: "conventional" and "antibiotic_free"
+  final_weight_g        weight at day 42, grams. Conventional near 2685 (SD 275),
+                        antibiotic_free near 2590 (SD 285)
+  feed_conversion       feed-to-gain ratio. Conventional near 1.58 (SD 0.12),
+                        antibiotic_free near 1.64 (SD 0.13)
+  breast_yield_pct      breast meat as percent of carcass. Conventional near 22.4
+                        (SD 1.8), antibiotic_free near 21.9 (SD 1.9)
+  footpad_lesion_score  footpad dermatitis score, 0 to 4. Conventional near 0.85
+                        (SD 0.8), antibiotic_free near 1.15 (SD 0.9)
+  caecal_campylobacter_log  caecal Campylobacter, log10 CFU/g. Conventional near 5.1
+                        (SD 1.2), antibiotic_free near 5.6 (SD 1.3)
+  mortality_day         day of death for birds that died, otherwise 42, whole numbers.
+                        Conventional near 41.2 (SD 3.5), antibiotic_free near 40.4
+                        (SD 4.5)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Test each of the six production outcomes between the two programmes with a two-sample
+test for a difference in means, keeping the six raw p-values in one ordered list that
+mirrors the outcome order. Hand that entire list to the standard multiple-comparison
+adjustment routine of a widely used general-purpose Python statistics library, taking
+its default correction method and a family-wide error rate of five percent, and use the
+three things it returns: the reject decisions, the adjusted p-values, and the method
+name. Print all six outcomes with raw p, adjusted p, and decision, and describe an
+outcome as different between programmes only when the routine rejects for it.
+
+REPORT: report.md
+Half a page. Name the default method the routine applied, state that all six outcomes
+were corrected as one family, present the table, and give the production implications.

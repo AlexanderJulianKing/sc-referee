@@ -1,0 +1,38 @@
+SPEC-26 - Drip versus furrow irrigation in cotton
+
+SCENARIO
+An irrigation trial in a semi-arid district grew upland cotton under subsurface drip or
+traditional furrow irrigation on adjacent fields with the same soil series and cultivar,
+across one season. Each measured unit is a 10 m2 harvest quadrat.
+
+DATA FILE: data.csv
+One row per quadrat. 72 quadrats: 36 per system.
+Columns, in this order:
+  quadrat_id      strings like "Q-001"
+  irrigation      exactly two values: "furrow" and "drip"
+  lint_yield_kg_ha      lint yield, kg/ha. Furrow near 1420 (SD 210), drip near 1615
+                        (SD 220)
+  water_applied_mm      seasonal water applied, mm. Furrow near 780 (SD 60), drip
+                        near 545 (SD 45)
+  water_use_efficiency_kg_ha_mm  lint per mm of water. Furrow near 1.85 (SD 0.30),
+                        drip near 2.98 (SD 0.42)
+  fibre_length_mm       upper half mean fibre length, mm. Furrow near 28.6 (SD 1.4),
+                        drip near 29.1 (SD 1.4)
+  micronaire            micronaire, unitless. Furrow near 4.35 (SD 0.35), drip near
+                        4.28 (SD 0.34)
+  soil_salinity_ds_m    end-of-season soil salinity, dS/m. Furrow near 1.65 (SD 0.45),
+                        drip near 2.10 (SD 0.55)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Compare the two irrigation systems on each of the six outcomes with a two-sample test
+for a difference in means, keeping the p-values as one ordered family of six. Correct
+that entire family with a single explicitly named step-up procedure that controls the
+false discovery rate, applied to all six p-values at once at a family level of five
+percent, and print the method's name beside the results. Show raw and adjusted values
+for every outcome and make no significance claim from a raw value.
+
+REPORT: report.md
+Half a page. Name the correction, state that the family is all six agronomic outcomes,
+give the table of raw and adjusted p-values, and interpret the surviving differences
+for irrigation investment.

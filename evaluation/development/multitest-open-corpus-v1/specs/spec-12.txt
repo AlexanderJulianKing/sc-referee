@@ -1,0 +1,43 @@
+SPEC-12 - Gut microbiome markers in coeliac disease
+
+SCENARIO
+A gastroenterology clinic compared adults with newly diagnosed coeliac disease against
+healthy volunteers on a panel of stool and blood markers. Because the marker panel is
+exploratory, the investigators planned in advance to split subjects into a discovery
+half and a validation half.
+
+DATA FILE: data.csv
+One row per subject. 120 subjects: 60 coeliac, 60 healthy.
+Columns, in this order:
+  subject_id      strings like "SUB-001"
+  status          exactly two values: "healthy" and "coeliac"
+  cohort          exactly two values: "discovery" and "validation"; assign roughly
+                  half of each status group to each cohort, fixed once when the CSV is
+                  built and never reassigned in the analysis
+  shannon_diversity     stool Shannon diversity index. Healthy near 3.55 (SD 0.42),
+                        coeliac near 3.18 (SD 0.48)
+  faecal_calprotectin_ug_g  faecal calprotectin, ug/g. Healthy near 32 (SD 18),
+                        coeliac near 78 (SD 45)
+  scfa_butyrate_mmol_kg butyrate, mmol/kg stool. Healthy near 12.4 (SD 3.8),
+                        coeliac near 9.1 (SD 3.5)
+  zonulin_ng_ml         serum zonulin, ng/mL. Healthy near 28 (SD 9), coeliac near
+                        41 (SD 14)
+  vitamin_d_nmol_l      serum 25-OH vitamin D, nmol/L. Healthy near 62 (SD 18),
+                        coeliac near 50 (SD 19)
+These five marker columns are the outcome family, in that order. The cohort column is
+a design column, not an outcome.
+
+ANALYSIS: analysis.py in the project root
+Work in two stages using the cohort column that already exists in the data. First, in
+the discovery half only, test all five markers between coeliac and healthy subjects and
+carry forward only the markers whose discovery p-value falls below five percent, saying
+plainly in the output that discovery results are screening only and are never reported
+as findings. Second, in the validation half only, test just the markers carried forward,
+and correct that smaller validation family together with a named multiple-comparison
+adjustment at a family-wide five percent. Findings are exactly the markers significant
+after correction in validation. Print both stages and the size of the validation family.
+
+REPORT: report.md
+Half a page. Explain the pre-planned split, which markers passed discovery screening,
+how many tests made up the corrected validation family, and which markers are reported
+as findings.

@@ -1,0 +1,4 @@
+multipy==0.16
+numpy
+pandas
+scipy

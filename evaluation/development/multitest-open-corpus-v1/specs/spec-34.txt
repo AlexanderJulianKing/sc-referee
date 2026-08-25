@@ -1,0 +1,43 @@
+SPEC-34 - Metabolomic markers of grass-fed beef
+
+SCENARIO
+A food authenticity laboratory looked for blood-metabolite markers separating cattle
+finished on pasture from cattle finished on grain, using samples archived from one
+year's slaughter records. Because the marker panel is exploratory, the team pre-planned
+a split of animals into a discovery set and a held-out validation set.
+
+DATA FILE: data.csv
+One row per animal. 128 animals: 64 pasture-finished, 64 grain-finished.
+Columns, in this order:
+  animal_id       strings like "AN-0001"
+  finishing       exactly two values: "grain" and "pasture"
+  split           exactly two values: "discovery" and "validation"; assign about half
+                  of each finishing group to each split when the CSV is written, and
+                  never reassign it in the analysis
+  alpha_linolenic_mg_l  alpha-linolenic acid, mg/L plasma. Grain near 12.4 (SD 4.0),
+                        pasture near 21.8 (SD 6.5)
+  beta_carotene_ug_l    plasma beta-carotene, ug/L. Grain near 145 (SD 55), pasture
+                        near 285 (SD 90)
+  vaccenic_acid_mg_l    vaccenic acid, mg/L. Grain near 8.2 (SD 3.0), pasture near
+                        12.9 (SD 4.4)
+  phytanic_acid_umol_l  phytanic acid, umol/L. Grain near 2.6 (SD 1.0), pasture near
+                        4.1 (SD 1.5)
+  urea_mmol_l           plasma urea, mmol/L. Grain near 4.8 (SD 1.2), pasture near
+                        5.2 (SD 1.3)
+  creatinine_umol_l     plasma creatinine, umol/L. Grain near 108 (SD 18), pasture
+                        near 111 (SD 19)
+These six marker columns are the outcome family, in that order; split is a design
+column, not an outcome.
+
+ANALYSIS: analysis.py in the project root
+Use the split column exactly as recorded. In the discovery animals, test all six
+markers between finishing systems and shortlist the markers with discovery p-values
+under five percent, printing clearly that discovery output is screening and not a
+finding. In the validation animals, test only the shortlisted markers, correct that
+validation family together with a named family-wide correction at five percent, and
+report as markers only those that survive. Print the size of the corrected validation
+family so a reader can see how many tests it covered.
+
+REPORT: report.md
+Half a page. Describe the pre-planned split, the shortlist, the corrected validation
+family and its size, and the markers that qualify as authenticity indicators.

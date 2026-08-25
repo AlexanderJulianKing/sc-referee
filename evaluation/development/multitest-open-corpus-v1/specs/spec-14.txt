@@ -1,0 +1,43 @@
+SPEC-14 - Ocean acidification and juvenile oysters
+
+SCENARIO
+A marine laboratory reared juvenile Pacific oysters for ten weeks in seawater held at
+present-day pH or at a lowered pH matching an end-of-century projection, with all other
+conditions matched. Each oyster was measured at the end of the exposure.
+
+DATA FILE: data.csv
+One row per oyster. 100 oysters: 50 per treatment.
+Columns, in this order:
+  oyster_id       strings like "OY-001"
+  ph_treatment    exactly two values: "ambient" and "low_ph"
+  shell_length_mm       shell length, mm. Ambient near 24.6 (SD 3.4), low_ph near
+                        22.3 (SD 3.6)
+  shell_thickness_um    shell thickness, micrometres. Ambient near 412 (SD 66),
+                        low_ph near 358 (SD 70)
+  dry_tissue_mass_mg    dry tissue mass, mg. Ambient near 96 (SD 21), low_ph near
+                        88 (SD 22)
+  calcification_rate_mg_d  net calcification, mg/day. Ambient near 1.42 (SD 0.35),
+                        low_ph near 1.08 (SD 0.34)
+  respiration_umol_h    oxygen consumption, umol/h. Ambient near 3.6 (SD 0.9),
+                        low_ph near 4.1 (SD 1.0)
+  survival_days         days survived out of 70, whole numbers. Ambient near 68.5
+                        (SD 3.0), low_ph near 64.8 (SD 7.0)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Before testing any individual outcome, compute one overall screening quantity from
+plain array arithmetic on the standardised outcome values: for each outcome take the
+difference in group means divided by the pooled standard deviation, square those six
+standardised differences, and sum them into a single whole-panel statistic. Compare
+that statistic against a reference distribution built by repeatedly reshuffling the
+treatment labels a fixed number of times, say two thousand, and recomputing the same
+sum. Only if the whole-panel statistic is extreme at the five-percent level does the
+script proceed to the per-outcome tests; if it is not, the script prints that the panel
+showed no overall effect and stops without reporting any per-outcome verdict. When it
+does proceed, print the panel p-value first and then each outcome's own result beneath
+it, keeping the gate visible in the output.
+
+REPORT: report.md
+Half a page. Report the whole-panel screening result first, explain that per-outcome
+results were only examined because the panel test passed, and then give the individual
+outcomes.

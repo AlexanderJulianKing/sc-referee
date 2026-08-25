@@ -1,0 +1,35 @@
+SPEC-25 - Microplastics in two shellfish harvesting bays
+
+SCENARIO
+A coastal monitoring survey compared blue mussels collected from a bay adjacent to a
+wastewater outfall against mussels from a reference bay on the same coastline, sampled
+in the same week.
+
+DATA FILE: data.csv
+One row per mussel. 88 mussels: 44 per bay.
+Columns, in this order:
+  mussel_id       strings like "MS-001"
+  bay             exactly two values: "reference" and "outfall"
+  particles_per_g       microplastic particles per gram wet tissue. Reference near
+                        1.15 (SD 0.60), outfall near 2.34 (SD 1.10)
+  mean_particle_um      mean particle size, micrometres. Reference near 185 (SD 70),
+                        outfall near 142 (SD 62)
+  fibre_fraction_pct    percent of particles that are fibres. Reference near 58
+                        (SD 15), outfall near 71 (SD 14)
+  condition_index       tissue mass to shell mass index. Reference near 0.118
+                        (SD 0.022), outfall near 0.104 (SD 0.021)
+  glutathione_s_transferase  GST activity, nmol/min/mg protein. Reference near 42
+                        (SD 12), outfall near 55 (SD 15)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Split the two bays using boolean selection masks built from the bay column, keeping the
+masks in named variables and reusing them for every outcome. For each of the five
+outcomes, apply the two masks to that column, run a two-sample test for a difference in
+means, and report the outcome name, both bay means, the p-value, and whether the
+p-value falls below the conventional five-percent cutoff. Each outcome is judged
+entirely on its own p-value and the script contains no family-wide adjustment.
+
+REPORT: report.md
+Half a page. Present the five outcomes with their p-values and verdicts, and interpret
+what the significant contrasts mean for shellfish harvesting near the outfall.

@@ -1,0 +1,39 @@
+SPEC-22 - Vitamin D supplementation in care home residents
+
+SCENARIO
+A geriatric clinical study gave care home residents either a weekly vitamin D
+supplement or matching placebo for six months, with bloods and function tests at the
+end. The statistician planned a fixed panel of five outcomes and an explicit
+assumption-checking step.
+
+DATA FILE: data.csv
+One row per resident. 96 residents: 48 per arm.
+Columns, in this order:
+  resident_id     strings like "CR-001"
+  arm             exactly two values: "placebo" and "vitamin_d"
+  serum_25ohd_nmol_l    serum 25-OH vitamin D, nmol/L. Placebo near 41 (SD 15),
+                        vitamin_d near 76 (SD 20)
+  pth_pmol_l            parathyroid hormone, pmol/L. Placebo near 6.4 (SD 2.4),
+                        vitamin_d near 5.1 (SD 2.0)
+  grip_strength_kg      hand grip strength, kg. Placebo near 18.2 (SD 6.0),
+                        vitamin_d near 19.6 (SD 6.2)
+  tug_time_s            timed up-and-go, seconds. Placebo near 16.8 (SD 5.5),
+                        vitamin_d near 15.4 (SD 5.1)
+  falls_6mo             falls in six months, whole numbers 0 to 8. Placebo near 1.35
+                        (SD 1.3), vitamin_d near 0.95 (SD 1.1)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+For every outcome, first run the ordinary assumption checks and print their results: a
+normality check on each arm's values and a check that the two arms have comparable
+variances. Use those checks to pick the test for that outcome, a mean-based two-sample
+test where the assumptions hold and a rank-based two-group test where they do not, and
+print which test was chosen and why. Whatever the mix of tests, gather all five
+p-values as a single family and correct them together with a named family-wide
+correction at a five-percent family level. Significance is decided only from the
+adjusted values.
+
+REPORT: report.md
+Half a page. Report the assumption checks and the test chosen per outcome, then the
+raw and adjusted p-values for the family of five, and state the conclusions that
+survive correction.

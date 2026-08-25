@@ -1,0 +1,6 @@
+# Analysis environment for the fermented versus fresh vegetable study.
+# multipy carries the multiple-comparison correction (multipy.fwer.sidak).
+multipy==0.16
+numpy==2.4.6
+pandas==3.0.5
+scipy==1.17.1

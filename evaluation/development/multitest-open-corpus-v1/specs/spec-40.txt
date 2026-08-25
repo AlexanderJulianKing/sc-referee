@@ -1,0 +1,41 @@
+SPEC-40 - Two soil-borne fungicide programmes in potatoes
+
+SCENARIO
+A plant pathology trial compared a reduced-rate fungicide programme against the
+standard full-rate programme for control of black scurf in seed potatoes, on one field
+divided into plots. Each plot was lifted and graded separately.
+
+DATA FILE: data.csv
+One row per plot. 64 plots: 32 per programme.
+Columns, in this order:
+  plot_id         strings like "PT-01"
+  programme       exactly two values: "full_rate" and "reduced_rate"
+  marketable_yield_t_ha marketable yield, tonnes/ha. Full_rate near 42.5 (SD 5.5),
+                        reduced_rate near 40.1 (SD 5.8)
+  black_scurf_incidence_pct  tubers with black scurf, percent. Full_rate near 12.4
+                        (SD 5.5), reduced_rate near 18.9 (SD 7.2)
+  stem_canker_index     stem canker index, 0 to 100. Full_rate near 14.2 (SD 6.0),
+                        reduced_rate near 21.5 (SD 8.0)
+  tuber_number_per_plant  tubers per plant. Full_rate near 11.8 (SD 2.2),
+                        reduced_rate near 11.2 (SD 2.3)
+  mean_tuber_weight_g   mean tuber weight, grams. Full_rate near 118 (SD 20),
+                        reduced_rate near 114 (SD 21)
+  fungicide_cost_gbp_ha programme cost, GBP/ha. Full_rate near 285 (SD 15),
+                        reduced_rate near 168 (SD 12)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Control multiplicity with a hand-written label-shuffling procedure rather than any
+packaged routine. Compute the observed test statistic for each of the six outcomes from
+the true programme labels. Then, a fixed four thousand times, shuffle the programme
+labels across plots, recompute all six statistics, and keep only the largest absolute
+statistic from that shuffle. An outcome's adjusted p-value is the fraction of the four
+thousand shuffle maxima that reach or exceed its observed statistic. Set and print the
+random seed and the shuffle count, and call an outcome significant only when this
+maximum-statistic adjusted p-value is below five percent. Do not compare any raw
+p-value with five percent anywhere in the script.
+
+REPORT: report.md
+Half a page. Explain the shuffling maximum-statistic procedure in plain words, give the
+seed and the shuffle count, list the adjusted p-values for the six outcomes, and advise
+on the reduced-rate programme.
