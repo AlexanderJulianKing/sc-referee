@@ -62,6 +62,22 @@ def _record_kwargs() -> dict[str, object]:
     }
 
 
+def _dependence_profile() -> dict[str, object]:
+    return {
+        "profile_id": "scientific_check_requirement_v1",
+        "profile_version": "1.1.0",
+        "check_id": "check:authorized-independent-unit-entry-into-row-independent-procedure",
+        "candidate_id": "one-analyzed-row-per-authorized-independent-unit",
+        "semantic_role_authority": {
+            "authorized_independent_unit_key": {
+                "material_input_path": "data.csv",
+                "column_name": "participant_id",
+                "group_contrast_column": "group",
+            }
+        },
+    }
+
+
 def test_profile_1_2_slims_authority_and_derives_api_and_group_values() -> None:
     resolved = resolve_scientific_requirement_profile(_multiple_testing_profile())
 
@@ -152,6 +168,27 @@ def test_head_08c0ccb_profile_lock_record_and_answer_bytes_remain_frozen() -> No
         assert answer["answer_digest"] == expected[version]["answer_digest"]
 
 
+def test_parent_commit_real_dependence_1_1_authority_profile_remains_golden() -> None:
+    expected = {
+        "manifest": "sha256:0d533399e445c987126ddf184032ead8465f2ecdad8d9bcb2d2cbd9918e2cd4d",
+        "lock": "sha256:f9166f98a6fad9e2ccb8999d9ea39078b68f14765bf23a0b4658da6c07582332",
+        "records": "sha256:920217afb5b9972547032eb160add42e7bdac9342ecbed639f490ca78e528be0",
+        "answer": "sha256:72df5784fc92ed789c87754ed8e54ee8f0f52ca955792d1ae1dd0927f69e2dab",
+        "answer_digest": "sha256:a317fd5de4d9e280f69af469ad4d6edb56c47b9e7c40b98944ced398424d1d69",
+    }
+    resolved = resolve_scientific_requirement_profile(_dependence_profile())
+    lock = scientific_requirement_lock_profile(resolved)
+    records = build_scientific_requirement_records(resolved=resolved, **_record_kwargs())  # type: ignore[arg-type]
+    answer = records["answers"][0]
+
+    assert resolved.semantic_role_authority == _dependence_profile()["semantic_role_authority"]
+    assert semantic_digest(resolved.manifest) == expected["manifest"]
+    assert semantic_digest(lock) == expected["lock"]
+    assert semantic_digest(records) == expected["records"]
+    assert semantic_digest(answer) == expected["answer"]
+    assert answer["answer_digest"] == expected["answer_digest"]
+
+
 def test_head_08c0ccb_error_strings_remain_exact() -> None:
     wrong_version = _old_profiles()[1]
     wrong_version["profile_version"] = "9.9.9"
@@ -166,3 +203,49 @@ def test_head_08c0ccb_error_strings_remain_exact() -> None:
     assert (
         str(error.value) == "scientific requirement profile has the wrong exact versioned field set"
     )
+
+    dependence_authority = _dependence_profile()
+    dependence_authority["semantic_role_authority"] = {}
+    with pytest.raises(ScientificRequirementContractError) as error:
+        resolve_scientific_requirement_profile(dependence_authority)
+    assert str(error.value) == ("dependence semantic-role authority has the wrong exact role set")
+
+    empty_authority = _old_profiles()[1]
+    empty_authority["semantic_role_authority"] = {"authorized_independent_unit_key": {}}
+    with pytest.raises(ScientificRequirementContractError) as error:
+        resolve_scientific_requirement_profile(empty_authority)
+    assert str(error.value) == (
+        "non-dependence scientific requirements require empty semantic-role authority"
+    )
+
+    unsafe_path = _dependence_profile()
+    unsafe_path["semantic_role_authority"]["authorized_independent_unit_key"][  # type: ignore[index]
+        "material_input_path"
+    ] = "../data.csv"
+    with pytest.raises(ScientificRequirementContractError) as error:
+        resolve_scientific_requirement_profile(unsafe_path)
+    assert str(error.value) == "authorized independent-unit material path is invalid"
+
+    unsafe_column = _dependence_profile()
+    unsafe_column["semantic_role_authority"]["authorized_independent_unit_key"][  # type: ignore[index]
+        "column_name"
+    ] = "bad header"
+    with pytest.raises(ScientificRequirementContractError) as error:
+        resolve_scientific_requirement_profile(unsafe_column)
+    assert str(error.value) == "authorized independent-unit column name is invalid"
+
+    resolved = resolve_scientific_requirement_profile(_dependence_profile())
+    authority = resolved.semantic_role_authority["authorized_independent_unit_key"]  # type: ignore[index]
+    drifted = resolved.with_authority_binding_snapshot(
+        {
+            "authorized_independent_unit_key": {
+                **authority,
+                "column_name": "different_participant_id",
+                "material_input_content_digest": "sha256:" + "a" * 64,
+            }
+        }
+    )
+    lock = scientific_requirement_lock_profile(drifted)
+    with pytest.raises(ScientificRequirementContractError) as error:
+        resolved_scientific_requirement_from_lock_profile(lock)
+    assert str(error.value) == "authority binding snapshot drifted"

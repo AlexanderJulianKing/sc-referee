@@ -4509,13 +4509,19 @@ def _mark_inline_depth(node: ast.AST, depth: int) -> None:
         item.__dict__["_sc_inline_depth"] = depth
 
 
+class _SourceEnvelopeExceeded(ValueError):
+    """The closed source byte/node ceiling was exceeded."""
+
+
 def _bounded_parse(content: bytes) -> ast.Module:
-    if len(content) > _SOURCE_BYTE_MAX or content.startswith(b"\xef\xbb\xbf") or b"\x00" in content:
+    if len(content) > _SOURCE_BYTE_MAX:
+        raise _SourceEnvelopeExceeded("source outside byte envelope")
+    if content.startswith(b"\xef\xbb\xbf") or b"\x00" in content:
         raise ValueError("source outside byte envelope")
     text = content.decode("utf-8", errors="strict")
     tree = ast.parse(text, filename="analysis.py", mode="exec", type_comments=True)
     if sum(1 for _ in ast.walk(tree)) > _AST_NODE_MAX:
-        raise ValueError("source outside AST envelope")
+        raise _SourceEnvelopeExceeded("source outside AST envelope")
     return tree
 
 
@@ -7141,15 +7147,6 @@ _MT_MULTIPLETESTS_METHODS = frozenset(
     }
 )
 _MT_DECISION_LITERALS = frozenset({Decimal("0.01"), Decimal("0.05"), Decimal("0.1")})
-_MT_T_PPF_LITERALS = frozenset(
-    {
-        Decimal("0.9"),
-        Decimal("0.95"),
-        Decimal("0.975"),
-        Decimal("0.99"),
-        Decimal("0.995"),
-    }
-)
 _MT_QUERY = _QUERY
 _MT_CORRECTION_TERMINALS = frozenset(
     {
@@ -7399,6 +7396,8 @@ def analyze_code_csv_multiple_testing_dataflow(
             registered_api=next(iter(apis)),
         )
         return engine.run()
+    except _SourceEnvelopeExceeded:
+        return MultipleTestingDataflowResult(None, "dataflow-definition-ceiling-exceeded")
     except (ArithmeticError, RecursionError, UnicodeError, ValueError):
         return MultipleTestingDataflowResult(None, "multiple-testing-code-inspection-exception")
 
@@ -7548,6 +7547,50 @@ def _mt_call_census(
                 if reason is not None:
                     return reason
                 reason = visit_block(statement.orelse, multiplier)
+                if reason is not None:
+                    return reason
+                continue
+            if isinstance(statement, (ast.If, ast.While)):
+                reason = visit_expr(statement.test, multiplier)
+                if reason is not None:
+                    return reason
+                reason = visit_block(statement.body, multiplier)
+                if reason is not None:
+                    return reason
+                reason = visit_block(statement.orelse, multiplier)
+                if reason is not None:
+                    return reason
+                continue
+            if isinstance(statement, ast.Try):
+                for branch in (
+                    statement.body,
+                    *(handler.body for handler in statement.handlers),
+                    statement.orelse,
+                    statement.finalbody,
+                ):
+                    reason = visit_block(branch, multiplier)
+                    if reason is not None:
+                        return reason
+                continue
+            if isinstance(statement, ast.Match):
+                reason = visit_expr(statement.subject, multiplier)
+                if reason is not None:
+                    return reason
+                for case in statement.cases:
+                    if case.guard is not None:
+                        reason = visit_expr(case.guard, multiplier)
+                        if reason is not None:
+                            return reason
+                    reason = visit_block(case.body, multiplier)
+                    if reason is not None:
+                        return reason
+                continue
+            if isinstance(statement, (ast.With, ast.AsyncWith)):
+                for item in statement.items:
+                    reason = visit_expr(item.context_expr, multiplier)
+                    if reason is not None:
+                        return reason
+                reason = visit_block(statement.body, multiplier)
                 if reason is not None:
                     return reason
                 continue
@@ -7856,6 +7899,9 @@ class _MtEngine:
         local_lineage_reason = self._local_pvalue_lineage_guard()
         if local_lineage_reason is not None:
             return MultipleTestingDataflowResult(None, local_lineage_reason)
+
+        if self._pvalue_family_collection_unresolved():
+            return MultipleTestingDataflowResult(None, "pvalue-family-collection-unresolved")
 
         extremum = self._family_extremum_guard()
         if extremum:
@@ -8455,6 +8501,31 @@ class _MtEngine:
         if self._upstream_sink_decision_present():
             return "upstream-correction-lineage-unresolved"
         return None
+
+    def _pvalue_family_collection_unresolved(self) -> bool:
+        """Refuse family containers whose ordered member identity cannot be reconstructed."""
+
+        for node in _walk_statements(self.scope):
+            if isinstance(node, ast.Set) and self._p_origins(node):
+                return True
+            if isinstance(node, (ast.List, ast.Tuple, ast.Dict)) and self._p_origins(node):
+                if self._p_sequence(node) is None:
+                    return True
+            if isinstance(node, ast.Subscript) and self._p_origins(node):
+                if self._p_sequence(node.value) is not None and self._p_sequence(node) is None:
+                    return True
+            if not (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.attr in {"append", "extend"}
+                and any(self._p_origins(item) for item in node.args)
+            ):
+                continue
+            initial = self.assignments.get(node.func.value.id)
+            if initial is None or self._mutated_p_sequence(node.func.value.id, initial) is None:
+                return True
+        return False
 
     def _upstream_sink_decision_present(self) -> bool:
         for sink in self.sinks:
@@ -9280,8 +9351,6 @@ class _MtEngine:
                 continue
             if api == "scipy.stats.sem" and self._sem_exempt(call):
                 continue
-            if api == "scipy.stats.t.ppf" and self._t_ppf_exempt(call):
-                continue
             return True
         return False
 
@@ -9294,55 +9363,49 @@ class _MtEngine:
             return False
         return self._call_result_output_only(call)
 
-    def _t_ppf_exempt(self, call: ast.Call) -> bool:
-        if len(call.args) != 2 or call.keywords:
-            return False
-        probability = _mt_decimal_literal(call.args[0], self.source)
-        if probability not in _MT_T_PPF_LITERALS:
-            return False
-        n_value = Decimal(len(self.outcome_columns))
-        one_sided = (Decimal(1) - probability) * n_value
-        two_sided = Decimal(2) * (Decimal(1) - probability) * n_value
-        if one_sided in _MT_DECISION_LITERALS or two_sided in _MT_DECISION_LITERALS:
-            return False
-        df = call.args[1]
-        if not any(
-            isinstance(item, ast.Call)
-            and (
-                self.full_resolver.qualified(item.func) == "len"
-                or (_mt_callee_terminal(item.func) or "") in {"var", "variance"}
-            )
-            for item in ast.walk(df)
-        ):
-            return False
-        return self._call_result_output_only(call)
-
     def _call_result_output_only(self, call: ast.Call) -> bool:
         target = _assigned_name(self.original_scope, call)
-        if target is None:
-            return any(
-                call in tuple(ast.walk(payload))
-                for sink in _registered_sinks(self.original_scope, self.full_resolver)
-                if sink.p_result_eligible
-                for payload in sink.payloads
+        origins = (
+            (call,)
+            if target is None
+            else tuple(
+                node
+                for node in _walk_statements(self.original_scope)
+                if isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == target
             )
-        for node in _walk_statements(self.original_scope):
-            if isinstance(
-                node, (ast.If, ast.While, ast.Assert, ast.Match)
-            ) and target in _loaded_names(node):
-                return False
-            if (
-                isinstance(node, ast.Call)
-                and self.full_resolver.qualified(node.func) in (_MT_TEST_APIS | _MT_CORRECTION_APIS)
-                and any(target in _loaded_names(item) for item in node.args)
-            ):
-                return False
-        return any(
-            target in _loaded_names(payload)
+        )
+        if not origins:
+            return False
+        sinks = tuple(
+            sink
             for sink in _registered_sinks(self.original_scope, self.full_resolver)
             if sink.p_result_eligible
-            for payload in sink.payloads
         )
+        payloads = {payload for sink in sinks for payload in sink.payloads}
+        parents = {
+            child: node
+            for node in _walk_statements(self.original_scope)
+            for child in ast.iter_child_nodes(node)
+        }
+        for origin in origins:
+            cursor: ast.AST = origin
+            while cursor not in payloads:
+                parent = parents.get(cursor)
+                if parent is None:
+                    return False
+                if isinstance(parent, (ast.UnaryOp, ast.BinOp, ast.FormattedValue, ast.JoinedStr)):
+                    cursor = parent
+                    continue
+                if isinstance(parent, ast.Call):
+                    api = self.full_resolver.qualified(parent.func)
+                    terminal = _mt_callee_terminal(parent.func)
+                    if api == "str" or terminal == "format":
+                        cursor = parent
+                        continue
+                return False
+        return True
 
     def _conclusion_positions(self) -> tuple[set[int], set[str]]:
         positions: set[int] = set()

@@ -10,8 +10,8 @@
 - **Scope:** Development-only multiple-testing code slice 1.0 and scientific-requirement contract
   profile 1.2.0
 - **Companion design:**
-  `docs/implementation/MULTITEST-CODE-SLICE-1.0-DESIGN-2026-08-24.md`, Revision 2.1,
-  `sha256:39b01821aac7058773a60ab93d065703cf31f3f0165779fd21d001612e5c5308`
+  `docs/implementation/MULTITEST-CODE-SLICE-1.0-DESIGN-2026-08-24.md`, Revision 2.2,
+  `sha256:1cf301747c86d74c395b05873106792d6feed806fdae835a7955fb0c4aad3118`
 - **Execution impact:** None; project-authored code remains unexecuted
 - **Production impact:** None; no qualification, grant, GrantPin, or production Finding authority is
   installed
@@ -26,8 +26,10 @@ analysis proves an exact uniform family battery and complete per-member conclusi
 correction and counterevidence censuses classify correction coverage as absent or a strict subset.
 
 The design passed adversarial review on Revision 2. Before build, ND-6 closed binary-float conversion
-in both exact-Decimal product rules, and ND-7 repaired changelog cross-references. Those changes only
-remove candidate eligibility or correct the design record.
+in both then-proposed exact-Decimal product rules, and ND-7 repaired changelog cross-references. A
+post-build audit then required Revision 2.2: it removed the unsound `t.ppf` exemption, restored the
+missing p-value-family collection and dead-branch census abstentions, and strengthened the regression
+gates. Those changes only remove candidate eligibility or correct the design record.
 
 ## Decision
 
@@ -47,10 +49,11 @@ remove candidate eligibility or correct the design record.
    task text, output labels, format text, and inferred scientific meaning are unavailable. The one new
    identifier channel is closed to the terminal callee slot of `ast.Call`; identifiers in every
    non-callee position are unavailable.
-5. The bare-decision and `scipy.stats.t.ppf` mirror product rules use exact `Decimal` values
-   constructed from numeric literal source text, or `Decimal(repr(value))` only when source text is
-   unavailable. `Decimal(float_value)` is forbidden because its binary expansion can evade exact
-   equality with the conventional family-alpha values.
+5. The bare-decision product rule uses exact `Decimal` values constructed from numeric literal
+   source text, or `Decimal(repr(value))` only when source text is unavailable.
+   `Decimal(float_value)` is forbidden because its binary expansion can evade exact equality with
+   the conventional family-alpha values. Slice 1 has no `scipy.stats.t.ppf` exemption: every such
+   call follows the normal statistics-prefix abstention path.
 6. Existing pseudoreplication 3.1 implementation modules are copied into new versioned
    multiple-testing modules where needed and are not edited or imported as private implementation.
    Existing multiple-testing recognition, complete-domain, and qualified dependence surfaces remain

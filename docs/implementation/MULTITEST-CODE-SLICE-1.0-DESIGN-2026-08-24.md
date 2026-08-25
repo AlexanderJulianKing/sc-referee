@@ -473,27 +473,16 @@ lifelines
 
 `scipy` alone is not a match outside `scipy.stats`; NumPy random draws are handled by the resampling
 guard. A call under a prefix abstains `unresolved-inference-sibling-present` unless it is one of the
-`N` registered family calls, a recognized correction, or one of these two exact exemptions:
+`N` registered family calls, a recognized correction, or this sole exact exemption:
 
 1. `scipy.stats.sem(V)` with one positional value and only optional literal `axis`, `ddof`, or
    `nan_policy`. Its result must have no path to a registered test, correction, p-derived conclusion,
    decision threshold, branch/loop condition, or family container. Every terminal path must be
    identity/arithmetic/formatting into a supported output sink. Any other consumer abstains.
-2. `scipy.stats.t.ppf(P, DF)` with two positional scalar arguments and no keywords. `DF` must derive
-   only from lengths or variances of the two operands of one uniquely associated registered family
-   call; `P` must be an `ast.Constant` bare numeric literal whose exact Decimal value is one of
-   `0.9`, `0.95`, `0.975`, `0.99`, or `0.995`; and the result may reach only
-   arithmetic/formatting and output associated with that same call. Any arithmetic, name, container
-   member, helper return, or other expression in `P` disqualifies the exemption and follows the
-   normal statistics-prefix abstention path. Ambiguous association, another test/correction, a
-   branch/loop condition, or a family conclusion also abstains.
-
-   Apply the product-rule mirror with exact Decimal arithmetic and the exact completed family census
-   `N`: if either `(1 - P) * N` or `2 * (1 - P) * N` equals `0.01`, `0.05`, or `0.1`, disqualify the
-   exemption and follow the normal statistics-prefix abstention path. Thus `P = 0.99` and `P = 0.995`
-   are refused at `N = 5` as the one-sided and two-sided Bonferroni critical points, respectively.
-   Decimal construction uses the `P` literal's source text when available, or
-   `Decimal(repr(value))` when source text is unavailable, and never `Decimal(float_value)`.
+There is no `scipy.stats.t.ppf` exemption in slice 1. Every `scipy.stats.t.ppf` call, including a
+bare probability from the formerly proposed literal set, an operand-associated degrees-of-freedom
+expression, or an output-only use, follows the normal statistics-prefix path and abstains
+`unresolved-inference-sibling-present`.
 
 These are finite graph conditions, not judgments based on names or output text. Other distribution
 methods, `pearsonr`, `spearmanr`, `linregress`, `f_oneway`, `kruskal`, one-sample tests, model fits,
@@ -870,6 +859,19 @@ The authorizing ADR must record both accepted boundaries below exactly:
    positives and nine negatives, with hard stops `0/9` and replay `15/15`. This enlarges only the
    zero-candidate negative surface; it does not enlarge candidate eligibility or the Finding surface.
 
+### 8.3 Post-build-audit recall boundaries
+
+Two conservative implementation boundaries are explicit for slice 1:
+
+1. A helper that returns a registered result and whose caller later selects `.pvalue` may fail the
+   X4 relevance filter and abstain rather than inline. This helper-`.pvalue` gap is a known
+   recall-only limitation deferred to a future slice; it may never be treated as local p-value proof
+   by fallback inference.
+2. Section 4.10's closed membership-conclusion form can be structurally unreachable through an `if`
+   implementation because section 5.1 also treats family-container insertion controlled by that
+   branch as hierarchy/control. The order-16 abstention branch is retained. This tension removes
+   candidates and is not resolved by weakening the control guard.
+
 ## 9. Test plan
 
 ### 9.1 Contract and compatibility
@@ -953,11 +955,10 @@ The authorizing ADR must record both accepted boundaries below exactly:
    Independently isolate `correct-unresolved-cardinality-maxT` with `range(20 * len(frame))`; it must
    stop `resampling-cardinality-unresolved` before any reducer/sink requirement.
 4. Test every exact statistics prefix in section 4.9, including uncalled helpers and dynamic
-   attributes. Test both exact `sem`/`t.ppf` exemptions and every forbidden consumer edge. Exercise
-   every admitted bare `t.ppf` probability and refuse arithmetic, named, container, and helper-returned
-   probabilities through the normal statistics-prefix abstention. At `N = 5`, prove `P = 0.99` and
-   `P = 0.995` fail the mirrored one-sided/two-sided product rule; cover both mirrored expressions and
-   all three conventional family-alpha values under exact Decimal arithmetic.
+   attributes. Test the sole exact `sem` exemption and every forbidden consumer edge. Prove that
+   every `t.ppf` shape takes the normal statistics-prefix abstention, including every literal in the
+   former set `{0.9, 0.95, 0.975, 0.99, 0.995}`, arithmetic and named probabilities, operand-associated
+   and unrelated degrees of freedom, container/helper-returned values, and output-only uses.
 5. Combine guards in reverse source order and across separate X4 helpers; predicate rank, not line
    order, must select the outward reason.
 
@@ -969,7 +970,7 @@ proofs including the exact `.query` call shape, `.pvalue` member graph, extremum
 grammar, correction-name census, manual-adjustment/off-grammar transform closure, bare-literal product
 rule, direct-`P` order-14/order-15 partition, decision-threshold grammar, hierarchy/assert/match/
 short-circuit/execution-prevention graph, partition graph, unresolved/resolved resampling graph and
-distinct reason projection, statistics-prefix census and mirrored `t.ppf` product exemption,
+distinct reason projection, statistics-prefix census and unconditional `t.ppf` refusal,
 conclusion graph, guard-terminal export census, sink graph, observation projection, detector
 comparison, and wording-slot projection.
 
@@ -1263,3 +1264,24 @@ changelog correction disclose existing boundaries without changing candidate eli
 | Review items | Sections changed | Narrowing and record correction |
 |---|---|---|
 | ND-6 and ND-7 | 4.7, 4.9, 9.5, 15 | Required both exact-Decimal product rules to construct from literal source text, or `Decimal(repr(value))` only when source text is unavailable, and never from a float; added the omitted section-9.5 references to every Revision 2 changelog row whose predicate entered the prose tripwire. |
+
+## 17. Revision 2.2 changelog
+
+Every Revision 2.2 behavioral change adds an abstention, moves an existing abstention earlier, or
+strengthens a regression gate. No change enlarges candidate or Finding eligibility.
+
+| Audit item | Sections changed | Narrowing or required record |
+|---|---|---|
+| B1 | 4.9, 9.4.4, 9.5 | Deleted the `scipy.stats.t.ppf` exemption and its mirrored product rule. Every `t.ppf` call now takes the normal `unresolved-inference-sibling-present` path because the built association conditions were unsound. |
+| M1 | 5 order 12, 9.2 | Confirmed `pvalue-family-collection-unresolved` is reachable and implemented it for p-derived containers whose ordered member identities cannot be reconstructed, including dynamic member selection and unordered sets. |
+| M2 | 5.2, 9.2-9.4 | Required an exact first-reason fixture for every closed non-X4 abstention and one parametrized X4 matrix covering all 17 helper codes. |
+| M3 | 9.6 | Added detector identity pinning and exact tests for every multiple-testing detector `ValueError` guard, including an observed operand outside the closed registry. |
+| M4 | 8.1, 9.6.7 | Expanded the two-registry differential gate to canonical grants, qualification records, metric sets, threshold-policy references, and qualified Finding objects, with byte equality and explicit non-derivation checks. |
+| M5 | 9.1 | Expanded the 1.0.0/1.1.0 golden regression to all seven error categories and a real populated pseudoreplication 1.1.0 authority profile captured from parent behavior. |
+| M6 | 9.5 | Expanded the prose tripwire over every isolated guard fixture, report/Markdown add-remove mutations, structural-literal deletion, and the paired callee-terminal control. |
+| Minor 1 | 9.1 | Split the disjunctive CSV-domain assertion into exact per-case expected reasons. |
+| Minor 2 | 9.6.5 | Tightened the opened-corpus census to exactly two `ttest_ind` plus one `mannwhitneyu` in every three-call file and exactly two mixed-API files among the twelve two-call files. |
+| Minor 3 | 8.3 | Recorded helper-returned `.pvalue` inlining as a recall-only limitation deferred to a future slice. |
+| Minor 4 | 4.2, 9.2 | Restored full-scope census of registered calls in closed-dead branches; an extra call now stops `extra-registered-test-outside-authorized-family`. |
+| Minor 5 | 4.9, 9.4.4 | Kept `_call_result_output_only` for the surviving `sem` exemption and closed it to identity/arithmetic/formatting paths into supported output; decision, control, family-container, test, and correction consumers are refused. |
+| Minor 6 | 8.3 | Recorded the conservative tension between section 4.10's membership-conclusion form and section 5.1's container-insertion control guard; the abstaining branch remains. |

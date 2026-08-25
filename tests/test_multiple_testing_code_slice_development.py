@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import json
+import shutil
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
+import pytest
+
+import sc_referee.controller as controller_module
 from sc_referee.controller import replay, run_audit
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.detectors.method_conflict_finding import (
@@ -19,11 +24,13 @@ from sc_referee.detectors.method_conflict_registry import (
     evaluate_registered_method_conflicts,
 )
 from sc_referee.method_contract_run import run_method_contract
+from sc_referee.qualification_grants import load_installed_qualification_grants
 from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_1 import (
     CODE_CSV_DEPENDENCE_ADAPTER_IMPLEMENTATION_DIGEST,
     code_csv_dependence_grammar_digest,
 )
 from sc_referee.scientific_checks.profiles import scientific_check_release_registry
+from sc_referee.scientific_checks.registry import ScientificCheckRegistry
 
 CHECK_ID = "check:authorized-complete-family-correction-over-code-test-battery"
 DETECTOR_ID = "detector:bounded-code-csv-multiple-testing-conflict"
@@ -267,3 +274,98 @@ def test_two_registry_differential_keeps_qualified_authority_and_finding_inputs_
         sha256_digest((root / "src/sc_referee/scientific_checks/integration.py").read_bytes())
         == "sha256:55ac1a3dcef282445eb75f2edb55a0f518f8649cbc3b028b148862ed7afb93da"
     )
+
+
+def _installed_authority_surfaces() -> dict[str, object]:
+    evidence = load_installed_qualification_grants()
+    return {
+        "pins": {key: asdict(value) for key, value in sorted(GRANT_PINS.items())},
+        "grants": {key: dict(value.grant) for key, value in sorted(evidence.items())},
+        "qualifications": {
+            key: dict(value.qualification) for key, value in sorted(evidence.items())
+        },
+        "metric_sets": {key: dict(value.metric_set) for key, value in sorted(evidence.items())},
+        "threshold_policy_references": {
+            key: {
+                "grant_digest": value.grant["threshold_policy_digest"],
+                "qualification_policy": value.qualification["numeric_threshold_policy"],
+                "metric_set_policy": value.metric_set["numeric_threshold_policy"],
+            }
+            for key, value in sorted(evidence.items())
+        },
+    }
+
+
+def test_two_registry_differential_keeps_all_authority_and_qualified_finding_bytes_equal(
+    schema_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registry = scientific_check_release_registry()
+    before = _installed_authority_surfaces()
+    without_multiple_testing = ScientificCheckRegistry(
+        registry.modules,
+        unavailable_manifests=registry.unavailable_manifests,
+        method_conflict_bindings=registry.method_conflict_bindings,
+        development_modules=tuple(
+            item for item in registry.development_modules if item.manifest.check_id != CHECK_ID
+        ),
+        development_method_conflict_bindings=tuple(
+            item
+            for item in registry.development_method_conflict_bindings
+            if item.check_id != CHECK_ID
+        ),
+    )
+    assert registry.registry_digest != without_multiple_testing.registry_digest
+
+    after = _installed_authority_surfaces()
+    assert canonical_json(before) == canonical_json(after)
+    for digest in (registry.registry_digest, without_multiple_testing.registry_digest):
+        assert not _contains_value(before, digest)
+        assert not _contains_value(after, digest)
+
+    case = Path("evaluation/development/blind-envelope-5-2026-08-22/cases/0b4876ceca6b0a9aede7")
+    lock_path = case / "method-contract/semantic.lock.json"
+    frozen_contract = json.loads(lock_path.read_text(encoding="utf-8"))
+    material_path = frozen_contract["method_contract_profile"]["profile_manifest"][
+        "authority_binding_snapshot"
+    ]["authorized_independent_unit_key"]["material_input_path"]
+    monkeypatch.setattr(
+        controller_module,
+        "uuid4",
+        lambda: UUID("12345678-1234-5678-1234-567812345678"),
+    )
+    monkeypatch.setattr(controller_module, "_timestamp_now", lambda: "2026-08-24T00:00:00Z")
+    baseline_project = tmp_path / "qualified-baseline-project"
+    changed_project = tmp_path / "qualified-changed-project"
+    shutil.copytree(case / "project", baseline_project)
+    shutil.copytree(case / "project", changed_project)
+    baseline = run_audit(
+        baseline_project,
+        tmp_path / "qualified-baseline",
+        schema_root,
+        material_inputs=(material_path,),
+        method_contract_lock=lock_path,
+        scientific_check_registry=registry,
+    )
+    changed = run_audit(
+        changed_project,
+        tmp_path / "qualified-without-multiple-testing",
+        schema_root,
+        material_inputs=(material_path,),
+        method_contract_lock=lock_path,
+        scientific_check_registry=without_multiple_testing,
+    )
+    baseline_lock = json.loads(
+        (tmp_path / "qualified-baseline/semantic.lock.json").read_text(encoding="utf-8")
+    )
+    changed_lock = json.loads(
+        (tmp_path / "qualified-without-multiple-testing/semantic.lock.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert canonical_json(baseline["findings"]) == canonical_json(changed["findings"])
+    assert len(baseline["findings"]) == 1
+    for finding in baseline["findings"]:
+        assert not _contains_value(finding, registry.registry_digest)
+        assert not _contains_value(finding, without_multiple_testing.registry_digest)
+        assert not _contains_value(finding, baseline_lock["semantic_lock_digest"])
+        assert not _contains_value(finding, changed_lock["semantic_lock_digest"])

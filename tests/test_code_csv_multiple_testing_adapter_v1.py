@@ -34,22 +34,27 @@ def test_every_authorized_outcome_cell_must_be_finite_numeric(value: bytes) -> N
 
 
 @pytest.mark.parametrize(
-    "content",
+    ("content", "expected"),
     [
-        b"group,m1,m2,m3\na,1,2,3\nb,4,5,6\nb,5,6,7\n",
-        BASE + b"c,7,8,9\nc,8,9,10\n",
+        (
+            b"group,m1,m2,m3\na,1,2,3\nb,4,5,6\nb,5,6,7\n",
+            "authorized-family-csv-domain-unavailable",
+        ),
+        (
+            BASE + b"c,7,8,9\nc,8,9,10\n",
+            "authorized-group-domain-not-exactly-two",
+        ),
     ],
 )
-def test_group_domain_requires_exactly_two_values_and_two_rows_each(content: bytes) -> None:
+def test_group_domain_requires_exactly_two_values_and_two_rows_each(
+    content: bytes, expected: str
+) -> None:
     reason = _parse_csv(
         content,
         group_column="group",
         outcome_columns=("m1", "m2", "m3"),
     )
-    assert reason in {
-        "authorized-group-domain-not-exactly-two",
-        "authorized-family-csv-domain-unavailable",
-    }
+    assert reason == expected
 
 
 def test_ordered_outcome_headers_must_all_exist() -> None:

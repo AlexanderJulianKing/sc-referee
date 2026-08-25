@@ -426,11 +426,38 @@ def test_loaded_adjusted_pvalue_conclusions_do_not_acquire_local_p_lineage() -> 
     )
 
 
+def test_dynamic_family_member_index_abstains_at_order_12() -> None:
+    decisions = (
+        "pvalues = [r0.pvalue, r1.pvalue, r2.pvalue]\n"
+        "member = 0\n"
+        "print(pvalues[member] < 0.05)\n"
+        "print(r1.pvalue < 0.05)\n"
+        "print(r2.pvalue < 0.05)"
+    )
+    assert _run(_explicit(decisions=decisions)).reason == ("pvalue-family-collection-unresolved")
+
+
+def test_unordered_family_pvalue_set_abstains_at_order_12() -> None:
+    source = _explicit(after="unordered = {r0.pvalue, r1.pvalue, r2.pvalue}\n")
+    assert _run(source).reason == "pvalue-family-collection-unresolved"
+
+
 def test_sensitivity_duplicate_stops_before_operand_resolution() -> None:
     source = _explicit(
         before=(
             'unused = stats.ttest_ind(df.loc[df["group"] == "a", "missing"], '
             'df.loc[df["group"] == "b", "missing"])\n'
+        )
+    )
+    assert _run(source).reason == "extra-registered-test-outside-authorized-family"
+
+
+def test_closed_dead_branch_extra_call_stops_at_full_scope_census() -> None:
+    source = _explicit(
+        before=(
+            "if False:\n"
+            '    dead = stats.ttest_ind(df.loc[df["group"] == "a", "m1"], '
+            'df.loc[df["group"] == "b", "m1"])\n'
         )
     )
     assert _run(source).reason == "extra-registered-test-outside-authorized-family"
@@ -592,14 +619,47 @@ def test_statistics_prefix_sibling_abstains() -> None:
     )
 
 
-@pytest.mark.parametrize("probability", ["0.99", "0.995"])
-def test_t_ppf_mirrored_bonferroni_product_rule_uses_source_decimal(probability: str) -> None:
-    columns = ("m1", "m2", "m3", "m4", "m5")
+def test_sem_exemption_is_limited_to_output_identity_arithmetic_and_formatting() -> None:
     source = _explicit(
-        columns=columns,
-        after=f"print(stats.t.ppf({probability}, len(df) - 2))\n",
+        after=(
+            'uncertainty = stats.sem(df["m1"], ddof=1)\nprint(f"uncertainty={uncertainty + 1}")\n'
+        )
     )
-    assert _run(source, columns).reason == "unresolved-inference-sibling-present"
+    assert _run(source).reason is None
+
+
+@pytest.mark.parametrize(
+    ("consumer", "reason"),
+    [
+        ("print(uncertainty < 0.05)", "upstream-correction-lineage-unresolved"),
+        ("print([uncertainty])", "unresolved-inference-sibling-present"),
+        ("assert uncertainty", "unresolved-inference-sibling-present"),
+        ("if uncertainty:\n    print('selected')", "unresolved-inference-sibling-present"),
+    ],
+)
+def test_sem_exemption_refuses_decision_container_and_control_consumers(
+    consumer: str, reason: str
+) -> None:
+    source = _explicit(
+        after=f'uncertainty = stats.sem(df["m1"])\n{consumer}\n',
+    )
+    assert _run(source).reason == reason
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "stats.t.ppf(0.9, len(df) - 2)",
+        'stats.t.ppf(0.95, df["m1"].var())',
+        'stats.t.ppf(0.975, len(["x", "y", "z"]) + 30)',
+        "stats.t.ppf(0.99, len(df) - 2)",
+        "stats.t.ppf(0.995, len(df) - 2)",
+        "stats.t.ppf(1 - 0.05 / 3, len(df) - 2)",
+    ],
+)
+def test_every_t_ppf_shape_takes_normal_statistics_prefix_abstention(expression: str) -> None:
+    source = _explicit(after=f"print({expression})\n")
+    assert _run(source).reason == "unresolved-inference-sibling-present"
 
 
 def test_prose_tripwire_and_promoted_non_callee_renames_preserve_first_result() -> None:
@@ -619,6 +679,49 @@ def test_prose_tripwire_and_promoted_non_callee_renames_preserve_first_result() 
         assert result.facts.correction_classification == baseline.facts.correction_classification
         assert result.facts.corrected_positions == baseline.facts.corrected_positions
         assert result.facts.conclusion_positions == baseline.facts.conclusion_positions
+
+
+def test_every_isolated_guard_fixture_is_prose_mutation_invariant() -> None:
+    namespace = runpy.run_path("evaluation/development/multitest-code-slice-v1/GUARD_FIXTURES.py")
+    fixtures = namespace["FIXTURES"]
+    for fixture in fixtures.values():
+        source = fixture["source"]
+        columns = fixture["columns"]
+        baseline = _run(source, columns)
+        variants = (
+            '"""Unrelated module documentation."""\n' + source,
+            source + "\n# Unrelated trailing source comment.\n",
+            source + '\nunrelated_label = "human-readable report label"\n',
+            source.replace("print(", 'print("output label", '),
+            source + '\nprint(f"human-readable format text")\n',
+        )
+        for variant in variants:
+            result = _run(variant, columns)
+            assert result.reason == baseline.reason
+            assert (result.facts is None) == (baseline.facts is None)
+            if result.facts is not None and baseline.facts is not None:
+                assert result.facts.correction_classification == (
+                    baseline.facts.correction_classification
+                )
+                assert result.facts.corrected_positions == baseline.facts.corrected_positions
+                assert result.facts.conclusion_positions == baseline.facts.conclusion_positions
+
+
+def test_structural_literal_deletion_is_a_tripwire_positive_control() -> None:
+    baseline = _run(_explicit())
+    mutated = _explicit().replace('"m3"', '"missing"', 1)
+    assert baseline.reason is None
+    assert _run(mutated).reason == "test-operand-lineage-unresolved"
+
+
+def test_non_callee_rename_has_paired_callee_terminal_control() -> None:
+    renamed = _explicit(before="bonferroni = 4\n", after="print(bonferroni)\n")
+    called = _explicit(
+        imports="from external_adjustment import bonferroni\n",
+        after="bonferroni([r0.pvalue, r1.pvalue, r2.pvalue])\n",
+    )
+    assert _run(renamed).reason is None
+    assert _run(called).reason == "unresolved-manual-correction-present"
 
 
 def test_statistics_prefix_registry_is_byte_equal_to_qualified_v3_1() -> None:
@@ -679,7 +782,19 @@ def test_opened_corpus_census_is_deterministic_and_has_no_candidate_shaped_three
     assert sum(len(items) == 2 for items in counts) == 12
     assert sum(len(items) == 3 for items in counts) == 7
     assert all(len(items) <= 3 for items in counts)
-    assert all(len(set(items)) == 2 for items in counts if len(items) == 3)
+    assert all(
+        items.count("scipy.stats.ttest_ind") == 2 and items.count("scipy.stats.mannwhitneyu") == 1
+        for items in counts
+        if len(items) == 3
+    )
+    assert (
+        sum(
+            set(items) == {"scipy.stats.ttest_ind", "scipy.stats.mannwhitneyu"}
+            for items in counts
+            if len(items) == 2
+        )
+        == 2
+    )
     assert terminal_slots == []
 
 
