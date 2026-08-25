@@ -1,0 +1,20 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "tap_water_survey.csv",
+      "group_contrast_column": "filter_status",
+      "outcome_columns": [
+        "first_draw_lead_ug_l",
+        "flushed_lead_ug_l",
+        "first_draw_copper_mg_l",
+        "first_draw_turbidity_ntu"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

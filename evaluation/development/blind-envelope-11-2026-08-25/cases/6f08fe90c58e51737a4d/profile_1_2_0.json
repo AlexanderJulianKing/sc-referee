@@ -1,0 +1,22 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "bsf_substrate_trial.csv",
+      "group_contrast_column": "substrate",
+      "outcome_columns": [
+        "mean_larval_fresh_mass_mg",
+        "fresh_larval_yield_g",
+        "crude_protein_pct_dm",
+        "crude_fat_pct_dm",
+        "substrate_reduction_pct",
+        "development_time_days"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

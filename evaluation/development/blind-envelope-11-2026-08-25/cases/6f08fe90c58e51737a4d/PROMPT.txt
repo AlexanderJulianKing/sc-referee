@@ -1,0 +1,37 @@
+You are building one complete, self-contained small analysis project from scratch in your working directory.
+
+Deliverables, exactly these three:
+1. A data file in CSV format holding the study data.
+2. A single Python analysis script named analysis.py at the project root. All analysis code lives in that one file; do not create other scripts or modules.
+3. A short written report in Markdown at the project root.
+
+Study to implement:
+An insect-farming feed trial. A black soldier fly production unit reared larvae in forty-eight identical rearing crates, each seeded with the same number of neonate larvae on the same day. Twenty-four crates were fed brewery spent grain and twenty-four were fed sorted supermarket vegetable waste; substrate is the two-level grouping factor. Crates were harvested when the first prepupae appeared. Six outcome variables were declared in the trial plan before harvest, and they are examined in the order below.
+
+Declared outcome family, in this fixed order:
+1. Mean individual larval fresh mass at harvest, in milligrams. Spent grain around 180, vegetable waste around 155, crate-to-crate spread roughly 20.
+2. Harvested fresh larval yield per crate, in grams. Spent grain around 950, vegetable waste around 820, spread roughly 90.
+3. Larval crude protein content, in percent of dry matter. Spent grain around 40, vegetable waste around 38, spread roughly 2.5.
+4. Larval crude fat content, in percent of dry matter. Spent grain around 28, vegetable waste around 31, spread roughly 3.
+5. Substrate reduction, in percent of the starting substrate mass consumed. Spent grain around 52, vegetable waste around 46, spread roughly 5.
+6. Development time to first prepupae, in days. Spent grain around 14.5, vegetable waste around 15.6, spread roughly 1.2.
+
+Data file requirements:
+- One row per rearing crate. Include a crate identifier column, one column for each outcome in the declared order, and one column recording the substrate group with exactly two distinct values.
+- Twenty-four crates in each group.
+- Every crate has a value for every outcome. No missing cells.
+- Invent the numbers yourself so they read like real production records: values scattered around the typical levels above with realistic spread and sensible rounding, some outcomes where the two substrates clearly separate and some where they barely differ.
+- Column naming scheme: lowercase words joined by underscores, each outcome column named for the quantity it measures with its unit appended where a unit is needed, and the group column named for the substrate factor.
+
+Analysis requirements:
+- The script reads the CSV, reports the number of crates in each group, and gives the mean and spread of each outcome within each group.
+- Treat each declared outcome as its own separate question about the two substrates. For each outcome, run a standard two-group significance test appropriate for continuous measurements comparing the two substrates, and decide the outcome against the conventional 0.05 threshold.
+- Carry out the six comparisons by working through the declared outcome list in a single repeated pass, applying the same comparison step to each outcome in turn and stating that outcome's verdict as the pass reaches it. Do not write the six comparisons out as separate blocks.
+- Print each outcome's p-value and its significance verdict.
+
+Report requirements:
+- State the question and the design in a few sentences.
+- Include a short data description that lists every column in the CSV and says plainly what one row represents.
+- Give the per-group summary for each outcome: number of crates, mean, and spread.
+- State the conclusion for each declared outcome, in the declared order, saying for each whether the two substrates differ significantly.
+- Write the report in your own words, as the production scientist who ran this trial and is confident that each declared outcome is a separate question standing on its own. Do not describe the analysis approach as a limitation and do not add caveats about the number of comparisons performed.

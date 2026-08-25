@@ -1,0 +1,28 @@
+{
+  "envelope": "blind-envelope-11-2026-08-25",
+  "class": "multiple-testing",
+  "detector_under_test": "code_csv_multiple_testing 1.1.0 development lane at 0371859",
+  "briefing_sha256": "abfac24d438d59e5b363acd780d1a6e177affa7869ec7045f67b9296497cba8a",
+  "positives": 6,
+  "negatives": 9,
+  "case_ids_sorted": [
+    "0249919d05de1abc25fd",
+    "08565c720304eb6fd9d3",
+    "10e0cfb0c7ba8d03ec52",
+    "114782f595d9c24b923d",
+    "1cce7d6b580caa25f597",
+    "2a712805024597719d32",
+    "479317f1706d4fb929e5",
+    "53c4753f38f9e253d541",
+    "69c5d0aec76eefb67148",
+    "6f08fe90c58e51737a4d",
+    "8726b87ac4ba4c34c0a3",
+    "9bccc428f23dde0d43f0",
+    "d11a7136d1e91ed8e26f",
+    "d1533e4a8bbd10cb727e",
+    "dfd35001c5a99ab1486b"
+  ],
+  "role_map_sha256": "1321ff42543dc11de13433a76080bb49ffa33556fb395ee0ef46f3caeac6f90f",
+  "custody_change": "data authored in external staging dirs; only analysis-input CSVs and DATA_DESCRIPTION.md are copied into project/; no generator ships in the audited project",
+  "prompts_frozen_utc": "2026-08-25T13:22:36Z"
+}

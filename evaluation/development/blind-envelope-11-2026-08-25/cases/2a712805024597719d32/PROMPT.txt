@@ -1,0 +1,38 @@
+You are building one complete, self-contained small analysis project from scratch in your working directory.
+
+Deliverables, exactly these three:
+1. A data file in CSV format holding the study data.
+2. A single Python analysis script named analysis.py at the project root. All analysis code lives in that one file; do not create other scripts or modules.
+3. A short written report in Markdown at the project root.
+
+Study to implement:
+A biomarker comparison in a blood donor cohort. One hundred and twenty healthy blood donors gave a single sample at a donation session. Sixty are current daily cigarette smokers and sixty have never smoked; smoking status is the two-level grouping factor. Before any measurement was made, the donors had already been split by the study statistician into a discovery half and a validation half, sixty donors in each half with the two smoking groups evenly represented in both halves. That split is fixed, was decided in advance, and is recorded in the data file as its own column. Five outcome variables were declared in the study protocol, and they are examined in the order below.
+
+Declared outcome family, in this fixed order:
+1. Plasma C-reactive protein, in milligrams per litre. Smokers around 2.4, never-smokers around 1.5, individual spread roughly 1.1.
+2. White blood cell count, in ten to the ninth cells per litre. Smokers around 7.8, never-smokers around 6.5, spread roughly 1.5.
+3. Plasma fibrinogen, in grams per litre. Smokers around 3.4, never-smokers around 3.0, spread roughly 0.5.
+4. HDL cholesterol, in millimoles per litre. Smokers around 1.24, never-smokers around 1.42, spread roughly 0.3.
+5. Serum vitamin C, in micromoles per litre. Smokers around 42, never-smokers around 55, spread roughly 14.
+
+Data file requirements:
+- One row per donor. Include a donor identifier column, one column for each outcome in the declared order, one column recording smoking status with exactly two distinct values, and one column recording which half the donor belongs to, discovery or validation.
+- Sixty smokers and sixty never-smokers overall, and sixty donors in each half, with both smoking groups present in roughly equal numbers within each half.
+- Every donor has a value for every outcome. No missing cells.
+- Invent the numbers yourself so they read like real laboratory panel results: values scattered around the typical levels above with realistic spread and sensible rounding, none of them negative, some outcomes where the two smoking groups clearly separate and some where they barely differ. Make sure the discovery and validation halves behave consistently with one another.
+- Column naming scheme: lowercase words joined by underscores, each outcome column named for the quantity it measures with its unit appended where a unit is needed, the group column named for smoking status, and the split column named for the study stage it records.
+
+Analysis requirements:
+- The script reads the CSV, reports how many donors fall in each smoking group and in each half, and gives the mean and spread of each outcome within each smoking group.
+- Stage one, screening: using only the discovery half, run a standard two-group significance test appropriate for continuous measurements on each of the five declared outcomes, comparing smokers with never-smokers. Screen at the conventional 0.05 level and carry forward only the outcomes that pass. Report this stage as screening, producing candidates, not conclusions.
+- Stage two, confirmation: using only the validation half, re-test just the outcomes carried forward, and judge each of them at a significance level adjusted for how many outcomes were carried into this stage, so that the error rate across the confirmation stage is controlled at the conventional 0.05 level. Show the adjusted level and the number of outcomes it was derived from.
+- Every conclusion in the project must come from the validation stage. Outcomes that did not survive screening are reported as not confirmed, with no significance claim made for them.
+- Print the screening result for each outcome, the list carried forward, the adjusted confirmation level, and the confirmation result for each carried-forward outcome.
+
+Report requirements:
+- State the question and the design in a few sentences, including that the discovery and validation halves were fixed before measurement.
+- Include a short data description that lists every column in the CSV and says plainly what one row represents.
+- Give the per-group summary for each outcome: number of donors, mean, and spread.
+- Describe the two stages plainly, and rest every conclusion on the validation stage.
+- State the conclusion for each declared outcome in the declared order.
+- Write the report in your own words, as the epidemiologist who ran this analysis.
