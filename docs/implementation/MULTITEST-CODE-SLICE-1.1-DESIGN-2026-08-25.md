@@ -4,7 +4,7 @@
 
 **Version:** detector/check/adapter `1.1.0`, development lane only
 
-**Revision:** 2, incorporating the 2026-08-25 read-only-consumer closure review
+**Revision:** 2.1, incorporating the final 2026-08-25 display-leaf clarification
 
 **Normative base:**
 [`MULTITEST-CODE-SLICE-1.0-DESIGN-2026-08-24.md`](MULTITEST-CODE-SLICE-1.0-DESIGN-2026-08-24.md),
@@ -215,7 +215,9 @@ an identity alias is permitted only in one of these forms:
    the permission does not make it an independent family.
 5. **Fresh `+` concatenation.** The load is an operand in a finite `ast.BinOp(Add)`-only tree whose
    other leaves resolve to built-in list/tuple literals or other exact admitted literal sequences of
-   the matching container kind. The root is the entire RHS of one single-name `Assign` or
+   the matching container kind. A leaf list/tuple display qualifies only when each element is either
+   an `ast.Constant` admitted by the A1 scalar grammar or an `ast.Name` that the existing closed
+   module-constant resolver resolves to such a scalar. The root is the entire RHS of one single-name `Assign` or
    `AnnAssign`; its target is a different identifier outside the transitive alias closure. The new
    name is not added to the identity-alias closure and the concatenation supplies no family proof.
    A concatenation nested inside a call, subscript, return, container element, or larger non-`Add`
@@ -1092,3 +1094,9 @@ family-proof restriction remains intact.
 | Review item | Sections changed | Revision 2 disposition |
 |---|---|---|
 | ND-1 | 3.1, 6, 8, 9.1, 9.2, 9.4, 9.5, 9.6, 9.7, 10, 13, 15 | Replaced the open-ended call-argument escape rule with the exact by-value allowlist for unshadowed `len`/`enumerate`/`zip`/`sorted`/`set`/`tuple`/`list`/`reversed`/`sum`/`min`/`max`, membership, direct iteration, integer-index reads, fresh direct-bound `+` concatenation, and formatting payloads. Kept user-defined callees refused unless unchanged X4 proves their formal path. Re-verified all 12 section-9.1 PROBE rows and every section-9.4 ladder rung unchanged; re-verified all 15 opened E10 adapter rows, retaining 13 and correcting P5/N8 to `analysis-scope-structure-unsupported`; corrected N7's analyzer-only diagnostic to that scope reason while preserving its adapter oracle. |
+
+## 16. Revision 2.1 note
+
+| Review item | Sections changed | Revision 2.1 disposition |
+|---|---|---|
+| ND-2 | 3.1 item 5, 16 | Closed a fresh-concatenation display leaf to elements that are either A1-admitted scalar `ast.Constant` nodes or `ast.Name` nodes resolved to such scalars by the existing closed module-constant resolver. |

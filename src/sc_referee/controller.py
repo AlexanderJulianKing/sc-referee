@@ -146,7 +146,7 @@ from sc_referee.scientific_checks.integration import (
     build_frozen_inspection_context,
     compile_scientific_check_records,
 )
-from sc_referee.scientific_checks.integration_multiple_testing_v1 import (
+from sc_referee.scientific_checks.integration_multiple_testing_v1_1 import (
     compile_multiple_testing_development_records,
 )
 from sc_referee.scientific_checks.profiles import default_scientific_check_registry

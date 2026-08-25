@@ -9,10 +9,10 @@ from typing import Any, cast
 
 import pytest
 
-import sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v1 as adapter_module
-import sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v1 as dataflow
+import sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v1_1 as adapter_module
+import sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v1_1 as dataflow
 from sc_referee.core.ids import canonical_json, sha256_digest
-from sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v1 import _CLOSED_REASONS
+from sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v1_1 import _CLOSED_REASONS
 from sc_referee.scientific_checks.core import (
     FrozenBaseRecord,
     FrozenInspectionContext,
