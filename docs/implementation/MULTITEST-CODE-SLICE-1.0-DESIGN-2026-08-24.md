@@ -2,7 +2,7 @@
 
 **Status:** build-ready design; design and documentation only in this session
 
-**Revision:** 2, incorporating the Revision 2 narrowing review
+**Revision:** 2.3, incorporating the Revision 2.3 narrowing review
 
 **Base:**
 [`MULTITEST-CODE-SLICE-RECON-2026-08-24.md`](MULTITEST-CODE-SLICE-RECON-2026-08-24.md),
