@@ -222,11 +222,7 @@ def test_admission_negative_matrix(tmp_path: Path, statement: str) -> None:
 
 
 def test_annassign_and_a5_rebinding_execute(tmp_path: Path) -> None:
-    baseline = (_MUT / "PROBE_query.py").read_text(encoding="utf-8")
-    annotated = baseline.replace("DECLARED_OUTCOMES = [", "DECLARED_OUTCOMES: list[str] = [")
-    ann_path = tmp_path / "PROBE_annassign.py"
-    ann_path.write_text(annotated, encoding="utf-8")
-    assert _run(_P2, ann_path).facts is not None
+    assert _run(_P2, _MUT / "PROBE_annassign.py").facts is not None
 
     named = (_MUT / "PROBE_namedalpha.py").read_text(encoding="utf-8")
     rebound = named.replace(
@@ -236,6 +232,87 @@ def test_annassign_and_a5_rebinding_execute(tmp_path: Path) -> None:
     rebound_path = tmp_path / "rebound.py"
     rebound_path.write_text(rebound, encoding="utf-8")
     assert _run(_P2, rebound_path).reason == "unresolved-decision-threshold"
+
+
+@pytest.mark.parametrize(
+    ("alpha_binding", "comparison", "helper"),
+    [
+        ("ALPHA = 0.05", "result.pvalue < 0.05 / 3", ""),
+        ("ALPHA = 0.05", "result.pvalue < 1 - (1 - 0.05) ** (1 / 3)", ""),
+        (
+            "ALPHA = 0.05",
+            "result.pvalue < make_threshold()",
+            "def make_threshold():\n    return 0.05\n\n\n",
+        ),
+        ("ALPHA = 0.05 / 3", "result.pvalue < ALPHA", ""),
+        ("ALPHA = float(0.05)", "result.pvalue < ALPHA", ""),
+        ("ALPHA = 0.05", "0.05 / 3 > result.pvalue", ""),
+    ],
+)
+def test_computed_thresholds_remain_exclusive_to_order_15(
+    tmp_path: Path,
+    alpha_binding: str,
+    comparison: str,
+    helper: str,
+) -> None:
+    source = (_MUT / "PROBE_query.py").read_text(encoding="utf-8")
+    source = source.replace("ALPHA = 0.05", alpha_binding, 1)
+    source = source.replace("def load_data():", helper + "def load_data():", 1)
+    source = source.replace("result.pvalue < 0.05", comparison, 1)
+    path = tmp_path / "computed-threshold.py"
+    path.write_text(source, encoding="utf-8")
+    result = _run(_P2, path)
+    assert result.facts is None
+    assert result.reason == "unresolved-decision-threshold"
+
+
+@pytest.mark.parametrize(
+    "consumer",
+    [
+        "enumerate(DECLARED_OUTCOMES, 1, start=2)",
+        "sum(DECLARED_OUTCOMES, 1, start=2)",
+        "zip(DECLARED_OUTCOMES, DECLARED_OUTCOMES)",
+    ],
+)
+def test_read_only_consumer_over_admissions_are_refused(tmp_path: Path, consumer: str) -> None:
+    source = (_MUT / "PROBE_query.py").read_text(encoding="utf-8")
+    source = source.replace(
+        "def main():\n    frame = load_data()",
+        f"def main():\n    frame = load_data()\n    print({consumer})",
+    )
+    path = tmp_path / "consumer-over-admission.py"
+    path.write_text(source, encoding="utf-8")
+    assert _run(_P2, path).reason == "analysis-scope-structure-unsupported"
+
+
+def test_reversed_is_an_exact_read_only_builtin(tmp_path: Path) -> None:
+    source = (_MUT / "PROBE_query.py").read_text(encoding="utf-8")
+    source = source.replace(
+        "def main():\n    frame = load_data()",
+        "def main():\n    frame = load_data()\n    print(list(reversed(DECLARED_OUTCOMES)))",
+    )
+    path = tmp_path / "reversed.py"
+    path.write_text(source, encoding="utf-8")
+    assert _run(_P2, path).facts is not None
+
+
+def test_fresh_concatenation_requires_matching_container_kind(tmp_path: Path) -> None:
+    baseline = (_MUT / "PROBE_query.py").read_text(encoding="utf-8")
+    mismatched = baseline.replace(
+        "def load_data():",
+        'COPY = DECLARED_OUTCOMES + ("extra",)\n\n\ndef load_data():',
+    )
+    mismatch_path = tmp_path / "mismatched-concat.py"
+    mismatch_path.write_text(mismatched, encoding="utf-8")
+    assert _run(_P2, mismatch_path).reason == "analysis-scope-structure-unsupported"
+
+    matched = baseline.replace(
+        "def load_data():",
+        'COPY = DECLARED_OUTCOMES + ["extra"]\n\n\ndef load_data():',
+    )
+    match_path = tmp_path / "matched-concat.py"
+    match_path.write_text(matched, encoding="utf-8")
+    assert _run(_P2, match_path).facts is not None
 
 
 def test_helper_reader_path_does_not_manufacture_a_filtered_call_site_frame(

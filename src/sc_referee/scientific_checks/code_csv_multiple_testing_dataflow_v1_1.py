@@ -179,6 +179,7 @@ _UNSHADOWED_BUILTINS = frozenset(
         "range",
         "enumerate",
         "zip",
+        "reversed",
         "set",
         "list",
         "dict",
@@ -6143,11 +6144,13 @@ def _chosen_scope(
             for node in ast.walk(mains[0])
             if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
         }
+        unresolved_threshold_names = _module_decision_threshold_names(mains[0])
         setup = tuple(
             item
             for item in body
             if isinstance(item, (ast.Import, ast.ImportFrom))
             or _module_setup_assignment(item, main_loads)
+            or _module_unresolved_threshold_assignment(item, unresolved_threshold_names)
         )
         others = [
             item
@@ -6194,6 +6197,32 @@ def _chosen_scope(
             None,
         )
     return body, (), {}, None
+
+
+def _module_decision_threshold_names(node: ast.FunctionDef) -> set[str]:
+    names: set[str] = set()
+    for comparison in ast.walk(node):
+        if not (
+            isinstance(comparison, ast.Compare)
+            and len(comparison.ops) == 1
+            and len(comparison.comparators) == 1
+        ):
+            continue
+        pairs = ((comparison.left, comparison.comparators[0]),)
+        for possible_threshold, possible_p in (*pairs, *((right, left) for left, right in pairs)):
+            if isinstance(possible_threshold, ast.Name) and any(
+                isinstance(item, ast.Attribute) and item.attr == "pvalue"
+                for item in ast.walk(possible_p)
+            ):
+                names.add(possible_threshold.id)
+    return names
+
+
+def _module_unresolved_threshold_assignment(node: ast.stmt, names: set[str]) -> bool:
+    target, value = _mt_setup_target_value(node)
+    return bool(
+        target is not None and target.id in names and isinstance(value, (ast.BinOp, ast.Call))
+    )
 
 
 def _valid_main(node: ast.FunctionDef) -> bool:
@@ -6464,7 +6493,7 @@ def _mt_setup_container_names(tree: ast.Module) -> dict[str, str]:
         if isinstance(value, (ast.List, ast.Tuple)) and (
             _closed_sequence_elements(value.elts) is not None or _mt_closed_table(value) is not None
         ):
-            result[target.id] = "sequence"
+            result[target.id] = "list" if isinstance(value, ast.List) else "tuple"
         elif isinstance(value, ast.Dict) and _mt_closed_dictionary(value) is not None:
             result[target.id] = "dictionary"
     return result
@@ -6545,7 +6574,7 @@ def _mt_setup_containers_immutable(tree: ast.Module) -> bool:
             if isinstance(statement, (ast.For, ast.AsyncFor))
             and isinstance(statement.target, ast.Name)
             and isinstance(statement.iter, ast.Name)
-            and kinds.get(statement.iter.id) == "sequence"
+            and kinds.get(statement.iter.id) in {"list", "tuple"}
         }
 
         def root_add(node: ast.AST) -> ast.AST:
@@ -6556,8 +6585,12 @@ def _mt_setup_containers_immutable(tree: ast.Module) -> bool:
                 current = parents[current]
             return current
 
-        def literal_concat_leaf(node: ast.expr) -> bool:
+        def literal_concat_leaf(node: ast.expr, container_kind: str = kind) -> bool:
             if not isinstance(node, (ast.List, ast.Tuple)):
+                return False
+            if (container_kind == "list" and not isinstance(node, ast.List)) or (
+                container_kind == "tuple" and not isinstance(node, ast.Tuple)
+            ):
                 return False
             for item in node.elts:
                 if isinstance(item, ast.Constant):
@@ -6616,7 +6649,11 @@ def _mt_setup_containers_immutable(tree: ast.Module) -> bool:
                 target = owner.target
             return target is not None and target.id not in closure_names
 
-        def builtin_call_allowed(call: ast.Call, load: ast.Name) -> bool:
+        def builtin_call_allowed(
+            call: ast.Call,
+            load: ast.Name,
+            closure_names: frozenset[str] = frozenset(closure),
+        ) -> bool:
             if (
                 not isinstance(call.func, ast.Name)
                 or call.func.id not in _MT_SEQUENCE_READ_BUILTINS
@@ -6628,16 +6665,28 @@ def _mt_setup_containers_immutable(tree: ast.Module) -> bool:
                 keyword.arg is None for keyword in call.keywords
             ):
                 return False
-            direct = [index for index, argument in enumerate(call.args) if argument is load]
-            if direct != [0] and call.func.id != "zip":
+            tracked_loads = [
+                candidate
+                for argument in call.args
+                for candidate in ast.walk(argument)
+                if isinstance(candidate, ast.Name)
+                and isinstance(candidate.ctx, ast.Load)
+                and candidate.id in closure_names
+            ]
+            if tracked_loads != [load]:
                 return False
             name = call.func.id
+            direct = [index for index, argument in enumerate(call.args) if argument is load]
+            if direct != [0] and name != "zip":
+                return False
             if name in {"len", "set", "tuple", "list", "reversed", "min", "max"}:
                 return len(call.args) == 1 and not call.keywords
             if name == "enumerate":
                 if not 1 <= len(call.args) <= 2 or len(call.keywords) > 1:
                     return False
                 if call.keywords and call.keywords[0].arg != "start":
+                    return False
+                if len(call.args) == 2 and call.keywords:
                     return False
                 start = (
                     call.args[1]
@@ -6682,6 +6731,8 @@ def _mt_setup_containers_immutable(tree: ast.Module) -> bool:
                 if not 1 <= len(call.args) <= 2 or len(call.keywords) > 1:
                     return False
                 if call.keywords and call.keywords[0].arg != "start":
+                    return False
+                if len(call.args) == 2 and call.keywords:
                     return False
                 start = (
                     call.args[1]
@@ -9750,39 +9801,6 @@ class _MtEngine:
     def _off_grammar_transform_guard(self) -> str | None:
         sink_calls = {item.call for item in self.sinks}
         scalar_cast_present = False
-        for comparison in (
-            item for item in _walk_statements(self.scope) if isinstance(item, ast.Compare)
-        ):
-            if len(comparison.comparators) != 1:
-                continue
-            left_decision = self._p_origins(comparison.left) or (
-                frozenset(self._p_sequence(comparison.left.value) or ())
-                if isinstance(comparison.left, ast.Subscript)
-                else frozenset()
-            )
-            comparator = comparison.comparators[0]
-            right_decision = self._p_origins(comparator) or (
-                frozenset(self._p_sequence(comparator.value) or ())
-                if isinstance(comparator, ast.Subscript)
-                else frozenset()
-            )
-            if bool(left_decision) == bool(right_decision):
-                continue
-            threshold = comparison.comparators[0] if left_decision else comparison.left
-            named_threshold = threshold.id if isinstance(threshold, ast.Name) else None
-            if isinstance(threshold, ast.Name):
-                threshold = self.assignments.get(threshold.id, threshold)
-            if isinstance(threshold, (ast.BinOp, ast.Call)):
-                if named_threshold is not None and any(
-                    target is not None
-                    and target.id == named_threshold
-                    and value is not None
-                    and _finite_numeric_constant(value)
-                    for statement in self.original_scope
-                    for target, value in (_mt_setup_target_value(statement),)
-                ):
-                    continue
-                return "unresolved-manual-correction-present"
         for node in sorted(
             (
                 item
@@ -9807,6 +9825,8 @@ class _MtEngine:
             ):
                 continue
             if self._direct_scalar_cast_or_round(node):
+                if self._hand_family_threshold_assignment_present():
+                    return "unresolved-manual-correction-present"
                 scalar_cast_present = True
                 continue
             api = self.resolver.qualified(node.func)
@@ -9820,6 +9840,17 @@ class _MtEngine:
                 continue
             return "unresolved-manual-correction-present"
         return "pvalue-scalar-cast-or-rounding-unsupported" if scalar_cast_present else None
+
+    def _hand_family_threshold_assignment_present(self) -> bool:
+        for expression in self.assignments.values():
+            if not isinstance(expression, ast.BinOp) or not isinstance(expression.op, ast.Div):
+                continue
+            alpha = _mt_decimal_literal(expression.left, self.source)
+            if alpha not in _MT_DECISION_LITERALS:
+                continue
+            if _mt_exact_int(expression.right, self.resolver, len(self.outcome_columns)):
+                return True
+        return False
 
     def _direct_scalar_cast_or_round(self, call: ast.Call) -> bool:
         api = self.resolver.qualified(call.func)

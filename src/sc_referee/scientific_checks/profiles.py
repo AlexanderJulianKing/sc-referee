@@ -452,6 +452,21 @@ def scientific_check_release_projection(
             "scientific_checks/code_csv_dependence_dataflow_v3_1.py": (
                 CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST
             ),
+            "scientific_checks/code_csv_multiple_testing_adapter_v1.py": sha256_digest(
+                (
+                    Path(__file__).resolve().parent / "code_csv_multiple_testing_adapter_v1.py"
+                ).read_bytes()
+            ),
+            "scientific_checks/code_csv_multiple_testing_dataflow_v1.py": sha256_digest(
+                (
+                    Path(__file__).resolve().parent / "code_csv_multiple_testing_dataflow_v1.py"
+                ).read_bytes()
+            ),
+            "scientific_checks/integration_multiple_testing_v1.py": sha256_digest(
+                (
+                    Path(__file__).resolve().parent / "integration_multiple_testing_v1.py"
+                ).read_bytes()
+            ),
             "scientific_checks/code_csv_multiple_testing_adapter_v1_1.py": (
                 CODE_CSV_MULTIPLE_TESTING_ADAPTER_IMPLEMENTATION_DIGEST
             ),
