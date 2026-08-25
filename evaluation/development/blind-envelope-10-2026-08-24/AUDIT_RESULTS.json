@@ -39,7 +39,7 @@
     "false_accusations": 0,
     "catches": 0
   },
-  "recall_diagnosis": "api-resolution-ambiguous dominates (12/15 incl. 5/6 positives): the module-level binder's closed world rejects one or more idioms that every realistic Opus-authored script uses (pathlib file constants, name rebindings, or similar). Next recon target for delta 1.1: enumerate the exact tripping idioms from these 15 scripts and clear them as narrowings with per-idiom fixtures.",
+  "recall_diagnosis": "CORRECTED 2026-08-25 (recon): the recorded reason api-resolution-ambiguous is a relabel: 12/15 files actually fail _chosen_scope with analysis-scope-ambiguous, which the MT entry point renames at code_csv_multiple_testing_dataflow_v1.py:7288-7296. The tripping constructs are module-level outcome tables that are not flat scalar lists (13/15), reader paths through helper parameters (11/15), named alpha constants (13/15), verdict ternaries (13/15), float()/round() p transforms, boolean-mask group splits, helper-wrapped tests, enumerate/zip loops, .astype casts, and deferred result collections - ten stacked walls; each positive hits four or more, so no small admission set restores recall (top-3 admissions alone: still 0/6). Full analysis in docs/implementation/MULTITEST-RECALL-RECON-E10-2026-08-25.md; per-idiom mutation fixtures preserved under evaluation/development/multitest-recall-recon-e10/. The original diagnosis text (module-level binder) named the wrong function and is superseded.",
   "scored_utc": "2026-08-25T05:26:36Z",
   "cases": [
     {
@@ -237,5 +237,6 @@
       "blind_review_misstep": false,
       "blind_review_reason": "Pre-registered corrected threshold of 0.01, being Bonferroni 0.05/5 over the declared family of five; every outcome judged against it, not 0.05."
     }
-  ]
+  ],
+  "diagnosis_correction_note": "recall_diagnosis rewritten after the delta-1.1 recon; hard-stop results, counts, and per-case reasons are unchanged and were re-verified by the recon harness."
 }
