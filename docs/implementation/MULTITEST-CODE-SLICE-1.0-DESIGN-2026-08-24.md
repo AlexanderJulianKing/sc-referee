@@ -226,8 +226,13 @@ not merely a source line:
   list; set equality, sorting, reordering, and dynamic construction are insufficient;
 - a called X4 helper contributes the instances created at its exact call sites after alpha-renamed
   expansion and is not also counted from the original definition;
-- a registered call in an uncalled helper or closed-dead branch contributes one conservative instance;
-  and
+- a registered call in an uncalled helper contributes one conservative instance;
+- an `ast.If` or `ast.While` body whose test is exactly `ast.Constant(value=False)` and contains a
+  registered family call stops `test-battery-cardinality-unresolved`; the call is never asserted to
+  be an established instance;
+- a registered family call in any other conditional body—including live or nonliteral `if`/`elif`/
+  `while`, `try`/`except`/`else`/`finally`, `with`, or `match`—stops
+  `authorized-family-test-census-incomplete` and contributes no resolved instance; and
 - any loop/comprehension/helper multiplicity that cannot be resolved exactly abstains rather than
   contributing a guessed count.
 
@@ -687,6 +692,18 @@ multiple-testing-code-inspection-exception
 No screen/confirm code exists in slice 1. Ambiguity maps to one of the closed reasons above, never to
 a candidate.
 
+### 5.3 Documented-unreachable closed outcome
+
+`conclusion-output-sink-unavailable` remains in the closed replay vocabulary but is unreachable from
+an ordinary source fixture in slice 1. `_conclusion_positions` adds a conclusion position only while
+traversing a `p_result_eligible` registered sink; that same branch adds the sink kind. Its membership-
+conclusion branch likewise adds a position only when the named container reaches an eligible sink and
+then derives sink kinds from those eligible sinks. Therefore, once order 17 proves all `N` conclusion
+positions, an empty sink-kind set is structurally impossible. Tests must verify this invariant and
+must not monkeypatch internal position or sink results to manufacture reachability. The closed-reason
+coverage gate is defined as emitted fixture reasons plus this documented-unreachable annex, exactly
+equal to the closed set.
+
 ## 6. Per-guard false-accusation analysis
 
 Every row below names an answer-visible adversarial correct-analysis fixture required before Envelope
@@ -699,7 +716,7 @@ envelope case intentionally realizes more than one role.
 | Computed decision threshold | Hand Sidak/Holm/Bonferroni variants could look like raw alpha decisions. | `correct-hand-sidak`: exact Sidak arithmetic; `unresolved-decision-threshold`. | Even mathematically checkable threshold arithmetic abstains until its whole grammar is registered. |
 | Bare-literal product rule | An off-AST correction can be precomputed into a literal that otherwise resembles raw alpha. | `correct-bare-literal-bonferroni-off-ast`: `N = 5`, every local `.pvalue` is compared as `p < 0.01`, and the complete correction is outside the AST; `unresolved-decision-threshold` because `0.01 * 5 == 0.05`. | The same literal at family sizes 5 or 10 suppresses even when it was not intended as Bonferroni. |
 | Module-independent correction-name census | A valid correction from an unsupported package or wrapper could be missed by import resolution. | `correct-off-registry-correction`: `pingouin.multicomp(...)`; `unresolved-manual-correction-present`. | An unrelated method with a reserved terminal slot also abstains. |
-| Exact call count | A duplicated sensitivity analysis could be silently dropped from family accounting. | `correct-sensitivity-duplicate`: `N` contract-mapped calls plus one duplicate call; `extra-registered-test-outside-authorized-family`. | An unused registered call in a dead or uncalled scope suppresses. |
+| Exact call count | A duplicated sensitivity analysis could be silently dropped from family accounting. | `correct-sensitivity-duplicate`: `N` contract-mapped calls plus one duplicate call; `extra-registered-test-outside-authorized-family`. | An uncalled-helper call contributes conservatively. A call in an exact literal-false branch stops unresolved cardinality; every other conditional family call stops incomplete census. |
 | Complete row lineage | Independent discovery/validation rows could be merged into one flat family accusation. | `correct-discovery-validation-split`: outcome screening and retesting use additional disjoint row masks; `selected-group-row-completeness-unproven`. | Any non-tautological or unevaluable extra mask abstains even when scientifically benign. |
 | Local `.pvalue` lineage | Adjustment may have occurred in an upstream stage. | `correct-upstream-adjusted-input`: local diagnostic calls exist, but emitted conclusions use a loaded adjusted-p column; `upstream-correction-lineage-unresolved`. | The lane cannot credit correction outside the selected source. |
 | Opaque local p-value consumer | A correction may be implemented by an imported helper whose callee carries no registered correction name. | `correct-cross-module-numpy-correction-helper`: the family p-value container enters an imported NumPy-based helper; `unresolved-pvalue-consumer`. | Any opaque consumer suppresses even when it is unrelated to correction. |
@@ -893,8 +910,12 @@ Two conservative implementation boundaries are explicit for slice 1:
 1. Exactly `N` repeated calls, explicit calls, an order-equal contract-list loop/comprehension, X4 test
    helper, helper-returned container, and ordered dict members. Set-equal reordered, sorted, and
    dynamically built iterables must stop `test-battery-cardinality-unresolved`.
-2. Counts `N-1`, `N+1`, an unresolved loop, a dead extra call, and an uncalled-helper extra call;
-   assert call-count reasons occur before operand reasons.
+2. Counts `N-1`, `N+1`, an unresolved loop, and an uncalled-helper extra call; assert call-count
+   reasons occur before operand reasons. Independently place a family call in an exact literal-false
+   `if` and `while` body and require `test-battery-cardinality-unresolved`, never a candidate that
+   claims the call is established. Place a family call under a live/nonliteral `if`, an `elif`, a
+   nested conditional, every `try` branch including an `except` handler, `with`, and `match`; each
+   must stop `authorized-family-test-census-incomplete`.
 3. Uniform `ttest_ind`, uniform `mannwhitneyu`, and every mixed ordering; uniformity is derived, never
    supplied by the contract.
 4. One positive and one refusal for every copied non-reducing operand edge, every row-dropping
@@ -1267,21 +1288,36 @@ changelog correction disclose existing boundaries without changing candidate eli
 
 ## 17. Revision 2.2 changelog
 
-Every Revision 2.2 behavioral change adds an abstention, moves an existing abstention earlier, or
-strengthens a regression gate. No change enlarges candidate or Finding eligibility.
+Revision 2.2 intended to add abstentions or strengthen regression gates, but its Minor-4
+implementation traversed conditional bodies more broadly than the design and enlarged candidate
+eligibility. Revision 2.3 withdraws that implementation and restores the conservative boundary. The
+remaining Revision 2.2 behavioral changes narrow eligibility or strengthen tests.
 
 | Audit item | Sections changed | Narrowing or required record |
 |---|---|---|
 | B1 | 4.9, 9.4.4, 9.5 | Deleted the `scipy.stats.t.ppf` exemption and its mirrored product rule. Every `t.ppf` call now takes the normal `unresolved-inference-sibling-present` path because the built association conditions were unsound. |
-| M1 | 5 order 12, 9.2 | Confirmed `pvalue-family-collection-unresolved` is reachable and implemented it for p-derived containers whose ordered member identities cannot be reconstructed, including dynamic member selection and unordered sets. |
-| M2 | 5.2, 9.2-9.4 | Required an exact first-reason fixture for every closed non-X4 abstention and one parametrized X4 matrix covering all 17 helper codes. |
-| M3 | 9.6 | Added detector identity pinning and exact tests for every multiple-testing detector `ValueError` guard, including an observed operand outside the closed registry. |
-| M4 | 8.1, 9.6.7 | Expanded the two-registry differential gate to canonical grants, qualification records, metric sets, threshold-policy references, and qualified Finding objects, with byte equality and explicit non-derivation checks. |
-| M5 | 9.1 | Expanded the 1.0.0/1.1.0 golden regression to all seven error categories and a real populated pseudoreplication 1.1.0 authority profile captured from parent behavior. |
+| M1 | 17 (record only) | Confirmed `pvalue-family-collection-unresolved` is reachable and implemented it for p-derived containers whose ordered member identities cannot be reconstructed, including dynamic member selection and unordered sets. |
+| M2 | 17 (record only) | Required an exact first-reason fixture for every closed non-X4 abstention and one parametrized X4 matrix covering all 17 helper codes. |
+| M3 | 17 (record only) | Added detector identity pinning and exact tests for every multiple-testing detector `ValueError` guard, including an observed operand outside the closed registry. |
+| M4 | 17 (record only) | Expanded the two-registry differential gate to canonical grants, qualification records, metric sets, threshold-policy references, and qualified Finding objects, with byte equality and explicit non-derivation checks. |
+| M5 | 17 (record only) | Expanded the 1.0.0/1.1.0 golden regression to all seven error categories and a real populated pseudoreplication 1.1.0 authority profile captured from parent behavior. |
 | M6 | 9.5 | Expanded the prose tripwire over every isolated guard fixture, report/Markdown add-remove mutations, structural-literal deletion, and the paired callee-terminal control. |
-| Minor 1 | 9.1 | Split the disjunctive CSV-domain assertion into exact per-case expected reasons. |
-| Minor 2 | 9.6.5 | Tightened the opened-corpus census to exactly two `ttest_ind` plus one `mannwhitneyu` in every three-call file and exactly two mixed-API files among the twelve two-call files. |
+| Minor 1 | 17 (record only) | Split the disjunctive CSV-domain assertion into exact per-case expected reasons. |
+| Minor 2 | 17 (record only) | Tightened the opened-corpus census to exactly two `ttest_ind` plus one `mannwhitneyu` in every three-call file and exactly two mixed-API files among the twelve two-call files. |
 | Minor 3 | 8.3 | Recorded helper-returned `.pvalue` inlining as a recall-only limitation deferred to a future slice. |
-| Minor 4 | 4.2, 9.2 | Restored full-scope census of registered calls in closed-dead branches; an extra call now stops `extra-registered-test-outside-authorized-family`. |
+| Minor 4 | 17 (record only; withdrawn by Revision 2.3) | Attempted to census registered calls in closed-dead branches. Its implementation traversed all conditional bodies and widened candidates, so Revision 2.3 withdraws it. |
 | Minor 5 | 4.9, 9.4.4 | Kept `_call_result_output_only` for the surviving `sem` exemption and closed it to identity/arithmetic/formatting paths into supported output; decision, control, family-container, test, and correction consumers are refused. |
 | Minor 6 | 8.3 | Recorded the conservative tension between section 4.10's membership-conclusion form and section 5.1's container-insertion control guard; the abstaining branch remains. |
+
+## 18. Revision 2.3 changelog
+
+Revision 2.3 restores the no-widening boundary: each behavioral change either replaces a false
+establishment claim with an abstention or strengthens bookkeeping and invariant tests. It adds no
+candidate or Finding path.
+
+| Re-audit item | Sections changed | Narrowing or required record |
+|---|---|---|
+| W1 | 4.2, 6, 9.2, 17 | Withdrew Revision 2.2 Minor 4's broad conditional traversal. Exact literal-false `if`/`while` bodies now stop `test-battery-cardinality-unresolved`; every other conditional family call stops `authorized-family-test-census-incomplete`; uncalled helpers retain their one-instance conservative rule. Added isolated literal-false, live-`if`, and `except` fixtures. |
+| W2 | 18 (record only) | Required regeneration of the root checksum manifest and capability-maturity ledger after all source and test changes, followed by a fresh full-suite run whose exact counts are the only reportable counts. |
+| Unreachable conclusion sink | 5.3, 9.2, 18 | Moved `conclusion-output-sink-unavailable` to the documented-unreachable annex, deleted the manufactured monkeypatch fixture, and required the emitted-fixture-plus-annex equality gate. The closed replay code remains. |
+| Changelog and ADR correction | 17, 18 and ADR-0077 | Corrected Revision 2.2's section references and withdrew its false no-widening claim. ADR-0077 records the intermediate widening and this Revision 2.3 restoration. |

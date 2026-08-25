@@ -7551,48 +7551,23 @@ def _mt_call_census(
                     return reason
                 continue
             if isinstance(statement, (ast.If, ast.While)):
-                reason = visit_expr(statement.test, multiplier)
-                if reason is not None:
-                    return reason
-                reason = visit_block(statement.body, multiplier)
-                if reason is not None:
-                    return reason
-                reason = visit_block(statement.orelse, multiplier)
-                if reason is not None:
-                    return reason
-                continue
-            if isinstance(statement, ast.Try):
-                for branch in (
-                    statement.body,
-                    *(handler.body for handler in statement.handlers),
-                    statement.orelse,
-                    statement.finalbody,
+                body_carries = any(
+                    _mt_contains_family_call(item, resolver, helpers) for item in statement.body
+                )
+                if (
+                    isinstance(statement.test, ast.Constant)
+                    and statement.test.value is False
+                    and body_carries
                 ):
-                    reason = visit_block(branch, multiplier)
-                    if reason is not None:
-                        return reason
+                    return "test-battery-cardinality-unresolved"
+                if body_carries or any(
+                    _mt_contains_family_call(item, resolver, helpers) for item in statement.orelse
+                ):
+                    return "authorized-family-test-census-incomplete"
                 continue
-            if isinstance(statement, ast.Match):
-                reason = visit_expr(statement.subject, multiplier)
-                if reason is not None:
-                    return reason
-                for case in statement.cases:
-                    if case.guard is not None:
-                        reason = visit_expr(case.guard, multiplier)
-                        if reason is not None:
-                            return reason
-                    reason = visit_block(case.body, multiplier)
-                    if reason is not None:
-                        return reason
-                continue
-            if isinstance(statement, (ast.With, ast.AsyncWith)):
-                for item in statement.items:
-                    reason = visit_expr(item.context_expr, multiplier)
-                    if reason is not None:
-                        return reason
-                reason = visit_block(statement.body, multiplier)
-                if reason is not None:
-                    return reason
+            if isinstance(statement, (ast.Try, ast.Match, ast.With, ast.AsyncWith)):
+                if _mt_contains_family_call(statement, resolver, helpers):
+                    return "authorized-family-test-census-incomplete"
                 continue
             for node in ast.walk(statement):
                 if isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)):

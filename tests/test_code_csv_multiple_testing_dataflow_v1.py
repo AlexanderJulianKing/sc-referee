@@ -452,7 +452,7 @@ def test_sensitivity_duplicate_stops_before_operand_resolution() -> None:
     assert _run(source).reason == "extra-registered-test-outside-authorized-family"
 
 
-def test_closed_dead_branch_extra_call_stops_at_full_scope_census() -> None:
+def test_literal_false_family_call_never_becomes_an_established_instance() -> None:
     source = _explicit(
         before=(
             "if False:\n"
@@ -460,7 +460,110 @@ def test_closed_dead_branch_extra_call_stops_at_full_scope_census() -> None:
             'df.loc[df["group"] == "b", "m1"])\n'
         )
     )
-    assert _run(source).reason == "extra-registered-test-outside-authorized-family"
+    assert _run(source).reason == "test-battery-cardinality-unresolved"
+
+
+def test_family_call_under_live_if_stops_at_incomplete_census() -> None:
+    source = _explicit(
+        before=(
+            "if True:\n"
+            '    conditional = stats.ttest_ind(df.loc[df["group"] == "a", "m1"], '
+            'df.loc[df["group"] == "b", "m1"])\n'
+        )
+    )
+    assert _run(source).reason == "authorized-family-test-census-incomplete"
+
+
+def test_family_call_in_except_handler_stops_at_incomplete_census() -> None:
+    source = _explicit(
+        before=(
+            "try:\n"
+            "    pass\n"
+            "except ValueError:\n"
+            '    conditional = stats.ttest_ind(df.loc[df["group"] == "a", "m1"], '
+            'df.loc[df["group"] == "b", "m1"])\n'
+        )
+    )
+    assert _run(source).reason == "authorized-family-test-census-incomplete"
+
+
+@pytest.mark.parametrize(
+    "before",
+    [
+        (
+            "condition = True\n"
+            "if condition:\n"
+            '    conditional = stats.ttest_ind(df.loc[df["group"] == "a", "m1"], '
+            'df.loc[df["group"] == "b", "m1"])\n'
+        ),
+        (
+            "if True:\n"
+            "    pass\n"
+            "elif False:\n"
+            '    conditional = stats.ttest_ind(df.loc[df["group"] == "a", "m1"], '
+            'df.loc[df["group"] == "b", "m1"])\n'
+        ),
+        (
+            "if True:\n"
+            "    if True:\n"
+            '        conditional = stats.ttest_ind(df.loc[df["group"] == "a", "m1"], '
+            'df.loc[df["group"] == "b", "m1"])\n'
+        ),
+        (
+            "while True:\n"
+            '    conditional = stats.ttest_ind(df.loc[df["group"] == "a", "m1"], '
+            'df.loc[df["group"] == "b", "m1"])\n'
+        ),
+        (
+            "try:\n"
+            '    conditional = stats.ttest_ind(df.loc[df["group"] == "a", "m1"], '
+            'df.loc[df["group"] == "b", "m1"])\n'
+            "except ValueError:\n"
+            "    pass\n"
+        ),
+        (
+            "try:\n"
+            "    pass\n"
+            "except ValueError:\n"
+            "    pass\n"
+            "else:\n"
+            '    conditional = stats.ttest_ind(df.loc[df["group"] == "a", "m1"], '
+            'df.loc[df["group"] == "b", "m1"])\n'
+        ),
+        (
+            "try:\n"
+            "    pass\n"
+            "finally:\n"
+            '    conditional = stats.ttest_ind(df.loc[df["group"] == "a", "m1"], '
+            'df.loc[df["group"] == "b", "m1"])\n'
+        ),
+        (
+            "from contextlib import suppress\n"
+            "with suppress(ValueError):\n"
+            '    conditional = stats.ttest_ind(df.loc[df["group"] == "a", "m1"], '
+            'df.loc[df["group"] == "b", "m1"])\n'
+        ),
+        (
+            "match 1:\n"
+            "    case 1:\n"
+            '        conditional = stats.ttest_ind(df.loc[df["group"] == "a", "m1"], '
+            'df.loc[df["group"] == "b", "m1"])\n'
+        ),
+    ],
+)
+def test_every_other_conditional_family_call_stops_at_incomplete_census(before: str) -> None:
+    assert _run(_explicit(before=before)).reason == "authorized-family-test-census-incomplete"
+
+
+def test_literal_false_while_family_call_stops_at_unresolved_cardinality() -> None:
+    source = _explicit(
+        before=(
+            "while False:\n"
+            '    dead = stats.ttest_ind(df.loc[df["group"] == "a", "m1"], '
+            'df.loc[df["group"] == "b", "m1"])\n'
+        )
+    )
+    assert _run(source).reason == "test-battery-cardinality-unresolved"
 
 
 def test_discovery_validation_split_abstains_on_row_completeness() -> None:
@@ -705,6 +808,36 @@ def test_every_isolated_guard_fixture_is_prose_mutation_invariant() -> None:
                 )
                 assert result.facts.corrected_positions == baseline.facts.corrected_positions
                 assert result.facts.conclusion_positions == baseline.facts.conclusion_positions
+
+
+@pytest.mark.parametrize(
+    ("before", "expected"),
+    [
+        (
+            "if False:\n"
+            '    dead = stats.ttest_ind(df.loc[df["group"] == "a", "m1"], '
+            'df.loc[df["group"] == "b", "m1"])\n',
+            "test-battery-cardinality-unresolved",
+        ),
+        (
+            "if True:\n"
+            '    conditional = stats.ttest_ind(df.loc[df["group"] == "a", "m1"], '
+            'df.loc[df["group"] == "b", "m1"])\n',
+            "authorized-family-test-census-incomplete",
+        ),
+    ],
+)
+def test_conditional_census_predicates_are_prose_mutation_invariant(
+    before: str, expected: str
+) -> None:
+    source = _explicit(before=before)
+    variants = (
+        '"""Unrelated conditional-analysis description."""\n' + source,
+        source + "\n# Unrelated report text.\n",
+        source + '\nreport_label = "if False means sensitivity only"\n',
+    )
+    assert _run(source).reason == expected
+    assert all(_run(variant).reason == expected for variant in variants)
 
 
 def test_structural_literal_deletion_is_a_tripwire_positive_control() -> None:

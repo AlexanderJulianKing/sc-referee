@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import ast
+import inspect
 import runpy
+import textwrap
 from pathlib import Path
 from typing import Any, cast
 
@@ -41,6 +43,7 @@ _X4_REASONS = (
     "helper-inlining-depth-exceeded",
     "helper-call-site-reentry-unsupported",
 )
+_DOCUMENTED_UNREACHABLE_REASONS = frozenset({"conclusion-output-sink-unavailable"})
 
 
 def _source() -> str:
@@ -132,15 +135,12 @@ def test_localized_dataflow_exception_has_exact_first_reason(
     assert _run(_source()).reason == "multiple-testing-code-inspection-exception"
 
 
-def test_conclusion_without_sink_kind_retains_its_closed_invariant_reason(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        dataflow._MtEngine,
-        "_conclusion_positions",
-        lambda self: (set(range(len(self.outcome_columns))), set()),
-    )
-    assert _run(_source()).reason == "conclusion-output-sink-unavailable"
+def test_conclusion_sink_unavailable_is_a_documented_unreachable_invariant() -> None:
+    source = textwrap.dedent(inspect.getsource(dataflow._MtEngine._conclusion_positions))
+    assert "if not sink.p_result_eligible:\n            continue" in source
+    assert "positions.update(local)\n            sink_kinds.add(sink.kind)" in source
+    assert "positions.add(position)\n                sink_kinds.update(" in source
+    assert _DOCUMENTED_UNREACHABLE_REASONS <= _CLOSED_REASONS
 
 
 def _file_record(path: str, identifier: str) -> FrozenBaseRecord:
@@ -296,7 +296,7 @@ def test_x4_fixture_matrix_equals_the_closed_helper_registry() -> None:
     assert frozenset(_X4_REASONS) == dataflow._MT_HELPER_REASONS
 
 
-def test_all_closed_reason_literals_are_covered_by_multiple_testing_tests() -> None:
+def test_fixture_emissions_plus_documented_unreachable_annex_equal_closed_reasons() -> None:
     observed: set[str] = set()
     for path in Path("tests").glob("*multiple_testing*"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -305,4 +305,6 @@ def test_all_closed_reason_literals_are_covered_by_multiple_testing_tests() -> N
             for node in ast.walk(tree)
             if isinstance(node, ast.Constant) and node.value in _CLOSED_REASONS
         )
-    assert observed == _CLOSED_REASONS
+    fixture_emissions = observed - _DOCUMENTED_UNREACHABLE_REASONS
+    assert fixture_emissions == _CLOSED_REASONS - _DOCUMENTED_UNREACHABLE_REASONS
+    assert fixture_emissions | _DOCUMENTED_UNREACHABLE_REASONS == _CLOSED_REASONS

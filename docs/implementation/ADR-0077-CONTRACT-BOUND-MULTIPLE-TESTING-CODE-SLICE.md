@@ -10,8 +10,8 @@
 - **Scope:** Development-only multiple-testing code slice 1.0 and scientific-requirement contract
   profile 1.2.0
 - **Companion design:**
-  `docs/implementation/MULTITEST-CODE-SLICE-1.0-DESIGN-2026-08-24.md`, Revision 2.2,
-  `sha256:1cf301747c86d74c395b05873106792d6feed806fdae835a7955fb0c4aad3118`
+  `docs/implementation/MULTITEST-CODE-SLICE-1.0-DESIGN-2026-08-24.md`, Revision 2.3,
+  `sha256:8adddfaca6729e4cf7e87ba0044c295b848d29eba37ae7003a5a6e4c4888a303`
 - **Execution impact:** None; project-authored code remains unexecuted
 - **Production impact:** None; no qualification, grant, GrantPin, or production Finding authority is
   installed
@@ -28,8 +28,11 @@ correction and counterevidence censuses classify correction coverage as absent o
 The design passed adversarial review on Revision 2. Before build, ND-6 closed binary-float conversion
 in both then-proposed exact-Decimal product rules, and ND-7 repaired changelog cross-references. A
 post-build audit then required Revision 2.2: it removed the unsound `t.ppf` exemption, restored the
-missing p-value-family collection and dead-branch census abstentions, and strengthened the regression
-gates. Those changes only remove candidate eligibility or correct the design record.
+missing p-value-family collection abstention, and strengthened the regression gates. Its Minor-4
+implementation nevertheless traversed all conditional bodies and widened candidate eligibility.
+Revision 2.3 withdraws that traversal: exact literal-false `if`/`while` family-call bodies stop with
+unresolved cardinality, every other conditional family call stops with incomplete census, and no
+conditional call is asserted to be an established instance. This restores the no-widening boundary.
 
 ## Decision
 
