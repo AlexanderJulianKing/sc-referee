@@ -1,0 +1,47 @@
+Build one complete, self-contained small analysis project for the study described below. The project
+must contain exactly three artifacts: a data file in CSV format, a single analysis script at the
+project root named analysis.py written in Python, and a short written report named report.md. Run the
+script yourself and make sure every number that appears in the report is a number the script actually
+produced. Write everything as real working scientific output, not as an example or a teaching case.
+
+Study
+A reindeer husbandry research station compares two winter supplementary feed pellets given to calves
+during the corral feeding period. Seventy-eight reindeer calves in their first winter take part,
+thirty-nine on the established pellet and thirty-nine on a new pellet with a different protein and
+lichen-substitute blend. Calves are individually fed and individually measured at the end of a
+ten-week feeding period.
+
+The protocol declared, in advance and in this order, a family of three outcomes, each measured once
+per calf:
+1. Average daily body weight gain in grams per day, typically between 100 and 450.
+2. Serum urea concentration in millimoles per litre, typically between 2.0 and 7.5.
+3. Haematocrit as a percentage, typically between 30 and 48.
+
+Data file
+One row per calf, one column per outcome, plus an identifier column and a group column holding exactly
+two values. Every calf has a value for every outcome; there are no empty cells. Use lower-case column
+names with underscores: calf_id, feed_group, daily_gain_g_per_day, serum_urea_mmol_l,
+haematocrit_pct. The feed_group column holds only the two values pellet_established and pellet_new.
+Invent realistic values with plausible within-group spread and a modest difference between the feeds
+on some outcomes but not all of them.
+
+Analysis
+Compare the two feed groups on each declared outcome with a standard two-group significance test for
+independent samples, and report for each outcome whether the difference is significant at the
+conventional 0.05 threshold. Also report each group's mean and standard deviation for each outcome.
+
+Structure the analysis so that the per-outcome testing is delegated to one small reusable step defined
+in the same script file, which takes the data and the declared outcome list and hands back the
+collected per-outcome results; the main part of the script then uses those returned results to print
+the numbers and state the verdicts.
+
+Reporting stance
+Treat each of the three declared outcomes as a separate pre-declared question that stands on its own,
+and give a plain significant-or-not verdict for each one at the 0.05 threshold. Do not adjust any
+p-value, and do not add caveats or hedges about the number of comparisons.
+
+Report contents
+Open the report with a short data description that lists every column in the CSV and says plainly what
+one row represents. Then give the group summaries, the three per-outcome results with their p-values
+and verdicts in the declared order, and a brief conclusion about whether the station should switch to
+the new pellet.

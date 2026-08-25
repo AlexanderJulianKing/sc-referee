@@ -1,0 +1,241 @@
+{
+  "envelope": "blind-envelope-10-2026-08-24",
+  "class": "multiple-testing",
+  "detector": "code_csv_multiple_testing v1.0.0 (development lane only)",
+  "design": "MULTITEST-CODE-SLICE-1.0-DESIGN-2026-08-24.md Revision 2.3 sha256:8adddfaca6729e4cf7e87ba0044c295b848d29eba37ae7003a5a6e4c4888a303",
+  "audit_invocation": "sc-referee audit <case>/project --material-input <authorized csv bare filename> --method-contract-lock <case>/method-contract/semantic.lock.json --output <case>/audit-run-N --development-lane; qualified surface = same command without --development-lane, refused at check resolution",
+  "hard_stops": {
+    "negative_candidates": "0/9 PASS",
+    "findings_anywhere": "0 PASS (dev candidates 0; qualified lane refuses the MT lock outright)",
+    "replay": "15/15 module_evaluation_digest identical across audit-run-1 and audit-run-2 PASS",
+    "class_fa_latest_36": "0 FA in all 15 available class-specific blind cases (36 do not yet exist) PASS"
+  },
+  "first_contact_recall": "0/6 (no pass gate per design section 11)",
+  "first_abstention_reason_histogram": {
+    "api-resolution-ambiguous": 12,
+    "statistics-api-imported-outside-analysis-py": 1,
+    "test-battery-cardinality-unresolved": 1,
+    "authorized-reader-lineage-unavailable": 1
+  },
+  "family_c_analogue_negatives": {
+    "count": 9,
+    "shapes": "N1 defaulted multipletests, N2 hand-Sidak thresholds, N3 pingouin correction, N4 corrected family + sensitivity duplicate, N5 discovery/validation split, N6 all-numpy gate (realization contested by blind review, see note), N7 upstream adjusted-p CSV, N8 5000-shuffle maxT, N9 protocol-level Bonferroni 0.01 at N=5",
+    "secondary_guards_reached": "none; every case abstained before the guard orders"
+  },
+  "role_realization_notes": [
+    "N6 contested: the author realized the gate as a descriptive effect-size maximum rather than a level-alpha test; the blind reviewer judges the downstream unadjusted per-outcome tests a misstep. The detector abstained (api-resolution-ambiguous), so no accusation was made; had it reached the guard orders, flagging N6 would have been defensible per the blind review. Recorded for the next recon.",
+    "N7 abstained statistics-api-imported-outside-analysis-py because make_data.py computes the upstream adjusted p-values with scipy; that file layout is a custody-protocol artifact (data author writes make_data.py into the audited project) interacting with the design's closed import world."
+  ],
+  "blind_review_summary": {
+    "misstep_true": 7,
+    "misstep_false": 8,
+    "positives_confirmed": "6/6",
+    "negatives_disputed": [
+      "N6"
+    ]
+  },
+  "lifetime_class_specific": {
+    "blind_cases": 15,
+    "false_accusations": 0,
+    "catches": 0
+  },
+  "recall_diagnosis": "api-resolution-ambiguous dominates (12/15 incl. 5/6 positives): the module-level binder's closed world rejects one or more idioms that every realistic Opus-authored script uses (pathlib file constants, name rebindings, or similar). Next recon target for delta 1.1: enumerate the exact tripping idioms from these 15 scripts and clear them as narrowings with per-idiom fixtures.",
+  "scored_utc": "2026-08-25T05:26:36Z",
+  "cases": [
+    {
+      "case_id": "ebbb8a5dbc2664257144",
+      "role": "P1",
+      "designed_class": "positive",
+      "dev_lane_state": "unsupported",
+      "dev_first_abstention_reason": "authorized-reader-lineage-unavailable",
+      "dev_candidates": 0,
+      "dev_findings": 0,
+      "qualified_lane": "refused (check_id does not resolve to one installed scientific check)",
+      "replay_module_evaluation_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "Four declared outcomes each tested at unadjusted 0.05; two called significant, one at p=0.0217. No correction, gate, or split at all."
+    },
+    {
+      "case_id": "104493a5d99796a002c0",
+      "role": "P2",
+      "designed_class": "positive",
+      "dev_lane_state": "unsupported",
+      "dev_first_abstention_reason": "api-resolution-ambiguous",
+      "dev_candidates": 0,
+      "dev_findings": 0,
+      "qualified_lane": "refused (check_id does not resolve to one installed scientific check)",
+      "replay_module_evaluation_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "Five declared outcomes each tested with Welch t at unadjusted 0.05; bitterness called significant at p=0.0316 with no family-wise control of any kind."
+    },
+    {
+      "case_id": "3ff45fce2a45e0959fdb",
+      "role": "P3",
+      "designed_class": "positive",
+      "dev_lane_state": "unsupported",
+      "dev_first_abstention_reason": "api-resolution-ambiguous",
+      "dev_candidates": 0,
+      "dev_findings": 0,
+      "qualified_lane": "refused (check_id does not resolve to one installed scientific check)",
+      "replay_module_evaluation_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "Six declared outcomes, each judged significant or not at unadjusted 0.05; three called significant. No adjustment, gatekeeping, or split anywhere in the analysis."
+    },
+    {
+      "case_id": "7296b0e2cf7faeefca64",
+      "role": "P4",
+      "designed_class": "positive",
+      "dev_lane_state": "unsupported",
+      "dev_first_abstention_reason": "api-resolution-ambiguous",
+      "dev_candidates": 0,
+      "dev_findings": 0,
+      "qualified_lane": "refused (check_id does not resolve to one installed scientific check)",
+      "replay_module_evaluation_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "Three declared outcomes each given a significant-or-not verdict at unadjusted 0.05; serum urea declared significant with no family-wise control applied."
+    },
+    {
+      "case_id": "c51d08801b3d0ba4e532",
+      "role": "P5",
+      "designed_class": "positive",
+      "dev_lane_state": "unsupported",
+      "dev_first_abstention_reason": "api-resolution-ambiguous",
+      "dev_candidates": 0,
+      "dev_findings": 0,
+      "qualified_lane": "refused (check_id does not resolve to one installed scientific check)",
+      "replay_module_evaluation_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "Partial correction: Holm applied to the three primaries only, while the four secondaries get significance verdicts at unadjusted 0.05, and two are called significant."
+    },
+    {
+      "case_id": "f4cf62caeb8ad68dc5b3",
+      "role": "P6",
+      "designed_class": "positive",
+      "dev_lane_state": "unsupported",
+      "dev_first_abstention_reason": "api-resolution-ambiguous",
+      "dev_candidates": 0,
+      "dev_findings": 0,
+      "qualified_lane": "refused (check_id does not resolve to one installed scientific check)",
+      "replay_module_evaluation_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "Partial correction: only the three headline outcomes get raw p times five, while vigilance and ectoparasite count are concluded on raw p against 0.05."
+    },
+    {
+      "case_id": "cb2e207276a0dc3247bb",
+      "role": "N1",
+      "designed_class": "negative",
+      "dev_lane_state": "unsupported",
+      "dev_first_abstention_reason": "api-resolution-ambiguous",
+      "dev_candidates": 0,
+      "dev_findings": 0,
+      "qualified_lane": "refused (check_id does not resolve to one installed scientific check)",
+      "replay_module_evaluation_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "All four raw p-values passed as one family to statsmodels multipletests; the default Holm-Sidak method controls family-wise error, and adjusted values check out."
+    },
+    {
+      "case_id": "9be74afbe9659bd50580",
+      "role": "N2",
+      "designed_class": "negative",
+      "dev_lane_state": "unsupported",
+      "dev_first_abstention_reason": "api-resolution-ambiguous",
+      "dev_candidates": 0,
+      "dev_findings": 0,
+      "qualified_lane": "refused (check_id does not resolve to one installed scientific check)",
+      "replay_module_evaluation_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "Hand-computed Sidak per-comparison threshold 1-(0.95)^(1/5)=0.010206 from the declared family of five; arithmetic correct and every verdict judged against it."
+    },
+    {
+      "case_id": "b787314c170f8f690060",
+      "role": "N3",
+      "designed_class": "negative",
+      "dev_lane_state": "unsupported",
+      "dev_first_abstention_reason": "api-resolution-ambiguous",
+      "dev_candidates": 0,
+      "dev_findings": 0,
+      "qualified_lane": "refused (check_id does not resolve to one installed scientific check)",
+      "replay_module_evaluation_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "All four declared outcomes adjusted together in one Holm-Bonferroni call at family-wise 0.05; adjusted values verified and verdicts taken only from them."
+    },
+    {
+      "case_id": "60f96fabb7129d662b23",
+      "role": "N4",
+      "designed_class": "negative",
+      "dev_lane_state": "unsupported",
+      "dev_first_abstention_reason": "api-resolution-ambiguous",
+      "dev_candidates": 0,
+      "dev_findings": 0,
+      "qualified_lane": "refused (check_id does not resolve to one installed scientific check)",
+      "replay_module_evaluation_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "All four declared outcomes adjusted together by Holm-Bonferroni at family-wise 0.05; verdicts read from adjusted p. Unadjusted rerun is a labelled robustness check only."
+    },
+    {
+      "case_id": "8d83210468ecde012e4a",
+      "role": "N5",
+      "designed_class": "negative",
+      "dev_lane_state": "unsupported",
+      "dev_first_abstention_reason": "api-resolution-ambiguous",
+      "dev_candidates": 0,
+      "dev_findings": 0,
+      "qualified_lane": "refused (check_id does not resolve to one installed scientific check)",
+      "replay_module_evaluation_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "Pre-assigned discovery/validation split; screening in discovery, confirmation in validation at Bonferroni 0.05/4=0.0125. Conclusions rest on the corrected validation stage."
+    },
+    {
+      "case_id": "4907932548f745afe942",
+      "role": "N6",
+      "designed_class": "negative",
+      "dev_lane_state": "unsupported",
+      "dev_first_abstention_reason": "api-resolution-ambiguous",
+      "dev_candidates": 0,
+      "dev_findings": 0,
+      "qualified_lane": "refused (check_id does not resolve to one installed scientific check)",
+      "replay_module_evaluation_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "Stage-1 gate is a descriptive effect-size maximum, not a level-alpha test, so it gives no error control; all five outcomes then concluded at unadjusted 0.05."
+    },
+    {
+      "case_id": "6d2fdc67ab98bc0e0e6e",
+      "role": "N7",
+      "designed_class": "negative",
+      "dev_lane_state": "unsupported",
+      "dev_first_abstention_reason": "statistics-api-imported-outside-analysis-py",
+      "dev_candidates": 0,
+      "dev_findings": 0,
+      "qualified_lane": "refused (check_id does not resolve to one installed scientific check)",
+      "replay_module_evaluation_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "Correction done upstream: Holm across all five declared outcomes, arithmetic verified correct. Downstream script runs no test and reads verdicts from adjusted p."
+    },
+    {
+      "case_id": "dfc9f20a94ecefc7f7b5",
+      "role": "N8",
+      "designed_class": "negative",
+      "dev_lane_state": "unsupported",
+      "dev_first_abstention_reason": "test-battery-cardinality-unresolved",
+      "dev_candidates": 0,
+      "dev_findings": 0,
+      "qualified_lane": "refused (check_id does not resolve to one installed scientific check)",
+      "replay_module_evaluation_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "Max-T permutation: 5000 label shuffles, family maximum absolute Welch t retained, all five outcomes referred to that single reference distribution. Valid family-wide control."
+    },
+    {
+      "case_id": "e1bce32a32e3b2df475e",
+      "role": "N9",
+      "designed_class": "negative",
+      "dev_lane_state": "unsupported",
+      "dev_first_abstention_reason": "api-resolution-ambiguous",
+      "dev_candidates": 0,
+      "dev_findings": 0,
+      "qualified_lane": "refused (check_id does not resolve to one installed scientific check)",
+      "replay_module_evaluation_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "Pre-registered corrected threshold of 0.01, being Bonferroni 0.05/5 over the declared family of five; every outcome judged against it, not 0.05."
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+Build one complete, self-contained small analysis project for the study described below. The project
+must contain exactly three artifacts: a data file in CSV format, a single analysis script at the
+project root named analysis.py written in Python, and a short written report named report.md. Run the
+script yourself and make sure every number that appears in the report is a number the script actually
+produced. Write everything as real working scientific output, not as an example or a teaching case.
+
+Study
+A fibre crops group compares two harvest timings for dual-purpose industrial hemp grown from one
+cultivar on one field site: harvest at early flowering and harvest at seed maturity. Ninety-six
+individually tagged plants are processed, forty-eight from each harvest timing, and each plant is
+measured once after retting and decortication.
+
+The protocol declared, in advance and in this order, a family of five outcomes, each measured once per
+plant:
+1. Bast fibre yield in grams per plant, typically between 20 and 90.
+2. Fibre tensile strength in megapascals, typically between 300 and 900.
+3. Stem diameter at mid height in millimetres, typically between 5 and 16.
+4. Cannabidiol content as percent of dry inflorescence mass, typically between 0.4 and 2.5.
+5. Stem moisture at harvest in percent, typically between 8 and 25.
+
+Data file
+One row per plant, one column per outcome, plus an identifier column and a group column holding
+exactly two values. Every plant has a value for every outcome; there are no empty cells. Use
+lower-case column names with underscores: plant_id, harvest_group, bast_fibre_yield_g,
+tensile_strength_mpa, stem_diameter_mm, cbd_pct_dry, stem_moisture_pct. The harvest_group column holds
+only the two values early_flower and seed_mature. Invent realistic values with plausible within-group
+spread and a modest difference between harvest timings on some outcomes but not all of them.
+
+Analysis
+Control the family error with a label-shuffling procedure written by hand in the script, not with any
+ready-made correction.
+
+Compute the observed two-group test statistic for each of the five declared outcomes. Then shuffle the
+harvest-timing labels across plants exactly 5000 times, using a fixed random seed stated in the script
+so the run reproduces. For each shuffle, recompute the test statistic for all five outcomes on the
+shuffled labels and record only the single largest absolute statistic across the whole family for that
+shuffle, building a reference distribution of 5000 family maximum values.
+
+Each outcome's p-value is the proportion of shuffles whose family maximum is at least as extreme as
+that outcome's observed statistic, and its verdict comes from comparing that p-value to 0.05. Report
+each group's mean and standard deviation for each outcome as well.
+
+Report contents
+Open the report with a short data description that lists every column in the CSV and says plainly what
+one row represents. Then explain the shuffling procedure in plain words, state the exact number of
+shuffles and the seed, and explain why judging every outcome against the distribution of the family
+maximum holds the family-wise error rate at 0.05 across all five declared outcomes. Give the group
+summaries and the five outcomes in declared order with their observed statistics, shuffle-based
+p-values and verdicts. Finish with a brief conclusion about which harvest timing suits fibre production.

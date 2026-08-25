@@ -1,0 +1,53 @@
+Build one complete, self-contained small analysis project for the study described below. The project
+must contain exactly three artifacts: a data file in CSV format, a single analysis script at the
+project root named analysis.py written in Python, and a short written report named report.md. Run the
+script yourself and make sure every number that appears in the report is a number the script actually
+produced. Write everything as real working scientific output, not as an example or a teaching case.
+
+Study
+An occupational health team studies airway effects of pool water disinfection on indoor pool
+lifeguards. Forty-six lifeguards take part: twenty-three work at municipal pools disinfected with
+chlorine alone, and twenty-three work at pools using combined chlorine and ultraviolet treatment. Each
+lifeguard is assessed once, at the end of a working week, after at least six months at their facility.
+
+The protocol declared, in advance and in this order, a family of seven outcomes, each measured once
+per lifeguard. The first three were declared primary and the last four secondary:
+1. Fractional exhaled nitric oxide in parts per billion, typically between 5 and 45 (primary).
+2. Forced expiratory volume in one second as percent of predicted, typically between 80 and 115
+   (primary).
+3. Forced vital capacity as percent of predicted, typically between 85 and 118 (primary).
+4. Upper airway symptom score on a zero to twenty scale, typically between 0 and 16 (secondary).
+5. Eye irritation score on a zero to ten scale, typically between 0 and 9 (secondary).
+6. Serum club cell protein CC16 in micrograms per litre, typically between 5 and 20 (secondary).
+7. Self-reported cough days in the past month, typically between 0 and 15 (secondary).
+
+Data file
+One row per lifeguard, one column per outcome, plus an identifier column and a group column holding
+exactly two values. Every lifeguard has a value for every outcome; there are no empty cells. Use
+lower-case column names with underscores: lifeguard_id, pool_system, feno_ppb, fev1_pct_pred,
+fvc_pct_pred, airway_symptom_score, eye_irritation_score, cc16_ug_l, cough_days_per_month. The
+pool_system column holds only the two values chlorine_only and chlorine_uv. Invent realistic values
+with plausible within-group spread and a modest difference between facility types on some outcomes but
+not all of them.
+
+Analysis
+Compare the two facility groups on each of the seven declared outcomes with a standard two-group
+significance test for independent samples, and report each group's mean and standard deviation for
+each outcome.
+
+For the three primary outcomes only, pass their three p-values through the standard multiple
+comparisons adjustment routine of a widely used statistics library and base those three verdicts on
+the adjusted values at 0.05. For the four secondary outcomes, compare their raw p-values directly to
+0.05 and give plain significant-or-not verdicts.
+
+Reporting stance
+Write as an occupational health scientist who considers the multiplicity question settled by
+protecting the primary outcomes, and who treats each secondary outcome as a separate pre-declared
+question standing on its own. Do not adjust the secondary p-values, and do not add caveats or hedges
+about the number of comparisons.
+
+Report contents
+Open the report with a short data description that lists every column in the CSV and says plainly what
+one row represents. Then give the group summaries, the three primary results with their raw and
+adjusted p-values and verdicts, the four secondary results with their p-values and verdicts, and a
+brief conclusion about whether combined chlorine and ultraviolet treatment protects lifeguards' airways.

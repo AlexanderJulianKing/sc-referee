@@ -1,0 +1,50 @@
+Build one complete, self-contained small analysis project for the study described below. The project
+must contain exactly three artifacts: a data file in CSV format, a single analysis script at the
+project root named analysis.py written in Python, and a short written report named report.md. Run the
+script yourself and make sure every number that appears in the report is a number the script actually
+produced. Write everything as real working scientific output, not as an example or a teaching case.
+
+Study
+A wildlife ecology group compares red foxes living in a city with red foxes living in surrounding
+farmland. Sixty-eight adult foxes are live-trapped, collared, sampled and released: thirty-four in the
+urban area and thirty-four in the rural area. Each fox contributes one set of measurements, with home
+range estimated from six months of collar fixes.
+
+The protocol declared, in advance and in this order, a family of four outcomes, each measured once per
+fox:
+1. Body condition index as a unitless mass-for-length score, typically between 0.6 and 1.4.
+2. Home range size in square kilometres, typically between 0.2 and 6.0.
+3. Faecal cortisol metabolite concentration in nanograms per gram, typically between 20 and 250.
+4. Diet diversity as a Shannon index from scat contents, typically between 0.5 and 2.5.
+
+Data file
+One row per fox, one column per outcome, plus an identifier column and a group column holding exactly
+two values. Every fox has a value for every outcome; there are no empty cells. Use lower-case column
+names with underscores: fox_id, habitat_group, body_condition_index, home_range_km2,
+faecal_cortisol_ng_per_g, diet_shannon_index. The habitat_group column holds only the two values urban
+and rural. Invent realistic values with plausible within-group spread and a modest difference between
+habitats on some outcomes but not all of them. Include exactly one rural fox with an implausibly large
+home range of about twenty-two square kilometres, consistent with a dispersing animal that left the
+study area.
+
+Analysis
+Compare the two habitat groups on each of the four declared outcomes with a standard two-group
+significance test for independent samples, and report each group's mean and standard deviation for
+each outcome.
+
+Control the error rate across the declared family properly: collect all four p-values in the declared
+order and adjust the complete family together with a standard multiple comparisons procedure, judging
+every verdict at a family-wise level of 0.05 from the adjusted values.
+
+In addition, re-run the home range comparison exactly once as a clearly labelled sensitivity check
+with the single implausible dispersing-fox value excluded, and print that re-run result under a label
+that marks it as a robustness check. Its number must not replace or alter any of the four adjusted
+inferential verdicts.
+
+Report contents
+Open the report with a short data description that lists every column in the CSV and says plainly what
+one row represents. Then give the group summaries, and for each of the four outcomes in declared order
+its raw p-value, its adjusted p-value, and its verdict, stating plainly that the whole family was
+adjusted together. Then give the home range sensitivity check in its own short section, described
+explicitly as a robustness check on one questionable value and not as an inferential result. Finish
+with a brief ecological conclusion about urban living in this fox population.

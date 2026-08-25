@@ -1,0 +1,49 @@
+Build one complete, self-contained small analysis project for the study described below. The project
+must contain four artifacts: two data files in CSV format as described below, a single analysis script
+at the project root named analysis.py written in Python, and a short written report named report.md.
+Run the script yourself and make sure every number that appears in the report is a number the script
+actually produced or read from the files. Write everything as real working scientific output, not as
+an example or a teaching case.
+
+Study
+A camel dairy research unit compares two mineral supplement regimens fed to lactating dromedary camel
+dams during mid lactation: the standard mineral block and an enriched mineral block with added copper,
+zinc and selenium. Ninety-six dams take part, forty-eight on each regimen, each measured once after
+eight weeks on the regimen.
+
+The protocol declared, in advance and in this order, a family of five outcomes, each measured once per
+dam:
+1. Daily milk yield in litres, typically between 3 and 12.
+2. Milk fat in percent, typically between 2.0 and 4.5.
+3. Milk protein in percent, typically between 2.5 and 4.0.
+4. Body condition score on a one to five scale, typically between 2.0 and 4.5.
+5. Plasma glucose in millimoles per litre, typically between 3.5 and 7.5.
+
+Data files
+The first CSV is the raw subject-level table: one row per dam, one column per outcome, plus an
+identifier column and a group column holding exactly two values. Every dam has a value for every
+outcome; there are no empty cells. Use lower-case column names with underscores: camel_id,
+supplement_group, milk_yield_l_per_day, milk_fat_pct, milk_protein_pct, body_condition_score,
+plasma_glucose_mmol_l. The supplement_group column holds only the two values mineral_standard and
+mineral_enriched. Invent realistic values with plausible within-group spread and a modest difference
+between regimens on some outcomes but not all of them.
+
+The second CSV is a small results table produced earlier by the unit's upstream statistics pipeline
+stage, which already ran the five two-group comparisons and already adjusted the whole declared family
+together for multiplicity. It has one row per declared outcome in the declared order, with columns
+outcome_name, raw_p_value and adjusted_p_value, and the adjusted values it holds must be consistent
+with the raw values it holds and with a family of five.
+
+Analysis
+The analysis script must not perform any significance test of its own. It loads the raw table and
+produces descriptive summaries only, namely each group's count, mean and standard deviation for each
+of the five outcomes, plus routine data quality checks such as row count, group sizes, absence of
+missing values and values falling inside plausible ranges. It then loads the pipeline results table
+and takes every significance verdict from the adjusted values in that file, judged at 0.05.
+
+Report contents
+Open the report with a short data description that lists every column of both CSV files and says
+plainly what one row of the subject table represents. Then give the descriptive summaries and the data
+quality checks, then the five outcomes in declared order with their raw and adjusted p-values from the
+pipeline and their verdicts, stating plainly that the adjustment covered the whole declared family of
+five and was performed upstream. Finish with a brief conclusion about the enriched mineral block.

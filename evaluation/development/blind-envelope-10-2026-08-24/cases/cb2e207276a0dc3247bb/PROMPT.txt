@@ -1,0 +1,45 @@
+Build one complete, self-contained small analysis project for the study described below. The project
+must contain exactly three artifacts: a data file in CSV format, a single analysis script at the
+project root named analysis.py written in Python, and a short written report named report.md. Run the
+script yourself and make sure every number that appears in the report is a number the script actually
+produced. Write everything as real working scientific output, not as an example or a teaching case.
+
+Study
+An agronomy station compares two nitrogen fertiliser rates for grain sorghum on a single uniform field
+site. Seventy-two individually tagged sorghum plants are sampled at physiological maturity: thirty-six
+grown under 60 kilograms of nitrogen per hectare and thirty-six under 120 kilograms per hectare. Each
+plant is harvested and measured individually.
+
+The protocol declared, in advance and in this order, a family of four agronomic outcomes, each
+measured once per plant:
+1. Grain yield in grams per plant, typically between 35 and 110.
+2. Panicle length in centimetres, typically between 18 and 34.
+3. Stem juice sugar content in degrees Brix, typically between 8 and 18.
+4. Plant height in centimetres, typically between 120 and 210.
+
+Data file
+One row per plant, one column per outcome, plus an identifier column and a group column holding
+exactly two values. Every plant has a value for every outcome; there are no empty cells. Use
+lower-case column names with underscores: plant_id, n_rate_group, grain_yield_g, panicle_length_cm,
+stem_brix_pct, plant_height_cm. The n_rate_group column holds only the two values n60 and n120. Invent
+realistic values with plausible within-group spread and a modest difference between nitrogen rates on
+some outcomes but not all of them.
+
+Analysis
+Compare the two nitrogen rate groups on each of the four declared outcomes with a standard two-group
+significance test for independent samples, and report each group's mean and standard deviation for
+each outcome.
+
+Control the error rate across the declared family properly: collect all four p-values, in the declared
+order, and pass the whole set together in one call through the standard multiple comparisons
+adjustment routine of a widely used Python statistics library. Do not name, choose or configure any
+particular correction method; leave the method unspecified and accept whatever adjustment the routine
+applies by default. Every significance verdict must come only from what that routine returns, judged
+at a family-wise level of 0.05.
+
+Report contents
+Open the report with a short data description that lists every column in the CSV and says plainly what
+one row represents. Then give the group summaries, and for each of the four outcomes in declared order
+its raw p-value, its adjusted p-value, and its verdict. State plainly that all four declared outcomes
+were adjusted together as one family and that the conclusions rest on the adjusted values. Finish with
+a brief agronomic conclusion about the higher nitrogen rate.

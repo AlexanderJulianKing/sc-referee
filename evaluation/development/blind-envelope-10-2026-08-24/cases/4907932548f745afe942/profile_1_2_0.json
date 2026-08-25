@@ -1,0 +1,21 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "air_quality_winter.csv",
+      "group_contrast_column": "site_group",
+      "outcome_columns": [
+        "pm25_ug_m3",
+        "pm10_ug_m3",
+        "no2_ug_m3",
+        "o3_ug_m3",
+        "black_carbon_ug_m3"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

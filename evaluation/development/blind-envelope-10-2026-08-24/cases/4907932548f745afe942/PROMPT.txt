@@ -1,0 +1,49 @@
+Build one complete, self-contained small analysis project for the study described below. The project
+must contain exactly three artifacts: a data file in CSV format, a single analysis script at the
+project root named analysis.py written in Python, and a short written report named report.md. Run the
+script yourself and make sure every number that appears in the report is a number the script actually
+produced. Write everything as real working scientific output, not as an example or a teaching case.
+
+Study
+A city environment department compares air quality at two fixed monitoring stations over one winter:
+a kerbside station on a busy arterial road and an urban background station in a park two kilometres
+away. Eighty monitoring days are analysed, forty from each station, each day being one complete
+twenty-four hour averaging period at one station.
+
+The protocol declared, in advance and in this order, a family of five pollutant outcomes, each a
+daily mean at that station:
+1. PM2.5 in micrograms per cubic metre, typically between 5 and 45.
+2. PM10 in micrograms per cubic metre, typically between 10 and 80.
+3. Nitrogen dioxide in micrograms per cubic metre, typically between 10 and 90.
+4. Ozone in micrograms per cubic metre, typically between 20 and 110.
+5. Black carbon in micrograms per cubic metre, typically between 0.3 and 6.0.
+
+Data file
+One row per monitoring day, one column per outcome, plus an identifier column and a group column
+holding exactly two values. Every day has a value for every outcome; there are no empty cells. Use
+lower-case column names with underscores: day_id, site_group, pm25_ug_m3, pm10_ug_m3, no2_ug_m3,
+o3_ug_m3, black_carbon_ug_m3. The site_group column holds only the two values kerbside and background.
+Invent realistic values with plausible day-to-day spread and a modest difference between the stations
+on some pollutants but not all of them.
+
+Analysis
+Run a gatekeeping design in two clearly separated stages.
+
+First, before any per-pollutant comparison, compute one overall screening quantity directly from all
+five outcome columns using only basic numerical array arithmetic on the values themselves: group
+means, group standard deviations, differences and ratios of those numbers, and the largest resulting
+magnitude across the five pollutants. No statistical testing routine of any kind may be used at this
+stage. Compare that single screening quantity to a threshold declared in advance in the script.
+
+Second, only if the overall screen passes, compare the two stations on each of the five declared
+outcomes with a standard two-group significance test for independent samples at 0.05 and report those
+per-pollutant results together with each group's mean and standard deviation. If the screen does not
+pass, the analysis stops there and reports no per-pollutant comparisons at all. Make the two branches
+produce clearly separate and clearly labelled outputs, so a reader can see which branch ran.
+
+Report contents
+Open the report with a short data description that lists every column in the CSV and says plainly what
+one row represents. Then explain the gatekeeping design and why the per-pollutant comparisons are only
+looked at when the overall screen passes, give the screening quantity, its threshold and the branch
+that ran, then whatever results that branch produced. Finish with a brief conclusion about kerbside
+exposure in this city.

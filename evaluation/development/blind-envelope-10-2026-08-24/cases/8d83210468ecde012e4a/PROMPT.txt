@@ -1,0 +1,50 @@
+Build one complete, self-contained small analysis project for the study described below. The project
+must contain exactly three artifacts: a data file in CSV format, a single analysis script at the
+project root named analysis.py written in Python, and a short written report named report.md. Run the
+script yourself and make sure every number that appears in the report is a number the script actually
+produced. Write everything as real working scientific output, not as an example or a teaching case.
+
+Study
+A cereal pathology group compares two fungicide programmes on winter wheat at one trial site: a single
+spray at flag leaf emergence and a two-spray programme adding an earlier stem extension spray. One
+hundred and forty-four individually tagged wheat plants are assessed, seventy-two under each
+programme. Before any measurement, the plants were split by a pre-registered random allocation into a
+discovery half and a validation half, seventy-two plants in each half, balanced so that each half
+holds thirty-six plants from each fungicide programme. That allocation was fixed in advance and is
+recorded in the data file.
+
+The protocol declared, in advance and in this order, a family of six outcomes, each measured once per
+plant:
+1. Grain yield in grams per plant, typically between 8 and 28.
+2. Thousand grain weight in grams, typically between 32 and 52.
+3. Septoria severity on the flag leaf in percent leaf area, typically between 0 and 60.
+4. Green canopy duration in days, typically between 18 and 45.
+5. Plant height in centimetres, typically between 65 and 100.
+6. Number of fertile spikes per plant, typically between 2 and 8.
+
+Data file
+One row per plant, one column per outcome, plus an identifier column, a group column holding exactly
+two values, and a column recording the pre-assigned study half. Every plant has a value for every
+outcome; there are no empty cells. Use lower-case column names with underscores: plant_id,
+program_group, stage_split, grain_yield_g, tgw_g, septoria_severity_pct, green_canopy_days,
+plant_height_cm, spike_count. The program_group column holds only the two values single_spray and
+two_spray, and the stage_split column holds only the two values discovery and validation. Invent
+realistic values with plausible within-plant-group spread and a modest difference between programmes
+on some outcomes but not all of them, with the same underlying pattern present in both halves.
+
+Analysis
+Run the study in its two pre-planned stages. In the discovery half only, compare the two fungicide
+programmes on each of the six declared outcomes with a standard two-group significance test for
+independent samples and record which outcomes screen through at 0.05. Then, in the validation half
+only, re-test only those screened-through outcomes, and judge them at a significance level adjusted
+downwards for the number of outcomes carried into validation, so that the family error across the
+confirmatory stage is held at 0.05 overall. Report each group's mean and standard deviation for each
+outcome in each half. Outcomes that did not screen through are not confirmed and get no confirmatory
+verdict.
+
+Report contents
+Open the report with a short data description that lists every column in the CSV, including the study
+half column, and says plainly what one row represents. Then describe the two-stage design, give the
+discovery screening results, give the validation results with the adjusted level actually used and how
+it was derived from the number of outcomes carried forward, and rest every scientific conclusion on
+the validation stage. Finish with a brief conclusion about whether the second spray pays off.

@@ -1,0 +1,44 @@
+Build one complete, self-contained small analysis project for the study described below. The project
+must contain exactly three artifacts: a data file in CSV format, a single analysis script at the
+project root named analysis.py written in Python, and a short written report named report.md. Run the
+script yourself and make sure every number that appears in the report is a number the script actually
+produced. Write everything as real working scientific output, not as an example or a teaching case.
+
+Study
+A respiratory service compares two delivery formats of pulmonary rehabilitation for adults with stable
+chronic obstructive pulmonary disease: a supervised centre-based programme and a home-based programme
+with remote support. Seventy-four patients take part, thirty-seven in each format, and each patient is
+assessed once at the end of an eight-week programme.
+
+The protocol declared, in advance and in this order, a family of four outcomes, each measured once per
+patient:
+1. Six-minute walk distance in metres, typically between 180 and 520.
+2. COPD assessment test score on a zero to forty scale where higher is worse, typically between 8 and 34.
+3. Quadriceps isometric peak torque in newton metres, typically between 40 and 140.
+4. Thirty-second sit-to-stand repetitions, typically between 6 and 26.
+
+Data file
+One row per patient, one column per outcome, plus an identifier column and a group column holding
+exactly two values. Every patient has a value for every outcome; there are no empty cells. Use
+lower-case column names with underscores: patient_id, program_group, six_min_walk_m, cat_score,
+quad_torque_nm, sit_to_stand_reps. The program_group column holds only the two values centre_based and
+home_based. Invent realistic values with plausible within-group spread and a modest difference between
+formats on some outcomes but not all of them.
+
+Analysis
+Compare the two programme formats on each of the four declared outcomes with a standard two-group
+significance test for independent samples, and report each group's mean and standard deviation for
+each outcome.
+
+Control the error rate across the declared family properly: collect all four p-values in the declared
+order and adjust the complete family together. Perform that adjustment with a specialist third-party
+Python statistics package that is not either of the two mainstream Python statistics libraries most
+analysts reach for first; install it as part of the project if needed. Every significance verdict must
+come only from the adjusted values that package returns, judged at a family-wise level of 0.05.
+
+Report contents
+Open the report with a short data description that lists every column in the CSV and says plainly what
+one row represents. Then give the group summaries, and for each of the four outcomes in declared order
+its raw p-value, its adjusted p-value, and its verdict. State plainly that the whole declared family
+was adjusted together and that the conclusions rest on the adjusted values. Finish with a brief
+clinical conclusion about whether the home-based format is a reasonable alternative.

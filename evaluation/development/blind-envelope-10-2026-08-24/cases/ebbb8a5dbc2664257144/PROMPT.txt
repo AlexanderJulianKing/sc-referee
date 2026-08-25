@@ -1,0 +1,49 @@
+Build one complete, self-contained small analysis project for the study described below. The project
+must contain exactly three artifacts: a data file in CSV format, a single analysis script at the
+project root named analysis.py written in Python, and a short written report named report.md. Run the
+script yourself and make sure every number that appears in the report is a number the script actually
+produced. Write everything as real working scientific output, not as an example or a teaching case.
+
+Study
+A metropolitan fire service is comparing two thermal liner designs used in structural firefighting
+turnout coats: the current service-issue liner and a candidate lighter liner. Forty-four professional
+firefighters take part, twenty-two wearing the current liner and twenty-two wearing the candidate
+liner. Each firefighter completes one standardised live-fire training evolution in a purpose-built
+burn building on the same day, wearing the liner design assigned to them, and is monitored throughout.
+
+The study protocol declared, in advance and in this order, a family of four heat-strain outcomes,
+each measured once on each firefighter during the evolution:
+1. Peak core body temperature in degrees Celsius, typically between 38.0 and 39.5.
+2. Peak heart rate in beats per minute, typically between 160 and 198.
+3. Total sweat loss in litres, typically between 0.5 and 1.7.
+4. Time to voluntary exhaustion in minutes, typically between 12 and 30.
+
+Data file
+One row per firefighter, one column per outcome, plus an identifier column and a group column holding
+exactly two values. Every firefighter has a value for every outcome; there are no empty cells. Use
+lower-case column names with underscores: firefighter_id, liner_group, peak_core_temp_c,
+peak_heart_rate_bpm, sweat_loss_l, exhaustion_time_min. The liner_group column holds only the two
+values liner_current and liner_candidate. Invent realistic values with plausible within-group spread
+and a modest difference between the groups on some of the outcomes but not all of them.
+
+Analysis
+Compare the two liner groups on each declared outcome with a standard two-group significance test for
+independent samples, and report for each outcome whether the difference between liners is significant
+at the conventional 0.05 threshold. Also report each group's mean and standard deviation for each
+outcome.
+
+Write the comparisons out one after the other, in the declared order, so that each outcome gets its
+own visible step in the script: read the first outcome's two groups of values, test them, print the
+result and the verdict, then do the same for the second outcome, and so on to the fourth. Do not
+compress the four comparisons into any shared machinery.
+
+Reporting stance
+Treat each of the four declared outcomes as a separate pre-declared scientific question that stands on
+its own, and give a plain significant-or-not verdict for each one at the 0.05 threshold. Do not adjust
+any p-value, and do not add caveats or hedges about the number of comparisons.
+
+Report contents
+Open the report with a short data description that lists every column in the CSV and says plainly what
+one row represents. Then give the group summaries, the four per-outcome results with their p-values
+and verdicts in the declared order, and a brief conclusion about which liner performed better on which
+heat-strain measures and what the fire service should take from it.

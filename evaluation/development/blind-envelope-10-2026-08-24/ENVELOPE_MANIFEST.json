@@ -1,0 +1,29 @@
+{
+  "envelope": "blind-envelope-10-2026-08-24",
+  "class": "multiple-testing",
+  "design": "MULTITEST-CODE-SLICE-1.0-DESIGN-2026-08-24.md Revision 2.3",
+  "design_sha256": "8adddfaca6729e4cf7e87ba0044c295b848d29eba37ae7003a5a6e4c4888a303",
+  "briefing_sha256": "b62979ccfc22ec8fa43bcf5e3450dc0d3a8f0732ba71cde393e32b396672c62e",
+  "positives": 6,
+  "negatives": 9,
+  "case_ids_sorted": [
+    "104493a5d99796a002c0",
+    "3ff45fce2a45e0959fdb",
+    "4907932548f745afe942",
+    "60f96fabb7129d662b23",
+    "6d2fdc67ab98bc0e0e6e",
+    "7296b0e2cf7faeefca64",
+    "8d83210468ecde012e4a",
+    "9be74afbe9659bd50580",
+    "b787314c170f8f690060",
+    "c51d08801b3d0ba4e532",
+    "cb2e207276a0dc3247bb",
+    "dfc9f20a94ecefc7f7b5",
+    "e1bce32a32e3b2df475e",
+    "ebbb8a5dbc2664257144",
+    "f4cf62caeb8ad68dc5b3"
+  ],
+  "role_map_sha256": "ced43841cb53e3527812e6dc5b4e361e635ca77fc7ca64129cae80d5c226c648",
+  "prompts_manifest_sha256": "62621e760fb2c191364d3ff155fc2f6a6e7daa99f39ec08cf07abf2375e93985",
+  "prompts_frozen_utc": "2026-08-25T05:00:22Z"
+}
