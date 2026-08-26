@@ -308,6 +308,38 @@ def test_opened_envelope_adapter_oracle_and_replay(
     assert replayed["findings"] == []
 
 
+@pytest.mark.parametrize(
+    ("case_id", "expected"),
+    [
+        ("ebbb8a5dbc2664257144", "authorized-reader-lineage-unavailable"),
+        ("104493a5d99796a002c0", "candidate:none"),
+        ("3ff45fce2a45e0959fdb", "candidate:none"),
+        ("7296b0e2cf7faeefca64", "candidate:none"),
+        ("c51d08801b3d0ba4e532", "candidate:strict_subset"),
+        ("f4cf62caeb8ad68dc5b3", "candidate:strict_subset"),
+        ("cb2e207276a0dc3247bb", "covered:complete"),
+        ("9be74afbe9659bd50580", "unresolved-decision-threshold"),
+        ("b787314c170f8f690060", "unresolved-manual-correction-present"),
+        ("60f96fabb7129d662b23", "extra-registered-test-outside-authorized-family"),
+        ("8d83210468ecde012e4a", "test-battery-cardinality-unresolved"),
+        ("4907932548f745afe942", "authorized-family-test-census-incomplete"),
+        ("6d2fdc67ab98bc0e0e6e", "statistics-api-imported-outside-analysis-py"),
+        ("dfc9f20a94ecefc7f7b5", "test-battery-cardinality-unresolved"),
+        ("e1bce32a32e3b2df475e", "unresolved-decision-threshold"),
+    ],
+)
+def test_envelope_10_adapter_oracle_and_replay(
+    case_id: str, expected: str, schema_root: Path, tmp_path: Path
+) -> None:
+    test_opened_envelope_adapter_oracle_and_replay(
+        _ROOT,
+        case_id,
+        expected,
+        schema_root,
+        tmp_path,
+    )
+
+
 def test_historical_e10_artifact_anchor_is_immutable() -> None:
     expected = {
         "AUDIT_RESULTS.json": "sha256:6bfd70dda4d7977b1ad3e1729722179f03381714c7fef74e9781091752ca6b5b",
