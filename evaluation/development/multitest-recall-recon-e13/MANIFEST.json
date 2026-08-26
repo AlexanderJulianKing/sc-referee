@@ -1,0 +1,46 @@
+{
+  "profile": "multitest-recall-recon-e13-artifacts-v1",
+  "created_utc": "2026-08-26T23:00:00Z",
+  "detector_version": "2.2.0",
+  "sealed_e13_audit_results_sha256": "dce37ab885bf077ee29692bfe00680ae6d21c1d7ead8559539d62061c200ec76",
+  "execution_counts": {
+    "real_adapter_ladder_rungs": 12,
+    "none_flip_cases_per_prototype": 67,
+    "none_flip_prototypes": 3,
+    "targeted_correct_analysis_attacks": 4
+  },
+  "files": {
+    "fa_e13.py": {
+      "bytes": 2320,
+      "sha256": "5a5d3fd1df781c5364d5aad09416c84de6f354ccd5ba5ff0cabd70e8c6a78799"
+    },
+    "fa_results.json": {
+      "bytes": 500,
+      "sha256": "b275ce2f81de285d928b63aaa83f3e4d7d1687e5cd862867939673ffd47f89dc"
+    },
+    "h.py": {
+      "bytes": 7240,
+      "sha256": "7bb8a2e63683528ae5065f82ad81129d192b7d228314228dfe3af8d444c69df0"
+    },
+    "ladder_results.json": {
+      "bytes": 5520,
+      "sha256": "8a63709717e7f3c06e60cfa7aba749d35d913039995e3908083c873974563465"
+    },
+    "ladders.py": {
+      "bytes": 6142,
+      "sha256": "0fa2fd1acbb7abf443c6284636d9f15b8d25daf0153c63181a9d16de8a8bacce"
+    },
+    "prototypes.py": {
+      "bytes": 7094,
+      "sha256": "429061ba9ba5eb16224aebc0dccab40a0033a4dff43fc8aa5d51fce40bf92154"
+    },
+    "sweep.py": {
+      "bytes": 4594,
+      "sha256": "92bfe3f23bfdac08b6063b09825cabd904abd334c5253839d17d5380da33c9fd"
+    },
+    "sweep_results.json": {
+      "bytes": 8489,
+      "sha256": "19e9be447a92417c2cc2ee0b09558a0928f64877addf834ada52458279b5c052"
+    }
+  }
+}

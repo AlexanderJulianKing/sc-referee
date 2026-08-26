@@ -1,0 +1,174 @@
+{
+  "adapter_version": "2.2.0",
+  "ladders": {
+    "P2": [
+      {
+        "authorized_count": null,
+        "candidate_records": 0,
+        "corrected_positions": null,
+        "finding_count": 0,
+        "mutation": "sealed source",
+        "outcome": [
+          "abstain",
+          "extra-registered-test-outside-authorized-family"
+        ],
+        "rung": "P2-r0-real",
+        "source_sha256": "9a42da5b2f9531b4856c816a14b56c0e9ae5397f3f15a28d48876434a98b86ca"
+      },
+      {
+        "authorized_count": null,
+        "candidate_records": 0,
+        "corrected_positions": null,
+        "finding_count": 0,
+        "mutation": "delete only the duplicate summary family pass",
+        "outcome": [
+          "abstain",
+          "authorized-reader-lineage-unavailable"
+        ],
+        "rung": "P2-r1-one-family-pass",
+        "source_sha256": "acab5f59e2ff6d88d0a3decdca89d57646c599ac9dd5d4c9b15c3d228961e6f5"
+      },
+      {
+        "authorized_count": 6,
+        "candidate_records": 1,
+        "corrected_positions": [],
+        "finding_count": 0,
+        "mutation": "inline only the static local path alias",
+        "outcome": [
+          "candidate",
+          "none"
+        ],
+        "rung": "P2-r2-direct-reader-path",
+        "source_sha256": "1c77a12dc10c94355f93adf9854ef063a5687c41a64cdc5fdd20cf7a0b620247"
+      }
+    ],
+    "P5": [
+      {
+        "authorized_count": null,
+        "candidate_records": 0,
+        "corrected_positions": null,
+        "finding_count": 0,
+        "mutation": "sealed source",
+        "outcome": [
+          "abstain",
+          "authorized-reader-lineage-unavailable"
+        ],
+        "rung": "P5-r0-real",
+        "source_sha256": "950a7386fc7c548f42943183266297d275674f98c1bf74c9b1fa217caa6a4419"
+      },
+      {
+        "authorized_count": null,
+        "candidate_records": 0,
+        "corrected_positions": null,
+        "finding_count": 0,
+        "mutation": "inline only the static local path alias",
+        "outcome": [
+          "abstain",
+          "unresolved-manual-correction-present"
+        ],
+        "rung": "P5-r1-direct-reader-path",
+        "source_sha256": "4158aa719358f578f532c29c02e2da1c152c96ad8f38753e5c0080e66f8cf2f8"
+      },
+      {
+        "authorized_count": 7,
+        "candidate_records": 1,
+        "corrected_positions": [
+          0,
+          1
+        ],
+        "finding_count": 0,
+        "mutation": "replace only the pure two-string verdict-helper transport with admitted direct If sinks",
+        "outcome": [
+          "candidate",
+          "strict_subset"
+        ],
+        "rung": "P5-r2-direct-verdict-rendering",
+        "source_sha256": "56694225fd39aef14792d1adf5f29487d8460c0dba7ff6de0a2c33bc921dc4b4"
+      }
+    ],
+    "P6": [
+      {
+        "authorized_count": null,
+        "candidate_records": 0,
+        "corrected_positions": null,
+        "finding_count": 0,
+        "mutation": "sealed source",
+        "outcome": [
+          "abstain",
+          "authorized-reader-lineage-unavailable"
+        ],
+        "rung": "P6-r0-real",
+        "source_sha256": "413eced1287568684822e44c77c5c65aa6301c1a564ebb7eb2d7e54b3e1484fc"
+      },
+      {
+        "authorized_count": null,
+        "candidate_records": 0,
+        "corrected_positions": null,
+        "finding_count": 0,
+        "mutation": "inline only the static local path alias",
+        "outcome": [
+          "abstain",
+          "unresolved-manual-correction-present"
+        ],
+        "rung": "P6-r1-direct-reader-path",
+        "source_sha256": "d7e713263db638f6fbbcd285c08190e2af9db9e8a71c635349a06a2f2070fd64"
+      },
+      {
+        "authorized_count": null,
+        "candidate_records": 0,
+        "corrected_positions": null,
+        "finding_count": 0,
+        "mutation": "change only the corrected-membership List to Set",
+        "outcome": [
+          "abstain",
+          "analysis-scope-structure-unsupported"
+        ],
+        "rung": "P6-r2-set-membership",
+        "source_sha256": "392a7e006a346bd38eae52ce788f7ff44222163681de9e261a083a7fa119e7a6"
+      },
+      {
+        "authorized_count": null,
+        "candidate_records": 0,
+        "corrected_positions": null,
+        "finding_count": 0,
+        "mutation": "remove only the set's presentation-order iteration",
+        "outcome": [
+          "abstain",
+          "analysis-scope-structure-unsupported"
+        ],
+        "rung": "P6-r3-membership-only-set",
+        "source_sha256": "e1fa12ccd3009336878d0e83acb59b8936ae6be8e89c937503bd56b7ea7de25c"
+      },
+      {
+        "authorized_count": null,
+        "candidate_records": 0,
+        "corrected_positions": null,
+        "finding_count": 0,
+        "mutation": "replace only len(CORRECTED_OUTCOMES) with its literal subset size 3",
+        "outcome": [
+          "abstain",
+          "unresolved-manual-correction-present"
+        ],
+        "rung": "P6-r4-literal-subset-size",
+        "source_sha256": "29bb711fe34069b2c3b3d918e41d04698dc977ca1747505500756993fe35c7e4"
+      },
+      {
+        "authorized_count": 5,
+        "candidate_records": 1,
+        "corrected_positions": [
+          0,
+          1,
+          2
+        ],
+        "finding_count": 0,
+        "mutation": "replace only multiplier 3 with the recognized full-family factor 5",
+        "outcome": [
+          "candidate",
+          "strict_subset"
+        ],
+        "rung": "P6-r5-full-family-factor-control",
+        "source_sha256": "6eb30747c9d91cd52aabdeb58a0cc04b8fcd10d4245384f6b130417f46a29d10"
+      }
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "adapter_version": "2.2.0",
+  "prototype": "D-combined",
+  "results": {
+    "correct-reader-local-path-N1": [
+      "abstain",
+      "correction-family-lineage-unresolved"
+    ],
+    "correct-reader-local-path-N9": [
+      "abstain",
+      "unresolved-decision-threshold"
+    ],
+    "correct-terminal-clone-preregistered-001-N5": [
+      "abstain",
+      "unresolved-decision-threshold"
+    ],
+    "correct-terminal-clone-whole-family-bonferroni": [
+      "covered",
+      "complete"
+    ]
+  }
+}
