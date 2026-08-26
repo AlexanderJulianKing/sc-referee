@@ -1,0 +1,259 @@
+{
+  "0ec89f70a9776d1a1931": {
+    "csv": "scorpions.csv",
+    "group": "group",
+    "outcomes": [
+      "body_mass_g",
+      "haemolymph_protein_g_l",
+      "metabolic_rate_ml_o2_h"
+    ],
+    "skipped": [
+      [
+        "non-numeric",
+        "scorpion_id"
+      ]
+    ]
+  },
+  "190ca375ac7c481c3e08": {
+    "csv": "participants.csv",
+    "group": "group",
+    "outcomes": [
+      "mvpa_min_day",
+      "resting_hr_bpm",
+      "sleep_efficiency_pct",
+      "steps_day",
+      "pss_score"
+    ],
+    "skipped": [
+      [
+        "non-numeric",
+        "participant_id"
+      ]
+    ]
+  },
+  "45c4b9a19d0a630f1cb0": {
+    "csv": "bread_study_data.csv",
+    "group": "group",
+    "outcomes": [
+      "stool_freq_per_week",
+      "transit_time_h",
+      "ldl_mmol_l",
+      "insulin_pmol_l",
+      "butyrate_mmol_kg"
+    ],
+    "skipped": [
+      [
+        "non-numeric",
+        "participant_id"
+      ]
+    ]
+  },
+  "54667dd7c39067c8c2c8": {
+    "csv": "pepper_lighting_trial.csv",
+    "group": "group",
+    "outcomes": [
+      "yield_kg",
+      "fruit_mass_g",
+      "wall_thickness_mm",
+      "brix",
+      "ascorbic_mg_100g",
+      "leaf_area_m2",
+      "days_to_harvest"
+    ],
+    "skipped": [
+      [
+        "non-numeric",
+        "plant_id"
+      ]
+    ]
+  },
+  "6108263527580cd01608": {
+    "csv": "ra_baseline_markers.csv",
+    "group": "group",
+    "outcomes": [
+      "crp_mg_l",
+      "esr_mm_h",
+      "anti_ccp_u_ml",
+      "rf_iu_ml",
+      "calprotectin_ng_ml",
+      "vitd_nmol_l"
+    ],
+    "skipped": [
+      [
+        "non-numeric",
+        "patient_id"
+      ],
+      [
+        "second-two-valued",
+        "stage"
+      ]
+    ]
+  },
+  "62aa3748aa0c7c2607d3": {
+    "csv": "mobilisation_trial.csv",
+    "group": "group",
+    "outcomes": [
+      "walk_distance_m",
+      "length_of_stay_days",
+      "mip_cmh2o",
+      "pain_nrs",
+      "days_to_stairs"
+    ],
+    "skipped": [
+      [
+        "non-numeric",
+        "patient_id"
+      ]
+    ]
+  },
+  "678e94e79226936fd647": {
+    "csv": "urchin_feeding_trial.csv",
+    "group": "group",
+    "outcomes": [
+      "gonad_index_pct",
+      "gonad_colour_b",
+      "test_diameter_mm",
+      "body_mass_g",
+      "gonad_firmness_n"
+    ],
+    "skipped": [
+      [
+        "non-numeric",
+        "urchin_id"
+      ]
+    ]
+  },
+  "68d1a6f5b1ab70f2650a": {
+    "csv": "allergy_spray_trial.csv",
+    "group": "group",
+    "outcomes": [
+      "tnss_total",
+      "pnif_l_min",
+      "disturbed_nights",
+      "tos_total",
+      "rqlq_total"
+    ],
+    "skipped": [
+      [
+        "non-numeric",
+        "patient_id"
+      ]
+    ]
+  },
+  "7fd5f9dcd4097c1e5a03": {
+    "csv": "panel_data.csv",
+    "group": "group",
+    "outcomes": [
+      "overall_liking",
+      "sweetness",
+      "thickness",
+      "cereal_off_note",
+      "purchase_intent"
+    ],
+    "skipped": [
+      [
+        "non-numeric",
+        "panellist_id"
+      ]
+    ]
+  },
+  "c37c0fa6e462a22cb6d5": {
+    "csv": "back_pain_outcomes.csv",
+    "group": "group",
+    "outcomes": [
+      "pain_nrs",
+      "rmdq_score",
+      "daily_steps",
+      "sts_reps"
+    ],
+    "skipped": [
+      [
+        "non-numeric",
+        "participant_id"
+      ]
+    ]
+  },
+  "db193771248850b81b25": {
+    "csv": "carcass_rinse_data.csv",
+    "group": "group",
+    "outcomes": [
+      "campylobacter_log_cfu",
+      "aerobic_log_cfu",
+      "ecoli_log_cfu",
+      "surface_temp_c"
+    ],
+    "skipped": [
+      [
+        "non-numeric",
+        "carcass_id"
+      ]
+    ]
+  },
+  "e07a6f2a895079b53b8c": {
+    "csv": "juice_quality.csv",
+    "group": "group",
+    "outcomes": [
+      "ascorbic_acid_mg_100ml",
+      "cloud_stability_pct",
+      "browning_index",
+      "plate_count_log_cfu"
+    ],
+    "skipped": [
+      [
+        "non-numeric",
+        "bottle_id"
+      ]
+    ]
+  },
+  "e28a9537b07c74d21838": {
+    "csv": "guinea_pig_hay_study.csv",
+    "group": "group",
+    "outcomes": [
+      "hay_intake_g_day",
+      "body_weight_g",
+      "faecal_output_g_day",
+      "faecal_particle_mm",
+      "chewing_min_day",
+      "occlusal_angle_deg"
+    ],
+    "skipped": [
+      [
+        "non-numeric",
+        "animal_id"
+      ]
+    ]
+  },
+  "f256af2f5c5d98f37e65": {
+    "csv": "runoff_bays.csv",
+    "group": "group",
+    "outcomes": [
+      "tss_mg_l",
+      "zinc_ug_l",
+      "peak_volume_l",
+      "runoff_temp_c"
+    ],
+    "skipped": [
+      [
+        "non-numeric",
+        "bay_id"
+      ]
+    ]
+  },
+  "f9ce4de5e21d9015ecd9": {
+    "csv": "voice_outcomes.csv",
+    "group": "group",
+    "outcomes": [
+      "mpt_s",
+      "jitter_pct",
+      "sff_hz",
+      "vfi_total",
+      "dryness_vas"
+    ],
+    "skipped": [
+      [
+        "non-numeric",
+        "operator_id"
+      ]
+    ]
+  }
+}

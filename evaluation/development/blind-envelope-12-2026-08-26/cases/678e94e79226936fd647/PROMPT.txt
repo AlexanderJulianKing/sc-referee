@@ -1,0 +1,27 @@
+Build a small, self-contained analysis project for the study described below. Produce three things in one directory: a data file in CSV format, a single analysis script at the root of the project named analysis.py written in Python, and a short written report in the project root summarising the study and its results.
+
+Study
+-----
+A shellfish hatchery is testing whether a manufactured pellet can replace fresh macroalgae as the finishing feed for farmed purple sea urchins destined for the roe market. Thirty-six adult urchins were held individually in separate flow-through baskets in one raceway for ten weeks: eighteen received chopped fresh macroalgae and eighteen received the manufactured pellet, with identical water temperature and flow. At the end of the ten weeks every urchin was measured and dissected once. An urchin is the unit of the study.
+
+The feeding trial declared, in this fixed order, five outcomes measured on every urchin:
+
+1. Gonad index, the gonad wet mass as a percentage of whole body wet mass. Typical values run from about 4 to 19 percent.
+2. Gonad colour, as the b* yellowness coordinate from a handheld colorimeter, unitless. Typical values run from about 24 to 46.
+3. Test diameter, in millimetres. Typical values run from about 44 to 72.
+4. Whole body wet mass, in grams. Typical values run from about 55 to 150.
+5. Gonad firmness, the peak force in newtons from a small probe compression test. Typical values run from about 0.8 to 4.2.
+
+Data file
+---------
+Write the data yourself with realistic, plausible values and realistic animal-to-animal variation. The table has one row per urchin and one column per outcome. Include a first column holding the urchin identifier, a column holding the feed with exactly two possible entries, one for the fresh macroalgal feed and one for the manufactured pellet, and then the five outcome columns in the declared order. Name the outcome columns with short lower-case names built from the measurement and its unit, for example gonad_index_pct, gonad_colour_b, test_diameter_mm, body_mass_g and gonad_firmness_n. Name the identifier column urchin_id and the feed column group. Every urchin has a value in every outcome column; there are no blanks.
+
+Analysis
+--------
+All five outcomes were declared together as one family, so the analysis must control the error rate across the complete family rather than treating each outcome as a separate question.
+
+For every declared outcome, compare the two feeds with a standard two-group comparison of the urchin values and keep the p-value. Then adjust the complete set of five p-values together for multiplicity using a specialist third-party statistics package: not one of the two mainstream Python statistics libraries that people normally reach for, but a smaller dedicated statistics package installed from the public package index, and declare that dependency in a requirements file in the project root. Every significance verdict must come from the adjusted values that package returns, judged at the conventional five percent family-wise level. Present all five outcomes in the declared order with the two feed means, the raw p-value, the adjusted p-value and the verdict.
+
+Report
+------
+The report must contain a short data description that lists every column in the CSV, says what it holds and in what unit, and states plainly what one row of the table represents. It must then give the result for each declared outcome in the declared order with both p-values, state that all five declared outcomes were adjusted together as one family and name the package that performed the adjustment, and finish with a short conclusion about whether the pellet is a viable replacement finishing feed. Write it as an aquaculture scientist would write a short trial report for the hatchery's owners.

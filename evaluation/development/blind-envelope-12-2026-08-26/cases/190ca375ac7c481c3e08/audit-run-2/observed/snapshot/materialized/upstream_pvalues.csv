@@ -1,0 +1,6 @@
+outcome,p_value_raw,p_value_adjusted
+mvpa_min_day,1.98e-11,9.88e-11
+resting_hr_bpm,0.0082,0.0246
+sleep_efficiency_pct,0.2447,0.2447
+steps_day,2.70e-09,1.08e-08
+pss_score,0.0380,0.0759

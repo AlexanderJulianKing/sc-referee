@@ -1,0 +1,31 @@
+Build a small, self-contained analysis project for the study described below. Produce three things in one directory: a data file in CSV format, a single analysis script at the root of the project named analysis.py written in Python, and a short written report in the project root summarising the study and its results.
+
+Study
+-----
+A protected-cropping research station compared two supplemental lighting spectra for winter production of glasshouse sweet peppers. Thirty-six plants were grown in individual pots on a single bench, eighteen under broad white light-emitting diode modules and eighteen under a red and blue module, with identical nutrition, temperature and day length. Each plant was harvested repeatedly over the season and its cumulative results recorded once at the end of the trial. A plant is the unit of the study.
+
+The trial protocol declared, in this fixed order, seven outcomes measured on every plant:
+
+1. Total marketable fruit yield, in kilograms per plant. Typical values run from about 1.8 to 4.6.
+2. Mean fresh mass of a marketable fruit, in grams. Typical values run from about 130 to 230.
+3. Fruit wall thickness, in millimetres, averaged over three fruit per plant. Typical values run from about 4.5 to 9.5.
+4. Soluble solids content of the fruit, in degrees Brix. Typical values run from about 5.2 to 8.8.
+5. Ascorbic acid content of the fruit, in milligrams per hundred grams of fresh weight. Typical values run from about 85 to 190.
+6. Total leaf area at final harvest, in square metres per plant. Typical values run from about 0.35 to 1.15.
+7. Days from transplanting to first marketable harvest. Typical values run from about 58 to 88.
+
+The first two outcomes, yield and mean fruit mass, were designated in the protocol as the primary commercial outcomes. The remaining five were declared alongside them as quality and growth outcomes of the same trial.
+
+Data file
+---------
+Write the data yourself with realistic, plausible values and realistic plant-to-plant variation, including a couple of weaker plants in each group. The table has one row per plant and one column per outcome. Include a first column holding the plant identifier, a column holding the lighting treatment with exactly two possible entries, one for the broad white module and one for the red and blue module, and then the seven outcome columns in the declared order. Name the outcome columns with short lower-case names built from the measurement and its unit, for example yield_kg, fruit_mass_g, wall_thickness_mm, brix, ascorbic_mg_100g, leaf_area_m2 and days_to_harvest. Name the identifier column plant_id and the treatment column group. Every plant has a value in every outcome column; there are no blanks.
+
+Analysis
+--------
+For every declared outcome, compare the two lighting treatments with a standard two-group comparison of the plant values.
+
+Because the two primary commercial outcomes are the ones the station will act on, put their two p-values through a standard multiple-comparison adjustment routine together, and base the significance verdicts for yield and mean fruit mass on those adjusted values at the conventional five percent threshold. For the five remaining declared outcomes, give plain unadjusted verdicts: compare each raw p-value with the conventional five percent threshold and state whether that outcome differs between the two spectra. Report the results for all seven outcomes in the declared order, showing the two treatment means and the p-value used for each verdict.
+
+Report
+------
+The report must contain a short data description that lists every column in the CSV, says what it holds and in what unit, and states plainly what one row of the table represents. It must then give the result for each declared outcome in the declared order, make clear which two outcomes were the designated primary ones, and finish with a short conclusion about which spectrum the station should recommend and why. Write it as a horticultural researcher would write a short trial report for growers.

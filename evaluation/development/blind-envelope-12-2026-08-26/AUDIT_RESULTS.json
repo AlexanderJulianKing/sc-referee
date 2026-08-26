@@ -1,0 +1,195 @@
+{
+  "envelope": "blind-envelope-12-2026-08-26",
+  "class": "multiple-testing",
+  "detector": "code_csv_multiple_testing 2.1.0 (development lane), repo 8181add",
+  "design_lineage": "2.0 Rev 2 + 2.1 Rev 1a; corpus-validated 19/25 before this envelope",
+  "hard_stops": {
+    "negative_candidates": "0/9 PASS",
+    "findings_anywhere": "0 PASS",
+    "replay": "15/15 identical PASS",
+    "class_fa_window": "0 FA in all 45 available class-specific blind cases PASS"
+  },
+  "first_contact_recall": "2/6 - THE FIRST BLIND CATCHES IN THE CLASS (P2 explicit-calls, P4 helper-family)",
+  "positive_misses": {
+    "P1": "unresolved-pvalue-consumer",
+    "P3": "test-battery-cardinality-unresolved",
+    "P5": "unresolved-pvalue-consumer",
+    "P6": "unresolved-manual-correction-present"
+  },
+  "blind_review_summary": {
+    "misstep_true": 7,
+    "misstep_false": 8,
+    "mismatches_vs_design": 1,
+    "note": "N6 (numpy-gate role) judged a misstep by the reviewer, same realization dispute as E10; detector abstained conservatively, no FA either way"
+  },
+  "class_tally": "latest-18 window (E10+E11+E12 positives): 2/18 caught; promotion needs 9/18 - next delta then E13/E14 must average >=3.5/6",
+  "recall_note": "Fresh authors sampled consumer/cardinality idioms outside the corpus distribution (the arrival phenomenon, expected). The four miss reasons feed the next recon; the opened cases join the development corpus.",
+  "scored_utc": "2026-08-26T10:38:53Z",
+  "cases": [
+    {
+      "case_id": "f9ce4de5e21d9015ecd9",
+      "role": "P1",
+      "designed_class": "positive",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "unresolved-pvalue-consumer",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "Five declared voice outcomes each compared by Welch t-test at unadjusted alpha = 0.05, with two significance claims. Script and report state no multiple-comparison adjustment was applied."
+    },
+    {
+      "case_id": "e07a6f2a895079b53b8c",
+      "role": "P2",
+      "designed_class": "positive",
+      "dev_outcome": "candidate",
+      "dev_reason_or_classification": "none",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "Four declared juice-quality outcomes each compared by two-sample t-test and judged at unadjusted alpha = 0.05, with three significance claims. Script and report state no adjustment is applied."
+    },
+    {
+      "case_id": "e28a9537b07c74d21838",
+      "role": "P3",
+      "designed_class": "positive",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "test-battery-cardinality-unresolved",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "Six declared outcomes each tested at unadjusted alpha = 0.05, yielding three significance claims including a borderline p = 0.047. The methods appendix states no multiple-comparison adjustment was applied."
+    },
+    {
+      "case_id": "0ec89f70a9776d1a1931",
+      "role": "P4",
+      "designed_class": "positive",
+      "dev_outcome": "candidate",
+      "dev_reason_or_classification": "none",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "Three declared scorpion outcomes each tested by Welch t-test and judged at unadjusted alpha = 0.05, with two significance claims. Script and report state no multiple-comparison adjustment of any kind was applied."
+    },
+    {
+      "case_id": "54667dd7c39067c8c2c8",
+      "role": "P5",
+      "designed_class": "positive",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "unresolved-pvalue-consumer",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "Partial correction. Holm covers only the two primary outcomes; the other five declared outcomes get unadjusted per-outcome significance verdicts at 0.05, and three are declared to differ on that basis."
+    },
+    {
+      "case_id": "68d1a6f5b1ab70f2650a",
+      "role": "P6",
+      "designed_class": "positive",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "unresolved-manual-correction-present",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "Partial correction. Only the two prescribing-relevant outcomes have p-values multiplied by five; the remaining three declared outcomes receive unadjusted per-outcome verdicts at 0.05, as the report admits."
+    },
+    {
+      "case_id": "45c4b9a19d0a630f1cb0",
+      "role": "N1",
+      "designed_class": "negative",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "unresolved-pvalue-consumer",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "All five declared outcomes passed in one call to statsmodels multipletests, whose default Holm-Sidak method controls family-wise error. Verdicts come only from adjusted p-values; reported adjusted values match that method."
+    },
+    {
+      "case_id": "f256af2f5c5d98f37e65",
+      "role": "N2",
+      "designed_class": "negative",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "unresolved-pvalue-consumer",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "Sidak per-comparison threshold computed in code from the family size: 1 - 0.95^(1/4) = 0.012741. All four declared outcomes judged against it, not against 0.05. Arithmetic checks out."
+    },
+    {
+      "case_id": "678e94e79226936fd647",
+      "role": "N3",
+      "designed_class": "negative",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "unresolved-manual-correction-present",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "All five declared outcomes adjusted together by the Holm step-down procedure via pingouin.multicomp at family-wise alpha = 0.05. Every verdict is read from adjusted p-values, none from raw ones."
+    },
+    {
+      "case_id": "c37c0fa6e462a22cb6d5",
+      "role": "N4",
+      "designed_class": "negative",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "authorized-family-test-census-incomplete",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "Hand-coded Holm-Bonferroni across all four declared outcomes with correct arithmetic and monotonicity; verdicts from adjusted p-values. The step-count sensitivity re-run is explicitly non-inferential and carries no verdict."
+    },
+    {
+      "case_id": "6108263527580cd01608",
+      "role": "N5",
+      "designed_class": "negative",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "test-battery-cardinality-unresolved",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "Pre-fixed discovery/validation split. Screening in the discovery half makes no claims; all confirmatory conclusions come from the validation half at a Bonferroni level of 0.05/3 = 0.0167."
+    },
+    {
+      "case_id": "db193771248850b81b25",
+      "role": "N6",
+      "designed_class": "negative",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "test-battery-cardinality-unresolved",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "The stage-one gate is an effect-size sum against an arbitrary cut-off, not a level-alpha test, and uses the same carcasses. Four per-outcome verdicts then run unadjusted at 0.05."
+    },
+    {
+      "case_id": "190ca375ac7c481c3e08",
+      "role": "N7",
+      "designed_class": "negative",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "authorized-family-test-census-incomplete",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "Correction performed upstream: all five declared outcomes adjusted together as one family (Holm), and every verdict read from the adjusted p-value at the 5 percent family-wise level. Raw p-values carry no verdict."
+    },
+    {
+      "case_id": "7fd5f9dcd4097c1e5a03",
+      "role": "N8",
+      "designed_class": "negative",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "authorized-family-test-census-incomplete",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "Family-wide control by max-statistic label permutation: 5000 shuffles, each contributing the largest absolute Welch t across all five outcomes. Every outcome judged against that single family-maximum distribution."
+    },
+    {
+      "case_id": "62aa3748aa0c7c2607d3",
+      "role": "N9",
+      "designed_class": "negative",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "test-battery-cardinality-unresolved",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "Pre-registered corrected threshold: the protocol fixed alpha = 0.01 as 0.05 divided by the family of five before enrolment. Arithmetic is valid and all five outcomes are judged against it."
+    }
+  ]
+}

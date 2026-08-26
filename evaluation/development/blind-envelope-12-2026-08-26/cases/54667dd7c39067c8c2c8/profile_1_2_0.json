@@ -1,0 +1,23 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "pepper_lighting_trial.csv",
+      "group_contrast_column": "group",
+      "outcome_columns": [
+        "yield_kg",
+        "fruit_mass_g",
+        "wall_thickness_mm",
+        "brix",
+        "ascorbic_mg_100g",
+        "leaf_area_m2",
+        "days_to_harvest"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

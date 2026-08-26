@@ -1,0 +1,34 @@
+Build a small, self-contained analysis project for the study described below. Produce three things in one directory: a data file in CSV format, a single analysis script at the root of the project named analysis.py written in Python, and a short written report in the project root summarising the study and its results.
+
+Study
+-----
+A rheumatology department is looking for baseline blood markers that separate patients with early rheumatoid arthritis who respond well to first-line therapy from those who do not. Fifty-six patients had a baseline blood sample stored before treatment started and were classified six months later, by the treating clinician and blinded to the assays, as responders or non-responders: twenty-nine responders and twenty-seven non-responders. Each patient contributes one baseline sample. A patient is the unit of the study.
+
+Before any assay was run, the statistician split the cohort into two halves of equal size by a fixed random allocation and recorded that split in the study database: a discovery half and a validation half, each containing both responders and non-responders in similar proportion. The split is fixed for the whole analysis and must be recorded in the data file as its own column with exactly two entries, one for the discovery half and one for the validation half.
+
+The protocol declared, in this fixed order, six baseline markers measured on every patient:
+
+1. C-reactive protein, in milligrams per litre. Typical values run from about 3 to 65.
+2. Erythrocyte sedimentation rate, in millimetres per hour. Typical values run from about 8 to 80.
+3. Anti-cyclic citrullinated peptide antibody, in units per millilitre. Typical values run from about 5 to 340.
+4. Rheumatoid factor, in international units per millilitre. Typical values run from about 8 to 220.
+5. Serum calprotectin, in nanograms per millilitre. Typical values run from about 900 to 6500.
+6. Serum 25-hydroxyvitamin D, in nanomoles per litre. Typical values run from about 20 to 95.
+
+Data file
+---------
+Write the data yourself with realistic, plausible values and realistic patient-to-patient variation. The table has one row per patient and one column per marker. Include a first column holding the patient identifier, a column holding the response status with exactly two possible entries, one for responders and one for non-responders, a column holding the pre-assigned half with exactly two possible entries, and then the six marker columns in the declared order. Name the marker columns with short lower-case names built from the marker and its unit, for example crp_mg_l, esr_mm_h, anti_ccp_u_ml, rf_iu_ml, calprotectin_ng_ml and vitd_nmol_l. Name the identifier column patient_id, the response column group and the split column stage. Every patient has a value in every marker column; there are no blanks.
+
+Analysis
+--------
+Run the two stages in order and keep them clearly separate in the script's output.
+
+Stage one, screening: using only the patients in the discovery half, compare responders with non-responders on each of the six declared markers with a standard two-group comparison, and carry forward as survivors the markers that look promising at a screening threshold you state in advance.
+
+Stage two, confirmation: using only the patients in the validation half, re-run the comparison for the surviving markers alone, and judge them at a level adjusted for the number of markers carried into the validation stage, so that the family error across the confirmatory tests is held at the conventional five percent level. A marker counts as confirmed only if it passes in the validation half at that adjusted level.
+
+Every claim the project makes about which markers separate responders from non-responders must rest on the validation stage. The discovery half results are reported as screening output only.
+
+Report
+------
+The report must contain a short data description that lists every column in the CSV, including the split column, says what each holds and in what unit, and states plainly what one row of the table represents. It must then describe the split-sample design and state that it was fixed before the assays were read, show the screening results and the confirmation results in separate sections, and rest the conclusions entirely on the validation stage, naming the adjusted level used there and how many markers it covered. Write it as a clinical researcher would write a short biomarker report.
