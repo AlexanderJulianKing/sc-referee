@@ -14569,10 +14569,6 @@ f96d961333ddc0800c3bf6c164ae7280d618ec6a38b3913bc7f82625b7ad3eb7  evaluation/dev
 b830b558dda3267a7db15793ed1afb5afdb99ccbe166162d08f7dee4575cdc1e  evaluation/development/blind-envelope-9-2026-08-23/cases/fd2f52a4099e1cbdfc8a/replay-run-1/report.html
 01d3c3d45288124788ed230c99de6d855054fd72b5e864760e1c8ea0b384a0fd  evaluation/development/blind-envelope-9-2026-08-23/cases/fd2f52a4099e1cbdfc8a/replay-run-1/semantic.lock.json
 60803ecf214b17cb7c82715214cdf3625edaeca67a2c283dc78ccde8b0ee4059  evaluation/development/blind-envelope-9-2026-08-23/cases/fe7eeea19d8fddd7811e/PROMPT.txt
-ab9343caf6bc8ede8364a5263da6cbb17cb20d0d259397ec0448619410101dbb  evaluation/development/blind-envelope-9-2026-08-23/cases/fe7eeea19d8fddd7811e/audit-run-1/audit 2.db
-fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb  evaluation/development/blind-envelope-9-2026-08-23/cases/fe7eeea19d8fddd7811e/audit-run-1/audit 2.db-shm
-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  evaluation/development/blind-envelope-9-2026-08-23/cases/fe7eeea19d8fddd7811e/audit-run-1/audit 2.db-wal
-9e28ade02745924d7dd378a1f6c14ed972e9066730461aedf3880b1124811d08  evaluation/development/blind-envelope-9-2026-08-23/cases/fe7eeea19d8fddd7811e/audit-run-1/audit.bundle 2.json
 d4cad99f95dbf6f69d9cf1ac94f08dd46c2edab288865c305a688c166b669991  evaluation/development/blind-envelope-9-2026-08-23/cases/fe7eeea19d8fddd7811e/audit-run-1/audit.bundle.json
 5d632c33a24e4e2053d1d3dab257994e97b17d6f9bf0bf6ef24115e9034a245a  evaluation/development/blind-envelope-9-2026-08-23/cases/fe7eeea19d8fddd7811e/audit-run-1/audit.db
 fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb  evaluation/development/blind-envelope-9-2026-08-23/cases/fe7eeea19d8fddd7811e/audit-run-1/audit.db-shm
@@ -14605,9 +14601,7 @@ c66888bb1a16761c426f6c9bee58bc076b0c38aec13069de6c37d23e2c10838a  evaluation/dev
 c6be7ce7c280e623f360f0dcee6da09b18b96358bbfee19fa70102fd4793821a  evaluation/development/blind-envelope-9-2026-08-23/cases/fe7eeea19d8fddd7811e/audit-run-1/observed/snapshot/materialized/report.md
 112babfc3e25c9aa2494f0ff306b342a4b8f6bdd327b720984f93e385374a69f  evaluation/development/blind-envelope-9-2026-08-23/cases/fe7eeea19d8fddd7811e/audit-run-1/observed/stage-result.jsonl
 8e4a3ef1c2040657f55cb5cc9789fcec15fe1c15707ff201996a94a451a5410e  evaluation/development/blind-envelope-9-2026-08-23/cases/fe7eeea19d8fddd7811e/audit-run-1/observed/variable.jsonl
-3128113ba1964316d4184d439d2978654cdf86c305a2c5bfed938dd0b7c54bc0  evaluation/development/blind-envelope-9-2026-08-23/cases/fe7eeea19d8fddd7811e/audit-run-1/report 2.html
 234fbac5fa19284bd8e6643617e1cb1b55d2113831c71953919da8363d6a829e  evaluation/development/blind-envelope-9-2026-08-23/cases/fe7eeea19d8fddd7811e/audit-run-1/report.html
-311393ced78445e5c06cec168b1608ff6bb21d58fecbb25ce9a6f3eb5ec2ddd5  evaluation/development/blind-envelope-9-2026-08-23/cases/fe7eeea19d8fddd7811e/audit-run-1/semantic.lock 2.json
 99fe4429a33877a0f7d6b299c3b17693a4cdfc63f79383e249d4563c87d9f1c0  evaluation/development/blind-envelope-9-2026-08-23/cases/fe7eeea19d8fddd7811e/audit-run-1/semantic.lock.json
 ded60ce1dc53408052fca05ce80e67b1eecd3ca7e9f2f696b10fcf37851d41ab  evaluation/development/blind-envelope-9-2026-08-23/cases/fe7eeea19d8fddd7811e/audit-run-2/audit.bundle.json
 8442714ac0f05d59c713c30adb2e4cec32748f25f262853adb4e2c12e9c67015  evaluation/development/blind-envelope-9-2026-08-23/cases/fe7eeea19d8fddd7811e/audit-run-2/audit.db
@@ -16274,7 +16268,6 @@ f9fe46669929c824dab5f7569ddbfb1ec9cc4bcfb06f654ff5793e2a1bc36768  evaluation/dev
 3ba8e2e4d9f50075aea50dbf672774e1c71e1d0d04d116212b5a17554237d09a  evaluation/development/dependence-growth-loop/batch-c/detector-run/runs/d674ebb8c31ed83be287/replay/report.html
 feb132289d0e65ac0d1be2e37e16177816a0da7e3b0d9168f2d7bb0d4c1bc839  evaluation/development/dependence-growth-loop/batch-c/detector-run/runs/d674ebb8c31ed83be287/replay/semantic.lock.json
 78e802ad905dbbe2df6a51c3975e10944656dc9798b33d6bd2ece445d8e66b71  evaluation/development/dependence-growth-loop/batch-c/review/REVIEW_LEDGER.json
-e2860ac9d3afe40c2adc7f36aad88b76ec7c170ae3ed15807b29e7fdcdc7432e  evaluation/development/dependence-growth-loop/batch-c/review/REVIEW_PROTOCOL 2.json
 a62f2ca899a8dac05732c8243e11f726dbba409120b232f7bb46d4a76d65e36a  evaluation/development/dependence-growth-loop/batch-c/review/REVIEW_PROTOCOL.json
 881eed7d66826398cf4e1929f8bdc9be211f691f6322d3938cd72eedc73cc03e  evaluation/development/dependence-growth-loop/batch-c/review/captures-primary-41cfd59360a1ca24ca4b/41cfd59360a1ca24ca4b/capture.manifest.json
 ea83b673ae798dab140fb92b5c468a52fcf163dcf1177763cd48e18c9c7b0329  evaluation/development/dependence-growth-loop/batch-c/review/captures-primary-41cfd59360a1ca24ca4b/41cfd59360a1ca24ca4b/packet.json
