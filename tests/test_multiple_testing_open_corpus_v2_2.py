@@ -13,7 +13,7 @@ from sc_referee.core.ids import canonical_json
 _ROOT = Path("evaluation/development/multitest-open-corpus-v1")
 
 
-def test_open_corpus_adapter_replay_is_custody_pinned_and_false_accusation_free(
+def test_open_corpus_is_byte_identical_to_v2_1(
     tmp_path: Path,
 ) -> None:
     labels = json.loads((_ROOT / "specs" / "labels.json").read_text(encoding="utf-8"))
@@ -27,6 +27,9 @@ def test_open_corpus_adapter_replay_is_custody_pinned_and_false_accusation_free(
     assert hashlib.sha256((_ROOT / "baseline_1_1.json").read_bytes()).hexdigest() == (
         "b2ab49cd1bea5fe27a9a738d380432fe8164facaa73096020f3c1a7f08165cf6"
     )
+    assert hashlib.sha256(
+        (_ROOT / "adapter_replay_records_v2_1.json").read_bytes()
+    ).hexdigest() == ("7c37669c8ccfdb0b754aa03ee1dbcee1dac78fa4bb44105e17c5d1886aaed502")
 
     namespace = runpy.run_path(str(_ROOT / "adapter_replay.py"))
     replay = cast(Callable[..., dict[str, dict[str, Any]]], namespace["replay_open_corpus"])
@@ -47,6 +50,11 @@ def test_open_corpus_adapter_replay_is_custody_pinned_and_false_accusation_free(
     assert observed["2.0.0"]["misstep_candidates"] == 2
     assert observed["2.1.0"]["correct_candidates"] == 0
     assert observed["2.1.0"]["misstep_candidates"] == 19
+    assert observed["2.2.0"]["correct_candidates"] == 0
+    assert observed["2.2.0"]["misstep_candidates"] == 19
+    assert canonical_json(observed["2.2.0"]["results"]) == canonical_json(
+        observed["2.1.0"]["results"]
+    )
     assert observed["2.0.0"]["results"]["spec-14"] == [
         "abstain",
         "test-operand-lineage-unresolved",

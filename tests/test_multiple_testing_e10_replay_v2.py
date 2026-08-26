@@ -32,6 +32,7 @@ from sc_referee.scientific_checks.registry import ScientificCheckRegistry
 
 _CHECK_ID = "check:authorized-complete-family-correction-over-code-test-battery"
 _ROOT = Path("evaluation/development/blind-envelope-10-2026-08-24")
+_E12_ROOT = Path("evaluation/development/blind-envelope-12-2026-08-26")
 _HISTORICAL_E10_DESIGN_DIGEST = (
     "sha256:8adddfaca6729e4cf7e87ba0044c295b848d29eba37ae7003a5a6e4c4888a303"
 )
@@ -281,6 +282,9 @@ def test_opened_envelope_adapter_oracle_and_replay(
         assert (
             observation["multiple_testing_evidence"]["correction_classification"] == classification
         )
+        if envelope_root == _E12_ROOT and case_id == "68d1a6f5b1ab70f2650a":
+            assert observation["multiple_testing_evidence"]["corrected_positions"] == [0, 1]
+            assert observation["multiple_testing_evidence"]["authorized_count"] == 5
         assert len(results) == 1
         assert results[0]["state"] == "evaluation_finding_candidate"
     elif expected == "covered:complete":
@@ -338,6 +342,88 @@ def test_envelope_10_adapter_oracle_and_replay(
         schema_root,
         tmp_path,
     )
+
+
+@pytest.mark.parametrize(
+    ("case_id", "expected"),
+    [
+        ("f9ce4de5e21d9015ecd9", "unresolved-pvalue-consumer"),
+        ("e07a6f2a895079b53b8c", "candidate:none"),
+        ("e28a9537b07c74d21838", "candidate:none"),
+        ("0ec89f70a9776d1a1931", "candidate:none"),
+        ("54667dd7c39067c8c2c8", "pvalue-family-collection-unresolved"),
+        ("68d1a6f5b1ab70f2650a", "candidate:strict_subset"),
+        ("45c4b9a19d0a630f1cb0", "unresolved-pvalue-consumer"),
+        ("f256af2f5c5d98f37e65", "unresolved-pvalue-consumer"),
+        ("678e94e79226936fd647", "unresolved-manual-correction-present"),
+        ("c37c0fa6e462a22cb6d5", "authorized-family-test-census-incomplete"),
+        ("6108263527580cd01608", "test-battery-cardinality-unresolved"),
+        ("db193771248850b81b25", "test-battery-cardinality-unresolved"),
+        ("190ca375ac7c481c3e08", "authorized-family-test-census-incomplete"),
+        ("7fd5f9dcd4097c1e5a03", "authorized-family-test-census-incomplete"),
+        ("62aa3748aa0c7c2607d3", "test-battery-cardinality-unresolved"),
+    ],
+)
+def test_e12_adapter_oracle(case_id: str, expected: str, schema_root: Path, tmp_path: Path) -> None:
+    test_opened_envelope_adapter_oracle_and_replay(
+        _E12_ROOT,
+        case_id,
+        expected,
+        schema_root,
+        tmp_path,
+    )
+
+
+def test_e12_adapter_record_and_custody_are_canonical_and_pinned() -> None:
+    replay_path = _E12_ROOT / "adapter_replay_records_v2_2.json"
+    replay_record = json.loads(replay_path.read_text(encoding="utf-8"))
+    assert replay_path.read_bytes().rstrip(b"\n") == canonical_json(replay_record).encode("utf-8")
+    assert replay_record["audit_results_digest"] == sha256_digest(
+        (_E12_ROOT / "AUDIT_RESULTS.json").read_bytes()
+    )
+    assert replay_record["role_map_digest"] == sha256_digest(
+        (_E12_ROOT / "ROLE_MAP.json").read_bytes()
+    )
+    assert len(replay_record["results"]) == 15
+
+    baseline = json.loads((_E12_ROOT / "AUDIT_RESULTS.json").read_text(encoding="utf-8"))
+    before = {
+        item["case_id"]: [
+            item["dev_outcome"],
+            item["dev_reason_or_classification"],
+        ]
+        for item in baseline["cases"]
+    }
+    after = {case_id: result[:2] for case_id, result in replay_record["results"].items()}
+    assert set(before) == set(after)
+    assert {case_id for case_id in before if before[case_id] != after[case_id]} == {
+        "e28a9537b07c74d21838",
+        "54667dd7c39067c8c2c8",
+        "68d1a6f5b1ab70f2650a",
+    }
+    roles = {item["case_id"]: item["designed_class"] for item in baseline["cases"]}
+    assert (
+        sum(
+            result[0] == "candidate"
+            for case_id, result in after.items()
+            if roles[case_id] == "positive"
+        )
+        == 4
+    )
+    assert not any(
+        result[0] == "candidate"
+        for case_id, result in after.items()
+        if roles[case_id] == "negative"
+    )
+    assert after["54667dd7c39067c8c2c8"] == [
+        "abstain",
+        "pvalue-family-collection-unresolved",
+    ]
+    assert replay_record["results"]["68d1a6f5b1ab70f2650a"] == [
+        "candidate",
+        "strict_subset",
+        {"authorized_count": 5, "corrected_positions": [0, 1]},
+    ]
 
 
 def test_historical_e10_artifact_anchor_is_immutable() -> None:

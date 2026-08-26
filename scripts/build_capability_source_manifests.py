@@ -1275,6 +1275,48 @@ def main() -> None:
         "docs/implementation/MULTITEST-CODE-SLICE-2.1-DESIGN-2026-08-25.md"
     )
     _upsert(detector_collection, "detector_id", multiple_testing_v2_1)
+    multiple_testing_v2_2 = deepcopy(multiple_testing_v2_1)
+    multiple_testing_v2_2["detector_version"] = "2.2.0"
+    multiple_testing_v2_2["coverage_contract"]["partially_covered_when"] = (
+        "Not used by version 2.2.0; incomplete or conflicted records remain not covered."
+    )
+    multiple_testing_v2_2["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_multiple_testing_conflict_v2_2.py"
+    )
+    multiple_testing_resource_v2_2 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v2_2.py"
+    )
+    multiple_testing_v2_2["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v2_2:"
+            "BoundedCodeCsvMultipleTestingConflictV2_2Detector"
+        ),
+        "implementation_digest": sha256_digest(multiple_testing_resource_v2_2.read_bytes()),
+    }
+    multiple_testing_v2_2["test_fixtures"] = {
+        "ambiguous": [
+            "tests/test_code_csv_multiple_testing_delta_v2_2.py::test_d2_refuses_lazy_family_call"
+        ],
+        "counterevidence": [
+            "tests/test_code_csv_multiple_testing_delta_v2_2.py::test_recon_false_accusation_fixtures_execute"
+        ],
+        "positive": ["tests/test_multiple_testing_e10_replay_v2.py::test_e12_adapter_oracle"],
+        "unsupported_path": [
+            "tests/test_code_csv_multiple_testing_delta_v2_2.py::test_d5_mutation_refuses_membership_oracle"
+        ],
+        "verified_good_negative": [
+            "tests/test_multiple_testing_open_corpus_v2_2.py::test_open_corpus_is_byte_identical_to_v2_1"
+        ],
+    }
+    multiple_testing_v2_2["validation"]["evaluation_ref"] = (
+        "docs/implementation/MULTITEST-CODE-SLICE-2.2-DESIGN-2026-08-26.md"
+    )
+    _upsert(detector_collection, "detector_id", multiple_testing_v2_2)
     feature_identity_resource = (
         ROOT / "src" / "sc_referee" / "detectors" / "feature_identifier_identity.py"
     )

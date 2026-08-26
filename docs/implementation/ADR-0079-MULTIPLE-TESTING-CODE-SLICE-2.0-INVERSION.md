@@ -86,3 +86,30 @@ lane component, wording object, grant, GrantPin, qualification, or Finding autho
 Revision 1a records that R5 exposes `spec-47`'s deeper
 `unresolved-decision-threshold` wall; the case remains an abstention and no candidate surface
 changes.
+
+## Delta 2.2 amendment
+
+The accepted delta design
+`docs/implementation/MULTITEST-CODE-SLICE-2.2-DESIGN-2026-08-26.md`, Revision 0a,
+has raw SHA-256 `64041f538ef64b4f1307702fa7c43b594dc745e10a93a30e572cdda8492a0a39` and
+advances only the development check, adapter, and detector to `2.2.0`. It adopts D2 statement-level
+family-call normalization, D3 exact contract-table cardinality, D5 immutable contract-header set
+membership, and D6's second invocation of the unchanged terminal-helper transformer. The global
+censuses continue to consume only the untouched source tree. D2 preserves a one-to-one dynamic
+occurrence map and evaluation count; D3 answers only the existing manual-correction family-size
+query; D5 is never an order, iteration, position, or cardinality source; and D6 is structurally
+idempotent.
+
+The one-argument unshadowed `sorted(OUTCOME_SET)` presentation read is an intentional design-time
+extension beyond the E12 recon summary. It is admitted only off every test, correction, p-value,
+and control slice and supplies no analyzable result. D5 admits only `ast.Set` displays, never a
+`frozenset(...)` call. Consequently, `analysis-scope-structure-unsupported` gains a second 2.2
+predicate for failed D5 set stability, alongside the 2.0 outcome-sequence-stability precedent.
+Occurrences of that reason string in 1.1, 2.0/2.1, and 2.2 name different predicates and must never
+be compared across versions as one measure.
+
+D1 and D4 remain withdrawn. In particular, presentation-helper inlining manufactured false
+decision/correction evidence in the executed recon; repeating the closed transformer is the safe
+ordering equivalent. The complete hand-Bonferroni D3 fixture and complete frozen-set D5 fixture
+resolve covered/complete, which are deliberate safe removals of conservative abstentions rather
+than new candidate surfaces.
