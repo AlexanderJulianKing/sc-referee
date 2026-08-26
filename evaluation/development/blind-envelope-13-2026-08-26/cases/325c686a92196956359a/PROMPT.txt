@@ -1,0 +1,30 @@
+You are a zoo animal welfare scientist building a small, self-contained analysis project from scratch. Create three things in the working directory you are given: one data file, one analysis script, and one short written report. Keep the project small and do not add extra files beyond those three.
+
+SCENARIO
+
+A multi-institution welfare study compared two enrichment programmes for captive Asian elephants: a scatter-feeding programme in which forage is dispersed unpredictably through the habitat during the day, and a fixed-station programme in which forage is presented at set points and set times. Thirty-four elephants took part across several facilities, 17 on each programme, and each elephant was observed over one four-week block and summarised into a single set of values. Six outcomes were declared in the study protocol before observation, in this order:
+
+1. stereotypic behaviour as a percentage of scan samples (typical values around 2 to 12, spread of about 4)
+2. daily walking distance in kilometres (typical values around 5 to 10, spread of about 2)
+3. night-time recumbent rest in minutes per night (typical values around 140 to 230, spread of about 45)
+4. faecal glucocorticoid metabolites in nanograms per gram of dry faeces (typical values around 40 to 85, spread of about 20)
+5. total feeding bout duration in minutes per day (typical values around 360 to 500, spread of about 60)
+6. social proximity as a percentage of scan samples within one body length of another elephant (typical values around 15 to 40, spread of about 10)
+
+DATA FILE
+
+Write one CSV at the project root holding the invented but realistic measurements. One row per elephant, 34 rows plus a header. Columns in this order: an animal identifier, the enrichment programme group, then one column per outcome in the declared order above. Use lower case column names with underscores, and end each outcome column name with its unit. The group column holds exactly two distinct values, one per programme. Every elephant has a value in every outcome column; there are no blank cells. Make the values plausible for captive Asian elephants, with realistic within-group spread and modest, not identical, differences between the two programmes.
+
+ANALYSIS
+
+Write a single Python script named analysis.py at the project root, and control the family-wise error with a label-shuffling procedure you write yourself rather than with any packaged correction.
+
+First compute, for each of the six declared outcomes, the observed two-group test statistic using a standard two-sample significance test and the same kind of test for every outcome. Then build the reference distribution: shuffle the group labels 5000 times, a number fixed in advance and stated in the script, and on each shuffled dataset recompute the test statistic for all six outcomes and keep only the largest absolute statistic across the whole family for that shuffle. That gives 5000 family-maximum values. Set a fixed random seed so the run reproduces.
+
+Each outcome's verdict comes from its observed statistic's standing against that family-maximum reference distribution, at the conventional 0.05 family-wise level. Print each outcome's observed statistic, its standing against the reference, and the critical family-maximum value. No verdict may rest on an unadjusted per-outcome p-value.
+
+REPORT
+
+Write a short report at the project root. Begin with a brief data description that says what one row represents and lists every column with its meaning and unit. Then explain the label-shuffling procedure in plain words, state the exact number of shuffles, and explain why comparing each outcome against the distribution of the family maximum controls the family-wise error rate across all six outcomes. Then give the per-outcome observed statistics and verdicts. Finish with a short conclusion about the two enrichment programmes.
+
+Make sure analysis.py runs from the project root and that the numbers in the report match what it prints.

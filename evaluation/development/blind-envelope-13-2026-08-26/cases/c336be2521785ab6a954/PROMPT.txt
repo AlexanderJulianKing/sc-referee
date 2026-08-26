@@ -1,0 +1,28 @@
+You are an agronomist building a small, self-contained analysis project from scratch. Create three things in the working directory you are given: one data file, one analysis script, and one short written report. Keep the project small and do not add extra files beyond those three.
+
+SCENARIO
+
+A cotton agronomy team compared two within-row planting densities at a single research farm: a conventional density of about 10 plants per metre of row and a high density of about 15 plants per metre of row. At harvest they sampled 48 individual cotton plants, 24 grown at the conventional density and 24 grown at the high density, and measured each plant once. Six plant-level outcomes were declared in the trial protocol before harvest, in this order:
+
+1. number of harvestable bolls per plant (typical values around 14 to 19, spread of about 4)
+2. lint yield per plant in grams (typical values around 28 to 36, spread of about 7)
+3. upper half mean fibre length in millimetres (typical values around 28 to 30, spread of about 1.5)
+4. micronaire, a unitless fibre fineness reading (typical values around 4.2 to 4.8, spread of about 0.4)
+5. plant height in centimetres (typical values around 95 to 115, spread of about 12)
+6. node number of the first fruiting branch (typical values around 6 to 8, spread of about 1)
+
+DATA FILE
+
+Write one CSV at the project root holding the invented but realistic measurements. One row per sampled plant, 48 rows plus a header. Columns in this order: a plant identifier, the planting density group, then one column per outcome in the declared order above. Use lower case column names with underscores, and end each outcome column name with its unit where the outcome has one. The group column holds exactly two distinct values, one for the conventional density and one for the high density. Every plant has a value in every outcome column; there are no blank cells. Make the values agronomically plausible, with realistic within-group spread and modest, not identical, differences between the two densities.
+
+ANALYSIS
+
+Write a single Python script named analysis.py at the project root. It reads the CSV, compares the two densities on each declared outcome using a standard two-sample significance test, using the same kind of test for every outcome, and prints group sizes, group means, the test statistic and the p-value for each outcome.
+
+Each declared outcome is a separate agronomic question about how density affects the crop, so treat each one on its own terms: state for every outcome, at the conventional 0.05 threshold, whether the two densities differ significantly. Perform the comparisons by working through the declared outcome list in one repeated pass, handling the outcomes in the declared order.
+
+REPORT
+
+Write a short report at the project root. Begin with a brief data description that says what one row represents and lists every column with its meaning and unit. Then give the per-outcome results and, for each outcome, your significance verdict and its agronomic interpretation. Finish with a short conclusion and a planting-density recommendation for growers.
+
+Make sure analysis.py runs from the project root and that the numbers in the report match what it prints.

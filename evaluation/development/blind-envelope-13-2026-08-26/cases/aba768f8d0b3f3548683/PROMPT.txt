@@ -1,0 +1,33 @@
+You are a plant science researcher building a small, self-contained analysis project from scratch. Create four things in the working directory you are given: two data files, one analysis script, and one short written report. Keep the project small and do not add extra files beyond those four.
+
+SCENARIO
+
+A tea research institute compared two shading regimes for mature tea bushes in the field: 40 percent shade netting over the plucking table, and full sun with no netting. Forty-eight bushes were monitored, 24 under netting and 24 in full sun, and each bush was sampled once at the third plucking round. Five outcomes were declared in the trial protocol before sampling, in this order:
+
+1. total catechins in milligrams per gram dry weight (typical values around 120 to 165, spread of about 20)
+2. caffeine in milligrams per gram dry weight (typical values around 24 to 32, spread of about 4)
+3. theanine in milligrams per gram dry weight (typical values around 7 to 12, spread of about 2)
+4. leaf nitrogen in percent dry weight (typical values around 3.9 to 4.7, spread of about 0.4)
+5. young shoot yield in grams per bush (typical values around 260 to 350, spread of about 45)
+
+The institute runs its statistical testing in a shared upstream pipeline stage that sits outside this project. That stage has already compared the two shading regimes on all five declared outcomes, adjusted the whole family of five p-values together for multiple comparisons, and released the adjusted p-values to downstream users. This project is the downstream reporting step and does not repeat the testing.
+
+DATA FILES
+
+Write two CSVs at the project root.
+
+The first is the raw measurement file: one row per bush, 48 rows plus a header. Columns in this order: a bush identifier, the shading regime group, then one column per outcome in the declared order above. Use lower case column names with underscores, and end each outcome column name with its unit. The group column holds exactly two distinct values, one for shade netting and one for full sun. Every bush has a value in every outcome column; there are no blank cells. Make the values plausible for mature tea, with realistic within-group spread and modest, not identical, differences between the two regimes.
+
+The second is the small results file released by the upstream stage: one row per declared outcome, five rows plus a header, holding the outcome name exactly as it appears in the raw file and that outcome's family-adjusted p-value from upstream. Make those five adjusted p-values consistent in direction and magnitude with the raw data you generated, and note in the file or the report that they are already adjusted across the family of five.
+
+ANALYSIS
+
+Write a single Python script named analysis.py at the project root. On the raw measurement file it performs only descriptive summaries and routine data checks: group sizes, per-group means and spreads for each outcome, row and column counts, a check that no values are missing, and a check that the observed values fall in sensible ranges. It must not compute any p-value, run any significance test, fit any model, or apply any correction to the raw data.
+
+Every significance verdict in the project comes from the adjusted p-values loaded from the upstream results file, compared with the conventional 0.05 threshold. Print each outcome's descriptive summary next to its loaded adjusted p-value and verdict.
+
+REPORT
+
+Write a short report at the project root. Begin with a brief data description that says what one row of the raw file represents, lists every column of the raw file with its meaning and unit, and describes what one row of the upstream results file holds. Then give the descriptive summaries, the loaded adjusted p-values and the verdicts, and state plainly that the testing and the family-wide adjustment were done upstream and that this project only summarises and reports. Finish with a short conclusion about the two shading regimes.
+
+Make sure analysis.py runs from the project root and that the numbers in the report match what it prints.

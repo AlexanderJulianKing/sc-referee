@@ -1,0 +1,21 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "trail_midsole_biomechanics.csv",
+      "group_contrast_column": "midsole_group",
+      "outcome_columns": [
+        "ground_contact_time_ms",
+        "vertical_oscillation_cm",
+        "cadence_steps_per_min",
+        "rpe_borg_6_20",
+        "finish_time_s"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "groundnut_drying_quality.csv",
+      "group_contrast_column": "drying_method",
+      "outcome_columns": [
+        "moisture_content_percent_wb",
+        "aflatoxin_b1_ug_per_kg",
+        "free_fatty_acids_percent_oleic"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

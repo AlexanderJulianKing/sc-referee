@@ -1,0 +1,21 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "gout_titration_outcomes.csv",
+      "group_contrast_column": "titration_schedule",
+      "outcome_columns": [
+        "serum_urate_umol_l",
+        "gout_flares_past_3_months_count",
+        "egfr_ml_min_1_73m2",
+        "crp_mg_l",
+        "worst_joint_pain_0_10_scale"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

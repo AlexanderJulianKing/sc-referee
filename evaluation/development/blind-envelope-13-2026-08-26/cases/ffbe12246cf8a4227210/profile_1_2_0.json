@@ -1,0 +1,24 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "ostrich_chick_grower_trial.csv",
+      "group_contrast_column": "diet_group",
+      "outcome_columns": [
+        "body_weight_kg",
+        "average_daily_gain_g_per_day",
+        "feed_conversion_ratio",
+        "tibiotarsus_length_cm",
+        "hock_circumference_cm",
+        "serum_total_protein_g_per_l",
+        "serum_calcium_mmol_per_l",
+        "packed_cell_volume_percent"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

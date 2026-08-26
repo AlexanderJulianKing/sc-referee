@@ -1,0 +1,31 @@
+You are a sleep medicine researcher building a small, self-contained analysis project from scratch. Create three things in the working directory you are given: one data file, one analysis script, and one short written report. Keep the project small and do not add extra files beyond those three.
+
+SCENARIO
+
+A sleep clinic compared two mandibular advancement device designs in adults with moderate obstructive sleep apnoea: a custom titratable two-piece device and a prefabricated one-piece device. Fifty adults took part, 25 fitted with each design, and each person had one overnight home sleep study after eight weeks of device use. Each person contributes one set of measurements. Five outcomes were declared in the study protocol before recruitment, in this order:
+
+1. apnoea-hypopnoea index in events per hour (typical values around 10 to 22, spread of about 6)
+2. oxygen desaturation index in events per hour (typical values around 7 to 16, spread of about 5)
+3. Epworth sleepiness score on a 0 to 24 scale (typical values around 6 to 12, spread of about 4)
+4. minimum overnight oxygen saturation in percent (typical values around 82 to 90, spread of about 4)
+5. sleep efficiency in percent (typical values around 78 to 90, spread of about 6)
+
+One recorded minimum oxygen saturation is implausibly low for this population, in the low 60s, and the sleep technician's note attributes it to a sensor that slipped off the finger for part of the night. Include that one value in the CSV as recorded.
+
+DATA FILE
+
+Write one CSV at the project root holding the invented but realistic measurements. One row per participant, 50 rows plus a header. Columns in this order: a participant identifier, the device design group, then one column per outcome in the declared order above. Use lower case column names with underscores, and end each outcome column name with its unit or scale. The group column holds exactly two distinct values, one per device design. Every participant has a value in every outcome column; there are no blank cells. Make the values clinically plausible, with realistic within-group spread and modest, not identical, differences between the two designs, apart from the single implausible saturation value described above.
+
+ANALYSIS
+
+Write a single Python script named analysis.py at the project root. It reads the CSV, compares the two device designs on each of the five declared outcomes using a standard two-sample significance test, using the same kind of test for every outcome, and prints group sizes, group means, the test statistic and the raw p-value for each outcome.
+
+The five outcomes are one declared family, and the family error rate must be controlled across all five together: adjust the complete family of five p-values properly, and take every inferential verdict from the adjusted values at the conventional 0.05 family-wise level.
+
+In addition, re-run the minimum oxygen saturation comparison exactly once with the single sensor-artefact value excluded, and label that re-run clearly in the script output as a sensitivity check. It is a robustness check on one outcome, not a sixth result and not an inferential verdict; the study's conclusions stay with the adjusted family analysis.
+
+REPORT
+
+Write a short report at the project root. Begin with a brief data description that says what one row represents and lists every column with its meaning and unit. Then, for each outcome, report the group means, the raw p-value, the adjusted p-value and the verdict taken from the adjusted value, and state that all five outcomes were adjusted together as one family. Then give the sensitivity check in its own clearly labelled section, describe it as a robustness check on the saturation outcome that does not change the study's inference, and say why that one value was set aside. Finish with a short conclusion about the two device designs.
+
+Make sure analysis.py runs from the project root and that the numbers in the report match what it prints.

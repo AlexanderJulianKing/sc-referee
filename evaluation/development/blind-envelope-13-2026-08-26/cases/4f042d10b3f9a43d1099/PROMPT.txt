@@ -1,0 +1,25 @@
+You are a food scientist building a small, self-contained analysis project from scratch. Create three things in the working directory you are given: one data file, one analysis script, and one short written report. Keep the project small and do not add extra files beyond those three.
+
+SCENARIO
+
+A postharvest team compared two drying methods for freshly lifted groundnuts (peanuts) delivered by smallholder farmers to a collection centre. Half of the incoming lots were dried in a simple solar dryer and half were dried in the traditional way on open mats. Each lot is one farmer delivery of roughly 50 kg, dried as a unit and then sampled once for laboratory analysis. There are 40 lots in total, 20 dried in the solar dryer and 20 dried on mats. Three quality outcomes were declared in the study plan before the season, in this order:
+
+1. moisture content in percent wet basis (typical values around 7 to 9, spread of about 0.8)
+2. aflatoxin B1 in micrograms per kilogram (typical values around 4 to 15, right-skewed, spread of about 5)
+3. free fatty acids in percent as oleic acid (typical values around 0.7 to 1.2, spread of about 0.3)
+
+DATA FILE
+
+Write one CSV at the project root holding the invented but realistic measurements. One row per lot, 40 rows plus a header. Columns in this order: a lot identifier, the drying method group, then one column per outcome in the declared order above. Use lower case column names with underscores, and end each outcome column name with its unit. The group column holds exactly two distinct values, one for solar drying and one for mat drying. Every lot has a value in every outcome column; there are no blank cells. Make the values plausible for a humid tropical harvest season, with realistic within-group spread and modest, not identical, differences between the two drying methods.
+
+ANALYSIS
+
+Write a single Python script named analysis.py at the project root. It reads the CSV, compares the two drying methods on each declared outcome using a standard two-sample significance test, using the same kind of test for every outcome, and prints group sizes, group means, the test statistic and the p-value for each outcome.
+
+Each declared outcome is a distinct quality attribute with its own acceptance limit, so treat each one on its own terms: state for every outcome, at the conventional 0.05 threshold, whether the two drying methods differ significantly. Gather the per-outcome results into a single compact collection built in one go over the declared outcome list, then read the verdicts off that collection.
+
+REPORT
+
+Write a short report at the project root. Begin with a brief data description that says what one row represents and lists every column with its meaning and unit. Then give the per-outcome results and, for each outcome, your significance verdict and what it means for lot quality and food safety. Finish with a short conclusion and a recommendation to the collection centre.
+
+Make sure analysis.py runs from the project root and that the numbers in the report match what it prints.

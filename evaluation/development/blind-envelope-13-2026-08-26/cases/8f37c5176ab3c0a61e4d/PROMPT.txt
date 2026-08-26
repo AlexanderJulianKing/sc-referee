@@ -1,0 +1,34 @@
+You are a public health epidemiologist building a small, self-contained analysis project from scratch. Create three things in the working directory you are given: one data file, one analysis script, and one short written report. Keep the project small and do not add extra files beyond those three.
+
+SCENARIO
+
+A school-based cohort study compared cardiometabolic measurements in 96 adolescents aged 14 to 16 who were classified in advance, from four weeks of device-recorded screen use, into a high recreational screen time group and a low recreational screen time group. There are 48 adolescents in each group, and each adolescent was measured once at a single morning fasting visit. Six outcomes were declared in the analysis plan before any measurement was examined, in this order:
+
+1. body mass index z-score for age and sex (typical values around minus 0.2 to 1.2, spread of about 1)
+2. waist circumference in centimetres (typical values around 70 to 86, spread of about 9)
+3. fasting insulin in milli-international units per litre (typical values around 8 to 16, spread of about 5)
+4. fasting triglycerides in millimoles per litre (typical values around 0.8 to 1.5, spread of about 0.4)
+5. HDL cholesterol in millimoles per litre (typical values around 1.1 to 1.5, spread of about 0.3)
+6. alanine aminotransferase in units per litre (typical values around 15 to 30, spread of about 9)
+
+Before any analysis, the study statistician split the cohort into a discovery half and a validation half by a fixed random allocation stored with the data: 48 adolescents in the discovery half and 48 in the validation half, with the two screen time groups balanced within each half, so each half holds 24 high and 24 low screen time adolescents.
+
+DATA FILE
+
+Write one CSV at the project root holding the invented but realistic measurements. One row per adolescent, 96 rows plus a header. Columns in this order: a participant identifier, the screen time group, the analysis half, then one column per outcome in the declared order above. Use lower case column names with underscores, and end each outcome column name with its unit where it has one. The group column holds exactly two distinct values, one for high and one for low screen time; the analysis half column holds exactly two distinct values, one naming the discovery half and one naming the validation half. Every adolescent has a value in every outcome column; there are no blank cells. Make the values plausible for this age range, with realistic within-group spread and modest, not identical, differences between the two screen time groups.
+
+ANALYSIS
+
+Write a single Python script named analysis.py at the project root. Run the analysis in two explicit stages, using a standard two-sample significance test throughout and the same kind of test for every outcome.
+
+Stage one, screening: using only the discovery half, compare the two screen time groups on all six declared outcomes and carry forward only those outcomes that pass screening. State the screening rule you use in the script output.
+
+Stage two, confirmation: using only the validation half, test only the outcomes carried forward, and judge them at a significance level adjusted for how many outcomes were carried forward into this stage. Print how many outcomes entered stage two and the adjusted level used there.
+
+The study's conclusions come only from the validation stage. Discovery-half results are screening output and must never be reported as confirmed findings.
+
+REPORT
+
+Write a short report at the project root. Begin with a brief data description that says what one row represents and lists every column with its meaning and unit, including the analysis half column. Then report the discovery screening results, which outcomes were carried forward, the adjusted level used in validation and the validation results, and make plain that every conclusion rests on the validation half. Finish with a short conclusion about screen time and cardiometabolic measurements in this cohort.
+
+Make sure analysis.py runs from the project root and that the numbers in the report match what it prints.
